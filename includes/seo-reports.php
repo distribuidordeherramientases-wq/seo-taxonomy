@@ -26,6 +26,12 @@ if (file_exists($seo_ai_search_report_file)) {
     require_once $seo_ai_search_report_file;
 }
 
+// Importacion/exportacion JSON correctiva para contenidos detectados en Anomalias.
+$seo_anomalies_content_json_file = __DIR__ . '/seo-anomalies-content-json.php';
+if (file_exists($seo_anomalies_content_json_file)) {
+    require_once $seo_anomalies_content_json_file;
+}
+
 // Acciones seguras para limpiar FAQs huérfanas.
 add_action('admin_post_seo_delete_orphan_category_faqs', 'seo_delete_orphan_category_faqs_handler');
 add_action('admin_post_seo_delete_orphan_product_faqs', 'seo_delete_orphan_product_faqs_handler');
@@ -2297,6 +2303,10 @@ function seo_render_anomalies_report() {
 
     echo '<h2>🚨 Reporte de Auditoría y Control de Estructura</h2>';
     echo '<p>Monitoreo global de la integridad estructural de Nodos y relaciones semánticas en la base de datos.</p>';
+
+    if (function_exists('seo_reports_anomalies_content_json_render_panel')) {
+        seo_reports_anomalies_content_json_render_panel();
+    }
     
     echo "<div style='background: #fff; border: 1px solid #ccd0d4; padding: 20px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>";
 

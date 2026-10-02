@@ -6,10 +6,11 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Export {
-    const SCHEMA = 'seo-solucionador-export-v2';
+    const SCHEMA = 'seo-solucionador-export-v3';
 
     public static function init() {
         add_action('admin_post_seo_solucionador_export_json', array(__CLASS__, 'download'));
+        add_action('admin_post_seo_solucionador_export_report_json', array(__CLASS__, 'download_simple_report'));
     }
 
     public static function download() {
@@ -47,6 +48,129 @@ final class SEO_Solucionador_Export {
         exit;
     }
 
+    public static function download_simple_report() {
+        if (!current_user_can('manage_options')) {
+            wp_die('No tienes permisos para exportar Solucionador.');
+        }
+        check_admin_referer('seo_solucionador_export_report_json');
+        SEO_Solucionador_DB::maybe_install();
+
+        $payload = self::build_simple_report();
+        $json = wp_json_encode(
+            $payload,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+        if (!is_string($json)) {
+            wp_die('No se pudo generar el informe JSON de Solucionador.');
+        }
+
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+
+        $filename = sanitize_file_name('solucionador-informe-' . wp_date('Ymd-His') . '.json');
+        nocache_headers();
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Length: ' . strlen($json));
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON generado por wp_json_encode().
+        echo $json;
+        exit;
+    }
+
+    public static function build_simple_report() {
+        global $wpdb;
+
+        $dossiers = SEO_Solucionador_DB::dossiers_table();
+        $proposal_rows = SEO_Solucionador_DB::table_exists($dossiers)
+            ? (array) $wpdb->get_results(
+                "SELECT * FROM {$dossiers} WHERE question_count>0 ORDER BY category_name ASC,id ASC",
+                ARRAY_A
+            )
+            : array();
+
+        $posts = array();
+        foreach ($proposal_rows as $dossier) {
+            $category_id = absint($dossier['category_id'] ?? 0);
+            if (!$category_id) continue;
+
+            $key = 'dependiente-qa-basic|resolver|category-' . $category_id . '|general|general';
+            $topic_id = SEO_Solucionador_DB::get_topic_id_by_key($key);
+            $topic = $topic_id ? SEO_Solucionador_DB::get_topic($topic_id) : array();
+            $title = trim((string) ($topic['suggested_title'] ?? ''));
+            if ($title === '') {
+                $title = trim((string) ($dossier['category_name'] ?? '')) . ': preguntas habituales, elección y uso';
+            }
+
+            $post_id = absint($topic['draft_post_id'] ?? 0);
+            $post_status = $post_id ? (string) get_post_status($post_id) : '';
+            $state = 'proposed';
+            if ($post_status === 'publish') $state = 'published';
+            elseif ($post_status && $post_status !== 'trash') $state = 'draft';
+            elseif (sanitize_key((string) ($topic['workflow_state'] ?? '')) === 'rejected') $state = 'discarded';
+
+            $questions = array();
+            foreach ((array) SEO_Solucionador_Dossiers::question_details($category_id) as $detail) {
+                $question = trim((string) ($detail['question'] ?? ''));
+                if ($question === '') continue;
+                $questions[] = array(
+                    'question'=>(string) $question,
+                    'answer'=>SEO_Solucionador_Dossiers::answer_text((array) $detail),
+                    'validation'=>(string) ($detail['evaluation_status'] ?? ''),
+                    'validated_at'=>(string) ($detail['observed_at'] ?? ''),
+                );
+            }
+
+            $posts[] = array(
+                'category_id'=>$category_id,
+                'category'=>(string) ($dossier['category_name'] ?? ''),
+                'title'=>$title,
+                'state'=>$state,
+                'wordpress_post_id'=>$post_id ?: null,
+                'questions'=>$questions,
+            );
+        }
+
+        $google = array();
+        $meta_key = SEO_Solucionador_Posts::META_TOPIC_ID;
+        $created_posts = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DISTINCT p.ID,p.post_title,p.post_status
+                 FROM {$wpdb->posts} p
+                 INNER JOIN {$wpdb->postmeta} pm ON pm.post_id=p.ID
+                 WHERE p.post_type='post' AND p.post_status<>'trash' AND pm.meta_key=%s
+                 ORDER BY p.post_date DESC,p.ID DESC",
+                $meta_key
+            ),
+            ARRAY_A
+        );
+        foreach ($created_posts as $row) {
+            $post_id = absint($row['ID'] ?? 0);
+            $metrics = function_exists('seo_post_reports_get_summary')
+                ? (array) seo_post_reports_get_summary($post_id,28)
+                : array();
+            $google[] = array(
+                'post_id'=>$post_id,
+                'title'=>(string) ($row['post_title'] ?? ''),
+                'status'=>(string) ($row['post_status'] ?? ''),
+                'period_days'=>28,
+                'has_snapshot'=>!empty($metrics['has_snapshot']),
+                'impressions'=>absint($metrics['impressions'] ?? 0),
+                'clicks'=>absint($metrics['clicks'] ?? 0),
+                'pageviews'=>absint($metrics['pageviews'] ?? 0),
+                'updated'=>absint($metrics['updated'] ?? 0),
+            );
+        }
+
+        return array(
+            'schema'=>'seo-solucionador-simple-v1',
+            'generated_at'=>current_time('mysql'),
+            'posts'=>$posts,
+            'google'=>$google,
+        );
+    }
+
     public static function build_payload() {
         global $wpdb;
 
@@ -55,7 +179,7 @@ final class SEO_Solucionador_Export {
         $post_topics_table = SEO_Solucionador_DB::post_topics_table();
         $coverage_table = SEO_Solucionador_DB::coverage_table();
         $workflow_table = SEO_Solucionador_DB::workflow_table();
-        $tracking_table = SEO_Solucionador_DB::tracking_table();
+        $dossiers_table = SEO_Solucionador_DB::dossiers_table();
 
         $topics = SEO_Solucionador_DB::table_exists($topics_table)
             ? (array) $wpdb->get_results(
@@ -101,9 +225,19 @@ final class SEO_Solucionador_Export {
         $workflow_rows = SEO_Solucionador_DB::table_exists($workflow_table)
             ? (array) $wpdb->get_results("SELECT * FROM {$workflow_table} ORDER BY topic_id,id ASC",ARRAY_A)
             : array();
-        $tracking_rows = SEO_Solucionador_DB::table_exists($tracking_table)
-            ? (array) $wpdb->get_results("SELECT * FROM {$tracking_table} ORDER BY topic_id,snapshot_at,id ASC",ARRAY_A)
+
+        $dossier_rows = SEO_Solucionador_DB::table_exists($dossiers_table)
+            ? (array) $wpdb->get_results(
+                "SELECT id,category_id,category_name,question_count,question_ids,score_avg,last_validated_at,source_hash,updated_at
+                 FROM {$dossiers_table} ORDER BY category_name,id",
+                ARRAY_A
+            )
             : array();
+        foreach ($dossier_rows as &$dossier_row) {
+            $dossier_row['question_ids'] = SEO_Solucionador_DB::decode_json($dossier_row['question_ids'] ?? '[]',array());
+            $dossier_row['note'] = 'Los resultados pesados de cada pregunta se cargan bajo demanda al abrir el brief.';
+        }
+        unset($dossier_row);
 
         return array(
             'schema' => self::SCHEMA,
@@ -115,11 +249,16 @@ final class SEO_Solucionador_Export {
                 'db_version' => (string) get_option(SEO_Solucionador_DB::VERSION_OPTION, ''),
             ),
             'last_scan' => (array) get_option('seo_solucionador_last_scan', array()),
+            'academy' => class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array(),
             'summary' => self::summary($topics_table, $evidence_table, $coverage_table),
+            'dossiers' => $dossier_rows,
             'topics' => $topic_rows,
             'editorial_coverage' => $coverage_rows,
             'workflow_history' => $workflow_rows,
-            'tracking_history' => $tracking_rows,
+            'measurement' => array(
+                'source'=>'Analista',
+                'note'=>'Los KPIs globales no se exportan desde la tabla histórica de tracking de Solucionador.',
+            ),
         );
     }
 

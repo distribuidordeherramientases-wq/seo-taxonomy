@@ -163,7 +163,7 @@ function seo_proveedores_storage_receta( $kind, $recipe_id ) {
 
     wp_mkdir_p( $dir );
 
-    if ( ! is_dir( $dir ) || ! is_writable( $dir ) ) {
+    if ( ! is_dir( $dir ) || ! wp_is_writable( $dir ) ) {
         return new WP_Error( 'supplier_storage_unwritable', 'No se puede escribir en la carpeta de importaciones de proveedores.' );
     }
 
@@ -178,6 +178,59 @@ function seo_proveedores_storage_receta( $kind, $recipe_id ) {
  *
  * @return string[]
  */
+/**
+ * Abre un stream local para lectura/escritura incremental de CSV.
+ *
+ * WP_Filesystem no expone recursos compatibles con fgetcsv()/fputcsv(), por
+ * lo que el motor de proveedores mantiene el recurso PHP encapsulado aquí.
+ *
+ * @param string $path Ruta local.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_proveedores_stream_open( $path, $mode ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV streaming requires a native PHP resource.
+    return fopen( $path, $mode );
+}
+
+/**
+ * Escribe bytes en un stream CSV.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param string   $data   Datos.
+ * @return int|false
+ */
+function seo_proveedores_stream_write( $stream, $data ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Required for BOM/direct streaming on the CSV resource.
+    return fwrite( $stream, $data );
+}
+
+/**
+ * Cierra un stream abierto por el motor de proveedores.
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_proveedores_stream_close( $stream ) {
+    if ( ! is_resource( $stream ) ) {
+        return false;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with resource-based CSV streaming.
+    return fclose( $stream );
+}
+
+/**
+ * Elimina un directorio temporal ya vacío tras limpiar sus archivos.
+ *
+ * @param string $dir Directorio local.
+ * @return bool
+ */
+function seo_proveedores_remove_empty_directory( $dir ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Temporary local directory is empty and must be removed after XLS conversion.
+    return @rmdir( $dir );
+}
+
 function seo_proveedores_cabecera_estandar() {
     return array_keys( seo_proveedores_campos_importacion() );
 }
@@ -258,13 +311,13 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
         'import_' . sanitize_key( $recipe['id'] ) . '_' . wp_date( 'Ymd_His' ) . '.csv'
     );
     $path = trailingslashit( $storage['dir'] ) . $filename;
-    $out  = fopen( $path, 'w' );
+    $out  = seo_proveedores_stream_open( $path, 'w' );
 
     if ( false === $out ) {
         return new WP_Error( 'supplier_prepared_open', 'No se pudo crear el CSV preparado.' );
     }
 
-    fwrite( $out, "\xEF\xBB\xBF" );
+    seo_proveedores_stream_write( $out, "\xEF\xBB\xBF" );
     fputcsv( $out, $standard, ';', '"', '' );
 
     $log = [
@@ -344,7 +397,7 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
         $log['preparados']++;
     }
 
-    fclose( $out );
+    seo_proveedores_stream_close( $out );
 
     if ( 0 === $log['preparados'] ) {
         wp_delete_file( $path );
@@ -858,7 +911,7 @@ function seo_proveedores_normalizar_cabecera( $value ) {
  * @return array|WP_Error
  */
 function seo_proveedores_analizar_csv( $path ) {
-    $handle = fopen( $path, 'r' );
+    $handle = seo_proveedores_stream_open( $path, 'r' );
 
     if ( false === $handle ) {
         return new WP_Error( 'open_failed', 'No se pudo abrir el archivo CSV.' );
@@ -866,7 +919,7 @@ function seo_proveedores_analizar_csv( $path ) {
 
     $first_line = fgets( $handle );
     if ( false === $first_line ) {
-        fclose( $handle );
+        seo_proveedores_stream_close( $handle );
         return new WP_Error( 'empty_file', 'El archivo esta vacio.' );
     }
 
@@ -875,7 +928,7 @@ function seo_proveedores_analizar_csv( $path ) {
     $header = fgetcsv( $handle, 0, $separator, '"', '' );
 
     if ( false === $header ) {
-        fclose( $handle );
+        seo_proveedores_stream_close( $handle );
         return new WP_Error( 'header_failed', 'No se pudo leer la cabecera del CSV.' );
     }
 
@@ -894,7 +947,7 @@ function seo_proveedores_analizar_csv( $path ) {
         }
     }
 
-    fclose( $handle );
+    seo_proveedores_stream_close( $handle );
 
     return [
         'format'     => 'csv',
@@ -1166,7 +1219,7 @@ function seo_proveedores_xls_filas( $path ) {
         foreach ( (array) glob( trailingslashit( $tmp_dir ) . '*' ) as $file ) {
             wp_delete_file( $file );
         }
-        @rmdir( $tmp_dir );
+        seo_proveedores_remove_empty_directory( $tmp_dir );
 
         return new WP_Error(
             'xls_convert_failed',
@@ -1179,7 +1232,7 @@ function seo_proveedores_xls_filas( $path ) {
     foreach ( (array) glob( trailingslashit( $tmp_dir ) . '*' ) as $file ) {
         wp_delete_file( $file );
     }
-    @rmdir( $tmp_dir );
+    seo_proveedores_remove_empty_directory( $tmp_dir );
 
     return $rows;
 }
@@ -1556,7 +1609,7 @@ function seo_proveedores_iterar_filas( $state ) {
         return;
     }
 
-    $handle = fopen( $state['path'], 'r' );
+    $handle = seo_proveedores_stream_open( $state['path'], 'r' );
     if ( false === $handle ) {
         return new WP_Error( 'open_failed', 'No se pudo abrir el CSV.' );
     }
@@ -1567,7 +1620,7 @@ function seo_proveedores_iterar_filas( $state ) {
         yield $row;
     }
 
-    fclose( $handle );
+    seo_proveedores_stream_close( $handle );
 }
 
 
@@ -2435,7 +2488,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
            AND ID IN ({$placeholders})",
         $product_ids
     );
-    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $post_sql is the direct result of $wpdb->prepare() above.\n    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
 
     foreach ( (array) $post_rows as $post_row ) {
         $product_id = absint( $post_row['ID'] ?? 0 );
@@ -2459,7 +2512,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
          ORDER BY tr.object_id ASC, tt.taxonomy ASC, t.name ASC",
         $product_ids
     );
-    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $term_sql is the direct result of $wpdb->prepare() above.\n    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
 
     foreach ( (array) $term_rows as $term_row ) {
         $product_id = absint( $term_row['object_id'] ?? 0 );
@@ -2498,7 +2551,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
                       v.label ASC",
             $product_ids
         );
-        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $semantic_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.\n        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
 
         foreach ( (array) $semantic_rows as $semantic_row ) {
             $product_id = absint( $semantic_row['object_id'] ?? 0 );
@@ -2547,7 +2600,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
              ORDER BY ot.object_id ASC, rv.label ASC",
             $product_ids
         );
-        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $canonical_role_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.\n        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
         $canonical_roles = [];
 
         foreach ( (array) $canonical_role_rows as $canonical_role_row ) {
@@ -2663,9 +2716,9 @@ function seo_proveedores_exportar_productos_csv() {
     $where_sql = implode( ' AND ', $where );
     $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
     if ( ! empty( $params ) ) {
-        $count_sql = $wpdb->prepare( $count_sql, $params );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal query template; filter values are passed separately as placeholders.\n        $count_sql = $wpdb->prepare( $count_sql, $params );
     }
-    $total = absint( $wpdb->get_var( $count_sql ) );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $count_sql is either a closed internal query or the result of $wpdb->prepare() above.\n    $total = absint( $wpdb->get_var( $count_sql ) );
 
     $filename_parts = [ 'seo_supplier_products_classified' ];
     if ( '' !== $provider ) {
@@ -2714,8 +2767,8 @@ function seo_proveedores_exportar_productos_csv() {
                 WHERE " . implode( ' AND ', $batch_where ) . "
                 ORDER BY id ASC
                 LIMIT {$batch_size}";
-        $sql = $wpdb->prepare( $sql, $batch_params );
-        $rows = $wpdb->get_results( $sql, ARRAY_A );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal batch query; all filter values are placeholders.\n        $sql = $wpdb->prepare( $sql, $batch_params );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above.\n        $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         if ( empty( $rows ) ) {
             break;
@@ -2840,7 +2893,7 @@ function seo_proveedores_exportar_productos_csv() {
         }
     } while ( count( $rows ) === $batch_size );
 
-    fclose( $output );
+    seo_proveedores_stream_close( $output );
     exit;
 }
 
@@ -5522,9 +5575,14 @@ function seo_proveedores_actualizar_estado_masivo() {
         }
 
         $select_sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id ASC";
-        $rows       = $params
-            ? $wpdb->get_results( $wpdb->prepare( $select_sql, $params ), ARRAY_A )
-            : $wpdb->get_results( $select_sql, ARRAY_A );
+        if ( $params ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal query template; filter values are placeholders.
+            $select_query = $wpdb->prepare( $select_sql, $params );
+        } else {
+            $select_query = $select_sql;
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed internal query or direct result of $wpdb->prepare().
+        $rows = $wpdb->get_results( $select_query, ARRAY_A );
 
         foreach ( $rows as $row ) {
             $row_imagenes_externas = seo_proveedores_resolver_modo_imagenes_externas(
@@ -5645,9 +5703,10 @@ function seo_proveedores_actualizar_estado_masivo() {
             $params
         );
 
-        $updated = $wpdb->query(
-            $wpdb->prepare( $sql, $query_params )
-        );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal UPDATE template; all mutable values are placeholders.
+        $prepared_update = $wpdb->prepare( $sql, $query_params );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_update is the direct result of $wpdb->prepare() above.
+        $updated = $wpdb->query( $prepared_update );
 
         if ( false === $updated ) {
             wp_die( 'No se pudo actualizar el estado de los productos filtrados.' );
@@ -6017,11 +6076,14 @@ function seo_proveedores_render_catalogo() {
         WHERE {$where_sql}
     ";
 
-    $total = (int) (
-        $params
-            ? $wpdb->get_var( $wpdb->prepare( $count_sql, $params ) )
-            : $wpdb->get_var( $count_sql )
-    );
+    if ( $params ) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE is assembled from closed internal clauses; filter values remain placeholders.
+        $count_query = $wpdb->prepare( $count_sql, $params );
+    } else {
+        $count_query = $count_sql;
+    }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed internal query or direct result of $wpdb->prepare().
+    $total = (int) $wpdb->get_var( $count_query );
 
     /*
      * Se incluyen siempre los campos auxiliares necesarios para precios,
@@ -6096,8 +6158,11 @@ function seo_proveedores_render_catalogo() {
         [ $per_page, $offset ]
     );
 
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SELECT/order fragments come from closed internal lists; pagination/filter values are placeholders.
+    $prepared_query = $wpdb->prepare( $query, $query_params );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_query is the direct result of $wpdb->prepare() above.
     $rows = $wpdb->get_results(
-        $wpdb->prepare( $query, $query_params ),
+        $prepared_query,
         ARRAY_A
     );
 

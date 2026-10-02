@@ -111,7 +111,7 @@ if (!function_exists('dht_render_amazon_product_block')) {
 
         $args = wp_parse_args($args, array(
             'limit' => 6,
-            'title' => 'Otras opciones que te pueden interesar',
+            'title' => 'Más opciones en Amazon',
         ));
 
         $base_intents = dht_amazon_product_intents($product);
@@ -131,21 +131,10 @@ if (!function_exists('dht_render_amazon_product_block')) {
         ?>
         <section class="dht-section dht-amazon-section dht-amazon-product-section" data-amazon-context="product" data-amazon-object-id="<?php echo esc_attr($product->get_id()); ?>">
             <div class="dht-container">
-            <header class="dht-section-header">
-                <span class="dht-amazon-kicker">Más opciones del mercado</span>
+            <header class="dht-section-header dht-amazon-product-header">
+                <span class="dht-amazon-kicker">Amazon</span>
                 <h2><?php echo esc_html($args['title']); ?></h2>
-                <p class="dht-section-subtitle">Alternativas y complementos relacionados con este producto.</p>
             </header>
-
-            <?php if (function_exists('dht_amazon_compare_points')) : ?>
-                <div class="dht-amazon-market-copy">
-                    <p>Si este producto no encaja exactamente con la aplicación que necesitas, puedes explorar otras variantes de su misma familia. Las opciones siguientes amplían medidas, capacidades, formatos y accesorios sin sustituir a los productos disponibles directamente en nuestra tienda.</p>
-                </div>
-                <div class="dht-amazon-compare">
-                    <h3>Qué conviene comparar antes de elegir</h3>
-                    <ul><?php foreach (dht_amazon_compare_points($family_name) as $point) : ?><li><?php echo esc_html($point); ?></li><?php endforeach; ?></ul>
-                </div>
-            <?php endif; ?>
 
             <?php if (!empty($products)) : ?>
                 <div class="dht-amazon-grid">
@@ -153,9 +142,7 @@ if (!function_exists('dht_render_amazon_product_block')) {
                 </div>
             <?php elseif (function_exists('dht_amazon_intent_links_markup')) : ?>
                 <?php dht_amazon_intent_links_markup($intents, 'product', (int)$product->get_id()); ?>
-                <?php if (current_user_can('manage_options')) : ?>
-                    <details class="dht-amazon-debug" style="margin-top:12px;"><summary><strong>Diagnóstico Amazon</strong></summary><div style="margin-top:7px;">Modo sin API. Las tarjetas anteriores son búsquedas afiliadas dinámicas. Consulta principal preparada: <code><?php echo esc_html($primary_query); ?></code>.</div></details>
-                <?php endif; ?>
+
             <?php endif; ?>
 
             </div>

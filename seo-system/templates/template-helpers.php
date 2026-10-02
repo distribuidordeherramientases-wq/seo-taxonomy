@@ -1976,6 +1976,14 @@ if (!function_exists('dht_template_external_comment_text')) {
 }
 
 if (!function_exists('dht_template_render_external_comments')) {
+    /**
+     * Renderiza comentarios externos persistidos por Comentarista.
+     *
+     * La seccion solo se imprime cuando existe al menos un comentario con texto
+     * valido. Los comentarios quedan plegados inicialmente para no saturar la
+     * ficha y mantienen separada cualquier valoracion externa de las reseñas
+     * WooCommerce de la tienda.
+     */
     function dht_template_render_external_comments($rows, $title, $context = 'product')
     {
         $context = in_array($context, array('product', 'category'), true) ? $context : 'product';
@@ -1990,6 +1998,17 @@ if (!function_exists('dht_template_render_external_comments')) {
         if (!$valid) {
             return;
         }
+
+        $comment_count = count($valid);
+        $summary_label = sprintf(
+            _n(
+                'Ver %d comentario externo',
+                'Ver %d comentarios externos',
+                $comment_count,
+                'seo-taxonomy'
+            ),
+            $comment_count
+        );
         ?>
         <section class="dht-external-comments dht-external-comments--<?php echo esc_attr($context); ?> seo-comentarista">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
@@ -1999,58 +2018,173 @@ if (!function_exists('dht_template_render_external_comments')) {
                 <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
             </header>
 
-            <div class="dht-external-comments__list">
-                <?php foreach ($valid as $external_comment) : ?>
-                    <?php
-                    $external_comment_text = dht_template_external_comment_text($external_comment);
-                    $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
-                        ? seo_comentarista_render_source_meta($external_comment)
-                        : '';
-                    $external_comment_rating = function_exists('seo_comentarista_rating_text')
-                        ? seo_comentarista_rating_text($external_comment)
-                        : '';
-                    $product_title = trim((string) ($external_comment['product_title'] ?? ''));
-                    $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
-                    ?>
-                    <article class="dht-external-comment">
-                        <?php if ('category' === $context && $product_title !== '') : ?>
-                            <h3 class="dht-external-comment__product">
-                                <?php if ($product_url !== '') : ?>
-                                    <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
-                                <?php else : ?>
-                                    <?php echo esc_html($product_title); ?>
-                                <?php endif; ?>
-                            </h3>
-                        <?php endif; ?>
+            <details class="dht-external-comments__details">
+                <summary>
+                    <span><?php echo esc_html($summary_label); ?></span>
+                    <span class="dht-external-comments__toggle" aria-hidden="true">+</span>
+                </summary>
 
-                        <div class="dht-external-comment__meta">
-                            <strong>Comentario externo</strong>
-                            <?php if ($external_comment_rating !== '') : ?>
-                                <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                <div class="dht-external-comments__list">
+                    <?php foreach ($valid as $external_comment) : ?>
+                        <?php
+                        $external_comment_text = dht_template_external_comment_text($external_comment);
+                        $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
+                            ? seo_comentarista_render_source_meta($external_comment)
+                            : '';
+                        $external_comment_rating = function_exists('seo_comentarista_rating_text')
+                            ? seo_comentarista_rating_text($external_comment)
+                            : '';
+                        $product_title = trim((string) ($external_comment['product_title'] ?? ''));
+                        $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
+                        ?>
+                        <article class="dht-external-comment">
+                            <?php if ('category' === $context && $product_title !== '') : ?>
+                                <h3 class="dht-external-comment__product">
+                                    <?php if ($product_url !== '') : ?>
+                                        <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
+                                    <?php else : ?>
+                                        <?php echo esc_html($product_title); ?>
+                                    <?php endif; ?>
+                                </h3>
                             <?php endif; ?>
-                        </div>
 
-                        <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
+                            <div class="dht-external-comment__meta">
+                                <strong>Comentario externo</strong>
+                                <?php if ($external_comment_rating !== '') : ?>
+                                    <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                                <?php endif; ?>
+                            </div>
 
-                        <?php if ($external_comment_meta !== '') : ?>
-                            <p class="dht-external-comment__source">
-                                <strong>Fuente:</strong>
-                                <?php echo wp_kses($external_comment_meta, array(
-                                    'strong' => array(),
-                                    'a' => array(
-                                        'href' => array(),
-                                        'target' => array(),
-                                        'rel' => array(),
-                                    ),
-                                )); ?>
-                            </p>
-                        <?php endif; ?>
-                    </article>
-                <?php endforeach; ?>
-            </div>
+                            <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
+
+                            <?php if ($external_comment_meta !== '') : ?>
+                                <p class="dht-external-comment__source">
+                                    <strong>Fuente:</strong>
+                                    <?php echo wp_kses($external_comment_meta, array(
+                                        'strong' => array(),
+                                        'a' => array(
+                                            'href' => array(),
+                                            'target' => array(),
+                                            'rel' => array(),
+                                        ),
+                                    )); ?>
+                                </p>
+                            <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </details>
             <?php if ('category' === $context) : ?></div><?php endif; ?>
         </section>
         <?php
+    }
+}
+
+/**
+ * Render contextual completo de una ficha de producto.
+ *
+ * Contrato:
+ * - seleccion editorial solo por product_cat + seo_relations(post_to_category);
+ * - rol mediante _seo_solucionador_content_role;
+ * - Comparador conserva su contrato publico propio;
+ * - Comentarista se lee de su tabla persistida;
+ * - no se usan categorias de posts, etiquetas, nombres, slugs ni texto libre.
+ */
+if (!function_exists('dht_template_render_product_context_blocks')) {
+    function dht_template_render_product_context_blocks($product_id)
+    {
+        $product_id = absint($product_id);
+        if ($product_id < 1) {
+            return;
+        }
+
+        $category_ids = dht_template_product_context_category_ids($product_id);
+
+        $dependiente_posts = dht_template_context_posts_for_categories(
+            $category_ids,
+            'dependiente_qa_basic',
+            4
+        );
+        dht_template_render_context_posts(
+            $dependiente_posts,
+            'Preguntas habituales',
+            'dependiente',
+            'product'
+        );
+
+        if (function_exists('seo_comparador_render_product_block')) {
+            seo_comparador_render_product_block($product_id);
+        }
+
+        $external_comments = dht_template_product_external_comments($product_id, 12);
+        dht_template_render_external_comments(
+            $external_comments,
+            'Comentarios externos sobre este producto',
+            'product'
+        );
+
+        $ingeniero_posts = dht_template_context_posts_for_categories(
+            $category_ids,
+            'ingeniero_qa_specialized',
+            4
+        );
+        dht_template_render_context_posts(
+            $ingeniero_posts,
+            'Información técnica',
+            'ingeniero',
+            'product'
+        );
+    }
+}
+
+/**
+ * Render contextual completo de una categoria de producto.
+ *
+ * La categoria usa exclusivamente su term_id product_cat. No se infiere
+ * contexto desde categorias editoriales de WordPress, tags, slug o nombre.
+ */
+if (!function_exists('dht_template_render_category_context_blocks')) {
+    function dht_template_render_category_context_blocks($term_id)
+    {
+        $term_id = absint($term_id);
+        if ($term_id < 1) {
+            return;
+        }
+
+        if (function_exists('seo_comparador_render_category_block')) {
+            seo_comparador_render_category_block($term_id);
+        }
+
+        $dependiente_posts = dht_template_context_posts_for_categories(
+            array($term_id),
+            'dependiente_qa_basic',
+            4
+        );
+        dht_template_render_context_posts(
+            $dependiente_posts,
+            'Preguntas habituales',
+            'dependiente',
+            'category'
+        );
+
+        $external_comments = dht_template_category_external_comments($term_id, 6, 2);
+        dht_template_render_external_comments(
+            $external_comments,
+            'Comentarios externos sobre productos de esta categoría',
+            'category'
+        );
+
+        $ingeniero_posts = dht_template_context_posts_for_categories(
+            array($term_id),
+            'ingeniero_qa_specialized',
+            4
+        );
+        dht_template_render_context_posts(
+            $ingeniero_posts,
+            'Información técnica',
+            'ingeniero',
+            'category'
+        );
     }
 }
 
@@ -2176,7 +2310,7 @@ if (!function_exists('dht_template_schema_merchant_organization_properties')) {
                 '@type'           => 'ShippingService',
                 '@id'             => $ids['shipping'],
                 'name'            => 'Envíos y entrega',
-                'description'     => 'Los gastos y plazos de entrega dependen del producto, proveedor, origen logístico y destino. Las condiciones aplicables se muestran o comunican durante la compra.',
+                'description'     => 'Entrega estimada en 2–3 días. Acompañamos la compra desde el fabricante, durante el transporte y hasta la entrega.',
                 'fulfillmentType' => 'https://schema.org/FulfillmentTypeDelivery',
                 'shippingConditions' => array(
                     '@type' => 'ShippingConditions',
@@ -2206,6 +2340,19 @@ if (!function_exists('dht_template_schema_offer_merchant_policies')) {
             ),
             'shippingDetails' => array(
                 '@type' => 'OfferShippingDetails',
+                'shippingDestination' => array(
+                    '@type'          => 'DefinedRegion',
+                    'addressCountry' => 'ES',
+                ),
+                'deliveryTime' => array(
+                    '@type' => 'ShippingDeliveryTime',
+                    'transitTime' => array(
+                        '@type'    => 'QuantitativeValue',
+                        'minValue' => 2,
+                        'maxValue' => 3,
+                        'unitCode' => 'DAY',
+                    ),
+                ),
                 'hasShippingService' => array(
                     '@id' => $ids['shipping'],
                 ),
@@ -2374,6 +2521,768 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
                 </div>
             </div>
         </aside>
+        <?php
+    }
+}
+
+
+/* DHT CATEGORY FACETED CATALOG 2026-10-02 */
+/*
+ * Catálogo facetado compartido por las plantillas de categoría.
+ * - Usa atributos canónicos marcados como filtrables.
+ * - Mantiene los filtros como navegación de usuario; las variantes con query
+ *   se marcan noindex desde la plantilla para evitar combinaciones SEO.
+ * - Los valores se resuelven en servidor para no limitar el filtrado a los
+ *   productos visibles en la primera página.
+ */
+if (!function_exists('dht_template_category_has_filter_query')) {
+    function dht_template_category_has_filter_query()
+    {
+        foreach (array_keys((array) $_GET) as $key) {
+            $key = (string) $key;
+            if (0 === strpos($key, 'dht_')) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+if (!function_exists('dht_template_category_all_product_ids')) {
+    function dht_template_category_all_product_ids($term_id)
+    {
+        $term_id = absint($term_id);
+        if ($term_id < 1) {
+            return array();
+        }
+
+        $cache_key = 'category_product_ids_' . $term_id;
+        $cached = wp_cache_get($cache_key, 'dht_template');
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $tax_query = array(
+            array(
+                'taxonomy'         => 'product_cat',
+                'field'            => 'term_id',
+                'terms'            => array($term_id),
+                'include_children' => true,
+                'operator'         => 'IN',
+            ),
+        );
+
+        if (function_exists('wc_get_product_visibility_term_ids')) {
+            $visibility = (array) wc_get_product_visibility_term_ids();
+            $excluded = array_filter(array(
+                absint($visibility['exclude-from-catalog'] ?? 0),
+            ));
+            if ($excluded) {
+                $tax_query['relation'] = 'AND';
+                $tax_query[] = array(
+                    'taxonomy' => 'product_visibility',
+                    'field'    => 'term_id',
+                    'terms'    => array_values($excluded),
+                    'operator' => 'NOT IN',
+                );
+            }
+        }
+
+        $query = new WP_Query(array(
+            'post_type'              => 'product',
+            'post_status'            => 'publish',
+            'posts_per_page'         => -1,
+            'fields'                 => 'ids',
+            'no_found_rows'          => true,
+            'ignore_sticky_posts'    => true,
+            'orderby'                => 'ID',
+            'order'                  => 'ASC',
+            'tax_query'              => $tax_query,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+        ));
+
+        $ids = array_values(array_unique(array_filter(array_map('absint', (array) $query->posts))));
+        wp_reset_postdata();
+        wp_cache_set($cache_key, $ids, 'dht_template', 300);
+
+        return $ids;
+    }
+}
+
+if (!function_exists('dht_template_category_meta_index')) {
+    function dht_template_category_meta_index($product_ids)
+    {
+        global $wpdb;
+
+        $product_ids = array_values(array_unique(array_filter(array_map('absint', (array) $product_ids))));
+        $index = array(
+            'price'  => array(),
+            'stock'  => array(),
+            'rating' => array(),
+        );
+
+        if (!$product_ids) {
+            return $index;
+        }
+
+        foreach (array_chunk($product_ids, 500) as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
+            $sql = "SELECT post_id, meta_key, meta_value
+                    FROM {$wpdb->postmeta}
+                    WHERE post_id IN ({$placeholders})
+                      AND meta_key IN ('_price', '_stock_status', '_wc_average_rating')";
+            $rows = $wpdb->get_results($wpdb->prepare($sql, $chunk), ARRAY_A);
+
+            foreach ((array) $rows as $row) {
+                $product_id = absint($row['post_id'] ?? 0);
+                if ($product_id < 1) {
+                    continue;
+                }
+
+                $meta_key = (string) ($row['meta_key'] ?? '');
+                $meta_value = (string) ($row['meta_value'] ?? '');
+
+                if ('_price' === $meta_key) {
+                    $index['price'][$product_id] = is_numeric($meta_value) ? (float) $meta_value : null;
+                } elseif ('_stock_status' === $meta_key) {
+                    $index['stock'][$product_id] = sanitize_key($meta_value);
+                } elseif ('_wc_average_rating' === $meta_key) {
+                    $index['rating'][$product_id] = is_numeric($meta_value) ? (float) $meta_value : 0.0;
+                }
+            }
+        }
+
+        return $index;
+    }
+}
+
+if (!function_exists('dht_template_category_attribute_bundle')) {
+    function dht_template_category_attribute_bundle($product_ids)
+    {
+        $product_ids = array_values(array_unique(array_filter(array_map('absint', (array) $product_ids))));
+        $product_values = array();
+        $facets = array();
+
+        if (!$product_ids || !function_exists('seo_attributes_get_rows_for_products')) {
+            return array(
+                'product_values' => array(),
+                'facets'         => array(),
+            );
+        }
+
+        foreach (array_chunk($product_ids, 400) as $chunk) {
+            $rows = (array) seo_attributes_get_rows_for_products($chunk);
+
+            foreach ($rows as $row) {
+                if (isset($row->attribute_filterable) && !(int) $row->attribute_filterable) {
+                    continue;
+                }
+                if (isset($row->attribute_visible) && !(int) $row->attribute_visible) {
+                    continue;
+                }
+
+                $product_id = absint($row->product_id ?? 0);
+                $type = sanitize_key((string) ($row->attribute_type ?? ''));
+                $value = trim(wp_strip_all_tags((string) ($row->attribute_value ?? '')));
+                if ($product_id < 1 || '' === $type || '' === $value) {
+                    continue;
+                }
+
+                $value_slug = sanitize_title(remove_accents($value));
+                if ('' === $value_slug) {
+                    continue;
+                }
+
+                $label = trim(wp_strip_all_tags((string) ($row->attribute_name ?? '')));
+                if ('' === $label) {
+                    $label = ucwords(str_replace(array('_', '-'), ' ', $type));
+                }
+
+                if (!isset($product_values[$product_id])) {
+                    $product_values[$product_id] = array();
+                }
+                if (!isset($product_values[$product_id][$type])) {
+                    $product_values[$product_id][$type] = array();
+                }
+                $product_values[$product_id][$type][$value_slug] = true;
+
+                if (!isset($facets[$type])) {
+                    $facets[$type] = array(
+                        'type'     => $type,
+                        'label'    => $label,
+                        'coverage' => array(),
+                        'values'   => array(),
+                    );
+                }
+
+                $facets[$type]['coverage'][$product_id] = true;
+                if (!isset($facets[$type]['values'][$value_slug])) {
+                    $facets[$type]['values'][$value_slug] = array(
+                        'slug'     => $value_slug,
+                        'label'    => $value,
+                        'products' => array(),
+                    );
+                }
+                $facets[$type]['values'][$value_slug]['products'][$product_id] = true;
+            }
+        }
+
+        $priority = array(
+            'marca' => 10,
+            'brand' => 11,
+            'fabricante' => 12,
+            'capacidad' => 20,
+            'potencia' => 30,
+            'presion' => 40,
+            'presion_maxima' => 41,
+            'voltaje' => 50,
+            'frecuencia' => 60,
+            'temperatura' => 70,
+            'material' => 80,
+            'uso' => 90,
+            'aplicacion' => 91,
+            'tipo' => 100,
+        );
+
+        foreach ($facets as $type => &$facet) {
+            $facet['coverage_count'] = count($facet['coverage']);
+            unset($facet['coverage']);
+
+            foreach ($facet['values'] as &$value) {
+                $value['count'] = count($value['products']);
+                unset($value['products']);
+            }
+            unset($value);
+
+            uasort($facet['values'], static function ($left, $right) {
+                $count_compare = ((int) ($right['count'] ?? 0)) <=> ((int) ($left['count'] ?? 0));
+                if (0 !== $count_compare) {
+                    return $count_compare;
+                }
+                return strnatcasecmp((string) ($left['label'] ?? ''), (string) ($right['label'] ?? ''));
+            });
+
+            $facet['values'] = array_slice($facet['values'], 0, 12, true);
+            $facet['priority'] = $priority[$type] ?? 500;
+        }
+        unset($facet);
+
+        $facets = array_filter($facets, static function ($facet) {
+            return count((array) ($facet['values'] ?? array())) >= 2
+                && (int) ($facet['coverage_count'] ?? 0) >= 2;
+        });
+
+        uasort($facets, static function ($left, $right) {
+            $priority_compare = ((int) ($left['priority'] ?? 500)) <=> ((int) ($right['priority'] ?? 500));
+            if (0 !== $priority_compare) {
+                return $priority_compare;
+            }
+            $coverage_compare = ((int) ($right['coverage_count'] ?? 0)) <=> ((int) ($left['coverage_count'] ?? 0));
+            if (0 !== $coverage_compare) {
+                return $coverage_compare;
+            }
+            return strnatcasecmp((string) ($left['label'] ?? ''), (string) ($right['label'] ?? ''));
+        });
+
+        $facets = array_slice($facets, 0, 7, true);
+
+        return array(
+            'product_values' => $product_values,
+            'facets'         => $facets,
+        );
+    }
+}
+
+if (!function_exists('dht_template_category_catalog_state')) {
+    function dht_template_category_catalog_state($term_id, $per_page = 24)
+    {
+        $term_id = absint($term_id);
+        $per_page = max(8, min(48, absint($per_page)));
+        $base_url = get_term_link($term_id, 'product_cat');
+        $base_url = is_wp_error($base_url) ? home_url('/') : (string) $base_url;
+
+        $all_ids = dht_template_category_all_product_ids($term_id);
+
+        $bundle_cache_key = 'category_facets_' . $term_id . '_' . md5(implode(',', $all_ids));
+        $cached_bundle = wp_cache_get($bundle_cache_key, 'dht_template');
+        if (is_array($cached_bundle) && isset($cached_bundle['meta'], $cached_bundle['attribute_bundle'])) {
+            $meta = (array) $cached_bundle['meta'];
+            $attribute_bundle = (array) $cached_bundle['attribute_bundle'];
+        } else {
+            $meta = dht_template_category_meta_index($all_ids);
+            $attribute_bundle = dht_template_category_attribute_bundle($all_ids);
+            wp_cache_set(
+                $bundle_cache_key,
+                array(
+                    'meta'             => $meta,
+                    'attribute_bundle' => $attribute_bundle,
+                ),
+                'dht_template',
+                300
+            );
+        }
+
+        $facets = (array) ($attribute_bundle['facets'] ?? array());
+        $product_values = (array) ($attribute_bundle['product_values'] ?? array());
+
+        $prices = array_values(array_filter(
+            array_map(
+                static function ($value) {
+                    return is_numeric($value) && (float) $value > 0 ? (float) $value : null;
+                },
+                (array) ($meta['price'] ?? array())
+            ),
+            static function ($value) {
+                return null !== $value;
+            }
+        ));
+        $catalog_min_price = $prices ? min($prices) : 0.0;
+        $catalog_max_price = $prices ? max($prices) : 0.0;
+
+        $selected_stock = isset($_GET['dht_stock'])
+            ? sanitize_key(wp_unslash((string) $_GET['dht_stock']))
+            : '';
+        $selected_stock = 'instock' === $selected_stock ? 'instock' : '';
+
+        $selected_min_price = isset($_GET['dht_min_price'])
+            ? max(0.0, (float) wc_format_decimal(wp_unslash((string) $_GET['dht_min_price'])))
+            : 0.0;
+        $selected_max_price = isset($_GET['dht_max_price'])
+            ? max(0.0, (float) wc_format_decimal(wp_unslash((string) $_GET['dht_max_price'])))
+            : 0.0;
+
+        $sort = isset($_GET['dht_sort'])
+            ? sanitize_key(wp_unslash((string) $_GET['dht_sort']))
+            : 'relevance';
+        $allowed_sorts = array('relevance', 'price_asc', 'price_desc', 'rating', 'newest');
+        if (!in_array($sort, $allowed_sorts, true)) {
+            $sort = 'relevance';
+        }
+
+        $selected_attributes = array();
+        foreach ($facets as $type => $facet) {
+            $param = 'dht_f_' . $type;
+            $raw_values = isset($_GET[$param]) ? (array) wp_unslash($_GET[$param]) : array();
+            $valid_values = array_keys((array) ($facet['values'] ?? array()));
+            $selected = array_values(array_unique(array_filter(array_map(
+                'sanitize_title',
+                $raw_values
+            ))));
+            $selected = array_values(array_intersect($selected, $valid_values));
+            if ($selected) {
+                $selected_attributes[$type] = $selected;
+            }
+        }
+
+        $filtered_ids = array();
+        foreach ($all_ids as $product_id) {
+            $product_id = absint($product_id);
+            if ($product_id < 1) {
+                continue;
+            }
+
+            if ('instock' === $selected_stock && 'instock' !== ($meta['stock'][$product_id] ?? '')) {
+                continue;
+            }
+
+            $price = $meta['price'][$product_id] ?? null;
+            if ($selected_min_price > 0 && (!is_numeric($price) || (float) $price < $selected_min_price)) {
+                continue;
+            }
+            if ($selected_max_price > 0 && (!is_numeric($price) || (float) $price > $selected_max_price)) {
+                continue;
+            }
+
+            $attribute_match = true;
+            foreach ($selected_attributes as $type => $wanted_values) {
+                $available = array_keys((array) ($product_values[$product_id][$type] ?? array()));
+                if (!$available || !array_intersect($wanted_values, $available)) {
+                    $attribute_match = false;
+                    break;
+                }
+            }
+            if (!$attribute_match) {
+                continue;
+            }
+
+            $filtered_ids[] = $product_id;
+        }
+
+        $query_args = array();
+        if ('instock' === $selected_stock) {
+            $query_args['dht_stock'] = 'instock';
+        }
+        if ($selected_min_price > 0) {
+            $query_args['dht_min_price'] = wc_format_decimal($selected_min_price, 2);
+        }
+        if ($selected_max_price > 0) {
+            $query_args['dht_max_price'] = wc_format_decimal($selected_max_price, 2);
+        }
+        foreach ($selected_attributes as $type => $values) {
+            $query_args['dht_f_' . $type] = $values;
+        }
+        if ('relevance' !== $sort) {
+            $query_args['dht_sort'] = $sort;
+        }
+
+        if ('price_asc' === $sort || 'price_desc' === $sort) {
+            $direction = 'price_desc' === $sort ? -1 : 1;
+            usort($filtered_ids, static function ($left, $right) use ($meta, $direction) {
+                $left_price = $meta['price'][$left] ?? null;
+                $right_price = $meta['price'][$right] ?? null;
+
+                $left_missing = !is_numeric($left_price);
+                $right_missing = !is_numeric($right_price);
+                if ($left_missing && $right_missing) {
+                    return $left <=> $right;
+                }
+                if ($left_missing) {
+                    return 1;
+                }
+                if ($right_missing) {
+                    return -1;
+                }
+
+                $compare = ((float) $left_price <=> (float) $right_price);
+                return $compare * $direction;
+            });
+        } elseif ('rating' === $sort) {
+            usort($filtered_ids, static function ($left, $right) use ($meta) {
+                $left_rating = (float) ($meta['rating'][$left] ?? 0);
+                $right_rating = (float) ($meta['rating'][$right] ?? 0);
+                $compare = $right_rating <=> $left_rating;
+                return 0 !== $compare ? $compare : ($right <=> $left);
+            });
+        }
+
+        $page = isset($_GET['dht_page']) ? max(1, absint($_GET['dht_page'])) : 1;
+        $total = count($filtered_ids);
+        $max_pages = $total > 0 ? (int) ceil($total / $per_page) : 1;
+        if ($page > $max_pages) {
+            $page = $max_pages;
+        }
+
+        $products = array();
+        if ($filtered_ids) {
+            $args = array(
+                'post_type'              => 'product',
+                'post_status'            => 'publish',
+                'posts_per_page'         => $per_page,
+                'paged'                  => $page,
+                'post__in'               => $filtered_ids,
+                'ignore_sticky_posts'    => true,
+                'update_post_meta_cache' => true,
+                'update_post_term_cache' => false,
+            );
+
+            if ('price_asc' === $sort || 'price_desc' === $sort || 'rating' === $sort) {
+                $args['orderby'] = 'post__in';
+            } elseif ('newest' === $sort) {
+                $args['orderby'] = 'date';
+                $args['order'] = 'DESC';
+            } else {
+                $args['orderby'] = array(
+                    'menu_order' => 'ASC',
+                    'date'       => 'DESC',
+                );
+            }
+
+            $query = new WP_Query($args);
+            foreach ((array) $query->posts as $product_post) {
+                try {
+                    $product = function_exists('wc_get_product') ? wc_get_product($product_post->ID) : null;
+                    if ($product && is_a($product, 'WC_Product')) {
+                        $products[] = $product;
+                    }
+                } catch (Throwable $e) {
+                    error_log('[DHT category facets] wc_get_product ID ' . absint($product_post->ID) . ': ' . $e->getMessage());
+                }
+            }
+            wp_reset_postdata();
+        }
+
+        $active_count = 0;
+        if ('instock' === $selected_stock) {
+            $active_count++;
+        }
+        if ($selected_min_price > 0 || $selected_max_price > 0) {
+            $active_count++;
+        }
+        foreach ($selected_attributes as $values) {
+            $active_count += count($values);
+        }
+
+        return array(
+            'term_id'             => $term_id,
+            'base_url'            => $base_url,
+            'all_ids'             => $all_ids,
+            'all_count'           => count($all_ids),
+            'products'            => $products,
+            'total'               => $total,
+            'page'                => $page,
+            'max_pages'           => $max_pages,
+            'per_page'            => $per_page,
+            'sort'                => $sort,
+            'facets'              => $facets,
+            'stock'               => $selected_stock,
+            'instock_count'       => count(array_filter((array) ($meta['stock'] ?? array()), static function ($status) { return 'instock' === $status; })),
+            'catalog_min_price'   => $catalog_min_price,
+            'catalog_max_price'   => $catalog_max_price,
+            'min_price'           => $selected_min_price,
+            'max_price'           => $selected_max_price,
+            'selected_attributes' => $selected_attributes,
+            'query_args'          => $query_args,
+            'active_count'        => $active_count,
+        );
+    }
+}
+
+if (!function_exists('dht_template_category_query_url')) {
+    function dht_template_category_query_url($state, $overrides = array(), $remove = array())
+    {
+        $base_url = (string) ($state['base_url'] ?? home_url('/'));
+        $args = (array) ($state['query_args'] ?? array());
+
+        foreach ((array) $remove as $key) {
+            unset($args[$key]);
+        }
+
+        /* La paginación previa no debe sobrevivir al cambio de un filtro. */
+        unset($args['dht_page']);
+
+        foreach ((array) $overrides as $key => $value) {
+            if (null === $value || '' === $value || array() === $value) {
+                unset($args[$key]);
+            } else {
+                $args[$key] = $value;
+            }
+        }
+
+        return $args ? add_query_arg($args, $base_url) : $base_url;
+    }
+}
+
+if (!function_exists('dht_template_render_category_filter_form')) {
+    function dht_template_render_category_filter_form($state, $variant = 'desktop')
+    {
+        $facets = (array) ($state['facets'] ?? array());
+        $selected_attributes = (array) ($state['selected_attributes'] ?? array());
+        $variant = 'mobile' === $variant ? 'mobile' : 'desktop';
+        ?>
+        <form class="dht-category-filter-form dht-category-filter-form--<?php echo esc_attr($variant); ?>" action="<?php echo esc_url($state['base_url'] ?? ''); ?>" method="get">
+            <?php if (!empty($state['sort']) && 'relevance' !== $state['sort']) : ?>
+                <input type="hidden" name="dht_sort" value="<?php echo esc_attr($state['sort']); ?>">
+            <?php endif; ?>
+
+            <div class="dht-category-filter-form__head">
+                <strong>Filtrar</strong>
+                <?php if (!empty($state['active_count'])) : ?>
+                    <a href="<?php echo esc_url($state['base_url']); ?>">Limpiar</a>
+                <?php endif; ?>
+            </div>
+
+            <?php if (!empty($state['instock_count'])) : ?>
+                <fieldset class="dht-category-filter-group">
+                    <legend>Disponibilidad</legend>
+                    <label class="dht-category-filter-option">
+                        <input type="checkbox" name="dht_stock" value="instock" <?php checked('instock', $state['stock'] ?? ''); ?>>
+                        <span>En stock</span>
+                        <small><?php echo esc_html(number_format_i18n((int) $state['instock_count'])); ?></small>
+                    </label>
+                </fieldset>
+            <?php endif; ?>
+
+            <?php if ((float) ($state['catalog_max_price'] ?? 0) > 0) : ?>
+                <fieldset class="dht-category-filter-group">
+                    <legend>Precio</legend>
+                    <div class="dht-category-price-filter">
+                        <label>
+                            <span>Desde</span>
+                            <input type="number" min="0" step="0.01" name="dht_min_price" value="<?php echo esc_attr(($state['min_price'] ?? 0) > 0 ? wc_format_decimal($state['min_price'], 2) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_decimal($state['catalog_min_price'] ?? 0, 2)); ?>">
+                        </label>
+                        <label>
+                            <span>Hasta</span>
+                            <input type="number" min="0" step="0.01" name="dht_max_price" value="<?php echo esc_attr(($state['max_price'] ?? 0) > 0 ? wc_format_decimal($state['max_price'], 2) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_decimal($state['catalog_max_price'] ?? 0, 2)); ?>">
+                        </label>
+                    </div>
+                </fieldset>
+            <?php endif; ?>
+
+            <?php foreach ($facets as $type => $facet) : ?>
+                <fieldset class="dht-category-filter-group">
+                    <legend><?php echo esc_html($facet['label'] ?? $type); ?></legend>
+                    <div class="dht-category-filter-options">
+                        <?php foreach ((array) ($facet['values'] ?? array()) as $value_slug => $value) : ?>
+                            <label class="dht-category-filter-option">
+                                <input
+                                    type="checkbox"
+                                    name="<?php echo esc_attr('dht_f_' . $type); ?>[]"
+                                    value="<?php echo esc_attr($value_slug); ?>"
+                                    <?php checked(in_array($value_slug, (array) ($selected_attributes[$type] ?? array()), true)); ?>
+                                >
+                                <span><?php echo esc_html($value['label'] ?? $value_slug); ?></span>
+                                <small><?php echo esc_html(number_format_i18n((int) ($value['count'] ?? 0))); ?></small>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </fieldset>
+            <?php endforeach; ?>
+
+            <div class="dht-category-filter-actions">
+                <button type="submit">Aplicar filtros</button>
+                <?php if (!empty($state['active_count'])) : ?>
+                    <a href="<?php echo esc_url($state['base_url']); ?>">Quitar filtros</a>
+                <?php endif; ?>
+            </div>
+        </form>
+        <?php
+    }
+}
+
+if (!function_exists('dht_template_render_category_toolbar')) {
+    function dht_template_render_category_toolbar($state, $term_name = '')
+    {
+        $term_name = trim(wp_strip_all_tags((string) $term_name));
+        $query_args = (array) ($state['query_args'] ?? array());
+        unset($query_args['dht_sort'], $query_args['dht_page']);
+        ?>
+        <div class="dht-category-catalog-toolbar">
+            <div class="dht-category-catalog-toolbar__count">
+                <strong><?php echo esc_html(number_format_i18n((int) ($state['total'] ?? 0))); ?> resultados</strong>
+                <?php if ($term_name !== '') : ?><span>en <?php echo esc_html($term_name); ?></span><?php endif; ?>
+            </div>
+
+            <form class="dht-category-sort-form" action="<?php echo esc_url($state['base_url'] ?? ''); ?>" method="get">
+                <?php foreach ($query_args as $key => $value) : ?>
+                    <?php foreach ((array) $value as $item) : ?>
+                        <input type="hidden" name="<?php echo esc_attr(is_array($value) ? $key . '[]' : $key); ?>" value="<?php echo esc_attr($item); ?>">
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+                <label>
+                    <span>Ordenar por</span>
+                    <select name="dht_sort" onchange="this.form.submit()">
+                        <option value="relevance" <?php selected('relevance', $state['sort'] ?? 'relevance'); ?>>Relevancia</option>
+                        <option value="price_asc" <?php selected('price_asc', $state['sort'] ?? ''); ?>>Precio: menor a mayor</option>
+                        <option value="price_desc" <?php selected('price_desc', $state['sort'] ?? ''); ?>>Precio: mayor a menor</option>
+                        <option value="rating" <?php selected('rating', $state['sort'] ?? ''); ?>>Mejor valorados</option>
+                        <option value="newest" <?php selected('newest', $state['sort'] ?? ''); ?>>Novedades</option>
+                    </select>
+                </label>
+            </form>
+        </div>
+        <?php
+    }
+}
+
+if (!function_exists('dht_template_render_category_active_filters')) {
+    function dht_template_render_category_active_filters($state)
+    {
+        if (empty($state['active_count'])) {
+            return;
+        }
+
+        $chips = array();
+
+        if ('instock' === ($state['stock'] ?? '')) {
+            $chips[] = array(
+                'label' => 'En stock',
+                'url'   => dht_template_category_query_url($state, array(), array('dht_stock')),
+            );
+        }
+
+        if (($state['min_price'] ?? 0) > 0 || ($state['max_price'] ?? 0) > 0) {
+            $label = 'Precio';
+            if (($state['min_price'] ?? 0) > 0 && ($state['max_price'] ?? 0) > 0) {
+                $label .= ': ' . wc_price($state['min_price']) . ' – ' . wc_price($state['max_price']);
+            } elseif (($state['min_price'] ?? 0) > 0) {
+                $label .= ': desde ' . wc_price($state['min_price']);
+            } else {
+                $label .= ': hasta ' . wc_price($state['max_price']);
+            }
+            $chips[] = array(
+                'label_html' => $label,
+                'url'        => dht_template_category_query_url($state, array(), array('dht_min_price', 'dht_max_price')),
+            );
+        }
+
+        foreach ((array) ($state['selected_attributes'] ?? array()) as $type => $values) {
+            $facet = $state['facets'][$type] ?? array();
+            foreach ((array) $values as $selected_value) {
+                $remaining = array_values(array_diff((array) $values, array($selected_value)));
+                $url = dht_template_category_query_url(
+                    $state,
+                    array('dht_f_' . $type => $remaining),
+                    array()
+                );
+                $value_label = $facet['values'][$selected_value]['label'] ?? $selected_value;
+                $chips[] = array(
+                    'label' => (string) ($facet['label'] ?? $type) . ': ' . (string) $value_label,
+                    'url'   => $url,
+                );
+            }
+        }
+
+        ?>
+        <div class="dht-category-active-filters" aria-label="Filtros activos">
+            <span>Filtros:</span>
+            <?php foreach ($chips as $chip) : ?>
+                <a href="<?php echo esc_url($chip['url'] ?? $state['base_url']); ?>">
+                    <?php
+                    if (isset($chip['label_html'])) {
+                        echo wp_kses_post($chip['label_html']);
+                    } else {
+                        echo esc_html($chip['label'] ?? '');
+                    }
+                    ?>
+                    <b aria-hidden="true">×</b>
+                </a>
+            <?php endforeach; ?>
+            <a class="dht-category-active-filters__clear" href="<?php echo esc_url($state['base_url']); ?>">Borrar todo</a>
+        </div>
+        <?php
+    }
+}
+
+if (!function_exists('dht_template_render_category_pagination')) {
+    function dht_template_render_category_pagination($state)
+    {
+        $current = max(1, absint($state['page'] ?? 1));
+        $max_pages = max(1, absint($state['max_pages'] ?? 1));
+        if ($max_pages <= 1) {
+            return;
+        }
+
+        $start = max(1, $current - 2);
+        $end = min($max_pages, $current + 2);
+        ?>
+        <nav class="dht-category-pagination" aria-label="Paginación de productos">
+            <?php if ($current > 1) : ?>
+                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current - 1))); ?>">← Anterior</a>
+            <?php endif; ?>
+
+            <?php if ($start > 1) : ?>
+                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => 1))); ?>">1</a>
+                <?php if ($start > 2) : ?><span>…</span><?php endif; ?>
+            <?php endif; ?>
+
+            <?php for ($page = $start; $page <= $end; $page++) : ?>
+                <?php if ($page === $current) : ?>
+                    <span class="is-current" aria-current="page"><?php echo esc_html((string) $page); ?></span>
+                <?php else : ?>
+                    <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $page))); ?>"><?php echo esc_html((string) $page); ?></a>
+                <?php endif; ?>
+            <?php endfor; ?>
+
+            <?php if ($end < $max_pages) : ?>
+                <?php if ($end < $max_pages - 1) : ?><span>…</span><?php endif; ?>
+                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $max_pages))); ?>"><?php echo esc_html((string) $max_pages); ?></a>
+            <?php endif; ?>
+
+            <?php if ($current < $max_pages) : ?>
+                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current + 1))); ?>">Siguiente →</a>
+            <?php endif; ?>
+        </nav>
         <?php
     }
 }

@@ -27,7 +27,7 @@ final class SEO_Ingeniero_Exchange {
     }
 
     private static function redirect($args = array()) {
-        $base = add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer'), admin_url('admin.php'));
+        $base = add_query_arg(array('page'=>'seo-ingeniero','tab'=>'data'), admin_url('admin.php'));
         wp_safe_redirect(add_query_arg((array) $args, $base));
         exit;
     }

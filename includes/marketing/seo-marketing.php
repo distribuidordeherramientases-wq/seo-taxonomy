@@ -2183,6 +2183,7 @@ function seo_marketing_get_structural_category_ids($source_type, $source_id)
     return array_values(
         array_unique(
             array_filter(
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; the table identifier is internal.
                 array_map('absint', (array) $wpdb->get_col($sql))
             )
         )
@@ -2225,11 +2226,13 @@ function seo_marketing_get_recommended_category_ids($source_type, $source_id, $l
         LIMIT %d
     ";
 
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template with generated placeholder list; all values are passed separately.
     $prepared = $wpdb->prepare($sql, $query_args);
 
     return array_values(
         array_unique(
             array_filter(
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
                 array_map('absint', (array) $wpdb->get_col($prepared))
             )
         )
@@ -4600,6 +4603,81 @@ function seo_marketing_validate_xml_file($file_path, $expected_root = '')
  * @param string $expected_root
  * @return array|WP_Error
  */
+/**
+ * Conserva los permisos explícitos usados por los artefactos locales de sitemap.
+ *
+ * Se mantiene como operación local directa porque WP_Filesystem puede usar un
+ * transporte remoto y cambiar la semántica del flujo atómico de publicación.
+ *
+ * @param string $file_path Ruta local.
+ * @param int    $mode      Permisos POSIX.
+ * @return bool
+ */
+function seo_marketing_set_file_permissions($file_path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Local sitemap build artifacts require exact chmod semantics.
+    return @chmod($file_path, $mode);
+}
+
+/**
+ * Renombra de forma atómica un artefacto local de sitemap.
+ *
+ * WP_Filesystem::move() puede degradar a copia+borrado según el transporte;
+ * aquí se necesita rename() local para no publicar XML parciales.
+ *
+ * @param string $source Origen local.
+ * @param string $target Destino local.
+ * @return bool
+ */
+function seo_marketing_atomic_rename($source, $target)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Atomic local publication requires native rename semantics.
+    return @rename($source, $target);
+}
+
+/**
+ * Elimina un directorio local ya vacío tras limpiar su contenido.
+ *
+ * @param string $dir Directorio local.
+ * @return bool
+ */
+function seo_marketing_remove_empty_directory($dir)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Directory is local, temporary and already recursively emptied.
+    return @rmdir($dir);
+}
+
+/**
+ * Abre el fichero de lock como recurso para flock().
+ *
+ * WP_Filesystem no expone un recurso compatible con flock().
+ *
+ * @param string $path Ruta del lock.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_marketing_lock_stream_open($path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- flock() requires a native PHP stream resource.
+    return @fopen($path, $mode);
+}
+
+/**
+ * Cierra el recurso de lock abierto para flock().
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_marketing_lock_stream_close($stream)
+{
+    if (!is_resource($stream)) {
+        return false;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_marketing_lock_stream_open() for flock().
+    return @fclose($stream);
+}
+
 function seo_marketing_write_validated_xml($file_path, $xml, $expected_root)
 {
     $validation = seo_marketing_validate_xml_string($xml, $expected_root);
@@ -4612,11 +4690,11 @@ function seo_marketing_write_validated_xml($file_path, $xml, $expected_root)
         return new WP_Error('seo_sitemap_write_error', 'No se pudo escribir ' . basename($file_path) . '.');
     }
 
-    @chmod($file_path, 0644);
+    seo_marketing_set_file_permissions($file_path, 0644);
 
     $file_validation = seo_marketing_validate_xml_file($file_path, $expected_root);
     if (!$file_validation['valid']) {
-        @unlink($file_path);
+        wp_delete_file($file_path);
         return new WP_Error('seo_sitemap_invalid_written_xml', $file_validation['error']);
     }
 
@@ -4639,19 +4717,19 @@ function seo_marketing_publish_sitemap_file($source, $target)
         return false;
     }
 
-    @chmod($temporary, 0644);
+    seo_marketing_set_file_permissions($temporary, 0644);
 
-    if (@rename($temporary, $target)) {
+    if (seo_marketing_atomic_rename($temporary, $target)) {
         return true;
     }
 
     if (is_file($target)) {
-        @unlink($target);
+        wp_delete_file($target);
     }
 
-    $renamed = @rename($temporary, $target);
+    $renamed = seo_marketing_atomic_rename($temporary, $target);
     if (!$renamed && is_file($temporary)) {
-        @unlink($temporary);
+        wp_delete_file($temporary);
     }
 
     return $renamed;
@@ -4680,11 +4758,11 @@ function seo_marketing_remove_directory($dir)
         if (is_dir($path)) {
             seo_marketing_remove_directory($path);
         } else {
-            @unlink($path);
+            wp_delete_file($path);
         }
     }
 
-    @rmdir($dir);
+    seo_marketing_remove_empty_directory($dir);
 }
 
 /**
@@ -4720,10 +4798,12 @@ function seo_marketing_get_node_page_ids_by_roles($roles)
         ORDER BY object_id ASC
     ";
 
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template/table; role values remain placeholders.
     $prepared = $wpdb->prepare($sql, $roles);
 
     return array_values(
         array_unique(
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
             array_filter(array_map('absint', (array) $wpdb->get_col($prepared)))
         )
     );
@@ -5055,14 +5135,14 @@ function seo_marketing_write_sitemap_manifest($dir, $manifest)
         return false;
     }
 
-    @chmod($temporary, 0644);
+    seo_marketing_set_file_permissions($temporary, 0644);
 
-    if (@rename($temporary, $target)) {
+    if (seo_marketing_atomic_rename($temporary, $target)) {
         return true;
     }
 
-    @unlink($target);
-    return @rename($temporary, $target);
+    wp_delete_file($target);
+    return seo_marketing_atomic_rename($temporary, $target);
 }
 
 /**
@@ -5105,11 +5185,11 @@ function seo_marketing_create_sitemaps()
     }
 
     $lock_file = $dir . '.generation.lock';
-    $lock      = @fopen($lock_file, 'c');
+    $lock      = seo_marketing_lock_stream_open($lock_file, 'c');
 
     if (!$lock || !@flock($lock, LOCK_EX | LOCK_NB)) {
         if (is_resource($lock)) {
-            @fclose($lock);
+            seo_marketing_lock_stream_close($lock);
         }
         return array('type' => 'error', 'message' => 'Ya existe otra generación de sitemaps en curso.');
     }
@@ -5226,7 +5306,7 @@ function seo_marketing_create_sitemaps()
         foreach ((array) glob($dir . '*.xml') as $old_file) {
             $old_filename = basename($old_file);
             if (!isset($keep[$old_filename])) {
-                @unlink($old_file);
+                wp_delete_file($old_file);
             }
         }
 
@@ -5274,7 +5354,7 @@ function seo_marketing_create_sitemaps()
     } finally {
         seo_marketing_remove_directory($build_dir);
         @flock($lock, LOCK_UN);
-        @fclose($lock);
+        seo_marketing_lock_stream_close($lock);
     }
 }
 
@@ -5811,7 +5891,9 @@ function seo_marketing_scan_sync_inventory()
                 removed_at=NULL,
                 sync_token=VALUES(sync_token)";
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal INSERT template with generated placeholder tuples; all values are passed separately.
         $prepared = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
         if ($prepared === false || $wpdb->query($prepared) === false) {
             return new WP_Error('seo_scan_inventory_db', 'No se pudo actualizar el inventario: ' . $wpdb->last_error);
         }
@@ -5961,7 +6043,9 @@ function seo_marketing_scan_enqueue_inventory($scan_id, $mode = 'full', $limit =
             $sql = "INSERT IGNORE INTO {$tables['urls']}
                 (scan_id,inventory_id,url_hash,resource_type,queue_status,sitemap_url,url)
                 VALUES " . implode(',', $values);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal INSERT template with generated placeholder tuples; all values are passed separately.
             $prepared = $wpdb->prepare($sql, $params);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
             if ($prepared === false || $wpdb->query($prepared) === false) {
                 return new WP_Error('seo_scan_queue_db', 'No se pudo crear la cola completa: ' . $wpdb->last_error);
             }
@@ -6874,7 +6958,14 @@ function seo_marketing_scan_render_inventory_table($stats)
     }
 
     $count_sql = "SELECT COUNT(*) FROM {$tables['inventory']} WHERE {$where}";
-    $total = !empty($params) ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $params)) : (int) $wpdb->get_var($count_sql);
+    if (!empty($params)) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE is selected from a closed whitelist; search values remain placeholders.
+        $count_query = $wpdb->prepare($count_sql, $params);
+    } else {
+        $count_query = $count_sql;
+    }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed internal query or direct result of $wpdb->prepare().
+    $total = (int) $wpdb->get_var($count_query);
     $total_pages = max(1, (int) ceil($total / $per_page));
     $page = min($page, $total_pages);
     $offset = ($page - 1) * $per_page;
@@ -6885,7 +6976,10 @@ function seo_marketing_scan_render_inventory_table($stats)
         COALESCE(last_checked_at,'1970-01-01 00:00:00') ASC, id ASC
         LIMIT %d OFFSET %d";
     $list_params = array_merge($params, array($per_page, $offset));
-    $rows = $wpdb->get_results($wpdb->prepare($list_sql, $list_params), ARRAY_A);
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template; search and pagination values are placeholders.
+    $list_query = $wpdb->prepare($list_sql, $list_params);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $list_query is the direct result of $wpdb->prepare() above.
+    $rows = $wpdb->get_results($list_query, ARRAY_A);
 
     $filters = array(
         'all' => array('Todas', $stats['total']),

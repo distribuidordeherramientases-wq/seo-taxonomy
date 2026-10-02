@@ -41,6 +41,7 @@ Incluye controles de estructura y contenido como:
 - Hubs primarios en múltiples clusters.
 - Landings sin hub secundario.
 - Landings sin categoría de producto asociada.
+- Posts editoriales sin categoría de producto relacionada (`post_to_category`).
 - Posts sin Vocabulary semántico activo.
 - Categorías sin asignación estructural.
 - Categorías sin productos.
@@ -48,6 +49,8 @@ Incluye controles de estructura y contenido como:
 
 Acciones visibles:
 
+- **Descargar JSON** [Exporta]: descarga un paquete correctivo con los posts/landings detectados, su contenido, categorías WordPress, relaciones con `product_cat` y Vocabulary.
+- **Importar JSON** [Guarda]: aplica correcciones únicamente sobre IDs existentes; no crea ni borra contenidos, categorías o términos de Vocabulary.
 - **Recalcular contadores** [Proceso].
 - **Borrar FAQs de categorías desaparecidas** [Elimina].
 - **Borrar FAQs de productos desaparecidos** [Elimina].

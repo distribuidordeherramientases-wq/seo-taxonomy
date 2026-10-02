@@ -152,6 +152,12 @@ require_once SEO_SYSTEM_PATH . 'includes/comparador/comparador-bootstrap.php';
 // Solucionador: convierte senales de cliente/mercado en propuestas de posts y borradores clasificados.
 require_once SEO_SYSTEM_PATH . 'includes/solucionador/solucionador-bootstrap.php';
 
+// API neutral de cobertura editorial compartida por procesos especializados.
+require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-coverage.php';
+
+// Ingeniero: servicio técnico/editorial independiente de Dependiente.
+require_once SEO_SYSTEM_PATH . 'includes/ingeniero/ingeniero-bootstrap.php';
+
 /*
 |--------------------------------------------------------------------------
 | ADMINISTRACIÓN Y MENÚS
