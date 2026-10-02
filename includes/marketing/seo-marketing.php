@@ -51,7 +51,7 @@ if (!defined('SEO_MARKETING_STYLE_OPTION')) {
 }
 
 if (!defined('SEO_MARKETING_STYLE_SCHEMA_VERSION')) {
-    define('SEO_MARKETING_STYLE_SCHEMA_VERSION', 6);
+    define('SEO_MARKETING_STYLE_SCHEMA_VERSION', 7);
 }
 
 if (!defined('SEO_MARKETING_AUTO_CATEGORY_LIMIT')) {
@@ -277,6 +277,19 @@ function seo_marketing_style_defaults()
         'menu_animation'            => 'slide',
         'menu_indicator'            => 1,
 
+        // Migas de pan globales.
+        'breadcrumb_background'      => '#ffffff',
+        'breadcrumb_text'            => '#475467',
+        'breadcrumb_link'            => '#0b5f9e',
+        'breadcrumb_link_hover'      => '#007acc',
+        'breadcrumb_current'         => '#344054',
+        'breadcrumb_separator'       => '#98a2b3',
+        'breadcrumb_border'          => '#e4e7ec',
+        'breadcrumb_font_size'       => 12,
+        'breadcrumb_font_weight'     => 600,
+        'breadcrumb_padding_y'       => 8,
+        'breadcrumb_separator_style' => 'chevron',
+
         // Pie de pagina.
         'footer_background'        => '#101820',
         'footer_heading_color'     => '#ffffff',
@@ -429,6 +442,9 @@ function seo_marketing_style_sanitize_settings($input)
         'menu_active_text', 'menu_active_background',
         'menu_dropdown_background', 'menu_dropdown_text',
         'menu_dropdown_hover_bg', 'menu_dropdown_hover_text', 'menu_border',
+        'breadcrumb_background', 'breadcrumb_text', 'breadcrumb_link',
+        'breadcrumb_link_hover', 'breadcrumb_current', 'breadcrumb_separator',
+        'breadcrumb_border',
         'footer_background', 'footer_heading_color', 'footer_text_color',
         'footer_link_color', 'footer_link_hover', 'footer_meta_color',
         'footer_border_color',
@@ -588,6 +604,18 @@ function seo_marketing_style_sanitize_settings($input)
     $settings['menu_radius']             = seo_marketing_style_clamp(isset($input['menu_radius']) ? $input['menu_radius'] : null, 0, 40, $defaults['menu_radius']);
     $settings['menu_dropdown_min_width'] = seo_marketing_style_clamp(isset($input['menu_dropdown_min_width']) ? $input['menu_dropdown_min_width'] : null, 180, 520, $defaults['menu_dropdown_min_width']);
     $settings['menu_indicator']          = array_key_exists('menu_indicator', $input) ? (!empty($input['menu_indicator']) ? 1 : 0) : $defaults['menu_indicator'];
+
+    $settings['breadcrumb_font_size']   = seo_marketing_style_clamp(isset($input['breadcrumb_font_size']) ? $input['breadcrumb_font_size'] : null, 10, 18, $defaults['breadcrumb_font_size']);
+    $settings['breadcrumb_font_weight'] = seo_marketing_style_clamp(isset($input['breadcrumb_font_weight']) ? $input['breadcrumb_font_weight'] : null, 400, 800, $defaults['breadcrumb_font_weight']);
+    $settings['breadcrumb_padding_y']   = seo_marketing_style_clamp(isset($input['breadcrumb_padding_y']) ? $input['breadcrumb_padding_y'] : null, 4, 18, $defaults['breadcrumb_padding_y']);
+
+    $breadcrumb_separator_styles = array('chevron', 'slash', 'dot');
+    $breadcrumb_separator_style = isset($input['breadcrumb_separator_style'])
+        ? sanitize_key($input['breadcrumb_separator_style'])
+        : $defaults['breadcrumb_separator_style'];
+    $settings['breadcrumb_separator_style'] = in_array($breadcrumb_separator_style, $breadcrumb_separator_styles, true)
+        ? $breadcrumb_separator_style
+        : $defaults['breadcrumb_separator_style'];
 
     return $settings;
 }
@@ -944,6 +972,12 @@ function seo_marketing_style_build_css($settings)
 
     $body_font = seo_marketing_style_font_stack($settings['font_body']);
     $heading_font = seo_marketing_style_font_stack($settings['font_headings']);
+    $breadcrumb_separators = array(
+        'chevron' => '›',
+        'slash'   => '/',
+        'dot'     => '•',
+    );
+    $breadcrumb_separator = $breadcrumb_separators[$settings['breadcrumb_separator_style']] ?? '›';
 
     $css = array();
     $css[] = 'html:root {';
@@ -972,6 +1006,17 @@ function seo_marketing_style_build_css($settings)
     $css[] = '  --dht-product-page-title-max: ' . (int) $settings['product_page_title_max'] . 'px;';
     $css[] = '  --dht-product-page-title-weight: ' . (int) $settings['product_page_title_weight'] . ';';
     $css[] = '  --dht-product-page-title-line-height: ' . (float) $settings['product_page_title_line_height'] . ';';
+    $css[] = '  --dht-breadcrumb-bg: ' . $settings['breadcrumb_background'] . ';';
+    $css[] = '  --dht-breadcrumb-text: ' . $settings['breadcrumb_text'] . ';';
+    $css[] = '  --dht-breadcrumb-link: ' . $settings['breadcrumb_link'] . ';';
+    $css[] = '  --dht-breadcrumb-link-hover: ' . $settings['breadcrumb_link_hover'] . ';';
+    $css[] = '  --dht-breadcrumb-current: ' . $settings['breadcrumb_current'] . ';';
+    $css[] = '  --dht-breadcrumb-separator-color: ' . $settings['breadcrumb_separator'] . ';';
+    $css[] = '  --dht-breadcrumb-border: ' . $settings['breadcrumb_border'] . ';';
+    $css[] = '  --dht-breadcrumb-font-size: ' . (int) $settings['breadcrumb_font_size'] . 'px;';
+    $css[] = '  --dht-breadcrumb-font-weight: ' . (int) $settings['breadcrumb_font_weight'] . ';';
+    $css[] = '  --dht-breadcrumb-padding-y: ' . (int) $settings['breadcrumb_padding_y'] . 'px;';
+    $css[] = '  --dht-breadcrumb-separator: "' . $breadcrumb_separator . '";';
     $css[] = '  --dht-cart-bg: ' . $settings['cart_background'] . ';';
     $css[] = '  --dht-cart-hero-bg: ' . $settings['cart_hero_background'] . ';';
     $css[] = '  --dht-cart-hero-title: ' . $settings['cart_hero_title'] . ';';
@@ -1815,6 +1860,11 @@ function seo_marketing_render_admin_styles()
         .seo-style-preview-menu-item.is-active{background:var(--preview-menu-active-bg,#edf6fc);color:var(--preview-menu-active-text,#005b96);}
         .seo-style-preview-menu-item.is-parent{color:var(--preview-menu-hover,#007acc);}
         .seo-style-preview-menu-indicator{margin-left:6px;font-size:11px;}
+        .seo-style-preview-breadcrumbs{display:flex;min-width:0;gap:0;align-items:center;padding:var(--preview-breadcrumb-padding-y,8px) 14px;border-bottom:1px solid var(--preview-breadcrumb-border,#e4e7ec);background:var(--preview-breadcrumb-bg,#fff);color:var(--preview-breadcrumb-text,#475467);font-size:var(--preview-breadcrumb-size,12px);font-weight:var(--preview-breadcrumb-weight,600);line-height:1.35;overflow:hidden;white-space:nowrap;}
+        .seo-style-preview-breadcrumbs a{color:var(--preview-breadcrumb-link,#0b5f9e);text-decoration:none;}
+        .seo-style-preview-breadcrumbs a:hover{color:var(--preview-breadcrumb-link-hover,#007acc);}
+        .seo-style-preview-breadcrumbs .is-current{min-width:0;overflow:hidden;color:var(--preview-breadcrumb-current,#344054);text-overflow:ellipsis;}
+        .seo-style-preview-breadcrumb-separator{margin:0 7px;color:var(--preview-breadcrumb-separator,#98a2b3);font-weight:500;}
         .seo-style-preview-dropdown{position:absolute;z-index:3;top:calc(100% + 6px);left:0;width:var(--preview-menu-dropdown-width,220px);padding:8px;background:var(--preview-menu-dropdown-bg,#fff);border:1px solid var(--preview-menu-border,#e7ebef);border-radius:var(--preview-menu-radius,10px);box-shadow:var(--preview-menu-shadow,0 14px 35px rgba(0,0,0,.08));}
         .seo-style-preview-dropdown span{display:block;padding:9px 11px;border-radius:min(var(--preview-menu-radius,10px),10px);color:var(--preview-menu-dropdown-text,#222);font-size:12px;line-height:1.35;}
         .seo-style-preview-dropdown span:first-child{background:var(--preview-menu-dropdown-hover-bg,#fafbfc);color:var(--preview-menu-dropdown-hover-text,#007acc);}
@@ -3106,6 +3156,7 @@ function seo_marketing_render_style_tab()
     seo_marketing_render_style_solutions($settings);
     seo_marketing_render_style_faq($settings);
     seo_marketing_render_style_menu($settings);
+    seo_marketing_render_style_breadcrumbs($settings);
     seo_marketing_render_style_footer($settings);
 
     echo '<div class="seo-style-actions">';
@@ -3125,7 +3176,7 @@ function seo_marketing_render_style_tab()
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="seo_marketing_style_import">';
     wp_nonce_field('seo_marketing_style_import');
-    echo '<textarea name="style_json" placeholder="{ &quot;schema_version&quot;: 6, &quot;values&quot;: { ... } }"></textarea>';
+    echo '<textarea name="style_json" placeholder="{ &quot;schema_version&quot;: 7, &quot;values&quot;: { ... } }"></textarea>';
     echo '<p><button type="submit" class="button">Importar y publicar</button></p>';
     echo '</form>';
     echo '</div>';
@@ -3566,9 +3617,35 @@ function seo_marketing_render_style_menu($settings)
 /**
  * @param array $settings
  */
+function seo_marketing_render_style_breadcrumbs($settings)
+{
+    echo '<section class="seo-style-section"><h2>10. Migas de pan</h2>';
+    echo '<p>Controla la franja global situada bajo la navegación. La jerarquía y los enlaces no cambian; aquí sólo se modifica la presentación.</p>';
+    echo '<div class="seo-style-fields">';
+    seo_marketing_style_color_field('breadcrumb_background', 'Fondo', $settings['breadcrumb_background']);
+    seo_marketing_style_color_field('breadcrumb_text', 'Texto general', $settings['breadcrumb_text']);
+    seo_marketing_style_color_field('breadcrumb_link', 'Color de enlaces', $settings['breadcrumb_link']);
+    seo_marketing_style_color_field('breadcrumb_link_hover', 'Enlace al pasar / foco', $settings['breadcrumb_link_hover']);
+    seo_marketing_style_color_field('breadcrumb_current', 'Página actual', $settings['breadcrumb_current']);
+    seo_marketing_style_color_field('breadcrumb_separator', 'Separador', $settings['breadcrumb_separator']);
+    seo_marketing_style_color_field('breadcrumb_border', 'Borde inferior', $settings['breadcrumb_border']);
+    seo_marketing_style_number_field('breadcrumb_font_size', 'Tamaño de texto (px)', $settings['breadcrumb_font_size'], 10, 18);
+    seo_marketing_style_number_field('breadcrumb_font_weight', 'Peso de la fuente', $settings['breadcrumb_font_weight'], 400, 800, 100);
+    seo_marketing_style_number_field('breadcrumb_padding_y', 'Relleno vertical (px)', $settings['breadcrumb_padding_y'], 4, 18);
+    seo_marketing_style_select_field('breadcrumb_separator_style', 'Tipo de separador', $settings['breadcrumb_separator_style'], array(
+        'chevron' => 'Chevron ›',
+        'slash'   => 'Barra /',
+        'dot'     => 'Punto •',
+    ));
+    echo '</div></section>';
+}
+
+/**
+ * @param array $settings
+ */
 function seo_marketing_render_style_footer($settings)
 {
-    echo '<section class="seo-style-section"><h2>10. Pie de pagina</h2>';
+    echo '<section class="seo-style-section"><h2>11. Pie de pagina</h2>';
     echo '<p>Controla el aspecto del <code>footer.php</code> compartido: fondo, textos, enlaces, separadores, espaciado y logotipo. La estructura y los enlaces permanecen en la plantilla.</p>';
     echo '<div class="seo-style-fields">';
     seo_marketing_style_color_field('footer_background', 'Fondo del pie', $settings['footer_background']);
@@ -3675,6 +3752,16 @@ function seo_marketing_render_style_preview($settings)
         '--preview-menu-radius:' . (int) $settings['menu_radius'] . 'px',
         '--preview-menu-dropdown-width:' . (int) $settings['menu_dropdown_min_width'] . 'px',
         '--preview-menu-transform:' . $settings['menu_transform'],
+        '--preview-breadcrumb-bg:' . $settings['breadcrumb_background'],
+        '--preview-breadcrumb-text:' . $settings['breadcrumb_text'],
+        '--preview-breadcrumb-link:' . $settings['breadcrumb_link'],
+        '--preview-breadcrumb-link-hover:' . $settings['breadcrumb_link_hover'],
+        '--preview-breadcrumb-current:' . $settings['breadcrumb_current'],
+        '--preview-breadcrumb-separator:' . $settings['breadcrumb_separator'],
+        '--preview-breadcrumb-border:' . $settings['breadcrumb_border'],
+        '--preview-breadcrumb-size:' . (int) $settings['breadcrumb_font_size'] . 'px',
+        '--preview-breadcrumb-weight:' . (int) $settings['breadcrumb_font_weight'],
+        '--preview-breadcrumb-padding-y:' . (int) $settings['breadcrumb_padding_y'] . 'px',
         '--preview-solutions-columns:' . (int) $settings['solutions_columns_desktop'],
         '--preview-solutions-gap:' . (int) $settings['solutions_grid_gap'] . 'px',
         '--preview-solutions-image-height:' . (int) $settings['solutions_image_height'] . 'px',
@@ -3700,6 +3787,17 @@ function seo_marketing_render_style_preview($settings)
     echo '<span class="seo-style-preview-menu-item is-active">Inicio</span>';
     echo '<span class="seo-style-preview-menu-item is-parent">Categorías <span class="seo-style-preview-menu-indicator" id="seo-preview-menu-indicator"' . (empty($settings['menu_indicator']) ? ' style="display:none"' : '') . '>⌄</span><span class="seo-style-preview-dropdown" id="seo-preview-dropdown"><span>Herramientas de taller</span><span>Jardín y exterior</span><span>Seguridad laboral</span></span></span>';
     echo '<span class="seo-style-preview-menu-item">Contacto</span>';
+    echo '</div>';
+    $breadcrumb_preview_separators = array('chevron' => '›', 'slash' => '/', 'dot' => '•');
+    $breadcrumb_preview_separator = $breadcrumb_preview_separators[$settings['breadcrumb_separator_style']] ?? '›';
+    echo '<div class="seo-style-preview-breadcrumbs" id="seo-preview-breadcrumbs">';
+    echo '<a href="#" onclick="return false;">Inicio</a>';
+    echo '<span class="seo-style-preview-breadcrumb-separator">' . esc_html($breadcrumb_preview_separator) . '</span>';
+    echo '<a href="#" onclick="return false;">Tienda</a>';
+    echo '<span class="seo-style-preview-breadcrumb-separator">' . esc_html($breadcrumb_preview_separator) . '</span>';
+    echo '<a href="#" onclick="return false;">Roscadoras de tuberías</a>';
+    echo '<span class="seo-style-preview-breadcrumb-separator">' . esc_html($breadcrumb_preview_separator) . '</span>';
+    echo '<span class="is-current">Máquina roscadora VEVOR 2300 W</span>';
     echo '</div>';
     echo '<div class="seo-style-preview-hero">';
     echo '<h1 id="seo-preview-h1" style="font-family:' . esc_attr($heading_stack) . ';font-size:' . (int) $settings['h1_min'] . 'px;font-weight:' . (int) $settings['h1_weight'] . ';color:' . esc_attr($settings['hero_title']) . ';text-align:' . esc_attr($settings['heading_align']) . ';text-transform:' . esc_attr($settings['heading_transform']) . ';">Ejemplo de página</h1>';
@@ -3957,6 +4055,26 @@ function seo_marketing_render_style_preview_script()
             menu.style.setProperty("--preview-menu-transform", value("menu_transform"));
             dropdown.style.boxShadow = menuShadows[value("menu_shadow_preset")] || "none";
             document.getElementById("seo-preview-menu-indicator").style.display = value("menu_indicator") ? "inline" : "none";
+
+            const breadcrumbs = document.getElementById("seo-preview-breadcrumbs");
+            if (breadcrumbs) {
+                breadcrumbs.style.setProperty("--preview-breadcrumb-bg", value("breadcrumb_background"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-text", value("breadcrumb_text"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-link", value("breadcrumb_link"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-link-hover", value("breadcrumb_link_hover"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-current", value("breadcrumb_current"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-separator", value("breadcrumb_separator"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-border", value("breadcrumb_border"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-size", px("breadcrumb_font_size"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-weight", value("breadcrumb_font_weight"));
+                breadcrumbs.style.setProperty("--preview-breadcrumb-padding-y", px("breadcrumb_padding_y"));
+
+                const breadcrumbSeparators = {chevron:"›",slash:"/",dot:"•"};
+                const breadcrumbSeparator = breadcrumbSeparators[value("breadcrumb_separator_style")] || "›";
+                breadcrumbs.querySelectorAll(".seo-style-preview-breadcrumb-separator").forEach(el => {
+                    el.textContent = breadcrumbSeparator;
+                });
+            }
 
             const footer = document.getElementById("seo-preview-footer");
             if (footer) {
