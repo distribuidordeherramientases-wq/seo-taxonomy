@@ -140,6 +140,7 @@ final class SEO_Ingeniero_Admin {
         if (is_wp_error($result)) self::redirect(array('term_id'=>$term_id,'ingeniero_error'=>rawurlencode($result->get_error_message())));
 
         self::refresh_category_state($term_id);
+        SEO_Ingeniero::refresh_editorial_category($term_id, true);
         self::redirect(array('term_id'=>$term_id,'ingeniero_notice'=>'reviewed'));
     }
 
@@ -156,6 +157,7 @@ final class SEO_Ingeniero_Admin {
         }
 
         self::refresh_category_state($term_id);
+        SEO_Ingeniero::refresh_editorial_category($term_id, true);
         self::redirect(array(
             'term_id'=>$term_id,
             'ingeniero_notice'=>'category_approved',
@@ -171,7 +173,9 @@ final class SEO_Ingeniero_Admin {
         }
 
         foreach ((array) ($result['term_ids'] ?? array()) as $term_id) {
-            self::refresh_category_state(absint($term_id));
+            $term_id = absint($term_id);
+            self::refresh_category_state($term_id);
+            SEO_Ingeniero::refresh_editorial_category($term_id, true);
         }
 
         self::redirect(array(
