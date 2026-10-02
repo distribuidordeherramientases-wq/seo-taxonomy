@@ -145,8 +145,12 @@ Tabla: Categoría, Ruta, Reales, Publicados, No publicados, Contador Woo y Produ
 Después del catálogo/contenido propio y antes de las familias/afiliados, la plantilla puede mostrar:
 
 1. **Comparativa**: extracto del post canónico publicado de Comparador.
-2. **Preguntas habituales**: posts publicados relacionados mediante `post_to_category` y marcados `dependiente_qa_basic`.
-3. **Comentarios externos**: selección de comentarios `published` de Comentarista sobre productos de la categoría; se identifica el producto y se limita la repetición por referencia.
-4. **Información técnica**: posts publicados relacionados y marcados `ingeniero_qa_specialized`.
+2. **Preguntas habituales**: posts `publish` relacionados con el `term_id` de la `product_cat` actual mediante `seo_relations.relation_type = post_to_category` y marcados con `_seo_solucionador_content_role = dependiente_qa_basic`.
+3. **Comentarios externos**: comentarios `published` y `content_type = comment` de Comentarista sobre productos publicados de la categoría o sus hijas; máximo seis, con máximo dos por producto.
+4. **Información técnica**: posts `publish` relacionados mediante `post_to_category` y marcados con `_seo_solucionador_content_role = ingeniero_qa_specialized`.
 
-Las plantillas son de solo lectura: no consultan servicios externos ni recalculan conocimiento. Un bloque sin contenido válido no genera título, contenedor ni hueco visual.
+La selección editorial **no usa categorías WordPress del blog, etiquetas, nombres, slugs ni coincidencias de texto**. La categoría pública usa exclusivamente su `term_id` WooCommerce para Preguntas habituales e Información técnica.
+
+Los posts se presentan como título + extracto + enlace, con dos tarjetas por fila en escritorio y una en móvil. Los comentarios externos se mantienen plegados inicialmente mediante `details`, conservando fuente, autor y valoración cuando están disponibles.
+
+Las plantillas son de solo lectura: no consultan servicios externos ni recalculan conocimiento. Comparador sólo lee su resultado público persistido. Un bloque sin contenido válido no genera título, contenedor ni hueco visual. Soluciones/Landings no se incorporan todavía a este bloque.
