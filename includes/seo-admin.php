@@ -253,6 +253,7 @@ add_filter('parent_file', function ($parent_file) {
         'seo-post-editor',
         'seo-pictures-admin',
         'seo-content-auditor',
+        'seo-faq',
         'seo-search',
         'seo-provider-connections',
         'seo-processes',
@@ -275,6 +276,7 @@ add_filter('submenu_file', function ($submenu_file) {
         'seo-post-editor',
         'seo-pictures-admin',
         'seo-content-auditor',
+        'seo-faq',
     ], true)) {
         return 'seo-content';
     }
@@ -444,6 +446,12 @@ function seo_content_page() {
             'page'  => 'seo-content-auditor',
             'desc'  => 'Audita calidad, coherencia y arquitectura de productos, categorías, páginas, entradas, FAQs e índice.'
         ],
+        [
+            'title' => 'FAQs',
+            'icon'  => 'dashicons-editor-help',
+            'page'  => 'seo-faq',
+            'desc'  => 'Gestiona preguntas frecuentes, cobertura, calidad e interacción.'
+        ],
     ];
 
     // Los módulos independientes pueden añadir accesos a Contenidos sin
@@ -562,13 +570,6 @@ function seo_tools_page() {
                 'desc'  => 'Google, Amazon, Cloudflare, GitHub y servicios compartidos.'
             ],
 
-
-            [
-                'title' => 'FAQs',
-                'icon'  => 'dashicons-editor-help',
-                'page'  => 'seo-faq',
-                'desc'  => 'Gestión de preguntas frecuentes.'
-            ],
 
             [
                 'title' => 'Estado del servidor',
