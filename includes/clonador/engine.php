@@ -264,8 +264,45 @@ final class SEO_Clonador_Engine {
         );
     }
 
-    private static function custom_table_keys() {
+    /**
+     * Estado persistente de los servicios editoriales que debe viajar de PRO a
+     * STAGING para que las pantallas de prueba muestren la misma materia prima,
+     * propuestas y relaciones que produccion.
+     *
+     * Se excluye deliberadamente runtime: colas, locks, workers, cron y logs de
+     * ejecucion efimeros siguen siendo locales de cada entorno.
+     */
+    private static function editorial_service_table_keys() {
         return array(
+            'seo_ingeniero_editorial',
+
+            'seo_solucionador_topics',
+            'seo_solucionador_evidence',
+            'seo_solucionador_post_topics',
+            'seo_solucionador_coverage',
+            'seo_solucionador_workflow',
+            'seo_solucionador_tracking',
+            'seo_solucionador_dossiers',
+
+            'seo_comparador_profiles',
+            'seo_comparador_axes',
+            'seo_comparador_products',
+            'seo_comparador_values',
+            'seo_comparador_editorial',
+            'seo_comparador_post_map',
+            'seo_comparador_workflow',
+
+            // Snapshots persistentes que Comparador consume de Ojeador.
+            // Runs/query_log son historial operativo del worker y no viajan.
+            'seo_ojeador_market_products',
+            'seo_ojeador_market_offers',
+            'seo_ojeador_market_categories',
+            'seo_ojeador_market_category_results',
+        );
+    }
+
+    private static function custom_table_keys() {
+        $keys = array(
             'seo_vocabulary',
             'seo_type_role_map',
             'sql_atributos',
@@ -277,8 +314,7 @@ final class SEO_Clonador_Engine {
             'seo_relations',
             'seo_faq',
 
-            // 2.7.0: conocimiento portable de Dependiente. Estas tablas son
-            // parte del cerebro consolidado y deben viajar junto al catalogo.
+            // 2.7.0: conocimiento portable de Dependiente.
             'seo_dependiente_semantics',
             'seo_interprete_lexicon',
             'seo_interprete_lexicon_evidence',
@@ -288,12 +324,12 @@ final class SEO_Clonador_Engine {
             'seo_dependiente_l9_signals',
 
             // Ingeniero: conocimiento tecnico externo ya aprobado y sus fuentes.
-            // Se copian los datos, pero no runtime, configuracion ni uso de SerpApi.
             'seo_ingeniero_sources',
             'seo_ingeniero_knowledge',
         );
-    }
 
+        return array_values(array_unique(array_merge($keys, self::editorial_service_table_keys())));
+    }
     /**
      * Tablas de runtime derivado que NO se copian desde PRO. Se vacian en
      * STAGING para que no sobreviva estado incompatible con el nuevo catalogo.
@@ -2139,6 +2175,14 @@ final class SEO_Clonador_Engine {
             'table:seo_dependiente_l9_signals',
             'table:seo_ingeniero_sources',
             'table:seo_ingeniero_knowledge',
+            'table:seo_ingeniero_editorial',
+            'table:seo_solucionador_topics',
+            'table:seo_solucionador_dossiers',
+            'table:seo_comparador_profiles',
+            'table:seo_comparador_products',
+            'table:seo_comparador_editorial',
+            'table:seo_ojeador_market_categories',
+            'table:seo_ojeador_market_category_results',
             'option:seo_dependiente_knowledge_snapshot',
             'option:seo_dependiente_academy_update_last_success',
         );
@@ -2179,7 +2223,7 @@ final class SEO_Clonador_Engine {
         $summary = isset($verification['summary']) && is_array($verification['summary']) ? $verification['summary'] : array();
         $handoff = array(
             'schema' => array('name' => 'seo_clonador_handoff', 'version' => 1),
-            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1',
+            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.3',
             'generation' => (string) $generation,
             'clone_verified' => !empty($verification['passed']) ? 1 : 0,
             'verification_checks_total' => absint($summary['checks_total'] ?? 0),
@@ -2207,7 +2251,7 @@ final class SEO_Clonador_Engine {
             'created_at' => time(),
             'clone_verified' => 1,
             'auditor_ready' => 0,
-            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1',
+            'clonador_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.3',
         );
         $r = self::set_staging_option($stg, $options_table, 'seo_semantic_catalog_reindex_pending', $pending);
         if (is_wp_error($r)) return $r;
@@ -2563,7 +2607,7 @@ final class SEO_Clonador_Engine {
             'schema_reconcile' => array('label'=>'Alineando esquemas gestionados con PRO','kind'=>'copy','tables'=>array()),
             'reset_posts' => array('label'=>'Vaciando objetos gestionados de STAGING','kind'=>'delete','tables'=>array($t('posts'),$t('postmeta'),$t('term_relationships'))),
             'reset_taxonomies' => array('label'=>'Vaciando taxonomias gestionadas de STAGING','kind'=>'delete','tables'=>array($t('terms'),$t('term_taxonomy'),$t('termmeta'),$t('term_relationships'))),
-            'reset_custom' => array('label'=>'Vaciando catalogo y conocimiento portable','kind'=>'delete','tables'=>array($t('seo_object_vocabulary'),$t('seo_nodes'),$t('seo_relations'),$t('seo_faq'),$t('seo_type_role_map'),$t('sql_product_atributos'),$t('sql_atributos_aliases'),$t('sql_atributos_terminos'),$t('sql_atributos'),$t('seo_vocabulary'),$t('seo_dependiente_semantics'),$t('seo_interprete_lexicon'),$t('seo_interprete_lexicon_evidence'),$t('seo_dependiente_trainer_lessons'),$t('seo_dependiente_trainer_questions'),$t('seo_dependiente_trainer_runs'),$t('seo_dependiente_l9_signals'),$t('seo_ingeniero_sources'),$t('seo_ingeniero_knowledge'))),
+            'reset_custom' => array('label'=>'Vaciando catalogo y conocimiento portable','kind'=>'delete','tables'=>array_merge(array($t('seo_object_vocabulary'),$t('seo_nodes'),$t('seo_relations'),$t('seo_faq'),$t('seo_type_role_map'),$t('sql_product_atributos'),$t('sql_atributos_aliases'),$t('sql_atributos_terminos'),$t('sql_atributos'),$t('seo_vocabulary'),$t('seo_dependiente_semantics'),$t('seo_interprete_lexicon'),$t('seo_interprete_lexicon_evidence'),$t('seo_dependiente_trainer_lessons'),$t('seo_dependiente_trainer_questions'),$t('seo_dependiente_trainer_runs'),$t('seo_dependiente_l9_signals'),$t('seo_ingeniero_sources'),$t('seo_ingeniero_knowledge')),array_map($t,self::editorial_service_table_keys()))),
             'reset_runtime' => array('label'=>'Limpiando runtime derivado de Dependiente','kind'=>'delete','tables'=>array($t('seo_dependiente_index'),$t('seo_dependiente_search_log'),$t('seo_dependiente_l9_exercises'))),
             'posts' => array('label'=>'Copiando productos, posts y paginas','kind'=>'copy','tables'=>array($t('posts'))),
             'post_parents' => array('label'=>'Reconstruyendo jerarquia de posts','kind'=>'copy','tables'=>array($t('posts'))),
@@ -2593,6 +2637,11 @@ final class SEO_Clonador_Engine {
             'l9_signals' => array('label'=>'Copiando memoria L9 de productos','kind'=>'copy','tables'=>array($t('seo_dependiente_l9_signals'))),
             'ingeniero_sources' => array('label'=>'Copiando fuentes de Ingeniero','kind'=>'copy','tables'=>array($t('seo_ingeniero_sources'))),
             'ingeniero_knowledge' => array('label'=>'Copiando conocimiento tecnico de Ingeniero','kind'=>'copy','tables'=>array($t('seo_ingeniero_knowledge'))),
+            'editorial_services' => array(
+                'label'=>'Copiando estado editorial de Ingeniero, Solucionador, Comparador y Ojeador',
+                'kind'=>'copy',
+                'tables'=>array_map($t, self::editorial_service_table_keys()),
+            ),
             'dependiente_options' => array('label'=>'Sincronizando estado portable de Dependiente y Academia','kind'=>'copy','tables'=>array($t('options'))),
             'structural_options' => array('label'=>'Sincronizando menus, portada, widgets y estructura del sitio','kind'=>'copy','tables'=>array($t('options'))),
             'woo_attribute_taxonomies' => array('label'=>'Copiando taxonomias de atributos WooCommerce','kind'=>'copy','tables'=>array($t('woocommerce_attribute_taxonomies'))),
@@ -2672,7 +2721,7 @@ final class SEO_Clonador_Engine {
             if (is_wp_error($r)) return $r;
             $state = self::worker_state_defaults();
             $state['job_id'] = $job_id;
-            $state['engine_version'] = defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1';
+            $state['engine_version'] = defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.3';
             $state['status'] = 'queued';
             $state['phase'] = 'preflight';
             $state['message'] = 'Esperando al Gestor de procesos.';
@@ -2826,6 +2875,9 @@ final class SEO_Clonador_Engine {
             array('key'=>'seo_ingeniero_knowledge','where'=>'1=1'),
             array('key'=>'seo_ingeniero_sources','where'=>'1=1'),
         );
+        foreach (self::editorial_service_table_keys() as $key) {
+            $targets[] = array('key'=>$key,'where'=>'1=1');
+        }
         $index = absint($state['cursor']['index'] ?? 0);
         if ($index >= count($targets)) {
             $state['phase']='reset_runtime';$state['cursor']=array('index'=>0);$state['message']='Catalogo y conocimiento portable vaciados. Limpiando runtime derivado de STAGING.';
@@ -3288,7 +3340,114 @@ final class SEO_Clonador_Engine {
     }
 
     private static function worker_batch_ingeniero_knowledge($pro,$stg,$pro_tables,$stg_tables,&$state){
-        return self::worker_batch_raw_history_table($pro,$stg,$pro_tables,$stg_tables,$state,'seo_ingeniero_knowledge','dependiente_options');
+        return self::worker_batch_raw_history_table($pro,$stg,$pro_tables,$stg_tables,$state,'seo_ingeniero_knowledge','editorial_services');
+    }
+
+    private static function remap_solucionador_vocabulary_json($raw,$vocab_map){
+        $raw = (string)$raw;
+        if ($raw === '') return $raw;
+        $data = json_decode($raw,true);
+        if (!is_array($data)) return $raw;
+
+        $walk = function(&$value,$key='') use (&$walk,$vocab_map) {
+            if (is_array($value)) {
+                foreach ($value as $child_key=>&$child) {
+                    if (!$walk($child,(string)$child_key)) {
+                        unset($child);
+                        return false;
+                    }
+                }
+                unset($child);
+                return true;
+            }
+            if (!in_array($key,array('id','vocabulary_id','parent_id'),true)) return true;
+            $source_id = absint($value);
+            if (!$source_id) return true;
+            $target_id = absint($vocab_map[$source_id] ?? 0);
+            if (!$target_id) return false;
+            $value = $target_id;
+            return true;
+        };
+
+        if (!$walk($data)) {
+            return new WP_Error('clonador_solucionador_vocab','Solucionador contiene un Vocabulary de PRO que no pudo remapearse a STAGING.');
+        }
+        return wp_json_encode($data,JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+    /**
+     * Copia por lotes las tablas persistentes de los servicios editoriales.
+     * Posts y terminos conservan los IDs de PRO en esta clonacion destructiva;
+     * las URLs internas se reescriben al dominio de STAGING.
+     */
+    private static function worker_batch_editorial_services($pro,$stg,$pro_tables,$stg_tables,&$state){
+        $keys = self::editorial_service_table_keys();
+        $index = absint($state['cursor']['index'] ?? 0);
+        $offset = absint($state['cursor']['offset'] ?? 0);
+
+        if ($index >= count($keys)) {
+            $state['phase'] = 'dependiente_options';
+            $state['cursor'] = array('index'=>0);
+            $state['message'] = 'Estado editorial de Ingeniero, Solucionador, Comparador y Ojeador sincronizado.';
+            return true;
+        }
+
+        $key = $keys[$index];
+        $source_table = $pro_tables[$key] ?? '';
+        $target_table = $stg_tables[$key] ?? '';
+        if (!$source_table || !$target_table) {
+            return new WP_Error('clonador_editorial_table', 'Tabla editorial gestionada desconocida: ' . sanitize_text_field($key));
+        }
+
+        $columns = self::table_columns($pro,$source_table);
+        if (is_wp_error($columns)) return $columns;
+        $dst_columns = self::table_columns($stg,$target_table);
+        if (is_wp_error($dst_columns)) return $dst_columns;
+        if ($columns !== $dst_columns) {
+            return new WP_Error('clonador_editorial_schema', 'Esquema incompatible en ' . sanitize_text_field($key) . '.');
+        }
+
+        $limit = 1200;
+        $sqlcols = implode(',',array_map(array(__CLASS__,'ident'),$columns));
+        $rows = self::rows($pro,"SELECT {$sqlcols} FROM `{$source_table}` LIMIT {$limit} OFFSET {$offset}");
+        if (is_wp_error($rows)) return $rows;
+
+        if ($rows) {
+            $identity = (array)($state['identity'] ?? array());
+            $vocab_map = array();
+            if ($key === 'seo_solucionador_topics') {
+                $vocab_map = self::worker_map_get($stg,$stg_tables['options'],'vocab');
+                if (is_wp_error($vocab_map)) return $vocab_map;
+            }
+
+            foreach ($rows as &$row) {
+                foreach ($row as $column=>$value) {
+                    if (is_string($value) && $value !== '') {
+                        $row[$column] = self::rewrite_site_url_string($value,$identity);
+                    }
+                }
+                if ($key === 'seo_solucionador_topics' && array_key_exists('proposed_vocabulary',$row)) {
+                    $mapped = self::remap_solucionador_vocabulary_json($row['proposed_vocabulary'],$vocab_map);
+                    if (is_wp_error($mapped)) return $mapped;
+                    $row['proposed_vocabulary'] = $mapped;
+                }
+            }
+            unset($row);
+
+            foreach (array_chunk($rows,120) as $chunk) {
+                $r = self::insert_rows($stg,$target_table,$columns,$chunk,false);
+                if (is_wp_error($r)) return $r;
+            }
+            self::worker_stat_add($state,$key,count($rows));
+        }
+
+        $offset += count($rows);
+        if (count($rows) < $limit) {
+            $index++;
+            $offset = 0;
+        }
+        $state['cursor'] = array('index'=>$index,'offset'=>$offset);
+        $state['message'] = $key . ' clonado: ' . absint($state['stats'][$key] ?? 0) . ' filas.';
+        return true;
     }
 
     private static function normalize_portable_dependiente_option($name,$value){
@@ -3371,7 +3530,7 @@ final class SEO_Clonador_Engine {
             'completed_at' => time(),
             'source' => 'pro',
             'destination' => 'staging',
-            'engine' => 'canonical_site_mirror_worker_2.7.1',
+            'engine' => 'canonical_site_mirror_worker_2.7.3',
             'stats' => (array) $state['stats'],
             'identity' => (array) $state['identity'],
             'duration_seconds' => max(0, time() - absint($state['started_at'] ?? time())),
@@ -3396,6 +3555,10 @@ final class SEO_Clonador_Engine {
                 'runtime_reset' => 1,
                 'trainer_history_synced' => 1,
                 'customer_search_log_copied' => 0,
+                'ingeniero_editorial_synced' => 1,
+                'solucionador_state_synced' => 1,
+                'comparador_state_synced' => 1,
+                'ojeador_market_snapshot_synced' => 1,
             )
         );
         if (is_wp_error($handoff)) return $handoff;
@@ -3459,6 +3622,7 @@ final class SEO_Clonador_Engine {
             case 'l9_signals': return self::worker_batch_l9_signals($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'ingeniero_sources': return self::worker_batch_ingeniero_sources($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'ingeniero_knowledge': return self::worker_batch_ingeniero_knowledge($pro,$stg,$pro_tables,$stg_tables,$state);
+            case 'editorial_services': return self::worker_batch_editorial_services($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'dependiente_options': return self::worker_phase_dependiente_options($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'structural_options': return self::worker_phase_structural_options($pro,$stg,$pro_tables,$stg_tables,$state);
             case 'woo_attribute_taxonomies': return self::worker_phase_woo_attribute_taxonomies($pro,$stg,$pro_tables,$stg_tables,$state);
@@ -3503,7 +3667,7 @@ final class SEO_Clonador_Engine {
                 return new WP_Error('clonador_reverify_job', 'El job visible no coincide con el job guardado en STAGING.');
             }
             $job_version = (string) ($state['engine_version'] ?? '');
-            $current_version = defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1';
+            $current_version = defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.3';
             if ($job_version !== $current_version) {
                 return new WP_Error('clonador_reverify_version', 'No se puede reverificar un job de otra version del Clonador. Inicia una copia nueva con ' . $current_version . '.');
             }
@@ -3563,7 +3727,7 @@ final class SEO_Clonador_Engine {
         $pair=self::open_pair();if(is_wp_error($pair))return$pair;list($pro,$stg)=$pair;$pro_tables=self::all_required_tables(seo_clonador_db_prefix('pro'));$stg_tables=self::all_required_tables(seo_clonador_db_prefix('staging'));
         $lock_name=self::LOCK_NAME.'_manager';$lock=self::scalar($stg,"SELECT GET_LOCK('".seo_clonador_db_escape($stg,$lock_name)."',0) AS l",'l');if('1'!==(string)$lock){@seo_clonador_db_close($pro);@seo_clonador_db_close($stg);return new WP_Error('clonador_worker_lock','Otra ventana del Clonador ya esta trabajando.');}
         try{
-            $state=self::worker_state_get($stg,$stg_tables['options']);if(is_wp_error($state))return$state;if(!$job_id||$job_id!==sanitize_key((string)$state['job_id']))return new WP_Error('clonador_worker_job','El job local no coincide con el job activo de STAGING.');$job_version=(string)($state['engine_version']??'');$current_version=defined('SEO_CLONADOR_VERSION')?SEO_CLONADOR_VERSION:'2.7.1';if($job_version!==$current_version)return new WP_Error('clonador_worker_version','El job pertenece a Clonador '.($job_version?:'legacy').' y el motor actual es '.$current_version.'. Inicia una simulacion y clonacion nuevas.');if('completed'===(string)$state['status'])return$state;if('failed'===(string)$state['status'])return new WP_Error('clonador_worker_failed',(string)$state['last_error']);
+            $state=self::worker_state_get($stg,$stg_tables['options']);if(is_wp_error($state))return$state;if(!$job_id||$job_id!==sanitize_key((string)$state['job_id']))return new WP_Error('clonador_worker_job','El job local no coincide con el job activo de STAGING.');$job_version=(string)($state['engine_version']??'');$current_version=defined('SEO_CLONADOR_VERSION')?SEO_CLONADOR_VERSION:'2.7.3';if($job_version!==$current_version)return new WP_Error('clonador_worker_version','El job pertenece a Clonador '.($job_version?:'legacy').' y el motor actual es '.$current_version.'. Inicia una simulacion y clonacion nuevas.');if('completed'===(string)$state['status'])return$state;if('failed'===(string)$state['status'])return new WP_Error('clonador_worker_failed',(string)$state['last_error']);
             $state['status']='running';$state['message']=$state['message']?:'Clonando por lotes mediante el Gestor de procesos.';
             $steps=0;
             while((microtime(true)-$started)<max(3,$budget-2)&&$steps<$max_steps&&'completed'!==(string)$state['status']){
@@ -3610,7 +3774,7 @@ final class SEO_Clonador_Engine {
         // codigo externo intenta invocarlo. La UI oficial usa el Gestor.
         return new WP_Error(
             'clonador_legacy_path_disabled',
-            'El Clonador 2.7.1 ejecuta el espejo funcional PRO -> STAGING mediante el Gestor de procesos: contenido, estructura, catalogo y conocimiento; runtime local y credenciales permanecen fuera del espejo.'
+            'El Clonador 2.7.3 ejecuta el espejo funcional PRO -> STAGING mediante el Gestor de procesos: contenido, estructura, catalogo y conocimiento; runtime local y credenciales permanecen fuera del espejo.'
         );
     }
 
@@ -3657,8 +3821,8 @@ final class SEO_Clonador_Engine {
                 'identity_resolution' => (array) ($analysis['identity_resolution'] ?? array()),
                 'reference_audit' => (array) ($analysis['reference_audit'] ?? array()),
                 'learning_reference_audit' => (array) ($analysis['learning_reference_audit'] ?? array()),
-                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.1',
-                'engine_revision' => 'site-mirror-brain-worker-2.7.1-r3',
+                'plan_version' => defined('SEO_CLONADOR_VERSION') ? SEO_CLONADOR_VERSION : '2.7.3',
+                'engine_revision' => 'site-mirror-brain-worker-2.7.3-r1',
                 'dry_run' => true,
                 'writes_performed' => 0,
                 'conflicts' => (array) $analysis['conflicts'],

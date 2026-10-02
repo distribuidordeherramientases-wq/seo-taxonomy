@@ -91,7 +91,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
         <div class="seo-clonador">
             <div class="seo-clonador-card">
                 <h1 style="margin-top:0;font-size:30px;line-height:1.2;">Clonador espejo PRO → STAGING</h1>
-                <p style="font-size:15px;margin-top:-8px;"><strong>PRO → STAGING</strong> · Contenido + estructura + catálogo + cerebro SEO · v<?php echo esc_html( SEO_CLONADOR_VERSION ); ?></p>
+                <p style="font-size:15px;margin-top:-8px;"><strong>PRO → STAGING</strong> · Contenido + estructura + catálogo + cerebro SEO + servicios editoriales · v<?php echo esc_html( SEO_CLONADOR_VERSION ); ?></p>
                 <p><strong>PRO es siempre el origen. STAGING es siempre el destino.</strong> No existe ninguna operación STAGING → PRO.</p>
                 <p>La clonación vacía el contenido de STAGING y lo reconstruye desde PRO. Los objetos WordPress, adjuntos, menús, plantillas y términos conservan los IDs canónicos de PRO para no romper referencias internas.</p>
                 <p>Entorno desde el que has abierto la pantalla: <strong><?php echo esc_html( $current ? strtoupper( $current ) : 'NO IDENTIFICADO' ); ?></strong>.</p>
@@ -149,7 +149,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
 
             <div class="seo-clonador-warning">
                 <strong>Operación destructiva en STAGING.</strong>
-                El contenido de <code>wp_posts</code> de STAGING se vacía por lotes y se reconstruye desde PRO; no se copian pedidos/transacciones. Usuarios, sesiones, credenciales, cron, locks, cachés y conexiones del entorno permanecen locales. PRO nunca se modifica.
+                El contenido de <code>wp_posts</code> y las tablas persistentes gestionadas de STAGING se vacían por lotes y se reconstruyen desde PRO; incluye Ingeniero, Solucionador, Comparador y snapshots de mercado de Ojeador. No se copian pedidos/transacciones ni runtime de workers. Usuarios, sesiones, credenciales, cron, locks, cachés y conexiones del entorno permanecen locales. PRO nunca se modifica.
             </div>
 
             <?php if ( function_exists( 'seo_clonador_db_render_connections' ) ) { seo_clonador_db_render_connections(); } ?>
@@ -295,7 +295,7 @@ if ( ! function_exists( 'seo_clonador_render' ) ) {
             function renderKpis(verification){
                 verification=verification||{};
                 const checks=verification.critical_kpis||{};
-                const wanted=['post_type:product','taxonomy:product_cat','kpi:products_with_category','kpi:products_without_category','kpi:products_with_seo_attributes','kpi:products_without_seo_attributes','table:sql_product_atributos','term_relationships','table:seo_faq','table:seo_vocabulary','table:seo_object_vocabulary','table:seo_dependiente_semantics','table:seo_interprete_lexicon','table:seo_interprete_lexicon_evidence','table:seo_dependiente_trainer_lessons','table:seo_dependiente_l9_signals','option:seo_dependiente_knowledge_snapshot','option:seo_dependiente_academy_update_last_success'];
+                const wanted=['post_type:product','taxonomy:product_cat','kpi:products_with_category','kpi:products_without_category','kpi:products_with_seo_attributes','kpi:products_without_seo_attributes','table:sql_product_atributos','term_relationships','table:seo_faq','table:seo_vocabulary','table:seo_object_vocabulary','table:seo_dependiente_semantics','table:seo_interprete_lexicon','table:seo_interprete_lexicon_evidence','table:seo_dependiente_trainer_lessons','table:seo_dependiente_l9_signals','table:seo_ingeniero_sources','table:seo_ingeniero_knowledge','table:seo_ingeniero_editorial','table:seo_solucionador_topics','table:seo_solucionador_dossiers','table:seo_comparador_profiles','table:seo_comparador_products','table:seo_comparador_editorial','table:seo_ojeador_market_categories','table:seo_ojeador_market_category_results','option:seo_dependiente_knowledge_snapshot','option:seo_dependiente_academy_update_last_success'];
                 const cards=[];
                 wanted.forEach(key=>{const c=checks[key];if(!c)return;cards.push('<div class="seo-clonador-kpi '+(c.ok?'ok':'bad')+'"><div class="seo-clonador-kpi-label">'+esc(c.label||key)+'</div><div class="seo-clonador-kpi-value">'+(c.ok?'✓ ':'✕ ')+n(c.staging)+'</div><div>PRO '+n(c.pro)+' · STAGING '+n(c.staging)+'</div></div>');});
                 const sm=verification.summary||{};
