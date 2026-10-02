@@ -687,6 +687,49 @@ function seo_ie_add_log_detail( &$log, $message ) {
  * @param string $filename Nombre del archivo.
  * @return resource
  */
+/**
+ * Abre un stream CSV conservando la semántica incremental del motor legacy.
+ *
+ * WP_Filesystem no expone recursos compatibles con fgetcsv(), fseek(), ftell()
+ * o php://output. Estas operaciones se encapsulan aquí para que la excepción
+ * sea estrecha, auditable y no obligue a cargar CSV grandes completos en memoria.
+ *
+ * @param string $path Ruta o wrapper de stream.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_ie_stream_open( $path, $mode ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV streaming requires a PHP stream resource; WP_Filesystem has no equivalent resource API.
+    return fopen( $path, $mode );
+}
+
+/**
+ * Cierra un stream CSV abierto por el motor legacy.
+ *
+ * @param resource $stream Recurso de stream.
+ * @return bool
+ */
+function seo_ie_stream_close( $stream ) {
+    if ( ! is_resource( $stream ) ) {
+        return false;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_ie_stream_open(); resource streaming is intentional.
+    return fclose( $stream );
+}
+
+/**
+ * Escribe bytes en un stream CSV.
+ *
+ * @param resource $stream Recurso de stream.
+ * @param string   $data   Datos a escribir.
+ * @return int|false
+ */
+function seo_ie_stream_write( $stream, $data ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Required for direct CSV streaming to php://output.
+    return fwrite( $stream, $data );
+}
+
 function seo_ie_open_csv_download( $filename ) {
 
     while ( ob_get_level() ) {
@@ -698,14 +741,14 @@ function seo_ie_open_csv_download( $filename ) {
     header( 'Content-Type: text/csv; charset=utf-8' );
     header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
 
-    $output = fopen( 'php://output', 'w' );
+    $output = seo_ie_stream_open( 'php://output', 'w' );
 
     if ( false === $output ) {
         wp_die( esc_html__( 'No se pudo generar el archivo CSV.', 'seo-taxonomy' ) );
     }
 
     // BOM UTF-8 para que Excel interprete correctamente ñ y tildes.
-    fwrite( $output, "\xEF\xBB\xBF" );
+    seo_ie_stream_write( $output, "\xEF\xBB\xBF" );
 
     return $output;
 }
@@ -1192,7 +1235,7 @@ function seo_export_categories_csv() {
         );
     }
 
-    fclose( $output );
+    seo_ie_stream_close( $output );
     exit;
 }
 
@@ -1241,7 +1284,7 @@ function seo_import_categories_csv() {
         wp_die( esc_html__( 'No se ha recibido un CSV de categorías válido.', 'seo-taxonomy' ) );
     }
 
-    $handle = fopen( $_FILES['categories_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $_FILES['categories_csv']['tmp_name'], 'r' );
 
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de categorías.', 'seo-taxonomy' ) );
@@ -1250,14 +1293,14 @@ function seo_import_categories_csv() {
     $header = seo_ie_read_csv_row( $handle );
 
     if ( false === $header ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die( esc_html__( 'El CSV de categorías está vacío.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_normalize_csv_header( $header, 'category' );
 
     if ( ! in_array( 'category_id', $header, true ) ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die( esc_html__( 'Falta la columna category_id.', 'seo-taxonomy' ) );
     }
 
@@ -1657,7 +1700,7 @@ if ( ! empty( $term_data ) ) {
         $log['correctos']++;
     }
 
-    fclose( $handle );
+    seo_ie_stream_close( $handle );
 
     seo_ie_store_log( $log );
 
@@ -3087,7 +3130,7 @@ function seo_export_products_csv() {
         );
     }
 
-    fclose( $output );
+    seo_ie_stream_close( $output );
     exit;
 }
 
@@ -4705,7 +4748,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         $path = (string) $stored['path'];
 
-        $handle = fopen( $path, 'r' );
+        $handle = seo_ie_stream_open( $path, 'r' );
 
         if ( false === $handle ) {
             wp_delete_file( $path );
@@ -4715,7 +4758,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         $header = seo_ie_read_csv_row( $handle );
 
         if ( false === $header ) {
-            fclose( $handle );
+            seo_ie_stream_close( $handle );
             wp_delete_file( $path );
             wp_die( esc_html__( 'El CSV de productos está vacío.', 'seo-taxonomy' ) );
         }
@@ -4725,7 +4768,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         $duplicates = array_keys( array_filter( $counts, static fn( $count ) => 1 < $count ) );
 
         if ( ! empty( $duplicates ) ) {
-            fclose( $handle );
+            seo_ie_stream_close( $handle );
             wp_delete_file( $path );
             wp_die(
                 sprintf(
@@ -4737,7 +4780,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         }
 
         if ( empty( array_intersect( [ 'product_id', 'sku', 'slug' ], $header ) ) && ! in_array( 'titulo', $header, true ) ) {
-            fclose( $handle );
+            seo_ie_stream_close( $handle );
             wp_delete_file( $path );
             wp_die( esc_html__( 'El CSV necesita product_id, SKU, slug o título para identificar o crear productos.', 'seo-taxonomy' ) );
         }
@@ -4764,7 +4807,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         );
 
         if ( ! in_array( true, $selected_blocks, true ) ) {
-            fclose( $handle );
+            seo_ie_stream_close( $handle );
             wp_delete_file( $path );
             wp_die( esc_html__( 'Selecciona al menos un bloque de datos para importar.', 'seo-taxonomy' ) );
         }
@@ -4816,7 +4859,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
         );
         delete_transient( seo_ie_product_import_result_key( $user_id, $token ) );
         seo_ie_product_import_set_active( $user_id, $token, $state );
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
 
         if ( ! seo_ie_product_import_schedule( $user_id, $token, 0 ) ) {
             delete_transient( seo_ie_product_import_state_key( $user_id, $token ) );
@@ -4863,7 +4906,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             wp_die( esc_html__( 'La importación ha caducado o no se puede continuar.', 'seo-taxonomy' ) );
         }
 
-        $handle = fopen( $state['path'], 'r' );
+        $handle = seo_ie_stream_open( $state['path'], 'r' );
 
         if ( false === $handle ) {
             if ( $is_background ) {
@@ -4880,7 +4923,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
     $lock_key = seo_ie_product_import_lock_key( $user_id, $token );
 
     if ( get_transient( $lock_key ) ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
 
         if ( $is_background ) {
             seo_ie_product_import_schedule( $user_id, $token, 15, true );
@@ -5619,7 +5662,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
     $next_offset = ftell( $handle );
     $finished    = feof( $handle );
-    fclose( $handle );
+    seo_ie_stream_close( $handle );
     delete_transient( $lock_key );
 
     $state['offset']                 = $next_offset;
@@ -7238,7 +7281,7 @@ function seo_export_pages_csv() {
         );
     }
 
-    fclose( $output );
+    seo_ie_stream_close( $output );
     exit;
 }
 
@@ -7324,7 +7367,7 @@ function seo_import_pages_csv() {
         );
     }
 
-    $handle = fopen( $_FILES['pages_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $_FILES['pages_csv']['tmp_name'], 'r' );
 
     if ( false === $handle ) {
         wp_die(
@@ -7338,7 +7381,7 @@ function seo_import_pages_csv() {
     $header = seo_ie_read_csv_row( $handle );
 
     if ( false === $header ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die(
             esc_html__(
                 'El CSV de páginas está vacío.',
@@ -7369,7 +7412,7 @@ function seo_import_pages_csv() {
     );
 
     if ( ! empty( $duplicate_headers ) ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die(
             sprintf(
                 /* translators: %s: lista de cabeceras CSV duplicadas. */
@@ -7394,7 +7437,7 @@ function seo_import_pages_csv() {
             || ! in_array( 'titulo', $header, true )
         )
     ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die(
             esc_html__(
                 'El CSV necesita page_id, ruta, url o slug. El título solo permite crear páginas nuevas.',
@@ -7440,7 +7483,7 @@ function seo_import_pages_csv() {
         }
 
         if ( 20000 <= count( $items ) ) {
-            fclose( $handle );
+            seo_ie_stream_close( $handle );
             wp_die(
                 esc_html__(
                     'El CSV supera el límite de 20.000 páginas por proceso.',
@@ -7537,7 +7580,7 @@ function seo_import_pages_csv() {
         $items[] = $item;
     }
 
-    fclose( $handle );
+    seo_ie_stream_close( $handle );
 
     $log['procesados'] = count( $items );
 
@@ -9045,7 +9088,7 @@ function seo_export_posts_csv() {
         );
     }
 
-    fclose( $output );
+    seo_ie_stream_close( $output );
     exit;
 }
 
@@ -9102,14 +9145,14 @@ function seo_import_posts_csv() {
         wp_die( esc_html__( 'Selecciona al menos un bloque de datos para importar.', 'seo-taxonomy' ) );
     }
 
-    $handle = fopen( $_FILES['posts_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $_FILES['posts_csv']['tmp_name'], 'r' );
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de entradas.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
     if ( false === $header ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die( esc_html__( 'El CSV de entradas está vacío.', 'seo-taxonomy' ) );
     }
 
@@ -9134,7 +9177,7 @@ function seo_import_posts_csv() {
     );
 
     if ( ! empty( $duplicate_headers ) ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die(
             sprintf(
                 /* translators: %s: lista de cabeceras CSV duplicadas. */
@@ -9146,7 +9189,7 @@ function seo_import_posts_csv() {
 
     $identity_columns = array_intersect( [ 'post_id', 'slug', 'url' ], $header );
     if ( empty( $identity_columns ) && ( 'update_only' === $mode || ! in_array( 'titulo', $header, true ) ) ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die( esc_html__( 'El CSV necesita post_id, slug o url. El título solo permite crear entradas nuevas.', 'seo-taxonomy' ) );
     }
 
@@ -9184,7 +9227,7 @@ function seo_import_posts_csv() {
         }
 
         if ( 20000 <= count( $items ) ) {
-            fclose( $handle );
+            seo_ie_stream_close( $handle );
             wp_die( esc_html__( 'El CSV supera el límite de 20.000 entradas por proceso.', 'seo-taxonomy' ) );
         }
 
@@ -9233,7 +9276,7 @@ function seo_import_posts_csv() {
 
         $items[] = $item;
     }
-    fclose( $handle );
+    seo_ie_stream_close( $handle );
 
     $log['procesados'] = count( $items );
 
@@ -9742,7 +9785,7 @@ function seo_export_faqs_csv() {
         );
     }
 
-    fclose( $output );
+    seo_ie_stream_close( $output );
     exit;
 }
 
@@ -9801,7 +9844,7 @@ function seo_import_faqs_csv() {
         wp_die( esc_html__( 'No se ha recibido un CSV de FAQs válido.', 'seo-taxonomy' ) );
     }
 
-    $handle = fopen( $_FILES['faqs_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $_FILES['faqs_csv']['tmp_name'], 'r' );
 
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de FAQs.', 'seo-taxonomy' ) );
@@ -9810,7 +9853,7 @@ function seo_import_faqs_csv() {
     $header = seo_ie_read_csv_row( $handle );
 
     if ( false === $header ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die( esc_html__( 'El CSV de FAQs está vacío.', 'seo-taxonomy' ) );
     }
 
@@ -9825,7 +9868,7 @@ function seo_import_faqs_csv() {
 
     foreach ( $required_columns as $required_column ) {
         if ( ! in_array( $required_column, $header, true ) ) {
-            fclose( $handle );
+            seo_ie_stream_close( $handle );
             wp_die(
                 sprintf(
                     /* translators: %s: nombre de la columna CSV obligatoria. */
@@ -10026,7 +10069,7 @@ function seo_import_faqs_csv() {
         $log['correctos']++;
     }
 
-    fclose( $handle );
+    seo_ie_stream_close( $handle );
 
     seo_ie_store_log( $log );
 
@@ -10191,7 +10234,7 @@ function seo_export_redirects_csv() {
         );
     }
 
-    fclose( $output );
+    seo_ie_stream_close( $output );
     exit;
 }
 
@@ -10231,14 +10274,14 @@ function seo_import_redirects_csv() {
         wp_die( esc_html__( 'No existe la tabla wp_seo_redirects.', 'seo-taxonomy' ) );
     }
 
-    $handle = fopen( $_FILES['redirects_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $_FILES['redirects_csv']['tmp_name'], 'r' );
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de redirects.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
     if ( false === $header ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die( esc_html__( 'El CSV de redirects esta vacio.', 'seo-taxonomy' ) );
     }
 
@@ -10247,7 +10290,7 @@ function seo_import_redirects_csv() {
     $duplicates = array_keys( array_filter( $counts, static fn( $count ) => 1 < $count ) );
 
     if ( ! empty( $duplicates ) ) {
-        fclose( $handle );
+        seo_ie_stream_close( $handle );
         wp_die(
             sprintf(
                 /* translators: %s: lista de cabeceras CSV duplicadas. */
@@ -10259,7 +10302,7 @@ function seo_import_redirects_csv() {
 
     foreach ( [ 'origin_url', 'target_url' ] as $required ) {
         if ( ! in_array( $required, $header, true ) ) {
-            fclose( $handle );
+            seo_ie_stream_close( $handle );
             wp_die(
                 sprintf(
                     /* translators: %s: nombre de la columna CSV obligatoria. */
@@ -10419,7 +10462,7 @@ function seo_import_redirects_csv() {
         $log['correctos']++;
     }
 
-    fclose( $handle );
+    seo_ie_stream_close( $handle );
     seo_ie_store_log( $log );
 
     if ( function_exists( 'seo_ie_batch_is_internal' ) && seo_ie_batch_is_internal( 'redirect' ) ) {
