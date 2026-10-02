@@ -2607,7 +2607,7 @@ final class SEO_Clonador_Engine {
             'schema_reconcile' => array('label'=>'Alineando esquemas gestionados con PRO','kind'=>'copy','tables'=>array()),
             'reset_posts' => array('label'=>'Vaciando objetos gestionados de STAGING','kind'=>'delete','tables'=>array($t('posts'),$t('postmeta'),$t('term_relationships'))),
             'reset_taxonomies' => array('label'=>'Vaciando taxonomias gestionadas de STAGING','kind'=>'delete','tables'=>array($t('terms'),$t('term_taxonomy'),$t('termmeta'),$t('term_relationships'))),
-            'reset_custom' => array('label'=>'Vaciando catalogo y conocimiento portable','kind'=>'delete','tables'=>array($t('seo_object_vocabulary'),$t('seo_nodes'),$t('seo_relations'),$t('seo_faq'),$t('seo_type_role_map'),$t('sql_product_atributos'),$t('sql_atributos_aliases'),$t('sql_atributos_terminos'),$t('sql_atributos'),$t('seo_vocabulary'),$t('seo_dependiente_semantics'),$t('seo_interprete_lexicon'),$t('seo_interprete_lexicon_evidence'),$t('seo_dependiente_trainer_lessons'),$t('seo_dependiente_trainer_questions'),$t('seo_dependiente_trainer_runs'),$t('seo_dependiente_l9_signals'),$t('seo_ingeniero_sources'),$t('seo_ingeniero_knowledge'))),
+            'reset_custom' => array('label'=>'Vaciando catalogo y conocimiento portable','kind'=>'delete','tables'=>array_merge(array($t('seo_object_vocabulary'),$t('seo_nodes'),$t('seo_relations'),$t('seo_faq'),$t('seo_type_role_map'),$t('sql_product_atributos'),$t('sql_atributos_aliases'),$t('sql_atributos_terminos'),$t('sql_atributos'),$t('seo_vocabulary'),$t('seo_dependiente_semantics'),$t('seo_interprete_lexicon'),$t('seo_interprete_lexicon_evidence'),$t('seo_dependiente_trainer_lessons'),$t('seo_dependiente_trainer_questions'),$t('seo_dependiente_trainer_runs'),$t('seo_dependiente_l9_signals'),$t('seo_ingeniero_sources'),$t('seo_ingeniero_knowledge')),array_map($t,self::editorial_service_table_keys()))),
             'reset_runtime' => array('label'=>'Limpiando runtime derivado de Dependiente','kind'=>'delete','tables'=>array($t('seo_dependiente_index'),$t('seo_dependiente_search_log'),$t('seo_dependiente_l9_exercises'))),
             'posts' => array('label'=>'Copiando productos, posts y paginas','kind'=>'copy','tables'=>array($t('posts'))),
             'post_parents' => array('label'=>'Reconstruyendo jerarquia de posts','kind'=>'copy','tables'=>array($t('posts'))),
@@ -3352,7 +3352,10 @@ final class SEO_Clonador_Engine {
         $walk = function(&$value,$key='') use (&$walk,$vocab_map) {
             if (is_array($value)) {
                 foreach ($value as $child_key=>&$child) {
-                    $walk($child,(string)$child_key);
+                    if (!$walk($child,(string)$child_key)) {
+                        unset($child);
+                        return false;
+                    }
                 }
                 unset($child);
                 return true;
