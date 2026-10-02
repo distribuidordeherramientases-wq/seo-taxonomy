@@ -35,7 +35,7 @@ defined('ABSPATH') || exit;
  * VERSIONES
  */
 define('SEO_SYSTEM_VERSION', '2.3.9');
-define('SEO_SYSTEM_DB_VERSION', '2.3.8');
+define('SEO_SYSTEM_DB_VERSION', '2.3.9');
 
 /**
  * RUTAS
