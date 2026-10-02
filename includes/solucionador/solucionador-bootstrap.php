@@ -2,9 +2,11 @@
 /**
  * Solucionador - bootstrap.
  *
- * Capa unica de decision editorial. Consume conclusiones de los servicios
- * especialistas, cruza cobertura y oportunidad, prioriza actuaciones y prepara
- * briefs. Los editores especializados siguen siendo el lugar de ejecucion.
+ * Servicio editorial reducido: Academia/Entrenador -> dossier por categoria ->
+ * cobertura -> decision minima -> brief basico para Editora.
+ *
+ * Ingeniero, Comparador, Ojeador, Clasificador, Marketing, Comentarista,
+ * Auditor y Analista conservan procesos editoriales independientes.
  *
  * Una propuesta es solo un registro. Solo al aprobar explicitamente una
  * propuesta de nuevo post se crea un borrador. Nunca se publica automaticamente.
@@ -13,10 +15,10 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_SOLUCIONADOR_VERSION')) {
-    define('SEO_SOLUCIONADOR_VERSION', '0.4.2');
+    define('SEO_SOLUCIONADOR_VERSION', '0.5.0');
 }
 if (!defined('SEO_SOLUCIONADOR_DB_VERSION')) {
-    define('SEO_SOLUCIONADOR_DB_VERSION', '0.4.0');
+    define('SEO_SOLUCIONADOR_DB_VERSION', '0.5.0');
 }
 if (!defined('SEO_SOLUCIONADOR_PATH')) {
     define('SEO_SOLUCIONADOR_PATH', __DIR__ . '/');
@@ -25,6 +27,7 @@ if (!defined('SEO_SOLUCIONADOR_PATH')) {
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-db.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-normalizer.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-sources.php';
+require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-coverage.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-coverage.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-catalog.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-posts.php';
