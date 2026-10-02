@@ -693,6 +693,14 @@ function seo_core_system_test_semantic_token_variants($token) {
     $variants = array($token => true);
     $length = strlen($token);
 
+    // Excepción corta explícita: "spa" es un término comercial real y su
+    // plural "spas" debe considerarse equivalente. La regla general de plural
+    // exige más longitud para evitar derivaciones agresivas en palabras cortas.
+    if ($token === 'spa' || $token === 'spas') {
+        $variants['spa'] = true;
+        $variants['spas'] = true;
+    }
+
     // Plurales espanoles frecuentes. Se conservan todas las variantes para
     // no convertir una regla linguistica imperfecta en una decision destructiva.
     if ($length > 4 && substr($token, -1) === 's') {
@@ -726,7 +734,7 @@ function seo_core_system_test_semantic_token_variants($token) {
     }
 
     return array_values(array_filter(array_keys($variants), static function ($value) {
-        return strlen((string) $value) >= 4;
+        return strlen((string) $value) >= 4 || (string) $value === 'spa';
     }));
 }
 
