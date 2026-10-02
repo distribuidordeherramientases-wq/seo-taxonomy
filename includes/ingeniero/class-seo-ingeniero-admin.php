@@ -547,6 +547,29 @@ final class SEO_Ingeniero_Admin {
         }
         echo '</tbody></table>';
 
+        $internal_links = (array) ($brief['internal_links'] ?? array());
+        echo '<h3 style="margin-top:18px">Enlaces internos sugeridos</h3>';
+        echo '<p class="description">Referencias propias para contexto editorial; no convierten la pieza técnica en publicidad.</p>';
+        if (!empty($internal_links['categories'])) {
+            echo '<p><strong>Categorías:</strong> ';
+            $links = array();
+            foreach ((array) $internal_links['categories'] as $category_row) {
+                $name = (string) ($category_row['name'] ?? '');
+                $url = (string) ($category_row['url'] ?? '');
+                if ($name === '' || $url === '') continue;
+                $links[] = '<a href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html($name) . '</a>';
+            }
+            echo wp_kses_post(implode(' · ', $links));
+            echo '</p>';
+        }
+        if (!empty($internal_links['products'])) {
+            echo '<ul>';
+            foreach ((array) $internal_links['products'] as $product_row) {
+                echo '<li><a href="' . esc_url((string) ($product_row['url'] ?? '')) . '" target="_blank" rel="noopener">' . esc_html((string) ($product_row['title'] ?? '')) . '</a></li>';
+            }
+            echo '</ul>';
+        }
+
         $coverage = (array) ($brief['coverage'] ?? array());
         echo '<h3 style="margin-top:18px">Cobertura existente</h3>';
         echo '<p>Estado: <code>' . esc_html((string) ($coverage['status'] ?? 'uncovered')) . '</code> · score ' . esc_html(number_format_i18n(((float) ($coverage['score'] ?? 0))*100,1)) . '%.</p>';
