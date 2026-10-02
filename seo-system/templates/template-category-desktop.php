@@ -469,6 +469,71 @@ $json = array(
 
 
     <!-- =====================================================
+         BLOQUES EDITORIALES CONTEXTUALES
+         Orden acordado:
+         1) Comparador
+         2) Dependiente
+         3) Comentarista
+         4) Ingeniero
+
+         Los helpers no imprimen título ni contenedor si no hay contenido.
+    ====================================================== -->
+
+    <?php
+    // Comparador: extracto persistido del post canónico publicado.
+    if (function_exists('seo_comparador_render_category_block')) {
+        seo_comparador_render_category_block($term->term_id);
+    }
+
+    $dht_category_dependiente_posts = function_exists('dht_template_context_posts_for_categories')
+        ? dht_template_context_posts_for_categories(
+            array($term->term_id),
+            'dependiente_qa_basic',
+            4
+        )
+        : array();
+
+    if (function_exists('dht_template_render_context_posts')) {
+        dht_template_render_context_posts(
+            $dht_category_dependiente_posts,
+            'Preguntas habituales',
+            'dependiente',
+            'category'
+        );
+    }
+
+    $dht_category_external_comments = function_exists('dht_template_category_external_comments')
+        ? dht_template_category_external_comments($term->term_id, 6, 2)
+        : array();
+
+    if (function_exists('dht_template_render_external_comments')) {
+        dht_template_render_external_comments(
+            $dht_category_external_comments,
+            'Comentarios externos sobre productos de esta categoría',
+            'category'
+        );
+    }
+
+    $dht_category_ingeniero_posts = function_exists('dht_template_context_posts_for_categories')
+        ? dht_template_context_posts_for_categories(
+            array($term->term_id),
+            'ingeniero_qa_specialized',
+            3
+        )
+        : array();
+
+    if (function_exists('dht_template_render_context_posts')) {
+        dht_template_render_context_posts(
+            $dht_category_ingeniero_posts,
+            'Información técnica',
+            'ingeniero',
+            'category'
+        );
+    }
+    ?>
+
+
+    <!-- =====================================================
          CATEGORÍAS RELACIONADAS
     ====================================================== -->
 
@@ -622,35 +687,6 @@ $json = array(
         </section>
 
     <?php endif; ?>
-
-
-    <!-- =====================================================
-         COMPARATIVA CANÓNICA
-         Solo lectura persistida: no recalcula ni consulta Ojeador.
-    ====================================================== -->
-
-    <?php
-    if (function_exists('seo_comparador_render_category_block')) {
-        seo_comparador_render_category_block($term->term_id);
-    }
-    ?>
-
-
-    <!-- =====================================================
-         FAQS DE LA CATEGORÍA
-    ====================================================== -->
-
-    <?php
-    $faq_object_type = 2;
-    $faq_object_id   = $term->term_id;
-    $faq_ambito      = '';
-
-    $faq_template = __DIR__ . '/template-faq.php';
-
-    if(file_exists($faq_template)){
-        include $faq_template;
-    }
-    ?>
 
 
     <!-- =====================================================
