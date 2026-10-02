@@ -23,6 +23,19 @@ final class SEO_Ingeniero_Posts {
             : '';
     }
 
+    public static function can_create_draft(array $dossier) {
+        if ('CREATE_POST' !== strtoupper((string) ($dossier['recommended_action'] ?? ''))) {
+            return new WP_Error('ingeniero_editorial_action', 'Esta propuesta no requiere crear un post nuevo.');
+        }
+        if ('approved' !== sanitize_key((string) ($dossier['status'] ?? ''))) {
+            return new WP_Error('ingeniero_editorial_not_approved', 'La propuesta debe aprobarse antes de crear el borrador.');
+        }
+        if (absint($dossier['term_id'] ?? 0) < 1) {
+            return new WP_Error('ingeniero_editorial_category', 'La propuesta no tiene categoría válida.');
+        }
+        return true;
+    }
+
     public static function create_draft($editorial_id) {
         $editorial_id = absint($editorial_id);
         $dossier = SEO_Ingeniero_DB::editorial_get($editorial_id);
@@ -33,12 +46,8 @@ final class SEO_Ingeniero_Posts {
             return $post_id;
         }
 
-        if ('CREATE_POST' !== strtoupper((string) ($dossier['recommended_action'] ?? ''))) {
-            return new WP_Error('ingeniero_editorial_action', 'Esta propuesta no requiere crear un post nuevo.');
-        }
-        if ('approved' !== sanitize_key((string) ($dossier['status'] ?? ''))) {
-            return new WP_Error('ingeniero_editorial_not_approved', 'La propuesta debe aprobarse antes de crear el borrador.');
-        }
+        $allowed = self::can_create_draft($dossier);
+        if (is_wp_error($allowed)) return $allowed;
 
         $term_id = absint($dossier['term_id'] ?? 0);
         $term = $term_id ? get_term($term_id, 'product_cat') : null;
