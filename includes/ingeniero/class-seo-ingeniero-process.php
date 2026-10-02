@@ -42,7 +42,9 @@ final class SEO_Ingeniero_Process {
         $budget = max(5, min(55, absint($budget)));
         $started = microtime(true);
         $state = SEO_Ingeniero::state();
-        $batch_size = max(1, min(3, absint($state['batch_size'] ?? 1)));
+        // Requisito editorial: una categoría por ciclo. Evita cargar conocimiento
+        // activo de varias categorías en memoria dentro de la misma ejecución.
+        $batch_size = 1;
         $processed_now = 0;
         $learned_now = 0;
         $review_now = 0;
@@ -128,15 +130,9 @@ final class SEO_Ingeniero_Process {
 
         $duration = max(0.001, microtime(true)-$started);
         $state = SEO_Ingeniero::state();
-        $next_batch = max(1, min(3, absint($state['batch_size'] ?? 1)));
-        if ($processed_now > 0) {
-            $per_category = $duration / $processed_now;
-            if ($per_category < 8 && $next_batch < 3) $next_batch++;
-            elseif ($per_category > 20 && $next_batch > 1) $next_batch--;
-        }
 
         $changes = array(
-            'batch_size'=>$next_batch,
+            'batch_size'=>1,
             'last_duration'=>round($duration,3),
             'last_activity_at'=>time(),
         );
@@ -163,7 +159,7 @@ final class SEO_Ingeniero_Process {
                 'last_attempt_at'=>time(),
                 'last_result'=>$processed_now?'processed':'waiting',
                 'last_error'=>(string) (SEO_Ingeniero::state()['last_error'] ?? ''),
-                'detail'=>number_format_i18n($progress['processed']) . '/' . number_format_i18n($progress['total']) . ' categorías · lote adaptativo ' . $next_batch . '.',
+                'detail'=>number_format_i18n($progress['processed']) . '/' . number_format_i18n($progress['total']) . ' categorías · 1 categoría por ciclo.',
             ));
         }
 
@@ -200,8 +196,7 @@ final class SEO_Ingeniero_Process {
         }
 
         $duration = max(0, (float) ($state['last_duration'] ?? 0));
-        $batch = max(1, absint($state['batch_size'] ?? 1));
-        $speed = ($duration > 0) ? number_format_i18n(($batch/$duration)*60, 1) . ' categorías/min aprox.' : 'Sin lote medido';
+        $speed = ($duration > 0) ? number_format_i18n((1/$duration)*60, 1) . ' categorías/min aprox.' : 'Sin ciclo medido';
         $usage = SEO_Ingeniero_SerpApi_Provider::usage_month();
 
         $items[] = array(
