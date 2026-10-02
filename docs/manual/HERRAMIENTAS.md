@@ -19,12 +19,13 @@ Esta pantalla es un lanzador. El botón **Abrir** de cada tarjeta solo navega al
 | Procesos | Estado, velocidad y workers |
 | Logística | Pedidos/proveedores y transporte |
 | Conexiones con proveedores | Credenciales e integraciones externas |
-| FAQs | Gestión, cobertura y calidad de FAQs |
 | Estado del servidor | Servidor, WordPress, MySQL, seguridad y logs |
 | Plugin Validation | Validación interna del plugin |
 | Menu Manager | Generación y sincronización del menú SEO |
 | Facturas y presupuestos | Documentos PDF conectados a WooCommerce |
 | Ojeador | Mercado por categorías en Google Shopping |
+
+> **FAQs** ya no se lanza desde Herramientas. Su acceso visible está en **SEO Taxonomy → Contenidos → FAQs**; la pantalla y el slug `seo-faq` se mantienen.
 
 ## Taxonomy
 
@@ -113,14 +114,6 @@ Pestañas: **Gestión de pedidos** y **Transporte**.
 Gestión de pedidos muestra Pedido, Estado, Object ID, Producto WooCommerce, Cantidad, Proveedor, ID/SKU del proveedor, Producto proveedor y Compra.
 
 Transporte: checkboxes **Activar gestor propio**, **Solo España**, **Transporte sujeto a impuestos** y **No usar reglas avanzadas si faltan peso o medidas**; campos Nombre que verá el cliente y Zona provisional. **Añadir regla** crea una regla. Cada regla tiene checkbox Activa, Eliminar, Prioridad, Nombre, Destino, límites de subtotal/peso/dimensiones/volumen y coste fijo/por kg/por unidad/gratuidad.
-
-## FAQs
-
-Pestañas: **Hubs SEO**, **Categorías**, **Productos**, **Informe**.
-
-En edición: selector de elemento, **Nueva FAQ**, Orden, Pregunta, Respuesta, checkbox **Activa** y Guardar/Actualizar.
-
-En Informe: Buscar, Nivel, Estado, Diagnóstico, Min. renders, Min. aperturas, Orden y **Aplicar filtros**. Incluye KPIs, calidad, diagnóstico editorial, cobertura e interacción. Limpiezas: **Eliminar copias seleccionadas**, **Eliminar todas las copias**, **Eliminar copias del grupo**, **Eliminar seleccionadas** y **Eliminar todas las huérfanas**.
 
 ## Estado del servidor
 
