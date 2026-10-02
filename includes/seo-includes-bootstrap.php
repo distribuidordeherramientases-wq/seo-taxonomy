@@ -134,6 +134,9 @@ require_once SEO_SYSTEM_PATH . 'includes/comentarista/comentarista-bootstrap.php
 
 require_once SEO_SYSTEM_PATH . 'includes/dependiente/seo-dependiente-bootstrap.php';
 
+// Ingeniero: servicio técnico/editorial independiente de Dependiente.
+require_once SEO_SYSTEM_PATH . 'includes/ingeniero/ingeniero-bootstrap.php';
+
 /*
 |--------------------------------------------------------------------------
 | INFORMES Y DASHBOARD
