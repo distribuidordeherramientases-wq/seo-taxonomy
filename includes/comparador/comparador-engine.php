@@ -519,8 +519,9 @@ final class SEO_Comparador_Engine {
         $hash = self::source_hash($records,$axes);
         $now = self::now();
 
+        $profiles_table = SEO_Comparador_DB::table('profiles');
         $existing = $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . SEO_Comparador_DB::table('profiles') . ' WHERE canonical_key=%s LIMIT 1',
+            "SELECT * FROM {$profiles_table} WHERE canonical_key=%s LIMIT 1",
             self::profile_key($term_id)
         ), ARRAY_A);
         $old_hash = (string) ($existing['source_hash'] ?? '');
@@ -576,10 +577,12 @@ final class SEO_Comparador_Engine {
 
         $wpdb->delete(SEO_Comparador_DB::table('axes'),array('profile_id'=>$profile_id));
         $wpdb->delete(SEO_Comparador_DB::table('values'),array('comparison_product_id'=>0)); // limpieza defensiva
-        $product_ids = $wpdb->get_col($wpdb->prepare('SELECT id FROM ' . SEO_Comparador_DB::table('products') . ' WHERE profile_id=%d',$profile_id));
+        $products_table = SEO_Comparador_DB::table('products');
+        $values_table = SEO_Comparador_DB::table('values');
+        $product_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$products_table} WHERE profile_id=%d",$profile_id));
         if ($product_ids) {
             $placeholders=implode(',',array_fill(0,count($product_ids),'%d'));
-            $wpdb->query($wpdb->prepare('DELETE FROM ' . SEO_Comparador_DB::table('values') . " WHERE comparison_product_id IN ({$placeholders})",$product_ids));
+            $wpdb->query($wpdb->prepare("DELETE FROM {$values_table} WHERE comparison_product_id IN ({$placeholders})",$product_ids));
         }
         $wpdb->delete(SEO_Comparador_DB::table('products'),array('profile_id'=>$profile_id));
 
@@ -747,10 +750,12 @@ final class SEO_Comparador_Engine {
         $profile_id = absint($profile_id);
         $axis_key = sanitize_key((string) $axis_key);
         if (!$profile_id || $axis_key === '') return 0.0;
+        $values_table = SEO_Comparador_DB::table('values');
+        $products_table = SEO_Comparador_DB::table('products');
         $value = $wpdb->get_var($wpdb->prepare(
             "SELECT AVG(v.confidence)
-             FROM " . SEO_Comparador_DB::table('values') . " v
-             JOIN " . SEO_Comparador_DB::table('products') . " p ON p.id=v.comparison_product_id
+             FROM {$values_table} v
+             JOIN {$products_table} p ON p.id=v.comparison_product_id
              WHERE p.profile_id=%d
                AND v.axis_key=%s
                AND v.normalized_value<>''
@@ -823,8 +828,9 @@ final class SEO_Comparador_Engine {
         wp_set_post_terms($post_id,array('comparativas'),'post_tag',true);
 
         $now=self::now();
+        $post_map_table = SEO_Comparador_DB::table('post_map');
         $exists=$wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM " . SEO_Comparador_DB::table('post_map') . " WHERE profile_id=%d AND post_id=%d LIMIT 1",
+            "SELECT id FROM {$post_map_table} WHERE profile_id=%d AND post_id=%d LIMIT 1",
             $profile_id,$post_id
         ));
         $row=array(
