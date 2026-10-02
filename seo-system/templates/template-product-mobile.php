@@ -652,7 +652,7 @@ $schema_product_graph = array(
   <nav class="dh-mobile-product-jump" aria-label="Accesos del producto">
     <a href="#dh-product-purchase"><?php echo $supplier_out_of_stock ? 'Disponibilidad' : 'Comprar'; ?></a>
     <a href="#dh-product-description">Detalles</a>
-    <a href="#dh-product-specifications-title">Ficha técnica</a>
+    <?php if (!empty($product_specifications)) : ?><a href="#dh-product-specifications-title">Ficha técnica</a><?php endif; ?>
   </nav>
 
   <div class="dh-product-layout dh-mobile-product-layout">
@@ -860,7 +860,7 @@ $schema_product_graph = array(
       <div class="dh-purchase-support" aria-label="Ayuda antes de comprar">
         <span><strong>¿Dudas antes de comprar?</strong> Te ayudamos con compatibilidad, proveedor o pedido.</span>
         <div class="dh-purchase-support__actions">
-          <a class="dh-support-button dh-support-button--whatsapp" href="https://wa.me/34640874540?text=<?php echo rawurlencode('Hola, necesito ayuda con ' . $product->get_name() . '. ' . get_permalink($product_id)); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <a class="dh-support-button dh-support-button--whatsapp" href="<?php echo esc_url('https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $product->get_name() . '. ' . get_permalink($product_id))); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
           <a class="dh-support-button dh-support-button--service" href="<?php echo esc_url(dht_template_service_page_url()); ?>">Soporte</a>
         </div>
       </div>
