@@ -245,14 +245,29 @@ if (!function_exists('seo_process_supervisor_is_active')) {
 
 if (!function_exists('seo_process_supervisor_exec_available')) {
     function seo_process_supervisor_exec_available() {
-        if (function_exists('seo_ie_product_import_exec_available')) {
-            return seo_ie_product_import_exec_available();
-        }
-        if (!function_exists('exec')) {
+        // El backend CLI necesita ambas funciones. En hostings gestionados
+        // escapeshellarg() puede estar deshabilitada aunque exec() exista.
+        if (!function_exists('exec') || !function_exists('escapeshellarg')) {
             return false;
         }
         $disabled = array_filter(array_map('trim', explode(',', (string) ini_get('disable_functions'))));
-        return !in_array('exec', $disabled, true);
+        if (in_array('exec', $disabled, true) || in_array('escapeshellarg', $disabled, true)) {
+            return false;
+        }
+        if (function_exists('seo_ie_product_import_exec_available')) {
+            return (bool) seo_ie_product_import_exec_available();
+        }
+        return true;
+    }
+}
+
+if (!function_exists('seo_process_supervisor_shell_arg_for_display')) {
+    /**
+     * Escapado POSIX únicamente para mostrar el comando cron al administrador.
+     * No ejecuta shell y no depende de escapeshellarg(), que puede no existir.
+     */
+    function seo_process_supervisor_shell_arg_for_display($value) {
+        return "'" . str_replace("'", "'\"'\"'", (string) $value) . "'";
     }
 }
 
@@ -1811,7 +1826,10 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             $cron_php = '/opt/alt/php' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '/usr/bin/php';
             $cron_file = SEO_SYSTEM_PATH . 'includes/process-manager-cron.php';
             $cron_wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
-            $cron_command = $cron_php . ' ' . $cron_file . ' ' . $cron_wp_load . ' >/dev/null 2>&1';
+            $cron_command = seo_process_supervisor_shell_arg_for_display($cron_php) . ' '
+                . seo_process_supervisor_shell_arg_for_display($cron_file) . ' '
+                . seo_process_supervisor_shell_arg_for_display($cron_wp_load)
+                . ' >/dev/null 2>&1';
             ?>
             <div class="seo-worker-settings">
                 <strong>Cron real del servidor recomendado: cada minuto</strong>
