@@ -15,7 +15,7 @@ En el proyecto conviven **dos funciones de comparación** con objetivos diferent
 | Componente | Usuario principal | Qué compara | Fuentes | Resultado |
 |---|---|---|---|---|
 | **Comparador de tienda** | Cliente de la web | Entre 2 y 6 productos propios | WooCommerce + atributos canónicos del catálogo | Tabla comparativa en la tienda y PDF descargable |
-| **Servicio Comparador** | Equipo editorial / SEO | Una categoría o familia frente a catálogo propio y mercado observado | WooCommerce + snapshots ya guardados por Ojeador + conocimiento disponible | Perfil comparativo, ejes, evidencia, JSON editorial, señal para Solucionador y seguimiento |
+| **Servicio Comparador** | Equipo editorial / SEO | Una categoría o familia frente a catálogo propio y mercado observado | WooCommerce + snapshots ya guardados por Ojeador + conocimiento disponible | Perfil comparativo, ejes, evidencia, JSON editorial, decisión propia y seguimiento |
 
 ### Comparador de tienda
 
@@ -40,7 +40,7 @@ Trabaja principalmente por **categoría**. Su función es responder a preguntas 
 - qué diferencias puede demostrar el catálogo propio;
 - qué variantes aparecen en el mercado ya observado por Ojeador;
 - qué datos están suficientemente cubiertos y cuáles siguen siendo desconocidos;
-- qué material puede entregarse a Solucionador para decidir si crear, mejorar, fusionar o no publicar contenido.
+- qué material permite decidir si crear, mejorar, fusionar o no publicar contenido.
 
 Comparador **no es un publicador automático**. Prepara la evidencia, evalúa la cobertura y propone CREATE_POST / IMPROVE_POST / MERGE_CONTENT / NO_ACTION / NEEDS_REVIEW; la Editora conserva la aprobación humana final y la publicación.
 
@@ -51,7 +51,7 @@ Comparador **no es un publicador automático**. Prepara la evidencia, evalúa la
 El servicio está organizado en tres pestañas:
 
 1. **Configuración**: límites, umbrales de calidad, construcción/reconstrucción de perfiles y pruebas funcionales.
-2. **Comparativas**: perfiles por categoría, revisión de ejes, capa editorial, Import/Export JSON, relación con Solucionador y post canónico.
+2. **Comparativas**: perfiles por categoría, revisión de ejes, decisión editorial, Import/Export JSON y post canónico.
 3. **Rendimiento**: métricas de los posts de comparativas ya vinculados, reutilizando los datos de Analista.
 
 ## Qué produce un perfil comparativo
