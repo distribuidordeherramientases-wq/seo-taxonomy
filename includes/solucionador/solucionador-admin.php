@@ -1008,6 +1008,7 @@ final class SEO_Solucionador_Admin {
 
         $academy=class_exists('SEO_Solucionador_Dossiers')?SEO_Solucionador_Dossiers::snapshot():array();
         echo '<h3>Academia · cobertura del conocimiento</h3><div class="seo-sol-grid">';
+        self::card('Preguntas Academia',absint($academy['questions_total']??0),'Preguntas activas del currículo.');
         self::card('Procesadas',absint($academy['processed']??0),'Preguntas recorridas por el cursor.');
         self::card('Aprendidas',absint($academy['learned']??0),'Último run pass_*.');
         self::card('No aprendidas',absint($academy['not_learned']??0),'Sin pass_*.');
@@ -1016,7 +1017,7 @@ final class SEO_Solucionador_Admin {
         self::card('Categorías con conocimiento',absint($academy['categories_with_knowledge']??0),'Un dossier por product_cat.');
         self::card('Categorías sin conocimiento',absint($academy['categories_without_knowledge']??0),'Sin dossier todavía.');
         self::card('Media preguntas / categoría',(float)($academy['avg_questions_per_category']??0),'Referencias por dossier.');
-        echo '</div><p class="description">Escaneo ' . (!empty($academy['scan_complete'])?'<strong>completo</strong>':'<strong>en curso</strong>') . ' · cursor ' . esc_html(number_format_i18n(absint($academy['cursor']??0))) . ' · errores aislados ' . esc_html(number_format_i18n(absint($academy['errors']??0))) . '.</p>';
+        echo '</div><p class="description">Escaneo ' . (!empty($academy['scan_complete'])?'<strong>completo</strong>':'<strong>en curso</strong>') . ' · cursor ' . esc_html(number_format_i18n(absint($academy['cursor']??0))) . ' · última ejecución Academia ' . esc_html((string)(($academy['last_run_at']??'') ?: '—')) . ' · errores aislados ' . esc_html(number_format_i18n(absint($academy['errors']??0))) . '.</p>';
 
         if($counts){ echo '<h3>Evidencia persistida</h3><ul>'; foreach($counts as $row) echo '<li><strong>' . esc_html((string)$row['source_type']) . ':</strong> ' . esc_html(number_format_i18n(absint($row['evidence']??0))) . '</li>'; echo '</ul>'; }
         echo '</div>';
@@ -1102,6 +1103,14 @@ final class SEO_Solucionador_Admin {
                 $rows = (array)$wpdb->get_results("SELECT id,topic_id,from_state,to_state,action_code,reason,user_id,created_at FROM {$table} ORDER BY id DESC LIMIT 300",ARRAY_A);
                 echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Tema</th><th>De</th><th>A</th><th>Acción</th><th>Motivo</th><th>Usuario</th><th>Fecha</th></tr></thead><tbody>';
                 foreach ($rows as $row) echo '<tr><td>' . esc_html(absint($row['id'])) . '</td><td>' . esc_html(absint($row['topic_id'])) . '</td><td>' . esc_html((string)$row['from_state']) . '</td><td><strong>' . esc_html((string)$row['to_state']) . '</strong></td><td>' . esc_html((string)$row['action_code']) . '</td><td>' . esc_html((string)$row['reason']) . '</td><td>' . esc_html(absint($row['user_id']) ?: 'sistema') . '</td><td>' . esc_html((string)$row['created_at']) . '</td></tr>';
+                echo '</tbody></table></div>';
+                continue;
+            }
+
+            if ($table === SEO_Solucionador_DB::dossiers_table()) {
+                $rows = (array)$wpdb->get_results("SELECT id,category_id,category_name,question_count,score_avg,last_validated_at,source_hash,updated_at FROM {$table} ORDER BY question_count DESC,id DESC LIMIT 300",ARRAY_A);
+                echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>ID</th><th>Categoría</th><th>Preguntas</th><th>Score</th><th>Última validación</th><th>Hash</th><th>Actualizado</th></tr></thead><tbody>';
+                foreach ($rows as $row) echo '<tr><td>' . esc_html(absint($row['id'])) . '</td><td>#' . esc_html(absint($row['category_id'])) . ' · ' . esc_html((string)$row['category_name']) . '</td><td>' . esc_html(number_format_i18n(absint($row['question_count']))) . '</td><td>' . esc_html(number_format_i18n((float)$row['score_avg']*100,0)) . '%</td><td>' . esc_html((string)$row['last_validated_at']) . '</td><td><code>' . esc_html(substr((string)$row['source_hash'],0,16)) . '…</code></td><td>' . esc_html((string)$row['updated_at']) . '</td></tr>';
                 echo '</tbody></table></div>';
                 continue;
             }
