@@ -5,15 +5,18 @@ on:
     branches:
       - staging
     paths:
-      - 'includes/dependiente/ingeniero/**'
+      - 'includes/ingeniero/**'
       - 'includes/dependiente/seo-dependiente-admin.php'
       - 'includes/dependiente/seo-dependiente-bootstrap.php'
+      - 'includes/editorial/**'
+      - 'includes/solucionador/**'
+      - 'includes/seo-includes-bootstrap.php'
       - 'includes/seo-process-supervisor.php'
   push:
     branches:
       - staging
     paths:
-      - 'includes/dependiente/ingeniero/**'
+      - 'includes/ingeniero/**'
       - 'includes/dependiente/seo-dependiente-admin.php'
       - 'includes/dependiente/seo-dependiente-bootstrap.php'
       - 'includes/seo-process-supervisor.php'
@@ -27,7 +30,12 @@ jobs:
       - name: PHP syntax
         run: |
           php -v
-          find includes/dependiente/ingeniero -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          find includes/ingeniero -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          find includes/editorial -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l includes/solucionador/solucionador-sources.php
+          php -l includes/solucionador/solucionador-engine.php
+          php -l includes/solucionador/solucionador-admin.php
+          php -l includes/seo-includes-bootstrap.php
           php -l includes/dependiente/seo-dependiente-admin.php
           php -l includes/dependiente/seo-dependiente-bootstrap.php
           php -l includes/seo-process-supervisor.php
