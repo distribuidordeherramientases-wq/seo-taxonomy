@@ -60,7 +60,7 @@ final class SEO_Solucionador_Engine {
         $source_meta = is_array($source['source_meta'] ?? null) ? $source['source_meta'] : array();
         $dependiente_channel = sanitize_key((string) ($source_meta['dependiente_channel'] ?? ''));
         $is_academy_dossier = sanitize_key((string) ($source['source_type'] ?? '')) === 'dependiente'
-            && $dependiente_channel === 'academy_learned_dossier';
+            && in_array($dependiente_channel,array('academy_learned','academy_learned_dossier'),true);
 
         $decision_language = (bool) preg_match('/\b(elegir|eleccion|comprar|compra|diferencia|comparar|comparativa|que .* necesito|cual .* necesito|potencia|cable|bateria|par)\b/u',$text);
         $is_comparison_profile = sanitize_key((string) ($source['source_type'] ?? '')) === 'comparador'
@@ -760,7 +760,7 @@ final class SEO_Solucionador_Engine {
         $topics_table = SEO_Solucionador_DB::topics_table();
         $topics = (array) $wpdb->get_results(
             "SELECT * FROM {$topics_table}
-             WHERE intent='dependiente_qa_basic' OR COALESCE(draft_post_id,0)>0
+             WHERE intent='dependiente_qa_basic'
              ORDER BY id ASC",
             ARRAY_A
         );
