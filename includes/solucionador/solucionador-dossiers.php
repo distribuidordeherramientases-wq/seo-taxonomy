@@ -202,7 +202,7 @@ final class SEO_Solucionador_Dossiers {
 
         $limit = max(25, min(500, absint($limit)));
         $state = self::state();
-        if ($reset || !$state || !empty($state['complete']) || empty($state['token'])) {
+        if ($reset || !$state || empty($state['token'])) {
             $state = self::reset_scan();
         }
 
