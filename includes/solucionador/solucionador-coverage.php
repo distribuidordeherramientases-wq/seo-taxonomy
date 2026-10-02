@@ -449,6 +449,28 @@ final class SEO_Solucionador_Coverage {
 
     public static function find(array $profile) {
         global $wpdb;
+
+        // Las comparativas comparten la misma API/fingerprint neutral que
+        // Comparador. Solucionador conserva su índice para el resto de intenciones.
+        $intent = sanitize_key((string) ($profile['intent'] ?? ''));
+        $key_intent = sanitize_key((string) ($profile['key_intent'] ?? ''));
+        $action = sanitize_key((string) ($profile['action'] ?? ''));
+        $category_id = absint($profile['category_id'] ?? 0);
+        if (
+            class_exists('SEO_Editorial_Coverage')
+            && $category_id
+            && (
+                strpos($intent,'compar') !== false
+                || strpos($key_intent,'compar') !== false
+                || $action === 'comparar'
+            )
+        ) {
+            return SEO_Editorial_Coverage::comparison_category(
+                $category_id,
+                (string) ($profile['object'] ?? '')
+            );
+        }
+
         $table = SEO_Solucionador_DB::coverage_table();
         $key = sanitize_text_field((string) ($profile['canonical_key'] ?? ''));
         if ($key === '' || !SEO_Solucionador_DB::table_exists($table)) {
