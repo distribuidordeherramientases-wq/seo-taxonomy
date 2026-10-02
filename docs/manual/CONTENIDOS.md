@@ -15,6 +15,7 @@ La pantalla **Contenidos** agrupa los editores que se utilizan con más frecuenc
 | Imágenes | Inventario, anomalías, optimización y asignación de imágenes | **Abrir** [Consulta] |
 | Solucionador | Diagnóstico y decisión editorial centralizada; unifica informes, prioriza actuaciones y prepara briefs | **Abrir** [Consulta] |
 | Auditor | Calidad, coherencia y arquitectura de productos, categorías, páginas, entradas, FAQs e índice | **Abrir** [Consulta] |
+| FAQs | Gestión de preguntas frecuentes, cobertura, calidad e interacción | **Abrir** [Consulta] |
 
 El botón **Abrir** solo navega al editor correspondiente.
 
@@ -40,8 +41,21 @@ Las pantallas internas conservan sus slugs administrativos históricos:
 - Páginas: `seo-page-admin`
 - Entradas: `seo-post-editor`
 - Imágenes: `seo-pictures-admin`
+- FAQs: `seo-faq`
 
 Esto permite mantener enlaces internos, formularios y redirecciones existentes. Cuando se abre cualquiera de estas pantallas, WordPress mantiene **Contenidos** como sección activa del menú de SEO Taxonomy.
+
+## FAQs
+
+El acceso visible a FAQs está en **SEO Taxonomy → Contenidos → FAQs**. La pantalla conserva el slug administrativo histórico `seo-faq`; sólo cambia su ubicación dentro del lanzador.
+
+Pestañas: **Hubs SEO**, **Categorías**, **Productos** e **Informe**.
+
+En edición se puede seleccionar el elemento, crear una **Nueva FAQ**, ordenar, editar Pregunta/Respuesta, activar o desactivar y Guardar/Actualizar.
+
+La pestaña **Informe** permite filtrar por Buscar, Nivel, Estado, Diagnóstico, renders, aperturas y orden. Incluye KPIs de cobertura, calidad, diagnóstico editorial e interacción, además de las limpiezas de copias y huérfanas ya existentes.
+
+Mover el acceso a Contenidos **no modifica** tablas, datos, informes, handlers ni la lógica de FAQs.
 
 ## Auditor de contenidos
 
