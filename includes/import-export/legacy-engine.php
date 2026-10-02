@@ -9387,6 +9387,26 @@ function seo_import_posts_csv() {
         }
 
         if ( $dry_run ) {
+            $vocab_columns = [
+                'vocab_rol',
+                'vocab_tipo',
+                'vocab_aplicacion',
+                'vocab_plataforma',
+                'vocab_subtipo',
+            ];
+            $vocab_defined = ! empty( array_intersect( $vocab_columns, array_keys( $row ) ) );
+
+            if (
+                $vocab_defined
+                && function_exists( 'seo_content_vocab_validate_import_row' )
+            ) {
+                seo_content_vocab_validate_import_row(
+                    $row,
+                    $item['line'],
+                    $log
+                );
+            }
+
             if ( $import_image ) {
                 $preview_image_id  = absint( $row['imagen_destacada_id'] ?? 0 );
                 $preview_image_url = esc_url_raw( trim( (string) ( $row['imagen_destacada'] ?? '' ) ) );
@@ -9534,6 +9554,33 @@ function seo_import_posts_csv() {
                 'post',
                 $post_id,
                 $product_relation,
+                $item['line'],
+                $log
+            );
+        }
+
+        /*
+         * Vocabulary canonico del post.
+         *
+         * Las columnas vocab_* son opcionales y se aplican solo cuando estan
+         * presentes en el CSV. Esto permite importar ficheros correctivos
+         * minimos (post_id + vocab_*) sin alterar contenido, taxonomias o
+         * relaciones comerciales que no formen parte de la correccion.
+         */
+        $vocab_columns = [
+            'vocab_rol',
+            'vocab_tipo',
+            'vocab_aplicacion',
+            'vocab_plataforma',
+            'vocab_subtipo',
+        ];
+        $vocab_defined = ! empty( array_intersect( $vocab_columns, array_keys( $row ) ) );
+
+        if ( $vocab_defined && function_exists( 'seo_content_vocab_import_row' ) ) {
+            seo_content_vocab_import_row(
+                'post',
+                $post_id,
+                $row,
                 $item['line'],
                 $log
             );
