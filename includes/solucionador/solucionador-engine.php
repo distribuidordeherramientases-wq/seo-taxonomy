@@ -54,6 +54,11 @@ final class SEO_Solucionador_Engine {
         $key_intent = sanitize_key((string) ($profile['key_intent'] ?? ''));
         $text = SEO_Solucionador_Normalizer::normalize((string) ($source['source_text'] ?? ''));
 
+        $source_meta = is_array($source['source_meta'] ?? null) ? $source['source_meta'] : array();
+        $dependiente_channel = sanitize_key((string) ($source_meta['dependiente_channel'] ?? ''));
+        $is_academy_dossier = sanitize_key((string) ($source['source_type'] ?? '')) === 'dependiente'
+            && $dependiente_channel === 'academy_learned_dossier';
+
         $decision_language = (bool) preg_match('/\b(elegir|eleccion|comprar|compra|diferencia|comparar|comparativa|que .* necesito|cual .* necesito|potencia|cable|bateria|par)\b/u',$text);
         $is_comparison_profile = sanitize_key((string) ($source['source_type'] ?? '')) === 'comparador'
             && $intent === 'comparison';
@@ -61,7 +66,19 @@ final class SEO_Solucionador_Engine {
             || in_array($intent,array('decision','choice','comparison','buying_guide','eleccion'),true)
             || $decision_language;
 
-        if ($category_id && $is_comparison_profile && empty($profile['condition'])) {
+        if ($category_id && $is_academy_dossier) {
+            $name = trim((string) ($source['category_name'] ?? $source_meta['category_name'] ?? ''));
+            if ($name === '') $name = self::category_name($category_id);
+            if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
+            $profile['intent'] = 'dependiente_qa_basic';
+            $profile['key_intent'] = 'dependiente_qa_basic';
+            $profile['action'] = 'resolver';
+            $profile['condition'] = '';
+            $profile['context'] = '';
+            $profile['category_id'] = $category_id;
+            $profile['confidence'] = max(0.90,(float) ($profile['confidence'] ?? 0));
+            $profile['canonical_key'] = 'dependiente-qa-basic|resolver|category-' . $category_id . '|general|general';
+        } elseif ($category_id && $is_comparison_profile && empty($profile['condition'])) {
             $name = trim((string) ($source['category_name'] ?? ''));
             if ($name === '') $name = self::category_name($category_id);
             if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
@@ -83,6 +100,20 @@ final class SEO_Solucionador_Engine {
             $profile['canonical_key'] = 'decision|elegir|category-' . $category_id . '|general|general';
         }
         return $profile;
+    }
+
+    private static function suggested_title(array $profile) {
+        if (
+            sanitize_key((string) ($profile['intent'] ?? '')) === 'dependiente_qa_basic'
+            && !empty($profile['category_id'])
+        ) {
+            $name = self::category_name(absint($profile['category_id']));
+            if ($name === '') $name = trim((string) ($profile['object'] ?? ''));
+            if ($name !== '') {
+                return $name . ': preguntas habituales sobre elección, uso y compatibilidad';
+            }
+        }
+        return SEO_Solucionador_Normalizer::suggested_title($profile);
     }
 
     private static function origin_match(array $profile, array $source, array $origins, array $by_key, array $by_category) {
@@ -707,7 +738,7 @@ final class SEO_Solucionador_Engine {
             $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered')) ?: 'uncovered';
             $knowledge = self::knowledge_status($primary_category_id,$stats);
             $risks = self::risks($coverage,$primary_category_id);
-            $suggested_title = SEO_Solucionador_Normalizer::suggested_title($profile);
+            $suggested_title = self::suggested_title($profile);
             $landing = self::landing_candidate_for_profile($profile,$suggested_title);
             $requirements = self::requirements($stats,$coverage,$knowledge,$risks,$primary_category_id,$landing);
             $decision = self::decision($profile,$stats,$coverage,$knowledge,$risks,$primary_category_id,$landing,$requirements);

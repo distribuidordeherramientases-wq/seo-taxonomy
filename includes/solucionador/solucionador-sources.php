@@ -2,9 +2,10 @@
 /**
  * Solucionador - adaptadores de fuentes locales.
  *
- * v0.2.4 conecta el log real de Dependiente V3 y separa fuentes que pueden
- * originar propuestas de las que solo refuerzan una necesidad ya detectada.
- * Esto evita convertir tareas internas de Analista/Auditor en preguntas.
+ * v0.4.2 conserva la demanda real del log de Dependiente V3 y añade, como
+ * fuente editorial separada, el conocimiento aprendido por Academia. Solucionador
+ * no modifica Dependiente: consume preguntas cuyo ultimo run esta validado pass_*,
+ * resuelve product_cat y construye dossiers category-first.
  */
 
 defined('ABSPATH') || exit;
@@ -20,8 +21,324 @@ final class SEO_Solucionador_Sources {
         return is_array($decoded) ? $decoded : array();
     }
 
+    private static $dependiente_academia_cache = null;
+
     private static function origin_flag($value = true) {
         return $value ? 'origin' : 'reinforcement';
+    }
+
+    private static function valid_product_cat_ids(array $ids) {
+        $out = array();
+        foreach (array_unique(array_filter(array_map('absint', $ids))) as $term_id) {
+            $term = get_term($term_id, 'product_cat');
+            if ($term && !is_wp_error($term)) $out[] = $term_id;
+        }
+        return array_values(array_unique($out));
+    }
+
+    private static function product_category_ids($product_id) {
+        $product_id = absint($product_id);
+        if (!$product_id || get_post_type($product_id) !== 'product') return array();
+        $ids = wp_get_post_terms($product_id, 'product_cat', array('fields'=>'ids'));
+        if (is_wp_error($ids)) return array();
+        return self::valid_product_cat_ids((array) $ids);
+    }
+
+    /**
+     * Resuelve una pregunta de Academia a product_cat sin inferencias semanticas.
+     * Solo acepta relaciones demostrables por expected/source/FAQ/producto.
+     */
+    private static function academy_category_ids(array $row, array $expected) {
+        global $wpdb;
+
+        $ids = array();
+        $kind = sanitize_key((string) ($expected['kind'] ?? ''));
+        $source_type = sanitize_key((string) ($row['source_type'] ?? ''));
+        $source_id = absint($row['source_id'] ?? 0);
+
+        if (!empty($expected['category_id'])) $ids[] = absint($expected['category_id']);
+
+        if ($kind === 'category') {
+            $ids[] = absint($expected['category_id'] ?? 0);
+        } elseif ($kind === 'product') {
+            $ids = array_merge($ids, self::product_category_ids(absint($expected['product_id'] ?? 0)));
+        } elseif ($kind === 'features') {
+            $ids = array_merge($ids, self::product_category_ids(absint($expected['source_product_id'] ?? 0)));
+        } elseif ($kind === 'faq') {
+            $owner_type = absint($expected['owner_type'] ?? 0);
+            $owner_id = absint($expected['owner_id'] ?? 0);
+            if ($owner_type === 2) {
+                $ids[] = $owner_id;
+            } elseif ($owner_type === 3) {
+                $ids = array_merge($ids, self::product_category_ids($owner_id));
+            }
+        }
+
+        if (!empty($expected['source_product_id'])) {
+            $ids = array_merge($ids, self::product_category_ids(absint($expected['source_product_id'])));
+        }
+
+        if ($source_type === 'category' && $source_id) {
+            $ids[] = $source_id;
+        } elseif (in_array($source_type, array('product','features'), true) && $source_id) {
+            $ids = array_merge($ids, self::product_category_ids($source_id));
+        } elseif ($source_type === 'faq' && $source_id && $kind !== 'faq') {
+            $faq_table = $wpdb->prefix . 'seo_faq';
+            if (self::table_exists($faq_table)) {
+                $faq = $wpdb->get_row($wpdb->prepare(
+                    "SELECT object_type,object_id FROM {$faq_table} WHERE id=%d LIMIT 1",
+                    $source_id
+                ), ARRAY_A);
+                if ($faq) {
+                    $owner_type = absint($faq['object_type'] ?? 0);
+                    $owner_id = absint($faq['object_id'] ?? 0);
+                    if ($owner_type === 2) $ids[] = $owner_id;
+                    elseif ($owner_type === 3) $ids = array_merge($ids, self::product_category_ids($owner_id));
+                }
+            }
+        }
+
+        return self::valid_product_cat_ids($ids);
+    }
+
+    private static function dependiente_academia_data() {
+        if (self::$dependiente_academia_cache !== null) {
+            return self::$dependiente_academia_cache;
+        }
+
+        global $wpdb;
+        $questions = $wpdb->prefix . 'seo_dependiente_trainer_questions';
+        $runs = $wpdb->prefix . 'seo_dependiente_trainer_runs';
+
+        $empty = array(
+            'stats'=>array(
+                'available'=>false,
+                'questions_total'=>0,
+                'learned'=>0,
+                'not_learned'=>0,
+                'learned_with_category'=>0,
+                'learned_without_category'=>0,
+                'categories_with_knowledge'=>0,
+                'categories_total'=>0,
+                'categories_without_knowledge'=>0,
+                'avg_questions_per_category'=>0,
+                'last_run_at'=>'',
+            ),
+            'dossiers'=>array(),
+        );
+
+        if (!self::table_exists($questions) || !self::table_exists($runs)) {
+            self::$dependiente_academia_cache = $empty;
+            return $empty;
+        }
+
+        $where = "q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'";
+
+        $total = absint($wpdb->get_var(
+            "SELECT COUNT(*) FROM {$questions} q WHERE {$where}"
+        ));
+
+        $aggregate = $wpdb->get_row(
+            "SELECT
+                COUNT(r.id) evaluated,
+                SUM(CASE WHEN r.status='answered' AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_' THEN 1 ELSE 0 END) learned,
+                MAX(r.created_at) last_run_at
+             FROM {$questions} q
+             LEFT JOIN (
+                SELECT question_id,MAX(id) latest_run_id
+                FROM {$runs}
+                WHERE question_id IS NOT NULL
+                GROUP BY question_id
+             ) latest ON latest.question_id=q.id
+             LEFT JOIN {$runs} r ON r.id=latest.latest_run_id
+             WHERE {$where}",
+            ARRAY_A
+        );
+        $learned_total = absint($aggregate['learned'] ?? 0);
+
+        $rows = (array) $wpdb->get_results(
+            "SELECT
+                q.id question_id,
+                q.lesson_key,
+                q.lesson_order,
+                q.module_no,
+                q.source_type,
+                q.source_id,
+                q.source_key,
+                q.question_type,
+                q.mode,
+                q.question,
+                q.expected_json,
+                r.id run_id,
+                r.status run_status,
+                r.search_strategy,
+                r.evaluation_status,
+                r.evaluation_score,
+                r.evaluation_json,
+                r.top_results,
+                r.response_meta,
+                r.created_at run_created_at
+             FROM {$questions} q
+             INNER JOIN (
+                SELECT question_id,MAX(id) latest_run_id
+                FROM {$runs}
+                WHERE question_id IS NOT NULL
+                GROUP BY question_id
+             ) latest ON latest.question_id=q.id
+             INNER JOIN {$runs} r ON r.id=latest.latest_run_id
+             WHERE {$where}
+               AND r.status='answered'
+               AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_'
+             ORDER BY q.lesson_order ASC,q.id ASC",
+            ARRAY_A
+        );
+
+        $by_category = array();
+        $learned_with_category = 0;
+        $learned_without_category = 0;
+        $assignments = 0;
+
+        foreach ($rows as $row) {
+            $expected = self::decode($row['expected_json'] ?? '');
+            $category_ids = self::academy_category_ids($row, $expected);
+            if (!$category_ids) {
+                $learned_without_category++;
+                continue;
+            }
+            $learned_with_category++;
+
+            $detail = array(
+                'question_id'=>absint($row['question_id'] ?? 0),
+                'run_id'=>absint($row['run_id'] ?? 0),
+                'question'=>sanitize_text_field((string) ($row['question'] ?? '')),
+                'question_type'=>sanitize_key((string) ($row['question_type'] ?? '')),
+                'lesson_key'=>sanitize_key((string) ($row['lesson_key'] ?? '')),
+                'module_no'=>absint($row['module_no'] ?? 0),
+                'source_type'=>sanitize_key((string) ($row['source_type'] ?? '')),
+                'source_id'=>absint($row['source_id'] ?? 0) ?: null,
+                'source_key'=>sanitize_text_field((string) ($row['source_key'] ?? '')),
+                'expected'=>$expected,
+                'evaluation_status'=>sanitize_key((string) ($row['evaluation_status'] ?? '')),
+                'evaluation_score'=>max(0,min(1,(float) ($row['evaluation_score'] ?? 0))),
+                'evaluation'=>self::decode($row['evaluation_json'] ?? ''),
+                'top_results'=>array_values(array_slice(self::decode($row['top_results'] ?? ''),0,12)),
+                'response_meta'=>self::decode($row['response_meta'] ?? ''),
+                'search_strategy'=>sanitize_key((string) ($row['search_strategy'] ?? '')),
+                'observed_at'=>sanitize_text_field((string) ($row['run_created_at'] ?? '')),
+            );
+
+            foreach ($category_ids as $term_id) {
+                if (!isset($by_category[$term_id])) {
+                    $term = get_term($term_id,'product_cat');
+                    $by_category[$term_id] = array(
+                        'category_id'=>$term_id,
+                        'category_name'=>$term && !is_wp_error($term) ? (string) $term->name : ('Categoría #' . $term_id),
+                        'questions'=>array(),
+                        'last_run_at'=>'',
+                        'score_total'=>0.0,
+                    );
+                }
+                $by_category[$term_id]['questions'][$detail['question_id']] = $detail;
+                if ($detail['observed_at'] > $by_category[$term_id]['last_run_at']) {
+                    $by_category[$term_id]['last_run_at'] = $detail['observed_at'];
+                }
+                $by_category[$term_id]['score_total'] += (float) $detail['evaluation_score'];
+                $assignments++;
+            }
+        }
+
+        $dossiers = array();
+        foreach ($by_category as $term_id=>$dossier) {
+            $items = array_values($dossier['questions']);
+            $count = count($items);
+            if (!$count) continue;
+            $avg_score = $count > 0 ? ((float) $dossier['score_total'] / $count) : 0.0;
+            $dossiers[] = array(
+                'category_id'=>absint($term_id),
+                'category_name'=>(string) $dossier['category_name'],
+                'question_count'=>$count,
+                'questions'=>$items,
+                'confidence'=>max(0.60,min(1.0,$avg_score > 0 ? $avg_score : 0.90)),
+                'last_run_at'=>(string) $dossier['last_run_at'],
+            );
+        }
+        usort($dossiers,static function($a,$b){
+            $cmp = absint($b['question_count'] ?? 0) <=> absint($a['question_count'] ?? 0);
+            if ($cmp !== 0) return $cmp;
+            return strcasecmp((string)($a['category_name'] ?? ''),(string)($b['category_name'] ?? ''));
+        });
+
+        $categories_total = wp_count_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+        $categories_total = is_wp_error($categories_total) ? 0 : absint($categories_total);
+        $categories_with = count($dossiers);
+
+        self::$dependiente_academia_cache = array(
+            'stats'=>array(
+                'available'=>true,
+                'questions_total'=>$total,
+                'learned'=>$learned_total,
+                'not_learned'=>max(0,$total-$learned_total),
+                'learned_with_category'=>$learned_with_category,
+                'learned_without_category'=>$learned_without_category,
+                'categories_with_knowledge'=>$categories_with,
+                'categories_total'=>$categories_total,
+                'categories_without_knowledge'=>max(0,$categories_total-$categories_with),
+                'avg_questions_per_category'=>$categories_with ? round($assignments/$categories_with,2) : 0,
+                'last_run_at'=>(string) ($aggregate['last_run_at'] ?? ''),
+            ),
+            'dossiers'=>$dossiers,
+        );
+        return self::$dependiente_academia_cache;
+    }
+
+    public static function dependiente_academia_snapshot() {
+        $data = self::dependiente_academia_data();
+        return (array) ($data['stats'] ?? array());
+    }
+
+    private static function dependiente_academia_dossiers() {
+        $data = self::dependiente_academia_data();
+        $out = array();
+        foreach ((array) ($data['dossiers'] ?? array()) as $dossier) {
+            $term_id = absint($dossier['category_id'] ?? 0);
+            $name = trim((string) ($dossier['category_name'] ?? ''));
+            $count = absint($dossier['question_count'] ?? 0);
+            if (!$term_id || $name === '' || !$count) continue;
+
+            $out[] = array(
+                'source_type'=>'dependiente',
+                'proposal_role'=>'origin',
+                'source_id'=>'academy-category:' . $term_id,
+                'signal_type'=>'learned_category_dossier',
+                'entity_type'=>'product_cat',
+                'entity_id'=>$term_id,
+                'category_id'=>$term_id,
+                'category_name'=>$name,
+                'source_text'=>'Preguntas habituales sobre ' . $name . ': conocimiento aprendido por Dependiente para elección, uso y compatibilidad.',
+                'hints'=>array(
+                    'intent'=>'dependiente_qa_basic',
+                    'action'=>'resolver',
+                    'object'=>$name,
+                    'category_id'=>$term_id,
+                ),
+                'occurrences'=>$count,
+                'confidence'=>(float) ($dossier['confidence'] ?? 0.90),
+                'evidence_score'=>1.00,
+                'observed_at'=>(string) ($dossier['last_run_at'] ?? current_time('mysql')),
+                'source_meta'=>array(
+                    'proposal_role'=>'origin',
+                    'dependiente_channel'=>'academy_learned_dossier',
+                    'editorial_family'=>'dependiente_qa_basic',
+                    'category_id'=>$term_id,
+                    'category_name'=>$name,
+                    'question_count'=>$count,
+                    'academy_questions'=>array_values((array) ($dossier['questions'] ?? array())),
+                    'last_validated_at'=>(string) ($dossier['last_run_at'] ?? ''),
+                    'confidence'=>(float) ($dossier['confidence'] ?? 0.90),
+                ),
+            );
+        }
+        return $out;
     }
 
     public static function dependiente($days = 180, $limit = 1600) {
@@ -30,11 +347,13 @@ final class SEO_Solucionador_Sources {
 
         $days = min(365, max(7, absint($days)));
         $limit = min(3000, max(50, absint($limit)));
-        $out = array();
+        // Academia aporta lo que Dependiente ya sabe; search_log conserva por
+        // separado lo que los visitantes preguntan. Ambos son señales distintas.
+        $out = self::dependiente_academia_dossiers();
         $seen = array();
         $out_index = array();
 
-        // Fuente principal: log canonico del Dependiente. Desde v0.2.4 V3
+        // Demanda real: log canonico del Dependiente. Desde v0.2.4 V3
         // registra aqui cada consulta publica sin activar aprendizaje legacy.
         if (self::table_exists($table)) {
             $sql = "SELECT

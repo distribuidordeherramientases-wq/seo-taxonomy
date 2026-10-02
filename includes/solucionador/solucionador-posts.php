@@ -8,6 +8,7 @@ defined('ABSPATH') || exit;
 final class SEO_Solucionador_Posts {
     const META_TOPIC_ID = '_seo_solucionador_topic_id';
     const META_CANONICAL_KEY = '_seo_solucionador_canonical_key';
+    const META_CONTENT_ROLE = '_seo_solucionador_content_role';
 
     public static function init() {
         add_action('transition_post_status', array(__CLASS__, 'transition_post_status'), 10, 3);
@@ -159,6 +160,10 @@ final class SEO_Solucionador_Posts {
 
         update_post_meta($post_id, self::META_TOPIC_ID, $topic_id);
         update_post_meta($post_id, self::META_CANONICAL_KEY, (string) ($topic['canonical_key'] ?? ''));
+
+        if (sanitize_key((string) ($topic['intent'] ?? '')) === 'dependiente_qa_basic') {
+            update_post_meta($post_id, self::META_CONTENT_ROLE, 'dependiente_qa_basic');
+        }
 
         $vocab_result = self::assign_vocabulary($post_id, $topic);
         if (is_wp_error($vocab_result)) {

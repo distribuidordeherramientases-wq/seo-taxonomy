@@ -133,6 +133,62 @@ final class SEO_Solucionador_Tests {
             'Un tema técnico sin conocimiento validado no pasa directamente a Editora.'
         );
 
+        $academy_source = array(
+            'source_type'=>'dependiente',
+            'category_id'=>77,
+            'category_name'=>'Taladros',
+            'source_meta'=>array(
+                'dependiente_channel'=>'academy_learned_dossier',
+                'category_name'=>'Taladros',
+                'question_count'=>17,
+            ),
+            'hints'=>array(
+                'intent'=>'dependiente_qa_basic',
+                'action'=>'resolver',
+                'object'=>'Taladros',
+                'category_id'=>77,
+            ),
+        );
+        $p8 = SEO_Solucionador_Engine::normalize_topic_for_test(
+            'Preguntas habituales sobre Taladros: conocimiento aprendido por Dependiente para elección, uso y compatibilidad.',
+            $academy_source
+        );
+        $tests[] = self::result(
+            8,
+            'Dossier Academia category-first',
+            (string)($p8['intent'] ?? '') === 'dependiente_qa_basic'
+                && absint($p8['category_id'] ?? 0) === 77
+                && (string)($p8['canonical_key'] ?? '') === 'dependiente-qa-basic|resolver|category-77|general|general',
+            'intent dependiente_qa_basic · category 77 · canonical dossier estable',
+            (string)($p8['intent'] ?? '∅') . ' · category ' . absint($p8['category_id'] ?? 0) . ' · ' . (string)($p8['canonical_key'] ?? '∅'),
+            'Todas las preguntas aprendidas de una categoría deben converger en un dossier, no en una URL por pregunta.'
+        );
+
+        $t9 = SEO_Solucionador_Engine::evaluate_scenario_for_test(array(
+            'profile'=>array(
+                'intent'=>'dependiente_qa_basic',
+                'key_intent'=>'dependiente_qa_basic',
+                'action'=>'resolver',
+                'object'=>'taladros',
+                'condition'=>'',
+                'context'=>'',
+                'category_id'=>77,
+            ),
+            'stats'=>array('total'=>17,'dependiente'=>17,'ingeniero'=>5),
+            'coverage'=>array('status'=>'uncovered','score'=>0),
+            'knowledge'=>array('status'=>'sufficient','count'=>5,'confidence'=>0.84),
+            'risks'=>array('duplication_risk'=>10,'cannibalization_risk'=>10),
+            'primary_category_id'=>77,
+        ));
+        $tests[] = self::result(
+            9,
+            'Dossier aprendido sin cobertura puede crear post',
+            (string)($t9['decision']['action'] ?? '') === 'CREATE_POST',
+            'CREATE_POST',
+            (string)($t9['decision']['action'] ?? '∅'),
+            'El dossier no se confunde con una intención comercial amplia de categoría; con evidencia, conocimiento y cobertura libre puede proponer un post.'
+        );
+
         $passed = count(array_filter($tests,static function($row){ return !empty($row['pass']); }));
         return array(
             'passed'=>$passed,

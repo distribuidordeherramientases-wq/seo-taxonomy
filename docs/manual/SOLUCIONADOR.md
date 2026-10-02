@@ -10,11 +10,11 @@ No sustituye a los servicios especialistas y no vuelve a realizar su trabajo. Co
 
 ## Estado operativo actual
 
-- **Versión funcional de Solucionador:** 0.4.1.
+- **Versión funcional de Solucionador:** 0.4.2.
 - **Versión del esquema de base de datos:** 0.4.0.
 - **Entorno de validación:** staging antes de producción.
 - **RF de referencia:** Requisitos Funcionales de Solucionador v1.0, 01/10/2026.
-- **Incidencias relacionadas:** #480 (primer análisis no inicializado) y #482 (validación de tablas y arranque en producción).
+- **Incidencias relacionadas:** #480 (primer análisis no inicializado), #482 (validación de tablas y arranque en producción) y #544 (Academia de Dependiente → dossiers por categoría).
 
 La versión 0.4.1 corrige un problema operativo observado en producción con 0.4.0: Solucionador podía estar instalado, con su esquema reconocido, pero mostrar todos los KPIs a cero porque todavía no se había ejecutado ningún análisis inicial.
 
@@ -106,7 +106,12 @@ Solucionador **no** consulta Internet, Search Console, Analytics, Bing, Trends n
 ## Fuentes
 
 ### Dependiente / Intérprete
-Fuente principal de necesidad real:
+
+Solucionador consume **dos carriles distintos** de Dependiente y no modifica su forma de aprender.
+
+#### Demanda real
+
+`seo_dependiente_search_log` representa lo que preguntan los visitantes:
 - preguntas;
 - búsquedas;
 - cero resultados;
@@ -115,6 +120,46 @@ Fuente principal de necesidad real:
 - resultados/feedback.
 
 Una búsqueda aislada es **evidencia**, no una orden para crear un post.
+
+#### Academia / conocimiento aprendido
+
+Solucionador lee `seo_dependiente_trainer_questions` y la **última ejecución** de cada pregunta en `seo_dependiente_trainer_runs`.
+
+Una pregunta sólo entra en el carril editorial de conocimiento aprendido cuando:
+- está activa;
+- pertenece al currículo de Academia;
+- el último run está `answered`;
+- `evaluation_status` empieza por `pass_`.
+
+Se conserva:
+- pregunta y tipo;
+- lección y módulo;
+- origen;
+- `expected_json`;
+- estado y score de evaluación;
+- `evaluation_json`;
+- `top_results`;
+- `response_meta`;
+- fecha del último run.
+
+Solucionador resuelve `product_cat` únicamente cuando puede demostrarla por categoría, producto o owner de FAQ. Si no puede resolver la categoría, la pregunta permanece visible en KPI como **aprendida sin categoría** pero no se fuerza a ningún dossier.
+
+Las preguntas aprendidas se agrupan en **un dossier por categoría**, no en una URL por pregunta.
+
+Ejemplo:
+
+~~~text
+Taladros · term_id 77
+17 preguntas aprendidas
+        ↓
+dossier dependiente_qa_basic
+        ↓
+cobertura existente
+        ↓
+CREATE_POST / IMPROVE_POST / MERGE_CONTENT / NO_ACTION / INVESTIGATE
+~~~
+
+El search log sigue midiendo demanda real y Academia sigue representando lo que Dependiente ya sabe. Son señales diferentes.
 
 ### Analista
 Aporta lo que está ocurriendo:
@@ -385,7 +430,9 @@ KPIs de:
 - duplicados/conflictos;
 - investigación;
 - aplazados;
-- seguimiento.
+- seguimiento;
+- preguntas de Academia aprendidas;
+- categorías con conocimiento aprendido.
 
 ### Diagnóstico editorial
 Punto central visible para reutilizar informes existentes de:
@@ -425,6 +472,17 @@ Muestra el índice multientidad que sustenta la detección de duplicidad/canibal
 ### Fuentes y servicios
 Explica el contrato de cada fuente y muestra disponibilidad.
 
+Para Dependiente/Academia añade KPIs de:
+- preguntas totales;
+- aprendidas;
+- no aprendidas;
+- aprendidas con categoría;
+- aprendidas sin categoría;
+- categorías con conocimiento;
+- categorías sin conocimiento;
+- media de preguntas por categoría;
+- última ejecución de Academia.
+
 ### Pruebas RF v1.0
 Ejecuta siete regresiones funcionales sin modificar datos.
 
@@ -439,6 +497,7 @@ Incluye:
 - URLs relacionadas y cobertura;
 - contenido que no debe repetirse;
 - preguntas reales;
+- preguntas aprendidas de Academia y su último resultado validado;
 - conceptos y conocimiento obligatorio;
 - productos/categorías relacionadas;
 - enlaces internos;
@@ -472,6 +531,8 @@ Los cambios manuales registran:
 - fecha;
 - motivo;
 - acción editorial asociada.
+
+Cuando una propuesta procede del dossier de Academia/Dependiente y termina en CREATE_POST, el borrador se marca con `_seo_solucionador_content_role = dependiente_qa_basic` y conserva la relación `post_to_category`. Las plantillas sólo recuperan estos posts cuando están publicados.
 
 Al publicar un borrador creado por Solucionador, el tema pasa a seguimiento; no se publica automáticamente desde Solucionador.
 
@@ -545,6 +606,8 @@ SEO_Solucionador_Tests::run() valida:
 5. Necesidad amplia coincidente con categoría → IMPROVE_CATEGORY antes de landing.
 6. Intención transversal válida y sin URL equivalente → CREATE_LANDING.
 7. Conocimiento insuficiente → INVESTIGATE.
+8. Dossier Academia → huella estable `dependiente_qa_basic` por categoría.
+9. Dossier aprendido sin cobertura, con evidencia y conocimiento suficientes → CREATE_POST.
 
 Un fallo se muestra en la pestaña **Pruebas RF v1.0** y debe bloquear una promoción consciente a producción.
 
