@@ -256,6 +256,18 @@ final class SEO_Comparador_DB {
         return absint($wpdb->get_var('SELECT COUNT(*) FROM ' . self::table('profiles')));
     }
 
+    public static function profile_status_counts() {
+        global $wpdb;
+        $out = array();
+        foreach ((array) $wpdb->get_results(
+            'SELECT status,COUNT(*) AS total FROM ' . self::table('profiles') . ' GROUP BY status',
+            ARRAY_A
+        ) as $row) {
+            $out[sanitize_key((string) ($row['status'] ?? ''))] = absint($row['total'] ?? 0);
+        }
+        return $out;
+    }
+
     public static function list_profiles_page($limit = 100, $offset = 0) {
         global $wpdb;
         $limit = max(1, min(250, absint($limit)));
