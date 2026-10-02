@@ -429,15 +429,9 @@ final class SEO_Solucionador_Admin {
         $labels = array(
             'NO_ACTION'=>'No actuar',
             'IMPROVE_POST'=>'Mejorar post',
-            'IMPROVE_LANDING'=>'Mejorar landing',
-            'IMPROVE_CATEGORY'=>'Mejorar categoría',
-            'IMPROVE_PAGE'=>'Mejorar página',
             'MERGE_CONTENT'=>'Fusionar / consolidar contenido',
             'CREATE_POST'=>'Crear post',
-            'CREATE_LANDING'=>'Crear landing',
-            'INVESTIGATE'=>'Investigar antes de editar',
-            'DEFER'=>'Aplazar',
-            'UPDATE_PRODUCT'=>'Actualizar producto',
+            'DEFER'=>'Aplazar / revisar',
         );
         return $labels[$action] ?? str_replace('_',' ',(string)$action);
     }
@@ -896,7 +890,7 @@ final class SEO_Solucionador_Admin {
         foreach ($source_options as $source) echo '<option value="' . esc_attr($source) . '" ' . selected($source_filter,$source,false) . '>' . esc_html($source) . '</option>';
         echo '</select></label>';
 
-        $actions = array('NO_ACTION','IMPROVE_POST','IMPROVE_LANDING','IMPROVE_CATEGORY','IMPROVE_PAGE','MERGE_CONTENT','CREATE_POST','CREATE_LANDING','INVESTIGATE','DEFER');
+        $actions = array('NO_ACTION','IMPROVE_POST','MERGE_CONTENT','CREATE_POST','DEFER');
         echo '<label>Acción<select name="sol_action"><option value="">Todas</option>';
         foreach ($actions as $action) echo '<option value="' . esc_attr($action) . '" ' . selected($action_filter,$action,false) . '>' . esc_html(self::action_label($action)) . '</option>';
         echo '</select></label>';
@@ -1062,7 +1056,8 @@ final class SEO_Solucionador_Admin {
             'Evidencias'=>SEO_Solucionador_DB::evidence_table(),
             'Cobertura multientidad'=>SEO_Solucionador_DB::coverage_table(),
             'Workflow'=>SEO_Solucionador_DB::workflow_table(),
-            'Seguimiento'=>SEO_Solucionador_DB::tracking_table(),
+            'Dossiers Academia'=>SEO_Solucionador_DB::dossiers_table(),
+            'Seguimiento histórico (compatibilidad)'=>SEO_Solucionador_DB::tracking_table(),
             'Cobertura posts (compatibilidad)'=>SEO_Solucionador_DB::post_topics_table(),
         );
 
@@ -1131,7 +1126,7 @@ final class SEO_Solucionador_Admin {
         wp_nonce_field('seo_solucionador_export_json');
         submit_button('Descargar resultados JSON', 'secondary', 'submit', false);
         echo '</form>';
-        echo '<span class="description" style="margin-left:10px">Incluye decisiones, evidencias, cobertura multientidad, workflow, seguimiento y último análisis.</span>';
+        echo '<span class="description" style="margin-left:10px">Incluye dossiers ligeros, decisiones, evidencias, cobertura y workflow. Los KPIs globales pertenecen a Analista.</span>';
         echo '</div>';
     }
 
