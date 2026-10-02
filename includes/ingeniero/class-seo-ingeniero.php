@@ -629,13 +629,22 @@ final class SEO_Ingeniero {
 
         $knowledge = self::active_knowledge($term_id);
         if (!$knowledge) {
+            $existing = SEO_Ingeniero_DB::editorial_rows(array('term_id'=>$term_id,'page'=>1,'per_page'=>100));
+            foreach ((array) ($existing['rows'] ?? array()) as $row) {
+                SEO_Ingeniero_DB::update_editorial(absint($row['id'] ?? 0), array(
+                    'status'=>!empty($row['post_id']) ? 'needs_update' : 'review',
+                    'recommended_action'=>'NEEDS_REVIEW',
+                ));
+            }
             return array('term_id'=>$term_id,'proposals'=>array(),'skipped'=>'no_active_knowledge');
         }
 
         $groups = self::editorial_groups($knowledge);
         $proposals = array();
+        $current_topic_keys = array();
 
         foreach ($groups as $topic_key=>$rows) {
+            $current_topic_keys[] = sanitize_key((string) $topic_key);
             $knowledge_ids = array();
             $source_ids = array();
             $confidence = array();
@@ -694,6 +703,16 @@ final class SEO_Ingeniero {
                 continue;
             }
             $proposals[] = SEO_Ingeniero_DB::editorial_get($id);
+        }
+
+        $existing_rows = SEO_Ingeniero_DB::editorial_rows(array('term_id'=>$term_id,'page'=>1,'per_page'=>100));
+        foreach ((array) ($existing_rows['rows'] ?? array()) as $row) {
+            $topic_key = sanitize_key((string) ($row['topic_key'] ?? ''));
+            if ($topic_key === '' || in_array($topic_key, $current_topic_keys, true)) continue;
+            SEO_Ingeniero_DB::update_editorial(absint($row['id'] ?? 0), array(
+                'status'=>!empty($row['post_id']) ? 'needs_update' : 'review',
+                'recommended_action'=>'NEEDS_REVIEW',
+            ));
         }
 
         return array('term_id'=>$term_id,'proposals'=>$proposals);
