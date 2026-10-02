@@ -38,6 +38,11 @@ final class SEO_Solucionador_DB {
         return $wpdb->prefix . 'seo_solucionador_tracking';
     }
 
+    public static function dossiers_table() {
+        global $wpdb;
+        return $wpdb->prefix . 'seo_solucionador_dossiers';
+    }
+
     public static function table_exists($table) {
         global $wpdb;
         $table = (string) $table;
@@ -57,6 +62,7 @@ final class SEO_Solucionador_DB {
             && self::table_exists(self::coverage_table())
             && self::table_exists(self::workflow_table())
             && self::table_exists(self::tracking_table())
+            && self::table_exists(self::dossiers_table())
         ) {
             return true;
         }
@@ -74,6 +80,7 @@ final class SEO_Solucionador_DB {
         $coverage = self::coverage_table();
         $workflow = self::workflow_table();
         $tracking = self::tracking_table();
+        $dossiers = self::dossiers_table();
 
         $sql_topics = "CREATE TABLE {$topics} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -157,6 +164,26 @@ final class SEO_Solucionador_DB {
             KEY category_id (category_id),
             KEY entity (entity_type, entity_id),
             KEY observed_at (observed_at)
+        ) {$collate};";
+
+        $sql_dossiers = "CREATE TABLE {$dossiers} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            category_id BIGINT UNSIGNED NOT NULL,
+            category_name VARCHAR(255) NOT NULL,
+            question_count INT UNSIGNED NOT NULL DEFAULT 0,
+            question_ids LONGTEXT NULL,
+            score_avg DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
+            last_validated_at DATETIME NULL,
+            source_hash CHAR(64) NOT NULL DEFAULT '',
+            scan_token VARCHAR(64) NOT NULL DEFAULT '',
+            demand_occurrences INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY category_id (category_id),
+            KEY scan_token (scan_token),
+            KEY question_count (question_count),
+            KEY last_validated_at (last_validated_at)
         ) {$collate};";
 
         $sql_post_topics = "CREATE TABLE {$post_topics} (
@@ -250,6 +277,7 @@ final class SEO_Solucionador_DB {
         dbDelta($sql_coverage);
         dbDelta($sql_workflow);
         dbDelta($sql_tracking);
+        dbDelta($sql_dossiers);
 
         // Compatibilidad con decisiones previas a RF v1.0.
         $wpdb->query("UPDATE {$topics} SET recommended_action='CREATE_POST' WHERE recommended_action='create_post'");
@@ -297,6 +325,11 @@ final class SEO_Solucionador_DB {
             'table' => self::tracking_table(),
             'primary_key' => array('id'),
             'entity_type' => 'solution_tracking',
+        );
+        $tables['solucionador_dossiers'] = array(
+            'table' => self::dossiers_table(),
+            'primary_key' => array('id'),
+            'entity_type' => 'solution_category_dossier',
         );
         return $tables;
     }
