@@ -36,24 +36,30 @@ final class SEO_Solucionador_Engine {
 
         $lock_key = 'seo_solucionador_auto_refresh_lock';
         if (get_transient($lock_key)) return;
-        set_transient($lock_key, 1, MINUTE_IN_SECONDS);
+        set_transient($lock_key, 1, 2 * MINUTE_IN_SECONDS);
 
         try {
             $snapshot = SEO_Solucionador_Dossiers::snapshot();
             if (empty($snapshot['available'])) return;
 
-            $reset = false;
-            if (!empty($snapshot['scan_complete'])) {
-                $completed = !empty($snapshot['completed_at']) ? strtotime((string) $snapshot['completed_at']) : 0;
-                if ($completed && (time() - $completed) < 6 * HOUR_IN_SECONDS) return;
-                $reset = true;
+            $last_scan = get_option('seo_solucionador_last_scan', array());
+            if (
+                is_array($last_scan)
+                && !empty($last_scan['complete'])
+                && !empty($last_scan['at'])
+                && (time() - absint($last_scan['at'])) < 6 * HOUR_IN_SECONDS
+            ) {
+                return;
             }
 
-            $result = SEO_Solucionador_Dossiers::scan_batch(500, $reset);
+            // Ejecuta el pipeline completo: Academia -> dossiers -> cobertura
+            // -> propuestas editoriales. scan() conserva cursores, por lo que el
+            // trabajo es reanudable sin exigir lotes manuales en la interfaz.
+            $result = self::scan(180, 250);
             if (is_wp_error($result)) return;
 
-            if (empty($result['scan_complete']) && !wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
-                wp_schedule_single_event(time() + 2 * MINUTE_IN_SECONDS, self::AUTO_REFRESH_STEP_HOOK);
+            if (empty($result['complete']) && !wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
+                wp_schedule_single_event(time() + 30, self::AUTO_REFRESH_STEP_HOOK);
             }
         } finally {
             delete_transient($lock_key);
