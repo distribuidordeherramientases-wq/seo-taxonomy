@@ -957,6 +957,15 @@ final class SEO_Comparador_Engine {
         if (!in_array($action,$allowed,true)) {
             return new WP_Error('comparador_action','La actuación editorial no puede aprobarse sin una decisión válida.');
         }
+        if (
+            $action === 'CREATE_POST'
+            && strtoupper((string) ($profile['recommended_action'] ?? '')) !== 'CREATE_POST'
+        ) {
+            return new WP_Error(
+                'comparador_create_not_recommended',
+                'CREATE_POST sólo puede aprobarse cuando la evaluación de Comparador ha validado el perfil y lo recomienda.'
+            );
+        }
 
         $decision_reason = $reason !== ''
             ? sanitize_textarea_field($reason)
