@@ -417,8 +417,8 @@ final class SEO_Solucionador_Admin {
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Visitas Google</h2>';
         echo '<p>Rendimiento de los posts creados por Solucionador durante los últimos 28 días, usando los datos ya capturados por los informes del sitio.</p>';
-        echo '<table class="widefat striped"><thead><tr><th>Post</th><th>Estado</th><th>Impresiones Google</th><th>Clics Google</th><th>CTR</th><th>Posición</th></tr></thead><tbody>';
-        if (!$rows) echo '<tr><td colspan="6">Todavía no hay posts creados por Solucionador.</td></tr>';
+        echo '<table class="widefat striped"><thead><tr><th>Post</th><th>Estado</th><th>Impresiones Google</th><th>Clics Google</th><th>Vistas</th></tr></thead><tbody>';
+        if (!$rows) echo '<tr><td colspan="5">Todavía no hay posts creados por Solucionador.</td></tr>';
         foreach ($rows as $row) {
             $post_id = absint($row['ID'] ?? 0);
             $metrics = self::google_metrics_for_post($post_id);
@@ -427,8 +427,7 @@ final class SEO_Solucionador_Admin {
             echo '<td>' . esc_html((string) ($row['post_status'] ?? '')) . '</td>';
             echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['impressions'] ?? 0))) : '—') . '</td>';
             echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['clicks'] ?? 0))) : '—') . '</td>';
-            echo '<td>' . ($has ? esc_html(number_format_i18n((float) ($metrics['ctr'] ?? 0) * 100,2)) . '%' : '—') . '</td>';
-            echo '<td>' . ($has ? esc_html(number_format_i18n((float) ($metrics['position'] ?? 0),1)) : '—') . '</td></tr>';
+            echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['pageviews'] ?? 0))) : '—') . '</td></tr>';
         }
         echo '</tbody></table></div>';
     }
