@@ -30,6 +30,27 @@ if (!function_exists('seo_post_editor_allowed_statuses')) {
     }
 }
 
+if (!function_exists('seo_post_editor_public_content_roles')) {
+    /**
+     * Roles editoriales estables que las plantillas pueden consumir sin inferir
+     * por título ni ejecutar Dependiente/Ingeniero durante la visita.
+     */
+    function seo_post_editor_public_content_roles() {
+        return array(
+            ''                          => 'Contenido editorial general',
+            'dependiente_qa_basic'      => 'Dependiente · preguntas habituales',
+            'ingeniero_qa_specialized'  => 'Ingeniero · información técnica',
+        );
+    }
+}
+
+if (!function_exists('seo_post_editor_public_content_role')) {
+    function seo_post_editor_public_content_role($post_id) {
+        $role = sanitize_key((string) get_post_meta(absint($post_id), '_seo_solucionador_content_role', true));
+        return array_key_exists($role, seo_post_editor_public_content_roles()) ? $role : '';
+    }
+}
+
 if (!function_exists('seo_post_editor_relations_table')) {
     function seo_post_editor_relations_table() {
         global $wpdb;
@@ -462,6 +483,12 @@ if (!function_exists('seo_post_editor_handle_save')) {
         $status  = isset($_POST['post_status']) ? sanitize_key(wp_unslash($_POST['post_status'])) : 'draft';
         $excerpt = isset($_POST['post_excerpt']) ? seo_post_editor_sanitize_content($_POST['post_excerpt']) : '';
         $content = isset($_POST['post_content']) ? seo_post_editor_sanitize_content($_POST['post_content']) : '';
+        $content_role = isset($_POST['seo_public_content_role'])
+            ? sanitize_key(wp_unslash($_POST['seo_public_content_role']))
+            : '';
+        if (!array_key_exists($content_role, seo_post_editor_public_content_roles())) {
+            $content_role = '';
+        }
 
         if ($title === '') {
             wp_safe_redirect(seo_post_editor_redirect_url_from_request(array(
@@ -542,6 +569,12 @@ if (!function_exists('seo_post_editor_handle_save')) {
                 'seo_post_msg' => 'relation_error',
             )));
             exit;
+        }
+
+        if ($content_role !== '') {
+            update_post_meta($post_id, '_seo_solucionador_content_role', $content_role);
+        } else {
+            delete_post_meta($post_id, '_seo_solucionador_content_role');
         }
 
         clean_post_cache($post_id);
@@ -731,6 +764,7 @@ if (!function_exists('seo_page_edit_posts')) {
             $status  = $creating ? 'draft' : (string) $post->post_status;
             $excerpt = $creating ? '' : (string) $post->post_excerpt;
             $content = $creating ? '' : (string) $post->post_content;
+            $content_role = $creating ? '' : seo_post_editor_public_content_role($post_id);
 
             echo '<div style="max-width:1180px;padding:10px 0 30px;">';
             echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;flex-wrap:wrap;">';
@@ -818,6 +852,18 @@ if (!function_exists('seo_page_edit_posts')) {
                     </div>
 
                     <div style="display:grid;gap:18px;position:sticky;top:46px;">
+                        <div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;">
+                            <h2 style="margin-top:0;">Uso en plantillas</h2>
+                            <p style="margin-top:-4px;color:#646970;line-height:1.5;">Clasifica únicamente los posts preparados para aparecer como apoyo contextual en fichas de producto/categoría. Las plantillas solo leen contenido publicado y relacionado con la categoría.</p>
+                            <label for="seo-public-content-role" style="display:block;font-weight:600;margin-bottom:5px;">Rol público</label>
+                            <select id="seo-public-content-role" name="seo_public_content_role" style="width:100%;">
+                                <?php foreach (seo_post_editor_public_content_roles() as $role_value => $role_label): ?>
+                                    <option value="<?php echo esc_attr($role_value); ?>" <?php selected($content_role, $role_value); ?>><?php echo esc_html($role_label); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p style="margin:8px 0 0;color:#646970;font-size:12px;line-height:1.45;">Dependiente se mostrará como <strong>Preguntas habituales</strong>; Ingeniero como <strong>Información técnica</strong>. Un post general no entra en esos bloques.</p>
+                        </div>
+
                         <div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;">
                             <h2 style="margin-top:0;">Categorias de producto</h2>
                             <p style="margin-top:-4px;color:#646970;line-height:1.5;">Relacion comercial del post. Se guarda en <code>seo_relations</code> como <code>post_to_category</code>; no modifica la taxonomia editorial <code>category</code> de WordPress.</p>

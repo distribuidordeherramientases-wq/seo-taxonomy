@@ -930,216 +930,70 @@ $schema_product_graph = array(
   <?php endif; ?>
 
   <?php
-  $product_faqs = $wpdb->get_results(
-      $wpdb->prepare(
-          "SELECT question, answer
-           FROM {$wpdb->prefix}seo_faq
-           WHERE object_type = 3
-             AND object_id = %d
-             AND active = 1
-           ORDER BY sort_order ASC, id ASC",
-          $product_id
-      )
-  );
-
-  if (!empty($product_faqs)) :
-  ?>
-    <section class="dh-product-faqs" aria-labelledby="dh-product-faqs-title">
-      <h2 id="dh-product-faqs-title">Preguntas frecuentes</h2>
-
-      <div class="dh-product-faq-list">
-        <?php foreach ($product_faqs as $faq) : ?>
-          <details class="dh-product-faq">
-            <summary><?php echo esc_html($faq->question); ?></summary>
-
-            <div class="dh-product-faq-answer">
-              <?php echo wp_kses_post(wpautop($faq->answer)); ?>
-            </div>
-          </details>
-        <?php endforeach; ?>
-      </div>
-    </section>
-  <?php endif; ?>
-
-  <?php
   /*
-   * Comentarista: mostramos exclusivamente comentarios externos publicados
-   * asociados al producto actual. Si no existe ninguno, no se imprime ni
-   * el título, ni la nota, ni un contenedor vacío.
+   * Bloques editoriales contextuales.
    *
-   * Estos datos NO se incorporan al AggregateRating del Product JSON-LD.
+   * Orden acordado en producto:
+   * 1) Dependiente · preguntas habituales
+   * 2) Comparador · extracto persistido
+   * 3) Comentarista · comentarios externos
+   * 4) Ingeniero · información técnica
+   *
+   * Cada helper retorna sin imprimir nada cuando no hay contenido válido.
    */
-  $external_product_comments = array();
+  $dht_product_context_category_ids = function_exists('dht_template_product_context_category_ids')
+      ? dht_template_product_context_category_ids($product_id)
+      : array();
 
-  if (
-      function_exists('seo_comentarista_table_exists')
-      && function_exists('seo_comentarista_table_name')
-      && function_exists('seo_comentarista_render_item')
-      && seo_comentarista_table_exists()
-  ) {
-      $comentarista_table = seo_comentarista_table_name();
+  $dht_dependiente_posts = function_exists('dht_template_context_posts_for_categories')
+      ? dht_template_context_posts_for_categories(
+          $dht_product_context_category_ids,
+          'dependiente_qa_basic',
+          3
+      )
+      : array();
 
-      $external_product_comments = (array) $wpdb->get_results(
-          $wpdb->prepare(
-              "SELECT *
-               FROM {$comentarista_table}
-               WHERE product_id = %d
-                 AND status = 'published'
-                 AND content_type = 'comment'
-               ORDER BY display_order ASC, id DESC
-               LIMIT 12",
-              $product_id
-          ),
-          ARRAY_A
+  if (function_exists('dht_template_render_context_posts')) {
+      dht_template_render_context_posts(
+          $dht_dependiente_posts,
+          'Preguntas habituales',
+          'dependiente',
+          'product'
       );
   }
-  ?>
 
-  <?php if (!empty($external_product_comments)) : ?>
-    <section class="dh-product-reviews dh-product-external-comments seo-comentarista" aria-labelledby="dh-external-comments-title">
-      <style>
-        .dh-product-external-comments .dh-external-comments-info {
-          margin: .35rem 0 1.15rem;
-        }
-        .dh-product-external-comments .dh-external-comments-info > summary {
-          cursor: pointer;
-          font-size: .9rem;
-          font-weight: 600;
-          color: #555;
-        }
-        .dh-product-external-comments .dh-external-comments-info-body {
-          margin-top: .65rem;
-          padding: .8rem 1rem;
-          background: #f7f7f7;
-          border-left: 3px solid #d6d6d6;
-          font-size: .9rem;
-          line-height: 1.5;
-        }
-        .dh-product-external-comments .dh-external-comments-info-body p {
-          margin: 0;
-        }
-        .dh-product-external-comments .dh-external-comment-item {
-          padding: 1rem 0;
-          border-top: 1px solid #e8e8e8;
-        }
-        .dh-product-external-comments .dh-external-comment-item:first-child {
-          border-top: 0;
-          padding-top: .25rem;
-        }
-        .dh-product-external-comments .dh-external-comment-heading {
-          display: flex;
-          align-items: baseline;
-          justify-content: space-between;
-          gap: .75rem;
-          flex-wrap: wrap;
-          margin-bottom: .45rem;
-        }
-        .dh-product-external-comments .dh-external-comment-label {
-          font-weight: 700;
-        }
-        .dh-product-external-comments .dh-external-comment-rating {
-          font-size: .9rem;
-          color: #555;
-        }
-        .dh-product-external-comments .dh-external-comment-text {
-          margin: 0;
-          padding: .85rem 1rem;
-          background: #fafafa;
-          border-left: 3px solid #b9b9b9;
-          font-style: normal;
-          line-height: 1.55;
-        }
-        .dh-product-external-comments .dh-external-comment-text p {
-          margin: 0;
-        }
-        .dh-product-external-comments .dh-external-comment-source {
-          margin: .65rem 0 0;
-          font-size: .9rem;
-          line-height: 1.45;
-          color: #555;
-        }
-      </style>
-
-      <header class="seo-comentarista__header">
-        <h2 id="dh-external-comments-title">Comentarios externos sobre este producto</h2>
-
-        <details class="dh-external-comments-info">
-          <summary>Información sobre estos comentarios externos</summary>
-          <div class="dh-external-comments-info-body">
-            <p>
-              Estos comentarios proceden de fuentes externas y no son opiniones de clientes de Distribuidor de Herramientas.
-              Cuando el texto mostrado es un resumen editorial, no es una cita literal. La autoría y, cuando se indique,
-              la condición de compra corresponden a la información facilitada por la fuente original. Puedes consultar
-              siempre la fuente original enlazada en cada comentario.
-            </p>
-          </div>
-        </details>
-      </header>
-
-      <div class="seo-comentarista__items dh-external-comment-list">
-        <?php foreach ($external_product_comments as $external_comment) : ?>
-          <?php
-          $external_comment_text = !empty($external_comment['source_content'])
-              ? (string) $external_comment['source_content']
-              : (string) ($external_comment['editorial_summary'] ?? '');
-
-          // No mostramos al usuario la etiqueta tecnica usada durante la importacion.
-          $external_comment_text = preg_replace(
-              '/^\s*\[Resumen editorial,\s*no cita literal\]\s*/iu',
-              '',
-              $external_comment_text
-          );
-
-          $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
-              ? seo_comentarista_render_source_meta($external_comment)
-              : '';
-
-          $external_comment_rating = function_exists('seo_comentarista_rating_text')
-              ? seo_comentarista_rating_text($external_comment)
-              : '';
-          ?>
-
-          <?php if (trim(wp_strip_all_tags($external_comment_text)) !== '') : ?>
-            <article class="dh-external-comment-item">
-              <div class="dh-external-comment-heading">
-                <strong class="dh-external-comment-label">Comentario externo</strong>
-
-                <?php if ($external_comment_rating !== '') : ?>
-                  <span class="dh-external-comment-rating">
-                    Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong>
-                  </span>
-                <?php endif; ?>
-              </div>
-
-              <blockquote class="dh-external-comment-text">
-                <?php echo wp_kses_post(wpautop($external_comment_text)); ?>
-              </blockquote>
-
-              <?php if ($external_comment_meta !== '') : ?>
-                <p class="dh-external-comment-source">
-                  <strong>Fuente:</strong>
-                  <?php echo wp_kses($external_comment_meta, array(
-                      'strong' => array(),
-                      'a' => array(
-                          'href' => array(),
-                          'target' => array(),
-                          'rel' => array(),
-                      ),
-                  )); ?>
-                </p>
-              <?php endif; ?>
-            </article>
-          <?php endif; ?>
-        <?php endforeach; ?>
-      </div>
-    </section>
-  <?php endif; ?>
-
-  <?php
-  // Comparador: extracto persistido de la comparativa canónica de la categoría.
-  // No ejecuta Ojeador ni análisis pesado durante la visita.
+  // Comparador: solo lee el extracto persistido del post canónico publicado.
   if (function_exists('seo_comparador_render_product_block')) {
       seo_comparador_render_product_block($product_id);
+  }
+
+  $dht_external_product_comments = function_exists('dht_template_product_external_comments')
+      ? dht_template_product_external_comments($product_id, 12)
+      : array();
+
+  if (function_exists('dht_template_render_external_comments')) {
+      dht_template_render_external_comments(
+          $dht_external_product_comments,
+          'Comentarios externos sobre este producto',
+          'product'
+      );
+  }
+
+  $dht_ingeniero_posts = function_exists('dht_template_context_posts_for_categories')
+      ? dht_template_context_posts_for_categories(
+          $dht_product_context_category_ids,
+          'ingeniero_qa_specialized',
+          3
+      )
+      : array();
+
+  if (function_exists('dht_template_render_context_posts')) {
+      dht_template_render_context_posts(
+          $dht_ingeniero_posts,
+          'Información técnica',
+          'ingeniero',
+          'product'
+      );
   }
   ?>
 

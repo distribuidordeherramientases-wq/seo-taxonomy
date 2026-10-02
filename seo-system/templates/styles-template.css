@@ -7549,6 +7549,158 @@ html {
 
 
 /* ==========================================================
+   BLOQUES CONTEXTUALES · DEPENDIENTE / COMENTARISTA / INGENIERO
+========================================================== */
+.dht-context-posts,
+.dht-external-comments{
+  margin-top:42px;
+  padding:30px 0;
+}
+.dht-context-posts--product,
+.dht-external-comments--product{
+  padding:0;
+}
+.dht-context-posts__header,
+.dht-external-comments__header{
+  max-width:900px;
+  margin:0 0 18px;
+}
+.dht-context-posts__header h2,
+.dht-external-comments__header h2{
+  margin:3px 0 8px;
+  font-size:clamp(22px,2.2vw,30px);
+  line-height:1.2;
+}
+.dht-context-posts__kicker{
+  display:inline-block;
+  color:var(--dht-primary);
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.dht-external-comments__header p{
+  margin:0;
+  color:var(--dht-text-soft,#5f6b76);
+  font-size:14px;
+  line-height:1.6;
+}
+.dht-context-posts__grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:14px;
+}
+.dht-context-post-card{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+  padding:18px;
+  border:1px solid var(--dht-border,#dfe5ea);
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 3px 12px rgba(16,24,40,.04);
+}
+.dht-context-post-card h3{
+  margin:0 0 9px;
+  font-size:17px;
+  line-height:1.35;
+}
+.dht-context-post-card h3 a{
+  color:var(--dht-text,#182230);
+  text-decoration:none;
+}
+.dht-context-post-card h3 a:hover,
+.dht-context-post-card h3 a:focus-visible{
+  color:var(--dht-primary);
+  text-decoration:underline;
+}
+.dht-context-post-card p{
+  margin:0 0 14px;
+  color:var(--dht-text-soft,#5f6b76);
+  font-size:14px;
+  line-height:1.55;
+}
+.dht-context-post-card__link{
+  margin-top:auto;
+  color:var(--dht-primary);
+  font-size:13px;
+  font-weight:800;
+  text-decoration:none;
+}
+.dht-context-posts--ingeniero .dht-context-post-card{
+  background:#fbfcfd;
+}
+
+.dht-external-comments__list{
+  display:grid;
+  gap:12px;
+}
+.dht-external-comment{
+  padding:18px;
+  border:1px solid var(--dht-border,#dfe5ea);
+  border-radius:14px;
+  background:#fff;
+}
+.dht-external-comment__product{
+  margin:0 0 10px;
+  font-size:16px;
+  line-height:1.35;
+}
+.dht-external-comment__product a{
+  color:var(--dht-text,#182230);
+  text-decoration:none;
+}
+.dht-external-comment__product a:hover,
+.dht-external-comment__product a:focus-visible{
+  color:var(--dht-primary);
+  text-decoration:underline;
+}
+.dht-external-comment__meta{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:8px 14px;
+  margin-bottom:9px;
+  color:#596675;
+  font-size:13px;
+}
+.dht-external-comment blockquote{
+  margin:0;
+  padding:13px 15px;
+  border-left:3px solid #b9c4ce;
+  background:#f8fafb;
+  color:var(--dht-text,#182230);
+  font-style:normal;
+  line-height:1.58;
+}
+.dht-external-comment blockquote p{
+  margin:0;
+}
+.dht-external-comment__source{
+  margin:9px 0 0;
+  color:#596675;
+  font-size:13px;
+  line-height:1.45;
+}
+.dht-external-comment__source a{
+  word-break:break-word;
+}
+
+@media(max-width:767px){
+  .dht-context-posts,
+  .dht-external-comments{margin-top:30px;padding:22px 0}
+  .dht-context-posts--product,
+  .dht-external-comments--product{padding:0}
+  .dht-context-posts__grid{grid-template-columns:1fr}
+  .dht-context-post-card,
+  .dht-external-comment{padding:15px;border-radius:12px}
+  .dht-external-comment__meta{display:block}
+  .dht-external-comment__meta span{display:block;margin-top:4px}
+}
+
+
+/* ==========================================================
    COMPARADOR · EXTRACTO CANÓNICO
    Solo presenta datos persistidos y enlaza el post completo.
 ========================================================== */

@@ -159,3 +159,15 @@ Comparte el escáner de salud del plugin. Controles principales:
 - filtros de estado y **Buscar** [Consulta].
 
 La tabla informa elemento, estado, HTTP, tiempo, detalle y último chequeo.
+
+
+## Bloques contextuales en la ficha pública
+
+Después del contenido comercial y técnico propio del producto, la plantilla puede mostrar, en este orden:
+
+1. **Preguntas habituales**: posts publicados relacionados con alguna categoría del producto y marcados como `dependiente_qa_basic`.
+2. **Comparativa**: extracto persistido de Comparador cuando existe un post canónico publicado.
+3. **Comentarios externos**: registros `published` de Comentarista asociados al producto.
+4. **Información técnica**: posts publicados relacionados y marcados como `ingeniero_qa_specialized`.
+
+La ficha no ejecuta Dependiente, Ingeniero, Ojeador ni Comparador durante la visita. Si una fuente no tiene contenido válido, no se imprime título, contenedor ni espacio vacío. Los posts se enlazan en lugar de duplicar su respuesta completa.

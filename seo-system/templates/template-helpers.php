@@ -1632,6 +1632,428 @@ if (!function_exists('dht_template_public_term_ids')) {
     }
 }
 
+
+/* ==========================================================
+   CONTENIDO CONTEXTUAL EN PRODUCTOS Y CATEGORIAS
+   Dependiente / Comentarista / Ingeniero.
+
+   Las plantillas leen exclusivamente contenido ya persistido:
+   - posts publicados con rol editorial estable;
+   - relaciones post_to_category;
+   - comentarios externos published de Comentarista.
+   Nunca ejecutan Dependiente, Ingeniero, Solucionador u Ojeador
+   durante la visita.
+========================================================== */
+if (!function_exists('dht_template_product_context_category_ids')) {
+    function dht_template_product_context_category_ids($product_id, $limit = 18)
+    {
+        $product_id = absint($product_id);
+        $limit = max(1, absint($limit));
+        if ($product_id < 1) {
+            return array();
+        }
+
+        $term_ids = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'ids'));
+        if (is_wp_error($term_ids) || empty($term_ids)) {
+            return array();
+        }
+
+        $ranked = array();
+        foreach (array_values(array_unique(array_map('absint', (array) $term_ids))) as $term_id) {
+            if ($term_id < 1) {
+                continue;
+            }
+
+            $depth = count(get_ancestors($term_id, 'product_cat', 'taxonomy'));
+            $ranked[$term_id] = max($depth, $ranked[$term_id] ?? -1);
+
+            /*
+             * Un producto puede heredar una guia de su familia padre.
+             * La categoria mas especifica conserva prioridad.
+             */
+            $ancestor_depth = $depth - 1;
+            foreach (get_ancestors($term_id, 'product_cat', 'taxonomy') as $ancestor_id) {
+                $ancestor_id = absint($ancestor_id);
+                if ($ancestor_id < 1) {
+                    continue;
+                }
+                $ranked[$ancestor_id] = max($ancestor_depth, $ranked[$ancestor_id] ?? -1);
+                $ancestor_depth--;
+            }
+        }
+
+        arsort($ranked, SORT_NUMERIC);
+        return array_slice(array_keys($ranked), 0, $limit);
+    }
+}
+
+if (!function_exists('dht_template_context_posts_for_categories')) {
+    /**
+     * Devuelve posts publicos relacionados explicitamente con product_cat
+     * y clasificados para el bloque solicitado.
+     */
+    function dht_template_context_posts_for_categories($category_ids, $role, $limit = 4)
+    {
+        global $wpdb;
+
+        $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
+        $role = sanitize_key((string) $role);
+        $limit = max(1, min(8, absint($limit)));
+
+        if (
+            empty($category_ids)
+            || !in_array($role, array('dependiente_qa_basic', 'ingeniero_qa_specialized'), true)
+        ) {
+            return array();
+        }
+
+        $relations_table = $wpdb->prefix . 'seo_relations';
+        $exists = $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($relations_table))
+        );
+        if ($exists !== $relations_table) {
+            return array();
+        }
+
+        $cache_key = 'ctx_posts_' . md5(implode(',', $category_ids) . '|' . $role . '|' . $limit);
+        $cached = wp_cache_get($cache_key, 'dht_template');
+        if (is_array($cached)) {
+            return array_values(array_filter(array_map('get_post', $cached)));
+        }
+
+        $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+        $query = "
+            SELECT DISTINCT p.ID
+            FROM %i r
+            INNER JOIN %i p
+                ON p.ID = r.source_id
+               AND p.post_type = 'post'
+               AND p.post_status = 'publish'
+            INNER JOIN %i pm
+                ON pm.post_id = p.ID
+               AND pm.meta_key = %s
+               AND pm.meta_value = %s
+            WHERE r.source_type = 'post'
+              AND r.target_type = 'product_cat'
+              AND r.relation_type = 'post_to_category'
+              AND r.target_id IN ({$placeholders})
+            ORDER BY p.post_modified_gmt DESC, p.ID DESC
+            LIMIT %d
+        ";
+
+        $params = array(
+            $relations_table,
+            $wpdb->posts,
+            $wpdb->postmeta,
+            '_seo_solucionador_content_role',
+            $role,
+        );
+        foreach ($category_ids as $category_id) {
+            $params[] = $category_id;
+        }
+        $params[] = $limit;
+
+        $post_ids = (array) $wpdb->get_col($wpdb->prepare($query, $params));
+        $post_ids = array_values(array_unique(array_filter(array_map('absint', $post_ids))));
+        wp_cache_set($cache_key, $post_ids, 'dht_template', 300);
+
+        return array_values(array_filter(array_map('get_post', $post_ids)));
+    }
+}
+
+if (!function_exists('dht_template_context_post_excerpt')) {
+    function dht_template_context_post_excerpt($post, $words = 28)
+    {
+        $post = get_post($post);
+        if (!$post instanceof WP_Post || 'publish' !== $post->post_status) {
+            return '';
+        }
+
+        $excerpt = trim(wp_strip_all_tags((string) $post->post_excerpt));
+        if ($excerpt !== '') {
+            return wp_trim_words($excerpt, $words, '…');
+        }
+
+        $plain = trim(wp_strip_all_tags(strip_shortcodes((string) $post->post_content)));
+        return $plain !== '' ? wp_trim_words($plain, $words, '…') : '';
+    }
+}
+
+if (!function_exists('dht_template_render_context_posts')) {
+    /**
+     * Render ligero: titulo + contexto breve + enlace al post canonico.
+     * No replica respuestas completas en producto/categoria.
+     */
+    function dht_template_render_context_posts($posts, $title, $variant = 'dependiente', $context = 'product')
+    {
+        $valid = array();
+        foreach ((array) $posts as $post) {
+            $post = get_post($post);
+            if (
+                !$post instanceof WP_Post
+                || 'post' !== $post->post_type
+                || 'publish' !== $post->post_status
+                || trim((string) $post->post_title) === ''
+                || !get_permalink($post)
+            ) {
+                continue;
+            }
+            $valid[] = $post;
+        }
+
+        if (!$valid) {
+            return;
+        }
+
+        $variant = in_array($variant, array('dependiente', 'ingeniero'), true) ? $variant : 'dependiente';
+        $context = in_array($context, array('product', 'category'), true) ? $context : 'product';
+        $kicker = 'ingeniero' === $variant ? 'Conocimiento técnico' : 'Ayuda para elegir';
+        $link_label = 'ingeniero' === $variant ? 'Leer información técnica' : 'Ver respuesta';
+        ?>
+        <section class="dht-context-posts dht-context-posts--<?php echo esc_attr($variant); ?> dht-context-posts--<?php echo esc_attr($context); ?>">
+            <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
+            <header class="dht-context-posts__header">
+                <span class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></span>
+                <h2><?php echo esc_html($title); ?></h2>
+            </header>
+            <div class="dht-context-posts__grid">
+                <?php foreach ($valid as $context_post) : ?>
+                    <?php
+                    $context_excerpt = dht_template_context_post_excerpt($context_post, 30);
+                    $context_url = get_permalink($context_post);
+                    ?>
+                    <article class="dht-context-post-card">
+                        <h3>
+                            <a href="<?php echo esc_url($context_url); ?>">
+                                <?php echo esc_html($context_post->post_title); ?>
+                            </a>
+                        </h3>
+                        <?php if ($context_excerpt !== '') : ?>
+                            <p><?php echo esc_html($context_excerpt); ?></p>
+                        <?php endif; ?>
+                        <a class="dht-context-post-card__link" href="<?php echo esc_url($context_url); ?>">
+                            <?php echo esc_html($link_label); ?> →
+                        </a>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+            <?php if ('category' === $context) : ?></div><?php endif; ?>
+        </section>
+        <?php
+    }
+}
+
+if (!function_exists('dht_template_product_external_comments')) {
+    function dht_template_product_external_comments($product_id, $limit = 12)
+    {
+        $product_id = absint($product_id);
+        $limit = max(1, min(24, absint($limit)));
+        if (
+            $product_id < 1
+            || !function_exists('seo_comentarista_get_by_product')
+        ) {
+            return array();
+        }
+
+        $rows = (array) seo_comentarista_get_by_product($product_id, 'published', $limit * 2);
+        $rows = array_values(array_filter(
+            $rows,
+            static function ($row) {
+                return 'comment' === sanitize_key((string) ($row['content_type'] ?? ''));
+            }
+        ));
+
+        return array_slice($rows, 0, $limit);
+    }
+}
+
+if (!function_exists('dht_template_category_external_comments')) {
+    function dht_template_category_external_comments($term_id, $limit = 6, $per_product = 2)
+    {
+        global $wpdb;
+
+        $term_id = absint($term_id);
+        $limit = max(1, min(12, absint($limit)));
+        $per_product = max(1, min(4, absint($per_product)));
+
+        if (
+            $term_id < 1
+            || !function_exists('seo_comentarista_table_exists')
+            || !function_exists('seo_comentarista_table_name')
+            || !seo_comentarista_table_exists()
+        ) {
+            return array();
+        }
+
+        $term_ids = array($term_id);
+        $children = get_term_children($term_id, 'product_cat');
+        if (!is_wp_error($children)) {
+            $term_ids = array_values(array_unique(array_merge(
+                $term_ids,
+                array_filter(array_map('absint', (array) $children))
+            )));
+        }
+
+        $cache_key = 'ctx_comments_' . md5(implode(',', $term_ids) . '|' . $limit . '|' . $per_product);
+        $cached = wp_cache_get($cache_key, 'dht_template');
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($term_ids), '%d'));
+        $scan_limit = max(30, $limit * 8);
+        $query = "
+            SELECT DISTINCT c.*, p.post_title AS product_title
+            FROM %i c
+            INNER JOIN %i p
+                ON p.ID = c.product_id
+               AND p.post_type = 'product'
+               AND p.post_status = 'publish'
+            INNER JOIN %i tr ON tr.object_id = c.product_id
+            INNER JOIN %i tt
+                ON tt.term_taxonomy_id = tr.term_taxonomy_id
+               AND tt.taxonomy = 'product_cat'
+            WHERE c.status = 'published'
+              AND c.content_type = 'comment'
+              AND tt.term_id IN ({$placeholders})
+            ORDER BY c.display_order ASC, c.id DESC
+            LIMIT %d
+        ";
+
+        $params = array(
+            seo_comentarista_table_name(),
+            $wpdb->posts,
+            $wpdb->term_relationships,
+            $wpdb->term_taxonomy,
+        );
+        foreach ($term_ids as $category_id) {
+            $params[] = $category_id;
+        }
+        $params[] = $scan_limit;
+
+        $rows = (array) $wpdb->get_results($wpdb->prepare($query, $params), ARRAY_A);
+        $out = array();
+        $product_counts = array();
+
+        foreach ($rows as $row) {
+            $product_id = absint($row['product_id'] ?? 0);
+            if ($product_id < 1) {
+                continue;
+            }
+            if (($product_counts[$product_id] ?? 0) >= $per_product) {
+                continue;
+            }
+
+            $row['product_url'] = get_permalink($product_id);
+            $out[] = $row;
+            $product_counts[$product_id] = ($product_counts[$product_id] ?? 0) + 1;
+
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+
+        wp_cache_set($cache_key, $out, 'dht_template', 300);
+        return $out;
+    }
+}
+
+if (!function_exists('dht_template_external_comment_text')) {
+    function dht_template_external_comment_text($row)
+    {
+        $text = !empty($row['source_content'])
+            ? (string) $row['source_content']
+            : (string) ($row['editorial_summary'] ?? '');
+
+        $text = preg_replace(
+            '/^\s*\[Resumen editorial,\s*no cita literal\]\s*/iu',
+            '',
+            $text
+        );
+
+        return trim((string) $text);
+    }
+}
+
+if (!function_exists('dht_template_render_external_comments')) {
+    function dht_template_render_external_comments($rows, $title, $context = 'product')
+    {
+        $context = in_array($context, array('product', 'category'), true) ? $context : 'product';
+        $valid = array();
+
+        foreach ((array) $rows as $row) {
+            if (dht_template_external_comment_text($row) !== '') {
+                $valid[] = $row;
+            }
+        }
+
+        if (!$valid) {
+            return;
+        }
+        ?>
+        <section class="dht-external-comments dht-external-comments--<?php echo esc_attr($context); ?> seo-comentarista">
+            <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
+            <header class="dht-external-comments__header">
+                <span class="dht-context-posts__kicker">Experiencias externas</span>
+                <h2><?php echo esc_html($title); ?></h2>
+                <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
+            </header>
+
+            <div class="dht-external-comments__list">
+                <?php foreach ($valid as $external_comment) : ?>
+                    <?php
+                    $external_comment_text = dht_template_external_comment_text($external_comment);
+                    $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
+                        ? seo_comentarista_render_source_meta($external_comment)
+                        : '';
+                    $external_comment_rating = function_exists('seo_comentarista_rating_text')
+                        ? seo_comentarista_rating_text($external_comment)
+                        : '';
+                    $product_title = trim((string) ($external_comment['product_title'] ?? ''));
+                    $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
+                    ?>
+                    <article class="dht-external-comment">
+                        <?php if ('category' === $context && $product_title !== '') : ?>
+                            <h3 class="dht-external-comment__product">
+                                <?php if ($product_url !== '') : ?>
+                                    <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
+                                <?php else : ?>
+                                    <?php echo esc_html($product_title); ?>
+                                <?php endif; ?>
+                            </h3>
+                        <?php endif; ?>
+
+                        <div class="dht-external-comment__meta">
+                            <strong>Comentario externo</strong>
+                            <?php if ($external_comment_rating !== '') : ?>
+                                <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                            <?php endif; ?>
+                        </div>
+
+                        <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
+
+                        <?php if ($external_comment_meta !== '') : ?>
+                            <p class="dht-external-comment__source">
+                                <strong>Fuente:</strong>
+                                <?php echo wp_kses($external_comment_meta, array(
+                                    'strong' => array(),
+                                    'a' => array(
+                                        'href' => array(),
+                                        'target' => array(),
+                                        'rel' => array(),
+                                    ),
+                                )); ?>
+                            </p>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+            <?php if ('category' === $context) : ?></div><?php endif; ?>
+        </section>
+        <?php
+    }
+}
+
 /* ==========================================================
    SELECTOR CENTRAL DE PLANTILLAS POR DISPOSITIVO
    Los archivos template-*.php gestores solo piden una ruta.
