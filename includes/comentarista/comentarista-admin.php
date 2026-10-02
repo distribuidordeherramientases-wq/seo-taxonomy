@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
 
 function seo_comentarista_register_admin_page()
 {
-    // Página oculta: el acceso visible se ofrece desde SEO Taxonomy → Herramientas.
+    // Página oculta: el acceso visible se ofrece desde SEO Taxonomy → Contenidos.
     add_submenu_page(
         null,
         'Comentarista',
@@ -20,7 +20,7 @@ function seo_comentarista_register_admin_page()
 add_action('admin_menu', 'seo_comentarista_register_admin_page', 35);
 
 /**
- * Añade Comentarista al lanzador central de Herramientas.
+ * Añade Comentarista al lanzador central de Contenidos.
  *
  * @param array $tools Tarjetas actuales.
  * @return array
@@ -44,7 +44,7 @@ function seo_comentarista_register_tools_card($tools)
 
     return $tools;
 }
-add_filter('seo_tools_items', 'seo_comentarista_register_tools_card');
+add_filter('seo_content_items', 'seo_comentarista_register_tools_card');
 
 function seo_comentarista_admin_assets()
 {
