@@ -2563,11 +2563,150 @@ function seo_render_anomalies_report() {
     }
 
     /*
+     * Posts editoriales sin relación comercial con una categoría de producto.
+     *
+     * Regla editorial actual:
+     * - Guías y Comparativas deben enlazar al menos una product_cat mediante post_to_category.
+     * - Noticias y contenidos funcionales/corporativos se excluyen de esta anomalía.
+     * - Solo se revisan posts publicados o programados.
+     */
+    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">🔗 Posts editoriales sin categoría de producto relacionada</h3>';
+
+    $posts_without_product_category_raw = $wpdb->get_results("
+        SELECT DISTINCT
+            p.ID AS post_id,
+            p.post_title,
+            p.post_name,
+            p.post_status,
+            p.post_date
+        FROM {$wpdb->posts} p
+        INNER JOIN {$wpdb->term_relationships} tr_editorial
+            ON tr_editorial.object_id = p.ID
+        INNER JOIN {$wpdb->term_taxonomy} tt_editorial
+            ON tt_editorial.term_taxonomy_id = tr_editorial.term_taxonomy_id
+           AND tt_editorial.taxonomy = 'category'
+        INNER JOIN {$wpdb->terms} t_editorial
+            ON t_editorial.term_id = tt_editorial.term_id
+        WHERE p.post_type = 'post'
+          AND p.post_status IN ('publish', 'future')
+          AND t_editorial.slug IN ('guias-y-comparativas', 'guias', 'comparativas')
+          AND NOT EXISTS (
+              SELECT 1
+              FROM {$wpdb->prefix}seo_relations r
+              WHERE r.source_type = 'post'
+                AND r.source_id = p.ID
+                AND r.target_type = 'product_cat'
+                AND r.relation_type = 'post_to_category'
+          )
+        ORDER BY p.post_status ASC, p.post_date DESC, p.ID DESC
+    " );
+
+    $non_commercial_post_slugs = (array) apply_filters(
+        'seo_reports_non_commercial_post_slugs',
+        array(
+            'carrito',
+            'finalizar-compra',
+            'mi-cuenta',
+            'terminos-y-condiciones',
+            'privacidad-de-datos',
+            'devoluciones-y-reembolsos',
+            'contacto',
+            'blog',
+            'tienda',
+            'dependiente',
+            'inicio',
+            'nosotros',
+            'nuestro-servicio',
+            'proveedores-de-distribuidor-de-herramientas-es',
+            'densl-suministro-profesional-de-equipamiento-de-seguridad-vial-bajo-presupuesto',
+            'soluciones',
+            'productos-genericos-de-ferreteria',
+        )
+    );
+
+    $non_commercial_post_slugs = array_values(
+        array_unique(
+            array_filter(
+                array_map('sanitize_title', $non_commercial_post_slugs)
+            )
+        )
+    );
+
+    $posts_without_product_category = array();
+    $posts_without_product_category_excluded = 0;
+
+    foreach ((array) $posts_without_product_category_raw as $post_row) {
+        $post_slug = sanitize_title((string) ($post_row->post_name ?? ''));
+        if (in_array($post_slug, $non_commercial_post_slugs, true)) {
+            $posts_without_product_category_excluded++;
+            continue;
+        }
+        $posts_without_product_category[] = $post_row;
+    }
+
+    if (!empty($posts_without_product_category_excluded)) {
+        echo '<p style="color:#646970;">';
+        echo 'Se han excluido <strong>' . esc_html(number_format_i18n($posts_without_product_category_excluded)) . '</strong> entradas funcionales o corporativas que no necesitan relación comercial.';
+        echo '</p>';
+    }
+
+    if (!empty($posts_without_product_category)) {
+        echo '<p style="color:#646970;">';
+        echo 'Estas Guías o Comparativas están publicadas o programadas, pero no tienen ninguna relación <code>post_to_category</code> hacia una categoría de producto.';
+        echo '</p>';
+        echo '<div style="background:#fcf0f1;border-left:4px solid #d63638;padding:10px 12px;margin-bottom:12px;">';
+        echo 'Total detectados: <strong>' . esc_html(number_format_i18n(count($posts_without_product_category))) . '</strong>';
+        echo '</div>';
+
+        foreach ($posts_without_product_category as $post_row) {
+            $post_id  = absint($post_row->post_id ?? 0);
+            $title    = $post_row->post_title ?: '(Sin título)';
+            $edit_url = add_query_arg(
+                array(
+                    'page'    => 'seo-post-editor',
+                    'post_id' => $post_id,
+                ),
+                admin_url('edit.php')
+            );
+            $wp_edit_url = get_edit_post_link($post_id, 'raw');
+            $view_url = get_permalink($post_id);
+
+            echo '<div style="margin:0 0 10px;padding:10px 12px;background:#fff;border-left:4px solid #d63638;">';
+            echo '<strong>' . esc_html($title) . '</strong> ';
+            echo '<code>(' . esc_html($post_id) . ')</code><br>';
+            echo 'Estado: <strong>' . esc_html($post_row->post_status) . '</strong>';
+            if (!empty($post_row->post_date)) {
+                echo ' · Fecha: <strong>' . esc_html($post_row->post_date) . '</strong>';
+            }
+            echo '<br><span style="color:#b32d2e;">Sin relación comercial post_to_category.</span>';
+
+            if ($view_url || $edit_url || $wp_edit_url) {
+                echo '<div style="margin-top:6px;">';
+                if ($view_url) {
+                    echo '<a href="' . esc_url($view_url) . '" target="_blank" rel="noopener">Ver</a>';
+                }
+                if ($edit_url) {
+                    if ($view_url) echo ' · ';
+                    echo '<a href="' . esc_url($edit_url) . '"><strong>Editar relación comercial</strong></a>';
+                }
+                if ($wp_edit_url) {
+                    echo ' · <a href="' . esc_url($wp_edit_url) . '">Editor WordPress</a>';
+                }
+                echo '</div>';
+            }
+
+            echo '</div>';
+        }
+    } else {
+        echo '<p style="color:#2e7d32;font-style:italic;">Todas las Guías y Comparativas publicadas o programadas tienen al menos una categoría de producto relacionada.</p>';
+    }
+
+    /*
      * Entradas editoriales sin Vocabulary semantico activo.
      *
      * Modelo actual:
-     * - la conexion editorial del post con el catalogo se resuelve mediante Vocabulary;
-     * - post_to_category ya no es una relacion obligatoria y no debe auditarse como error;
+     * - Vocabulary describe la semantica canonica del post;
+     * - la relacion comercial con el catalogo se audita por separado mediante post_to_category;
      * - solo se consideran asignaciones activas a terminos de Vocabulary tambien activos;
      * - se auditan los grupos canonicos usados por el sistema semantico;
      * - las entradas funcionales, legales, corporativas o de navegacion no necesitan
@@ -2691,7 +2830,7 @@ function seo_render_anomalies_report() {
 
     if (!empty($posts_without_vocabulary)) {
         echo '<p style="color:#646970;">';
-        echo 'Estas entradas editoriales están publicadas o programadas, pero no tienen ninguna asignación activa de Vocabulary canónico. En el modelo actual no se exige una relación directa <code>post_to_category</code>.';
+        echo 'Estas entradas editoriales están publicadas o programadas, pero no tienen ninguna asignación activa de Vocabulary canónico. La relación comercial <code>post_to_category</code> se comprueba en el bloque independiente anterior.';
         echo '</p>';
         echo '<div style="background:#fcf0f1;border-left:4px solid #d63638;padding:10px 12px;margin-bottom:12px;">';
         echo 'Total detectados: <strong>' . esc_html(number_format_i18n(count($posts_without_vocabulary))) . '</strong>';
