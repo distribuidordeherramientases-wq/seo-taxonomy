@@ -931,9 +931,11 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_ajax_product' ) ) {
 
 if ( ! function_exists( 'seo_supplier_recipe_totherramienta_ajax_products_batch' ) ) {
     /**
-     * Recupera varios productos Ajax. Usa curl_multi cuando esta disponible
-     * para que el enriquecimiento de catalogos grandes no requiera miles de
-     * peticiones estrictamente secuenciales. Los fallos se devuelven por handle.
+     * Recupera varios productos Ajax mediante la API HTTP de WordPress.
+     *
+     * Se procesa en grupos pequenos para mantener el control de carga sin usar
+     * cURL directo, que no es portable dentro de un plugin distribuible.
+     * Los fallos se devuelven por handle.
      *
      * @param array<int,string> $handles Handles.
      * @return array{products:array<string,array>,errors:array<string,string>}
@@ -945,8 +947,11 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_ajax_products_batch'
             return $result;
         }
 
-        if ( ! function_exists( 'curl_multi_init' ) || ! function_exists( 'curl_init' ) ) {
-            foreach ( $handles as $handle ) {
+        $batch_size = (int) apply_filters( 'seo_totherramienta_ajax_concurrency', 8 );
+        $batch_size = max( 1, min( 16, $batch_size ) );
+
+        foreach ( array_chunk( $handles, $batch_size ) as $chunk ) {
+            foreach ( $chunk as $handle ) {
                 $product = seo_supplier_recipe_totherramienta_ajax_product( $handle );
                 if ( is_wp_error( $product ) ) {
                     $result['errors'][ $handle ] = $product->get_error_message();
@@ -954,79 +959,11 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_ajax_products_batch'
                     $result['products'][ $handle ] = $product;
                 }
             }
-            return $result;
-        }
 
-        $concurrency = (int) apply_filters( 'seo_totherramienta_ajax_concurrency', 8 );
-        $concurrency = max( 1, min( 16, $concurrency ) );
-        $base = seo_supplier_recipe_totherramienta_store_url();
-        $user_agent = 'DistribuidorDeHerramientas-SEOSystem/1.1; +' . home_url( '/' );
-
-        foreach ( array_chunk( $handles, $concurrency ) as $chunk ) {
-            $mh = curl_multi_init();
-            $map = [];
-            foreach ( $chunk as $handle ) {
-                $ch = curl_init();
-                $url = $base . '/products/' . rawurlencode( $handle ) . '.js';
-                curl_setopt_array(
-                    $ch,
-                    [
-                        CURLOPT_URL            => $url,
-                        CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_FOLLOWLOCATION => true,
-                        CURLOPT_MAXREDIRS      => 3,
-                        CURLOPT_CONNECTTIMEOUT => 10,
-                        CURLOPT_TIMEOUT        => 30,
-                        CURLOPT_USERAGENT      => $user_agent,
-                        CURLOPT_HTTPHEADER     => [ 'Accept: application/json', 'Cache-Control: no-cache' ],
-                        CURLOPT_SSL_VERIFYPEER => true,
-                        CURLOPT_SSL_VERIFYHOST => 2,
-                        CURLOPT_ENCODING       => '',
-                    ]
-                );
-                curl_multi_add_handle( $mh, $ch );
-                $map[] = [ 'handle' => $handle, 'ch' => $ch ];
+            // Pequena pausa entre grupos para no castigar el origen remoto.
+            if ( count( $handles ) > $batch_size ) {
+                usleep( 25000 );
             }
-
-            $running = null;
-            do {
-                $status = curl_multi_exec( $mh, $running );
-                if ( CURLM_OK !== $status ) {
-                    break;
-                }
-                if ( $running ) {
-                    $selected = curl_multi_select( $mh, 1.0 );
-                    if ( -1 === $selected ) {
-                        usleep( 10000 );
-                    }
-                }
-            } while ( $running );
-
-            foreach ( $map as $item ) {
-                $handle = $item['handle'];
-                $ch = $item['ch'];
-                $body = (string) curl_multi_getcontent( $ch );
-                $http = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-                $error = curl_error( $ch );
-                if ( $http >= 200 && $http < 300 && '' !== $body ) {
-                    $decoded = json_decode( $body, true );
-                    if ( is_array( $decoded ) && ( ! empty( $decoded['id'] ) || ! empty( $decoded['handle'] ) ) ) {
-                        $decoded['_seo_source'] = 'ajax';
-                        if ( empty( $decoded['handle'] ) ) {
-                            $decoded['handle'] = $handle;
-                        }
-                        $result['products'][ $handle ] = $decoded;
-                    } else {
-                        $result['errors'][ $handle ] = 'JSON Ajax invalido.';
-                    }
-                } else {
-                    $result['errors'][ $handle ] = '' !== $error ? $error : ( 'HTTP ' . $http );
-                }
-                curl_multi_remove_handle( $mh, $ch );
-                curl_close( $ch );
-            }
-            curl_multi_close( $mh );
-            usleep( 25000 );
         }
 
         return $result;
@@ -1303,6 +1240,50 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_needs_ajax_enrichmen
     }
 }
 
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_stream_open' ) ) {
+    /**
+     * Abre un stream CSV nativo.
+     *
+     * WP_Filesystem no ofrece un recurso compatible con fputcsv(), por lo que
+     * el uso del stream se encapsula y limita exclusivamente a serialización CSV.
+     *
+     * @param string $path Ruta de destino.
+     * @param string $mode Modo de apertura.
+     * @return resource|false
+     */
+    function seo_supplier_recipe_totherramienta_stream_open( $path, $mode ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fputcsv() requiere un recurso de stream nativo.
+        return fopen( $path, $mode );
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_stream_write' ) ) {
+    /**
+     * Escribe bytes en un stream CSV.
+     *
+     * @param resource $handle Stream.
+     * @param string   $data Datos.
+     * @return int|false
+     */
+    function seo_supplier_recipe_totherramienta_stream_write( $handle, $data ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Escritura incremental sobre el stream usado por fputcsv().
+        return fwrite( $handle, $data );
+    }
+}
+
+if ( ! function_exists( 'seo_supplier_recipe_totherramienta_stream_close' ) ) {
+    /**
+     * Cierra el stream CSV nativo.
+     *
+     * @param resource $handle Stream.
+     * @return bool
+     */
+    function seo_supplier_recipe_totherramienta_stream_close( $handle ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre del recurso nativo usado por fputcsv().
+        return fclose( $handle );
+    }
+}
+
 if ( ! function_exists( 'seo_supplier_recipe_totherramienta_write_extended_csv' ) ) {
     /**
      * Escribe CSV ampliado de auditoria sin alterar el esquema comun de importacion.
@@ -1327,11 +1308,11 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_write_extended_csv' 
             'shopify_extended_' . sanitize_key( $recipe_id ) . '_' . wp_date( 'Ymd_His' ) . '.csv'
         );
         $path = trailingslashit( $storage['dir'] ) . $filename;
-        $fh = fopen( $path, 'w' );
+        $fh = seo_supplier_recipe_totherramienta_stream_open( $path, 'w' );
         if ( false === $fh ) {
             return new WP_Error( 'totherramienta_extended_open', 'No se pudo crear el CSV ampliado de TotHerramienta.' );
         }
-        fwrite( $fh, "\xEF\xBB\xBF" );
+        seo_supplier_recipe_totherramienta_stream_write( $fh, "\xEF\xBB\xBF" );
         fputcsv( $fh, $columns, ';', '"', '' );
 
         foreach ( $rows as $row ) {
@@ -1364,7 +1345,7 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_write_extended_csv' 
             }
             fputcsv( $fh, $out, ';', '"', '' );
         }
-        fclose( $fh );
+        seo_supplier_recipe_totherramienta_stream_close( $fh );
 
         return [
             'filename' => $filename,
@@ -1403,13 +1384,13 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_write_csv' ) ) {
             'shopify_' . sanitize_key( $recipe['id'] ) . '_' . wp_date( 'Ymd_His' ) . '.csv'
         );
         $path = trailingslashit( $storage['dir'] ) . $filename;
-        $fh = fopen( $path, 'w' );
+        $fh = seo_supplier_recipe_totherramienta_stream_open( $path, 'w' );
         if ( false === $fh ) {
             return new WP_Error( 'totherramienta_csv_open', 'No se pudo crear el CSV de TotHerramienta.' );
         }
 
         $columns = seo_proveedores_cabecera_estandar();
-        fwrite( $fh, "\xEF\xBB\xBF" );
+        seo_supplier_recipe_totherramienta_stream_write( $fh, "\xEF\xBB\xBF" );
         fputcsv( $fh, $columns, ';', '"', '' );
 
         $written = 0;
@@ -1432,10 +1413,10 @@ if ( ! function_exists( 'seo_supplier_recipe_totherramienta_write_csv' ) ) {
             fputcsv( $fh, $csv_row, ';', '"', '' );
             $written++;
         }
-        fclose( $fh );
+        seo_supplier_recipe_totherramienta_stream_close( $fh );
 
         if ( 0 === $written ) {
-            @unlink( $path );
+            wp_delete_file( $path );
             return new WP_Error( 'totherramienta_csv_empty', 'TotHerramienta no devolvio ningun producto util.' );
         }
 
