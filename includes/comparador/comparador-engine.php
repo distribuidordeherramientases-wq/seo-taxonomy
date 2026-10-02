@@ -479,7 +479,7 @@ final class SEO_Comparador_Engine {
         $old_status = sanitize_key((string) $old_status);
         $base_status = sanitize_key((string) $base_status) ?: 'needs_review';
         if ($base_status === 'blocked') return 'blocked';
-        if ($old_status === 'ready_for_solucionador' && (string) $old_hash === (string) $new_hash) return 'ready_for_solucionador';
+        if (in_array($old_status,array('ready_for_editorial','ready_for_solucionador'),true) && (string) $old_hash === (string) $new_hash) return 'ready_for_editorial';
         if ($has_published_post && (string) $old_hash !== '' && (string) $old_hash !== (string) $new_hash) return 'needs_update';
         if (in_array($old_status,array('approved','post_draft','published','monitoring'),true) && (string) $old_hash === (string) $new_hash) return $old_status;
         return 'needs_review';
@@ -798,17 +798,287 @@ final class SEO_Comparador_Engine {
         return array('blocked_axes'=>array_values(array_unique($blocked)));
     }
 
-    public static function send_to_solucionador($profile_id,$reason='') {
-        $profile=SEO_Comparador_DB::get_profile($profile_id);
+    private static function editorial_is_stale(array $profile, array $editorial) {
+        $edited_hash = (string) ($editorial['source_hash_at_edit'] ?? '');
+        $current_hash = (string) ($profile['source_hash'] ?? '');
+        $edited_snapshot = (string) ($editorial['source_snapshot_at_edit'] ?? '');
+        $current_snapshot = (string) ($profile['source_snapshot_at'] ?? '');
+        return ($edited_hash !== '' && $current_hash !== '' && $edited_hash !== $current_hash)
+            || ($edited_snapshot !== '' && $current_snapshot !== '' && $edited_snapshot !== $current_snapshot);
+    }
+
+    public static function editorial_brief($profile_id) {
+        $profile = SEO_Comparador_DB::get_profile(absint($profile_id));
         if (!$profile) return new WP_Error('comparador_profile','Perfil no encontrado.');
-        $settings=self::settings();
-        if (absint($profile['own_products_count']) + absint($profile['external_products_comparable']) < absint($settings['min_products'])) {
-            return new WP_Error('comparador_min_products','No hay suficientes productos comparables para enviar a Solucionador.');
+
+        $editorial = SEO_Comparador_DB::editorial(absint($profile_id));
+        $axes = array_values(array_filter(SEO_Comparador_DB::axes(absint($profile_id)), static function($axis) {
+            return !empty($axis['publishable']);
+        }));
+        $own = array_values(array_filter(SEO_Comparador_DB::products(absint($profile_id)), static function($product) {
+            return ($product['source_type'] ?? '') === 'own';
+        }));
+        $external = array_values(array_filter(SEO_Comparador_DB::products(absint($profile_id),'external'), static function($product) {
+            return !empty($product['representative']);
+        }));
+        $coverage = SEO_Comparador_DB::decode_json($profile['coverage_json'] ?? '{}');
+
+        return array(
+            'category_id'=>absint($profile['primary_category_id']),
+            'category'=>(string) $profile['canonical_name'],
+            'profile_id'=>absint($profile['id']),
+            'source_hash'=>(string) $profile['source_hash'],
+            'source_snapshot_at'=>(string) $profile['source_snapshot_at'],
+            'own_products'=>array_slice($own,0,40),
+            'external_references'=>array_slice($external,0,20),
+            'publishable_axes'=>$axes,
+            'product_types'=>SEO_Comparador_DB::decode_json($editorial['product_types'] ?? '[]'),
+            'main_differences'=>SEO_Comparador_DB::decode_json($editorial['main_differences'] ?? '[]'),
+            'buying_criteria'=>SEO_Comparador_DB::decode_json($editorial['buying_criteria'] ?? '[]'),
+            'use_cases'=>SEO_Comparador_DB::decode_json($editorial['use_cases'] ?? '[]'),
+            'market_overview'=>(string) ($editorial['market_overview'] ?? ''),
+            'own_catalog_position'=>(string) ($editorial['own_catalog_position'] ?? ''),
+            'limitations'=>(string) ($editorial['editorial_limitations'] ?? ''),
+            'conclusion'=>(string) ($editorial['conclusion'] ?? ''),
+            'coverage'=>$coverage,
+            'recommended_action'=>(string) ($profile['recommended_action'] ?? ''),
+            'decision_reason'=>(string) ($profile['decision_reason'] ?? ''),
+        );
+    }
+
+    public static function evaluate_editorial_decision($profile_id,$reason='') {
+        global $wpdb;
+        $profile_id = absint($profile_id);
+        $profile = SEO_Comparador_DB::get_profile($profile_id);
+        if (!$profile) return new WP_Error('comparador_profile','Perfil no encontrado.');
+
+        $settings = self::settings();
+        $axes = array_values(array_filter(SEO_Comparador_DB::axes($profile_id), static function($axis) {
+            return !empty($axis['publishable']);
+        }));
+        $editorial = SEO_Comparador_DB::editorial($profile_id);
+        $post_map = SEO_Comparador_DB::post_map($profile_id);
+        $status = sanitize_key((string) ($profile['status'] ?? 'needs_review'));
+        $comparable_count = absint($profile['own_products_count']) + absint($profile['external_products_comparable']);
+
+        $coverage = class_exists('SEO_Editorial_Coverage')
+            ? SEO_Editorial_Coverage::comparison_category(
+                absint($profile['primary_category_id']),
+                (string) $profile['canonical_name'],
+                absint($post_map['post_id'] ?? 0)
+            )
+            : array('status'=>'uncovered','score'=>0,'post_id'=>0,'matches'=>array(),'fingerprint'=>'');
+
+        $action = 'NEEDS_REVIEW';
+        $decision_reason = $reason !== '' ? sanitize_textarea_field($reason) : '';
+
+        if (in_array($status,array('blocked','archived'),true)) {
+            $decision_reason = $decision_reason ?: 'El perfil está bloqueado o archivado y no puede avanzar editorialmente.';
+        } elseif ($comparable_count < absint($settings['min_products'])) {
+            $decision_reason = $decision_reason ?: 'No hay suficientes productos comparables para sostener una comparación editorial.';
+        } elseif (!$axes) {
+            $decision_reason = $decision_reason ?: 'No existe ningún eje publicable con cobertura y confianza suficientes.';
+        } elseif (self::editorial_is_stale($profile,$editorial)) {
+            $decision_reason = $decision_reason ?: 'La capa editorial se redactó con un snapshot/hash anterior y debe revisarse.';
+        } else {
+            $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
+            if ($coverage_status === 'duplicate') {
+                $action = 'MERGE_CONTENT';
+                $decision_reason = $decision_reason ?: 'Existen varias piezas editoriales solapadas para la misma familia comparable.';
+            } elseif ($coverage_status === 'covered') {
+                $action = 'NO_ACTION';
+                $decision_reason = $decision_reason ?: 'La comparación ya dispone de cobertura editorial equivalente.';
+            } elseif (in_array($coverage_status,array('partial_coverage','weak_coverage'),true) && !empty($coverage['post_id'])) {
+                $action = 'IMPROVE_POST';
+                $decision_reason = $decision_reason ?: 'Existe una pieza relacionada, pero el perfil aporta diferencias comparativas adicionales.';
+            } else {
+                $action = 'CREATE_POST';
+                $decision_reason = $decision_reason ?: 'Perfil válido con ejes publicables y sin cobertura editorial equivalente.';
+            }
         }
-        $axes=array_filter(SEO_Comparador_DB::axes($profile_id),static function($a){return !empty($a['publishable']);});
-        if (!$axes) return new WP_Error('comparador_axes','No hay ejes publicables con cobertura suficiente.');
-        SEO_Comparador_DB::update_status($profile_id,'ready_for_solucionador','send_to_solucionador',$reason ?: 'Perfil validado para decisión editorial.','admin');
-        return true;
+
+        $wpdb->update(SEO_Comparador_DB::table('profiles'),array(
+            'recommended_action'=>$action,
+            'decision_reason'=>$decision_reason,
+            'coverage_json'=>wp_json_encode($coverage,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'editorial_decided_at'=>self::now(),
+            'updated_at'=>self::now(),
+        ),array('id'=>$profile_id));
+
+        $target = $action === 'NEEDS_REVIEW' ? 'needs_review' : 'ready_for_editorial';
+        SEO_Comparador_DB::update_status(
+            $profile_id,
+            $target,
+            'evaluate_editorial',
+            $decision_reason,
+            'comparador'
+        );
+
+        return array(
+            'action'=>$action,
+            'reason'=>$decision_reason,
+            'coverage'=>$coverage,
+            'status'=>$target,
+        );
+    }
+
+    public static function approve_editorial_action($profile_id,$action='',$reason='') {
+        global $wpdb;
+        $profile_id = absint($profile_id);
+        $profile = SEO_Comparador_DB::get_profile($profile_id);
+        if (!$profile) return new WP_Error('comparador_profile','Perfil no encontrado.');
+
+        $allowed = array('CREATE_POST','IMPROVE_POST','MERGE_CONTENT','NO_ACTION');
+        $action = strtoupper(sanitize_key((string) $action));
+        if ($action === '') $action = strtoupper((string) ($profile['recommended_action'] ?? ''));
+        if (!in_array($action,$allowed,true)) {
+            return new WP_Error('comparador_action','La actuación editorial no puede aprobarse sin una decisión válida.');
+        }
+
+        $decision_reason = $reason !== ''
+            ? sanitize_textarea_field($reason)
+            : sanitize_textarea_field((string) ($profile['decision_reason'] ?? ''));
+
+        $wpdb->update(SEO_Comparador_DB::table('profiles'),array(
+            'recommended_action'=>$action,
+            'decision_reason'=>$decision_reason,
+            'editorial_decided_at'=>self::now(),
+            'updated_at'=>self::now(),
+        ),array('id'=>$profile_id));
+
+        SEO_Comparador_DB::update_status(
+            $profile_id,
+            'approved',
+            'approve_editorial',
+            $decision_reason ?: 'Actuación editorial aprobada por la Editora.',
+            'admin'
+        );
+        return array('action'=>$action,'status'=>'approved');
+    }
+
+    private static function assign_post_category($post_id,$category_id) {
+        global $wpdb;
+        $post_id = absint($post_id);
+        $category_id = absint($category_id);
+        if (!$post_id || !$category_id) return new WP_Error('comparador_relation','Post o categoría no válidos.');
+
+        if (function_exists('seo_post_editor_replace_product_cat_relations')) {
+            return seo_post_editor_replace_product_cat_relations($post_id,array($category_id));
+        }
+
+        $table = $wpdb->prefix . 'seo_relations';
+        $exists = (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($table))) === $table;
+        if (!$exists) return new WP_Error('comparador_relation','No está disponible seo_relations.');
+
+        $wpdb->delete($table,array(
+            'source_type'=>'post','source_id'=>$post_id,
+            'target_type'=>'product_cat','relation_type'=>'post_to_category',
+        ),array('%s','%d','%s','%s'));
+
+        $inserted = $wpdb->insert($table,array(
+            'source_type'=>'post',
+            'source_id'=>$post_id,
+            'target_type'=>'product_cat',
+            'target_id'=>$category_id,
+            'relation_type'=>'post_to_category',
+            'created_at'=>self::now(),
+        ),array('%s','%d','%s','%d','%s','%s'));
+
+        return false === $inserted
+            ? new WP_Error('comparador_relation','No se pudo guardar post_to_category.')
+            : true;
+    }
+
+    private static function draft_content(array $profile,array $editorial,array $axes) {
+        $comparison_text = trim((string) ($editorial['comparison_text'] ?? ''));
+        if ($comparison_text !== '') return wp_kses_post($comparison_text);
+
+        $parts = array();
+        $summary = trim((string) ($editorial['summary'] ?? ''));
+        if ($summary !== '') $parts[] = '<p>' . esc_html($summary) . '</p>';
+
+        $labels = array_values(array_filter(array_map(static function($axis) {
+            return !empty($axis['publishable']) ? sanitize_text_field((string) ($axis['label'] ?? '')) : '';
+        },$axes)));
+        if ($labels) {
+            $parts[] = '<h2>Criterios de comparación</h2><p>' . esc_html(implode(', ',array_slice($labels,0,10))) . '.</p>';
+        }
+
+        $limitations = trim((string) ($editorial['editorial_limitations'] ?? ''));
+        if ($limitations !== '') {
+            $parts[] = '<h2>Limitaciones de la comparativa</h2><p>' . esc_html($limitations) . '</p>';
+        }
+
+        $conclusion = trim((string) ($editorial['conclusion'] ?? ''));
+        if ($conclusion !== '') {
+            $parts[] = '<h2>Conclusión</h2><p>' . esc_html($conclusion) . '</p>';
+        }
+
+        return implode("\n\n",$parts);
+    }
+
+    public static function create_editorial_draft($profile_id) {
+        $profile_id = absint($profile_id);
+        $profile = SEO_Comparador_DB::get_profile($profile_id);
+        if (!$profile) return new WP_Error('comparador_profile','Perfil no encontrado.');
+        if (sanitize_key((string) ($profile['status'] ?? '')) !== 'approved') {
+            return new WP_Error('comparador_not_approved','La Editora debe aprobar la actuación antes de preparar el borrador.');
+        }
+        if (strtoupper((string) ($profile['recommended_action'] ?? '')) !== 'CREATE_POST') {
+            return new WP_Error('comparador_not_create','La decisión editorial actual no es CREATE_POST.');
+        }
+
+        $existing = SEO_Comparador_DB::post_map($profile_id);
+        if (!empty($existing['post_id']) && get_post(absint($existing['post_id']))) {
+            return new WP_Error('comparador_post_exists','El perfil ya tiene un post canónico vinculado.');
+        }
+
+        $editorial = SEO_Comparador_DB::editorial($profile_id);
+        if (self::editorial_is_stale($profile,$editorial)) {
+            return new WP_Error('comparador_stale','Las fuentes han cambiado; revisa la comparativa antes de crear el borrador.');
+        }
+
+        $title = trim((string) ($editorial['suggested_title'] ?? ''));
+        if ($title === '') {
+            $title = 'Comparativa de ' . sanitize_text_field((string) $profile['canonical_name']) . ': diferencias y criterios de elección';
+        }
+        $excerpt = sanitize_textarea_field((string) ($editorial['excerpt'] ?? ''));
+        $axes = SEO_Comparador_DB::axes($profile_id);
+
+        $post_id = wp_insert_post(wp_slash(array(
+            'post_type'=>'post',
+            'post_status'=>'draft',
+            'post_title'=>sanitize_text_field($title),
+            'post_excerpt'=>$excerpt,
+            'post_content'=>self::draft_content($profile,$editorial,$axes),
+        )),true);
+
+        if (is_wp_error($post_id) || !absint($post_id)) {
+            return is_wp_error($post_id) ? $post_id : new WP_Error('comparador_draft','No se pudo crear el borrador.');
+        }
+
+        $linked = self::link_post($profile_id,absint($post_id));
+        if (is_wp_error($linked)) {
+            wp_delete_post(absint($post_id),true);
+            return $linked;
+        }
+
+        SEO_Comparador_DB::update_status(
+            $profile_id,
+            'post_draft',
+            'create_draft',
+            'La Editora ha aprobado CREATE_POST y Comparador ha preparado un borrador; no se publica automáticamente.',
+            'admin'
+        );
+        return absint($post_id);
+    }
+
+    /**
+     * Alias transitorio para integraciones antiguas. Ya no envia nada a
+     * Solucionador: ejecuta la decisión editorial propia del Comparador.
+     */
+    public static function send_to_solucionador($profile_id,$reason='') {
+        return self::evaluate_editorial_decision($profile_id,$reason);
     }
 
     public static function link_post($profile_id,$post_id) {
@@ -821,6 +1091,10 @@ final class SEO_Comparador_Engine {
 
         if (!term_exists('comparativas','post_tag')) wp_insert_term('comparativas','post_tag',array('slug'=>'comparativas'));
         wp_set_post_terms($post_id,array('comparativas'),'post_tag',true);
+        update_post_meta($post_id,'_seo_solucionador_content_role','comparison');
+
+        $relation=self::assign_post_category($post_id,absint($profile['primary_category_id']));
+        if (is_wp_error($relation)) return $relation;
 
         $now=self::now();
         $exists=$wpdb->get_var($wpdb->prepare(
