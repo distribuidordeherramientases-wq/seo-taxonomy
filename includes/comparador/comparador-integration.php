@@ -1,13 +1,12 @@
 <?php
 /**
- * Comparador - integraciones desacopladas con catálogo, Ojeador y Solucionador.
+ * Comparador - integraciones desacopladas con catálogo, Ojeador, WordPress y Analista.
  */
 
 defined('ABSPATH') || exit;
 
 final class SEO_Comparador_Integration {
     public static function init() {
-        add_filter('seo_solucionador_comparador_signals', array('SEO_Comparador_Engine','signals'), 10, 2);
         add_filter('seo_data_layer_tables', array('SEO_Comparador_DB','register_data_layer'), 30, 1);
         add_action('save_post_product', array(__CLASS__,'product_changed'), 20, 3);
         add_action('seo_ojeador_category_snapshot_saved', array(__CLASS__,'ojeador_snapshot_changed'), 10, 3);
