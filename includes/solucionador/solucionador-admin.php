@@ -341,89 +341,46 @@ final class SEO_Solucionador_Admin {
     }
 
     private static function render_diagnostics() {
-        $scope = isset($_GET['diag_scope']) ? sanitize_key(wp_unslash($_GET['diag_scope'])) : 'overview';
-        $view = isset($_GET['diag_view']) ? sanitize_key(wp_unslash($_GET['diag_view'])) : '';
-        $allowed = array('overview','posts','pages','categories','content','services');
-        if (!in_array($scope, $allowed, true)) $scope = 'overview';
-
-        if ($scope === 'posts' && !in_array($view, array('opportunities','health'), true)) $view = 'opportunities';
-        if ($scope === 'pages' && !in_array($view, array('landings','health'), true)) $view = 'landings';
-        if ($scope === 'categories' && !in_array($view, array('google','structure'), true)) $view = 'google';
+        global $wpdb;
+        $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
+        $dossiers_table = SEO_Solucionador_DB::dossiers_table();
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
-        echo '<h2 style="margin-top:0">Diagnóstico editorial centralizado</h2>';
-        echo '<p>Este es el <strong>único punto de análisis editorial visible</strong>. Entradas, Páginas y Categorías conservan los datos y los editores de ejecución; sus informes se reutilizan aquí para evitar paneles paralelos.</p>';
+        echo '<h2 style="margin-top:0">Diagnóstico Academia → Solucionador</h2>';
+        echo '<p>Este diagnóstico comprueba únicamente el circuito de contenido básico: preguntas aprendidas, resolución de product_cat, dossiers, cobertura y decisión editorial. Ingeniero y Comparador se diagnostican en sus propios procesos.</p>';
         echo '</div>';
-        self::diagnostics_nav($scope, $view);
 
-        if ($scope === 'overview' || $scope === 'services') {
-            self::render_service_snapshot();
-            if ($scope === 'overview') {
-                echo '<div class="postbox" style="padding:18px;margin-top:18px"><h3 style="margin-top:0">Cómo leer el flujo</h3>';
-                echo '<p><strong>Servicios fuente</strong> producen hechos, conocimiento, señales y métricas. <strong>Solucionador</strong> cruza esas conclusiones, prioriza y decide la salida editorial. <strong>Editora / editores</strong> ejecutan la modificación en Entradas, Páginas, Categorías o Imágenes.</p>';
-                echo '<p style="margin-bottom:0"><strong>Solucionador no sustituye a Auditor, Analista, Clasificador, Dependiente, Intérprete, Ojeador ni Ingeniero:</strong> consume su resultado.</p></div>';
-            }
+        echo '<div class="seo-sol-grid">';
+        self::card('Preguntas currículo',absint($academy['questions_total']??0),'Activas y elegibles para el recorrido.');
+        self::card('Aprendidas pass_*',absint($academy['learned']??0),'Última ejecución respondida y validada.');
+        self::card('Con product_cat',absint($academy['learned_with_category']??0),'Con asociación demostrable.');
+        self::card('Sin product_cat',absint($academy['learned_without_category']??0),'No crean dossier ni URL.');
+        self::card('Dossiers',absint($academy['categories_with_knowledge']??0),'Categorías con conocimiento aprendido.');
+        self::card('Sin conocimiento',absint($academy['categories_without_knowledge']??0),'Categorías WooCommerce sin dossier.');
+        self::card('Media / categoría',(float)($academy['avg_questions_per_category']??0),'Preguntas aprendidas por dossier.');
+        self::card('Errores aislados',absint($academy['errors']??0),'No detienen el resto del lote.');
+        echo '</div>';
+
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h3 style="margin-top:0">Dossiers por categoría</h3>';
+        if (!SEO_Solucionador_DB::table_exists($dossiers_table)) {
+            echo '<p>La tabla de dossiers todavía no está disponible.</p></div>';
             return;
         }
-
-        if ($scope === 'posts') {
-            if ($view === 'health') {
-                if (function_exists('seo_health_render_scope_tab')) seo_health_render_scope_tab('post');
-                else echo '<div class="notice notice-error inline"><p>No está disponible el diagnóstico técnico de entradas.</p></div>';
-                return;
-            }
-            if (function_exists('seo_post_opportunities_render_page')) {
-                seo_post_opportunities_render_page(array(
-                    'page'=>'seo-solucionador',
-                    'tab'=>'diagnostics',
-                    'diag_scope'=>'posts',
-                    'diag_view'=>'opportunities',
-                ));
-            } else {
-                echo '<div class="notice notice-error inline"><p>No está disponible el informe de rendimiento y oportunidades de entradas.</p></div>';
-            }
-            return;
+        $rows=(array)$wpdb->get_results("SELECT id,category_id,category_name,question_count,score_avg,last_validated_at FROM {$dossiers_table} ORDER BY question_count DESC,category_name ASC LIMIT 500",ARRAY_A);
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Categoría</th><th>Preguntas</th><th>Score medio</th><th>Última validación</th><th>Dossier</th></tr></thead><tbody>';
+        if(!$rows) echo '<tr><td colspan="5">Aún no hay dossiers. Continúa el procesamiento de Academia desde Resumen.</td></tr>';
+        foreach($rows as $row){
+            $term_id=absint($row['category_id']??0);
+            echo '<tr><td><strong>' . esc_html((string)$row['category_name']) . '</strong><br><code>#' . esc_html($term_id) . '</code></td>';
+            echo '<td>' . esc_html(number_format_i18n(absint($row['question_count']??0))) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n((float)($row['score_avg']??0)*100,0)) . '%</td>';
+            echo '<td>' . esc_html((string)($row['last_validated_at']??'')) . '</td>';
+            echo '<td><a class="button button-small" href="' . esc_url(self::url('proposals',array('sol_category'=>$term_id))) . '">Ver propuesta</a></td></tr>';
         }
-
-        if ($scope === 'pages') {
-            if ($view === 'health') {
-                if (function_exists('seo_health_render_scope_tab')) seo_health_render_scope_tab('page');
-                else echo '<div class="notice notice-error inline"><p>No está disponible el diagnóstico técnico de páginas.</p></div>';
-                return;
-            }
-            if (function_exists('seo_landing_render_admin_tab')) {
-                seo_landing_render_admin_tab(array(
-                    'page'=>'seo-solucionador',
-                    'tab'=>'diagnostics',
-                    'diag_scope'=>'pages',
-                    'diag_view'=>'landings',
-                ));
-            } else {
-                echo '<div class="notice notice-error inline"><p>No está disponible el informe de landings.</p></div>';
-            }
-            return;
-        }
-
-        if ($scope === 'categories') {
-            if ($view === 'structure') {
-                if (function_exists('seo_render_total_structure_report')) seo_render_total_structure_report();
-                else echo '<div class="notice notice-error inline"><p>No está disponible el informe estructural de categorías.</p></div>';
-                return;
-            }
-            if (function_exists('seo_category_reports_page')) {
-                seo_category_reports_page('seo-solucionador');
-            } else {
-                echo '<div class="notice notice-error inline"><p>No está disponible el informe Google de categorías.</p></div>';
-            }
-            return;
-        }
-
-        if ($scope === 'content') {
-            if (function_exists('seo_report_contents_render_page')) seo_report_contents_render_page();
-            else echo '<div class="notice notice-error inline"><p>No está disponible el informe objetivo de cobertura de contenido.</p></div>';
-        }
+        echo '</tbody></table></div>';
+        echo '<p class="description">Una categoría con conocimiento puede terminar en CREATE_POST, IMPROVE_POST, MERGE_CONTENT, NO_ACTION o DEFER según su cobertura. El número de dossiers no equivale al número de URLs nuevas.</p>';
+        echo '</div>';
     }
-
     private static function action_label($action) {
         $action = strtoupper((string) $action);
         $labels = array(
