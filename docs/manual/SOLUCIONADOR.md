@@ -173,13 +173,13 @@ La implementación de cobertura se ha extraído a la API neutral:
 
 Archivo:
 
-`includes/editorial/seo-editorial-coverage.php`
+`includes/editorial/class-seo-editorial-coverage.php`
 
 El antiguo nombre:
 
 `SEO_Solucionador_Coverage`
 
-permanece como wrapper de compatibilidad.
+permanece como wrapper de compatibilidad. La antigua ruta `includes/editorial/seo-editorial-coverage.php` ha sido retirada; todos los procesos cargan la implementación canónica `class-seo-editorial-coverage.php`.
 
 La cobertura busca contenido existente para evitar crear URLs duplicadas. Puede detectar:
 
