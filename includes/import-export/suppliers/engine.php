@@ -2488,7 +2488,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
            AND ID IN ({$placeholders})",
         $product_ids
     );
-    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $post_sql is the direct result of $wpdb->prepare() above.\n    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
 
     foreach ( (array) $post_rows as $post_row ) {
         $product_id = absint( $post_row['ID'] ?? 0 );
@@ -2512,7 +2512,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
          ORDER BY tr.object_id ASC, tt.taxonomy ASC, t.name ASC",
         $product_ids
     );
-    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $term_sql is the direct result of $wpdb->prepare() above.\n    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
 
     foreach ( (array) $term_rows as $term_row ) {
         $product_id = absint( $term_row['object_id'] ?? 0 );
@@ -2551,7 +2551,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
                       v.label ASC",
             $product_ids
         );
-        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $semantic_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.\n        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
 
         foreach ( (array) $semantic_rows as $semantic_row ) {
             $product_id = absint( $semantic_row['object_id'] ?? 0 );
@@ -2600,7 +2600,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
              ORDER BY ot.object_id ASC, rv.label ASC",
             $product_ids
         );
-        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $canonical_role_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.\n        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
         $canonical_roles = [];
 
         foreach ( (array) $canonical_role_rows as $canonical_role_row ) {
@@ -2716,9 +2716,9 @@ function seo_proveedores_exportar_productos_csv() {
     $where_sql = implode( ' AND ', $where );
     $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
     if ( ! empty( $params ) ) {
-        $count_sql = $wpdb->prepare( $count_sql, $params );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal query template; filter values are passed separately as placeholders.\n        $count_sql = $wpdb->prepare( $count_sql, $params );
     }
-    $total = absint( $wpdb->get_var( $count_sql ) );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $count_sql is either a closed internal query or the result of $wpdb->prepare() above.\n    $total = absint( $wpdb->get_var( $count_sql ) );
 
     $filename_parts = [ 'seo_supplier_products_classified' ];
     if ( '' !== $provider ) {
@@ -2767,8 +2767,8 @@ function seo_proveedores_exportar_productos_csv() {
                 WHERE " . implode( ' AND ', $batch_where ) . "
                 ORDER BY id ASC
                 LIMIT {$batch_size}";
-        $sql = $wpdb->prepare( $sql, $batch_params );
-        $rows = $wpdb->get_results( $sql, ARRAY_A );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal batch query; all filter values are placeholders.\n        $sql = $wpdb->prepare( $sql, $batch_params );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above.\n        $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         if ( empty( $rows ) ) {
             break;
@@ -5575,9 +5575,14 @@ function seo_proveedores_actualizar_estado_masivo() {
         }
 
         $select_sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id ASC";
-        $rows       = $params
-            ? $wpdb->get_results( $wpdb->prepare( $select_sql, $params ), ARRAY_A )
-            : $wpdb->get_results( $select_sql, ARRAY_A );
+        if ( $params ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal query template; filter values are placeholders.
+            $select_query = $wpdb->prepare( $select_sql, $params );
+        } else {
+            $select_query = $select_sql;
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed internal query or direct result of $wpdb->prepare().
+        $rows = $wpdb->get_results( $select_query, ARRAY_A );
 
         foreach ( $rows as $row ) {
             $row_imagenes_externas = seo_proveedores_resolver_modo_imagenes_externas(
@@ -5698,9 +5703,10 @@ function seo_proveedores_actualizar_estado_masivo() {
             $params
         );
 
-        $updated = $wpdb->query(
-            $wpdb->prepare( $sql, $query_params )
-        );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal UPDATE template; all mutable values are placeholders.
+        $prepared_update = $wpdb->prepare( $sql, $query_params );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_update is the direct result of $wpdb->prepare() above.
+        $updated = $wpdb->query( $prepared_update );
 
         if ( false === $updated ) {
             wp_die( 'No se pudo actualizar el estado de los productos filtrados.' );
@@ -6070,11 +6076,14 @@ function seo_proveedores_render_catalogo() {
         WHERE {$where_sql}
     ";
 
-    $total = (int) (
-        $params
-            ? $wpdb->get_var( $wpdb->prepare( $count_sql, $params ) )
-            : $wpdb->get_var( $count_sql )
-    );
+    if ( $params ) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE is assembled from closed internal clauses; filter values remain placeholders.
+        $count_query = $wpdb->prepare( $count_sql, $params );
+    } else {
+        $count_query = $count_sql;
+    }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed internal query or direct result of $wpdb->prepare().
+    $total = (int) $wpdb->get_var( $count_query );
 
     /*
      * Se incluyen siempre los campos auxiliares necesarios para precios,
@@ -6149,8 +6158,11 @@ function seo_proveedores_render_catalogo() {
         [ $per_page, $offset ]
     );
 
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SELECT/order fragments come from closed internal lists; pagination/filter values are placeholders.
+    $prepared_query = $wpdb->prepare( $query, $query_params );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_query is the direct result of $wpdb->prepare() above.
     $rows = $wpdb->get_results(
-        $wpdb->prepare( $query, $query_params ),
+        $prepared_query,
         ARRAY_A
     );
 
