@@ -38,6 +38,11 @@ final class SEO_Solucionador_DB {
         return $wpdb->prefix . 'seo_solucionador_tracking';
     }
 
+    public static function dossiers_table() {
+        global $wpdb;
+        return $wpdb->prefix . 'seo_solucionador_dossiers';
+    }
+
     public static function table_exists($table) {
         global $wpdb;
         $table = (string) $table;
@@ -57,6 +62,7 @@ final class SEO_Solucionador_DB {
             && self::table_exists(self::coverage_table())
             && self::table_exists(self::workflow_table())
             && self::table_exists(self::tracking_table())
+            && self::table_exists(self::dossiers_table())
         ) {
             return true;
         }
@@ -74,6 +80,7 @@ final class SEO_Solucionador_DB {
         $coverage = self::coverage_table();
         $workflow = self::workflow_table();
         $tracking = self::tracking_table();
+        $dossiers = self::dossiers_table();
 
         $sql_topics = "CREATE TABLE {$topics} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -162,6 +169,26 @@ final class SEO_Solucionador_DB {
             KEY category_id (category_id),
             KEY entity (entity_type, entity_id),
             KEY observed_at (observed_at)
+        ) {$collate};";
+
+        $sql_dossiers = "CREATE TABLE {$dossiers} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            category_id BIGINT UNSIGNED NOT NULL,
+            category_name VARCHAR(255) NOT NULL,
+            question_count INT UNSIGNED NOT NULL DEFAULT 0,
+            question_ids LONGTEXT NULL,
+            score_avg DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
+            last_validated_at DATETIME NULL,
+            source_hash CHAR(64) NOT NULL DEFAULT '',
+            scan_token VARCHAR(64) NOT NULL DEFAULT '',
+            demand_occurrences INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY category_id (category_id),
+            KEY scan_token (scan_token),
+            KEY question_count (question_count),
+            KEY last_validated_at (last_validated_at)
         ) {$collate};";
 
         $sql_post_topics = "CREATE TABLE {$post_topics} (
@@ -255,6 +282,7 @@ final class SEO_Solucionador_DB {
         dbDelta($sql_coverage);
         dbDelta($sql_workflow);
         dbDelta($sql_tracking);
+        dbDelta($sql_dossiers);
 
         // Compatibilidad con decisiones previas a RF v1.0.
         $wpdb->query("UPDATE {$topics} SET recommended_action='CREATE_POST' WHERE recommended_action='create_post'");
@@ -303,6 +331,11 @@ final class SEO_Solucionador_DB {
             'primary_key' => array('id'),
             'entity_type' => 'solution_tracking',
         );
+        $tables['solucionador_dossiers'] = array(
+            'table' => self::dossiers_table(),
+            'primary_key' => array('id'),
+            'entity_type' => 'solution_category_dossier',
+        );
         return $tables;
     }
 
@@ -318,8 +351,9 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         if (!$topic_id) return array();
+        $topics_table = self::topics_table();
         $row = $wpdb->get_row(
-            $wpdb->prepare('SELECT * FROM ' . self::topics_table() . ' WHERE id=%d LIMIT 1', $topic_id),
+            $wpdb->prepare("SELECT * FROM {$topics_table} WHERE id=%d LIMIT 1", $topic_id),
             ARRAY_A
         );
         return is_array($row) ? $row : array();
@@ -330,8 +364,9 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $canonical_key = sanitize_text_field((string) $canonical_key);
         if ($canonical_key === '') return 0;
+        $topics_table = self::topics_table();
         return absint($wpdb->get_var($wpdb->prepare(
-            'SELECT id FROM ' . self::topics_table() . ' WHERE canonical_key=%s LIMIT 1',
+            "SELECT id FROM {$topics_table} WHERE canonical_key=%s LIMIT 1",
             $canonical_key
         )));
     }
@@ -342,8 +377,9 @@ final class SEO_Solucionador_DB {
      */
     public static function begin_scan() {
         global $wpdb;
-        if (self::table_exists(self::evidence_table())) {
-            $wpdb->query('TRUNCATE TABLE ' . self::evidence_table());
+        $evidence_table = self::evidence_table();
+        if (self::table_exists($evidence_table)) {
+            $wpdb->query("TRUNCATE TABLE {$evidence_table}");
         }
         return true;
     }
@@ -361,6 +397,7 @@ final class SEO_Solucionador_DB {
                 LEFT JOIN {$evidence} e ON e.topic_id=t.id
                 WHERE e.id IS NULL
                   AND COALESCE(t.draft_post_id,0)=0";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query contains only internal table identifiers and fixed predicates.
         $result = $wpdb->query($sql);
         return $result === false ? 0 : absint($result);
     }
@@ -369,9 +406,10 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         if (!$topic_id) return array();
+        $evidence_table = self::evidence_table();
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT * FROM ' . self::evidence_table() . ' WHERE topic_id=%d ORDER BY evidence_score DESC,occurrences DESC,id ASC',
+                "SELECT * FROM {$evidence_table} WHERE topic_id=%d ORDER BY evidence_score DESC,occurrences DESC,id ASC",
                 $topic_id
             ),
             ARRAY_A
@@ -482,8 +520,9 @@ final class SEO_Solucionador_DB {
 
     public static function clear_post_topics() {
         global $wpdb;
-        if (!self::table_exists(self::post_topics_table())) return false;
-        return false !== $wpdb->query('TRUNCATE TABLE ' . self::post_topics_table());
+        $post_topics_table = self::post_topics_table();
+        if (!self::table_exists($post_topics_table)) return false;
+        return false !== $wpdb->query("TRUNCATE TABLE {$post_topics_table}");
     }
 
     public static function insert_post_topic($post_id, $scope, $text, array $profile) {
@@ -524,8 +563,9 @@ final class SEO_Solucionador_DB {
 
     public static function clear_coverage_index() {
         global $wpdb;
-        if (!self::table_exists(self::coverage_table())) return false;
-        return false !== $wpdb->query('TRUNCATE TABLE ' . self::coverage_table());
+        $coverage_table = self::coverage_table();
+        if (!self::table_exists($coverage_table)) return false;
+        return false !== $wpdb->query("TRUNCATE TABLE {$coverage_table}");
     }
 
     public static function insert_coverage_item(array $row) {
@@ -598,9 +638,10 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         $limit = max(1,min(500,absint($limit)));
-        if (!$topic_id || !self::table_exists(self::workflow_table())) return array();
+        $workflow_table = self::workflow_table();
+        if (!$topic_id || !self::table_exists($workflow_table)) return array();
         return (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM " . self::workflow_table() . " WHERE topic_id=%d ORDER BY id DESC LIMIT %d",
+            "SELECT * FROM {$workflow_table} WHERE topic_id=%d ORDER BY id DESC LIMIT %d",
             $topic_id,$limit
         ),ARRAY_A);
     }
@@ -655,9 +696,10 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         $limit = max(1,min(200,absint($limit)));
-        if (!$topic_id || !self::table_exists(self::tracking_table())) return array();
+        $tracking_table = self::tracking_table();
+        if (!$topic_id || !self::table_exists($tracking_table)) return array();
         return (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM " . self::tracking_table() . " WHERE topic_id=%d ORDER BY snapshot_at DESC,id DESC LIMIT %d",
+            "SELECT * FROM {$tracking_table} WHERE topic_id=%d ORDER BY snapshot_at DESC,id DESC LIMIT %d",
             $topic_id,$limit
         ),ARRAY_A);
     }

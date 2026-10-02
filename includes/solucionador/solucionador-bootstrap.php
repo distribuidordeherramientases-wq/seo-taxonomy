@@ -2,11 +2,10 @@
 /**
  * Solucionador - bootstrap.
  *
- * Servicio editorial reducido: Academia/Entrenador -> dossier por categoria ->
- * cobertura -> decision minima -> brief basico para Editora.
+ * Flujo editorial básico category-first.
  *
- * Ingeniero, Comparador, Ojeador, Clasificador, Marketing, Comentarista,
- * Auditor y Analista conservan procesos editoriales independientes.
+ * Academia/Entrenador -> dossier por product_cat -> cobertura -> brief -> Editora.
+ * Ingeniero, Comparador y el resto de procesos editoriales son independientes.
  *
  * Una propuesta es solo un registro. Solo al aprobar explicitamente una
  * propuesta de nuevo post se crea un borrador. Nunca se publica automaticamente.
@@ -27,7 +26,7 @@ if (!defined('SEO_SOLUCIONADOR_PATH')) {
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-db.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-normalizer.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-sources.php';
-require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-coverage.php';
+require_once SEO_SOLUCIONADOR_PATH . 'solucionador-dossiers.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-coverage.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-catalog.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-posts.php';
@@ -37,6 +36,7 @@ require_once SEO_SOLUCIONADOR_PATH . 'solucionador-tests.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-admin.php';
 
 add_action('init', array('SEO_Solucionador_DB', 'maybe_install'), 6);
+SEO_Solucionador_Engine::init();
 SEO_Solucionador_Posts::init();
 SEO_Solucionador_Export::init();
 SEO_Solucionador_Admin::init();

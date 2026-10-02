@@ -356,7 +356,7 @@ final class SEO_Ingeniero_Admin {
         echo '</div>';
 
         echo '<p style="margin:15px 0 4px"><strong>Estado:</strong> ' . esc_html((string) ($state['status'] ?? 'stopped')) . ' · ';
-        echo '<strong>Lote actual:</strong> ' . esc_html(number_format_i18n($progress['processed'])) . '/' . esc_html(number_format_i18n($progress['total'])) . ' categorías · lote adaptativo ' . esc_html(absint($state['batch_size'] ?? 1)) . '.</p>';
+        echo '<strong>Progreso:</strong> ' . esc_html(number_format_i18n($progress['processed'])) . '/' . esc_html(number_format_i18n($progress['total'])) . ' categorías · <strong>1 categoría por ciclo</strong>.</p>';
         if (!empty($state['last_message'])) echo '<p class="description">' . esc_html((string) $state['last_message']) . '</p>';
         if (!empty($state['last_error'])) echo '<p style="color:#b32d2e"><strong>Último error:</strong> ' . esc_html((string) $state['last_error']) . '</p>';
         echo '</div>';
@@ -580,6 +580,18 @@ final class SEO_Ingeniero_Admin {
         }
 
         echo '<div class="notice notice-warning inline"><p><strong>Verificación editorial:</strong> ' . esc_html((string) ($brief['verification_warning'] ?? '')) . '</p></div>';
+
+        $metrics = (array) ($brief['metrics_28d'] ?? array());
+        if (!empty($metrics['has_snapshot'])) {
+            echo '<h3 style="margin-top:18px">Rendimiento · Analista · 28 días</h3>';
+            echo '<p><strong>Impresiones:</strong> ' . esc_html(number_format_i18n(absint($metrics['impressions'] ?? 0)))
+                . ' · <strong>Clics:</strong> ' . esc_html(number_format_i18n(absint($metrics['clicks'] ?? 0)))
+                . ' · <strong>Vistas:</strong> ' . esc_html(number_format_i18n(absint($metrics['pageviews'] ?? 0)))
+                . ' · <strong>Score:</strong> ' . esc_html(number_format_i18n(absint($metrics['score'] ?? 0))) . '/100</p>';
+        }
+        if (!empty($brief['analista_url'])) {
+            echo '<p><a class="button" href="' . esc_url((string) $brief['analista_url']) . '">Ver métricas globales en Analista</a></p>';
+        }
 
         $status = sanitize_key((string) ($dossier['status'] ?? 'candidate'));
         $post_id = absint($dossier['post_id'] ?? 0);

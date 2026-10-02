@@ -82,7 +82,8 @@ final class SEO_Dependiente_V3_Lesson9 {
         if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) {
             return 0;
         }
-        return absint($wpdb->get_var('SELECT COUNT(*) FROM ' . SEO_Dependiente_Index::table()));
+        $index_table = SEO_Dependiente_Index::table();
+        return absint($wpdb->get_var("SELECT COUNT(*) FROM {$index_table}"));
     }
 
     /**
@@ -366,8 +367,9 @@ final class SEO_Dependiente_V3_Lesson9 {
         self::install();
         $lesson_key = sanitize_key((string) $lesson_key);
         if (!$lesson_key) return 0;
+        $table = self::table();
         return max(0, (int) $wpdb->query($wpdb->prepare(
-            'DELETE FROM ' . self::table() . ' WHERE lesson_key=%s AND active=0',
+            "DELETE FROM {$table} WHERE lesson_key=%s AND active=0",
             $lesson_key
         )));
     }
@@ -377,8 +379,9 @@ final class SEO_Dependiente_V3_Lesson9 {
         self::install();
         $lesson_key = sanitize_key((string) $lesson_key);
         if (!$lesson_key) return 0;
+        $table = self::table();
         return max(0, (int) $wpdb->query($wpdb->prepare(
-            'UPDATE ' . self::table() . ' SET active=1, updated_at=%s WHERE lesson_key=%s AND active=0',
+            "UPDATE {$table} SET active=1, updated_at=%s WHERE lesson_key=%s AND active=0",
             current_time('mysql'),
             $lesson_key
         )));
@@ -409,9 +412,13 @@ final class SEO_Dependiente_V3_Lesson9 {
             $where = '(active=1 OR (active=0 AND lesson_key=%s))';
             array_unshift($params, self::$classroom_lesson);
         }
-        $sql = 'SELECT product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM ' . self::table()
+        $table = self::table();
+        $sql = "SELECT product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM {$table}"
              . " WHERE {$where} AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 7000";
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE and placeholder list are generated internally; all mutable values are passed separately.
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql, ARRAY_A);
         if (!$rows) return array();
 
         $products = array();
@@ -512,9 +519,10 @@ final class SEO_Dependiente_V3_Lesson9 {
     public static function export_memory() {
         global $wpdb;
         self::install();
+        $table = self::table();
         $rows = (array) $wpdb->get_results(
-            'SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,vocabulary_id,weight,source_hash,metadata,active '
-            . 'FROM ' . self::table() . ' WHERE active=1 ORDER BY product_id,id',
+            "SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,vocabulary_id,weight,source_hash,metadata,active
+             FROM {$table} WHERE active=1 ORDER BY product_id,id",
             ARRAY_A
         );
         return array_values($rows);
@@ -523,6 +531,7 @@ final class SEO_Dependiente_V3_Lesson9 {
     public static function import_memory($rows) {
         global $wpdb;
         self::install();
+        $table = self::table();
         $result = array('inserted'=>0,'identical'=>0,'ignored'=>0);
         foreach ((array) $rows as $row) {
             if (!is_array($row)) { $result['ignored']++; continue; }
@@ -535,11 +544,11 @@ final class SEO_Dependiente_V3_Lesson9 {
                 $hash = hash('sha256', $lesson_key . '|' . $product_id . '|' . sanitize_key((string) ($row['signal_type'] ?? '')) . '|' . $signal);
             }
             $existing = absint($wpdb->get_var($wpdb->prepare(
-                'SELECT id FROM ' . self::table() . ' WHERE lesson_key=%s AND product_id=%d AND source_hash=%s LIMIT 1',
+                "SELECT id FROM {$table} WHERE lesson_key=%s AND product_id=%d AND source_hash=%s LIMIT 1",
                 $lesson_key, $product_id, $hash
             )));
             if ($existing) { $result['identical']++; continue; }
-            $ok = $wpdb->insert(self::table(), array(
+            $ok = $wpdb->insert($table, array(
                 'lesson_key'=>$lesson_key,
                 'product_id'=>$product_id,
                 'signal_type'=>sanitize_key((string) ($row['signal_type'] ?? 'term')),
@@ -561,7 +570,8 @@ final class SEO_Dependiente_V3_Lesson9 {
     public static function active_count() {
         global $wpdb;
         self::install();
-        return absint($wpdb->get_var('SELECT COUNT(*) FROM ' . self::table() . ' WHERE active=1'));
+        $table = self::table();
+        return absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1"));
     }
 
     public static function refresh_product_memory($product_id) {
@@ -595,8 +605,9 @@ final class SEO_Dependiente_V3_Lesson9 {
     private static function refresh_product_from_index($product_id) {
         global $wpdb;
         if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) return;
+        $index_table = SEO_Dependiente_Index::table();
         $raw = $wpdb->get_row($wpdb->prepare(
-            'SELECT product_id,title,excerpt,brand_name,categories_json,tags_json,vocabulary_json,attributes_json,search_text FROM ' . SEO_Dependiente_Index::table() . ' WHERE product_id=%d LIMIT 1',
+            "SELECT product_id,title,excerpt,brand_name,categories_json,tags_json,vocabulary_json,attributes_json,search_text FROM {$index_table} WHERE product_id=%d LIMIT 1",
             $product_id
         ), ARRAY_A);
         if (!$raw) return;

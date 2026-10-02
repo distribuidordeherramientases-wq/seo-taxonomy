@@ -377,11 +377,15 @@ final class SEO_Dependiente_Search_Log {
         $offset = max(0, absint($args['offset']));
         $params[] = $limit;
         $params[] = $offset;
-        $sql = 'SELECT * FROM ' . self::table()
+        $table = self::table();
+        $sql = "SELECT * FROM {$table}"
             . ' WHERE ' . implode(' AND ', $where)
             . ' ORDER BY id DESC LIMIT %d OFFSET %d';
 
-        return (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL fragments are internal and values remain placeholders.
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+        return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
     }
 
     public static function get_search($id_or_uuid) {
@@ -389,14 +393,15 @@ final class SEO_Dependiente_Search_Log {
         if (!self::table_exists()) {
             return null;
         }
+        $table = self::table();
         if (is_numeric($id_or_uuid)) {
             return $wpdb->get_row(
-                $wpdb->prepare('SELECT * FROM ' . self::table() . ' WHERE id = %d LIMIT 1', absint($id_or_uuid)),
+                $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", absint($id_or_uuid)),
                 ARRAY_A
             );
         }
         return $wpdb->get_row(
-            $wpdb->prepare('SELECT * FROM ' . self::table() . ' WHERE search_uuid = %s LIMIT 1', sanitize_text_field((string) $id_or_uuid)),
+            $wpdb->prepare("SELECT * FROM {$table} WHERE search_uuid = %s LIMIT 1", sanitize_text_field((string) $id_or_uuid)),
             ARRAY_A
         );
     }
@@ -415,10 +420,11 @@ final class SEO_Dependiente_Search_Log {
         }
 
         $limit = min(12, max(1, absint($limit)));
+        $table = self::table();
         if (!empty($current['session_hash'])) {
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT * FROM " . self::table() . "
+                    "SELECT * FROM {$table}
                      WHERE session_hash = %s
                        AND id <= %d
                        AND created_at >= DATE_SUB(%s, INTERVAL 2 HOUR)
@@ -574,12 +580,13 @@ final class SEO_Dependiente_Search_Log {
         $days = min(365, max(1, absint($args['days'])));
         $limit = min(10000, max(50, absint($args['limit'])));
         $minimum = max(1, absint($args['min_occurrences']));
+        $table = self::table();
 
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, query_original, semantic_signature, detected_intent, detected_object,
                         unresolved_terms, learning_status, learning_candidate, feedback, result_count, created_at
-                 FROM " . self::table() . "
+                 FROM {$table}
                  WHERE request_kind IN ('search','training')
                    AND created_at >= DATE_SUB(%s, INTERVAL %d DAY)
                    AND learning_status IN ('new','candidate','reviewed')
@@ -688,8 +695,9 @@ final class SEO_Dependiente_Search_Log {
             return new WP_Error('seo_dependiente_learning_unavailable', 'La capa semantica no esta disponible.');
         }
 
+        $table = self::table();
         $row = $wpdb->get_row(
-            $wpdb->prepare('SELECT * FROM ' . self::table() . ' WHERE id = %d LIMIT 1', $log_id),
+            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $log_id),
             ARRAY_A
         );
         if (!$row) {
@@ -705,8 +713,9 @@ final class SEO_Dependiente_Search_Log {
         if (!empty($candidate['semantic_candidate_id']) && class_exists('SEO_Dependiente_Learning')) {
             $approved = SEO_Dependiente_Learning::approve_candidate(absint($candidate['semantic_candidate_id']), $reviewer_id);
             if (!is_wp_error($approved) && $approved) {
+                $semantic_table_existing = SEO_Dependiente_Semantics::table();
                 $semantic_row = $wpdb->get_row(
-                    $wpdb->prepare('SELECT rule_key FROM ' . SEO_Dependiente_Semantics::table() . ' WHERE id = %d LIMIT 1', absint($candidate['semantic_candidate_id'])),
+                    $wpdb->prepare("SELECT rule_key FROM {$semantic_table_existing} WHERE id = %d LIMIT 1", absint($candidate['semantic_candidate_id'])),
                     ARRAY_A
                 );
                 $rule_key = (string) ($semantic_row['rule_key'] ?? '');
@@ -806,8 +815,9 @@ final class SEO_Dependiente_Search_Log {
     private static function infer_from_reformulation($current_id) {
         global $wpdb;
 
+        $table = self::table();
         $current = $wpdb->get_row(
-            $wpdb->prepare('SELECT * FROM ' . self::table() . ' WHERE id = %d LIMIT 1', absint($current_id)),
+            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", absint($current_id)),
             ARRAY_A
         );
         if (!$current || empty($current['session_hash'])) {
@@ -816,7 +826,7 @@ final class SEO_Dependiente_Search_Log {
 
         $previous = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM " . self::table() . "
+                "SELECT * FROM {$table}
                  WHERE session_hash = %s
                    AND request_kind = 'search'
                    AND id < %d

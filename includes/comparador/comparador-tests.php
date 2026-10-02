@@ -61,35 +61,27 @@ final class SEO_Comparador_Tests {
             'Un conflicto semántico comunicado al contrato seo_comparador_semantic_conflicts bloquea el perfil.'
         );
 
-        // CMP-006: si ya existe post relacionado, mejorar/fusionar; no crear otro.
-        $scenario6=class_exists('SEO_Solucionador_Engine') ? SEO_Solucionador_Engine::evaluate_scenario_for_test(array(
-            'profile'=>array('intent'=>'comparison','key_intent'=>'comparison','action'=>'comparar','object'=>'limpiadores','condition'=>'','context'=>'','category_id'=>10),
-            'stats'=>array('total'=>1,'comparador'=>1),
-            'coverage'=>array('status'=>'partial_coverage','entity_type'=>'post','entity_id'=>999,'seo_role'=>'editorial'),
-            'knowledge'=>array('status'=>'sufficient','confidence'=>0.9),
-            'risks'=>array('duplication_risk'=>20,'cannibalization_risk'=>20),
-            'primary_category_id'=>10,
-        )) : array();
-        $action6=(string)($scenario6['decision']['action'] ?? '');
+        // CMP-006: cobertura existente implica mejorar/fusionar/no actuar; nunca CREATE_POST.
+        $action6=SEO_Comparador_Engine::editorial_action_for_test(true,'partial_coverage',true,false);
         $tests[]=self::row(
             'CMP-006',
-            in_array($action6,array('IMPROVE_POST','MERGE_CONTENT','NO_ACTION'),true),
-            'Con cobertura existente Solucionador no debe crear un segundo post.'
+            $action6==='IMPROVE_POST',
+            'Con cobertura parcial y una pieza existente Comparador propone IMPROVE_POST sin depender de Solucionador.'
         );
 
         // CMP-007: perfil comparativo válido y sin cobertura puede originar CREATE_POST.
-        $scenario7=class_exists('SEO_Solucionador_Engine') ? SEO_Solucionador_Engine::evaluate_scenario_for_test(array(
-            'profile'=>array('intent'=>'comparison','key_intent'=>'comparison','action'=>'comparar','object'=>'limpiadores','condition'=>'','context'=>'','category_id'=>10),
-            'stats'=>array('total'=>1,'comparador'=>1),
-            'coverage'=>array('status'=>'uncovered','entity_type'=>'','entity_id'=>0,'seo_role'=>''),
-            'knowledge'=>array('status'=>'sufficient','confidence'=>0.9),
-            'risks'=>array('duplication_risk'=>10,'cannibalization_risk'=>10),
-            'primary_category_id'=>10,
-        )) : array();
+        $action7=SEO_Comparador_Engine::editorial_action_for_test(true,'uncovered',false,false);
         $tests[]=self::row(
             'CMP-007',
-            (string)($scenario7['decision']['action'] ?? '')==='CREATE_POST',
-            'Una comparativa informativa validada puede llegar a CREATE_POST cuando no existe cobertura.'
+            $action7==='CREATE_POST',
+            'Una comparativa validada puede llegar a CREATE_POST cuando no existe cobertura equivalente.'
+        );
+
+        // CMP-007B: un perfil insuficiente nunca crea borrador por tener mucho mercado.
+        $tests[]=self::row(
+            'CMP-007B',
+            SEO_Comparador_Engine::editorial_action_for_test(false,'uncovered',false,false)==='NEEDS_REVIEW',
+            'La calidad insuficiente fuerza NEEDS_REVIEW aunque no exista cobertura.'
         );
 
         // CMP-008: las plantillas disponen de lector persistido; no recalculan mercado.
@@ -115,11 +107,11 @@ final class SEO_Comparador_Tests {
             'Comparador expone rendimiento reutilizando seo_analista_get_data, sin integración GA4/GSC propia.'
         );
 
-        // CMP-011: el vínculo editorial aplica la etiqueta comparativas a un post normal.
+        // CMP-011: el vínculo editorial conserva post_map, etiqueta comparativas, rol comparison y categoría.
         $tests[]=self::row(
             'CMP-011',
             method_exists('SEO_Comparador_Engine','link_post'),
-            'El post canónico se vincula como post normal y link_post aplica la etiqueta comparativas.'
+            'El post canónico se vincula como post normal; link_post aplica la etiqueta comparativas y el flujo añade rol comparison + post_to_category.'
         );
 
         $passed=count(array_filter($tests,static function($row){return !empty($row['pass']);}));

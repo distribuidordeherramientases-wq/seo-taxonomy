@@ -69,6 +69,12 @@ final class SEO_Ingeniero_Tests {
         $roles = function_exists('seo_post_editor_public_content_roles') ? seo_post_editor_public_content_roles() : array();
         self::add($tests, 'ING-ED-008', isset($roles['ingeniero_qa_specialized']), 'El rol público estable de Ingeniero está disponible en Entradas.');
 
+        $one_category_per_cycle = class_exists('SEO_Ingeniero_Process')
+            && defined('SEO_INGENIERO_VERSION')
+            && SEO_Ingeniero_Process::CATEGORIES_PER_CYCLE === 1
+            && absint(SEO_Ingeniero::default_state()['batch_size'] ?? 0) === 1;
+        self::add($tests, 'ING-ED-009', $one_category_per_cycle, 'El worker limita el consumo de memoria a una categoría por ciclo.');
+
         return $tests;
     }
 

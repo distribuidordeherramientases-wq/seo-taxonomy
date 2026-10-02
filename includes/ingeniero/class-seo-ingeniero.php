@@ -629,13 +629,22 @@ final class SEO_Ingeniero {
 
         $knowledge = self::active_knowledge($term_id);
         if (!$knowledge) {
+            $existing = SEO_Ingeniero_DB::editorial_rows(array('term_id'=>$term_id,'page'=>1,'per_page'=>100));
+            foreach ((array) ($existing['rows'] ?? array()) as $row) {
+                SEO_Ingeniero_DB::update_editorial(absint($row['id'] ?? 0), array(
+                    'status'=>!empty($row['post_id']) ? 'needs_update' : 'review',
+                    'recommended_action'=>'NEEDS_REVIEW',
+                ));
+            }
             return array('term_id'=>$term_id,'proposals'=>array(),'skipped'=>'no_active_knowledge');
         }
 
         $groups = self::editorial_groups($knowledge);
         $proposals = array();
+        $current_topic_keys = array();
 
         foreach ($groups as $topic_key=>$rows) {
+            $current_topic_keys[] = sanitize_key((string) $topic_key);
             $knowledge_ids = array();
             $source_ids = array();
             $confidence = array();
@@ -696,6 +705,16 @@ final class SEO_Ingeniero {
             $proposals[] = SEO_Ingeniero_DB::editorial_get($id);
         }
 
+        $existing_rows = SEO_Ingeniero_DB::editorial_rows(array('term_id'=>$term_id,'page'=>1,'per_page'=>100));
+        foreach ((array) ($existing_rows['rows'] ?? array()) as $row) {
+            $topic_key = sanitize_key((string) ($row['topic_key'] ?? ''));
+            if ($topic_key === '' || in_array($topic_key, $current_topic_keys, true)) continue;
+            SEO_Ingeniero_DB::update_editorial(absint($row['id'] ?? 0), array(
+                'status'=>!empty($row['post_id']) ? 'needs_update' : 'review',
+                'recommended_action'=>'NEEDS_REVIEW',
+            ));
+        }
+
         return array('term_id'=>$term_id,'proposals'=>$proposals);
     }
 
@@ -729,6 +748,10 @@ final class SEO_Ingeniero {
         $sources = SEO_Ingeniero_DB::sources_by_ids((array) ($dossier['source_ids'] ?? array()));
         $term = $term_id ? get_term($term_id, 'product_cat') : null;
         $internal_links = self::editorial_internal_links($term_id);
+        $post_id = absint($dossier['post_id'] ?? 0);
+        $metrics = ($post_id && function_exists('seo_post_reports_get_summary'))
+            ? (array) seo_post_reports_get_summary($post_id, 28)
+            : array();
 
         return array(
             'dossier'=>$dossier,
@@ -749,6 +772,8 @@ final class SEO_Ingeniero {
             }, $sources),
             'must_cover'=>array_values(array_unique($must_cover)),
             'internal_links'=>$internal_links,
+            'metrics_28d'=>$metrics,
+            'analista_url'=>function_exists('seo_analista_admin_url') ? seo_analista_admin_url(array('analista_view'=>'donde_estamos','analista_days'=>28)) : '',
             'coverage'=>(array) ($dossier['coverage'] ?? array()),
             'verification_warning'=>'La síntesis interna de Ingeniero no debe publicarse literalmente como afirmación si las fuentes enlazadas no la respaldan.',
         );

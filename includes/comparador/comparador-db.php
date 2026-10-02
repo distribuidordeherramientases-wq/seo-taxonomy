@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
 
 final class SEO_Comparador_DB {
     const VERSION_OPTION = 'seo_comparador_db_version';
-    const DB_VERSION = '1.1.0';
+    const DB_VERSION = '1.2.0';
 
     public static function table($name) {
         global $wpdb;
@@ -73,6 +73,10 @@ final class SEO_Comparador_DB {
             source_snapshot_at datetime NULL,
             generated_at datetime NULL,
             source_hash char(64) NOT NULL DEFAULT '',
+            recommended_action varchar(32) NOT NULL DEFAULT '',
+            decision_reason text NULL,
+            coverage_json longtext NULL,
+            editorial_decided_at datetime NULL,
             last_error text NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
@@ -213,8 +217,9 @@ final class SEO_Comparador_DB {
 
     public static function get_profile($profile_id) {
         global $wpdb;
+        $profiles_table = self::table('profiles');
         return (array) $wpdb->get_row(
-            $wpdb->prepare('SELECT * FROM ' . self::table('profiles') . ' WHERE id=%d LIMIT 1', absint($profile_id)),
+            $wpdb->prepare("SELECT * FROM {$profiles_table} WHERE id=%d LIMIT 1", absint($profile_id)),
             ARRAY_A
         );
     }
@@ -223,9 +228,10 @@ final class SEO_Comparador_DB {
         global $wpdb;
         $term_id = absint($term_id);
         if (!$term_id) return array();
+        $profiles_table = self::table('profiles');
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM " . self::table('profiles') . " WHERE primary_category_id=%d OR category_ids LIKE %s ORDER BY updated_at DESC,id DESC",
+                "SELECT * FROM {$profiles_table} WHERE primary_category_id=%d OR category_ids LIKE %s ORDER BY updated_at DESC,id DESC",
                 $term_id,
                 '%' . $wpdb->esc_like((string) $term_id) . '%'
             ),
@@ -241,41 +247,80 @@ final class SEO_Comparador_DB {
     public static function list_profiles($limit = 500) {
         global $wpdb;
         $limit = max(1, min(2000, absint($limit)));
+        $profiles_table = self::table('profiles');
         return (array) $wpdb->get_results(
-            $wpdb->prepare('SELECT * FROM ' . self::table('profiles') . ' ORDER BY updated_at DESC,id DESC LIMIT %d', $limit),
+            $wpdb->prepare("SELECT * FROM {$profiles_table} ORDER BY updated_at DESC,id DESC LIMIT %d", $limit),
+            ARRAY_A
+        );
+    }
+
+    public static function profile_count() {
+        global $wpdb;
+        return absint($wpdb->get_var('SELECT COUNT(*) FROM ' . self::table('profiles')));
+    }
+
+    public static function profile_status_counts() {
+        global $wpdb;
+        $out = array();
+        foreach ((array) $wpdb->get_results(
+            'SELECT status,COUNT(*) AS total FROM ' . self::table('profiles') . ' GROUP BY status',
+            ARRAY_A
+        ) as $row) {
+            $out[sanitize_key((string) ($row['status'] ?? ''))] = absint($row['total'] ?? 0);
+        }
+        return $out;
+    }
+
+    public static function list_profiles_page($limit = 100, $offset = 0) {
+        global $wpdb;
+        $limit = max(1, min(250, absint($limit)));
+        $offset = max(0, absint($offset));
+        return (array) $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT * FROM ' . self::table('profiles') . ' ORDER BY updated_at DESC,id DESC LIMIT %d OFFSET %d',
+                $limit,
+                $offset
+            ),
             ARRAY_A
         );
     }
 
     public static function axes($profile_id) {
         global $wpdb;
+        $axes_table = self::table('axes');
         return (array) $wpdb->get_results(
-            $wpdb->prepare('SELECT * FROM ' . self::table('axes') . ' WHERE profile_id=%d ORDER BY priority DESC,label ASC', absint($profile_id)),
+            $wpdb->prepare("SELECT * FROM {$axes_table} WHERE profile_id=%d ORDER BY priority DESC,label ASC", absint($profile_id)),
             ARRAY_A
         );
     }
 
     public static function products($profile_id, $source_type = '') {
         global $wpdb;
-        $sql = 'SELECT * FROM ' . self::table('products') . ' WHERE profile_id=%d';
+        $products_table = self::table('products');
+        $sql = "SELECT * FROM {$products_table} WHERE profile_id=%d";
         $params = array(absint($profile_id));
         if ($source_type !== '') {
             $sql .= ' AND source_type=%s';
             $params[] = sanitize_key($source_type);
         }
         $sql .= ' ORDER BY representative DESC,id ASC';
-        return (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL fragments are internal and all mutable values use placeholders.
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+        return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
     }
 
     public static function values_for_profile($profile_id) {
         global $wpdb;
+        $values_table = self::table('values');
+        $products_table = self::table('products');
         return (array) $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT v.*,p.source_type,p.source_id,p.own_product_id,p.brand,p.model,p.title
-                 FROM ' . self::table('values') . ' v
-                 JOIN ' . self::table('products') . ' p ON p.id=v.comparison_product_id
+                "SELECT v.*,p.source_type,p.source_id,p.own_product_id,p.brand,p.model,p.title
+                 FROM {$values_table} v
+                 JOIN {$products_table} p ON p.id=v.comparison_product_id
                  WHERE p.profile_id=%d
-                 ORDER BY v.axis_key,p.source_type,p.id',
+                 ORDER BY v.axis_key,p.source_type,p.id",
                 absint($profile_id)
             ),
             ARRAY_A
@@ -284,18 +329,20 @@ final class SEO_Comparador_DB {
 
     public static function editorial($profile_id) {
         global $wpdb;
+        $editorial_table = self::table('editorial');
         return (array) $wpdb->get_row(
-            $wpdb->prepare('SELECT * FROM ' . self::table('editorial') . ' WHERE profile_id=%d LIMIT 1', absint($profile_id)),
+            $wpdb->prepare("SELECT * FROM {$editorial_table} WHERE profile_id=%d LIMIT 1", absint($profile_id)),
             ARRAY_A
         );
     }
 
     public static function post_map($profile_id) {
         global $wpdb;
+        $post_map_table = self::table('post_map');
         return (array) $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT m.*,p.post_title,p.post_status
-                 FROM " . self::table('post_map') . " m
+                 FROM {$post_map_table} m
                  LEFT JOIN {$wpdb->posts} p ON p.ID=m.post_id
                  WHERE m.profile_id=%d AND m.relationship_type='canonical'
                  ORDER BY m.id DESC LIMIT 1",

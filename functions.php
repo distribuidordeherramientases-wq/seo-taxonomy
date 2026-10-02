@@ -433,6 +433,83 @@ function seo_system_private_log_delete_file($path) {
 }
 
 /**
+ * Abre un recurso local para el log privado.
+ *
+ * El flujo usa flock() y lectura/escritura incremental; WP_Filesystem no
+ * expone un recurso equivalente sin alterar la semántica de concurrencia.
+ *
+ * @param string $path Ruta local.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_system_private_log_stream_open($path, $mode) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Private log locking requires a native PHP stream resource.
+    return @fopen($path, $mode);
+}
+
+/**
+ * Lee un bloque del recurso del log privado.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param int      $length Bytes máximos.
+ * @return string|false
+ */
+function seo_system_private_log_stream_read($stream, $length) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Incremental gzip copy requires bounded reads from the locked stream.
+    return fread($stream, $length);
+}
+
+/**
+ * Escribe en el recurso del log privado.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param string   $data   Datos.
+ * @return int|false
+ */
+function seo_system_private_log_stream_write($stream, $data) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Locked log initialization requires direct stream write.
+    return @fwrite($stream, $data);
+}
+
+/**
+ * Cierra un recurso del log privado.
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_system_private_log_stream_close($stream) {
+    if (!is_resource($stream)) {
+        return false;
+    }
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_system_private_log_stream_open().
+    return @fclose($stream);
+}
+
+/**
+ * Renombra archivos locales preservando la rotación atómica.
+ *
+ * @param string $source Origen.
+ * @param string $target Destino.
+ * @return bool
+ */
+function seo_system_private_log_atomic_rename($source, $target) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Private log rotation requires local atomic rename semantics.
+    return @rename($source, $target);
+}
+
+/**
+ * Aplica permisos restrictivos al directorio o fichero del log privado.
+ *
+ * @param string $path Ruta local.
+ * @param int    $mode Permisos POSIX.
+ * @return bool
+ */
+function seo_system_private_log_set_permissions($path, $mode) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Private logs intentionally enforce 0600/0700 permissions.
+    return @chmod($path, $mode);
+}
+
+/**
  * Copia un archivo a gzip y elimina el original solo cuando el gzip
  * ha quedado creado correctamente.
  */
@@ -447,14 +524,14 @@ function seo_system_private_log_compress_file($source, $destination) {
         return false;
     }
 
-    $input = @fopen($source, 'rb');
+    $input = seo_system_private_log_stream_open($source, 'rb');
 
     if ($input === false) {
         return false;
     }
 
     if (!@flock($input, LOCK_EX)) {
-        @fclose($input);
+        seo_system_private_log_stream_close($input);
         return false;
     }
 
@@ -462,7 +539,7 @@ function seo_system_private_log_compress_file($source, $destination) {
 
     if ($temporary === false) {
         @flock($input, LOCK_UN);
-        @fclose($input);
+        seo_system_private_log_stream_close($input);
         return false;
     }
 
@@ -471,14 +548,14 @@ function seo_system_private_log_compress_file($source, $destination) {
     if ($output === false) {
         seo_system_private_log_delete_file($temporary);
         @flock($input, LOCK_UN);
-        @fclose($input);
+        seo_system_private_log_stream_close($input);
         return false;
     }
 
     $ok = true;
 
     while (!feof($input)) {
-        $chunk = fread($input, 1024 * 1024);
+        $chunk = seo_system_private_log_stream_read($input, 1024 * 1024);
 
         if ($chunk === false) {
             $ok = false;
@@ -506,26 +583,26 @@ function seo_system_private_log_compress_file($source, $destination) {
 
     @gzclose($output);
     @flock($input, LOCK_UN);
-    @fclose($input);
+    seo_system_private_log_stream_close($input);
 
     if (!$ok) {
         seo_system_private_log_delete_file($temporary);
         return false;
     }
 
-    @chmod($temporary, 0600);
+    seo_system_private_log_set_permissions($temporary, 0600);
 
     if (is_file($destination) && !seo_system_private_log_delete_file($destination)) {
         seo_system_private_log_delete_file($temporary);
         return false;
     }
 
-    if (!@rename($temporary, $destination)) {
+    if (!seo_system_private_log_atomic_rename($temporary, $destination)) {
         seo_system_private_log_delete_file($temporary);
         return false;
     }
 
-    @chmod($destination, 0600);
+    seo_system_private_log_set_permissions($destination, 0600);
 
     if (!seo_system_private_log_delete_file($source)) {
         // Conserva el original si no se puede completar la rotacion.
@@ -553,11 +630,11 @@ function seo_system_private_log_migrate_legacy($private_dir, array $current_day)
 
     // Si el log legacy se estaba usando hoy, pasa a ser el log activo de hoy.
     if ($legacy_date === $current_day['date'] && !file_exists($current_paths['active'])) {
-        if (!@rename($legacy, $current_paths['active'])) {
+        if (!seo_system_private_log_atomic_rename($legacy, $current_paths['active'])) {
             return false;
         }
 
-        @chmod($current_paths['active'], 0600);
+        seo_system_private_log_set_permissions($current_paths['active'], 0600);
         return true;
     }
 
@@ -648,7 +725,7 @@ function seo_system_private_log_bootstrap() {
         $ready_date === $current_day['date'] &&
         $ready_path !== '' &&
         is_file($ready_path) &&
-        is_writable($ready_path)
+        wp_is_writable($ready_path)
     ) {
         return $ready_path;
     }
@@ -663,7 +740,7 @@ function seo_system_private_log_bootstrap() {
         if (!wp_mkdir_p($private_dir)) {
             return false;
         }
-        @chmod($private_dir, 0700);
+        seo_system_private_log_set_permissions($private_dir, 0700);
 
         // Defensa adicional contra acceso web directo en servidores Apache.
         $htaccess = trailingslashit($private_dir) . '.htaccess';
@@ -684,7 +761,7 @@ function seo_system_private_log_bootstrap() {
         }
     }
 
-    if (!is_writable($private_dir)) {
+    if (!wp_is_writable($private_dir)) {
         return false;
     }
 
@@ -698,11 +775,11 @@ function seo_system_private_log_bootstrap() {
 
     if (!file_exists($log_file)) {
         // 'x' evita que dos peticiones simultaneas trunquen el mismo log.
-        $handle = @fopen($log_file, 'x');
+        $handle = seo_system_private_log_stream_open($log_file, 'x');
 
         if ($handle !== false) {
             $created = true;
-            @chmod($log_file, 0600);
+            seo_system_private_log_set_permissions($log_file, 0600);
 
             $line = sprintf(
                 "[%s] [INFO] SEO System: log diario inicializado (%s).%s",
@@ -712,14 +789,14 @@ function seo_system_private_log_bootstrap() {
             );
 
             @flock($handle, LOCK_EX);
-            @fwrite($handle, $line);
+            seo_system_private_log_stream_write($handle, $line);
             @fflush($handle);
             @flock($handle, LOCK_UN);
-            @fclose($handle);
+            seo_system_private_log_stream_close($handle);
         }
     }
 
-    if (!is_file($log_file) || !is_writable($log_file)) {
+    if (!is_file($log_file) || !wp_is_writable($log_file)) {
         return false;
     }
 

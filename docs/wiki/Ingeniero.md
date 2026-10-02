@@ -40,7 +40,7 @@ Persistencia existente:
 - wp_seo_ingeniero_sources;
 - wp_seo_ingeniero_knowledge.
 
-El worker procesa las categorías de forma secuencial. Una categoría con error no bloquea las siguientes salvo errores globales de proveedor/cuota.
+El worker procesa **exactamente una categoría por ciclo**. Así no carga `active_knowledge` de varias categorías en la misma ejecución. Una categoría con error no bloquea las siguientes salvo errores globales de proveedor/cuota.
 
 ### Editorial
 
@@ -110,7 +110,7 @@ Ingeniero muestra KPIs operativos de categorías activas, dossiers, acciones, bo
 
 - Clasificador puede seguir consumiendo conocimiento técnico de Ingeniero.
 - Dependiente ya no contiene la pantalla ni carga el bootstrap de Ingeniero.
-- Solucionador no consume Ingeniero como fuente ni usa su conocimiento como requisito para decidir posts.
+- Solucionador no consume Ingeniero como fuente, no incorpora sus `knowledge`/`sources` al brief y no usa su conocimiento como requisito para decidir posts. La única pieza compartida es la API neutral de cobertura editorial.
 - Analista mantiene la medición global.
 - Plantillas consumen únicamente posts publicados ya clasificados.
 

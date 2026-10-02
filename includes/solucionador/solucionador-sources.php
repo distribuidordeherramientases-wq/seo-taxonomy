@@ -345,15 +345,131 @@ final class SEO_Solucionador_Sources {
                 'search_strategy'=>sanitize_key((string) ($row['search_strategy'] ?? '')),
                 'observed_at'=>sanitize_text_field((string) ($row['run_created_at'] ?? '')),
             );
+
+            foreach ($category_ids as $term_id) {
+                if (!isset($by_category[$term_id])) {
+                    $term = get_term($term_id,'product_cat');
+                    $by_category[$term_id] = array(
+                        'category_id'=>$term_id,
+                        'category_name'=>$term && !is_wp_error($term) ? (string) $term->name : ('Categoría #' . $term_id),
+                        'questions'=>array(),
+                        'last_run_at'=>'',
+                        'score_total'=>0.0,
+                    );
+                }
+                $by_category[$term_id]['questions'][$detail['question_id']] = $detail;
+                if ($detail['observed_at'] > $by_category[$term_id]['last_run_at']) {
+                    $by_category[$term_id]['last_run_at'] = $detail['observed_at'];
+                }
+                $by_category[$term_id]['score_total'] += (float) $detail['evaluation_score'];
+                $assignments++;
+            }
+        }
+
+        $dossiers = array();
+        foreach ($by_category as $term_id=>$dossier) {
+            $items = array_values($dossier['questions']);
+            $count = count($items);
+            if (!$count) continue;
+            $avg_score = $count > 0 ? ((float) $dossier['score_total'] / $count) : 0.0;
+            $dossiers[] = array(
+                'category_id'=>absint($term_id),
+                'category_name'=>(string) $dossier['category_name'],
+                'question_count'=>$count,
+                'questions'=>$items,
+                'confidence'=>max(0.60,min(1.0,$avg_score > 0 ? $avg_score : 0.90)),
+                'last_run_at'=>(string) $dossier['last_run_at'],
+            );
+        }
+        usort($dossiers,static function($a,$b){
+            $cmp = absint($b['question_count'] ?? 0) <=> absint($a['question_count'] ?? 0);
+            if ($cmp !== 0) return $cmp;
+            return strcasecmp((string)($a['category_name'] ?? ''),(string)($b['category_name'] ?? ''));
+        });
+
+        $categories_total = wp_count_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+        $categories_total = is_wp_error($categories_total) ? 0 : absint($categories_total);
+        $categories_with = count($dossiers);
+
+        self::$dependiente_academia_cache = array(
+            'stats'=>array(
+                'available'=>true,
+                'questions_total'=>$total,
+                'learned'=>$learned_total,
+                'not_learned'=>max(0,$total-$learned_total),
+                'learned_with_category'=>$learned_with_category,
+                'learned_without_category'=>$learned_without_category,
+                'categories_with_knowledge'=>$categories_with,
+                'categories_total'=>$categories_total,
+                'categories_without_knowledge'=>max(0,$categories_total-$categories_with),
+                'avg_questions_per_category'=>$categories_with ? round($assignments/$categories_with,2) : 0,
+                'last_run_at'=>(string) ($aggregate['last_run_at'] ?? ''),
+            ),
+            'dossiers'=>$dossiers,
+        );
+        return self::$dependiente_academia_cache;
+    }
+
+    public static function dependiente_academia_snapshot() {
+        if (class_exists('SEO_Solucionador_Dossiers')) {
+            return SEO_Solucionador_Dossiers::snapshot();
+        }
+        $data = self::dependiente_academia_data();
+        return (array) ($data['stats'] ?? array());
+    }
+
+    private static function dependiente_academia_dossiers() {
+        $data = self::dependiente_academia_data();
+        $out = array();
+        foreach ((array) ($data['dossiers'] ?? array()) as $dossier) {
+            $term_id = absint($dossier['category_id'] ?? 0);
+            $name = trim((string) ($dossier['category_name'] ?? ''));
+            $count = absint($dossier['question_count'] ?? 0);
+            if (!$term_id || $name === '' || !$count) continue;
+
+            $out[] = array(
+                'source_type'=>'dependiente',
+                'proposal_role'=>'origin',
+                'source_id'=>'academy-category:' . $term_id,
+                'signal_type'=>'learned_category_dossier',
+                'entity_type'=>'product_cat',
+                'entity_id'=>$term_id,
+                'category_id'=>$term_id,
+                'category_name'=>$name,
+                'source_text'=>'Preguntas habituales sobre ' . $name . ': conocimiento aprendido por Dependiente para elección, uso y compatibilidad.',
+                'hints'=>array(
+                    'intent'=>'dependiente_qa_basic',
+                    'action'=>'resolver',
+                    'object'=>$name,
+                    'category_id'=>$term_id,
+                ),
+                'occurrences'=>$count,
+                'confidence'=>(float) ($dossier['confidence'] ?? 0.90),
+                'evidence_score'=>1.00,
+                'observed_at'=>(string) ($dossier['last_run_at'] ?? current_time('mysql')),
+                'source_meta'=>array(
+                    'proposal_role'=>'origin',
+                    'dependiente_channel'=>'academy_learned_dossier',
+                    'editorial_family'=>'dependiente_qa_basic',
+                    'category_id'=>$term_id,
+                    'category_name'=>$name,
+                    'question_count'=>$count,
+                    'academy_questions'=>array_values((array) ($dossier['questions'] ?? array())),
+                    'last_validated_at'=>(string) ($dossier['last_run_at'] ?? ''),
+                    'confidence'=>(float) ($dossier['confidence'] ?? 0.90),
+                ),
+            );
         }
         return $out;
     }
 
-    /**
-     * Demanda real ligera. Solo refuerza categorias que ya tienen dossier.
-     * No devuelve consultas individuales ni payloads top_results.
-     */
-    public static function search_demand_reinforcements(array $category_ids, $days = 180, $limit = 400) {
+    public static function dependiente($days = 180, $limit = 1600) {
+        // Desde v0.5.0 el único origen editorial es el dossier persistido de
+        // Academia. El search_log deja de originar temas independientes.
+        if (class_exists('SEO_Solucionador_Dossiers')) {
+            return SEO_Solucionador_Dossiers::signals(min(500,max(1,absint($limit))),0);
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . 'seo_dependiente_search_log';
         if (!self::table_exists($table)) return array();
@@ -452,8 +568,118 @@ final class SEO_Solucionador_Sources {
      * Compatibilidad. Ya no mezcla servicios externos y devuelve solo un lote
      * de Academia. El motor v0.5.0 usa academia_batch() de forma paginada.
      */
-    public static function all($days = 180) {
-        $batch = self::academia_batch(0,200);
-        return (array) ($batch['sources'] ?? array());
+    public static function marketing($limit = 120) {
+        $signals = apply_filters('seo_solucionador_marketing_priorities', array(), max(10,min(300,absint($limit))));
+        $out = array();
+        foreach (array_slice((array) $signals,0,max(10,min(300,absint($limit)))) as $row) {
+            if (!is_array($row)) continue;
+            $term_id = absint($row['category_id'] ?? $row['term_id'] ?? 0);
+            $text = trim((string) ($row['topic'] ?? $row['source_text'] ?? ''));
+            if ($text === '') continue;
+            $out[] = array(
+                'source_type'=>'marketing',
+                'proposal_role'=>'reinforcement',
+                'source_id'=>sanitize_text_field((string) ($row['source_id'] ?? ('marketing:' . md5($text . '|' . $term_id)))),
+                'source_text'=>$text,
+                'signal_type'=>sanitize_key((string) ($row['signal_type'] ?? 'commercial_priority')),
+                'category_id'=>$term_id,
+                'entity_type'=>$term_id ? 'product_cat' : '',
+                'entity_id'=>$term_id,
+                'hints'=>array('category_id'=>$term_id,'object'=>(string) ($row['category_name'] ?? '')),
+                'occurrences'=>1,
+                'confidence'=>max(0,min(1,(float) ($row['confidence'] ?? 0.6))),
+                'evidence_score'=>max(0.1,min(0.8,(float) ($row['evidence_score'] ?? 0.45))),
+                'observed_at'=>sanitize_text_field((string) ($row['observed_at'] ?? current_time('mysql'))),
+                'source_meta'=>array(
+                    'proposal_role'=>'reinforcement',
+                    'term_id'=>$term_id,
+                    'category_priority'=>(float) ($row['category_priority'] ?? 0),
+                    'campaign'=>(string) ($row['campaign'] ?? ''),
+                    'seasonality'=>(string) ($row['seasonality'] ?? ''),
+                    'commercial_interest'=>(float) ($row['commercial_interest'] ?? 0),
+                ),
+            );
+        }
+        return $out;
+    }
+
+    private static function normalize_rows(array $rows) {
+        $out = array();
+        foreach ($rows as $row) {
+            if (!is_array($row)) continue;
+            $meta = is_array($row['source_meta'] ?? null) ? $row['source_meta'] : array();
+            $hints = is_array($row['hints'] ?? null) ? $row['hints'] : array();
+
+            $category_id = absint($row['category_id'] ?? $meta['category_id'] ?? $meta['term_id'] ?? $hints['category_id'] ?? 0);
+            $entity_type = sanitize_key((string) ($row['entity_type'] ?? $meta['entity_type'] ?? ''));
+            $entity_id = absint($row['entity_id'] ?? $meta['entity_id'] ?? 0);
+
+            if (!$entity_id && !empty($meta['clicked_product_id'])) {
+                $entity_type = 'product';
+                $entity_id = absint($meta['clicked_product_id']);
+            }
+            if (!$entity_id && !empty($meta['product_id'])) {
+                $entity_type = 'product';
+                $entity_id = absint($meta['product_id']);
+            }
+            if (!$category_id && $entity_type === 'product' && $entity_id) {
+                $ids = wp_get_post_terms($entity_id,'product_cat',array('fields'=>'ids'));
+                if (!is_wp_error($ids) && $ids) $category_id = absint(reset($ids));
+            }
+            if (!$category_id && !empty($meta['top_results']) && is_array($meta['top_results'])) {
+                foreach ($meta['top_results'] as $result) {
+                    if (!is_array($result)) continue;
+                    $product_id = absint($result['product_id'] ?? $result['id'] ?? $result['post_id'] ?? 0);
+                    if (!$product_id) continue;
+                    $ids = wp_get_post_terms($product_id,'product_cat',array('fields'=>'ids'));
+                    if (!is_wp_error($ids) && $ids) {
+                        $category_id = absint(reset($ids));
+                        break;
+                    }
+                }
+            }
+            if (!$category_id && !empty($meta['semantic_matches']) && is_array($meta['semantic_matches'])) {
+                foreach ($meta['semantic_matches'] as $match) {
+                    if (!is_array($match)) continue;
+                    if (in_array(sanitize_key((string) ($match['type'] ?? $match['object_type'] ?? '')),array('category','product_cat'),true)) {
+                        $category_id = absint($match['id'] ?? $match['term_id'] ?? $match['object_id'] ?? 0);
+                        if ($category_id) break;
+                    }
+                }
+            }
+            if ($category_id && $entity_type === '') {
+                $entity_type = 'product_cat';
+                $entity_id = $category_id;
+            }
+
+            $row['category_id'] = $category_id;
+            $row['entity_type'] = $entity_type;
+            $row['entity_id'] = $entity_id;
+            $row['signal_type'] = sanitize_key((string) ($row['signal_type'] ?? $meta['signal_type'] ?? $meta['kind'] ?? $meta['code'] ?? $row['source_type'] ?? 'signal'));
+            $row['confidence'] = max(0,min(1,(float) ($row['confidence'] ?? $meta['confidence'] ?? $row['evidence_score'] ?? 0.6)));
+            $row['hints'] = $hints;
+            if ($category_id && empty($row['hints']['category_id'])) $row['hints']['category_id'] = $category_id;
+            $out[] = $row;
+        }
+        return $out;
+    }
+
+    public static function editorial_source_contract() {
+        return array('dependiente_academia');
+    }
+
+    public static function all($days = 180, $limit = 100, $after_dossier_id = 0) {
+        // Arquitectura separada v0.5.0:
+        // Academia/Entrenador es el único origen editorial de Solucionador.
+        // Ingeniero, Ojeador, Comparador, Clasificador, Marketing, Comentarista,
+        // Auditor y Analista mantienen sus procesos editoriales independientes.
+        // Los detalles pesados de las preguntas se cargan sólo al abrir el brief.
+        if (!class_exists('SEO_Solucionador_Dossiers')) return array();
+        return self::normalize_rows(
+            SEO_Solucionador_Dossiers::signals(
+                min(500,max(1,absint($limit))),
+                absint($after_dossier_id)
+            )
+        );
     }
 }

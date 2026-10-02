@@ -40,6 +40,7 @@ if (!function_exists('seo_post_editor_public_content_roles')) {
             ''                          => 'Contenido editorial general',
             'dependiente_qa_basic'      => 'Dependiente · preguntas habituales',
             'ingeniero_qa_specialized'  => 'Ingeniero · información técnica',
+            'comparison'                 => 'Comparador · comparativa',
         );
     }
 }
@@ -52,18 +53,24 @@ if (!function_exists('seo_post_editor_public_content_role')) {
 }
 
 if (!function_exists('seo_post_editor_set_public_content_role')) {
+    /**
+     * API común para asignar/retirar un rol editorial consumible por plantillas.
+     */
     function seo_post_editor_set_public_content_role($post_id, $role) {
         $post_id = absint($post_id);
         $role = sanitize_key((string) $role);
+        if (!$post_id || get_post_type($post_id) !== 'post') {
+            return new WP_Error('seo_post_role_invalid_post', 'El contenido editorial debe ser un post válido.');
+        }
         $roles = seo_post_editor_public_content_roles();
-        if (!$post_id || !array_key_exists($role,$roles)) {
-            return new WP_Error('seo_post_invalid_content_role','Rol editorial no válido.');
+        if ($role !== '' && !array_key_exists($role, $roles)) {
+            return new WP_Error('seo_post_role_invalid_role', 'El rol editorial no está registrado.');
         }
         if ($role === '') {
-            delete_post_meta($post_id,'_seo_solucionador_content_role');
+            delete_post_meta($post_id, '_seo_solucionador_content_role');
             return true;
         }
-        return false !== update_post_meta($post_id,'_seo_solucionador_content_role',$role);
+        return update_post_meta($post_id, '_seo_solucionador_content_role', $role) !== false;
     }
 }
 
@@ -877,7 +884,7 @@ if (!function_exists('seo_page_edit_posts')) {
                                     <option value="<?php echo esc_attr($role_value); ?>" <?php selected($content_role, $role_value); ?>><?php echo esc_html($role_label); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <p style="margin:8px 0 0;color:#646970;font-size:12px;line-height:1.45;">Dependiente se mostrará como <strong>Preguntas habituales</strong>; Ingeniero como <strong>Información técnica</strong>. Un post general no entra en esos bloques.</p>
+                            <p style="margin:8px 0 0;color:#646970;font-size:12px;line-height:1.45;">Dependiente se mostrará como <strong>Preguntas habituales</strong>; Ingeniero como <strong>Información técnica</strong>; Comparador como <strong>Comparativa</strong>. Un post general no entra en esos bloques.</p>
                         </div>
 
                         <div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;">
