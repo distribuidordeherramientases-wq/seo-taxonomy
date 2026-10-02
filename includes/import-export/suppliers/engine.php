@@ -163,7 +163,7 @@ function seo_proveedores_storage_receta( $kind, $recipe_id ) {
 
     wp_mkdir_p( $dir );
 
-    if ( ! is_dir( $dir ) || ! is_writable( $dir ) ) {
+    if ( ! is_dir( $dir ) || ! wp_is_writable( $dir ) ) {
         return new WP_Error( 'supplier_storage_unwritable', 'No se puede escribir en la carpeta de importaciones de proveedores.' );
     }
 
@@ -178,6 +178,59 @@ function seo_proveedores_storage_receta( $kind, $recipe_id ) {
  *
  * @return string[]
  */
+/**
+ * Abre un stream local para lectura/escritura incremental de CSV.
+ *
+ * WP_Filesystem no expone recursos compatibles con fgetcsv()/fputcsv(), por
+ * lo que el motor de proveedores mantiene el recurso PHP encapsulado aquí.
+ *
+ * @param string $path Ruta local.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_proveedores_stream_open( $path, $mode ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV streaming requires a native PHP resource.
+    return fopen( $path, $mode );
+}
+
+/**
+ * Escribe bytes en un stream CSV.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param string   $data   Datos.
+ * @return int|false
+ */
+function seo_proveedores_stream_write( $stream, $data ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Required for BOM/direct streaming on the CSV resource.
+    return fwrite( $stream, $data );
+}
+
+/**
+ * Cierra un stream abierto por el motor de proveedores.
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_proveedores_stream_close( $stream ) {
+    if ( ! is_resource( $stream ) ) {
+        return false;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with resource-based CSV streaming.
+    return fclose( $stream );
+}
+
+/**
+ * Elimina un directorio temporal ya vacío tras limpiar sus archivos.
+ *
+ * @param string $dir Directorio local.
+ * @return bool
+ */
+function seo_proveedores_remove_empty_directory( $dir ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Temporary local directory is empty and must be removed after XLS conversion.
+    return @rmdir( $dir );
+}
+
 function seo_proveedores_cabecera_estandar() {
     return array_keys( seo_proveedores_campos_importacion() );
 }
@@ -258,13 +311,13 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
         'import_' . sanitize_key( $recipe['id'] ) . '_' . wp_date( 'Ymd_His' ) . '.csv'
     );
     $path = trailingslashit( $storage['dir'] ) . $filename;
-    $out  = fopen( $path, 'w' );
+    $out  = seo_proveedores_stream_open( $path, 'w' );
 
     if ( false === $out ) {
         return new WP_Error( 'supplier_prepared_open', 'No se pudo crear el CSV preparado.' );
     }
 
-    fwrite( $out, "\xEF\xBB\xBF" );
+    seo_proveedores_stream_write( $out, "\xEF\xBB\xBF" );
     fputcsv( $out, $standard, ';', '"', '' );
 
     $log = [
@@ -344,7 +397,7 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
         $log['preparados']++;
     }
 
-    fclose( $out );
+    seo_proveedores_stream_close( $out );
 
     if ( 0 === $log['preparados'] ) {
         wp_delete_file( $path );
@@ -858,7 +911,7 @@ function seo_proveedores_normalizar_cabecera( $value ) {
  * @return array|WP_Error
  */
 function seo_proveedores_analizar_csv( $path ) {
-    $handle = fopen( $path, 'r' );
+    $handle = seo_proveedores_stream_open( $path, 'r' );
 
     if ( false === $handle ) {
         return new WP_Error( 'open_failed', 'No se pudo abrir el archivo CSV.' );
@@ -866,7 +919,7 @@ function seo_proveedores_analizar_csv( $path ) {
 
     $first_line = fgets( $handle );
     if ( false === $first_line ) {
-        fclose( $handle );
+        seo_proveedores_stream_close( $handle );
         return new WP_Error( 'empty_file', 'El archivo esta vacio.' );
     }
 
@@ -875,7 +928,7 @@ function seo_proveedores_analizar_csv( $path ) {
     $header = fgetcsv( $handle, 0, $separator, '"', '' );
 
     if ( false === $header ) {
-        fclose( $handle );
+        seo_proveedores_stream_close( $handle );
         return new WP_Error( 'header_failed', 'No se pudo leer la cabecera del CSV.' );
     }
 
@@ -894,7 +947,7 @@ function seo_proveedores_analizar_csv( $path ) {
         }
     }
 
-    fclose( $handle );
+    seo_proveedores_stream_close( $handle );
 
     return [
         'format'     => 'csv',
@@ -1166,7 +1219,7 @@ function seo_proveedores_xls_filas( $path ) {
         foreach ( (array) glob( trailingslashit( $tmp_dir ) . '*' ) as $file ) {
             wp_delete_file( $file );
         }
-        @rmdir( $tmp_dir );
+        seo_proveedores_remove_empty_directory( $tmp_dir );
 
         return new WP_Error(
             'xls_convert_failed',
@@ -1179,7 +1232,7 @@ function seo_proveedores_xls_filas( $path ) {
     foreach ( (array) glob( trailingslashit( $tmp_dir ) . '*' ) as $file ) {
         wp_delete_file( $file );
     }
-    @rmdir( $tmp_dir );
+    seo_proveedores_remove_empty_directory( $tmp_dir );
 
     return $rows;
 }
@@ -1556,7 +1609,7 @@ function seo_proveedores_iterar_filas( $state ) {
         return;
     }
 
-    $handle = fopen( $state['path'], 'r' );
+    $handle = seo_proveedores_stream_open( $state['path'], 'r' );
     if ( false === $handle ) {
         return new WP_Error( 'open_failed', 'No se pudo abrir el CSV.' );
     }
@@ -1567,7 +1620,7 @@ function seo_proveedores_iterar_filas( $state ) {
         yield $row;
     }
 
-    fclose( $handle );
+    seo_proveedores_stream_close( $handle );
 }
 
 
@@ -2840,7 +2893,7 @@ function seo_proveedores_exportar_productos_csv() {
         }
     } while ( count( $rows ) === $batch_size );
 
-    fclose( $output );
+    seo_proveedores_stream_close( $output );
     exit;
 }
 
