@@ -51,6 +51,28 @@ if (!function_exists('seo_post_editor_public_content_role')) {
     }
 }
 
+if (!function_exists('seo_post_editor_set_public_content_role')) {
+    /**
+     * API común para asignar/retirar un rol editorial consumible por plantillas.
+     */
+    function seo_post_editor_set_public_content_role($post_id, $role) {
+        $post_id = absint($post_id);
+        $role = sanitize_key((string) $role);
+        if (!$post_id || get_post_type($post_id) !== 'post') {
+            return new WP_Error('seo_post_role_invalid_post', 'El contenido editorial debe ser un post válido.');
+        }
+        $roles = seo_post_editor_public_content_roles();
+        if ($role !== '' && !array_key_exists($role, $roles)) {
+            return new WP_Error('seo_post_role_invalid_role', 'El rol editorial no está registrado.');
+        }
+        if ($role === '') {
+            delete_post_meta($post_id, '_seo_solucionador_content_role');
+            return true;
+        }
+        return update_post_meta($post_id, '_seo_solucionador_content_role', $role) !== false;
+    }
+}
+
 if (!function_exists('seo_post_editor_relations_table')) {
     function seo_post_editor_relations_table() {
         global $wpdb;
