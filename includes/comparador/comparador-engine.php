@@ -50,6 +50,7 @@ final class SEO_Comparador_Engine {
             'cursor'=>0,
             'processed'=>0,
             'errors'=>0,
+            'coverage_rebuilt'=>false,
             'complete'=>false,
             'started_at'=>current_time('mysql'),
             'updated_at'=>current_time('mysql'),
@@ -80,6 +81,11 @@ final class SEO_Comparador_Engine {
                 $state['updated_at']=current_time('mysql');
                 update_option(self::AUTO_STATE_OPTION,$state,false);
                 return;
+            }
+
+            if (empty($state['coverage_rebuilt']) && class_exists('SEO_Editorial_Coverage')) {
+                SEO_Editorial_Coverage::rebuild_index(7000);
+                $state['coverage_rebuilt']=true;
             }
 
             $cursor=max(0,absint($state['cursor'] ?? 0));
