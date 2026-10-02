@@ -167,19 +167,6 @@ final class SEO_Solucionador_Sources {
         );
     }
 
-    public static function dependiente_academia_snapshot() {
-        $base = self::academy_base_stats();
-        $saved = get_option(self::SNAPSHOT_OPTION, array());
-        if (!is_array($saved)) $saved = array();
-        foreach (array(
-            'learned_with_category','learned_without_category','categories_with_knowledge',
-            'categories_without_knowledge','avg_questions_per_category','last_run_at'
-        ) as $key) {
-            if (array_key_exists($key,$saved)) $base[$key] = $saved[$key];
-        }
-        return $base;
-    }
-
     /**
      * Lote ligero de conocimiento aprendido.
      *
