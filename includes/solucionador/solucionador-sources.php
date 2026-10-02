@@ -975,6 +975,10 @@ final class SEO_Solucionador_Sources {
         return $out;
     }
 
+    public static function editorial_source_contract() {
+        return array('dependiente_academia');
+    }
+
     public static function all($days = 180, $limit = 100, $after_dossier_id = 0) {
         // Arquitectura separada v0.5.0:
         // Academia/Entrenador es el único origen editorial de Solucionador.
