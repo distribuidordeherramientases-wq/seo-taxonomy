@@ -51,6 +51,22 @@ if (!function_exists('seo_post_editor_public_content_role')) {
     }
 }
 
+if (!function_exists('seo_post_editor_set_public_content_role')) {
+    function seo_post_editor_set_public_content_role($post_id, $role) {
+        $post_id = absint($post_id);
+        $role = sanitize_key((string) $role);
+        $roles = seo_post_editor_public_content_roles();
+        if (!$post_id || !array_key_exists($role,$roles)) {
+            return new WP_Error('seo_post_invalid_content_role','Rol editorial no válido.');
+        }
+        if ($role === '') {
+            delete_post_meta($post_id,'_seo_solucionador_content_role');
+            return true;
+        }
+        return false !== update_post_meta($post_id,'_seo_solucionador_content_role',$role);
+    }
+}
+
 if (!function_exists('seo_post_editor_relations_table')) {
     function seo_post_editor_relations_table() {
         global $wpdb;
