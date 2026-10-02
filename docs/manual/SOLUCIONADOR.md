@@ -247,24 +247,29 @@ Componentes actuales:
 
 No utiliza amplitud de mercado, prioridades de Marketing ni conocimiento técnico de Ingeniero.
 
+## Interfaz visible simplificada
+
+La interfaz de Solucionador expone únicamente tres pantallas:
+
+1. **Posts propuestos**: una propuesta por dossier/categoría con conocimiento. Muestra título, estado, acciones **Convertir en borrador / Descartar / Recuperar** y debajo las preguntas con una respuesta legible derivada del último entrenamiento validado de Dependiente.
+2. **Visitas Google**: muestra los posts creados por Solucionador y los datos persistidos de Google disponibles para los últimos 28 días: impresiones, clics y vistas.
+3. **Informes JSON**: descarga un único informe con propuestas, preguntas/respuestas, estado de los posts y métricas Google disponibles.
+
+Cobertura, Vocabulary, workflow, evidencias, tests y demás diagnóstico continúan funcionando como infraestructura interna, pero no forman parte de la navegación diaria.
+
+**Descartar no borra la propuesta**: cambia su estado a descartada y permite recuperarla posteriormente.
+
 ## Brief para Editora
 
 Al abrir un dossier, Solucionador recupera bajo demanda las preguntas y resultados internos.
 
-El brief contiene:
+El contenido visible para Editora se reduce a:
 
 - título propuesto;
-- product_cat principal;
-- Vocabulary;
-- lista de preguntas aprendidas;
-- lección/tipo;
-- evaluation_status y score;
-- resultados internos relevantes;
-- cobertura existente;
-- motivo de la decisión;
-- contenido que no debe duplicarse;
-- productos propios y enlaces internos;
-- workflow.
+- preguntas aprendidas;
+- respuesta legible de Dependiente para cada pregunta.
+
+La evidencia técnica completa sigue guardada internamente y no se muestra en el flujo diario.
 
 Regla editorial:
 
@@ -280,7 +285,7 @@ Regla editorial:
 4. recupera desde el dossier las preguntas `pass_*` y el último run válido de cada una;
 5. crea un `post` en estado `draft` y categoría editorial WordPress **Guías**;
 6. usa el título propuesto como `post_title` y deja `post_excerpt` vacío;
-7. escribe en `post_content` un **brief editorial de trabajo**, encabezado por `BORRADOR EDITORIAL — reescribir antes de publicar`, con preguntas, `evaluation_json`, `top_results`, `response_meta`, contexto del entrenamiento, contenido relacionado que no debe duplicarse y enlaces internos recomendados;
+7. escribe en `post_content` las mismas **preguntas y respuestas** que se muestran en la propuesta, encabezadas por el aviso de borrador editorial;
 8. conserva `topic_id` y `canonical_key`;
 9. persiste en metadatos la trazabilidad `dossier/category_id -> question_ids -> run_ids -> source_hash`, independiente del texto editable del borrador;
 10. asigna el rol estable `dependiente_qa_basic`;
