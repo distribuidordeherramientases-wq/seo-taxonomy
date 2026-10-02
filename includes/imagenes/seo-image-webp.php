@@ -151,6 +151,81 @@ if (!function_exists('seo_images_webp_attachment_entries')) {
     }
 }
 
+if (!function_exists('seo_images_webp_stream_open')) {
+    /**
+     * Abre un recurso local para lectura parcial de cabeceras de imagen.
+     *
+     * WP_Filesystem no expone recursos compatibles con lectura parcial/offset
+     * sin cargar el archivo completo en memoria.
+     *
+     * @param string $path Ruta local.
+     * @param string $mode Modo de apertura.
+     * @return resource|false
+     */
+    function seo_images_webp_stream_open($path, $mode) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Partial binary inspection requires a native stream resource.
+        return @fopen($path, $mode);
+    }
+}
+
+if (!function_exists('seo_images_webp_stream_read')) {
+    /**
+     * Lee un bloque de un recurso binario de imagen.
+     *
+     * @param resource $stream Recurso abierto.
+     * @param int      $length Bytes máximos.
+     * @return string|false
+     */
+    function seo_images_webp_stream_read($stream, $length) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Paired with native stream for bounded binary inspection.
+        return @fread($stream, $length);
+    }
+}
+
+if (!function_exists('seo_images_webp_stream_close')) {
+    /**
+     * Cierra un recurso de lectura de imagen.
+     *
+     * @param resource $stream Recurso abierto.
+     * @return bool
+     */
+    function seo_images_webp_stream_close($stream) {
+        if (!is_resource($stream)) {
+            return false;
+        }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_images_webp_stream_open().
+        return @fclose($stream);
+    }
+}
+
+if (!function_exists('seo_images_webp_atomic_rename')) {
+    /**
+     * Renombra un archivo local preservando semántica atómica para commit/rollback.
+     *
+     * @param string $source Origen.
+     * @param string $target Destino.
+     * @return bool
+     */
+    function seo_images_webp_atomic_rename($source, $target) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WebP commit/rollback requires local atomic rename semantics.
+        return @rename($source, $target);
+    }
+}
+
+if (!function_exists('seo_images_webp_set_permissions')) {
+    /**
+     * Conserva permisos del original en el WebP publicado.
+     *
+     * @param string $path Ruta local.
+     * @param int    $mode Permisos POSIX.
+     * @return bool
+     */
+    function seo_images_webp_set_permissions($path, $mode) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Preserve source permissions after local atomic publish.
+        return @chmod($path, $mode);
+    }
+}
+
 if (!function_exists('seo_images_webp_is_ultrahdr_jpeg')) {
     function seo_images_webp_is_ultrahdr_jpeg($path, $mime_type) {
         if ($mime_type !== 'image/jpeg' || !is_file($path)) {
@@ -162,12 +237,12 @@ if (!function_exists('seo_images_webp_is_ultrahdr_jpeg')) {
             return false;
         }
 
-        $handle = @fopen($path, 'rb');
+        $handle = seo_images_webp_stream_open($path, 'rb');
         if (!$handle) {
             return false;
         }
-        $head = @fread($handle, min($size, 2 * MB_IN_BYTES));
-        @fclose($handle);
+        $head = seo_images_webp_stream_read($handle, min($size, 2 * MB_IN_BYTES));
+        seo_images_webp_stream_close($handle);
         if (!is_string($head) || $head === '') {
             return false;
         }
@@ -216,7 +291,7 @@ if (!function_exists('seo_images_webp_unique_target')) {
 
 if (!function_exists('seo_images_webp_convert_file')) {
     function seo_images_webp_convert_file($old_path, $reserved = array()) {
-        if (!is_file($old_path) || !is_readable($old_path) || !is_writable($old_path)) {
+        if (!is_file($old_path) || !is_readable($old_path) || !wp_is_writable($old_path)) {
             return new WP_Error('file_permissions', 'El archivo no es legible o escribible.');
         }
         if (!seo_images_optimizer_is_safe_upload_path($old_path)) {
@@ -304,7 +379,7 @@ if (!function_exists('seo_images_webp_convert_file')) {
             return new WP_Error('target_collision', 'El nombre WebP de destino ya existe y no se sobrescribira.');
         }
 
-        if (!@rename($candidate, $target)) {
+        if (!seo_images_webp_atomic_rename($candidate, $target)) {
             wp_delete_file($candidate);
             if ($candidate !== $temp) {
                 wp_delete_file($temp);
@@ -317,7 +392,7 @@ if (!function_exists('seo_images_webp_convert_file')) {
 
         $permissions = @fileperms($old_path);
         if ($permissions !== false) {
-            @chmod($target, $permissions & 0777);
+            seo_images_webp_set_permissions($target, $permissions & 0777);
         }
 
         clearstatcache(true, $target);
@@ -1003,15 +1078,15 @@ if (!function_exists('seo_images_webp_retire_originals')) {
             $old = isset($map['old_path']) ? $map['old_path'] : '';
             if (!$old || !is_file($old)) {
                 foreach (array_reverse($renamed) as $item) {
-                    @rename($item['backup'], $item['old']);
+                    seo_images_webp_atomic_rename($item['backup'], $item['old']);
                 }
                 return new WP_Error('old_file_missing', 'Un original desaparecio antes de poder retirarlo; se cancela el attachment.');
             }
 
             $backup = dirname($old) . '/.' . wp_basename($old) . '.seo-webp-delete-' . $token;
-            if (file_exists($backup) || !@rename($old, $backup)) {
+            if (file_exists($backup) || !seo_images_webp_atomic_rename($old, $backup)) {
                 foreach (array_reverse($renamed) as $item) {
-                    @rename($item['backup'], $item['old']);
+                    seo_images_webp_atomic_rename($item['backup'], $item['old']);
                 }
                 return new WP_Error('old_file_rename', 'No se pudo retirar uno de los JPG/PNG originales; se restaura el attachment.');
             }
