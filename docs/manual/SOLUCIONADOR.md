@@ -66,15 +66,14 @@ La instalación de tablas y el primer análisis son dos pasos distintos:
 4. **Cobertura multientidad.** Se comprueban posts, páginas, landings, hubs y categorías.
 5. **Decisión explicable.** La prioridad muestra componentes; la puntuación nunca sustituye a los requisitos obligatorios.
 6. **Brief, no artículo.** Solucionador entrega estructura, evidencias y conocimiento. La Editora redacta.
-7. **Sin publicación automática.** Como máximo prepara un borrador de trabajo después de aprobación humana.
+7. **Sin publicación automática.** Como máximo prepara un borrador de trabajo después de aprobación humana. Los posts técnicos de Ingeniero siguen su workflow independiente.
 8. **Ciclo cerrado.** El contenido publicado entra en seguimiento y recibe métricas posteriores de los informes/Analista.
 
 ## Flujo
 
 ~~~text
 Analista
-Dependiente / Intérprete
-Ingeniero
+Dependiente / Academia / Intérprete
 Ojeador
 Comparador
 Auditor
@@ -176,20 +175,10 @@ Aporta lo que está ocurriendo:
 **Analista = qué está ocurriendo. Solucionador = qué debemos hacer con ello.**
 
 ### Ingeniero
-Aporta conocimiento técnico activo y validado por categoría:
-- definición;
-- funcionamiento;
-- aplicaciones;
-- tipos;
-- compatibilidad;
-- limitaciones;
-- mantenimiento;
-- problemas;
-- seguridad;
-- normativa;
-- terminología.
 
-El brief conserva fuentes, URL, tipo, confianza y fecha disponibles en Ingeniero.
+Ingeniero ya **no es una fuente de decisión de Solucionador**. Desde la arquitectura editorial del 02/10/2026 mantiene su investigación técnica y dispone de su propio proceso **Ingeniero → Editorial → Editora → post**.
+
+El conocimiento de Ingeniero puede seguir alimentando Clasificador/Vocabulary, pero Solucionador no lo usa para decidir si crear o mejorar posts técnicos.
 
 ### Ojeador
 Aporta contexto de mercado ya calculado por categoría:
