@@ -729,6 +729,10 @@ final class SEO_Ingeniero {
         $sources = SEO_Ingeniero_DB::sources_by_ids((array) ($dossier['source_ids'] ?? array()));
         $term = $term_id ? get_term($term_id, 'product_cat') : null;
         $internal_links = self::editorial_internal_links($term_id);
+        $post_id = absint($dossier['post_id'] ?? 0);
+        $metrics = ($post_id && function_exists('seo_post_reports_get_summary'))
+            ? (array) seo_post_reports_get_summary($post_id, 28)
+            : array();
 
         return array(
             'dossier'=>$dossier,
@@ -749,6 +753,8 @@ final class SEO_Ingeniero {
             }, $sources),
             'must_cover'=>array_values(array_unique($must_cover)),
             'internal_links'=>$internal_links,
+            'metrics_28d'=>$metrics,
+            'analista_url'=>function_exists('seo_analista_admin_url') ? seo_analista_admin_url(array('analista_view'=>'donde_estamos','analista_days'=>28)) : '',
             'coverage'=>(array) ($dossier['coverage'] ?? array()),
             'verification_warning'=>'La síntesis interna de Ingeniero no debe publicarse literalmente como afirmación si las fuentes enlazadas no la respaldan.',
         );
