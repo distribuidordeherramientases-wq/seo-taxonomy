@@ -848,73 +848,82 @@ $schema_product_graph = array(
 
       </div>
 
-      <div class="dh-price-card">
+      <div class="dh-commerce-row">
 
-        <div class="dh-price">
-          <?php
-          $regular = (float) $product->get_regular_price();
-          $sale    = (float) $product->get_sale_price();
-          ?>
+        <div class="dh-price-card">
+          <div class="dh-price">
+            <?php
+            /*
+             * El importador guarda en WooCommerce el PVP final calculado sobre
+             * precio_con_iva del proveedor. No volvemos a sumar IVA aquí.
+             */
+            $regular = (float) $product->get_regular_price();
+            $sale    = (float) $product->get_sale_price();
+            $current = (float) $product->get_price();
+            ?>
 
-          <?php if ($product->is_on_sale() && $sale > 0) : ?>
+            <?php if ($product->is_on_sale() && $sale > 0 && $regular > $sale) : ?>
 
-            <div class="dh-price-old">
-              <del><?php echo wp_kses_post(wc_price($regular)); ?></del>
-              <span class="dh-label-old">Precio anterior</span>
-            </div>
+              <div class="dh-price-current">
+                <?php echo wp_kses_post(wc_price($sale)); ?>
+              </div>
 
-            <div class="dh-price-current">
-              <?php echo wp_kses_post(wc_price($sale)); ?>
-            </div>
+              <div class="dh-price-old">
+                <span class="dh-label-old">Precio anterior</span>
+                <del><?php echo wp_kses_post(wc_price($regular)); ?></del>
+              </div>
 
-            <div class="dh-price-save">
-              <?php
-              $save    = $regular - $sale;
-              $percent = ($regular > 0) ? round(($save / $regular) * 100) : 0;
-              echo 'Ahorras ' . wp_kses_post(wc_price($save)) . ' (' . intval($percent) . '%)';
-              ?>
-            </div>
+              <div class="dh-price-save">
+                <?php
+                $save    = $regular - $sale;
+                $percent = ($regular > 0) ? round(($save / $regular) * 100) : 0;
+                echo 'Ahorras ' . wp_kses_post(wc_price($save)) . ' (' . intval($percent) . '%)';
+                ?>
+              </div>
 
-          <?php else : ?>
+            <?php elseif ($current > 0) : ?>
 
-            <div class="dh-price-normal">
-              <?php woocommerce_template_single_price(); ?>
-            </div>
+              <div class="dh-price-current">
+                <?php echo wp_kses_post(wc_price($current)); ?>
+              </div>
 
-          <?php endif; ?>
+            <?php endif; ?>
 
-          <div class="dh-tax-label"><?php echo esc_html(function_exists('wc_prices_include_tax') && wc_prices_include_tax() ? 'IVA incluido' : 'IVA no incluido'); ?></div>
+            <div class="dh-tax-label">IVA incluido</div>
+          </div>
         </div>
 
-      </div>
+        <div id="dh-product-purchase" class="dh-buybox-card">
+          <?php if ($supplier_out_of_stock) : ?>
+            <?php dht_render_stock_alert_form($product_id); ?>
+          <?php else : ?>
+            <div class="dh-purchase-actions">
+              <div class="dh-cart">
+                <?php
+                /*
+                 * WooCommerce ya imprime el stock dentro del template de
+                 * add-to-cart. No añadimos wc_get_stock_html() otra vez.
+                 */
+                woocommerce_template_single_add_to_cart();
+                ?>
+              </div>
 
-      <div id="dh-product-purchase" class="dh-buybox-card">
-        <?php if ($supplier_out_of_stock) : ?>
-          <?php dht_render_stock_alert_form($product_id); ?>
-        <?php else : ?>
-          <div class="dh-stock">
-            <?php echo wp_kses_post(wc_get_stock_html($product)); ?>
-          </div>
-
-          <div class="dh-purchase-actions">
-            <div class="dh-cart">
-              <?php woocommerce_template_single_add_to_cart(); ?>
+              <?php if ($product->is_type('simple') && $product->is_purchasable() && $product->is_in_stock()) : ?>
+                <?php
+                $buy_now_url = add_query_arg(
+                    array(
+                        'add-to-cart' => $product_id,
+                        'quantity'    => 1,
+                    ),
+                    wc_get_checkout_url()
+                );
+                ?>
+                <a class="dh-buy-now-button" href="<?php echo esc_url($buy_now_url); ?>">Comprar ahora</a>
+              <?php endif; ?>
             </div>
+          <?php endif; ?>
+        </div>
 
-            <?php if ($product->is_type('simple') && $product->is_purchasable() && $product->is_in_stock()) : ?>
-              <?php
-              $buy_now_url = add_query_arg(
-                  array(
-                      'add-to-cart' => $product_id,
-                      'quantity'    => 1,
-                  ),
-                  wc_get_checkout_url()
-              );
-              ?>
-              <a class="dh-buy-now-button" href="<?php echo esc_url($buy_now_url); ?>">Comprar ahora</a>
-            <?php endif; ?>
-          </div>
-        <?php endif; ?>
       </div>
 
       <div class="dh-product-trust" aria-label="Condiciones de compra">
