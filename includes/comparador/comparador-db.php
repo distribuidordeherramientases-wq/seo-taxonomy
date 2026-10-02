@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
 
 final class SEO_Comparador_DB {
     const VERSION_OPTION = 'seo_comparador_db_version';
-    const DB_VERSION = '1.1.0';
+    const DB_VERSION = '1.2.0';
 
     public static function table($name) {
         global $wpdb;
@@ -73,6 +73,10 @@ final class SEO_Comparador_DB {
             source_snapshot_at datetime NULL,
             generated_at datetime NULL,
             source_hash char(64) NOT NULL DEFAULT '',
+            recommended_action varchar(32) NOT NULL DEFAULT '',
+            decision_reason text NULL,
+            coverage_json longtext NULL,
+            editorial_decided_at datetime NULL,
             last_error text NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
@@ -246,6 +250,37 @@ final class SEO_Comparador_DB {
         $profiles_table = self::table('profiles');
         return (array) $wpdb->get_results(
             $wpdb->prepare("SELECT * FROM {$profiles_table} ORDER BY updated_at DESC,id DESC LIMIT %d", $limit),
+            ARRAY_A
+        );
+    }
+
+    public static function profile_count() {
+        global $wpdb;
+        return absint($wpdb->get_var('SELECT COUNT(*) FROM ' . self::table('profiles')));
+    }
+
+    public static function profile_status_counts() {
+        global $wpdb;
+        $out = array();
+        foreach ((array) $wpdb->get_results(
+            'SELECT status,COUNT(*) AS total FROM ' . self::table('profiles') . ' GROUP BY status',
+            ARRAY_A
+        ) as $row) {
+            $out[sanitize_key((string) ($row['status'] ?? ''))] = absint($row['total'] ?? 0);
+        }
+        return $out;
+    }
+
+    public static function list_profiles_page($limit = 100, $offset = 0) {
+        global $wpdb;
+        $limit = max(1, min(250, absint($limit)));
+        $offset = max(0, absint($offset));
+        return (array) $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT * FROM ' . self::table('profiles') . ' ORDER BY updated_at DESC,id DESC LIMIT %d OFFSET %d',
+                $limit,
+                $offset
+            ),
             ARRAY_A
         );
     }

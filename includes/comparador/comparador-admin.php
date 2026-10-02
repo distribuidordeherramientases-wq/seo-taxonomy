@@ -34,7 +34,7 @@ final class SEO_Comparador_Admin {
             'title'=>'Comparador',
             'icon'=>'dashicons-chart-bar',
             'page'=>'seo-comparador',
-            'desc'=>'Inteligencia comparativa por categoría: catálogo propio + mercado observado, perfiles persistentes y entrega a Solucionador.',
+            'desc'=>'Inteligencia comparativa por categoría: Ojeador aporta mercado, Comparador decide la actuación editorial y Editora revisa el post canónico.',
         );
         return $items;
     }
@@ -122,8 +122,13 @@ final class SEO_Comparador_Admin {
         check_admin_referer('seo_comparador_action_' . $profile_id);
         $action=isset($_POST['profile_action']) ? sanitize_key(wp_unslash($_POST['profile_action'])) : '';
         $reason=isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
-        if ($action==='send_solucionador') {
-            $result=SEO_Comparador_Engine::send_to_solucionador($profile_id,$reason);
+        if ($action==='review_editorial') {
+            $result=SEO_Comparador_Engine::evaluate_editorial_decision($profile_id,$reason);
+        } elseif ($action==='approve_editorial') {
+            $decision_action=isset($_POST['decision_action']) ? sanitize_key(wp_unslash($_POST['decision_action'])) : '';
+            $result=SEO_Comparador_Engine::approve_editorial_action($profile_id,$decision_action,$reason);
+        } elseif ($action==='create_draft') {
+            $result=SEO_Comparador_Engine::create_editorial_draft($profile_id);
         } elseif ($action==='link_post') {
             $result=SEO_Comparador_Engine::link_post($profile_id,isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0);
         } elseif ($action==='archive') {
@@ -224,12 +229,18 @@ final class SEO_Comparador_Admin {
     }
 
     private static function render_comparisons() {
-        $profiles=SEO_Comparador_DB::list_profiles(1000);
+        $per_page=100;
+        $page=max(1,isset($_GET['cmp_paged']) ? absint(wp_unslash($_GET['cmp_paged'])) : 1);
+        $total=SEO_Comparador_DB::profile_count();
+        $status_counts=SEO_Comparador_DB::profile_status_counts();
+        $profiles=SEO_Comparador_DB::list_profiles_page($per_page,($page-1)*$per_page);
+        $ready=absint($status_counts['ready_for_editorial'] ?? 0)+absint($status_counts['ready_for_solucionador'] ?? 0);
+        $published=absint($status_counts['published'] ?? 0)+absint($status_counts['monitoring'] ?? 0);
         echo '<div class="seo-cmp-grid">';
-        self::card('Perfiles',count($profiles),'Alcances comparables persistidos.');
-        self::card('Listos para Solucionador',count(array_filter($profiles,static function($p){return ($p['status']??'')==='ready_for_solucionador';})),'Validados y pendientes de decisión editorial.');
-        self::card('Publicados',count(array_filter($profiles,static function($p){return in_array(($p['status']??''),array('published','monitoring'),true);})),'Con post canónico vinculado.');
-        self::card('Necesitan actualización',count(array_filter($profiles,static function($p){return ($p['status']??'')==='needs_update';})),'Las fuentes han cambiado materialmente.');
+        self::card('Perfiles',$total,'Alcances comparables persistidos.');
+        self::card('Listos para Editora',$ready,'Perfil validado y actuación editorial calculada.');
+        self::card('Publicados',$published,'Con post canónico vinculado.');
+        self::card('Necesitan actualización',absint($status_counts['needs_update'] ?? 0),'Las fuentes han cambiado materialmente.');
         echo '</div>';
 
         echo '<div class="postbox seo-cmp-box"><h2>Perfiles comparativos</h2>';
@@ -245,7 +256,20 @@ final class SEO_Comparador_Admin {
             echo '<td>' . esc_html((string)$p['source_snapshot_at']) . '</td>';
             echo '<td><a class="button" href="' . esc_url(self::url('comparisons',array('profile_id'=>absint($p['id'])))) . '">Abrir</a></td></tr>';
         }
-        echo '</tbody></table></div></div>';
+        echo '</tbody></table></div>';
+        $pages=max(1,(int)ceil($total/$per_page));
+        if ($pages>1) {
+            echo '<div class="tablenav"><div class="tablenav-pages">';
+            echo wp_kses_post(paginate_links(array(
+                'base'=>add_query_arg('cmp_paged','%#%',self::url('comparisons')),
+                'format'=>'',
+                'current'=>$page,
+                'total'=>$pages,
+                'type'=>'plain',
+            )));
+            echo '</div></div>';
+        }
+        echo '</div>';
 
         $profile_id=isset($_GET['profile_id']) ? absint(wp_unslash($_GET['profile_id'])) : 0;
         if ($profile_id) self::render_profile($profile_id);
@@ -266,9 +290,30 @@ final class SEO_Comparador_Admin {
 
         echo '<div class="seo-cmp-actions">';
         self::action_form($profile_id,'recalculate','Recalcular','','');
-        self::action_form($profile_id,'send_solucionador','Enviar a Solucionador','El perfil dispone de datos y ejes revisados.','primary');
+        self::action_form($profile_id,'review_editorial','Revisar cobertura y decidir','Evaluación editorial propia de Comparador.','primary');
         self::action_form($profile_id,'regenerate_editorial','Regenerar texto base','','');
         self::action_form($profile_id,'archive','Marcar no comparable','No existe un alcance comparativo útil.','');
+        echo '</div>';
+
+        $recommended=strtoupper((string)($profile['recommended_action'] ?? ''));
+        $decision_reason=trim((string)($profile['decision_reason'] ?? ''));
+        $coverage=SEO_Comparador_DB::decode_json($profile['coverage_json'] ?? '{}');
+        echo '<h3>Decisión editorial</h3>';
+        echo '<p><strong>Acción recomendada:</strong> <code>' . esc_html($recommended ?: 'PENDIENTE') . '</code>';
+        if (!empty($coverage['status'])) echo ' · <strong>Cobertura:</strong> ' . esc_html((string)$coverage['status']);
+        echo '</p>';
+        if ($decision_reason!=='') echo '<p>' . esc_html($decision_reason) . '</p>';
+
+        echo '<div class="seo-cmp-actions">';
+        if (in_array($recommended,array('CREATE_POST','IMPROVE_POST','MERGE_CONTENT','NO_ACTION'),true)) {
+            self::decision_form($profile_id,$recommended,'Aprobar ' . $recommended,$decision_reason,'primary');
+        }
+        self::decision_form($profile_id,'NO_ACTION','Marcar NO_ACTION','Cobertura suficiente o no procede nueva actuación.','');
+        self::decision_form($profile_id,'IMPROVE_POST','Marcar IMPROVE_POST','Existe una pieza relacionada que debe ampliarse.','');
+        self::decision_form($profile_id,'MERGE_CONTENT','Marcar MERGE_CONTENT','Existen piezas solapadas que deben consolidarse.','');
+        if (($profile['status']??'')==='approved' && $recommended==='CREATE_POST') {
+            self::action_form($profile_id,'create_draft','Preparar borrador','','primary');
+        }
         echo '</div>';
 
         echo '<h3>Capa editorial</h3>';
@@ -289,7 +334,7 @@ final class SEO_Comparador_Admin {
         $editorial_stale=($edited_hash!=='' && $current_hash!=='' && $edited_hash!==$current_hash)
             || ($edited_snapshot!=='' && $current_snapshot!=='' && $edited_snapshot!==$current_snapshot);
         if ($editorial_stale) {
-            echo '<div class="notice notice-warning inline"><p><strong>Contenido editorial desactualizado:</strong> el perfil fuente ha cambiado desde el JSON con el que se redactó. Revisa la comparativa antes de enviarla a Solucionador.</p></div>';
+            echo '<div class="notice notice-warning inline"><p><strong>Contenido editorial desactualizado:</strong> el perfil fuente ha cambiado desde el JSON con el que se redactó. Revisa la comparativa antes de aprobar la actuación editorial.</p></div>';
         }
 
         echo '<h3>Import / Export JSON</h3>';
@@ -381,6 +426,13 @@ final class SEO_Comparador_Admin {
         echo '</form>';
     }
 
+    private static function decision_form($profile_id,$decision_action,$label,$reason='',$class='') {
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_comparador_action"><input type="hidden" name="profile_id" value="' . esc_attr($profile_id) . '"><input type="hidden" name="profile_action" value="approve_editorial"><input type="hidden" name="decision_action" value="' . esc_attr($decision_action) . '"><input type="hidden" name="reason" value="' . esc_attr($reason) . '">';
+        wp_nonce_field('seo_comparador_action_' . $profile_id);
+        submit_button($label,$class==='primary'?'primary':'secondary','submit',false);
+        echo '</form>';
+    }
+
     private static function number_field($label,$name,$value,$min,$max,$step) {
         echo '<label><strong>' . esc_html($label) . '</strong><input type="number" name="' . esc_attr($name) . '" value="' . esc_attr($value) . '" min="' . esc_attr($min) . '" max="' . esc_attr($max) . '" step="' . esc_attr($step) . '"></label>';
     }
@@ -403,7 +455,7 @@ final class SEO_Comparador_Admin {
         .seo-cmp-form-grid label{display:grid;gap:5px}.seo-cmp-form-grid input{width:100%}.seo-cmp-table{overflow:auto}.seo-cmp-table table{min-width:900px}
         .seo-cmp-actions{display:flex;gap:8px;flex-wrap:wrap}.seo-cmp-actions form{margin:0}.seo-cmp-inline{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
         .seo-cmp-io-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin:12px 0 22px}.seo-cmp-io-card{border:1px solid #dcdcde;border-radius:8px;padding:14px;background:#fdfdfd}.seo-cmp-io-card h4{margin:0 0 8px}.seo-cmp-io-card form{display:grid;gap:10px}.seo-cmp-editorial-preview{border-left:4px solid #2271b1;padding:10px 14px;background:#f6f7f7;margin:12px 0}
-        .seo-cmp-status{display:inline-block;padding:3px 8px;border-radius:999px;background:#f0f0f1}.seo-cmp-status-ready_for_solucionador,.seo-cmp-status-published,.seo-cmp-status-monitoring{background:#edfaef;color:#0a6b25}
+        .seo-cmp-status{display:inline-block;padding:3px 8px;border-radius:999px;background:#f0f0f1}.seo-cmp-status-ready_for_editorial,.seo-cmp-status-ready_for_solucionador,.seo-cmp-status-approved,.seo-cmp-status-published,.seo-cmp-status-monitoring{background:#edfaef;color:#0a6b25}
         .seo-cmp-status-needs_update,.seo-cmp-status-needs_review{background:#fff8e5;color:#8a5a00}.seo-cmp-status-blocked,.seo-cmp-status-archived{background:#fce8e8;color:#a61b1b}
         .seo-cmp-ok{color:#008a20}.seo-cmp-bad{color:#b32d2e}
         </style>';

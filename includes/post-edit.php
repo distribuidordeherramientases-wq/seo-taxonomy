@@ -40,6 +40,7 @@ if (!function_exists('seo_post_editor_public_content_roles')) {
             ''                          => 'Contenido editorial general',
             'dependiente_qa_basic'      => 'Dependiente · preguntas habituales',
             'ingeniero_qa_specialized'  => 'Ingeniero · información técnica',
+            'comparison'                 => 'Comparador · comparativa',
         );
     }
 }
@@ -883,7 +884,7 @@ if (!function_exists('seo_page_edit_posts')) {
                                     <option value="<?php echo esc_attr($role_value); ?>" <?php selected($content_role, $role_value); ?>><?php echo esc_html($role_label); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <p style="margin:8px 0 0;color:#646970;font-size:12px;line-height:1.45;">Dependiente se mostrará como <strong>Preguntas habituales</strong>; Ingeniero como <strong>Información técnica</strong>. Un post general no entra en esos bloques.</p>
+                            <p style="margin:8px 0 0;color:#646970;font-size:12px;line-height:1.45;">Dependiente se mostrará como <strong>Preguntas habituales</strong>; Ingeniero como <strong>Información técnica</strong>; Comparador como <strong>Comparativa</strong>. Un post general no entra en esos bloques.</p>
                         </div>
 
                         <div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;">
