@@ -21,6 +21,7 @@ Campos:
 - Contenido.
 - Categorías de producto.
 - Etiquetas semánticas.
+- **Uso en plantillas / Rol público**: contenido general, **Dependiente · preguntas habituales** o **Ingeniero · información técnica**. El rol se guarda en `_seo_solucionador_content_role` y solo se usa para bloques públicos contextuales; no sustituye Vocabulary ni la relación con product_cat.
 
 Controles:
 
