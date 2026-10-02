@@ -174,7 +174,7 @@ final class SEO_Solucionador_Admin {
         if (!in_array($tab, array('summary','diagnostics','proposals','coverage','sources','tests','data'), true)) $tab = 'summary';
 
         echo '<div class="wrap seo-solucionador"><h1>Solucionador <small style="font-weight:400;color:#646970">v' . esc_html(SEO_SOLUCIONADOR_VERSION) . '</small></h1>';
-        echo '<p><strong>Capa de decision editorial.</strong> Solucionador unifica conclusiones de Auditor, Analista, Clasificador, Dependiente/Interprete, Ojeador e Ingeniero; detecta carencias, oportunidades, duplicidades y canibalizacion; prioriza la actuacion y prepara el brief. <strong>No investiga, interpreta ni mide por su cuenta y no publica contenido.</strong></p>';
+        echo '<p><strong>Capa de decision editorial.</strong> Solucionador unifica conclusiones de Auditor, Analista, Clasificador, Dependiente/Academia/Intérprete y Ojeador; detecta carencias, oportunidades, duplicidades y canibalizacion; prioriza la actuacion y prepara el brief. <strong>No investiga, interpreta ni mide por su cuenta y no publica contenido.</strong></p>';
         if (is_wp_error($initialization)) {
             echo '<div class="notice notice-warning inline"><p><strong>Inicialización pendiente:</strong> ' . esc_html($initialization->get_error_message()) . '</p></div>';
         }
@@ -562,7 +562,7 @@ final class SEO_Solucionador_Admin {
             'canonical_key'=>(string) ($topic['canonical_key'] ?? ''),
             'category_id'=>$primary_category_id,
         );
-        $coverage = SEO_Solucionador_Coverage::find($profile);
+        $coverage = SEO_Editorial_Coverage::find($profile);
 
         $sources = array();
         $questions = array();
