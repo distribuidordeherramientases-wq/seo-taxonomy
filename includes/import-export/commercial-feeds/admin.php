@@ -28,7 +28,7 @@ function seo_ie_cf_admin_redirect_url( array $args = [] ) {
 
 function seo_ie_cf_admin_save_settings() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para configurar los inventarios comerciales.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para configurar los inventarios comerciales.', 'seo-taxonomy' ) );
     }
     check_admin_referer( 'seo_ie_cf_save_settings' );
 
@@ -73,7 +73,7 @@ function seo_ie_cf_admin_save_settings() {
             }
             $path = trailingslashit( $storage['dir'] ) . $filename;
             if ( file_exists( $path ) ) {
-                @unlink( $path );
+                wp_delete_file( $path );
             }
         }
     }
@@ -86,7 +86,7 @@ function seo_ie_cf_admin_save_settings() {
 
 function seo_ie_cf_admin_regenerate() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para regenerar los inventarios comerciales.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para regenerar los inventarios comerciales.', 'seo-taxonomy' ) );
     }
     check_admin_referer( 'seo_ie_cf_regenerate' );
 
@@ -112,7 +112,7 @@ function seo_ie_cf_admin_regenerate() {
  */
 function seo_ie_cf_admin_stop() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para detener los inventarios comerciales.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para detener los inventarios comerciales.', 'seo-taxonomy' ) );
     }
     check_admin_referer( 'seo_ie_cf_stop' );
 

@@ -323,7 +323,7 @@ $editorial_category_ids = array_values(array_unique(array_filter($editorial_cate
 
 if ($is_blog_category) {
     $blog_title = trim((string) $current_category->name);
-    $blog_intro = trim(wp_strip_all_tags((string) term_description($current_category->term_id, 'category')));
+    $blog_intro = trim(wp_strip_all_tags((string) term_description($current_category->term_id)));
 } else {
     $blog_title = $blog_page_id ? trim((string) get_the_title($blog_page_id)) : '';
     $blog_intro = '';
@@ -447,7 +447,7 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
 ?>
 
 <script type="application/ld+json">
-<?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); ?>
+<?php echo wp_json_encode($json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PRETTY_PRINT); ?>
 </script>
 
 <style id="dht-blog-news-v3-css">
@@ -629,7 +629,8 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                     <div class="dht-front-grid">
                         <article class="dht-lead-card">
                             <a class="dht-lead-media" href="<?php echo esc_url(get_permalink($featured_id)); ?>" aria-label="<?php echo esc_attr(get_the_title($featured_id)); ?>">
-                                <?php echo dht_blog_v2_img_mobile($featured_image, get_the_title($featured_id), '', 'eager', 'high'); ?>
+                                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_blog_v2_img_mobile($featured_image, get_the_title($featured_id), '', 'eager', 'high'); ?>
                             </a>
                             <div class="dht-lead-body">
                                 <div class="dht-card-meta">
@@ -651,7 +652,8 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                                     $rail_image      = dht_blog_v2_post_image_mobile($rail_id, 'medium_large');
                                 ?>
                                     <article class="dht-rail-card">
-                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_blog_v2_img_mobile($rail_image, get_the_title($rail_id)); ?></a>
+                                        <a class="dht-rail-media" href="<?php echo esc_url(get_permalink($rail_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_blog_v2_img_mobile($rail_image, get_the_title($rail_id)); ?></a>
                                         <div class="dht-rail-body">
                                             <div class="dht-card-meta"><?php if ($rail_category) : ?><a href="<?php echo esc_url(get_category_link($rail_category)); ?>"><?php echo esc_html($rail_category->name); ?></a><span>•</span><?php endif; ?><span><?php echo esc_html($dht_blog_read_time($rail_id) . ' min'); ?></span></div>
                                             <h3><a href="<?php echo esc_url(get_permalink($rail_id)); ?>"><?php echo esc_html(get_the_title($rail_id)); ?></a></h3>
@@ -680,7 +682,8 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
                             $post_image      = dht_blog_v2_post_image_mobile($post_id, 'medium_large');
                         ?>
                             <article class="dht-news-card">
-                                <a class="dht-news-card-media" href="<?php echo esc_url(get_permalink($post_id)); ?>" tabindex="-1" aria-hidden="true"><?php echo dht_blog_v2_img_mobile($post_image, get_the_title($post_id)); ?></a>
+                                <a class="dht-news-card-media" href="<?php echo esc_url(get_permalink($post_id)); ?>" tabindex="-1" aria-hidden="true"><?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_blog_v2_img_mobile($post_image, get_the_title($post_id)); ?></a>
                                 <div class="dht-news-card-body">
                                     <div class="dht-card-meta"><?php if ($post_category) : ?><a href="<?php echo esc_url(get_category_link($post_category)); ?>"><?php echo esc_html($post_category->name); ?></a><span>•</span><?php endif; ?><span><?php echo esc_html(get_the_date('', $post_id)); ?></span><span>•</span><span><?php echo esc_html($dht_blog_read_time($post_id) . ' min'); ?></span></div>
                                     <h3><a href="<?php echo esc_url(get_permalink($post_id)); ?>"><?php echo esc_html(get_the_title($post_id)); ?></a></h3>

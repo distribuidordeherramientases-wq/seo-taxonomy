@@ -200,17 +200,17 @@ function seo_comentarista_import_resolve_product_id($row)
 function seo_comentarista_export_csv()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar Comentarista.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar Comentarista.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_export_comentarista_csv', 'seo_export_comentarista_nonce');
 
     if (!seo_comentarista_table_exists()) {
-        wp_die(esc_html__('La tabla de Comentarista no existe.', 'seo-system'));
+        wp_die(esc_html__('La tabla de Comentarista no existe.', 'seo-taxonomy'));
     }
 
     if (!function_exists('seo_ie_open_csv_download') || !function_exists('seo_ie_write_csv_row')) {
-        wp_die(esc_html__('El motor Importar / Exportar no está disponible.', 'seo-system'));
+        wp_die(esc_html__('El motor Importar / Exportar no está disponible.', 'seo-taxonomy'));
     }
 
     global $wpdb;
@@ -301,7 +301,7 @@ function seo_comentarista_export_csv()
 function seo_comentarista_import_csv()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para importar Comentarista.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para importar Comentarista.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_import_comentarista_csv', 'seo_import_comentarista_nonce');
@@ -646,7 +646,7 @@ function seo_comentarista_render_import_export_cards()
 function seo_comentarista_import_export_admin_page()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
     }
 
     ?>

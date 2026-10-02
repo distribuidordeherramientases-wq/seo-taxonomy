@@ -19,12 +19,13 @@ Esta pantalla es un lanzador. El botón **Abrir** de cada tarjeta solo navega al
 | Procesos | Estado, velocidad y workers |
 | Logística | Pedidos/proveedores y transporte |
 | Conexiones con proveedores | Credenciales e integraciones externas |
-| FAQs | Gestión, cobertura y calidad de FAQs |
 | Estado del servidor | Servidor, WordPress, MySQL, seguridad y logs |
 | Plugin Validation | Validación interna del plugin |
 | Menu Manager | Generación y sincronización del menú SEO |
 | Facturas y presupuestos | Documentos PDF conectados a WooCommerce |
 | Ojeador | Mercado por categorías en Google Shopping |
+
+> **FAQs** ya no se lanza desde Herramientas. Su acceso visible está en **SEO Taxonomy → Contenidos → FAQs**; la pantalla y el slug `seo-faq` se mantienen.
 
 ## Taxonomy
 
@@ -114,14 +115,6 @@ Gestión de pedidos muestra Pedido, Estado, Object ID, Producto WooCommerce, Can
 
 Transporte: checkboxes **Activar gestor propio**, **Solo España**, **Transporte sujeto a impuestos** y **No usar reglas avanzadas si faltan peso o medidas**; campos Nombre que verá el cliente y Zona provisional. **Añadir regla** crea una regla. Cada regla tiene checkbox Activa, Eliminar, Prioridad, Nombre, Destino, límites de subtotal/peso/dimensiones/volumen y coste fijo/por kg/por unidad/gratuidad.
 
-## FAQs
-
-Pestañas: **Hubs SEO**, **Categorías**, **Productos**, **Informe**.
-
-En edición: selector de elemento, **Nueva FAQ**, Orden, Pregunta, Respuesta, checkbox **Activa** y Guardar/Actualizar.
-
-En Informe: Buscar, Nivel, Estado, Diagnóstico, Min. renders, Min. aperturas, Orden y **Aplicar filtros**. Incluye KPIs, calidad, diagnóstico editorial, cobertura e interacción. Limpiezas: **Eliminar copias seleccionadas**, **Eliminar todas las copias**, **Eliminar copias del grupo**, **Eliminar seleccionadas** y **Eliminar todas las huérfanas**.
-
 ## Estado del servidor
 
 Pestañas: **Resumen**, **PHP**, **MySQL**, **WordPress**, **Seguridad**, **Servidor**, **WooCommerce**, **Rendimiento**, **Logs**.
@@ -154,9 +147,72 @@ El **chequeo completo** guarda una nueva fotografía MySQL. La exportación JSON
 
 ## Plugin Validation
 
-Pestañas: **Resumen**, **Integridad del código**, **Chequeos avanzados**, **Configuración**.
+Pestañas: **Resumen**, **Integridad del código**, **Operación y tienda**, **SEO, datos y contenido** y **Configuración**.
+
+### Resumen ejecutivo
+
+**Resumen** es el cuadro de mando de Plugin Validation. No vuelve a ejecutar pruebas: reutiliza la última validación persistida y muestra de un vistazo:
+
+- estado y puntuación global;
+- críticos, importantes, avisos y pruebas correctas;
+- cobertura de la validación;
+- confianza media de las evidencias;
+- estado agregado de **Integridad del código**, **Operación y tienda** y **SEO, datos y contenido**;
+- KPIs por área: score, críticos/importantes/avisos, correctos/evaluables y cobertura;
+- incidencias prioritarias que requieren atención;
+- acceso al informe técnico completo, PDF/JSON y Configuración.
+
+Las tarjetas del resumen son navegables: al pulsar un área se abre directamente su detalle sin volver a ejecutar la suite.
+
+### División de chequeos
+
+**Integridad del código** concentra inventario PHP, sintaxis, funciones, tipos, hooks, puntos de entrada, duplicados y compatibilidad WordPress.org.
+
+**Operación y tienda** reúne:
+
+- funcionamiento público;
+- responsive y calidad visual;
+- enlaces y 404;
+- entorno del plugin;
+- plantillas;
+- catálogo;
+- compra;
+- correos;
+- chequeos técnicos y de procesos.
+
+**SEO, datos y contenido** reúne:
+
+- datos internos SEO Core;
+- Data Layer y Action Scheduler;
+- contenido y semántica.
+
+Los enlaces antiguos a **Chequeos avanzados** siguen siendo compatibles y se redirigen a la nueva organización.
 
 Acciones: **Ejecutar validación completa**, **Ejecutar siguiente bloque**, repetir los bloques de auditoría 404, **Reiniciar auditoría**, **Actualizar chequeos pasivos** y **Ejecutar prueba transaccional controlada**. En diagnósticos hay checkbox de autorización para envío automático, **Guardar autorización** y **Enviar ahora el último diagnóstico**.
+
+### Compatibilidad WordPress.org
+
+**Integridad del código** incorpora un scanner estático de solo lectura inspirado en Plugin Check y en las revisiones del WordPress.org Plugins Team. Su objetivo es detectar antes de empaquetar una versión pública los patrones que suelen bloquear una revisión.
+
+Comprueba, entre otros:
+
+- coherencia de `Version`, `SEO_SYSTEM_VERSION`, `Stable tag`, `Tested up to`, tags y descripción corta;
+- archivos `.bak`, dumps, logs o comprimidos que no deberían distribuirse;
+- etiquetas `<script>` / `<style>` directas y assets remotos;
+- uso de `move_uploaded_file()`;
+- acceso `mysqli_*` que requiere revisión;
+- superglobales sin sanitización evidente y nonces sin sanitizar;
+- endpoints REST declarados públicos para confirmar que su exposición es intencionada;
+- rutas hardcodeadas, referencias manuales a `wp-load.php` y PHP sin guardia `ABSPATH`;
+- shortcodes globales sin prefijo distintivo;
+- text domains incorrectos o ausentes;
+- JSON embebido con opciones de escaping riesgosas;
+- escrituras de archivos cuya ubicación debe comprobarse;
+- dominios de servicios externos detectados en el código que no aparecen documentados en `readme.txt`.
+
+Los chequeos concluyentes se marcan como error. Los patrones heurísticos se muestran como **Revisar**, porque requieren contexto y pueden tener excepciones legítimas. Cada hallazgo conserva archivo, línea, regla y detalle para facilitar la corrección.
+
+El scanner se ejecuta dentro de **Ejecutar validación completa**, por lo que también queda incluido en los informes técnicos/JSON. El objetivo operativo es que una release destinada al directorio de WordPress.org no se considere lista mientras estos controles tengan incidencias relevantes.
 
 ## Menu Manager
 

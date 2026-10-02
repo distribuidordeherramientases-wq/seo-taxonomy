@@ -47,6 +47,18 @@ if (
    CABECERA Y ESTILOS COMPARTIDOS
 ========================================================== */
 
+/*
+ * Las combinaciones de filtros son navegación de usuario, no landings SEO.
+ * Se mantienen rastreables pero fuera del índice para evitar URLs facetadas.
+ */
+if (function_exists('dht_template_category_has_filter_query') && dht_template_category_has_filter_query()) {
+    add_filter('wp_robots', static function ($robots) {
+        $robots['noindex'] = true;
+        $robots['follow'] = true;
+        return $robots;
+    });
+}
+
 dht_template_render_header();
 
 
@@ -89,6 +101,15 @@ $category_description = (string) $wpdb->get_var(
         $term->term_id
     )
 );
+
+$category_description_plain = trim(wp_strip_all_tags($category_description));
+$category_description_words = $category_description_plain !== ''
+    ? preg_split('/\s+/u', $category_description_plain, -1, PREG_SPLIT_NO_EMPTY)
+    : array();
+$category_description_has_more = count((array) $category_description_words) > 42;
+$category_description_preview = $category_description_plain !== ''
+    ? wp_trim_words($category_description_plain, 42, '…')
+    : '';
 
 $category_tags = array_values(
     array_filter(
@@ -237,7 +258,7 @@ $json = array(
 <!-- DHT CATEGORY ORDER V2 2026-09-06 -->
 
 <script type="application/ld+json" id="dht-schema-category">
-<?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+<?php echo wp_json_encode($json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>
 
 
@@ -282,6 +303,21 @@ $json = array(
 
                     <?php endif; ?>
 
+                    <?php if ($category_description_preview !== '') : ?>
+                        <div class="dht-category-description-inline">
+                            <span class="dht-category-description-kicker">Sobre esta categoría</span>
+                            <p><?php echo esc_html($category_description_preview); ?></p>
+                            <?php if ($category_description_has_more) : ?>
+                                <details>
+                                    <summary>Ver descripción completa</summary>
+                                    <div class="dht-category-description-inline__full">
+                                        <?php echo wp_kses_post($category_description); ?>
+                                    </div>
+                                </details>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="dht-category-hero-meta" aria-label="Resumen de la categoría">
                         <span><strong><?php echo esc_html(number_format_i18n((int) $term->count)); ?></strong> productos</span>
                         <span>Comparación disponible</span>
@@ -302,7 +338,7 @@ $json = array(
 
                             <div class="dht-category-tags">
 
-                                <?php foreach($category_tags as $category_tag): ?>
+                                <?php foreach(array_slice($category_tags, 0, 8) as $category_tag): ?>
 
                                     <span class="dht-category-tag">
                                         <?php echo esc_html($category_tag); ?>
@@ -324,99 +360,82 @@ $json = array(
 
     </section>
 
+
     <!-- =====================================================
-         PRODUCTOS DE LA CATEGORÍA
+         CATÁLOGO FACETADO · MÓVIL
     ====================================================== -->
 
     <?php
-    $category_products = null;
-    $grid_products = array();
+    $category_catalog = function_exists('dht_template_category_catalog_state')
+        ? dht_template_category_catalog_state($term->term_id, 20)
+        : array(
+            'products' => array(),
+            'total' => 0,
+            'all_count' => 0,
+            'active_count' => 0,
+            'facets' => array(),
+        );
+
+    $grid_products = (array) ($category_catalog['products'] ?? array());
     $category_choice_criteria = array();
 
-    try {
-        $category_products = new WP_Query([
-            'post_type'      => 'product',
-            'post_status'    => 'publish',
-            'posts_per_page' => 12,
-            'orderby'        => [
-                'menu_order' => 'ASC',
-                'date'       => 'DESC',
-            ],
-            'tax_query'      => [
-                [
-                    'taxonomy'         => 'product_cat',
-                    'field'            => 'term_id',
-                    'terms'            => [$term->term_id],
-                    'include_children' => true,
-                ],
-            ],
-        ]);
-
-        if ($category_products instanceof WP_Query && $category_products->have_posts()) {
-            foreach ((array) $category_products->posts as $product_post) {
-                try {
-                    $grid_product = function_exists('wc_get_product') ? wc_get_product($product_post->ID) : null;
-                    if ($grid_product && is_a($grid_product, 'WC_Product')) {
-                        $grid_products[] = $grid_product;
-                    }
-                } catch (Throwable $e) {
-                    error_log('[DHT category] wc_get_product fallo ID ' . (int) $product_post->ID . ': ' . $e->getMessage());
-                }
-            }
-
-            if (function_exists('dht_template_category_choice_criteria')) {
-                try {
-                    $category_choice_criteria = (array) dht_template_category_choice_criteria($grid_products, 6);
-                } catch (Throwable $e) {
-                    error_log('[DHT category] choice_criteria: ' . $e->getMessage());
-                    $category_choice_criteria = array();
-                }
-            }
-
-            if (function_exists('wc_set_loop_prop')) {
-                wc_set_loop_prop('columns', 2);
-                wc_set_loop_prop('total', $category_products->post_count);
-            }
+    if ($grid_products && function_exists('dht_template_category_choice_criteria')) {
+        try {
+            $category_choice_criteria = (array) dht_template_category_choice_criteria($grid_products, 5);
+        } catch (Throwable $e) {
+            error_log('[DHT category] choice_criteria: ' . $e->getMessage());
         }
-    } catch (Throwable $e) {
-        error_log('[DHT category] preparacion productos: ' . $e->getMessage());
-        $category_products = null;
-        $grid_products = array();
-        $category_choice_criteria = array();
+    }
+
+    if (function_exists('wc_set_loop_prop')) {
+        wc_set_loop_prop('columns', 2);
+        wc_set_loop_prop('total', count($grid_products));
     }
     ?>
 
-    <?php if($category_products instanceof WP_Query && $category_products->have_posts()): ?>
+    <section id="dht-category-products" class="dht-section dht-category-products dht-category-products--faceted">
+        <div class="dht-container">
 
-        <section id="dht-category-products" class="dht-section dht-category-products">
+            <?php if (function_exists('dht_template_render_category_toolbar')) : ?>
+                <?php dht_template_render_category_toolbar($category_catalog, $term->name); ?>
+            <?php endif; ?>
 
-            <div class="dht-container">
+            <details class="dht-category-mobile-filters" <?php echo !empty($category_catalog['active_count']) ? 'open' : ''; ?>>
+                <summary>
+                    <span>Filtrar productos</span>
+                    <?php if (!empty($category_catalog['active_count'])) : ?>
+                        <strong><?php echo esc_html((string) $category_catalog['active_count']); ?></strong>
+                    <?php endif; ?>
+                </summary>
+                <div class="dht-category-mobile-filters__body">
+                    <?php
+                    if (function_exists('dht_template_render_category_filter_form')) {
+                        dht_template_render_category_filter_form($category_catalog, 'mobile');
+                    }
+                    ?>
+                </div>
+            </details>
 
-                <div class="dht-category-products-panel dht-mobile-products-panel">
+            <?php
+            if (function_exists('dht_template_render_category_active_filters')) {
+                dht_template_render_category_active_filters($category_catalog);
+            }
+            ?>
 
-                    <header class="dht-section-header">
+            <div class="dht-category-products-panel dht-mobile-products-panel dht-category-products-panel--faceted">
 
-                        <h2 class="dht-section-title">
-                            Productos de <?php echo esc_html($term->name); ?>
-                        </h2>
+                <?php if (!empty($category_choice_criteria)) : ?>
+                    <div class="dht-category-choice-criteria" aria-label="Criterios de comparación presentes en los productos">
+                        <strong>Compara especialmente</strong>
+                        <div class="dht-category-choice-criteria__items">
+                            <?php foreach ($category_choice_criteria as $criterion) : ?>
+                                <span><?php echo esc_html($criterion); ?></span>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
-                        <p class="dht-section-subtitle">
-                            Compara opciones del catálogo y revisa las características que diferencian cada referencia.
-                        </p>
-
-                        <?php if (!empty($category_choice_criteria)) : ?>
-                            <div class="dht-category-choice-criteria" aria-label="Criterios de comparación presentes en los productos">
-                                <strong>Compara especialmente</strong>
-                                <div class="dht-category-choice-criteria__items">
-                                    <?php foreach ($category_choice_criteria as $criterion) : ?>
-                                        <span><?php echo esc_html($criterion); ?></span>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-
-                    </header>
-
+                <?php if ($grid_products) : ?>
                     <?php
                     if (function_exists('dht_shared_render_product_grid')) {
                         try {
@@ -427,13 +446,23 @@ $json = array(
                     }
                     ?>
 
-                </div>
+                    <?php
+                    if (function_exists('dht_template_render_category_pagination')) {
+                        dht_template_render_category_pagination($category_catalog);
+                    }
+                    ?>
+                <?php else : ?>
+                    <div class="dht-category-no-results">
+                        <strong>No hay productos con estos filtros.</strong>
+                        <p>Quita algún filtro para ampliar los resultados.</p>
+                        <a class="dht-btn dht-btn-primary" href="<?php echo esc_url($category_catalog['base_url'] ?? get_term_link($term)); ?>">Ver todos los productos</a>
+                    </div>
+                <?php endif; ?>
 
             </div>
 
-        </section>
-
-    <?php endif; ?>
+        </div>
+    </section>
 
     <?php wp_reset_postdata(); ?>
 
@@ -444,27 +473,17 @@ $json = array(
     </section>
 
     <!-- =====================================================
-         DESCRIPCIÓN DE LA CATEGORÍA
+         CONTENIDO CONTEXTUAL PERSISTIDO
+         Seleccion y render centralizados en template-helpers.php.
+         No usa categorias editoriales del blog ni etiquetas.
     ====================================================== -->
 
-    <?php if(!empty($category_description)): ?>
+    <?php
+    if (function_exists('dht_template_render_category_context_blocks')) {
+        dht_template_render_category_context_blocks($term->term_id);
+    }
+    ?>
 
-        <section class="dht-section dht-category-description-section">
-
-            <div class="dht-container">
-
-                <div class="dht-category-description-card">
-                    <span class="dht-category-description-kicker">Sobre esta familia</span>
-                    <div class="dht-category-description">
-                        <?php echo wp_kses_post($category_description); ?>
-                    </div>
-                </div>
-
-            </div>
-
-        </section>
-
-    <?php endif; ?>
 
     <!-- =====================================================
          CATEGORÍAS RELACIONADAS
@@ -620,23 +639,6 @@ $json = array(
         </section>
 
     <?php endif; ?>
-
-
-    <!-- =====================================================
-         FAQS DE LA CATEGORÍA
-    ====================================================== -->
-
-    <?php
-    $faq_object_type = 2;
-    $faq_object_id   = $term->term_id;
-    $faq_ambito      = '';
-
-    $faq_template = __DIR__ . '/template-faq.php';
-
-    if(file_exists($faq_template)){
-        include $faq_template;
-    }
-    ?>
 
 
     <!-- =====================================================

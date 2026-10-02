@@ -138,6 +138,48 @@ function seo_ie_cf_record_for_channel( array $record, $channel ) {
 }
 
 /**
+ * Abre un stream local para generación incremental de feeds comerciales.
+ *
+ * WP_Filesystem no expone recursos compatibles con fputcsv(), fseek(),
+ * ftell() y fgetc(); por eso el recurso PHP queda encapsulado aquí.
+ *
+ * @param string $path Ruta local.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_ie_cf_stream_open( $path, $mode ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Incremental feed streaming requires a native PHP resource.
+    return @fopen( $path, $mode );
+}
+
+/**
+ * Escribe bytes en un stream comercial abierto.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param string   $data   Datos a escribir.
+ * @return int|false
+ */
+function seo_ie_cf_stream_write( $stream, $data ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Required for incremental XML/JSON feed streaming.
+    return fwrite( $stream, $data );
+}
+
+/**
+ * Cierra un stream comercial abierto.
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_ie_cf_stream_close( $stream ) {
+    if ( ! is_resource( $stream ) ) {
+        return false;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_ie_cf_stream_open() for resource-based streaming.
+    return fclose( $stream );
+}
+
+/**
  * Escribe la cabecera inicial de un canal.
  */
 function seo_ie_cf_channel_write_header( $channel, $path ) {
@@ -147,7 +189,7 @@ function seo_ie_cf_channel_write_header( $channel, $path ) {
     }
 
     $format = (string) $channels[ $channel ]['format'];
-    $handle = @fopen( $path, 'wb' );
+    $handle = seo_ie_cf_stream_open( $path, 'wb' );
     if ( ! $handle ) {
         return new WP_Error( 'seo_ie_cf_open_failed', 'No se pudo crear el archivo temporal del feed.' );
     }
@@ -155,28 +197,28 @@ function seo_ie_cf_channel_write_header( $channel, $path ) {
     if ( 'google_xml' === $format ) {
         $site_name = get_bloginfo( 'name' );
         $home      = home_url( '/' );
-        fwrite( $handle, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" );
-        fwrite( $handle, "<rss version=\"2.0\" xmlns:g=\"http://base.google.com/ns/1.0\">\n<channel>\n" );
-        fwrite( $handle, '<title>' . seo_ie_cf_xml( $site_name ) . "</title>\n" );
-        fwrite( $handle, '<link>' . seo_ie_cf_xml( $home ) . "</link>\n" );
-        fwrite( $handle, '<description>' . seo_ie_cf_xml( 'Catalogo comercial de ' . $site_name ) . "</description>\n" );
+        seo_ie_cf_stream_write( $handle, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" );
+        seo_ie_cf_stream_write( $handle, "<rss version=\"2.0\" xmlns:g=\"http://base.google.com/ns/1.0\">\n<channel>\n" );
+        seo_ie_cf_stream_write( $handle, '<title>' . seo_ie_cf_xml( $site_name ) . "</title>\n" );
+        seo_ie_cf_stream_write( $handle, '<link>' . seo_ie_cf_xml( $home ) . "</link>\n" );
+        seo_ie_cf_stream_write( $handle, '<description>' . seo_ie_cf_xml( 'Catalogo comercial de ' . $site_name ) . "</description>\n" );
     } elseif ( 'universal_json' === $format ) {
         $header = [
             'schema_version' => '1.0',
             'generated_at'   => gmdate( 'c' ),
             'source'         => home_url( '/' ),
         ];
-        fwrite( $handle, "{\n" );
-        fwrite( $handle, '  "schema_version": ' . wp_json_encode( $header['schema_version'] ) . ",\n" );
-        fwrite( $handle, '  "generated_at": ' . wp_json_encode( $header['generated_at'] ) . ",\n" );
-        fwrite( $handle, '  "source": ' . wp_json_encode( $header['source'], JSON_UNESCAPED_SLASHES ) . ",\n" );
-        fwrite( $handle, "  \"products\": [\n" );
+        seo_ie_cf_stream_write( $handle, "{\n" );
+        seo_ie_cf_stream_write( $handle, '  "schema_version": ' . wp_json_encode( $header['schema_version'] ) . ",\n" );
+        seo_ie_cf_stream_write( $handle, '  "generated_at": ' . wp_json_encode( $header['generated_at'] ) . ",\n" );
+        seo_ie_cf_stream_write( $handle, '  "source": ' . wp_json_encode( $header['source'], JSON_UNESCAPED_SLASHES ) . ",\n" );
+        seo_ie_cf_stream_write( $handle, "  \"products\": [\n" );
     } else {
         $delimiter = 'microsoft_tsv' === $format ? "\t" : ',';
         fputcsv( $handle, seo_ie_cf_channel_columns( $channel ), $delimiter, '"', '\\' );
     }
 
-    fclose( $handle );
+    seo_ie_cf_stream_close( $handle );
     return true;
 }
 
@@ -190,7 +232,7 @@ function seo_ie_cf_channel_append_record( $channel, $path, array $record ) {
     }
 
     $format = (string) $channels[ $channel ]['format'];
-    $handle = @fopen( $path, 'ab' );
+    $handle = seo_ie_cf_stream_open( $path, 'ab' );
     if ( ! $handle ) {
         return new WP_Error( 'seo_ie_cf_append_failed', 'No se pudo escribir en el feed temporal.' );
     }
@@ -203,13 +245,13 @@ function seo_ie_cf_channel_append_record( $channel, $path, array $record ) {
             'shipping_weight',
         ];
 
-        fwrite( $handle, "<item>\n" );
+        seo_ie_cf_stream_write( $handle, "<item>\n" );
         foreach ( $fields as $field ) {
             if ( 'additional_image_link' === $field ) {
                 foreach ( (array) ( $record['additional_images'] ?? [] ) as $additional_url ) {
                     $additional_url = trim( (string) $additional_url );
                     if ( '' !== $additional_url ) {
-                        fwrite( $handle, '<g:additional_image_link>' . seo_ie_cf_xml( $additional_url ) . "</g:additional_image_link>\n" );
+                        seo_ie_cf_stream_write( $handle, '<g:additional_image_link>' . seo_ie_cf_xml( $additional_url ) . "</g:additional_image_link>\n" );
                     }
                 }
                 continue;
@@ -219,29 +261,29 @@ function seo_ie_cf_channel_append_record( $channel, $path, array $record ) {
             if ( '' === $value ) {
                 continue;
             }
-            fwrite( $handle, '<g:' . $field . '>' . seo_ie_cf_xml( $value ) . '</g:' . $field . ">\n" );
+            seo_ie_cf_stream_write( $handle, '<g:' . $field . '>' . seo_ie_cf_xml( $value ) . '</g:' . $field . ">\n" );
         }
-        fwrite( $handle, "</item>\n" );
+        seo_ie_cf_stream_write( $handle, "</item>\n" );
     } elseif ( 'universal_json' === $format ) {
         if ( seo_ie_cf_json_has_records( $path ) ) {
-            fwrite( $handle, ",\n" );
+            seo_ie_cf_stream_write( $handle, ",\n" );
         }
         $json = wp_json_encode(
             $record,
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE
         );
         if ( false === $json ) {
-            fclose( $handle );
+            seo_ie_cf_stream_close( $handle );
             return new WP_Error( 'seo_ie_cf_json_encode', 'No se pudo serializar un producto al catalogo JSON.' );
         }
-        fwrite( $handle, '    ' . $json );
+        seo_ie_cf_stream_write( $handle, '    ' . $json );
     } else {
         $row       = seo_ie_cf_record_for_channel( $record, $channel );
         $delimiter = 'microsoft_tsv' === $format ? "\t" : ',';
         fputcsv( $handle, array_values( $row ), $delimiter, '"', '\\' );
     }
 
-    fclose( $handle );
+    seo_ie_cf_stream_close( $handle );
     return true;
 }
 
@@ -252,13 +294,13 @@ function seo_ie_cf_channel_append_record( $channel, $path, array $record ) {
  * ejecuta en una peticion distinta y no puede depender de estado estatico PHP.
  */
 function seo_ie_cf_json_has_records( $path ) {
-    $handle = @fopen( $path, 'rb' );
+    $handle = seo_ie_cf_stream_open( $path, 'rb' );
     if ( ! $handle ) {
         return false;
     }
 
     if ( 0 !== fseek( $handle, 0, SEEK_END ) ) {
-        fclose( $handle );
+        seo_ie_cf_stream_close( $handle );
         return false;
     }
 
@@ -272,11 +314,11 @@ function seo_ie_cf_json_has_records( $path ) {
         if ( false === $char || preg_match( '/\s/u', $char ) ) {
             continue;
         }
-        fclose( $handle );
+        seo_ie_cf_stream_close( $handle );
         return '[' !== $char;
     }
 
-    fclose( $handle );
+    seo_ie_cf_stream_close( $handle );
     return false;
 }
 
@@ -292,19 +334,19 @@ function seo_ie_cf_channel_finalize( $channel, $path ) {
     $format = (string) $channels[ $channel ]['format'];
 
     if ( 'google_xml' === $format ) {
-        $handle = @fopen( $path, 'ab' );
+        $handle = seo_ie_cf_stream_open( $path, 'ab' );
         if ( ! $handle ) {
             return new WP_Error( 'seo_ie_cf_finalize_failed', 'No se pudo cerrar el feed XML.' );
         }
-        fwrite( $handle, "</channel>\n</rss>\n" );
-        fclose( $handle );
+        seo_ie_cf_stream_write( $handle, "</channel>\n</rss>\n" );
+        seo_ie_cf_stream_close( $handle );
     } elseif ( 'universal_json' === $format ) {
-        $handle = @fopen( $path, 'ab' );
+        $handle = seo_ie_cf_stream_open( $path, 'ab' );
         if ( ! $handle ) {
             return new WP_Error( 'seo_ie_cf_finalize_failed', 'No se pudo cerrar el catalogo JSON.' );
         }
-        fwrite( $handle, "\n  ]\n}\n" );
-        fclose( $handle );
+        seo_ie_cf_stream_write( $handle, "\n  ]\n}\n" );
+        seo_ie_cf_stream_close( $handle );
     }
 
     return true;

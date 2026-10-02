@@ -122,7 +122,7 @@ if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
 if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
     function seo_proveedores_render_conexiones() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de proveedores.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de proveedores.', 'seo-taxonomy' ) );
         }
 
         $connections = seo_proveedores_api_connections();
@@ -647,7 +647,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
                         } elseif ( ! empty( $run['github_run_id'] ) ) {
                             $github_link = '#' . absint( $run['github_run_id'] );
                         }
-                        echo '<tr><td>' . esc_html( $run['updated_at'] ?? '' ) . '</td><td>' . esc_html( $run['provider'] ?? $run['recipe_id'] ?? '' ) . '</td><td><code>' . esc_html( $run['status'] ?? '' ) . '</code></td><td>' . esc_html( implode( ' · ', $progress_bits ) ) . '</td><td>' . esc_html( $run['message'] ?? '' ) . '</td><td>' . $github_link . '</td></tr>';
+                        echo '<tr><td>' . esc_html( $run['updated_at'] ?? '' ) . '</td><td>' . esc_html( $run['provider'] ?? $run['recipe_id'] ?? '' ) . '</td><td><code>' . esc_html( $run['status'] ?? '' ) . '</code></td><td>' . esc_html( implode( ' · ', $progress_bits ) ) . '</td><td>' . esc_html( $run['message'] ?? '' ) . '</td><td>' . wp_kses_post( $github_link ) . '</td></tr>';
                     }
                     echo '</tbody></table></div>';
                 }

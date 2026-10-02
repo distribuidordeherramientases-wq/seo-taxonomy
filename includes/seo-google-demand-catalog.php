@@ -1544,17 +1544,17 @@ function seo_google_render_demand_catalog() {
     submit_button('Aplicar', 'secondary', 'submit', false);
     echo '</div>';
     echo '</form>';
-    echo '<p class="description" style="margin-bottom:0;"><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code> frente a <code>' . esc_html($period['previous_from']) . '</code> → <code>' . esc_html($period['previous_to']) . '</code>. Se procesaron ' . number_format_i18n($report['source_rows']) . ' pares consulta+URL agregados.</p>';
+    echo '<p class="description" style="margin-bottom:0;"><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code> frente a <code>' . esc_html($period['previous_from']) . '</code> → <code>' . esc_html($period['previous_to']) . '</code>. Se procesaron ' . esc_html(number_format_i18n($report['source_rows'])) . ' pares consulta+URL agregados.</p>';
 
     $diag = isset($report['diagnostics']) && is_array($report['diagnostics']) ? $report['diagnostics'] : array();
     echo '<div style="margin-top:12px;padding:10px 12px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;">';
     echo '<strong>Diagnostico de datos almacenados:</strong> ';
-    echo number_format_i18n(absint($diag['stored_rows'] ?? 0)) . ' filas totales · ';
-    echo number_format_i18n(absint($diag['current_rows'] ?? 0)) . ' filas en periodo actual · ';
-    echo number_format_i18n(absint($diag['current_pairs'] ?? 0)) . ' pares actuales sin filtro · ';
-    echo number_format_i18n(absint($report['source_rows'])) . ' pares tras filtro · ';
-    echo number_format_i18n(absint($report['mapped_pairs'] ?? 0)) . ' mapeados · ';
-    echo number_format_i18n(absint($report['unmapped_pairs'] ?? 0)) . ' sin mapear.';
+    echo esc_html(number_format_i18n(absint($diag['stored_rows'] ?? 0))) . ' filas totales · ';
+    echo esc_html(number_format_i18n(absint($diag['current_rows'] ?? 0))) . ' filas en periodo actual · ';
+    echo esc_html(number_format_i18n(absint($diag['current_pairs'] ?? 0))) . ' pares actuales sin filtro · ';
+    echo esc_html(number_format_i18n(absint($report['source_rows']))) . ' pares tras filtro · ';
+    echo esc_html(number_format_i18n(absint($report['mapped_pairs'] ?? 0))) . ' mapeados · ';
+    echo esc_html(number_format_i18n(absint($report['unmapped_pairs'] ?? 0))) . ' sin mapear.';
     if (!empty($diag['latest_date'])) {
         echo ' Ultimo dato: <code>' . esc_html($diag['latest_date']) . '</code>.';
     }
@@ -1587,20 +1587,20 @@ function seo_google_render_demand_catalog() {
             if (!empty($item['dimension_labels'])) {
                 $parts = array();
                 foreach ($item['dimension_labels'] as $dim) { $parts[] = esc_html($dim['label']); }
-                echo implode('<br>', array_slice($parts, 0, 5));
+                echo wp_kses_post(implode('<br>', array_slice($parts, 0, 5)));
             } else {
                 echo '<small>Sin atributo concreto suficiente; revisar subintenciones.</small>';
             }
             echo '</td>';
-            echo '<td>' . number_format_i18n($item['impressions'], 0) . '</td>';
-            echo '<td><strong>' . number_format_i18n($item['actionable'], 0) . '</strong></td>';
-            echo '<td>' . ($item['position'] > 0 ? number_format_i18n($item['position'], 1) : '—') . '</td>';
+            echo '<td>' . esc_html(number_format_i18n($item['impressions'], 0)) . '</td>';
+            echo '<td><strong>' . esc_html(number_format_i18n($item['actionable'], 0)) . '</strong></td>';
+            echo '<td>' . ($item['position'] > 0 ? esc_html(number_format_i18n($item['position'], 1)) : '—') . '</td>';
             echo '<td>' . esc_html(seo_google_demand_format_trend($item['trend'])) . '</td>';
             echo '<td>';
             if ('Categoria' === $item['kind']) {
-                echo number_format_i18n($item['products']) . ' productos';
+                echo esc_html(number_format_i18n($item['products'])) . ' productos';
             } elseif (!empty($item['suggested_category'])) {
-                echo 'Posible relacion: <strong>' . esc_html($item['suggested_category']['name']) . '</strong><br><small>similitud ' . number_format_i18n($item['suggested_category']['score'] * 100, 0) . '%; revisar manualmente</small>';
+                echo 'Posible relacion: <strong>' . esc_html($item['suggested_category']['name']) . '</strong><br><small>similitud ' . esc_html(number_format_i18n($item['suggested_category']['score'] * 100, 0)) . '%; revisar manualmente</small>';
             } else {
                 echo 'Sin categoria clara';
             }
@@ -1611,7 +1611,7 @@ function seo_google_render_demand_catalog() {
             if (!empty($item['evidence'])) {
                 echo '<details style="margin-top:6px;"><summary>Consultas que lo justifican</summary><ol style="margin:7px 0 0 18px;">';
                 foreach ($item['evidence'] as $ev) {
-                    echo '<li><strong>' . esc_html($ev['query']) . '</strong> <small>(' . number_format_i18n($ev['impressions'], 0) . ' imp.)</small></li>';
+                    echo '<li><strong>' . esc_html($ev['query']) . '</strong> <small>(' . esc_html(number_format_i18n($ev['impressions'], 0)) . ' imp.)</small></li>';
                 }
                 echo '</ol></details>';
             }
@@ -1644,27 +1644,27 @@ function seo_google_render_demand_catalog() {
             echo '<br><a href="' . esc_url($term_link) . '" target="_blank" rel="noopener noreferrer"><small>Abrir categoria</small></a>';
         }
         echo '</td>';
-        echo '<td style="min-width:150px;">' . seo_google_demand_badge($category['recommendation']);
+        echo '<td style="min-width:150px;">' . wp_kses_post(seo_google_demand_badge($category['recommendation']));
         echo '<br><small title="' . esc_attr($category['recommendation_note']) . '">' . esc_html($category['recommendation_note']) . '</small></td>';
-        echo '<td>' . number_format_i18n($category['product_count']) . '</td>';
-        echo '<td>' . number_format_i18n($category['impressions'], 0) . '</td>';
-        echo '<td><strong>' . number_format_i18n($category['actionable_impressions'], 0) . '</strong></td>';
-        echo '<td>' . number_format_i18n($category['specificity'] * 100, 0) . '%</td>';
-        echo '<td>' . number_format_i18n($category['clicks'], 0) . '</td>';
-        echo '<td>' . number_format_i18n($category['ctr'] * 100, 2) . '%</td>';
-        echo '<td>' . ($category['position'] > 0 ? number_format_i18n($category['position'], 1) : '—') . '</td>';
+        echo '<td>' . esc_html(number_format_i18n($category['product_count'])) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n($category['impressions'], 0)) . '</td>';
+        echo '<td><strong>' . esc_html(number_format_i18n($category['actionable_impressions'], 0)) . '</strong></td>';
+        echo '<td>' . esc_html(number_format_i18n($category['specificity'] * 100, 0)) . '%</td>';
+        echo '<td>' . esc_html(number_format_i18n($category['clicks'], 0)) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n($category['ctr'] * 100, 2)) . '%</td>';
+        echo '<td>' . ($category['position'] > 0 ? esc_html(number_format_i18n($category['position'], 1)) : '—') . '</td>';
         echo '<td>' . esc_html(seo_google_demand_format_trend($category['trend'])) . '</td>';
-        echo '<td>' . number_format_i18n($category['query_count']) . ' / ' . number_format_i18n($category['landing_count']);
-        echo '<br><small>' . number_format_i18n($category['product_landing_count']) . ' prod. · ' . number_format_i18n($category['category_landing_count']) . ' cat.</small></td>';
+        echo '<td>' . esc_html(number_format_i18n($category['query_count'])) . ' / ' . esc_html(number_format_i18n($category['landing_count']));
+        echo '<br><small>' . esc_html(number_format_i18n($category['product_landing_count'])) . ' prod. · ' . esc_html(number_format_i18n($category['category_landing_count'])) . ' cat.</small></td>';
         echo '<td style="min-width:360px;">';
 
         if ($category['top_queries']) {
             echo '<details><summary>Ver consultas principales</summary><ol style="margin:8px 0 0 18px;">';
             foreach ($category['top_queries'] as $query) {
                 echo '<li style="margin-bottom:8px;"><strong>' . esc_html($query['query']) . '</strong><br><small>';
-                echo number_format_i18n($query['impressions'], 0) . ' imp. · ';
-                echo number_format_i18n($query['clicks'], 0) . ' clics · accionabilidad ';
-                echo esc_html($query['quality_label']) . ' (' . number_format_i18n($query['quality'] * 100, 0) . '%)';
+                echo esc_html(number_format_i18n($query['impressions'], 0)) . ' imp. · ';
+                echo esc_html(number_format_i18n($query['clicks'], 0)) . ' clics · accionabilidad ';
+                echo esc_html($query['quality_label']) . ' (' . esc_html(number_format_i18n($query['quality'] * 100, 0)) . '%)';
                 echo '</small></li>';
             }
             echo '</ol></details>';
@@ -1693,20 +1693,20 @@ function seo_google_render_demand_catalog() {
             echo '<td><strong style="font-size:20px;">' . absint($cluster['score']) . '</strong><small>/100</small></td>';
             echo '<td style="min-width:210px;"><strong>' . esc_html($cluster['label']) . '</strong></td>';
             echo '<td style="min-width:190px;"><strong>' . esc_html($cluster['decision']) . '</strong><br><small>' . esc_html($cluster['decision_note']) . '</small></td>';
-            echo '<td>' . number_format_i18n($cluster['impressions'], 0) . '</td>';
-            echo '<td><strong>' . number_format_i18n($cluster['actionable_impressions'], 0) . '</strong></td>';
-            echo '<td>' . number_format_i18n($cluster['quality'] * 100, 0) . '%</td>';
-            echo '<td>' . ($cluster['position'] > 0 ? number_format_i18n($cluster['position'], 1) : '—') . '</td>';
+            echo '<td>' . esc_html(number_format_i18n($cluster['impressions'], 0)) . '</td>';
+            echo '<td><strong>' . esc_html(number_format_i18n($cluster['actionable_impressions'], 0)) . '</strong></td>';
+            echo '<td>' . esc_html(number_format_i18n($cluster['quality'] * 100, 0)) . '%</td>';
+            echo '<td>' . ($cluster['position'] > 0 ? esc_html(number_format_i18n($cluster['position'], 1)) : '—') . '</td>';
             echo '<td>' . esc_html(seo_google_demand_format_trend($cluster['trend'])) . '</td>';
             echo '<td>';
             if (!empty($cluster['suggested_category'])) {
-                echo '<strong>' . esc_html($cluster['suggested_category']['name']) . '</strong><br><small>Similitud lexical ' . number_format_i18n($cluster['suggested_category']['score'] * 100, 0) . '%. Solo pista.</small>';
+                echo '<strong>' . esc_html($cluster['suggested_category']['name']) . '</strong><br><small>Similitud lexical ' . esc_html(number_format_i18n($cluster['suggested_category']['score'] * 100, 0)) . '%. Solo pista.</small>';
             } else {
                 echo '—';
             }
-            echo '</td><td style="min-width:330px;"><details><summary>' . number_format_i18n($cluster['query_count']) . ' consulta(s) principal(es)</summary><ol style="margin:8px 0 0 18px;">';
+            echo '</td><td style="min-width:330px;"><details><summary>' . esc_html(number_format_i18n($cluster['query_count'])) . ' consulta(s) principal(es)</summary><ol style="margin:8px 0 0 18px;">';
             foreach ($cluster['queries'] as $query) {
-                echo '<li style="margin-bottom:6px;"><strong>' . esc_html($query['query']) . '</strong><br><small>' . number_format_i18n($query['impressions'], 0) . ' imp. · accionabilidad ' . number_format_i18n($query['quality'] * 100, 0) . '%</small></li>';
+                echo '<li style="margin-bottom:6px;"><strong>' . esc_html($query['query']) . '</strong><br><small>' . esc_html(number_format_i18n($query['impressions'], 0)) . ' imp. · accionabilidad ' . esc_html(number_format_i18n($query['quality'] * 100, 0)) . '%</small></li>';
             }
             echo '</ol></details></td></tr>';
         }
@@ -1725,19 +1725,19 @@ function seo_google_render_demand_catalog() {
         foreach ($unmapped_queries as $query) {
             echo '<tr>';
             echo '<td style="min-width:260px;"><strong>' . esc_html($query['query']) . '</strong></td>';
-            echo '<td>' . number_format_i18n($query['impressions'], 0) . '</td>';
-            echo '<td><strong>' . number_format_i18n($query['actionable_impressions'], 0) . '</strong></td>';
-            echo '<td>' . number_format_i18n($query['quality'] * 100, 0) . '%</td>';
-            echo '<td>' . number_format_i18n($query['clicks'], 0) . '</td>';
-            echo '<td>' . number_format_i18n($query['ctr'] * 100, 2) . '%</td>';
-            echo '<td>' . ($query['position'] > 0 ? number_format_i18n($query['position'], 1) : '—') . '</td>';
+            echo '<td>' . esc_html(number_format_i18n($query['impressions'], 0)) . '</td>';
+            echo '<td><strong>' . esc_html(number_format_i18n($query['actionable_impressions'], 0)) . '</strong></td>';
+            echo '<td>' . esc_html(number_format_i18n($query['quality'] * 100, 0)) . '%</td>';
+            echo '<td>' . esc_html(number_format_i18n($query['clicks'], 0)) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n($query['ctr'] * 100, 2)) . '%</td>';
+            echo '<td>' . ($query['position'] > 0 ? esc_html(number_format_i18n($query['position'], 1)) : '—') . '</td>';
             echo '<td>' . esc_html(seo_google_demand_format_trend($query['trend'])) . '</td>';
             echo '<td style="min-width:380px;">';
             if (!empty($query['pages'])) {
-                echo '<details><summary>' . number_format_i18n($query['page_count']) . ' landing(s)</summary><ul style="margin:8px 0 0 18px;">';
+                echo '<details><summary>' . esc_html(number_format_i18n($query['page_count'])) . ' landing(s)</summary><ul style="margin:8px 0 0 18px;">';
                 foreach ($query['pages'] as $page) {
                     echo '<li style="margin-bottom:7px;"><a href="' . esc_url($page['url']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($page['url']) . '</a><br><small>';
-                    echo esc_html(seo_google_demand_landing_type($page['url'])) . ' · ' . number_format_i18n($page['impressions'], 0) . ' imp. · ' . number_format_i18n($page['clicks'], 0) . ' clics';
+                    echo esc_html(seo_google_demand_landing_type($page['url'])) . ' · ' . esc_html(number_format_i18n($page['impressions'], 0)) . ' imp. · ' . esc_html(number_format_i18n($page['clicks'], 0)) . ' clics';
                     echo '</small></li>';
                 }
                 echo '</ul></details>';

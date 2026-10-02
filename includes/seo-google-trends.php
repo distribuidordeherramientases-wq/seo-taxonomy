@@ -154,7 +154,7 @@ function seo_google_trends_get_settings() {
 
 function seo_google_trends_save_settings_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para configurar Google Trends.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para configurar Google Trends.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_google_trends_save_settings', 'seo_google_trends_settings_nonce');
@@ -1850,7 +1850,7 @@ function seo_google_trends_sync($force = false, $limit = 0) {
 
 function seo_google_trends_sync_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para actualizar Google Trends.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para actualizar Google Trends.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_google_trends_sync', 'seo_google_trends_sync_nonce');
 
@@ -1974,7 +1974,7 @@ function seo_google_trends_detect_delimiter($handle) {
 
 function seo_google_trends_import_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para importar Google Trends.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para importar Google Trends.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_google_trends_import', 'seo_google_trends_nonce');
     seo_google_trends_maybe_install();
@@ -2074,7 +2074,7 @@ function seo_google_trends_import_handler() {
 
 function seo_google_trends_clear_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para borrar Google Trends.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para borrar Google Trends.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_google_trends_clear', 'seo_google_trends_clear_nonce');
 
@@ -2431,9 +2431,9 @@ function seo_google_render_trends_market() {
 
     $notice = sanitize_key(wp_unslash($_GET['trends_notice'] ?? ''));
     if ('synced' === $notice) {
-        echo '<div class="notice notice-success inline"><p>Actualizacion completada: radar ' . number_format_i18n(absint($_GET['fetched'] ?? 0)) . ' recibidas / ' . number_format_i18n(absint($_GET['relevant'] ?? 0)) . ' relacionadas; mercado publico ' . number_format_i18n(absint($_GET['market_rows'] ?? 0)) . ' señales nuevas/actualizadas.</p></div>';
+        echo '<div class="notice notice-success inline"><p>Actualizacion completada: radar ' . esc_html(number_format_i18n(absint($_GET['fetched'] ?? 0))) . ' recibidas / ' . esc_html(number_format_i18n(absint($_GET['relevant'] ?? 0))) . ' relacionadas; mercado publico ' . esc_html(number_format_i18n(absint($_GET['market_rows'] ?? 0))) . ' señales nuevas/actualizadas.</p></div>';
     } elseif ('imported' === $notice) {
-        echo '<div class="notice notice-success inline"><p>CSV importado: ' . number_format_i18n(absint($_GET['rows'] ?? 0)) . ' señales procesadas.</p></div>';
+        echo '<div class="notice notice-success inline"><p>CSV importado: ' . esc_html(number_format_i18n(absint($_GET['rows'] ?? 0))) . ' señales procesadas.</p></div>';
     } elseif ('cleared' === $notice) {
         echo '<div class="notice notice-success inline"><p>Se han eliminado las señales almacenadas de Trends.</p></div>';
     } elseif ('settings_saved' === $notice) {
@@ -2450,7 +2450,7 @@ function seo_google_render_trends_market() {
     $radar_badge = $status['radar']['connected']
         ? 'OPERATIVO'
         : ('error' === (string) ($status['radar']['status'] ?? '') ? 'ERROR DE DESCARGA' : 'PENDIENTE DE PRUEBA');
-    echo seo_google_trends_status_badge($status['radar']['connected'], $radar_badge);
+    echo wp_kses_post(seo_google_trends_status_badge($status['radar']['connected'], $radar_badge));
     echo '<p>' . esc_html($status['radar']['detail']) . '</p>';
     if (!empty($status['radar']['last_sync'])) {
         echo '<p class="seo-trends-muted">Última prueba: ' . esc_html($status['radar']['last_sync']) . '</p>';
@@ -2475,7 +2475,7 @@ function seo_google_render_trends_market() {
         $market_badge = 'PENDIENTE DE PRUEBA';
         $market_badge_connected = false;
     }
-    echo seo_google_trends_status_badge($market_badge_connected, $market_badge);
+    echo wp_kses_post(seo_google_trends_status_badge($market_badge_connected, $market_badge));
     echo '<p>' . esc_html($status['market']['detail']) . '</p>';
     if (!empty($status['market']['diagnostic_phase']) || !empty($status['market']['diagnostic_http']) || !empty($status['market']['diagnostic_endpoint'])) {
         echo '<p class="seo-trends-muted"><strong>Ultimo diagnostico tecnico:</strong> ';
@@ -2491,7 +2491,7 @@ function seo_google_render_trends_market() {
 
     $gsc_connected = function_exists('seo_google_connection_status') && 'connected' === seo_google_connection_status();
     echo '<div class="seo-trends-card"><h3>Search Console</h3>';
-    echo seo_google_trends_status_badge($gsc_connected, $gsc_connected ? 'CONECTADO' : 'REVISAR');
+    echo wp_kses_post(seo_google_trends_status_badge($gsc_connected, $gsc_connected ? 'CONECTADO' : 'REVISAR'));
     echo '<p>Se usa para saber dónde ya aparece vuestra web y con qué consultas. No alimenta el radar ni sustituye la demanda externa.</p>';
     if (function_exists('seo_google_admin_url')) {
         echo '<a class="button" href="' . esc_url(seo_google_admin_url('sync')) . '">Ver sincronización</a>';
@@ -2516,7 +2516,7 @@ function seo_google_render_trends_market() {
         echo '<span class="seo-trends-seed" title="' . esc_attr($item['source']) . '">' . esc_html($item['label']) . '</span>';
     }
     if (count($universe) > 40) {
-        echo '<span class="seo-trends-muted"> +' . number_format_i18n(count($universe) - 40) . ' áreas</span>';
+        echo '<span class="seo-trends-muted"> +' . esc_html(number_format_i18n(count($universe) - 40)) . ' áreas</span>';
     }
     echo '</div></div>';
 

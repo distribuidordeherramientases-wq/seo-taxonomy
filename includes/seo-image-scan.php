@@ -1465,6 +1465,13 @@ if (!function_exists('seo_images_scan_rest_results')) {
     }
 }
 
+if (!function_exists('seo_images_scan_rest_permission')) {
+    function seo_images_scan_rest_permission(WP_REST_Request $request) {
+        $authorized = seo_images_scan_auth_run($request);
+        return is_wp_error($authorized) ? $authorized : true;
+    }
+}
+
 if (!function_exists('seo_images_scan_register_rest_routes')) {
     function seo_images_scan_register_rest_routes() {
         // Los callbacks de GitHub no pasan por admin_init. Asegura la migración
@@ -1475,12 +1482,12 @@ if (!function_exists('seo_images_scan_register_rest_routes')) {
         register_rest_route('seo-system/v1', '/image-scan/batch', array(
             'methods' => WP_REST_Server::READABLE,
             'callback' => 'seo_images_scan_rest_batch',
-            'permission_callback' => '__return_true',
+            'permission_callback' => 'seo_images_scan_rest_permission',
         ));
         register_rest_route('seo-system/v1', '/image-scan/results', array(
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => 'seo_images_scan_rest_results',
-            'permission_callback' => '__return_true',
+            'permission_callback' => 'seo_images_scan_rest_permission',
         ));
     }
 }

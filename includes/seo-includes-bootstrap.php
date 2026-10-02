@@ -37,6 +37,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-core.php';
 */
 
 require_once SEO_SYSTEM_PATH . 'functions.php';
+require_once SEO_SYSTEM_PATH . 'includes/seo-file-uploads.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-text-utils.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-vocabulary-bridge.php';
 require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-health-scan.php';
@@ -145,8 +146,17 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-dashboard.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
 require_once SEO_SYSTEM_PATH . 'includes/analista/analista-bootstrap.php';
 
+// Comparador: inteligencia comparativa persistente por categoria y contrato para Solucionador.
+require_once SEO_SYSTEM_PATH . 'includes/comparador/comparador-bootstrap.php';
+
 // Solucionador: convierte senales de cliente/mercado en propuestas de posts y borradores clasificados.
 require_once SEO_SYSTEM_PATH . 'includes/solucionador/solucionador-bootstrap.php';
+
+// API neutral de cobertura editorial compartida por procesos especializados.
+require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-coverage.php';
+
+// Ingeniero: servicio técnico/editorial independiente de Dependiente.
+require_once SEO_SYSTEM_PATH . 'includes/ingeniero/ingeniero-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------

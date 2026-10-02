@@ -19,7 +19,11 @@ function seo_mail_template_dir() {
         return trailingslashit(seo_template_dir());
     }
 
-    return trailingslashit(WP_PLUGIN_DIR . '/seo-taxonomy/seo-system/templates/');
+    if (defined('SEO_SYSTEM_PATH')) {
+        return trailingslashit(SEO_SYSTEM_PATH . 'seo-system/templates');
+    }
+
+    return trailingslashit(dirname(__DIR__) . '/seo-system/templates');
 }
 
 function seo_mail_admin_url(array $args = []) {
@@ -388,24 +392,11 @@ function seo_mail_validate_php_upload(array $uploaded_file) {
 }
 
 function seo_mail_create_backup($file_path) {
-    if (!file_exists($file_path)) {
-        return new WP_Error('missing_file', 'No existe el archivo que se quiere respaldar.');
-    }
-
-    $info        = pathinfo($file_path);
-    $backup_name = $info['filename'] . '_mail_backup_' . date_i18n('Ymd_His') . '.php';
-    $backup_path = trailingslashit($info['dirname']) . $backup_name;
-
-    if (!copy($file_path, $backup_path)) {
-        return new WP_Error('backup_failed', 'No se pudo crear el backup.');
-    }
-
-    return $backup_name;
+    return new WP_Error(
+        'template_files_read_only',
+        'Las plantillas PHP incluidas en el plugin son de solo lectura y deben actualizarse mediante una nueva versión.'
+    );
 }
-
-/* =========================================================
-   GUARDAR ASIGNACIONES Y ESTADOS
-========================================================= */
 
 function seo_mail_handle_save_assignments() {
     global $wpdb;
@@ -510,132 +501,37 @@ function seo_mail_handle_save_library() {
 }
 
 function seo_mail_handle_replace_template() {
-    global $wpdb;
-
-    if (empty($_POST['seo_mail_replace_template'])) return;
+    if (empty($_POST['seo_mail_replace_template'])) {
+        return;
+    }
 
     check_admin_referer('seo_mail_replace_template', 'seo_mail_replace_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die('No tienes permisos para reemplazar plantillas.');
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
     }
 
-    $template_key = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
-    $template     = seo_mail_get_email_template($template_key);
-
-    if (!$template) {
-        seo_mail_redirect('La plantilla de correo no existe.', 'error');
-    }
-
-    $validation = seo_mail_validate_php_upload($_FILES['template_file'] ?? []);
-    if (is_wp_error($validation)) {
-        seo_mail_redirect($validation->get_error_message(), 'error');
-    }
-
-    $file_path = seo_mail_template_dir() . basename((string) $template->template_file);
-
-    if (!file_exists($file_path)) {
-        seo_mail_redirect('El archivo actual no existe. Registra o crea primero el archivo.', 'error');
-    }
-
-    if (!is_writable($file_path)) {
-        seo_mail_redirect('El archivo actual no tiene permisos de escritura.', 'error');
-    }
-
-    $backup = seo_mail_create_backup($file_path);
-    if (is_wp_error($backup)) {
-        seo_mail_redirect($backup->get_error_message(), 'error');
-    }
-
-    if (!move_uploaded_file($_FILES['template_file']['tmp_name'], $file_path)) {
-        seo_mail_redirect('No se pudo guardar la nueva plantilla. El backup se conserva.', 'error');
-    }
-
-    $wpdb->update(
-        seo_mail_templates_table_name(),
-        [
-            'template_content' => null,
-            'updated_at'       => current_time('mysql'),
-        ],
-        ['template_key' => $template_key],
-        ['%s', '%s'],
-        ['%s']
+    seo_mail_redirect(
+        'Por seguridad, SEO Taxonomy no permite sobrescribir archivos PHP del plugin desde el navegador. Publica la plantilla mediante una actualización del plugin.',
+        'warning'
     );
-
-    seo_mail_redirect('Plantilla reemplazada. Backup creado: ' . $backup . '.');
 }
 
 function seo_mail_handle_upload_new_template() {
-    global $wpdb;
-
-    if (empty($_POST['seo_mail_upload_new_template'])) return;
+    if (empty($_POST['seo_mail_upload_new_template'])) {
+        return;
+    }
 
     check_admin_referer('seo_mail_upload_new_template', 'seo_mail_new_template_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die('No tienes permisos para crear plantillas.');
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
     }
 
-    $template_key  = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
-    $template_name = isset($_POST['template_name']) ? sanitize_text_field(wp_unslash($_POST['template_name'])) : '';
-    $description   = isset($_POST['description']) ? sanitize_textarea_field(wp_unslash($_POST['description'])) : '';
-
-    if ($template_key === '' || $template_name === '') {
-        seo_mail_redirect('La clave y el nombre de la plantilla son obligatorios.', 'error');
-    }
-
-    if (seo_mail_template_key_exists($template_key)) {
-        seo_mail_redirect('Ya existe una plantilla con esa clave.', 'error');
-    }
-
-    $validation = seo_mail_validate_php_upload($_FILES['template_file'] ?? []);
-    if (is_wp_error($validation)) {
-        seo_mail_redirect($validation->get_error_message(), 'error');
-    }
-
-    $directory = seo_mail_template_dir();
-
-    if (!is_dir($directory) && !wp_mkdir_p($directory)) {
-        seo_mail_redirect('No se pudo crear la carpeta de plantillas.', 'error');
-    }
-
-    $file_name = sanitize_file_name((string) $_FILES['template_file']['name']);
-    $file_name = basename($file_name);
-    $file_path = $directory . $file_name;
-
-    if (file_exists($file_path)) {
-        seo_mail_redirect('Ya existe un archivo con ese nombre. Usa Reemplazar plantilla.', 'error');
-    }
-
-    if (!move_uploaded_file($_FILES['template_file']['tmp_name'], $file_path)) {
-        seo_mail_redirect('No se pudo guardar el archivo subido.', 'error');
-    }
-
-    $inserted = $wpdb->insert(
-        seo_mail_templates_table_name(),
-        [
-            'template_key'    => $template_key,
-            'template_name'   => $template_name,
-            'template_file'   => $file_name,
-            'template_content'=> null,
-            'updated_at'      => current_time('mysql'),
-            'is_active'       => 1,
-            'template_type'   => 'email',
-            'is_public'       => 1,
-            'is_assignable'   => 0,
-            'assignment_mode' => 'automatic',
-            'display_order'   => 0,
-            'description'     => $description,
-        ],
-        ['%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%s', '%d', '%s']
+    seo_mail_redirect(
+        'La subida de archivos PHP desde el navegador está desactivada. Añade nuevas plantillas mediante una actualización del plugin y después regístralas desde esta pantalla.',
+        'warning'
     );
-
-    if (!$inserted) {
-        @unlink($file_path);
-        seo_mail_redirect('No se pudo registrar la plantilla: ' . $wpdb->last_error, 'error');
-    }
-
-    seo_mail_redirect('Nueva plantilla de correo registrada correctamente.');
 }
 
 function seo_mail_handle_register_existing_file() {
@@ -693,114 +589,21 @@ function seo_mail_handle_register_existing_file() {
 }
 
 function seo_mail_handle_copy_woocommerce_template() {
-    global $wpdb;
-
-    if (empty($_POST['seo_mail_copy_default'])) return;
+    if (empty($_POST['seo_mail_copy_default'])) {
+        return;
+    }
 
     check_admin_referer('seo_mail_copy_default', 'seo_mail_copy_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die('No tienes permisos para crear plantillas.');
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
     }
 
-    $mail_key   = isset($_POST['seo_mail_copy_default']) ? sanitize_key(wp_unslash($_POST['seo_mail_copy_default'])) : '';
-    $assignment = seo_mail_get_assignment($mail_key);
-
-    if (!$assignment || empty($assignment->default_template)) {
-        seo_mail_redirect('No se ha podido localizar la plantilla HTML original de WooCommerce.', 'error');
-    }
-
-    if (!seo_mail_woocommerce_available()) {
-        seo_mail_redirect('WooCommerce no está activo.', 'error');
-    }
-
-    $source_base = !empty($assignment->default_template_base)
-        ? trailingslashit((string) $assignment->default_template_base)
-        : trailingslashit(WC()->plugin_path()) . 'templates/';
-    $source = $source_base . ltrim((string) $assignment->default_template, '/');
-
-    if (!file_exists($source)) {
-        seo_mail_redirect('No existe la plantilla original en WooCommerce: ' . $assignment->default_template, 'error');
-    }
-
-    $directory = seo_mail_template_dir();
-    if (!is_dir($directory) && !wp_mkdir_p($directory)) {
-        seo_mail_redirect('No se pudo crear la carpeta de plantillas.', 'error');
-    }
-
-    $filename     = 'email-' . sanitize_file_name(str_replace('_', '-', $mail_key)) . '.php';
-    $destination  = $directory . $filename;
-    $template_key = 'mail_' . $mail_key;
-
-    if (file_exists($destination)) {
-        $registered = $wpdb->get_var($wpdb->prepare(
-            "SELECT template_key FROM " . seo_mail_templates_table_name() . " WHERE template_file = %s LIMIT 1",
-            $filename
-        ));
-
-        if ($registered) {
-            $wpdb->update(
-                seo_mail_table_name(),
-                [
-                    'template_key' => $registered,
-                    'updated_at'   => current_time('mysql'),
-                ],
-                ['mail_key' => $mail_key],
-                ['%s', '%s'],
-                ['%s']
-            );
-
-            seo_mail_redirect('El archivo ya existía y se ha asignado al correo. Activa Gestiona el plugin cuando quieras utilizarlo.', 'info');
-        }
-
-        seo_mail_redirect('Ya existe el archivo ' . $filename . ', pero todavía no está registrado.', 'warning');
-    }
-
-    if (!copy($source, $destination)) {
-        seo_mail_redirect('No se pudo copiar la plantilla original de WooCommerce.', 'error');
-    }
-
-    if (seo_mail_template_key_exists($template_key)) {
-        $template_key .= '_' . wp_rand(1000, 9999);
-    }
-
-    $wpdb->insert(
-        seo_mail_templates_table_name(),
-        [
-            'template_key'     => $template_key,
-            'template_name'    => 'Email: ' . (string) $assignment->mail_name,
-            'template_file'    => $filename,
-            'template_content' => null,
-            'updated_at'       => current_time('mysql'),
-            'is_active'        => 1,
-            'template_type'    => 'email',
-            'is_public'        => 1,
-            'is_assignable'    => 0,
-            'assignment_mode'  => 'automatic',
-            'display_order'    => 0,
-            'description'      => 'Copia de la plantilla HTML original de WooCommerce para ' . (string) $assignment->mail_name . '.',
-        ],
-        ['%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%s', '%d', '%s']
+    seo_mail_redirect(
+        'La copia de plantillas PHP dentro del directorio del plugin está desactivada. Si necesitas personalizar un correo, incorpora la plantilla en una nueva versión del plugin.',
+        'warning'
     );
-
-    $wpdb->update(
-        seo_mail_table_name(),
-        [
-            'template_key' => $template_key,
-            'is_enabled'   => 0,
-            'updated_at'   => current_time('mysql'),
-        ],
-        ['mail_key' => $mail_key],
-        ['%s', '%d', '%s'],
-        ['%s']
-    );
-
-    seo_mail_redirect('Plantilla original copiada y asignada. Revísala y activa Gestiona el plugin para utilizarla.');
 }
-
-/* =========================================================
-   DESCARGA SEGURA
-========================================================= */
 
 function seo_mail_download_template() {
     if (!current_user_can('manage_options')) {
@@ -851,7 +654,10 @@ function seo_mail_admin_init() {
         seo_mail_sync_woocommerce_emails();
     }
 
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+    $request_method = isset($_SERVER['REQUEST_METHOD'])
+        ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD']))
+        : '';
+    if ($request_method !== 'POST') return;
 
     seo_mail_handle_save_assignments();
     seo_mail_handle_save_library();

@@ -23,7 +23,7 @@ add_action('rest_api_init', 'seo_server_status_register_external_monitor_route')
  */
 function seo_server_status() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
     }
 
     $active_tab = seo_server_status_get_active_tab();
@@ -280,7 +280,7 @@ function seo_server_status_row($label, $value, $status = 'info', $help = '') {
     echo '<tr>';
     echo '<td><strong>' . esc_html($label) . '</strong></td>';
     echo '<td>' . wp_kses_post($value) . '</td>';
-    echo '<td>' . seo_server_status_badge($status) . '</td>';
+    echo '<td>' . wp_kses_post(seo_server_status_badge($status)) . '</td>';
     echo '<td class="seo-muted">' . esc_html($help) . '</td>';
     echo '</tr>';
 }
@@ -594,11 +594,35 @@ function seo_server_status_monitor_rotate_secret() {
     return seo_server_status_monitor_get_secret(true);
 }
 
+function seo_server_status_external_monitor_permission(WP_REST_Request $request) {
+    $secret = get_option(seo_server_status_monitor_secret_option_name(), '');
+    if (!is_string($secret) || strlen($secret) < 32) {
+        return new WP_Error('seo_monitor_not_configured', 'El monitor externo todavía no está configurado.', array('status' => 503));
+    }
+
+    $body = (string) $request->get_body();
+    if ($body === '' || strlen($body) > 1048576) {
+        return new WP_Error('seo_monitor_bad_payload', 'Payload vacío o demasiado grande.', array('status' => 413));
+    }
+
+    $provided_signature = strtolower(trim((string) $request->get_header('x-seo-monitor-signature')));
+    if (strpos($provided_signature, 'sha256=') === 0) {
+        $provided_signature = substr($provided_signature, 7);
+    }
+
+    $expected_signature = hash_hmac('sha256', $body, $secret);
+    if ($provided_signature === '' || !hash_equals($expected_signature, $provided_signature)) {
+        return new WP_Error('seo_monitor_invalid_signature', 'Firma del monitor no válida.', array('status' => 401));
+    }
+
+    return true;
+}
+
 function seo_server_status_register_external_monitor_route() {
     register_rest_route('seo-system/v1', '/external-monitor', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'seo_server_status_external_monitor_receive',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'seo_server_status_external_monitor_permission',
     ));
 }
 
@@ -975,21 +999,31 @@ function seo_server_status_render_response_monitor($snapshot) {
     echo '<div class="seo-response-monitor-ranges">';
     $base_url = remove_query_arg('seo_monitor_range');
     foreach (array('day' => 'Día', 'week' => 'Semana', 'month' => 'Mes') as $key => $label) {
-        $class = $range === $key ? ' class="is-active"' : '';
-        echo '<a' . $class . ' href="' . esc_url(add_query_arg('seo_monitor_range', $key, $base_url)) . '">' . esc_html($label) . '</a>';
+        $class = $range === $key ? 'is-active' : '';
+        echo '<a class="' . esc_attr($class) . '" href="' . esc_url(add_query_arg('seo_monitor_range', $key, $base_url)) . '">' . esc_html($label) . '</a>';
     }
     echo '</div>';
     echo '<span class="seo-status-badge seo-status-info">GitHub externo</span>';
     echo '</div></div>';
 
     echo '<div class="seo-response-monitor-kpis">';
-    echo '<div class="seo-response-monitor-kpi"><strong>Estado actual</strong><div class="seo-response-monitor-kpi-value">' . seo_server_status_badge($latest_status) . '</div><span class="seo-muted">' . esc_html($status_text) . '</span></div>';
+    echo '<div class="seo-response-monitor-kpi"><strong>Estado actual</strong><div class="seo-response-monitor-kpi-value">' . wp_kses_post(seo_server_status_badge($latest_status)) . '</div><span class="seo-muted">' . esc_html($status_text) . '</span></div>';
     echo '<div class="seo-response-monitor-kpi"><strong>Última respuesta</strong><div class="seo-response-monitor-kpi-value">' . esc_html(number_format_i18n($latest_ms, 1)) . ' ms</div><span class="seo-muted">TTFB: ' . esc_html(number_format_i18n($latest_ttfb, 1)) . ' ms · ' . ($latest_timestamp ? esc_html(date_i18n('Y-m-d H:i', $latest_timestamp)) : 'Sin muestra') . '</span></div>';
     echo '<div class="seo-response-monitor-kpi"><strong>Media / P95</strong><div class="seo-response-monitor-kpi-value">' . esc_html(number_format_i18n($average, 1)) . ' ms</div><span class="seo-muted">P95: ' . esc_html(number_format_i18n($p95, 1)) . ' ms</span></div>';
     echo '<div class="seo-response-monitor-kpi"><strong>Disponibilidad</strong><div class="seo-response-monitor-kpi-value">' . esc_html(number_format_i18n($availability, 2)) . '%</div><span class="seo-muted">' . esc_html(count($raw)) . ' muestras · cobertura ' . esc_html(number_format_i18n($coverage, 1)) . '%</span></div>';
     echo '</div>';
 
-    echo '<div class="seo-response-monitor-chart">' . seo_server_status_monitor_svg($points, $range) . '</div>'; // SVG generado internamente con valores escapados.
+    $monitor_svg = seo_server_status_monitor_svg($points, $range);
+    $monitor_svg_allowed = array(
+        'div' => array('class' => true),
+        'svg' => array('viewbox' => true, 'role' => true, 'aria-label' => true),
+        'line' => array('class' => true, 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true),
+        'text' => array('class' => true, 'x' => true, 'y' => true, 'text-anchor' => true),
+        'polyline' => array('class' => true, 'points' => true),
+        'circle' => array('class' => true, 'cx' => true, 'cy' => true, 'r' => true),
+        'title' => array(),
+    );
+    echo '<div class="seo-response-monitor-chart">' . wp_kses($monitor_svg, $monitor_svg_allowed) . '</div>';
     echo '<div class="seo-response-monitor-legend">';
     echo '<span><i style="background:#00a32a"></i>Correcto</span>';
     echo '<span><i style="background:#dba617"></i>Lento</span>';
@@ -1142,13 +1176,10 @@ function seo_server_status_security_salts_status() {
  * Localiza wp-config.php sin asumir una unica ubicacion.
  */
 function seo_server_status_security_wp_config_path() {
-    $candidates = array(
-        ABSPATH . 'wp-config.php',
-        dirname(rtrim(ABSPATH, '/\\')) . '/wp-config.php',
-    );
-    foreach ($candidates as $candidate) {
-        if (is_file($candidate)) {
-            return wp_normalize_path($candidate);
+    foreach ((array) get_included_files() as $candidate) {
+        $candidate = wp_normalize_path((string) $candidate);
+        if (basename($candidate) === 'wp-config.php' && is_file($candidate)) {
+            return $candidate;
         }
     }
     return '';
@@ -1728,7 +1759,9 @@ function seo_server_status_collect_security_checks($deep = false) {
     }
 
     $php_error_log = trim((string) ini_get('error_log'));
-    $doc_root = !empty($_SERVER['DOCUMENT_ROOT']) ? wp_normalize_path((string) $_SERVER['DOCUMENT_ROOT']) : '';
+    $doc_root = !empty($_SERVER['DOCUMENT_ROOT'])
+        ? wp_normalize_path(sanitize_text_field(wp_unslash($_SERVER['DOCUMENT_ROOT'])))
+        : '';
     $php_log_public = false;
     if ($php_error_log !== '' && $doc_root !== '' && strpos(wp_normalize_path($php_error_log), trailingslashit(untrailingslashit($doc_root))) === 0) {
         $php_log_public = true;
@@ -1942,7 +1975,7 @@ function seo_server_status_render_security_tab() {
             echo '<tr>';
             echo '<td><strong>' . esc_html($check['label'] ?? '') . '</strong><br><code>' . esc_html($check['code'] ?? '') . '</code></td>';
             echo '<td>' . esc_html($check['value'] ?? '') . '</td>';
-            echo '<td>' . seo_server_status_badge($check['status'] ?? 'info') . '</td>';
+            echo '<td>' . wp_kses_post(seo_server_status_badge($check['status'] ?? 'info')) . '</td>';
             echo '<td class="seo-muted">' . esc_html($check['detail'] ?? '') . '</td>';
             echo '</tr>';
         }
@@ -2175,7 +2208,7 @@ function seo_server_status_render_priority_issues($snapshot, $limit = 12) {
     echo '<h3>Qué requiere atención</h3><div class="seo-server-priority-list">';
     foreach ($checks as $check) {
         echo '<div class="seo-server-priority-item">';
-        echo seo_server_status_badge($check['status']);
+        echo wp_kses_post(seo_server_status_badge($check['status']));
         echo '<div><strong>' . esc_html($check['label']) . '</strong><br><code>' . esc_html($check['code']) . '</code></div>';
         echo '<div class="seo-muted">' . esc_html($check['value'] . ($check['detail'] !== '' ? ' · ' . $check['detail'] : '')) . '</div>';
         echo '</div>';
@@ -2194,7 +2227,7 @@ function seo_server_status_render_category_overview($snapshot) {
             continue;
         }
         $health = seo_server_status_health_summary($rows);
-        echo '<div class="seo-server-category-card"><h3>' . esc_html($category) . '</h3><div class="seo-server-category-score">' . esc_html($health['score']) . '%</div>' . seo_server_status_badge($health['status']) . '<p class="seo-muted">' . esc_html($health['error']) . ' críticos · ' . esc_html($health['important']) . ' importantes · ' . esc_html($health['warning']) . ' avisos</p></div>';
+        echo '<div class="seo-server-category-card"><h3>' . esc_html($category) . '</h3><div class="seo-server-category-score">' . esc_html($health['score']) . '%</div>' . wp_kses_post(seo_server_status_badge($health['status'])) . '<p class="seo-muted">' . esc_html($health['error']) . ' críticos · ' . esc_html($health['important']) . ' importantes · ' . esc_html($health['warning']) . ' avisos</p></div>';
     }
     echo '</div>';
 }
@@ -2268,7 +2301,7 @@ function seo_server_status_render_summary_tab() {
  * Renderiza una tarjeta del resumen.
  */
 function seo_server_status_summary_card($title, $content, $status = 'info') {
-    echo '<div class="seo-status-card"><h2>' . esc_html($title) . '</h2><p>' . wp_kses_post($content) . '</p>' . seo_server_status_badge($status) . '</div>';
+    echo '<div class="seo-status-card"><h2>' . esc_html($title) . '</h2><p>' . wp_kses_post($content) . '</p>' . wp_kses_post(seo_server_status_badge($status)) . '</div>';
 }
 
 /**
@@ -2780,7 +2813,7 @@ function seo_server_status_render_options_autoload_section() {
         echo '<table class="seo-status-table"><thead><tr><th>Opción</th><th>Tamaño</th><th>Estado</th></tr></thead><tbody>';
         foreach ($top as $row) {
             $size = (float) $row->option_size;
-            echo '<tr><td><code>' . esc_html($row->option_name) . '</code></td><td>' . esc_html(seo_server_status_format_bytes($size)) . '</td><td>' . seo_server_status_badge($size > 1048576 ? 'warning' : 'info') . '</td></tr>';
+            echo '<tr><td><code>' . esc_html($row->option_name) . '</code></td><td>' . esc_html(seo_server_status_format_bytes($size)) . '</td><td>' . wp_kses_post(seo_server_status_badge($size > 1048576 ? 'warning' : 'info')) . '</td></tr>';
         }
         echo '</tbody></table>';
     }
@@ -2878,12 +2911,12 @@ function seo_server_status_render_directory_sizes_section() {
     foreach ($paths as $label => $path) {
         $data = seo_server_status_dir_size($path);
         if ($data === false) {
-            echo '<tr><td>' . esc_html($label) . '</td><td>No disponible</td><td>-</td><td>' . seo_server_status_badge('info') . '</td></tr>';
+            echo '<tr><td>' . esc_html($label) . '</td><td>No disponible</td><td>-</td><td>' . wp_kses_post(seo_server_status_badge('info')) . '</td></tr>';
             continue;
         }
 
         $status = $data['size'] > 5368709120 ? 'warning' : 'info';
-        echo '<tr><td><code>' . esc_html($label) . '</code><br><span class="seo-muted">' . esc_html($path) . '</span></td><td>' . esc_html(seo_server_status_format_bytes($data['size'])) . '</td><td>' . esc_html(number_format_i18n($data['files'])) . ($data['limited'] ? ' +' : '') . '</td><td>' . seo_server_status_badge($status) . '</td></tr>';
+        echo '<tr><td><code>' . esc_html($label) . '</code><br><span class="seo-muted">' . esc_html($path) . '</span></td><td>' . esc_html(seo_server_status_format_bytes($data['size'])) . '</td><td>' . esc_html(number_format_i18n($data['files'])) . ($data['limited'] ? ' +' : '') . '</td><td>' . wp_kses_post(seo_server_status_badge($status)) . '</td></tr>';
     }
 
     echo '</tbody></table>';
@@ -2915,7 +2948,7 @@ function seo_server_status_render_large_files_section() {
     echo '<table class="seo-status-table"><thead><tr><th>Archivo</th><th>Tamaño</th><th>Modificado</th><th>Estado</th></tr></thead><tbody>';
     foreach ($files as $file) {
         $status = $file['size'] > 104857600 ? 'warning' : 'info';
-        echo '<tr><td><code>' . esc_html($file['path']) . '</code></td><td>' . esc_html(seo_server_status_format_bytes($file['size'])) . '</td><td>' . esc_html(date_i18n('Y-m-d H:i', $file['modified'])) . '</td><td>' . seo_server_status_badge($status) . '</td></tr>';
+        echo '<tr><td><code>' . esc_html($file['path']) . '</code></td><td>' . esc_html(seo_server_status_format_bytes($file['size'])) . '</td><td>' . esc_html(date_i18n('Y-m-d H:i', $file['modified'])) . '</td><td>' . wp_kses_post(seo_server_status_badge($status)) . '</td></tr>';
     }
     echo '</tbody></table>';
     echo '</div>';
@@ -3135,7 +3168,7 @@ function seo_server_status_render_action_scheduler_detail_section() {
     echo '<table class="seo-status-table"><thead><tr><th>Hook</th><th>Estado</th><th>Total</th><th>Más antigua</th><th>Diagnóstico</th></tr></thead><tbody>';
     foreach ($rows as $row) {
         $status = $row->status === 'failed' ? 'warning' : (((int) $row->total > 1000) ? 'warning' : 'info');
-        echo '<tr><td><code>' . esc_html($row->hook) . '</code></td><td>' . esc_html($row->status) . '</td><td>' . esc_html(number_format_i18n((int) $row->total)) . '</td><td>' . esc_html($row->oldest_date) . '</td><td>' . seo_server_status_badge($status) . '</td></tr>';
+        echo '<tr><td><code>' . esc_html($row->hook) . '</code></td><td>' . esc_html($row->status) . '</td><td>' . esc_html(number_format_i18n((int) $row->total)) . '</td><td>' . esc_html($row->oldest_date) . '</td><td>' . wp_kses_post(seo_server_status_badge($status)) . '</td></tr>';
     }
     echo '</tbody></table>';
     echo '</div>';
@@ -3324,7 +3357,7 @@ function seo_server_status_get_php_error_log_info() {
     }
 
     if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-        $document_root = realpath((string) $_SERVER['DOCUMENT_ROOT']);
+        $document_root = realpath(sanitize_text_field(wp_unslash($_SERVER['DOCUMENT_ROOT'])));
         if ($document_root !== false) {
             $normalized_root = trailingslashit(untrailingslashit(wp_normalize_path($document_root)));
             $info['private_known'] = true;

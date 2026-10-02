@@ -151,6 +151,81 @@ if (!function_exists('seo_images_webp_attachment_entries')) {
     }
 }
 
+if (!function_exists('seo_images_webp_stream_open')) {
+    /**
+     * Abre un recurso local para lectura parcial de cabeceras de imagen.
+     *
+     * WP_Filesystem no expone recursos compatibles con lectura parcial/offset
+     * sin cargar el archivo completo en memoria.
+     *
+     * @param string $path Ruta local.
+     * @param string $mode Modo de apertura.
+     * @return resource|false
+     */
+    function seo_images_webp_stream_open($path, $mode) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Partial binary inspection requires a native stream resource.
+        return @fopen($path, $mode);
+    }
+}
+
+if (!function_exists('seo_images_webp_stream_read')) {
+    /**
+     * Lee un bloque de un recurso binario de imagen.
+     *
+     * @param resource $stream Recurso abierto.
+     * @param int      $length Bytes máximos.
+     * @return string|false
+     */
+    function seo_images_webp_stream_read($stream, $length) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Paired with native stream for bounded binary inspection.
+        return @fread($stream, $length);
+    }
+}
+
+if (!function_exists('seo_images_webp_stream_close')) {
+    /**
+     * Cierra un recurso de lectura de imagen.
+     *
+     * @param resource $stream Recurso abierto.
+     * @return bool
+     */
+    function seo_images_webp_stream_close($stream) {
+        if (!is_resource($stream)) {
+            return false;
+        }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_images_webp_stream_open().
+        return @fclose($stream);
+    }
+}
+
+if (!function_exists('seo_images_webp_atomic_rename')) {
+    /**
+     * Renombra un archivo local preservando semántica atómica para commit/rollback.
+     *
+     * @param string $source Origen.
+     * @param string $target Destino.
+     * @return bool
+     */
+    function seo_images_webp_atomic_rename($source, $target) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WebP commit/rollback requires local atomic rename semantics.
+        return @rename($source, $target);
+    }
+}
+
+if (!function_exists('seo_images_webp_set_permissions')) {
+    /**
+     * Conserva permisos del original en el WebP publicado.
+     *
+     * @param string $path Ruta local.
+     * @param int    $mode Permisos POSIX.
+     * @return bool
+     */
+    function seo_images_webp_set_permissions($path, $mode) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Preserve source permissions after local atomic publish.
+        return @chmod($path, $mode);
+    }
+}
+
 if (!function_exists('seo_images_webp_is_ultrahdr_jpeg')) {
     function seo_images_webp_is_ultrahdr_jpeg($path, $mime_type) {
         if ($mime_type !== 'image/jpeg' || !is_file($path)) {
@@ -162,12 +237,12 @@ if (!function_exists('seo_images_webp_is_ultrahdr_jpeg')) {
             return false;
         }
 
-        $handle = @fopen($path, 'rb');
+        $handle = seo_images_webp_stream_open($path, 'rb');
         if (!$handle) {
             return false;
         }
-        $head = @fread($handle, min($size, 2 * MB_IN_BYTES));
-        @fclose($handle);
+        $head = seo_images_webp_stream_read($handle, min($size, 2 * MB_IN_BYTES));
+        seo_images_webp_stream_close($handle);
         if (!is_string($head) || $head === '') {
             return false;
         }
@@ -216,7 +291,7 @@ if (!function_exists('seo_images_webp_unique_target')) {
 
 if (!function_exists('seo_images_webp_convert_file')) {
     function seo_images_webp_convert_file($old_path, $reserved = array()) {
-        if (!is_file($old_path) || !is_readable($old_path) || !is_writable($old_path)) {
+        if (!is_file($old_path) || !is_readable($old_path) || !wp_is_writable($old_path)) {
             return new WP_Error('file_permissions', 'El archivo no es legible o escribible.');
         }
         if (!seo_images_optimizer_is_safe_upload_path($old_path)) {
@@ -259,13 +334,13 @@ if (!function_exists('seo_images_webp_convert_file')) {
 
         $saved = $editor->save($temp, 'image/webp');
         if (is_wp_error($saved)) {
-            @unlink($temp);
+            wp_delete_file($temp);
             return $saved;
         }
 
         $candidate = !empty($saved['path']) ? $saved['path'] : $temp;
         if (!is_file($candidate)) {
-            @unlink($temp);
+            wp_delete_file($temp);
             return new WP_Error('webp_not_created', 'El editor de WordPress no genero el WebP temporal.');
         }
 
@@ -277,9 +352,9 @@ if (!function_exists('seo_images_webp_convert_file')) {
             || (int) $after_dimensions[1] !== (int) $before_dimensions[1]
             || $candidate_mime !== 'image/webp'
         ) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp) {
-                @unlink($temp);
+                wp_delete_file($temp);
             }
             return new WP_Error('webp_validation', 'El WebP generado no conserva formato o dimensiones y se ha descartado.');
         }
@@ -289,35 +364,35 @@ if (!function_exists('seo_images_webp_convert_file')) {
         $before = (int) @filesize($old_path);
         $after  = (int) @filesize($candidate);
         if ($before < 1 || $after < 1) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp) {
-                @unlink($temp);
+                wp_delete_file($temp);
             }
             return new WP_Error('invalid_filesize', 'No se pudo validar el peso del archivo convertido.');
         }
 
         if (file_exists($target)) {
-            @unlink($candidate);
+            wp_delete_file($candidate);
             if ($candidate !== $temp) {
-                @unlink($temp);
+                wp_delete_file($temp);
             }
             return new WP_Error('target_collision', 'El nombre WebP de destino ya existe y no se sobrescribira.');
         }
 
-        if (!@rename($candidate, $target)) {
-            @unlink($candidate);
+        if (!seo_images_webp_atomic_rename($candidate, $target)) {
+            wp_delete_file($candidate);
             if ($candidate !== $temp) {
-                @unlink($temp);
+                wp_delete_file($temp);
             }
             return new WP_Error('target_rename', 'No se pudo mover el WebP temporal a su nombre definitivo.');
         }
         if ($candidate !== $temp) {
-            @unlink($temp);
+            wp_delete_file($temp);
         }
 
         $permissions = @fileperms($old_path);
         if ($permissions !== false) {
-            @chmod($target, $permissions & 0777);
+            seo_images_webp_set_permissions($target, $permissions & 0777);
         }
 
         clearstatcache(true, $target);
@@ -331,7 +406,7 @@ if (!function_exists('seo_images_webp_convert_file')) {
             || (int) $final_dims[0] !== (int) $before_dimensions[0]
             || (int) $final_dims[1] !== (int) $before_dimensions[1]
         ) {
-            @unlink($target);
+            wp_delete_file($target);
             return new WP_Error('final_validation', 'La validacion final del WebP ha fallado.');
         }
 
@@ -350,7 +425,7 @@ if (!function_exists('seo_images_webp_delete_candidates')) {
             if (!empty($map['new_path']) && is_file($map['new_path'])) {
                 wp_delete_file($map['new_path']);
                 if (is_file($map['new_path'])) {
-                    @unlink($map['new_path']);
+                    wp_delete_file($map['new_path']);
                 }
             }
         }
@@ -536,7 +611,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
             $sql = "SELECT ID, post_content, post_excerpt, post_content_filtered FROM {$wpdb->posts}
                     WHERE ID > %d AND ({$where_content} OR {$where_excerpt} OR {$where_filtered})
                     ORDER BY ID ASC LIMIT %d";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['ID']);
                 $content = str_replace(array_keys($pairs), array_values($pairs), (string) $row['post_content'], $count_content);
@@ -584,7 +662,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
                         FROM {$set['table']}
                         WHERE {$set['id_col']} > %d AND {$like}{$exclude}
                         ORDER BY {$set['id_col']} ASC LIMIT %d";
-                $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
                     $prepared = seo_images_webp_prepare_value_update($row['meta_value'], $pairs);
@@ -622,7 +703,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
                       AND option_name NOT LIKE '\\_transient\\_%'
                       AND option_name NOT LIKE '\\_site\\_transient\\_%'
                     ORDER BY option_id ASC LIMIT %d";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['option_id']);
                 $prepared = seo_images_webp_prepare_value_update($row['option_value'], $pairs);
@@ -650,7 +734,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
             $sql = "SELECT term_taxonomy_id, term_id, taxonomy, description FROM {$wpdb->term_taxonomy}
                     WHERE term_taxonomy_id > %d AND {$like}
                     ORDER BY term_taxonomy_id ASC LIMIT %d";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['term_taxonomy_id']);
                 $new = str_replace(array_keys($pairs), array_values($pairs), (string) $row['description'], $count);
@@ -682,7 +769,10 @@ if (!function_exists('seo_images_webp_apply_reference_updates')) {
             $sql = "SELECT comment_ID, comment_content FROM {$wpdb->comments}
                     WHERE comment_ID > %d AND {$like}
                     ORDER BY comment_ID ASC LIMIT %d";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['comment_ID']);
                 $new = str_replace(array_keys($pairs), array_values($pairs), (string) $row['comment_content'], $count);
@@ -787,7 +877,10 @@ if (!function_exists('seo_images_webp_remaining_references')) {
                 $sql = 'SELECT ' . $check['id'] . ' AS row_id, ' . implode(', ', $check['cols']) . ' FROM ' . $check['table']
                     . ' WHERE ' . $check['id'] . ' > %d AND (' . implode(' OR ', $likes) . ')' . $check['extra']
                     . ' ORDER BY ' . $check['id'] . ' ASC LIMIT %d';
-                $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
+            $prepared_sql = $wpdb->prepare($sql, $args);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
                     foreach ($check['cols'] as $column) {
@@ -1003,15 +1096,15 @@ if (!function_exists('seo_images_webp_retire_originals')) {
             $old = isset($map['old_path']) ? $map['old_path'] : '';
             if (!$old || !is_file($old)) {
                 foreach (array_reverse($renamed) as $item) {
-                    @rename($item['backup'], $item['old']);
+                    seo_images_webp_atomic_rename($item['backup'], $item['old']);
                 }
                 return new WP_Error('old_file_missing', 'Un original desaparecio antes de poder retirarlo; se cancela el attachment.');
             }
 
             $backup = dirname($old) . '/.' . wp_basename($old) . '.seo-webp-delete-' . $token;
-            if (file_exists($backup) || !@rename($old, $backup)) {
+            if (file_exists($backup) || !seo_images_webp_atomic_rename($old, $backup)) {
                 foreach (array_reverse($renamed) as $item) {
-                    @rename($item['backup'], $item['old']);
+                    seo_images_webp_atomic_rename($item['backup'], $item['old']);
                 }
                 return new WP_Error('old_file_rename', 'No se pudo retirar uno de los JPG/PNG originales; se restaura el attachment.');
             }
@@ -1023,7 +1116,7 @@ if (!function_exists('seo_images_webp_retire_originals')) {
         foreach ($renamed as $item) {
             wp_delete_file($item['backup']);
             if (is_file($item['backup'])) {
-                @unlink($item['backup']);
+                wp_delete_file($item['backup']);
             }
             if (is_file($item['backup'])) {
                 $leftovers[] = $item['backup'];

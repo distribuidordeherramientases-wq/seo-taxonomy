@@ -1,0 +1,33 @@
+name: WordPress Plugin Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - staging
+      - main
+      - 'fix/**'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: wp-plugin-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  plugin-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run WordPress Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './'
+          slug: seo-taxonomy
+          wp-version: latest

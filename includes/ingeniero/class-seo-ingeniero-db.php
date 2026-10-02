@@ -1,6 +1,6 @@
 <?php
 /**
- * Persistencia del Ingeniero de Dependiente.
+ * Persistencia del servicio Ingeniero.
  *
  * Guarda únicamente fuentes, metadatos y conocimiento resumido. Nunca copia
  * páginas, manuales o artículos completos.
@@ -9,13 +9,14 @@ defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero_DB {
     const OPTION_DB_VERSION = 'seo_ingeniero_db_version';
-    const DB_VERSION = '0.1.1';
+    const DB_VERSION = '0.2.0';
 
     public static function table($name) {
         global $wpdb;
         $map = array(
             'sources'   => $wpdb->prefix . 'seo_ingeniero_sources',
             'knowledge' => $wpdb->prefix . 'seo_ingeniero_knowledge',
+            'editorial' => $wpdb->prefix . 'seo_ingeniero_editorial',
         );
         return isset($map[$name]) ? $map[$name] : '';
     }
@@ -30,7 +31,7 @@ final class SEO_Ingeniero_DB {
 
     private static function tables_exist() {
         global $wpdb;
-        foreach (array('sources','knowledge') as $name) {
+        foreach (array('sources','knowledge','editorial') as $name) {
             $table = self::table($name);
             if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
                 return false;
@@ -45,6 +46,7 @@ final class SEO_Ingeniero_DB {
         $charset = $wpdb->get_charset_collate();
         $sources = self::table('sources');
         $knowledge = self::table('knowledge');
+        $editorial = self::table('editorial');
 
         dbDelta("CREATE TABLE {$sources} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -91,6 +93,31 @@ final class SEO_Ingeniero_DB {
             KEY term_lesson (term_id,lesson),
             KEY status (status),
             KEY confidence (confidence)
+        ) {$charset};");
+
+        dbDelta("CREATE TABLE {$editorial} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            term_id bigint(20) unsigned NOT NULL,
+            topic_key varchar(191) NOT NULL,
+            knowledge_ids_json longtext NULL,
+            source_ids_json longtext NULL,
+            source_hash char(64) NOT NULL DEFAULT '',
+            suggested_title text NULL,
+            coverage_status varchar(32) NOT NULL DEFAULT 'uncovered',
+            recommended_action varchar(32) NOT NULL DEFAULT 'NEEDS_REVIEW',
+            coverage_json longtext NULL,
+            status varchar(32) NOT NULL DEFAULT 'candidate',
+            post_id bigint(20) unsigned NULL,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            last_analyzed_at datetime NULL,
+            approved_at datetime NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY term_topic (term_id,topic_key),
+            KEY source_hash (source_hash),
+            KEY recommended_action (recommended_action),
+            KEY status (status),
+            KEY post_id (post_id)
         ) {$charset};");
 
         self::migrate_legacy_investigador();
@@ -436,6 +463,206 @@ final class SEO_Ingeniero_DB {
             'sources' => $src,
             'knowledge' => $kn,
         );
+    }
+
+    public static function upsert_editorial($data) {
+        global $wpdb;
+        $table = self::table('editorial');
+        $term_id = absint($data['term_id'] ?? 0);
+        $topic_key = sanitize_key((string) ($data['topic_key'] ?? ''));
+        if (!$term_id || '' === $topic_key) {
+            return new WP_Error('ingeniero_editorial_invalid', 'El dossier editorial no tiene categoría o topic_key válido.');
+        }
+
+        $existing = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id,source_hash,status,post_id FROM {$table} WHERE term_id=%d AND topic_key=%s LIMIT 1",
+                $term_id,
+                $topic_key
+            ),
+            ARRAY_A
+        );
+
+        $knowledge_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($data['knowledge_ids'] ?? array())))));
+        $source_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($data['source_ids'] ?? array())))));
+        $source_hash = sanitize_text_field((string) ($data['source_hash'] ?? ''));
+        $status = sanitize_key((string) ($data['status'] ?? 'candidate'));
+        if (
+            $existing
+            && $source_hash !== ''
+            && (string) ($existing['source_hash'] ?? '') !== ''
+            && $source_hash !== (string) ($existing['source_hash'] ?? '')
+        ) {
+            // Un cambio material de conocimiento/fuentes nunca conserva una
+            // aprobación anterior en silencio. Si ya existe post, se marca para
+            // actualización; si no, vuelve a revisión humana.
+            $status = !empty($existing['post_id']) ? 'needs_update' : 'review';
+        }
+
+        $row = array(
+            'term_id'            => $term_id,
+            'topic_key'          => $topic_key,
+            'knowledge_ids_json' => wp_json_encode($knowledge_ids),
+            'source_ids_json'    => wp_json_encode($source_ids),
+            'source_hash'        => $source_hash,
+            'suggested_title'    => sanitize_text_field((string) ($data['suggested_title'] ?? '')),
+            'coverage_status'    => sanitize_key((string) ($data['coverage_status'] ?? 'uncovered')),
+            'recommended_action' => strtoupper(sanitize_key((string) ($data['recommended_action'] ?? 'NEEDS_REVIEW'))),
+            'coverage_json'      => wp_json_encode((array) ($data['coverage'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'status'             => $status,
+            'last_analyzed_at'   => gmdate('Y-m-d H:i:s'),
+            'updated_at'         => gmdate('Y-m-d H:i:s'),
+        );
+
+        if ($existing) {
+            $ok = $wpdb->update($table, $row, array('id'=>absint($existing['id'])));
+            return false === $ok ? new WP_Error('ingeniero_editorial_update', $wpdb->last_error ?: 'No se pudo actualizar el dossier editorial.') : absint($existing['id']);
+        }
+
+        $row['created_at'] = gmdate('Y-m-d H:i:s');
+        $ok = $wpdb->insert($table, $row);
+        return false === $ok ? new WP_Error('ingeniero_editorial_insert', $wpdb->last_error ?: 'No se pudo crear el dossier editorial.') : absint($wpdb->insert_id);
+    }
+
+    public static function editorial_get($id) {
+        global $wpdb;
+        $table = self::table('editorial');
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d LIMIT 1", absint($id)), ARRAY_A);
+        return $row ? self::hydrate_editorial($row) : array();
+    }
+
+    public static function editorial_get_by_topic($term_id, $topic_key) {
+        global $wpdb;
+        $table = self::table('editorial');
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$table} WHERE term_id=%d AND topic_key=%s LIMIT 1",
+                absint($term_id),
+                sanitize_key((string) $topic_key)
+            ),
+            ARRAY_A
+        );
+        return $row ? self::hydrate_editorial($row) : array();
+    }
+
+    public static function editorial_rows($args = array()) {
+        global $wpdb;
+        $table = self::table('editorial');
+        $args = wp_parse_args((array) $args, array(
+            'status' => '',
+            'action' => '',
+            'term_id' => 0,
+            'page' => 1,
+            'per_page' => 30,
+        ));
+
+        $where = array('1=1');
+        $params = array();
+        $status = sanitize_key((string) $args['status']);
+        $action = strtoupper(sanitize_key((string) $args['action']));
+        $term_id = absint($args['term_id']);
+        if ($status) {
+            $where[] = 'status=%s';
+            $params[] = $status;
+        }
+        if ($action) {
+            $where[] = 'recommended_action=%s';
+            $params[] = $action;
+        }
+        if ($term_id) {
+            $where[] = 'term_id=%d';
+            $params[] = $term_id;
+        }
+
+        $page = max(1, absint($args['page']));
+        $per_page = max(10, min(100, absint($args['per_page'])));
+        $offset = ($page - 1) * $per_page;
+        $where_sql = implode(' AND ', $where);
+
+        $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
+        $total = $params
+            ? absint($wpdb->get_var($wpdb->prepare($count_sql, $params)))
+            : absint($wpdb->get_var($count_sql));
+
+        $sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY updated_at DESC,id DESC LIMIT %d OFFSET %d";
+        $query_params = array_merge($params, array($per_page, $offset));
+        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $query_params), ARRAY_A);
+        foreach ($rows as &$row) {
+            $row = self::hydrate_editorial($row);
+        }
+        unset($row);
+
+        return array(
+            'rows' => $rows,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $per_page,
+            'pages' => max(1, (int) ceil($total / $per_page)),
+        );
+    }
+
+    public static function editorial_counts() {
+        global $wpdb;
+        $table = self::table('editorial');
+        $rows = (array) $wpdb->get_results(
+            "SELECT recommended_action,status,COUNT(*) total FROM {$table} GROUP BY recommended_action,status",
+            ARRAY_A
+        );
+        $out = array(
+            'total'=>0,'CREATE_POST'=>0,'IMPROVE_POST'=>0,'MERGE_CONTENT'=>0,'NO_ACTION'=>0,'NEEDS_REVIEW'=>0,
+            'candidate'=>0,'approved'=>0,'draft'=>0,'published'=>0,'needs_update'=>0,
+        );
+        foreach ($rows as $row) {
+            $n = absint($row['total'] ?? 0);
+            $out['total'] += $n;
+            $action = strtoupper((string) ($row['recommended_action'] ?? ''));
+            $status = sanitize_key((string) ($row['status'] ?? ''));
+            if (isset($out[$action])) $out[$action] += $n;
+            if (isset($out[$status])) $out[$status] += $n;
+        }
+        return $out;
+    }
+
+    public static function update_editorial($id, $data) {
+        global $wpdb;
+        $table = self::table('editorial');
+        $allowed = array('status','post_id','recommended_action','coverage_status','suggested_title','source_hash');
+        $row = array();
+        foreach ((array) $data as $key=>$value) {
+            if (!in_array($key, $allowed, true)) continue;
+            if ('post_id' === $key) $row[$key] = absint($value) ?: null;
+            elseif ('recommended_action' === $key) $row[$key] = strtoupper(sanitize_key((string) $value));
+            elseif ('suggested_title' === $key) $row[$key] = sanitize_text_field((string) $value);
+            else $row[$key] = sanitize_key((string) $value);
+        }
+        if (!$row) return false;
+        if (($row['status'] ?? '') === 'approved') $row['approved_at'] = gmdate('Y-m-d H:i:s');
+        $row['updated_at'] = gmdate('Y-m-d H:i:s');
+        return false !== $wpdb->update($table, $row, array('id'=>absint($id)));
+    }
+
+    public static function sources_by_ids($ids) {
+        global $wpdb;
+        $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
+        if (!$ids) return array();
+        $table = self::table('sources');
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE id IN ({$placeholders}) ORDER BY id ASC", $ids), ARRAY_A);
+        foreach ($rows as &$row) {
+            $row['metadata'] = self::decode_json($row['metadata_json'] ?? '');
+            unset($row['metadata_json']);
+        }
+        unset($row);
+        return $rows;
+    }
+
+    private static function hydrate_editorial($row) {
+        $row = is_array($row) ? $row : array();
+        $row['knowledge_ids'] = self::decode_json($row['knowledge_ids_json'] ?? '');
+        $row['source_ids'] = self::decode_json($row['source_ids_json'] ?? '');
+        $row['coverage'] = self::decode_json($row['coverage_json'] ?? '');
+        unset($row['knowledge_ids_json'], $row['source_ids_json'], $row['coverage_json']);
+        return $row;
     }
 
     private static function decode_json($value) {

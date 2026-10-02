@@ -1,17 +1,67 @@
 <?php
 /**
- * Solucionador - motor de decision editorial RF v1.0.
+ * Solucionador v0.5 - Academia/Entrenador -> dossier -> cobertura -> brief.
  *
- * Principio: servicios especialistas -> evidencia -> tema canonico -> cobertura
- * -> decision minima -> brief. No consulta Internet, no redacta y no publica.
+ * Sólo organiza conocimiento ya aprendido de Dependiente. No investiga,
+ * no compara mercado, no redacta y no publica.
  */
 
 defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Engine {
+    const EDITORIAL_SCAN_OPTION = 'seo_solucionador_editorial_scan_state';
+    const AUTO_REFRESH_HOOK = 'seo_solucionador_auto_refresh';
+    const AUTO_REFRESH_STEP_HOOK = 'seo_solucionador_auto_refresh_step';
+
+    public static function init() {
+        add_action('init', array(__CLASS__, 'schedule_automatic_refresh'), 20);
+        add_action(self::AUTO_REFRESH_HOOK, array(__CLASS__, 'automatic_refresh'));
+        add_action(self::AUTO_REFRESH_STEP_HOOK, array(__CLASS__, 'automatic_refresh'));
+    }
+
+    public static function schedule_automatic_refresh() {
+        if (!wp_next_scheduled(self::AUTO_REFRESH_HOOK)) {
+            wp_schedule_event(time() + 5 * MINUTE_IN_SECONDS, 'hourly', self::AUTO_REFRESH_HOOK);
+        }
+    }
+
+    public static function kick_automatic_refresh() {
+        if (!wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
+            wp_schedule_single_event(time() + 15, self::AUTO_REFRESH_STEP_HOOK);
+        }
+    }
+
+    public static function automatic_refresh() {
+        if (!class_exists('SEO_Solucionador_Dossiers')) return;
+
+        $lock_key = 'seo_solucionador_auto_refresh_lock';
+        if (get_transient($lock_key)) return;
+        set_transient($lock_key, 1, MINUTE_IN_SECONDS);
+
+        try {
+            $snapshot = SEO_Solucionador_Dossiers::snapshot();
+            if (empty($snapshot['available'])) return;
+
+            $reset = false;
+            if (!empty($snapshot['scan_complete'])) {
+                $completed = !empty($snapshot['completed_at']) ? strtotime((string) $snapshot['completed_at']) : 0;
+                if ($completed && (time() - $completed) < 6 * HOUR_IN_SECONDS) return;
+                $reset = true;
+            }
+
+            $result = SEO_Solucionador_Dossiers::scan_batch(500, $reset);
+            if (is_wp_error($result)) return;
+
+            if (empty($result['scan_complete']) && !wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
+                wp_schedule_single_event(time() + 2 * MINUTE_IN_SECONDS, self::AUTO_REFRESH_STEP_HOOK);
+            }
+        } finally {
+            delete_transient($lock_key);
+        }
+    }
     private static function representative_question($topic_id, $fallback = '') {
         $rows = SEO_Solucionador_DB::get_evidence_rows($topic_id);
-        foreach (array('dependiente','analista','auditor','comentarista','ojeador','comparador','ingeniero','clasificador') as $source_type) {
+        foreach (array('dependiente') as $source_type) {
             $best = '';
             $best_score = -1;
             foreach ($rows as $row) {
@@ -48,83 +98,41 @@ final class SEO_Solucionador_Engine {
      */
     private static function canonicalize_profile(array $profile, array $source = array()) {
         $category_id = absint($source['category_id'] ?? $profile['category_id'] ?? 0);
-        if ($category_id) $profile['category_id'] = $category_id;
+        if (!$category_id) return $profile;
 
-        $intent = sanitize_key((string) ($profile['intent'] ?? ''));
-        $key_intent = sanitize_key((string) ($profile['key_intent'] ?? ''));
-        $text = SEO_Solucionador_Normalizer::normalize((string) ($source['source_text'] ?? ''));
+        $meta = is_array($source['source_meta'] ?? null) ? $source['source_meta'] : array();
+        $channel = sanitize_key((string)($meta['dependiente_channel'] ?? ''));
+        $is_academy = sanitize_key((string)($source['source_type'] ?? '')) === 'dependiente'
+            && $channel === 'academy_learned_dossier';
+        if (!$is_academy) return $profile;
 
-        $decision_language = (bool) preg_match('/\b(elegir|eleccion|comprar|compra|diferencia|comparar|comparativa|que .* necesito|cual .* necesito|potencia|cable|bateria|par)\b/u',$text);
-        $is_decision = $key_intent === 'decision'
-            || in_array($intent,array('decision','choice','comparison','buying_guide','eleccion'),true)
-            || $decision_language;
+        $name = trim((string)($source['category_name'] ?? $meta['category_name'] ?? ''));
+        if ($name === '') $name = self::category_name($category_id);
 
-        if ($category_id && $is_decision && empty($profile['condition'])) {
-            $name = trim((string) ($source['category_name'] ?? ''));
-            if ($name === '') $name = self::category_name($category_id);
-            if ($name !== '') $profile['object'] = SEO_Solucionador_Normalizer::normalize($name);
-            $profile['intent'] = 'decision';
-            $profile['key_intent'] = 'decision';
-            $profile['action'] = 'elegir';
-            $profile['condition'] = '';
-            $profile['context'] = '';
-            $profile['canonical_key'] = 'decision|elegir|category-' . $category_id . '|general|general';
-        }
+        $profile['object'] = $name !== '' ? SEO_Solucionador_Normalizer::normalize($name) : '';
+        $profile['intent'] = 'dependiente_qa_basic';
+        $profile['key_intent'] = 'dependiente_qa_basic';
+        $profile['action'] = 'resolver';
+        $profile['condition'] = '';
+        $profile['context'] = '';
+        $profile['category_id'] = $category_id;
+        $profile['confidence'] = max(0.90,(float)($profile['confidence'] ?? 0));
+        $profile['canonical_key'] = 'dependiente-qa-basic|resolver|category-' . $category_id . '|general|general';
         return $profile;
     }
 
-    private static function origin_match(array $profile, array $source, array $origins, array $by_key, array $by_category) {
-        $key = (string) ($profile['canonical_key'] ?? '');
-        if ($key !== '' && !empty($by_key[$key])) return absint($by_key[$key]);
-
-        $category_id = absint($source['category_id'] ?? $profile['category_id'] ?? 0);
-        $candidate_ids = $category_id && !empty($by_category[$category_id])
-            ? (array) $by_category[$category_id]
-            : array_keys($origins);
-
-        $best_id = 0;
-        $best = 0.0;
-        foreach ($candidate_ids as $topic_id) {
-            $origin = $origins[$topic_id] ?? array();
-            if (!$origin) continue;
-            $score = 0.0;
-            $origin_cat = absint($origin['category_id'] ?? 0);
-            if ($category_id && $origin_cat === $category_id) $score += 0.52;
-            $score += 0.28 * SEO_Solucionador_Normalizer::similarity(
-                (string) ($profile['object'] ?? ''),
-                (string) ($origin['object'] ?? '')
-            );
-            if ((string) ($profile['action'] ?? '') !== '' && (string) ($profile['action'] ?? '') === (string) ($origin['action'] ?? '')) $score += 0.12;
-            if ((string) ($profile['key_intent'] ?? '') !== '' && (string) ($profile['key_intent'] ?? '') === (string) ($origin['key_intent'] ?? '')) $score += 0.08;
-            if ($score > $best) {
-                $best = $score;
-                $best_id = absint($topic_id);
+    private static function suggested_title(array $profile) {
+        if (
+            sanitize_key((string) ($profile['intent'] ?? '')) === 'dependiente_qa_basic'
+            && !empty($profile['category_id'])
+        ) {
+            $name = self::category_name(absint($profile['category_id']));
+            if ($name === '') $name = trim((string) ($profile['object'] ?? ''));
+            if ($name !== '') {
+                return $name . ': preguntas habituales sobre elección, uso y compatibilidad';
             }
         }
-        return $best >= 0.56 ? $best_id : 0;
-    }
-
-    private static function primary_category_id($topic_id, array $proposal, array $profile) {
-        $scores = array();
-        $profile_category = absint($profile['category_id'] ?? 0);
-        if ($profile_category) $scores[$profile_category] = 20.0;
-
-        foreach (SEO_Solucionador_DB::get_evidence_rows($topic_id) as $row) {
-            $term_id = absint($row['category_id'] ?? 0);
-            if (!$term_id) continue;
-            $scores[$term_id] = ($scores[$term_id] ?? 0)
-                + max(0.2,(float) ($row['evidence_score'] ?? 1))
-                * max(1,absint($row['occurrences'] ?? 1));
-        }
-        foreach ((array) ($proposal['categories'] ?? array()) as $index=>$row) {
-            $term_id = absint($row['id'] ?? $row['term_id'] ?? 0);
-            if (!$term_id) continue;
-            $scores[$term_id] = ($scores[$term_id] ?? 0)
-                + max(0.5,(float) ($row['score'] ?? (4 - $index)));
-        }
-        if (!$scores) return 0;
-        arsort($scores,SORT_NUMERIC);
-        return absint(array_key_first($scores));
+        return SEO_Solucionador_Normalizer::suggested_title($profile);
     }
 
     private static function hierarchy($term_id) {
@@ -224,19 +232,8 @@ final class SEO_Solucionador_Engine {
     }
 
     private static function evidence_gate(array $stats) {
-        $dependiente = absint($stats['dependiente'] ?? 0);
-        $support = absint($stats['analista'] ?? 0)
-            + absint($stats['auditor'] ?? 0)
-            + absint($stats['comentarista'] ?? 0)
-            + absint($stats['ojeador'] ?? 0)
-            + absint($stats['comparador'] ?? 0)
-            + absint($stats['ingeniero'] ?? 0)
-            + absint($stats['clasificador'] ?? 0);
-        $editorial_origins = absint($stats['analista'] ?? 0) + absint($stats['auditor'] ?? 0);
-
-        return $dependiente >= 2
-            || ($dependiente >= 1 && $support >= 1)
-            || ($editorial_origins >= 2 && absint($stats['total'] ?? 0) >= 2);
+        $minimum = max(1, absint(apply_filters('seo_solucionador_min_academy_questions', 3)));
+        return absint($stats['dependiente'] ?? 0) >= $minimum;
     }
 
     private static function category_product_count($term_id) {
@@ -245,41 +242,37 @@ final class SEO_Solucionador_Engine {
     }
 
     private static function priority_components(array $stats, array $coverage, array $knowledge, array $proposal, $primary_category_id, array $risks) {
-        $d = absint($stats['dependiente'] ?? 0);
-        $a = absint($stats['analista'] ?? 0);
-        $o = absint($stats['ojeador'] ?? 0);
-        $comp = absint($stats['comparador'] ?? 0);
-        $m = absint($stats['marketing'] ?? 0);
-        $zero = absint($stats['zero_results'] ?? 0);
-        $neg = absint($stats['negative_feedback'] ?? 0);
+        $learned = absint($stats['dependiente'] ?? 0);
         $products = self::category_product_count($primary_category_id);
         $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
 
         $scores = array(
-            'user_need'=>min(18,($d * 4.5) + ($zero * 2.5) + ($neg * 2.5)),
-            'search_demand'=>min(16,$a * 5.0),
-            'visibility_opportunity'=>min(10,$a * 2.5),
-            'technical_knowledge'=>($knowledge['status'] ?? '') === 'sufficient' ? min(14,8 + ((float) ($knowledge['confidence'] ?? 0) * 6)) : 0,
-            'catalog_fit'=>min(14,($primary_category_id ? 5 : 0) + min(6,log(1 + $products) * 1.4) + min(3,count((array) ($proposal['categories'] ?? array())))),
-            'market_breadth'=>min(8,($o * 2.5) + ($comp * 3.0)),
+            'learned_questions'=>min(45, $learned * 3.0),
+            'category_fit'=>min(20, ($primary_category_id ? 8 : 0) + min(12, log(1 + $products) * 2.4)),
             'coverage_gap'=>array(
-                'uncovered'=>10,
-                'weak_coverage'=>7,
-                'partial_coverage'=>4,
+                'uncovered'=>25,
+                'weak_coverage'=>16,
+                'partial_coverage'=>8,
                 'covered'=>0,
                 'duplicate'=>0,
                 'conflict'=>0,
             )[$coverage_status] ?? 0,
-            'business_relevance'=>min(10,($m * 3.0) + ($products > 0 ? min(7,log(1 + $products) * 1.5) : 0)),
+            'validation_confidence'=>($knowledge['status'] ?? '') === 'sufficient'
+                ? min(10, 5 + ((float) ($knowledge['confidence'] ?? 0) * 5))
+                : 0,
         );
         $max = array(
-            'user_need'=>18,'search_demand'=>16,'visibility_opportunity'=>10,'technical_knowledge'=>14,
-            'catalog_fit'=>14,'market_breadth'=>8,'coverage_gap'=>10,'business_relevance'=>10,
+            'learned_questions'=>45,
+            'category_fit'=>20,
+            'coverage_gap'=>25,
+            'validation_confidence'=>10,
         );
+        $max = array('learned_questions'=>45,'real_demand'=>15,'catalog_fit'=>15,'coverage_gap'=>20);
         $labels = array(
-            'user_need'=>'Necesidad de usuario','search_demand'=>'Demanda/busqueda','visibility_opportunity'=>'Oportunidad de visibilidad',
-            'technical_knowledge'=>'Conocimiento tecnico','catalog_fit'=>'Encaje con catalogo','market_breadth'=>'Amplitud de mercado',
-            'coverage_gap'=>'Hueco de cobertura','business_relevance'=>'Relevancia comercial',
+            'learned_questions'=>'Preguntas aprendidas',
+            'category_fit'=>'Encaje con product_cat',
+            'coverage_gap'=>'Hueco de cobertura',
+            'validation_confidence'=>'Confianza de Academia',
         );
         $out = array();
         $total = 0.0;
@@ -289,155 +282,81 @@ final class SEO_Solucionador_Engine {
             $out[$key] = array('label'=>$labels[$key],'score'=>$score,'max'=>$max[$key]);
         }
         $penalty = round(min(20,(float) ($risks['duplication_risk'] ?? 0) * 0.20),2);
-        $out['duplication_penalty'] = array('label'=>'Riesgo de duplicacion','score'=>-$penalty,'max'=>0);
+        $out['duplication_penalty'] = array('label'=>'Riesgo de duplicación','score'=>-$penalty,'max'=>0);
         $total -= $penalty;
         return array('total'=>round(max(0,min(100,$total)),2),'components'=>$out);
     }
 
-    private static function broad_category_intent(array $profile, $primary_category_id) {
-        if (!absint($primary_category_id)) return false;
-        $intent = sanitize_key((string) ($profile['intent'] ?? ''));
-        $key_intent = sanitize_key((string) ($profile['key_intent'] ?? ''));
-        $action = sanitize_key((string) ($profile['action'] ?? ''));
-        $condition = trim((string) ($profile['condition'] ?? ''));
-        return $condition === '' && (
-            $key_intent === 'decision'
-            || in_array($intent,array('decision','choice','comparison','buying_guide','eleccion'),true)
-            || $action === 'elegir'
-        );
-    }
-
-    private static function landing_candidate_for_profile(array $profile, $suggested_title = '') {
-        if (!function_exists('seo_landing_get_candidates')) return array();
-        static $candidates = null;
-        if ($candidates === null) $candidates = (array) seo_landing_get_candidates(500);
-
-        $topic_text = trim(implode(' ',array_filter(array(
-            (string) $suggested_title,
-            (string) ($profile['action'] ?? ''),
-            (string) ($profile['object'] ?? ''),
-            (string) ($profile['context'] ?? ''),
-            (string) ($profile['condition'] ?? ''),
-        ))));
-        if ($topic_text === '') return array();
-
-        $best = array();
-        $best_score = 0.0;
-        foreach ($candidates as $candidate) {
-            $status = sanitize_key((string) ($candidate->status ?? ''));
-            if (!in_array($status,array('candidate','review','approved'),true)) continue;
-            $candidate_text = trim((string) ($candidate->title ?? '') . ' ' . (string) ($candidate->intent ?? ''));
-            if ($candidate_text === '') continue;
-
-            $similarity = SEO_Solucionador_Normalizer::similarity($topic_text,$candidate_text);
-            if ($similarity < 0.62 || $similarity <= $best_score) continue;
-
-            $requirements = function_exists('seo_landing_decode_json')
-                ? seo_landing_decode_json($candidate->requirements_json ?? '')
-                : array();
-            $pass = function_exists('seo_landing_requirements_pass')
-                ? seo_landing_requirements_pass($requirements)
-                : ($status === 'approved');
-            $score = (float) ($candidate->total_score ?? 0);
-            if ($status !== 'approved' && (!$pass || $score < 60)) continue;
-
-            $best_score = $similarity;
-            $best = array(
-                'id'=>absint($candidate->id ?? 0),
-                'page_id'=>absint($candidate->page_id ?? 0),
-                'status'=>$status,
-                'score'=>$score,
-                'similarity'=>round($similarity,4),
-                'requirements'=>$requirements,
-                'requirements_pass'=>(bool) $pass,
-                'title'=>(string) ($candidate->title ?? ''),
-                'intent'=>(string) ($candidate->intent ?? ''),
-            );
-        }
-        return $best;
-    }
-
     private static function requirements(array $stats,array $coverage,array $knowledge,array $risks,$primary_category_id,array $landing) {
         $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
-        $real_evidence = self::evidence_gate($stats);
-        $coverage_allows_new = in_array($coverage_status,array('uncovered','weak_coverage'),true);
+        $mass_ok = self::evidence_gate($stats);
         $risk_ok = (float) ($risks['duplication_risk'] ?? 0) < 70
             && (float) ($risks['cannibalization_risk'] ?? 0) < 70;
-        $knowledge_ok = (string) ($knowledge['status'] ?? '') === 'sufficient';
 
         return array(
-            'real_evidence'=>array('pass'=>$real_evidence,'detail'=>'La necesidad debe tener repeticion o cruce independiente de fuentes.'),
-            'category_identified'=>array('pass'=>absint($primary_category_id)>0,'detail'=>'La oportunidad debe intentar asociarse primero a product_cat.'),
-            'coverage_allows_new'=>array('pass'=>$coverage_allows_new,'detail'=>'Crear URL solo con cobertura inexistente o debil.'),
-            'knowledge_sufficient'=>array('pass'=>$knowledge_ok,'detail'=>'Ingeniero debe aportar conocimiento validado suficiente antes de redactar un tema tecnico.'),
-            'duplication_below_threshold'=>array('pass'=>$risk_ok,'detail'=>'Riesgo de duplicacion/canibalizacion por debajo del umbral de bloqueo.'),
-            'landing_requirements'=>array('pass'=>!empty($landing['requirements_pass']),'detail'=>'CREATE_LANDING exige candidata valida, estable, comercial y diferenciada.'),
-            'landing_candidate'=>array('pass'=>!empty($landing),'detail'=>'Debe existir una candidata de landing previamente evaluada.'),
+            'academy_mass'=>array(
+                'pass'=>$mass_ok,
+                'detail'=>'El dossier debe alcanzar la masa crítica de preguntas pass_* de Academia.'
+            ),
+            'category_identified'=>array(
+                'pass'=>absint($primary_category_id)>0,
+                'detail'=>'La categoría product_cat debe ser demostrable; nunca se infiere por parecido textual.'
+            ),
+            'coverage_reviewed'=>array(
+                'pass'=>in_array($coverage_status,array('uncovered','weak_coverage','partial_coverage','covered','duplicate','conflict'),true),
+                'detail'=>'Siempre se comprueba la cobertura antes de crear o modificar contenido.'
+            ),
+            'duplication_below_threshold'=>array(
+                'pass'=>$risk_ok,
+                'detail'=>'CREATE_POST sólo puede avanzar con bajo riesgo de duplicación/canibalización.'
+            ),
         );
     }
 
     private static function improvement_action(array $coverage) {
         $type = sanitize_key((string) ($coverage['entity_type'] ?? ''));
-        $role = sanitize_key((string) ($coverage['seo_role'] ?? ''));
-        if ($type === 'product_cat') return 'IMPROVE_CATEGORY';
-        if ($type === 'post') return 'IMPROVE_POST';
-        if ($type === 'page' && $role === 'landing') return 'IMPROVE_LANDING';
-        if ($type === 'page') return 'IMPROVE_PAGE';
-        return 'DEFER';
+        return $type === 'post' ? 'IMPROVE_POST' : 'DEFER';
     }
 
     private static function decision(array $profile,array $stats,array $coverage,array $knowledge,array $risks,$primary_category_id,array $landing,array $requirements) {
         $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
+        $entity_type = sanitize_key((string) ($coverage['entity_type'] ?? ''));
 
+        if (!$primary_category_id) {
+            return array('action'=>'DEFER','reason'=>'No existe una product_cat demostrable para este conocimiento de Academia.');
+        }
+        if (!self::evidence_gate($stats)) {
+            return array('action'=>'DEFER','reason'=>'El dossier todavía no alcanza la masa crítica de preguntas aprendidas.');
+        }
         if ($coverage_status === 'conflict') {
-            return array('action'=>'INVESTIGATE','reason'=>'Hay contenidos potencialmente contradictorios. Primero debe resolverse el conflicto antes de editar o crear.');
+            return array('action'=>'DEFER','reason'=>'La cobertura existente es contradictoria y requiere revisión humana antes de editar.');
         }
         if ($coverage_status === 'duplicate') {
-            return array('action'=>'MERGE_CONTENT','reason'=>'Varias URLs cubren practicamente la misma intencion; consolidar antes de crear contenido.');
+            return array('action'=>'MERGE_CONTENT','reason'=>'Existen varias piezas solapadas; consolidar antes de crear otra URL.');
         }
         if ($coverage_status === 'covered') {
-            return array('action'=>'NO_ACTION','reason'=>'La intencion ya esta suficientemente cubierta por una URL existente.');
+            return array('action'=>'NO_ACTION','reason'=>'La intención básica de la categoría ya está suficientemente cubierta.');
         }
         if (in_array($coverage_status,array('partial_coverage','weak_coverage'),true)) {
             $action = self::improvement_action($coverage);
-            return array('action'=>$action,'reason'=>'Existe cobertura relacionada pero insuficiente; se prioriza mejorar la URL existente.');
-        }
-
-        if (($knowledge['status'] ?? '') !== 'sufficient') {
-            return array('action'=>'INVESTIGATE','reason'=>'No hay conocimiento tecnico validado suficiente para entregar el tema a Editora.');
-        }
-
-        // Una intencion comercial amplia que coincide con una familia existente
-        // debe mejorar primero product_cat, no fabricar una landing competidora.
-        if (self::broad_category_intent($profile,$primary_category_id)) {
-            return array('action'=>'IMPROVE_CATEGORY','reason'=>'La necesidad coincide con una familia de producto existente; la categoria es el destino principal antes que una nueva landing.');
+            if ($action === 'IMPROVE_POST') {
+                return array('action'=>'IMPROVE_POST','reason'=>'Existe un post de la misma intención con cobertura parcial o débil; se amplía antes de crear otro.');
+            }
+            return array('action'=>'DEFER','reason'=>'Existe cobertura parcial fuera de un post editable equivalente; requiere revisión antes de crear contenido.');
         }
 
         $risk_ok = !empty($requirements['duplication_below_threshold']['pass']);
-        $evidence_ok = !empty($requirements['real_evidence']['pass']);
-        $coverage_ok = !empty($requirements['coverage_allows_new']['pass']);
-
-        if (!empty($landing)
-            && !empty($requirements['landing_requirements']['pass'])
-            && $risk_ok && $evidence_ok && $coverage_ok) {
-            return array('action'=>'CREATE_LANDING','reason'=>'La intencion es transversal/comercial, la candidata de landing cumple requisitos y no existe una URL equivalente.');
+        if ($coverage_status === 'uncovered' && $risk_ok) {
+            return array('action'=>'CREATE_POST','reason'=>'Dossier básico con preguntas aprendidas suficientes, categoría resuelta y sin cobertura equivalente.');
         }
 
-        if ($risk_ok && $evidence_ok && $coverage_ok) {
-            return array('action'=>'CREATE_POST','reason'=>'Tema informativo concreto, con evidencia real, conocimiento suficiente y sin cobertura equivalente.');
-        }
-
-        return array('action'=>'DEFER','reason'=>'La evidencia o las condiciones obligatorias todavia no justifican una actuacion editorial.');
+        return array('action'=>'DEFER','reason'=>'Las condiciones del dossier todavía no justifican una actuación editorial.');
     }
 
     private static function content_type_for_action($action,array $coverage) {
         $action = strtoupper((string) $action);
-        if ($action === 'CREATE_POST' || $action === 'IMPROVE_POST') return 'post';
-        if ($action === 'CREATE_LANDING' || $action === 'IMPROVE_LANDING') return 'landing';
-        if ($action === 'IMPROVE_CATEGORY') return 'category';
-        if ($action === 'IMPROVE_PAGE') return 'page';
+        if (in_array($action,array('CREATE_POST','IMPROVE_POST'),true)) return 'post';
         if ($action === 'MERGE_CONTENT') return 'merge';
-        if ($action === 'INVESTIGATE') return 'research';
         return sanitize_key((string) ($coverage['entity_type'] ?? 'none')) ?: 'none';
     }
 
@@ -449,7 +368,7 @@ final class SEO_Solucionador_Engine {
         if ((string) $legacy_status === 'dismissed') return 'rejected';
         $action = strtoupper((string) $action);
         if ($action === 'NO_ACTION') return 'validated';
-        if (in_array($action,array('DEFER','INVESTIGATE'),true)) return 'deferred';
+        if ($action === 'DEFER') return 'deferred';
         return 'candidate';
     }
 
@@ -530,50 +449,341 @@ final class SEO_Solucionador_Engine {
     public static function evaluate_scenario_for_test(array $scenario) {
         $profile = (array) ($scenario['profile'] ?? array());
         $stats = wp_parse_args((array) ($scenario['stats'] ?? array()),array(
-            'total'=>0,'dependiente'=>0,'comentarista'=>0,'analista'=>0,'auditor'=>0,
-            'ojeador'=>0,'comparador'=>0,'ingeniero'=>0,'clasificador'=>0,'marketing'=>0,
-            'zero_results'=>0,'negative_feedback'=>0,
+            'total'=>0,'dependiente'=>0,'academy_questions'=>0,'search_demand'=>0,
         ));
         $coverage = wp_parse_args((array) ($scenario['coverage'] ?? array()),array(
             'status'=>'uncovered','entity_type'=>'','entity_id'=>0,'seo_role'=>'','matches'=>array(),'score'=>0,
         ));
-        $knowledge = wp_parse_args((array) ($scenario['knowledge'] ?? array()),array(
-            'status'=>'insufficient','count'=>0,'confidence'=>0,
-        ));
+        $knowledge = array('status'=>'not_required','count'=>0,'confidence'=>1);
         $risks = wp_parse_args((array) ($scenario['risks'] ?? array()),array(
             'duplication_risk'=>0,'cannibalization_risk'=>0,
         ));
         $primary_category_id = absint($scenario['primary_category_id'] ?? $profile['category_id'] ?? 0);
-        $landing = (array) ($scenario['landing'] ?? array());
-        $requirements = self::requirements($stats,$coverage,$knowledge,$risks,$primary_category_id,$landing);
-        $decision = self::decision($profile,$stats,$coverage,$knowledge,$risks,$primary_category_id,$landing,$requirements);
+        $requirements = self::requirements($stats,$coverage,$knowledge,$risks,$primary_category_id,array(),$profile);
+        $decision = self::decision($profile,$stats,$coverage,$knowledge,$risks,$primary_category_id,array(),$requirements);
+        return array('decision'=>$decision,'requirements'=>$requirements);
+    }
+
+    /**
+     * Garantiza que una instalación nueva disponga de un primer análisis.
+     *
+     * El análisis inicial se ejecuta una sola vez, cuando todavía no existe
+     * seo_solucionador_last_scan. Un lock evita ejecuciones simultáneas desde
+     * dos pestañas o desde pantalla + exportación.
+     *
+     * @return array|WP_Error
+     */
+    public static function ensure_initialized($days = 180) {
+        $last = get_option('seo_solucionador_last_scan', array());
+        if (is_array($last) && !empty($last['at']) && !empty($last['complete'])) {
+            return $last;
+        }
+
+        $lock_key = 'seo_solucionador_initial_scan_lock';
+        if (get_transient($lock_key)) {
+            return new WP_Error(
+                'seo_solucionador_initializing',
+                'Solucionador está preparando su primer análisis. Vuelve a cargar la pantalla en unos instantes.'
+            );
+        }
+
+        set_transient($lock_key, 1, 5 * MINUTE_IN_SECONDS);
+
+        try {
+            $result = self::scan($days);
+            delete_transient($lock_key);
+            delete_option('seo_solucionador_init_error');
+            return is_array($result) ? $result : array();
+        } catch (Throwable $e) {
+            delete_transient($lock_key);
+            update_option('seo_solucionador_init_error', array(
+                'at' => time(),
+                'message' => sanitize_text_field($e->getMessage()),
+            ), false);
+
+            return new WP_Error(
+                'seo_solucionador_initial_scan_failed',
+                'No se pudo completar el análisis inicial de Solucionador: ' . $e->getMessage()
+            );
+        }
+    }
+
+    private static function fresh_editorial_scan_state($token, array $coverage_index = array()) {
         return array(
-            'decision'=>$decision,
-            'requirements'=>$requirements,
+            'token'=>sanitize_text_field((string) $token),
+            'cursor'=>0,
+            'processed'=>0,
+            'accepted'=>0,
+            'discarded'=>0,
+            'complete'=>false,
+            'started_at'=>current_time('mysql'),
+            'updated_at'=>current_time('mysql'),
+            'completed_at'=>'',
+            'coverage_index'=>$coverage_index,
         );
     }
 
-    public static function scan($days = 180) {
+    private static function analyze_topic($topic_id) {
         global $wpdb;
+        $topic = SEO_Solucionador_DB::get_topic($topic_id);
+        if (!$topic) return false;
+
+        $profile = array(
+            'intent'=>(string) ($topic['intent'] ?? ''),
+            'key_intent'=>(string) ($topic['intent'] ?? ''),
+            'action'=>(string) ($topic['action_term'] ?? ''),
+            'object'=>(string) ($topic['object_term'] ?? ''),
+            'condition'=>(string) ($topic['condition_term'] ?? ''),
+            'context'=>(string) ($topic['context_term'] ?? ''),
+            'canonical_key'=>(string) ($topic['canonical_key'] ?? ''),
+            'category_id'=>absint($topic['primary_category_id'] ?? 0),
+        );
+
+        $topic_id = absint($topic['id'] ?? 0);
+        $stats = SEO_Solucionador_DB::topic_stats($topic_id);
+        $question = self::representative_question($topic_id,(string) ($topic['canonical_question'] ?? ''));
+
+        $primary_category_id = absint($profile['category_id'] ?? 0);
+        $proposal = SEO_Solucionador_Catalog::build_proposal($topic_id,$profile);
+        if ($primary_category_id) {
+            $term = get_term($primary_category_id,'product_cat');
+            if ($term && !is_wp_error($term)) {
+                $proposal['categories'] = array(array(
+                    'id'=>$primary_category_id,
+                    'term_id'=>$primary_category_id,
+                    'name'=>(string) $term->name,
+                    'slug'=>(string) $term->slug,
+                    'score'=>1.0,
+                ));
+            }
+        }
+
+        $hierarchy = self::hierarchy($primary_category_id);
+        $coverage = SEO_Editorial_Coverage::find($profile);
+        $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered')) ?: 'uncovered';
+        $knowledge = self::knowledge_status($primary_category_id,$stats);
+        $risks = self::risks($coverage,$primary_category_id);
+        $suggested_title = self::suggested_title($profile);
+        $requirements = self::requirements($stats,$coverage,$knowledge,$risks,$primary_category_id,array());
+        $decision = self::decision($profile,$stats,$coverage,$knowledge,$risks,$primary_category_id,array(),$requirements);
+        $priority = self::priority_components($stats,$coverage,$knowledge,$proposal,$primary_category_id,$risks);
+
+        $draft_id = absint($topic['draft_post_id'] ?? 0);
+        $draft_status = $draft_id ? get_post_status($draft_id) : false;
+        if ($draft_id && $draft_status && $draft_status !== 'trash') {
+            $coverage_status = $draft_status === 'publish' ? 'covered' : $coverage_status;
+            $decision = array(
+                'action'=>'NO_ACTION',
+                'reason'=>$draft_status === 'publish'
+                    ? 'La propuesta ya se publicó; no se crea otra pieza.'
+                    : 'Existe un borrador de trabajo asociado; no se crea otra pieza.'
+            );
+        } elseif ($draft_id) {
+            SEO_Solucionador_DB::update_topic($topic_id,array('draft_post_id'=>null));
+            $draft_id = 0;
+        }
+
+        $legacy_status = (string) ($topic['status'] ?? 'candidate');
+        $workflow_state = self::automatic_workflow_state(
+            $decision['action'],
+            $legacy_status,
+            (string) ($topic['workflow_state'] ?? 'detected')
+        );
+        if ($draft_id && $draft_status === 'publish') $workflow_state = 'published';
+        elseif ($draft_id && $draft_status && $draft_status !== 'trash') $workflow_state = 'in_editing';
+
+        $legacy_status_out = $legacy_status === 'dismissed' ? 'dismissed' : (
+            $workflow_state === 'rejected' ? 'dismissed' : (
+                in_array($workflow_state,array('in_editing','scheduled'),true) ? 'draft_created' : (
+                    in_array($workflow_state,array('published','monitoring','closed'),true) ? 'covered' : (
+                        $workflow_state === 'deferred' ? 'observe' : 'candidate'
+                    )
+                )
+            )
+        );
+
+        $existing_entity_type = sanitize_key((string) ($coverage['entity_type'] ?? ''));
+        $existing_entity_id = absint($coverage['entity_id'] ?? 0);
+        $existing_post_id = $existing_entity_type === 'post' ? $existing_entity_id : 0;
+        if ($draft_id && $draft_status === 'publish') {
+            $existing_entity_type = 'post';
+            $existing_entity_id = $draft_id;
+            $existing_post_id = $draft_id;
+        }
+
+        $topics_table = SEO_Solucionador_DB::topics_table();
+        return $wpdb->update($topics_table,array(
+            'canonical_question'=>$question,
+            'suggested_title'=>$suggested_title,
+            'proposed_vocabulary'=>wp_json_encode((array) ($proposal['vocabulary'] ?? array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'proposed_categories'=>wp_json_encode((array) ($proposal['categories'] ?? array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'primary_category_id'=>$primary_category_id ?: null,
+            'hierarchy_json'=>wp_json_encode($hierarchy,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'coverage_status'=>$coverage_status,
+            'coverage_score'=>(float) ($coverage['score'] ?? 0),
+            'existing_entity_type'=>$existing_entity_type ?: null,
+            'existing_entity_id'=>$existing_entity_id ?: null,
+            'existing_post_id'=>$existing_post_id ?: null,
+            'recommended_action'=>(string) $decision['action'],
+            'decision_reason'=>(string) $decision['reason'],
+            'decision_requirements'=>wp_json_encode($requirements,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'priority_components'=>wp_json_encode($priority['components'],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'duplication_risk'=>(float) ($risks['duplication_risk'] ?? 0),
+            'cannibalization_risk'=>(float) ($risks['cannibalization_risk'] ?? 0),
+            'knowledge_status'=>(string) ($knowledge['status'] ?? 'unknown'),
+            'workflow_state'=>$workflow_state,
+            'content_type'=>self::content_type_for_action($decision['action'],$coverage),
+            'status'=>$legacy_status_out,
+            'priority_score'=>(float) $priority['total'],
+            'evidence_total'=>absint($stats['total'] ?? 0),
+            'interpreter_evidence'=>absint($stats['dependiente'] ?? 0),
+            'comentarista_evidence'=>0,
+            'analyst_evidence'=>0,
+            'auditor_evidence'=>0,
+            'zero_result_evidence'=>0,
+            'negative_feedback_evidence'=>0,
+            'last_analyzed_at'=>current_time('mysql'),
+            'updated_at'=>current_time('mysql'),
+        ),array('id'=>$topic_id)) !== false;
+    }
+
+    /**
+     * Materializa/actualiza el topic interno de una categoría concreta.
+     * La interfaz simplificada trabaja desde dossiers y usa este método sólo
+     * cuando necesita ejecutar una acción humana sobre una propuesta.
+     */
+    public static function prepare_category_topic($category_id) {
+        $category_id = absint($category_id);
+        if (!$category_id || !class_exists('SEO_Solucionador_Dossiers')) {
+            return new WP_Error('solucionador_category_missing', 'La categoría propuesta no es válida.');
+        }
+
+        $dossier = SEO_Solucionador_Dossiers::get_by_category($category_id);
+        if (!$dossier || absint($dossier['question_count'] ?? 0) < 1) {
+            return new WP_Error('solucionador_dossier_missing', 'No existe un dossier con preguntas aprendidas para esta categoría.');
+        }
+
+        $name = trim((string) ($dossier['category_name'] ?? ''));
+        if ($name === '') {
+            $term = get_term($category_id, 'product_cat');
+            if ($term && !is_wp_error($term)) $name = (string) $term->name;
+        }
+        if ($name === '') {
+            return new WP_Error('solucionador_category_name_missing', 'No se pudo resolver el nombre de la categoría.');
+        }
+
+        $ids = SEO_Solucionador_DB::decode_json($dossier['question_ids'] ?? '[]', array());
+        $source = array(
+            'dossier_id'=>absint($dossier['id'] ?? 0),
+            'source_type'=>'dependiente',
+            'proposal_role'=>'origin',
+            'source_id'=>'academy-category:' . $category_id,
+            'signal_type'=>'learned_category_dossier',
+            'entity_type'=>'product_cat',
+            'entity_id'=>$category_id,
+            'category_id'=>$category_id,
+            'category_name'=>$name,
+            'source_text'=>'Preguntas habituales sobre ' . $name . ': conocimiento aprendido por Dependiente.',
+            'hints'=>array(
+                'intent'=>'dependiente_qa_basic',
+                'action'=>'resolver',
+                'object'=>$name,
+                'category_id'=>$category_id,
+            ),
+            'occurrences'=>max(1,absint($dossier['question_count'] ?? 1)),
+            'confidence'=>max(0.60,min(1.0,(float) ($dossier['score_avg'] ?? 0.90))),
+            'evidence_score'=>1.00,
+            'observed_at'=>(string) ($dossier['last_validated_at'] ?? current_time('mysql')),
+            'source_meta'=>array(
+                'proposal_role'=>'origin',
+                'dependiente_channel'=>'academy_learned_dossier',
+                'editorial_family'=>'dependiente_qa_basic',
+                'dossier_id'=>absint($dossier['id'] ?? 0),
+                'category_id'=>$category_id,
+                'category_name'=>$name,
+                'question_count'=>absint($dossier['question_count'] ?? 0),
+                'question_ids'=>array_values(array_filter(array_map('absint',(array) $ids))),
+                'source_hash'=>(string) ($dossier['source_hash'] ?? ''),
+                'last_validated_at'=>(string) ($dossier['last_validated_at'] ?? ''),
+            ),
+        );
+
+        $profile = SEO_Solucionador_Normalizer::profile(
+            (string) $source['source_text'],
+            (array) $source['hints']
+        );
+        $profile = self::canonicalize_profile((array) $profile, $source);
+        if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) {
+            return new WP_Error('solucionador_profile_invalid', 'No se pudo preparar el perfil editorial de la categoría.');
+        }
+
+        $topic_id = SEO_Solucionador_DB::upsert_topic($profile, (string) $source['source_text']);
+        if (!$topic_id) {
+            return new WP_Error('solucionador_topic_write', 'No se pudo preparar la propuesta editorial.');
+        }
+
+        SEO_Solucionador_DB::add_evidence($topic_id, $source);
+        self::analyze_topic($topic_id);
+
+        $topic = SEO_Solucionador_DB::get_topic($topic_id);
+        return $topic ?: new WP_Error('solucionador_topic_missing', 'La propuesta no quedó disponible tras analizarla.');
+    }
+
+    public static function scan($days = 180, $batch_size = 100) {
         SEO_Solucionador_DB::maybe_install();
+        $batch_size = max(25,min(250,absint($batch_size)));
 
-        SEO_Solucionador_DB::begin_scan();
-        $coverage_index = SEO_Solucionador_Coverage::rebuild_index(7000);
-        $sources = SEO_Solucionador_Sources::all($days);
+        // Si el ciclo anterior terminó, una nueva ejecución manual inicia un
+        // ciclo completo nuevo. Si quedó a medias, conserva ambos cursores.
+        $last_scan = get_option('seo_solucionador_last_scan', array());
+        if (is_array($last_scan) && !empty($last_scan['complete'])) {
+            SEO_Solucionador_Dossiers::reset_scan();
+            delete_option(self::EDITORIAL_SCAN_OPTION);
+        }
 
+        // Fase 1: construir/actualizar dossiers ligeros de Academia de forma
+        // reanudable. Mientras no termine, no se cargan todas las preguntas.
+        $academy = SEO_Solucionador_Dossiers::scan_batch($batch_size,false);
+        if (is_wp_error($academy)) return $academy;
+
+        if (empty($academy['scan_complete'])) {
+            $result = array(
+                'at'=>time(),
+                'days'=>absint($days),
+                'complete'=>false,
+                'phase'=>'academia_dossiers',
+                'academy'=>$academy,
+                'message'=>'Academia se está procesando por lotes. Vuelve a ejecutar para continuar.',
+            );
+            update_option('seo_solucionador_last_scan',$result,false);
+            return $result;
+        }
+
+        $token = sanitize_text_field((string) ($academy['scan_token'] ?? ''));
+        $state = get_option(self::EDITORIAL_SCAN_OPTION,array());
+        if (!is_array($state)) $state = array();
+
+        if (empty($state['token']) || (string) $state['token'] !== $token || !empty($state['complete'])) {
+            SEO_Solucionador_DB::begin_scan();
+            $coverage_index = SEO_Editorial_Coverage::rebuild_index(7000);
+            $state = self::fresh_editorial_scan_state($token,$coverage_index);
+            update_option(self::EDITORIAL_SCAN_OPTION,$state,false);
+        }
+
+        $cursor = absint($state['cursor'] ?? 0);
+        $sources = SEO_Solucionador_Sources::all($days,$batch_size,$cursor);
+        $topic_ids = array();
+        $last_cursor = $cursor;
         $accepted = 0;
         $discarded = 0;
-        $reinforcement_skipped = 0;
-        $seen_by_source = array();
-        $accepted_by_source = array();
-        $discarded_by_source = array();
-        $origins = array();
-        $origin_by_key = array();
-        $origin_by_category = array();
 
         foreach ($sources as $source) {
-            $source_type = sanitize_key((string) ($source['source_type'] ?? '')) ?: 'unknown';
-            self::bump($seen_by_source,$source_type);
+            $dossier_id = absint($source['dossier_id'] ?? 0);
+            if (!$dossier_id) {
+                $meta = is_array($source['source_meta'] ?? null) ? $source['source_meta'] : array();
+                $dossier_id = absint($meta['dossier_id'] ?? 0);
+            }
+            if ($dossier_id > $last_cursor) $last_cursor = $dossier_id;
 
             $profile = SEO_Solucionador_Normalizer::profile(
                 (string) ($source['source_text'] ?? ''),
@@ -582,175 +792,77 @@ final class SEO_Solucionador_Engine {
             $profile = self::canonicalize_profile((array) $profile,$source);
             if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) {
                 $discarded++;
-                self::bump($discarded_by_source,$source_type);
                 continue;
             }
 
-            $key = (string) ($profile['canonical_key'] ?? '');
-            $role = sanitize_key((string) ($source['proposal_role'] ?? 'origin')) ?: 'origin';
-            $topic_id = 0;
-
-            if ($role === 'reinforcement') {
-                $topic_id = self::origin_match($profile,$source,$origins,$origin_by_key,$origin_by_category);
-                if (!$topic_id) {
-                    $reinforcement_skipped++;
-                    $discarded++;
-                    self::bump($discarded_by_source,$source_type);
-                    continue;
-                }
-            } else {
-                $topic_id = SEO_Solucionador_DB::upsert_topic($profile,(string) ($source['source_text'] ?? ''));
-                if ($topic_id) {
-                    $origins[$topic_id] = $profile;
-                    $origin_by_key[$key] = $topic_id;
-                    $cat = absint($source['category_id'] ?? $profile['category_id'] ?? 0);
-                    if ($cat) $origin_by_category[$cat][] = $topic_id;
-                }
-            }
-
+            $topic_id = SEO_Solucionador_DB::upsert_topic(
+                $profile,
+                (string) ($source['source_text'] ?? '')
+            );
             if (!$topic_id) {
                 $discarded++;
-                self::bump($discarded_by_source,$source_type);
                 continue;
             }
+        }
 
             SEO_Solucionador_DB::add_evidence($topic_id,$source);
+            $topic_ids[$topic_id] = true;
             $accepted++;
-            self::bump($accepted_by_source,$source_type);
         }
 
-        $pruned_topics = SEO_Solucionador_DB::prune_orphan_topics();
-        $topics_table = SEO_Solucionador_DB::topics_table();
-        $topics = (array) $wpdb->get_results("SELECT * FROM {$topics_table} ORDER BY id ASC",ARRAY_A);
-
-        foreach ($topics as $topic) {
-            $topic_id = absint($topic['id'] ?? 0);
-            if (!$topic_id) continue;
-
-            $profile = array(
-                'intent'=>(string) ($topic['intent'] ?? ''),
-                'key_intent'=>preg_match('/compar|choice|decision|eleg|compra/i',(string) ($topic['intent'] ?? '')) ? 'decision' : ((string) ($topic['intent'] ?? '') === 'problem' ? 'problem' : 'task'),
-                'action'=>(string) ($topic['action_term'] ?? ''),
-                'object'=>(string) ($topic['object_term'] ?? ''),
-                'condition'=>(string) ($topic['condition_term'] ?? ''),
-                'context'=>(string) ($topic['context_term'] ?? ''),
-                'canonical_key'=>(string) ($topic['canonical_key'] ?? ''),
-                'category_id'=>absint($topic['primary_category_id'] ?? 0),
-            );
-            $stats = SEO_Solucionador_DB::topic_stats($topic_id);
-            $question = self::representative_question($topic_id,(string) ($topic['canonical_question'] ?? ''));
-
-            $proposal = SEO_Solucionador_Catalog::build_proposal($topic_id,$profile);
-            $primary_category_id = self::primary_category_id($topic_id,$proposal,$profile);
-            if ($primary_category_id) $profile['category_id'] = $primary_category_id;
-            $hierarchy = self::hierarchy($primary_category_id);
-
-            $coverage = SEO_Solucionador_Coverage::find($profile);
-            $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered')) ?: 'uncovered';
-            $knowledge = self::knowledge_status($primary_category_id,$stats);
-            $risks = self::risks($coverage,$primary_category_id);
-            $suggested_title = SEO_Solucionador_Normalizer::suggested_title($profile);
-            $landing = self::landing_candidate_for_profile($profile,$suggested_title);
-            $requirements = self::requirements($stats,$coverage,$knowledge,$risks,$primary_category_id,$landing);
-            $decision = self::decision($profile,$stats,$coverage,$knowledge,$risks,$primary_category_id,$landing,$requirements);
-            $priority = self::priority_components($stats,$coverage,$knowledge,$proposal,$primary_category_id,$risks);
-
-            $draft_id = absint($topic['draft_post_id'] ?? 0);
-            $draft_status = $draft_id ? get_post_status($draft_id) : false;
-            if ($draft_id && $draft_status && $draft_status !== 'trash') {
-                $coverage_status = $draft_status === 'publish' ? 'covered' : $coverage_status;
-                $decision = array('action'=>'NO_ACTION','reason'=>$draft_status === 'publish'
-                    ? 'La propuesta ya se publico; pasa a seguimiento.'
-                    : 'Existe un borrador de trabajo asociado; no se crea otra pieza.');
-            } elseif ($draft_id) {
-                SEO_Solucionador_DB::update_topic($topic_id,array('draft_post_id'=>null));
-                $draft_id = 0;
-            }
-
-            $legacy_status = (string) ($topic['status'] ?? 'candidate');
-            $workflow_state = self::automatic_workflow_state(
-                $decision['action'],
-                $legacy_status,
-                (string) ($topic['workflow_state'] ?? 'detected')
-            );
-            if ($draft_id && $draft_status === 'publish') $workflow_state = 'monitoring';
-            elseif ($draft_id && $draft_status && $draft_status !== 'trash') $workflow_state = 'in_editing';
-
-            $legacy_status_out = $legacy_status === 'dismissed' ? 'dismissed' : (
-                $workflow_state === 'rejected' ? 'dismissed' : (
-                    in_array($workflow_state,array('in_editing','scheduled'),true) ? 'draft_created' : (
-                        in_array($workflow_state,array('published','monitoring','closed'),true) ? 'covered' : (
-                            $workflow_state === 'deferred' ? 'observe' : 'candidate'
-                        )
-                    )
-                )
-            );
-
-            $existing_entity_type = sanitize_key((string) ($coverage['entity_type'] ?? ''));
-            $existing_entity_id = absint($coverage['entity_id'] ?? 0);
-            $existing_post_id = $existing_entity_type === 'post' ? $existing_entity_id : 0;
-            if ($draft_id && $draft_status === 'publish') {
-                $existing_entity_type = 'post';
-                $existing_entity_id = $draft_id;
-                $existing_post_id = $draft_id;
-            }
-
-            $wpdb->update($topics_table,array(
-                'canonical_question'=>$question,
-                'suggested_title'=>$suggested_title,
-                'proposed_vocabulary'=>wp_json_encode((array) ($proposal['vocabulary'] ?? array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-                'proposed_categories'=>wp_json_encode((array) ($proposal['categories'] ?? array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-                'primary_category_id'=>$primary_category_id ?: null,
-                'hierarchy_json'=>wp_json_encode($hierarchy,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-                'coverage_status'=>$coverage_status,
-                'coverage_score'=>(float) ($coverage['score'] ?? 0),
-                'existing_entity_type'=>$existing_entity_type ?: null,
-                'existing_entity_id'=>$existing_entity_id ?: null,
-                'existing_post_id'=>$existing_post_id ?: null,
-                'recommended_action'=>(string) $decision['action'],
-                'decision_reason'=>(string) $decision['reason'],
-                'decision_requirements'=>wp_json_encode($requirements,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-                'priority_components'=>wp_json_encode($priority['components'],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-                'duplication_risk'=>(float) ($risks['duplication_risk'] ?? 0),
-                'cannibalization_risk'=>(float) ($risks['cannibalization_risk'] ?? 0),
-                'knowledge_status'=>(string) ($knowledge['status'] ?? 'unknown'),
-                'workflow_state'=>$workflow_state,
-                'content_type'=>self::content_type_for_action($decision['action'],$coverage),
-                'status'=>$legacy_status_out,
-                'priority_score'=>(float) $priority['total'],
-                'evidence_total'=>absint($stats['total'] ?? 0),
-                'interpreter_evidence'=>absint($stats['dependiente'] ?? 0),
-                'comentarista_evidence'=>absint($stats['comentarista'] ?? 0),
-                'analyst_evidence'=>absint($stats['analista'] ?? 0),
-                'auditor_evidence'=>absint($stats['auditor'] ?? 0),
-                'zero_result_evidence'=>absint($stats['zero_results'] ?? 0),
-                'negative_feedback_evidence'=>absint($stats['negative_feedback'] ?? 0),
-                'last_analyzed_at'=>current_time('mysql'),
-                'updated_at'=>current_time('mysql'),
-            ),array('id'=>$topic_id));
-
-            if ($existing_entity_type && $existing_entity_id) {
-                self::maybe_track($topic_id,$existing_entity_type,$existing_entity_id);
+        foreach (array_keys($topic_ids) as $topic_id) {
+            try {
+                self::analyze_topic(absint($topic_id));
+            } catch (Throwable $e) {
+                $discarded++;
             }
         }
 
-        update_option('seo_solucionador_last_scan',array(
+        $state['cursor'] = $last_cursor;
+        $state['processed'] = absint($state['processed'] ?? 0) + count($sources);
+        $state['accepted'] = absint($state['accepted'] ?? 0) + $accepted;
+        $state['discarded'] = absint($state['discarded'] ?? 0) + $discarded;
+        $state['updated_at'] = current_time('mysql');
+
+        $pruned_topics = 0;
+        if (count($sources) < $batch_size) {
+            $state['complete'] = true;
+            $state['completed_at'] = current_time('mysql');
+            $pruned_topics = SEO_Solucionador_DB::prune_orphan_topics();
+        }
+        update_option(self::EDITORIAL_SCAN_OPTION,$state,false);
+
+        $coverage_index = (array) ($state['coverage_index'] ?? array());
+        $result = array(
             'at'=>time(),
             'days'=>absint($days),
-            'sources_seen'=>count($sources),
-            'accepted'=>$accepted,
-            'discarded'=>$discarded,
-            'reinforcement_skipped'=>$reinforcement_skipped,
+            'complete'=>!empty($state['complete']),
+            'phase'=>!empty($state['complete']) ? 'complete' : 'editorial_dossiers',
+            'academy'=>$academy,
+            'editorial'=>array(
+                'cursor'=>absint($state['cursor'] ?? 0),
+                'processed'=>absint($state['processed'] ?? 0),
+                'accepted'=>absint($state['accepted'] ?? 0),
+                'discarded'=>absint($state['discarded'] ?? 0),
+                'batch_size'=>$batch_size,
+            ),
+            'sources_seen'=>absint($state['processed'] ?? 0),
+            'accepted'=>absint($state['accepted'] ?? 0),
+            'discarded'=>absint($state['discarded'] ?? 0),
+            'reinforcement_skipped'=>0,
             'pruned_topics'=>$pruned_topics,
-            'seen_by_source'=>$seen_by_source,
-            'accepted_by_source'=>$accepted_by_source,
-            'discarded_by_source'=>$discarded_by_source,
+            'seen_by_source'=>array('dependiente'=>absint($state['processed'] ?? 0)),
+            'accepted_by_source'=>array('dependiente'=>absint($state['accepted'] ?? 0)),
+            'discarded_by_source'=>array('dependiente'=>absint($state['discarded'] ?? 0)),
             'posts_indexed'=>absint($coverage_index['posts'] ?? 0),
             'pages_indexed'=>absint($coverage_index['pages'] ?? 0),
             'categories_indexed'=>absint($coverage_index['categories'] ?? 0),
             'post_topics_indexed'=>absint($coverage_index['topics'] ?? 0),
-        ),false);
-
-        return get_option('seo_solucionador_last_scan',array());
+            'message'=>!empty($state['complete'])
+                ? 'Análisis completado.'
+                : 'Dossiers editoriales procesados por lotes. Vuelve a ejecutar para continuar.',
+        );
+        update_option('seo_solucionador_last_scan',$result,false);
+        return $result;
     }
 }

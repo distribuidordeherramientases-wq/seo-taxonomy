@@ -8,7 +8,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SEMANTIC_TEST_VERSION')) {
-    define('SEO_CORE_SEMANTIC_TEST_VERSION', '2.5.0');
+    define('SEO_CORE_SEMANTIC_TEST_VERSION', '2.5.1');
 }
 
 /**
@@ -658,9 +658,20 @@ function seo_core_system_test_semantic_tokens($text) {
         'recambios', 'general', 'varios', 'otros', 'profesional', 'profesionales', 'satkit', 'vevor'
     ));
 
+    // Términos técnicos/comerciales cortos cuyo significado se perdería al
+    // aplicar el mínimo general de cuatro caracteres. La lista es deliberadamente
+    // cerrada para no aumentar falsos positivos con abreviaturas ambiguas.
+    $short_meaningful = array(
+        'spa' => true,
+    );
+
     $tokens = array();
     foreach (explode(' ', $normalized) as $token) {
-        if ($token === '' || isset($stop[$token]) || strlen($token) < 4) {
+        if (
+            $token === ''
+            || isset($stop[$token])
+            || (strlen($token) < 4 && !isset($short_meaningful[$token]))
+        ) {
             continue;
         }
         $tokens[$token] = true;
@@ -681,6 +692,14 @@ function seo_core_system_test_semantic_token_variants($token) {
 
     $variants = array($token => true);
     $length = strlen($token);
+
+    // Excepción corta explícita: "spa" es un término comercial real y su
+    // plural "spas" debe considerarse equivalente. La regla general de plural
+    // exige más longitud para evitar derivaciones agresivas en palabras cortas.
+    if ($token === 'spa' || $token === 'spas') {
+        $variants['spa'] = true;
+        $variants['spas'] = true;
+    }
 
     // Plurales espanoles frecuentes. Se conservan todas las variantes para
     // no convertir una regla linguistica imperfecta en una decision destructiva.
@@ -715,7 +734,7 @@ function seo_core_system_test_semantic_token_variants($token) {
     }
 
     return array_values(array_filter(array_keys($variants), static function ($value) {
-        return strlen((string) $value) >= 4;
+        return strlen((string) $value) >= 4 || (string) $value === 'spa';
     }));
 }
 

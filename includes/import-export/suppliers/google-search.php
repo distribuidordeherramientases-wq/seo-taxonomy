@@ -302,7 +302,7 @@ if ( ! function_exists( 'seo_google_search_test_connection' ) ) {
 if ( ! function_exists( 'seo_google_search_save_settings' ) ) {
     function seo_google_search_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-system' ) );
+            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-taxonomy' ) );
         }
         check_admin_referer( 'seo_google_search_save', 'seo_google_search_nonce' );
 

@@ -42,7 +42,7 @@ function seo_render_taxonomy_hierarchy($show_excerpt = false) {
         $cluster_url = get_permalink($cluster_id);
         
         echo "<div style='border:2px solid #2e7d32;padding:15px;margin-bottom:20px;background:#fff; border-radius: 4px;'>";
-        echo "<h3 style='margin-top:0;'>CLUSTER: ".esc_html($cluster_title)." <span style='font-weight:normal; font-size:13px; color:#666;'>({$cluster_id})</span>";
+        echo "<h3 style='margin-top:0;'>CLUSTER: ".esc_html($cluster_title)." <span style='font-weight:normal; font-size:13px; color:#666;'>(".esc_html((string) $cluster_id).")</span>";
         if ($cluster_url && !is_wp_error($cluster_url)) {
             echo " <a href='".esc_url($cluster_url)."' target='_blank' style='margin-left:10px; font-size:12px; color:#2e7d32; text-decoration:underline;'>[Ver Link]</a>";
         }
@@ -58,7 +58,7 @@ function seo_render_taxonomy_hierarchy($show_excerpt = false) {
             $hp_url = get_permalink($hp->target_id);
             
             echo "<div style='margin-left:20px;padding:10px;border-left:3px solid #2196f3;margin-bottom:10px; background:#fcfdfe;'>";
-            echo "<strong>HUB PRIMARY:</strong> ".esc_html($hp_title)." <span style='font-weight:normal; font-size:12px; color:#666;'>({$hp->target_id})</span>";
+            echo "<strong>HUB PRIMARY:</strong> ".esc_html($hp_title)." <span style='font-weight:normal; font-size:12px; color:#666;'>(".esc_html((string) $hp->target_id).")</span>";
             if ($hp_url && !is_wp_error($hp_url)) {
                 echo " <a href='".esc_url($hp_url)."' target='_blank' style='margin-left:8px; font-size:11px; color:#2196f3; text-decoration:underline;'>[Ver Link]</a>";
             }
@@ -73,7 +73,7 @@ function seo_render_taxonomy_hierarchy($show_excerpt = false) {
                 $hs_url = get_permalink($hs->target_id);
                 
                 echo "<div style='margin-left:20px;padding:6px; margin-top:5px; background:#f8fafc; border-radius:3px;'>";
-                echo "- <strong>HUB SECONDARY:</strong> ".esc_html($hs_title)." <span style='font-weight:normal; font-size:11px; color:#666;'>({$hs->target_id})</span>";
+                echo "- <strong>HUB SECONDARY:</strong> ".esc_html($hs_title)." <span style='font-weight:normal; font-size:11px; color:#666;'>(".esc_html((string) $hs->target_id).")</span>";
                 if ($hs_url && !is_wp_error($hs_url)) {
                     echo " <a href='".esc_url($hs_url)."' target='_blank' style='margin-left:8px; font-size:11px; color:#4a5568; text-decoration:underline;'>[Ver Link]</a>";
                 }
@@ -100,8 +100,8 @@ function seo_render_taxonomy_hierarchy($show_excerpt = false) {
                         ", $cat->term_id));
                     
                         echo "<div style='margin-bottom: 8px; line-height: 1.6;'>";
-                        echo "📦 <strong>".esc_html($cat->name)."</strong> <span style='font-size:11px; color:#666;'>({$cat->term_id})</span> ";
-                        echo "<strong style='color:#2e7d32;'>[{$product_count} productos]</strong>";
+                        echo "📦 <strong>".esc_html($cat->name)."</strong> <span style='font-size:11px; color:#666;'>(".esc_html((string) $cat->term_id).")</span> ";
+                        echo "<strong style='color:#2e7d32;'>[".esc_html((string) $product_count)." productos]</strong>";
                         if ($cat_url && !is_wp_error($cat_url)) {
                             echo " <a href='".esc_url($cat_url)."' target='_blank' style='margin-left:8px; font-size:11px; color:#2e7d32; text-decoration:none; font-weight:500; background:#e6f4ea; padding:1px 6px; border-radius:3px;'>🌐 link clickable</a>";
                         }

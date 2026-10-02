@@ -16,7 +16,6 @@ Fuentes
 - Analista: trafico, demanda, rendimiento y prioridades ya calculadas.
 - Auditor: carencias, cobertura, calidad y hallazgos.
 - Ojeador: conclusiones de mercado y oportunidad ya calculadas.
-- Ingeniero: conocimiento tecnico aprobado por categoria.
 - Clasificador: estructura semantica y conceptos nuevos/equivalentes pendientes.
 - Comentarista: preguntas/problemas observados en fuentes externas.
 - Entradas, Paginas y Categorias: inventario, rendimiento y cobertura existentes.

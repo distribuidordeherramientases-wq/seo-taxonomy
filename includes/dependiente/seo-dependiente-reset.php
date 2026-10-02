@@ -195,7 +195,7 @@ final class SEO_Dependiente_Reset {
             return true;
         }
         if (false === $wpdb->query('DELETE FROM `' . esc_sql($table) . '`')) {
-            throw new RuntimeException('No se pudo vaciar la tabla ' . $table . '.');
+            throw new RuntimeException('No se pudo vaciar la tabla ' . esc_html((string) $table) . '.');
         }
         return true;
     }

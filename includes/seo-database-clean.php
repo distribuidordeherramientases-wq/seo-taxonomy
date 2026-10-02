@@ -220,13 +220,15 @@ function seo_clean_db_render_action_form($action, $label, $button_class, $confir
         echo '<input type="hidden" name="' . esc_attr($name) . '" value="' . esc_attr($value) . '">';
     }
 
-    $confirm_attribute = '';
-
     if ($confirm_message !== '') {
-        $confirm_attribute = ' onclick="return confirm(' . esc_attr(wp_json_encode($confirm_message)) . ');"';
+        $confirm_json = wp_json_encode($confirm_message);
+        if (false === $confirm_json) {
+            $confirm_json = '""';
+        }
+        echo '<button type="submit" class="' . esc_attr($button_class) . '" onclick="return confirm(' . esc_attr($confirm_json) . ');">' . esc_html($label) . '</button>';
+    } else {
+        echo '<button type="submit" class="' . esc_attr($button_class) . '">' . esc_html($label) . '</button>';
     }
-
-    echo '<button type="submit" class="' . esc_attr($button_class) . '"' . $confirm_attribute . '>' . esc_html($label) . '</button>';
     echo '</form>';
 }
 
@@ -255,14 +257,14 @@ function seo_clean_db_maybe_export_sql() {
     }
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar la base de datos.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar la base de datos.', 'seo-taxonomy'));
     }
 
     $type = sanitize_key(wp_unslash($_GET['seo_clean_db_export']));
     check_admin_referer('seo_clean_db_export_' . $type, 'seo_clean_db_export_nonce');
 
     if (!in_array($type, array('full', 'seo'), true)) {
-        wp_die(esc_html__('Tipo de exportación no válido.', 'seo-system'));
+        wp_die(esc_html__('Tipo de exportación no válido.', 'seo-taxonomy'));
     }
 
     seo_clean_db_stream_sql_export($type);
@@ -289,9 +291,9 @@ function seo_clean_db_stream_sql_export($type) {
     header('Expires: 0');
 
     echo "-- SEO System database export\n";
-    echo "-- Type: " . $type . "\n";
-    echo "-- Site: " . home_url() . "\n";
-    echo "-- Generated: " . gmdate('Y-m-d H:i:s') . " UTC\n\n";
+    echo "-- Type: " . esc_html($type) . "\n";
+    echo "-- Site: " . esc_url(home_url()) . "\n";
+    echo "-- Generated: " . esc_html(gmdate('Y-m-d H:i:s')) . " UTC\n\n";
     echo "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n";
     echo "SET time_zone = \"+00:00\";\n";
     echo "SET FOREIGN_KEY_CHECKS = 0;\n\n";
@@ -335,9 +337,12 @@ function seo_clean_db_stream_table_sql($table) {
     }
 
     echo "\n-- --------------------------------------------------------\n";
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo "-- Table structure for `" . $table . "`\n";
     echo "-- --------------------------------------------------------\n\n";
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo "DROP TABLE IF EXISTS `" . $table . "`;\n";
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo $create[1] . ";\n\n";
 
     $count = (int) $wpdb->get_var('SELECT COUNT(*) FROM `' . esc_sql($table) . '`');
@@ -346,6 +351,7 @@ function seo_clean_db_stream_table_sql($table) {
         return;
     }
 
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo "-- Data for `" . $table . "`\n\n";
 
     $limit = 500;
@@ -374,6 +380,7 @@ function seo_clean_db_stream_table_sql($table) {
                 return "'" . $wpdb->_real_escape((string) $value) . "'";
             }, array_values($row));
 
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
             echo 'INSERT INTO `' . $table . '` (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ");\n";
         }
 
@@ -1034,8 +1041,8 @@ function seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by
                    OR (target_type = %s AND target_id IN ({$placeholders}))";
 
         $args = array_merge(array($role), $object_ids, array($role), $object_ids);
-        $prepared = call_user_func_array(array($wpdb, 'prepare'), array_merge(array($sql), $args));
-        $found = $wpdb->get_col($prepared);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal relations table plus generated %d placeholders; all role/ID values are bound through prepare().
+        $found = $wpdb->get_col($wpdb->prepare($sql, $args));
 
         foreach ((array) $found as $id) {
             $ids[] = (int) $id;
@@ -1057,16 +1064,18 @@ function seo_clean_db_get_recent_operations($limit = 20) {
 
     $limit = max(1, min(100, (int) $limit));
 
+    $operations_table = SEO_Data_Layer::operations_table();
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer table; module and limit are bound through prepare().
     return $wpdb->get_results(
         $wpdb->prepare(
-            'SELECT id, operation_uuid, operation_type, operation_label, status,
+            "SELECT id, operation_uuid, operation_type, operation_label, status,
                     rollback_status, rollbackable, risk_level, user_id,
                     created_at, completed_at, rolled_back_at, rolled_back_by,
                     affected_rows, error_message
-             FROM `' . SEO_Data_Layer::operations_table() . '`
+             FROM {$operations_table}
              WHERE source_module = %s
              ORDER BY id DESC
-             LIMIT %d',
+             LIMIT %d",
             'clean_database',
             $limit
         )
@@ -1089,11 +1098,13 @@ function seo_clean_db_handle_rollback_action() {
 
     global $wpdb;
 
+    $operations_table = SEO_Data_Layer::operations_table();
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer table; operation ID is bound through prepare().
     $source_module = $wpdb->get_var(
         $wpdb->prepare(
-            'SELECT source_module
-             FROM `' . SEO_Data_Layer::operations_table() . '`
-             WHERE id = %d',
+            "SELECT source_module
+             FROM {$operations_table}
+             WHERE id = %d",
             $operation_id
         )
     );
@@ -1225,9 +1236,8 @@ function seo_clean_db_delete_ids($table, $column, $ids) {
 
     $placeholders = implode(', ', array_fill(0, count($ids), '%d'));
     $sql = "DELETE FROM {$table} WHERE {$column} IN ({$placeholders})";
-    $prepared = call_user_func_array(array($wpdb, 'prepare'), array_merge(array($sql), $ids));
-
-    return $wpdb->query($prepared);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Table/column are internal arguments supplied by cleanup routines; IDs are bound through generated %d placeholders.
+    return $wpdb->query($wpdb->prepare($sql, $ids));
 }
 
 /**
@@ -1413,9 +1423,8 @@ function seo_clean_db_reset_multiple_role_objects($relations_table, $nodes_table
                 WHERE object_id = %d
                   AND seo_role IN ({$role_placeholders})";
         $args = array_merge(array($object_id), $roles);
-        $prepared = call_user_func_array(array($wpdb, 'prepare'), array_merge(array($sql), $args));
-
-        foreach ((array) $wpdb->get_col($prepared) as $node_id) {
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal nodes table plus generated %s placeholders; object ID and roles are bound through prepare().
+        foreach ((array) $wpdb->get_col($wpdb->prepare($sql, $args)) as $node_id) {
             $node_ids[] = (int) $node_id;
         }
     }
@@ -2061,6 +2070,7 @@ function seo_clean_db_count_as_orphan_claims() {
         return 0;
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal Action Scheduler table names; query has no external values.
     return (int) $wpdb->get_var(
         "SELECT COUNT(*)
          FROM {$claims} c
@@ -2082,6 +2092,7 @@ function seo_clean_db_count_wc_expired_reserved_stock() {
         return 0;
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table name; query has no external values.
     return (int) $wpdb->get_var(
         "SELECT COUNT(*) FROM {$table} WHERE expires < UTC_TIMESTAMP()"
     );
@@ -2100,6 +2111,7 @@ function seo_clean_db_count_wc_orphan_order_itemmeta() {
         return 0;
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table names; query has no external values.
     return (int) $wpdb->get_var(
         "SELECT COUNT(*)
          FROM {$meta} m
@@ -2323,6 +2335,7 @@ function seo_clean_db_delete_as_orphan_claims() {
         return 0;
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal Action Scheduler table names; query has no external values.
     return $wpdb->query(
         "DELETE c
          FROM {$claims} c
@@ -2344,6 +2357,7 @@ function seo_clean_db_delete_wc_expired_reserved_stock() {
         return 0;
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table name; query has no external values.
     return $wpdb->query("DELETE FROM {$table} WHERE expires < UTC_TIMESTAMP()");
 }
 
@@ -2360,6 +2374,7 @@ function seo_clean_db_delete_wc_orphan_order_itemmeta() {
         return 0;
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table names; query has no external values.
     return $wpdb->query(
         "DELETE m
          FROM {$meta} m
@@ -2448,7 +2463,7 @@ function seo_clean_db_cleanup_row($label, $count, $risk, $action, $button_label,
     echo '<tr>';
     echo '<td><strong>' . esc_html($label) . '</strong></td>';
     echo '<td>' . esc_html(number_format_i18n($count)) . '</td>';
-    echo '<td>' . seo_clean_db_badge($risk_status, $risk) . '</td>';
+    echo '<td>' . wp_kses_post(seo_clean_db_badge($risk_status, $risk)) . '</td>';
     echo '<td>';
 
     if ((int) $count > 0) {

@@ -3,6 +3,7 @@ defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero_Process {
     const LOCK_OPTION = 'seo_ingeniero_process_lock';
+    const CATEGORIES_PER_CYCLE = 1;
     public static function init() {
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'filter_pending_work'), 30, 1);
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'filter_manager_targets'), 30, 3);
@@ -42,7 +43,9 @@ final class SEO_Ingeniero_Process {
         $budget = max(5, min(55, absint($budget)));
         $started = microtime(true);
         $state = SEO_Ingeniero::state();
-        $batch_size = max(1, min(3, absint($state['batch_size'] ?? 1)));
+        // Requisito editorial: una categoría por ciclo. Evita cargar conocimiento
+        // activo de varias categorías en memoria dentro de la misma ejecución.
+        $batch_size = self::CATEGORIES_PER_CYCLE;
         $processed_now = 0;
         $learned_now = 0;
         $review_now = 0;
@@ -111,6 +114,10 @@ final class SEO_Ingeniero_Process {
                 'last_research_at'=>time(),
             ));
 
+            // El dossier se recalcula categoria a categoria y solo persiste
+            // cambios cuando varia su source_hash.
+            SEO_Ingeniero::refresh_editorial_category($term_id, false);
+
             SEO_Ingeniero::save_state(array(
                 'cursor'=>$cursor+1,
                 'processed'=>absint($state['processed'] ?? 0)+1,
@@ -124,15 +131,9 @@ final class SEO_Ingeniero_Process {
 
         $duration = max(0.001, microtime(true)-$started);
         $state = SEO_Ingeniero::state();
-        $next_batch = max(1, min(3, absint($state['batch_size'] ?? 1)));
-        if ($processed_now > 0) {
-            $per_category = $duration / $processed_now;
-            if ($per_category < 8 && $next_batch < 3) $next_batch++;
-            elseif ($per_category > 20 && $next_batch > 1) $next_batch--;
-        }
 
         $changes = array(
-            'batch_size'=>$next_batch,
+            'batch_size'=>self::CATEGORIES_PER_CYCLE,
             'last_duration'=>round($duration,3),
             'last_activity_at'=>time(),
         );
@@ -159,7 +160,7 @@ final class SEO_Ingeniero_Process {
                 'last_attempt_at'=>time(),
                 'last_result'=>$processed_now?'processed':'waiting',
                 'last_error'=>(string) (SEO_Ingeniero::state()['last_error'] ?? ''),
-                'detail'=>number_format_i18n($progress['processed']) . '/' . number_format_i18n($progress['total']) . ' categorías · lote adaptativo ' . $next_batch . '.',
+                'detail'=>number_format_i18n($progress['processed']) . '/' . number_format_i18n($progress['total']) . ' categorías · 1 categoría por ciclo.',
             ));
         }
 
@@ -196,14 +197,13 @@ final class SEO_Ingeniero_Process {
         }
 
         $duration = max(0, (float) ($state['last_duration'] ?? 0));
-        $batch = max(1, absint($state['batch_size'] ?? 1));
-        $speed = ($duration > 0) ? number_format_i18n(($batch/$duration)*60, 1) . ' categorías/min aprox.' : 'Sin lote medido';
+        $speed = ($duration > 0) ? number_format_i18n((1/$duration)*60, 1) . ' categorías/min aprox.' : 'Sin ciclo medido';
         $usage = SEO_Ingeniero_SerpApi_Provider::usage_month();
 
         $items[] = array(
             'id'=>'ingeniero',
             'name'=>'Ingeniero',
-            'kind'=>'Dependiente · conocimiento técnico externo',
+            'kind'=>'Contenidos · conocimiento técnico y editorial',
             'state'=>$view_state,
             'speed'=>$speed,
             'response'=>$duration > 0 ? number_format_i18n($duration,2) . ' s último lote' : 'Sin lote medido',
@@ -213,7 +213,7 @@ final class SEO_Ingeniero_Process {
             'progress'=>$progress['total'] ? $progress['percentage'] : null,
             'progress_text'=>number_format_i18n($progress['processed']) . ' / ' . number_format_i18n($progress['total']) . ' categorías',
             'detail'=>(string) ($state['last_message'] ?? ''),
-            'url'=>add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer'), admin_url('admin.php')),
+            'url'=>add_query_arg(array('page'=>'seo-ingeniero','tab'=>'research'), admin_url('admin.php')),
             'can_start'=>!SEO_Ingeniero::is_pending() && $progress['pending'] > 0,
             'start_label'=>'Iniciar / continuar',
         );

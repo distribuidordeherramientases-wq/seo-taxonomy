@@ -459,7 +459,7 @@ function seo_images_download_external_file( $url, $timeout = 120, $source_url = 
 
         if ( is_wp_error( $response ) ) {
             $last_error = '[' . sanitize_key( $response->get_error_code() ) . '] ' . sanitize_text_field( $response->get_error_message() );
-            @unlink( $tmp_file );
+            wp_delete_file( $tmp_file );
             continue;
         }
 
@@ -476,7 +476,7 @@ function seo_images_download_external_file( $url, $timeout = 120, $source_url = 
             $last_error = 'HTTP ' . $code;
         }
 
-        @unlink( $tmp_file );
+        wp_delete_file( $tmp_file );
     }
 
     if ( 403 === $last_code ) {
@@ -595,7 +595,7 @@ function seo_images_get_or_import( $provider, $source_url, $object_id = 0, $usag
 
     if ( $same_content && seo_images_is_valid_attachment( $same_content->attachment_id ) ) {
         $attachment_id = absint( $same_content->attachment_id );
-        @unlink( $tmp_file );
+        wp_delete_file( $tmp_file );
 
         $stored = seo_images_store_image_record(
             array(
@@ -627,7 +627,7 @@ function seo_images_get_or_import( $provider, $source_url, $object_id = 0, $usag
     // nombre tenga una extensión que WordPress pueda reconocer al crear Media.
     $image_mime = function_exists( 'wp_get_image_mime' ) ? wp_get_image_mime( $tmp_file ) : '';
     if ( ! is_string( $image_mime ) || 0 !== strpos( $image_mime, 'image/' ) ) {
-        @unlink( $tmp_file );
+        wp_delete_file( $tmp_file );
 
         seo_images_store_image_record(
             array(
@@ -669,7 +669,7 @@ function seo_images_get_or_import( $provider, $source_url, $object_id = 0, $usag
     ) {
         $extension = $mime_extensions[ $image_mime ] ?? '';
         if ( '' === $extension ) {
-            @unlink( $tmp_file );
+            wp_delete_file( $tmp_file );
             return new WP_Error(
                 'seo_images_unsupported_image_type',
                 'La imagen usa un formato no permitido por WordPress: ' . sanitize_text_field( $image_mime )
@@ -695,7 +695,7 @@ function seo_images_get_or_import( $provider, $source_url, $object_id = 0, $usag
     );
 
     if ( is_wp_error( $attachment_id ) ) {
-        @unlink( $tmp_file );
+        wp_delete_file( $tmp_file );
 
         seo_images_store_image_record(
             array(

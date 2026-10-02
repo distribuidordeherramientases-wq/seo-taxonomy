@@ -611,7 +611,7 @@ function seo_social_campaign_offer_day_is_free($timestamp, $occupied_days)
 function seo_social_campaign_handle_plan()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para programar campañas sociales.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para programar campañas sociales.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_social_campaign_plan');
 
@@ -709,7 +709,7 @@ add_action('admin_post_seo_social_campaign_plan', 'seo_social_campaign_handle_pl
 function seo_social_campaign_handle_cancel()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para cancelar campañas sociales.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para cancelar campañas sociales.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_social_campaign_cancel');
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;

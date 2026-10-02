@@ -200,7 +200,7 @@ function seo_comentarista_download_indicators_json()
         return;
     }
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar los indicadores.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar los indicadores.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_comentarista_download_json');
@@ -225,7 +225,7 @@ add_action('admin_init', 'seo_comentarista_download_indicators_json');
 function seo_comentarista_json_admin_page()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
     }
 
     $product_id = absint($_GET['product_id'] ?? 0);

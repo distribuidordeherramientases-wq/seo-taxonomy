@@ -1232,7 +1232,7 @@ function seo_ie_cf_cleanup_temp_files( array $state ) {
     foreach ( (array) ( $state['files'] ?? [] ) as $file ) {
         $temp = (string) ( $file['temp'] ?? '' );
         if ( '' !== $temp && file_exists( $temp ) ) {
-            @unlink( $temp );
+            wp_delete_file( $temp );
         }
     }
 }

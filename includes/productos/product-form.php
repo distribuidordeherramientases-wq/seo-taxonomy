@@ -315,7 +315,7 @@ if (!function_exists('seo_render_product_form')) {
                             <select name="seo_product[<?php echo esc_attr($field_name); ?>][]" multiple size="7">
                                 <?php foreach ((array) ($vocabulary_terms[$group] ?? []) as $term): ?>
                                     <?php $term_id = absint($term['id']); ?>
-                                    <option value="<?php echo $term_id; ?>" <?php selected(in_array($term_id, array_map('absint', (array) ($assignments[$group] ?? [])), true), true); ?>><?php echo esc_html($term['label'] ?? $term['slug']); ?></option>
+                                    <option value="<?php echo esc_attr((string) $term_id); ?>" <?php selected(in_array($term_id, array_map('absint', (array) ($assignments[$group] ?? [])), true), true); ?>><?php echo esc_html($term['label'] ?? $term['slug']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

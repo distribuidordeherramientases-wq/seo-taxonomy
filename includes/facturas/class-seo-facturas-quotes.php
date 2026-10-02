@@ -350,7 +350,7 @@ final class SEO_Facturas_Quotes {
         if (function_exists('current_datetime')) {
             $valid_until = current_datetime()->modify('+' . $validity_days . ' days')->format('Y-m-d H:i:s');
         } else {
-            $valid_until = date('Y-m-d H:i:s', time() + ($validity_days * DAY_IN_SECONDS));
+            $valid_until = wp_date('Y-m-d H:i:s', time() + ($validity_days * DAY_IN_SECONDS));
         }
 
         $items = array();
@@ -654,11 +654,11 @@ final class SEO_Facturas_Quotes {
             return false;
         }
         $tmp = $tmp_base . '.pdf';
-        @unlink($tmp_base);
+        wp_delete_file($tmp_base);
 
         $written = file_put_contents($tmp, $binary, LOCK_EX);
         if (false === $written || $written <= 0) {
-            @unlink($tmp);
+            wp_delete_file($tmp);
             return false;
         }
 
@@ -671,7 +671,7 @@ final class SEO_Facturas_Quotes {
             array('Content-Type: text/html; charset=UTF-8'),
             array($tmp)
         );
-        @unlink($tmp);
+        wp_delete_file($tmp);
         return (bool) $sent;
     }
 

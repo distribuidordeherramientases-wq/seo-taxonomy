@@ -66,7 +66,7 @@ final class SEO_Data_Layer
             }
 
             if (empty($config['table']) || empty($config['primary_key']) || empty($config['entity_type'])) {
-                throw new RuntimeException('Configuración incompleta para la tabla ' . $key . '.');
+                throw new RuntimeException('Configuración incompleta para la tabla ' . esc_html((string) $key) . '.');
             }
 
             self::assert_identifier((string) $config['table']);
@@ -90,7 +90,7 @@ final class SEO_Data_Layer
 
         if (!isset($tables[$key])) {
             throw new InvalidArgumentException(
-                sprintf('La tabla lógica "%s" no está registrada en el Data Layer.', $key)
+                sprintf('La tabla lógica "%s" no está registrada en el Data Layer.', esc_html($key))
             );
         }
 
@@ -110,7 +110,7 @@ final class SEO_Data_Layer
         }
 
         throw new InvalidArgumentException(
-            sprintf('La tabla "%s" no está registrada en el Data Layer.', $table_name)
+            sprintf('La tabla "%s" no está registrada en el Data Layer.', esc_html($table_name))
         );
     }
 
@@ -143,7 +143,7 @@ final class SEO_Data_Layer
 
         if (!is_array($columns) || empty($columns)) {
             throw new RuntimeException(
-                sprintf('No se pudieron leer las columnas de %s: %s', $table_name, $wpdb->last_error)
+                sprintf('No se pudieron leer las columnas de %s: %s', esc_html($table_name), esc_html($wpdb->last_error))
             );
         }
 
@@ -164,7 +164,7 @@ final class SEO_Data_Layer
 
             if (!in_array($column, $allowed, true)) {
                 throw new InvalidArgumentException(
-                    sprintf('La columna %s no existe en la tabla %s.', $column, $table_name)
+                    sprintf('La columna %s no existe en la tabla %s.', esc_html((string) $column), esc_html($table_name))
                 );
             }
         }
@@ -349,7 +349,7 @@ final class SEO_Data_Layer
 
         if (empty($health['ready'])) {
             throw new RuntimeException(
-                'El Data Layer no está preparado: ' . implode(' ', $health['errors'])
+                'El Data Layer no está preparado: ' . esc_html(implode(' ', (array) $health['errors']))
             );
         }
     }
@@ -357,7 +357,7 @@ final class SEO_Data_Layer
     public static function assert_identifier(string $identifier): void
     {
         if (!preg_match('/^[A-Za-z0-9_]+$/', $identifier)) {
-            throw new InvalidArgumentException('Identificador SQL no válido: ' . $identifier);
+            throw new InvalidArgumentException('Identificador SQL no válido: ' . esc_html($identifier));
         }
     }
 

@@ -322,8 +322,9 @@ final class SEO_Dependiente_Interprete_DB {
         ), ARRAY_A);
         $count = max(1, absint($summary['evidence_count'] ?? 0));
         $evidence_confidence = min(1, max(0, (float) ($summary['max_confidence'] ?? 0)));
+        $table = self::table();
         $current_confidence = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT confidence FROM " . self::table() . " WHERE id=%d",
+            "SELECT confidence FROM {$table} WHERE id=%d",
             $lexicon_id
         ));
         $confidence = max($current_confidence, $evidence_confidence > 0 ? $evidence_confidence : 0.5);
@@ -351,11 +352,15 @@ final class SEO_Dependiente_Interprete_DB {
             return 0;
         }
         $ids = array_slice($ids, 0, 20);
-        $in = implode(',', $ids);
+        $table = self::table();
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $rows = (array) $wpdb->get_results(
-            "SELECT id,normalized_expression,canonical_term,confidence,usage_count,contradiction_count,context_terms,context_required,active,source,lesson_key
-               FROM " . self::table() . "
-              WHERE active=1 AND language='es' AND id IN ({$in})",
+            $wpdb->prepare(
+                "SELECT id,normalized_expression,canonical_term,confidence,usage_count,contradiction_count,context_terms,context_required,active,source,lesson_key
+                   FROM {$table}
+                  WHERE active=1 AND language='es' AND id IN ({$placeholders})",
+                $ids
+            ),
             ARRAY_A
         );
         if (!$rows) {
@@ -430,8 +435,9 @@ final class SEO_Dependiente_Interprete_DB {
         if ('' === $normalized_expression || !self::table_exists()) {
             return 0;
         }
+        $table = self::table();
         return absint($wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT canonical_term) FROM " . self::table() . " WHERE normalized_expression=%s AND language='es' AND active=1",
+            "SELECT COUNT(DISTINCT canonical_term) FROM {$table} WHERE normalized_expression=%s AND language='es' AND active=1",
             $normalized_expression
         )));
     }
@@ -445,7 +451,8 @@ final class SEO_Dependiente_Interprete_DB {
             self::$usage_columns_ready = false;
             return false;
         }
-        $column = $wpdb->get_var("SHOW COLUMNS FROM " . self::table() . " LIKE 'usage_count'");
+        $table = self::table();
+        $column = $wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'usage_count'");
         self::$usage_columns_ready = 'usage_count' === (string) $column;
         return self::$usage_columns_ready;
     }
@@ -492,7 +499,8 @@ final class SEO_Dependiente_Interprete_DB {
         if (!$id || !self::table_exists()) {
             return array();
         }
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . self::table() . " WHERE id=%d", $id), ARRAY_A);
+        $table = self::table();
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $id), ARRAY_A);
         return is_array($row) ? $row : array();
     }
 
@@ -502,8 +510,9 @@ final class SEO_Dependiente_Interprete_DB {
         if ('' === $normalized_expression || !self::table_exists()) {
             return 0;
         }
+        $table = self::table();
         return absint($wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT canonical_term) FROM " . self::table() . " WHERE normalized_expression=%s AND language='es'",
+            "SELECT COUNT(DISTINCT canonical_term) FROM {$table} WHERE normalized_expression=%s AND language='es'",
             $normalized_expression
         )));
     }
@@ -514,8 +523,9 @@ final class SEO_Dependiente_Interprete_DB {
         if ('' === $normalized || !self::table_exists()) {
             return array();
         }
+        $table = self::table();
         $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT id,canonical_term,target_search,semantic_group,vocabulary_id,confidence FROM " . self::table() . " WHERE normalized_expression=%s AND active=1 ORDER BY priority ASC,confidence DESC,id ASC LIMIT 1",
+            "SELECT id,canonical_term,target_search,semantic_group,vocabulary_id,confidence FROM {$table} WHERE normalized_expression=%s AND active=1 ORDER BY priority ASC,confidence DESC,id ASC LIMIT 1",
             $normalized
         ), ARRAY_A);
         return is_array($row) ? $row : array();
@@ -528,8 +538,9 @@ final class SEO_Dependiente_Interprete_DB {
         if (!$lexicon_id || !self::evidence_table_exists()) {
             return array();
         }
+        $evidence_table = self::evidence_table();
         return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
-            "SELECT source_id FROM " . self::evidence_table() . " WHERE lexicon_id=%d AND source_type='product' AND active=1 ORDER BY source_id ASC LIMIT %d",
+            "SELECT source_id FROM {$evidence_table} WHERE lexicon_id=%d AND source_type='product' AND active=1 ORDER BY source_id ASC LIMIT %d",
             $lexicon_id,
             $limit
         ))))));
@@ -667,8 +678,9 @@ final class SEO_Dependiente_Interprete_DB {
             self::$rows_cache = array();
             return self::$rows_cache;
         }
+        $table = self::table();
         self::$rows_cache = (array) $wpdb->get_results(
-            "SELECT * FROM " . self::table() . " WHERE active=1 AND language='es' ORDER BY priority ASC,id ASC",
+            "SELECT * FROM {$table} WHERE active=1 AND language='es' ORDER BY priority ASC,id ASC",
             ARRAY_A
         );
         return self::$rows_cache;
@@ -702,7 +714,8 @@ final class SEO_Dependiente_Interprete_DB {
         }
         $stats['provisional'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND source='linguista_l8_auto'");
         if ($stats['evidence_ready']) {
-            $stats['evidence'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . self::evidence_table() . " WHERE active=1");
+            $evidence_table = self::evidence_table();
+            $stats['evidence'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$evidence_table} WHERE active=1");
         }
         return $stats;
     }

@@ -86,15 +86,18 @@ add_action( 'seo_process_supervisor_periodic_pulse', 'seo_ie_batch_cleanup_on_su
  * @return array<string,string>
  */
 function seo_ie_batch_paths() {
-    $base = trailingslashit( dirname( __DIR__ ) ) . 'migrations';
+    $uploads = wp_upload_dir( null, false );
+    $base = ! empty( $uploads['basedir'] )
+        ? trailingslashit( wp_normalize_path( (string) $uploads['basedir'] ) ) . 'seo-taxonomy/import-export/migrations'
+        : '';
 
     return [
         'base'       => $base,
-        'pending'    => trailingslashit( $base ) . 'pending',
-        'processing' => trailingslashit( $base ) . 'processing',
-        'imported'   => trailingslashit( $base ) . 'imported',
-        'failed'     => trailingslashit( $base ) . 'failed',
-        'rejected'   => trailingslashit( $base ) . 'rejected',
+        'pending'    => $base !== '' ? trailingslashit( $base ) . 'pending' : '',
+        'processing' => $base !== '' ? trailingslashit( $base ) . 'processing' : '',
+        'imported'   => $base !== '' ? trailingslashit( $base ) . 'imported' : '',
+        'failed'     => $base !== '' ? trailingslashit( $base ) . 'failed' : '',
+        'rejected'   => $base !== '' ? trailingslashit( $base ) . 'rejected' : '',
     ];
 }
 
@@ -342,7 +345,8 @@ function seo_ie_batch_cleanup_old_files( $force = false ) {
                 $bucket_stats['expired']++;
                 $result['expired']++;
 
-                if ( ! @unlink( $path ) ) {
+                wp_delete_file( $path );
+                if ( is_file( $path ) ) {
                     $bucket_stats['errors']++;
                     $result['errors']++;
                     continue;
@@ -351,8 +355,11 @@ function seo_ie_batch_cleanup_old_files( $force = false ) {
                 $bucket_stats['deleted']++;
                 $result['deleted']++;
 
-                if ( is_file( $path . '.log.json' ) && @unlink( $path . '.log.json' ) ) {
-                    $result['deleted_logs']++;
+                if ( is_file( $path . '.log.json' ) ) {
+                    wp_delete_file( $path . '.log.json' );
+                    if ( ! is_file( $path . '.log.json' ) ) {
+                        $result['deleted_logs']++;
+                    }
                 }
             }
 
@@ -547,7 +554,7 @@ function seo_ie_batch_guard_manual_import( $entity ) {
         wp_die(
             esc_html__(
                 'Hay una importacion por lotes en curso. Espera a que termine o deten la cola antes de iniciar una importacion individual.',
-                'seo-system'
+                'seo-taxonomy'
             )
         );
     }
@@ -840,7 +847,12 @@ function seo_ie_batch_move_file( $source, $target ) {
         return true;
     }
 
-    return @copy( $source, $target ) && @unlink( $source );
+    if ( ! @copy( $source, $target ) ) {
+        return false;
+    }
+
+    wp_delete_file( $source );
+    return ! is_file( $source );
 }
 
 /**
@@ -997,7 +1009,7 @@ function seo_ie_batch_finalize_product_rejections( &$state, &$log ) {
 
     if ( '' === $work_path || ! is_file( $work_path ) || 0 === $count ) {
         if ( '' !== $work_path && is_file( $work_path ) ) {
-            @unlink( $work_path );
+            wp_delete_file( $work_path );
         }
         return '';
     }
@@ -1194,7 +1206,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
 
     $handle = fopen( $path, 'r' );
     if ( false === $handle ) {
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'seo_batch_product_open', 'No se pudo abrir el CSV temporal de productos.' );
     }
 
@@ -1205,7 +1217,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
 
     if ( ! empty( $duplicates ) ) {
         fclose( $handle );
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'seo_batch_product_headers', sprintf( 'Cabeceras duplicadas: %s.', implode( ', ', $duplicates ) ) );
     }
 
@@ -1291,7 +1303,7 @@ function seo_ie_batch_start_product( $user_id, $processing_path, $detected ) {
 
     if ( ! is_array( $active ) && ! is_array( $result ) ) {
         seo_ie_product_import_clear_active( $user_id, $token );
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'seo_batch_product_bootstrap', 'El primer lote de productos no dejo un estado recuperable.' );
     }
 
@@ -1845,7 +1857,7 @@ function seo_ie_batch_handle_product_stopped( $user_id, &$state, &$log ) {
 
     $rejected_work = (string) ( $state['queue_rejected_work_path'] ?? '' );
     if ( '' !== $rejected_work && is_file( $rejected_work ) ) {
-        @unlink( $rejected_work );
+        wp_delete_file( $rejected_work );
     }
 
     seo_ie_add_log_detail( $log, 'La cola se pauso y el CSV en curso volvio a pending.' );
@@ -1985,7 +1997,7 @@ function seo_ie_batch_handle_file_download() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para descargar archivos de la cola.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para descargar archivos de la cola.', 'seo-taxonomy' ) );
     }
 
     $bucket   = sanitize_key( $_GET['seo_ie_batch_bucket'] ?? '' );
@@ -1993,7 +2005,7 @@ function seo_ie_batch_handle_file_download() {
     $action   = 'seo_ie_batch_file_' . $operation . '_' . $bucket . '_' . $filename;
 
     if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['seo_ie_batch_file_nonce'] ?? '' ) ), $action ) ) {
-        wp_die( esc_html__( 'El enlace de descarga ha caducado.', 'seo-system' ) );
+        wp_die( esc_html__( 'El enlace de descarga ha caducado.', 'seo-taxonomy' ) );
     }
 
     $path = seo_ie_batch_resolve_managed_file( $bucket, $filename, true );
@@ -2004,7 +2016,7 @@ function seo_ie_batch_handle_file_download() {
     if ( 'download_log' === $operation ) {
         $path .= '.log.json';
         if ( ! is_file( $path ) ) {
-            wp_die( esc_html__( 'Este archivo no tiene un log disponible.', 'seo-system' ) );
+            wp_die( esc_html__( 'Este archivo no tiene un log disponible.', 'seo-taxonomy' ) );
         }
     }
 
@@ -2112,12 +2124,13 @@ function seo_ie_batch_delete_managed_file( $bucket, $filename ) {
     }
 
     try {
-        if ( ! @unlink( $path ) ) {
+        wp_delete_file( $path );
+        if ( is_file( $path ) ) {
             return new WP_Error( 'seo_batch_delete_failed', 'No se pudo borrar el CSV.' );
         }
 
         if ( is_file( $path . '.log.json' ) ) {
-            @unlink( $path . '.log.json' );
+            wp_delete_file( $path . '.log.json' );
         }
     } finally {
         seo_ie_batch_release_lock( $lock );
@@ -2155,13 +2168,15 @@ function seo_ie_batch_upload_error_message( $error ) {
 function seo_ie_batch_admin_action() {
     seo_ie_batch_handle_file_download();
 
-    $action = sanitize_key( $_POST['seo_ie_batch_action'] ?? '' );
+    $action = isset( $_POST['seo_ie_batch_action'] )
+        ? sanitize_key( wp_unslash( $_POST['seo_ie_batch_action'] ) )
+        : '';
     if ( '' === $action ) {
         return;
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para gestionar la importacion por lotes.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para gestionar la importacion por lotes.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_ie_batch_admin', 'seo_ie_batch_nonce' );
@@ -2193,7 +2208,7 @@ function seo_ie_batch_admin_action() {
                 continue;
             }
 
-            if ( '' === $tmp_name || ! is_uploaded_file( $tmp_name ) ) {
+            if ( '' === $tmp_name ) {
                 $rejected[] = sprintf( '%s (archivo temporal no valido)', $name ?: sprintf( 'archivo %d', $index + 1 ) );
                 continue;
             }
@@ -2203,11 +2218,29 @@ function seo_ie_batch_admin_action() {
                 continue;
             }
 
-            $target = seo_ie_batch_unique_path( $paths['pending'], $name );
-            if ( ! move_uploaded_file( $tmp_name, $target ) ) {
-                $rejected[] = $name;
+            $upload_file = [
+                'name'     => $name,
+                'tmp_name' => $tmp_name,
+                'error'    => $error,
+                'size'     => isset( $files['size'][ $index ] ) ? absint( $files['size'][ $index ] ) : 0,
+                'type'     => isset( $files['type'][ $index ] )
+                    ? sanitize_mime_type( wp_unslash( $files['type'][ $index ] ) )
+                    : '',
+            ];
+            $stored = seo_taxonomy_store_uploaded_file(
+                $upload_file,
+                $paths['pending'],
+                [ 'csv' => 'text/csv', 'txt' => 'text/plain' ],
+                $name,
+                false
+            );
+
+            if ( is_wp_error( $stored ) ) {
+                $rejected[] = sprintf( '%s (%s)', $name, $stored->get_error_message() );
                 continue;
             }
+
+            $target = (string) $stored['path'];
 
             $detected = seo_ie_batch_detect_entity( $target );
             if ( is_wp_error( $detected ) ) {
@@ -2350,7 +2383,7 @@ function seo_ie_batch_admin_action() {
                 try {
                     $target = seo_ie_batch_unique_path( $paths['pending'], basename( $source ) );
                     if ( seo_ie_batch_move_file( $source, $target ) ) {
-                        @unlink( $source . '.log.json' );
+                        wp_delete_file( $source . '.log.json' );
                         $notice['seo_ie_batch_message'] = 'El archivo se devolvio a pending.';
                     } else {
                         $notice['seo_ie_batch_error'] = 'No se pudo devolver el archivo a pending.';
@@ -2529,7 +2562,7 @@ function seo_ie_batch_render_page() {
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px;">
             <div class="card" style="max-width:none;padding:20px;">
                 <h3>1. Subir trabajos</h3>
-                <p>Selecciona uno o varios CSV. Se guardan en <code>includes/import-export/migrations/pending</code>.</p>
+                <p>Selecciona uno o varios CSV. Se guardan de forma segura en <code>uploads/seo-taxonomy/import-export/migrations/pending</code>.</p>
                 <form method="post" enctype="multipart/form-data">
                     <?php wp_nonce_field( 'seo_ie_batch_admin', 'seo_ie_batch_nonce' ); ?>
                     <input type="file" name="seo_ie_batch_files[]" accept=".csv,text/csv" multiple required>

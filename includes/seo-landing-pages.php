@@ -426,7 +426,7 @@ function seo_landing_route_hidden_fields($route)
 function seo_landing_sync_external_signals()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para sincronizar candidatas.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para sincronizar candidatas.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_landing_sync_signals');
 
@@ -580,7 +580,7 @@ add_action('admin_post_seo_landing_sync_signals', 'seo_landing_sync_external_sig
 function seo_landing_handle_save_candidate()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para guardar candidatas.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para guardar candidatas.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_landing_save_candidate');
     seo_landing_maybe_install();
@@ -679,7 +679,7 @@ function seo_landing_export_get_seo_meta($post_id, $field)
 function seo_landing_export_seo_csv()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_landing_export_seo_csv');
@@ -695,7 +695,7 @@ function seo_landing_export_seo_csv()
 
     $output = fopen('php://output', 'w');
     if (false === $output) {
-        wp_die(esc_html__('No se pudo generar el archivo CSV.', 'seo-system'));
+        wp_die(esc_html__('No se pudo generar el archivo CSV.', 'seo-taxonomy'));
     }
 
     // BOM UTF-8 para que Excel abra correctamente tildes y eñes.
@@ -988,7 +988,7 @@ function seo_landing_build_analysis_export()
 function seo_landing_export_analysis_json()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para exportar el informe SEO.', 'seo-taxonomy'));
     }
 
     check_admin_referer('seo_landing_export_analysis_json');
@@ -1418,7 +1418,7 @@ echo '</details>';
             if ('' === $diagnostic) {
                 $diagnostic = 'Pendiente de revision editorial.';
             }
-            echo '<tr><td><strong>' . esc_html($candidate->title) . '</strong><br><small>' . esc_html(wp_trim_words((string) $candidate->intent, 22)) . '</small></td><td>' . esc_html($type_label) . '</td><td>' . esc_html($candidate->source) . '</td><td><span class="seo-landing-badge">' . esc_html(seo_landing_requirements_summary($requirements)) . '</span></td><td>' . $score_prefix . '<span class="seo-landing-score ' . esc_attr($score_class) . '">' . esc_html(number_format_i18n($score, 0)) . '</span>/100</td><td><small>' . esc_html(wp_trim_words($diagnostic, 28)) . '</small></td><td>' . esc_html($status_label) . '</td></tr>';
+            echo '<tr><td><strong>' . esc_html($candidate->title) . '</strong><br><small>' . esc_html(wp_trim_words((string) $candidate->intent, 22)) . '</small></td><td>' . esc_html($type_label) . '</td><td>' . esc_html($candidate->source) . '</td><td><span class="seo-landing-badge">' . esc_html(seo_landing_requirements_summary($requirements)) . '</span></td><td>' . wp_kses_post($score_prefix) . '<span class="seo-landing-score ' . esc_attr($score_class) . '">' . esc_html(number_format_i18n($score, 0)) . '</span>/100</td><td><small>' . esc_html(wp_trim_words($diagnostic, 28)) . '</small></td><td>' . esc_html($status_label) . '</td></tr>';
         }
         echo '</tbody></table></div>';
     }

@@ -554,7 +554,7 @@ function seo_social_campaign_image_cleanup_cache($path, $max_age_days = 60)
     $cutoff = time() - ($max_age_days * DAY_IN_SECONDS);
     foreach ((array) glob(trailingslashit($path) . 'campaign-*.png') as $file) {
         if (is_file($file) && filemtime($file) < $cutoff) {
-            @unlink($file);
+            wp_delete_file($file);
         }
     }
 }

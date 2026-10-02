@@ -487,7 +487,7 @@ $json = array(
 $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'large');
 ?>
 <script type="application/ld+json">
-<?php echo wp_json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT); ?>
+<?php echo wp_json_encode($json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PRETTY_PRINT); ?>
 </script>
 
 <style id="dht-landing-v6-css">
@@ -575,7 +575,8 @@ $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'larg
         <aside class="dht-v6-side" aria-label="Imagen y ventajas de la solucion">
             <?php if (!empty($main_image['url'])) : ?>
                 <figure class="dht-v6-featured">
-                    <?php echo dht_landing_v6_img_mobile($main_image, get_the_title(), 'dht-v6-featured-image', 'eager', 'high'); ?>
+                    <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_landing_v6_img_mobile($main_image, get_the_title(), 'dht-v6-featured-image', 'eager', 'high'); ?>
                 </figure>
             <?php endif; ?>
 
@@ -616,11 +617,12 @@ $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'larg
                     continue;
                 }
                 $term_image = dht_landing_v6_term_image_mobile((int) $term->term_id, 'medium_large', true);
-                $term_description = wp_trim_words(wp_strip_all_tags(term_description((int) $term->term_id, 'product_cat')), 22);
+                $term_description = wp_trim_words(wp_strip_all_tags(term_description((int) $term->term_id)), 22);
             ?>
                 <a class="dht-v6-hub dht-v6-category" href="<?php echo esc_url($term_url); ?>">
                     <span class="dht-v6-hub-media">
-                        <?php echo dht_landing_v6_img_mobile($term_image, $term->name, 'dht-v6-category-image'); ?>
+                        <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_landing_v6_img_mobile($term_image, $term->name, 'dht-v6-category-image'); ?>
                     </span>
                     <span class="dht-v6-hub-body">
                         <strong><?php echo esc_html($term->name); ?></strong>
@@ -669,7 +671,8 @@ $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'larg
                     ?>
                         <article class="dht-v6-product">
                             <a class="dht-v6-product-media" href="<?php echo esc_url($product_url); ?>">
-                                <?php echo dht_landing_v6_img_mobile($image, $product->get_name(), 'dht-v6-product-image'); ?>
+                                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image helper builds HTML with context-specific escaping.
+                        echo dht_landing_v6_img_mobile($image, $product->get_name(), 'dht-v6-product-image'); ?>
                             </a>
                             <div class="dht-v6-product-body">
                                 <h3 class="dht-v6-product-title"><a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product->get_name()); ?></a></h3>

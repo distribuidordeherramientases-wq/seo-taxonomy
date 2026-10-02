@@ -336,8 +336,11 @@ if (!function_exists('seo_logistica_page')) {
             $rows        = !empty($match['rows']) ? $match['rows'] : array(null);
 
             foreach ($rows as $index => $supplier_row) {
-                $row_class = empty($match['rows']) ? ' class="seo-logistica-missing"' : '';
-                echo '<tr' . $row_class . '>';
+                if (empty($match['rows'])) {
+                    echo '<tr class="seo-logistica-missing">';
+                } else {
+                    echo '<tr>';
+                }
 
                 echo '<td>';
                 if ($order_url) {

@@ -1,18 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: Clasificación de productos con etiqueas
-Version: 1.0.0
-Requires PHP: 7.4
-Requires at least: 5.8f
-Author: David Perez Martorell davidperezmartorell@gmail.com
-Author URI: https://focazul.wordpress.com/
-License: GPL2
-Text Domain: category-classification
-*/
-
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 /**
@@ -1553,6 +1540,7 @@ if (isset($_POST['clear_category_keywords'])) {
 // BLOQUEO DE EJECUCIÓN
 // =========================
     if ($cluster <= 0) {
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping; post KSES would remove form controls.
         echo ob_get_clean();
         echo '<p>Selecciona un cluster.</p>';
         return;
@@ -1613,7 +1601,7 @@ if ($run_inventory || $auto_keywords) {
             }
 
             if ($show_c_content && !empty($cluster_obj->post_content)) {
-                echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(strip_tags($cluster_obj->post_content), 25)) . '</div>';
+                echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(wp_strip_all_tags($cluster_obj->post_content), 25)) . '</div>';
             }
 
             echo '</div>';
@@ -1646,7 +1634,7 @@ if ($run_inventory || $auto_keywords) {
             }
 
             if ($show_hp_content && !empty($hp_obj->post_content)) {
-                echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(strip_tags($hp_obj->post_content), 25)) . '</div>';
+                echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(wp_strip_all_tags($hp_obj->post_content), 25)) . '</div>';
             }
 
             echo '</div>';
@@ -1690,7 +1678,7 @@ if ($run_inventory || $auto_keywords) {
                 }
 
                 if ($show_hs_content && !empty($hs_obj->post_content)) {
-                    echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(strip_tags($hs_obj->post_content), 25)) . '</div>';
+                    echo '<div><strong>Descripción:</strong> ' . esc_html(wp_trim_words(wp_strip_all_tags($hs_obj->post_content), 25)) . '</div>';
                 }
                 
                 
@@ -1751,11 +1739,11 @@ if ($run_inventory || $auto_keywords) {
     </button>';
 
     if ($show_cat_id) {
-        echo '<div><strong>ID:</strong> ' . $term->term_id . '</div>';
+        echo '<div><strong>ID:</strong> ' . esc_html((string) $term->term_id) . '</div>';
     }
 
     if ($show_cat_slug) {
-        echo '<div><strong>Slug:</strong> ' . $term->slug . '</div>';
+        echo '<div><strong>Slug:</strong> ' . esc_html((string) $term->slug) . '</div>';
     }
 
     if ($show_cat_desc) {
@@ -1847,7 +1835,7 @@ if ($run_inventory || $auto_keywords) {
                             if ($show_p_content) {
                                 echo '<div>Descripción: '.esc_html(
                                     wp_trim_words(
-                                        strip_tags($p->post_content),
+                                        wp_strip_all_tags($p->post_content),
                                         30
                                     )
                                 ).'</div>';
@@ -1881,6 +1869,7 @@ echo '</form>';
 
 
 
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Buffered admin HTML is assembled by this view with context-specific escaping; post KSES would remove form controls.
 echo ob_get_clean();
 
 } // seo_product_classification

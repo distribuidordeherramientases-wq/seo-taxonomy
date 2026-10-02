@@ -2019,7 +2019,7 @@ function seo_system_diagnostics_render_report_page() {
 
 function seo_system_diagnostics_handle_refresh_report() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para actualizar este informe.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para actualizar este informe.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_system_diagnostics_refresh_report');
 
@@ -2067,7 +2067,7 @@ function seo_system_diagnostics_send_json_download($payload, $filename_prefix) {
 
 function seo_system_diagnostics_handle_download_server_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_system_diagnostics_download_server_json');
     $profile = isset($_GET['profile']) ? sanitize_key(wp_unslash($_GET['profile'])) : 'ai';
@@ -2079,7 +2079,7 @@ function seo_system_diagnostics_handle_download_server_json() {
 
 function seo_system_diagnostics_handle_download_validation_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_system_diagnostics_download_validation_json');
     $profile = isset($_GET['profile']) ? sanitize_key(wp_unslash($_GET['profile'])) : 'ai';
@@ -2091,7 +2091,7 @@ function seo_system_diagnostics_handle_download_validation_json() {
 
 function seo_system_diagnostics_handle_download_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_system_diagnostics_download_json');
 
@@ -2104,7 +2104,7 @@ function seo_system_diagnostics_handle_download_json() {
 
 function seo_system_diagnostics_handle_download_pdf() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-system'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-taxonomy'));
     }
     check_admin_referer('seo_system_diagnostics_download_pdf');
 

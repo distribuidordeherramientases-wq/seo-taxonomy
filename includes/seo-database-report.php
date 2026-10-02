@@ -207,7 +207,7 @@ function seo_data_render_overview(array $tables): void
         echo '<td><strong>' . esc_html($table['label']) . '</strong></td>';
         echo '<td><code>' . esc_html($table['name']) . '</code></td>';
         echo '<td>' . esc_html($table['description']) . '</td>';
-        echo '<td>' . number_format_i18n($table['rows']) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n($table['rows'])) . '</td>';
         echo '<td>' . esc_html(size_format($table['data_bytes'] + $table['index_bytes'], 2)) . '</td>';
         echo '<td>' . esc_html($table['engine'] ?: '—') . '</td>';
         echo '<td><a class="button" href="' . esc_url($explore_url) . '">Explorar</a></td>';
@@ -289,12 +289,15 @@ function seo_data_render_explorer(array $tables): void
 
     $count_sql = "SELECT COUNT(*) FROM `{$table_name}`{$where_sql}";
     if ($where_args) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table/column identifiers are selected from the validated explorer allowlist; filter values are bound through prepare().
         $count_sql = $wpdb->prepare($count_sql, $where_args);
     }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Explorer identifiers are validated against detected table/column allowlists before this query.
     $total_items = (int) $wpdb->get_var($count_sql);
 
     $query_sql = "SELECT * FROM `{$table_name}`{$where_sql} ORDER BY `{$orderby}` {$order} LIMIT %d OFFSET %d";
     $query_args = array_merge($where_args, [$per_page, $offset]);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Explorer identifiers/order are allowlisted; filter values, limit and offset are bound through prepare().
     $rows = $wpdb->get_results($wpdb->prepare($query_sql, $query_args), ARRAY_A);
 
     echo '<div class="seo-data-panel">';
@@ -331,7 +334,7 @@ function seo_data_render_explorer(array $tables): void
     echo '<div class="seo-data-meta">';
     echo '<strong>' . esc_html($tables[$table_name]['label']) . '</strong> · ';
     echo '<code>' . esc_html($table_name) . '</code> · ';
-    echo number_format_i18n($total_items) . ' filas encontradas';
+    echo esc_html(number_format_i18n($total_items)) . ' filas encontradas';
     echo '</div>';
 
     echo '<div class="seo-data-scroll">';
@@ -367,7 +370,7 @@ function seo_data_render_explorer(array $tables): void
     foreach ($rows as $row) {
         echo '<tr>';
         foreach ($column_names as $column_name) {
-            echo '<td>' . seo_data_format_cell($row[$column_name] ?? null) . '</td>';
+            echo '<td>' . wp_kses_post(seo_data_format_cell($row[$column_name] ?? null)) . '</td>';
         }
         echo '</tr>';
     }
@@ -417,7 +420,7 @@ function seo_data_render_export(array $tables): void
         echo '<td><strong>' . esc_html($table['label']) . '</strong></td>';
         echo '<td><code>' . esc_html($table['name']) . '</code></td>';
         echo '<td>' . esc_html($table['description']) . '</td>';
-        echo '<td>' . number_format_i18n($table['rows']) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n($table['rows'])) . '</td>';
         echo '<td><a class="button" href="' . esc_url($csv_url) . '">Descargar CSV</a></td>';
         echo '<td><a class="button" href="' . esc_url($sql_url) . '">Descargar SQL</a></td>';
         echo '</tr>';
@@ -513,6 +516,69 @@ function seo_data_export_url(string $action, string $table_name): string
 }
 
 /**
+ * Abre un recurso local para exportación incremental de datos.
+ *
+ * WP_Filesystem no expone recursos compatibles con fputcsv() ni con el
+ * streaming SQL/ZIP sin cargar artefactos completos en memoria.
+ *
+ * @param string $path Ruta o wrapper de stream.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_data_stream_open($path, $mode) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Data exports require native stream resources.
+    return fopen($path, $mode);
+}
+
+/**
+ * Escribe bytes en un recurso de exportación.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param string   $data   Datos.
+ * @return int|false
+ */
+function seo_data_stream_write($stream, $data) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Incremental SQL/CSV export writes directly to the stream.
+    return fwrite($stream, $data);
+}
+
+/**
+ * Cierra un recurso de exportación.
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_data_stream_close($stream) {
+    if (!is_resource($stream)) {
+        return false;
+    }
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_data_stream_open().
+    return fclose($stream);
+}
+
+/**
+ * Envía un archivo generado al cliente sin cargarlo completo en memoria.
+ *
+ * @param string $path Ruta local.
+ * @return int|false
+ */
+function seo_data_stream_passthrough($path) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- ZIP download is intentionally streamed to avoid memory spikes.
+    return readfile($path);
+}
+
+/**
+ * Elimina un directorio temporal ya vacío.
+ *
+ * @param string $directory Directorio local.
+ * @return bool
+ */
+function seo_data_remove_empty_directory($directory) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Temporary directory is recursively emptied before removal.
+    return @rmdir($directory);
+}
+
+/**
  * Exporta una tabla en CSV, por streaming.
  */
 function seo_data_export_table_csv(): void
@@ -533,14 +599,14 @@ function seo_data_export_table_csv(): void
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('X-Content-Type-Options: nosniff');
 
-    $output = fopen('php://output', 'wb');
+    $output = seo_data_stream_open('php://output', 'wb');
     if (!$output) {
         wp_die('No se pudo abrir la salida CSV.');
     }
 
-    fwrite($output, "\xEF\xBB\xBF");
+    seo_data_stream_write($output, "\xEF\xBB\xBF");
     seo_data_write_table_csv($table_name, $output);
-    fclose($output);
+    seo_data_stream_close($output);
     exit;
 }
 
@@ -565,13 +631,13 @@ function seo_data_export_table_sql(): void
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('X-Content-Type-Options: nosniff');
 
-    $output = fopen('php://output', 'wb');
+    $output = seo_data_stream_open('php://output', 'wb');
     if (!$output) {
         wp_die('No se pudo abrir la salida SQL.');
     }
 
     seo_data_write_table_sql($table_name, $output);
-    fclose($output);
+    seo_data_stream_close($output);
     exit;
 }
 
@@ -674,7 +740,13 @@ function seo_data_render_operations_center(): void
     $where_sql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
 
     $count_sql = "SELECT COUNT(*) FROM `{$operations_table}` o{$where_sql}";
-    $total = $args ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $args)) : (int) $wpdb->get_var($count_sql);
+    if ($args) {
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer table; all filter values are bound through prepare().
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $args));
+    } else {
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer table; query contains no external values.
+        $total = (int) $wpdb->get_var($count_sql);
+    }
 
     $sql = "SELECT o.*, u.display_name,
                 (SELECT COUNT(*) FROM `{$changes_table}` c WHERE c.operation_id = o.id) AS recorded_changes
@@ -684,6 +756,7 @@ function seo_data_render_operations_center(): void
             ORDER BY o.id DESC
             LIMIT %d OFFSET %d";
     $query_args = array_merge($args, [$per_page, $offset]);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer tables; filters, limit and offset are bound through prepare().
     $operations = $wpdb->get_results($wpdb->prepare($sql, $query_args));
 
     echo '<div class="seo-data-scroll"><table class="widefat striped seo-data-table seo-operations-table">';
@@ -708,9 +781,9 @@ function seo_data_render_operations_center(): void
         echo '<td><strong>#' . (int) $operation->id . ' · ' . esc_html($operation->operation_label) . '</strong><br><code>' . esc_html($operation->operation_type) . '</code></td>';
         echo '<td>' . esc_html($operation->source_module ?: '—') . '<br><span class="seo-operation-risk seo-risk-' . esc_attr($operation->risk_level) . '">' . esc_html($operation->risk_level) . '</span></td>';
         echo '<td>' . esc_html($operation->display_name ?: ('Usuario #' . (int) $operation->user_id)) . '</td>';
-        echo '<td>' . seo_data_operation_status_badge((string) $operation->status) . '</td>';
-        echo '<td>' . number_format_i18n((int) $operation->recorded_changes) . '</td>';
-        echo '<td>' . seo_data_operation_rollback_label($operation, $preview) . '</td>';
+        echo '<td>' . wp_kses_post(seo_data_operation_status_badge((string) $operation->status)) . '</td>';
+        echo '<td>' . esc_html(number_format_i18n((int) $operation->recorded_changes)) . '</td>';
+        echo '<td>' . wp_kses_post(seo_data_operation_rollback_label($operation, $preview)) . '</td>';
         echo '<td><a class="button" href="' . esc_url($details_url) . '">Ver detalles</a> ';
         echo '<a class="button" href="' . esc_url($json_url) . '">JSON</a> ';
         seo_data_render_rollback_button($operation, $preview);
@@ -999,21 +1072,21 @@ function seo_data_export_all(): void
 
         if ($format === 'csv' || $format === 'both') {
             $csv_path = $temp_dir . '/' . $table['name'] . '.csv';
-            $handle = fopen($csv_path, 'wb');
+            $handle = seo_data_stream_open($csv_path, 'wb');
             if ($handle) {
-                fwrite($handle, "\xEF\xBB\xBF");
+                seo_data_stream_write($handle, "\xEF\xBB\xBF");
                 seo_data_write_table_csv($table['name'], $handle);
-                fclose($handle);
+                seo_data_stream_close($handle);
                 $zip->addFile($csv_path, 'csv/' . basename($csv_path));
             }
         }
 
         if ($format === 'sql' || $format === 'both') {
             $sql_path = $temp_dir . '/' . $table['name'] . '.sql';
-            $handle = fopen($sql_path, 'wb');
+            $handle = seo_data_stream_open($sql_path, 'wb');
             if ($handle) {
                 seo_data_write_table_sql($table['name'], $handle);
-                fclose($handle);
+                seo_data_stream_close($handle);
                 $zip->addFile($sql_path, 'sql/' . basename($sql_path));
             }
         }
@@ -1038,7 +1111,7 @@ function seo_data_export_all(): void
     header('Content-Length: ' . filesize($zip_path));
     header('X-Content-Type-Options: nosniff');
 
-    readfile($zip_path);
+    seo_data_stream_passthrough($zip_path);
     seo_data_remove_directory($temp_dir);
     exit;
 }
@@ -1090,12 +1163,12 @@ function seo_data_write_table_sql(string $table_name, $handle): void
         return;
     }
 
-    fwrite($handle, "-- SEO Taxonomy export\n");
-    fwrite($handle, '-- Table: ' . $table_name . "\n");
-    fwrite($handle, '-- Generated UTC: ' . gmdate('c') . "\n\n");
-    fwrite($handle, "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n");
-    fwrite($handle, "DROP TABLE IF EXISTS `{$table_name}`;\n");
-    fwrite($handle, $create[1] . ";\n\n");
+    seo_data_stream_write($handle, "-- SEO Taxonomy export\n");
+    seo_data_stream_write($handle, '-- Table: ' . $table_name . "\n");
+    seo_data_stream_write($handle, '-- Generated UTC: ' . gmdate('c') . "\n\n");
+    seo_data_stream_write($handle, "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n");
+    seo_data_stream_write($handle, "DROP TABLE IF EXISTS `{$table_name}`;\n");
+    seo_data_stream_write($handle, $create[1] . ";\n\n");
 
     $columns = seo_data_get_columns($table_name);
     $column_names = array_column($columns, 'Field');
@@ -1126,7 +1199,7 @@ function seo_data_write_table_sql(string $table_name, $handle): void
                 $values_sql[] = '(' . implode(', ', $values) . ')';
             }
 
-            fwrite(
+            seo_data_stream_write(
                 $handle,
                 "INSERT INTO `{$table_name}` ({$column_sql}) VALUES\n" .
                 implode(",\n", $values_sql) .
@@ -1137,7 +1210,7 @@ function seo_data_write_table_sql(string $table_name, $handle): void
         $offset += $batch_size;
     } while (count($rows) === $batch_size);
 
-    fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+    seo_data_stream_write($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
 }
 
 function seo_data_sql_literal($value): string
@@ -1177,11 +1250,11 @@ function seo_data_remove_directory(string $directory): void
         if (is_dir($path)) {
             seo_data_remove_directory($path);
         } else {
-            @unlink($path);
+            wp_delete_file($path);
         }
     }
 
-    @rmdir($directory);
+    seo_data_remove_empty_directory($directory);
 }
 
 function seo_data_render_styles(): void

@@ -116,7 +116,7 @@ final class SEO_Data_Rollback
 
                 if ($updated === false) {
                     throw new RuntimeException(
-                        'No se pudo actualizar el estado del cambio revertido: ' . $wpdb->last_error
+                        'No se pudo actualizar el estado del cambio revertido: ' . esc_html($wpdb->last_error)
                     );
                 }
 
@@ -137,7 +137,7 @@ final class SEO_Data_Rollback
 
             if ($updated === false) {
                 throw new RuntimeException(
-                    'No se pudo finalizar el rollback: ' . $wpdb->last_error
+                    'No se pudo finalizar el rollback: ' . esc_html($wpdb->last_error)
                 );
             }
 
@@ -243,7 +243,7 @@ final class SEO_Data_Rollback
             $deleted = $wpdb->delete($table, $identity);
 
             if ($deleted === false || (int) $deleted !== 1) {
-                throw new RuntimeException('No se pudo revertir la inserción en ' . $table . '.');
+                throw new RuntimeException('No se pudo revertir la inserción en ' . esc_html($table) . '.');
             }
 
             return;
@@ -262,7 +262,7 @@ final class SEO_Data_Rollback
 
             if ($wpdb->insert($table, $before) === false) {
                 throw new RuntimeException(
-                    'No se pudo restaurar la fila eliminada en ' . $table . ': ' . $wpdb->last_error
+                    'No se pudo restaurar la fila eliminada en ' . esc_html($table) . ': ' . esc_html($wpdb->last_error)
                 );
             }
 
@@ -288,14 +288,14 @@ final class SEO_Data_Rollback
 
             if ($updated === false) {
                 throw new RuntimeException(
-                    'No se pudo restaurar la actualización en ' . $table . ': ' . $wpdb->last_error
+                    'No se pudo restaurar la actualización en ' . esc_html($table) . ': ' . esc_html($wpdb->last_error)
                 );
             }
 
             return;
         }
 
-        throw new RuntimeException('Tipo de rollback no soportado: ' . $action);
+        throw new RuntimeException('Tipo de rollback no soportado: ' . esc_html($action));
     }
 
     /**

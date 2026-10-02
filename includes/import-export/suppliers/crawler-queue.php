@@ -1950,7 +1950,7 @@ function seo_supplier_crawl_build_standard_csv( $recipe ) {
     fclose( $out );
 
     if ( 0 === $written ) {
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'supplier_auto_csv_empty', 'Todavia no hay productos descubiertos para preparar el CSV.' );
     }
 
@@ -2258,9 +2258,9 @@ function seo_supplier_crawler_render_inline() {
                     <?php if ( $is_managed_local ) : ?>
                         <?php $next_in = max( 0, absint( $state['next_attempt_at'] ?? 0 ) - time() ); ?>
                         <p>
-                            Productos observados: <strong><?php echo number_format_i18n( absint( $state['products_seen'] ?? 0 ) ); ?></strong>
-                            - Referencias en staging: <strong><?php echo number_format_i18n( $record_counts['total'] ); ?></strong>
-                            - Peticiones: <strong><?php echo number_format_i18n( absint( $state['requests'] ?? 0 ) ); ?></strong>
+                            Productos observados: <strong><?php echo esc_html(number_format_i18n( absint( $state['products_seen'] ?? 0 ) )); ?></strong>
+                            - Referencias en staging: <strong><?php echo esc_html(number_format_i18n( $record_counts['total'] )); ?></strong>
+                            - Peticiones: <strong><?php echo esc_html(number_format_i18n( absint( $state['requests'] ?? 0 ) )); ?></strong>
                             - Última ventana: <strong><?php echo esc_html( number_format_i18n( (float) ( $state['last_window_seconds'] ?? 0 ), 3 ) ); ?> s</strong>
                             - Fase: <strong><?php echo esc_html( (string) ( $state['phase'] ?? 'pendiente' ) ); ?></strong>
                             - Estado: <strong><?php echo esc_html( (string) ( $state['status'] ?? 'pendiente' ) ); ?></strong>
@@ -2268,23 +2268,23 @@ function seo_supplier_crawler_render_inline() {
                         <p class="description">
                             Receta: <code><?php echo esc_html( $recipe_id ); ?></code>
                             - Flujo: fuente paginada -> checkpoint -> staging -> CSV estandar interno -> importador comun.
-                            Ritmo adaptativo: <?php echo number_format_i18n( $delay ); ?> s entre peticiones<?php echo $next_in > 0 ? ' · siguiente intento en ' . esc_html( number_format_i18n( $next_in ) ) . ' s' : ''; ?>.
+                            Ritmo adaptativo: <?php echo esc_html(number_format_i18n( $delay )); ?> s entre peticiones<?php echo $next_in > 0 ? ' · siguiente intento en ' . esc_html( number_format_i18n( $next_in ) ) . ' s' : ''; ?>.
                         </p>
                     <?php else : ?>
                         <p>
-                            Descubiertos: <strong><?php echo number_format_i18n( $record_counts['total'] ); ?></strong>
-                            - Pendientes de CSV: <strong><?php echo number_format_i18n( $record_counts['dirty'] ); ?></strong>
-                            - Ya en catalogo comun: <strong><?php echo number_format_i18n( $catalog_rows ); ?></strong>
-                            - URLs pendientes: <strong><?php echo number_format_i18n( $queue_counts['pending'] ); ?></strong>
+                            Descubiertos: <strong><?php echo esc_html(number_format_i18n( $record_counts['total'] )); ?></strong>
+                            - Pendientes de CSV: <strong><?php echo esc_html(number_format_i18n( $record_counts['dirty'] )); ?></strong>
+                            - Ya en catalogo comun: <strong><?php echo esc_html(number_format_i18n( $catalog_rows )); ?></strong>
+                            - URLs pendientes: <strong><?php echo esc_html(number_format_i18n( $queue_counts['pending'] )); ?></strong>
                         </p>
                         <p class="description">
                             Receta: <code><?php echo esc_html( $recipe_id ); ?></code>
                             - Flujo: web publica -> CSV estandar interno -> importador comun -> Catalogo de proveedores.
-                            Ritmo actual: <?php echo number_format_i18n( $delay ); ?> s/peticion, gestionado automaticamente.
+                            Ritmo actual: <?php echo esc_html(number_format_i18n( $delay )); ?> s/peticion, gestionado automaticamente.
                         </p>
                     <?php endif; ?>
                     <?php if ( ! empty( $state['last_csv_import_at'] ) ) : ?>
-                        <p class="description">Ultimo CSV interno procesado: <code><?php echo esc_html( $state['last_csv_filename'] ?? '' ); ?></code> - <?php echo esc_html( $state['last_csv_import_at'] ); ?> - <?php echo number_format_i18n( absint( $state['last_csv_rows'] ?? 0 ) ); ?> filas.</p>
+                        <p class="description">Ultimo CSV interno procesado: <code><?php echo esc_html( $state['last_csv_filename'] ?? '' ); ?></code> - <?php echo esc_html( $state['last_csv_import_at'] ); ?> - <?php echo esc_html(number_format_i18n( absint( $state['last_csv_rows'] ?? 0 ) )); ?> filas.</p>
                     <?php endif; ?>
                     <?php if ( ! empty( $state['last_pipeline_error'] ) ) : ?>
                         <div class="notice notice-warning inline"><p><?php echo esc_html( $state['last_pipeline_error'] ); ?></p></div>

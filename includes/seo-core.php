@@ -1,18 +1,5 @@
 <?php
-/*
-Plugin Name: SEO Menu Manager
-Plugin URI: https://www.distribuidordeherramientas.es/
-Description: GProceso central de la adminsitracion
-Version: 1.0.0
-Requires PHP: 7.4
-Requires at least: 5.8
-Author: David Perez Martorell davidperezmartorell@gmail.com
-Author URI: https://focazul.wordpress.com/
-License: GPL2
-Text Domain: seo-menu-manager
-*/
-
-
+/** Internal SEO Taxonomy module. */
 if (!defined('ABSPATH')) exit;
 
 // Vista jerárquica de Taxonomía. Se mantiene separada de seo-reports.php.
@@ -29,14 +16,21 @@ if (is_readable($seo_taxonomy_view_file)) {
 function seo_taxonomy_page() {
 
     if (!current_user_can('manage_options')) {
-        wp_die(__('No tienes permisos suficientes para acceder a esta página.'));
+        wp_die(esc_html__('No tienes permisos suficientes para acceder a esta página.', 'seo-taxonomy'));
     }
 
-    if (isset($_POST['action_type']) && in_array($_POST['action_type'], ['save','delete','toggle'], true)) {
+    $action_type = isset($_POST['action_type'])
+        ? sanitize_key(wp_unslash($_POST['action_type']))
+        : '';
+
+    if (in_array($action_type, array('save', 'delete', 'toggle'), true)) {
+        check_admin_referer('seo_cluster_action', 'seo_cluster_nonce');
         seo_save_taxonomy();
     }
 
-    $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'manage_taxonomy';
+    $active_tab = isset($_GET['tab'])
+        ? sanitize_key(wp_unslash($_GET['tab']))
+        : 'manage_taxonomy';
 
     // La gestión semántica vive ahora en su página única del menú principal.
     // Conservamos las URLs antiguas como redirección para no romper favoritos.
@@ -96,9 +90,30 @@ function seo_taxonomy_page() {
 ***************************/
 function seo_save_taxonomy() {
 
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    $nonce = isset($_POST['seo_cluster_nonce'])
+        ? sanitize_text_field(wp_unslash($_POST['seo_cluster_nonce']))
+        : '';
+    if ($nonce === '' || !wp_verify_nonce($nonce, 'seo_cluster_action')) {
+        return;
+    }
+
     global $wpdb;
 
-    if (!isset($_POST['cluster']) && !isset($_POST['hub_primary']) && !isset($_POST['hub_secondary'])) {
+    $cluster_input = isset($_POST['cluster']) && is_array($_POST['cluster'])
+        ? map_deep(wp_unslash($_POST['cluster']), 'sanitize_text_field')
+        : array();
+    $hub_primary_input = isset($_POST['hub_primary']) && is_array($_POST['hub_primary'])
+        ? map_deep(wp_unslash($_POST['hub_primary']), 'sanitize_text_field')
+        : array();
+    $hub_secondary_input = isset($_POST['hub_secondary']) && is_array($_POST['hub_secondary'])
+        ? map_deep(wp_unslash($_POST['hub_secondary']), 'sanitize_text_field')
+        : array();
+
+    if (!$cluster_input && !$hub_primary_input && !$hub_secondary_input) {
         return;
     }
 
@@ -107,9 +122,9 @@ function seo_save_taxonomy() {
     /*******************************************
      * CLUSTERS
      *******************************************/
-    if (!empty($_POST['cluster']) && is_array($_POST['cluster'])) {
+    if (!empty($cluster_input)) {
 
-        foreach ($_POST['cluster'] as $cluster_id => $data) {
+        foreach ($cluster_input as $cluster_id => $data) {
 
             $cluster_id = (int) $cluster_id;
 
@@ -150,9 +165,9 @@ function seo_save_taxonomy() {
     /*******************************************
      * HUB PRIMARY
      *******************************************/
-    if (!empty($_POST['hub_primary']) && is_array($_POST['hub_primary'])) {
+    if (!empty($hub_primary_input)) {
 
-        foreach ($_POST['hub_primary'] as $hub_id => $data) {
+        foreach ($hub_primary_input as $hub_id => $data) {
 
             $hub_id = (int) $hub_id;
 
@@ -184,9 +199,9 @@ function seo_save_taxonomy() {
     /*******************************************
      * HUB SECONDARY
      *******************************************/
-    if (!empty($_POST['hub_secondary']) && is_array($_POST['hub_secondary'])) {
+    if (!empty($hub_secondary_input)) {
 
-        foreach ($_POST['hub_secondary'] as $hub_id => $data) {
+        foreach ($hub_secondary_input as $hub_id => $data) {
 
             $hub_id = (int) $hub_id;
 
@@ -461,12 +476,12 @@ function seo_render_cluster_row($page, $templates, $hub_primary_pages) {
     echo '<div style="min-width:220px;">';
 
     echo '<strong>' . esc_html($page->post_title) . '</strong><br>';
-    echo 'ID: ' . $id . '<br><br>';
+    echo 'ID: ' . esc_html((string) $id) . '<br><br>';
 
     echo '<span style="font-size:12px;padding:3px 6px;background:' .
         ($is_publish ? '#2e7d32' : '#e53935') .
         ';color:#fff;border-radius:4px;">' .
-        strtoupper($post_status) .
+        esc_html(strtoupper((string) $post_status)) .
     '</span><br><br>';
 
     wp_nonce_field('seo_cluster_action', 'seo_cluster_nonce');
@@ -513,7 +528,7 @@ function seo_render_cluster_row($page, $templates, $hub_primary_pages) {
         if (!isset($hub_map[$hid])) continue;
 
         echo '<label style="display:block;color:#1b5e20;font-weight:600;">';
-        echo "<input type='checkbox' name='cluster[$id][hub_primary][]' value='{$hid}' checked> ";
+        echo "<input type='checkbox' name='cluster[" . esc_attr((string) $id) . "][hub_primary][]' value='" . esc_attr((string) $hid) . "' checked> ";
         echo esc_html($h->post_title);
         echo '</label>';
     }
@@ -534,7 +549,7 @@ function seo_render_cluster_row($page, $templates, $hub_primary_pages) {
         if (in_array($hid, $global_assigned_hubs)) continue;
 
         echo '<label style="display:block;">';
-        echo "<input type='checkbox' name='cluster[$id][hub_primary][]' value='{$hid}'> ";
+        echo "<input type='checkbox' name='cluster[" . esc_attr((string) $id) . "][hub_primary][]' value='" . esc_attr((string) $hid) . "'> ";
         echo esc_html($h->post_title);
         echo '</label>';
     }
@@ -617,15 +632,15 @@ function seo_render_hub_primary_row($page, $templates) {
     $next = ($status === 'publish') ? 'draft' : 'publish';
 
     echo '<strong>' . esc_html($page->post_title) . '</strong><br>';
-    echo 'ID: ' . $id . '<br><br>';
+    echo 'ID: ' . esc_html((string) $id) . '<br><br>';
 
     echo '<span style="font-size:12px;padding:3px 6px;background:' .
         ($status === 'publish' ? '#2e7d32' : '#e53935') .
         ';color:#fff;border-radius:4px;">' .
-        strtoupper($status) .
+        esc_html(strtoupper((string) $status)) .
     '</span><br><br>';
 
-    echo "<button type='button' class='seo-toggle-status' data-id='{$id}' data-type='hub_primary' data-status='{$next}'>Toggle</button>";
+    echo "<button type='button' class='seo-toggle-status' data-id='" . esc_attr((string) $id) . "' data-type='hub_primary' data-status='" . esc_attr((string) $next) . "'>Toggle</button>";
 
     echo '<br><br>';
 
@@ -667,7 +682,7 @@ function seo_render_hub_primary_row($page, $templates) {
         if (!isset($selected_map[$hid])) continue;
 
         echo '<label style="display:block;color:#1b5e20;font-weight:600;">';
-        echo "<input type='checkbox' name='hub_primary[$id][hub_secondary][]' value='{$hid}' checked> ";
+        echo "<input type='checkbox' name='hub_primary[" . esc_attr((string) $id) . "][hub_secondary][]' value='" . esc_attr((string) $hid) . "' checked> ";
         echo esc_html($h->post_title);
         echo '</label>';
     }
@@ -688,7 +703,7 @@ function seo_render_hub_primary_row($page, $templates) {
         if (in_array($hid, $global_assigned_secondary)) continue;
 
         echo '<label style="display:block;">';
-        echo "<input type='checkbox' name='hub_primary[$id][hub_secondary][]' value='{$hid}'> ";
+        echo "<input type='checkbox' name='hub_primary[" . esc_attr((string) $id) . "][hub_secondary][]' value='" . esc_attr((string) $hid) . "'> ";
         echo esc_html($h->post_title);
         echo '</label>';
     }
@@ -752,7 +767,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     wp_nonce_field('seo_cluster_action', 'seo_cluster_nonce');
 
     echo "<input type='hidden' name='action_type' value='save'>";
-    echo "<input type='hidden' name='hub_secondary[$id][id]' value='{$id}'>";
+    echo "<input type='hidden' name='hub_secondary[" . esc_attr((string) $id) . "][id]' value='" . esc_attr((string) $id) . "'>";
 
     echo '<div style="display:flex;gap:20px;padding:12px;border:1px solid #ff9800;margin:10px 0;background:#fffaf0;">';
 
@@ -765,15 +780,15 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     $next = ($status === 'publish') ? 'draft' : 'publish';
 
     echo '<strong>' . esc_html($page->post_title) . '</strong><br>';
-    echo 'ID: ' . $id . '<br><br>';
+    echo 'ID: ' . esc_html((string) $id) . '<br><br>';
 
     echo '<span style="padding:3px 6px;background:' .
         ($status === 'publish' ? '#2e7d32' : '#e53935') .
         ';color:#fff;border-radius:4px;">' .
-        strtoupper($status) .
+        esc_html(strtoupper((string) $status)) .
     '</span><br><br>';
 
-    echo "<button type='button' class='seo-toggle-status' data-id='{$id}' data-type='hub_secondary' data-status='{$next}'>Toggle</button>";
+    echo "<button type='button' class='seo-toggle-status' data-id='" . esc_attr((string) $id) . "' data-type='hub_secondary' data-status='" . esc_attr((string) $next) . "'>Toggle</button>";
 
     echo '<br><br>';
 
@@ -800,7 +815,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     /* Campo de búsqueda */
     echo '<input type="text" 
                  placeholder="🔍 Buscar categoría disponible..." 
-                 onkeyup="filtrarCategoriasHubSecundario(this, ' . $id . ')" 
+                 onkeyup="filtrarCategoriasHubSecundario(this, ' . esc_attr((string) $id) . ')" 
                  style="width:100%; max-width:300px; margin: 6px 0; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;">';
 
     /* SELECCIONADAS (VERDE ARRIBA) */
@@ -813,7 +828,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
         if (!isset($cat_map[$cid])) continue;
 
         echo '<label style="display:block;color:#1b5e20;font-weight:600;">';
-        echo "<input type='checkbox' name='hub_secondary[$id][categories][]' value='{$cid}' checked> ";
+        echo "<input type='checkbox' name='hub_secondary[" . esc_attr((string) $id) . "][categories][]' value='" . esc_attr((string) $cid) . "' checked> ";
         echo esc_html($c->name);
         echo '</label>';
     }
@@ -821,7 +836,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     echo '</div>';
 
         /* DISPONIBLES REALES (SCROLL ABAJO) */
-            echo '<div id="container-disponibles-' . $id . '" style="max-height:180px;overflow-y:auto;border:1px solid #ccc;padding:6px;">';
+            echo '<div id="container-disponibles-' . esc_attr((string) $id) . '" style="max-height:180px;overflow-y:auto;border:1px solid #ccc;padding:6px;">';
         
             foreach ($categories as $c) {
                 $cid = (int) $c->term_id;
@@ -840,7 +855,7 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
                 }
         
                 echo '<label class="cat-item" style="display:block;">';
-                echo "<input type='checkbox' name='hub_secondary[$id][categories][]' value='{$cid}'> ";
+                echo "<input type='checkbox' name='hub_secondary[" . esc_attr((string) $id) . "][categories][]' value='" . esc_attr((string) $cid) . "'> ";
                 echo esc_html($c->name);
                 echo '</label>';
             }
@@ -912,6 +927,7 @@ function seo_render_reasignacion_ui($data) {
         
         echo '<td>';
         echo '<form method="post">';
+        wp_nonce_field('seo_reasignar_categoria', 'seo_reasignar_categoria_nonce');
         // El ID de la relación va oculto, no molesta al usuario
         echo '<input type="hidden" name="rel_id" value="' . (int)$row->id . '">';
         echo '<input type="hidden" name="action_type" value="reasignar_cat">';
@@ -919,7 +935,7 @@ function seo_render_reasignacion_ui($data) {
         echo '<select name="new_hub_id" style="width:100%;">';
         foreach ($hubs as $h) {
             $selected = ($h->ID == $row->source_id) ? 'selected' : '';
-            echo '<option value="' . (int)$h->ID . '" ' . $selected . '>' . esc_html($h->post_title) . ' (' . (int)$h->ID . ')</option>';
+            echo '<option value="' . esc_attr((string) (int) $h->ID) . '" ' . esc_attr($selected) . '>' . esc_html($h->post_title) . ' (' . esc_html((string) (int) $h->ID) . ')</option>';
         }
         echo '</select>';
         echo '</td>';
@@ -937,15 +953,24 @@ function seo_render_reasignacion_ui($data) {
  PROCESAMIENTO DE REASIGNACIÓN DE CATEGORÍAS
 ****************************/
 function seo_process_reasignacion() {
-    // Solo actuamos si el action_type es el correcto
-    if (isset($_POST['action_type']) && $_POST['action_type'] === 'reasignar_cat') {
-        
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    $action_type = isset($_POST['action_type'])
+        ? sanitize_key(wp_unslash($_POST['action_type']))
+        : '';
+
+    // Solo actuamos si el action_type es el correcto.
+    if ($action_type === 'reasignar_cat') {
+        check_admin_referer('seo_reasignar_categoria', 'seo_reasignar_categoria_nonce');
+
         global $wpdb;
         $rel_table = $wpdb->prefix . 'seo_relations';
         
         // Capturamos los datos
-        $rel_id     = isset($_POST['rel_id']) ? (int) $_POST['rel_id'] : 0;
-        $new_hub_id = isset($_POST['new_hub_id']) ? (int) $_POST['new_hub_id'] : 0;
+        $rel_id     = isset($_POST['rel_id']) ? absint(wp_unslash($_POST['rel_id'])) : 0;
+        $new_hub_id = isset($_POST['new_hub_id']) ? absint(wp_unslash($_POST['new_hub_id'])) : 0;
 
         error_log("DEBUG: Rel ID: $rel_id, Nuevo Hub: $new_hub_id");
 
@@ -975,23 +1000,28 @@ add_action('admin_init', 'seo_process_reasignacion');
     /****************************
      BORRADO COMPLETO SEO + LOG SQL REAL
     ****************************/
-if (isset($_POST['action_type']) && $_POST['action_type'] === 'delete') {
+$seo_core_delete_action = isset($_POST['action_type'])
+    ? sanitize_key(wp_unslash($_POST['action_type']))
+    : '';
+if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) {
+    check_admin_referer('seo_cluster_action', 'seo_cluster_nonce');
 
     global $wpdb;
 
     $id = 0;
 
     if (!empty($_POST['cluster_id'])) {
-        $id = (int) $_POST['cluster_id'];
+        $id = absint(wp_unslash($_POST['cluster_id']));
     }
 
     if (!empty($_POST['hub_primary_id'])) {
-        $id = (int) $_POST['hub_primary_id'];
+        $id = absint(wp_unslash($_POST['hub_primary_id']));
     }
 
-    if (!empty($_POST['hub_secondary'])) {
-        $keys = array_keys($_POST['hub_secondary']);
-        $id = (int) $keys[0];
+    if (!empty($_POST['hub_secondary']) && is_array($_POST['hub_secondary'])) {
+        $hub_secondary = map_deep(wp_unslash($_POST['hub_secondary']), 'sanitize_text_field');
+        $keys = array_keys($hub_secondary);
+        $id = isset($keys[0]) ? absint($keys[0]) : 0;
     }
 
     $nodes_table = $wpdb->prefix . 'seo_nodes';

@@ -93,7 +93,7 @@ $schema = array(
             <a class="seo-dependiente-app__brand" href="<?php echo esc_url($home_url); ?>" rel="home" aria-label="<?php echo esc_attr($site_name); ?>">
                 <span class="seo-dependiente-app__brand-logo">
                     <?php if ($logo_html) : ?>
-                        <?php echo $logo_html; ?>
+                        <?php echo wp_kses_post($logo_html); ?>
                     <?php else : ?>
                         <span class="seo-dependiente-app__brand-name"><?php echo esc_html($site_name); ?></span>
                     <?php endif; ?>

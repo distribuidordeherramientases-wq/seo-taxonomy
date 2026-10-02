@@ -163,7 +163,7 @@ function seo_proveedores_storage_receta( $kind, $recipe_id ) {
 
     wp_mkdir_p( $dir );
 
-    if ( ! is_dir( $dir ) || ! is_writable( $dir ) ) {
+    if ( ! is_dir( $dir ) || ! wp_is_writable( $dir ) ) {
         return new WP_Error( 'supplier_storage_unwritable', 'No se puede escribir en la carpeta de importaciones de proveedores.' );
     }
 
@@ -178,6 +178,59 @@ function seo_proveedores_storage_receta( $kind, $recipe_id ) {
  *
  * @return string[]
  */
+/**
+ * Abre un stream local para lectura/escritura incremental de CSV.
+ *
+ * WP_Filesystem no expone recursos compatibles con fgetcsv()/fputcsv(), por
+ * lo que el motor de proveedores mantiene el recurso PHP encapsulado aquí.
+ *
+ * @param string $path Ruta local.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_proveedores_stream_open( $path, $mode ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV streaming requires a native PHP resource.
+    return fopen( $path, $mode );
+}
+
+/**
+ * Escribe bytes en un stream CSV.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param string   $data   Datos.
+ * @return int|false
+ */
+function seo_proveedores_stream_write( $stream, $data ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Required for BOM/direct streaming on the CSV resource.
+    return fwrite( $stream, $data );
+}
+
+/**
+ * Cierra un stream abierto por el motor de proveedores.
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_proveedores_stream_close( $stream ) {
+    if ( ! is_resource( $stream ) ) {
+        return false;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with resource-based CSV streaming.
+    return fclose( $stream );
+}
+
+/**
+ * Elimina un directorio temporal ya vacío tras limpiar sus archivos.
+ *
+ * @param string $dir Directorio local.
+ * @return bool
+ */
+function seo_proveedores_remove_empty_directory( $dir ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Temporary local directory is empty and must be removed after XLS conversion.
+    return @rmdir( $dir );
+}
+
 function seo_proveedores_cabecera_estandar() {
     return array_keys( seo_proveedores_campos_importacion() );
 }
@@ -258,13 +311,13 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
         'import_' . sanitize_key( $recipe['id'] ) . '_' . wp_date( 'Ymd_His' ) . '.csv'
     );
     $path = trailingslashit( $storage['dir'] ) . $filename;
-    $out  = fopen( $path, 'w' );
+    $out  = seo_proveedores_stream_open( $path, 'w' );
 
     if ( false === $out ) {
         return new WP_Error( 'supplier_prepared_open', 'No se pudo crear el CSV preparado.' );
     }
 
-    fwrite( $out, "\xEF\xBB\xBF" );
+    seo_proveedores_stream_write( $out, "\xEF\xBB\xBF" );
     fputcsv( $out, $standard, ';', '"', '' );
 
     $log = [
@@ -344,10 +397,10 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
         $log['preparados']++;
     }
 
-    fclose( $out );
+    seo_proveedores_stream_close( $out );
 
     if ( 0 === $log['preparados'] ) {
-        @unlink( $path );
+        wp_delete_file( $path );
         return new WP_Error( 'supplier_no_prepared_rows', 'La receta no produjo ninguna fila valida.' );
     }
 
@@ -858,7 +911,7 @@ function seo_proveedores_normalizar_cabecera( $value ) {
  * @return array|WP_Error
  */
 function seo_proveedores_analizar_csv( $path ) {
-    $handle = fopen( $path, 'r' );
+    $handle = seo_proveedores_stream_open( $path, 'r' );
 
     if ( false === $handle ) {
         return new WP_Error( 'open_failed', 'No se pudo abrir el archivo CSV.' );
@@ -866,7 +919,7 @@ function seo_proveedores_analizar_csv( $path ) {
 
     $first_line = fgets( $handle );
     if ( false === $first_line ) {
-        fclose( $handle );
+        seo_proveedores_stream_close( $handle );
         return new WP_Error( 'empty_file', 'El archivo esta vacio.' );
     }
 
@@ -875,7 +928,7 @@ function seo_proveedores_analizar_csv( $path ) {
     $header = fgetcsv( $handle, 0, $separator, '"', '' );
 
     if ( false === $header ) {
-        fclose( $handle );
+        seo_proveedores_stream_close( $handle );
         return new WP_Error( 'header_failed', 'No se pudo leer la cabecera del CSV.' );
     }
 
@@ -894,7 +947,7 @@ function seo_proveedores_analizar_csv( $path ) {
         }
     }
 
-    fclose( $handle );
+    seo_proveedores_stream_close( $handle );
 
     return [
         'format'     => 'csv',
@@ -1164,9 +1217,9 @@ function seo_proveedores_xls_filas( $path ) {
 
     if ( 0 !== $status || '' === $converted ) {
         foreach ( (array) glob( trailingslashit( $tmp_dir ) . '*' ) as $file ) {
-            @unlink( $file );
+            wp_delete_file( $file );
         }
-        @rmdir( $tmp_dir );
+        seo_proveedores_remove_empty_directory( $tmp_dir );
 
         return new WP_Error(
             'xls_convert_failed',
@@ -1177,9 +1230,9 @@ function seo_proveedores_xls_filas( $path ) {
     $rows = seo_proveedores_xlsx_filas_ligeras( $converted );
 
     foreach ( (array) glob( trailingslashit( $tmp_dir ) . '*' ) as $file ) {
-        @unlink( $file );
+        wp_delete_file( $file );
     }
-    @rmdir( $tmp_dir );
+    seo_proveedores_remove_empty_directory( $tmp_dir );
 
     return $rows;
 }
@@ -1315,18 +1368,26 @@ function seo_proveedores_analizar_archivo() {
 
     check_admin_referer( 'seo_proveedores_analizar', 'seo_proveedores_nonce' );
 
-    $recipe_id = sanitize_key( $_POST['receta_importacion'] ?? '' );
+    $recipe_id = isset( $_POST['receta_importacion'] )
+        ? sanitize_key( wp_unslash( $_POST['receta_importacion'] ) )
+        : '';
     $recipe    = seo_proveedores_obtener_receta( $recipe_id );
 
     if ( ! is_array( $recipe ) ) {
         wp_die( 'Selecciona una receta de importacion valida.' );
     }
 
-    if ( empty( $_FILES['proveedores_archivo']['tmp_name'] ) || ! is_uploaded_file( $_FILES['proveedores_archivo']['tmp_name'] ) ) {
-        wp_die( 'No se ha recibido un archivo valido.' );
+    $uploaded_file = isset( $_FILES['proveedores_archivo'] ) && is_array( $_FILES['proveedores_archivo'] )
+        ? $_FILES['proveedores_archivo']
+        : [];
+
+    if ( empty( $uploaded_file['tmp_name'] ) ) {
+        wp_die( esc_html__( 'No se ha recibido un archivo válido.', 'seo-taxonomy' ) );
     }
 
-    $filename  = sanitize_file_name( $_FILES['proveedores_archivo']['name'] );
+    $filename  = isset( $uploaded_file['name'] )
+        ? sanitize_file_name( wp_unslash( $uploaded_file['name'] ) )
+        : '';
     $extension = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
 
     $recipe_extensions = array_values( array_filter( array_map( 'sanitize_key', (array) ( $recipe['accepted_extensions'] ?? [ 'csv', 'xls', 'xlsx' ] ) ) ) );
@@ -1354,12 +1415,24 @@ function seo_proveedores_analizar_archivo() {
         wp_die( esc_html( $storage->get_error_message() ) );
     }
 
-    $stored_name = wp_unique_filename( $storage['dir'], $filename );
-    $stored_path = trailingslashit( $storage['dir'] ) . $stored_name;
+    $stored = seo_taxonomy_store_uploaded_file(
+        $uploaded_file,
+        $storage['dir'],
+        [
+            'csv'  => 'text/csv',
+            'xls'  => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+        $filename,
+        false
+    );
 
-    if ( ! move_uploaded_file( $_FILES['proveedores_archivo']['tmp_name'], $stored_path ) ) {
-        wp_die( 'No se pudo guardar el archivo original.' );
+    if ( is_wp_error( $stored ) ) {
+        wp_die( esc_html( $stored->get_error_message() ) );
     }
+
+    $stored_name = (string) $stored['name'];
+    $stored_path = (string) $stored['path'];
 
     $analysis = 'xlsx' === $extension
         ? seo_proveedores_analizar_xlsx( $stored_path )
@@ -1536,7 +1609,7 @@ function seo_proveedores_iterar_filas( $state ) {
         return;
     }
 
-    $handle = fopen( $state['path'], 'r' );
+    $handle = seo_proveedores_stream_open( $state['path'], 'r' );
     if ( false === $handle ) {
         return new WP_Error( 'open_failed', 'No se pudo abrir el CSV.' );
     }
@@ -1547,7 +1620,7 @@ function seo_proveedores_iterar_filas( $state ) {
         yield $row;
     }
 
-    fclose( $handle );
+    seo_proveedores_stream_close( $handle );
 }
 
 
@@ -1870,7 +1943,7 @@ function seo_proveedores_render_importador() {
     $last    = is_array( $last ) ? $last : [];
     ?>
     <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
-        <h2><?php echo esc_html__( 'Importar catalogo de proveedor', 'seo-system' ); ?></h2>
+        <h2><?php echo esc_html__( 'Importar catalogo de proveedor', 'seo-taxonomy' ); ?></h2>
         <p><code>Modulo de proveedores Build 032</code></p>
 
         <?php if ( ! empty( $_GET['seo_prov_github_started'] ) ) : ?>
@@ -1927,8 +2000,8 @@ function seo_proveedores_render_importador() {
             </p>
             <p>
                 <strong>Archivo original:</strong> <?php echo esc_html( $state['source_name'] ?? $state['filename'] ); ?>
-                · <strong>Filas detectadas:</strong> <?php echo number_format_i18n( absint( $state['rows_total'] ?? 0 ) ); ?>
-                · <strong>Columnas:</strong> <?php echo number_format_i18n( count( (array) $state['header'] ) ); ?>
+                · <strong>Filas detectadas:</strong> <?php echo esc_html(number_format_i18n( absint( $state['rows_total'] ?? 0 ) )); ?>
+                · <strong>Columnas:</strong> <?php echo esc_html(number_format_i18n( count( (array) $state['header'] ) )); ?>
             </p>
             <p><a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'importar-proveedor', 'seo_prov_reset' => '1' ], admin_url( 'admin.php' ) ), 'seo_prov_reset' ) ); ?>">← Nueva importacion</a></p>
 
@@ -2124,75 +2197,75 @@ function seo_ie_render_log( $log ) {
 
     ?>
     <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
-        <h2><?php echo esc_html__( 'Último proceso', 'seo-system' ); ?></h2>
+        <h2><?php echo esc_html__( 'Último proceso', 'seo-taxonomy' ); ?></h2>
 
         <table class="widefat striped" style="max-width:900px;">
             <tbody>
                 <tr>
-                    <th><?php echo esc_html__( 'Operación', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Operación', 'seo-taxonomy' ); ?></th>
                     <td><?php echo esc_html( $log['operacion'] ?? '' ); ?></td>
                 </tr>
                 <tr>
-                    <th><?php echo esc_html__( 'Fecha', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Fecha', 'seo-taxonomy' ); ?></th>
                     <td><?php echo esc_html( $log['fecha'] ?? '' ); ?></td>
                 </tr>
                 <tr>
-                    <th><?php echo esc_html__( 'Archivo', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Archivo', 'seo-taxonomy' ); ?></th>
                     <td><?php echo esc_html( $log['archivo'] ?? '' ); ?></td>
                 </tr>
                 <tr>
-                    <th><?php echo esc_html__( 'Procesados', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Procesados', 'seo-taxonomy' ); ?></th>
                     <td><?php echo absint( $log['procesados'] ?? 0 ); ?></td>
                 </tr>
                 <tr>
-                    <th><?php echo esc_html__( 'Correctos', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Correctos', 'seo-taxonomy' ); ?></th>
                     <td><?php echo absint( $log['correctos'] ?? 0 ); ?></td>
                 </tr>
                 <?php if ( isset( $log['creados'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Creados', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Creados', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['creados'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( isset( $log['actualizados'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Actualizados en catálogo', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Actualizados en catálogo', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['actualizados'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( isset( $log['pendientes_actualizacion'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Pendientes de aplicar', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Pendientes de aplicar', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['pendientes_actualizacion'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( isset( $log['omitidos'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Omitidos', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Omitidos', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['omitidos'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( isset( $log['advertencias'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Advertencias', 'seo-system' ); ?></th>
+                        <th><?php echo esc_html__( 'Advertencias', 'seo-taxonomy' ); ?></th>
                         <td><?php echo absint( $log['advertencias'] ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <?php if ( ! empty( $log['simulacion'] ) ) : ?>
                     <tr>
-                        <th><?php echo esc_html__( 'Modo', 'seo-system' ); ?></th>
-                        <td><?php echo esc_html__( 'Simulación: sin escritura', 'seo-system' ); ?></td>
+                        <th><?php echo esc_html__( 'Modo', 'seo-taxonomy' ); ?></th>
+                        <td><?php echo esc_html__( 'Simulación: sin escritura', 'seo-taxonomy' ); ?></td>
                     </tr>
                 <?php endif; ?>
                 <tr>
-                    <th><?php echo esc_html__( 'Errores', 'seo-system' ); ?></th>
+                    <th><?php echo esc_html__( 'Errores', 'seo-taxonomy' ); ?></th>
                     <td><?php echo absint( $log['errores'] ?? 0 ); ?></td>
                 </tr>
             </tbody>
         </table>
 
         <?php if ( ! empty( $log['detalles'] ) ) : ?>
-            <h3><?php echo esc_html__( 'Detalle', 'seo-system' ); ?></h3>
+            <h3><?php echo esc_html__( 'Detalle', 'seo-taxonomy' ); ?></h3>
 
             <div style="max-height:350px;overflow:auto;border:1px solid #ccd0d4;background:#fff;padding:10px;">
                 <ul style="margin:0 0 0 20px;">
@@ -2205,7 +2278,7 @@ function seo_ie_render_log( $log ) {
 
         <?php if ( ! empty( $log['truncado'] ) ) : ?>
             <p>
-                <?php echo esc_html__( 'El detalle se ha limitado a 200 mensajes.', 'seo-system' ); ?>
+                <?php echo esc_html__( 'El detalle se ha limitado a 200 mensajes.', 'seo-taxonomy' ); ?>
             </p>
         <?php endif; ?>
     </div>
@@ -2415,7 +2488,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
            AND ID IN ({$placeholders})",
         $product_ids
     );
-    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $post_sql is the direct result of $wpdb->prepare() above.\n    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
 
     foreach ( (array) $post_rows as $post_row ) {
         $product_id = absint( $post_row['ID'] ?? 0 );
@@ -2439,7 +2512,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
          ORDER BY tr.object_id ASC, tt.taxonomy ASC, t.name ASC",
         $product_ids
     );
-    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $term_sql is the direct result of $wpdb->prepare() above.\n    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
 
     foreach ( (array) $term_rows as $term_row ) {
         $product_id = absint( $term_row['object_id'] ?? 0 );
@@ -2478,7 +2551,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
                       v.label ASC",
             $product_ids
         );
-        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $semantic_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.\n        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
 
         foreach ( (array) $semantic_rows as $semantic_row ) {
             $product_id = absint( $semantic_row['object_id'] ?? 0 );
@@ -2527,7 +2600,7 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
              ORDER BY ot.object_id ASC, rv.label ASC",
             $product_ids
         );
-        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $canonical_role_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.\n        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
         $canonical_roles = [];
 
         foreach ( (array) $canonical_role_rows as $canonical_role_row ) {
@@ -2592,7 +2665,7 @@ function seo_proveedores_exportar_productos_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para exportar productos de proveedores.', 'seo-system' ) );
+        wp_die( esc_html__( 'No tienes permisos para exportar productos de proveedores.', 'seo-taxonomy' ) );
     }
 
     check_admin_referer( 'seo_export_supplier_products_csv', 'seo_export_supplier_products_nonce' );
@@ -2602,7 +2675,7 @@ function seo_proveedores_exportar_productos_csv() {
     $table = seo_proveedores_tabla_productos();
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
     if ( $exists !== $table ) {
-        wp_die( esc_html__( 'No existe el catálogo de productos de proveedores.', 'seo-system' ) );
+        wp_die( esc_html__( 'No existe el catálogo de productos de proveedores.', 'seo-taxonomy' ) );
     }
 
     if ( function_exists( 'seo_supplier_sync_ensure_schema' ) ) {
@@ -2643,9 +2716,9 @@ function seo_proveedores_exportar_productos_csv() {
     $where_sql = implode( ' AND ', $where );
     $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
     if ( ! empty( $params ) ) {
-        $count_sql = $wpdb->prepare( $count_sql, $params );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal query template; filter values are passed separately as placeholders.\n        $count_sql = $wpdb->prepare( $count_sql, $params );
     }
-    $total = absint( $wpdb->get_var( $count_sql ) );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $count_sql is either a closed internal query or the result of $wpdb->prepare() above.\n    $total = absint( $wpdb->get_var( $count_sql ) );
 
     $filename_parts = [ 'seo_supplier_products_classified' ];
     if ( '' !== $provider ) {
@@ -2694,8 +2767,8 @@ function seo_proveedores_exportar_productos_csv() {
                 WHERE " . implode( ' AND ', $batch_where ) . "
                 ORDER BY id ASC
                 LIMIT {$batch_size}";
-        $sql = $wpdb->prepare( $sql, $batch_params );
-        $rows = $wpdb->get_results( $sql, ARRAY_A );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal batch query; all filter values are placeholders.\n        $sql = $wpdb->prepare( $sql, $batch_params );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above.\n        $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         if ( empty( $rows ) ) {
             break;
@@ -2820,7 +2893,7 @@ function seo_proveedores_exportar_productos_csv() {
         }
     } while ( count( $rows ) === $batch_size );
 
-    fclose( $output );
+    seo_proveedores_stream_close( $output );
     exit;
 }
 
@@ -5502,9 +5575,14 @@ function seo_proveedores_actualizar_estado_masivo() {
         }
 
         $select_sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id ASC";
-        $rows       = $params
-            ? $wpdb->get_results( $wpdb->prepare( $select_sql, $params ), ARRAY_A )
-            : $wpdb->get_results( $select_sql, ARRAY_A );
+        if ( $params ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal query template; filter values are placeholders.
+            $select_query = $wpdb->prepare( $select_sql, $params );
+        } else {
+            $select_query = $select_sql;
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed internal query or direct result of $wpdb->prepare().
+        $rows = $wpdb->get_results( $select_query, ARRAY_A );
 
         foreach ( $rows as $row ) {
             $row_imagenes_externas = seo_proveedores_resolver_modo_imagenes_externas(
@@ -5625,9 +5703,10 @@ function seo_proveedores_actualizar_estado_masivo() {
             $params
         );
 
-        $updated = $wpdb->query(
-            $wpdb->prepare( $sql, $query_params )
-        );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal UPDATE template; all mutable values are placeholders.
+        $prepared_update = $wpdb->prepare( $sql, $query_params );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_update is the direct result of $wpdb->prepare() above.
+        $updated = $wpdb->query( $prepared_update );
 
         if ( false === $updated ) {
             wp_die( 'No se pudo actualizar el estado de los productos filtrados.' );
@@ -5997,11 +6076,14 @@ function seo_proveedores_render_catalogo() {
         WHERE {$where_sql}
     ";
 
-    $total = (int) (
-        $params
-            ? $wpdb->get_var( $wpdb->prepare( $count_sql, $params ) )
-            : $wpdb->get_var( $count_sql )
-    );
+    if ( $params ) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE is assembled from closed internal clauses; filter values remain placeholders.
+        $count_query = $wpdb->prepare( $count_sql, $params );
+    } else {
+        $count_query = $count_sql;
+    }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Closed internal query or direct result of $wpdb->prepare().
+    $total = (int) $wpdb->get_var( $count_query );
 
     /*
      * Se incluyen siempre los campos auxiliares necesarios para precios,
@@ -6076,8 +6158,11 @@ function seo_proveedores_render_catalogo() {
         [ $per_page, $offset ]
     );
 
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SELECT/order fragments come from closed internal lists; pagination/filter values are placeholders.
+    $prepared_query = $wpdb->prepare( $query, $query_params );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_query is the direct result of $wpdb->prepare() above.
     $rows = $wpdb->get_results(
-        $wpdb->prepare( $query, $query_params ),
+        $prepared_query,
         ARRAY_A
     );
 

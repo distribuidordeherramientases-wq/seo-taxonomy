@@ -158,7 +158,7 @@ final class SEO_Dependiente_Actualizacion {
                         <div class="seo-dependiente-trainer__update-module is-<?php echo esc_attr($status); ?>">
                             <strong>M<?php echo esc_html($number); ?></strong>
                             <span><?php echo esc_html($label); ?></span>
-                            <small><?php echo 'completed' === $status ? 'Completado' : ('skipped' === $status ? 'Sin novedades' : ($count ? number_format_i18n($count) . ' ejercicios' : ucfirst($status))); ?></small>
+                            <small><?php echo 'completed' === $status ? 'Completado' : ('skipped' === $status ? 'Sin novedades' : ($count ? esc_html(number_format_i18n($count)) . ' ejercicios' : esc_html(ucfirst($status)))); ?></small>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -404,7 +404,7 @@ final class SEO_Dependiente_Actualizacion {
         $modules[$module] = $module_state;
 
         if (absint($module_state['no_progress'] ?? 0) >= 6) {
-            throw new RuntimeException('M' . $module . ' acumula errores técnicos sin avanzar. Se detiene antes del merge.');
+            throw new RuntimeException('M' . esc_html((string) $module) . ' acumula errores técnicos sin avanzar. Se detiene antes del merge.');
         }
 
         if ($answered_now < absint($summary['total'] ?? 0)) {
@@ -577,6 +577,7 @@ final class SEO_Dependiente_Actualizacion {
 
         if (class_exists('SEO_Dependiente_Index') && SEO_Dependiente_Index::table_exists()) {
             $index = SEO_Dependiente_Index::table();
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $index is an internal table name returned by SEO_Dependiente_Index::table(); all data values are bound below.
             $rows = (array) $wpdb->get_results($wpdb->prepare(
                 "SELECT i.product_id,i.categories_json,i.vocabulary_json
                  FROM {$index} i
@@ -680,7 +681,9 @@ final class SEO_Dependiente_Actualizacion {
             }
             if ($object_clauses) {
                 $sql = "SELECT DISTINCT vocabulary_id FROM {$objects} WHERE status=1 AND (" . implode(' OR ', $object_clauses) . ')';
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql contains only an internal table name plus generated %d placeholders.
                 $prepared = $params ? $wpdb->prepare($sql, $params) : $sql;
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query values are already bound in $prepared; dynamic fragments are internal table/placeholders.
                 foreach ((array) $wpdb->get_col($prepared) as $id) {
                     $id = absint($id);
                     if ($id) $vocabulary_ids[$id] = true;
@@ -704,6 +707,7 @@ final class SEO_Dependiente_Actualizacion {
                 $params = array_merge($params, $ids);
             }
             $sql = "SELECT id FROM {$faq} WHERE active=1 AND (" . implode(' OR ', $clauses) . ')';
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table and generated %d placeholders; all IDs are bound through prepare().
             foreach ((array) $wpdb->get_col($wpdb->prepare($sql, $params)) as $id) {
                 $id = absint($id);
                 if ($id) $faq_ids[$id] = true;
@@ -731,11 +735,13 @@ final class SEO_Dependiente_Actualizacion {
 
     private static function build_exam_items($lesson_key) {
         global $wpdb;
+        $questions_table = SEO_Dependiente_Entrenador::questions_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal questions table; lesson key and limit are bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare(
-            'SELECT id,source_type,source_id,source_key,question_type,mode,question,expected_json
-             FROM ' . SEO_Dependiente_Entrenador::questions_table() . '
+            "SELECT id,source_type,source_id,source_key,question_type,mode,question,expected_json
+             FROM {$questions_table}
              WHERE lesson_key=%s AND enabled=1 AND module_no BETWEEN 1 AND 7
-             ORDER BY id ASC LIMIT %d',
+             ORDER BY id ASC LIMIT %d",
             $lesson_key,
             self::MAX_EXAM_ITEMS
         ), ARRAY_A);
@@ -762,8 +768,10 @@ final class SEO_Dependiente_Actualizacion {
         $source_key = sanitize_text_field((string) ($item['source_key'] ?? ''));
         $normalized = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::normalize($question) : strtolower($question);
         $hash = hash('sha256', $lesson_key . '|' . $module . '|' . $source_key . '|' . $normalized);
+        $questions_table = SEO_Dependiente_Entrenador::questions_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal questions table; hash is bound through prepare().
         $exists = absint($wpdb->get_var($wpdb->prepare(
-            'SELECT id FROM ' . SEO_Dependiente_Entrenador::questions_table() . ' WHERE question_hash=%s LIMIT 1',
+            "SELECT id FROM {$questions_table} WHERE question_hash=%s LIMIT 1",
             $hash
         )));
         if ($exists) return false;
@@ -798,8 +806,10 @@ final class SEO_Dependiente_Actualizacion {
         if (!$lesson_keys) return '';
         $placeholders = implode(',', array_fill(0, count($lesson_keys), '%s'));
         $args = array_merge(array(sanitize_key((string) $source_type), absint($source_id)), $lesson_keys);
-        $sql = 'SELECT question,expected_json FROM ' . SEO_Dependiente_Entrenador::questions_table() .
+        $questions_table = SEO_Dependiente_Entrenador::questions_table();
+        $sql = "SELECT question,expected_json FROM {$questions_table}" .
             ' WHERE source_type=%s AND source_id=%d AND enabled=1 AND lesson_key IN (' . $placeholders . ') ORDER BY id DESC LIMIT 1';
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table plus generated %s placeholders; all values are bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare($sql, $args), ARRAY_A);
         if (!$row) return '';
         return hash('sha256', (string) ($row['question'] ?? '') . '|' . wp_json_encode(self::decode_json($row['expected_json'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));

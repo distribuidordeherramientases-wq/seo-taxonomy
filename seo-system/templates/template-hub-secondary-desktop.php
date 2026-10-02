@@ -154,7 +154,7 @@ dht_template_render_header();
 ?>
 
 <script type="application/ld+json" id="schema-hub-secondary">
-<?php echo wp_json_encode(array('@context' => 'https://schema.org', '@graph' => $json_graph), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+<?php echo wp_json_encode(array('@context' => 'https://schema.org', '@graph' => $json_graph), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>
 
 <main class="hub-page hub-secondary-page dht-desktop-template">
@@ -234,7 +234,7 @@ dht_template_render_header();
                             $image = dht_template_placeholder_image_url('woocommerce_thumbnail');
                         }
 
-                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id, 'product_cat')), 22);
+                        $description = wp_trim_words(wp_strip_all_tags(term_description($category_id)), 22);
                         ?>
                         <a class="hub-card hub-category-card" href="<?php echo esc_url($link); ?>">
                             <?php if ($image) : ?>

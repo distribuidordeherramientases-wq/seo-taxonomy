@@ -211,12 +211,14 @@ if (!function_exists('seo_page_vocab_replace_manual_group')) {
                       AND active = 1
                       AND id IN ({$placeholders})";
             $params = array_merge(array($group), $vocabulary_ids);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary table plus generated placeholders; all data values are bound through prepare().
             $valid_ids = $wpdb->get_col($wpdb->prepare($sql, $params));
             $vocabulary_ids = array_values(array_unique(array_map('intval', (array) $valid_ids)));
         }
 
         $current_ids = array_map(
             'intval',
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables; group and page ID are bound through prepare().
             (array) $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT ov.vocabulary_id
@@ -250,6 +252,7 @@ if (!function_exists('seo_page_vocab_replace_manual_group')) {
                       AND v.semantic_group = %s
                       AND ov.vocabulary_id IN ({$placeholders})";
             $params = array_merge(array($page_id, $group), $to_remove);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables plus generated %d placeholders; all values are bound through prepare().
             $updated = $wpdb->query($wpdb->prepare($sql, $params));
             if ($updated === false) {
                 return new WP_Error('seo_page_vocab_remove', 'No se pudieron retirar asignaciones de Vocabulary: ' . $wpdb->last_error);
@@ -330,7 +333,7 @@ if (!function_exists('seo_page_vocab_render_fields')) {
         echo '<div style="font-weight:700;margin-bottom:5px;">Etiquetas semánticas · Vocabulary canónico</div>';
         $role = $page_id > 0 ? seo_page_vocab_get_structural_role($page_id) : '';
         $role_text = $role !== '' ? ' El rol estructural <code>' . esc_html($role) . '</code> permanece separado en <code>wp_seo_nodes</code>.' : ' El rol estructural se guarda por separado en <code>wp_seo_nodes</code>.';
-        echo '<p style="margin:0 0 12px;color:#50575e;font-size:12px;">Se guardan en <code>wp_seo_object_vocabulary</code> con <code>object_type=page</code>.' . $role_text . '</p>';
+        echo '<p style="margin:0 0 12px;color:#50575e;font-size:12px;">Se guardan en <code>wp_seo_object_vocabulary</code> con <code>object_type=page</code>.' . wp_kses_post($role_text) . '</p>';
 
         $grid = $compact ? 'repeat(2,minmax(240px,1fr))' : 'repeat(2,minmax(280px,1fr))';
         echo '<div style="display:grid;grid-template-columns:' . esc_attr($grid) . ';gap:12px;">';
@@ -448,6 +451,7 @@ if (!function_exists('seo_page_vocab_export_group')) {
         }
         $sql .= " ORDER BY v.{$field} ASC";
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary tables and a whitelisted ORDER BY field; all data values are bound through prepare().
         return array_values(array_filter(array_map('strval', (array) $wpdb->get_col($wpdb->prepare($sql, $params)))));
     }
 }
@@ -495,6 +499,7 @@ if (!function_exists('seo_page_vocab_import_row')) {
                       AND active = 1
                       AND slug IN ({$placeholders})";
             $params = array_merge(array($group), $slugs);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Vocabulary table plus generated %s placeholders; group and slugs are bound through prepare().
             $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
 
             $resolved = array();

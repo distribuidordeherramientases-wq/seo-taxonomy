@@ -14,46 +14,11 @@ add_action('wp_head', function () {
 
 
 /* =========================================================
-   TRACKING AUXILIAR DEL TEMA
-   - GA4 SE GESTIONA DESDE EL PLUGIN SEO SYSTEM
-   - SOLO EN FRONTEND
+   TRACKING
+   Las balizas de terceros no se cargan automaticamente desde el plugin.
+   Las integraciones de analitica deben activarse/configurarse expresamente
+   desde sus modulos y respetar el consentimiento aplicable.
 ========================================================= */
-function dht_scripts_globales() {
-
-    if ( is_admin() ) return;
-    if ( current_user_can('manage_options') ) return; // evita medición interna
-
-    ?>
-
-    <!-- Cloudflare Insights -->
-    <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
-    data-cf-beacon='{"token":"0f5c4f0eb18c4a88aed6898c030f742f"}'></script>
-
-    <!-- Clarity SOLO en interacción inicial -->
-    <script>
-    (function(){
-        function loadClarity(){
-            if(window.__clarity_loaded) return;
-            window.__clarity_loaded = true;
-
-            (function(c,l,a,r,i,t,y){
-                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                t=l.createElement(r);t.async=1;
-                t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
-                y=l.getElementsByTagName(r)[0];
-                y.parentNode.insertBefore(t,y);
-            })(window, document, "clarity", "script", "ww0i0jxbs8");
-        }
-
-        window.addEventListener('scroll', loadClarity, {once:true});
-        window.addEventListener('mousemove', loadClarity, {once:true});
-        setTimeout(loadClarity, 5000);
-    })();
-    </script>
-    <?php
-}
-add_action('wp_head', 'dht_scripts_globales', 999);
-
 
 /* =========================================================
    DESACTIVAR HEADER DEFAULT GENERATEPRESS
@@ -181,7 +146,7 @@ add_filter('the_excerpt', function($excerpt) {
     $excerpt = (string) $excerpt;
 
     return wp_trim_words(
-        strip_tags($excerpt),
+        wp_strip_all_tags($excerpt),
         30,
         ''
     );
@@ -222,7 +187,7 @@ function interceptar_redireccion_antes_de_wordpress() {
 
     global $wpdb;
 
-    $url_solicitada = $_SERVER['REQUEST_URI'];
+    $url_solicitada = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '/';
 
     if (($pos = strpos($url_solicitada, '?')) !== false) {
         $url_solicitada = substr($url_solicitada, 0, $pos);
@@ -256,17 +221,18 @@ function interceptar_redireccion_antes_de_wordpress() {
 
     $tabla = $wpdb->prefix . 'seo_redirects';
 
-    $sql = $wpdb->prepare(
-        "SELECT id,target_url,hits
-         FROM $tabla
-         WHERE origin_url=%s
-            OR origin_url=%s
-         LIMIT 1",
-        $url_solicitada,
-        $url_alternativa
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal redirects table; both URL variants are bound through prepare().
+    $redireccion = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT id,target_url,hits
+             FROM {$tabla}
+             WHERE origin_url=%s
+                OR origin_url=%s
+             LIMIT 1",
+            $url_solicitada,
+            $url_alternativa
+        )
     );
-
-    $redireccion = $wpdb->get_row($sql);
     if ($redireccion) {
 
         $wpdb->update(
@@ -316,35 +282,28 @@ add_action('init', 'seo_system_private_log_bootstrap', 1);
  * Devuelve el document root publico normalizado.
  */
 function seo_system_private_log_document_root() {
-
-    if (empty($_SERVER['DOCUMENT_ROOT'])) {
+    $uploads = wp_upload_dir(null, false);
+    if (!empty($uploads['error']) || empty($uploads['basedir'])) {
         return '';
     }
-
-    $document_root = realpath((string) $_SERVER['DOCUMENT_ROOT']);
-
-    if ($document_root === false) {
-        return '';
-    }
-
-    return untrailingslashit(wp_normalize_path($document_root));
+    return untrailingslashit(wp_normalize_path((string) $uploads['basedir']));
 }
 
 /**
- * Comprueba que una ruta no este dentro del document root publico.
+ * Compatibilidad con el nombre historico: valida que la ruta pertenezca
+ * al directorio privado permitido dentro de uploads/seo-taxonomy/private-logs.
  */
 function seo_system_private_log_is_outside_public_root($path) {
-
-    $document_root = seo_system_private_log_document_root();
-
-    if ($document_root === '' || $path === '') {
+    $uploads = wp_upload_dir(null, false);
+    if (!empty($uploads['error']) || empty($uploads['basedir']) || $path === '') {
         return false;
     }
 
-    $normalized_path = wp_normalize_path($path);
-    $normalized_root = trailingslashit($document_root);
+    $allowed = trailingslashit(wp_normalize_path((string) $uploads['basedir']))
+        . 'seo-taxonomy/private-logs/';
+    $normalized = wp_normalize_path((string) $path);
 
-    return strpos($normalized_path, $normalized_root) !== 0;
+    return strpos($normalized, $allowed) === 0;
 }
 
 /**
@@ -387,32 +346,14 @@ function seo_system_private_log_current_day() {
  * del document root, conserva su directorio para no cambiar de ubicacion.
  */
 function seo_system_get_private_log_directory() {
-
-    $saved_path = get_option('seo_system_private_log_path', '');
-
-    if (
-        is_string($saved_path) &&
-        $saved_path !== '' &&
-        seo_system_private_log_is_outside_public_root($saved_path)
-    ) {
-        $saved_dir = dirname(wp_normalize_path($saved_path));
-
-        if (seo_system_private_log_is_outside_public_root($saved_dir . '/seo-system-probe.tmp')) {
-            return wp_normalize_path($saved_dir);
-        }
-    }
-
-    $document_root = seo_system_private_log_document_root();
-
-    if ($document_root === '') {
+    $uploads = wp_upload_dir(null, false);
+    if (!empty($uploads['error']) || empty($uploads['basedir'])) {
         return '';
     }
 
-    $private_dir = dirname($document_root) . '/seo-system-private';
-
-    if (!seo_system_private_log_is_outside_public_root($private_dir . '/seo-system-probe.tmp')) {
-        return '';
-    }
+    $salt = substr(hash('sha256', wp_salt('auth') . '|seo-taxonomy-private-logs'), 0, 16);
+    $private_dir = trailingslashit(wp_normalize_path((string) $uploads['basedir']))
+        . 'seo-taxonomy/private-logs-' . $salt;
 
     return wp_normalize_path($private_dir);
 }
@@ -430,10 +371,6 @@ function seo_system_get_private_log_path() {
 
     $day = seo_system_private_log_current_day();
     $log_file = trailingslashit($private_dir) . 'seo-system-' . $day['slug'] . '.log';
-
-    if (!seo_system_private_log_is_outside_public_root($log_file)) {
-        return '';
-    }
 
     return wp_normalize_path($log_file);
 }
@@ -480,6 +417,99 @@ function seo_system_private_log_file_weekday($path) {
 }
 
 /**
+ * Elimina un archivo mediante WordPress y conserva un booleano fiable también
+ * en versiones anteriores a WordPress 6.7, donde wp_delete_file() no devolvía
+ * todavía el resultado de unlink().
+ */
+function seo_system_private_log_delete_file($path) {
+
+    $result = wp_delete_file($path);
+
+    if (is_bool($result)) {
+        return $result;
+    }
+
+    return !file_exists($path);
+}
+
+/**
+ * Abre un recurso local para el log privado.
+ *
+ * El flujo usa flock() y lectura/escritura incremental; WP_Filesystem no
+ * expone un recurso equivalente sin alterar la semántica de concurrencia.
+ *
+ * @param string $path Ruta local.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_system_private_log_stream_open($path, $mode) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Private log locking requires a native PHP stream resource.
+    return @fopen($path, $mode);
+}
+
+/**
+ * Lee un bloque del recurso del log privado.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param int      $length Bytes máximos.
+ * @return string|false
+ */
+function seo_system_private_log_stream_read($stream, $length) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Incremental gzip copy requires bounded reads from the locked stream.
+    return fread($stream, $length);
+}
+
+/**
+ * Escribe en el recurso del log privado.
+ *
+ * @param resource $stream Recurso abierto.
+ * @param string   $data   Datos.
+ * @return int|false
+ */
+function seo_system_private_log_stream_write($stream, $data) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Locked log initialization requires direct stream write.
+    return @fwrite($stream, $data);
+}
+
+/**
+ * Cierra un recurso del log privado.
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_system_private_log_stream_close($stream) {
+    if (!is_resource($stream)) {
+        return false;
+    }
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_system_private_log_stream_open().
+    return @fclose($stream);
+}
+
+/**
+ * Renombra archivos locales preservando la rotación atómica.
+ *
+ * @param string $source Origen.
+ * @param string $target Destino.
+ * @return bool
+ */
+function seo_system_private_log_atomic_rename($source, $target) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Private log rotation requires local atomic rename semantics.
+    return @rename($source, $target);
+}
+
+/**
+ * Aplica permisos restrictivos al directorio o fichero del log privado.
+ *
+ * @param string $path Ruta local.
+ * @param int    $mode Permisos POSIX.
+ * @return bool
+ */
+function seo_system_private_log_set_permissions($path, $mode) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Private logs intentionally enforce 0600/0700 permissions.
+    return @chmod($path, $mode);
+}
+
+/**
  * Copia un archivo a gzip y elimina el original solo cuando el gzip
  * ha quedado creado correctamente.
  */
@@ -494,14 +524,14 @@ function seo_system_private_log_compress_file($source, $destination) {
         return false;
     }
 
-    $input = @fopen($source, 'rb');
+    $input = seo_system_private_log_stream_open($source, 'rb');
 
     if ($input === false) {
         return false;
     }
 
     if (!@flock($input, LOCK_EX)) {
-        @fclose($input);
+        seo_system_private_log_stream_close($input);
         return false;
     }
 
@@ -509,23 +539,23 @@ function seo_system_private_log_compress_file($source, $destination) {
 
     if ($temporary === false) {
         @flock($input, LOCK_UN);
-        @fclose($input);
+        seo_system_private_log_stream_close($input);
         return false;
     }
 
     $output = @gzopen($temporary, 'wb9');
 
     if ($output === false) {
-        @unlink($temporary);
+        seo_system_private_log_delete_file($temporary);
         @flock($input, LOCK_UN);
-        @fclose($input);
+        seo_system_private_log_stream_close($input);
         return false;
     }
 
     $ok = true;
 
     while (!feof($input)) {
-        $chunk = fread($input, 1024 * 1024);
+        $chunk = seo_system_private_log_stream_read($input, 1024 * 1024);
 
         if ($chunk === false) {
             $ok = false;
@@ -553,30 +583,30 @@ function seo_system_private_log_compress_file($source, $destination) {
 
     @gzclose($output);
     @flock($input, LOCK_UN);
-    @fclose($input);
+    seo_system_private_log_stream_close($input);
 
     if (!$ok) {
-        @unlink($temporary);
+        seo_system_private_log_delete_file($temporary);
         return false;
     }
 
-    @chmod($temporary, 0600);
+    seo_system_private_log_set_permissions($temporary, 0600);
 
-    if (is_file($destination) && !@unlink($destination)) {
-        @unlink($temporary);
+    if (is_file($destination) && !seo_system_private_log_delete_file($destination)) {
+        seo_system_private_log_delete_file($temporary);
         return false;
     }
 
-    if (!@rename($temporary, $destination)) {
-        @unlink($temporary);
+    if (!seo_system_private_log_atomic_rename($temporary, $destination)) {
+        seo_system_private_log_delete_file($temporary);
         return false;
     }
 
-    @chmod($destination, 0600);
+    seo_system_private_log_set_permissions($destination, 0600);
 
-    if (!@unlink($source)) {
+    if (!seo_system_private_log_delete_file($source)) {
         // Conserva el original si no se puede completar la rotacion.
-        @unlink($destination);
+        seo_system_private_log_delete_file($destination);
         return false;
     }
 
@@ -600,11 +630,11 @@ function seo_system_private_log_migrate_legacy($private_dir, array $current_day)
 
     // Si el log legacy se estaba usando hoy, pasa a ser el log activo de hoy.
     if ($legacy_date === $current_day['date'] && !file_exists($current_paths['active'])) {
-        if (!@rename($legacy, $current_paths['active'])) {
+        if (!seo_system_private_log_atomic_rename($legacy, $current_paths['active'])) {
             return false;
         }
 
-        @chmod($current_paths['active'], 0600);
+        seo_system_private_log_set_permissions($current_paths['active'], 0600);
         return true;
     }
 
@@ -612,7 +642,7 @@ function seo_system_private_log_migrate_legacy($private_dir, array $current_day)
     $slugs = seo_system_private_log_weekday_slugs();
 
     if (!isset($slugs[$weekday])) {
-        return @unlink($legacy);
+        return seo_system_private_log_delete_file($legacy);
     }
 
     $legacy_slug = $slugs[$weekday];
@@ -620,14 +650,14 @@ function seo_system_private_log_migrate_legacy($private_dir, array $current_day)
     // Si pertenece al mismo slot que hoy pero ya es antiguo, se descarta:
     // hoy debe sobrescribir ese slot semanal.
     if ($legacy_slug === $current_day['slug']) {
-        return @unlink($legacy);
+        return seo_system_private_log_delete_file($legacy);
     }
 
     $legacy_paths = seo_system_private_log_slot_paths($private_dir, $legacy_slug);
 
     // No pisa un slot ya migrado/rotado. El legacy es solo compatibilidad.
     if (is_file($legacy_paths['active']) || is_file($legacy_paths['archive'])) {
-        return @unlink($legacy);
+        return seo_system_private_log_delete_file($legacy);
     }
 
     return seo_system_private_log_compress_file($legacy, $legacy_paths['archive']);
@@ -652,7 +682,7 @@ function seo_system_private_log_rotate($private_dir, array $current_day) {
         if ($slug === $current_day['slug']) {
             // El gzip de este mismo dia corresponde, como minimo, a la semana
             // anterior y debe dejar paso al slot actual.
-            if (is_file($paths['archive']) && !@unlink($paths['archive'])) {
+            if (is_file($paths['archive']) && !seo_system_private_log_delete_file($paths['archive'])) {
                 return false;
             }
 
@@ -660,7 +690,7 @@ function seo_system_private_log_rotate($private_dir, array $current_day) {
                 $active_date = seo_system_private_log_file_date($paths['active']);
 
                 // Mismo nombre de weekday, pero de otra semana: sobrescribir.
-                if ($active_date !== $current_day['date'] && !@unlink($paths['active'])) {
+                if ($active_date !== $current_day['date'] && !seo_system_private_log_delete_file($paths['active'])) {
                     return false;
                 }
             }
@@ -680,9 +710,9 @@ function seo_system_private_log_rotate($private_dir, array $current_day) {
 }
 
 /**
- * Crea, si hace falta, el directorio y el archivo activo del dia.
- * No hace fallback a wp-content: si no puede mantener el log fuera del
- * directorio publico devuelve false.
+ * Crea, si hace falta, el directorio y el archivo activo del día.
+ * Los logs se guardan bajo uploads/seo-taxonomy en un subdirectorio no
+ * predecible y protegido; nunca se escriben en core, themes o plugins.
  */
 function seo_system_private_log_bootstrap() {
 
@@ -695,14 +725,14 @@ function seo_system_private_log_bootstrap() {
         $ready_date === $current_day['date'] &&
         $ready_path !== '' &&
         is_file($ready_path) &&
-        is_writable($ready_path)
+        wp_is_writable($ready_path)
     ) {
         return $ready_path;
     }
 
     $private_dir = seo_system_get_private_log_directory();
 
-    if ($private_dir === '' || !seo_system_private_log_is_outside_public_root($private_dir . '/seo-system-probe.tmp')) {
+    if ($private_dir === '') {
         return false;
     }
 
@@ -710,10 +740,28 @@ function seo_system_private_log_bootstrap() {
         if (!wp_mkdir_p($private_dir)) {
             return false;
         }
-        @chmod($private_dir, 0700);
+        seo_system_private_log_set_permissions($private_dir, 0700);
+
+        // Defensa adicional contra acceso web directo en servidores Apache.
+        $htaccess = trailingslashit($private_dir) . '.htaccess';
+        if (!file_exists($htaccess)) {
+            @file_put_contents($htaccess, "Require all denied\nDeny from all\n", LOCK_EX);
+        }
+        $web_config = trailingslashit($private_dir) . 'web.config';
+        if (!file_exists($web_config)) {
+            @file_put_contents(
+                $web_config,
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><configuration><system.webServer><authorization><deny users=\"*\" /></authorization></system.webServer></configuration>",
+                LOCK_EX
+            );
+        }
+        $index = trailingslashit($private_dir) . 'index.php';
+        if (!file_exists($index)) {
+            @file_put_contents($index, "<?php\n// Silence is golden.\n", LOCK_EX);
+        }
     }
 
-    if (!is_writable($private_dir)) {
+    if (!wp_is_writable($private_dir)) {
         return false;
     }
 
@@ -727,11 +775,11 @@ function seo_system_private_log_bootstrap() {
 
     if (!file_exists($log_file)) {
         // 'x' evita que dos peticiones simultaneas trunquen el mismo log.
-        $handle = @fopen($log_file, 'x');
+        $handle = seo_system_private_log_stream_open($log_file, 'x');
 
         if ($handle !== false) {
             $created = true;
-            @chmod($log_file, 0600);
+            seo_system_private_log_set_permissions($log_file, 0600);
 
             $line = sprintf(
                 "[%s] [INFO] SEO System: log diario inicializado (%s).%s",
@@ -741,14 +789,14 @@ function seo_system_private_log_bootstrap() {
             );
 
             @flock($handle, LOCK_EX);
-            @fwrite($handle, $line);
+            seo_system_private_log_stream_write($handle, $line);
             @fflush($handle);
             @flock($handle, LOCK_UN);
-            @fclose($handle);
+            seo_system_private_log_stream_close($handle);
         }
     }
 
-    if (!is_file($log_file) || !is_writable($log_file)) {
+    if (!is_file($log_file) || !wp_is_writable($log_file)) {
         return false;
     }
 
