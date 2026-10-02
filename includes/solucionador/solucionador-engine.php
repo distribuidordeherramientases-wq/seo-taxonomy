@@ -580,7 +580,10 @@ final class SEO_Solucionador_Engine {
      */
     public static function ensure_initialized($days = 180) {
         $last = get_option('seo_solucionador_last_scan', array());
-        if (is_array($last) && !empty($last['at'])) {
+        if (is_array($last) && !empty($last['at']) && !array_key_exists('complete',$last)) {
+            return $last;
+        }
+        if (is_array($last) && !empty($last['at']) && !empty($last['complete'])) {
             return $last;
         }
 
