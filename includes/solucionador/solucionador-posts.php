@@ -381,60 +381,26 @@ final class SEO_Solucionador_Posts {
     }
 
     private static function build_editorial_brief($topic_id, array $topic, $category_id, array $details) {
-        $term = get_term(absint($category_id),'product_cat');
-        $category_name = ($term && !is_wp_error($term)) ? (string) $term->name : ('product_cat #' . absint($category_id));
-        $existing = self::existing_content_references($topic,$category_id);
-        $links = self::internal_link_recommendations($category_id);
-
         $html = '';
-        $html .= '<p><strong>BORRADOR EDITORIAL — reescribir antes de publicar.</strong></p>';
-        $html .= '<p>Este contenido es una copia de trabajo generada desde el inventario interno de Solucionador. ';
-        $html .= 'La fuente de verdad sigue siendo el dossier y sus ejecuciones de Academia/Dependiente; editar este texto no altera esa trazabilidad.</p>';
+        $html .= '<p><strong>BORRADOR EDITORIAL — revisar y reescribir antes de publicar.</strong></p>';
+        $html .= '<p>Las preguntas y respuestas siguientes proceden del último entrenamiento validado de Dependiente.</p>';
+        $html .= '<h2>Preguntas y respuestas</h2>';
 
-        $html .= '<h2>Preguntas que debe resolver este artículo</h2>';
         foreach ($details as $index=>$row) {
             $question = trim((string) ($row['question'] ?? ''));
             if ($question === '') continue;
+            $answer = class_exists('SEO_Solucionador_Dossiers')
+                ? SEO_Solucionador_Dossiers::answer_text((array) $row)
+                : '';
+
             $html .= '<h3>' . esc_html(($index + 1) . '. ' . $question) . '</h3>';
-            $html .= '<p><strong>Validación:</strong> ' . esc_html((string) ($row['evaluation_status'] ?? '')) . '';
-            if (isset($row['evaluation_score'])) {
-                $html .= ' · score ' . esc_html(number_format_i18n((float) $row['evaluation_score'],2));
-            }
-            if (!empty($row['observed_at'])) {
-                $html .= ' · último run ' . esc_html((string) $row['observed_at']);
-            }
-            $html .= '</p>';
-
-            $html .= '<h4>Material de respuesta de Dependiente</h4>';
-            $html .= '<p><strong>evaluation_json</strong></p>' . self::json_material($row['evaluation'] ?? array());
-            $html .= '<p><strong>top_results</strong></p>' . self::json_material($row['top_results'] ?? array());
-            $html .= '<p><strong>response_meta</strong></p>' . self::json_material($row['response_meta'] ?? array());
-            $html .= '<details><summary>Contexto adicional del entrenamiento</summary>';
-            $html .= '<p><strong>expected_json</strong></p>' . self::json_material($row['expected'] ?? array());
-            if (!empty($row['search_strategy'])) {
-                $html .= '<p><strong>search_strategy:</strong> ' . esc_html((string) $row['search_strategy']) . '</p>';
-            }
-            $html .= '<p><strong>question_id:</strong> ' . esc_html((string) absint($row['question_id'] ?? 0));
-            $html .= ' · <strong>run_id:</strong> ' . esc_html((string) absint($row['run_id'] ?? 0)) . '</p>';
-            $html .= '</details>';
+            $html .= '<p><strong>Respuesta:</strong> ' . esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.') . '</p>';
         }
-
-        $html .= '<h2>Asociación comercial</h2>';
-        $html .= '<p><strong>product_cat de origen:</strong> ' . esc_html($category_name) . ' (#' . esc_html((string) absint($category_id)) . ')</p>';
-
-        $html .= '<h2>Contenido existente que no debe duplicarse</h2>';
-        $html .= self::render_reference_list($existing,'No se ha localizado contenido publicado relacionado que deba señalarse aquí.');
-
-        $html .= '<h2>Enlaces internos recomendados</h2>';
-        $html .= self::render_reference_list($links,'No se han encontrado enlaces internos recomendables en esta categoría.');
-
-        $html .= '<hr>';
-        $html .= '<p><em>Nota editorial: este brief sirve para redactar. No debe publicarse literalmente sin revisión y reescritura.</em></p>';
 
         return $html;
     }
 
-    public static function create_draft($topic_id) {
+    public static function create_draft($topic_id, $human_override = false) {
         $topic_id = absint($topic_id);
         $topic = SEO_Solucionador_DB::get_topic($topic_id);
         if (!$topic) return new WP_Error('solucionador_topic_missing', 'La propuesta ya no existe.');
@@ -446,11 +412,11 @@ final class SEO_Solucionador_Posts {
 
         $title = sanitize_text_field((string) ($topic['suggested_title'] ?? ''));
         if ($title === '') return new WP_Error('solucionador_title_missing', 'La propuesta no tiene titulo.');
-        if (strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
+        if (!$human_override && strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
             return new WP_Error('solucionador_not_new_post', 'Esta propuesta no requiere crear un post nuevo.');
         }
         $workflow_state = sanitize_key((string) ($topic['workflow_state'] ?? 'detected'));
-        if (!in_array($workflow_state, array('approved','brief_ready'), true)) {
+        if (!$human_override && !in_array($workflow_state, array('approved','brief_ready'), true)) {
             return new WP_Error(
                 'solucionador_not_approved',
                 'Primero aprueba la actuación o marca el brief como listo. Solucionador no crea borradores desde una decisión no aprobada.'
@@ -458,12 +424,14 @@ final class SEO_Solucionador_Posts {
         }
 
         $requirements = SEO_Solucionador_DB::decision_requirements($topic);
-        foreach (array('academy_mass','category_identified','coverage_reviewed','duplication_below_threshold') as $requirement) {
-            if (isset($requirements[$requirement]) && empty($requirements[$requirement]['pass'])) {
-                return new WP_Error(
-                    'solucionador_requirement_block',
-                    'La propuesta ya no cumple una condición obligatoria para crear una URL nueva. Reanaliza antes de preparar el borrador.'
-                );
+        if (!$human_override) {
+            foreach (array('academy_mass','category_identified','coverage_reviewed','duplication_below_threshold') as $requirement) {
+                if (isset($requirements[$requirement]) && empty($requirements[$requirement]['pass'])) {
+                    return new WP_Error(
+                        'solucionador_requirement_block',
+                        'La propuesta ya no cumple una condición obligatoria para crear una URL nueva. Reanaliza antes de preparar el borrador.'
+                    );
+                }
             }
         }
 
@@ -476,7 +444,7 @@ final class SEO_Solucionador_Posts {
             'categories' => SEO_Solucionador_DB::proposed_categories($topic),
             'vocabulary' => SEO_Solucionador_DB::proposed_vocabulary($topic),
         );
-        if (!SEO_Solucionador_Catalog::proposal_ready($proposal)) {
+        if (!$human_override && !SEO_Solucionador_Catalog::proposal_ready($proposal)) {
             return new WP_Error(
                 'solucionador_proposal_not_ready',
                 'La propuesta no tiene aun categoria y Vocabulary suficientes para crear un borrador homogeneo.'
