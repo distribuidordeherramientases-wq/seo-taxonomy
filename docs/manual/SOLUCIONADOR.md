@@ -277,11 +277,17 @@ Regla editorial:
 1. exige que la propuesta sea `CREATE_POST`;
 2. exige aprobación humana / brief_ready;
 3. vuelve a comprobar los gates;
-4. crea un `post` en estado `draft`;
-5. conserva `topic_id` y `canonical_key`;
-6. asigna Vocabulary;
-7. crea la relación `post_to_category` con product_cat;
-8. asigna el rol estable `dependiente_qa_basic`.
+4. recupera desde el dossier las preguntas `pass_*` y el último run válido de cada una;
+5. crea un `post` en estado `draft` y categoría editorial WordPress **Guías**;
+6. usa el título propuesto como `post_title` y deja `post_excerpt` vacío;
+7. escribe en `post_content` un **brief editorial de trabajo**, encabezado por `BORRADOR EDITORIAL — reescribir antes de publicar`, con preguntas, `evaluation_json`, `top_results`, `response_meta`, contexto del entrenamiento, contenido relacionado que no debe duplicarse y enlaces internos recomendados;
+8. conserva `topic_id` y `canonical_key`;
+9. persiste en metadatos la trazabilidad `dossier/category_id -> question_ids -> run_ids -> source_hash`, independiente del texto editable del borrador;
+10. asigna el rol estable `dependiente_qa_basic`;
+11. crea una única relación comercial `post_to_category` con la `product_cat` principal que originó el dossier;
+12. asigna Vocabulary combinando la propuesta editorial con los grupos canónicos activos ya disponibles en esa `product_cat`.
+
+El `post_content` es una **copia editorial legible**, no la fuente de verdad. El inventario interno y la trazabilidad persistida siguen mandando aunque la Editora reescriba por completo el borrador.
 
 El rol se asigna mediante la API común:
 
@@ -422,8 +428,12 @@ Un fallo debe bloquear conscientemente una promoción a producción.
 - Dos ciclos no duplican dossiers ni posts.
 - Un dossier cubierto nunca crea un segundo post.
 - CREATE_POST crea sólo draft.
+- El borrador se clasifica en la categoría editorial WordPress **Guías**.
+- El `post_content` nace con un brief editorial legible y advertencia de reescritura.
 - El post usa `dependiente_qa_basic`.
-- El post conserva `post_to_category`.
+- El post conserva una única relación comercial `post_to_category` con la `product_cat` de origen.
+- El post conserva snapshot interno de `question_ids`, `run_ids` y `source_hash` aunque se edite el texto.
+- El Vocabulary del post incorpora los grupos canónicos disponibles de la `product_cat` de origen.
 - Solucionador funciona sin Ingeniero, Ojeador o Comparador.
 - El escaneo es reanudable por lotes.
 - Los detalles pesados se cargan bajo demanda.
