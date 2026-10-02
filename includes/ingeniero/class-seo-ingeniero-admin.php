@@ -3,6 +3,11 @@ defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero_Admin {
     public static function init() {
+        add_action('admin_menu', array(__CLASS__, 'register_page'), 32);
+        add_filter('seo_content_items', array(__CLASS__, 'content_card'), 32, 1);
+        add_filter('parent_file', array(__CLASS__, 'parent_file'), 32, 1);
+        add_filter('submenu_file', array(__CLASS__, 'submenu_file'), 32, 1);
+        add_action('admin_init', array(__CLASS__, 'redirect_legacy_dependiente_tab'));
         add_action('admin_post_seo_ingeniero_prepare', array(__CLASS__, 'handle_prepare'));
         add_action('admin_post_seo_ingeniero_control', array(__CLASS__, 'handle_control'));
         add_action('admin_post_seo_ingeniero_research_category', array(__CLASS__, 'handle_research_category'));
@@ -13,14 +18,64 @@ final class SEO_Ingeniero_Admin {
         add_action('admin_post_seo_ingeniero_settings', array(__CLASS__, 'handle_settings'));
     }
 
+    public static function register_page() {
+        add_submenu_page(
+            null,
+            'Ingeniero',
+            'Ingeniero',
+            'manage_options',
+            'seo-ingeniero',
+            array(__CLASS__, 'render')
+        );
+    }
+
+    public static function content_card($items) {
+        $items = is_array($items) ? $items : array();
+        $items[] = array(
+            'title' => 'Ingeniero',
+            'icon'  => 'dashicons-hammer',
+            'page'  => 'seo-ingeniero',
+            'desc'  => 'Investiga conocimiento técnico trazable por categoría y lo convierte en propuestas editoriales propias para la Editora.',
+        );
+        return $items;
+    }
+
+    public static function parent_file($parent_file) {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        return 'seo-ingeniero' === $page ? 'seo-system' : $parent_file;
+    }
+
+    public static function submenu_file($submenu_file) {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        return 'seo-ingeniero' === $page ? 'seo-content' : $submenu_file;
+    }
+
+    public static function page_url($tab = 'research', $extra = array()) {
+        return add_query_arg(array_merge(array(
+            'page' => 'seo-ingeniero',
+            'tab'  => sanitize_key((string) $tab),
+        ), (array) $extra), admin_url('admin.php'));
+    }
+
+    public static function redirect_legacy_dependiente_tab() {
+        if (!is_admin() || !current_user_can('manage_options')) return;
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+        if ('seo-dependiente' !== $page || 'engineer' !== $tab) return;
+
+        $extra = array();
+        if (!empty($_GET['term_id'])) $extra['term_id'] = absint($_GET['term_id']);
+        wp_safe_redirect(self::page_url('research', $extra));
+        exit;
+    }
+
     private static function guard($action) {
         if (!current_user_can('manage_options')) wp_die(esc_html__('No tienes permisos para usar Ingeniero.', 'seo-taxonomy'));
         check_admin_referer($action);
     }
 
-    private static function redirect($args = array()) {
-        $base = add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer'), admin_url('admin.php'));
-        wp_safe_redirect(add_query_arg((array) $args, $base));
+    private static function redirect($args = array(), $tab = 'research') {
+        wp_safe_redirect(self::page_url($tab, (array) $args));
         exit;
     }
 
@@ -143,6 +198,37 @@ final class SEO_Ingeniero_Admin {
         self::redirect(array('ingeniero_notice'=>'settings'));
     }
 
+    public static function render() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('No tienes permisos para usar Ingeniero.', 'seo-taxonomy'));
+        }
+
+        SEO_Ingeniero_DB::maybe_install();
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'research';
+        if (!in_array($tab, array('research', 'editorial', 'data'), true)) {
+            $tab = 'research';
+        }
+
+        echo '<div class="wrap seo-ingeniero-admin">';
+        echo '<h1>Ingeniero <small style="font-weight:400;color:#646970">v' . esc_html(SEO_INGENIERO_VERSION) . '</small></h1>';
+        echo '<p><strong>Servicio técnico y editorial independiente.</strong> Investiga por categoría, conserva trazabilidad de fuentes y prepara dossiers técnicos para la Editora. No depende de Solucionador para decidir sus posts.</p>';
+        echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Ingeniero">';
+        foreach (array('research'=>'Investigación', 'editorial'=>'Editorial', 'data'=>'Datos y fuentes') as $key=>$label) {
+            echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' . esc_url(self::page_url($key)) . '">' . esc_html($label) . '</a>';
+        }
+        echo '</nav>';
+
+        if ('editorial' === $tab) {
+            self::render_editorial_tab();
+        } elseif ('data' === $tab) {
+            self::render_data_tab();
+        } else {
+            self::render_tab();
+        }
+
+        echo '</div>';
+    }
+
     public static function render_tab() {
         if (!current_user_can('manage_options')) return;
         SEO_Ingeniero_DB::maybe_install();
@@ -234,6 +320,27 @@ final class SEO_Ingeniero_Admin {
         echo '<p><strong>Desactivada en v1.</strong> Queda reservada para foros, comunidades profesionales y experiencia de uso. Sus evidencias se marcarán como experiencia/opinión y nunca se elevarán automáticamente a hecho técnico.</p>';
         echo '</div>';
 
+        echo '</section>';
+    }
+
+    private static function render_editorial_tab() {
+        echo '<section class="seo-ingeniero-editorial">';
+        echo '<div class="postbox" style="padding:18px;margin-top:16px">';
+        echo '<h2 style="margin-top:0">Editorial</h2>';
+        echo '<p>Esta pestaña prepara dossiers técnicos trazables a partir del conocimiento activo de Ingeniero. La persistencia editorial y el workflow se activarán con el esquema 0.2.0.</p>';
+        echo '</div>';
+        echo '</section>';
+    }
+
+    private static function render_data_tab() {
+        echo '<section class="seo-ingeniero-data">';
+        echo '<div class="postbox" style="padding:18px;margin-top:16px">';
+        echo '<h2 style="margin-top:0">Datos y fuentes</h2>';
+        echo '<p>Fuentes, conocimiento e intercambio de datos de Ingeniero.</p>';
+        if (class_exists('SEO_Ingeniero_Exchange')) {
+            SEO_Ingeniero_Exchange::render_panel();
+        }
+        echo '</div>';
         echo '</section>';
     }
 
@@ -332,7 +439,7 @@ final class SEO_Ingeniero_Admin {
                 wp_nonce_field('seo_ingeniero_approve_category');
                 echo '<button class="button button-small button-primary" type="submit" onclick="return confirm(\'Se aprobará todo el conocimiento en revisión de esta categoría. ¿Continuar?\')">Aprobar categoría</button></form> ';
             }
-            echo '<a class="button button-small" href="' . esc_url(add_query_arg(array('page'=>'seo-dependiente','tab'=>'engineer','term_id'=>$tid), admin_url('admin.php'))) . '">Revisar conocimiento</a> ';
+            echo '<a class="button button-small" href="' . esc_url(self::page_url('research', array('term_id'=>$tid))) . '">Revisar conocimiento</a> ';
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline">';
             echo '<input type="hidden" name="action" value="seo_ingeniero_research_category"><input type="hidden" name="term_id" value="' . esc_attr($tid) . '">';
             wp_nonce_field('seo_ingeniero_research_category');
