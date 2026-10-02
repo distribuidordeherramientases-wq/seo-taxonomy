@@ -14,6 +14,31 @@ add_action('admin_init', 'seo_comentarista_maybe_handle_legacy_csv_post');
 add_action('admin_notices', 'seo_comentarista_import_admin_notice');
 
 /**
+ * Abre un stream CSV nativo.
+ *
+ * @param string $path Ruta.
+ * @param string $mode Modo.
+ * @return resource|false
+ */
+function seo_comentarista_csv_stream_open($path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Las utilidades CSV compartidas requieren un recurso PHP nativo.
+    return fopen($path, $mode);
+}
+
+/**
+ * Cierra un stream CSV nativo.
+ *
+ * @param resource $handle Recurso.
+ * @return bool
+ */
+function seo_comentarista_csv_stream_close($handle)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por las utilidades CSV.
+    return seo_comentarista_csv_stream_close($handle);
+}
+
+/**
  * Compatibilidad con formularios antiguos que enviaban el POST a la propia
  * pantalla en lugar de admin-post.php.
  */
@@ -50,8 +75,10 @@ function seo_comentarista_import_counts()
         return array('records' => 0, 'comments' => 0);
     }
 
+    $table = seo_comentarista_table_name();
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $table is the plugin's fixed internal Comentarista table name; this aggregate query contains no external values.
     $row = $wpdb->get_row(
-        "SELECT COUNT(*) AS records, SUM(CASE WHEN content_type = 'comment' THEN 1 ELSE 0 END) AS comments FROM " . seo_comentarista_table_name(),
+        "SELECT COUNT(*) AS records, SUM(CASE WHEN content_type = 'comment' THEN 1 ELSE 0 END) AS comments FROM {$table}",
         ARRAY_A
     );
 
@@ -214,8 +241,10 @@ function seo_comentarista_export_csv()
     }
 
     global $wpdb;
+    $table = seo_comentarista_table_name();
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $table is the plugin's fixed internal Comentarista table name; query contains no external values.
     $rows = (array) $wpdb->get_results(
-        'SELECT * FROM ' . seo_comentarista_table_name() . ' ORDER BY product_id ASC, display_order ASC, id ASC',
+        "SELECT * FROM {$table} ORDER BY product_id ASC, display_order ASC, id ASC",
         ARRAY_A
     );
 
@@ -290,7 +319,7 @@ function seo_comentarista_export_csv()
         ));
     }
 
-    fclose($output);
+    seo_comentarista_csv_stream_close($output);
     exit;
 }
 
@@ -360,7 +389,7 @@ function seo_comentarista_import_csv()
     $log['registros_antes'] = $before['records'];
     $log['comentarios_antes'] = $before['comments'];
 
-    $handle = fopen($_FILES['comentarista_csv']['tmp_name'], 'r');
+    $handle = seo_comentarista_csv_stream_open($_FILES['comentarista_csv']['tmp_name'], 'r');
     if ($handle === false) {
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'No se pudo abrir el CSV.');
@@ -369,7 +398,7 @@ function seo_comentarista_import_csv()
 
     $header = seo_ie_read_csv_row($handle);
     if ($header === false) {
-        fclose($handle);
+        seo_comentarista_csv_stream_close($handle);
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'El CSV está vacío.');
         seo_comentarista_import_finish($log, $return_to_comentarista, 'error', 'El CSV de Comentarista está vacío.');
@@ -384,7 +413,7 @@ function seo_comentarista_import_csv()
     );
 
     if (count($header) === 1 && strpos((string) $header[0], ',') !== false) {
-        fclose($handle);
+        seo_comentarista_csv_stream_close($handle);
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'Separador incorrecto: el importador espera punto y coma (;).');
         seo_comentarista_import_finish(
@@ -399,7 +428,7 @@ function seo_comentarista_import_csv()
         return $value !== '';
     }));
     if (count($non_empty_headers) !== count(array_unique($non_empty_headers))) {
-        fclose($handle);
+        seo_comentarista_csv_stream_close($handle);
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'La cabecera contiene nombres de columna duplicados.');
         seo_comentarista_import_finish(
@@ -411,13 +440,13 @@ function seo_comentarista_import_csv()
     }
 
     if (!in_array('content_type', $header, true)) {
-        fclose($handle);
+        seo_comentarista_csv_stream_close($handle);
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'Falta la columna obligatoria content_type.');
         seo_comentarista_import_finish($log, $return_to_comentarista, 'error', 'Falta la columna obligatoria content_type.');
     }
     if (!in_array('product_id', $header, true) && !in_array('product_sku', $header, true)) {
-        fclose($handle);
+        seo_comentarista_csv_stream_close($handle);
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'Falta product_id o product_sku.');
         seo_comentarista_import_finish($log, $return_to_comentarista, 'error', 'El CSV debe incluir product_id o product_sku.');
@@ -544,7 +573,7 @@ function seo_comentarista_import_csv()
         }
     }
 
-    fclose($handle);
+    seo_comentarista_csv_stream_close($handle);
 
     $after = seo_comentarista_import_counts();
     $log['registros_despues'] = $after['records'];
