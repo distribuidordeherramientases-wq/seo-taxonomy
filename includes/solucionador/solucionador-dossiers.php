@@ -107,6 +107,7 @@ final class SEO_Solucionador_Dossiers {
             'learned_with_category'=>0,
             'learned_without_category'=>0,
             'errors'=>0,
+            'last_run_at'=>'',
             'complete'=>false,
             'started_at'=>current_time('mysql'),
             'updated_at'=>current_time('mysql'),
@@ -239,6 +240,11 @@ final class SEO_Solucionador_Dossiers {
             if ($question_id > $last_cursor) $last_cursor = $question_id;
             $state['processed'] = absint($state['processed'] ?? 0) + 1;
 
+            $run_at = sanitize_text_field((string)($row['run_created_at'] ?? ''));
+            if ($run_at !== '' && $run_at > (string)($state['last_run_at'] ?? '')) {
+                $state['last_run_at'] = $run_at;
+            }
+
             $learned = (string) ($row['run_status'] ?? '') === 'answered'
                 && strpos((string) ($row['evaluation_status'] ?? ''), 'pass_') === 0;
             if (!$learned) continue;
@@ -316,8 +322,17 @@ final class SEO_Solucionador_Dossiers {
         $categories_total = wp_count_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
         $categories_total = is_wp_error($categories_total) ? 0 : absint($categories_total);
 
+        $questions_total = 0;
+        if (SEO_Solucionador_DB::table_exists(self::questions_table())) {
+            $questions_table = self::questions_table();
+            $questions_total = absint($wpdb->get_var(
+                "SELECT COUNT(*) FROM {$questions_table} q WHERE " . self::curriculum_where()
+            ));
+        }
+
         return array(
             'available'=>SEO_Solucionador_DB::table_exists(self::questions_table()) && SEO_Solucionador_DB::table_exists(self::runs_table()),
+            'questions_total'=>$questions_total,
             'scan_token'=>(string) ($state['token'] ?? ''),
             'cursor'=>absint($state['cursor'] ?? 0),
             'scan_complete'=>!empty($state['complete']),
@@ -332,6 +347,7 @@ final class SEO_Solucionador_Dossiers {
             'questions_in_dossiers'=>$questions_in_dossiers,
             'avg_questions_per_category'=>$categories_with ? round($questions_in_dossiers/$categories_with,2) : 0,
             'errors'=>absint($state['errors'] ?? 0),
+            'last_run_at'=>(string) ($state['last_run_at'] ?? ''),
             'started_at'=>(string) ($state['started_at'] ?? ''),
             'updated_at'=>(string) ($state['updated_at'] ?? ''),
             'completed_at'=>(string) ($state['completed_at'] ?? ''),
