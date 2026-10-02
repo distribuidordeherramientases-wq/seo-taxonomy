@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
 
 final class SEO_Comparador_DB {
     const VERSION_OPTION = 'seo_comparador_db_version';
-    const DB_VERSION = '1.1.0';
+    const DB_VERSION = '1.2.0';
 
     public static function table($name) {
         global $wpdb;
@@ -73,6 +73,10 @@ final class SEO_Comparador_DB {
             source_snapshot_at datetime NULL,
             generated_at datetime NULL,
             source_hash char(64) NOT NULL DEFAULT '',
+            recommended_action varchar(32) NOT NULL DEFAULT '',
+            decision_reason text NULL,
+            coverage_json longtext NULL,
+            editorial_decided_at datetime NULL,
             last_error text NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
