@@ -2310,7 +2310,7 @@ if (!function_exists('dht_template_schema_merchant_organization_properties')) {
                 '@type'           => 'ShippingService',
                 '@id'             => $ids['shipping'],
                 'name'            => 'Envíos y entrega',
-                'description'     => 'Los gastos y plazos de entrega dependen del producto, proveedor, origen logístico y destino. Las condiciones aplicables se muestran o comunican durante la compra.',
+                'description'     => 'Entrega estimada en 2–3 días. Acompañamos la compra desde el fabricante, durante el transporte y hasta la entrega.',
                 'fulfillmentType' => 'https://schema.org/FulfillmentTypeDelivery',
                 'shippingConditions' => array(
                     '@type' => 'ShippingConditions',
@@ -2340,6 +2340,19 @@ if (!function_exists('dht_template_schema_offer_merchant_policies')) {
             ),
             'shippingDetails' => array(
                 '@type' => 'OfferShippingDetails',
+                'shippingDestination' => array(
+                    '@type'          => 'DefinedRegion',
+                    'addressCountry' => 'ES',
+                ),
+                'deliveryTime' => array(
+                    '@type' => 'ShippingDeliveryTime',
+                    'transitTime' => array(
+                        '@type'    => 'QuantitativeValue',
+                        'minValue' => 2,
+                        'maxValue' => 3,
+                        'unitCode' => 'DAY',
+                    ),
+                ),
                 'hasShippingService' => array(
                     '@id' => $ids['shipping'],
                 ),
