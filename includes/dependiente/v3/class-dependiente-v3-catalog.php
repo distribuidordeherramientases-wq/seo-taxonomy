@@ -262,6 +262,7 @@ final class SEO_Dependiente_V3_Catalog {
                 WHERE i.normalized_title LIKE %s OR i.search_text LIKE %s
                 ORDER BY CASE WHEN i.normalized_title LIKE %s THEN 0 ELSE 1 END, i.product_id DESC
                 LIMIT %d";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql uses only the internal index table and fixed select fields; search values and limit are bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare($sql, $like, $like, $like, absint($limit)), ARRAY_A);
     }
 
@@ -287,6 +288,7 @@ final class SEO_Dependiente_V3_Catalog {
                 INNER JOIN {$wpdb->posts} p ON p.ID=i.product_id AND p.post_type='product' AND p.post_status='publish'
                 WHERE " . implode($join, $clauses) . " LIMIT %d";
         $params[] = absint($limit);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Clauses are generated only from fixed search_text predicates; all variants and limit are bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
     }
 
@@ -295,10 +297,12 @@ final class SEO_Dependiente_V3_Catalog {
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
         if (!$ids || !SEO_Dependiente_V3_DB::exists('seo_dependiente_index')) return array();
         $table = SEO_Dependiente_V3_DB::table('seo_dependiente_index');
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $sql = "SELECT " . self::index_select_sql() . " FROM {$table} i
                 INNER JOIN {$wpdb->posts} p ON p.ID=i.product_id AND p.post_type='product' AND p.post_status='publish'
-                WHERE i.product_id IN (" . implode(',', $ids) . ')';
-        return (array) $wpdb->get_results($sql, ARRAY_A);
+                WHERE i.product_id IN ({$placeholders})";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table/select list plus generated %d placeholders; product IDs are bound through prepare().
+        return (array) $wpdb->get_results($wpdb->prepare($sql, $ids), ARRAY_A);
     }
 
     private static function product_ids_for_vocabulary($vocabulary_ids, $limit) {
@@ -306,11 +310,14 @@ final class SEO_Dependiente_V3_Catalog {
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $vocabulary_ids))));
         if (!$ids || !SEO_Dependiente_V3_DB::exists('seo_object_vocabulary')) return array();
         $table = SEO_Dependiente_V3_DB::table('seo_object_vocabulary');
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $params = array_merge($ids, array(absint($limit)));
         $sql = "SELECT DISTINCT ov.object_id FROM {$table} ov
                 INNER JOIN {$wpdb->posts} p ON p.ID=ov.object_id AND p.post_type='product' AND p.post_status='publish'
-                WHERE ov.object_type='product' AND ov.status=1 AND ov.vocabulary_id IN (" . implode(',', $ids) . ')
-                ORDER BY ov.object_id DESC LIMIT ' . absint($limit);
-        return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($sql)))));
+                WHERE ov.object_type='product' AND ov.status=1 AND ov.vocabulary_id IN ({$placeholders})
+                ORDER BY ov.object_id DESC LIMIT %d";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal vocabulary table plus generated %d placeholders; IDs and limit are bound through prepare().
+        return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params))))));
     }
 
     private static function merge_rows(&$candidates, $rows, $source, $meta = array()) {
@@ -367,7 +374,11 @@ final class SEO_Dependiente_V3_Catalog {
         global $wpdb;
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
         if (!$ids) return array();
-        $rows = (array) $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' AND ID IN (" . implode(',', $ids) . ')');
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is generated exclusively from %d tokens; all IDs are bound below.
+        $sql = "SELECT ID FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' AND ID IN ({$placeholders})";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Generated %d placeholders only; all product IDs are bound through prepare().
+        $rows = (array) $wpdb->get_col($wpdb->prepare($sql, $ids));
         return array_fill_keys(array_map('absint', $rows), true);
     }
 
@@ -793,6 +804,7 @@ final class SEO_Dependiente_V3_Catalog {
                 WHERE p.post_type='product' AND p.post_status='publish' AND " . implode(' AND ', $where) . "
                 ORDER BY p.ID DESC LIMIT %d";
         $params[] = absint($limit);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Joins/where fragments are generated from fixed catalog predicates; all search values and limit are bound through prepare().
         return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare($sql, $params))))));
     }
 
