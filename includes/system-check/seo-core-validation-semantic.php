@@ -734,7 +734,7 @@ function seo_core_system_test_semantic_token_variants($token) {
     }
 
     return array_values(array_filter(array_keys($variants), static function ($value) {
-        return strlen((string) $value) >= 4;
+        return strlen((string) $value) >= 4 || (string) $value === 'spa';
     }));
 }
 
