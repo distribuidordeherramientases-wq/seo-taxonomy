@@ -4600,6 +4600,81 @@ function seo_marketing_validate_xml_file($file_path, $expected_root = '')
  * @param string $expected_root
  * @return array|WP_Error
  */
+/**
+ * Conserva los permisos explícitos usados por los artefactos locales de sitemap.
+ *
+ * Se mantiene como operación local directa porque WP_Filesystem puede usar un
+ * transporte remoto y cambiar la semántica del flujo atómico de publicación.
+ *
+ * @param string $file_path Ruta local.
+ * @param int    $mode      Permisos POSIX.
+ * @return bool
+ */
+function seo_marketing_set_file_permissions($file_path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Local sitemap build artifacts require exact chmod semantics.
+    return @chmod($file_path, $mode);
+}
+
+/**
+ * Renombra de forma atómica un artefacto local de sitemap.
+ *
+ * WP_Filesystem::move() puede degradar a copia+borrado según el transporte;
+ * aquí se necesita rename() local para no publicar XML parciales.
+ *
+ * @param string $source Origen local.
+ * @param string $target Destino local.
+ * @return bool
+ */
+function seo_marketing_atomic_rename($source, $target)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Atomic local publication requires native rename semantics.
+    return @rename($source, $target);
+}
+
+/**
+ * Elimina un directorio local ya vacío tras limpiar su contenido.
+ *
+ * @param string $dir Directorio local.
+ * @return bool
+ */
+function seo_marketing_remove_empty_directory($dir)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Directory is local, temporary and already recursively emptied.
+    return @rmdir($dir);
+}
+
+/**
+ * Abre el fichero de lock como recurso para flock().
+ *
+ * WP_Filesystem no expone un recurso compatible con flock().
+ *
+ * @param string $path Ruta del lock.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_marketing_lock_stream_open($path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- flock() requires a native PHP stream resource.
+    return @fopen($path, $mode);
+}
+
+/**
+ * Cierra el recurso de lock abierto para flock().
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function seo_marketing_lock_stream_close($stream)
+{
+    if (!is_resource($stream)) {
+        return false;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with seo_marketing_lock_stream_open() for flock().
+    return @fclose($stream);
+}
+
 function seo_marketing_write_validated_xml($file_path, $xml, $expected_root)
 {
     $validation = seo_marketing_validate_xml_string($xml, $expected_root);
@@ -4612,11 +4687,11 @@ function seo_marketing_write_validated_xml($file_path, $xml, $expected_root)
         return new WP_Error('seo_sitemap_write_error', 'No se pudo escribir ' . basename($file_path) . '.');
     }
 
-    @chmod($file_path, 0644);
+    seo_marketing_set_file_permissions($file_path, 0644);
 
     $file_validation = seo_marketing_validate_xml_file($file_path, $expected_root);
     if (!$file_validation['valid']) {
-        @unlink($file_path);
+        wp_delete_file($file_path);
         return new WP_Error('seo_sitemap_invalid_written_xml', $file_validation['error']);
     }
 
@@ -4639,19 +4714,19 @@ function seo_marketing_publish_sitemap_file($source, $target)
         return false;
     }
 
-    @chmod($temporary, 0644);
+    seo_marketing_set_file_permissions($temporary, 0644);
 
-    if (@rename($temporary, $target)) {
+    if (seo_marketing_atomic_rename($temporary, $target)) {
         return true;
     }
 
     if (is_file($target)) {
-        @unlink($target);
+        wp_delete_file($target);
     }
 
-    $renamed = @rename($temporary, $target);
+    $renamed = seo_marketing_atomic_rename($temporary, $target);
     if (!$renamed && is_file($temporary)) {
-        @unlink($temporary);
+        wp_delete_file($temporary);
     }
 
     return $renamed;
@@ -4680,11 +4755,11 @@ function seo_marketing_remove_directory($dir)
         if (is_dir($path)) {
             seo_marketing_remove_directory($path);
         } else {
-            @unlink($path);
+            wp_delete_file($path);
         }
     }
 
-    @rmdir($dir);
+    seo_marketing_remove_empty_directory($dir);
 }
 
 /**
@@ -5055,14 +5130,14 @@ function seo_marketing_write_sitemap_manifest($dir, $manifest)
         return false;
     }
 
-    @chmod($temporary, 0644);
+    seo_marketing_set_file_permissions($temporary, 0644);
 
-    if (@rename($temporary, $target)) {
+    if (seo_marketing_atomic_rename($temporary, $target)) {
         return true;
     }
 
-    @unlink($target);
-    return @rename($temporary, $target);
+    wp_delete_file($target);
+    return seo_marketing_atomic_rename($temporary, $target);
 }
 
 /**
@@ -5105,11 +5180,11 @@ function seo_marketing_create_sitemaps()
     }
 
     $lock_file = $dir . '.generation.lock';
-    $lock      = @fopen($lock_file, 'c');
+    $lock      = seo_marketing_lock_stream_open($lock_file, 'c');
 
     if (!$lock || !@flock($lock, LOCK_EX | LOCK_NB)) {
         if (is_resource($lock)) {
-            @fclose($lock);
+            seo_marketing_lock_stream_close($lock);
         }
         return array('type' => 'error', 'message' => 'Ya existe otra generación de sitemaps en curso.');
     }
@@ -5226,7 +5301,7 @@ function seo_marketing_create_sitemaps()
         foreach ((array) glob($dir . '*.xml') as $old_file) {
             $old_filename = basename($old_file);
             if (!isset($keep[$old_filename])) {
-                @unlink($old_file);
+                wp_delete_file($old_file);
             }
         }
 
@@ -5274,7 +5349,7 @@ function seo_marketing_create_sitemaps()
     } finally {
         seo_marketing_remove_directory($build_dir);
         @flock($lock, LOCK_UN);
-        @fclose($lock);
+        seo_marketing_lock_stream_close($lock);
     }
 }
 
