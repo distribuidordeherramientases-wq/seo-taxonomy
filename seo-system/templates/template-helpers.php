@@ -2803,8 +2803,26 @@ if (!function_exists('dht_template_category_catalog_state')) {
         $base_url = is_wp_error($base_url) ? home_url('/') : (string) $base_url;
 
         $all_ids = dht_template_category_all_product_ids($term_id);
-        $meta = dht_template_category_meta_index($all_ids);
-        $attribute_bundle = dht_template_category_attribute_bundle($all_ids);
+
+        $bundle_cache_key = 'category_facets_' . $term_id . '_' . md5(implode(',', $all_ids));
+        $cached_bundle = wp_cache_get($bundle_cache_key, 'dht_template');
+        if (is_array($cached_bundle) && isset($cached_bundle['meta'], $cached_bundle['attribute_bundle'])) {
+            $meta = (array) $cached_bundle['meta'];
+            $attribute_bundle = (array) $cached_bundle['attribute_bundle'];
+        } else {
+            $meta = dht_template_category_meta_index($all_ids);
+            $attribute_bundle = dht_template_category_attribute_bundle($all_ids);
+            wp_cache_set(
+                $bundle_cache_key,
+                array(
+                    'meta'             => $meta,
+                    'attribute_bundle' => $attribute_bundle,
+                ),
+                'dht_template',
+                300
+            );
+        }
+
         $facets = (array) ($attribute_bundle['facets'] ?? array());
         $product_values = (array) ($attribute_bundle['product_values'] ?? array());
 
@@ -2908,6 +2926,36 @@ if (!function_exists('dht_template_category_catalog_state')) {
             $query_args['dht_sort'] = $sort;
         }
 
+        if ('price_asc' === $sort || 'price_desc' === $sort) {
+            $direction = 'price_desc' === $sort ? -1 : 1;
+            usort($filtered_ids, static function ($left, $right) use ($meta, $direction) {
+                $left_price = $meta['price'][$left] ?? null;
+                $right_price = $meta['price'][$right] ?? null;
+
+                $left_missing = !is_numeric($left_price);
+                $right_missing = !is_numeric($right_price);
+                if ($left_missing && $right_missing) {
+                    return $left <=> $right;
+                }
+                if ($left_missing) {
+                    return 1;
+                }
+                if ($right_missing) {
+                    return -1;
+                }
+
+                $compare = ((float) $left_price <=> (float) $right_price);
+                return $compare * $direction;
+            });
+        } elseif ('rating' === $sort) {
+            usort($filtered_ids, static function ($left, $right) use ($meta) {
+                $left_rating = (float) ($meta['rating'][$left] ?? 0);
+                $right_rating = (float) ($meta['rating'][$right] ?? 0);
+                $compare = $right_rating <=> $left_rating;
+                return 0 !== $compare ? $compare : ($right <=> $left);
+            });
+        }
+
         $page = isset($_GET['dht_page']) ? max(1, absint($_GET['dht_page'])) : 1;
         $total = count($filtered_ids);
         $max_pages = $total > 0 ? (int) ceil($total / $per_page) : 1;
@@ -2928,16 +2976,8 @@ if (!function_exists('dht_template_category_catalog_state')) {
                 'update_post_term_cache' => false,
             );
 
-            if ('price_asc' === $sort || 'price_desc' === $sort) {
-                $args['meta_key'] = '_price';
-                $args['orderby'] = 'meta_value_num';
-                $args['order'] = 'price_desc' === $sort ? 'DESC' : 'ASC';
-            } elseif ('rating' === $sort) {
-                $args['meta_key'] = '_wc_average_rating';
-                $args['orderby'] = array(
-                    'meta_value_num' => 'DESC',
-                    'date'           => 'DESC',
-                );
+            if ('price_asc' === $sort || 'price_desc' === $sort || 'rating' === $sort) {
+                $args['orderby'] = 'post__in';
             } elseif ('newest' === $sort) {
                 $args['orderby'] = 'date';
                 $args['order'] = 'DESC';
@@ -3059,11 +3099,11 @@ if (!function_exists('dht_template_render_category_filter_form')) {
                     <div class="dht-category-price-filter">
                         <label>
                             <span>Desde</span>
-                            <input type="number" min="0" step="0.01" name="dht_min_price" value="<?php echo esc_attr(($state['min_price'] ?? 0) > 0 ? wc_format_localized_price($state['min_price']) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_localized_price($state['catalog_min_price'] ?? 0)); ?>">
+                            <input type="number" min="0" step="0.01" name="dht_min_price" value="<?php echo esc_attr(($state['min_price'] ?? 0) > 0 ? wc_format_decimal($state['min_price'], 2) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_decimal($state['catalog_min_price'] ?? 0, 2)); ?>">
                         </label>
                         <label>
                             <span>Hasta</span>
-                            <input type="number" min="0" step="0.01" name="dht_max_price" value="<?php echo esc_attr(($state['max_price'] ?? 0) > 0 ? wc_format_localized_price($state['max_price']) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_localized_price($state['catalog_max_price'] ?? 0)); ?>">
+                            <input type="number" min="0" step="0.01" name="dht_max_price" value="<?php echo esc_attr(($state['max_price'] ?? 0) > 0 ? wc_format_decimal($state['max_price'], 2) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_decimal($state['catalog_max_price'] ?? 0, 2)); ?>">
                         </label>
                     </div>
                 </fieldset>
