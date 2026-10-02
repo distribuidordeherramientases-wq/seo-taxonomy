@@ -303,6 +303,11 @@ foreach ($product->get_attributes() as $attribute) {
         continue;
     }
 
+    /* Solo atributos públicos: respeta «Visible en la página del producto». */
+    if (method_exists($attribute, 'get_visible') && !$attribute->get_visible()) {
+        continue;
+    }
+
     $attribute_name = $attribute->get_name();
     $attribute_label = wc_attribute_label($attribute_name, $product);
 
@@ -417,6 +422,75 @@ foreach ($product_specifications as &$product_specification) {
     unset($product_specification['_order'], $product_specification['_priority']);
 }
 unset($product_specification);
+
+/*
+ * Resumen de decisión para el primer pliegue.
+ * Se priorizan datos técnicos útiles para comparar; marca/modelo/color quedan
+ * como fallback. Todas las filas ya han pasado por las reglas de visibilidad.
+ */
+$product_decision_specifications = array();
+$product_decision_candidates = array();
+
+$decision_tokens = array(
+    'par'          => 10,
+    'torque'       => 10,
+    'volt'         => 20,
+    'potenc'       => 30,
+    'capacidad'    => 40,
+    'presion'      => 50,
+    'caudal'       => 60,
+    'frecuencia'   => 70,
+    'temperatura'  => 80,
+    'velocidad'    => 90,
+    'rpm'          => 90,
+    'longitud'     => 100,
+    'bateria'      => 110,
+    'batería'      => 110,
+    'tipo'         => 120,
+    'insercion'    => 130,
+    'inserción'    => 130,
+    'material'     => 140,
+    'uso'          => 150,
+    'aplicacion'   => 160,
+    'aplicación'   => 160,
+    'dimensiones'  => 300,
+    'peso'         => 310,
+    'marca'        => 700,
+    'fabricante'   => 710,
+    'modelo'       => 720,
+    'color'        => 730,
+);
+
+foreach ($product_specifications as $decision_index => $decision_specification) {
+    $decision_key = sanitize_title(remove_accents(
+        (string) ($decision_specification['key'] ?? $decision_specification['label'] ?? '')
+    ));
+    $decision_score = 500 + $decision_index;
+
+    foreach ($decision_tokens as $decision_token => $decision_priority) {
+        $normalized_token = sanitize_title(remove_accents($decision_token));
+        if ($normalized_token !== '' && strpos($decision_key, $normalized_token) !== false) {
+            $decision_score = min($decision_score, $decision_priority);
+        }
+    }
+
+    $decision_specification['_decision_score'] = $decision_score;
+    $decision_specification['_decision_order'] = $decision_index;
+    $product_decision_candidates[] = $decision_specification;
+}
+
+usort($product_decision_candidates, static function ($left, $right) {
+    $score_compare = ($left['_decision_score'] ?? 999) <=> ($right['_decision_score'] ?? 999);
+    if ($score_compare !== 0) {
+        return $score_compare;
+    }
+    return ($left['_decision_order'] ?? 0) <=> ($right['_decision_order'] ?? 0);
+});
+
+foreach (array_slice($product_decision_candidates, 0, 6) as $decision_specification) {
+    unset($decision_specification['_decision_score'], $decision_specification['_decision_order']);
+    $product_decision_specifications[] = $decision_specification;
+}
 
 $summary_specifications = array_slice($product_specifications, 0, 6);
 
@@ -849,10 +923,21 @@ $schema_product_graph = array(
             <a href="<?php echo esc_url($mini_category_url); ?>"><?php echo esc_html($mini_category->name); ?></a>
           <?php endif; ?>
         <?php endif; ?>
-        <?php foreach (array_slice($technical_tags, 0, 3) as $mini_tag) : ?>
-          <span><?php echo esc_html($mini_tag); ?></span>
-        <?php endforeach; ?>
       </div>
+
+      <?php if (!empty($product_decision_specifications)) : ?>
+        <div class="dh-product-decision" aria-label="Datos principales del producto">
+          <span class="dh-product-decision__kicker">Datos principales</span>
+          <dl class="dh-product-decision__grid">
+            <?php foreach ($product_decision_specifications as $decision_specification) : ?>
+              <div class="dh-product-decision__item">
+                <dt><?php echo esc_html($decision_specification['label']); ?></dt>
+                <dd><?php echo esc_html($decision_specification['value']); ?></dd>
+              </div>
+            <?php endforeach; ?>
+          </dl>
+        </div>
+      <?php endif; ?>
 
       <?php if ($short_description !== '') : ?>
         <div class="dh-product-excerpt dh-product-excerpt--summary">
@@ -862,6 +947,17 @@ $schema_product_graph = array(
               $short_description
           ));
           ?>
+        </div>
+      <?php endif; ?>
+
+      <?php if (!empty($technical_tags)) : ?>
+        <div class="dh-product-applications" aria-label="Aplicaciones y características">
+          <span class="dh-product-applications__label">Aplicaciones y características</span>
+          <div class="dh-product-applications__items">
+            <?php foreach (array_slice($technical_tags, 0, 5) as $public_tag) : ?>
+              <span><?php echo esc_html($public_tag); ?></span>
+            <?php endforeach; ?>
+          </div>
         </div>
       <?php endif; ?>
 
@@ -941,23 +1037,23 @@ $schema_product_graph = array(
             </div>
           <?php endif; ?>
 
+          <div class="dh-product-trust" aria-label="Condiciones de compra">
+            <a href="<?php echo esc_url(dht_template_shipping_policy_url()); ?>"><span aria-hidden="true">🚚</span><strong>Envío 2–3 días</strong></a>
+            <div><span aria-hidden="true">🔒</span><strong>Pago seguro</strong></div>
+            <a href="<?php echo esc_url(dht_template_return_policy_url()); ?>"><span aria-hidden="true">↩️</span><strong>Devolución</strong></a>
+            <div><span aria-hidden="true">🛡️</span><strong>Garantía</strong></div>
+          </div>
+
+          <div class="dh-purchase-support" aria-label="Ayuda antes de comprar">
+            <span><strong>¿Dudas antes de comprar?</strong> Te ayudamos antes del pedido.</span>
+            <div class="dh-purchase-support__actions">
+              <a class="dh-support-button dh-support-button--whatsapp" href="<?php echo esc_url('https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $product->get_name() . '. ' . get_permalink($product_id))); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+              <a class="dh-support-button dh-support-button--service" href="<?php echo esc_url(dht_template_service_page_url()); ?>">Soporte</a>
+            </div>
+          </div>
+
         </div>
 
-      </div>
-
-      <div class="dh-product-trust" aria-label="Condiciones de compra">
-        <a href="<?php echo esc_url(dht_template_shipping_policy_url()); ?>"><span aria-hidden="true">🚚</span><strong>Envío 2–3 días</strong><small>Fabricante, transporte y entrega acompañados</small></a>
-        <div><span aria-hidden="true">🔒</span><strong>Pago seguro</strong><small>Cobro protegido y pedido confirmado</small></div>
-        <a href="<?php echo esc_url(dht_template_return_policy_url()); ?>"><span aria-hidden="true">↩️</span><strong>Devolución</strong><small>Te ayudamos durante toda la gestión</small></a>
-        <div><span aria-hidden="true">🛡️</span><strong>Garantía</strong><small>Asistencia con fabricante y posventa</small></div>
-      </div>
-
-      <div class="dh-purchase-support" aria-label="Ayuda antes de comprar">
-        <span><strong>¿Dudas antes de comprar?</strong> Te ayudamos con compatibilidad, proveedor o pedido.</span>
-        <div class="dh-purchase-support__actions">
-          <a class="dh-support-button dh-support-button--whatsapp" href="<?php echo esc_url('https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $product->get_name() . '. ' . get_permalink($product_id))); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-          <a class="dh-support-button dh-support-button--service" href="<?php echo esc_url(dht_template_service_page_url()); ?>">Soporte</a>
-        </div>
       </div>
 
       <div class="dh-product-classification" aria-label="Categorías, etiquetas y atributos del producto">
@@ -976,15 +1072,6 @@ $schema_product_graph = array(
               <strong><?php echo esc_html($specification['label']); ?>:</strong>
               <?php echo esc_html($specification['value']); ?>
             </span>
-          <?php endforeach; ?>
-
-          <?php foreach ($product_tag_terms as $product_tag) : ?>
-            <?php $product_tag_url = get_term_link($product_tag); ?>
-            <?php if (!is_wp_error($product_tag_url)) : ?>
-              <a class="dh-product-chip dh-product-chip--tag" href="<?php echo esc_url($product_tag_url); ?>">
-                <?php echo esc_html($product_tag->name); ?>
-              </a>
-            <?php endif; ?>
           <?php endforeach; ?>
 
           <?php foreach ($technical_tags as $tag) : ?>
