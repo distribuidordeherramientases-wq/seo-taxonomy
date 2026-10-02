@@ -191,21 +191,6 @@ final class SEO_Solucionador_Posts {
             'CREATE_POST'
         );
 
-        // Si la necesidad procede de un perfil validado de Comparador, conserva
-        // automáticamente la relación perfil -> post y aplica la etiqueta
-        // "comparativas". Comparador no crea el post: solo enlaza el borrador que
-        // Solucionador ya ha decidido y la Editora continuará revisando.
-        if (class_exists('SEO_Comparador_Engine')) {
-            foreach ((array) SEO_Solucionador_DB::get_evidence_rows($topic_id) as $evidence) {
-                if (sanitize_key((string) ($evidence['source_type'] ?? '')) !== 'comparador') continue;
-                $meta = json_decode((string) ($evidence['source_meta'] ?? ''), true);
-                $profile_id = is_array($meta) ? absint($meta['profile_id'] ?? 0) : 0;
-                if (!$profile_id) continue;
-                SEO_Comparador_Engine::link_post($profile_id, $post_id);
-                break;
-            }
-        }
-
         return $post_id;
     }
 
