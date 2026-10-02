@@ -274,7 +274,7 @@ final class SEO_Ingeniero_Admin {
 
         SEO_Ingeniero_DB::maybe_install();
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'research';
-        if (!in_array($tab, array('research', 'editorial', 'data'), true)) {
+        if (!in_array($tab, array('research', 'editorial', 'data', 'tests'), true)) {
             $tab = 'research';
         }
 
@@ -282,7 +282,7 @@ final class SEO_Ingeniero_Admin {
         echo '<h1>Ingeniero <small style="font-weight:400;color:#646970">v' . esc_html(SEO_INGENIERO_VERSION) . '</small></h1>';
         echo '<p><strong>Servicio técnico y editorial independiente.</strong> Investiga por categoría, conserva trazabilidad de fuentes y prepara dossiers técnicos para la Editora. No depende de Solucionador para decidir sus posts.</p>';
         echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Ingeniero">';
-        foreach (array('research'=>'Investigación', 'editorial'=>'Editorial', 'data'=>'Datos y fuentes') as $key=>$label) {
+        foreach (array('research'=>'Investigación', 'editorial'=>'Editorial', 'data'=>'Datos y fuentes', 'tests'=>'Pruebas') as $key=>$label) {
             echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' . esc_url(self::page_url($key)) . '">' . esc_html($label) . '</a>';
         }
         echo '</nav>';
@@ -291,6 +291,8 @@ final class SEO_Ingeniero_Admin {
             self::render_editorial_tab();
         } elseif ('data' === $tab) {
             self::render_data_tab();
+        } elseif ('tests' === $tab) {
+            self::render_tests_tab();
         } else {
             self::render_tab();
         }
@@ -358,10 +360,6 @@ final class SEO_Ingeniero_Admin {
         if (!empty($state['last_message'])) echo '<p class="description">' . esc_html((string) $state['last_message']) . '</p>';
         if (!empty($state['last_error'])) echo '<p style="color:#b32d2e"><strong>Último error:</strong> ' . esc_html((string) $state['last_error']) . '</p>';
         echo '</div>';
-
-        if (class_exists('SEO_Ingeniero_Exchange')) {
-            SEO_Ingeniero_Exchange::render_panel();
-        }
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Fuente de búsqueda y presupuesto</h3>';
@@ -605,6 +603,27 @@ final class SEO_Ingeniero_Admin {
         }
         echo '</div>';
         echo '</section>';
+    }
+
+    private static function render_tests_tab() {
+        echo '<section class="seo-ingeniero-tests">';
+        echo '<div class="postbox" style="padding:18px;margin-top:16px">';
+        echo '<h2 style="margin-top:0">Pruebas del proceso editorial</h2>';
+        echo '<p>Comprobaciones deterministas de agrupación, hash, cobertura, aprobación humana, unicidad y rol público. No crean posts ni llaman a servicios externos.</p>';
+        if (!class_exists('SEO_Ingeniero_Tests')) {
+            echo '<div class="notice notice-error inline"><p>No está disponible la batería de pruebas.</p></div></div></section>';
+            return;
+        }
+        $tests = SEO_Ingeniero_Tests::run();
+        $passed = count(array_filter($tests, static function($row){ return !empty($row['pass']); }));
+        echo '<p><strong>' . esc_html(number_format_i18n($passed)) . '/' . esc_html(number_format_i18n(count($tests))) . '</strong> pruebas correctas.</p>';
+        echo '<table class="widefat striped"><thead><tr><th>Prueba</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>';
+        foreach ($tests as $row) {
+            echo '<tr><td><code>' . esc_html((string) ($row['code'] ?? '')) . '</code></td>';
+            echo '<td><strong>' . (!empty($row['pass']) ? 'OK' : 'FALLO') . '</strong></td>';
+            echo '<td>' . esc_html((string) ($row['detail'] ?? '')) . '</td></tr>';
+        }
+        echo '</tbody></table></div></section>';
     }
 
     private static function render_kpis($candidates, $stats_map, $category_states, $totals, $state) {
