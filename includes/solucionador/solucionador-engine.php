@@ -10,6 +10,55 @@ defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Engine {
     const EDITORIAL_SCAN_OPTION = 'seo_solucionador_editorial_scan_state';
+    const AUTO_REFRESH_HOOK = 'seo_solucionador_auto_refresh';
+    const AUTO_REFRESH_STEP_HOOK = 'seo_solucionador_auto_refresh_step';
+
+    public static function init() {
+        add_action('init', array(__CLASS__, 'schedule_automatic_refresh'), 20);
+        add_action(self::AUTO_REFRESH_HOOK, array(__CLASS__, 'automatic_refresh'));
+        add_action(self::AUTO_REFRESH_STEP_HOOK, array(__CLASS__, 'automatic_refresh'));
+    }
+
+    public static function schedule_automatic_refresh() {
+        if (!wp_next_scheduled(self::AUTO_REFRESH_HOOK)) {
+            wp_schedule_event(time() + 5 * MINUTE_IN_SECONDS, 'hourly', self::AUTO_REFRESH_HOOK);
+        }
+    }
+
+    public static function kick_automatic_refresh() {
+        if (!wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
+            wp_schedule_single_event(time() + 15, self::AUTO_REFRESH_STEP_HOOK);
+        }
+    }
+
+    public static function automatic_refresh() {
+        if (!class_exists('SEO_Solucionador_Dossiers')) return;
+
+        $lock_key = 'seo_solucionador_auto_refresh_lock';
+        if (get_transient($lock_key)) return;
+        set_transient($lock_key, 1, MINUTE_IN_SECONDS);
+
+        try {
+            $snapshot = SEO_Solucionador_Dossiers::snapshot();
+            if (empty($snapshot['available'])) return;
+
+            $reset = false;
+            if (!empty($snapshot['scan_complete'])) {
+                $completed = !empty($snapshot['completed_at']) ? strtotime((string) $snapshot['completed_at']) : 0;
+                if ($completed && (time() - $completed) < 6 * HOUR_IN_SECONDS) return;
+                $reset = true;
+            }
+
+            $result = SEO_Solucionador_Dossiers::scan_batch(500, $reset);
+            if (is_wp_error($result)) return;
+
+            if (empty($result['scan_complete']) && !wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
+                wp_schedule_single_event(time() + 2 * MINUTE_IN_SECONDS, self::AUTO_REFRESH_STEP_HOOK);
+            }
+        } finally {
+            delete_transient($lock_key);
+        }
+    }
     private static function representative_question($topic_id, $fallback = '') {
         $rows = SEO_Solucionador_DB::get_evidence_rows($topic_id);
         foreach (array('dependiente') as $source_type) {
