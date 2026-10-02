@@ -3343,6 +3343,34 @@ final class SEO_Clonador_Engine {
         return self::worker_batch_raw_history_table($pro,$stg,$pro_tables,$stg_tables,$state,'seo_ingeniero_knowledge','editorial_services');
     }
 
+    private static function remap_solucionador_vocabulary_json($raw,$vocab_map){
+        $raw = (string)$raw;
+        if ($raw === '') return $raw;
+        $data = json_decode($raw,true);
+        if (!is_array($data)) return $raw;
+
+        $walk = function(&$value,$key='') use (&$walk,$vocab_map) {
+            if (is_array($value)) {
+                foreach ($value as $child_key=>&$child) {
+                    $walk($child,(string)$child_key);
+                }
+                unset($child);
+                return true;
+            }
+            if (!in_array($key,array('id','vocabulary_id','parent_id'),true)) return true;
+            $source_id = absint($value);
+            if (!$source_id) return true;
+            $target_id = absint($vocab_map[$source_id] ?? 0);
+            if (!$target_id) return false;
+            $value = $target_id;
+            return true;
+        };
+
+        if (!$walk($data)) {
+            return new WP_Error('clonador_solucionador_vocab','Solucionador contiene un Vocabulary de PRO que no pudo remapearse a STAGING.');
+        }
+        return wp_json_encode($data,JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
     /**
      * Copia por lotes las tablas persistentes de los servicios editoriales.
      * Posts y terminos conservan los IDs de PRO en esta clonacion destructiva;
@@ -3382,11 +3410,22 @@ final class SEO_Clonador_Engine {
 
         if ($rows) {
             $identity = (array)($state['identity'] ?? array());
+            $vocab_map = array();
+            if ($key === 'seo_solucionador_topics') {
+                $vocab_map = self::worker_map_get($stg,$stg_tables['options'],'vocab');
+                if (is_wp_error($vocab_map)) return $vocab_map;
+            }
+
             foreach ($rows as &$row) {
                 foreach ($row as $column=>$value) {
                     if (is_string($value) && $value !== '') {
                         $row[$column] = self::rewrite_site_url_string($value,$identity);
                     }
+                }
+                if ($key === 'seo_solucionador_topics' && array_key_exists('proposed_vocabulary',$row)) {
+                    $mapped = self::remap_solucionador_vocabulary_json($row['proposed_vocabulary'],$vocab_map);
+                    if (is_wp_error($mapped)) return $mapped;
+                    $row['proposed_vocabulary'] = $mapped;
                 }
             }
             unset($row);
