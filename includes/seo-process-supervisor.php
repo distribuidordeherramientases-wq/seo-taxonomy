@@ -245,8 +245,6 @@ if (!function_exists('seo_process_supervisor_is_active')) {
 
 if (!function_exists('seo_process_supervisor_exec_available')) {
     function seo_process_supervisor_exec_available() {
-        // El backend CLI necesita ambas funciones. En hostings gestionados
-        // escapeshellarg() puede estar deshabilitada aunque exec() exista.
         if (!function_exists('exec') || !function_exists('escapeshellarg')) {
             return false;
         }
@@ -262,10 +260,6 @@ if (!function_exists('seo_process_supervisor_exec_available')) {
 }
 
 if (!function_exists('seo_process_supervisor_shell_arg_for_display')) {
-    /**
-     * Escapado POSIX únicamente para mostrar el comando cron al administrador.
-     * No ejecuta shell y no depende de escapeshellarg(), que puede no existir.
-     */
     function seo_process_supervisor_shell_arg_for_display($value) {
         return "'" . str_replace("'", "'\"'\"'", (string) $value) . "'";
     }
