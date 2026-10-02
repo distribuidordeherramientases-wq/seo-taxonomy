@@ -846,6 +846,15 @@ final class SEO_Comparador_Engine {
         );
     }
 
+    public static function editorial_action_for_test($profile_valid,$coverage_status,$has_existing_post=false,$stale=false) {
+        if (!$profile_valid || $stale) return 'NEEDS_REVIEW';
+        $coverage_status=sanitize_key((string)$coverage_status);
+        if ($coverage_status==='duplicate') return 'MERGE_CONTENT';
+        if ($coverage_status==='covered') return 'NO_ACTION';
+        if (in_array($coverage_status,array('partial_coverage','weak_coverage'),true) && $has_existing_post) return 'IMPROVE_POST';
+        return 'CREATE_POST';
+    }
+
     public static function evaluate_editorial_decision($profile_id,$reason='') {
         global $wpdb;
         $profile_id = absint($profile_id);
@@ -869,31 +878,36 @@ final class SEO_Comparador_Engine {
             )
             : array('status'=>'uncovered','score'=>0,'post_id'=>0,'matches'=>array(),'fingerprint'=>'');
 
-        $action = 'NEEDS_REVIEW';
         $decision_reason = $reason !== '' ? sanitize_textarea_field($reason) : '';
+        $stale = self::editorial_is_stale($profile,$editorial);
+        $profile_valid = !in_array($status,array('blocked','archived'),true)
+            && $comparable_count >= absint($settings['min_products'])
+            && !empty($axes);
 
-        if (in_array($status,array('blocked','archived'),true)) {
-            $decision_reason = $decision_reason ?: 'El perfil está bloqueado o archivado y no puede avanzar editorialmente.';
-        } elseif ($comparable_count < absint($settings['min_products'])) {
-            $decision_reason = $decision_reason ?: 'No hay suficientes productos comparables para sostener una comparación editorial.';
-        } elseif (!$axes) {
-            $decision_reason = $decision_reason ?: 'No existe ningún eje publicable con cobertura y confianza suficientes.';
-        } elseif (self::editorial_is_stale($profile,$editorial)) {
-            $decision_reason = $decision_reason ?: 'La capa editorial se redactó con un snapshot/hash anterior y debe revisarse.';
-        } else {
-            $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
-            if ($coverage_status === 'duplicate') {
-                $action = 'MERGE_CONTENT';
-                $decision_reason = $decision_reason ?: 'Existen varias piezas editoriales solapadas para la misma familia comparable.';
-            } elseif ($coverage_status === 'covered') {
-                $action = 'NO_ACTION';
-                $decision_reason = $decision_reason ?: 'La comparación ya dispone de cobertura editorial equivalente.';
-            } elseif (in_array($coverage_status,array('partial_coverage','weak_coverage'),true) && !empty($coverage['post_id'])) {
-                $action = 'IMPROVE_POST';
-                $decision_reason = $decision_reason ?: 'Existe una pieza relacionada, pero el perfil aporta diferencias comparativas adicionales.';
+        $action = self::editorial_action_for_test(
+            $profile_valid,
+            sanitize_key((string) ($coverage['status'] ?? 'uncovered')),
+            !empty($coverage['post_id']),
+            $stale
+        );
+
+        if ($decision_reason === '') {
+            if (in_array($status,array('blocked','archived'),true)) {
+                $decision_reason = 'El perfil está bloqueado o archivado y no puede avanzar editorialmente.';
+            } elseif ($comparable_count < absint($settings['min_products'])) {
+                $decision_reason = 'No hay suficientes productos comparables para sostener una comparación editorial.';
+            } elseif (!$axes) {
+                $decision_reason = 'No existe ningún eje publicable con cobertura y confianza suficientes.';
+            } elseif ($stale) {
+                $decision_reason = 'La capa editorial se redactó con un snapshot/hash anterior y debe revisarse.';
+            } elseif ($action === 'MERGE_CONTENT') {
+                $decision_reason = 'Existen varias piezas editoriales solapadas para la misma familia comparable.';
+            } elseif ($action === 'NO_ACTION') {
+                $decision_reason = 'La comparación ya dispone de cobertura editorial equivalente.';
+            } elseif ($action === 'IMPROVE_POST') {
+                $decision_reason = 'Existe una pieza relacionada, pero el perfil aporta diferencias comparativas adicionales.';
             } else {
-                $action = 'CREATE_POST';
-                $decision_reason = $decision_reason ?: 'Perfil válido con ejes publicables y sin cobertura editorial equivalente.';
+                $decision_reason = 'Perfil válido con ejes publicables y sin cobertura editorial equivalente.';
             }
         }
 
