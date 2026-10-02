@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Separado **Ingeniero** de Dependiente como servicio propio en **Contenidos**, con pestañas Investigación, Editorial, Datos y fuentes y Pruebas.
+- Añadido el proceso editorial técnico de Ingeniero con dossiers trazables, source_hash, cobertura neutral, acciones CREATE/IMPROVE/MERGE/NO_ACTION/NEEDS_REVIEW y borradores sólo tras aprobación humana.
+- Solucionador deja de consumir Ingeniero como fuente o requisito de conocimiento; ambos procesos reutilizan la API neutral de cobertura sin mezclar sus decisiones.
+- Los borradores de Ingeniero usan el rol estable **ingeniero_qa_specialized**, relación **post_to_category**, Vocabulary canónico y metadatos de dossier/hash; nunca se autopublican.
+- Añadida batería funcional del proceso editorial de Ingeniero y documentación de la nueva arquitectura.
+
 - Integradas en las plantillas públicas de producto y categoría las capas de **Comparador, Dependiente, Comentarista e Ingeniero**, ocultando completamente cada bloque cuando no existe contenido publicado válido.
 - Añadido un rol editorial estable en Entradas para distinguir posts de **Preguntas habituales** e **Información técnica** sin inferirlo por el título; las plantillas consumen la relación explícita `post_to_category`.
 - Retirada la salida pública heredada de FAQs en estas plantillas para evitar duplicar el conocimiento migrado a los nuevos bloques editoriales.
