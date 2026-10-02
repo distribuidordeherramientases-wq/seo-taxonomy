@@ -3,6 +3,7 @@ defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero_Process {
     const LOCK_OPTION = 'seo_ingeniero_process_lock';
+    const CATEGORIES_PER_CYCLE = 1;
     public static function init() {
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'filter_pending_work'), 30, 1);
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'filter_manager_targets'), 30, 3);
@@ -44,7 +45,7 @@ final class SEO_Ingeniero_Process {
         $state = SEO_Ingeniero::state();
         // Requisito editorial: una categoría por ciclo. Evita cargar conocimiento
         // activo de varias categorías en memoria dentro de la misma ejecución.
-        $batch_size = 1;
+        $batch_size = self::CATEGORIES_PER_CYCLE;
         $processed_now = 0;
         $learned_now = 0;
         $review_now = 0;
@@ -132,7 +133,7 @@ final class SEO_Ingeniero_Process {
         $state = SEO_Ingeniero::state();
 
         $changes = array(
-            'batch_size'=>1,
+            'batch_size'=>self::CATEGORIES_PER_CYCLE,
             'last_duration'=>round($duration,3),
             'last_activity_at'=>time(),
         );
