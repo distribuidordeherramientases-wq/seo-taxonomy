@@ -220,6 +220,11 @@ final class SEO_Solucionador_Admin {
         self::card('Pendientes de investigación', $counts['investigate'] ?? 0, 'Falta conocimiento fiable o existe conflicto.');
         self::card('Aplazados', $counts['deferred'] ?? 0, 'Todavía no cumplen las condiciones para actuar.');
         self::card('En seguimiento', $counts['monitoring'] ?? 0, 'Intervenciones publicadas esperando resultados de Analista.');
+        if (class_exists('SEO_Solucionador_Sources') && method_exists('SEO_Solucionador_Sources','dependiente_academia_snapshot')) {
+            $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
+            self::card('Dependiente aprendido', absint($academy['learned'] ?? 0), 'Preguntas de Academia cuyo último run está validado pass_*.');
+            self::card('Categorías con conocimiento', absint($academy['categories_with_knowledge'] ?? 0), 'Dossiers category-first disponibles para decisión editorial.');
+        }
         echo '</div>';
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Decisión editorial</h2>';
@@ -308,7 +313,25 @@ final class SEO_Solucionador_Admin {
         if (class_exists('SEO_Solucionador_DB') && SEO_Solucionador_DB::table_exists($search_table)) {
             $searches = absint($wpdb->get_var("SELECT COUNT(*) FROM {$search_table}"));
         }
-        $items['Dependiente / Intérprete'] = array('available'=>$searches > 0,'metric'=>$searches,'unit'=>'consultas registradas','detail'=>'Demanda e interpretación ya registrada; Solucionador no reinterpreta las consultas.');
+        $items['Dependiente · demanda real'] = array(
+            'available'=>$searches > 0,
+            'metric'=>$searches,
+            'unit'=>'consultas registradas',
+            'detail'=>'Search log de visitantes; se conserva separado del conocimiento aprendido.'
+        );
+
+        if (class_exists('SEO_Solucionador_Sources') && method_exists('SEO_Solucionador_Sources','dependiente_academia_snapshot')) {
+            $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
+            $items['Dependiente · Academia'] = array(
+                'available'=>!empty($academy['available']),
+                'metric'=>absint($academy['categories_with_knowledge'] ?? 0),
+                'unit'=>'categorías con conocimiento',
+                'detail'=>number_format_i18n(absint($academy['learned'] ?? 0)) . ' preguntas aprendidas · '
+                    . number_format_i18n(absint($academy['learned_without_category'] ?? 0)) . ' sin categoría'
+            );
+        } else {
+            $items['Dependiente · Academia'] = array('available'=>false,'metric'=>0,'unit'=>'','detail'=>'Integración no disponible');
+        }
 
         if (class_exists('SEO_Ojeador_Analysis') && method_exists('SEO_Ojeador_Analysis','dashboard')) {
             $dash = SEO_Ojeador_Analysis::dashboard(40);
@@ -543,13 +566,36 @@ final class SEO_Solucionador_Admin {
 
         $sources = array();
         $questions = array();
+        $question_details = array();
         $market = array();
         foreach ($evidence as $row) {
             $type = sanitize_key((string) ($row['source_type'] ?? ''));
             if ($type !== '') $sources[$type] = ($sources[$type] ?? 0) + max(1,absint($row['occurrences'] ?? 1));
             if ($type === 'dependiente') {
-                $q = trim((string) ($row['source_text'] ?? ''));
-                if ($q !== '') $questions[$q] = true;
+                $meta = (array) ($row['source_meta_decoded'] ?? array());
+                $academy_questions = (array) ($meta['academy_questions'] ?? array());
+                if ($academy_questions) {
+                    foreach ($academy_questions as $item) {
+                        if (!is_array($item)) continue;
+                        $q = trim((string) ($item['question'] ?? ''));
+                        if ($q === '') continue;
+                        $questions[$q] = true;
+                        $key = absint($item['question_id'] ?? 0) ?: md5($q);
+                        $question_details[$key] = array(
+                            'question'=>$q,
+                            'question_type'=>(string) ($item['question_type'] ?? ''),
+                            'lesson_key'=>(string) ($item['lesson_key'] ?? ''),
+                            'evaluation_status'=>(string) ($item['evaluation_status'] ?? ''),
+                            'evaluation_score'=>(float) ($item['evaluation_score'] ?? 0),
+                            'top_results'=>(array) ($item['top_results'] ?? array()),
+                            'response_meta'=>(array) ($item['response_meta'] ?? array()),
+                            'observed_at'=>(string) ($item['observed_at'] ?? ''),
+                        );
+                    }
+                } else {
+                    $q = trim((string) ($row['source_text'] ?? ''));
+                    if ($q !== '') $questions[$q] = true;
+                }
             }
             if (in_array($type,array('ojeador','comparador'),true)) {
                 $meta = (array) ($row['source_meta_decoded'] ?? array());
@@ -691,7 +737,8 @@ final class SEO_Solucionador_Admin {
             'knowledge'=>$knowledge,
             'technical_sources'=>array_values($technical_sources),
             'products'=>$products,
-            'questions'=>array_slice(array_keys($questions),0,20),
+            'questions'=>array_values(array_keys($questions)),
+            'question_details'=>array_values($question_details),
             'must_cover'=>array_slice(array_keys($must_cover),0,40),
             'preserve'=>$preserve,
             'links'=>array_values($links),
@@ -871,7 +918,31 @@ final class SEO_Solucionador_Admin {
 
         echo '<section><h3>8. Brief para Editora</h3>';
         echo '<p><strong>Objetivo:</strong> ' . esc_html($brief['question'] ?: $brief['topic']) . '</p>';
-        if ($brief['questions']) { echo '<h4>Preguntas reales a responder</h4><ul>'; foreach ($brief['questions'] as $q) echo '<li>' . esc_html($q) . '</li>'; echo '</ul>'; }
+        if (!empty($brief['question_details'])) {
+            echo '<h4>Preguntas aprendidas por Dependiente</h4>';
+            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Pregunta</th><th>Lección / tipo</th><th>Validación</th><th>Resultado validado</th><th>Fecha</th></tr></thead><tbody>';
+            foreach ($brief['question_details'] as $item) {
+                $top = (array) ($item['top_results'] ?? array());
+                $result_labels = array();
+                foreach (array_slice($top,0,3) as $result) {
+                    if (!is_array($result)) continue;
+                    $label = trim((string)($result['title'] ?? $result['name'] ?? $result['label'] ?? ''));
+                    if ($label !== '') $result_labels[] = $label;
+                }
+                $result_text = $result_labels ? implode(' · ',$result_labels) : 'Resultado interno conservado en la evidencia';
+                echo '<tr><td><strong>' . esc_html((string)$item['question']) . '</strong></td>';
+                echo '<td><code>' . esc_html((string)$item['lesson_key']) . '</code><br>' . esc_html((string)$item['question_type']) . '</td>';
+                echo '<td><strong>' . esc_html((string)$item['evaluation_status']) . '</strong><br>score ' . esc_html(number_format_i18n((float)$item['evaluation_score']*100,0)) . '%</td>';
+                echo '<td>' . esc_html(wp_trim_words($result_text,30,'…')) . '</td>';
+                echo '<td>' . esc_html((string)$item['observed_at']) . '</td></tr>';
+            }
+            echo '</tbody></table></div>';
+            echo '<p class="description">Estos resultados son evidencia interna de Academia. Editora debe redactar la respuesta pública; no se publican literalmente las respuestas internas.</p>';
+        } elseif ($brief['questions']) {
+            echo '<h4>Preguntas reales a responder</h4><ul>';
+            foreach ($brief['questions'] as $q) echo '<li>' . esc_html($q) . '</li>';
+            echo '</ul>';
+        }
         if ($brief['must_cover']) { echo '<h4>Temas / conceptos obligatorios disponibles</h4><ul>'; foreach ($brief['must_cover'] as $item) echo '<li>' . esc_html(wp_trim_words($item,35,'…')) . '</li>'; echo '</ul>'; }
         if ($brief['preserve']) { echo '<h4>Contenido previo que no debe duplicarse</h4><ul>'; foreach ($brief['preserve'] as $item) echo '<li>' . esc_html($item) . '</li>'; echo '</ul>'; }
         if ($brief['links']) { echo '<h4>Enlaces internos recomendados</h4><ul>'; foreach ($brief['links'] as $link) echo '<li><a href="' . esc_url($link['url']) . '" target="_blank" rel="noopener">' . esc_html($link['label']) . '</a></li>'; echo '</ul>'; }
@@ -1186,7 +1257,8 @@ final class SEO_Solucionador_Admin {
             ? (array) $wpdb->get_results("SELECT source_type,SUM(occurrences) evidence FROM {$e} GROUP BY source_type ORDER BY evidence DESC", ARRAY_A)
             : array();
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Fuentes del Solucionador</h2>';
-        echo '<p><strong>Dependiente / Interprete:</strong> fuente principal. Preguntas reales, intent, objeto, contexto, estado, resultados y feedback.</p>';
+        echo '<p><strong>Dependiente / Intérprete · demanda real:</strong> conserva las consultas de visitantes, intent, objeto, contexto, resultados y feedback.</p>';
+        echo '<p><strong>Dependiente / Academia · conocimiento aprendido:</strong> Solucionador lee las preguntas cuyo último run está validado <code>pass_*</code>, conserva su resultado y las agrupa por <code>product_cat</code> en dossiers editoriales. Dependiente no se modifica ni se vuelve a entrenar desde aquí.</p>';
         echo '<p><strong>Analista:</strong> las busquedas internas pueden originar propuestas. El plan de decision normalmente solo refuerza; MEJORAR_PRODUCTO/IMPULSAR_CATEGORIA no se convierten en preguntas de cliente.</p>';
         echo '<p><strong>Auditor:</strong> aporta diagnóstico, carencias y cobertura; Solucionador decide si esos hallazgos requieren actuación editorial.</p>';
         echo '<p><strong>Comentarista:</strong> aporta problemas o preguntas observadas en experiencias externas almacenadas.</p>';
@@ -1197,6 +1269,23 @@ final class SEO_Solucionador_Admin {
         echo '<p><strong>Marketing:</strong> puede reforzar prioridad comercial, campaña o estacionalidad; nunca origina por sí solo una URL nueva.</p>';
         echo '<p><strong>Entradas/Páginas/Categorías:</strong> aportan inventario, rendimiento y cobertura; sus editores quedan como lugares de ejecución.</p>';
         self::render_service_snapshot();
+
+        if (class_exists('SEO_Solucionador_Sources') && method_exists('SEO_Solucionador_Sources','dependiente_academia_snapshot')) {
+            $academy = SEO_Solucionador_Sources::dependiente_academia_snapshot();
+            echo '<h3>Dependiente / Academia · cobertura del conocimiento aprendido</h3>';
+            echo '<div class="seo-sol-grid">';
+            self::card('Preguntas Academia', absint($academy['questions_total'] ?? 0), 'Preguntas activas del currículo con seguimiento.');
+            self::card('Aprendidas', absint($academy['learned'] ?? 0), 'Último run respondido con evaluation_status pass_*.');
+            self::card('No aprendidas', absint($academy['not_learned'] ?? 0), 'Sin pass_* en su última ejecución o todavía sin ejecución.');
+            self::card('Aprendidas con categoría', absint($academy['learned_with_category'] ?? 0), 'Pueden formar parte de un dossier editorial.');
+            self::card('Aprendidas sin categoría', absint($academy['learned_without_category'] ?? 0), 'No se fuerza una asociación si product_cat no puede demostrarse.');
+            self::card('Categorías con conocimiento', absint($academy['categories_with_knowledge'] ?? 0), 'Dossiers que Solucionador puede analizar.');
+            self::card('Categorías sin conocimiento', absint($academy['categories_without_knowledge'] ?? 0), 'product_cat existentes todavía sin preguntas aprendidas asociables.');
+            self::card('Media preguntas / categoría', (float)($academy['avg_questions_per_category'] ?? 0), 'Asignaciones aprendidas entre categorías con conocimiento.');
+            echo '</div>';
+            echo '<p class="description">Última ejecución de Academia: <strong>' . esc_html((string)(($academy['last_run_at'] ?? '') ?: '—')) . '</strong>. Un dossier no implica automáticamente CREATE_POST: después se comprueban cobertura, conocimiento, duplicación y canibalización.</p>';
+        }
+
         if ($counts) {
             echo '<h3>Evidencias acumuladas en propuestas</h3><ul>';
             foreach ($counts as $row) echo '<li><strong>' . esc_html((string) $row['source_type']) . ':</strong> ' . esc_html(number_format_i18n(absint($row['evidence'] ?? 0))) . '</li>';
