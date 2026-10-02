@@ -266,8 +266,35 @@ if (!function_exists('seo_content_vocab_replace_manual_group')) {
         );
         $current_ids = array_values(array_unique($current_ids));
 
+        /*
+         * Asignaciones activas de otras fuentes son protegidas. Si el mismo
+         * termino llega en una correccion manual/CSV ya esta semanticamente
+         * cubierto y no debe reinsertarse, porque el ON DUPLICATE anterior
+         * cambiaria su source a manual.
+         */
+        $protected_ids = array_map(
+            'intval',
+            (array) $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT ov.vocabulary_id
+                     FROM {$objects} ov
+                     INNER JOIN {$vocabulary} v
+                        ON v.id = ov.vocabulary_id
+                       AND v.semantic_group = %s
+                     WHERE ov.object_type = %s
+                       AND ov.object_id = %d
+                       AND ov.status = 1
+                       AND ov.source <> 'manual'",
+                    $group,
+                    $object_type,
+                    $object_id
+                )
+            )
+        );
+        $protected_ids = array_values(array_unique($protected_ids));
+
         $to_remove = array_values(array_diff($current_ids, $valid_ids));
-        $to_add    = array_values(array_diff($valid_ids, $current_ids));
+        $to_add    = array_values(array_diff($valid_ids, $current_ids, $protected_ids));
 
         if ($to_remove) {
             $placeholders = implode(',', array_fill(0, count($to_remove), '%d'));
