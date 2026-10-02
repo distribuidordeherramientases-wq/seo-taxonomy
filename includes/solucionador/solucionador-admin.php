@@ -453,7 +453,7 @@ final class SEO_Solucionador_Admin {
                 "SELECT DISTINCT p.ID,p.post_title,p.post_status
                  FROM {$wpdb->posts} p
                  INNER JOIN {$wpdb->postmeta} pm ON pm.post_id=p.ID
-                 WHERE p.post_type='post' AND p.post_status<>'trash' AND pm.meta_key=%s
+                 WHERE p.post_type='post' AND p.post_status='publish' AND pm.meta_key=%s
                  ORDER BY p.post_date DESC,p.ID DESC
                  LIMIT 1000",
                 $meta_key
@@ -484,13 +484,13 @@ final class SEO_Solucionador_Admin {
         }
 
         echo '<table class="widefat striped"><thead><tr><th>Post</th><th>Estado</th><th>Impresiones</th><th>Clics Google</th><th>Vistas</th></tr></thead><tbody>';
-        if (!$rows) echo '<tr><td colspan="5">Todavía no hay posts creados por Solucionador.</td></tr>';
+        if (!$rows) echo '<tr><td colspan="5">Todavía no hay posts publicados creados por Solucionador.</td></tr>';
         foreach ($rows as $row) {
             $post_id = absint($row['ID'] ?? 0);
             $metrics = self::google_metrics_for_post($post_id);
             $has = !empty($metrics['has_snapshot']);
             echo '<tr><td><a href="' . esc_url(SEO_Solucionador_Posts::edit_url($post_id)) . '"><strong>' . esc_html((string) ($row['post_title'] ?? '')) . '</strong></a></td>';
-            echo '<td>' . esc_html($row['post_status']==='publish' ? 'Publicado' : 'Borrador') . '</td>';
+            echo '<td>Publicado</td>';
             echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['impressions'] ?? 0))) : '—') . '</td>';
             echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['clicks'] ?? 0))) : '—') . '</td>';
             echo '<td>' . ($has ? esc_html(number_format_i18n(absint($metrics['pageviews'] ?? 0))) : '—') . '</td></tr>';
