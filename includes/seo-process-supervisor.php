@@ -245,14 +245,29 @@ if (!function_exists('seo_process_supervisor_is_active')) {
 
 if (!function_exists('seo_process_supervisor_exec_available')) {
     function seo_process_supervisor_exec_available() {
-        if (function_exists('seo_ie_product_import_exec_available')) {
-            return seo_ie_product_import_exec_available();
-        }
-        if (!function_exists('exec')) {
+        if (!function_exists('exec') || !function_exists('escapeshellarg')) {
             return false;
         }
         $disabled = array_filter(array_map('trim', explode(',', (string) ini_get('disable_functions'))));
-        return !in_array('exec', $disabled, true);
+        if (in_array('exec', $disabled, true) || in_array('escapeshellarg', $disabled, true)) {
+            return false;
+        }
+        if (function_exists('seo_ie_product_import_exec_available')) {
+            return (bool) seo_ie_product_import_exec_available();
+        }
+        return true;
+    }
+}
+
+if (!function_exists('seo_process_supervisor_display_shell_arg')) {
+    /**
+     * Quote POSIX shell arguments only for the command shown to administrators.
+     *
+     * This helper never executes a shell command. It intentionally does not
+     * depend on escapeshellarg(), because some managed hostings disable it.
+     */
+    function seo_process_supervisor_display_shell_arg($value) {
+        return "'" . str_replace("'", "'\"'\"'", (string) $value) . "'";
     }
 }
 
@@ -346,6 +361,12 @@ if (!function_exists('seo_process_supervisor_claim_dispatch')) {
 
 if (!function_exists('seo_process_supervisor_spawn_cli')) {
     function seo_process_supervisor_spawn_cli($dispatch_id, $dispatch_at, $signature) {
+        if (!seo_process_supervisor_exec_available()) {
+            return new WP_Error(
+                'supervisor_cli_disabled',
+                'PHP CLI directo no está disponible en este hosting; se usará loopback HTTP o WP-Cron.'
+            );
+        }
         $php = seo_process_supervisor_find_php_cli();
         $worker = SEO_SYSTEM_PATH . 'includes/process-supervisor-worker.php';
         $wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
@@ -1811,7 +1832,10 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             $cron_php = '/opt/alt/php' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '/usr/bin/php';
             $cron_file = SEO_SYSTEM_PATH . 'includes/process-manager-cron.php';
             $cron_wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
-            $cron_command = escapeshellarg($cron_php) . ' ' . escapeshellarg($cron_file) . ' ' . escapeshellarg($cron_wp_load) . ' >/dev/null 2>&1';
+            $cron_command = seo_process_supervisor_display_shell_arg($cron_php) . ' '
+                . seo_process_supervisor_display_shell_arg($cron_file) . ' '
+                . seo_process_supervisor_display_shell_arg($cron_wp_load)
+                . ' >/dev/null 2>&1';
             ?>
             <div class="seo-worker-settings">
                 <strong>Cron real del servidor recomendado: cada minuto</strong>
