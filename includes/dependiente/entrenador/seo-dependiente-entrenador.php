@@ -6630,8 +6630,10 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lab_batch_meta($batch_key) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; batch key is bound through prepare().
         $json = $wpdb->get_var($wpdb->prepare(
-            'SELECT expected_json FROM ' . self::questions_table() . ' WHERE lesson_key=%s AND enabled=1 ORDER BY id ASC LIMIT 1',
+            "SELECT expected_json FROM {$questions_table} WHERE lesson_key=%s AND enabled=1 ORDER BY id ASC LIMIT 1",
             sanitize_key((string) $batch_key)
         ));
         return self::decode_json($json);
@@ -6639,11 +6641,14 @@ final class SEO_Dependiente_Entrenador {
 
     private static function pending_lab_batch() {
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
         $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; LIKE pattern is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT q.lesson_key AS batch_key, MIN(q.id) AS first_id
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r
                ON r.question_id=q.id
               AND r.lesson_key=q.lesson_key
               AND r.status='answered'
@@ -6670,15 +6675,17 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lab_queue_batches($limit = self::LAB_QUEUE_HISTORY_LIMIT) {
         global $wpdb;
+        $questions_table = self::questions_table();
         $limit = max(1, min(50, absint($limit)));
         $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; LIKE pattern and LIMIT are bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare(
-            'SELECT lesson_key AS batch_key, MIN(id) AS first_id, MAX(id) AS max_id, MIN(created_at) AS created_at
-             FROM ' . self::questions_table() . '
+            "SELECT lesson_key AS batch_key, MIN(id) AS first_id, MAX(id) AS max_id, MIN(created_at) AS created_at
+             FROM {$questions_table}
              WHERE lesson_key LIKE %s AND enabled=1
              GROUP BY lesson_key
              ORDER BY first_id DESC
-             LIMIT %d',
+             LIMIT %d",
             $pattern,
             $limit
         ), ARRAY_A);
@@ -6934,9 +6941,11 @@ final class SEO_Dependiente_Entrenador {
 
     private static function latest_lab_batch() {
         global $wpdb;
+        $questions_table = self::questions_table();
         $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; LIKE pattern is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
-            'SELECT lesson_key AS batch_key, COUNT(*) AS total, MIN(created_at) AS created_at, MAX(id) AS max_id FROM ' . self::questions_table() . ' WHERE lesson_key LIKE %s AND enabled = 1 GROUP BY lesson_key ORDER BY max_id DESC LIMIT 1',
+            "SELECT lesson_key AS batch_key, COUNT(*) AS total, MIN(created_at) AS created_at, MAX(id) AS max_id FROM {$questions_table} WHERE lesson_key LIKE %s AND enabled = 1 GROUP BY lesson_key ORDER BY max_id DESC LIMIT 1",
             $pattern
         ), ARRAY_A);
         return is_array($row) ? $row : null;
@@ -6944,10 +6953,13 @@ final class SEO_Dependiente_Entrenador {
 
     private static function pending_lab_questions($batch_key, $limit) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key and LIMIT are bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.*
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r
                ON r.question_id = q.id
               AND r.lesson_key = q.lesson_key
               AND r.status = 'answered'
@@ -6963,6 +6975,9 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lab_summary($batch_key) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(q.id) AS total,
                     COALESCE(SUM(r.status = 'answered'), 0) AS answered,
@@ -6971,8 +6986,8 @@ final class SEO_Dependiente_Entrenador {
                     COALESCE(SUM(r.status = 'answered' AND r.returned_count > 0), 0) AS with_results,
                     COALESCE(SUM(r.status = 'answered' AND r.returned_count = 0), 0) AS zero_results,
                     COALESCE(SUM(r.status = 'error'), 0) AS errors
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
              WHERE q.lesson_key = %s AND q.enabled = 1",
             $batch_key
         ), ARRAY_A);
@@ -6990,6 +7005,9 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lesson_summary($lesson_key) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(q.id) AS total,
                     COALESCE(SUM(r.status = 'answered'), 0) AS answered,
@@ -6998,8 +7016,8 @@ final class SEO_Dependiente_Entrenador {
                     COALESCE(SUM(r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')), 0) AS pass_any,
                     COALESCE(SUM(r.evaluation_status = 'fail'), 0) AS failed,
                     COALESCE(SUM(r.status = 'error'), 0) AS errors
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
              WHERE q.lesson_key = %s AND q.enabled = 1",
             $lesson_key
         ), ARRAY_A);
@@ -7020,6 +7038,9 @@ final class SEO_Dependiente_Entrenador {
 
     private static function module_progress($lesson_key) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.module_no,
                     COUNT(q.id) AS total,
@@ -7027,8 +7048,8 @@ final class SEO_Dependiente_Entrenador {
                     COALESCE(SUM(r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')), 0) AS passed,
                     COALESCE(SUM(r.evaluation_status = 'fail'), 0) AS failed,
                     COALESCE(SUM(r.status = 'error'), 0) AS errors
-             FROM " . self::questions_table() . " q
-             LEFT JOIN " . self::runs_table() . " r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             FROM {$questions_table} q
+             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
              WHERE q.lesson_key = %s AND q.enabled = 1
              GROUP BY q.module_no
              ORDER BY q.module_no ASC",
@@ -7154,8 +7175,10 @@ final class SEO_Dependiente_Entrenador {
 
     private static function reconcile_failed_quality_gates() {
         global $wpdb;
+        $lessons_table = self::lessons_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; query has no external values.
         $rows = (array) $wpdb->get_results(
-            'SELECT lesson_key, status, snapshot_after, metadata FROM ' . self::lessons_table() . " WHERE status = 'completed'",
+            "SELECT lesson_key, status, snapshot_after, metadata FROM {$lessons_table} WHERE status = 'completed'",
             ARRAY_A
         );
         foreach ($rows as $row) {
@@ -7170,7 +7193,7 @@ final class SEO_Dependiente_Entrenador {
             $metadata['reconciled_at'] = current_time('mysql');
             $metadata['blocked_reason'] = 'quality_gate_failed';
             $wpdb->update(
-                self::lessons_table(),
+                $lessons_table,
                 array(
                     'status'         => 'needs_training',
                     'snapshot_after' => 0,
@@ -7185,9 +7208,11 @@ final class SEO_Dependiente_Entrenador {
 
     private static function recent_runs($lesson_key, $limit) {
         global $wpdb;
+        $runs_table = self::runs_table();
         $limit = min(500, max(1, absint($limit)));
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; lesson key and LIMIT are bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare(
-            'SELECT * FROM ' . self::runs_table() . ' WHERE lesson_key = %s ORDER BY id DESC LIMIT %d',
+            "SELECT * FROM {$runs_table} WHERE lesson_key = %s ORDER BY id DESC LIMIT %d",
             $lesson_key,
             $limit
         ), ARRAY_A);
@@ -7195,8 +7220,10 @@ final class SEO_Dependiente_Entrenador {
 
     private static function run_by_id($run_id) {
         global $wpdb;
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; run ID is bound through prepare().
         return $wpdb->get_row($wpdb->prepare(
-            'SELECT * FROM ' . self::runs_table() . ' WHERE id = %d LIMIT 1',
+            "SELECT * FROM {$runs_table} WHERE id = %d LIMIT 1",
             absint($run_id)
         ), ARRAY_A);
     }
@@ -7279,21 +7306,26 @@ final class SEO_Dependiente_Entrenador {
             return false;
         }
         $clean['updated_at'] = current_time('mysql');
-        return false !== $wpdb->update(self::lessons_table(), $clean, array('lesson_key' => $lesson_key));
+        $lessons_table = self::lessons_table();
+        return false !== $wpdb->update($lessons_table, $clean, array('lesson_key' => $lesson_key));
     }
 
     private static function question_count($lesson_key) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; lesson key is bound through prepare().
         return absint($wpdb->get_var($wpdb->prepare(
-            'SELECT COUNT(*) FROM ' . self::questions_table() . ' WHERE lesson_key = %s AND enabled = 1',
+            "SELECT COUNT(*) FROM {$questions_table} WHERE lesson_key = %s AND enabled = 1",
             $lesson_key
         )));
     }
 
     private static function question_module_count($lesson_key) {
         global $wpdb;
+        $questions_table = self::questions_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; lesson key is bound through prepare().
         return absint($wpdb->get_var($wpdb->prepare(
-            'SELECT COALESCE(MAX(module_no),0) FROM ' . self::questions_table() . ' WHERE lesson_key = %s AND enabled = 1',
+            "SELECT COALESCE(MAX(module_no),0) FROM {$questions_table} WHERE lesson_key = %s AND enabled = 1",
             $lesson_key
         )));
     }
