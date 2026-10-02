@@ -892,7 +892,8 @@ function seo_ie_batch_move_file( $source, $target ) {
 
     wp_mkdir_p( dirname( $target ) );
 
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Movimiento atómico dentro del directorio gestionado; existe fallback copy/wp_delete_file inmediatamente debajo.\n    if ( @rename( $source, $target ) ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Movimiento atómico dentro del directorio gestionado; existe fallback copy/wp_delete_file inmediatamente debajo.
+    if ( @rename( $source, $target ) ) {
         return true;
     }
 
