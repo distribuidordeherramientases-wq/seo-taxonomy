@@ -26,6 +26,7 @@ require_once SEO_COMPARADOR_PATH . 'comparador-integration.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-tests.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-admin.php';
 
+SEO_Comparador_Engine::init();
 add_action('init', array('SEO_Comparador_DB','maybe_install'), 6);
 SEO_Comparador_Public::init();
 SEO_Comparador_Integration::init();
