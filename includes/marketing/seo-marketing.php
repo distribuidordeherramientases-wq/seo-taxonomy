@@ -2183,7 +2183,8 @@ function seo_marketing_get_structural_category_ids($source_type, $source_id)
     return array_values(
         array_unique(
             array_filter(
-                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; the table identifier is internal.\n                array_map('absint', (array) $wpdb->get_col($sql))
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; the table identifier is internal.
+                array_map('absint', (array) $wpdb->get_col($sql))
             )
         )
     );
@@ -2225,12 +2226,14 @@ function seo_marketing_get_recommended_category_ids($source_type, $source_id, $l
         LIMIT %d
     ";
 
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template with generated placeholder list; all values are passed separately.\n    $prepared = $wpdb->prepare($sql, $query_args);
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template with generated placeholder list; all values are passed separately.
+    $prepared = $wpdb->prepare($sql, $query_args);
 
     return array_values(
         array_unique(
             array_filter(
-                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.\n                array_map('absint', (array) $wpdb->get_col($prepared))
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
+                array_map('absint', (array) $wpdb->get_col($prepared))
             )
         )
     );
@@ -4795,11 +4798,13 @@ function seo_marketing_get_node_page_ids_by_roles($roles)
         ORDER BY object_id ASC
     ";
 
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template/table; role values remain placeholders.\n    $prepared = $wpdb->prepare($sql, $roles);
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template/table; role values remain placeholders.
+    $prepared = $wpdb->prepare($sql, $roles);
 
     return array_values(
         array_unique(
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.\n            array_filter(array_map('absint', (array) $wpdb->get_col($prepared)))
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
+            array_filter(array_map('absint', (array) $wpdb->get_col($prepared)))
         )
     );
 }
@@ -5886,8 +5891,10 @@ function seo_marketing_scan_sync_inventory()
                 removed_at=NULL,
                 sync_token=VALUES(sync_token)";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal INSERT template with generated placeholder tuples; all values are passed separately.\n        $prepared = $wpdb->prepare($sql, $params);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.\n        if ($prepared === false || $wpdb->query($prepared) === false) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal INSERT template with generated placeholder tuples; all values are passed separately.
+        $prepared = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
+        if ($prepared === false || $wpdb->query($prepared) === false) {
             return new WP_Error('seo_scan_inventory_db', 'No se pudo actualizar el inventario: ' . $wpdb->last_error);
         }
     }
@@ -6036,8 +6043,10 @@ function seo_marketing_scan_enqueue_inventory($scan_id, $mode = 'full', $limit =
             $sql = "INSERT IGNORE INTO {$tables['urls']}
                 (scan_id,inventory_id,url_hash,resource_type,queue_status,sitemap_url,url)
                 VALUES " . implode(',', $values);
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal INSERT template with generated placeholder tuples; all values are passed separately.\n            $prepared = $wpdb->prepare($sql, $params);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.\n            if ($prepared === false || $wpdb->query($prepared) === false) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal INSERT template with generated placeholder tuples; all values are passed separately.
+            $prepared = $wpdb->prepare($sql, $params);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
+            if ($prepared === false || $wpdb->query($prepared) === false) {
                 return new WP_Error('seo_scan_queue_db', 'No se pudo crear la cola completa: ' . $wpdb->last_error);
             }
             $inserted_total += count($rows);
