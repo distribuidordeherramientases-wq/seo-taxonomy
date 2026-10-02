@@ -247,24 +247,43 @@ Componentes actuales:
 
 No utiliza amplitud de mercado, prioridades de Marketing ni conocimiento técnico de Ingeniero.
 
+## Interfaz visible simplificada
+
+La navegación diaria de Solucionador queda reducida a tres vistas:
+
+1. **Resumen**
+   - Posts propuestos.
+   - Borradores.
+   - Publicados.
+   - La sincronización con Academia se ejecuta automáticamente en segundo plano; no se muestra un botón manual de procesamiento.
+
+2. **Diagnóstico editorial**
+   - Una fila por categoría con conocimiento aprendido.
+   - Columnas: título propuesto, número de preguntas, estado y acción.
+   - Si está pendiente, la única acción visible es **Convertir en post**.
+   - Si ya se convirtió, se muestra como **Borrador** o **Publicado** y no vuelve a ofrecer el botón de conversión.
+   - Las preguntas/respuestas no se muestran en esta pantalla. Se recuperan sólo al convertir la propuesta y se copian al `post_content` del borrador.
+
+3. **Visitas Google**
+   - Sólo posts publicados creados por Solucionador.
+   - Impresiones y clics de Google Search Console.
+   - Vistas de Google Analytics.
+   - Periodo visible: 28 días.
+   - La propia pantalla solicita el snapshot de reporting cacheado/actualizado del sitio.
+   - El informe JSON se descarga desde esta misma vista; no tiene una pestaña separada.
+
+Cobertura, Vocabulary, workflow, evidencias, tests y diagnóstico técnico siguen disponibles para el motor como infraestructura interna, pero no forman parte de la interfaz operativa.
 ## Brief para Editora
 
 Al abrir un dossier, Solucionador recupera bajo demanda las preguntas y resultados internos.
 
-El brief contiene:
+El contenido visible para Editora se reduce a:
 
 - título propuesto;
-- product_cat principal;
-- Vocabulary;
-- lista de preguntas aprendidas;
-- lección/tipo;
-- evaluation_status y score;
-- resultados internos relevantes;
-- cobertura existente;
-- motivo de la decisión;
-- contenido que no debe duplicarse;
-- productos propios y enlaces internos;
-- workflow.
+- preguntas aprendidas;
+- respuesta legible de Dependiente para cada pregunta.
+
+La evidencia técnica completa sigue guardada internamente y no se muestra en el flujo diario.
 
 Regla editorial:
 
@@ -277,11 +296,17 @@ Regla editorial:
 1. exige que la propuesta sea `CREATE_POST`;
 2. exige aprobación humana / brief_ready;
 3. vuelve a comprobar los gates;
-4. crea un `post` en estado `draft`;
-5. conserva `topic_id` y `canonical_key`;
-6. asigna Vocabulary;
-7. crea la relación `post_to_category` con product_cat;
-8. asigna el rol estable `dependiente_qa_basic`.
+4. recupera desde el dossier las preguntas `pass_*` y el último run válido de cada una;
+5. crea un `post` en estado `draft` y categoría editorial WordPress **Guías**;
+6. usa el título propuesto como `post_title` y deja `post_excerpt` vacío;
+7. escribe en `post_content` las mismas **preguntas y respuestas** que se muestran en la propuesta, encabezadas por el aviso de borrador editorial;
+8. conserva `topic_id` y `canonical_key`;
+9. persiste en metadatos la trazabilidad `dossier/category_id -> question_ids -> run_ids -> source_hash`, independiente del texto editable del borrador;
+10. asigna el rol estable `dependiente_qa_basic`;
+11. crea una única relación comercial `post_to_category` con la `product_cat` principal que originó el dossier;
+12. asigna Vocabulary combinando la propuesta editorial con los grupos canónicos activos ya disponibles en esa `product_cat`.
+
+El `post_content` es una **copia editorial legible**, no la fuente de verdad. El inventario interno y la trazabilidad persistida siguen mandando aunque la Editora reescriba por completo el borrador.
 
 El rol se asigna mediante la API común:
 
@@ -422,8 +447,12 @@ Un fallo debe bloquear conscientemente una promoción a producción.
 - Dos ciclos no duplican dossiers ni posts.
 - Un dossier cubierto nunca crea un segundo post.
 - CREATE_POST crea sólo draft.
+- El borrador se clasifica en la categoría editorial WordPress **Guías**.
+- El `post_content` nace con un brief editorial legible y advertencia de reescritura.
 - El post usa `dependiente_qa_basic`.
-- El post conserva `post_to_category`.
+- El post conserva una única relación comercial `post_to_category` con la `product_cat` de origen.
+- El post conserva snapshot interno de `question_ids`, `run_ids` y `source_hash` aunque se edite el texto.
+- El Vocabulary del post incorpora los grupos canónicos disponibles de la `product_cat` de origen.
 - Solucionador funciona sin Ingeniero, Ojeador o Comparador.
 - El escaneo es reanudable por lotes.
 - Los detalles pesados se cargan bajo demanda.

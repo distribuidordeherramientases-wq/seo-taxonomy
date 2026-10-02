@@ -437,6 +437,63 @@ final class SEO_Solucionador_Dossiers {
         return $out;
     }
 
+    /**
+     * Convierte la salida estructurada del ultimo entrenamiento en una respuesta
+     * legible sin inventar contenido. La fuente sigue siendo top_results /
+     * response_meta / evaluation guardados por Academia.
+     */
+    public static function answer_text(array $detail) {
+        $parts = array();
+
+        foreach (array_slice((array) ($detail['top_results'] ?? array()), 0, 3) as $result) {
+            if (!is_array($result)) continue;
+            $title = sanitize_text_field((string) ($result['title'] ?? $result['name'] ?? $result['label'] ?? ''));
+            if ($title === '') continue;
+            $reasons = array_values(array_filter(array_map('sanitize_text_field', (array) ($result['reasons'] ?? array()))));
+            $parts[] = $title . ($reasons ? ' — ' . implode('; ', array_slice($reasons,0,3)) : '');
+        }
+        if ($parts) {
+            return 'Dependiente devolvió como respuesta: ' . implode(' | ', $parts) . '.';
+        }
+
+        $meta = is_array($detail['response_meta'] ?? null) ? $detail['response_meta'] : array();
+        $related = array();
+        foreach (array_slice((array) ($meta['related_results'] ?? $meta['related_all'] ?? array()), 0, 3) as $item) {
+            if (!is_array($item)) continue;
+            $title = sanitize_text_field((string) ($item['title'] ?? ''));
+            if ($title !== '') $related[] = $title;
+        }
+        if ($related) {
+            return 'Dependiente devolvió contenido relacionado: ' . implode(' | ', $related) . '.';
+        }
+
+        $evaluation = is_array($detail['evaluation'] ?? null) ? $detail['evaluation'] : array();
+        $reason = sanitize_text_field((string) ($evaluation['reason'] ?? ''));
+        if ($reason !== '') {
+            return $reason;
+        }
+
+        $expected = is_array($detail['expected'] ?? null) ? $detail['expected'] : array();
+        $kind = sanitize_key((string) ($expected['kind'] ?? ''));
+        if ($kind === 'category') {
+            $name = sanitize_text_field((string) ($expected['category_name'] ?? ''));
+            if ($name === '' && !empty($expected['category_id'])) {
+                $term = get_term(absint($expected['category_id']), 'product_cat');
+                if ($term && !is_wp_error($term)) $name = (string) $term->name;
+            }
+            if ($name !== '') return 'Dependiente validó la respuesta dentro de la categoría ' . $name . '.';
+        }
+        if (in_array($kind, array('product','features'), true)) {
+            $product_id = absint($expected['product_id'] ?? $expected['source_product_id'] ?? 0);
+            if ($product_id) {
+                $title = get_the_title($product_id);
+                if ($title) return 'Dependiente validó como referencia: ' . sanitize_text_field((string) $title) . '.';
+            }
+        }
+
+        return 'Respuesta validada por Dependiente; este entrenamiento no guardó una respuesta textual adicional.';
+    }
+
     public static function signals($limit = 100, $after_id = 0) {
         $out = array();
         foreach (self::rows($limit,$after_id) as $row) {

@@ -181,10 +181,24 @@ final class SEO_Solucionador_Tests {
             'CREATE_POST debe terminar en draft, rol estable y relación post_to_category; la publicación sigue siendo humana.'
         );
 
+        $trace_contract=defined('SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID')
+            && defined('SEO_Solucionador_Posts::META_QUESTION_IDS')
+            && defined('SEO_Solucionador_Posts::META_RUN_IDS')
+            && defined('SEO_Solucionador_Posts::META_SOURCE_HASH')
+            && defined('SEO_Solucionador_Posts::META_SOURCE_SNAPSHOT');
+        $tests[]=self::result(
+            11,
+            'Trazabilidad del borrador separada del texto editorial',
+            $trace_contract,
+            'category_id + question_ids + run_ids + source_hash + snapshot',
+            $trace_contract ? 'Contrato de trazabilidad disponible' : 'Contrato incompleto',
+            'Editar post_content no debe destruir el inventario interno que originó el borrador.'
+        );
+
         $coverage_contract=class_exists('SEO_Editorial_Coverage')
             && is_subclass_of('SEO_Solucionador_Coverage','SEO_Editorial_Coverage');
         $tests[]=self::result(
-            11,
+            12,
             'Cobertura neutral compartida',
             $coverage_contract,
             'SEO_Editorial_Coverage + wrapper compatible',
