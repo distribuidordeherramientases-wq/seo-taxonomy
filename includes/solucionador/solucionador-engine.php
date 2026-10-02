@@ -751,6 +751,14 @@ final class SEO_Solucionador_Engine {
         SEO_Solucionador_DB::maybe_install();
         $batch_size = max(25,min(250,absint($batch_size)));
 
+        // Si el ciclo anterior terminó, una nueva ejecución manual inicia un
+        // ciclo completo nuevo. Si quedó a medias, conserva ambos cursores.
+        $last_scan = get_option('seo_solucionador_last_scan', array());
+        if (is_array($last_scan) && !empty($last_scan['complete'])) {
+            SEO_Solucionador_Dossiers::reset_scan();
+            delete_option(self::EDITORIAL_SCAN_OPTION);
+        }
+
         // Fase 1: construir/actualizar dossiers ligeros de Academia de forma
         // reanudable. Mientras no termine, no se cargan todas las preguntas.
         $academy = SEO_Solucionador_Dossiers::scan_batch($batch_size,false);
