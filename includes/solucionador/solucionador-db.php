@@ -346,8 +346,9 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         if (!$topic_id) return array();
+        $topics_table = self::topics_table();
         $row = $wpdb->get_row(
-            $wpdb->prepare('SELECT * FROM ' . self::topics_table() . ' WHERE id=%d LIMIT 1', $topic_id),
+            $wpdb->prepare("SELECT * FROM {$topics_table} WHERE id=%d LIMIT 1", $topic_id),
             ARRAY_A
         );
         return is_array($row) ? $row : array();
@@ -358,8 +359,9 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $canonical_key = sanitize_text_field((string) $canonical_key);
         if ($canonical_key === '') return 0;
+        $topics_table = self::topics_table();
         return absint($wpdb->get_var($wpdb->prepare(
-            'SELECT id FROM ' . self::topics_table() . ' WHERE canonical_key=%s LIMIT 1',
+            "SELECT id FROM {$topics_table} WHERE canonical_key=%s LIMIT 1",
             $canonical_key
         )));
     }
@@ -370,8 +372,9 @@ final class SEO_Solucionador_DB {
      */
     public static function begin_scan() {
         global $wpdb;
-        if (self::table_exists(self::evidence_table())) {
-            $wpdb->query('TRUNCATE TABLE ' . self::evidence_table());
+        $evidence_table = self::evidence_table();
+        if (self::table_exists($evidence_table)) {
+            $wpdb->query("TRUNCATE TABLE {$evidence_table}");
         }
         return true;
     }
@@ -389,6 +392,7 @@ final class SEO_Solucionador_DB {
                 LEFT JOIN {$evidence} e ON e.topic_id=t.id
                 WHERE e.id IS NULL
                   AND COALESCE(t.draft_post_id,0)=0";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query contains only internal table identifiers and fixed predicates.
         $result = $wpdb->query($sql);
         return $result === false ? 0 : absint($result);
     }
@@ -397,9 +401,10 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         if (!$topic_id) return array();
+        $evidence_table = self::evidence_table();
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT * FROM ' . self::evidence_table() . ' WHERE topic_id=%d ORDER BY evidence_score DESC,occurrences DESC,id ASC',
+                "SELECT * FROM {$evidence_table} WHERE topic_id=%d ORDER BY evidence_score DESC,occurrences DESC,id ASC",
                 $topic_id
             ),
             ARRAY_A
@@ -510,8 +515,9 @@ final class SEO_Solucionador_DB {
 
     public static function clear_post_topics() {
         global $wpdb;
-        if (!self::table_exists(self::post_topics_table())) return false;
-        return false !== $wpdb->query('TRUNCATE TABLE ' . self::post_topics_table());
+        $post_topics_table = self::post_topics_table();
+        if (!self::table_exists($post_topics_table)) return false;
+        return false !== $wpdb->query("TRUNCATE TABLE {$post_topics_table}");
     }
 
     public static function insert_post_topic($post_id, $scope, $text, array $profile) {
@@ -552,8 +558,9 @@ final class SEO_Solucionador_DB {
 
     public static function clear_coverage_index() {
         global $wpdb;
-        if (!self::table_exists(self::coverage_table())) return false;
-        return false !== $wpdb->query('TRUNCATE TABLE ' . self::coverage_table());
+        $coverage_table = self::coverage_table();
+        if (!self::table_exists($coverage_table)) return false;
+        return false !== $wpdb->query("TRUNCATE TABLE {$coverage_table}");
     }
 
     public static function insert_coverage_item(array $row) {
@@ -626,9 +633,10 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         $limit = max(1,min(500,absint($limit)));
-        if (!$topic_id || !self::table_exists(self::workflow_table())) return array();
+        $workflow_table = self::workflow_table();
+        if (!$topic_id || !self::table_exists($workflow_table)) return array();
         return (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM " . self::workflow_table() . " WHERE topic_id=%d ORDER BY id DESC LIMIT %d",
+            "SELECT * FROM {$workflow_table} WHERE topic_id=%d ORDER BY id DESC LIMIT %d",
             $topic_id,$limit
         ),ARRAY_A);
     }
@@ -683,9 +691,10 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         $limit = max(1,min(200,absint($limit)));
-        if (!$topic_id || !self::table_exists(self::tracking_table())) return array();
+        $tracking_table = self::tracking_table();
+        if (!$topic_id || !self::table_exists($tracking_table)) return array();
         return (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM " . self::tracking_table() . " WHERE topic_id=%d ORDER BY snapshot_at DESC,id DESC LIMIT %d",
+            "SELECT * FROM {$tracking_table} WHERE topic_id=%d ORDER BY snapshot_at DESC,id DESC LIMIT %d",
             $topic_id,$limit
         ),ARRAY_A);
     }
