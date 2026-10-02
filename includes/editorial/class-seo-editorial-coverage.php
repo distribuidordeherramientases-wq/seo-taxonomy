@@ -583,6 +583,132 @@ final class SEO_Editorial_Coverage {
         );
     }
 
+    /**
+     * Cobertura neutral para una comparativa canónica de categoría.
+     *
+     * @param int    $term_id         Categoría de producto.
+     * @param string $category_name   Nombre visible de la categoría.
+     * @param int    $exclude_post_id Post canónico actual que no debe competir consigo mismo.
+     * @return array
+     */
+    public static function comparison_category($term_id, $category_name = '', $exclude_post_id = 0) {
+        $term_id = absint($term_id);
+        $exclude_post_id = absint($exclude_post_id);
+        $term = $term_id ? get_term($term_id, 'product_cat') : null;
+        if ($category_name === '' && $term && !is_wp_error($term)) {
+            $category_name = (string) $term->name;
+        }
+        $category_name = sanitize_text_field((string) $category_name);
+
+        $profile = class_exists('SEO_Solucionador_Normalizer')
+            ? SEO_Solucionador_Normalizer::profile(
+                trim('Comparativa ' . $category_name),
+                array(
+                    'intent'=>'comparison',
+                    'action'=>'comparar',
+                    'object'=>$category_name,
+                    'category_id'=>$term_id,
+                )
+            )
+            : array();
+
+        if (!is_array($profile)) $profile = array();
+        $profile['intent'] = 'comparison';
+        $profile['key_intent'] = 'comparison';
+        $profile['action'] = 'comparar';
+        $profile['object'] = class_exists('SEO_Solucionador_Normalizer')
+            ? SEO_Solucionador_Normalizer::normalize($category_name)
+            : sanitize_title($category_name);
+        $profile['condition'] = '';
+        $profile['context'] = 'comparison';
+        $profile['category_id'] = $term_id;
+        $profile['canonical_key'] = 'comparison|category-' . $term_id . '|general';
+
+        $coverage = self::find($profile);
+        $matches = array_values((array) ($coverage['matches'] ?? array()));
+
+        if ($exclude_post_id) {
+            $matches = array_values(array_filter($matches, static function($row) use ($exclude_post_id) {
+                return !(
+                    sanitize_key((string) ($row['entity_type'] ?? '')) === 'post'
+                    && absint($row['entity_id'] ?? 0) === $exclude_post_id
+                );
+            }));
+
+            if (!$matches) {
+                $coverage = array(
+                    'status'=>'uncovered','entity_type'=>'','entity_id'=>0,'post_id'=>0,
+                    'score'=>0,'scope'=>'','seo_role'=>'','category_id'=>$term_id,
+                    'title'=>'','url'=>'','matches'=>array(),
+                );
+            } else {
+                $best = $matches[0];
+                $best_score = (float) ($best['score'] ?? 0);
+                $strong = array_values(array_filter($matches, static function($row) {
+                    return (float) ($row['score'] ?? 0) >= 0.82;
+                }));
+                $entities = array();
+                foreach ($strong as $row) {
+                    $entities[(string) ($row['entity_type'] ?? '') . ':' . absint($row['entity_id'] ?? 0)] = $row;
+                }
+
+                $status = 'uncovered';
+                if (count($entities) > 1) {
+                    $status = 'duplicate';
+                    $strong_values = array_values($entities);
+                    for ($i = 0; $i < count($strong_values); $i++) {
+                        for ($j = $i + 1; $j < count($strong_values); $j++) {
+                            if (self::contradiction(
+                                (string) ($strong_values[$i]['source_text'] ?? ''),
+                                (string) ($strong_values[$j]['source_text'] ?? '')
+                            )) {
+                                $status = 'conflict';
+                                break 2;
+                            }
+                        }
+                    }
+                } elseif ($best_score >= 0.90 && in_array((string) ($best['scope'] ?? ''), array('title','heading'), true)) {
+                    $status = 'covered';
+                } elseif ($best_score >= 0.72) {
+                    $status = 'partial_coverage';
+                } elseif ($best_score >= 0.52) {
+                    $status = 'weak_coverage';
+                }
+
+                $entity_type = sanitize_key((string) ($best['entity_type'] ?? ''));
+                $entity_id = absint($best['entity_id'] ?? 0);
+                $coverage = array(
+                    'status'=>$status,
+                    'entity_type'=>$entity_type,
+                    'entity_id'=>$entity_id,
+                    'post_id'=>$entity_type === 'post' ? $entity_id : 0,
+                    'score'=>round($best_score,4),
+                    'scope'=>(string) ($best['scope'] ?? ''),
+                    'seo_role'=>(string) ($best['seo_role'] ?? ''),
+                    'category_id'=>absint($best['category_id'] ?? $term_id),
+                    'title'=>(string) ($best['title'] ?? ''),
+                    'url'=>(string) ($best['url'] ?? ''),
+                    'matches'=>$matches,
+                );
+            }
+        }
+
+        $fingerprint_rows = array();
+        foreach ((array) ($coverage['matches'] ?? array()) as $row) {
+            $fingerprint_rows[] = array(
+                'entity_type'=>sanitize_key((string) ($row['entity_type'] ?? '')),
+                'entity_id'=>absint($row['entity_id'] ?? 0),
+                'score'=>round((float) ($row['score'] ?? 0),4),
+            );
+        }
+        $coverage['fingerprint'] = hash('sha256', wp_json_encode(array(
+            'category_id'=>$term_id,
+            'matches'=>$fingerprint_rows,
+        ), JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+
+        return $coverage;
+    }
+
     public static function find_technical($term_id, $title, $summary = '') {
         return self::find(self::technical_profile($term_id,$title,$summary));
     }
