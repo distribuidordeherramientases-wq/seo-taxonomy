@@ -13,22 +13,30 @@ La pantalla **Contenidos** agrupa los editores que se utilizan con más frecuenc
 | Páginas | Hubs, landings, páginas corporativas y estructura editorial | **Abrir** [Consulta] |
 | Entradas | Edición y gestión de posts, guías, comparativas y contenido editorial | **Abrir** [Consulta] |
 | Imágenes | Inventario, anomalías, optimización y asignación de imágenes | **Abrir** [Consulta] |
-| Solucionador | Diagnóstico y decisión editorial centralizada; unifica informes, prioriza actuaciones y prepara briefs | **Abrir** [Consulta] |
+| Solucionador | Diagnóstico y decisión editorial de Dependiente/Academia y señales comunes; prioriza actuaciones y prepara briefs | **Abrir** [Consulta] |
+| Ingeniero | Investigación técnica por categoría, dossiers editoriales, briefs y borradores especializados | **Abrir** [Consulta] |
 | Auditor | Calidad, coherencia y arquitectura de productos, categorías, páginas, entradas, FAQs e índice | **Abrir** [Consulta] |
 | FAQs | Gestión de preguntas frecuentes, cobertura, calidad e interacción | **Abrir** [Consulta] |
 
 El botón **Abrir** solo navega al editor correspondiente.
 
-## Un único punto de análisis editorial
+## Procesos editoriales coordinados
 
-La información estadística/editorial visible se centraliza en **Solucionador → Diagnóstico editorial**.
+La arquitectura editorial dispone de tres procesos especializados:
+
+- **Academia/Dependiente → Solucionador** para preguntas y necesidades aprendidas.
+- **Ingeniero → Editorial** para conocimiento técnico trazable.
+- **Ojeador → Comparador** para contenido comparativo.
+
+Los tres pueden terminar en posts clasificados y comparten cobertura editorial. La medición global continúa en Analista.
 
 Por tanto:
 
 - **Entradas** conserva edición y ejecución; sus oportunidades, rendimiento y errores se visualizan desde Solucionador.
 - **Páginas** conserva estructura, landings y páginas corporativas; el informe de landings y los errores se visualizan desde Solucionador.
 - **Categorías** conserva edición, reasignación, inventario y tabla real catálogo-productos; los informes de estructura y Google se visualizan desde Solucionador.
-- **Imágenes** sigue siendo fuente e instrumento de ejecución para inventario, asignación, optimización y limpieza. Sus señales pueden alimentar el diagnóstico editorial sin convertir el editor de imágenes en un segundo sistema de decisión.
+- **Imágenes** sigue siendo fuente e instrumento de ejecución para inventario, asignación, optimización y limpieza.
+- **Ingeniero** conserva investigación técnica y dispone de su propio workflow Editorial; no depende de Solucionador para proponer posts técnicos.
 
 La centralización no elimina las funciones que calculan los informes. **Se reutilizan como fuentes internas**, evitando mantener dos implementaciones del mismo cálculo.
 
@@ -42,6 +50,7 @@ Las pantallas internas conservan sus slugs administrativos históricos:
 - Entradas: `seo-post-editor`
 - Imágenes: `seo-pictures-admin`
 - FAQs: `seo-faq`
+- Ingeniero: `seo-ingeniero`
 
 Esto permite mantener enlaces internos, formularios y redirecciones existentes. Cuando se abre cualquiera de estas pantallas, WordPress mantiene **Contenidos** como sección activa del menú de SEO Taxonomy.
 
