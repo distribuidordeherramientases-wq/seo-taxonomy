@@ -345,15 +345,9 @@ final class SEO_Solucionador_Admin {
         $labels = array(
             'NO_ACTION'=>'No actuar',
             'IMPROVE_POST'=>'Mejorar post',
-            'IMPROVE_LANDING'=>'Mejorar landing',
-            'IMPROVE_CATEGORY'=>'Mejorar categoría',
-            'IMPROVE_PAGE'=>'Mejorar página',
             'MERGE_CONTENT'=>'Fusionar / consolidar contenido',
             'CREATE_POST'=>'Crear post',
-            'CREATE_LANDING'=>'Crear landing',
-            'INVESTIGATE'=>'Investigar antes de editar',
-            'DEFER'=>'Aplazar',
-            'UPDATE_PRODUCT'=>'Actualizar producto',
+            'DEFER'=>'Revisar / aplazar',
         );
         return $labels[$action] ?? str_replace('_',' ',(string)$action);
     }
@@ -655,72 +649,6 @@ final class SEO_Solucionador_Admin {
         $names = array();
         foreach ($rows as $row) if (is_array($row) && !empty($row['name'])) $names[] = (string) $row['name'];
         return $names ? esc_html(implode(' · ', $names)) : '<span class="seo-sol-warning">Sin categoria suficiente</span>';
-    }
-
-    private static function landing_decision_label($status) {
-        $status = sanitize_key((string) $status);
-        $labels = array(
-            'detected'=>'Revisar si crear landing',
-            'candidate'=>'Revisar si crear landing',
-            'review'=>'Revisar si crear landing',
-            'approved'=>'Crear landing',
-            'created'=>'Landing creada',
-            'published'=>'Landing publicada',
-            'paused'=>'No actuar ahora',
-            'rejected_requirements'=>'No crear',
-        );
-        return $labels[$status] ?? 'Revisar';
-    }
-
-    private static function render_landing_decisions() {
-        if (!function_exists('seo_landing_get_candidates')) return;
-        $rows = (array) seo_landing_get_candidates(250);
-
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Decisiones de landing</h2>';
-        echo '<p class="description">Las candidatas y su scoring siguen usando el motor de landings existente, pero el diagnóstico visible y la decisión editorial se concentran aquí. La edición/creación final de la página continúa en Páginas.</p>';
-
-        if (!$rows) {
-            echo '<p>No hay candidatas de landing registradas.</p></div>';
-            return;
-        }
-
-        $types = function_exists('seo_landing_types') ? (array) seo_landing_types() : array();
-        $statuses = function_exists('seo_landing_statuses') ? (array) seo_landing_statuses() : array();
-
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Tema / intención</th><th>Tipo y fuente</th><th>Requisitos</th><th>Diagnóstico</th><th>Estado / decisión</th><th>Acción</th></tr></thead><tbody>';
-        foreach ($rows as $row) {
-            $status = sanitize_key((string) ($row->status ?? 'detected'));
-            $score = (float) ($row->total_score ?? 0);
-            $requirements = function_exists('seo_landing_decode_json') ? seo_landing_decode_json($row->requirements_json ?? '') : array();
-            $requirements_label = function_exists('seo_landing_requirements_summary')
-                ? seo_landing_requirements_summary($requirements)
-                : '—';
-            $type_key = sanitize_key((string) ($row->landing_type ?? ''));
-            $type = (string) ($types[$type_key] ?? ($type_key !== '' ? $type_key : 'Pendiente'));
-            $status_label = (string) ($statuses[$status] ?? $status);
-            $diagnostic = trim((string) ($row->existing_destination ?? ''));
-            $reason = trim((string) ($row->differentiation_reason ?? ''));
-            if ($reason !== '') $diagnostic .= ($diagnostic !== '' ? ' — ' : '') . $reason;
-            if ($diagnostic === '') $diagnostic = 'Pendiente de diagnóstico editorial.';
-
-            echo '<tr>';
-            echo '<td><strong class="seo-sol-score">' . esc_html(number_format_i18n($score, 0)) . '</strong><span class="description">/100</span></td>';
-            echo '<td><strong>' . esc_html((string) ($row->title ?? '')) . '</strong>';
-            if (!empty($row->intent)) echo '<div class="description" style="margin-top:5px">' . esc_html(wp_trim_words((string) $row->intent, 30)) . '</div>';
-            echo '</td>';
-            echo '<td><strong>' . esc_html($type) . '</strong><br><small>' . esc_html((string) ($row->source ?? '')) . '</small></td>';
-            echo '<td>' . esc_html($requirements_label) . '</td>';
-            echo '<td>' . esc_html(wp_trim_words($diagnostic, 32)) . '</td>';
-            echo '<td><strong>' . esc_html(self::landing_decision_label($status)) . '</strong><br><small>' . esc_html($status_label) . '</small></td>';
-            echo '<td><a class="button button-small" href="' . esc_url(self::diagnostics_url('pages','landings', array('candidate_id'=>absint($row->id ?? 0)))) . '">Revisar / editar decisión</a>';
-            $page_id = absint($row->page_id ?? 0);
-            if ($page_id > 0 && get_post_type($page_id) === 'page') {
-                $edit = get_edit_post_link($page_id, 'raw');
-                if ($edit) echo '<br><a href="' . esc_url($edit) . '">Abrir página #' . esc_html($page_id) . '</a>';
-            }
-            echo '</td></tr>';
-        }
-        echo '</tbody></table></div></div>';
     }
 
     private static function render_proposals() {
