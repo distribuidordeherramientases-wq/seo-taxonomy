@@ -959,7 +959,7 @@ $schema_product_graph = array(
   if (function_exists('dht_render_amazon_product_block')) {
       dht_render_amazon_product_block($product, array(
           'limit' => 6,
-          'title' => 'Otras opciones que te pueden interesar',
+          'title' => 'Más opciones en Amazon',
           'mode'  => 'dynamic',
       ));
   }
