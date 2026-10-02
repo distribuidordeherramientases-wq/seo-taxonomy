@@ -18,6 +18,7 @@ require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-search.php';
 require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero.php';
 require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-process.php';
 require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-posts.php';
+require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-tests.php';
 require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-exchange.php';
 require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-admin.php';
 
