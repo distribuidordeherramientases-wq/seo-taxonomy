@@ -36,6 +36,7 @@ require_once SEO_SOLUCIONADOR_PATH . 'solucionador-tests.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-admin.php';
 
 add_action('init', array('SEO_Solucionador_DB', 'maybe_install'), 6);
+SEO_Solucionador_Engine::init();
 SEO_Solucionador_Posts::init();
 SEO_Solucionador_Export::init();
 SEO_Solucionador_Admin::init();
