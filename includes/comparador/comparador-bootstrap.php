@@ -15,7 +15,7 @@ if (!defined('SEO_COMPARADOR_PATH')) {
 }
 
 require_once SEO_COMPARADOR_PATH . 'comparador-db.php';
-$seo_editorial_coverage = dirname(SEO_COMPARADOR_PATH) . '/editorial/seo-editorial-coverage.php';
+$seo_editorial_coverage = dirname(SEO_COMPARADOR_PATH) . '/editorial/class-seo-editorial-coverage.php';
 if (is_readable($seo_editorial_coverage)) {
     require_once $seo_editorial_coverage;
 }
