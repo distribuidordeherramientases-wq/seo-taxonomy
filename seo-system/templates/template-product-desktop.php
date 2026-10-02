@@ -794,17 +794,6 @@ $schema_product_graph = array(
 
       </div>
 
-      <?php if ($short_description !== '') : ?>
-        <div class="dh-product-excerpt dh-product-excerpt--primary">
-          <?php
-          echo wp_kses_post(apply_filters(
-              'woocommerce_short_description',
-              $short_description
-          ));
-          ?>
-        </div>
-      <?php endif; ?>
-
       <section id="dh-product-description" class="dh-product-description dh-product-description--primary">
         <div class="dh-product-description-content">
           <?php the_content(); ?>
@@ -833,20 +822,48 @@ $schema_product_graph = array(
 
       <div class="dh-product-reference">
 
-        <?php if ($rating_count >= 3) : ?>
+        <?php if ($rating_count > 0) : ?>
           <a class="dh-product-rating" href="#reviews">
+            <span class="dh-product-rating__value"><?php echo esc_html(number_format_i18n((float) $average_rating, 1)); ?></span>
             <?php
             echo wp_kses_post(wc_get_rating_html(
                 $average_rating,
                 $rating_count
             ));
             ?>
-            <span><?php echo intval($rating_count); ?> opiniones</span>
+            <span><?php echo intval($rating_count); ?> valoraciones</span>
           </a>
         <?php endif; ?>
 
+        <?php if ($sku !== '') : ?>
+          <span class="dh-product-reference-item">Ref. <?php echo esc_html($sku); ?></span>
+        <?php endif; ?>
 
       </div>
+
+      <div class="dh-product-mini-meta" aria-label="Datos rápidos del producto">
+        <?php if (!empty($classification_category_terms)) : ?>
+          <?php $mini_category = end($classification_category_terms); ?>
+          <?php $mini_category_url = $mini_category instanceof WP_Term ? get_term_link($mini_category) : ''; ?>
+          <?php if ($mini_category instanceof WP_Term && !is_wp_error($mini_category_url)) : ?>
+            <a href="<?php echo esc_url($mini_category_url); ?>"><?php echo esc_html($mini_category->name); ?></a>
+          <?php endif; ?>
+        <?php endif; ?>
+        <?php foreach (array_slice($technical_tags, 0, 3) as $mini_tag) : ?>
+          <span><?php echo esc_html($mini_tag); ?></span>
+        <?php endforeach; ?>
+      </div>
+
+      <?php if ($short_description !== '') : ?>
+        <div class="dh-product-excerpt dh-product-excerpt--summary">
+          <?php
+          echo wp_kses_post(apply_filters(
+              'woocommerce_short_description',
+              $short_description
+          ));
+          ?>
+        </div>
+      <?php endif; ?>
 
       <div class="dh-commerce-row">
 

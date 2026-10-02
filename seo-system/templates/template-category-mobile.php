@@ -90,6 +90,15 @@ $category_description = (string) $wpdb->get_var(
     )
 );
 
+$category_description_plain = trim(wp_strip_all_tags($category_description));
+$category_description_words = $category_description_plain !== ''
+    ? preg_split('/\s+/u', $category_description_plain, -1, PREG_SPLIT_NO_EMPTY)
+    : array();
+$category_description_has_more = count((array) $category_description_words) > 42;
+$category_description_preview = $category_description_plain !== ''
+    ? wp_trim_words($category_description_plain, 42, '…')
+    : '';
+
 $category_tags = array_values(
     array_filter(
         array_map(
@@ -282,6 +291,21 @@ $json = array(
 
                     <?php endif; ?>
 
+                    <?php if ($category_description_preview !== '') : ?>
+                        <div class="dht-category-description-inline">
+                            <span class="dht-category-description-kicker">Sobre esta categoría</span>
+                            <p><?php echo esc_html($category_description_preview); ?></p>
+                            <?php if ($category_description_has_more) : ?>
+                                <details>
+                                    <summary>Ver descripción completa</summary>
+                                    <div class="dht-category-description-inline__full">
+                                        <?php echo wp_kses_post($category_description); ?>
+                                    </div>
+                                </details>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="dht-category-hero-meta" aria-label="Resumen de la categoría">
                         <span><strong><?php echo esc_html(number_format_i18n((int) $term->count)); ?></strong> productos</span>
                         <span>Comparación disponible</span>
@@ -302,7 +326,7 @@ $json = array(
 
                             <div class="dht-category-tags">
 
-                                <?php foreach($category_tags as $category_tag): ?>
+                                <?php foreach(array_slice($category_tags, 0, 8) as $category_tag): ?>
 
                                     <span class="dht-category-tag">
                                         <?php echo esc_html($category_tag); ?>
@@ -442,29 +466,6 @@ $json = array(
             <?php dht_template_render_dependiente_cta($term->name, 'compact'); ?>
         </div>
     </section>
-
-    <!-- =====================================================
-         DESCRIPCIÓN DE LA CATEGORÍA
-    ====================================================== -->
-
-    <?php if(!empty($category_description)): ?>
-
-        <section class="dht-section dht-category-description-section">
-
-            <div class="dht-container">
-
-                <div class="dht-category-description-card">
-                    <span class="dht-category-description-kicker">Sobre esta familia</span>
-                    <div class="dht-category-description">
-                        <?php echo wp_kses_post($category_description); ?>
-                    </div>
-                </div>
-
-            </div>
-
-        </section>
-
-    <?php endif; ?>
 
     <!-- =====================================================
          CONTENIDO CONTEXTUAL PERSISTIDO
