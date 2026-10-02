@@ -581,6 +581,18 @@ final class SEO_Ingeniero_Admin {
 
         echo '<div class="notice notice-warning inline"><p><strong>Verificación editorial:</strong> ' . esc_html((string) ($brief['verification_warning'] ?? '')) . '</p></div>';
 
+        $metrics = (array) ($brief['metrics_28d'] ?? array());
+        if (!empty($metrics['has_snapshot'])) {
+            echo '<h3 style="margin-top:18px">Rendimiento · Analista · 28 días</h3>';
+            echo '<p><strong>Impresiones:</strong> ' . esc_html(number_format_i18n(absint($metrics['impressions'] ?? 0)))
+                . ' · <strong>Clics:</strong> ' . esc_html(number_format_i18n(absint($metrics['clicks'] ?? 0)))
+                . ' · <strong>Vistas:</strong> ' . esc_html(number_format_i18n(absint($metrics['pageviews'] ?? 0)))
+                . ' · <strong>Score:</strong> ' . esc_html(number_format_i18n(absint($metrics['score'] ?? 0))) . '/100</p>';
+        }
+        if (!empty($brief['analista_url'])) {
+            echo '<p><a class="button" href="' . esc_url((string) $brief['analista_url']) . '">Ver métricas globales en Analista</a></p>';
+        }
+
         $status = sanitize_key((string) ($dossier['status'] ?? 'candidate'));
         $post_id = absint($dossier['post_id'] ?? 0);
         echo '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">';
