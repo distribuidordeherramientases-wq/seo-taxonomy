@@ -7,7 +7,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_INGENIERO_VERSION')) {
-    define('SEO_INGENIERO_VERSION', '0.3.0');
+    define('SEO_INGENIERO_VERSION', '0.3.1');
 }
 if (!defined('SEO_INGENIERO_PATH')) {
     define('SEO_INGENIERO_PATH', __DIR__ . '/');
