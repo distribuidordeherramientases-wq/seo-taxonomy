@@ -2396,6 +2396,9 @@ function seo_get_empty_product_category_delete_state($term_id) {
         'term'          => null,
         'product_count' => 0,
         'landing_count' => 0,
+        'hub_id'        => 0,
+        'hub_title'     => '',
+        'hub_url'       => '',
     );
 
     if ($term_id <= 0) {
@@ -2473,8 +2476,20 @@ function seo_get_empty_product_category_delete_state($term_id) {
         return $state;
     }
 
+    $hub = function_exists('seo_product_category_resolve_secondary_hub')
+        ? seo_product_category_resolve_secondary_hub($term_id)
+        : new WP_Error('seo_category_delete_hub_service', 'No está disponible la resolución del Hub secundario.');
+
+    if (is_wp_error($hub)) {
+        $state['reason'] = $hub->get_error_message();
+        return $state;
+    }
+
+    $state['hub_id'] = absint($hub['hub_id'] ?? 0);
+    $state['hub_title'] = sanitize_text_field((string) ($hub['hub_title'] ?? ''));
+    $state['hub_url'] = esc_url_raw((string) ($hub['hub_url'] ?? ''));
     $state['eligible'] = true;
-    $state['reason'] = 'Sin productos ni landings asociadas.';
+    $state['reason'] = '0 productos, sin landings y con Hub secundario válido para redirect 301.';
 
     return $state;
 }
@@ -3448,7 +3463,7 @@ function seo_render_anomalies_report() {
 
             echo '<div style="background:#fff8e5;border-left:4px solid #dba617;padding:12px 14px;margin:0 0 14px;line-height:1.6;">';
             echo 'Se han detectado <strong>' . esc_html(number_format_i18n(count($empty_categories))) . ' categorías WooCommerce con 0 productos relacionados</strong>. ';
-            echo 'El borrado vuelve a comprobar el estado real justo antes de actuar y solo permite eliminar categorías sin productos y sin relaciones funcionales protegidas. ';
+            echo 'El borrado vuelve a comprobar el estado real justo antes de actuar y solo permite eliminar categorías con 0 productos, sin relaciones funcionales protegidas y con un Hub secundario publicado único. Al borrar se crea automáticamente un redirect 301 hacia ese Hub. ';
             echo '<strong>No se elimina ningún producto.</strong>';
             echo '</div>';
 
@@ -3475,7 +3490,7 @@ function seo_render_anomalies_report() {
                 echo '<code style="font-size:12px;">(' . esc_html((int) $cat->term_id) . ')</code>';
 
                 if ($eligible) {
-                    echo '<div style="font-size:12px;color:#2e7d32;margin-top:2px;">Eliminable: 0 productos y sin relaciones funcionales protegidas.</div>';
+                    echo '<div style="font-size:12px;color:#2e7d32;margin-top:2px;">Eliminable: 0 productos. Redirect 301 → Hub secundario <strong>' . esc_html((string) ($state['hub_title'] ?? '')) . '</strong> <code>#' . esc_html((string) absint($state['hub_id'] ?? 0)) . '</code>.</div>';
                 } else {
                     echo '<div style="font-size:12px;color:#b32d2e;margin-top:2px;">Protegida: ' . esc_html($state['reason']) . '</div>';
                 }
