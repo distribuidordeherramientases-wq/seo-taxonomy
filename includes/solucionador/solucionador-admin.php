@@ -1283,7 +1283,7 @@ final class SEO_Solucionador_Admin {
         $h=(array)$brief['hierarchy']; $cat=(array)($h['category'] ?? array());
         echo '<p><strong>product_cat principal:</strong> ' . (!empty($cat['id']) ? '#' . esc_html(absint($cat['id'])) . ' · ' . esc_html((string)($cat['name'] ?? '')) : '—') . '</p>';
         echo '<p><strong>Contrato:</strong> <code>post_to_category</code> · rol <code>dependiente_qa_basic</code>.</p>';
-        echo '<p><strong>Vocabulary:</strong></p>' . self::vocab_chips($topic);
+        echo '<p><strong>Vocabulary:</strong></p>' . wp_kses_post(self::vocab_chips($topic));
         echo '</section>';
 
         echo '<section><h3>3. Cobertura editorial compartida</h3>';
@@ -1457,7 +1457,7 @@ final class SEO_Solucionador_Admin {
 
             echo '<tr>';
             echo '<td><strong class="seo-sol-score">' . esc_html(number_format_i18n((float)($row['priority_score'] ?? 0),0)) . '</strong>/100</td>';
-            echo '<td><strong>' . esc_html((string)(($row['suggested_title'] ?? '') ?: ($row['canonical_question'] ?? ''))) . '</strong><br><span class="description">' . esc_html($category_name) . ($term_id ? ' (#' . $term_id . ')' : '') . '</span><br><code>' . esc_html((string)($row['canonical_key'] ?? '')) . '</code></td>';
+            echo '<td><strong>' . esc_html((string)(($row['suggested_title'] ?? '') ?: ($row['canonical_question'] ?? ''))) . '</strong><br><span class="description">' . esc_html($category_name) . ($term_id ? ' (#' . esc_html((string) $term_id) . ')' : '') . '</span><br><code>' . esc_html((string)($row['canonical_key'] ?? '')) . '</code></td>';
             echo '<td>' . ($source_counts ? esc_html(implode(' · ',$source_counts)) : '—') . '</td>';
             echo '<td><strong>' . esc_html(self::coverage_label((string)($row['coverage_status'] ?? 'uncovered'))) . '</strong><br><small>dup. ' . esc_html(number_format_i18n((float)($row['duplication_risk'] ?? 0),0)) . '/100 · canib. ' . esc_html(number_format_i18n((float)($row['cannibalization_risk'] ?? 0),0)) . '/100</small></td>';
             echo '<td><strong>' . esc_html(self::action_label((string)($row['recommended_action'] ?? 'DEFER'))) . '</strong><br><small>' . esc_html(wp_trim_words((string)($row['decision_reason'] ?? ''),24,'…')) . '</small></td>';
