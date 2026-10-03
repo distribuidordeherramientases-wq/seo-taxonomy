@@ -17,6 +17,7 @@ final class SEO_Ingeniero_Admin {
         add_action('admin_post_seo_ingeniero_export', array(__CLASS__, 'handle_export'));
         add_action('admin_post_seo_ingeniero_settings', array(__CLASS__, 'handle_settings'));
         add_action('admin_post_seo_ingeniero_editorial_action', array(__CLASS__, 'handle_editorial_action'));
+        add_action('admin_post_seo_ingeniero_editorial_accept_all', array(__CLASS__, 'handle_editorial_accept_all'));
     }
 
     public static function register_page() {
@@ -201,6 +202,85 @@ final class SEO_Ingeniero_Admin {
         self::guard('seo_ingeniero_settings');
         SEO_Ingeniero_SerpApi_Provider::save_settings(wp_unslash($_POST['ingeniero'] ?? array()));
         self::redirect(array('ingeniero_notice'=>'settings'));
+    }
+
+    public static function handle_editorial_accept_all() {
+        self::guard('seo_ingeniero_editorial_accept_all');
+
+        global $wpdb;
+        SEO_Ingeniero_DB::maybe_install();
+        $table = SEO_Ingeniero_DB::table('editorial');
+
+        $after_id = absint($_REQUEST['after_id'] ?? 0);
+        $created = absint($_REQUEST['created'] ?? 0);
+        $skipped = absint($_REQUEST['skipped'] ?? 0);
+        $errors = absint($_REQUEST['errors'] ?? 0);
+        $batch_size = 50;
+
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id,status,post_id
+                 FROM %i
+                 WHERE id>%d
+                   AND recommended_action='CREATE_POST'
+                   AND status IN ('candidate','review','approved','needs_update')
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $table,
+                $after_id,
+                $batch_size
+            ),
+            ARRAY_A
+        );
+
+        $last_id = $after_id;
+        foreach ($rows as $row) {
+            $editorial_id = absint($row['id'] ?? 0);
+            $last_id = max($last_id, $editorial_id);
+            if (!$editorial_id) {
+                $skipped++;
+                continue;
+            }
+
+            $post_id = absint($row['post_id'] ?? 0);
+            if ($post_id && 'trash' !== get_post_status($post_id)) {
+                $skipped++;
+                continue;
+            }
+
+            if ('approved' !== sanitize_key((string) ($row['status'] ?? ''))) {
+                SEO_Ingeniero_DB::update_editorial($editorial_id, array('status'=>'approved'));
+            }
+
+            $result = SEO_Ingeniero_Posts::create_draft($editorial_id);
+            if (is_wp_error($result)) {
+                $errors++;
+                continue;
+            }
+            $created++;
+        }
+
+        if (count($rows) === $batch_size && $last_id > $after_id) {
+            $next = wp_nonce_url(
+                add_query_arg(array(
+                    'action'=>'seo_ingeniero_editorial_accept_all',
+                    'after_id'=>$last_id,
+                    'created'=>$created,
+                    'skipped'=>$skipped,
+                    'errors'=>$errors,
+                ), admin_url('admin-post.php')),
+                'seo_ingeniero_editorial_accept_all'
+            );
+            wp_safe_redirect($next);
+            exit;
+        }
+
+        self::redirect(array(
+            'ingeniero_notice'=>'editorial_all_accepted',
+            'editorial_created'=>$created,
+            'editorial_skipped'=>$skipped,
+            'editorial_errors'=>$errors,
+        ), 'editorial');
     }
 
     public static function handle_editorial_action() {
@@ -410,6 +490,19 @@ final class SEO_Ingeniero_Admin {
         foreach ($cards as $label=>$value) {
             echo '<div class="postbox" style="padding:13px;margin:0"><strong style="display:block;font-size:20px">' . esc_html(number_format_i18n(absint($value))) . '</strong><span>' . esc_html($label) . '</span></div>';
         }
+        echo '</div>';
+
+        echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 16px">';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
+        echo '<input type="hidden" name="action" value="seo_ingeniero_editorial_accept_all">';
+        wp_nonce_field('seo_ingeniero_editorial_accept_all');
+        echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Se aprobarán y convertirán en borrador todas las propuestas CREATE_POST elegibles de Ingeniero. No se publicará nada automáticamente. ¿Continuar?\');">Aceptar todo</button>';
+        echo '</form>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
+        echo '<input type="hidden" name="action" value="seo_ingeniero_export">';
+        wp_nonce_field('seo_ingeniero_export');
+        echo '<button type="submit" class="button">Descargar JSON</button>';
+        echo '</form>';
         echo '</div>';
 
         echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:12px 0">';
@@ -670,7 +763,7 @@ final class SEO_Ingeniero_Admin {
         echo '<h3 style="margin-top:0">Categorías</h3>';
         $catalog_total = absint($catalog_total);
         if ($catalog_total > count((array) $candidates)) {
-            echo '<p class="description">La tabla muestra las primeras ' . esc_html(number_format_i18n(count((array) $candidates))) . ' categorías de ' . esc_html(number_format_i18n($catalog_total)) . ' con productos, ordenadas por número de productos. Los KPI superiores sí usan el catálogo completo.</p>';
+            echo '<p class="description">La tabla muestra las primeras ' . esc_html(number_format_i18n(count((array) $candidates))) . ' categorías de ' . esc_html(number_format_i18n($catalog_total)) . ' del catálogo, incluidas las que aún tienen 0 productos, ordenadas por número de productos. Los KPI superiores sí usan el catálogo completo.</p>';
         }
         $review_total = 0;
         foreach ((array) $stats_map as $stat_row) $review_total += absint($stat_row['review'] ?? 0);
@@ -716,7 +809,7 @@ final class SEO_Ingeniero_Admin {
             echo '<button class="button button-small" type="submit">Reinvestigar categoría</button></form></td>';
             echo '</tr>';
         }
-        if (!$candidates) echo '<tr><td colspan="8">No hay categorías con productos.</td></tr>';
+        if (!$candidates) echo '<tr><td colspan="8">No hay categorías de producto.</td></tr>';
         echo '</tbody></table>';
         echo '</div>';
     }
@@ -805,6 +898,7 @@ final class SEO_Ingeniero_Admin {
             'editorial_closed'=>'Propuesta editorial cerrada.',
             'editorial_draft'=>'Borrador técnico creado para la Editora.',
             'editorial_refreshed'=>'Lote de dossiers actualizado.',
+            'editorial_all_accepted'=>'Aceptar todo completado.',
         );
         if ($notice && isset($messages[$notice])) {
             $suffix = '';
@@ -824,6 +918,10 @@ final class SEO_Ingeniero_Admin {
                     . ' · Errores: ' . absint($_GET['editorial_errors'] ?? 0) . '.';
             } elseif ('editorial_draft' === $notice) {
                 $suffix = ' Post #' . absint($_GET['post_id'] ?? 0) . '.';
+            } elseif ('editorial_all_accepted' === $notice) {
+                $suffix = ' Borradores creados: ' . absint($_GET['editorial_created'] ?? 0)
+                    . ' · Omitidos: ' . absint($_GET['editorial_skipped'] ?? 0)
+                    . ' · Errores: ' . absint($_GET['editorial_errors'] ?? 0) . '.';
             }
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$notice] . $suffix) . '</p></div>';
         }
