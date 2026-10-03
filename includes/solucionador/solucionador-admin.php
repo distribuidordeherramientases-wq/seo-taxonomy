@@ -105,19 +105,38 @@ final class SEO_Solucionador_Admin {
         }
 
         if ($proposal_action === 'create_draft') {
+            $academy = SEO_Solucionador_Dossiers::snapshot();
+            if (empty($academy['scan_complete'])) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), 'Academia todavía no ha terminado el escaneo completo. No se pueden crear borradores.', 90);
+                self::redirect(array('sol_error'=>'academy_scan_incomplete'));
+            }
+
+            if (strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
+                set_transient(
+                    'seo_solucionador_notice_' . get_current_user_id(),
+                    'La evaluación editorial actual no recomienda CREATE_POST; la propuesta queda en DEFER/NO_ACTION/MEJORA según corresponda.',
+                    90
+                );
+                self::redirect(array('sol_error'=>'create_not_recommended'));
+            }
+
+            $requirements = SEO_Solucionador_DB::decision_requirements($topic);
+            if (empty($requirements['academy_mass']['pass'])) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), 'El dossier no alcanza la masa mínima de preguntas útiles.', 90);
+                self::redirect(array('sol_error'=>'academy_mass'));
+            }
+
             SEO_Solucionador_DB::update_topic($topic_id, array(
                 'status'=>'approved',
                 'workflow_state'=>'approved',
-                'recommended_action'=>'CREATE_POST',
-                'decision_reason'=>'Creación aprobada desde la interfaz simplificada de Solucionador.',
             ));
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
                 'approved',
-                'Usuario acepta la propuesta y solicita crear el borrador.',
+                'Usuario acepta una propuesta ya validada como CREATE_POST.',
                 'CREATE_POST'
             );
-            $result = SEO_Solucionador_Posts::create_draft($topic_id, true);
+            $result = SEO_Solucionador_Posts::create_draft($topic_id, false);
             if (is_wp_error($result)) {
                 set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
                 self::redirect(array('sol_error'=>'create_draft'));
@@ -137,14 +156,12 @@ final class SEO_Solucionador_Admin {
             SEO_Solucionador_DB::update_topic($topic_id, array(
                 'status'=>'candidate',
                 'workflow_state'=>'candidate',
-                'recommended_action'=>'CREATE_POST',
-                'decision_reason'=>'Propuesta recuperada para revisión.',
             ));
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
                 'candidate',
-                'Propuesta recuperada desde la interfaz simplificada.',
-                'CREATE_POST'
+                'Propuesta recuperada para volver a evaluarse con las reglas actuales.',
+                (string) ($topic['recommended_action'] ?? 'DEFER')
             );
             self::redirect(array('sol_msg'=>'restored'));
         }
@@ -162,6 +179,16 @@ final class SEO_Solucionador_Admin {
         global $wpdb;
         SEO_Solucionador_DB::maybe_install();
 
+        $academy = SEO_Solucionador_Dossiers::snapshot();
+        if (empty($academy['scan_complete'])) {
+            set_transient(
+                'seo_solucionador_notice_' . get_current_user_id(),
+                'Aceptar todo está bloqueado hasta que Academia termine de procesar todas las preguntas.',
+                90
+            );
+            self::redirect(array('sol_error'=>'academy_scan_incomplete'));
+        }
+
         $table = SEO_Solucionador_DB::dossiers_table();
         if (!SEO_Solucionador_DB::table_exists($table)) {
             set_transient(
@@ -177,18 +204,20 @@ final class SEO_Solucionador_Admin {
         $skipped = absint($_REQUEST['skipped'] ?? 0);
         $errors = absint($_REQUEST['errors'] ?? 0);
         $batch_size = 50;
+        $minimum = SEO_Solucionador_Engine::minimum_academy_questions();
 
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,category_id,question_count
                  FROM %i
                  WHERE id>%d
-                   AND question_count>0
+                   AND question_count>=%d
                    AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)
                  ORDER BY id ASC
                  LIMIT %d",
                 $table,
                 $after_id,
+                $minimum,
                 $batch_size
             ),
             ARRAY_A
@@ -230,20 +259,28 @@ final class SEO_Solucionador_Admin {
                 continue;
             }
 
+            if (strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
+                $skipped++;
+                continue;
+            }
+            $requirements = SEO_Solucionador_DB::decision_requirements($topic);
+            if (empty($requirements['academy_mass']['pass'])) {
+                $skipped++;
+                continue;
+            }
+
             SEO_Solucionador_DB::update_topic($topic_id, array(
                 'status'=>'approved',
                 'workflow_state'=>'approved',
-                'recommended_action'=>'CREATE_POST',
-                'decision_reason'=>'Creación aprobada mediante Aceptar todo.',
             ));
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
                 'approved',
-                'Usuario acepta en bloque la propuesta y solicita crear el borrador.',
+                'Aceptar todo aprueba únicamente una propuesta ya validada como CREATE_POST.',
                 'CREATE_POST'
             );
 
-            $result = SEO_Solucionador_Posts::create_draft($topic_id, true);
+            $result = SEO_Solucionador_Posts::create_draft($topic_id, false);
             if (is_wp_error($result)) {
                 $errors++;
                 continue;
@@ -470,7 +507,7 @@ final class SEO_Solucionador_Admin {
         $title = trim((string) ($topic['suggested_title'] ?? ''));
         if ($title !== '') return $title;
         $name = trim((string) ($dossier['category_name'] ?? ''));
-        return $name !== '' ? 'Preguntas y respuestas acerca de ' . $name : 'Post propuesto';
+        return $name !== '' ? 'Guía práctica de ' . $name . ': elección, uso y errores habituales' : 'Post propuesto';
     }
 
     private static function simple_proposal_state(array $topic) {
@@ -487,8 +524,18 @@ final class SEO_Solucionador_Admin {
         global $wpdb;
 
         $dossiers = SEO_Solucionador_DB::dossiers_table();
+        $minimum = SEO_Solucionador_Engine::minimum_academy_questions();
         $total = SEO_Solucionador_DB::table_exists($dossiers)
             ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$dossiers} WHERE (rejected_source_hash='' OR rejected_source_hash<>source_hash)"))
+            : 0;
+        $with_mass = SEO_Solucionador_DB::table_exists($dossiers)
+            ? absint($wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM %i
+                 WHERE question_count>=%d
+                   AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)",
+                $dossiers,
+                $minimum
+            )))
             : 0;
 
         $category_meta = SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID;
@@ -515,7 +562,8 @@ final class SEO_Solucionador_Admin {
         )));
 
         return array(
-            'proposed'=>max(0,$total-$converted_categories),
+            'proposed'=>max(0,$with_mass-min($converted_categories,$with_mass)),
+            'with_mass'=>$with_mass,
             'drafts'=>$drafts,
             'published'=>$published,
             'total'=>$total,
@@ -523,13 +571,21 @@ final class SEO_Solucionador_Admin {
     }
 
     private static function render_global_actions() {
+        $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
+        $scan_complete = !empty($academy['scan_complete']);
+
         echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 4px">';
 
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
-        echo '<input type="hidden" name="action" value="seo_solucionador_accept_all">';
-        wp_nonce_field('seo_solucionador_accept_all');
-        echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Se convertirán en borrador todas las propuestas con preguntas aprendidas que todavía no tengan un post de Solucionador. Las categorías con 0 preguntas se omitirán. ¿Continuar?\');">Aceptar todo</button>';
-        echo '</form>';
+        if ($scan_complete) {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
+            echo '<input type="hidden" name="action" value="seo_solucionador_accept_all">';
+            wp_nonce_field('seo_solucionador_accept_all');
+            echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Sólo se crearán borradores para dossiers con masa editorial suficiente, preguntas útiles y decisión CREATE_POST. ¿Continuar?\');">Aceptar todo</button>';
+            echo '</form>';
+        } else {
+            echo '<button type="button" class="button button-primary" disabled>Aceptar todo</button>';
+            echo '<span class="description">Bloqueado hasta completar el escaneo de Academia.</span>';
+        }
 
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
         echo '<input type="hidden" name="action" value="seo_solucionador_export_json">';
@@ -545,7 +601,8 @@ final class SEO_Solucionador_Admin {
         $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
 
         echo '<div class="seo-sol-grid">';
-        self::card('Posts propuestos', $counts['proposed'], 'Una propuesta por product_cat; si aún no hay preguntas, queda esperando aprendizaje.');
+        self::card('Categorías inventariadas', $counts['total'], 'Todas las product_cat, tengan o no conocimiento editorial.');
+        self::card('Con masa editorial', $counts['with_mass'], 'Alcanzan el mínimo de preguntas útiles; todavía deben pasar cobertura y duplicación.');
         self::card('Borradores', $counts['drafts'], 'Ya convertidos y pendientes de edición/publicación.');
         self::card('Publicados', $counts['published'], 'Posts creados por Solucionador que ya están publicados.');
         echo '</div>';
@@ -557,8 +614,15 @@ final class SEO_Solucionador_Admin {
         $with_knowledge = absint($academy['categories_with_knowledge'] ?? 0);
         $without_knowledge = max(0, $categories_total - $with_knowledge);
         echo '<p><strong>' . esc_html(number_format_i18n($categories_total)) . '</strong> categorías de producto están inventariadas en Solucionador. '
-            . '<strong>' . esc_html(number_format_i18n($with_knowledge)) . '</strong> tienen preguntas aprendidas y '
-            . '<strong>' . esc_html(number_format_i18n($without_knowledge)) . '</strong> están esperando aprendizaje.</p>';
+            . '<strong>' . esc_html(number_format_i18n($with_knowledge)) . '</strong> tienen preguntas editoriales útiles y '
+            . '<strong>' . esc_html(number_format_i18n($without_knowledge)) . '</strong> están esperando conocimiento útil.</p>';
+        if (empty($academy['scan_complete'])) {
+            echo '<div class="notice notice-warning inline"><p><strong>Creación de posts bloqueada:</strong> Academia sigue en proceso. '
+                . esc_html(number_format_i18n(absint($academy['processed'] ?? 0))) . ' de '
+                . esc_html(number_format_i18n(absint($academy['questions_total'] ?? 0))) . ' preguntas procesadas.</p></div>';
+        }
+        echo '<p class="description">Preguntas útiles: <strong>' . esc_html(number_format_i18n(absint($academy['editorial_eligible'] ?? 0))) . '</strong> · '
+            . 'triviales/catalogales excluidas del contenido: <strong>' . esc_html(number_format_i18n(absint($academy['editorial_discarded'] ?? 0))) . '</strong>.</p>';
         if (!empty($academy['updated_at'])) {
             echo '<p class="description">Conocimiento sincronizado automáticamente. Última actualización interna: ' . esc_html((string) $academy['updated_at']) . '.</p>';
         } else {
@@ -622,7 +686,10 @@ final class SEO_Solucionador_Admin {
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
         echo '<h2 style="margin-top:0">Diagnóstico editorial</h2>';
-        echo '<p>Solucionador inventaría todas las categorías de producto. Las que ya tienen conocimiento aprendido pueden convertirse en borrador; las que todavía tienen 0 preguntas permanecen visibles esperando aprendizaje.</p>';
+        echo '<p>Solucionador inventaría todas las categorías de producto. Un post sólo puede avanzar cuando el escaneo de Academia está completo, el dossier tiene masa suficiente de preguntas útiles y la decisión editorial resultante es CREATE_POST.</p>';
+        $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
+        $scan_complete = !empty($academy['scan_complete']);
+        $minimum = SEO_Solucionador_Engine::minimum_academy_questions();
         self::render_global_actions();
         echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Título propuesto</th><th>Preguntas</th><th>Estado</th><th>Acción</th></tr></thead><tbody>';
 
@@ -636,8 +703,12 @@ final class SEO_Solucionador_Admin {
             $topic = self::simple_topic_for_category($category_id);
             $state = self::simple_proposal_state($topic);
             $question_count = absint($dossier['question_count'] ?? 0);
-            if ($question_count < 1 && $state['status'] === 'pending') {
-                $state = array('label'=>'Esperando aprendizaje','post_id'=>0,'status'=>'waiting');
+            if ($state['status'] === 'pending') {
+                if (!$scan_complete) {
+                    $state = array('label'=>'Escaneando Academia','post_id'=>0,'status'=>'scanning');
+                } elseif ($question_count < $minimum) {
+                    $state = array('label'=>'Sin masa editorial','post_id'=>0,'status'=>'insufficient');
+                }
             }
             $title = self::simple_proposal_title($dossier,$topic);
 
@@ -648,8 +719,10 @@ final class SEO_Solucionador_Admin {
             echo '<td>';
             if ($state['status'] === 'pending') {
                 self::proposal_action_form($category_id);
-            } elseif ($state['status'] === 'waiting') {
-                echo '<span class="description">Sin preguntas aprendidas todavía</span>';
+            } elseif ($state['status'] === 'scanning') {
+                echo '<span class="description">Esperando a que Academia termine el escaneo completo.</span>';
+            } elseif ($state['status'] === 'insufficient') {
+                echo '<span class="description">DEFER: necesita al menos ' . esc_html(number_format_i18n($minimum)) . ' preguntas útiles.</span>';
             } elseif (!empty($state['post_id'])) {
                 echo '<span class="description">Convertido</span> ';
                 echo '<a class="button button-small" href="' . esc_url(SEO_Solucionador_Posts::edit_url($state['post_id'])) . '">Abrir</a>';
