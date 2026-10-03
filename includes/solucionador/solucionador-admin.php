@@ -14,6 +14,7 @@ final class SEO_Solucionador_Admin {
         add_action('admin_post_seo_solucionador_scan', array(__CLASS__, 'handle_scan'));
         add_action('admin_post_seo_solucionador_topic', array(__CLASS__, 'handle_topic'));
         add_action('admin_post_seo_solucionador_proposal', array(__CLASS__, 'handle_proposal'));
+        add_action('admin_post_seo_solucionador_accept_all', array(__CLASS__, 'handle_accept_all'));
         add_action('admin_post_seo_solucionador_post_action', array(__CLASS__, 'handle_post_action'));
     }
 
@@ -150,6 +151,130 @@ final class SEO_Solucionador_Admin {
 
         set_transient('seo_solucionador_notice_' . get_current_user_id(), 'Acción no reconocida.', 90);
         self::redirect(array('sol_error'=>'invalid_action'));
+    }
+
+    public static function handle_accept_all() {
+        if (!current_user_can('manage_options')) {
+            wp_die('No tienes permisos para aceptar todas las propuestas.');
+        }
+        check_admin_referer('seo_solucionador_accept_all');
+
+        global $wpdb;
+        SEO_Solucionador_DB::maybe_install();
+
+        $table = SEO_Solucionador_DB::dossiers_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) {
+            set_transient(
+                'seo_solucionador_notice_' . get_current_user_id(),
+                'No existe todavía el inventario de Solucionador.',
+                90
+            );
+            self::redirect(array('sol_error'=>'accept_all_no_inventory'));
+        }
+
+        $after_id = absint($_REQUEST['after_id'] ?? 0);
+        $created = absint($_REQUEST['created'] ?? 0);
+        $skipped = absint($_REQUEST['skipped'] ?? 0);
+        $errors = absint($_REQUEST['errors'] ?? 0);
+        $batch_size = 50;
+
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id,category_id,question_count
+                 FROM %i
+                 WHERE id>%d
+                   AND question_count>0
+                   AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $table,
+                $after_id,
+                $batch_size
+            ),
+            ARRAY_A
+        );
+
+        $last_id = $after_id;
+        foreach ($rows as $dossier) {
+            $last_id = max($last_id, absint($dossier['id'] ?? 0));
+            $category_id = absint($dossier['category_id'] ?? 0);
+            if (!$category_id) {
+                $skipped++;
+                continue;
+            }
+
+            // No crear un segundo post gestionado para la misma product_cat.
+            $existing_posts = get_posts(array(
+                'post_type'=>'post',
+                'post_status'=>array('draft','publish','future','pending','private'),
+                'posts_per_page'=>1,
+                'fields'=>'ids',
+                'meta_key'=>SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID,
+                'meta_value'=>$category_id,
+                'no_found_rows'=>true,
+            ));
+            if ($existing_posts) {
+                $skipped++;
+                continue;
+            }
+
+            $topic = SEO_Solucionador_Engine::prepare_category_topic($category_id);
+            if (is_wp_error($topic)) {
+                $errors++;
+                continue;
+            }
+
+            $topic_id = absint($topic['id'] ?? 0);
+            if (!$topic_id) {
+                $errors++;
+                continue;
+            }
+
+            SEO_Solucionador_DB::update_topic($topic_id, array(
+                'status'=>'approved',
+                'workflow_state'=>'approved',
+                'recommended_action'=>'CREATE_POST',
+                'decision_reason'=>'Creación aprobada mediante Aceptar todo.',
+            ));
+            SEO_Solucionador_DB::record_workflow(
+                $topic_id,
+                'approved',
+                'Usuario acepta en bloque la propuesta y solicita crear el borrador.',
+                'CREATE_POST'
+            );
+
+            $result = SEO_Solucionador_Posts::create_draft($topic_id, true);
+            if (is_wp_error($result)) {
+                $errors++;
+                continue;
+            }
+            $created++;
+        }
+
+        // Procesamiento por lotes para no intentar crear cientos de posts en
+        // una sola petición. El navegador continúa automáticamente.
+        if (count($rows) === $batch_size && $last_id > $after_id) {
+            $next = wp_nonce_url(
+                add_query_arg(array(
+                    'action'=>'seo_solucionador_accept_all',
+                    'after_id'=>$last_id,
+                    'created'=>$created,
+                    'skipped'=>$skipped,
+                    'errors'=>$errors,
+                ), admin_url('admin-post.php')),
+                'seo_solucionador_accept_all'
+            );
+            wp_safe_redirect($next);
+            exit;
+        }
+
+        wp_safe_redirect(self::url('diagnostics', array(
+            'sol_msg'=>'bulk_done',
+            'created'=>$created,
+            'skipped'=>$skipped,
+            'errors'=>$errors,
+        )));
+        exit;
     }
 
     public static function handle_post_action() {
@@ -310,6 +435,16 @@ final class SEO_Solucionador_Admin {
             }
             echo '</p></div>';
         }
+        if (!empty($_GET['sol_msg']) && $_GET['sol_msg'] === 'bulk_done') {
+            $created = absint($_GET['created'] ?? 0);
+            $skipped = absint($_GET['skipped'] ?? 0);
+            $errors = absint($_GET['errors'] ?? 0);
+            $class = $errors > 0 ? 'notice notice-warning is-dismissible' : 'notice notice-success is-dismissible';
+            echo '<div class="' . esc_attr($class) . '"><p><strong>Aceptar todo completado.</strong> '
+                . esc_html(number_format_i18n($created)) . ' borradores creados, '
+                . esc_html(number_format_i18n($skipped)) . ' omitidos y '
+                . esc_html(number_format_i18n($errors)) . ' errores.</p></div>';
+        }
         if (!empty($_GET['sol_error'])) {
             $msg = get_transient('seo_solucionador_notice_' . get_current_user_id());
             delete_transient('seo_solucionador_notice_' . get_current_user_id());
@@ -387,6 +522,24 @@ final class SEO_Solucionador_Admin {
         );
     }
 
+    private static function render_global_actions() {
+        echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 4px">';
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
+        echo '<input type="hidden" name="action" value="seo_solucionador_accept_all">';
+        wp_nonce_field('seo_solucionador_accept_all');
+        echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Se convertirán en borrador todas las propuestas con preguntas aprendidas que todavía no tengan un post de Solucionador. Las categorías con 0 preguntas se omitirán. ¿Continuar?\');">Aceptar todo</button>';
+        echo '</form>';
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
+        echo '<input type="hidden" name="action" value="seo_solucionador_export_json">';
+        wp_nonce_field('seo_solucionador_export_json');
+        echo '<button type="submit" class="button">Descargar JSON</button>';
+        echo '</form>';
+
+        echo '</div>';
+    }
+
     private static function render_summary_simple() {
         $counts = self::simple_counts();
         $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
@@ -396,6 +549,7 @@ final class SEO_Solucionador_Admin {
         self::card('Borradores', $counts['drafts'], 'Ya convertidos y pendientes de edición/publicación.');
         self::card('Publicados', $counts['published'], 'Posts creados por Solucionador que ya están publicados.');
         echo '</div>';
+        self::render_global_actions();
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
         echo '<h2 style="margin-top:0">Estado</h2>';
@@ -469,6 +623,7 @@ final class SEO_Solucionador_Admin {
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
         echo '<h2 style="margin-top:0">Diagnóstico editorial</h2>';
         echo '<p>Solucionador inventaría todas las categorías de producto. Las que ya tienen conocimiento aprendido pueden convertirse en borrador; las que todavía tienen 0 preguntas permanecen visibles esperando aprendizaje.</p>';
+        self::render_global_actions();
         echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Título propuesto</th><th>Preguntas</th><th>Estado</th><th>Acción</th></tr></thead><tbody>';
 
         if (!$rows) {
