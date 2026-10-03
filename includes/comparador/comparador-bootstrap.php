@@ -8,7 +8,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_COMPARADOR_VERSION')) {
-    define('SEO_COMPARADOR_VERSION', '1.2.0');
+    define('SEO_COMPARADOR_VERSION', '1.2.1');
 }
 if (!defined('SEO_COMPARADOR_PATH')) {
     define('SEO_COMPARADOR_PATH', __DIR__ . '/');
