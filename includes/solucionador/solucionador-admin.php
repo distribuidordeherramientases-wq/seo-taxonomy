@@ -14,6 +14,7 @@ final class SEO_Solucionador_Admin {
         add_action('admin_post_seo_solucionador_scan', array(__CLASS__, 'handle_scan'));
         add_action('admin_post_seo_solucionador_topic', array(__CLASS__, 'handle_topic'));
         add_action('admin_post_seo_solucionador_proposal', array(__CLASS__, 'handle_proposal'));
+        add_action('admin_post_seo_solucionador_post_action', array(__CLASS__, 'handle_post_action'));
     }
 
     public static function register_page() {
@@ -149,6 +150,50 @@ final class SEO_Solucionador_Admin {
 
         set_transient('seo_solucionador_notice_' . get_current_user_id(), 'Acción no reconocida.', 90);
         self::redirect(array('sol_error'=>'invalid_action'));
+    }
+
+    public static function handle_post_action() {
+        if (!current_user_can('manage_options')) wp_die('No tienes permisos para gestionar Solucionador.');
+
+        $post_id = absint($_POST['post_id'] ?? 0);
+        $post_action = sanitize_key((string) ($_POST['post_action'] ?? ''));
+        if (!$post_id) {
+            set_transient('seo_solucionador_notice_' . get_current_user_id(), 'No se ha indicado el post.', 90);
+            self::redirect(array('sol_error'=>'missing_post'));
+        }
+
+        check_admin_referer('seo_solucionador_post_action_' . $post_id);
+
+        $post = get_post($post_id);
+        $category_id = absint(get_post_meta($post_id, SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID, true));
+        if (!$post instanceof WP_Post || $post->post_type !== 'post' || !$category_id) {
+            set_transient('seo_solucionador_notice_' . get_current_user_id(), 'El post no pertenece a Solucionador.', 90);
+            self::redirect(array('sol_error'=>'invalid_post'));
+        }
+
+        if ($post_action === 'to_draft') {
+            $result = wp_update_post(array(
+                'ID'=>$post_id,
+                'post_status'=>'draft',
+            ), true);
+            if (is_wp_error($result)) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
+                self::redirect(array('sol_error'=>'post_to_draft'));
+            }
+            self::redirect(array('sol_msg'=>'post_to_draft','post_id'=>$post_id));
+        }
+
+        if ($post_action === 'delete') {
+            $deleted = wp_delete_post($post_id, true);
+            if (!$deleted) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), 'No se pudo borrar el post.', 90);
+                self::redirect(array('sol_error'=>'post_delete'));
+            }
+            self::redirect(array('sol_msg'=>'post_deleted'));
+        }
+
+        set_transient('seo_solucionador_notice_' . get_current_user_id(), 'Acción de post no reconocida.', 90);
+        self::redirect(array('sol_error'=>'invalid_post_action'));
     }
 
     public static function handle_topic() {
@@ -364,6 +409,23 @@ final class SEO_Solucionador_Admin {
         echo '</form>';
     }
 
+    private static function managed_post_action_form($post_id, $status) {
+        $post_id = absint($post_id);
+        if (!$post_id) return;
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-flex;gap:6px;align-items:center;margin-left:6px">';
+        echo '<input type="hidden" name="action" value="seo_solucionador_post_action">';
+        echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
+        wp_nonce_field('seo_solucionador_post_action_' . $post_id);
+
+        if ($status === 'publish') {
+            echo '<button type="submit" class="button button-small" name="post_action" value="to_draft">Volver a borrador</button>';
+        }
+
+        echo '<button type="submit" class="button button-small button-link-delete" name="post_action" value="delete" onclick="return confirm(\'¿Borrar definitivamente este post de Solucionador?\');">Borrar</button>';
+        echo '</form>';
+    }
+
     private static function render_diagnostics_simple() {
         global $wpdb;
         $table = SEO_Solucionador_DB::dossiers_table();
@@ -414,6 +476,7 @@ final class SEO_Solucionador_Admin {
             } elseif (!empty($state['post_id'])) {
                 echo '<span class="description">Convertido</span> ';
                 echo '<a class="button button-small" href="' . esc_url(SEO_Solucionador_Posts::edit_url($state['post_id'])) . '">Abrir</a>';
+                self::managed_post_action_form($state['post_id'], $state['status']);
             }
             echo '</td></tr>';
         }
