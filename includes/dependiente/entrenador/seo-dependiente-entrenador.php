@@ -3295,7 +3295,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function sync_lessons() {
         global $wpdb;
-        $lessons_table = $lessons_table;
+        $lessons_table = self::lessons_table();
         if (!self::table_exists($lessons_table)) {
             return;
         }
