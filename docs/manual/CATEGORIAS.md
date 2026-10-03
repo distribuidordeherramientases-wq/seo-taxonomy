@@ -41,18 +41,19 @@ Controles:
 - **Etiquetas SEO** [Guarda].
 - **Descripción (Contenido SEO)** [Guarda].
 
-### Eliminar categoría con destino
+### Eliminar categoría
 
-La zona de eliminación obliga a elegir un destino mediante la cascada:
+El borrado de una `product_cat` utiliza el servicio canónico de categorías:
 
-1. Clusters
-2. Hubs Primarios
-3. Hubs Secundarios
-4. Categoría Destino
+1. resuelve la relación `hub_secondary_to_category`;
+2. exige un único Hub secundario publicado;
+3. elimina el término mediante la API de WordPress/WooCommerce;
+4. crea o actualiza automáticamente un redirect 301 desde la URL de la categoría eliminada hacia el Hub secundario;
+5. registra el redirect y limpia relaciones, nodos, Vocabulary y FAQs mediante SEO Data Layer.
 
-**Enlace Destino de Redirección** muestra la URL resultante antes de habilitar la acción.
+Si no existe un Hub secundario publicado único o el redirect produciría un ciclo, el borrado se bloquea para evitar dejar una URL huérfana.
 
-**Eliminar Categoría** [Elimina][Producción] solo se habilita con un destino válido. La operación debe revisarse porque afecta a la taxonomía pública y a la redirección.
+**Eliminar Categoría** [Elimina][Producción] no requiere elegir manualmente el destino del 301.
 
 **Guardar todos los cambios** [Guarda] persiste las ediciones realizadas en las tarjetas.
 
@@ -99,7 +100,7 @@ Las propuestas ejecutables conservan el flujo:
 3. aplicar de forma explícita;
 4. revalidar antes de mover productos.
 
-Al concentrar una categoría, el sistema valida que el origen pueda eliminarse y crea la redirección 301 correspondiente cuando la operación se ejecuta.
+Al concentrar una categoría, el sistema valida que el origen pueda eliminarse y, cuando se elimina, crea automáticamente el redirect 301 hacia su Hub secundario mediante el mismo servicio canónico.
 
 ## Informes Google
 
