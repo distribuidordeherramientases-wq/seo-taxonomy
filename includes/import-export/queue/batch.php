@@ -632,8 +632,10 @@ function seo_ie_batch_normalized_headers( $raw_header ) {
  * @param string $path Ruta.
  * @return array|WP_Error
  */
-function seo_ie_batch_detect_entity( $path ) {
-    if ( ! is_file( $path ) || 'csv' !== strtolower( pathinfo( $path, PATHINFO_EXTENSION ) ) ) {
+function seo_ie_batch_detect_entity( $path, $filename = '' ) {
+    $logical_name = '' !== (string) $filename ? sanitize_file_name( basename( (string) $filename ) ) : basename( (string) $path );
+
+    if ( ! is_file( $path ) || 'csv' !== strtolower( pathinfo( $logical_name, PATHINFO_EXTENSION ) ) ) {
         return new WP_Error( 'seo_batch_file', 'El archivo no existe o no es CSV.' );
     }
 
@@ -662,7 +664,7 @@ function seo_ie_batch_detect_entity( $path ) {
         (array) $raw
     );
 
-    $filename = strtolower( basename( $path ) );
+    $filename = strtolower( $logical_name );
     $filename_hint = '';
     $filename_prefixes = [
         'category' => [ 'seo_categories_', 'categories_', 'categorias_', 'category_' ],
@@ -2268,6 +2270,18 @@ function seo_ie_batch_admin_action() {
                 continue;
             }
 
+            /*
+             * Validamos la estructura del CSV antes de la comprobación MIME.
+             * Los CSV de páginas/posts pueden contener HTML en description y
+             * fileinfo los identifica a veces como text/html. La cabecera debe
+             * seguir correspondiendo a una entidad importable conocida.
+             */
+            $pre_detected = seo_ie_batch_detect_entity( $tmp_name, $name );
+            if ( is_wp_error( $pre_detected ) ) {
+                $rejected[] = sprintf( '%s (%s)', $name, $pre_detected->get_error_message() );
+                continue;
+            }
+
             $upload_file = [
                 'name'     => $name,
                 'tmp_name' => $tmp_name,
@@ -2282,7 +2296,8 @@ function seo_ie_batch_admin_action() {
                 $paths['pending'],
                 [ 'csv' => 'text/csv', 'txt' => 'text/plain' ],
                 $name,
-                false
+                false,
+                true
             );
 
             if ( is_wp_error( $stored ) ) {
