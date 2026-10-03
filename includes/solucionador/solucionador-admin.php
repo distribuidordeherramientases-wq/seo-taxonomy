@@ -333,6 +333,36 @@ final class SEO_Solucionador_Admin {
             self::redirect(array('sol_error'=>'invalid_post'));
         }
 
+        $return_to = sanitize_key((string) ($_POST['return_to'] ?? ''));
+        $return_editor = static function($post_id, $state = '') {
+            $url = SEO_Solucionador_Posts::edit_url($post_id);
+            if ($state !== '') $url = add_query_arg('sol_update', sanitize_key((string)$state), $url);
+            wp_safe_redirect($url);
+            exit;
+        };
+
+        if ($post_action === 'rescan') {
+            $result = SEO_Solucionador_Posts::refresh_pending_for_post($post_id);
+            if (is_wp_error($result)) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
+                if ($return_to === 'editor') $return_editor($post_id,'error');
+                self::redirect(array('sol_error'=>'post_rescan'));
+            }
+            if ($return_to === 'editor') $return_editor($post_id,'rescanned');
+            self::redirect(array('sol_msg'=>'post_rescanned','post_id'=>$post_id,'pending'=>absint($result)));
+        }
+
+        if ($post_action === 'mark_reviewed') {
+            $result = SEO_Solucionador_Posts::mark_pending_reviewed($post_id);
+            if (is_wp_error($result)) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
+                if ($return_to === 'editor') $return_editor($post_id,'error');
+                self::redirect(array('sol_error'=>'post_review'));
+            }
+            if ($return_to === 'editor') $return_editor($post_id,'reviewed');
+            self::redirect(array('sol_msg'=>'post_reviewed','post_id'=>$post_id));
+        }
+
         if ($post_action === 'to_draft') {
             $result = wp_update_post(array(
                 'ID'=>$post_id,
@@ -647,10 +677,20 @@ final class SEO_Solucionador_Admin {
         $post_id = absint($post_id);
         if (!$post_id) return;
 
+        $pending = method_exists('SEO_Solucionador_Posts','pending_question_count')
+            ? SEO_Solucionador_Posts::pending_question_count($post_id)
+            : 0;
+
+        if ($pending > 0) {
+            echo '<a class="button button-small button-primary" style="margin-left:6px" href="' . esc_url(SEO_Solucionador_Posts::edit_url($post_id)) . '">Revisar novedades (' . esc_html(number_format_i18n($pending)) . ')</a>';
+        }
+
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-flex;gap:6px;align-items:center;margin-left:6px">';
         echo '<input type="hidden" name="action" value="seo_solucionador_post_action">';
         echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
         wp_nonce_field('seo_solucionador_post_action_' . $post_id);
+
+        echo '<button type="submit" class="button button-small" name="post_action" value="rescan">Reescanear</button>';
 
         if ($status === 'publish') {
             echo '<button type="submit" class="button button-small" name="post_action" value="to_draft">Volver a borrador</button>';
