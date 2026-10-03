@@ -241,7 +241,13 @@ final class SEO_Solucionador_Posts {
             self::META_SOURCE_SNAPSHOT => $snapshot,
         );
         foreach ($writes as $key=>$value) {
-            if (update_post_meta($post_id, $key, $value) === false) $ok = false;
+            $written = update_post_meta($post_id, $key, $value);
+            if ($written === false) {
+                // update_post_meta() también devuelve false cuando el valor ya
+                // era idéntico; sólo es error si el valor persistido difiere.
+                $current = get_post_meta($post_id,$key,true);
+                if (maybe_serialize($current) !== maybe_serialize($value)) $ok = false;
+            }
         }
         return $ok;
     }
@@ -419,8 +425,18 @@ final class SEO_Solucionador_Posts {
         $pending = self::pending_question_details($post_id);
         $count = count($pending);
         $detected_at = (string) get_post_meta($post_id,self::META_PENDING_DETECTED_AT,true);
+        $update_state = sanitize_key((string)($_GET['sol_update'] ?? ''));
 
         echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px;">';
+        if ($update_state === 'rescanned') {
+            echo '<div class="notice notice-info inline" style="margin:0 0 12px"><p>Solucionador ha vuelto a comparar este post con el dossier actual.</p></div>';
+        } elseif ($update_state === 'reviewed') {
+            echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Novedades marcadas como revisadas. Las próximas preguntas nuevas volverán a aparecer aquí.</p></div>';
+        } elseif ($update_state === 'error') {
+            $message = get_transient('seo_solucionador_notice_' . get_current_user_id());
+            delete_transient('seo_solucionador_notice_' . get_current_user_id());
+            echo '<div class="notice notice-error inline" style="margin:0 0 12px"><p>' . esc_html($message ?: 'No se pudo actualizar la revisión de Solucionador.') . '</p></div>';
+        }
         echo '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">';
         echo '<div><h2 style="margin:0 0 6px">Solucionador · revisión de nuevas preguntas</h2>';
         if ($count) {
