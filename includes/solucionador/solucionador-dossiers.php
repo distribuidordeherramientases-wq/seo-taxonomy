@@ -298,7 +298,7 @@ final class SEO_Solucionador_Dossiers {
         return count($live_ids);
     }
 
-    private static function upsert_batch_dossier($term_id, array $question_ids, $score_sum, $last_validated_at, $token) {
+    private static function upsert_batch_dossier($term_id, array $question_ids, array $item_hashes, $score_sum, $last_validated_at, $token) {
         global $wpdb;
         $table = SEO_Solucionador_DB::dossiers_table();
         $term_id = absint($term_id);
@@ -314,18 +314,28 @@ final class SEO_Solucionador_Dossiers {
 
         $question_ids = array_values(array_unique(array_filter(array_map('absint', $question_ids))));
         $previous_ids = array();
+        $previous_item_hashes = array();
         $previous_count = 0;
         $previous_score_sum = 0.0;
 
         if ($existing && (string) ($existing['scan_token'] ?? '') === (string) $token) {
             $previous_ids = SEO_Solucionador_DB::decode_json($existing['question_ids'] ?? '[]', array());
             $previous_ids = array_values(array_unique(array_filter(array_map('absint', (array) $previous_ids))));
+            $previous_item_hashes = SEO_Solucionador_DB::decode_json($existing['item_hashes'] ?? '{}', array());
             $previous_count = count($previous_ids);
             $previous_score_sum = (float) ($existing['score_avg'] ?? 0) * $previous_count;
         }
 
         $merged_ids = array_values(array_unique(array_merge($previous_ids, $question_ids)));
         sort($merged_ids, SORT_NUMERIC);
+        $normalized_item_hashes = array();
+        foreach ($item_hashes as $qid=>$item_hash) {
+            $qid = absint($qid);
+            $item_hash = sanitize_text_field((string) $item_hash);
+            if ($qid && $item_hash !== '') $normalized_item_hashes[(string) $qid] = $item_hash;
+        }
+        $merged_item_hashes = array_merge((array) $previous_item_hashes, $normalized_item_hashes);
+        ksort($merged_item_hashes, SORT_NUMERIC);
         $new_only_count = max(0, count($merged_ids) - $previous_count);
         $combined_score_sum = $previous_score_sum + (float) $score_sum;
         $count = count($merged_ids);
@@ -339,6 +349,7 @@ final class SEO_Solucionador_Dossiers {
         $hash = hash('sha256', wp_json_encode(array(
             'category_id'=>$term_id,
             'question_ids'=>$merged_ids,
+            'item_hashes'=>$merged_item_hashes,
             'score_avg'=>round($avg,4),
             'last_validated_at'=>$last,
         )));
@@ -347,9 +358,13 @@ final class SEO_Solucionador_Dossiers {
             'category_name'=>sanitize_text_field((string) $term->name),
             'question_count'=>$count,
             'question_ids'=>wp_json_encode($merged_ids),
+            'item_hashes'=>wp_json_encode($merged_item_hashes),
             'score_avg'=>round($avg,4),
             'last_validated_at'=>$last !== '' ? $last : null,
             'source_hash'=>$hash,
+            'editorial_status'=>($existing && !empty($existing['reviewed_hash']) && (string)$existing['reviewed_hash'] !== $hash)
+                ? SEO_Editorial_Service_Contract::NEEDS_UPDATE
+                : (($existing && !empty($existing['editorial_status'])) ? SEO_Editorial_Service_Contract::normalize($existing['editorial_status']) : SEO_Editorial_Service_Contract::READY_FOR_REVIEW),
             'scan_token'=>(string) $token,
             'updated_at'=>$now,
         );
@@ -450,9 +465,20 @@ final class SEO_Solucionador_Dossiers {
             $state['learned_with_category'] = absint($state['learned_with_category'] ?? 0) + 1;
             foreach ($category_ids as $term_id) {
                 if (!isset($batch_by_category[$term_id])) {
-                    $batch_by_category[$term_id] = array('ids'=>array(),'score_sum'=>0.0,'last'=>'');
+                    $batch_by_category[$term_id] = array('ids'=>array(),'item_hashes'=>array(),'score_sum'=>0.0,'last'=>'');
                 }
                 $batch_by_category[$term_id]['ids'][] = $question_id;
+                $batch_by_category[$term_id]['item_hashes'][(string)$question_id] = hash('sha256', wp_json_encode(array(
+                    'question'=>sanitize_text_field((string)($row['question'] ?? '')),
+                    'question_type'=>sanitize_key((string)($row['question_type'] ?? '')),
+                    'source_type'=>sanitize_key((string)($row['source_type'] ?? '')),
+                    'source_id'=>absint($row['source_id'] ?? 0),
+                    'source_key'=>sanitize_text_field((string)($row['source_key'] ?? '')),
+                    'expected_json'=>(string)($row['expected_json'] ?? ''),
+                    'run_id'=>absint($row['run_id'] ?? 0),
+                    'evaluation_status'=>sanitize_key((string)($row['evaluation_status'] ?? '')),
+                    'evaluation_score'=>round((float)($row['evaluation_score'] ?? 0),4),
+                )));
                 $batch_by_category[$term_id]['score_sum'] += max(0,min(1,(float) ($row['evaluation_score'] ?? 0)));
                 $observed = sanitize_text_field((string) ($row['run_created_at'] ?? ''));
                 if ($observed > $batch_by_category[$term_id]['last']) {
@@ -466,6 +492,7 @@ final class SEO_Solucionador_Dossiers {
                 $saved = self::upsert_batch_dossier(
                     $term_id,
                     (array) $batch['ids'],
+                    (array) $batch['item_hashes'],
                     (float) $batch['score_sum'],
                     (string) $batch['last'],
                     (string) $state['token']
@@ -593,11 +620,52 @@ final class SEO_Solucionador_Dossiers {
             SEO_Solucionador_DB::dossiers_table(),
             array(
                 'rejected_source_hash'=>$source_hash,
+                'editorial_status'=>SEO_Editorial_Service_Contract::REJECTED,
                 'rejected_at'=>current_time('mysql'),
                 'updated_at'=>current_time('mysql'),
             ),
             array('category_id'=>$category_id)
         );
+    }
+
+    public static function changed_item_ids($category_id) {
+        $dossier = self::get_by_category($category_id);
+        if (!$dossier) return array();
+
+        $current = SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}', array());
+        $reviewed = SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}', array());
+        $changed = array();
+
+        foreach ((array) $current as $question_id=>$item_hash) {
+            $question_id = absint($question_id);
+            if (!$question_id) continue;
+            if (!isset($reviewed[(string)$question_id]) || (string)$reviewed[(string)$question_id] !== (string)$item_hash) {
+                $changed[] = $question_id;
+            }
+        }
+        sort($changed, SORT_NUMERIC);
+        return array_values(array_unique($changed));
+    }
+
+    public static function mark_reviewed($category_id) {
+        $category_id = absint($category_id);
+        $dossier = self::get_by_category($category_id);
+        if (!$dossier || empty($dossier['source_hash'])) return false;
+
+        $post_id = class_exists('SEO_Solucionador_Posts')
+            ? SEO_Solucionador_Posts::managed_post_id_by_category_public($category_id)
+            : 0;
+        $status = $post_id ? get_post_status($post_id) : '';
+        $editorial_status = $status === 'publish'
+            ? SEO_Editorial_Service_Contract::PUBLISHED
+            : ($post_id ? SEO_Editorial_Service_Contract::DRAFT : SEO_Editorial_Service_Contract::READY_FOR_REVIEW);
+
+        return SEO_Solucionador_DB::update_dossier_editorial($category_id, array(
+            'reviewed_hash'=>(string)$dossier['source_hash'],
+            'reviewed_item_hashes'=>(string)($dossier['item_hashes'] ?? '{}'),
+            'editorial_status'=>$editorial_status,
+            'reviewed_at'=>current_time('mysql'),
+        ));
     }
 
     public static function question_details($category_id) {
