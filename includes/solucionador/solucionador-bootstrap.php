@@ -14,15 +14,16 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_SOLUCIONADOR_VERSION')) {
-    define('SEO_SOLUCIONADOR_VERSION', '0.5.11');
+    define('SEO_SOLUCIONADOR_VERSION', '0.6.0');
 }
 if (!defined('SEO_SOLUCIONADOR_DB_VERSION')) {
-    define('SEO_SOLUCIONADOR_DB_VERSION', '0.5.10');
+    define('SEO_SOLUCIONADOR_DB_VERSION', '0.6.0');
 }
 if (!defined('SEO_SOLUCIONADOR_PATH')) {
     define('SEO_SOLUCIONADOR_PATH', __DIR__ . '/');
 }
 
+require_once dirname(SEO_SOLUCIONADOR_PATH) . '/class-seo-editorial-service-contract.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-db.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-normalizer.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-sources.php';
