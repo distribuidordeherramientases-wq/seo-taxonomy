@@ -308,6 +308,14 @@ final class SEO_Solucionador_Posts {
             $stored_ids,
             (array) ($snapshot['question_ids'] ?? array())
         )));
+        $stored_run_ids = array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array) get_post_meta($post_id,self::META_RUN_IDS,true)
+        ))));
+        $snapshot['run_ids'] = array_values(array_unique(array_merge(
+            $stored_run_ids,
+            (array) ($snapshot['run_ids'] ?? array())
+        )));
         $snapshot['question_count'] = count($snapshot['question_ids']);
         self::persist_source_snapshot($post_id,$snapshot);
         return true;
