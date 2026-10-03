@@ -125,15 +125,13 @@ final class SEO_Ingeniero {
 
     public static function category_candidates($limit = 20, $only_missing = false) {
         $limit = absint($limit);
-        $excluded = array_filter(array_map('absint', (array) apply_filters(
-            'seo_ingeniero_excluded_term_ids',
-            array(absint(get_option('default_product_cat', 0)))
-        )));
 
+        // Ingeniero trabaja sobre TODAS las product_cat. Tener 0 productos no
+        // elimina una categoría del inventario técnico; simplemente quedará
+        // pendiente o sin conocimiento hasta que pueda investigarse.
         $terms = get_terms(array(
             'taxonomy'=>'product_cat',
-            'hide_empty'=>true,
-            'exclude'=>$excluded,
+            'hide_empty'=>false,
             'orderby'=>'count',
             'order'=>'DESC',
         ));
@@ -162,7 +160,8 @@ final class SEO_Ingeniero {
     }
 
     public static function prepare_lesson($limit = 20, $only_missing = true) {
-        $limit = max(1, min(100, absint($limit)));
+        $limit = absint($limit);
+        if ($limit > 0) $limit = max(1, min(1000, $limit));
         $candidates = self::category_candidates($limit, $only_missing);
         $queue = array();
         foreach ($candidates as $row) {
@@ -186,7 +185,10 @@ final class SEO_Ingeniero {
     public static function start() {
         $state = self::state();
         if (!$state['queue'] || absint($state['cursor'] ?? 0) >= count((array) $state['queue'])) {
-            $state = self::prepare_lesson(20, true);
+            // Al iniciar/reanudar se prepara todo lo pendiente de una vez.
+            // El worker seguirá procesando una categoría por ciclo, pero no
+            // obliga al usuario a preparar lotes manuales de 20.
+            $state = self::prepare_lesson(0, true);
         }
         if (!$state['queue']) return new WP_Error('ingeniero_empty_queue', 'No hay categorías preparadas.');
 
