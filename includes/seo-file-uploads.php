@@ -35,8 +35,10 @@ function seo_taxonomy_upload_destination_is_allowed($directory) {
  * @param array  $allowed_mimes   Extensión => MIME.
  * @param string $preferred_name  Nombre final opcional.
  * @param bool   $sideload        true para ficheros recibidos por callbacks REST.
+ * @param bool   $validated_csv   true solo cuando el llamador ya ha validado
+ *                                estructura/cabecera de un CSV de texto.
  */
-function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $allowed_mimes, $preferred_name = '', $sideload = false) {
+function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $allowed_mimes, $preferred_name = '', $sideload = false, $validated_csv = false) {
     seo_taxonomy_require_file_api();
 
     if (empty($file['tmp_name']) || empty($file['name'])) {
@@ -66,12 +68,35 @@ function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $
 
     $check = wp_check_filetype_and_ext((string) $file['tmp_name'], $safe_name, $allowed_mimes);
     $extension = strtolower((string) pathinfo($safe_name, PATHINFO_EXTENSION));
-    if (
-        empty($check['ext'])
-        || empty($check['type'])
-        || !array_key_exists($extension, $allowed_mimes)
-    ) {
+    $type_check_ok = (
+        !empty($check['ext'])
+        && !empty($check['type'])
+        && array_key_exists($extension, $allowed_mimes)
+    );
+
+    /*
+     * Un CSV editorial puede contener HTML válido en columnas como description.
+     * En ese caso fileinfo/WordPress puede clasificar el fichero completo como
+     * text/html aunque su estructura sea CSV. Solo aceptamos esa discrepancia
+     * cuando el llamador ya ha validado explícitamente la cabecera y la entidad
+     * del CSV antes de entrar aquí.
+     */
+    $csv_type_fallback = (
+        !$type_check_ok
+        && $validated_csv
+        && 'csv' === $extension
+        && isset($allowed_mimes['csv'])
+    );
+
+    if (!$type_check_ok && !$csv_type_fallback) {
         return new WP_Error('seo_upload_type', __('El tipo de archivo no está permitido.', 'seo-taxonomy'));
+    }
+
+    if ($csv_type_fallback) {
+        $check = array(
+            'ext'  => 'csv',
+            'type' => 'text/csv',
+        );
     }
 
     $normalized = $file;
@@ -81,6 +106,15 @@ function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $
         'test_form' => false,
         'mimes' => $allowed_mimes,
     );
+
+    /*
+     * wp_handle_upload() repite la comprobación MIME. Si el CSV fue validado
+     * previamente por el importador y solo falló porque contiene HTML en una
+     * celda, evitamos repetir exactamente el mismo falso negativo.
+     */
+    if ($csv_type_fallback) {
+        $overrides['test_type'] = false;
+    }
 
     $handled = $sideload
         ? wp_handle_sideload($normalized, $overrides)
