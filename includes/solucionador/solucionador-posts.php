@@ -238,6 +238,58 @@ final class SEO_Solucionador_Posts {
         return $ok;
     }
 
+    private static function managed_post_id_by_category($category_id) {
+        $category_id = absint($category_id);
+        if (!$category_id) return 0;
+
+        $ids = get_posts(array(
+            'post_type'=>'post',
+            'post_status'=>array('draft','publish','future','pending','private'),
+            'posts_per_page'=>1,
+            'fields'=>'ids',
+            'orderby'=>'ID',
+            'order'=>'ASC',
+            'meta_key'=>self::META_DOSSIER_CATEGORY_ID,
+            'meta_value'=>$category_id,
+            'no_found_rows'=>true,
+        ));
+        return $ids ? absint($ids[0]) : 0;
+    }
+
+    public static function sync_category_post($category_id) {
+        $category_id = absint($category_id);
+        $post_id = self::managed_post_id_by_category($category_id);
+        if (!$post_id) return false;
+
+        $details = self::question_details($category_id);
+        if (!$details) return false;
+
+        $snapshot = self::dossier_snapshot($category_id,$details);
+        $new_hash = (string) ($snapshot['source_hash'] ?? '');
+        $old_hash = (string) get_post_meta($post_id,self::META_SOURCE_HASH,true);
+        if ($new_hash !== '' && $new_hash === $old_hash) return false;
+
+        $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
+        $topic = $topic_id ? (array) SEO_Solucionador_DB::get_topic($topic_id) : array();
+        $content = self::build_editorial_brief($topic_id,$topic,$category_id,$details);
+
+        $updated = wp_update_post(wp_slash(array(
+            'ID'=>$post_id,
+            'post_content'=>$content,
+        )),true);
+        if (is_wp_error($updated)) return $updated;
+
+        if ($topic) {
+            $vocab = self::assign_vocabulary($post_id,$topic,$category_id);
+            if (is_wp_error($vocab)) return $vocab;
+            $relations = self::assign_categories($post_id,$topic,$category_id);
+            if (is_wp_error($relations)) return $relations;
+        }
+
+        self::persist_source_snapshot($post_id,$snapshot);
+        return true;
+    }
+
     private static function json_material($value) {
         if ($value === null || $value === '' || $value === array()) {
             return '<p><em>No consta material almacenado en este campo.</em></p>';
