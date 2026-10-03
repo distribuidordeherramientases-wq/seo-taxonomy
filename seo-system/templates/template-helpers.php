@@ -2001,6 +2001,7 @@ if (!function_exists('dht_template_render_external_comments')) {
 
         $comment_count = count($valid);
         $summary_label = sprintf(
+            /* translators: %d: número de comentarios externos disponibles. */
             _n(
                 'Ver %d comentario externo',
                 'Ver %d comentarios externos',
