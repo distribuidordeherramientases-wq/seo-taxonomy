@@ -537,6 +537,12 @@ final class SEO_Ingeniero_Admin {
             echo '<td>';
             if ($post_id && 'post' === get_post_type($post_id)) {
                 echo '<a href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">#' . esc_html($post_id) . ' · ' . esc_html((string) get_post_status($post_id)) . '</a>';
+                $pending_updates = method_exists('SEO_Ingeniero_Posts','pending_count')
+                    ? SEO_Ingeniero_Posts::pending_count($post_id)
+                    : 0;
+                if ($pending_updates > 0) {
+                    echo '<br><a class="button button-small button-primary" style="margin-top:5px" href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">Revisar novedades (' . esc_html(number_format_i18n($pending_updates)) . ')</a>';
+                }
             } else {
                 echo '—';
             }
