@@ -391,6 +391,9 @@ final class SEO_Solucionador_Posts {
             return new WP_Error('solucionador_review_snapshot','No se pudo guardar el nuevo punto de control del dossier.');
         }
         self::clear_pending_questions($post_id);
+        if (class_exists('SEO_Solucionador_Dossiers')) {
+            SEO_Solucionador_Dossiers::mark_reviewed($category_id);
+        }
 
         $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
         if ($topic_id) {
