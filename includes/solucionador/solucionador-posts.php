@@ -264,14 +264,31 @@ final class SEO_Solucionador_Posts {
         $details = self::question_details($category_id);
         if (!$details) return false;
 
-        $snapshot = self::dossier_snapshot($category_id,$details);
-        $new_hash = (string) ($snapshot['source_hash'] ?? '');
-        $old_hash = (string) get_post_meta($post_id,self::META_SOURCE_HASH,true);
-        if ($new_hash !== '' && $new_hash === $old_hash) return false;
+        $stored_ids = array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array) get_post_meta($post_id,self::META_QUESTION_IDS,true)
+        ))));
+        $new_details = array();
+        foreach ($details as $row) {
+            $question_id = absint($row['question_id'] ?? 0);
+            if ($question_id && !in_array($question_id,$stored_ids,true)) {
+                $new_details[] = $row;
+            }
+        }
+        if (!$new_details) return false;
 
         $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
         $topic = $topic_id ? (array) SEO_Solucionador_DB::get_topic($topic_id) : array();
-        $content = self::build_editorial_brief($topic_id,$topic,$category_id,$details);
+        $post = get_post($post_id);
+        if (!$post instanceof WP_Post) return false;
+
+        $content = (string) $post->post_content;
+        $content .= ($content !== '' ? "\n\n" : '') . self::build_editorial_brief(
+            $topic_id,
+            $topic,
+            $category_id,
+            $new_details
+        );
 
         $updated = wp_update_post(wp_slash(array(
             'ID'=>$post_id,
@@ -286,6 +303,12 @@ final class SEO_Solucionador_Posts {
             if (is_wp_error($relations)) return $relations;
         }
 
+        $snapshot = self::dossier_snapshot($category_id,$details);
+        $snapshot['question_ids'] = array_values(array_unique(array_merge(
+            $stored_ids,
+            (array) ($snapshot['question_ids'] ?? array())
+        )));
+        $snapshot['question_count'] = count($snapshot['question_ids']);
         self::persist_source_snapshot($post_id,$snapshot);
         return true;
     }
