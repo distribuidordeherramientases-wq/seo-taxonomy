@@ -811,6 +811,15 @@ if (!function_exists('seo_page_edit_posts')) {
             if (!function_exists('seo_content_vocab_tables_ready') || !seo_content_vocab_tables_ready()) {
                 echo '<div class="notice notice-error inline"><p><strong>Vocabulary canonico no esta disponible.</strong> El guardado queda bloqueado para evitar volver a etiquetas WordPress.</p></div>';
             }
+
+            if (!$creating) {
+                /**
+                 * Permite a servicios editoriales (Solucionador, Ingeniero, etc.)
+                 * mostrar avisos/revisiones justo encima del formulario sin
+                 * mezclar contenido automático con post_content.
+                 */
+                do_action('seo_post_editor_before_form', $post_id);
+            }
             ?>
 
             <?php wp_enqueue_media(); ?>
