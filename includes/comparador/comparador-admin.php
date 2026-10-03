@@ -362,6 +362,13 @@ final class SEO_Comparador_Admin {
             echo '<td><a class="button" href="' . esc_url(self::url('comparisons',array('profile_id'=>absint($p['id'])))) . '">Abrir</a>';
             $row_map = SEO_Comparador_DB::post_map(absint($p['id']));
             $row_post_id = absint($row_map['post_id'] ?? 0);
+            if (
+                $row_post_id
+                && (string) ($p['status'] ?? '') === 'needs_update'
+                && method_exists('SEO_Comparador_Engine','sync_pending_update')
+            ) {
+                SEO_Comparador_Engine::sync_pending_update(absint($p['id']));
+            }
             $row_pending = $row_post_id && method_exists('SEO_Comparador_Engine','pending_count')
                 ? SEO_Comparador_Engine::pending_count($row_post_id)
                 : 0;
