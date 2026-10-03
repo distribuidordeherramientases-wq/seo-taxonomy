@@ -482,7 +482,7 @@ final class SEO_Solucionador_Dossiers {
             $parts[] = $title . ($reasons ? ' — ' . implode('; ', array_slice($reasons,0,3)) : '');
         }
         if ($parts) {
-            return 'Dependiente devolvió como respuesta: ' . implode(' | ', $parts) . '.';
+            return implode(' | ', $parts) . '.';
         }
 
         $meta = is_array($detail['response_meta'] ?? null) ? $detail['response_meta'] : array();
