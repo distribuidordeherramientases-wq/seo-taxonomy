@@ -859,21 +859,26 @@ final class SEO_Solucionador_Posts {
         if (!$topic_id) return;
 
         if ($new_status === 'publish') {
+            $pending = self::pending_question_count($post->ID);
+            $workflow_state = $pending > 0 ? 'needs_update' : 'monitoring';
+            $action = $pending > 0 ? 'IMPROVE_POST' : 'NO_ACTION';
             SEO_Solucionador_DB::update_topic($topic_id, array(
                 'status' => 'covered',
-                'workflow_state' => 'monitoring',
+                'workflow_state' => $workflow_state,
                 'coverage_status' => 'covered',
                 'existing_entity_type' => 'post',
                 'existing_entity_id' => absint($post->ID),
                 'existing_post_id' => absint($post->ID),
                 'draft_post_id' => absint($post->ID),
-                'recommended_action' => 'NO_ACTION',
+                'recommended_action' => $action,
             ));
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
-                'monitoring',
-                'Contenido publicado. Solucionador espera ahora resultados posteriores de Analista.',
-                'NO_ACTION'
+                $workflow_state,
+                $pending > 0
+                    ? 'Contenido publicado con novedades pendientes de revisión editorial.'
+                    : 'Contenido publicado. Solucionador espera ahora resultados posteriores de Analista.',
+                $action
             );
             return;
         }
