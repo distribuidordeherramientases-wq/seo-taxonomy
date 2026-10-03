@@ -235,7 +235,26 @@ final class SEO_Solucionador_Export {
             : array();
         foreach ($dossier_rows as &$dossier_row) {
             $dossier_row['question_ids'] = SEO_Solucionador_DB::decode_json($dossier_row['question_ids'] ?? '[]',array());
-            $dossier_row['note'] = 'Los resultados pesados de cada pregunta se cargan bajo demanda al abrir el brief.';
+
+            $questions = array();
+            $category_id = absint($dossier_row['category_id'] ?? 0);
+            if ($category_id && class_exists('SEO_Solucionador_Dossiers')) {
+                foreach ((array) SEO_Solucionador_Dossiers::question_details($category_id) as $detail) {
+                    $questions[] = array(
+                        'question_id'=>absint($detail['question_id'] ?? 0),
+                        'question'=>(string) ($detail['question'] ?? ''),
+                        'answer'=>SEO_Solucionador_Dossiers::answer_text((array) $detail),
+                        'question_type'=>(string) ($detail['question_type'] ?? ''),
+                        'editorial_value'=>(string) ($detail['editorial_value'] ?? 'practical_customer_value'),
+                        'validation'=>(string) ($detail['evaluation_status'] ?? ''),
+                        'score'=>(float) ($detail['evaluation_score'] ?? 0),
+                        'validated_at'=>(string) ($detail['observed_at'] ?? ''),
+                    );
+                }
+            }
+            $dossier_row['editorial_question_count'] = count($questions);
+            $dossier_row['questions'] = $questions;
+            $dossier_row['note'] = 'Incluye únicamente preguntas prácticas que pasan el filtro editorial; las preguntas definitorias/catalogales siguen en Academia pero no forman parte del dossier.';
         }
         unset($dossier_row);
 
