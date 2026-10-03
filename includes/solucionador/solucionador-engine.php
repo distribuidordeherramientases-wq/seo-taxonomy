@@ -41,7 +41,9 @@ final class SEO_Solucionador_Engine {
 
         $state = SEO_Solucionador_Dossiers::state();
         $has_dossiers = !empty($snapshot['categories_with_knowledge']);
-        $scan_complete = is_array($state)
+        $policy_current = is_array($state)
+            && (string) ($state['editorial_policy'] ?? '') === SEO_Solucionador_Dossiers::EDITORIAL_POLICY_VERSION;
+        $scan_complete = $policy_current
             && !empty($state['token'])
             && !empty($state['complete']);
 
@@ -73,7 +75,11 @@ final class SEO_Solucionador_Engine {
             }
 
             $state = SEO_Solucionador_Dossiers::state();
-            if (!$state || empty($state['token'])) {
+            if (
+                !$state
+                || empty($state['token'])
+                || (string) ($state['editorial_policy'] ?? '') !== SEO_Solucionador_Dossiers::EDITORIAL_POLICY_VERSION
+            ) {
                 SEO_Solucionador_Dossiers::reset_scan();
                 $state = SEO_Solucionador_Dossiers::state();
             } elseif (!empty($state['complete'])) {
@@ -115,8 +121,14 @@ final class SEO_Solucionador_Engine {
             if (empty($snapshot['available'])) return;
 
             $last_scan = get_option('seo_solucionador_last_scan', array());
+            $state = SEO_Solucionador_Dossiers::state();
+            $policy_mismatch = (string) ($state['editorial_policy'] ?? '') !== SEO_Solucionador_Dossiers::EDITORIAL_POLICY_VERSION;
             $needs_dossiers = !empty($snapshot['questions_total'])
-                && empty($snapshot['categories_with_knowledge']);
+                && (
+                    empty($snapshot['scan_complete'])
+                    || empty($snapshot['categories_with_knowledge'])
+                    || $policy_mismatch
+                );
 
             if ($needs_dossiers && is_array($last_scan) && !empty($last_scan['complete'])) {
                 delete_option('seo_solucionador_last_scan');
@@ -139,14 +151,23 @@ final class SEO_Solucionador_Engine {
                 return;
             }
 
-            // Ejecuta el pipeline completo: Academia -> dossiers -> cobertura
-            // -> propuestas editoriales. scan() conserva cursores, por lo que el
-            // trabajo es reanudable sin exigir lotes manuales en la interfaz.
-            $result = self::scan(180, 250);
-            if (is_wp_error($result)) return;
+            // Prioridad 1: terminar Academia. Mientras esa fase siga abierta se
+            // consumen varios lotes de 500 por ejecución, con presupuesto de
+            // tiempo, para no tardar horas en completar decenas de miles de
+            // preguntas. La fase editorial vuelve al ritmo normal después.
+            $started = microtime(true);
+            $result = array();
+            for ($i = 0; $i < 4; $i++) {
+                $result = self::scan(180, 500);
+                if (is_wp_error($result)) return;
+                if (!empty($result['complete'])) break;
+                if ((string) ($result['phase'] ?? '') !== 'academia_dossiers') break;
+                if ((microtime(true) - $started) >= 18) break;
+            }
 
             if (empty($result['complete']) && !wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
-                wp_schedule_single_event(time() + 30, self::AUTO_REFRESH_STEP_HOOK);
+                $delay = ((string) ($result['phase'] ?? '') === 'academia_dossiers') ? 5 : 30;
+                wp_schedule_single_event(time() + $delay, self::AUTO_REFRESH_STEP_HOOK);
             }
         } finally {
             delete_transient($lock_key);
@@ -222,7 +243,7 @@ final class SEO_Solucionador_Engine {
             $name = self::category_name(absint($profile['category_id']));
             if ($name === '') $name = trim((string) ($profile['object'] ?? ''));
             if ($name !== '') {
-                return 'Preguntas y respuestas acerca de ' . $name;
+                return 'Guía práctica de ' . $name . ': elección, uso y errores habituales';
             }
         }
         return SEO_Solucionador_Normalizer::suggested_title($profile);
@@ -324,9 +345,12 @@ final class SEO_Solucionador_Engine {
         );
     }
 
+    public static function minimum_academy_questions() {
+        return max(1, absint(apply_filters('seo_solucionador_min_academy_questions', 3)));
+    }
+
     private static function evidence_gate(array $stats) {
-        $minimum = max(1, absint(apply_filters('seo_solucionador_min_academy_questions', 3)));
-        return absint($stats['dependiente'] ?? 0) >= $minimum;
+        return absint($stats['dependiente'] ?? 0) >= self::minimum_academy_questions();
     }
 
     private static function category_product_count($term_id) {

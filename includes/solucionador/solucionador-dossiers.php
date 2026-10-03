@@ -11,6 +11,7 @@ defined('ABSPATH') || exit;
 final class SEO_Solucionador_Dossiers {
     const STATE_OPTION = 'seo_solucionador_academia_scan_state';
     const DEFAULT_BATCH = 150;
+    const EDITORIAL_POLICY_VERSION = 'v2-useful-questions';
 
     private static function questions_table() {
         global $wpdb;
@@ -30,6 +31,59 @@ final class SEO_Solucionador_Dossiers {
         if (is_array($value)) return $value;
         $decoded = json_decode((string) $value, true);
         return is_array($decoded) ? $decoded : array();
+    }
+
+    private static function normalized_question($text) {
+        $text = strtolower(remove_accents(wp_strip_all_tags((string) $text)));
+        $text = preg_replace('/[^a-z0-9]+/u', ' ', $text);
+        return trim((string) preg_replace('/\s+/u', ' ', (string) $text));
+    }
+
+    /**
+     * Separa entrenamiento útil para Dependiente de contenido publicable.
+     * Las preguntas triviales siguen existiendo en Academia; simplemente no
+     * cuentan para la masa editorial ni entran en los posts de Solucionador.
+     */
+    public static function editorial_question_value(array $row) {
+        $question = self::normalized_question($row['question'] ?? '');
+        $type = sanitize_key((string) ($row['question_type'] ?? ''));
+
+        if ($question === '') {
+            return array('eligible'=>false,'reason'=>'empty_question');
+        }
+
+        $trivial_types = array(
+            'category_identity',
+            'category_identity_fallback',
+            'category_inventory',
+            'category_listing',
+            'category_membership',
+            'product_identity',
+            'product_identity_fallback',
+            'product_listing',
+        );
+        if (in_array($type, $trivial_types, true)) {
+            return array('eligible'=>false,'reason'=>'training_identity_or_catalog');
+        }
+
+        $patterns = array(
+            '/^que es (esta |esa |la |una |un )?categoria\b/',
+            '/^que define (esta |esa |la )?categoria\b/',
+            '/^como se define (esta |esa |la )?categoria\b/',
+            '/^que productos( del catalogo)? (pertenecen|estan asignados|forman parte|hay|incluye|incluyen|contiene|contienen)\b.*\bcategoria\b/',
+            '/^que productos (incluye|contiene|hay en|forman parte de)\b/',
+            '/^cuales son los productos( del catalogo)? (de|en|pertenecientes a)\b.*\bcategoria\b/',
+            '/^que articulos( del catalogo)? (pertenecen|hay|incluye|contiene)\b.*\bcategoria\b/',
+            '/^que contiene (esta |esa |la )?categoria\b/',
+            '/^lista(r)? (los )?(productos|articulos)\b.*\bcategoria\b/',
+        );
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $question)) {
+                return array('eligible'=>false,'reason'=>'catalog_or_definition_question');
+            }
+        }
+
+        return array('eligible'=>true,'reason'=>'practical_customer_value');
     }
 
     private static function valid_category_ids(array $ids) {
@@ -101,9 +155,12 @@ final class SEO_Solucionador_Dossiers {
     private static function fresh_state() {
         return array(
             'token'=>wp_generate_uuid4(),
+            'editorial_policy'=>self::EDITORIAL_POLICY_VERSION,
             'cursor'=>0,
             'processed'=>0,
             'learned'=>0,
+            'editorial_eligible'=>0,
+            'editorial_discarded'=>0,
             'learned_with_category'=>0,
             'learned_without_category'=>0,
             'errors'=>0,
@@ -121,8 +178,31 @@ final class SEO_Solucionador_Dossiers {
     }
 
     public static function reset_scan() {
+        global $wpdb;
         $state = self::fresh_state();
         update_option(self::STATE_OPTION, $state, false);
+
+        // Al cambiar de política editorial no se mezclan IDs antiguos con el
+        // nuevo filtro. Se conserva el inventario de categorías, pero se vacía
+        // temporalmente su conocimiento hasta reconstruirlo desde Academia.
+        $table = SEO_Solucionador_DB::dossiers_table();
+        if (SEO_Solucionador_DB::table_exists($table)) {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE %i
+                     SET question_count=0,
+                         question_ids='[]',
+                         score_avg=0,
+                         last_validated_at=NULL,
+                         source_hash='',
+                         scan_token=%s,
+                         updated_at=%s",
+                    $table,
+                    (string) $state['token'],
+                    current_time('mysql')
+                )
+            );
+        }
         return $state;
     }
 
@@ -295,7 +375,12 @@ final class SEO_Solucionador_Dossiers {
 
         $limit = max(25, min(500, absint($limit)));
         $state = self::state();
-        if ($reset || !$state || empty($state['token'])) {
+        if (
+            $reset
+            || !$state
+            || empty($state['token'])
+            || (string) ($state['editorial_policy'] ?? '') !== self::EDITORIAL_POLICY_VERSION
+        ) {
             $state = self::reset_scan();
         }
 
@@ -342,6 +427,13 @@ final class SEO_Solucionador_Dossiers {
             if (!$learned) continue;
 
             $state['learned'] = absint($state['learned'] ?? 0) + 1;
+
+            $editorial_value = self::editorial_question_value($row);
+            if (empty($editorial_value['eligible'])) {
+                $state['editorial_discarded'] = absint($state['editorial_discarded'] ?? 0) + 1;
+                continue;
+            }
+            $state['editorial_eligible'] = absint($state['editorial_eligible'] ?? 0) + 1;
 
             try {
                 $category_ids = self::category_ids($row);
@@ -438,6 +530,9 @@ final class SEO_Solucionador_Dossiers {
             'processed'=>absint($state['processed'] ?? 0),
             'learned'=>absint($state['learned'] ?? 0),
             'not_learned'=>max(0,absint($state['processed'] ?? 0)-absint($state['learned'] ?? 0)),
+            'editorial_policy'=>(string) ($state['editorial_policy'] ?? ''),
+            'editorial_eligible'=>absint($state['editorial_eligible'] ?? 0),
+            'editorial_discarded'=>absint($state['editorial_discarded'] ?? 0),
             'learned_with_category'=>absint($state['learned_with_category'] ?? 0),
             'learned_without_category'=>absint($state['learned_without_category'] ?? 0),
             'categories_with_knowledge'=>$categories_with,
@@ -541,10 +636,14 @@ final class SEO_Solucionador_Dossiers {
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql,$ids),ARRAY_A);
         $out = array();
         foreach ($rows as $row) {
+            $editorial_value = self::editorial_question_value($row);
+            if (empty($editorial_value['eligible'])) continue;
+
             $out[] = array(
                 'question_id'=>absint($row['question_id'] ?? 0),
                 'question'=>sanitize_text_field((string) ($row['question'] ?? '')),
                 'question_type'=>sanitize_key((string) ($row['question_type'] ?? '')),
+                'editorial_value'=>(string) ($editorial_value['reason'] ?? 'practical_customer_value'),
                 'lesson_key'=>sanitize_key((string) ($row['lesson_key'] ?? '')),
                 'source_type'=>sanitize_key((string) ($row['source_type'] ?? '')),
                 'source_id'=>absint($row['source_id'] ?? 0) ?: null,
