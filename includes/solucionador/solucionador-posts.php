@@ -472,11 +472,11 @@ final class SEO_Solucionador_Posts {
         $term = $category_id ? get_term($category_id, 'product_cat') : null;
         $name = ($term && !is_wp_error($term)) ? trim((string) $term->name) : '';
         if ($name === '') {
-            return 'Preguntas y respuestas prácticas basadas en las dudas habituales de los usuarios.';
+            return 'Guía práctica basada en dudas reales de cliente sobre elección, uso y errores habituales.';
         }
 
         return sprintf(
-            'Preguntas y respuestas sobre %s, reunidas a partir de las dudas habituales de los usuarios para facilitar la elección y el uso.',
+            'Guía práctica de %s basada en preguntas útiles de clientes sobre elección, uso, compatibilidad y errores habituales.',
             $name
         );
     }
@@ -509,6 +509,16 @@ final class SEO_Solucionador_Posts {
             return $existing_draft;
         }
 
+        $academy = class_exists('SEO_Solucionador_Dossiers')
+            ? SEO_Solucionador_Dossiers::snapshot()
+            : array();
+        if (empty($academy['scan_complete'])) {
+            return new WP_Error(
+                'solucionador_academy_scan_incomplete',
+                'Academia todavía no ha terminado de escanearse. Solucionador no crea borradores hasta completar todas las preguntas.'
+            );
+        }
+
         $title = sanitize_text_field((string) ($topic['suggested_title'] ?? ''));
         if ($title === '') return new WP_Error('solucionador_title_missing', 'La propuesta no tiene titulo.');
         if (!$human_override && strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
@@ -523,8 +533,18 @@ final class SEO_Solucionador_Posts {
         }
 
         $requirements = SEO_Solucionador_DB::decision_requirements($topic);
+
+        // La masa de Academia es una regla estricta: ni la interfaz simple ni
+        // una aprobación humana pueden saltársela.
+        if (isset($requirements['academy_mass']) && empty($requirements['academy_mass']['pass'])) {
+            return new WP_Error(
+                'solucionador_academy_mass',
+                'El dossier no alcanza todavía la masa mínima de preguntas útiles de Academia.'
+            );
+        }
+
         if (!$human_override) {
-            foreach (array('academy_mass','category_identified','coverage_reviewed','duplication_below_threshold') as $requirement) {
+            foreach (array('category_identified','coverage_reviewed','duplication_below_threshold') as $requirement) {
                 if (isset($requirements[$requirement]) && empty($requirements[$requirement]['pass'])) {
                     return new WP_Error(
                         'solucionador_requirement_block',
@@ -551,10 +571,11 @@ final class SEO_Solucionador_Posts {
         }
 
         $details = self::question_details($primary_category_id);
-        if (!$details) {
+        $minimum = SEO_Solucionador_Engine::minimum_academy_questions();
+        if (count((array) $details) < $minimum) {
             return new WP_Error(
                 'solucionador_question_material_missing',
-                'El dossier ya no contiene preguntas pass_* con evidencia de su último entrenamiento. Reanaliza antes de crear el borrador.'
+                'El dossier no contiene todavía suficientes preguntas prácticas y no triviales para justificar un post.'
             );
         }
         $snapshot = self::dossier_snapshot($primary_category_id,$details);
