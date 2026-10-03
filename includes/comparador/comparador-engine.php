@@ -1153,6 +1153,7 @@ final class SEO_Comparador_Engine {
         $profile_id = absint(get_post_meta($post_id, '_seo_comparador_profile_id', true));
         if (!$post_id || !$profile_id || get_post_type($post_id) !== 'post') return;
 
+        self::sync_pending_update($profile_id);
         $pending = get_post_meta($post_id, self::META_PENDING_PAYLOAD, true);
         $count = self::pending_count($post_id);
         $state = sanitize_key((string) ($_GET['comparador_update'] ?? ''));
