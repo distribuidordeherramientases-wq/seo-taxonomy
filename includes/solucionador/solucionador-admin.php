@@ -353,7 +353,7 @@ final class SEO_Solucionador_Admin {
 
         $dossiers = SEO_Solucionador_DB::dossiers_table();
         $total = SEO_Solucionador_DB::table_exists($dossiers)
-            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$dossiers} WHERE question_count>0 AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)"))
+            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$dossiers} WHERE (rejected_source_hash='' OR rejected_source_hash<>source_hash)"))
             : 0;
 
         $category_meta = SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID;
@@ -392,14 +392,19 @@ final class SEO_Solucionador_Admin {
         $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
 
         echo '<div class="seo-sol-grid">';
-        self::card('Posts propuestos', $counts['proposed'], 'Pendientes de convertir en borrador.');
+        self::card('Posts propuestos', $counts['proposed'], 'Una propuesta por product_cat; si aún no hay preguntas, queda esperando aprendizaje.');
         self::card('Borradores', $counts['drafts'], 'Ya convertidos y pendientes de edición/publicación.');
         self::card('Publicados', $counts['published'], 'Posts creados por Solucionador que ya están publicados.');
         echo '</div>';
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
         echo '<h2 style="margin-top:0">Estado</h2>';
-        echo '<p><strong>' . esc_html(number_format_i18n($counts['total'])) . '</strong> categorías tienen actualmente una propuesta de contenido basada en conocimiento aprendido.</p>';
+        $categories_total = absint($academy['categories_total'] ?? 0);
+        $with_knowledge = absint($academy['categories_with_knowledge'] ?? 0);
+        $without_knowledge = max(0, $categories_total - $with_knowledge);
+        echo '<p><strong>' . esc_html(number_format_i18n($categories_total)) . '</strong> categorías de producto están inventariadas en Solucionador. '
+            . '<strong>' . esc_html(number_format_i18n($with_knowledge)) . '</strong> tienen preguntas aprendidas y '
+            . '<strong>' . esc_html(number_format_i18n($without_knowledge)) . '</strong> están esperando aprendizaje.</p>';
         if (!empty($academy['updated_at'])) {
             echo '<p class="description">Conocimiento sincronizado automáticamente. Última actualización interna: ' . esc_html((string) $academy['updated_at']) . '.</p>';
         } else {
@@ -447,14 +452,14 @@ final class SEO_Solucionador_Admin {
 
         $per_page = 50;
         $page = max(1, absint($_GET['sol_page'] ?? 1));
-        $total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE question_count>0 AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)"));
+        $total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE (rejected_source_hash='' OR rejected_source_hash<>source_hash)"));
         $pages = max(1, (int) ceil($total / $per_page));
         if ($page > $pages) $page = $pages;
         $offset = ($page - 1) * $per_page;
 
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE question_count>0 AND (rejected_source_hash='' OR rejected_source_hash<>source_hash) ORDER BY category_name ASC,id ASC LIMIT %d OFFSET %d",
+                "SELECT * FROM {$table} WHERE (rejected_source_hash='' OR rejected_source_hash<>source_hash) ORDER BY category_name ASC,id ASC LIMIT %d OFFSET %d",
                 $per_page,
                 $offset
             ),
@@ -463,7 +468,7 @@ final class SEO_Solucionador_Admin {
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
         echo '<h2 style="margin-top:0">Diagnóstico editorial</h2>';
-        echo '<p>Solucionador propone un post por categoría con conocimiento aprendido. Las preguntas y respuestas no se muestran aquí: al convertir una propuesta se copian automáticamente al contenido del borrador.</p>';
+        echo '<p>Solucionador inventaría todas las categorías de producto. Las que ya tienen conocimiento aprendido pueden convertirse en borrador; las que todavía tienen 0 preguntas permanecen visibles esperando aprendizaje.</p>';
         echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Título propuesto</th><th>Preguntas</th><th>Estado</th><th>Acción</th></tr></thead><tbody>';
 
         if (!$rows) {
@@ -475,15 +480,21 @@ final class SEO_Solucionador_Admin {
             if (!$category_id) continue;
             $topic = self::simple_topic_for_category($category_id);
             $state = self::simple_proposal_state($topic);
+            $question_count = absint($dossier['question_count'] ?? 0);
+            if ($question_count < 1 && $state['status'] === 'pending') {
+                $state = array('label'=>'Esperando aprendizaje','post_id'=>0,'status'=>'waiting');
+            }
             $title = self::simple_proposal_title($dossier,$topic);
 
             echo '<tr>';
             echo '<td><strong>' . esc_html($title) . '</strong><br><span class="description">' . esc_html((string) ($dossier['category_name'] ?? '')) . '</span></td>';
-            echo '<td>' . esc_html(number_format_i18n(absint($dossier['question_count'] ?? 0))) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n($question_count)) . '</td>';
             echo '<td><strong>' . esc_html($state['label']) . '</strong></td>';
             echo '<td>';
             if ($state['status'] === 'pending') {
                 self::proposal_action_form($category_id);
+            } elseif ($state['status'] === 'waiting') {
+                echo '<span class="description">Sin preguntas aprendidas todavía</span>';
             } elseif (!empty($state['post_id'])) {
                 echo '<span class="description">Convertido</span> ';
                 echo '<a class="button button-small" href="' . esc_url(SEO_Solucionador_Posts::edit_url($state['post_id'])) . '">Abrir</a>';
