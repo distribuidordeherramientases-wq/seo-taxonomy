@@ -35,11 +35,21 @@ final class SEO_Solucionador_Engine {
         if (!class_exists('SEO_Solucionador_Dossiers')) return array();
 
         $snapshot = SEO_Solucionador_Dossiers::snapshot();
-        if (
-            empty($snapshot['available'])
-            || empty($snapshot['questions_total'])
-            || !empty($snapshot['categories_with_knowledge'])
-        ) {
+        if (empty($snapshot['available']) || empty($snapshot['questions_total'])) {
+            return $snapshot;
+        }
+
+        $state = SEO_Solucionador_Dossiers::state();
+        $has_dossiers = !empty($snapshot['categories_with_knowledge']);
+        $scan_complete = is_array($state)
+            && !empty($state['token'])
+            && !empty($state['complete']);
+
+        // Si el inventario ya terminó, abrir Solucionador no debe reiniciarlo.
+        // Mientras siga incompleto, cada carga procesa otro lote aunque ya
+        // existan dossiers: evita quedarse detenido tras las primeras 500
+        // preguntas cuando WP-Cron no ejecuta la continuación.
+        if ($has_dossiers && $scan_complete) {
             return $snapshot;
         }
 
@@ -48,21 +58,35 @@ final class SEO_Solucionador_Engine {
         set_transient($lock_key, 1, MINUTE_IN_SECONDS);
 
         try {
-            // Un resultado previo marcado como completo no debe bloquear el
-            // bootstrap si actualmente no existe ningún dossier utilizable.
             $last_scan = get_option('seo_solucionador_last_scan', array());
-            if (is_array($last_scan) && !empty($last_scan['complete'])) {
+
+            // Solo se invalida un cierre anterior si el estado de dossiers aún
+            // no está completo o si no existe ningún dossier utilizable.
+            if (
+                is_array($last_scan)
+                && !empty($last_scan['complete'])
+                && (!$scan_complete || !$has_dossiers)
+            ) {
                 delete_option('seo_solucionador_last_scan');
                 delete_option(self::EDITORIAL_SCAN_OPTION);
+                $last_scan = array();
             }
 
             $state = SEO_Solucionador_Dossiers::state();
-            if (!$state || empty($state['token']) || !empty($state['complete'])) {
+            if (!$state || empty($state['token'])) {
                 SEO_Solucionador_Dossiers::reset_scan();
+                $state = SEO_Solucionador_Dossiers::state();
+            } elseif (!empty($state['complete'])) {
+                // Un estado completo con cero dossiers es incoherente si hay
+                // preguntas de Academia: reinicia el cursor para reconstruir.
+                if (!$has_dossiers) {
+                    SEO_Solucionador_Dossiers::reset_scan();
+                    $state = SEO_Solucionador_Dossiers::state();
+                } else {
+                    return $snapshot;
+                }
             }
 
-            // Primera carga real, limitada: permite que PRO deje de mostrar 0
-            // sin esperar a que WP-Cron ejecute el primer paso.
             $result = SEO_Solucionador_Dossiers::scan_batch(
                 max(25, min(500, absint($batch_size))),
                 false
