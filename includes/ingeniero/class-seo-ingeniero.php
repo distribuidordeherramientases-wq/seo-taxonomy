@@ -704,7 +704,16 @@ final class SEO_Ingeniero {
                 $proposals[] = array('error'=>$id->get_error_message(),'topic_key'=>$topic_key);
                 continue;
             }
-            $proposals[] = SEO_Ingeniero_DB::editorial_get($id);
+            $saved_dossier = SEO_Ingeniero_DB::editorial_get($id);
+            if (
+                !empty($saved_dossier['post_id'])
+                && class_exists('SEO_Ingeniero_Posts')
+                && method_exists('SEO_Ingeniero_Posts','sync_pending_update')
+            ) {
+                SEO_Ingeniero_Posts::sync_pending_update($id);
+                $saved_dossier = SEO_Ingeniero_DB::editorial_get($id);
+            }
+            $proposals[] = $saved_dossier;
         }
 
         $existing_rows = SEO_Ingeniero_DB::editorial_rows(array('term_id'=>$term_id,'page'=>1,'per_page'=>100));
