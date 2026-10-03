@@ -354,18 +354,33 @@ final class SEO_Solucionador_Posts {
         update_post_meta($post_id,self::META_PENDING_SOURCE_HASH,(string)($dossier['source_hash'] ?? ''));
         update_post_meta($post_id,self::META_PENDING_DETECTED_AT,current_time('mysql'));
 
+        // Si aparecen preguntas nuevas, el contenido necesita una nueva
+        // revisión editorial. Un post publicado/programado no puede seguir
+        // visible como definitivo mientras Solucionador tiene novedades
+        // pendientes: vuelve automáticamente a borrador.
+        $previous_status = (string) get_post_status($post_id);
+        if ($previous_status !== 'draft' && $previous_status !== 'trash') {
+            $status_update = wp_update_post(array(
+                'ID'=>$post_id,
+                'post_status'=>'draft',
+            ), true);
+            if (is_wp_error($status_update)) {
+                return $status_update;
+            }
+        }
+
         $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
         if ($topic_id) {
             SEO_Solucionador_DB::update_topic($topic_id,array(
                 'workflow_state'=>'needs_update',
                 'recommended_action'=>'IMPROVE_POST',
-                'decision_reason'=>'Academia ha aportado nuevas preguntas útiles; la Editora debe revisar si se incorporan al contenido existente.',
+                'decision_reason'=>'Academia ha aportado nuevas preguntas útiles; el post se ha devuelto a borrador y la Editora debe revisar si se incorporan al contenido existente.',
             ));
             if ($old_pending !== $pending_ids) {
                 SEO_Solucionador_DB::record_workflow(
                     $topic_id,
                     'needs_update',
-                    'Nuevas preguntas de Academia detectadas para revisión editorial. El post_content no se modifica automáticamente.',
+                    'Nuevas preguntas de Academia detectadas para revisión editorial. El post se devuelve a borrador; las novedades se muestran encima del editor y el post_content no se sobrescribe automáticamente.',
                     'IMPROVE_POST'
                 );
             }
@@ -440,7 +455,7 @@ final class SEO_Solucionador_Posts {
         echo '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">';
         echo '<div><h2 style="margin:0 0 6px">Solucionador · revisión de nuevas preguntas</h2>';
         if ($count) {
-            echo '<p style="margin:0"><strong>' . esc_html(number_format_i18n($count)) . ' preguntas/respuestas nuevas</strong> detectadas desde la última revisión. No se han añadido automáticamente al contenido.</p>';
+            echo '<p style="margin:0"><strong>' . esc_html(number_format_i18n($count)) . ' preguntas/respuestas nuevas</strong> detectadas desde la última revisión. El post se mantiene en <strong>borrador</strong> hasta que la Editora las revise; las novedades aparecen aquí encima del contenido y no sobrescriben el texto ya editado.</p>';
             if ($detected_at !== '') {
                 echo '<p class="description" style="margin:4px 0 0">Detectadas: ' . esc_html($detected_at) . '</p>';
             }
