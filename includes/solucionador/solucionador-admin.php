@@ -282,6 +282,17 @@ final class SEO_Solucionador_Admin {
         if (!current_user_can('manage_options')) return;
         SEO_Solucionador_DB::maybe_install();
         if (class_exists('SEO_Solucionador_Engine')) {
+            // Si Dependiente/Academia tiene conocimiento pero Solucionador aún
+            // no ha construido ningún dossier, procesa un primer lote ahora.
+            // Así PRO no queda bloqueado en 0 esperando exclusivamente a WP-Cron.
+            $bootstrap = SEO_Solucionador_Engine::bootstrap_if_empty(500);
+            if (is_wp_error($bootstrap)) {
+                set_transient(
+                    'seo_solucionador_notice_' . get_current_user_id(),
+                    $bootstrap->get_error_message(),
+                    90
+                );
+            }
             SEO_Solucionador_Engine::kick_automatic_refresh();
         }
 

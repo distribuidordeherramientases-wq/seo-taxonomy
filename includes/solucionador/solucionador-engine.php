@@ -31,6 +31,54 @@ final class SEO_Solucionador_Engine {
         }
     }
 
+    public static function bootstrap_if_empty($batch_size = 500) {
+        if (!class_exists('SEO_Solucionador_Dossiers')) return array();
+
+        $snapshot = SEO_Solucionador_Dossiers::snapshot();
+        if (
+            empty($snapshot['available'])
+            || empty($snapshot['questions_total'])
+            || !empty($snapshot['categories_with_knowledge'])
+        ) {
+            return $snapshot;
+        }
+
+        $lock_key = 'seo_solucionador_bootstrap_lock';
+        if (get_transient($lock_key)) return $snapshot;
+        set_transient($lock_key, 1, MINUTE_IN_SECONDS);
+
+        try {
+            // Un resultado previo marcado como completo no debe bloquear el
+            // bootstrap si actualmente no existe ningún dossier utilizable.
+            $last_scan = get_option('seo_solucionador_last_scan', array());
+            if (is_array($last_scan) && !empty($last_scan['complete'])) {
+                delete_option('seo_solucionador_last_scan');
+                delete_option(self::EDITORIAL_SCAN_OPTION);
+            }
+
+            $state = SEO_Solucionador_Dossiers::state();
+            if (!$state || empty($state['token']) || !empty($state['complete'])) {
+                SEO_Solucionador_Dossiers::reset_scan();
+            }
+
+            // Primera carga real, limitada: permite que PRO deje de mostrar 0
+            // sin esperar a que WP-Cron ejecute el primer paso.
+            $result = SEO_Solucionador_Dossiers::scan_batch(
+                max(25, min(500, absint($batch_size))),
+                false
+            );
+            if (is_wp_error($result)) return $result;
+
+            if (empty($result['scan_complete']) && !wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
+                wp_schedule_single_event(time() + 5, self::AUTO_REFRESH_STEP_HOOK);
+            }
+
+            return $result;
+        } finally {
+            delete_transient($lock_key);
+        }
+    }
+
     public static function automatic_refresh() {
         if (!class_exists('SEO_Solucionador_Dossiers')) return;
 
@@ -43,8 +91,23 @@ final class SEO_Solucionador_Engine {
             if (empty($snapshot['available'])) return;
 
             $last_scan = get_option('seo_solucionador_last_scan', array());
+            $needs_dossiers = !empty($snapshot['questions_total'])
+                && empty($snapshot['categories_with_knowledge']);
+
+            if ($needs_dossiers && is_array($last_scan) && !empty($last_scan['complete'])) {
+                delete_option('seo_solucionador_last_scan');
+                delete_option(self::EDITORIAL_SCAN_OPTION);
+
+                $state = SEO_Solucionador_Dossiers::state();
+                if (!$state || empty($state['token']) || !empty($state['complete'])) {
+                    SEO_Solucionador_Dossiers::reset_scan();
+                }
+                $last_scan = array();
+            }
+
             if (
-                is_array($last_scan)
+                !$needs_dossiers
+                && is_array($last_scan)
                 && !empty($last_scan['complete'])
                 && !empty($last_scan['at'])
                 && (time() - absint($last_scan['at'])) < 6 * HOUR_IN_SECONDS
