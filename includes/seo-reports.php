@@ -2528,25 +2528,22 @@ function seo_delete_empty_product_categories_handler() {
             continue;
         }
 
-        // WordPress se encarga de term_taxonomy, termmeta y relaciones estándar.
-        $result = wp_delete_term($term_id, 'product_cat');
+        /*
+         * Borrado canónico:
+         * - exige Hub secundario publicado único;
+         * - elimina la product_cat mediante WordPress/WooCommerce;
+         * - crea/actualiza el 301 al Hub secundario por Data Layer;
+         * - limpia relaciones, nodos, Vocabulary y FAQs por Data Layer.
+         */
+        $result = seo_delete_product_category_with_hub_redirect(
+            $term_id,
+            'seo_reports'
+        );
 
-        if (!$result || is_wp_error($result)) {
+        if (is_wp_error($result)) {
             $skipped++;
+            error_log('[SEO Reports] Categoría #' . $term_id . ' no eliminada: ' . $result->get_error_message());
             continue;
-        }
-
-        // Limpia nuestras tablas únicamente mediante SEO Data Layer.
-        try {
-            $cleanup = seo_reports_cleanup_deleted_category_data($term_id, $faq_table);
-            $relations_deleted += (int) ($cleanup['relations'] ?? 0);
-            $nodes_deleted += (int) ($cleanup['nodes'] ?? 0);
-            $vocabulary_deleted += (int) ($cleanup['vocabulary'] ?? 0);
-            $faqs_deleted += (int) ($cleanup['faqs'] ?? 0);
-        } catch (Throwable $e) {
-            // La categoría WordPress ya fue eliminada. Dejamos el residuo visible
-            // para que la auditoría pueda detectarlo en lugar de ejecutar SQL directo.
-            error_log('[SEO Reports] Limpieza Data Layer de categoría #' . $term_id . ': ' . $e->getMessage());
         }
 
         $deleted++;
