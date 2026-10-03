@@ -47,7 +47,7 @@ if (!function_exists('seo_classifier_google_schema_stream_close')) {
      */
     function seo_classifier_google_schema_stream_close($handle) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por fputcsv/fgetcsv.
-        return seo_classifier_google_schema_stream_close($handle);
+        return fclose($handle);
     }
 }
 
