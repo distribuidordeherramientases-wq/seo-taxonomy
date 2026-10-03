@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero {
-    const VERSION = '0.3.0';
+    const VERSION = '0.3.2';
     const STATE_OPTION = 'seo_ingeniero_state_v1';
     const CATEGORY_STATE_OPTION = 'seo_ingeniero_category_state_v1';
     const LESSON_TECHNICAL = 'l1_technical';
