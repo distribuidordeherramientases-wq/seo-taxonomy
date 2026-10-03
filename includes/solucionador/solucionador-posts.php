@@ -94,28 +94,32 @@ final class SEO_Solucionador_Posts {
 
     private static function vocabulary_ids_by_group(array $topic, $category_id = 0) {
         $proposal = SEO_Solucionador_DB::proposed_vocabulary($topic);
+        $canonical = self::canonical_category_vocabulary($category_id);
         $out = array();
         $groups = function_exists('seo_content_vocab_groups')
             ? array_keys(seo_content_vocab_groups())
             : array('rol','tipo','aplicacion','plataforma','subtipo');
+
         foreach ($groups as $group) {
-            $out[$group] = array();
-            foreach ((array) ($proposal[$group] ?? array()) as $row) {
-                if (is_array($row) && !empty($row['id'])) $out[$group][] = absint($row['id']);
+            // La product_cat es la fuente principal: el post hereda exactamente
+            // su Vocabulary canonico cuando existe para este grupo.
+            $ids = array_values(array_unique(array_filter(array_map(
+                'absint',
+                (array) ($canonical[$group] ?? array())
+            ))));
+
+            // Si la categoria aun no tiene datos para un grupo concreto,
+            // usamos como respaldo la propuesta aprendida por Solucionador.
+            if (!$ids) {
+                foreach ((array) ($proposal[$group] ?? array()) as $row) {
+                    if (is_array($row) && !empty($row['id'])) $ids[] = absint($row['id']);
+                }
+                $ids = array_values(array_unique(array_filter($ids)));
             }
+
+            $out[$group] = $ids;
         }
 
-        // La product_cat que origina el dossier manda: se incorporan siempre
-        // sus asignaciones canonicas disponibles, aunque no hayan quedado entre
-        // las propuestas puntuadas del analisis.
-        foreach (self::canonical_category_vocabulary($category_id) as $group=>$ids) {
-            if (!isset($out[$group])) $out[$group] = array();
-            $out[$group] = array_merge($out[$group], (array) $ids);
-        }
-
-        foreach ($out as $group=>$ids) {
-            $out[$group] = array_values(array_unique(array_filter(array_map('absint',$ids))));
-        }
         return $out;
     }
 
@@ -463,6 +467,20 @@ final class SEO_Solucionador_Posts {
         return $html . '</ul>';
     }
 
+    private static function build_excerpt($category_id) {
+        $category_id = absint($category_id);
+        $term = $category_id ? get_term($category_id, 'product_cat') : null;
+        $name = ($term && !is_wp_error($term)) ? trim((string) $term->name) : '';
+        if ($name === '') {
+            return 'Preguntas y respuestas prácticas basadas en las dudas habituales de los usuarios.';
+        }
+
+        return sprintf(
+            'Preguntas y respuestas sobre %s, reunidas a partir de las dudas habituales de los usuarios para facilitar la elección y el uso.',
+            $name
+        );
+    }
+
     private static function build_editorial_brief($topic_id, array $topic, $category_id, array $details) {
         $html = '<ul>';
 
@@ -550,7 +568,7 @@ final class SEO_Solucionador_Posts {
             'post_status' => 'draft',
             'post_title' => $title,
             'post_content' => $brief_content,
-            'post_excerpt' => '',
+            'post_excerpt' => self::build_excerpt($primary_category_id),
             'post_author' => get_current_user_id(),
             'post_category' => array(absint($guides_category_id)),
         )), true);
