@@ -35,7 +35,7 @@ final class SEO_Comparador_Engine {
     private static function automatic_category_ids() {
         $ids = get_terms(array(
             'taxonomy'=>'product_cat',
-            'hide_empty'=>true,
+            'hide_empty'=>false,
             'fields'=>'ids',
             'number'=>0,
             'orderby'=>'term_id',
@@ -43,6 +43,69 @@ final class SEO_Comparador_Engine {
         ));
         if (is_wp_error($ids)) return array();
         return array_values(array_unique(array_filter(array_map('absint',(array)$ids))));
+    }
+
+    public static function ensure_all_category_profiles() {
+        global $wpdb;
+        SEO_Comparador_DB::maybe_install();
+
+        $terms = get_terms(array(
+            'taxonomy'=>'product_cat',
+            'hide_empty'=>false,
+            'orderby'=>'term_id',
+            'order'=>'ASC',
+        ));
+        if (is_wp_error($terms)) return 0;
+
+        $profiles_table = SEO_Comparador_DB::table('profiles');
+        $existing_rows = (array) $wpdb->get_results(
+            $wpdb->prepare('SELECT primary_category_id FROM %i', $profiles_table),
+            ARRAY_A
+        );
+        $existing = array_fill_keys(array_filter(array_map(
+            'absint',
+            wp_list_pluck($existing_rows, 'primary_category_id')
+        )), true);
+
+        $now = self::now();
+        $added = 0;
+        foreach ((array) $terms as $term) {
+            if (!$term instanceof WP_Term) continue;
+            $term_id = absint($term->term_id);
+            if (!$term_id || isset($existing[$term_id])) continue;
+
+            $inserted = $wpdb->insert($profiles_table, array(
+                'canonical_key'=>self::profile_key($term_id),
+                'canonical_name'=>sanitize_text_field((string) $term->name),
+                'category_ids'=>wp_json_encode(array($term_id)),
+                'primary_category_id'=>$term_id,
+                'status'=>'detected',
+                'own_products_count'=>0,
+                'external_products_seen'=>0,
+                'external_products_comparable'=>0,
+                'comparison_axes_count'=>0,
+                'confidence'=>0,
+                'source_snapshot_at'=>null,
+                'generated_at'=>null,
+                'source_hash'=>'',
+                'recommended_action'=>'',
+                'decision_reason'=>'',
+                'coverage_json'=>null,
+                'editorial_decided_at'=>null,
+                'last_error'=>null,
+                'created_at'=>$now,
+                'updated_at'=>$now,
+            ));
+            if (false !== $inserted) $added++;
+        }
+
+        // Si aparecen categorías que aún no tenían perfil, reinicia el cursor
+        // automático para garantizar que todas sean calculadas.
+        if ($added > 0) {
+            delete_option(self::AUTO_STATE_OPTION);
+        }
+
+        return $added;
     }
 
     private static function fresh_auto_state() {
@@ -65,6 +128,7 @@ final class SEO_Comparador_Engine {
 
         try {
             SEO_Comparador_DB::maybe_install();
+            self::ensure_all_category_profiles();
             $state=get_option(self::AUTO_STATE_OPTION,array());
             if (!is_array($state) || !$state) $state=self::fresh_auto_state();
 
