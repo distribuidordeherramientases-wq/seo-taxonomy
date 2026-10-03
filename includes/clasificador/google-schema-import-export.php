@@ -10,6 +10,47 @@
 
 defined('ABSPATH') || exit;
 
+if (!function_exists('seo_classifier_google_schema_stream_open')) {
+    /**
+     * Abre un stream CSV nativo.
+     *
+     * @param string $path Ruta o stream PHP.
+     * @param string $mode Modo.
+     * @return resource|false
+     */
+    function seo_classifier_google_schema_stream_open($path, $mode) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fputcsv/fgetcsv requieren un recurso nativo para streaming.
+        return fopen($path, $mode);
+    }
+}
+
+if (!function_exists('seo_classifier_google_schema_stream_write')) {
+    /**
+     * Escribe bytes en un stream CSV.
+     *
+     * @param resource $handle Recurso.
+     * @param string   $data Datos.
+     * @return int|false
+     */
+    function seo_classifier_google_schema_stream_write($handle, $data) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Escritura incremental sobre el recurso usado por fputcsv().
+        return fwrite($handle, $data);
+    }
+}
+
+if (!function_exists('seo_classifier_google_schema_stream_close')) {
+    /**
+     * Cierra un stream CSV nativo.
+     *
+     * @param resource $handle Recurso.
+     * @return bool
+     */
+    function seo_classifier_google_schema_stream_close($handle) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por fputcsv/fgetcsv.
+        return seo_classifier_google_schema_stream_close($handle);
+    }
+}
+
 if (!function_exists('seo_classifier_google_schema_export_fields')) {
     function seo_classifier_google_schema_export_fields() {
         return [
@@ -191,12 +232,12 @@ if (!function_exists('seo_classifier_google_schema_admin_post_export')) {
         header('Pragma: no-cache');
         header('Expires: 0');
 
-        $out = fopen('php://output', 'w');
+        $out = seo_classifier_google_schema_stream_open('php://output', 'w');
         if (!$out) {
             wp_die('No se pudo generar el CSV.');
         }
         // BOM UTF-8 para Excel en Windows.
-        fwrite($out, "\xEF\xBB\xBF");
+        seo_classifier_google_schema_stream_write($out, "\xEF\xBB\xBF");
         $fields = seo_classifier_google_schema_export_fields();
         fputcsv($out, $fields, ';', '"', '');
         foreach (seo_classifier_google_schema_export_rows() as $row) {
@@ -206,7 +247,7 @@ if (!function_exists('seo_classifier_google_schema_admin_post_export')) {
             }
             fputcsv($out, $line, ';', '"', '');
         }
-        fclose($out);
+        seo_classifier_google_schema_stream_close($out);
         exit;
     }
     add_action('admin_post_seo_classifier_google_schema_export', 'seo_classifier_google_schema_admin_post_export');
@@ -227,14 +268,14 @@ if (!function_exists('seo_classifier_google_schema_csv_delimiter')) {
 
 if (!function_exists('seo_classifier_google_schema_parse_csv')) {
     function seo_classifier_google_schema_parse_csv($path) {
-        $handle = fopen($path, 'rb');
+        $handle = seo_classifier_google_schema_stream_open($path, 'rb');
         if (!$handle) {
             return new WP_Error('seo_google_schema_csv_open', 'No se pudo abrir el CSV.');
         }
 
         $first = fgets($handle);
         if ($first === false) {
-            fclose($handle);
+            seo_classifier_google_schema_stream_close($handle);
             return new WP_Error('seo_google_schema_csv_empty', 'El CSV está vacío.');
         }
         $delimiter = seo_classifier_google_schema_csv_delimiter($first);
@@ -242,7 +283,7 @@ if (!function_exists('seo_classifier_google_schema_parse_csv')) {
 
         $headers = fgetcsv($handle, 0, $delimiter, '"', '');
         if (!is_array($headers) || !$headers) {
-            fclose($handle);
+            seo_classifier_google_schema_stream_close($handle);
             return new WP_Error('seo_google_schema_csv_headers', 'No se pudieron leer las cabeceras del CSV.');
         }
 
@@ -252,11 +293,11 @@ if (!function_exists('seo_classifier_google_schema_parse_csv')) {
         }, $headers);
 
         if (!in_array('object_type', $headers, true)) {
-            fclose($handle);
+            seo_classifier_google_schema_stream_close($handle);
             return new WP_Error('seo_google_schema_csv_identity', 'El CSV debe contener la columna object_type.');
         }
         if (!in_array('object_id', $headers, true) && !in_array('slug', $headers, true)) {
-            fclose($handle);
+            seo_classifier_google_schema_stream_close($handle);
             return new WP_Error('seo_google_schema_csv_identity', 'El CSV debe contener object_id o slug.');
         }
 
@@ -276,7 +317,7 @@ if (!function_exists('seo_classifier_google_schema_parse_csv')) {
                 $rows[] = $row;
             }
         }
-        fclose($handle);
+        seo_classifier_google_schema_stream_close($handle);
         return $rows;
     }
 }
