@@ -1347,6 +1347,29 @@ final class SEO_Comparador_Engine {
         $status = sanitize_key((string) ($profile['status'] ?? 'needs_review'));
         $comparable_count = absint($profile['own_products_count']) + absint($profile['external_products_comparable']);
 
+        $linked_post_id = absint($post_map['post_id'] ?? 0);
+        if ($linked_post_id && self::pending_count($linked_post_id) > 0) {
+            $decision_reason = 'El perfil contiene novedades posteriores a la última revisión del post canónico.';
+            $wpdb->update(SEO_Comparador_DB::table('profiles'), array(
+                'recommended_action'=>'IMPROVE_POST',
+                'decision_reason'=>$decision_reason,
+                'updated_at'=>self::now(),
+            ), array('id'=>$profile_id));
+            SEO_Comparador_DB::update_status(
+                $profile_id,
+                'needs_update',
+                'pending_editorial_update',
+                $decision_reason,
+                'comparador'
+            );
+            return array(
+                'action'=>'IMPROVE_POST',
+                'reason'=>$decision_reason,
+                'coverage'=>array(),
+                'status'=>'needs_update',
+            );
+        }
+
         $coverage = class_exists('SEO_Editorial_Coverage')
             ? SEO_Editorial_Coverage::comparison_category(
                 absint($profile['primary_category_id']),
