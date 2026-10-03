@@ -126,6 +126,98 @@ final class SEO_Solucionador_Dossiers {
         return $state;
     }
 
+    /**
+     * Garantiza un dossier ligero para TODAS las product_cat de WooCommerce.
+     * El conocimiento de Academia enriquece esos dossiers, pero nunca decide
+     * si una categoría existe o no dentro de Solucionador.
+     */
+    public static function ensure_all_categories($token = '') {
+        global $wpdb;
+
+        SEO_Solucionador_DB::maybe_install();
+        $table = SEO_Solucionador_DB::dossiers_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) return 0;
+
+        $token = sanitize_text_field((string) $token);
+        if ($token === '') {
+            $state = self::state();
+            if (!$state || empty($state['token'])) {
+                $state = self::reset_scan();
+            }
+            $token = sanitize_text_field((string) ($state['token'] ?? ''));
+        }
+
+        $terms = get_terms(array(
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => false,
+        ));
+        if (is_wp_error($terms)) return 0;
+
+        $existing_rows = (array) $wpdb->get_results(
+            $wpdb->prepare('SELECT category_id,category_name FROM %i', $table),
+            ARRAY_A
+        );
+        $existing = array();
+        foreach ($existing_rows as $row) {
+            $existing[absint($row['category_id'] ?? 0)] = (string) ($row['category_name'] ?? '');
+        }
+
+        $now = current_time('mysql');
+        $live_ids = array();
+
+        foreach ((array) $terms as $term) {
+            if (!$term instanceof WP_Term) continue;
+            $term_id = absint($term->term_id);
+            if (!$term_id) continue;
+
+            $live_ids[$term_id] = true;
+            $name = sanitize_text_field((string) $term->name);
+
+            if (isset($existing[$term_id])) {
+                if ($existing[$term_id] !== $name) {
+                    $wpdb->update(
+                        $table,
+                        array('category_name'=>$name,'updated_at'=>$now),
+                        array('category_id'=>$term_id)
+                    );
+                }
+                continue;
+            }
+
+            $source_hash = hash('sha256', wp_json_encode(array(
+                'category_id'=>$term_id,
+                'question_ids'=>array(),
+                'score_avg'=>0,
+                'last_validated_at'=>'',
+            )));
+
+            $wpdb->insert($table, array(
+                'category_id'=>$term_id,
+                'category_name'=>$name,
+                'question_count'=>0,
+                'question_ids'=>'[]',
+                'score_avg'=>0,
+                'last_validated_at'=>null,
+                'source_hash'=>$source_hash,
+                'rejected_source_hash'=>'',
+                'rejected_at'=>null,
+                'scan_token'=>$token,
+                'demand_occurrences'=>0,
+                'created_at'=>$now,
+                'updated_at'=>$now,
+            ));
+        }
+
+        // El inventario debe reflejar exactamente las product_cat actuales.
+        foreach ($existing as $category_id=>$name) {
+            if ($category_id && empty($live_ids[$category_id])) {
+                $wpdb->delete($table, array('category_id'=>$category_id));
+            }
+        }
+
+        return count($live_ids);
+    }
+
     private static function upsert_batch_dossier($term_id, array $question_ids, $score_sum, $last_validated_at, $token) {
         global $wpdb;
         $table = SEO_Solucionador_DB::dossiers_table();
@@ -315,6 +407,10 @@ final class SEO_Solucionador_Dossiers {
         global $wpdb;
         $state = self::state();
         $table = SEO_Solucionador_DB::dossiers_table();
+
+        // Solucionador inventaría TODAS las product_cat. Academia solo aporta
+        // preguntas y respuestas; nunca filtra qué categorías aparecen.
+        self::ensure_all_categories((string) ($state['token'] ?? ''));
 
         $categories_with = SEO_Solucionador_DB::table_exists($table)
             ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE question_count>0"))
