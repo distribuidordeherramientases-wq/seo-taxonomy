@@ -285,7 +285,7 @@ final class SEO_Solucionador_Admin {
         $title = trim((string) ($topic['suggested_title'] ?? ''));
         if ($title !== '') return $title;
         $name = trim((string) ($dossier['category_name'] ?? ''));
-        return $name !== '' ? $name . ': preguntas habituales sobre elección, uso y compatibilidad' : 'Post propuesto';
+        return $name !== '' ? 'Preguntas y respuestas acerca de ' . $name : 'Post propuesto';
     }
 
     private static function simple_proposal_state(array $topic) {
