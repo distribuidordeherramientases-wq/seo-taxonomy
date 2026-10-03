@@ -383,6 +383,12 @@ final class SEO_Solucionador_Dossiers {
         return is_array($row) ? $row : array();
     }
 
+    public static function proposal_available(array $dossier) {
+        $source_hash = (string) ($dossier['source_hash'] ?? '');
+        $blocked_hash = (string) ($dossier['rejected_source_hash'] ?? '');
+        return $source_hash !== '' && ($blocked_hash === '' || $blocked_hash !== $source_hash);
+    }
+
     public static function question_details($category_id) {
         global $wpdb;
         $dossier = self::get_by_category($category_id);
