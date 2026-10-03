@@ -180,6 +180,8 @@ final class SEO_Solucionador_DB {
             score_avg DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
             last_validated_at DATETIME NULL,
             source_hash CHAR(64) NOT NULL DEFAULT '',
+            rejected_source_hash CHAR(64) NOT NULL DEFAULT '',
+            rejected_at DATETIME NULL,
             scan_token VARCHAR(64) NOT NULL DEFAULT '',
             demand_occurrences INT UNSIGNED NOT NULL DEFAULT 0,
             created_at DATETIME NOT NULL,
@@ -187,6 +189,7 @@ final class SEO_Solucionador_DB {
             PRIMARY KEY  (id),
             UNIQUE KEY category_id (category_id),
             KEY scan_token (scan_token),
+            KEY rejected_source_hash (rejected_source_hash),
             KEY question_count (question_count),
             KEY last_validated_at (last_validated_at)
         ) {$collate};";
@@ -429,6 +432,17 @@ final class SEO_Solucionador_DB {
         return false !== $wpdb->update(self::topics_table(), $changes, array('id' => $topic_id));
     }
 
+    public static function delete_topic($topic_id) {
+        global $wpdb;
+        $topic_id = absint($topic_id);
+        if (!$topic_id) return false;
+
+        $wpdb->delete(self::evidence_table(), array('topic_id'=>$topic_id));
+        $wpdb->delete(self::workflow_table(), array('topic_id'=>$topic_id));
+        $wpdb->delete(self::tracking_table(), array('topic_id'=>$topic_id));
+        return false !== $wpdb->delete(self::topics_table(), array('id'=>$topic_id));
+    }
+
     public static function upsert_topic(array $profile, $question = '') {
         global $wpdb;
         $key = sanitize_text_field((string) ($profile['canonical_key'] ?? ''));
@@ -444,6 +458,7 @@ final class SEO_Solucionador_DB {
             'condition_term' => sanitize_text_field((string) ($profile['condition'] ?? '')),
             'context_term' => sanitize_text_field((string) ($profile['context'] ?? '')),
             'confidence' => max(0, min(1, (float) ($profile['confidence'] ?? 0))),
+            'primary_category_id' => absint($profile['category_id'] ?? 0) ?: null,
             'last_seen_at' => $now,
             'updated_at' => $now,
         );

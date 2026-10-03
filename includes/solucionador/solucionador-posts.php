@@ -238,6 +238,89 @@ final class SEO_Solucionador_Posts {
         return $ok;
     }
 
+    private static function managed_post_id_by_category($category_id) {
+        $category_id = absint($category_id);
+        if (!$category_id) return 0;
+
+        $ids = get_posts(array(
+            'post_type'=>'post',
+            'post_status'=>array('draft','publish','future','pending','private'),
+            'posts_per_page'=>1,
+            'fields'=>'ids',
+            'orderby'=>'ID',
+            'order'=>'ASC',
+            'meta_key'=>self::META_DOSSIER_CATEGORY_ID,
+            'meta_value'=>$category_id,
+            'no_found_rows'=>true,
+        ));
+        return $ids ? absint($ids[0]) : 0;
+    }
+
+    public static function sync_category_post($category_id) {
+        $category_id = absint($category_id);
+        $post_id = self::managed_post_id_by_category($category_id);
+        if (!$post_id) return false;
+
+        $details = self::question_details($category_id);
+        if (!$details) return false;
+
+        $stored_ids = array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array) get_post_meta($post_id,self::META_QUESTION_IDS,true)
+        ))));
+        $new_details = array();
+        foreach ($details as $row) {
+            $question_id = absint($row['question_id'] ?? 0);
+            if ($question_id && !in_array($question_id,$stored_ids,true)) {
+                $new_details[] = $row;
+            }
+        }
+        if (!$new_details) return false;
+
+        $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
+        $topic = $topic_id ? (array) SEO_Solucionador_DB::get_topic($topic_id) : array();
+        $post = get_post($post_id);
+        if (!$post instanceof WP_Post) return false;
+
+        $content = (string) $post->post_content;
+        $content .= ($content !== '' ? "\n\n" : '') . self::build_editorial_brief(
+            $topic_id,
+            $topic,
+            $category_id,
+            $new_details
+        );
+
+        $updated = wp_update_post(wp_slash(array(
+            'ID'=>$post_id,
+            'post_content'=>$content,
+        )),true);
+        if (is_wp_error($updated)) return $updated;
+
+        if ($topic) {
+            $vocab = self::assign_vocabulary($post_id,$topic,$category_id);
+            if (is_wp_error($vocab)) return $vocab;
+            $relations = self::assign_categories($post_id,$topic,$category_id);
+            if (is_wp_error($relations)) return $relations;
+        }
+
+        $snapshot = self::dossier_snapshot($category_id,$details);
+        $snapshot['question_ids'] = array_values(array_unique(array_merge(
+            $stored_ids,
+            (array) ($snapshot['question_ids'] ?? array())
+        )));
+        $stored_run_ids = array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array) get_post_meta($post_id,self::META_RUN_IDS,true)
+        ))));
+        $snapshot['run_ids'] = array_values(array_unique(array_merge(
+            $stored_run_ids,
+            (array) ($snapshot['run_ids'] ?? array())
+        )));
+        $snapshot['question_count'] = count($snapshot['question_ids']);
+        self::persist_source_snapshot($post_id,$snapshot);
+        return true;
+    }
+
     private static function json_material($value) {
         if ($value === null || $value === '' || $value === array()) {
             return '<p><em>No consta material almacenado en este campo.</em></p>';
@@ -381,23 +464,21 @@ final class SEO_Solucionador_Posts {
     }
 
     private static function build_editorial_brief($topic_id, array $topic, $category_id, array $details) {
-        $html = '';
-        $html .= '<p><strong>BORRADOR EDITORIAL — revisar y reescribir antes de publicar.</strong></p>';
-        $html .= '<p>Las preguntas y respuestas siguientes proceden del último entrenamiento validado de Dependiente.</p>';
-        $html .= '<h2>Preguntas y respuestas</h2>';
+        $html = '<ul>';
 
-        foreach ($details as $index=>$row) {
+        foreach ($details as $row) {
             $question = trim((string) ($row['question'] ?? ''));
             if ($question === '') continue;
             $answer = class_exists('SEO_Solucionador_Dossiers')
                 ? SEO_Solucionador_Dossiers::answer_text((array) $row)
                 : '';
 
-            $html .= '<h3>' . esc_html(($index + 1) . '. ' . $question) . '</h3>';
-            $html .= '<p><strong>Respuesta:</strong> ' . esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.') . '</p>';
+            $html .= '<li><strong>' . esc_html($question) . '</strong><br>';
+            $html .= esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.');
+            $html .= '</li>';
         }
 
-        return $html;
+        return $html . '</ul>';
     }
 
     public static function create_draft($topic_id, $human_override = false) {
