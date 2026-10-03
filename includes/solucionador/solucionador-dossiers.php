@@ -389,6 +389,26 @@ final class SEO_Solucionador_Dossiers {
         return $source_hash !== '' && ($blocked_hash === '' || $blocked_hash !== $source_hash);
     }
 
+    public static function mark_rejected($category_id) {
+        global $wpdb;
+        $category_id = absint($category_id);
+        $dossier = self::get_by_category($category_id);
+        if (!$dossier) return false;
+
+        $source_hash = (string) ($dossier['source_hash'] ?? '');
+        if ($source_hash === '') return false;
+
+        return false !== $wpdb->update(
+            SEO_Solucionador_DB::dossiers_table(),
+            array(
+                'rejected_source_hash'=>$source_hash,
+                'rejected_at'=>current_time('mysql'),
+                'updated_at'=>current_time('mysql'),
+            ),
+            array('category_id'=>$category_id)
+        );
+    }
+
     public static function question_details($category_id) {
         global $wpdb;
         $dossier = self::get_by_category($category_id);
