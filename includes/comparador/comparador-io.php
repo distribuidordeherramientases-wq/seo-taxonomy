@@ -14,6 +14,7 @@ final class SEO_Comparador_IO {
         add_action('admin_post_seo_comparador_export_content', array(__CLASS__, 'handle_export_content'));
         add_action('admin_post_seo_comparador_import_editorial', array(__CLASS__, 'handle_import_editorial'));
         add_action('admin_post_seo_comparador_export_visits', array(__CLASS__, 'handle_export_visits'));
+        add_action('admin_post_seo_comparador_export_all', array(__CLASS__, 'handle_export_all'));
     }
 
     private static function notice($message, $type = 'success') {
@@ -499,6 +500,73 @@ final class SEO_Comparador_IO {
             return new WP_Error('comparador_import_json', 'El archivo no contiene un JSON válido.');
         }
         return array('payload' => $payload, 'filename' => $name);
+    }
+
+    public static function build_global_package() {
+        SEO_Comparador_DB::maybe_install();
+        if (class_exists('SEO_Comparador_Engine')) {
+            SEO_Comparador_Engine::ensure_all_category_profiles();
+        }
+
+        $profiles = array();
+        foreach (SEO_Comparador_DB::list_profiles(5000) as $profile) {
+            $profile_id = absint($profile['id'] ?? 0);
+            if (!$profile_id) continue;
+            $term = get_term(absint($profile['primary_category_id'] ?? 0), 'product_cat');
+            $editorial = SEO_Comparador_DB::editorial($profile_id);
+            $post_map = SEO_Comparador_DB::post_map($profile_id);
+
+            $profiles[] = array(
+                'profile_id'=>$profile_id,
+                'category'=>array(
+                    'term_id'=>absint($profile['primary_category_id'] ?? 0),
+                    'name'=>$term && !is_wp_error($term) ? (string) $term->name : (string) ($profile['canonical_name'] ?? ''),
+                    'slug'=>$term && !is_wp_error($term) ? (string) $term->slug : '',
+                    'count'=>$term && !is_wp_error($term) ? absint($term->count) : 0,
+                ),
+                'status'=>(string) ($profile['status'] ?? ''),
+                'recommended_action'=>(string) ($profile['recommended_action'] ?? ''),
+                'decision_reason'=>(string) ($profile['decision_reason'] ?? ''),
+                'own_products_count'=>absint($profile['own_products_count'] ?? 0),
+                'external_products_seen'=>absint($profile['external_products_seen'] ?? 0),
+                'external_products_comparable'=>absint($profile['external_products_comparable'] ?? 0),
+                'comparison_axes_count'=>absint($profile['comparison_axes_count'] ?? 0),
+                'confidence'=>(float) ($profile['confidence'] ?? 0),
+                'source_snapshot_at'=>(string) ($profile['source_snapshot_at'] ?? ''),
+                'source_hash'=>(string) ($profile['source_hash'] ?? ''),
+                'coverage'=>SEO_Comparador_DB::decode_json($profile['coverage_json'] ?? '{}'),
+                'editorial'=>self::editorial_payload((array) $editorial),
+                'post'=>array(
+                    'post_id'=>absint($post_map['post_id'] ?? 0) ?: null,
+                    'post_title'=>(string) ($post_map['post_title'] ?? ''),
+                    'post_status'=>(string) ($post_map['post_status'] ?? ''),
+                ),
+            );
+        }
+
+        $categories_total = wp_count_terms(array(
+            'taxonomy'=>'product_cat',
+            'hide_empty'=>false,
+        ));
+        if (is_wp_error($categories_total)) $categories_total = 0;
+
+        return array(
+            'schema'=>'seo-comparador-global-v1',
+            'exported_at'=>current_time('mysql'),
+            'comparador_version'=>defined('SEO_COMPARADOR_VERSION') ? SEO_COMPARADOR_VERSION : '',
+            'categories_total'=>absint($categories_total),
+            'profiles_total'=>count($profiles),
+            'profiles'=>$profiles,
+        );
+    }
+
+    public static function handle_export_all() {
+        if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
+        check_admin_referer('seo_comparador_export_all');
+        self::download_json(
+            self::build_global_package(),
+            'comparador-completo-' . gmdate('Ymd-His') . '.json'
+        );
     }
 
     public static function handle_export_content() {
