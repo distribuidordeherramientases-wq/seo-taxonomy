@@ -528,9 +528,6 @@ final class SEO_Auditor_Category_Rebalance {
 
         $source = get_term($source_id, 'product_cat');
         $target = get_term($target_id, 'product_cat');
-        $origin_url = get_term_link($source);
-        $target_url = get_term_link($target);
-        if (is_wp_error($origin_url) || is_wp_error($target_url)) return new WP_Error('seo_rebalance_permalink', 'No se pudieron resolver las URLs para el redirect.');
 
         $product_ids = self::all_product_ids_for_category($source_id);
         $snapshots = array();
@@ -540,38 +537,35 @@ final class SEO_Auditor_Category_Rebalance {
             $snapshots[$product_id] = array_values(array_map('absint', $current));
         }
 
-        $redirect_id = self::prepare_redirect((string) $origin_url, (string) $target_url);
-        if (is_wp_error($redirect_id)) return $redirect_id;
-
         foreach ($product_ids as $product_id) {
             $move = self::replace_category_for_product($product_id, $source_id, $target_id);
             if (is_wp_error($move)) {
                 self::rollback_product_categories($snapshots);
-                self::remove_redirect($redirect_id);
                 return $move;
             }
         }
 
         if (self::all_product_ids_for_category($source_id)) {
             self::rollback_product_categories($snapshots);
-            self::remove_redirect($redirect_id);
             return new WP_Error('seo_rebalance_merge_not_empty', 'La categoria origen sigue teniendo productos tras el movimiento. No se ha eliminado.');
         }
 
-        $deleted = wp_delete_term($source_id, 'product_cat');
-        if (!$deleted || is_wp_error($deleted)) {
+        if (!function_exists('seo_delete_product_category_with_hub_redirect')) {
             self::rollback_product_categories($snapshots);
-            self::remove_redirect($redirect_id);
-            return new WP_Error('seo_rebalance_delete_failed', 'No se pudo eliminar la categoria origen. Se han restaurado las categorias de producto.');
+            return new WP_Error('seo_rebalance_delete_service', 'No está disponible el servicio canónico de borrado de categorías.');
         }
 
-        try {
-            if (function_exists('seo_reports_cleanup_deleted_category_data')) {
-                $faq_table = function_exists('seo_get_faq_table_name') ? seo_get_faq_table_name() : false;
-                seo_reports_cleanup_deleted_category_data($source_id, $faq_table);
-            }
-        } catch (Throwable $e) {
-            error_log('[SEO Auditor Rebalance] Limpieza categoria #' . $source_id . ': ' . $e->getMessage());
+        $deleted = seo_delete_product_category_with_hub_redirect(
+            $source_id,
+            'auditor_rebalance'
+        );
+
+        if (is_wp_error($deleted)) {
+            self::rollback_product_categories($snapshots);
+            return new WP_Error(
+                'seo_rebalance_delete_failed',
+                'No se pudo eliminar la categoría origen: ' . $deleted->get_error_message() . ' Se han restaurado las categorías de producto.'
+            );
         }
 
         self::recount_terms(array($target_id));
@@ -580,8 +574,9 @@ final class SEO_Auditor_Category_Rebalance {
             'source_id'=>$source_id,
             'target_id'=>$target_id,
             'moved'=>count($product_ids),
-            'redirect_id'=>absint($redirect_id),
-            'message'=>sprintf('Concentracion aplicada: %d productos movidos; categoria origen eliminada; redirect 301 creado.', count($product_ids)),
+            'hub_id'=>absint($deleted['hub_id'] ?? 0),
+            'redirect_target'=>(string)($deleted['target_url'] ?? ''),
+            'message'=>sprintf('Concentración aplicada: %d productos movidos; categoría origen eliminada; redirect 301 creado hacia su Hub secundario.', count($product_ids)),
         );
     }
 
