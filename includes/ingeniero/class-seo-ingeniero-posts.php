@@ -260,6 +260,7 @@ final class SEO_Ingeniero_Posts {
         $editorial_id = absint(get_post_meta($post_id, self::META_EDITORIAL_ID, true));
         if (!$post_id || !$editorial_id || get_post_type($post_id) !== 'post') return;
 
+        self::sync_pending_update($editorial_id);
         $pending = self::pending_knowledge_details($post_id);
         $count = count($pending);
         $state = sanitize_key((string) ($_GET['ingeniero_update'] ?? ''));
@@ -377,18 +378,22 @@ final class SEO_Ingeniero_Posts {
         $editorial_id = absint(get_post_meta($post->ID, self::META_EDITORIAL_ID, true));
         if (!$editorial_id) return;
 
+        $pending = self::pending_count($post->ID);
+
         if ('publish' === $new_status) {
             SEO_Ingeniero_DB::update_editorial($editorial_id, array(
-                'status'  => 'published',
+                'status'  => $pending > 0 ? 'needs_update' : 'published',
                 'post_id' => absint($post->ID),
+                'recommended_action' => $pending > 0 ? 'IMPROVE_POST' : 'NO_ACTION',
             ));
             return;
         }
 
         if (in_array($new_status, array('draft','pending','private','future'), true)) {
             SEO_Ingeniero_DB::update_editorial($editorial_id, array(
-                'status'  => 'draft',
+                'status'  => $pending > 0 ? 'needs_update' : 'draft',
                 'post_id' => absint($post->ID),
+                'recommended_action' => $pending > 0 ? 'IMPROVE_POST' : 'NO_ACTION',
             ));
         }
     }
