@@ -487,16 +487,19 @@ final class SEO_Ingeniero_DB {
         $source_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($data['source_ids'] ?? array())))));
         $source_hash = sanitize_text_field((string) ($data['source_hash'] ?? ''));
         $status = sanitize_key((string) ($data['status'] ?? 'candidate'));
-        if (
-            $existing
+        $source_changed = $existing
             && $source_hash !== ''
             && (string) ($existing['source_hash'] ?? '') !== ''
-            && $source_hash !== (string) ($existing['source_hash'] ?? '')
-        ) {
+            && $source_hash !== (string) ($existing['source_hash'] ?? '');
+
+        if ($source_changed) {
             // Un cambio material de conocimiento/fuentes nunca conserva una
             // aprobación anterior en silencio. Si ya existe post, se marca para
             // actualización; si no, vuelve a revisión humana.
             $status = !empty($existing['post_id']) ? 'needs_update' : 'review';
+            if (!empty($existing['post_id'])) {
+                $data['recommended_action'] = 'IMPROVE_POST';
+            }
         }
 
         $row = array(
