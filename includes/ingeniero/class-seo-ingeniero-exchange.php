@@ -51,7 +51,7 @@ final class SEO_Ingeniero_Exchange {
      */
     private static function csv_stream_close($handle) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso nativo usado por fputcsv/fgetcsv.
-        return self::csv_stream_close($handle);
+        return fclose($handle);
     }
 
     private static function guard($action) {
