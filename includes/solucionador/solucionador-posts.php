@@ -381,23 +381,21 @@ final class SEO_Solucionador_Posts {
     }
 
     private static function build_editorial_brief($topic_id, array $topic, $category_id, array $details) {
-        $html = '';
-        $html .= '<p><strong>BORRADOR EDITORIAL — revisar y reescribir antes de publicar.</strong></p>';
-        $html .= '<p>Las preguntas y respuestas siguientes proceden del último entrenamiento validado de Dependiente.</p>';
-        $html .= '<h2>Preguntas y respuestas</h2>';
+        $html = '<ul>';
 
-        foreach ($details as $index=>$row) {
+        foreach ($details as $row) {
             $question = trim((string) ($row['question'] ?? ''));
             if ($question === '') continue;
             $answer = class_exists('SEO_Solucionador_Dossiers')
                 ? SEO_Solucionador_Dossiers::answer_text((array) $row)
                 : '';
 
-            $html .= '<h3>' . esc_html(($index + 1) . '. ' . $question) . '</h3>';
-            $html .= '<p><strong>Respuesta:</strong> ' . esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.') . '</p>';
+            $html .= '<li><strong>' . esc_html($question) . '</strong><br>';
+            $html .= esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.');
+            $html .= '</li>';
         }
 
-        return $html;
+        return $html . '</ul>';
     }
 
     public static function create_draft($topic_id, $human_override = false) {
