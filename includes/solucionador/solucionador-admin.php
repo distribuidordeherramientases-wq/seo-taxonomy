@@ -194,13 +194,12 @@ final class SEO_Solucionador_Admin {
                 "SELECT id,category_id,question_count
                  FROM %i
                  WHERE id>%d
-                   AND question_count>=%d
+                   AND question_count>0
                    AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)
                  ORDER BY id ASC
                  LIMIT %d",
                 $table,
                 $after_id,
-                $minimum,
                 $batch_size
             ),
             ARRAY_A
@@ -242,16 +241,6 @@ final class SEO_Solucionador_Admin {
                 continue;
             }
 
-            if (strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
-                $skipped++;
-                continue;
-            }
-            $requirements = SEO_Solucionador_DB::decision_requirements($topic);
-            if (empty($requirements['academy_mass']['pass'])) {
-                $skipped++;
-                continue;
-            }
-
             SEO_Solucionador_DB::update_topic($topic_id, array(
                 'status'=>'approved',
                 'workflow_state'=>'approved',
@@ -259,11 +248,11 @@ final class SEO_Solucionador_Admin {
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
                 'approved',
-                'Aceptar todo aprueba únicamente una propuesta ya validada como CREATE_POST.',
+                'Aceptar todo es una decisión editorial explícita: crea borradores para dossiers con material útil y categoría demostrable; no publica contenido.',
                 'CREATE_POST'
             );
 
-            $result = SEO_Solucionador_Posts::create_draft($topic_id, false);
+            $result = SEO_Solucionador_Posts::create_draft($topic_id, true);
             if (is_wp_error($result)) {
                 $errors++;
                 continue;
