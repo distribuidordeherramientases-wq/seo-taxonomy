@@ -1961,6 +1961,9 @@ add_action('pre_delete_term', 'seo_product_category_pre_delete_term', 1, 2);
 /**
  * Finaliza cualquier borrado product_cat: 301 + limpieza SEO, ambos por Data Layer.
  *
+ * WordPress dispara el hook dinámico delete_product_cat después de eliminar
+ * el término y de reasignar sus hijos al padre anterior.
+ *
  * WordPress/WooCommerce siguen siendo responsables del término nativo mediante
  * wp_delete_term(); el plugin audita por Data Layer sus propios datos y redirect.
  */
@@ -1990,7 +1993,7 @@ function seo_product_category_deleted_term($term_id, $tt_id, $deleted_term, $obj
         error_log('[SEO Category Delete] Data Layer cleanup category #' . $term_id . ': ' . $e->getMessage());
     }
 }
-add_action('deleted_product_cat', 'seo_product_category_deleted_term', 10, 4);
+add_action('delete_product_cat', 'seo_product_category_deleted_term', 10, 4);
 
 /**
  * API canónica para los borrados iniciados desde SEO Taxonomy.
