@@ -44,7 +44,7 @@ Incluye controles de estructura y contenido como:
 - Posts editoriales sin categoría de producto relacionada (`post_to_category`).
 - Posts sin Vocabulary semántico activo.
 - Categorías sin asignación estructural.
-- Categorías sin productos.
+- Categorías de producto con 0 productos.
 - Categorías duplicadas en múltiples Hubs Secundarios.
 
 Acciones visibles:
@@ -56,6 +56,8 @@ Acciones visibles:
 - **Borrar FAQs de productos desaparecidos** [Elimina].
 - **Seleccionar todas las eliminables** [Consulta].
 - **Eliminar categorías seleccionadas** [Elimina][Producción].
+
+Para poder eliminar una categoría con 0 productos, el sistema exige además que no tenga relaciones funcionales protegidas y que disponga de un único Hub secundario publicado. Antes del borrado se valida el destino y, al completarse, se crea/actualiza automáticamente un redirect 301 hacia ese Hub; los datos SEO propios se limpian mediante Data Layer.
 
 Una anomalía es una señal; revisar siempre el objeto antes de ejecutar una eliminación.
 
