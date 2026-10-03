@@ -1577,7 +1577,7 @@ function seo_reports_data_layer_delete_ids($table_key, $ids, $type, $label, $met
  * Limpia datos SEO propios de una product_cat ya eliminada.
  * WordPress gestiona term/term_taxonomy; nuestras tablas se limpian por Data Layer.
  */
-function seo_reports_cleanup_deleted_category_data($term_id, $faq_table = false) {
+function seo_reports_cleanup_deleted_category_data($term_id, $faq_table = false, $source_module = 'seo_reports') {
     global $wpdb;
 
     $term_id = absint($term_id);
@@ -1625,7 +1625,7 @@ function seo_reports_cleanup_deleted_category_data($term_id, $faq_table = false)
     $operation = SEO_Data_Layer::operation(array(
         'type'          => 'delete_category_seo_data',
         'label'         => 'Limpiar datos SEO de categoría eliminada #' . $term_id,
-        'source_module' => 'seo_reports',
+        'source_module' => sanitize_key((string) $source_module) ?: 'seo_reports',
         'rollbackable'  => true,
         'risk_level'    => 'medium',
         'audit_level'   => 'full',
@@ -1664,6 +1664,370 @@ function seo_reports_cleanup_deleted_category_data($term_id, $faq_table = false)
         }
     );
 }
+
+/**
+ * Contexto temporal de borrado de product_cat.
+ *
+ * Se captura antes de que WordPress elimine el término porque después ya no
+ * pueden resolverse ni su permalink ni su relación con el Hub secundario.
+ */
+function seo_product_category_delete_context_store($term_id = 0, $context = null) {
+    static $contexts = array();
+
+    $term_id = absint($term_id);
+
+    if ($term_id > 0 && is_array($context)) {
+        $contexts[$term_id] = $context;
+    }
+
+    if ($term_id > 0) {
+        return $contexts[$term_id] ?? null;
+    }
+
+    return $contexts;
+}
+
+/**
+ * Módulo que ha iniciado el borrado actual.
+ */
+function seo_product_category_delete_source_module($set = null) {
+    static $source_module = 'wordpress';
+
+    if (null !== $set) {
+        $source_module = sanitize_key((string) $set) ?: 'wordpress';
+    }
+
+    return $source_module;
+}
+
+/**
+ * Normaliza una URL de origen para seo_redirects.
+ */
+function seo_product_category_redirect_origin_path($url) {
+    $path = '/' . trim((string) wp_make_link_relative((string) $url), '/');
+    return '/' === $path ? '/' : untrailingslashit($path);
+}
+
+/**
+ * Resuelve de forma inequívoca el Hub secundario publicado de una product_cat.
+ *
+ * Una categoría que va a desaparecer debe tener exactamente un Hub secundario
+ * válido para poder crear el 301 solicitado. Si no existe o hay varios, se
+ * bloquean los borrados gestionados por el plugin y el borrado nativo se
+ * detiene en pre_delete_term para no dejar una URL sin destino canónico.
+ */
+function seo_product_category_resolve_secondary_hub($term_id) {
+    global $wpdb;
+
+    $term_id = absint($term_id);
+
+    if ($term_id < 1) {
+        return new WP_Error('seo_category_delete_invalid_id', 'ID de categoría no válido.');
+    }
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT DISTINCT r.source_id AS hub_id, p.post_title, p.post_status
+             FROM {$wpdb->prefix}seo_relations r
+             INNER JOIN {$wpdb->prefix}seo_nodes n
+                ON n.object_type='page'
+               AND n.object_id=r.source_id
+               AND n.seo_role='hub_secondary'
+               AND n.status=1
+             INNER JOIN {$wpdb->posts} p
+                ON p.ID=r.source_id
+               AND p.post_type='page'
+               AND p.post_status='publish'
+             WHERE r.source_type IN ('hub_secondary','hub_secundario')
+               AND r.target_type='product_cat'
+               AND r.target_id=%d
+               AND r.relation_type='hub_secondary_to_category'
+             ORDER BY r.source_id ASC",
+            $term_id
+        ),
+        ARRAY_A
+    );
+
+    if (1 !== count((array) $rows)) {
+        if (empty($rows)) {
+            return new WP_Error(
+                'seo_category_delete_no_secondary_hub',
+                'La categoría no tiene un Hub secundario publicado único. No se puede garantizar el redirect 301.'
+            );
+        }
+
+        return new WP_Error(
+            'seo_category_delete_multiple_secondary_hubs',
+            'La categoría está vinculada a varios Hubs secundarios. Revisa la estructura antes de borrarla.'
+        );
+    }
+
+    $hub_id = absint($rows[0]['hub_id'] ?? 0);
+    $hub_url = $hub_id > 0 ? get_permalink($hub_id) : '';
+
+    if (!$hub_id || !$hub_url) {
+        return new WP_Error(
+            'seo_category_delete_invalid_secondary_hub',
+            'No se pudo resolver la URL pública del Hub secundario.'
+        );
+    }
+
+    return array(
+        'hub_id'    => $hub_id,
+        'hub_title' => sanitize_text_field((string) ($rows[0]['post_title'] ?? '')),
+        'hub_url'   => esc_url_raw((string) $hub_url),
+    );
+}
+
+/**
+ * Construye y valida el contexto completo de borrado.
+ */
+function seo_product_category_build_delete_context($term_id, $source_module = 'wordpress') {
+    global $wpdb;
+
+    $term_id = absint($term_id);
+    $term = get_term($term_id, 'product_cat');
+
+    if (!$term || is_wp_error($term)) {
+        return new WP_Error('seo_category_delete_missing_term', 'La categoría de producto ya no existe.');
+    }
+
+    $origin_url = get_term_link($term);
+    if (is_wp_error($origin_url) || !$origin_url) {
+        return new WP_Error('seo_category_delete_origin_url', 'No se pudo resolver la URL actual de la categoría.');
+    }
+
+    $hub = seo_product_category_resolve_secondary_hub($term_id);
+    if (is_wp_error($hub)) {
+        return $hub;
+    }
+
+    $origin_path = seo_product_category_redirect_origin_path($origin_url);
+    $target_url = esc_url_raw((string) $hub['hub_url']);
+    $target_path = seo_product_category_redirect_origin_path($target_url);
+
+    if ($origin_path === $target_path) {
+        return new WP_Error('seo_category_delete_redirect_self', 'La categoría y el Hub secundario resuelven a la misma URL.');
+    }
+
+    $redirect_table = $wpdb->prefix . 'seo_redirects';
+    $existing_id = absint(
+        $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$redirect_table} WHERE origin_url IN (%s,%s) ORDER BY id ASC LIMIT 1",
+                $origin_path,
+                trailingslashit($origin_path)
+            )
+        )
+    );
+
+    if (
+        function_exists('seo_redirects_admin_existing_rows')
+        && function_exists('seo_redirects_admin_would_create_cycle')
+    ) {
+        $rows = seo_redirects_admin_existing_rows($redirect_table, $wpdb);
+        if (seo_redirects_admin_would_create_cycle($rows, $origin_path, $target_url, $existing_id)) {
+            return new WP_Error('seo_category_delete_redirect_cycle', 'El redirect hacia el Hub secundario crearía un ciclo.');
+        }
+    }
+
+    return array(
+        'term_id'       => $term_id,
+        'term_name'     => sanitize_text_field((string) $term->name),
+        'origin_url'    => esc_url_raw((string) $origin_url),
+        'origin_path'   => $origin_path,
+        'hub_id'        => absint($hub['hub_id']),
+        'hub_title'     => sanitize_text_field((string) $hub['hub_title']),
+        'target_url'    => $target_url,
+        'existing_id'   => $existing_id,
+        'source_module' => sanitize_key((string) $source_module) ?: 'wordpress',
+    );
+}
+
+/**
+ * Inserta o actualiza el 301 mediante SEO Data Layer.
+ */
+function seo_product_category_write_hub_redirect(array $context) {
+    if (!class_exists('SEO_Data_Layer') || !class_exists('SEO_Data_Operation')) {
+        throw new RuntimeException('SEO Data Layer no está disponible para registrar el redirect.');
+    }
+
+    SEO_Data_Layer::table('redirects');
+
+    $term_id = absint($context['term_id'] ?? 0);
+    $hub_id = absint($context['hub_id'] ?? 0);
+    $existing_id = absint($context['existing_id'] ?? 0);
+    $origin = (string) ($context['origin_path'] ?? '');
+    $target = esc_url_raw((string) ($context['target_url'] ?? ''));
+    $source_module = sanitize_key((string) ($context['source_module'] ?? 'wordpress')) ?: 'wordpress';
+    $now = current_time('mysql', true);
+
+    if (!$term_id || !$hub_id || '' === $origin || '' === $target) {
+        throw new RuntimeException('Contexto incompleto para crear el redirect de categoría.');
+    }
+
+    $operation = SEO_Data_Layer::operation(array(
+        'type'          => 'delete_product_category_redirect',
+        'label'         => '301 de categoría eliminada #' . $term_id . ' hacia Hub secundario #' . $hub_id,
+        'source_module' => $source_module,
+        'rollbackable'  => true,
+        'risk_level'    => 'medium',
+        'audit_level'   => 'full',
+        'metadata'      => array(
+            'related_object_type' => 'product_cat',
+            'related_object_id'   => $term_id,
+            'hub_secondary_id'    => $hub_id,
+            'origin_url'          => $origin,
+            'target_url'          => $target,
+        ),
+    ));
+    $operation->mark_validated(array('redirects' => 1));
+    $operation->mark_previewed(1);
+
+    return $operation->execute(
+        static function (SEO_Data_Operation $op) use ($existing_id, $origin, $target, $now, $term_id, $hub_id) {
+            $metadata = array(
+                'related_object_type' => 'product_cat',
+                'related_object_id'   => $term_id,
+                'hub_secondary_id'    => $hub_id,
+                'reason'              => 'deleted_product_category_to_secondary_hub',
+            );
+
+            if ($existing_id > 0) {
+                $op->update(
+                    'redirects',
+                    array('id' => $existing_id),
+                    array(
+                        'origin_url'  => $origin,
+                        'target_url'  => $target,
+                        'status_code' => 301,
+                        'updated_at'  => $now,
+                    ),
+                    $metadata
+                );
+                return $existing_id;
+            }
+
+            $op->insert(
+                'redirects',
+                array(
+                    'origin_url'  => $origin,
+                    'target_url'  => $target,
+                    'status_code' => 301,
+                    'hits'        => 0,
+                    'last_hit'    => null,
+                    'created_at'  => $now,
+                    'updated_at'  => $now,
+                ),
+                $metadata
+            );
+
+            return true;
+        }
+    );
+}
+
+/**
+ * Prepara el borrado de cualquier product_cat, incluido WooCommerce nativo.
+ */
+function seo_product_category_pre_delete_term($term_id, $taxonomy) {
+    if ('product_cat' !== $taxonomy) {
+        return;
+    }
+
+    $term_id = absint($term_id);
+    $context = seo_product_category_build_delete_context(
+        $term_id,
+        seo_product_category_delete_source_module()
+    );
+
+    if (is_wp_error($context)) {
+        /*
+         * La política actual exige 301 a Hub secundario para cualquier borrado.
+         * Si no podemos garantizarlo, detenemos el borrado en vez de generar
+         * un 404 o un redirect ambiguo.
+         */
+        wp_die(
+            esc_html($context->get_error_message()),
+            esc_html__('Borrado de categoría bloqueado', 'seo-taxonomy'),
+            array('response' => 409, 'back_link' => true)
+        );
+    }
+
+    seo_product_category_delete_context_store($term_id, $context);
+}
+add_action('pre_delete_term', 'seo_product_category_pre_delete_term', 1, 2);
+
+/**
+ * Finaliza cualquier borrado product_cat: 301 + limpieza SEO, ambos por Data Layer.
+ *
+ * WordPress/WooCommerce siguen siendo responsables del término nativo mediante
+ * wp_delete_term(); el plugin audita por Data Layer sus propios datos y redirect.
+ */
+function seo_product_category_deleted_term($term_id, $tt_id, $deleted_term, $object_ids) {
+    $term_id = absint($term_id);
+    $context = seo_product_category_delete_context_store($term_id);
+
+    if (!is_array($context)) {
+        error_log('[SEO Category Delete] No existe contexto previo para product_cat #' . $term_id . '.');
+        return;
+    }
+
+    try {
+        seo_product_category_write_hub_redirect($context);
+    } catch (Throwable $e) {
+        error_log('[SEO Category Delete] Redirect category #' . $term_id . ': ' . $e->getMessage());
+    }
+
+    try {
+        $faq_table = function_exists('seo_get_faq_table_name') ? seo_get_faq_table_name() : false;
+        seo_reports_cleanup_deleted_category_data(
+            $term_id,
+            $faq_table,
+            (string) ($context['source_module'] ?? 'wordpress')
+        );
+    } catch (Throwable $e) {
+        error_log('[SEO Category Delete] Data Layer cleanup category #' . $term_id . ': ' . $e->getMessage());
+    }
+}
+add_action('deleted_product_cat', 'seo_product_category_deleted_term', 10, 4);
+
+/**
+ * API canónica para los borrados iniciados desde SEO Taxonomy.
+ */
+function seo_delete_product_category_with_hub_redirect($term_id, $source_module = 'seo_taxonomy') {
+    $term_id = absint($term_id);
+
+    if ($term_id < 1) {
+        return new WP_Error('seo_category_delete_invalid_id', 'ID de categoría no válido.');
+    }
+
+    $context = seo_product_category_build_delete_context($term_id, $source_module);
+    if (is_wp_error($context)) {
+        return $context;
+    }
+
+    seo_product_category_delete_context_store($term_id, $context);
+    seo_product_category_delete_source_module($source_module);
+
+    $result = wp_delete_term($term_id, 'product_cat');
+
+    seo_product_category_delete_source_module('wordpress');
+
+    if (!$result || is_wp_error($result)) {
+        return is_wp_error($result)
+            ? $result
+            : new WP_Error('seo_category_delete_failed', 'WordPress no pudo eliminar la categoría.');
+    }
+
+    return array(
+        'deleted'    => true,
+        'term_id'    => $term_id,
+        'hub_id'     => absint($context['hub_id']),
+        'target_url' => (string) $context['target_url'],
+    );
+}
+
 
 /**
  * Elimina únicamente FAQs de categorías product_cat que ya no existen.
