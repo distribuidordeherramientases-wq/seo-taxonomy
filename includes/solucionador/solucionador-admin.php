@@ -124,16 +124,10 @@ final class SEO_Solucionador_Admin {
         }
 
         if ($proposal_action === 'discard') {
-            SEO_Solucionador_DB::update_topic($topic_id, array(
-                'status'=>'dismissed',
-                'workflow_state'=>'rejected',
-            ));
-            SEO_Solucionador_DB::record_workflow(
-                $topic_id,
-                'rejected',
-                'Propuesta descartada desde la interfaz simplificada; se conserva para poder recuperarla más adelante.',
-                (string) ($topic['recommended_action'] ?? 'CREATE_POST')
-            );
+            if (class_exists('SEO_Solucionador_Dossiers')) {
+                SEO_Solucionador_Dossiers::mark_rejected($category_id);
+            }
+            SEO_Solucionador_DB::delete_topic($topic_id);
             self::redirect(array('sol_msg'=>'discarded'));
         }
 
@@ -285,7 +279,7 @@ final class SEO_Solucionador_Admin {
         $title = trim((string) ($topic['suggested_title'] ?? ''));
         if ($title !== '') return $title;
         $name = trim((string) ($dossier['category_name'] ?? ''));
-        return $name !== '' ? $name . ': preguntas habituales sobre elección, uso y compatibilidad' : 'Post propuesto';
+        return $name !== '' ? 'Preguntas y respuestas acerca de ' . $name : 'Post propuesto';
     }
 
     private static function simple_proposal_state(array $topic) {
@@ -303,7 +297,7 @@ final class SEO_Solucionador_Admin {
 
         $dossiers = SEO_Solucionador_DB::dossiers_table();
         $total = SEO_Solucionador_DB::table_exists($dossiers)
-            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$dossiers} WHERE question_count>0"))
+            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$dossiers} WHERE question_count>0 AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)"))
             : 0;
 
         $category_meta = SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID;
@@ -361,12 +355,12 @@ final class SEO_Solucionador_Admin {
     }
 
     private static function proposal_action_form($category_id) {
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:flex;gap:6px;align-items:center">';
         echo '<input type="hidden" name="action" value="seo_solucionador_proposal">';
         echo '<input type="hidden" name="category_id" value="' . esc_attr(absint($category_id)) . '">';
-        echo '<input type="hidden" name="proposal_action" value="create_draft">';
         wp_nonce_field('seo_solucionador_proposal_' . absint($category_id));
-        submit_button('Convertir en post','primary','submit',false);
+        echo '<button type="submit" class="button button-primary" name="proposal_action" value="create_draft">Convertir en post</button>';
+        echo '<button type="submit" class="button" name="proposal_action" value="discard">Rechazar</button>';
         echo '</form>';
     }
 
@@ -380,14 +374,14 @@ final class SEO_Solucionador_Admin {
 
         $per_page = 50;
         $page = max(1, absint($_GET['sol_page'] ?? 1));
-        $total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE question_count>0"));
+        $total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE question_count>0 AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)"));
         $pages = max(1, (int) ceil($total / $per_page));
         if ($page > $pages) $page = $pages;
         $offset = ($page - 1) * $per_page;
 
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE question_count>0 ORDER BY category_name ASC,id ASC LIMIT %d OFFSET %d",
+                "SELECT * FROM {$table} WHERE question_count>0 AND (rejected_source_hash='' OR rejected_source_hash<>source_hash) ORDER BY category_name ASC,id ASC LIMIT %d OFFSET %d",
                 $per_page,
                 $offset
             ),

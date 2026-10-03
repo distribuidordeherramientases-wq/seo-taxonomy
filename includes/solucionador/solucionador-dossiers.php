@@ -279,13 +279,16 @@ final class SEO_Solucionador_Dossiers {
 
         foreach ($batch_by_category as $term_id=>$batch) {
             try {
-                self::upsert_batch_dossier(
+                $saved = self::upsert_batch_dossier(
                     $term_id,
                     (array) $batch['ids'],
                     (float) $batch['score_sum'],
                     (string) $batch['last'],
                     (string) $state['token']
                 );
+                if ($saved && class_exists('SEO_Solucionador_Posts') && method_exists('SEO_Solucionador_Posts','sync_category_post')) {
+                    SEO_Solucionador_Posts::sync_category_post($term_id);
+                }
             } catch (Throwable $e) {
                 $state['errors'] = absint($state['errors'] ?? 0) + 1;
             }
@@ -378,6 +381,32 @@ final class SEO_Solucionador_Dossiers {
             $category_id
         ), ARRAY_A);
         return is_array($row) ? $row : array();
+    }
+
+    public static function proposal_available(array $dossier) {
+        $source_hash = (string) ($dossier['source_hash'] ?? '');
+        $blocked_hash = (string) ($dossier['rejected_source_hash'] ?? '');
+        return $source_hash !== '' && ($blocked_hash === '' || $blocked_hash !== $source_hash);
+    }
+
+    public static function mark_rejected($category_id) {
+        global $wpdb;
+        $category_id = absint($category_id);
+        $dossier = self::get_by_category($category_id);
+        if (!$dossier) return false;
+
+        $source_hash = (string) ($dossier['source_hash'] ?? '');
+        if ($source_hash === '') return false;
+
+        return false !== $wpdb->update(
+            SEO_Solucionador_DB::dossiers_table(),
+            array(
+                'rejected_source_hash'=>$source_hash,
+                'rejected_at'=>current_time('mysql'),
+                'updated_at'=>current_time('mysql'),
+            ),
+            array('category_id'=>$category_id)
+        );
     }
 
     public static function question_details($category_id) {

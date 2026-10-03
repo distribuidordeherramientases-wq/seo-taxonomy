@@ -135,7 +135,7 @@ final class SEO_Solucionador_Engine {
             $name = self::category_name(absint($profile['category_id']));
             if ($name === '') $name = trim((string) ($profile['object'] ?? ''));
             if ($name !== '') {
-                return $name . ': preguntas habituales sobre elección, uso y compatibilidad';
+                return 'Preguntas y respuestas acerca de ' . $name;
             }
         }
         return SEO_Solucionador_Normalizer::suggested_title($profile);
