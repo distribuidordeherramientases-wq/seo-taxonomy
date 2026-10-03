@@ -85,76 +85,39 @@ add_action('wp_ajax_seo_borrar_y_redirigir_categoria', 'seo_borrar_y_redirigir_c
 
 function seo_borrar_y_redirigir_categoria_callback() {
     if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => 'No tienes permisos suficientes.']);
+        wp_send_json_error(array('message' => 'No tienes permisos suficientes.'));
     }
 
-    $term_id     = isset($_POST['term_id']) ? intval($_POST['term_id']) : 0;
-    $url_origen  = isset($_POST['url_origen']) ? esc_url_raw($_POST['url_origen']) : '';
-    $url_destino = isset($_POST['url_destino']) ? esc_url_raw($_POST['url_destino']) : '';
+    check_ajax_referer('seo_category_admin', 'nonce');
 
-    if (!$term_id || empty($url_origen) || empty($url_destino)) {
-        wp_send_json_error(['message' => 'Faltan datos requeridos para procesar la acción.']);
+    $term_id = isset($_POST['term_id']) ? absint(wp_unslash($_POST['term_id'])) : 0;
+
+    if (!$term_id) {
+        wp_send_json_error(array('message' => 'Falta el ID de la categoría.'));
     }
 
-    global $wpdb;
-    $tabla_relations = $wpdb->prefix . 'seo_relations';
-    $tabla_redirects = $wpdb->prefix . 'seo_redirects';
-
-    $ruta_origen = '/' . trim(wp_make_link_relative($url_origen), '/');
-    $ruta_destino = esc_url_raw($url_destino);
-    $ruta_destino_relativa = '/' . trim(wp_make_link_relative($ruta_destino), '/');
-
-    // Control de bucles de redirección
-    if ($ruta_origen === $ruta_destino_relativa) {
-        wp_send_json_error(['message' => 'Error: Estás intentando redirigir una categoría hacia sí misma. Elige un destino diferente.']);
+    if (!function_exists('seo_delete_product_category_with_hub_redirect')) {
+        wp_send_json_error(array(
+            'message' => 'No está disponible el servicio canónico de borrado de categorías.'
+        ));
     }
 
-    // Interceptar si ya existe una redirección previa para esta URL de origen
-    $redirect_existente = $wpdb->get_row($wpdb->prepare(
-        "SELECT target_url FROM $tabla_redirects WHERE origin_url = %s LIMIT 1", 
-        $ruta_origen
+    $result = seo_delete_product_category_with_hub_redirect(
+        $term_id,
+        'category_admin'
+    );
+
+    if (is_wp_error($result)) {
+        wp_send_json_error(array(
+            'message' => $result->get_error_message()
+        ));
+    }
+
+    wp_send_json_success(array(
+        'message'    => 'Categoría eliminada. Se ha creado el redirect 301 hacia su Hub secundario y la limpieza SEO ha pasado por Data Layer.',
+        'hub_id'     => absint($result['hub_id'] ?? 0),
+        'target_url' => esc_url_raw((string) ($result['target_url'] ?? '')),
     ));
-
-    if ($redirect_existente) {
-        wp_send_json_error([
-            'message' => sprintf(
-                'Conflicto de Redirección: La URL "%s" ya cuenta con una redirección activa hacia "%s". Por seguridad, el proceso se ha cancelado.',
-                $ruta_origen,
-                esc_url($redirect_existente->target_url)
-            )
-        ]);
-    }
-
-    $insert_redirect = $wpdb->insert(
-        $tabla_redirects,
-        array(
-            'origin_url'  => $ruta_origen,
-            'target_url'  => $ruta_destino,
-            'status_code' => 301,
-            'hits'        => 0,
-            'last_hit'    => null
-        ),
-        array('%s', '%s', '%d', '%d', '%s')
-    );
-
-    if ($insert_redirect === false) {
-        wp_send_json_error(['message' => 'Error al insertar registro en redirecciones.']);
-    }
-
-    $wpdb->delete(
-        $tabla_relations,
-        array('target_id' => $term_id, 'target_type' => 'product_cat'),
-        array('%d', '%s')
-    );
-
-    // Borrado físico total del término en WordPress/WooCommerce
-    $borrado_wc = wp_delete_term($term_id, 'product_cat');
-
-    if (is_wp_error($borrado_wc)) {
-        wp_send_json_error(['message' => 'Redirección creada, pero falló el borrado en WC: ' . $borrado_wc->get_error_message()]);
-    }
-
-    wp_send_json_success(['message' => 'Categoría eliminada y redirección configurada con éxito.']);
 }
 
 // =========================================================================
