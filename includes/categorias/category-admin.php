@@ -3406,11 +3406,10 @@ Cinco o seis FAQs.
         <div style="display:flex; flex-direction:column; gap:4px;">
             <button type="button"
                     id="btn_redirect_<?php echo esc_attr((int) $term_id); ?>"
-                    disabled
                     onclick="seoProcesarAccionV2(<?php echo esc_attr((int) $term_id); ?>, '<?php echo esc_js($url_origen_completa); ?>', 'borrado_total')"
-                    style="height:28px; padding:0 12px; background:#f6f7f7; border:1px solid #dcdcde; color:#a7aaad; border-radius:4px; font-weight:bold; cursor:not-allowed; transition:all 0.2s;">
+                    style="height:28px; padding:0 12px; background:#bae0ba; border:1px solid #00a32a; color:#006505; border-radius:4px; font-weight:bold; cursor:pointer; transition:all 0.2s;">
 
-                Eliminar Categoría
+                Eliminar Categoría · 301 al Hub
 
             </button>
         </div>
@@ -3545,12 +3544,7 @@ function seoFiltrarCascada(termId, nivelModificado) {
             'color': '#2271b1',
             'cursor': 'pointer'
         });
-        btnBorrar.removeAttr('disabled').css({
-            'background': '#bae0ba',
-            'border-color': '#00a32a',
-            'color': '#006505',
-            'cursor': 'pointer'
-        });
+        /* El borrado no depende de la cascada: el servidor resuelve el Hub secundario canónico. */
     } else {
         previewDiv.html('<i>Ningún destino seleccionado</i>');
         btnRelOnly.attr('disabled', 'disabled').css({
@@ -3559,12 +3553,7 @@ function seoFiltrarCascada(termId, nivelModificado) {
             'color': '#a7aaad',
             'cursor': 'not-allowed'
         });
-        btnBorrar.attr('disabled', 'disabled').css({
-            'background': '#f6f7f7',
-            'border-color': '#dcdcde',
-            'color': '#a7aaad',
-            'cursor': 'not-allowed'
-        });
+        /* El borrado sigue disponible; si no existe un Hub secundario único, el servidor lo bloqueará. */
     }
 }
 
