@@ -88,7 +88,7 @@ function seo_borrar_y_redirigir_categoria_callback() {
         wp_send_json_error(array('message' => 'No tienes permisos suficientes.'));
     }
 
-    check_ajax_referer('seo_category_admin', 'nonce');
+    check_ajax_referer('seo_category_delete', 'nonce');
 
     $term_id = isset($_POST['term_id']) ? absint(wp_unslash($_POST['term_id'])) : 0;
 
@@ -3570,13 +3570,6 @@ function seoFiltrarCascada(termId, nivelModificado) {
 
 function seoProcesarAccionV2(termId, urlOrigen) {
 
-    var urlDestino = seoUrlsDestinoPorFila[termId] || "";
-
-    if (!urlDestino) {
-        alert("Error: No se ha detectado ninguna URL de destino válida.");
-        return;
-    }
-
     var btnBorrar = jQuery('#btn_redirect_' + termId);
     var fila      = jQuery('#cat_row_' + termId);
 
@@ -3589,8 +3582,7 @@ function seoProcesarAccionV2(termId, urlOrigen) {
         data: {
             action: 'seo_borrar_y_redirigir_categoria',
             term_id: termId,
-            url_origen: urlOrigen,
-            url_destino: urlDestino
+            nonce: '<?php echo esc_js(wp_create_nonce('seo_category_delete')); ?>'
         },
 
         success: function(response) {
