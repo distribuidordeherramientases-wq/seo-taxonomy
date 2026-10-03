@@ -124,16 +124,10 @@ final class SEO_Solucionador_Admin {
         }
 
         if ($proposal_action === 'discard') {
-            SEO_Solucionador_DB::update_topic($topic_id, array(
-                'status'=>'dismissed',
-                'workflow_state'=>'rejected',
-            ));
-            SEO_Solucionador_DB::record_workflow(
-                $topic_id,
-                'rejected',
-                'Propuesta descartada desde la interfaz simplificada; se conserva para poder recuperarla más adelante.',
-                (string) ($topic['recommended_action'] ?? 'CREATE_POST')
-            );
+            if (class_exists('SEO_Solucionador_Dossiers')) {
+                SEO_Solucionador_Dossiers::mark_rejected($category_id);
+            }
+            SEO_Solucionador_DB::delete_topic($topic_id);
             self::redirect(array('sol_msg'=>'discarded'));
         }
 
