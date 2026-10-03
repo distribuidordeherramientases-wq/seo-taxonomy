@@ -18,6 +18,7 @@ final class SEO_Solucionador_Posts {
     const META_RUN_IDS = '_seo_solucionador_run_ids';
     const META_SOURCE_HASH = '_seo_solucionador_source_hash';
     const META_SOURCE_SNAPSHOT = '_seo_solucionador_source_snapshot';
+    const META_ITEM_HASHES = '_seo_solucionador_item_hashes';
     const META_PENDING_QUESTION_IDS = '_seo_solucionador_pending_question_ids';
     const META_PENDING_SOURCE_HASH = '_seo_solucionador_pending_source_hash';
     const META_PENDING_DETECTED_AT = '_seo_solucionador_pending_detected_at';
@@ -223,6 +224,7 @@ final class SEO_Solucionador_Posts {
             'run_ids'=>$run_ids,
             'question_count'=>count($question_ids),
             'source_hash'=>(string) ($dossier['source_hash'] ?? ''),
+            'item_hashes'=>SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}', array()),
             'last_validated_at'=>(string) ($dossier['last_validated_at'] ?? ''),
             'captured_at'=>current_time('mysql'),
         );
@@ -238,6 +240,7 @@ final class SEO_Solucionador_Posts {
             self::META_QUESTION_IDS => array_values((array) ($snapshot['question_ids'] ?? array())),
             self::META_RUN_IDS => array_values((array) ($snapshot['run_ids'] ?? array())),
             self::META_SOURCE_HASH => (string) ($snapshot['source_hash'] ?? ''),
+            self::META_ITEM_HASHES => (array) ($snapshot['item_hashes'] ?? array()),
             self::META_SOURCE_SNAPSHOT => $snapshot,
         );
         foreach ($writes as $key=>$value) {
@@ -268,6 +271,10 @@ final class SEO_Solucionador_Posts {
             'no_found_rows'=>true,
         ));
         return $ids ? absint($ids[0]) : 0;
+    }
+
+    public static function managed_post_id_by_category_public($category_id) {
+        return self::managed_post_id_by_category($category_id);
     }
 
     public static function pending_question_ids($post_id) {
@@ -316,65 +323,48 @@ final class SEO_Solucionador_Posts {
         $post_id = self::managed_post_id_by_category($category_id);
         if (!$post_id) return false;
 
-        $details = self::question_details($category_id);
-        $stored_ids = array_values(array_unique(array_filter(array_map(
-            'absint',
-            (array) get_post_meta($post_id,self::META_QUESTION_IDS,true)
-        ))));
+        $dossier = class_exists('SEO_Solucionador_Dossiers')
+            ? (array) SEO_Solucionador_Dossiers::get_by_category($category_id)
+            : array();
+        if (!$dossier) return 0;
 
-        $new_details = array();
-        foreach ($details as $row) {
-            $question_id = absint($row['question_id'] ?? 0);
-            if ($question_id && !in_array($question_id,$stored_ids,true)) {
-                $new_details[] = $row;
-            }
-        }
+        $changed_ids = class_exists('SEO_Solucionador_Dossiers')
+            ? SEO_Solucionador_Dossiers::changed_item_ids($category_id)
+            : array();
 
-        if (!$new_details) {
+        $old_pending = self::pending_question_ids($post_id);
+        sort($old_pending,SORT_NUMERIC);
+        $pending_ids = array_values(array_unique(array_filter(array_map('absint',(array)$changed_ids))));
+        sort($pending_ids,SORT_NUMERIC);
+
+        if (!$pending_ids) {
             self::clear_pending_questions($post_id);
             return 0;
         }
 
-        $pending_ids = array_values(array_unique(array_filter(array_map(
-            static function($row) {
-                return absint($row['question_id'] ?? 0);
-            },
-            $new_details
-        ))));
-        sort($pending_ids,SORT_NUMERIC);
-
-        $old_pending = self::pending_question_ids($post_id);
-        sort($old_pending,SORT_NUMERIC);
-
-        $dossier = class_exists('SEO_Solucionador_Dossiers')
-            ? (array) SEO_Solucionador_Dossiers::get_by_category($category_id)
-            : array();
-
         update_post_meta($post_id,self::META_PENDING_QUESTION_IDS,$pending_ids);
         update_post_meta($post_id,self::META_PENDING_SOURCE_HASH,(string)($dossier['source_hash'] ?? ''));
         update_post_meta($post_id,self::META_PENDING_DETECTED_AT,current_time('mysql'));
-
-        // Nunca se cambia el estado del post por detectar novedades.
-        // Un post publicado permanece publicado; la revisión editorial queda
-        // señalada en inventario y encima del editor hasta que la Editora actúe.
+        SEO_Solucionador_DB::update_dossier_editorial($category_id,array(
+            'editorial_status'=>SEO_Editorial_Service_Contract::NEEDS_UPDATE,
+        ));
 
         $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
         if ($topic_id) {
             SEO_Solucionador_DB::update_topic($topic_id,array(
                 'workflow_state'=>'needs_update',
                 'recommended_action'=>'IMPROVE_POST',
-                'decision_reason'=>'Academia ha aportado nuevas preguntas útiles; el post mantiene su estado actual y queda marcado para revisión editorial antes de decidir si se incorporan.',
+                'decision_reason'=>'El dossier contiene elementos nuevos o modificados desde la ultima revision editorial.',
             ));
             if ($old_pending !== $pending_ids) {
                 SEO_Solucionador_DB::record_workflow(
                     $topic_id,
                     'needs_update',
-                    'Nuevas preguntas de Academia detectadas para revisión editorial. El post mantiene su estado; las novedades se muestran encima del editor y post_content no se modifica automáticamente.',
+                    'El source_hash ha cambiado. Se muestran exclusivamente preguntas nuevas o modificadas; el contenido publicado no se altera automaticamente.',
                     'IMPROVE_POST'
                 );
             }
         }
-
         return count($pending_ids);
     }
 
@@ -714,75 +704,24 @@ final class SEO_Solucionador_Posts {
             return $existing_draft;
         }
 
-        $academy = class_exists('SEO_Solucionador_Dossiers')
-            ? SEO_Solucionador_Dossiers::snapshot()
-            : array();
-        if (empty($academy['scan_complete'])) {
-            return new WP_Error(
-                'solucionador_academy_scan_incomplete',
-                'Academia todavía no ha terminado de escanearse. Solucionador no crea borradores hasta completar todas las preguntas.'
-            );
-        }
-
         $title = sanitize_text_field((string) ($topic['suggested_title'] ?? ''));
         if ($title === '') return new WP_Error('solucionador_title_missing', 'La propuesta no tiene titulo.');
-        if (!$human_override && strtoupper((string) ($topic['recommended_action'] ?? '')) !== 'CREATE_POST') {
-            return new WP_Error('solucionador_not_new_post', 'Esta propuesta no requiere crear un post nuevo.');
-        }
-        $workflow_state = sanitize_key((string) ($topic['workflow_state'] ?? 'detected'));
-        if (!$human_override && !in_array($workflow_state, array('approved','brief_ready'), true)) {
-            return new WP_Error(
-                'solucionador_not_approved',
-                'Primero aprueba la actuación o marca el brief como listo. Solucionador no crea borradores desde una decisión no aprobada.'
-            );
-        }
-
-        $requirements = SEO_Solucionador_DB::decision_requirements($topic);
-
-        // La masa de Academia es una regla estricta: ni la interfaz simple ni
-        // una aprobación humana pueden saltársela.
-        if (isset($requirements['academy_mass']) && empty($requirements['academy_mass']['pass'])) {
-            return new WP_Error(
-                'solucionador_academy_mass',
-                'El dossier no alcanza todavía la masa mínima de preguntas útiles de Academia.'
-            );
-        }
-
-        if (!$human_override) {
-            foreach (array('category_identified','coverage_reviewed','duplication_below_threshold') as $requirement) {
-                if (isset($requirements[$requirement]) && empty($requirements[$requirement]['pass'])) {
-                    return new WP_Error(
-                        'solucionador_requirement_block',
-                        'La propuesta ya no cumple una condición obligatoria para crear una URL nueva. Reanaliza antes de preparar el borrador.'
-                    );
-                }
-            }
-        }
 
         $primary_category_id = self::primary_category_id($topic);
         if (!$primary_category_id) {
             return new WP_Error('solucionador_primary_category_missing', 'El dossier ya no tiene una product_cat de origen válida.');
         }
 
-        $proposal = array(
-            'categories' => SEO_Solucionador_DB::proposed_categories($topic),
-            'vocabulary' => SEO_Solucionador_DB::proposed_vocabulary($topic),
-        );
-        if (!$human_override && !SEO_Solucionador_Catalog::proposal_ready($proposal)) {
-            return new WP_Error(
-                'solucionador_proposal_not_ready',
-                'La propuesta no tiene aun categoria y Vocabulary suficientes para crear un borrador homogeneo.'
-            );
-        }
-
         $details = self::question_details($primary_category_id);
-        $minimum = SEO_Solucionador_Engine::minimum_academy_questions();
-        if (count((array) $details) < $minimum) {
+        if (!$details) {
             return new WP_Error(
                 'solucionador_question_material_missing',
-                'El dossier no contiene todavía suficientes preguntas prácticas y no triviales para justificar un post.'
+                'El dossier no contiene material editorial util asociado de forma demostrable a esta categoria.'
             );
         }
+        SEO_Solucionador_DB::update_dossier_editorial($primary_category_id,array(
+            'editorial_status'=>SEO_Editorial_Service_Contract::ACCEPTED,
+        ));
         $snapshot = self::dossier_snapshot($primary_category_id,$details);
         $brief_content = self::build_editorial_brief($topic_id,$topic,$primary_category_id,$details);
 
@@ -846,9 +785,15 @@ final class SEO_Solucionador_Posts {
         SEO_Solucionador_DB::record_workflow(
             $topic_id,
             'in_editing',
-            'Propuesta aprobada: se crea un borrador editorial con copia de trabajo y trazabilidad interna del dossier.',
+            'La Editora crea un borrador de trabajo desde el dossier. Los indicadores de calidad no bloquean esta decision humana.',
             'CREATE_POST'
         );
+        SEO_Solucionador_DB::update_dossier_editorial($primary_category_id,array(
+            'reviewed_hash'=>(string)($snapshot['source_hash'] ?? ''),
+            'reviewed_item_hashes'=>wp_json_encode((array)($snapshot['item_hashes'] ?? array())),
+            'editorial_status'=>SEO_Editorial_Service_Contract::DRAFT,
+            'reviewed_at'=>current_time('mysql'),
+        ));
 
         return $post_id;
     }
@@ -857,6 +802,7 @@ final class SEO_Solucionador_Posts {
         if (!$post instanceof WP_Post || $post->post_type !== 'post') return;
         $topic_id = absint(get_post_meta($post->ID, self::META_TOPIC_ID, true));
         if (!$topic_id) return;
+        $category_id = absint(get_post_meta($post->ID,self::META_DOSSIER_CATEGORY_ID,true));
 
         if ($new_status === 'publish') {
             $pending = self::pending_question_count($post->ID);
@@ -871,6 +817,9 @@ final class SEO_Solucionador_Posts {
                 'existing_post_id' => absint($post->ID),
                 'draft_post_id' => absint($post->ID),
                 'recommended_action' => $action,
+            ));
+            if ($category_id) SEO_Solucionador_DB::update_dossier_editorial($category_id,array(
+                'editorial_status'=>$pending > 0 ? SEO_Editorial_Service_Contract::NEEDS_UPDATE : SEO_Editorial_Service_Contract::PUBLISHED,
             ));
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
@@ -890,6 +839,7 @@ final class SEO_Solucionador_Posts {
         }
 
         if (in_array($new_status,array('draft','pending','private'),true) && $old_status !== $new_status) {
+            if ($category_id) SEO_Solucionador_DB::update_dossier_editorial($category_id,array('editorial_status'=>SEO_Editorial_Service_Contract::DRAFT));
             SEO_Solucionador_DB::update_topic($topic_id,array('workflow_state'=>'in_editing'));
             SEO_Solucionador_DB::record_workflow($topic_id,'in_editing','Contenido en proceso editorial.','CREATE_POST');
             return;
