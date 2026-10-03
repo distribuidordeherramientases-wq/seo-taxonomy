@@ -16,6 +16,70 @@ if (!defined('SEO_IMAGES_OPTIMIZER_VERSION')) {
     define('SEO_IMAGES_OPTIMIZER_VERSION', '1');
 }
 
+if (!function_exists('seo_images_optimizer_read_head')) {
+    /**
+     * Lee un prefijo binario de un archivo local de uploads.
+     *
+     * @param string $path Ruta del archivo.
+     * @param int    $length Bytes máximos.
+     * @return string|false
+     */
+    function seo_images_optimizer_read_head($path, $length) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Lectura binaria parcial; se limita a uploads y evita cargar archivos completos.
+        $handle = @fopen($path, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Lectura binaria parcial del mismo recurso local.
+        $head = @fread($handle, max(0, (int) $length));
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso abierto arriba.
+        @fclose($handle);
+        return $head;
+    }
+}
+
+if (!function_exists('seo_images_optimizer_file_is_writable')) {
+    /**
+     * Comprueba si el archivo puede sustituirse sin cambiar la semántica actual.
+     *
+     * @param string $path Ruta del archivo.
+     * @return bool
+     */
+    function seo_images_optimizer_file_is_writable($path) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- La comprobación aplica al archivo concreto de uploads antes de una sustitución atómica.
+        return is_writable($path);
+    }
+}
+
+if (!function_exists('seo_images_optimizer_rename')) {
+    /**
+     * Renombra un archivo local conservando la operación atómica usada por el optimizador.
+     *
+     * @param string $source Origen.
+     * @param string $target Destino.
+     * @return bool
+     */
+    function seo_images_optimizer_rename($source, $target) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- El optimizador necesita renombrado atómico para backup/restauración dentro de uploads.
+        return @rename($source, $target);
+    }
+}
+
+if (!function_exists('seo_images_optimizer_chmod')) {
+    /**
+     * Restaura permisos del archivo reemplazado.
+     *
+     * @param string $path Ruta.
+     * @param int    $mode Permisos.
+     * @return bool
+     */
+    function seo_images_optimizer_chmod($path, $mode) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Se restauran exactamente los permisos previos del archivo local optimizado.
+        return @chmod($path, $mode);
+    }
+}
+
 if (!function_exists('seo_images_optimizer_supported_mimes')) {
     function seo_images_optimizer_supported_mimes() {
         return (array) apply_filters(
@@ -106,13 +170,7 @@ if (!function_exists('seo_images_optimizer_is_animated_file')) {
         }
 
         $read_length = min((int) $size, 2 * MB_IN_BYTES);
-        $handle = @fopen($path, 'rb');
-        if (!$handle) {
-            return false;
-        }
-
-        $head = @fread($handle, $read_length);
-        @fclose($handle);
+        $head = seo_images_optimizer_read_head($path, $read_length);
         if (!is_string($head) || $head === '') {
             return false;
         }
@@ -215,7 +273,7 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
             'error'  => '',
         );
 
-        if (!is_file($path) || !is_readable($path) || !is_writable($path)) {
+        if (!is_file($path) || !is_readable($path) || !seo_images_optimizer_file_is_writable($path)) {
             $result['error'] = 'El archivo no es legible o escribible.';
             return $result;
         }
@@ -319,7 +377,7 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
         $permissions = @fileperms($path);
         $backup = $path . '.seo-opt-backup-' . $suffix;
 
-        if (!@rename($path, $backup)) {
+        if (!seo_images_optimizer_rename($path, $backup)) {
             wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
                 wp_delete_file($temp_path);
@@ -328,8 +386,8 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
             return $result;
         }
 
-        if (!@rename($candidate, $path)) {
-            @rename($backup, $path);
+        if (!seo_images_optimizer_rename($candidate, $path)) {
+            seo_images_optimizer_rename($backup, $path);
             wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
                 wp_delete_file($temp_path);
@@ -339,7 +397,7 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
         }
 
         if ($permissions !== false) {
-            @chmod($path, $permissions & 0777);
+            seo_images_optimizer_chmod($path, $permissions & 0777);
         }
         if ($candidate !== $temp_path) {
             wp_delete_file($temp_path);
@@ -357,7 +415,7 @@ if (!function_exists('seo_images_optimizer_recompress_file')) {
             || $final_mime !== $mime_type
         ) {
             wp_delete_file($path);
-            @rename($backup, $path);
+            seo_images_optimizer_rename($backup, $path);
             $result['error'] = 'El archivo optimizado no pudo validarse; se restauro el original.';
             return $result;
         }

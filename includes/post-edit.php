@@ -724,6 +724,59 @@ if (!function_exists('seo_post_editor_render_tabs')) {
     }
 }
 
+if (!function_exists('seo_post_editor_render_prepend_payload')) {
+    /**
+     * Inserta material editorial en el editor SOLO en el navegador.
+     *
+     * No guarda post_content ni cambia el estado del post. En un post publicado,
+     * la versión pública permanece intacta hasta que la Editora pulse Guardar.
+     */
+    function seo_post_editor_render_prepend_payload($payload_id, $html, $label = 'Incorporar al contenido de trabajo') {
+        $payload_id = sanitize_html_class((string) $payload_id);
+        if ($payload_id === '' || trim((string) $html) === '') return;
+
+        echo '<textarea id="' . esc_attr($payload_id) . '" style="display:none" aria-hidden="true">' . esc_textarea((string) $html) . '</textarea>';
+        echo '<button type="button" class="button button-primary" onclick="return seoPostEditorPrependPayload(' . esc_attr(wp_json_encode($payload_id)) . ');">' . esc_html($label) . '</button>';
+
+        static $script_printed = false;
+        if ($script_printed) return;
+        $script_printed = true;
+        ?>
+        <script>
+        function seoPostEditorPrependPayload(payloadId) {
+            var source = document.getElementById(payloadId);
+            if (!source) return false;
+            var addition = source.value || '';
+            if (!addition) return false;
+
+            var editorId = 'seo_post_editor_content';
+            var textarea = document.getElementById(editorId);
+            var current = '';
+
+            if (window.tinymce && tinymce.get(editorId) && !tinymce.get(editorId).isHidden()) {
+                var editor = tinymce.get(editorId);
+                current = editor.getContent() || '';
+                editor.setContent(addition + (current ? '\n\n' + current : ''));
+                editor.save();
+            } else if (textarea) {
+                current = textarea.value || '';
+                textarea.value = addition + (current ? '\n\n' + current : '');
+                textarea.dispatchEvent(new Event('input', {bubbles:true}));
+                textarea.dispatchEvent(new Event('change', {bubbles:true}));
+            }
+
+            var form = textarea ? textarea.closest('form') : null;
+            if (form) {
+                form.dataset.seoEditorialPendingInsert = '1';
+            }
+
+            return false;
+        }
+        </script>
+        <?php
+    }
+}
+
 if (!function_exists('seo_page_edit_posts')) {
     function seo_page_edit_posts() {
         global $wpdb;
@@ -810,6 +863,15 @@ if (!function_exists('seo_page_edit_posts')) {
             }
             if (!function_exists('seo_content_vocab_tables_ready') || !seo_content_vocab_tables_ready()) {
                 echo '<div class="notice notice-error inline"><p><strong>Vocabulary canonico no esta disponible.</strong> El guardado queda bloqueado para evitar volver a etiquetas WordPress.</p></div>';
+            }
+
+            if (!$creating) {
+                /**
+                 * Permite a servicios editoriales (Solucionador, Ingeniero, etc.)
+                 * mostrar avisos/revisiones justo encima del formulario sin
+                 * mezclar contenido automático con post_content.
+                 */
+                do_action('seo_post_editor_before_form', $post_id);
             }
             ?>
 

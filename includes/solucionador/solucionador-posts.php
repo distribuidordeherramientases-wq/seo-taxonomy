@@ -18,10 +18,14 @@ final class SEO_Solucionador_Posts {
     const META_RUN_IDS = '_seo_solucionador_run_ids';
     const META_SOURCE_HASH = '_seo_solucionador_source_hash';
     const META_SOURCE_SNAPSHOT = '_seo_solucionador_source_snapshot';
+    const META_PENDING_QUESTION_IDS = '_seo_solucionador_pending_question_ids';
+    const META_PENDING_SOURCE_HASH = '_seo_solucionador_pending_source_hash';
+    const META_PENDING_DETECTED_AT = '_seo_solucionador_pending_detected_at';
 
     public static function init() {
         add_action('transition_post_status', array(__CLASS__, 'transition_post_status'), 10, 3);
         add_action('before_delete_post', array(__CLASS__, 'before_delete_post'), 20, 1);
+        add_action('seo_post_editor_before_form', array(__CLASS__, 'render_pending_review_panel'), 10, 1);
     }
 
     public static function edit_url($post_id) {
@@ -237,7 +241,13 @@ final class SEO_Solucionador_Posts {
             self::META_SOURCE_SNAPSHOT => $snapshot,
         );
         foreach ($writes as $key=>$value) {
-            if (update_post_meta($post_id, $key, $value) === false) $ok = false;
+            $written = update_post_meta($post_id, $key, $value);
+            if ($written === false) {
+                // update_post_meta() también devuelve false cuando el valor ya
+                // era idéntico; sólo es error si el valor persistido difiere.
+                $current = get_post_meta($post_id,$key,true);
+                if (maybe_serialize($current) !== maybe_serialize($value)) $ok = false;
+            }
         }
         return $ok;
     }
@@ -260,18 +270,58 @@ final class SEO_Solucionador_Posts {
         return $ids ? absint($ids[0]) : 0;
     }
 
+    public static function pending_question_ids($post_id) {
+        $post_id = absint($post_id);
+        if (!$post_id) return array();
+        return array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array) get_post_meta($post_id,self::META_PENDING_QUESTION_IDS,true)
+        ))));
+    }
+
+    public static function pending_question_count($post_id) {
+        return count(self::pending_question_ids($post_id));
+    }
+
+    public static function pending_question_details($post_id) {
+        $post_id = absint($post_id);
+        $category_id = absint(get_post_meta($post_id,self::META_DOSSIER_CATEGORY_ID,true));
+        if (!$post_id || !$category_id) return array();
+
+        $pending = self::pending_question_ids($post_id);
+        if (!$pending) return array();
+        $lookup = array_fill_keys($pending,true);
+
+        return array_values(array_filter(
+            self::question_details($category_id),
+            static function($row) use ($lookup) {
+                return !empty($lookup[absint($row['question_id'] ?? 0)]);
+            }
+        ));
+    }
+
+    private static function clear_pending_questions($post_id) {
+        delete_post_meta($post_id,self::META_PENDING_QUESTION_IDS);
+        delete_post_meta($post_id,self::META_PENDING_SOURCE_HASH);
+        delete_post_meta($post_id,self::META_PENDING_DETECTED_AT);
+    }
+
+    /**
+     * Cuando Academia aprende preguntas nuevas para una categoría que ya tiene
+     * post gestionado, NO se modifica post_content. Se guardan como novedades
+     * pendientes para que la Editora decida qué incorporar.
+     */
     public static function sync_category_post($category_id) {
         $category_id = absint($category_id);
         $post_id = self::managed_post_id_by_category($category_id);
         if (!$post_id) return false;
 
         $details = self::question_details($category_id);
-        if (!$details) return false;
-
         $stored_ids = array_values(array_unique(array_filter(array_map(
             'absint',
             (array) get_post_meta($post_id,self::META_QUESTION_IDS,true)
         ))));
+
         $new_details = array();
         foreach ($details as $row) {
             $question_id = absint($row['question_id'] ?? 0);
@@ -279,50 +329,205 @@ final class SEO_Solucionador_Posts {
                 $new_details[] = $row;
             }
         }
-        if (!$new_details) return false;
 
-        $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
-        $topic = $topic_id ? (array) SEO_Solucionador_DB::get_topic($topic_id) : array();
-        $post = get_post($post_id);
-        if (!$post instanceof WP_Post) return false;
-
-        $content = (string) $post->post_content;
-        $content .= ($content !== '' ? "\n\n" : '') . self::build_editorial_brief(
-            $topic_id,
-            $topic,
-            $category_id,
-            $new_details
-        );
-
-        $updated = wp_update_post(wp_slash(array(
-            'ID'=>$post_id,
-            'post_content'=>$content,
-        )),true);
-        if (is_wp_error($updated)) return $updated;
-
-        if ($topic) {
-            $vocab = self::assign_vocabulary($post_id,$topic,$category_id);
-            if (is_wp_error($vocab)) return $vocab;
-            $relations = self::assign_categories($post_id,$topic,$category_id);
-            if (is_wp_error($relations)) return $relations;
+        if (!$new_details) {
+            self::clear_pending_questions($post_id);
+            return 0;
         }
 
-        $snapshot = self::dossier_snapshot($category_id,$details);
-        $snapshot['question_ids'] = array_values(array_unique(array_merge(
-            $stored_ids,
-            (array) ($snapshot['question_ids'] ?? array())
-        )));
-        $stored_run_ids = array_values(array_unique(array_filter(array_map(
-            'absint',
-            (array) get_post_meta($post_id,self::META_RUN_IDS,true)
+        $pending_ids = array_values(array_unique(array_filter(array_map(
+            static function($row) {
+                return absint($row['question_id'] ?? 0);
+            },
+            $new_details
         ))));
-        $snapshot['run_ids'] = array_values(array_unique(array_merge(
-            $stored_run_ids,
-            (array) ($snapshot['run_ids'] ?? array())
-        )));
-        $snapshot['question_count'] = count($snapshot['question_ids']);
-        self::persist_source_snapshot($post_id,$snapshot);
+        sort($pending_ids,SORT_NUMERIC);
+
+        $old_pending = self::pending_question_ids($post_id);
+        sort($old_pending,SORT_NUMERIC);
+
+        $dossier = class_exists('SEO_Solucionador_Dossiers')
+            ? (array) SEO_Solucionador_Dossiers::get_by_category($category_id)
+            : array();
+
+        update_post_meta($post_id,self::META_PENDING_QUESTION_IDS,$pending_ids);
+        update_post_meta($post_id,self::META_PENDING_SOURCE_HASH,(string)($dossier['source_hash'] ?? ''));
+        update_post_meta($post_id,self::META_PENDING_DETECTED_AT,current_time('mysql'));
+
+        // Nunca se cambia el estado del post por detectar novedades.
+        // Un post publicado permanece publicado; la revisión editorial queda
+        // señalada en inventario y encima del editor hasta que la Editora actúe.
+
+        $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
+        if ($topic_id) {
+            SEO_Solucionador_DB::update_topic($topic_id,array(
+                'workflow_state'=>'needs_update',
+                'recommended_action'=>'IMPROVE_POST',
+                'decision_reason'=>'Academia ha aportado nuevas preguntas útiles; el post mantiene su estado actual y queda marcado para revisión editorial antes de decidir si se incorporan.',
+            ));
+            if ($old_pending !== $pending_ids) {
+                SEO_Solucionador_DB::record_workflow(
+                    $topic_id,
+                    'needs_update',
+                    'Nuevas preguntas de Academia detectadas para revisión editorial. El post mantiene su estado; las novedades se muestran encima del editor y post_content no se modifica automáticamente.',
+                    'IMPROVE_POST'
+                );
+            }
+        }
+
+        return count($pending_ids);
+    }
+
+    public static function refresh_pending_for_post($post_id) {
+        $post_id = absint($post_id);
+        $category_id = absint(get_post_meta($post_id,self::META_DOSSIER_CATEGORY_ID,true));
+        if (!$post_id || !$category_id || get_post_type($post_id) !== 'post') {
+            return new WP_Error('solucionador_post_invalid','El post no pertenece a un dossier válido de Solucionador.');
+        }
+        $result = self::sync_category_post($category_id);
+        return is_wp_error($result) ? $result : absint($result);
+    }
+
+    public static function mark_pending_reviewed($post_id) {
+        $post_id = absint($post_id);
+        $category_id = absint(get_post_meta($post_id,self::META_DOSSIER_CATEGORY_ID,true));
+        if (!$post_id || !$category_id || get_post_type($post_id) !== 'post') {
+            return new WP_Error('solucionador_post_invalid','El post no pertenece a un dossier válido de Solucionador.');
+        }
+
+        $details = self::question_details($category_id);
+        $snapshot = self::dossier_snapshot($category_id,$details);
+        if (!self::persist_source_snapshot($post_id,$snapshot)) {
+            return new WP_Error('solucionador_review_snapshot','No se pudo guardar el nuevo punto de control del dossier.');
+        }
+        self::clear_pending_questions($post_id);
+
+        $topic_id = absint(get_post_meta($post_id,self::META_TOPIC_ID,true));
+        if ($topic_id) {
+            $status = (string) get_post_status($post_id);
+            $workflow = $status === 'publish' ? 'monitoring' : 'in_editing';
+            SEO_Solucionador_DB::update_topic($topic_id,array(
+                'workflow_state'=>$workflow,
+                'recommended_action'=>'NO_ACTION',
+                'decision_reason'=>'Las nuevas preguntas fueron revisadas por la Editora; el contenido queda bajo control editorial manual.',
+            ));
+            SEO_Solucionador_DB::record_workflow(
+                $topic_id,
+                $workflow,
+                'La Editora revisó las nuevas preguntas detectadas y decidió qué incorporar al contenido.',
+                'NO_ACTION'
+            );
+        }
         return true;
+    }
+
+    public static function render_pending_review_panel($post_id) {
+        $post_id = absint($post_id);
+        $category_id = absint(get_post_meta($post_id,self::META_DOSSIER_CATEGORY_ID,true));
+        if (!$post_id || !$category_id || get_post_type($post_id) !== 'post') return;
+
+        $pending = self::pending_question_details($post_id);
+        $count = count($pending);
+        $detected_at = (string) get_post_meta($post_id,self::META_PENDING_DETECTED_AT,true);
+        $update_state = sanitize_key((string)($_GET['sol_update'] ?? ''));
+
+        echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px;">';
+        if ($update_state === 'rescanned') {
+            echo '<div class="notice notice-info inline" style="margin:0 0 12px"><p>Solucionador ha vuelto a comparar este post con el dossier actual.</p></div>';
+        } elseif ($update_state === 'reviewed') {
+            echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Novedades marcadas como revisadas. Las próximas preguntas nuevas volverán a aparecer aquí.</p></div>';
+        } elseif ($update_state === 'error') {
+            $message = get_transient('seo_solucionador_notice_' . get_current_user_id());
+            delete_transient('seo_solucionador_notice_' . get_current_user_id());
+            echo '<div class="notice notice-error inline" style="margin:0 0 12px"><p>' . esc_html($message ?: 'No se pudo actualizar la revisión de Solucionador.') . '</p></div>';
+        }
+        echo '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">';
+        echo '<div><h2 style="margin:0 0 6px">Solucionador · revisión de nuevas preguntas</h2>';
+        if ($count) {
+            echo '<p style="margin:0"><strong>' . esc_html(number_format_i18n($count)) . ' preguntas/respuestas nuevas</strong> detectadas desde la última revisión. El post mantiene su estado actual —también si está publicado— y la versión pública no cambia hasta que la Editora decida guardar una actualización.</p>';
+            if ($detected_at !== '') {
+                echo '<p class="description" style="margin:4px 0 0">Detectadas: ' . esc_html($detected_at) . '</p>';
+            }
+        } else {
+            echo '<p style="margin:0">No hay preguntas nuevas pendientes de revisión.</p>';
+        }
+        echo '</div>';
+
+        echo '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
+        echo '<input type="hidden" name="action" value="seo_solucionador_post_action">';
+        echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
+        echo '<input type="hidden" name="post_action" value="rescan">';
+        echo '<input type="hidden" name="return_to" value="editor">';
+        wp_nonce_field('seo_solucionador_post_action_' . $post_id);
+        echo '<button type="submit" class="button">Reescanear preguntas</button>';
+        echo '</form>';
+
+        if ($count) {
+            $insert_html = '<h2>Nuevas preguntas de Solucionador</h2><ul>';
+            foreach ($pending as $row) {
+                $question = trim((string)($row['question'] ?? ''));
+                if ($question === '') continue;
+                $answer = class_exists('SEO_Solucionador_Dossiers')
+                    ? SEO_Solucionador_Dossiers::answer_text((array)$row)
+                    : '';
+                $insert_html .= '<li><strong>' . esc_html($question) . '</strong>';
+                if ($answer !== '') $insert_html .= '<br>' . esc_html($answer);
+                $insert_html .= '</li>';
+            }
+            $insert_html .= '</ul>';
+
+            if (function_exists('seo_post_editor_render_prepend_payload')) {
+                seo_post_editor_render_prepend_payload(
+                    'seo-solucionador-pending-' . $post_id,
+                    $insert_html,
+                    'Incorporar al contenido de trabajo'
+                );
+            }
+
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
+            echo '<input type="hidden" name="action" value="seo_solucionador_post_action">';
+            echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
+            echo '<input type="hidden" name="post_action" value="mark_reviewed">';
+            echo '<input type="hidden" name="return_to" value="editor">';
+            wp_nonce_field('seo_solucionador_post_action_' . $post_id);
+            echo '<button type="submit" class="button">Marcar novedades como revisadas</button>';
+            echo '</form>';
+        }
+        echo '</div></div>';
+
+        if ($count) {
+            echo '<div style="margin-top:14px;max-height:460px;overflow:auto;border-top:1px solid #dcdcde;padding-top:10px">';
+            foreach ($pending as $row) {
+                $question = trim((string)($row['question'] ?? ''));
+                if ($question === '') continue;
+                $answer = class_exists('SEO_Solucionador_Dossiers')
+                    ? SEO_Solucionador_Dossiers::answer_text((array)$row)
+                    : '';
+                echo '<div style="padding:10px 0;border-bottom:1px solid #f0f0f1">';
+                echo '<strong>' . esc_html($question) . '</strong>';
+                if ($answer !== '') {
+                    echo '<div style="margin-top:5px;line-height:1.55">' . esc_html($answer) . '</div>';
+                }
+                $trace = array();
+                if (!empty($row['lesson_key'])) $trace[] = 'lección ' . (string) $row['lesson_key'];
+                if (!empty($row['question_type'])) $trace[] = 'tipo ' . (string) $row['question_type'];
+                if (!empty($row['evaluation_status'])) {
+                    $score = isset($row['evaluation_score'])
+                        ? ' · ' . number_format_i18n((float)$row['evaluation_score'] * 100, 0) . '%'
+                        : '';
+                    $trace[] = 'validación ' . (string) $row['evaluation_status'] . $score;
+                }
+                if (!empty($row['observed_at'])) $trace[] = 'observada ' . (string) $row['observed_at'];
+                if ($trace) {
+                    echo '<div class="description" style="margin-top:5px">Origen: Academia/Dependiente · ' . esc_html(implode(' · ', $trace)) . '</div>';
+                }
+                echo '</div>';
+            }
+            echo '</div>';
+            echo '<p class="description" style="margin:10px 0 0">El botón <strong>Incorporar al contenido de trabajo</strong> sólo modifica el editor abierto en tu navegador: no guarda ni despublica el post. Revisa/reescribe, guarda cuando corresponda y después pulsa <strong>Marcar novedades como revisadas</strong>.</p>';
+        }
+        echo '</div>';
     }
 
     private static function json_material($value) {
@@ -654,21 +859,26 @@ final class SEO_Solucionador_Posts {
         if (!$topic_id) return;
 
         if ($new_status === 'publish') {
+            $pending = self::pending_question_count($post->ID);
+            $workflow_state = $pending > 0 ? 'needs_update' : 'monitoring';
+            $action = $pending > 0 ? 'IMPROVE_POST' : 'NO_ACTION';
             SEO_Solucionador_DB::update_topic($topic_id, array(
                 'status' => 'covered',
-                'workflow_state' => 'monitoring',
+                'workflow_state' => $workflow_state,
                 'coverage_status' => 'covered',
                 'existing_entity_type' => 'post',
                 'existing_entity_id' => absint($post->ID),
                 'existing_post_id' => absint($post->ID),
                 'draft_post_id' => absint($post->ID),
-                'recommended_action' => 'NO_ACTION',
+                'recommended_action' => $action,
             ));
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
-                'monitoring',
-                'Contenido publicado. Solucionador espera ahora resultados posteriores de Analista.',
-                'NO_ACTION'
+                $workflow_state,
+                $pending > 0
+                    ? 'Contenido publicado con novedades pendientes de revisión editorial.'
+                    : 'Contenido publicado. Solucionador espera ahora resultados posteriores de Analista.',
+                $action
             );
             return;
         }

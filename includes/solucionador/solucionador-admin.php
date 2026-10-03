@@ -333,6 +333,36 @@ final class SEO_Solucionador_Admin {
             self::redirect(array('sol_error'=>'invalid_post'));
         }
 
+        $return_to = sanitize_key((string) ($_POST['return_to'] ?? ''));
+        $return_editor = static function($post_id, $state = '') {
+            $url = SEO_Solucionador_Posts::edit_url($post_id);
+            if ($state !== '') $url = add_query_arg('sol_update', sanitize_key((string)$state), $url);
+            wp_safe_redirect($url);
+            exit;
+        };
+
+        if ($post_action === 'rescan') {
+            $result = SEO_Solucionador_Posts::refresh_pending_for_post($post_id);
+            if (is_wp_error($result)) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
+                if ($return_to === 'editor') $return_editor($post_id,'error');
+                self::redirect(array('sol_error'=>'post_rescan'));
+            }
+            if ($return_to === 'editor') $return_editor($post_id,'rescanned');
+            self::redirect(array('sol_msg'=>'post_rescanned','post_id'=>$post_id,'pending'=>absint($result)));
+        }
+
+        if ($post_action === 'mark_reviewed') {
+            $result = SEO_Solucionador_Posts::mark_pending_reviewed($post_id);
+            if (is_wp_error($result)) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
+                if ($return_to === 'editor') $return_editor($post_id,'error');
+                self::redirect(array('sol_error'=>'post_review'));
+            }
+            if ($return_to === 'editor') $return_editor($post_id,'reviewed');
+            self::redirect(array('sol_msg'=>'post_reviewed','post_id'=>$post_id));
+        }
+
         if ($post_action === 'to_draft') {
             $result = wp_update_post(array(
                 'ID'=>$post_id,
@@ -514,10 +544,27 @@ final class SEO_Solucionador_Admin {
         $post_id = absint($topic['draft_post_id'] ?? 0);
         if ($post_id) {
             $status = get_post_status($post_id);
-            if ($status === 'publish') return array('label'=>'Publicado','post_id'=>$post_id,'status'=>'publish');
-            if ($status && $status !== 'trash') return array('label'=>'Borrador','post_id'=>$post_id,'status'=>'draft');
+            $pending = method_exists('SEO_Solucionador_Posts','pending_question_count')
+                ? SEO_Solucionador_Posts::pending_question_count($post_id)
+                : 0;
+            if ($status === 'publish') {
+                return array(
+                    'label'=>$pending > 0 ? 'Publicado · novedades (' . number_format_i18n($pending) . ')' : 'Publicado',
+                    'post_id'=>$post_id,
+                    'status'=>'publish',
+                    'pending'=>$pending,
+                );
+            }
+            if ($status && $status !== 'trash') {
+                return array(
+                    'label'=>$pending > 0 ? 'Borrador · novedades (' . number_format_i18n($pending) . ')' : 'Borrador',
+                    'post_id'=>$post_id,
+                    'status'=>'draft',
+                    'pending'=>$pending,
+                );
+            }
         }
-        return array('label'=>'Pendiente','post_id'=>0,'status'=>'pending');
+        return array('label'=>'Pendiente','post_id'=>0,'status'=>'pending','pending'=>0);
     }
 
     private static function simple_counts() {
@@ -647,10 +694,20 @@ final class SEO_Solucionador_Admin {
         $post_id = absint($post_id);
         if (!$post_id) return;
 
+        $pending = method_exists('SEO_Solucionador_Posts','pending_question_count')
+            ? SEO_Solucionador_Posts::pending_question_count($post_id)
+            : 0;
+
+        if ($pending > 0) {
+            echo '<a class="button button-small button-primary" style="margin-left:6px" href="' . esc_url(SEO_Solucionador_Posts::edit_url($post_id)) . '">Revisar novedades (' . esc_html(number_format_i18n($pending)) . ')</a>';
+        }
+
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-flex;gap:6px;align-items:center;margin-left:6px">';
         echo '<input type="hidden" name="action" value="seo_solucionador_post_action">';
         echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
         wp_nonce_field('seo_solucionador_post_action_' . $post_id);
+
+        echo '<button type="submit" class="button button-small" name="post_action" value="rescan">Reescanear</button>';
 
         if ($status === 'publish') {
             echo '<button type="submit" class="button button-small" name="post_action" value="to_draft">Volver a borrador</button>';
@@ -1226,7 +1283,7 @@ final class SEO_Solucionador_Admin {
         $h=(array)$brief['hierarchy']; $cat=(array)($h['category'] ?? array());
         echo '<p><strong>product_cat principal:</strong> ' . (!empty($cat['id']) ? '#' . esc_html(absint($cat['id'])) . ' · ' . esc_html((string)($cat['name'] ?? '')) : '—') . '</p>';
         echo '<p><strong>Contrato:</strong> <code>post_to_category</code> · rol <code>dependiente_qa_basic</code>.</p>';
-        echo '<p><strong>Vocabulary:</strong></p>' . self::vocab_chips($topic);
+        echo '<p><strong>Vocabulary:</strong></p>' . wp_kses_post(self::vocab_chips($topic));
         echo '</section>';
 
         echo '<section><h3>3. Cobertura editorial compartida</h3>';
@@ -1400,7 +1457,7 @@ final class SEO_Solucionador_Admin {
 
             echo '<tr>';
             echo '<td><strong class="seo-sol-score">' . esc_html(number_format_i18n((float)($row['priority_score'] ?? 0),0)) . '</strong>/100</td>';
-            echo '<td><strong>' . esc_html((string)(($row['suggested_title'] ?? '') ?: ($row['canonical_question'] ?? ''))) . '</strong><br><span class="description">' . esc_html($category_name) . ($term_id ? ' (#' . $term_id . ')' : '') . '</span><br><code>' . esc_html((string)($row['canonical_key'] ?? '')) . '</code></td>';
+            echo '<td><strong>' . esc_html((string)(($row['suggested_title'] ?? '') ?: ($row['canonical_question'] ?? ''))) . '</strong><br><span class="description">' . esc_html($category_name) . ($term_id ? ' (#' . esc_html((string) $term_id) . ')' : '') . '</span><br><code>' . esc_html((string)($row['canonical_key'] ?? '')) . '</code></td>';
             echo '<td>' . ($source_counts ? esc_html(implode(' · ',$source_counts)) : '—') . '</td>';
             echo '<td><strong>' . esc_html(self::coverage_label((string)($row['coverage_status'] ?? 'uncovered'))) . '</strong><br><small>dup. ' . esc_html(number_format_i18n((float)($row['duplication_risk'] ?? 0),0)) . '/100 · canib. ' . esc_html(number_format_i18n((float)($row['cannibalization_risk'] ?? 0),0)) . '/100</small></td>';
             echo '<td><strong>' . esc_html(self::action_label((string)($row['recommended_action'] ?? 'DEFER'))) . '</strong><br><small>' . esc_html(wp_trim_words((string)($row['decision_reason'] ?? ''),24,'…')) . '</small></td>';

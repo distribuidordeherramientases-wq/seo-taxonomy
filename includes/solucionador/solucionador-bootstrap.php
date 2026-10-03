@@ -14,10 +14,10 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_SOLUCIONADOR_VERSION')) {
-    define('SEO_SOLUCIONADOR_VERSION', '0.5.8');
+    define('SEO_SOLUCIONADOR_VERSION', '0.5.11');
 }
 if (!defined('SEO_SOLUCIONADOR_DB_VERSION')) {
-    define('SEO_SOLUCIONADOR_DB_VERSION', '0.5.8');
+    define('SEO_SOLUCIONADOR_DB_VERSION', '0.5.10');
 }
 if (!defined('SEO_SOLUCIONADOR_PATH')) {
     define('SEO_SOLUCIONADOR_PATH', __DIR__ . '/');

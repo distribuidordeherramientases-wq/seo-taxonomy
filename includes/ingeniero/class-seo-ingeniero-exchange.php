@@ -19,6 +19,41 @@ final class SEO_Ingeniero_Exchange {
         add_action('admin_post_seo_ingeniero_exchange_import', array(__CLASS__, 'handle_import'));
     }
 
+    /**
+     * Abre un stream CSV nativo compatible con fputcsv/fgetcsv.
+     *
+     * @param string $path Ruta o stream PHP.
+     * @param string $mode Modo.
+     * @return resource|false
+     */
+    private static function csv_stream_open($path, $mode) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Las funciones CSV de PHP requieren un recurso nativo y permiten streaming sin cargar el archivo completo.
+        return fopen($path, $mode);
+    }
+
+    /**
+     * Escribe bytes en el stream CSV.
+     *
+     * @param resource $handle Recurso.
+     * @param string   $data Datos.
+     * @return int|false
+     */
+    private static function csv_stream_write($handle, $data) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Escritura incremental sobre el recurso usado por fputcsv().
+        return fwrite($handle, $data);
+    }
+
+    /**
+     * Cierra el stream CSV.
+     *
+     * @param resource $handle Recurso.
+     * @return bool
+     */
+    private static function csv_stream_close($handle) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso nativo usado por fputcsv/fgetcsv.
+        return fclose($handle);
+    }
+
     private static function guard($action) {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('No tienes permisos para importar o exportar conocimiento de Ingeniero.', 'seo-taxonomy'));
@@ -101,11 +136,11 @@ final class SEO_Ingeniero_Exchange {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . sanitize_file_name('seo-ingeniero-conocimiento-' . gmdate('Ymd-His') . '.csv') . '"');
 
-        $out = fopen('php://output', 'w');
+        $out = self::csv_stream_open('php://output', 'w');
         if (!$out) exit;
 
         // BOM UTF-8 para Excel/LibreOffice.
-        fwrite($out, "\xEF\xBB\xBF");
+        self::csv_stream_write($out, "\xEF\xBB\xBF");
         fputcsv($out, self::csv_headers(), ',', '"', '');
 
         foreach ((array) ($payload['categories'] ?? array()) as $category) {
@@ -147,7 +182,7 @@ final class SEO_Ingeniero_Exchange {
             }
         }
 
-        fclose($out);
+        self::csv_stream_close($out);
         exit;
     }
 
@@ -158,11 +193,11 @@ final class SEO_Ingeniero_Exchange {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="seo-ingeniero-plantilla-conocimiento.csv"');
 
-        $out = fopen('php://output', 'w');
+        $out = self::csv_stream_open('php://output', 'w');
         if (!$out) exit;
-        fwrite($out, "\xEF\xBB\xBF");
+        self::csv_stream_write($out, "\xEF\xBB\xBF");
         fputcsv($out, self::csv_headers(), ',', '"', '');
-        fclose($out);
+        self::csv_stream_close($out);
         exit;
     }
 
@@ -258,12 +293,12 @@ final class SEO_Ingeniero_Exchange {
     }
 
     private static function read_csv_file($path) {
-        $handle = fopen($path, 'r');
+        $handle = self::csv_stream_open($path, 'r');
         if (!$handle) return new WP_Error('ingeniero_exchange_csv_open', 'No se pudo abrir el CSV.');
 
         $headers = fgetcsv($handle, 0, ',', '"', '');
         if (!$headers) {
-            fclose($handle);
+            self::csv_stream_close($handle);
             return new WP_Error('ingeniero_exchange_csv_empty', 'El CSV no contiene cabecera.');
         }
         $headers = array_map(static function($value) {
@@ -274,7 +309,7 @@ final class SEO_Ingeniero_Exchange {
         $required = array('knowledge_type','summary','source_url');
         foreach ($required as $field) {
             if (!in_array($field, $headers, true)) {
-                fclose($handle);
+                self::csv_stream_close($handle);
                 return new WP_Error('ingeniero_exchange_csv_columns', 'Falta la columna obligatoria: ' . $field);
             }
         }
@@ -340,7 +375,7 @@ final class SEO_Ingeniero_Exchange {
                 'metadata'=>array('import_origin'=>'csv','import_line'=>$line),
             );
         }
-        fclose($handle);
+        self::csv_stream_close($handle);
 
         $errors = isset($groups['__errors']) ? $groups['__errors'] : array();
         unset($groups['__errors']);
