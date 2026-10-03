@@ -15,6 +15,7 @@ final class SEO_Comparador_Admin {
         add_action('admin_post_seo_comparador_build', array(__CLASS__, 'handle_build'));
         add_action('admin_post_seo_comparador_axes', array(__CLASS__, 'handle_axes'));
         add_action('admin_post_seo_comparador_action', array(__CLASS__, 'handle_action'));
+        add_action('admin_post_seo_comparador_accept_all', array(__CLASS__, 'handle_accept_all'));
     }
 
     public static function register_page() {
@@ -116,6 +117,95 @@ final class SEO_Comparador_Admin {
         self::redirect('comparisons',array('profile_id'=>$profile_id));
     }
 
+    public static function handle_accept_all() {
+        if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
+        check_admin_referer('seo_comparador_accept_all');
+
+        global $wpdb;
+        SEO_Comparador_DB::maybe_install();
+        SEO_Comparador_Engine::ensure_all_category_profiles();
+
+        $table = SEO_Comparador_DB::table('profiles');
+        $after_id = absint($_REQUEST['after_id'] ?? 0);
+        $created = absint($_REQUEST['created'] ?? 0);
+        $skipped = absint($_REQUEST['skipped'] ?? 0);
+        $errors = absint($_REQUEST['errors'] ?? 0);
+        $batch_size = 50;
+
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id,status,recommended_action
+                 FROM %i
+                 WHERE id>%d
+                   AND recommended_action='CREATE_POST'
+                   AND status IN ('ready_for_editorial','ready_for_solucionador','approved','needs_review')
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $table,
+                $after_id,
+                $batch_size
+            ),
+            ARRAY_A
+        );
+
+        $last_id = $after_id;
+        foreach ($rows as $row) {
+            $profile_id = absint($row['id'] ?? 0);
+            $last_id = max($last_id, $profile_id);
+            if (!$profile_id) {
+                $skipped++;
+                continue;
+            }
+
+            $map = SEO_Comparador_DB::post_map($profile_id);
+            if (!empty($map['post_id']) && get_post(absint($map['post_id']))) {
+                $skipped++;
+                continue;
+            }
+
+            if (sanitize_key((string) ($row['status'] ?? '')) !== 'approved') {
+                $approved = SEO_Comparador_Engine::approve_editorial_action(
+                    $profile_id,
+                    'CREATE_POST',
+                    'Creación aprobada mediante Aceptar todo.'
+                );
+                if (is_wp_error($approved)) {
+                    $errors++;
+                    continue;
+                }
+            }
+
+            $result = SEO_Comparador_Engine::create_editorial_draft($profile_id);
+            if (is_wp_error($result)) {
+                $errors++;
+                continue;
+            }
+            $created++;
+        }
+
+        if (count($rows) === $batch_size && $last_id > $after_id) {
+            $next = wp_nonce_url(
+                add_query_arg(array(
+                    'action'=>'seo_comparador_accept_all',
+                    'after_id'=>$last_id,
+                    'created'=>$created,
+                    'skipped'=>$skipped,
+                    'errors'=>$errors,
+                ), admin_url('admin-post.php')),
+                'seo_comparador_accept_all'
+            );
+            wp_safe_redirect($next);
+            exit;
+        }
+
+        self::notice(
+            'Aceptar todo completado: ' . $created . ' borradores creados, '
+            . $skipped . ' omitidos y ' . $errors . ' errores.',
+            $errors > 0 ? 'warning' : 'success'
+        );
+        self::redirect('comparisons');
+    }
+
     public static function handle_action() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
         $profile_id=isset($_POST['profile_id']) ? absint(wp_unslash($_POST['profile_id'])) : 0;
@@ -162,6 +252,7 @@ final class SEO_Comparador_Admin {
     public static function render() {
         if (!current_user_can('manage_options')) return;
         SEO_Comparador_DB::maybe_install();
+        SEO_Comparador_Engine::ensure_all_category_profiles();
         SEO_Comparador_Engine::kick_automatic_refresh();
         $tab=isset($_GET['tab'])?sanitize_key(wp_unslash($_GET['tab'])):'comparisons';
         if (!in_array($tab,array('settings','comparisons','performance'),true)) $tab='comparisons';
@@ -208,7 +299,7 @@ final class SEO_Comparador_Admin {
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_comparador_build">';
         wp_nonce_field('seo_comparador_build');
         echo '<label><strong>Categoría</strong><br><select name="term_id" required style="min-width:420px"><option value="">Selecciona…</option>';
-        $terms=get_terms(array('taxonomy'=>'product_cat','hide_empty'=>true,'number'=>1000,'orderby'=>'name','order'=>'ASC'));
+        $terms=get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false,'number'=>0,'orderby'=>'name','order'=>'ASC'));
         foreach ((array)$terms as $term) {
             if (!is_object($term)) continue;
             echo '<option value="' . esc_attr($term->term_id) . '">' . esc_html($term->name . ' · ' . number_format_i18n($term->count) . ' productos') . '</option>';
@@ -242,6 +333,19 @@ final class SEO_Comparador_Admin {
         self::card('Listos para Editora',$ready,'Perfil validado y actuación editorial calculada.');
         self::card('Publicados',$published,'Con post canónico vinculado.');
         self::card('Necesitan actualización',absint($status_counts['needs_update'] ?? 0),'Las fuentes han cambiado materialmente.');
+        echo '</div>';
+
+        echo '<div class="seo-cmp-actions" style="margin:12px 0 16px">';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="seo_comparador_accept_all">';
+        wp_nonce_field('seo_comparador_accept_all');
+        echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Se aprobarán y convertirán en borrador todas las comparativas cuya decisión sea CREATE_POST. Las bloqueadas, no comparables o sin decisión se omitirán. ¿Continuar?\');">Aceptar todo</button>';
+        echo '</form>';
+        $global_export_url=wp_nonce_url(
+            add_query_arg(array('action'=>'seo_comparador_export_all'),admin_url('admin-post.php')),
+            'seo_comparador_export_all'
+        );
+        echo '<a class="button" href="' . esc_url($global_export_url) . '">Descargar JSON</a>';
         echo '</div>';
 
         echo '<div class="postbox seo-cmp-box"><h2>Perfiles comparativos</h2>';
