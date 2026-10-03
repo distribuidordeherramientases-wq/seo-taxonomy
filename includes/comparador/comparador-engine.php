@@ -13,11 +13,17 @@ final class SEO_Comparador_Engine {
     const AUTO_STATE_OPTION = 'seo_comparador_auto_refresh_state';
     const AUTO_REFRESH_HOOK = 'seo_comparador_auto_refresh';
     const AUTO_REFRESH_STEP_HOOK = 'seo_comparador_auto_refresh_step';
+    const META_SOURCE_HASH = '_seo_comparador_source_hash';
+    const META_REVIEW_BASELINE = '_seo_comparador_review_baseline';
+    const META_PENDING_PAYLOAD = '_seo_comparador_pending_payload';
+    const META_PENDING_DETECTED_AT = '_seo_comparador_pending_detected_at';
 
     public static function init() {
         add_action('init', array(__CLASS__, 'schedule_automatic_refresh'), 21);
         add_action(self::AUTO_REFRESH_HOOK, array(__CLASS__, 'automatic_refresh'));
         add_action(self::AUTO_REFRESH_STEP_HOOK, array(__CLASS__, 'automatic_refresh'));
+        add_action('seo_post_editor_before_form', array(__CLASS__, 'render_pending_review_panel'), 30, 1);
+        add_action('admin_post_seo_comparador_post_update_action', array(__CLASS__, 'handle_post_update_action'));
     }
 
     public static function schedule_automatic_refresh() {
@@ -834,6 +840,7 @@ final class SEO_Comparador_Engine {
 
         self::mark_representatives($profile_id, absint($settings['max_representative_external']));
         self::generate_editorial($profile_id);
+        self::sync_pending_update($profile_id);
 
         if ($existing && $old_status !== $status) {
             $wpdb->insert(SEO_Comparador_DB::table('workflow'),array(
@@ -925,6 +932,289 @@ final class SEO_Comparador_Engine {
         if ($existing) $wpdb->update(SEO_Comparador_DB::table('editorial'),$row,array('profile_id'=>absint($profile_id)));
         else { $row['profile_id']=absint($profile_id); $wpdb->insert(SEO_Comparador_DB::table('editorial'),$row); }
         return SEO_Comparador_DB::editorial($profile_id);
+    }
+
+    private static function review_payload($profile_id) {
+        $profile_id = absint($profile_id);
+        $profile = SEO_Comparador_DB::get_profile($profile_id);
+        if (!$profile) return array();
+
+        $editorial = SEO_Comparador_DB::editorial($profile_id);
+        $axes = array_values(array_filter(SEO_Comparador_DB::axes($profile_id), static function($axis) {
+            return !empty($axis['publishable']);
+        }));
+        $axis_labels = array_values(array_filter(array_map(static function($axis) {
+            return sanitize_text_field((string) ($axis['label'] ?? ''));
+        }, $axes)));
+        sort($axis_labels);
+
+        return array(
+            'profile_id'=>$profile_id,
+            'source_hash'=>(string) ($profile['source_hash'] ?? ''),
+            'snapshot_at'=>(string) ($profile['source_snapshot_at'] ?? ''),
+            'own_products'=>absint($profile['own_products_count'] ?? 0),
+            'external_products'=>absint($profile['external_products_comparable'] ?? 0),
+            'axes'=>$axis_labels,
+            'summary'=>wp_strip_all_tags((string) ($editorial['summary'] ?? '')),
+            'buying_criteria'=>array_values(array_filter(array_map(
+                'sanitize_text_field',
+                (array) SEO_Comparador_DB::decode_json($editorial['buying_criteria'] ?? '[]')
+            ))),
+            'main_differences'=>(array) SEO_Comparador_DB::decode_json($editorial['main_differences'] ?? '[]'),
+            'use_cases'=>(array) SEO_Comparador_DB::decode_json($editorial['use_cases'] ?? '[]'),
+            'conclusion'=>wp_strip_all_tags((string) ($editorial['conclusion'] ?? '')),
+        );
+    }
+
+    private static function baseline_payload($post_id) {
+        $baseline = get_post_meta(absint($post_id), self::META_REVIEW_BASELINE, true);
+        if (is_array($baseline) && $baseline) return $baseline;
+
+        $axes = (array) get_post_meta(absint($post_id), '_seo_comparador_axes', true);
+        return array(
+            'profile_id'=>absint(get_post_meta(absint($post_id), '_seo_comparador_profile_id', true)),
+            'source_hash'=>(string) get_post_meta(absint($post_id), self::META_SOURCE_HASH, true),
+            'snapshot_at'=>(string) get_post_meta(absint($post_id), '_seo_comparador_snapshot_at', true),
+            'own_products'=>null,
+            'external_products'=>null,
+            'axes'=>array_values(array_filter(array_map('sanitize_text_field', $axes))),
+            'summary'=>'',
+            'buying_criteria'=>array(),
+            'main_differences'=>array(),
+            'use_cases'=>array(),
+            'conclusion'=>'',
+        );
+    }
+
+    private static function payload_diff(array $baseline, array $current) {
+        $old_axes = array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) ($baseline['axes'] ?? array())))));
+        $new_axes = array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) ($current['axes'] ?? array())))));
+        sort($old_axes);
+        sort($new_axes);
+
+        return array(
+            'source_changed'=>!empty($baseline['source_hash'])
+                && !empty($current['source_hash'])
+                && (string) $baseline['source_hash'] !== (string) $current['source_hash'],
+            'snapshot_changed'=>!empty($baseline['snapshot_at'])
+                && !empty($current['snapshot_at'])
+                && (string) $baseline['snapshot_at'] !== (string) $current['snapshot_at'],
+            'added_axes'=>array_values(array_diff($new_axes, $old_axes)),
+            'removed_axes'=>array_values(array_diff($old_axes, $new_axes)),
+            'own_products_before'=>$baseline['own_products'] ?? null,
+            'own_products_after'=>absint($current['own_products'] ?? 0),
+            'external_products_before'=>$baseline['external_products'] ?? null,
+            'external_products_after'=>absint($current['external_products'] ?? 0),
+            'summary_changed'=>!empty($baseline['summary'])
+                && (string) $baseline['summary'] !== (string) ($current['summary'] ?? ''),
+        );
+    }
+
+    private static function has_material_diff(array $baseline, array $current, array $diff) {
+        if (!empty($diff['source_changed']) || !empty($diff['snapshot_changed'])) return true;
+        if (!empty($diff['added_axes']) || !empty($diff['removed_axes'])) return true;
+        if ($diff['own_products_before'] !== null && absint($diff['own_products_before']) !== absint($diff['own_products_after'])) return true;
+        if ($diff['external_products_before'] !== null && absint($diff['external_products_before']) !== absint($diff['external_products_after'])) return true;
+        if (!empty($diff['summary_changed'])) return true;
+
+        // Post antiguo sin línea base completa: si no tenemos ningún dato de
+        // referencia, inicializamos sin crear una falsa novedad.
+        return false;
+    }
+
+    public static function pending_count($post_id) {
+        $payload = get_post_meta(absint($post_id), self::META_PENDING_PAYLOAD, true);
+        if (!is_array($payload) || empty($payload['diff'])) return 0;
+        $diff = (array) $payload['diff'];
+        $count = count((array) ($diff['added_axes'] ?? array()))
+            + count((array) ($diff['removed_axes'] ?? array()));
+        foreach (array('source_changed','snapshot_changed','summary_changed') as $flag) {
+            if (!empty($diff[$flag])) $count++;
+        }
+        if (
+            ($diff['own_products_before'] ?? null) !== null
+            && absint($diff['own_products_before']) !== absint($diff['own_products_after'] ?? 0)
+        ) $count++;
+        if (
+            ($diff['external_products_before'] ?? null) !== null
+            && absint($diff['external_products_before']) !== absint($diff['external_products_after'] ?? 0)
+        ) $count++;
+        return max(1, $count);
+    }
+
+    private static function clear_pending_update($post_id) {
+        delete_post_meta($post_id, self::META_PENDING_PAYLOAD);
+        delete_post_meta($post_id, self::META_PENDING_DETECTED_AT);
+    }
+
+    public static function sync_pending_update($profile_id) {
+        global $wpdb;
+        $profile_id = absint($profile_id);
+        $map = SEO_Comparador_DB::post_map($profile_id);
+        $post_id = absint($map['post_id'] ?? 0);
+        if (!$post_id || get_post_type($post_id) !== 'post' || get_post_status($post_id) === 'trash') return 0;
+
+        $current = self::review_payload($profile_id);
+        if (!$current) return 0;
+        $baseline = self::baseline_payload($post_id);
+
+        $has_any_baseline = !empty($baseline['source_hash'])
+            || !empty($baseline['snapshot_at'])
+            || !empty($baseline['axes'])
+            || $baseline['own_products'] !== null
+            || $baseline['external_products'] !== null;
+
+        if (!$has_any_baseline) {
+            update_post_meta($post_id, self::META_REVIEW_BASELINE, $current);
+            update_post_meta($post_id, self::META_SOURCE_HASH, (string) ($current['source_hash'] ?? ''));
+            self::clear_pending_update($post_id);
+            return 0;
+        }
+
+        $diff = self::payload_diff($baseline, $current);
+        if (!self::has_material_diff($baseline, $current, $diff)) {
+            self::clear_pending_update($post_id);
+            return 0;
+        }
+
+        update_post_meta($post_id, self::META_PENDING_PAYLOAD, array(
+            'current'=>$current,
+            'baseline'=>$baseline,
+            'diff'=>$diff,
+        ));
+        update_post_meta($post_id, self::META_PENDING_DETECTED_AT, current_time('mysql'));
+
+        $wpdb->update(SEO_Comparador_DB::table('profiles'), array(
+            'status'=>'needs_update',
+            'recommended_action'=>'IMPROVE_POST',
+            'decision_reason'=>'Comparador ha detectado cambios materiales respecto al snapshot revisado; el post mantiene su estado y queda pendiente de revisión editorial.',
+            'updated_at'=>self::now(),
+        ), array('id'=>$profile_id));
+
+        return self::pending_count($post_id);
+    }
+
+    public static function refresh_pending_for_post($post_id) {
+        $post_id = absint($post_id);
+        $profile_id = absint(get_post_meta($post_id, '_seo_comparador_profile_id', true));
+        if (!$post_id || !$profile_id || get_post_type($post_id) !== 'post') {
+            return new WP_Error('comparador_post_invalid', 'El post no pertenece a Comparador.');
+        }
+        return self::sync_pending_update($profile_id);
+    }
+
+    public static function mark_pending_reviewed($post_id) {
+        global $wpdb;
+        $post_id = absint($post_id);
+        $profile_id = absint(get_post_meta($post_id, '_seo_comparador_profile_id', true));
+        if (!$post_id || !$profile_id || get_post_type($post_id) !== 'post') {
+            return new WP_Error('comparador_post_invalid', 'El post no pertenece a Comparador.');
+        }
+
+        $current = self::review_payload($profile_id);
+        if (!$current) return new WP_Error('comparador_profile', 'No existe el perfil comparativo.');
+
+        update_post_meta($post_id, self::META_REVIEW_BASELINE, $current);
+        update_post_meta($post_id, self::META_SOURCE_HASH, (string) ($current['source_hash'] ?? ''));
+        update_post_meta($post_id, '_seo_comparador_axes', (array) ($current['axes'] ?? array()));
+        update_post_meta($post_id, '_seo_comparador_snapshot_at', (string) ($current['snapshot_at'] ?? ''));
+        self::clear_pending_update($post_id);
+
+        $wpdb->update(SEO_Comparador_DB::table('profiles'), array(
+            'status'=>get_post_status($post_id) === 'publish' ? 'monitoring' : 'post_draft',
+            'recommended_action'=>'NO_ACTION',
+            'decision_reason'=>'Las novedades comparativas fueron revisadas por la Editora.',
+            'updated_at'=>self::now(),
+        ), array('id'=>$profile_id));
+        return true;
+    }
+
+    public static function handle_post_update_action() {
+        if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
+        $post_id = absint($_POST['post_id'] ?? 0);
+        $action = sanitize_key((string) ($_POST['update_action'] ?? ''));
+        check_admin_referer('seo_comparador_post_update_' . $post_id);
+
+        $result = $action === 'mark_reviewed'
+            ? self::mark_pending_reviewed($post_id)
+            : self::refresh_pending_for_post($post_id);
+
+        $state = is_wp_error($result) ? 'error' : ($action === 'mark_reviewed' ? 'reviewed' : 'rescanned');
+        if (is_wp_error($result)) {
+            set_transient('seo_comparador_update_notice_' . get_current_user_id(), $result->get_error_message(), 90);
+        }
+        $url = add_query_arg(array('page'=>'seo-post-editor','post_id'=>$post_id,'comparador_update'=>$state), admin_url('edit.php'));
+        wp_safe_redirect($url);
+        exit;
+    }
+
+    public static function render_pending_review_panel($post_id) {
+        $post_id = absint($post_id);
+        $profile_id = absint(get_post_meta($post_id, '_seo_comparador_profile_id', true));
+        if (!$post_id || !$profile_id || get_post_type($post_id) !== 'post') return;
+
+        self::sync_pending_update($profile_id);
+        $pending = get_post_meta($post_id, self::META_PENDING_PAYLOAD, true);
+        $count = self::pending_count($post_id);
+        $state = sanitize_key((string) ($_GET['comparador_update'] ?? ''));
+
+        echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px">';
+        echo '<h2 style="margin:0 0 6px">Comparador · novedades del mercado/perfil</h2>';
+
+        if ($state === 'error') {
+            $msg = get_transient('seo_comparador_update_notice_' . get_current_user_id());
+            delete_transient('seo_comparador_update_notice_' . get_current_user_id());
+            echo '<div class="notice notice-error inline"><p>' . esc_html($msg ?: 'No se pudo actualizar Comparador.') . '</p></div>';
+        } elseif ($state === 'reviewed') {
+            echo '<div class="notice notice-success inline"><p>Novedades de Comparador marcadas como revisadas.</p></div>';
+        }
+
+        if ($count && is_array($pending)) {
+            $current = (array) ($pending['current'] ?? array());
+            $diff = (array) ($pending['diff'] ?? array());
+            echo '<p><strong>Hay cambios comparativos pendientes de revisión.</strong> El post mantiene su estado actual y la versión pública no se modifica automáticamente.</p>';
+            echo '<ul>';
+            if (!empty($diff['added_axes'])) echo '<li>Nuevos criterios/ejes: ' . esc_html(implode(', ', (array) $diff['added_axes'])) . '.</li>';
+            if (!empty($diff['removed_axes'])) echo '<li>Ejes que ya no están disponibles: ' . esc_html(implode(', ', (array) $diff['removed_axes'])) . '.</li>';
+            if (($diff['own_products_before'] ?? null) !== null && absint($diff['own_products_before']) !== absint($diff['own_products_after'] ?? 0)) {
+                echo '<li>Productos propios comparados: ' . esc_html(absint($diff['own_products_before'])) . ' → ' . esc_html(absint($diff['own_products_after'])) . '.</li>';
+            }
+            if (($diff['external_products_before'] ?? null) !== null && absint($diff['external_products_before']) !== absint($diff['external_products_after'] ?? 0)) {
+                echo '<li>Referencias externas comparables: ' . esc_html(absint($diff['external_products_before'])) . ' → ' . esc_html(absint($diff['external_products_after'])) . '.</li>';
+            }
+            if (!empty($diff['snapshot_changed'])) {
+                echo '<li>Nuevo snapshot de mercado: ' . esc_html((string) ($current['snapshot_at'] ?? '')) . '.</li>';
+            }
+            echo '</ul>';
+
+            $html = '<h2>Novedades de Comparador</h2>';
+            if (!empty($current['summary'])) $html .= '<p>' . esc_html((string) $current['summary']) . '</p>';
+            if (!empty($current['axes'])) $html .= '<h3>Criterios de comparación</h3><p>' . esc_html(implode(', ', (array) $current['axes'])) . '.</p>';
+            if (!empty($current['conclusion'])) $html .= '<h3>Conclusión comparativa</h3><p>' . esc_html((string) $current['conclusion']) . '</p>';
+
+            echo '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">';
+            if (function_exists('seo_post_editor_render_prepend_payload')) {
+                seo_post_editor_render_prepend_payload(
+                    'seo-comparador-pending-' . $post_id,
+                    $html,
+                    'Incorporar al contenido de trabajo'
+                );
+            }
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
+            echo '<input type="hidden" name="action" value="seo_comparador_post_update_action"><input type="hidden" name="post_id" value="' . esc_attr($post_id) . '"><input type="hidden" name="update_action" value="mark_reviewed">';
+            wp_nonce_field('seo_comparador_post_update_' . $post_id);
+            echo '<button class="button" type="submit">Marcar novedades como revisadas</button></form>';
+            echo '</div>';
+        } else {
+            echo '<p>No hay cambios comparativos pendientes.</p>';
+        }
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:10px">';
+        echo '<input type="hidden" name="action" value="seo_comparador_post_update_action"><input type="hidden" name="post_id" value="' . esc_attr($post_id) . '"><input type="hidden" name="update_action" value="rescan">';
+        wp_nonce_field('seo_comparador_post_update_' . $post_id);
+        echo '<button class="button" type="submit">Reescanear novedades</button></form>';
+        echo '<p class="description">Incorporar sólo modifica el editor abierto. La página publicada permanece intacta hasta que la Editora guarde la actualización.</p>';
+        echo '</div>';
     }
 
     public static function measured_axis_confidence($profile_id,$axis_key) {
@@ -1056,6 +1346,29 @@ final class SEO_Comparador_Engine {
         $post_map = SEO_Comparador_DB::post_map($profile_id);
         $status = sanitize_key((string) ($profile['status'] ?? 'needs_review'));
         $comparable_count = absint($profile['own_products_count']) + absint($profile['external_products_comparable']);
+
+        $linked_post_id = absint($post_map['post_id'] ?? 0);
+        if ($linked_post_id && self::pending_count($linked_post_id) > 0) {
+            $decision_reason = 'El perfil contiene novedades posteriores a la última revisión del post canónico.';
+            $wpdb->update(SEO_Comparador_DB::table('profiles'), array(
+                'recommended_action'=>'IMPROVE_POST',
+                'decision_reason'=>$decision_reason,
+                'updated_at'=>self::now(),
+            ), array('id'=>$profile_id));
+            SEO_Comparador_DB::update_status(
+                $profile_id,
+                'needs_update',
+                'pending_editorial_update',
+                $decision_reason,
+                'comparador'
+            );
+            return array(
+                'action'=>'IMPROVE_POST',
+                'reason'=>$decision_reason,
+                'coverage'=>array(),
+                'status'=>'needs_update',
+            );
+        }
 
         $coverage = class_exists('SEO_Editorial_Coverage')
             ? SEO_Editorial_Coverage::comparison_category(
@@ -1332,6 +1645,9 @@ final class SEO_Comparador_Engine {
         update_post_meta($post_id,'_seo_comparador_excerpt',sanitize_text_field((string)($editorial['excerpt'] ?? '')));
         update_post_meta($post_id,'_seo_comparador_axes',$public_axes);
         update_post_meta($post_id,'_seo_comparador_snapshot_at',sanitize_text_field((string)($profile['source_snapshot_at'] ?? '')));
+        update_post_meta($post_id,self::META_SOURCE_HASH,(string)($profile['source_hash'] ?? ''));
+        update_post_meta($post_id,self::META_REVIEW_BASELINE,self::review_payload($profile_id));
+        self::clear_pending_update($post_id);
         SEO_Comparador_DB::update_status($profile_id,$post->post_status==='publish'?'published':'post_draft','link_post','Post canónico vinculado al perfil.','admin');
         return true;
     }

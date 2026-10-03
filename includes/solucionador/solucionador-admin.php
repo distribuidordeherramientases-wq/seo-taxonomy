@@ -544,10 +544,27 @@ final class SEO_Solucionador_Admin {
         $post_id = absint($topic['draft_post_id'] ?? 0);
         if ($post_id) {
             $status = get_post_status($post_id);
-            if ($status === 'publish') return array('label'=>'Publicado','post_id'=>$post_id,'status'=>'publish');
-            if ($status && $status !== 'trash') return array('label'=>'Borrador','post_id'=>$post_id,'status'=>'draft');
+            $pending = method_exists('SEO_Solucionador_Posts','pending_question_count')
+                ? SEO_Solucionador_Posts::pending_question_count($post_id)
+                : 0;
+            if ($status === 'publish') {
+                return array(
+                    'label'=>$pending > 0 ? 'Publicado · novedades (' . number_format_i18n($pending) . ')' : 'Publicado',
+                    'post_id'=>$post_id,
+                    'status'=>'publish',
+                    'pending'=>$pending,
+                );
+            }
+            if ($status && $status !== 'trash') {
+                return array(
+                    'label'=>$pending > 0 ? 'Borrador · novedades (' . number_format_i18n($pending) . ')' : 'Borrador',
+                    'post_id'=>$post_id,
+                    'status'=>'draft',
+                    'pending'=>$pending,
+                );
+            }
         }
-        return array('label'=>'Pendiente','post_id'=>0,'status'=>'pending');
+        return array('label'=>'Pendiente','post_id'=>0,'status'=>'pending','pending'=>0);
     }
 
     private static function simple_counts() {

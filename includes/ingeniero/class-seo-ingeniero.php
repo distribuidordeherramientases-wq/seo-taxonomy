@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero {
-    const VERSION = '0.3.0';
+    const VERSION = '0.3.2';
     const STATE_OPTION = 'seo_ingeniero_state_v1';
     const CATEGORY_STATE_OPTION = 'seo_ingeniero_category_state_v1';
     const LESSON_TECHNICAL = 'l1_technical';
@@ -704,7 +704,16 @@ final class SEO_Ingeniero {
                 $proposals[] = array('error'=>$id->get_error_message(),'topic_key'=>$topic_key);
                 continue;
             }
-            $proposals[] = SEO_Ingeniero_DB::editorial_get($id);
+            $saved_dossier = SEO_Ingeniero_DB::editorial_get($id);
+            if (
+                !empty($saved_dossier['post_id'])
+                && class_exists('SEO_Ingeniero_Posts')
+                && method_exists('SEO_Ingeniero_Posts','sync_pending_update')
+            ) {
+                SEO_Ingeniero_Posts::sync_pending_update($id);
+                $saved_dossier = SEO_Ingeniero_DB::editorial_get($id);
+            }
+            $proposals[] = $saved_dossier;
         }
 
         $existing_rows = SEO_Ingeniero_DB::editorial_rows(array('term_id'=>$term_id,'page'=>1,'per_page'=>100));

@@ -359,7 +359,24 @@ final class SEO_Comparador_Admin {
             echo '<td>' . esc_html(number_format_i18n(absint($p['comparison_axes_count']))) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float)$p['confidence']*100,0)) . '%</td>';
             echo '<td>' . esc_html((string)$p['source_snapshot_at']) . '</td>';
-            echo '<td><a class="button" href="' . esc_url(self::url('comparisons',array('profile_id'=>absint($p['id'])))) . '">Abrir</a></td></tr>';
+            echo '<td><a class="button" href="' . esc_url(self::url('comparisons',array('profile_id'=>absint($p['id'])))) . '">Abrir</a>';
+            $row_map = SEO_Comparador_DB::post_map(absint($p['id']));
+            $row_post_id = absint($row_map['post_id'] ?? 0);
+            if (
+                $row_post_id
+                && (string) ($p['status'] ?? '') === 'needs_update'
+                && method_exists('SEO_Comparador_Engine','sync_pending_update')
+            ) {
+                SEO_Comparador_Engine::sync_pending_update(absint($p['id']));
+            }
+            $row_pending = $row_post_id && method_exists('SEO_Comparador_Engine','pending_count')
+                ? SEO_Comparador_Engine::pending_count($row_post_id)
+                : 0;
+            if ($row_pending > 0) {
+                $review_url = add_query_arg(array('page'=>'seo-post-editor','post_id'=>$row_post_id), admin_url('edit.php'));
+                echo ' <a class="button button-primary" href="' . esc_url($review_url) . '">Revisar novedades (' . esc_html(number_format_i18n($row_pending)) . ')</a>';
+            }
+            echo '</td></tr>';
         }
         echo '</tbody></table></div>';
         $pages=max(1,(int)ceil($total/$per_page));
@@ -487,7 +504,15 @@ final class SEO_Comparador_Admin {
 
         echo '<h3>Post canónico</h3>';
         if (!empty($post_map['post_id'])) {
-            echo '<p>Vinculado a <a href="' . esc_url(get_edit_post_link(absint($post_map['post_id']))) . '"><strong>' . esc_html((string)$post_map['post_title']) . '</strong></a> · ' . esc_html((string)$post_map['post_status']) . '.</p>';
+            $canonical_post_id = absint($post_map['post_id']);
+            $editor_url = add_query_arg(array('page'=>'seo-post-editor','post_id'=>$canonical_post_id), admin_url('edit.php'));
+            echo '<p>Vinculado a <a href="' . esc_url($editor_url) . '"><strong>' . esc_html((string)$post_map['post_title']) . '</strong></a> · ' . esc_html((string)$post_map['post_status']) . '.</p>';
+            $pending = method_exists('SEO_Comparador_Engine','pending_count')
+                ? SEO_Comparador_Engine::pending_count($canonical_post_id)
+                : 0;
+            if ($pending > 0) {
+                echo '<p><a class="button button-primary" href="' . esc_url($editor_url) . '">Revisar novedades (' . esc_html(number_format_i18n($pending)) . ')</a> <span class="description">El post publicado mantiene su estado hasta que la Editora guarde cambios.</span></p>';
+            }
         }
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="seo-cmp-inline"><input type="hidden" name="action" value="seo_comparador_action"><input type="hidden" name="profile_id" value="' . esc_attr($profile_id) . '"><input type="hidden" name="profile_action" value="link_post">';
         wp_nonce_field('seo_comparador_action_' . $profile_id);
