@@ -587,9 +587,6 @@ final class SEO_Auditor_Category_Rebalance {
         if (!$source || is_wp_error($source) || !$target || is_wp_error($target)) return new WP_Error('seo_rebalance_term_missing', 'Origen o destino ya no existen.');
         if (absint(get_option('default_product_cat')) === $source_id) return new WP_Error('seo_rebalance_default_cat', 'No se puede concentrar la categoria predeterminada de WooCommerce.');
 
-        $children = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false,'parent'=>$source_id,'fields'=>'ids'));
-        if (!is_wp_error($children) && $children) return new WP_Error('seo_rebalance_children', 'La categoria origen tiene subcategorias. Reubicalas antes de concentrarla.');
-
         $landing_count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE target_type='product_cat' AND target_id=%d AND relation_type='landing_to_category'",
             $source_id
