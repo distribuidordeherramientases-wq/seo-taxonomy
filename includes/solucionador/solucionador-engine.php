@@ -411,21 +411,22 @@ final class SEO_Solucionador_Engine {
             && (float) ($risks['cannibalization_risk'] ?? 0) < 70;
 
         return array(
-            'academy_mass'=>array(
-                'pass'=>$mass_ok,
-                'detail'=>'El dossier debe alcanzar la masa crítica de preguntas pass_* de Academia.'
+            'academy_mass'=>SEO_Editorial_Service_Contract::quality_indicator(
+                $mass_ok,
+                'Indicador de densidad de conocimiento. No bloquea la revisión ni la decisión de la Editora.'
             ),
             'category_identified'=>array(
                 'pass'=>absint($primary_category_id)>0,
+                'blocking'=>true,
                 'detail'=>'La categoría product_cat debe ser demostrable; nunca se infiere por parecido textual.'
             ),
-            'coverage_reviewed'=>array(
-                'pass'=>in_array($coverage_status,array('uncovered','weak_coverage','partial_coverage','covered','duplicate','conflict'),true),
-                'detail'=>'Siempre se comprueba la cobertura antes de crear o modificar contenido.'
+            'coverage_reviewed'=>SEO_Editorial_Service_Contract::quality_indicator(
+                in_array($coverage_status,array('uncovered','weak_coverage','partial_coverage','covered','duplicate','conflict'),true),
+                'Cobertura existente revisada como indicador editorial; no sustituye la decisión humana.'
             ),
-            'duplication_below_threshold'=>array(
-                'pass'=>$risk_ok,
-                'detail'=>'CREATE_POST sólo puede avanzar con bajo riesgo de duplicación/canibalización.'
+            'duplication_below_threshold'=>SEO_Editorial_Service_Contract::quality_indicator(
+                $risk_ok,
+                'Riesgo de duplicación/canibalización. Se muestra como advertencia y no bloquea la propuesta.'
             ),
         );
     }
@@ -441,9 +442,6 @@ final class SEO_Solucionador_Engine {
 
         if (!$primary_category_id) {
             return array('action'=>'DEFER','reason'=>'No existe una product_cat demostrable para este conocimiento de Academia.');
-        }
-        if (!self::evidence_gate($stats)) {
-            return array('action'=>'DEFER','reason'=>'El dossier todavía no alcanza la masa crítica de preguntas aprendidas.');
         }
         if ($coverage_status === 'conflict') {
             return array('action'=>'DEFER','reason'=>'La cobertura existente es contradictoria y requiere revisión humana antes de editar.');
@@ -462,12 +460,11 @@ final class SEO_Solucionador_Engine {
             return array('action'=>'DEFER','reason'=>'Existe cobertura parcial fuera de un post editable equivalente; requiere revisión antes de crear contenido.');
         }
 
-        $risk_ok = !empty($requirements['duplication_below_threshold']['pass']);
-        if ($coverage_status === 'uncovered' && $risk_ok) {
-            return array('action'=>'CREATE_POST','reason'=>'Dossier básico con preguntas aprendidas suficientes, categoría resuelta y sin cobertura equivalente.');
+        if ($coverage_status === 'uncovered') {
+            return array('action'=>'CREATE_POST','reason'=>'Hay material útil asociado a una product_cat demostrable y no se ha encontrado cobertura equivalente; la decisión final corresponde a la Editora.');
         }
 
-        return array('action'=>'DEFER','reason'=>'Las condiciones del dossier todavía no justifican una actuación editorial.');
+        return array('action'=>'DEFER','reason'=>'La propuesta requiere revisión editorial humana; los indicadores automáticos no la bloquean.');
     }
 
     private static function content_type_for_action($action,array $coverage) {

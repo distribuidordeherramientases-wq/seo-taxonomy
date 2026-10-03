@@ -180,6 +180,11 @@ final class SEO_Solucionador_DB {
             score_avg DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
             last_validated_at DATETIME NULL,
             source_hash CHAR(64) NOT NULL DEFAULT '',
+            item_hashes LONGTEXT NULL,
+            reviewed_hash CHAR(64) NOT NULL DEFAULT '',
+            reviewed_item_hashes LONGTEXT NULL,
+            editorial_status VARCHAR(30) NOT NULL DEFAULT 'COLLECTING',
+            reviewed_at DATETIME NULL,
             rejected_source_hash CHAR(64) NOT NULL DEFAULT '',
             rejected_at DATETIME NULL,
             scan_token VARCHAR(64) NOT NULL DEFAULT '',
@@ -190,6 +195,8 @@ final class SEO_Solucionador_DB {
             UNIQUE KEY category_id (category_id),
             KEY scan_token (scan_token),
             KEY rejected_source_hash (rejected_source_hash),
+            KEY reviewed_hash (reviewed_hash),
+            KEY editorial_status (editorial_status),
             KEY question_count (question_count),
             KEY last_validated_at (last_validated_at)
         ) {$collate};";
@@ -300,6 +307,31 @@ final class SEO_Solucionador_DB {
 
         update_option(self::VERSION_OPTION, SEO_SOLUCIONADOR_DB_VERSION, false);
         return true;
+    }
+
+    public static function update_dossier_editorial($category_id, array $data) {
+        global $wpdb;
+        $category_id = absint($category_id);
+        if (!$category_id) return false;
+
+        $allowed = array(
+            'reviewed_hash',
+            'reviewed_item_hashes',
+            'editorial_status',
+            'reviewed_at',
+            'rejected_source_hash',
+            'rejected_at',
+        );
+        $write = array();
+        foreach ($allowed as $key) {
+            if (array_key_exists($key, $data)) $write[$key] = $data[$key];
+        }
+        if (!$write) return false;
+
+        if (isset($write['editorial_status']) && class_exists('SEO_Editorial_Service_Contract')) {
+            $write['editorial_status'] = SEO_Editorial_Service_Contract::normalize($write['editorial_status']);
+        }
+        return $wpdb->update(self::dossiers_table(), $write, array('category_id'=>$category_id)) !== false;
     }
 
     public static function register_data_layer($tables) {
