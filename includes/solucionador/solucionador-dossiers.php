@@ -279,13 +279,16 @@ final class SEO_Solucionador_Dossiers {
 
         foreach ($batch_by_category as $term_id=>$batch) {
             try {
-                self::upsert_batch_dossier(
+                $saved = self::upsert_batch_dossier(
                     $term_id,
                     (array) $batch['ids'],
                     (float) $batch['score_sum'],
                     (string) $batch['last'],
                     (string) $state['token']
                 );
+                if ($saved && class_exists('SEO_Solucionador_Posts') && method_exists('SEO_Solucionador_Posts','sync_category_post')) {
+                    SEO_Solucionador_Posts::sync_category_post($term_id);
+                }
             } catch (Throwable $e) {
                 $state['errors'] = absint($state['errors'] ?? 0) + 1;
             }
