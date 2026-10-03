@@ -1628,6 +1628,44 @@ function seo_social_network_scheduler_csv_safe_cell($value)
 }
 
 /**
+ * Abre un stream CSV nativo compatible con fputcsv/fgetcsv.
+ *
+ * @param string $path Ruta o stream PHP.
+ * @param string $mode Modo.
+ * @return resource|false
+ */
+function seo_social_network_csv_stream_open($path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fputcsv/fgetcsv requieren un recurso nativo y permiten streaming sin cargar el archivo completo.
+    return fopen($path, $mode);
+}
+
+/**
+ * Escribe bytes en un stream CSV.
+ *
+ * @param resource $handle Recurso.
+ * @param string   $data Datos.
+ * @return int|false
+ */
+function seo_social_network_csv_stream_write($handle, $data)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Escritura incremental sobre el recurso usado por fputcsv().
+    return fwrite($handle, $data);
+}
+
+/**
+ * Cierra un stream CSV.
+ *
+ * @param resource $handle Recurso.
+ * @return bool
+ */
+function seo_social_network_csv_stream_close($handle)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso nativo usado por fputcsv/fgetcsv.
+    return fclose($handle);
+}
+
+/**
  * Envia un CSV UTF-8 compatible con Excel y finaliza la peticion.
  *
  * @param string $filename
@@ -1641,18 +1679,18 @@ function seo_social_network_scheduler_send_csv($filename, $headers, $rows)
     header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
     header('X-Content-Type-Options: nosniff');
 
-    $out = fopen('php://output', 'w');
+    $out = seo_social_network_csv_stream_open('php://output', 'w');
     if (false === $out) {
         wp_die(esc_html__('No se pudo generar el archivo CSV.', 'seo-taxonomy'));
     }
 
     // BOM UTF-8 para que Excel conserve acentos sin preguntar por la codificacion.
-    fwrite($out, "\xEF\xBB\xBF");
+    seo_social_network_csv_stream_write($out, "\xEF\xBB\xBF");
     fputcsv($out, array_map('seo_social_network_scheduler_csv_safe_cell', $headers), ';', '"', '');
     foreach ((array) $rows as $row) {
         fputcsv($out, array_map('seo_social_network_scheduler_csv_safe_cell', (array) $row), ';', '"', '');
     }
-    fclose($out);
+    seo_social_network_csv_stream_close($out);
     exit;
 }
 
@@ -1948,14 +1986,14 @@ function seo_social_network_scheduler_parse_import_file($path)
         return new WP_Error('file_unreadable', 'No se puede leer el CSV seleccionado.');
     }
 
-    $handle = fopen($path, 'r');
+    $handle = seo_social_network_csv_stream_open($path, 'r');
     if (false === $handle) {
         return new WP_Error('file_unreadable', 'No se puede abrir el CSV seleccionado.');
     }
 
     $first_line = fgets($handle);
     if (false === $first_line) {
-        fclose($handle);
+        seo_social_network_csv_stream_close($handle);
         return new WP_Error('empty_file', 'El archivo CSV esta vacio.');
     }
     $delimiter = seo_social_network_scheduler_detect_delimiter($first_line);
@@ -1963,13 +2001,13 @@ function seo_social_network_scheduler_parse_import_file($path)
 
     $headers = fgetcsv($handle, 0, $delimiter, '"', '');
     if (!is_array($headers)) {
-        fclose($handle);
+        seo_social_network_csv_stream_close($handle);
         return new WP_Error('invalid_header', 'No se ha podido leer la cabecera del CSV.');
     }
     $columns = seo_social_network_scheduler_resolve_columns($headers);
     foreach (array('content_id', 'providers', 'scheduled_at') as $required) {
         if (!isset($columns[$required])) {
-            fclose($handle);
+            seo_social_network_csv_stream_close($handle);
             return new WP_Error('missing_column', 'Falta una columna obligatoria: ' . $required . '.');
         }
     }
@@ -1988,7 +2026,7 @@ function seo_social_network_scheduler_parse_import_file($path)
             continue;
         }
         if ($line_number > 2001) {
-            fclose($handle);
+            seo_social_network_csv_stream_close($handle);
             return new WP_Error('too_many_rows', 'El CSV supera el limite de 2000 filas. Divide la importacion en varios archivos.');
         }
 
@@ -2034,7 +2072,7 @@ function seo_social_network_scheduler_parse_import_file($path)
         foreach ($providers as $provider) {
             $expanded_count++;
             if ($expanded_count > 3000) {
-                fclose($handle);
+                seo_social_network_csv_stream_close($handle);
                 return new WP_Error('too_many_jobs', 'La importacion supera 3000 programaciones al expandir las redes.');
             }
 
@@ -2069,7 +2107,7 @@ function seo_social_network_scheduler_parse_import_file($path)
             );
         }
     }
-    fclose($handle);
+    seo_social_network_csv_stream_close($handle);
 
     if (empty($entries)) {
         return new WP_Error('no_rows', 'El CSV no contiene filas de programacion.');
