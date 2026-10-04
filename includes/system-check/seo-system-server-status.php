@@ -3350,9 +3350,11 @@ function seo_server_status_get_php_error_log_info() {
     $info['readable'] = $info['exists'] && is_readable($path);
 
     if ($info['exists']) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Diagnóstico de la ruta real configurada en error_log; no se modifica el archivo.
         $info['writable'] = is_writable($path);
     } else {
         $parent = dirname($path);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Diagnóstico del directorio padre de error_log; no se modifica el filesystem.
         $info['writable'] = is_dir($parent) && is_writable($parent);
     }
 
@@ -3399,6 +3401,7 @@ function seo_server_status_tail_file($file_path, $lines = 120) {
 
     $max_bytes = 300000;
     $file_size = filesize($file_path);
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Lectura parcial de un log local para diagnóstico; evita cargar el archivo completo.
     $handle = fopen($file_path, 'rb');
 
     if (!$handle) {
@@ -3411,6 +3414,7 @@ function seo_server_status_tail_file($file_path, $lines = 120) {
     }
 
     $content = stream_get_contents($handle);
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso de lectura parcial abierto arriba.
     fclose($handle);
 
     if ($content === false) {
