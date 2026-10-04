@@ -1009,23 +1009,19 @@ final class SEO_Solucionador_Admin {
         $items = array();
         $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
 
-        $items['Dependiente · Academia'] = array(
-            'available'=>!empty($academy['available']),
-            'metric'=>absint($academy['categories_with_knowledge'] ?? 0),
-            'unit'=>'dossiers por categoría',
-            'detail'=>number_format_i18n(absint($academy['learned'] ?? 0)) . ' preguntas pass_* · '
-                . number_format_i18n(absint($academy['learned_without_category'] ?? 0)) . ' sin categoría',
+        $items['FAQ'] = array(
+            'available'=>!empty($academy['faqs_all_total']),
+            'metric'=>absint($academy['faq_in_dossiers'] ?? 0),
+            'unit'=>'items en dossiers',
+            'detail'=>number_format_i18n(absint($academy['faqs_total'] ?? 0)) . ' FAQs activas.',
         );
 
-        $search_table = $wpdb->prefix . 'seo_dependiente_search_log';
-        $searches = SEO_Solucionador_DB::table_exists($search_table)
-            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$search_table}"))
-            : 0;
-        $items['Dependiente · demanda real'] = array(
-            'available'=>$searches > 0,
-            'metric'=>$searches,
-            'unit'=>'consultas registradas',
-            'detail'=>'Señal separada de demanda. No origina dossiers ni URLs en Solucionador v0.5.',
+        $items['Dependiente · conocimiento consolidado'] = array(
+            'available'=>!empty($academy['available']),
+            'metric'=>absint($academy['dependiente_in_dossiers'] ?? 0),
+            'unit'=>'items en dossiers',
+            'detail'=>number_format_i18n(absint($academy['dependiente_trainer_questions_total'] ?? 0)) . ' preguntas de Entrenador · '
+                . number_format_i18n(absint($academy['dependiente_semantic_rules_total'] ?? 0)) . ' reglas consolidadas inventariables.',
         );
 
         $coverage_table = SEO_Solucionador_DB::coverage_table();
@@ -1057,7 +1053,7 @@ final class SEO_Solucionador_Admin {
             self::card($name, $value, trim((string) ($item['unit'] ?? '') . '. ' . (string) ($item['detail'] ?? '')));
         }
         echo '</div>';
-        echo '<p class="description">Estos indicadores se leen de los datos y conclusiones ya generados por cada servicio. Abrir Solucionador no lanza búsquedas web, Google Shopping ni investigación técnica.</p>';
+        echo '<p class="description">Las únicas fuentes editoriales son FAQ y Dependiente. Cobertura y Analista son capas auxiliares de recomendación/medición; nunca originan conocimiento ni contenido en Solucionador.</p>';
     }
 
     private static function render_diagnostics() {
