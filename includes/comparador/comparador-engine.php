@@ -128,6 +128,15 @@ final class SEO_Comparador_Engine {
     }
 
     public static function automatic_refresh() {
+        if (function_exists('seo_process_supervisor_settings')) {
+            $manager=(array)seo_process_supervisor_settings();
+            if (!empty($manager['enabled']) && !empty($manager['comparador'])) {
+                if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge(0,'comparador');
+                if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
+                return;
+            }
+        }
+
         $lock_key='seo_comparador_auto_refresh_lock';
         if (get_transient($lock_key)) return;
         set_transient($lock_key,1,2*MINUTE_IN_SECONDS);
