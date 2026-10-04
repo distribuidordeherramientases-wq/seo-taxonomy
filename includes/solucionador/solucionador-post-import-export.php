@@ -124,6 +124,14 @@ if (!function_exists('seo_solucionador_posts_ie_pipe')) {
     }
 }
 
+if (!function_exists('seo_solucionador_posts_ie_csv_list')) {
+    function seo_solucionador_posts_ie_csv_list($values) {
+        return implode(',', array_values(array_filter(array_map('strval', (array) $values), static function ($value) {
+            return trim($value) !== '';
+        })));
+    }
+}
+
 if (!function_exists('seo_solucionador_posts_ie_parse_pipe')) {
     function seo_solucionador_posts_ie_parse_pipe($value) {
         $value = trim((string) $value);
@@ -242,11 +250,11 @@ if (!function_exists('seo_solucionador_posts_ie_export_row')) {
             'product_category_ids'            => seo_solucionador_posts_ie_pipe($product_categories['ids']),
             'product_category_slugs'          => seo_solucionador_posts_ie_pipe($product_categories['slugs']),
             'product_category_names'          => seo_solucionador_posts_ie_pipe($product_categories['names']),
-            'vocab_rol'                       => seo_solucionador_posts_ie_pipe(seo_solucionador_posts_ie_vocab_slugs($post_id, 'rol')),
-            'vocab_tipo'                      => seo_solucionador_posts_ie_pipe(seo_solucionador_posts_ie_vocab_slugs($post_id, 'tipo')),
-            'vocab_aplicacion'                => seo_solucionador_posts_ie_pipe(seo_solucionador_posts_ie_vocab_slugs($post_id, 'aplicacion')),
-            'vocab_plataforma'                => seo_solucionador_posts_ie_pipe(seo_solucionador_posts_ie_vocab_slugs($post_id, 'plataforma')),
-            'vocab_subtipo'                   => seo_solucionador_posts_ie_pipe(seo_solucionador_posts_ie_vocab_slugs($post_id, 'subtipo')),
+            'vocab_rol'                       => seo_solucionador_posts_ie_csv_list(seo_solucionador_posts_ie_vocab_slugs($post_id, 'rol')),
+            'vocab_tipo'                      => seo_solucionador_posts_ie_csv_list(seo_solucionador_posts_ie_vocab_slugs($post_id, 'tipo')),
+            'vocab_aplicacion'                => seo_solucionador_posts_ie_csv_list(seo_solucionador_posts_ie_vocab_slugs($post_id, 'aplicacion')),
+            'vocab_plataforma'                => seo_solucionador_posts_ie_csv_list(seo_solucionador_posts_ie_vocab_slugs($post_id, 'plataforma')),
+            'vocab_subtipo'                   => seo_solucionador_posts_ie_csv_list(seo_solucionador_posts_ie_vocab_slugs($post_id, 'subtipo')),
             'public_content_role'             => function_exists('seo_post_editor_public_content_role') ? seo_post_editor_public_content_role($post_id) : '',
             'solucionador_topic_id'           => get_post_meta($post_id, '_seo_solucionador_topic_id', true),
             'solucionador_dossier_category_id'=> get_post_meta($post_id, '_seo_solucionador_dossier_category_id', true),
