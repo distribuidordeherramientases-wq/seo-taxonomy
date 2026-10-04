@@ -244,6 +244,7 @@ final class SEO_Solucionador_Posts {
                     'product_id'=>absint($row['product_id'] ?? 0) ?: null,
                     'observed_at'=>sanitize_text_field((string)($row['observed_at'] ?? '')),
                     'source_hash'=>sanitize_text_field((string)($row['source_hash'] ?? '')),
+                    'editorial_choice'=>sanitize_key((string)($row['editorial_choice'] ?? 'pending')),
                 );
             }
             if (isset($origins[$origin])) $origins[$origin]++;
@@ -1014,6 +1015,7 @@ final class SEO_Solucionador_Posts {
         SEO_Solucionador_DB::update_dossier_editorial($primary_category_id,array(
             'reviewed_hash'=>(string)($snapshot['source_hash'] ?? ''),
             'reviewed_item_hashes'=>wp_json_encode((array)($snapshot['item_hashes'] ?? array())),
+            'reviewed_items_snapshot'=>wp_json_encode((array)($snapshot['items'] ?? array())),
             'editorial_status'=>SEO_Editorial_Service_Contract::DRAFT,
             'reviewed_at'=>current_time('mysql'),
         ));
