@@ -20,6 +20,7 @@ if (is_readable($seo_editorial_coverage)) {
     require_once $seo_editorial_coverage;
 }
 require_once SEO_COMPARADOR_PATH . 'comparador-engine.php';
+require_once SEO_COMPARADOR_PATH . 'comparador-process.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-io.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-public.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-integration.php';
