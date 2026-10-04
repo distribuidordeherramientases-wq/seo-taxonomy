@@ -114,6 +114,7 @@ function seo_core_system_test_missing_product_excerpt_rows() {
         ORDER BY p.ID ASC
     ";
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta fija sobre tablas core, sin entrada de usuario.
     $rows = $wpdb->get_results($sql, ARRAY_A);
     return is_array($rows) ? $rows : array();
 }
@@ -4763,19 +4764,17 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
     $order_sql = $order ? 'ORDER BY ' . implode(', ', $order) : '';
     $params[] = $limit;
 
-    return (array) $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT * FROM {$table}
-             WHERE (" . implode(' OR ', $where) . ")
-               {$status_where}
-               AND image_url IS NOT NULL
-               AND TRIM(image_url) <> ''
-             {$order_sql}
-             LIMIT %d",
-            $params
-        ),
-        ARRAY_A
-    );
+    $query = "SELECT * FROM {$table}
+              WHERE (" . implode(' OR ', $where) . ")
+                {$status_where}
+                AND image_url IS NOT NULL
+                AND TRIM(image_url) <> ''
+              {$order_sql}
+              LIMIT %d";
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columnas/order proceden de allowlists internas; valores y límite enlazados mediante $wpdb->prepare().
+    $prepared_sql = $wpdb->prepare($query, $params);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+    return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
 }
 
 function seo_core_system_test_classify_image_probe($probe) {
