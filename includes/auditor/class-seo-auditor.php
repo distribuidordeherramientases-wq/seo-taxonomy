@@ -17,7 +17,7 @@ final class SEO_Auditor {
     const ACADEMY_REPORT_OPTION = 'seo_auditor_last_academy_report';
     const SCOPED_REPORT_OPTION = 'seo_auditor_scoped_reports';
     const HISTORY_OPTION = 'seo_auditor_history';
-    const REPORT_VERSION = 9;
+    const REPORT_VERSION = 10;
     const MAX_BEHAVIOR_PROBES = 60;
     const MAX_BEHAVIOR_CROSS_PROBES = 24;
     const MAX_BEHAVIOR_FAQ_PROBES = 18;
@@ -28,9 +28,13 @@ final class SEO_Auditor {
     const MAX_CATEGORY_PROFILES = 250;
     const MAX_ENTITY_FINDINGS_PER_RULE = 60;
     const MAX_SYSTEMIC_PATTERNS = 50;
+    const MAX_PRIORITY_FINDINGS = 50000;
+    const PRIORITY_UI_LIMIT = 250;
 
     private static $findings = array();
     private static $rule_counts = array();
+    private static $priority_findings = array();
+    private static $priority_findings_truncated = false;
 
     public static function init() {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
@@ -342,7 +346,7 @@ final class SEO_Auditor {
         echo '</div>';
 
         echo '<div class="seo-auditor__metrics">';
-        self::metric('Hallazgos', absint($summary['findings'] ?? 0));
+        self::metric('Hallazgos', absint($summary['findings_total'] ?? $summary['findings'] ?? 0));
         self::metric('Criticos', absint($summary['critical'] ?? 0), 'critical');
         self::metric('Alta', absint($summary['high'] ?? 0), 'high');
         self::metric('Media', absint($summary['medium'] ?? 0), 'medium');
@@ -355,8 +359,13 @@ final class SEO_Auditor {
 
         self::render_priority_queue(
             (array) ($report['priority_queue'] ?? array()),
-            (array) ($report['priority_summary'] ?? array())
+            (array) ($report['priority_summary'] ?? array()),
+            (array) ($report['priority_queue_meta'] ?? array())
         );
+
+        if ('faqs' === $scope && !empty($report['faq_migration_inventory'])) {
+            self::render_faq_migration_inventory_summary((array) $report['faq_migration_inventory']);
+        }
 
         if ('engine' === $scope && !empty($report['behavior_audit'])) {
             self::render_behavior($report);
@@ -367,6 +376,14 @@ final class SEO_Auditor {
         }
 
         echo '<h3>Hallazgos</h3>';
+        $findings_meta=(array)($report['findings_meta'] ?? array());
+        if(!empty($findings_meta['truncated'])){
+            echo '<div class="notice notice-info inline"><p>La tabla de hallazgos es una muestra: '
+                . esc_html(number_format_i18n(absint($findings_meta['included_count'] ?? 0)))
+                . ' incluidos de '
+                . esc_html(number_format_i18n(absint($findings_meta['total_count'] ?? 0)))
+                . '. Los contadores de regla conservan el total real.</p></div>';
+        }
         self::render_finding_table(array_slice((array) ($report['findings'] ?? array()), 0, 250));
     }
 
@@ -394,8 +411,15 @@ final class SEO_Auditor {
         $scope = self::normalize_scope($scope);
         if (!$scope) return array();
 
+        $stored_scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
+        $previous_report = isset($stored_scoped_reports[$scope]) && is_array($stored_scoped_reports[$scope])
+            ? (array) $stored_scoped_reports[$scope]
+            : array();
+
         self::$findings = array();
         self::$rule_counts = array();
+        self::$priority_findings = array();
+        self::$priority_findings_truncated = false;
         $started = microtime(true);
         $extra = array();
         $inventory_summary = array();
@@ -458,6 +482,12 @@ final class SEO_Auditor {
                 $vocabulary,
                 (array) $inventory['category_content']
             );
+            $extra['faq_migration_inventory'] = self::build_faq_migration_inventory(
+                (array) $inventory['faqs'],
+                (array) $inventory['published_product_ids'],
+                (array) $inventory['categories'],
+                (array) $inventory['products']
+            );
             $inventory_summary = array(
                 'faqs' => count((array) $inventory['faqs']),
                 'products_minimal' => count((array) $inventory['products']),
@@ -490,22 +520,36 @@ final class SEO_Auditor {
             return strcmp((string) ($a['code'] ?? ''), (string) ($b['code'] ?? ''));
         });
 
-        $summary = array('findings'=>count(self::$findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
+        $summary = array('findings'=>count(self::$priority_findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
         $entities = array();
-        foreach (self::$findings as $finding) {
+        foreach (self::$priority_findings as $finding) {
             $severity = (string) ($finding['severity'] ?? 'info');
             if (isset($summary[$severity])) $summary[$severity]++;
             $key = (string) ($finding['entity_type'] ?? '') . ':' . (string) ($finding['entity_id'] ?? '');
             if (':' !== $key) $entities[$key] = true;
         }
         $summary['entities_to_review'] = count($entities);
-        $priority_queue = self::build_priority_queue(self::$findings);
+        $summary['findings_included'] = count(self::$findings);
+        $summary['findings_total'] = array_sum(array_map('absint', self::$rule_counts));
+        $summary['findings_sampled'] = $summary['findings_total'] > $summary['findings_included'];
+
+        $generated_at = current_time('mysql');
+        $priority_queue = self::build_priority_queue(self::$priority_findings);
+        $trace = self::apply_task_trace(
+            $priority_queue,
+            (array) ($previous_report['priority_queue'] ?? array()),
+            (array) ($previous_report['resolved_tasks'] ?? array()),
+            $generated_at
+        );
+        $priority_queue = (array) ($trace['current'] ?? array());
         $priority_summary = self::summarize_priority_queue($priority_queue);
+        $findings_meta = self::build_findings_meta(self::$findings, self::$rule_counts);
+        $priority_queue_meta = self::build_priority_queue_meta($priority_queue);
 
         $report = array(
             'schema' => array('name'=>'seo_data_auditor_scope','version'=>self::REPORT_VERSION),
             'auditor_version' => SEO_AUDITOR_VERSION,
-            'generated_at' => current_time('mysql'),
+            'generated_at' => $generated_at,
             'generated_at_gmt' => gmdate('Y-m-d H:i:s'),
             'execution_seconds' => round(microtime(true) - $started, 3),
             'mode' => 'manual_read_only',
@@ -514,9 +558,12 @@ final class SEO_Auditor {
             'summary' => $summary,
             'inventory' => $inventory_summary,
             'rule_counts' => self::$rule_counts,
-            'priority_queue_version' => 1,
+            'priority_queue_version' => 2,
             'priority_summary' => $priority_summary,
+            'priority_queue_meta' => $priority_queue_meta,
             'priority_queue' => $priority_queue,
+            'resolved_tasks' => (array) ($trace['resolved'] ?? array()),
+            'findings_meta' => $findings_meta,
             'findings' => array_slice(self::$findings, 0, self::MAX_FINDINGS),
             'notes' => array(
                 'read_only' => true,
@@ -534,8 +581,11 @@ final class SEO_Auditor {
     }
 
     public static function run_catalog_audit() {
+        $previous_report = self::last_catalog_report();
         self::$findings = array();
         self::$rule_counts = array();
+        self::$priority_findings = array();
+        self::$priority_findings_truncated = false;
         $started = microtime(true);
 
         $inventory = self::collect_inventory();
@@ -560,6 +610,7 @@ final class SEO_Auditor {
         if (!empty($caps['editorial'])) {
             self::audit_editorial((array)$inventory['editorial'], $object_vocabulary);
         }
+        $faq_migration_inventory = array();
         if (!empty($caps['faqs'])) {
             self::audit_faqs(
                 (array)$inventory['faqs'],
@@ -568,6 +619,12 @@ final class SEO_Auditor {
                 (array)$inventory['products'],
                 $object_vocabulary,
                 (array)$inventory['category_content']
+            );
+            $faq_migration_inventory = self::build_faq_migration_inventory(
+                (array)$inventory['faqs'],
+                (array)$inventory['published_product_ids'],
+                (array)$inventory['categories'],
+                (array)$inventory['products']
             );
         }
         if (!empty($caps['architecture'])) {
@@ -598,17 +655,31 @@ final class SEO_Auditor {
             return strcmp((string)($a['code'] ?? ''), (string)($b['code'] ?? ''));
         });
 
-        $summary = array('findings'=>count(self::$findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
+        $summary = array('findings'=>count(self::$priority_findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
         $entities = array();
-        foreach (self::$findings as $f) {
+        foreach (self::$priority_findings as $f) {
             $sev = (string)($f['severity'] ?? 'info');
             if (isset($summary[$sev])) $summary[$sev]++;
             $key = (string)($f['entity_type'] ?? '') . ':' . (string)($f['entity_id'] ?? '');
             if ($key !== ':') $entities[$key] = true;
         }
         $summary['entities_to_review'] = count($entities);
-        $priority_queue = self::build_priority_queue(self::$findings);
+        $summary['findings_included'] = count(self::$findings);
+        $summary['findings_total'] = array_sum(array_map('absint', self::$rule_counts));
+        $summary['findings_sampled'] = $summary['findings_total'] > $summary['findings_included'];
+
+        $generated_at = current_time('mysql');
+        $priority_queue = self::build_priority_queue(self::$priority_findings);
+        $trace = self::apply_task_trace(
+            $priority_queue,
+            (array) ($previous_report['priority_queue'] ?? array()),
+            (array) ($previous_report['resolved_tasks'] ?? array()),
+            $generated_at
+        );
+        $priority_queue = (array) ($trace['current'] ?? array());
         $priority_summary = self::summarize_priority_queue($priority_queue);
+        $findings_meta = self::build_findings_meta(self::$findings, self::$rule_counts);
+        $priority_queue_meta = self::build_priority_queue_meta($priority_queue);
         $systemic_patterns = self::build_systemic_patterns(self::$findings);
         $action_plan = self::build_action_plan($systemic_patterns);
         $source_quality = self::build_source_quality($inventory, self::$findings);
@@ -631,7 +702,7 @@ final class SEO_Auditor {
             'schema'=>array('name'=>'seo_data_auditor','version'=>self::REPORT_VERSION),
             'auditor_version'=>SEO_AUDITOR_VERSION,
             'dependiente_version'=>defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
-            'generated_at'=>current_time('mysql'),
+            'generated_at'=>$generated_at,
             'generated_at_gmt'=>gmdate('Y-m-d H:i:s'),
             'execution_seconds'=>round(microtime(true)-$started, 3),
             'mode'=>'manual_read_only',
@@ -647,10 +718,14 @@ final class SEO_Auditor {
             'source_integrity'=>$source_integrity,
             'systemic_patterns'=>$systemic_patterns,
             'action_plan'=>$action_plan,
-            'priority_queue_version'=>1,
+            'priority_queue_version'=>2,
             'priority_summary'=>$priority_summary,
+            'priority_queue_meta'=>$priority_queue_meta,
             'priority_queue'=>$priority_queue,
+            'resolved_tasks'=>(array)($trace['resolved'] ?? array()),
+            'findings_meta'=>$findings_meta,
             'findings'=>array_slice(self::$findings, 0, self::MAX_FINDINGS),
+            'faq_migration_inventory'=>$faq_migration_inventory,
             'category_profiles'=>array_slice($category_profiles, 0, self::MAX_CATEGORY_PROFILES),
             'category_rebalance_inventory'=>$category_rebalance_inventory,
             'architecture_profiles'=>$architecture_profiles,
@@ -840,6 +915,7 @@ final class SEO_Auditor {
                 'seo_title'=>'',
                 'seo_description'=>'',
                 'sku'=>'',
+                'supplier'=>'',
                 'identifiers'=>array(),
                 'shipping'=>array(),
                 'brand_name'=>'',
@@ -855,7 +931,7 @@ final class SEO_Auditor {
                 "SELECT pm.post_id,pm.meta_key,pm.meta_value
                  FROM {$wpdb->postmeta} pm
                  INNER JOIN {$wpdb->posts} p ON p.ID=pm.post_id AND p.post_type='product' AND p.post_status='publish'
-                 WHERE pm.meta_key IN ('_sku','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code')",
+                 WHERE pm.meta_key IN ('_sku','_seo_proveedor','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code')",
                 ARRAY_A
             );
             foreach ($meta_rows as $meta) {
@@ -864,6 +940,7 @@ final class SEO_Auditor {
                 $key = (string) ($meta['meta_key'] ?? '');
                 $value = trim((string) ($meta['meta_value'] ?? ''));
                 if ('_sku' === $key && '' === $products[$pid]['sku']) $products[$pid]['sku'] = $value;
+                elseif ('_seo_proveedor' === $key && '' === $products[$pid]['supplier']) $products[$pid]['supplier'] = $value;
                 elseif (in_array($key,array('_yoast_wpseo_title','rank_math_title','_aioseo_title'),true) && '' === $products[$pid]['seo_title']) $products[$pid]['seo_title'] = $value;
                 elseif (in_array($key,array('_yoast_wpseo_metadesc','rank_math_description','_aioseo_description'),true) && '' === $products[$pid]['seo_description']) $products[$pid]['seo_description'] = $value;
                 elseif (in_array($key,array('_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code'),true) && '' !== $value) $products[$pid]['identifiers'][$key] = $value;
@@ -1083,7 +1160,7 @@ final class SEO_Auditor {
                 "SELECT pm.post_id,pm.meta_key,pm.meta_value
                  FROM {$wpdb->postmeta} pm
                  INNER JOIN {$wpdb->posts} p ON p.ID=pm.post_id AND p.post_type='product' AND p.post_status='publish'
-                 WHERE pm.meta_key IN ('_sku','_product_attributes','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code','_weight','_length','_width','_height')",
+                 WHERE pm.meta_key IN ('_sku','_seo_proveedor','_product_attributes','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code','_weight','_length','_width','_height')",
                 ARRAY_A
             );
             foreach ($meta_rows as $m) {
@@ -1515,9 +1592,53 @@ final class SEO_Auditor {
         }
 
         // Identificadores estables repetidos entre IDs distintos: senal fuerte de duplicidad o importacion incorrecta.
-        $sku_groups=array();$stable_groups=array();foreach($products as $pid=>$p){$sku=trim((string)($p['sku']??''));if($sku)$sku_groups[self::norm($sku)][absint($pid)]=true;foreach((array)($p['identifiers']??array()) as $ik=>$iv){$iv=trim((string)$iv);if($iv)$stable_groups[$ik.':'.self::norm($iv)][absint($pid)]=true;}}
-        foreach($sku_groups as $value=>$ids_map)if(count($ids_map)>1)self::finding('source_duplicate_sku','high','product_group','sku:'.$value,'SKU duplicado','El mismo SKU aparece en varios product_id publicados.',array('product_ids'=>array_keys($ids_map),'sku'=>$value),'Revisar si son productos duplicados, variantes mal importadas o un SKU reutilizado incorrectamente.');
-        foreach($stable_groups as $key=>$ids_map)if(count($ids_map)>1){list($kind,$value)=array_pad(explode(':',$key,2),2,'');self::finding('source_duplicate_identifier','high','product_group',$key,'Identificador comercial duplicado','El mismo identificador estable aparece en varios product_id publicados.',array('product_ids'=>array_keys($ids_map),'identifier_type'=>$kind,'value'=>$value),'Revisar GTIN/EAN/MPN/referencia/proveedor antes de consolidar o entrenar.');}
+        $sku_groups=array();
+        $stable_groups=array();
+        foreach($products as $pid=>$p){
+            $sku=trim((string)($p['sku']??''));
+            if($sku)$sku_groups[self::norm($sku)][absint($pid)]=true;
+            $supplier=trim((string)($p['supplier']??''));
+            foreach((array)($p['identifiers']??array()) as $ik=>$iv){
+                $iv=trim((string)$iv);
+                if($iv==='')continue;
+                if('_seo_proveedor_id_externo'===$ik){
+                    // El ID externo solo es único dentro del proveedor que lo emite.
+                    // Proveedores distintos pueden reutilizar legítimamente el mismo valor.
+                    $scope=self::norm($supplier);
+                    $group_key=$ik.'|'.$scope.'|'.self::norm($iv);
+                }else{
+                    // GTIN/EAN/MPN y otros identificadores conservan su semántica propia.
+                    $group_key=$ik.'||'.self::norm($iv);
+                }
+                $stable_groups[$group_key][absint($pid)]=true;
+            }
+        }
+        foreach($sku_groups as $value=>$ids_map){
+            if(count($ids_map)>1)self::finding('source_duplicate_sku','high','product_group','sku:'.$value,'SKU duplicado','El mismo SKU aparece en varios product_id publicados.',array('product_ids'=>array_keys($ids_map),'sku'=>$value),'Revisar si son productos duplicados, variantes mal importadas o un SKU reutilizado incorrectamente.');
+        }
+        foreach($stable_groups as $key=>$ids_map){
+            if(count($ids_map)<2)continue;
+            list($kind,$supplier_scope,$value)=array_pad(explode('|',$key,3),3,'');
+            $evidence=array(
+                'product_ids'=>array_keys($ids_map),
+                'identifier_type'=>$kind,
+                'value'=>$value,
+                'scope'=>'_seo_proveedor_id_externo'===$kind ? 'supplier+external_id' : 'identifier_semantics',
+            );
+            if('_seo_proveedor_id_externo'===$kind)$evidence['supplier']=$supplier_scope;
+            self::finding(
+                'source_duplicate_identifier',
+                'high',
+                'product_group',
+                $key,
+                'Identificador comercial duplicado',
+                '_seo_proveedor_id_externo'===$kind
+                    ? 'El mismo ID externo aparece en varios productos publicados del mismo proveedor.'
+                    : 'El mismo identificador estable aparece en varios product_id publicados.',
+                $evidence,
+                'Verificar la fuente antes de consolidar. Los IDs externos se evalúan por proveedor; GTIN/EAN/MPN mantienen su alcance propio.'
+            );
+        }
 
         // Identidad: mismo titulo no significa siempre duplicado. Distingue duplicado probable de variante legitima mal identificada.
         foreach ($title_groups as $norm=>$ids) {
@@ -1552,11 +1673,27 @@ final class SEO_Auditor {
             if ($count === 1) self::finding('category_single_product','low','category',$cid,$name,'Categoria con un solo producto',array('products'=>1),'Revisar si merece categoria propia o si debe fusionarse con una hermana semanticamente cercana.');
             if ($name_norm && $slug_norm && self::token_jaccard($name_norm,$slug_norm) < 0.34) self::finding('category_name_slug_drift','low','category',$cid,$name,'Nombre y slug poco alineados',array('slug'=>(string)$term->slug),'Revisar si el slug sigue representando la categoria actual.');
 
-            if ($excerpt !== '' && self::strlen($excerpt) >= 35 && self::text_alignment_ratio($identity,$excerpt) < 0.16) {
-                self::finding('category_excerpt_identity_drift','medium','category',$cid,$name,'Excerpt de categoria poco alineado con su identidad',array('excerpt'=>self::snippet($excerpt,220),'vocabulary'=>self::vocab_labels($vocab)),'Comprobar que el excerpt pertenece a esta categoria y no a otra fila/importacion.');
+            if ($excerpt !== '' && self::strlen($excerpt) >= 35) {
+                $own_score=self::text_alignment_ratio($identity,$excerpt);
+                if($own_score<0.16){
+                    $cross=self::best_cross_category_candidate($cid,$excerpt,$categories,$own_score);
+                    if($cross){
+                        self::finding('category_excerpt_identity_drift','high','category',$cid,$name,'Excerpt de categoria con evidencia fuerte de contenido cruzado',array('alignment'=>round($own_score,3),'excerpt'=>self::snippet($excerpt,220),'vocabulary'=>self::vocab_labels($vocab),'possible_other_category'=>$cross),'Verificar contra la categoría candidata y la fuente antes de editar.');
+                    }else{
+                        self::finding('category_excerpt_alignment_weak','low','category',$cid,$name,'Excerpt con baja coincidencia literal con la identidad',array('alignment'=>round($own_score,3),'excerpt'=>self::snippet($excerpt,220),'vocabulary'=>self::vocab_labels($vocab)),'Revisar sólo como señal semántica. El bajo solapamiento literal no demuestra que el excerpt pertenezca a otra categoría.');
+                    }
+                }
             }
-            if ($desc !== '' && self::strlen($desc) >= 80 && self::text_alignment_ratio($identity,$desc) < 0.14) {
-                self::finding('category_description_identity_drift','high','category',$cid,$name,'Descripcion de categoria posiblemente cruzada o desalineada',array('description'=>self::snippet($desc,260),'vocabulary'=>self::vocab_labels($vocab)),'Revisar la descripcion contra nombre, productos y Vocabulary antes de usar la categoria como fuente de Academia.');
+            if ($desc !== '' && self::strlen($desc) >= 80) {
+                $own_score=self::text_alignment_ratio($identity,$desc);
+                if($own_score<0.14){
+                    $cross=self::best_cross_category_candidate($cid,$desc,$categories,$own_score);
+                    if($cross){
+                        self::finding('category_description_identity_drift','high','category',$cid,$name,'Descripción de categoría con evidencia fuerte de contenido cruzado',array('alignment'=>round($own_score,3),'description'=>self::snippet($desc,260),'vocabulary'=>self::vocab_labels($vocab),'possible_other_category'=>$cross),'Verificar contra la categoría candidata, sus productos y Vocabulary antes de editar.');
+                    }else{
+                        self::finding('category_description_alignment_weak','low','category',$cid,$name,'Descripción con baja coincidencia literal con la identidad',array('alignment'=>round($own_score,3),'description'=>self::snippet($desc,260),'vocabulary'=>self::vocab_labels($vocab)),'Revisar sólo como señal. Una descripción funcional puede ser correcta aunque repita pocas palabras del nombre de categoría.');
+                    }
+                }
             }
         }
     }
@@ -1944,6 +2081,41 @@ final class SEO_Auditor {
 
     private static function text_alignment_ratio($anchor,$text) {
         $a=self::identity_tokens($anchor);$b=self::identity_tokens($text);if(!$a||!$b)return 0.0;$hits=count(array_intersect($a,$b));return $hits/max(1,count($a));
+    }
+
+    private static function best_cross_category_candidate($current_id,$text,$categories,$own_score=0.0) {
+        $current_id=absint($current_id);
+        $text=(string)$text;
+        $own_score=(float)$own_score;
+        $best=null;
+
+        foreach((array)$categories as $cid=>$term){
+            $cid=absint($cid);
+            if(!$cid||$cid===$current_id||!is_object($term))continue;
+            $name=trim((string)($term->name ?? ''));
+            if($name==='')continue;
+
+            $tokens=self::identity_tokens($name);
+            // Una coincidencia de una sola palabra es demasiado débil para acusar
+            // contenido cruzado. Exigimos identidad suficientemente específica.
+            if(count($tokens)<2)continue;
+
+            $score=self::text_alignment_ratio($name,$text);
+            $margin=$score-$own_score;
+            if($score<0.45||$margin<0.30)continue;
+
+            if(!$best||$score>(float)$best['alignment']){
+                $best=array(
+                    'category_id'=>$cid,
+                    'category'=>$name,
+                    'alignment'=>round($score,3),
+                    'own_alignment'=>round($own_score,3),
+                    'margin'=>round($margin,3),
+                    'evidence_type'=>'strong_cross_category_fit',
+                );
+            }
+        }
+        return $best;
     }
 
     private static function snippet($text,$max=220) {
@@ -3391,12 +3563,39 @@ final class SEO_Auditor {
     private static function metric($label,$value,$class='') {echo '<div class="seo-auditor__metric '.($class?'is-'.esc_attr($class):'').'"><strong>'.esc_html(number_format_i18n(absint($value))).'</strong><span>'.esc_html($label).'</span></div>';}
 
     private static function finding($code,$severity,$entity_type,$entity_id,$title,$headline,$evidence=array(),$recommendation='') {
-        $code=sanitize_key((string)$code);$severity=sanitize_key((string)$severity);$entity_type=sanitize_key((string)$entity_type);
-        if (count(self::$findings) >= self::MAX_FINDINGS) return;
-        self::$rule_counts[$code]=absint(self::$rule_counts[$code]??0)+1;
-        if(self::$rule_counts[$code] > self::MAX_ENTITY_FINDINGS_PER_RULE) return;
+        $code=sanitize_key((string)$code);
+        $severity=sanitize_key((string)$severity);
+        $entity_type=sanitize_key((string)$entity_type);
         $id=is_numeric($entity_id)?absint($entity_id):(string)$entity_id;
-        self::$findings[]=array('code'=>$code,'severity'=>$severity,'scope'=>self::scope_for($code,$entity_type),'root_cause'=>self::root_cause_for($code,$entity_type),'entity_type'=>$entity_type,'entity_id'=>$id,'title'=>(string)$title,'headline'=>(string)$headline,'message'=>is_string($evidence)?$evidence:'','evidence'=>is_array($evidence)?$evidence:array(),'recommendation'=>(string)$recommendation,'edit_url'=>self::edit_url($entity_type,$id));
+
+        self::$rule_counts[$code]=absint(self::$rule_counts[$code]??0)+1;
+
+        $record=array(
+            'code'=>$code,
+            'severity'=>$severity,
+            'scope'=>self::scope_for($code,$entity_type),
+            'root_cause'=>self::root_cause_for($code,$entity_type),
+            'entity_type'=>$entity_type,
+            'entity_id'=>$id,
+            'title'=>(string)$title,
+            'headline'=>(string)$headline,
+            'message'=>is_string($evidence)?$evidence:'',
+            'evidence'=>is_array($evidence)?$evidence:array(),
+            'recommendation'=>(string)$recommendation,
+            'edit_url'=>self::edit_url($entity_type,$id),
+        );
+
+        // La cola editorial se construye con el conjunto completo de hallazgos.
+        // La tabla visual mantiene límites para no saturar wp-admin.
+        if(count(self::$priority_findings)<self::MAX_PRIORITY_FINDINGS){
+            self::$priority_findings[]=$record;
+        }else{
+            self::$priority_findings_truncated=true;
+        }
+
+        if(count(self::$findings)>=self::MAX_FINDINGS)return;
+        if(self::$rule_counts[$code]>self::MAX_ENTITY_FINDINGS_PER_RULE)return;
+        self::$findings[]=$record;
     }
 
     private static function audit_source_integrity($inventory) {
@@ -3451,6 +3650,7 @@ final class SEO_Auditor {
     private static function priority_action_label($action_class) {
         $labels = array(
             'CORREGIR_AHORA' => 'Corregir ahora',
+            'VERIFICAR_AHORA' => 'Verificar ahora',
             'ESPERAR_ENRIQUECIMIENTO' => 'Esperar enriquecimiento',
             'MIGRAR_A_SOLUCIONADOR' => 'Migrar a Solucionador',
             'REVISAR' => 'Revisar',
@@ -3479,6 +3679,7 @@ final class SEO_Auditor {
             'product_description_identity_drift',
             'category_description_identity_drift',
             'category_excerpt_identity_drift',
+            'source_duplicate_identifier',
         ), true);
     }
 
@@ -3518,7 +3719,214 @@ final class SEO_Auditor {
         return false;
     }
 
+    private static function build_faq_migration_inventory($faqs,$published_product_ids,$categories,$products) {
+        $items=array();
+        $summary=array(
+            'total'=>0,
+            'MIGRATE'=>0,
+            'RETIRE_CANDIDATE'=>0,
+            'REVIEW'=>0,
+            'INVALID_OWNER'=>0,
+            'preservation_required'=>0,
+            'retirement_allowed'=>0,
+        );
+
+        foreach((array)$faqs as $faq){
+            $id=absint($faq['id'] ?? 0);
+            if(!$id)continue;
+            $ot=absint($faq['object_type'] ?? 0);
+            $oid=absint($faq['object_id'] ?? 0);
+            $question=trim(wp_strip_all_tags((string)($faq['question'] ?? '')));
+            $answer=trim(wp_strip_all_tags((string)($faq['answer'] ?? '')));
+            $owner_ok=false;
+            $owner_type='invalid';
+            $owner_title='';
+
+            if(3===$ot){
+                $owner_type='product';
+                $owner_ok=isset($published_product_ids[$oid]);
+                if($owner_ok)$owner_title=(string)($products[$oid]['title'] ?? get_the_title($oid));
+            }elseif(2===$ot){
+                $owner_type='product_cat';
+                $owner_ok=isset($categories[$oid]);
+                if($owner_ok)$owner_title=(string)($categories[$oid]->name ?? '');
+            }
+
+            $classification=self::faq_migration_classification($question,$answer,$owner_ok);
+            $class=(string)$classification['class'];
+            $preservation_required='MIGRATE'===$class;
+            $hash=hash('sha256',wp_json_encode(array(
+                'faq_id'=>$id,
+                'object_type'=>$ot,
+                'object_id'=>$oid,
+                'question'=>$question,
+                'answer'=>$answer,
+                'origin'=>'seo_faq',
+            ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+
+            $items[]=array(
+                'faq_id'=>$id,
+                'object_type'=>$ot,
+                'owner_type'=>$owner_type,
+                'object_id'=>$oid,
+                'category_id'=>2===$ot?$oid:0,
+                'owner_title'=>$owner_title,
+                'question'=>$question,
+                'answer'=>$answer,
+                'hash'=>$hash,
+                'origin'=>'seo_faq',
+                'class'=>$class,
+                'migration_status'=>$preservation_required?'PENDING_PRESERVATION':('INVALID_OWNER'===$class?'BLOCKED_INVALID_OWNER':'REVIEW_REQUIRED'),
+                'migration_reason'=>(string)$classification['reason'],
+                'source_rule'=>'faq_migration_inventory_v1',
+                'preservation_required'=>$preservation_required,
+                'solucionador_coverage'=>$preservation_required?'UNCONFIRMED':'NOT_REQUIRED',
+                // Auditor nunca autoriza la retirada por sí solo.
+                'retirement_allowed'=>false,
+                'created_at'=>(string)($faq['updated_at'] ?? ''),
+                'migrated_at'=>'',
+            );
+
+            $summary['total']++;
+            if(isset($summary[$class]))$summary[$class]++;
+            if($preservation_required)$summary['preservation_required']++;
+        }
+
+        return array(
+            'schema'=>array('name'=>'faq_migration_inventory','version'=>1),
+            'summary'=>$summary,
+            'items'=>$items,
+            'notes'=>array(
+                'complete_inventory'=>true,
+                'independent_from_finding_limit'=>true,
+                'read_only'=>true,
+                'faq_owner_semantic_drift_is_not_value_classifier'=>true,
+                'useful_faq_requires_solucionador_preservation_before_retirement'=>true,
+                'retirement_requires_human_review'=>true,
+            ),
+        );
+    }
+
+    private static function faq_migration_classification($question,$answer,$owner_ok) {
+        if(!$owner_ok){
+            return array('class'=>'INVALID_OWNER','reason'=>'El owner no existe o no pertenece al modelo canónico; primero debe sanearse el contexto.');
+        }
+        $question=trim((string)$question);
+        if($question===''){
+            return array('class'=>'REVIEW','reason'=>'Pregunta vacía o no evaluable; requiere revisión humana.');
+        }
+        if(self::priority_faq_simple_attribute_question($question)){
+            return array('class'=>'RETIRE_CANDIDATE','reason'=>'Pregunta simple que reproduce un atributo estructurado; revisar antes de retirar.');
+        }
+        $probe=array('entity_type'=>'faq','code'=>'faq_inventory','title'=>$question);
+        if(self::priority_faq_migration_candidate($probe)){
+            return array('class'=>'MIGRATE','reason'=>'Intención reutilizable de elección, compatibilidad, uso, medida, mantenimiento, seguridad, diagnóstico, instalación o accesorios.');
+        }
+        if(self::generic_faq_question($question) && self::strlen($answer)<120){
+            return array('class'=>'RETIRE_CANDIDATE','reason'=>'Pregunta genérica/repetitiva con respuesta breve; candidata a retirada posterior tras revisión.');
+        }
+        return array('class'=>'REVIEW','reason'=>'Valor editorial potencial no concluyente; conservar hasta revisión humana.');
+    }
+
+    private static function build_findings_meta($findings,$rule_counts) {
+        $included_by_rule=array();
+        foreach((array)$findings as $finding){
+            $code=sanitize_key((string)($finding['code'] ?? ''));
+            if($code)$included_by_rule[$code]=absint($included_by_rule[$code] ?? 0)+1;
+        }
+        $total=array_sum(array_map('absint',(array)$rule_counts));
+        $included=count((array)$findings);
+        return array(
+            'sampled'=>$total>$included,
+            'total_count'=>$total,
+            'included_count'=>$included,
+            'truncated'=>$total>$included,
+            'per_rule_limit'=>self::MAX_ENTITY_FINDINGS_PER_RULE,
+            'global_limit'=>self::MAX_FINDINGS,
+            'rule_counts'=>(array)$rule_counts,
+            'included_by_rule'=>$included_by_rule,
+        );
+    }
+
+    private static function build_priority_queue_meta($tasks) {
+        $total=count((array)$tasks);
+        return array(
+            'canonical'=>!self::$priority_findings_truncated,
+            'sampled'=>false,
+            'total_count'=>$total,
+            'included_count'=>$total,
+            'truncated'=>self::$priority_findings_truncated,
+            'source_findings_total'=>array_sum(array_map('absint',self::$rule_counts)),
+            'source_findings_collected'=>count(self::$priority_findings),
+            'ui'=>array(
+                'sampled'=>$total>self::PRIORITY_UI_LIMIT,
+                'total_count'=>$total,
+                'included_count'=>min($total,self::PRIORITY_UI_LIMIT),
+                'truncated'=>$total>self::PRIORITY_UI_LIMIT,
+            ),
+            'json_export_complete'=>!self::$priority_findings_truncated,
+        );
+    }
+
+    private static function apply_task_trace($tasks,$previous_tasks,$previous_resolved,$now) {
+        $previous=array();
+        foreach((array)$previous_tasks as $task){
+            $task_id=(string)($task['task_id'] ?? '');
+            if($task_id!=='')$previous[$task_id]=$task;
+        }
+        $resolved=array();
+        foreach((array)$previous_resolved as $task){
+            $task_id=(string)($task['task_id'] ?? '');
+            if($task_id!=='')$resolved[$task_id]=$task;
+        }
+
+        $current=array();
+        $current_ids=array();
+        foreach((array)$tasks as $task){
+            $task_id=(string)($task['task_id'] ?? '');
+            if($task_id==='')continue;
+            $current_ids[$task_id]=true;
+
+            if(isset($previous[$task_id])){
+                $prev=$previous[$task_id];
+                $task['first_seen']=(string)($prev['first_seen'] ?? $prev['last_seen'] ?? $now);
+                $task['previous_status']=(string)($prev['status'] ?? '');
+            }elseif(isset($resolved[$task_id])){
+                $prev=$resolved[$task_id];
+                $task['first_seen']=(string)($prev['first_seen'] ?? $now);
+                $task['previous_status']='RESOLVED';
+                unset($resolved[$task_id]);
+            }else{
+                $task['first_seen']=$now;
+                $task['previous_status']='';
+            }
+
+            $task['last_seen']=$now;
+            $task['resolved_at']='';
+            $task['resolution_reason']='';
+            $current[]=$task;
+        }
+
+        foreach($previous as $task_id=>$prev){
+            if(isset($current_ids[$task_id]))continue;
+            $prev['previous_status']=(string)($prev['status'] ?? '');
+            $prev['status']='RESOLVED';
+            $prev['status_label']='Resuelto/no detectado';
+            $prev['ready_now']=false;
+            $prev['last_seen']=(string)($prev['last_seen'] ?? $now);
+            $prev['resolved_at']=$now;
+            $prev['resolution_reason']='hallazgo_no_detectado_en_ultima_auditoria';
+            $resolved[$task_id]=$prev;
+        }
+
+        return array(
+            'current'=>array_values($current),
+            'resolved'=>array_values($resolved),
+        );
+    }
+
     private static function priority_dependency_for($finding, $action_class) {
+        if ('VERIFICAR_AHORA' === $action_class) return 'source_verification';
         if ('MIGRAR_A_SOLUCIONADOR' === $action_class) return 'solucionador';
         if ('ESPERAR_ENRIQUECIMIENTO' !== $action_class) return 'none';
 
@@ -3540,6 +3948,7 @@ final class SEO_Auditor {
         $score = (int) ($severity_score[$severity] ?? 4);
 
         if ('CORREGIR_AHORA' === $action_class) $score += 24;
+        elseif ('VERIFICAR_AHORA' === $action_class) $score += 22;
         elseif ('ESPERAR_ENRIQUECIMIENTO' === $action_class) $score += 14;
         elseif ('MIGRAR_A_SOLUCIONADOR' === $action_class) $score += 16;
         elseif ('REVISAR' === $action_class) $score += 8;
@@ -3558,7 +3967,7 @@ final class SEO_Auditor {
         $seo = in_array($type, array('product','category','post','page'), true) ? 'alto' : 'medio';
         $commercial = in_array($type, array('product','category'), true) ? 'alto' : ('faq' === $type ? 'medio' : 'bajo');
         $ai = ('faq' === $type || false !== strpos($code, 'vocabulary') || false !== strpos($code, 'semantic')) ? 'alto' : 'medio';
-        $integrity = 'CORREGIR_AHORA' === $action_class ? 'alto' : ('REVISAR' === $action_class ? 'medio' : 'bajo');
+        $integrity = in_array($action_class,array('CORREGIR_AHORA','VERIFICAR_AHORA'),true) ? 'alto' : ('REVISAR' === $action_class ? 'medio' : 'bajo');
 
         return array(
             'level' => $level,
@@ -3622,6 +4031,7 @@ final class SEO_Auditor {
             'category_empty','category_heterogeneous','category_merge_candidate',
             'category_multiple_secondary_hubs','category_name_slug_drift','category_oversized',
             'category_product_vocabulary_drift','category_single_product','category_split_candidate',
+            'category_description_alignment_weak','category_excerpt_alignment_weak',
             'category_without_secondary_hub','editorial_vocab_title_drift',
             'duplicate_faq_same_owner','faq_owner_semantic_drift',
             'architecture_over_sized','architecture_under_sized',
@@ -3654,14 +4064,21 @@ final class SEO_Auditor {
             $priority = (string) ($profile['priority'] ?? 'P5');
             $action_class = (string) ($profile['action_class'] ?? 'INFORMATIVO');
             $requires_source_check = self::priority_requires_source_check($finding);
+            if ('CORREGIR_AHORA' === $action_class && $requires_source_check) {
+                $action_class = 'VERIFICAR_AHORA';
+                $profile['reason'] = trim((string)($profile['reason'] ?? '') . ' Requiere evidencia de fuente/proveedor antes de autorizar edición.');
+            }
             $depends_on = self::priority_dependency_for($finding, $action_class);
             $impact = self::priority_impact_for($finding, $action_class);
 
             $ready_now = false;
             $status = 'NO_ACTION';
             if ('CORREGIR_AHORA' === $action_class) {
-                $ready_now = !$requires_source_check;
-                $status = $requires_source_check ? 'NEEDS_SOURCE_VERIFICATION' : 'READY_FOR_EDITOR';
+                $ready_now = true;
+                $status = 'READY_FOR_EDITOR';
+            } elseif ('VERIFICAR_AHORA' === $action_class) {
+                $ready_now = false;
+                $status = 'NEEDS_SOURCE_VERIFICATION';
             } elseif ('ESPERAR_ENRIQUECIMIENTO' === $action_class) {
                 $status = 'WAITING_FOR_ENRICHMENT';
             } elseif ('MIGRAR_A_SOLUCIONADOR' === $action_class) {
@@ -3748,14 +4165,24 @@ final class SEO_Auditor {
         return $summary;
     }
 
-    private static function render_priority_queue($tasks, $summary=array()) {
+    private static function render_priority_queue($tasks, $summary=array(), $meta=array()) {
         $tasks = array_values((array) $tasks);
         $summary = (array) $summary;
+        $meta = (array) $meta;
         echo '<h3>Plan de trabajo priorizado</h3>';
-        echo '<p class="description">Auditor clasifica y prioriza; no corrige ni genera texto. P1 son defectos objetivos, P2 espera conocimiento, P3 preserva FAQs utiles en Solucionador, P4 requiere criterio humano y P5 es informativo. El trafico aun no modifica la prioridad hasta integrar las metricas de Analista.</p>';
+        echo '<p class="description">Auditor clasifica y prioriza; no corrige ni genera texto. P1 significa atender primero y puede ser CORREGIR_AHORA o VERIFICAR_AHORA; P2 espera conocimiento, P3 preserva FAQs útiles en Solucionador, P4 requiere criterio humano y P5 es informativo. El tráfico aún no modifica la prioridad hasta integrar las métricas de Analista.</p>';
+        if(!empty($meta['truncated'])){
+            echo '<div class="notice notice-warning inline"><p>La cola canónica alcanzó el límite técnico de recopilación; el JSON no debe considerarse completo hasta reauditar con mayor capacidad.</p></div>';
+        }elseif(!empty($meta['ui']['truncated'])){
+            echo '<div class="notice notice-info inline"><p>La pantalla muestra '
+                . esc_html(number_format_i18n(absint($meta['ui']['included_count'] ?? self::PRIORITY_UI_LIMIT)))
+                . ' de '
+                . esc_html(number_format_i18n(absint($meta['ui']['total_count'] ?? count($tasks))))
+                . ' tareas. El JSON exportado contiene la cola completa.</p></div>';
+        }
 
         echo '<div class="seo-auditor__metrics">';
-        foreach (array('P1'=>'Corregir ahora','P2'=>'Esperar enriquecimiento','P3'=>'Migrar conocimiento','P4'=>'Revisar','P5'=>'Informativo') as $priority=>$label) {
+        foreach (array('P1'=>'Atender primero','P2'=>'Esperar enriquecimiento','P3'=>'Migrar conocimiento','P4'=>'Revisar','P5'=>'Informativo') as $priority=>$label) {
             self::metric($label, absint($summary['by_priority'][$priority] ?? 0), 'P1' === $priority ? 'high' : ('P2' === $priority ? 'medium' : ''));
         }
         echo '</div>';
@@ -3768,7 +4195,7 @@ final class SEO_Auditor {
         echo '<div class="seo-auditor__quality-table-wrap"><table class="widefat striped seo-auditor__findings"><thead><tr>';
         echo '<th>Prioridad</th><th>Entidad</th><th>Problema</th><th>Estado / dependencia</th><th>Impacto esperado</th><th>Recomendacion</th>';
         echo '</tr></thead><tbody>';
-        foreach (array_slice($tasks, 0, 250) as $task) {
+        foreach (array_slice($tasks, 0, self::PRIORITY_UI_LIMIT) as $task) {
             $impact = (array) ($task['expected_impact'] ?? array());
             $edit = (string) ($task['edit_url'] ?? '');
             echo '<tr>';
@@ -3785,6 +4212,24 @@ final class SEO_Auditor {
             echo '</tr>';
         }
         echo '</tbody></table></div>';
+    }
+
+    private static function render_faq_migration_inventory_summary($inventory) {
+        $summary=(array)($inventory['summary'] ?? array());
+        echo '<h3>Inventario completo de migración FAQ</h3>';
+        echo '<p class="description">Clasificación de todas las FAQs activas, independiente del límite visual de hallazgos. Auditor no retira ni migra automáticamente.</p>';
+        echo '<div class="seo-auditor__metrics">';
+        self::metric('Total',absint($summary['total'] ?? 0));
+        self::metric('Migrar a Solucionador',absint($summary['MIGRATE'] ?? 0),'high');
+        self::metric('Candidatas a retirada',absint($summary['RETIRE_CANDIDATE'] ?? 0));
+        self::metric('Revisión humana',absint($summary['REVIEW'] ?? 0),'medium');
+        self::metric('Owner inválido',absint($summary['INVALID_OWNER'] ?? 0),'critical');
+        echo '</div>';
+        if(absint($summary['preservation_required'] ?? 0)>0){
+            echo '<div class="notice notice-warning inline"><p>'
+                . esc_html(number_format_i18n(absint($summary['preservation_required'] ?? 0)))
+                . ' FAQs requieren preservación confirmada en Solucionador antes de cualquier retirada pública.</p></div>';
+        }
     }
 
     private static function canonical_lesson_key($key) {
