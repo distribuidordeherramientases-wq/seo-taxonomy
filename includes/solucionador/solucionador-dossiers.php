@@ -1150,6 +1150,8 @@ final class SEO_Solucionador_Dossiers {
             'categories_without_knowledge'=>max(0,$categories_total-$categories_with),
             'categories_only_faq'=>$only_faq,
             'categories_only_dependiente'=>$only_dependiente,
+            'categories_both_sources'=>$both,
+            // Alias de compatibilidad; no representa una tercera fuente.
             'categories_faq_dependiente'=>$both,
             'categories_without_information'=>max(0,$categories_total-$categories_with),
             'questions_in_dossiers'=>$items_in_dossiers,
