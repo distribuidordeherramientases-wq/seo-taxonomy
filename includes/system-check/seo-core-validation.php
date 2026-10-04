@@ -363,7 +363,7 @@ function seo_core_system_test() {
         $settings_results = is_array($results) ? $results : seo_core_system_test_get_reporting_results();
         seo_core_validation_render_settings_page($settings_results);
     } elseif ($results === null) {
-        if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content'), true)) {
+        if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content', 'services'), true)) {
             seo_core_system_test_render_compact_health(array(), $active_tab);
         }
         seo_core_system_test_render_intro();
@@ -473,7 +473,7 @@ function seo_core_system_test_render_run_button($active_tab = 'summary') {
     wp_nonce_field('seo_core_system_test_run', 'seo_core_system_test_nonce');
     echo '<input type="hidden" name="seo_core_system_test_run" value="1">';
     submit_button('Ejecutar validación completa', 'primary', 'submit', false);
-    if (in_array($active_tab, array('operation', 'seo_content'), true)) {
+    if (in_array($active_tab, array('operation', 'seo_content', 'services'), true)) {
         echo '<p class="description" style="margin-top:8px;">Actualiza todos los chequeos pasivos. La auditoría 404 y la prueba transaccional del Data Layer conservan sus controles propios en sus áreas correspondientes.</p>';
     } else {
         echo '<p class="description" style="margin-top:8px;">Los tests se ejecutan en una sola pasada; cada vista solo organiza y filtra los resultados.</p>';
@@ -7137,21 +7137,74 @@ function seo_core_system_test_incident_ids($results) {
 function seo_core_system_test_health_summary($results) {
     $counts = array('critical' => 0, 'important' => 0, 'warning' => 0, 'ok' => 0, 'info' => 0, 'not_evaluable' => 0, 'not_applicable' => 0, 'unknown' => 0);
     $confidence_values = array();
+    $weighted_penalty = 0.0;
+    $weighted_max = 0.0;
+
     foreach ((array) $results as $result) {
         if (!is_array($result) || seo_core_system_test_is_aggregate_result($result)) continue;
+
         $status = (string) ($result['status'] ?? '');
-        if (isset($counts[$status]) && in_array($status, array('not_evaluable', 'not_applicable', 'unknown'), true)) { $counts[$status]++; continue; }
+        if (isset($counts[$status]) && in_array($status, array('not_evaluable', 'not_applicable', 'unknown'), true)) {
+            $counts[$status]++;
+            continue;
+        }
+
         $impact = seo_core_system_test_result_impact($result);
         $units = 1;
-        if (in_array($impact, array('critical', 'important', 'warning'), true) && !empty($result['items']) && is_array($result['items'])) $units = max(1, count($result['items']));
+        if (in_array($impact, array('critical', 'important', 'warning'), true) && !empty($result['items']) && is_array($result['items'])) {
+            $units = max(1, count($result['items']));
+        }
         $counts[$impact] = isset($counts[$impact]) ? $counts[$impact] + $units : $units;
-        if (isset($result['confidence'])) $confidence_values[] = (int) $result['confidence'];
+
+        /*
+         * Cada comprobación aporta un máximo de 5 puntos de riesgo, igual que
+         * la fórmula histórica. Para servicios/conexiones usamos su score
+         * 0-100 de forma proporcional en vez de reducirlo a un simple badge.
+         */
+        $weighted_max += 5.0 * $units;
+        $group = (string) ($result['group'] ?? '');
+        $service_score = null;
+        if (in_array($group, array('services', 'connections'), true)) {
+            if (isset($result['service_score'])) {
+                $service_score = max(0, min(100, (int) $result['service_score']));
+            } elseif (isset($result['evidence']['score'])) {
+                $service_score = max(0, min(100, (int) $result['evidence']['score']));
+            }
+        }
+
+        if ($service_score !== null) {
+            $weighted_penalty += ((100 - $service_score) / 100) * 5.0 * $units;
+        } else {
+            $impact_penalty = array(
+                'critical' => 5.0,
+                'important' => 3.0,
+                'warning' => 1.0,
+                'ok' => 0.0,
+                'info' => 0.0,
+            );
+            $weighted_penalty += ($impact_penalty[$impact] ?? 0.0) * $units;
+        }
+
+        if (isset($result['confidence'])) {
+            $confidence_values[] = (int) $result['confidence'];
+        }
     }
+
     $actionable = $counts['critical'] + $counts['important'] + $counts['warning'] + $counts['ok'];
     $expected = $actionable + $counts['not_evaluable'] + $counts['unknown'];
-    $penalty = ($counts['critical'] * 5) + ($counts['important'] * 3) + $counts['warning'];
-    $score = $actionable > 0 ? max(0, (int) round(100 - (($penalty / ($actionable * 5)) * 100))) : null;
-    $status = $counts['critical'] > 0 ? 'critical' : ($counts['important'] > 0 ? 'important' : ($counts['warning'] > 0 ? 'warning' : ($counts['ok'] > 0 ? 'ok' : ($counts['not_evaluable'] > 0 ? 'not_evaluable' : 'info'))));
+    $score = $weighted_max > 0
+        ? max(0, (int) round(100 - (($weighted_penalty / $weighted_max) * 100)))
+        : null;
+    $status = $counts['critical'] > 0
+        ? 'critical'
+        : ($counts['important'] > 0
+            ? 'important'
+            : ($counts['warning'] > 0
+                ? 'warning'
+                : ($counts['ok'] > 0
+                    ? 'ok'
+                    : ($counts['not_evaluable'] > 0 ? 'not_evaluable' : 'info'))));
+
     return array_merge($counts, array(
         'total' => $actionable,
         'score' => $score,
@@ -7160,7 +7213,6 @@ function seo_core_system_test_health_summary($results) {
         'confidence' => !empty($confidence_values) ? (int) round(array_sum($confidence_values) / count($confidence_values)) : 0,
     ));
 }
-
 
 function seo_core_system_test_groups_for_tab($active_tab) {
     if ($active_tab === 'code_integrity') {
@@ -7435,7 +7487,7 @@ function seo_core_system_test_result($group, $label, $passed, $detail = '', $sev
             : (function_exists('seo_core_validation_remediation_for_label') ? seo_core_validation_remediation_for_label($label) : array()),
         'health_impact' => array_key_exists('health_impact', $meta) ? ((int) $meta['health_impact'] === 0 ? 0 : 1) : 1,
     );
-    foreach (array('items', 'priority', 'status_code') as $key) {
+    foreach (array('items', 'priority', 'status_code', 'service_score') as $key) {
         if (array_key_exists($key, $meta)) $result[$key] = $meta[$key];
     }
     return $result;
