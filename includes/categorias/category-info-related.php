@@ -341,20 +341,20 @@ if (!function_exists('seo_category_info_related_collect_data')) {
         ) {
             $result['tables']['vocabulary'] = true;
 
-            $rows = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT ov.object_id, v.semantic_group, v.label, v.slug\n"
-                    . "FROM {$object_vocab_table} ov\n"
-                    . "INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id\n"
-                    . "WHERE ov.object_type = 'product_cat'\n"
-                    . "  AND ov.status = 1\n"
-                    . "  AND v.active = 1\n"
-                    . "  AND ov.object_id IN ({$id_placeholders})\n"
-                    . "ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC",
-                    ...$category_ids
-                ),
-                ARRAY_A
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+            $vocabulary_sql = $wpdb->prepare(
+                "SELECT ov.object_id, v.semantic_group, v.label, v.slug
+                 FROM {$object_vocab_table} ov
+                 INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+                 WHERE ov.object_type = 'product_cat'
+                   AND ov.status = 1
+                   AND v.active = 1
+                   AND ov.object_id IN ({$id_placeholders})
+                 ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC",
+                ...$category_ids
             );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $vocabulary_sql es el resultado de $wpdb->prepare().
+            $rows = $wpdb->get_results($vocabulary_sql, ARRAY_A);
 
             foreach ((array) $rows as $row) {
                 $term_id = absint($row['object_id'] ?? 0);
@@ -415,17 +415,17 @@ if (!function_exists('seo_category_info_related_collect_data')) {
         if (seo_category_info_related_table_exists($faq_table)) {
             $result['tables']['faq'] = true;
 
-            $faq_rows = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT id, object_id, question, active, sort_order\n"
-                    . "FROM {$faq_table}\n"
-                    . "WHERE object_type = 2\n"
-                    . "  AND object_id IN ({$id_placeholders})\n"
-                    . "ORDER BY object_id ASC, active DESC, sort_order ASC, id ASC",
-                    ...$category_ids
-                ),
-                ARRAY_A
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+            $faq_sql = $wpdb->prepare(
+                "SELECT id, object_id, question, active, sort_order
+                 FROM {$faq_table}
+                 WHERE object_type = 2
+                   AND object_id IN ({$id_placeholders})
+                 ORDER BY object_id ASC, active DESC, sort_order ASC, id ASC",
+                ...$category_ids
             );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $faq_sql es el resultado de $wpdb->prepare().
+            $faq_rows = $wpdb->get_results($faq_sql, ARRAY_A);
 
             foreach ((array) $faq_rows as $row) {
                 $term_id = absint($row['object_id'] ?? 0);
