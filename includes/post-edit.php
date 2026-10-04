@@ -24,6 +24,12 @@ if (is_readable($seo_post_opportunities_file)) {
     require_once $seo_post_opportunities_file;
 }
 
+// Import/export específico de los borradores editoriales de Solucionador.
+$seo_solucionador_posts_ie_file = __DIR__ . '/solucionador/solucionador-post-import-export.php';
+if (is_readable($seo_solucionador_posts_ie_file)) {
+    require_once $seo_solucionador_posts_ie_file;
+}
+
 if (!function_exists('seo_post_editor_allowed_statuses')) {
     function seo_post_editor_allowed_statuses() {
         return array('publish', 'future', 'draft', 'pending', 'private');
@@ -1255,7 +1261,13 @@ if (!function_exists('seo_page_edit_posts')) {
         echo '</div>';
         seo_post_editor_render_tabs($active_section, $context);
         if ($solucionador_only) {
+            if (function_exists('seo_solucionador_posts_ie_render_notice')) {
+                seo_solucionador_posts_ie_render_notice();
+            }
             seo_post_editor_render_solucionador_style_guide(false);
+            if (function_exists('seo_solucionador_posts_ie_render')) {
+                seo_solucionador_posts_ie_render();
+            }
         }
 
         if ($message !== '' && isset($notice_messages[$message])) {
