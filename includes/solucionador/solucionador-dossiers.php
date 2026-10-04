@@ -256,6 +256,7 @@ final class SEO_Solucionador_Dossiers {
             'token'=>wp_generate_uuid4(),
             'editorial_policy'=>self::EDITORIAL_POLICY_VERSION,
             'dependiente_cursor'=>0,
+            'dependiente_run_cursor'=>0,
             'dependiente_processed'=>0,
             'dependiente_learned'=>0,
             'dependiente_editorial_eligible'=>0,
@@ -312,6 +313,12 @@ final class SEO_Solucionador_Dossiers {
             : absint($old_cursor);
         if (!isset($state['dependiente_cursor']) || is_array($state['dependiente_cursor'])) {
             $state['dependiente_cursor'] = $trainer_cursor;
+            $changed = true;
+        }
+        if (!array_key_exists('dependiente_run_cursor',$state)) {
+            $state['dependiente_run_cursor'] = is_array($old_cursor)
+                ? absint($old_cursor['trainer_run'] ?? 0)
+                : 0;
             $changed = true;
         }
 
@@ -761,16 +768,10 @@ final class SEO_Solucionador_Dossiers {
         if (!empty($state['dependiente_complete'])
             && (string)($state['dependiente_source_signature'] ?? '') !== ''
             && (string)$state['dependiente_source_signature'] !== $dep_signature) {
-            self::clear_source_lane('dependiente',(string)$state['token']);
-            $state['dependiente_cursor'] = 0;
-            $state['dependiente_processed'] = 0;
-            $state['dependiente_learned'] = 0;
-            $state['dependiente_editorial_eligible'] = 0;
-            $state['dependiente_editorial_discarded'] = 0;
-            $state['dependiente_with_category'] = 0;
-            $state['dependiente_without_category'] = 0;
+            // Dependiente aprende continuamente. Una firma nueva significa que
+            // hay novedades; conservamos dossiers y cursores y sólo retomamos
+            // la lectura incremental desde los high-water marks conocidos.
             $state['dependiente_complete'] = false;
-            $state['dependiente_source_signature'] = '';
             $state['dependiente_scan_signature'] = $dep_signature;
             $state['complete'] = false;
         }
@@ -819,6 +820,74 @@ final class SEO_Solucionador_Dossiers {
                 // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs enlazados con prepare().
                 foreach ((array)$wpdb->get_results($run_sql,ARRAY_A) as $run) {
                     $runs_by_question[absint($run['question_id'] ?? 0)] = $run;
+                    $state['dependiente_run_cursor'] = max(
+                        absint($state['dependiente_run_cursor'] ?? 0),
+                        absint($run['id'] ?? 0)
+                    );
+                }
+            }
+
+            /*
+             * Cuando ya alcanzamos el final conocido de la tabla de preguntas,
+             * Entrenador puede seguir generando nuevas respuestas para preguntas
+             * antiguas. Las recogemos por run_id sin reiniciar el inventario.
+             */
+            $question_inventory_complete = count($q_rows)<$limit;
+            $delta_run_rows = array();
+            if ($question_inventory_complete) {
+                $run_cursor = absint($state['dependiente_run_cursor'] ?? 0);
+                $delta_sql = $wpdb->prepare(
+                    "SELECT q.id,q.lesson_key,q.source_type,q.source_id,q.source_key,
+                            q.question_type,q.question,q.expected_json,
+                            r.id run_id,r.question_id,r.status run_status,r.search_strategy,
+                            r.evaluation_status,r.evaluation_score,r.evaluation_json,
+                            r.top_results,r.response_meta,r.created_at run_created_at
+                     FROM {$questions_table} q
+                     INNER JOIN (
+                        SELECT question_id,MAX(id) latest_run_id
+                        FROM {$runs_table}
+                        WHERE question_id IS NOT NULL
+                        GROUP BY question_id
+                     ) latest ON latest.question_id=q.id
+                     INNER JOIN {$runs_table} r ON r.id=latest.latest_run_id
+                     WHERE {$where} AND r.id>%d
+                     ORDER BY r.id ASC
+                     LIMIT %d",
+                    $run_cursor,$limit
+                );
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado y tablas internas.
+                $delta_run_rows = (array)$wpdb->get_results($delta_sql,ARRAY_A);
+
+                foreach ($delta_run_rows as $delta) {
+                    $question_id = absint($delta['id'] ?? 0);
+                    if (!$question_id) continue;
+
+                    $q_rows[] = array(
+                        'id'=>$question_id,
+                        'lesson_key'=>(string)($delta['lesson_key'] ?? ''),
+                        'source_type'=>(string)($delta['source_type'] ?? ''),
+                        'source_id'=>absint($delta['source_id'] ?? 0),
+                        'source_key'=>(string)($delta['source_key'] ?? ''),
+                        'question_type'=>(string)($delta['question_type'] ?? ''),
+                        'question'=>(string)($delta['question'] ?? ''),
+                        'expected_json'=>(string)($delta['expected_json'] ?? ''),
+                    );
+                    $runs_by_question[$question_id] = array(
+                        'id'=>absint($delta['run_id'] ?? 0),
+                        'question_id'=>$question_id,
+                        'status'=>(string)($delta['run_status'] ?? ''),
+                        'search_strategy'=>(string)($delta['search_strategy'] ?? ''),
+                        'evaluation_status'=>(string)($delta['evaluation_status'] ?? ''),
+                        'evaluation_score'=>(float)($delta['evaluation_score'] ?? 0),
+                        'evaluation_json'=>(string)($delta['evaluation_json'] ?? ''),
+                        'top_results'=>(string)($delta['top_results'] ?? ''),
+                        'response_meta'=>(string)($delta['response_meta'] ?? ''),
+                        'created_at'=>(string)($delta['run_created_at'] ?? ''),
+                    );
+                    $state['dependiente_run_cursor'] = max(
+                        absint($state['dependiente_run_cursor'] ?? 0),
+                        absint($delta['run_id'] ?? 0)
+                    );
                 }
             }
 
@@ -876,28 +945,22 @@ final class SEO_Solucionador_Dossiers {
                 }
             }
 
-            if (count($q_rows)<$limit) {
-                $state['dependiente_complete'] = true;
+            $delta_runs_complete = count($delta_run_rows)<$limit;
+            if ($question_inventory_complete && $delta_runs_complete) {
                 $end_signature = self::dependiente_source_signature();
                 if ((string)($state['dependiente_scan_signature'] ?? '') !== ''
                     && (string)$state['dependiente_scan_signature'] !== $end_signature) {
-                    // Hubo cambios mientras recorríamos la tabla. Sólo repetimos
-                    // Dependiente; FAQ conserva su avance.
-                    self::clear_source_lane('dependiente',(string)$state['token']);
-                    $state['dependiente_cursor'] = 0;
-                    $state['dependiente_processed'] = 0;
-                    $state['dependiente_learned'] = 0;
-                    $state['dependiente_editorial_eligible'] = 0;
-                    $state['dependiente_editorial_discarded'] = 0;
-                    $state['dependiente_with_category'] = 0;
-                    $state['dependiente_without_category'] = 0;
+                    // Llegó conocimiento nuevo durante esta misma pasada.
+                    // Conservamos lo ya procesado y continuamos en el próximo lote.
                     $state['dependiente_complete'] = false;
-                    $state['dependiente_source_signature'] = '';
                     $state['dependiente_scan_signature'] = $end_signature;
                 } else {
+                    $state['dependiente_complete'] = true;
                     $state['dependiente_source_signature'] = $end_signature;
                     $state['dependiente_scan_signature'] = $end_signature;
                 }
+            } else {
+                $state['dependiente_complete'] = false;
             }
         } elseif (!$dependiente_available) {
             $state['dependiente_complete'] = true;
@@ -1078,6 +1141,7 @@ final class SEO_Solucionador_Dossiers {
             'faqs_total'=>$faqs_total,
             'scan_token'=>(string)($state['token'] ?? ''),
             'dependiente_cursor'=>absint($state['dependiente_cursor'] ?? 0),
+            'dependiente_run_cursor'=>absint($state['dependiente_run_cursor'] ?? 0),
             'cursor'=>absint($state['cursor'] ?? 0),
             'faq_cursor'=>absint($state['faq_cursor'] ?? 0),
             'scan_complete'=>!empty($state['complete']),
