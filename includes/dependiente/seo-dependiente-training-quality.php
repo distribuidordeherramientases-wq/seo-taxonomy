@@ -569,7 +569,10 @@ final class SEO_Dependiente_Training_Quality {
                 WHERE {$where}
                 ORDER BY q.id ASC
                 LIMIT %d";
-        return (array) $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y clausula WHERE proceden solo de estructuras internas; valores enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
     }
 
     /**
@@ -596,7 +599,10 @@ final class SEO_Dependiente_Training_Quality {
                 WHERE {$where}
                 ORDER BY r.created_at DESC,r.id DESC
                 LIMIT %d";
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y clausula WHERE proceden solo de estructuras internas; valores enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql, ARRAY_A);
         if (!$rows) {
             return array();
         }
@@ -621,9 +627,21 @@ final class SEO_Dependiente_Training_Quality {
     private static function lesson_rows($lesson_key) {
         global $wpdb;
         $table = SEO_Dependiente_Entrenador::lessons_table();
-        $sql = "SELECT lesson_key,lesson_order,title,status,module_count,item_count,snapshot_before,snapshot_after,source_signature,started_at,completed_at FROM {$table}";
-        if ($lesson_key) $sql .= $wpdb->prepare(' WHERE lesson_key=%s', $lesson_key);
-        $sql .= ' ORDER BY lesson_order ASC,id ASC';
+        if ($lesson_key) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna; lesson_key se enlaza mediante placeholder.
+            $sql = $wpdb->prepare(
+                "SELECT lesson_key,lesson_order,title,status,module_count,item_count,snapshot_before,snapshot_after,source_signature,started_at,completed_at
+                 FROM {$table}
+                 WHERE lesson_key=%s
+                 ORDER BY lesson_order ASC,id ASC",
+                $lesson_key
+            );
+        } else {
+            $sql = "SELECT lesson_key,lesson_order,title,status,module_count,item_count,snapshot_before,snapshot_after,source_signature,started_at,completed_at
+                    FROM {$table}
+                    ORDER BY lesson_order ASC,id ASC";
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta fija sobre tabla interna; con filtro, $sql es el resultado de $wpdb->prepare().
         return (array) $wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -853,7 +871,9 @@ final class SEO_Dependiente_Training_Quality {
         $result=array('category_to_secondary'=>array(),'secondary_to_primary'=>array(),'primary_to_cluster'=>array());if(!$category_ids)return $result;
         $table=$wpdb->prefix.'seo_relations';if((string)$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$table))!==$table)return $result;
         $ids=array_keys($category_ids);$ph=implode(',',array_fill(0,count($ids),'%d'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %d generada localmente; IDs enlazados mediante $wpdb->prepare().
         $sql=$wpdb->prepare("SELECT source_type,source_id,target_type,target_id,relation_type FROM {$table} WHERE (source_type='hub_secondary' AND target_type='product_cat' AND target_id IN ({$ph})) OR target_type='hub_secondary' OR target_type='hub_primary'",$ids);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         $rels=(array)$wpdb->get_results($sql,ARRAY_A);
         foreach($rels as $r){$st=sanitize_key((string)($r['source_type']??''));$tt=sanitize_key((string)($r['target_type']??''));$sid=absint($r['source_id']??0);$tid=absint($r['target_id']??0);if('hub_secondary'===$st&&'product_cat'===$tt&&$sid&&$tid)$result['category_to_secondary'][$tid][$sid]=true;elseif('hub_primary'===$st&&'hub_secondary'===$tt&&$sid&&$tid)$result['secondary_to_primary'][$tid][$sid]=true;elseif('cluster'===$st&&'hub_primary'===$tt&&$sid&&$tid)$result['primary_to_cluster'][$tid][$sid]=true;}
         return $result;
