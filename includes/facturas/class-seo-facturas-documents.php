@@ -193,9 +193,11 @@ final class SEO_Facturas_Documents {
         if (!$document_id) {
             return null;
         }
-        return $wpdb->get_row(
-            $wpdb->prepare('SELECT * FROM ' . self::table_name() . ' WHERE id = %d LIMIT 1', $document_id)
-        );
+        $table = self::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; id enlazado mediante placeholder.
+        $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $document_id);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        return $wpdb->get_row($sql);
     }
 
     public static function get_for_order($order_id, $type) {
@@ -205,21 +207,25 @@ final class SEO_Facturas_Documents {
         if (!$order_id || '' === $type) {
             return null;
         }
-        return $wpdb->get_row(
-            $wpdb->prepare(
-                'SELECT * FROM ' . self::table_name() . ' WHERE order_id = %d AND document_type = %s LIMIT 1',
-                $order_id,
-                $type
-            )
+        $table = self::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; order_id y tipo enlazados mediante placeholders.
+        $sql = $wpdb->prepare(
+            "SELECT * FROM {$table} WHERE order_id = %d AND document_type = %s LIMIT 1",
+            $order_id,
+            $type
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        return $wpdb->get_row($sql);
     }
 
     public static function list_recent($limit = 100) {
         global $wpdb;
         $limit = max(1, min(500, absint($limit)));
-        return $wpdb->get_results(
-            $wpdb->prepare('SELECT * FROM ' . self::table_name() . ' ORDER BY issued_at DESC, id DESC LIMIT %d', $limit)
-        );
+        $table = self::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; limite enlazado mediante placeholder.
+        $sql = $wpdb->prepare("SELECT * FROM {$table} ORDER BY issued_at DESC, id DESC LIMIT %d", $limit);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        return $wpdb->get_results($sql);
     }
 
     public static function mark_emailed($document_id) {
@@ -316,6 +322,7 @@ final class SEO_Facturas_Documents {
             "UPDATE {$wpdb->options} SET option_value = LAST_INSERT_ID(CAST(option_value AS UNSIGNED) + 1) WHERE option_name = %s",
             $option_name
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado directo de $wpdb->prepare().
         $updated = $wpdb->query($sql);
         if (false === $updated || 0 === $updated) {
             return new WP_Error('seo_facturas_sequence_failed', 'No se pudo incrementar la numeracion del documento.');
