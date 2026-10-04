@@ -647,6 +647,61 @@ final class SEO_Solucionador_Dossiers {
         return array_values(array_unique($changed));
     }
 
+    public static function review_item_ids($category_id, array $question_ids) {
+        $category_id = absint($category_id);
+        $dossier = self::get_by_category($category_id);
+        if (!$dossier) return false;
+
+        $current = SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}', array());
+        $reviewed = SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}', array());
+        $question_ids = array_values(array_unique(array_filter(array_map('absint', $question_ids))));
+        if (!$question_ids) return false;
+
+        foreach ($question_ids as $question_id) {
+            $key = (string) $question_id;
+            if (isset($current[$key])) {
+                $reviewed[$key] = (string) $current[$key];
+            }
+        }
+        ksort($reviewed, SORT_NUMERIC);
+
+        $remaining = array();
+        foreach ((array) $current as $question_id=>$item_hash) {
+            $key = (string) absint($question_id);
+            if ($key === '0') continue;
+            if (!isset($reviewed[$key]) || (string)$reviewed[$key] !== (string)$item_hash) {
+                $remaining[] = absint($question_id);
+            }
+        }
+
+        $post_id = class_exists('SEO_Solucionador_Posts')
+            ? SEO_Solucionador_Posts::managed_post_id_by_category_public($category_id)
+            : 0;
+        $post_status = $post_id ? get_post_status($post_id) : '';
+        $editorial_status = $remaining
+            ? SEO_Editorial_Service_Contract::NEEDS_UPDATE
+            : ($post_status === 'publish'
+                ? SEO_Editorial_Service_Contract::PUBLISHED
+                : ($post_id ? SEO_Editorial_Service_Contract::DRAFT : SEO_Editorial_Service_Contract::READY_FOR_REVIEW));
+
+        return SEO_Solucionador_DB::update_dossier_editorial($category_id, array(
+            'reviewed_hash'=>$remaining ? (string)($dossier['reviewed_hash'] ?? '') : (string)($dossier['source_hash'] ?? ''),
+            'reviewed_item_hashes'=>wp_json_encode($reviewed),
+            'editorial_status'=>$editorial_status,
+            'reviewed_at'=>current_time('mysql'),
+        ));
+    }
+
+    public static function clear_rejection($category_id) {
+        $category_id = absint($category_id);
+        if (!$category_id) return false;
+        return SEO_Solucionador_DB::update_dossier_editorial($category_id, array(
+            'rejected_source_hash'=>'',
+            'rejected_at'=>null,
+            'editorial_status'=>SEO_Editorial_Service_Contract::READY_FOR_REVIEW,
+        ));
+    }
+
     public static function mark_reviewed($category_id) {
         $category_id = absint($category_id);
         $dossier = self::get_by_category($category_id);
