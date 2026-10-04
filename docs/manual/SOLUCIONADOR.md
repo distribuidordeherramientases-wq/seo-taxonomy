@@ -2,8 +2,8 @@
 
 ## Estado operativo
 
-- **Versión funcional:** 0.5.0.
-- **Versión de esquema:** 0.5.0.
+- **Versión funcional:** 0.7.1.
+- **Versión de esquema:** 0.7.0.
 - **Arquitectura de referencia:** 02/10/2026.
 - **Issue de implementación:** #560.
 - **Entorno de validación:** staging antes de producción.
@@ -67,9 +67,12 @@ Una pregunta de Entrenador entra cuando:
 1. pertenece al currículo activo;
 2. su último run está `answered`;
 3. `evaluation_status` empieza por `pass_*`;
-4. pasa el filtro editorial que elimina preguntas definitorias/catalogales triviales.
+4. pasa el filtro editorial que elimina preguntas definitorias/catalogales triviales;
+5. **no procede de una FAQ**.
 
-Se conserva como contexto la pregunta, tipo, lección, origen, expected, evaluación, resultados internos, metadatos y fecha del último run.
+Se considera eco de FAQ y se excluye del canal Dependiente cuando `question_type=faq_owner_context`, `source_type=faq` o `expected.kind=faq`.
+
+Motivo: enviar una FAQ a Academia sirve para entrenar/evaluar a Dependiente, pero Solucionador ya dispone de la FAQ original con su respuesta completa mediante `seo_faq`. Reintroducir el resultado de Entrenador duplicaría el contenido y podría sustituir una respuesta editorial buena por una respuesta reconstruida y más pobre.
 
 FAQs y resultados internos de Academia son material para Editora. **Solucionador nunca los publica automáticamente ni obliga a conservar el formato pregunta-respuesta.**
 
@@ -84,7 +87,6 @@ Resolución admitida:
 - `kind=features` → source_product_id → product_cat;
 - FAQ directa `object_type=2` → product_cat;
 - FAQ directa `object_type=3` → producto → product_cat;
-- preguntas de Academia con origen FAQ mantienen la resolución histórica equivalente;
 - source_type category/product cuando la relación es inequívoca.
 
 No se infiere una categoría por parecido textual.
@@ -338,6 +340,7 @@ KPIs:
 
 - FAQs activas/procesadas/con categoría;
 - preguntas Academia procesadas/aprendidas/no aprendidas;
+- preguntas aprendidas de origen FAQ excluidas del canal Dependiente;
 - aprendidas con/sin categoría;
 - elementos FAQ y Dependiente dentro de dossiers;
 - categorías con/sin material;
@@ -425,7 +428,8 @@ Los detalles pesados de las preguntas siguen siendo bajo demanda en el brief.
 `SEO_Solucionador_Tests::run()` valida, sin escribir datos:
 
 1. dossier canónico único por categoría;
-2. masa crítica insuficiente → DEFER;
+2. eco de FAQ en Entrenador se excluye del canal Dependiente;
+3. masa crítica insuficiente → DEFER;
 3. categoría no demostrable → DEFER;
 4. dossier sin cobertura → CREATE_POST;
 5. covered → NO_ACTION;
@@ -440,7 +444,8 @@ Un fallo debe bloquear conscientemente una promoción a producción.
 
 ## Criterios de aceptación
 
-- N preguntas pass_* de una categoría generan un dossier con N referencias.
+- N preguntas pass_* de una categoría generan referencias Dependiente sólo si no proceden de FAQ.
+- Una FAQ original entra una sola vez por `seo_faq`, con su pregunta y respuesta completas.
 - Una pregunta sin categoría demostrable no crea dossier ni URL.
 - Dos ciclos no duplican dossiers ni posts.
 - Un dossier cubierto nunca crea un segundo post.
