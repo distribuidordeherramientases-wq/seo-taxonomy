@@ -589,7 +589,7 @@ final class SEO_Solucionador_Posts {
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
                 $workflow,
-                'La Editora revisó las nuevas preguntas detectadas y decidió qué incorporar al contenido.',
+                'La Editora revisó los elementos nuevos, modificados o retirados y decidió qué incorporar al contenido.',
                 'NO_ACTION'
             );
         }
@@ -618,7 +618,7 @@ final class SEO_Solucionador_Posts {
         } elseif ($update_state === 'selection_saved') {
             echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Selección editorial guardada. Los elementos descartados dejan de aparecer salvo que cambien de hash.</p></div>';
         } elseif ($update_state === 'reviewed') {
-            echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Novedades marcadas como revisadas. Las próximas preguntas nuevas volverán a aparecer aquí.</p></div>';
+            echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Novedades marcadas como revisadas. Los próximos elementos nuevos, modificados o retirados volverán a aparecer aquí.</p></div>';
         } elseif ($update_state === 'error') {
             $message = get_transient('seo_solucionador_notice_' . get_current_user_id());
             delete_transient('seo_solucionador_notice_' . get_current_user_id());
@@ -900,7 +900,11 @@ final class SEO_Solucionador_Posts {
             $groups[$origin][] = $row;
         }
 
-        $html = '<p><em>Material interno de trabajo para Editora. No publicar literalmente sin revisión editorial.</em></p>';
+        $html = '<div style="border-left:4px solid #dba617;padding:10px 12px;margin:0 0 16px;background:#fff8e5;">';
+        $html .= '<p><strong>IMPORTANTE: editar no significa limpiar este borrador.</strong></p>';
+        $html .= '<p>Lo que sigue son fuentes y material de trabajo. Lee el conjunto completo, selecciona lo útil y redacta de nuevo el artículo. Reorganiza, resume, fusiona, elimina y reescribe cuanto sea necesario. No publiques consultas de catálogo, lenguaje del motor ni respuestas mecánicas como si fueran texto final.</p>';
+        $html .= '<p>El resultado debe leerse como un único artículo natural para el cliente, sin que pueda distinguirse qué parte procedía de FAQ o de Dependiente.</p>';
+        $html .= '</div>';
 
         $sections = array(
             'faq'=>'FAQs editoriales',
