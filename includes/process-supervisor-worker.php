@@ -20,7 +20,8 @@ if ('cli' !== PHP_SAPI) {
 }
 
 if ($argc < 5) {
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.\n    fwrite(STDERR, "Argumentos insuficientes.\n");
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
+    fwrite(STDERR, "Argumentos insuficientes.\n");
     exit(64);
 }
 
@@ -30,7 +31,8 @@ $dispatch_at = (int) $argv[3];
 $signature   = (string) $argv[4];
 
 if ('' === $wp_load || !is_readable($wp_load)) {
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.\n    fwrite(STDERR, "No se puede cargar wp-load.php.\n");
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
+    fwrite(STDERR, "No se puede cargar wp-load.php.\n");
     exit(66);
 }
 
@@ -48,7 +50,8 @@ if (
     || !function_exists('seo_process_supervisor_claim_dispatch')
     || !function_exists('seo_process_supervisor_run_loop')
 ) {
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.\n    fwrite(STDERR, "El plugin no ha cargado el supervisor.\n");
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
+    fwrite(STDERR, "El plugin no ha cargado el supervisor.\n");
     exit(69);
 }
 
