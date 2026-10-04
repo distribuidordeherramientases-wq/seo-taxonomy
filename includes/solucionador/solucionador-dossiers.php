@@ -314,6 +314,16 @@ final class SEO_Solucionador_Dossiers {
             $dependiente_keys = array_values(array_unique($dependiente_keys));
             sort($dependiente_keys,SORT_STRING);
 
+            // Instalaciones 0.6 muy antiguas podían tener question_ids sin
+            // item_hashes. Conservamos su presencia sin volver a empezar el
+            // recorrido; un futuro reescaneo real sustituirá este hash legado.
+            foreach ($dependiente_keys as $key) {
+                if (!isset($item_hashes[$key])) {
+                    $item_hashes[$key] = hash('sha256','legacy-presence|' . $key);
+                }
+            }
+            ksort($item_hashes,SORT_STRING);
+
             $source_hash = self::source_hash_for_test($category_id,$item_hashes);
             $reviewed_hash = $old_reviewed_hash;
             if ($fully_reviewed) {
