@@ -520,9 +520,9 @@ final class SEO_Auditor {
             return strcmp((string) ($a['code'] ?? ''), (string) ($b['code'] ?? ''));
         });
 
-        $summary = array('findings'=>count(self::$findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
+        $summary = array('findings'=>count(self::$priority_findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
         $entities = array();
-        foreach (self::$findings as $finding) {
+        foreach (self::$priority_findings as $finding) {
             $severity = (string) ($finding['severity'] ?? 'info');
             if (isset($summary[$severity])) $summary[$severity]++;
             $key = (string) ($finding['entity_type'] ?? '') . ':' . (string) ($finding['entity_id'] ?? '');
@@ -655,9 +655,9 @@ final class SEO_Auditor {
             return strcmp((string)($a['code'] ?? ''), (string)($b['code'] ?? ''));
         });
 
-        $summary = array('findings'=>count(self::$findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
+        $summary = array('findings'=>count(self::$priority_findings),'critical'=>0,'high'=>0,'medium'=>0,'low'=>0,'info'=>0,'entities_to_review'=>0);
         $entities = array();
-        foreach (self::$findings as $f) {
+        foreach (self::$priority_findings as $f) {
             $sev = (string)($f['severity'] ?? 'info');
             if (isset($summary[$sev])) $summary[$sev]++;
             $key = (string)($f['entity_type'] ?? '') . ':' . (string)($f['entity_id'] ?? '');
