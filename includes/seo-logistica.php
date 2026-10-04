@@ -155,7 +155,9 @@ if (!function_exists('seo_logistica_load_supplier_map')) {
                          WHERE object_id IN ({$placeholders})
                          ORDER BY actualizado DESC, id DESC";
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; object_ids enlazados mediante $wpdb->prepare().
         $prepared = $wpdb->prepare($sql, $object_ids);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared es el resultado de $wpdb->prepare().
         $rows     = $wpdb->get_results($prepared, ARRAY_A);
 
         foreach ((array) $rows as $row) {
