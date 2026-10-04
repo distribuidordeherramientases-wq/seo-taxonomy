@@ -212,7 +212,6 @@ final class SEO_Solucionador_Dossiers {
             'category_id'=>absint($category_id),
             'question'=>sanitize_text_field((string)($row['question'] ?? '')),
             'answer'=>trim(wp_strip_all_tags((string)($row['answer'] ?? ''))),
-            'updated_at'=>sanitize_text_field((string)($row['updated_at'] ?? '')),
         ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
