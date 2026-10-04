@@ -26,8 +26,12 @@ function seo_core_service_health_table_probe($suffix) {
         return array('name' => $suffix, 'exists' => false, 'count' => null, 'error' => '');
     }
 
-    $sql = $wpdb->prepare('SELECT COUNT(*) FROM %i', $table);
-    $count = is_string($sql) && $sql !== '' ? $wpdb->get_var($sql) : null;
+    // El sufijo se limita a [a-z0-9_] y el prefijo procede de WordPress.
+    // En WordPress < 6.2 no existe el placeholder %i para identificadores.
+    $table_sql = '`' . esc_sql($table) . '`';
+    $sql = "SELECT COUNT(*) FROM {$table_sql}";
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- El identificador es interno, previamente restringido y no contiene valores de usuario.
+    $count = $wpdb->get_var($sql);
     $error = sanitize_text_field((string) $wpdb->last_error);
 
     return array(
