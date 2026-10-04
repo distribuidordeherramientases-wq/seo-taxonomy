@@ -6,7 +6,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Export {
-    const SCHEMA = 'seo-solucionador-export-v4';
+    const SCHEMA = 'seo-solucionador-export-v6';
 
     public static function init() {
         add_action('admin_post_seo_solucionador_export_json', array(__CLASS__, 'download'));
@@ -110,25 +110,35 @@ final class SEO_Solucionador_Export {
             elseif ($post_status && $post_status !== 'trash') $state = 'draft';
             elseif (sanitize_key((string) ($topic['workflow_state'] ?? '')) === 'rejected') $state = 'discarded';
 
-            $questions = array();
-            foreach ((array) SEO_Solucionador_Dossiers::question_details($category_id) as $detail) {
-                $question = trim((string) ($detail['question'] ?? ''));
-                if ($question === '') continue;
-                $questions[] = array(
-                    'question'=>(string) $question,
-                    'answer'=>SEO_Solucionador_Dossiers::answer_text((array) $detail),
-                    'validation'=>(string) ($detail['evaluation_status'] ?? ''),
-                    'validated_at'=>(string) ($detail['observed_at'] ?? ''),
+            $items = array('faq'=>array(),'dependiente'=>array());
+            foreach ((array)SEO_Solucionador_Dossiers::question_details($category_id) as $detail) {
+                $question = trim((string)($detail['question'] ?? ''));
+                $origin = sanitize_key((string)($detail['origin'] ?? 'dependiente'));
+                if ($question === '' || !isset($items[$origin])) continue;
+                $items[$origin][] = array(
+                    'origin'=>$origin,
+                    'source_id'=>$detail['source_id'] ?? null,
+                    'item_key'=>(string)($detail['item_key'] ?? ''),
+                    'question'=>$question,
+                    'answer'=>SEO_Solucionador_Dossiers::answer_text((array)$detail),
+                    'hash'=>(string)($detail['source_hash'] ?? ''),
+                    'status'=>(string)($detail['editorial_state'] ?? 'unchanged'),
+                    'editorial_choice'=>(string)($detail['editorial_choice'] ?? 'pending'),
+                    'validation'=>(string)($detail['evaluation_status'] ?? ''),
+                    'dependiente_source'=>(string)($detail['dependiente_source'] ?? ''),
+                    'validated_at'=>(string)($detail['observed_at'] ?? ''),
                 );
             }
 
             $posts[] = array(
                 'category_id'=>$category_id,
-                'category'=>(string) ($dossier['category_name'] ?? ''),
+                'category'=>(string)($dossier['category_name'] ?? ''),
+                'faq_count'=>absint($dossier['faq_count'] ?? 0),
+                'dependiente_count'=>absint($dossier['dependiente_count'] ?? 0),
                 'title'=>$title,
                 'state'=>$state,
                 'wordpress_post_id'=>$post_id ?: null,
-                'questions'=>$questions,
+                'items'=>$items,
             );
         }
 
@@ -228,33 +238,59 @@ final class SEO_Solucionador_Export {
 
         $dossier_rows = SEO_Solucionador_DB::table_exists($dossiers_table)
             ? (array) $wpdb->get_results(
-                "SELECT id,category_id,category_name,question_count,question_ids,score_avg,last_validated_at,source_hash,updated_at
+                "SELECT id,category_id,category_name,question_count,dependiente_count,faq_count,
+                        question_ids,dependiente_keys,faq_ids,score_avg,last_validated_at,source_hash,
+                        reviewed_hash,editorial_status,updated_at
                  FROM {$dossiers_table} ORDER BY category_name,id",
                 ARRAY_A
             )
             : array();
         foreach ($dossier_rows as &$dossier_row) {
             $dossier_row['question_ids'] = SEO_Solucionador_DB::decode_json($dossier_row['question_ids'] ?? '[]',array());
+            $dossier_row['dependiente_keys'] = SEO_Solucionador_DB::decode_json($dossier_row['dependiente_keys'] ?? '[]',array());
+            $dossier_row['faq_ids'] = SEO_Solucionador_DB::decode_json($dossier_row['faq_ids'] ?? '[]',array());
+            $dossier_row['origins'] = array(
+                'dependiente'=>absint($dossier_row['dependiente_count'] ?? 0),
+                'faq'=>absint($dossier_row['faq_count'] ?? 0),
+            );
 
-            $questions = array();
+            $items = array('faq'=>array(),'dependiente'=>array());
             $category_id = absint($dossier_row['category_id'] ?? 0);
             if ($category_id && class_exists('SEO_Solucionador_Dossiers')) {
-                foreach ((array) SEO_Solucionador_Dossiers::question_details($category_id) as $detail) {
-                    $questions[] = array(
-                        'question_id'=>absint($detail['question_id'] ?? 0),
-                        'question'=>(string) ($detail['question'] ?? ''),
-                        'answer'=>SEO_Solucionador_Dossiers::answer_text((array) $detail),
-                        'question_type'=>(string) ($detail['question_type'] ?? ''),
-                        'editorial_value'=>(string) ($detail['editorial_value'] ?? 'practical_customer_value'),
-                        'validation'=>(string) ($detail['evaluation_status'] ?? ''),
-                        'score'=>(float) ($detail['evaluation_score'] ?? 0),
-                        'validated_at'=>(string) ($detail['observed_at'] ?? ''),
+                foreach ((array)SEO_Solucionador_Dossiers::question_details($category_id) as $detail) {
+                    $origin = sanitize_key((string)($detail['origin'] ?? 'dependiente'));
+                    if (!isset($items[$origin])) continue;
+                    $items[$origin][] = array(
+                        'origin'=>$origin,
+                        'source_id'=>$detail['source_id'] ?? null,
+                        'item_id'=>(string)($detail['item_key'] ?? ''),
+                        'product_id'=>absint($detail['product_id'] ?? 0) ?: null,
+                        'question'=>(string)($detail['question'] ?? ''),
+                        'answer'=>SEO_Solucionador_Dossiers::answer_text((array)$detail),
+                        'hash'=>(string)($detail['source_hash'] ?? ''),
+                        'status'=>(string)($detail['editorial_state'] ?? 'unchanged'),
+                        'editorial_choice'=>(string)($detail['editorial_choice'] ?? 'pending'),
+                        'validation'=>(string)($detail['evaluation_status'] ?? ''),
+                        'question_type'=>(string)($detail['question_type'] ?? ''),
+                        'lesson_key'=>(string)($detail['lesson_key'] ?? ''),
+                        'dependiente_source'=>(string)($detail['dependiente_source'] ?? ''),
+                        'confidence'=>(float)($detail['evaluation_score'] ?? 0),
+                        'first_seen_at'=>(string)($detail['first_seen_at'] ?? ''),
+                        'last_seen_at'=>(string)($detail['observed_at'] ?? ''),
                     );
                 }
             }
-            $dossier_row['editorial_question_count'] = count($questions);
-            $dossier_row['questions'] = $questions;
-            $dossier_row['note'] = 'Incluye únicamente preguntas prácticas que pasan el filtro editorial; las preguntas definitorias/catalogales siguen en Academia pero no forman parte del dossier.';
+            $changes = $category_id && method_exists('SEO_Solucionador_Dossiers','item_changes')
+                ? SEO_Solucionador_Dossiers::item_changes($category_id)
+                : array('new'=>array(),'modified'=>array(),'retired'=>array());
+            $dossier_row['editorial_item_count'] = count($items['faq']) + count($items['dependiente']);
+            $dossier_row['items'] = $items;
+            $dossier_row['changes'] = array(
+                'new'=>array_values((array)($changes['new'] ?? array())),
+                'modified'=>array_values((array)($changes['modified'] ?? array())),
+                'retired'=>array_values((array)($changes['retired'] ?? array())),
+            );
+            $dossier_row['note'] = 'Dos entradas independientes: FAQ humana + conocimiento real de Dependiente. No se deduplican destructivamente entre sí.';
         }
         unset($dossier_row);
 
@@ -268,6 +304,9 @@ final class SEO_Solucionador_Export {
                 'db_version' => (string) get_option(SEO_Solucionador_DB::VERSION_OPTION, ''),
             ),
             'last_scan' => (array) get_option('seo_solucionador_last_scan', array()),
+            'sources' => class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array(),
+            // Alias 0.6 para consumidores existentes. En 0.7 el contenido ya es
+            // mixto, por lo que los nuevos consumidores deben preferir "sources".
             'academy' => class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array(),
             'summary' => self::summary($topics_table, $evidence_table, $coverage_table),
             'dossiers' => $dossier_rows,

@@ -471,6 +471,7 @@ if (!function_exists('seo_images_cleanup_insert_source_rows')) {
             // errores de charset, tamaño o esquema y podía dejar Fuentes 0/N mientras
             // el proceso continuaba como si hubiese terminado correctamente.
             $sql = "INSERT INTO {$table} ({$columns}) VALUES " . implode(',', $placeholders);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla, columnas y placeholders se construyen exclusivamente con estructuras internas; todos los valores se enlazan mediante $wpdb->prepare().
             $prepared = $wpdb->prepare($sql, $params);
 
             if (!is_string($prepared) || $prepared === '') {
@@ -479,6 +480,7 @@ if (!function_exists('seo_images_cleanup_insert_source_rows')) {
                 );
             }
 
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared es el resultado validado de $wpdb->prepare().
             $result = $wpdb->query($prepared);
 
             if ($result === false) {
@@ -586,7 +588,10 @@ if (!function_exists('seo_images_cleanup_source_rows_by_key')) {
 
         $table = seo_images_cleanup_table_source_index();
         $sql = "SELECT * FROM {$table} WHERE {$column} IN ({$in['sql']})";
-        return (array) $wpdb->get_results($wpdb->prepare($sql, $in['params']), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columna están restringidas internamente y la lista contiene únicamente placeholders %s.
+        $prepared = $wpdb->prepare($sql, $in['params']);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared es el resultado de $wpdb->prepare().
+        return (array) $wpdb->get_results($prepared, ARRAY_A);
     }
 }
 
@@ -609,17 +614,20 @@ if (!function_exists('seo_images_cleanup_collect_media_context')) {
             return compact('origins', 'products');
         }
 
-        $id_sql = implode(',', $ids);
+        $id_placeholders = implode(',', array_fill(0, count($ids), '%d'));
 
         // Metadato canónico guardado por SEO Images.
-        $meta_rows = (array) $wpdb->get_results(
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla core fija y lista de placeholders %d generada internamente.
+        $meta_sql = $wpdb->prepare(
             "SELECT post_id, meta_value
              FROM {$wpdb->postmeta}
-             WHERE post_id IN ({$id_sql})
+             WHERE post_id IN ({$id_placeholders})
                AND meta_key = '_seo_url_origen'
                AND meta_value <> ''",
-            ARRAY_A
+            $ids
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $meta_sql es el resultado de $wpdb->prepare().
+        $meta_rows = (array) $wpdb->get_results($meta_sql, ARRAY_A);
         foreach ($meta_rows as $row) {
             $id = absint($row['post_id']);
             $url = seo_images_cleanup_canonical_url($row['meta_value']);
@@ -632,13 +640,16 @@ if (!function_exists('seo_images_cleanup_collect_media_context')) {
         if (function_exists('seo_images_table_images')) {
             $media_table = seo_images_table_images();
             if (function_exists('seo_images_table_exists') && seo_images_table_exists($media_table)) {
-                $rows = (array) $wpdb->get_results(
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada y lista de placeholders %d generada internamente.
+                $media_sql = $wpdb->prepare(
                     "SELECT attachment_id, url_origen
                      FROM {$media_table}
-                     WHERE attachment_id IN ({$id_sql})
+                     WHERE attachment_id IN ({$id_placeholders})
                        AND url_origen <> ''",
-                    ARRAY_A
+                    $ids
                 );
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $media_sql es el resultado de $wpdb->prepare().
+                $rows = (array) $wpdb->get_results($media_sql, ARRAY_A);
                 foreach ($rows as $row) {
                     $id = absint($row['attachment_id']);
                     $url = seo_images_cleanup_canonical_url($row['url_origen']);
@@ -653,13 +664,16 @@ if (!function_exists('seo_images_cleanup_collect_media_context')) {
         if (function_exists('seo_images_table_usages')) {
             $usage_table = seo_images_table_usages();
             if (function_exists('seo_images_table_exists') && seo_images_table_exists($usage_table)) {
-                $rows = (array) $wpdb->get_results(
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada y lista de placeholders %d generada internamente.
+                $usage_sql = $wpdb->prepare(
                     "SELECT attachment_id, object_id, object_type
                      FROM {$usage_table}
-                     WHERE attachment_id IN ({$id_sql})
+                     WHERE attachment_id IN ({$id_placeholders})
                        AND object_id > 0",
-                    ARRAY_A
+                    $ids
                 );
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $usage_sql es el resultado de $wpdb->prepare().
+                $rows = (array) $wpdb->get_results($usage_sql, ARRAY_A);
                 foreach ($rows as $row) {
                     $id = absint($row['attachment_id']);
                     $object_id = absint($row['object_id']);
@@ -705,22 +719,25 @@ if (!function_exists('seo_images_cleanup_collect_required_local_usage')) {
             return $usage;
         }
 
-        $id_sql = implode(',', $ids);
+        $id_placeholders = implode(',', array_fill(0, count($ids), '%d'));
 
         // Imágenes destacadas de contenido que no es producto. Esto cubre posts,
         // páginas y las landings/hubs/clusters, que en este proyecto son páginas.
-        $post_rows = (array) $wpdb->get_results(
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas core fijas y lista de placeholders %d generada internamente.
+        $post_sql = $wpdb->prepare(
             "SELECT CAST(pm.meta_value AS UNSIGNED) AS attachment_id,
                     p.ID AS object_id,
                     p.post_type
              FROM {$wpdb->postmeta} pm
              INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
              WHERE pm.meta_key = '_thumbnail_id'
-               AND CAST(pm.meta_value AS UNSIGNED) IN ({$id_sql})
+               AND CAST(pm.meta_value AS UNSIGNED) IN ({$id_placeholders})
                AND p.post_status NOT IN ('trash', 'auto-draft')
                AND p.post_type NOT IN ('product', 'product_variation', 'attachment', 'revision')",
-            ARRAY_A
+            $ids
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $post_sql es el resultado de $wpdb->prepare().
+        $post_rows = (array) $wpdb->get_results($post_sql, ARRAY_A);
 
         foreach ($post_rows as $row) {
             $attachment_id = absint($row['attachment_id']);
@@ -735,16 +752,19 @@ if (!function_exists('seo_images_cleanup_collect_required_local_usage')) {
 
         // Imágenes de categorías y cualquier otra taxonomía. Las taxonomías no
         // tienen fallback externo y por tanto su thumbnail debe seguir en Media.
-        $term_rows = (array) $wpdb->get_results(
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas core fijas y lista de placeholders %d generada internamente.
+        $term_sql = $wpdb->prepare(
             "SELECT CAST(tm.meta_value AS UNSIGNED) AS attachment_id,
                     tm.term_id,
                     COALESCE(tt.taxonomy, '') AS taxonomy
              FROM {$wpdb->termmeta} tm
              LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = tm.term_id
              WHERE tm.meta_key = 'thumbnail_id'
-               AND CAST(tm.meta_value AS UNSIGNED) IN ({$id_sql})",
-            ARRAY_A
+               AND CAST(tm.meta_value AS UNSIGNED) IN ({$id_placeholders})",
+            $ids
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $term_sql es el resultado de $wpdb->prepare().
+        $term_rows = (array) $wpdb->get_results($term_sql, ARRAY_A);
 
         foreach ($term_rows as $row) {
             $attachment_id = absint($row['attachment_id']);

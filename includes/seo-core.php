@@ -284,9 +284,10 @@ function seo_get_taxonomy_data() {
     **********************/
     $table_nodes = $wpdb->prefix . 'seo_nodes';
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna derivada exclusivamente de $wpdb->prefix; consulta fija sin entrada de usuario.
     $rows = $wpdb->get_results("
         SELECT object_id, seo_role
-        FROM $table_nodes
+        FROM {$table_nodes}
         WHERE object_type = 'page'
     ");
 
@@ -1038,6 +1039,7 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
         $id
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql1 es el resultado directo de $wpdb->prepare(); los identificadores proceden de $wpdb->prefix.
     $res1 = $wpdb->query($sql1);
 
     error_log("SQL1: $sql1");
@@ -1051,6 +1053,7 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
         $id
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql2 es el resultado directo de $wpdb->prepare(); los identificadores proceden de $wpdb->prefix.
     $res2 = $wpdb->query($sql2);
 
     error_log("SQL2: $sql2");
@@ -1064,6 +1067,7 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
         $id
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql3 es el resultado directo de $wpdb->prepare(); los identificadores proceden de $wpdb->prefix.
     $res3 = $wpdb->query($sql3);
 
     error_log("SQL3: $sql3");
@@ -1078,6 +1082,7 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
         $id
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql4 es el resultado directo de $wpdb->prepare(); los identificadores proceden de $wpdb->prefix.
     $res4 = $wpdb->query($sql4);
 
     error_log("SQL4: $sql4");
@@ -1094,6 +1099,7 @@ function seo_label_manager_page() {
 
     $tabla = $wpdb->prefix . 'seo_labels';
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna derivada de $wpdb->prefix; consulta fija sin parámetros externos.
     $modelo = $wpdb->get_results("
         SELECT *
         FROM {$tabla}

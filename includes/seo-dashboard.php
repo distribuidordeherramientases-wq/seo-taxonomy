@@ -30,6 +30,7 @@ function seo_dashboard_page() {
     /* ---------------------------------------------------------
      * Nodos publicados
      * --------------------------------------------------------- */
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas/core y consulta fija sin entrada de usuario.
     $nodes = $wpdb->get_results("\n        SELECT DISTINCT n.object_id, n.seo_role\n        FROM {$nodes_table} n\n        INNER JOIN {$wpdb->posts} p ON p.ID = n.object_id\n        WHERE n.status = 1\n          AND p.post_status = 'publish'\n          AND n.seo_role IN ('cluster', 'hub_primary', 'hub_secondary')\n    ");
 
     $clusters       = [];
@@ -43,6 +44,7 @@ function seo_dashboard_page() {
         if ($node->seo_role === 'hub_secondary') $hubs_secondary[$id] = $id;
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y consulta fija sin entrada de usuario.
     $landings = (int) $wpdb->get_var("\n        SELECT COUNT(DISTINCT target_id)\n        FROM {$relations_table}\n        WHERE target_type = 'landing_page'\n    ");
 
     /* Devuelve los productos publicados relacionados con unas categorías. */
@@ -66,7 +68,10 @@ function seo_dashboard_page() {
         $cluster_post  = get_post($cluster_id);
         $cluster_title = $cluster_post ? $cluster_post->post_title : 'Cluster ' . $cluster_id;
 
-        $primary_ids = array_map('intval', $wpdb->get_col($wpdb->prepare("\n            SELECT DISTINCT target_id\n            FROM {$relations_table}\n            WHERE source_type = 'cluster'\n              AND source_id = %d\n              AND relation_type = 'cluster_to_primary'\n        ", $cluster_id)));
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna; cluster_id enlazado mediante placeholder.
+        $primary_sql = $wpdb->prepare("\n            SELECT DISTINCT target_id\n            FROM {$relations_table}\n            WHERE source_type = 'cluster'\n              AND source_id = %d\n              AND relation_type = 'cluster_to_primary'\n        ", $cluster_id);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $primary_sql es el resultado de $wpdb->prepare().
+        $primary_ids = array_map('intval', (array) $wpdb->get_col($primary_sql));
 
         $primary_rows        = [];
         $cluster_secondaries = [];
@@ -77,13 +82,19 @@ function seo_dashboard_page() {
             $primary_post  = get_post($primary_id);
             $primary_title = $primary_post ? $primary_post->post_title : 'Hub ' . $primary_id;
 
-            $secondary_ids = array_map('intval', $wpdb->get_col($wpdb->prepare("\n                SELECT DISTINCT target_id\n                FROM {$relations_table}\n                WHERE source_type = 'hub_primary'\n                  AND source_id = %d\n                  AND relation_type = 'hub_primary_to_hub_secondary'\n            ", $primary_id)));
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna; primary_id enlazado mediante placeholder.
+            $secondary_sql = $wpdb->prepare("\n                SELECT DISTINCT target_id\n                FROM {$relations_table}\n                WHERE source_type = 'hub_primary'\n                  AND source_id = %d\n                  AND relation_type = 'hub_primary_to_hub_secondary'\n            ", $primary_id);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $secondary_sql es el resultado de $wpdb->prepare().
+            $secondary_ids = array_map('intval', (array) $wpdb->get_col($secondary_sql));
 
             $category_ids = [];
 
             if ($secondary_ids) {
                 $placeholders = implode(',', array_fill(0, count($secondary_ids), '%d'));
-                $category_ids = array_map('intval', $wpdb->get_col($wpdb->prepare("\n                    SELECT DISTINCT target_id\n                    FROM {$relations_table}\n                    WHERE source_type = 'hub_secondary'\n                      AND source_id IN ({$placeholders})\n                      AND target_type = 'product_cat'\n                ", ...$secondary_ids)));
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %d generada localmente.
+                $category_sql = $wpdb->prepare("\n                    SELECT DISTINCT target_id\n                    FROM {$relations_table}\n                    WHERE source_type = 'hub_secondary'\n                      AND source_id IN ({$placeholders})\n                      AND target_type = 'product_cat'\n                ", ...$secondary_ids);
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $category_sql es el resultado de $wpdb->prepare().
+                $category_ids = array_map('intval', (array) $wpdb->get_col($category_sql));
             }
 
             $product_ids = $get_product_ids($category_ids);

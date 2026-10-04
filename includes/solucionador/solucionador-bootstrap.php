@@ -4,7 +4,7 @@
  *
  * Flujo editorial básico category-first.
  *
- * Academia/Entrenador -> dossier por product_cat -> cobertura -> brief -> Editora.
+ * FAQ + conocimiento consolidado de Dependiente -> dossier por product_cat -> propuesta -> Editora.
  * Ingeniero, Comparador y el resto de procesos editoriales son independientes.
  *
  * Una propuesta es solo un registro. Solo al aprobar explicitamente una
@@ -14,10 +14,10 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_SOLUCIONADOR_VERSION')) {
-    define('SEO_SOLUCIONADOR_VERSION', '0.6.0');
+    define('SEO_SOLUCIONADOR_VERSION', '0.7.1');
 }
 if (!defined('SEO_SOLUCIONADOR_DB_VERSION')) {
-    define('SEO_SOLUCIONADOR_DB_VERSION', '0.6.0');
+    define('SEO_SOLUCIONADOR_DB_VERSION', '0.7.1');
 }
 if (!defined('SEO_SOLUCIONADOR_PATH')) {
     define('SEO_SOLUCIONADOR_PATH', __DIR__ . '/');

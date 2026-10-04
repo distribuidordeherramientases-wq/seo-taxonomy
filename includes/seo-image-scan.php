@@ -428,6 +428,7 @@ if (!function_exists('seo_images_scan_pending_count')) {
         if (!seo_images_scan_table_exists($tables['sitemap'])) {
             return 0;
         }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas controladas; consulta fija sin entrada de usuario.
         return (int) $wpdb->get_var(
             "SELECT COUNT(*)
              FROM {$tables['sitemap']} s
@@ -1698,11 +1699,19 @@ if (!function_exists('seo_images_scan_render_tab')) {
         }
         $where_sql = implode(' AND ', $where);
         $count_sql = "SELECT COUNT(*) FROM {$tables['sitemap']} s LEFT JOIN {$tables['pages']} p ON p.sitemap_inventory_id=s.id WHERE {$where_sql}";
-        $total_rows = $params ? (int) $wpdb->get_var($wpdb->prepare($count_sql, $params)) : (int) $wpdb->get_var($count_sql);
+        if ($params) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE generado internamente; búsqueda enlazada mediante placeholder.
+            $count_sql = $wpdb->prepare($count_sql, $params);
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin búsqueda es SQL interno fijo; con búsqueda, $count_sql ya está preparado.
+        $total_rows = (int) $wpdb->get_var($count_sql);
         $offset = ($page_no - 1) * $per_page;
         $rows_sql = "SELECT s.url, s.url_hash, p.* FROM {$tables['sitemap']} s LEFT JOIN {$tables['pages']} p ON p.sitemap_inventory_id=s.id WHERE {$where_sql} ORDER BY CASE WHEN p.status_bucket IN ('error','page_error','partial') THEN 0 WHEN p.status_bucket='warning' THEN 1 WHEN p.last_checked_at IS NULL THEN 2 ELSE 3 END, p.last_checked_at ASC, s.id ASC LIMIT %d OFFSET %d";
         $row_params = array_merge($params, array($per_page, $offset));
-        $rows = $wpdb->get_results($wpdb->prepare($rows_sql, $row_params), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE generado internamente; búsqueda y paginación enlazadas mediante placeholders.
+        $rows_sql = $wpdb->prepare($rows_sql, $row_params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $rows_sql es el resultado de $wpdb->prepare().
+        $rows = $wpdb->get_results($rows_sql, ARRAY_A);
 
         echo '<section class="seo-imgscan-card"><h2 style="margin-top:0">Estado por página</h2>';
         echo '<div class="seo-imgscan-filters">';

@@ -81,13 +81,14 @@ final class SEO_Data_Rollback
         $wpdb->query('START TRANSACTION');
 
         try {
-            $operation = $wpdb->get_row(
-                $wpdb->prepare(
-                    'SELECT * FROM `' . SEO_Data_Layer::operations_table() . '` WHERE id = %d FOR UPDATE',
-                    $operation_id
-                ),
-                ARRAY_A
+            $operations_table = SEO_Data_Layer::operations_table();
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identificador interno derivado de $wpdb->prefix; el ID se enlaza mediante placeholder.
+            $operation_sql = $wpdb->prepare(
+                "SELECT * FROM `{$operations_table}` WHERE id = %d FOR UPDATE",
+                $operation_id
             );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $operation_sql es el resultado de $wpdb->prepare() con identificador interno.
+            $operation = $wpdb->get_row($operation_sql, ARRAY_A);
 
             if (!is_array($operation)) {
                 throw new RuntimeException('La operación ha desaparecido.');
@@ -324,13 +325,14 @@ final class SEO_Data_Rollback
     {
         global $wpdb;
 
-        $operation = $wpdb->get_row(
-            $wpdb->prepare(
-                'SELECT * FROM `' . SEO_Data_Layer::operations_table() . '` WHERE id = %d',
-                $operation_id
-            ),
-            ARRAY_A
+        $operations_table = SEO_Data_Layer::operations_table();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identificador interno derivado de $wpdb->prefix; el ID se enlaza mediante placeholder.
+        $operation_sql = $wpdb->prepare(
+            "SELECT * FROM `{$operations_table}` WHERE id = %d",
+            $operation_id
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $operation_sql es el resultado de $wpdb->prepare() con identificador interno.
+        $operation = $wpdb->get_row($operation_sql, ARRAY_A);
 
         if (!is_array($operation)) {
             throw new RuntimeException('No existe la operación solicitada.');
@@ -346,8 +348,10 @@ final class SEO_Data_Rollback
     {
         global $wpdb;
 
+        $changes_table = SEO_Data_Layer::changes_table();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identificador interno derivado de $wpdb->prefix; operation_id se enlaza mediante placeholder.
         $sql = $wpdb->prepare(
-            'SELECT * FROM `' . SEO_Data_Layer::changes_table() . '` WHERE operation_id = %d ORDER BY sequence_number DESC, id DESC',
+            "SELECT * FROM `{$changes_table}` WHERE operation_id = %d ORDER BY sequence_number DESC, id DESC",
             $operation_id
         );
 
@@ -355,6 +359,7 @@ final class SEO_Data_Rollback
             $sql .= ' FOR UPDATE';
         }
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql parte de $wpdb->prepare() y solo puede recibir el sufijo fijo FOR UPDATE.
         $changes = $wpdb->get_results($sql, ARRAY_A);
 
         return is_array($changes) ? $changes : [];

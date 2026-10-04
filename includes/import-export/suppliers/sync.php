@@ -955,9 +955,12 @@ function seo_supplier_sync_handle_bulk_action() {
 
     $where_sql = implode( ' AND ', $where );
     $sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id ASC";
-    $rows = $params
-        ? $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A )
-        : $wpdb->get_results( $sql, ARRAY_A );
+    if ( $params ) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE is assembled from internal action rules and placeholders; external values are bound here.
+        $sql = $wpdb->prepare( $sql, $params );
+    }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Without params SQL is internal-only; with params it is the result of $wpdb->prepare().
+    $rows = $wpdb->get_results( $sql, ARRAY_A );
 
     $commission_sale = function_exists( 'seo_proveedores_normalizar_comision' )
         ? seo_proveedores_normalizar_comision( $_POST['comision_descuento'] ?? 20, 20 )

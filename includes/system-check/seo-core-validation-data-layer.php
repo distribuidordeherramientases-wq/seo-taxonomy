@@ -110,25 +110,32 @@ function seo_core_system_test_action_scheduler_checks() {
         $recent_failure_severity
     );
 
-    $group_join = function_exists('seo_core_system_test_table_exists')
-        && seo_core_system_test_table_exists($groups_table)
-        ? " LEFT JOIN `{$groups_table}` g ON g.group_id = a.group_id "
-        : '';
-    $group_select = $group_join !== '' ? "COALESCE(g.slug, '')" : "''";
+    $has_groups = function_exists('seo_core_system_test_table_exists')
+        && seo_core_system_test_table_exists($groups_table);
 
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y fragmentos JOIN/SELECT proceden exclusivamente de Action Scheduler y condiciones internas de solo lectura.
-    $top_pending = $wpdb->get_row(
-        "SELECT a.hook, {$group_select} AS action_group, COUNT(*) AS total,
-                MIN(a.scheduled_date_gmt) AS first_date,
-                MAX(a.scheduled_date_gmt) AS last_date
-         FROM `{$table}` a
-         {$group_join}
-         WHERE a.status = 'pending'
-         GROUP BY a.hook" . ($group_join !== '' ? ', g.slug' : '') . "
-         ORDER BY total DESC
-         LIMIT 1",
-        ARRAY_A
-    );
+    if ($has_groups) {
+        $top_pending_sql = "SELECT a.hook, COALESCE(g.slug, '') AS action_group, COUNT(*) AS total,
+                                   MIN(a.scheduled_date_gmt) AS first_date,
+                                   MAX(a.scheduled_date_gmt) AS last_date
+                            FROM `{$table}` a
+                            LEFT JOIN `{$groups_table}` g ON g.group_id = a.group_id
+                            WHERE a.status = 'pending'
+                            GROUP BY a.hook, g.slug
+                            ORDER BY total DESC
+                            LIMIT 1";
+    } else {
+        $top_pending_sql = "SELECT a.hook, '' AS action_group, COUNT(*) AS total,
+                                   MIN(a.scheduled_date_gmt) AS first_date,
+                                   MAX(a.scheduled_date_gmt) AS last_date
+                            FROM `{$table}` a
+                            WHERE a.status = 'pending'
+                            GROUP BY a.hook
+                            ORDER BY total DESC
+                            LIMIT 1";
+    }
+
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas proceden exclusivamente de Action Scheduler y la consulta es de solo lectura.
+    $top_pending = $wpdb->get_row($top_pending_sql, ARRAY_A);
 
     $top_detail = 'No hay acciones pendientes.';
     if (is_array($top_pending) && !empty($top_pending['hook'])) {

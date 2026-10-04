@@ -125,7 +125,7 @@ final class SEO_Comparador_Admin {
         SEO_Comparador_DB::maybe_install();
         SEO_Comparador_Engine::ensure_all_category_profiles();
 
-        $table = SEO_Comparador_DB::table('profiles');
+        $table = esc_sql(SEO_Comparador_DB::table('profiles'));
         $after_id = absint($_REQUEST['after_id'] ?? 0);
         $created = absint($_REQUEST['created'] ?? 0);
         $skipped = absint($_REQUEST['skipped'] ?? 0);
@@ -135,13 +135,12 @@ final class SEO_Comparador_Admin {
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,status,recommended_action
-                 FROM %i
+                 FROM `{$table}`
                  WHERE id>%d
                    AND recommended_action='CREATE_POST'
                    AND status IN ('ready_for_editorial','ready_for_solucionador','approved','needs_review')
                  ORDER BY id ASC
                  LIMIT %d",
-                $table,
                 $after_id,
                 $batch_size
             ),

@@ -63,9 +63,9 @@ final class SEO_Comparador_Engine {
         ));
         if (is_wp_error($terms)) return 0;
 
-        $profiles_table = SEO_Comparador_DB::table('profiles');
+        $profiles_table = esc_sql(SEO_Comparador_DB::table('profiles'));
         $existing_rows = (array) $wpdb->get_results(
-            $wpdb->prepare('SELECT primary_category_id FROM %i', $profiles_table),
+            "SELECT primary_category_id FROM `{$profiles_table}`",
             ARRAY_A
         );
         $existing = array_fill_keys(array_filter(array_map(

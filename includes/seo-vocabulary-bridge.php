@@ -320,17 +320,18 @@ if (!function_exists('seo_catalog_assign_provisional_product_role')) {
         $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
         $object_table = $wpdb->prefix . 'seo_object_vocabulary';
 
-        $role_id = absint($wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT id
-                 FROM {$vocabulary_table}
-                 WHERE semantic_group = 'rol'
-                   AND slug = %s
-                   AND active = 1
-                 LIMIT 1",
-                $role
-            )
-        ));
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna derivada de $wpdb->prefix; el slug se enlaza mediante placeholder.
+        $role_sql = $wpdb->prepare(
+            "SELECT id
+             FROM {$vocabulary_table}
+             WHERE semantic_group = 'rol'
+               AND slug = %s
+               AND active = 1
+             LIMIT 1",
+            $role
+        );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $role_sql es el resultado de $wpdb->prepare().
+        $role_id = absint($wpdb->get_var($role_sql));
 
         if ($role_id < 1) {
             return false;
@@ -721,6 +722,7 @@ if (!function_exists('seo_catalog_replace_product_vocabulary_group')) {
                 $source
             );
 
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado directo de $wpdb->prepare().
             if ($wpdb->query($sql) === false) {
                 $wpdb->query('ROLLBACK');
                 return false;
@@ -753,25 +755,25 @@ if (!function_exists('seo_catalog_get_role_for_type_vocabulary')) {
             return null;
         }
 
-        $row = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT rv.id, rv.slug, rv.label, trm.confidence\n"
-                . "FROM {$type_role_table} trm\n"
-                . "JOIN {$vocabulary_table} tv\n"
-                . "  ON tv.id = trm.type_vocabulary_id\n"
-                . " AND tv.semantic_group = 'tipo'\n"
-                . " AND tv.active = 1\n"
-                . "JOIN {$vocabulary_table} rv\n"
-                . "  ON rv.id = trm.role_vocabulary_id\n"
-                . " AND rv.semantic_group = 'rol'\n"
-                . " AND rv.active = 1\n"
-                . "WHERE trm.type_vocabulary_id = %d\n"
-                . "  AND trm.active = 1\n"
-                . "LIMIT 1",
-                $type_vocabulary_id
-            ),
-            ARRAY_A
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas internas derivadas de $wpdb->prefix; el ID se enlaza mediante placeholder.
+        $role_map_sql = $wpdb->prepare(
+            "SELECT rv.id, rv.slug, rv.label, trm.confidence\n"
+            . "FROM {$type_role_table} trm\n"
+            . "JOIN {$vocabulary_table} tv\n"
+            . "  ON tv.id = trm.type_vocabulary_id\n"
+            . " AND tv.semantic_group = 'tipo'\n"
+            . " AND tv.active = 1\n"
+            . "JOIN {$vocabulary_table} rv\n"
+            . "  ON rv.id = trm.role_vocabulary_id\n"
+            . " AND rv.semantic_group = 'rol'\n"
+            . " AND rv.active = 1\n"
+            . "WHERE trm.type_vocabulary_id = %d\n"
+            . "  AND trm.active = 1\n"
+            . "LIMIT 1",
+            $type_vocabulary_id
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $role_map_sql es el resultado de $wpdb->prepare().
+        $row = $wpdb->get_row($role_map_sql, ARRAY_A);
 
         return is_array($row) ? $row : null;
     }
@@ -875,21 +877,21 @@ if (!function_exists('seo_catalog_apply_product_vocabulary_changes')) {
             if (!seo_catalog_table_exists($type_role_table)) {
                 return ['ok' => false, 'message' => 'No está disponible el mapa TIPO → ROL.'];
             }
-            $role_row = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT rv.id AS role_id, trm.confidence\n"
-                    . "FROM {$type_role_table} trm\n"
-                    . "JOIN {$vocabulary_table} rv\n"
-                    . "  ON rv.id = trm.role_vocabulary_id\n"
-                    . " AND rv.semantic_group = 'rol'\n"
-                    . " AND rv.active = 1\n"
-                    . "WHERE trm.type_vocabulary_id = %d\n"
-                    . "  AND trm.active = 1\n"
-                    . "LIMIT 1",
-                    (int) $normalized['tipo'][0]
-                ),
-                ARRAY_A
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas internas derivadas de $wpdb->prefix; el ID se enlaza mediante placeholder.
+            $role_target_sql = $wpdb->prepare(
+                "SELECT rv.id AS role_id, trm.confidence\n"
+                . "FROM {$type_role_table} trm\n"
+                . "JOIN {$vocabulary_table} rv\n"
+                . "  ON rv.id = trm.role_vocabulary_id\n"
+                . " AND rv.semantic_group = 'rol'\n"
+                . " AND rv.active = 1\n"
+                . "WHERE trm.type_vocabulary_id = %d\n"
+                . "  AND trm.active = 1\n"
+                . "LIMIT 1",
+                (int) $normalized['tipo'][0]
             );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $role_target_sql es el resultado de $wpdb->prepare().
+            $role_row = $wpdb->get_row($role_target_sql, ARRAY_A);
             $role_target_id = is_array($role_row) ? absint($role_row['role_id'] ?? 0) : 0;
             if ($role_target_id < 1) {
                 return ['ok' => false, 'message' => 'El TIPO seleccionado no tiene un ROL activo asociado.'];
@@ -952,7 +954,8 @@ if (!function_exists('seo_catalog_apply_product_vocabulary_changes')) {
                     $vocabulary_id,
                     $source
                 );
-                if ($wpdb->query($sql) === false) {
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado directo de $wpdb->prepare().
+            if ($wpdb->query($sql) === false) {
                     $wpdb->query('ROLLBACK');
                     return ['ok' => false, 'message' => 'No se pudo añadir la nueva asignación de ' . $group . '.'];
                 }
@@ -997,7 +1000,8 @@ if (!function_exists('seo_catalog_apply_product_vocabulary_changes')) {
                     $role_id,
                     substr($source . '_role', 0, 30)
                 );
-                if ($wpdb->query($sql) === false) {
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado directo de $wpdb->prepare().
+            if ($wpdb->query($sql) === false) {
                     $wpdb->query('ROLLBACK');
                     return ['ok' => false, 'message' => 'No se pudo materializar el ROL derivado del TIPO.'];
                 }

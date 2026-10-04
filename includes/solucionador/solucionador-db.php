@@ -176,13 +176,19 @@ final class SEO_Solucionador_DB {
             category_id BIGINT UNSIGNED NOT NULL,
             category_name VARCHAR(255) NOT NULL,
             question_count INT UNSIGNED NOT NULL DEFAULT 0,
+            dependiente_count INT UNSIGNED NOT NULL DEFAULT 0,
+            faq_count INT UNSIGNED NOT NULL DEFAULT 0,
             question_ids LONGTEXT NULL,
+            dependiente_keys LONGTEXT NULL,
+            faq_ids LONGTEXT NULL,
             score_avg DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
             last_validated_at DATETIME NULL,
             source_hash CHAR(64) NOT NULL DEFAULT '',
             item_hashes LONGTEXT NULL,
+            editorial_item_states LONGTEXT NULL,
             reviewed_hash CHAR(64) NOT NULL DEFAULT '',
             reviewed_item_hashes LONGTEXT NULL,
+            reviewed_items_snapshot LONGTEXT NULL,
             editorial_status VARCHAR(30) NOT NULL DEFAULT 'COLLECTING',
             reviewed_at DATETIME NULL,
             rejected_source_hash CHAR(64) NOT NULL DEFAULT '',
@@ -198,6 +204,8 @@ final class SEO_Solucionador_DB {
             KEY reviewed_hash (reviewed_hash),
             KEY editorial_status (editorial_status),
             KEY question_count (question_count),
+            KEY dependiente_count (dependiente_count),
+            KEY faq_count (faq_count),
             KEY last_validated_at (last_validated_at)
         ) {$collate};";
 
@@ -317,6 +325,8 @@ final class SEO_Solucionador_DB {
         $allowed = array(
             'reviewed_hash',
             'reviewed_item_hashes',
+            'reviewed_items_snapshot',
+            'editorial_item_states',
             'editorial_status',
             'reviewed_at',
             'rejected_source_hash',
@@ -327,6 +337,7 @@ final class SEO_Solucionador_DB {
             if (array_key_exists($key, $data)) $write[$key] = $data[$key];
         }
         if (!$write) return false;
+        $write['updated_at'] = current_time('mysql');
 
         if (isset($write['editorial_status']) && class_exists('SEO_Editorial_Service_Contract')) {
             $write['editorial_status'] = SEO_Editorial_Service_Contract::normalize($write['editorial_status']);
@@ -768,6 +779,7 @@ final class SEO_Solucionador_DB {
         $out = array(
             'total' => 0,
             'dependiente' => 0,
+            'faq' => 0,
             'comentarista' => 0,
             'analista' => 0,
             'auditor' => 0,
@@ -780,11 +792,14 @@ final class SEO_Solucionador_DB {
             'negative_feedback' => 0,
         );
         foreach ($rows as $row) {
-            $type = sanitize_key((string) ($row['source_type'] ?? ''));
-            $count = max(1, absint($row['occurrences'] ?? 1));
+            $type = sanitize_key((string)($row['source_type'] ?? ''));
+            $count = max(1,absint($row['occurrences'] ?? 1));
+            $meta = (array)($row['source_meta_decoded'] ?? array());
+
+            // 0.7.1: FAQ y Dependiente son dos fuentes reales y separadas.
             $out['total'] += $count;
             if (isset($out[$type])) $out[$type] += $count;
-            $meta = (array) ($row['source_meta_decoded'] ?? array());
+
             $out['zero_results'] += absint($meta['zero_results'] ?? 0);
             $out['negative_feedback'] += absint($meta['negative_feedback'] ?? 0);
         }

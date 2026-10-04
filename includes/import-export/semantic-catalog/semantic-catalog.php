@@ -437,11 +437,14 @@ final class SEO_Semantic_Catalog_Transfer {
                 'audit' => array('source_id' => absint($row['id']), 'created_at' => (string) $row['created_at'], 'updated_at' => (string) $row['updated_at']),
             );
         }
+        $type_role_table = $t['type_role_map'];
+        $vocabulary_table = $t['vocabulary'];
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas devueltas por required_tables(); consulta fija sin entrada de usuario.
         $maps = (array) $wpdb->get_results(
             "SELECT m.id,m.type_vocabulary_id,tv.slug type_slug,m.role_vocabulary_id,rv.slug role_slug,m.confidence,m.source,m.active,m.created_at,m.updated_at
-             FROM {$t['type_role_map']} m
-             JOIN {$t['vocabulary']} tv ON tv.id=m.type_vocabulary_id AND tv.semantic_group='tipo'
-             JOIN {$t['vocabulary']} rv ON rv.id=m.role_vocabulary_id AND rv.semantic_group='rol'
+             FROM {$type_role_table} m
+             JOIN {$vocabulary_table} tv ON tv.id=m.type_vocabulary_id AND tv.semantic_group='tipo'
+             JOIN {$vocabulary_table} rv ON rv.id=m.role_vocabulary_id AND rv.semantic_group='rol'
              ORDER BY tv.slug,m.id",
             ARRAY_A
         );
@@ -595,10 +598,13 @@ final class SEO_Semantic_Catalog_Transfer {
         if ($ids && in_array('product_semantic', $scopes, true)) {
             foreach (array_chunk($ids, 2000) as $chunk) {
                 $id_sql = implode(',', array_map('absint', $chunk));
+                $object_vocabulary_table = $t['object_vocabulary'];
+                $vocabulary_table = $t['vocabulary'];
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; IDs se normalizan con absint antes de construir la lista.
                 $semantic_rows = (array) $wpdb->get_results(
                     "SELECT ov.object_id,ov.source,ov.confidence,v.semantic_group,v.slug
-                     FROM {$t['object_vocabulary']} ov
-                     JOIN {$t['vocabulary']} v ON v.id=ov.vocabulary_id
+                     FROM {$object_vocabulary_table} ov
+                     JOIN {$vocabulary_table} v ON v.id=ov.vocabulary_id
                      WHERE ov.object_type='product' AND ov.status=1 AND v.active=1 AND ov.object_id IN ({$id_sql})
                      ORDER BY ov.object_id,v.semantic_group,v.slug",
                     ARRAY_A
@@ -617,12 +623,16 @@ final class SEO_Semantic_Catalog_Transfer {
         if ($ids && in_array('product_attributes', $scopes, true)) {
             foreach (array_chunk($ids, 1200) as $chunk) {
                 $id_sql = implode(',', array_map('absint', $chunk));
+                $product_attributes_table = $t['product_attributes'];
+                $attributes_table = $t['attributes'];
+                $attribute_terms_table = $t['attribute_terms'];
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; IDs se normalizan con absint antes de construir la lista.
                 $attribute_rows = (array) $wpdb->get_results(
                     "SELECT pa.id,pa.product_id,a.slug attribute_slug,t.slug term_slug,
                             pa.valor_texto,pa.valor_numero,pa.valor_numero_max,pa.unidad,pa.valor_original,pa.orden
-                     FROM {$t['product_attributes']} pa
-                     JOIN {$t['attributes']} a ON a.id=pa.atributo_id
-                     LEFT JOIN {$t['attribute_terms']} t ON t.id=pa.termino_id
+                     FROM {$product_attributes_table} pa
+                     JOIN {$attributes_table} a ON a.id=pa.atributo_id
+                     LEFT JOIN {$attribute_terms_table} t ON t.id=pa.termino_id
                      WHERE pa.product_id IN ({$id_sql})
                      ORDER BY pa.product_id,a.slug,pa.orden,pa.id",
                     ARRAY_A
@@ -694,10 +704,13 @@ final class SEO_Semantic_Catalog_Transfer {
         if ($ids && in_array('category_semantic', $scopes, true) && self::table_exists($t['object_vocabulary']) && self::table_exists($t['vocabulary'])) {
             foreach (array_chunk($ids, 2000) as $chunk) {
                 $id_sql = implode(',', array_map('absint', $chunk));
+                $object_vocabulary_table = $t['object_vocabulary'];
+                $vocabulary_table = $t['vocabulary'];
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; IDs se normalizan con absint antes de construir la lista.
                 $sem_rows = (array) $wpdb->get_results(
                     "SELECT ov.object_id,ov.source,ov.confidence,v.semantic_group,v.slug
-                     FROM {$t['object_vocabulary']} ov
-                     JOIN {$t['vocabulary']} v ON v.id=ov.vocabulary_id
+                     FROM {$object_vocabulary_table} ov
+                     JOIN {$vocabulary_table} v ON v.id=ov.vocabulary_id
                      WHERE ov.object_type='product_cat' AND ov.status=1 AND v.active=1 AND ov.object_id IN ({$id_sql})
                      ORDER BY ov.object_id,v.semantic_group,v.slug",
                     ARRAY_A
@@ -716,9 +729,11 @@ final class SEO_Semantic_Catalog_Transfer {
         if ($ids && in_array('category_labels', $scopes, true) && self::table_exists($t['nodes'])) {
             foreach (array_chunk($ids, 2000) as $chunk) {
                 $id_sql = implode(',', array_map('absint', $chunk));
+                $nodes_table = $t['nodes'];
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; IDs se normalizan con absint antes de construir la lista.
                 $node_rows = (array) $wpdb->get_results(
                     "SELECT id,object_id,keywords,title,status,created_at,updated_at
-                     FROM {$t['nodes']}
+                     FROM {$nodes_table}
                      WHERE object_type='category' AND seo_role='category' AND object_id IN ({$id_sql})
                      ORDER BY object_id,id",
                     ARRAY_A
@@ -1209,11 +1224,14 @@ final class SEO_Semantic_Catalog_Transfer {
             }
         }
         if (self::table_exists($t['type_role_map']) && self::table_exists($t['vocabulary'])) {
+            $type_role_table = $t['type_role_map'];
+            $vocabulary_table = $t['vocabulary'];
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas devueltas por required_tables(); consulta fija sin entrada de usuario.
             $rows = (array) $wpdb->get_results(
                 "SELECT m.id,m.type_vocabulary_id,tv.slug type_slug,m.role_vocabulary_id,rv.slug role_slug,m.confidence,m.source,m.active
-                 FROM {$t['type_role_map']} m
-                 JOIN {$t['vocabulary']} tv ON tv.id=m.type_vocabulary_id AND tv.semantic_group='tipo'
-                 JOIN {$t['vocabulary']} rv ON rv.id=m.role_vocabulary_id AND rv.semantic_group='rol'",
+                 FROM {$type_role_table} m
+                 JOIN {$vocabulary_table} tv ON tv.id=m.type_vocabulary_id AND tv.semantic_group='tipo'
+                 JOIN {$vocabulary_table} rv ON rv.id=m.role_vocabulary_id AND rv.semantic_group='rol'",
                 ARRAY_A
             );
             foreach ($rows as $row) {

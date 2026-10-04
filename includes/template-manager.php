@@ -220,6 +220,7 @@ function seo_tm_ensure_schema() {
 
     foreach ($alterations as $column => $sql) {
         if (!in_array($column, $columns, true)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql procede de la allowlist interna de ALTER TABLE definida en este metodo.
             $result = $wpdb->query($sql);
 
             if ($result === false) {
@@ -388,9 +389,11 @@ function seo_tm_get_templates($where = '', array $params = []) {
     $sql .= ' ORDER BY display_order ASC, template_name ASC, id ASC';
 
     if (!empty($params)) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where es un fragmento interno del Template Manager y los valores se enlazan mediante placeholders.
         $sql = $wpdb->prepare($sql, ...$params);
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin params la consulta es interna; con params, $sql ya esta preparado.
     return $wpdb->get_results($sql);
 }
 
@@ -832,11 +835,13 @@ function seo_tm_cleanup_legacy_plugin_page_template_meta() {
     if (!empty($files)) {
         $files = array_keys($files);
         $placeholders = implode(',', array_fill(0, count($files), '%s'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla core y lista de placeholders %s generada internamente; nombres de plantilla enlazados mediante $wpdb->prepare().
         $sql = $wpdb->prepare(
             "SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_page_template' AND meta_value IN ({$placeholders})",
             ...$files
         );
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         foreach ((array) $wpdb->get_col($sql) as $page_id) {
             $page_id = (int) $page_id;
             if ($page_id > 0 && get_post_type($page_id) === 'page') {

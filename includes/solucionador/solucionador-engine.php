@@ -1,9 +1,10 @@
 <?php
 /**
- * Solucionador v0.5 - Academia/Entrenador -> dossier -> cobertura -> brief.
+ * Solucionador v0.7.1 - FAQ + conocimiento consolidado de Dependiente.
  *
- * Sólo organiza conocimiento ya aprendido de Dependiente. No investiga,
- * no compara mercado, no redacta y no publica.
+ * Organiza exactamente dos fuentes editoriales independientes: FAQ humana y
+ * Dependiente. No depende de Ingeniero, Comparador, Ojeador, Marketing ni
+ * Analista para generar dossiers. No redacta contenido público ni publica.
  */
 
 defined('ABSPATH') || exit;
@@ -35,7 +36,10 @@ final class SEO_Solucionador_Engine {
         if (!class_exists('SEO_Solucionador_Dossiers')) return array();
 
         $snapshot = SEO_Solucionador_Dossiers::snapshot();
-        if (empty($snapshot['available']) || empty($snapshot['questions_total'])) {
+        if (
+            empty($snapshot['available'])
+            || (empty($snapshot['questions_total']) && empty($snapshot['faqs_total']))
+        ) {
             return $snapshot;
         }
 
@@ -51,7 +55,7 @@ final class SEO_Solucionador_Engine {
         // Mientras siga incompleto, cada carga procesa otro lote aunque ya
         // existan dossiers: evita quedarse detenido tras las primeras 500
         // preguntas cuando WP-Cron no ejecuta la continuación.
-        if ($has_dossiers && $scan_complete) {
+        if ($has_dossiers && $scan_complete && empty($snapshot['source_changed'])) {
             return $snapshot;
         }
 
@@ -67,31 +71,21 @@ final class SEO_Solucionador_Engine {
             if (
                 is_array($last_scan)
                 && !empty($last_scan['complete'])
-                && (!$scan_complete || !$has_dossiers)
+                && (!$scan_complete || !$has_dossiers || !empty($snapshot['source_changed']))
             ) {
                 delete_option('seo_solucionador_last_scan');
                 delete_option(self::EDITORIAL_SCAN_OPTION);
                 $last_scan = array();
             }
 
-            $state = SEO_Solucionador_Dossiers::state();
-            if (
-                !$state
-                || empty($state['token'])
-                || (string) ($state['editorial_policy'] ?? '') !== SEO_Solucionador_Dossiers::EDITORIAL_POLICY_VERSION
-            ) {
-                SEO_Solucionador_Dossiers::reset_scan();
-                $state = SEO_Solucionador_Dossiers::state();
-            } elseif (!empty($state['complete'])) {
-                // Un estado completo con cero dossiers es incoherente si hay
-                // preguntas de Academia: reinicia el cursor para reconstruir.
-                if (!$has_dossiers) {
-                    SEO_Solucionador_Dossiers::reset_scan();
-                    $state = SEO_Solucionador_Dossiers::state();
-                } else {
-                    return $snapshot;
-                }
+            $state = SEO_Solucionador_Dossiers::migrate_state(SEO_Solucionador_Dossiers::state());
+            if (!$state || empty($state['token'])) {
+                $state = SEO_Solucionador_Dossiers::reset_scan();
+            } elseif (!empty($state['complete']) && $has_dossiers && empty($snapshot['source_changed'])) {
+                return $snapshot;
             }
+            // Los cambios de una fuente se resuelven dentro de scan_batch()
+            // reiniciando sólo su carril. Nunca se tira el cursor largo de la otra.
 
             $result = SEO_Solucionador_Dossiers::scan_batch(
                 max(25, min(500, absint($batch_size))),
@@ -132,9 +126,11 @@ final class SEO_Solucionador_Engine {
             $last_scan = get_option('seo_solucionador_last_scan', array());
             $state = SEO_Solucionador_Dossiers::state();
             $policy_mismatch = (string) ($state['editorial_policy'] ?? '') !== SEO_Solucionador_Dossiers::EDITORIAL_POLICY_VERSION;
-            $needs_dossiers = !empty($snapshot['questions_total'])
+            $has_source_material = !empty($snapshot['questions_total']) || !empty($snapshot['faqs_total']);
+            $needs_dossiers = $has_source_material
                 && (
                     empty($snapshot['scan_complete'])
+                    || !empty($snapshot['source_changed'])
                     || empty($snapshot['categories_with_knowledge'])
                     || $policy_mismatch
                 );
@@ -143,8 +139,8 @@ final class SEO_Solucionador_Engine {
                 delete_option('seo_solucionador_last_scan');
                 delete_option(self::EDITORIAL_SCAN_OPTION);
 
-                $state = SEO_Solucionador_Dossiers::state();
-                if (!$state || empty($state['token']) || !empty($state['complete'])) {
+                $state = SEO_Solucionador_Dossiers::migrate_state(SEO_Solucionador_Dossiers::state());
+                if (!$state || empty($state['token'])) {
                     SEO_Solucionador_Dossiers::reset_scan();
                 }
                 $last_scan = array();
@@ -160,22 +156,21 @@ final class SEO_Solucionador_Engine {
                 return;
             }
 
-            // Prioridad 1: terminar Academia. Mientras esa fase siga abierta se
-            // consumen varios lotes de 500 por ejecución, con presupuesto de
-            // tiempo, para no tardar horas en completar decenas de miles de
-            // preguntas. La fase editorial vuelve al ritmo normal después.
+            // Prioridad 1: terminar los dos carriles independientes FAQ y
+            // Dependiente. Las propuestas disponibles se revisan sin esperar
+            // a que termine el otro carril.
             $started = microtime(true);
             $result = array();
             for ($i = 0; $i < 4; $i++) {
                 $result = self::scan(180, 500);
                 if (is_wp_error($result)) return;
                 if (!empty($result['complete'])) break;
-                if ((string) ($result['phase'] ?? '') !== 'academia_dossiers') break;
+                if ((string)($result['phase'] ?? '') !== 'source_dossiers') break;
                 if ((microtime(true) - $started) >= 18) break;
             }
 
             if (empty($result['complete']) && !wp_next_scheduled(self::AUTO_REFRESH_STEP_HOOK)) {
-                $delay = ((string) ($result['phase'] ?? '') === 'academia_dossiers') ? 5 : 30;
+                $delay = ((string)($result['phase'] ?? '') === 'source_dossiers') ? 5 : 30;
                 wp_schedule_single_event(time() + $delay, self::AUTO_REFRESH_STEP_HOOK);
             }
         } finally {
@@ -184,7 +179,7 @@ final class SEO_Solucionador_Engine {
     }
     private static function representative_question($topic_id, $fallback = '') {
         $rows = SEO_Solucionador_DB::get_evidence_rows($topic_id);
-        foreach (array('dependiente') as $source_type) {
+        foreach (array('faq','dependiente') as $source_type) {
             $best = '';
             $best_score = -1;
             foreach ($rows as $row) {
@@ -219,15 +214,19 @@ final class SEO_Solucionador_Engine {
      * canonico. Problemas/procedimientos conservan accion/condicion para no
      * mezclar necesidades tecnicas diferentes.
      */
-    private static function canonicalize_profile(array $profile, array $source = array()) {
+    private static function canonicalize_profile(array $profile,array $source = array()) {
         $category_id = absint($source['category_id'] ?? $profile['category_id'] ?? 0);
         if (!$category_id) return $profile;
 
+        $source_type = sanitize_key((string)($source['source_type'] ?? ''));
+        $signal_type = sanitize_key((string)($source['signal_type'] ?? ''));
         $meta = is_array($source['source_meta'] ?? null) ? $source['source_meta'] : array();
-        $channel = sanitize_key((string)($meta['dependiente_channel'] ?? ''));
-        $is_academy = sanitize_key((string)($source['source_type'] ?? '')) === 'dependiente'
-            && $channel === 'academy_learned_dossier';
-        if (!$is_academy) return $profile;
+        $origin = sanitize_key((string)($meta['origin'] ?? $source_type));
+
+        $is_editorial_source = in_array($source_type,array('faq','dependiente'),true)
+            && in_array($origin,array('faq','dependiente'),true)
+            && in_array($signal_type,array('category_editorial_source','academy_learned_dossier'),true);
+        if (!$is_editorial_source) return $profile;
 
         $name = trim((string)($source['category_name'] ?? $meta['category_name'] ?? ''));
         if ($name === '') $name = self::category_name($category_id);
@@ -240,6 +239,8 @@ final class SEO_Solucionador_Engine {
         $profile['context'] = '';
         $profile['category_id'] = $category_id;
         $profile['confidence'] = max(0.90,(float)($profile['confidence'] ?? 0));
+        // FAQ y Dependiente convergen en el mismo topic sin convertirse en
+        // una tercera fuente mixta.
         $profile['canonical_key'] = 'dependiente-qa-basic|resolver|category-' . $category_id . '|general|general';
         return $profile;
     }
@@ -309,24 +310,25 @@ final class SEO_Solucionador_Engine {
         return $out;
     }
 
-    private static function knowledge_status($term_id, array $stats) {
+    private static function knowledge_status($term_id,array $stats) {
         $term_id = absint($term_id);
-        $best_confidence = 0.0;
-        $active_count = 0;
+        $faq = absint($stats['faq'] ?? 0);
+        $dependiente = absint($stats['dependiente'] ?? 0);
+        $total = $faq + $dependiente;
 
-        if ($term_id && class_exists('SEO_Ingeniero') && method_exists('SEO_Ingeniero','active_knowledge')) {
-            foreach ((array) SEO_Ingeniero::active_knowledge($term_id) as $row) {
-                $active_count++;
-                $best_confidence = max($best_confidence,(float) ($row['confidence'] ?? 0));
-            }
+        if (!$term_id || $total < 1) {
+            return array('status'=>'insufficient','count'=>0,'confidence'=>0);
         }
-        if ($active_count > 0 && $best_confidence >= 0.55) {
-            return array('status'=>'sufficient','count'=>$active_count,'confidence'=>round($best_confidence,3));
-        }
-        if (absint($stats['ingeniero'] ?? 0) > 0) {
-            return array('status'=>'sufficient','count'=>absint($stats['ingeniero']),'confidence'=>0.60);
-        }
-        return array('status'=>'insufficient','count'=>$active_count,'confidence'=>round($best_confidence,3));
+
+        // Es un indicador local de disponibilidad editorial, no una validación
+        // técnica externa ni un gate.
+        $confidence = $faq > 0 ? 1.0 : min(1.0,max(0.5,(float)($stats['dependiente_confidence'] ?? 0.75)));
+        return array(
+            'status'=>'sufficient',
+            'count'=>$total,
+            'confidence'=>round($confidence,3),
+            'sources'=>array('faq'=>$faq,'dependiente'=>$dependiente),
+        );
     }
 
     private static function risks(array $coverage, $primary_category_id) {
@@ -355,11 +357,14 @@ final class SEO_Solucionador_Engine {
     }
 
     public static function minimum_academy_questions() {
-        return max(1, absint(apply_filters('seo_solucionador_min_academy_questions', 3)));
+        return max(1,absint(apply_filters('seo_solucionador_min_academy_questions',3)));
     }
 
     private static function evidence_gate(array $stats) {
-        return absint($stats['dependiente'] ?? 0) >= self::minimum_academy_questions();
+        // Indicador de densidad, nunca bloqueo editorial. Las FAQs son una
+        // fuente válida aunque Dependiente todavía no las haya aprendido.
+        $material = absint($stats['dependiente'] ?? 0) + absint($stats['faq'] ?? 0);
+        return $material >= self::minimum_academy_questions();
     }
 
     private static function category_product_count($term_id) {
@@ -368,13 +373,15 @@ final class SEO_Solucionador_Engine {
     }
 
     private static function priority_components(array $stats, array $coverage, array $knowledge, array $proposal, $primary_category_id, array $risks) {
-        $learned = absint($stats['dependiente'] ?? 0);
+        $dependiente = absint($stats['dependiente'] ?? 0);
+        $faqs = absint($stats['faq'] ?? 0);
+        $material = $dependiente + $faqs;
         $products = self::category_product_count($primary_category_id);
-        $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
+        $coverage_status = sanitize_key((string)($coverage['status'] ?? 'uncovered'));
 
         $scores = array(
-            'learned_questions'=>min(45, $learned * 3.0),
-            'category_fit'=>min(20, ($primary_category_id ? 8 : 0) + min(12, log(1 + $products) * 2.4)),
+            'editorial_material'=>min(45,$material * 3.0),
+            'category_fit'=>min(20,($primary_category_id ? 8 : 0) + min(12,log(1 + $products) * 2.4)),
             'coverage_gap'=>array(
                 'uncovered'=>25,
                 'weak_coverage'=>16,
@@ -384,30 +391,38 @@ final class SEO_Solucionador_Engine {
                 'conflict'=>0,
             )[$coverage_status] ?? 0,
             'validation_confidence'=>($knowledge['status'] ?? '') === 'sufficient'
-                ? min(10, 5 + ((float) ($knowledge['confidence'] ?? 0) * 5))
+                ? min(10,5 + ((float)($knowledge['confidence'] ?? 0) * 5))
                 : 0,
         );
         $max = array(
-            'learned_questions'=>45,
+            'editorial_material'=>45,
             'category_fit'=>20,
             'coverage_gap'=>25,
             'validation_confidence'=>10,
         );
-        $max = array('learned_questions'=>45,'real_demand'=>15,'catalog_fit'=>15,'coverage_gap'=>20);
         $labels = array(
-            'learned_questions'=>'Preguntas aprendidas',
+            'editorial_material'=>'Material útil FAQ + Dependiente',
             'category_fit'=>'Encaje con product_cat',
             'coverage_gap'=>'Hueco de cobertura',
-            'validation_confidence'=>'Confianza de Academia',
+            'validation_confidence'=>'Confianza técnica/contextual',
         );
+
         $out = array();
         $total = 0.0;
         foreach ($scores as $key=>$score) {
-            $score = round(max(0,(float) $score),2);
+            $score = round(max(0,(float)$score),2);
             $total += $score;
             $out[$key] = array('label'=>$labels[$key],'score'=>$score,'max'=>$max[$key]);
         }
-        $penalty = round(min(20,(float) ($risks['duplication_risk'] ?? 0) * 0.20),2);
+
+        $out['source_mix'] = array(
+            'label'=>'Origen del material',
+            'score'=>0,
+            'max'=>0,
+            'detail'=>array('faq'=>$faqs,'dependiente'=>$dependiente),
+        );
+
+        $penalty = round(min(20,(float)($risks['duplication_risk'] ?? 0) * 0.20),2);
         $out['duplication_penalty'] = array('label'=>'Riesgo de duplicación','score'=>-$penalty,'max'=>0);
         $total -= $penalty;
         return array('total'=>round(max(0,min(100,$total)),2),'components'=>$out);
@@ -420,9 +435,9 @@ final class SEO_Solucionador_Engine {
             && (float) ($risks['cannibalization_risk'] ?? 0) < 70;
 
         return array(
-            'academy_mass'=>SEO_Editorial_Service_Contract::quality_indicator(
+            'source_material_density'=>SEO_Editorial_Service_Contract::quality_indicator(
                 $mass_ok,
-                'Indicador de densidad de conocimiento. No bloquea la revisión ni la decisión de la Editora.'
+                'Densidad conjunta de FAQs y conocimiento aprendido por Dependiente. Es informativa y no bloquea la revisión de la Editora.'
             ),
             'category_identified'=>array(
                 'pass'=>absint($primary_category_id)>0,
@@ -446,34 +461,38 @@ final class SEO_Solucionador_Engine {
     }
 
     private static function decision(array $profile,array $stats,array $coverage,array $knowledge,array $risks,$primary_category_id,array $landing,array $requirements) {
-        $coverage_status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
-        $entity_type = sanitize_key((string) ($coverage['entity_type'] ?? ''));
+        $coverage_status = sanitize_key((string)($coverage['status'] ?? 'uncovered'));
+        $entity_type = sanitize_key((string)($coverage['entity_type'] ?? ''));
 
         if (!$primary_category_id) {
-            return array('action'=>'DEFER','reason'=>'No existe una product_cat demostrable para este conocimiento de Academia.');
+            return array('action'=>'DEFER','reason'=>'No existe una product_cat demostrable para este material editorial.');
         }
-        if ($coverage_status === 'conflict') {
-            return array('action'=>'DEFER','reason'=>'La cobertura existente es contradictoria y requiere revisión humana antes de editar.');
-        }
-        if ($coverage_status === 'duplicate') {
-            return array('action'=>'MERGE_CONTENT','reason'=>'Existen varias piezas solapadas; consolidar antes de crear otra URL.');
-        }
-        if ($coverage_status === 'covered') {
-            return array('action'=>'NO_ACTION','reason'=>'La intención básica de la categoría ya está suficientemente cubierta.');
-        }
-        if (in_array($coverage_status,array('partial_coverage','weak_coverage'),true)) {
-            $action = self::improvement_action($coverage);
-            if ($action === 'IMPROVE_POST') {
-                return array('action'=>'IMPROVE_POST','reason'=>'Existe un post de la misma intención con cobertura parcial o débil; se amplía antes de crear otro.');
-            }
-            return array('action'=>'DEFER','reason'=>'Existe cobertura parcial fuera de un post editable equivalente; requiere revisión antes de crear contenido.');
+
+        if (in_array($coverage_status,array('partial_coverage','weak_coverage'),true) && $entity_type === 'post') {
+            return array(
+                'action'=>'IMPROVE_POST',
+                'reason'=>'Existe un post relacionado con cobertura parcial o débil. Se recomienda revisarlo, pero el dossier permanece visible para Editora.'
+            );
         }
 
         if ($coverage_status === 'uncovered') {
-            return array('action'=>'CREATE_POST','reason'=>'Hay material útil asociado a una product_cat demostrable y no se ha encontrado cobertura equivalente; la decisión final corresponde a la Editora.');
+            return array(
+                'action'=>'CREATE_POST',
+                'reason'=>'Hay material editorial asociado a una product_cat demostrable y no se ha encontrado cobertura equivalente.'
+            );
         }
 
-        return array('action'=>'DEFER','reason'=>'La propuesta requiere revisión editorial humana; los indicadores automáticos no la bloquean.');
+        if (in_array($coverage_status,array('covered','duplicate','conflict','partial_coverage','weak_coverage'),true)) {
+            return array(
+                'action'=>'NO_ACTION',
+                'reason'=>'Existe contenido relacionado o posible solapamiento. Es una recomendación editorial, no un bloqueo: Editora conserva acceso al dossier y puede decidir mejorar, fusionar o crear.'
+            );
+        }
+
+        return array(
+            'action'=>'NO_ACTION',
+            'reason'=>'La cobertura no permite una recomendación automática clara; el dossier queda disponible para revisión humana.'
+        );
     }
 
     private static function content_type_for_action($action,array $coverage) {
@@ -778,94 +797,59 @@ final class SEO_Solucionador_Engine {
     public static function prepare_category_topic($category_id) {
         $category_id = absint($category_id);
         if (!$category_id || !class_exists('SEO_Solucionador_Dossiers')) {
-            return new WP_Error('solucionador_category_missing', 'La categoría propuesta no es válida.');
+            return new WP_Error('solucionador_category_missing','La categoría propuesta no es válida.');
         }
 
         $dossier = SEO_Solucionador_Dossiers::get_by_category($category_id);
         if (!$dossier || absint($dossier['question_count'] ?? 0) < 1) {
-            return new WP_Error('solucionador_dossier_missing', 'No existe un dossier con preguntas aprendidas para esta categoría.');
+            return new WP_Error('solucionador_dossier_missing','No existe material editorial para esta categoría.');
         }
 
-        $name = trim((string) ($dossier['category_name'] ?? ''));
+        $name = trim((string)($dossier['category_name'] ?? ''));
+        if ($name === '') $name = self::category_name($category_id);
         if ($name === '') {
-            $term = get_term($category_id, 'product_cat');
-            if ($term && !is_wp_error($term)) $name = (string) $term->name;
-        }
-        if ($name === '') {
-            return new WP_Error('solucionador_category_name_missing', 'No se pudo resolver el nombre de la categoría.');
+            return new WP_Error('solucionador_category_name_missing','No se pudo resolver el nombre de la categoría.');
         }
 
-        $ids = SEO_Solucionador_DB::decode_json($dossier['question_ids'] ?? '[]', array());
-        $source = array(
-            'dossier_id'=>absint($dossier['id'] ?? 0),
-            'source_type'=>'dependiente',
-            'proposal_role'=>'origin',
-            'source_id'=>'academy-category:' . $category_id,
-            'signal_type'=>'learned_category_dossier',
-            'entity_type'=>'product_cat',
-            'entity_id'=>$category_id,
-            'category_id'=>$category_id,
-            'category_name'=>$name,
-            'source_text'=>'Preguntas habituales sobre ' . $name . ': conocimiento aprendido por Dependiente.',
-            'hints'=>array(
-                'intent'=>'dependiente_qa_basic',
-                'action'=>'resolver',
-                'object'=>$name,
-                'category_id'=>$category_id,
-            ),
-            'occurrences'=>max(1,absint($dossier['question_count'] ?? 1)),
-            'confidence'=>max(0.60,min(1.0,(float) ($dossier['score_avg'] ?? 0.90))),
-            'evidence_score'=>1.00,
-            'observed_at'=>(string) ($dossier['last_validated_at'] ?? current_time('mysql')),
-            'source_meta'=>array(
-                'proposal_role'=>'origin',
-                'dependiente_channel'=>'academy_learned_dossier',
-                'editorial_family'=>'dependiente_qa_basic',
-                'dossier_id'=>absint($dossier['id'] ?? 0),
-                'category_id'=>$category_id,
-                'category_name'=>$name,
-                'question_count'=>absint($dossier['question_count'] ?? 0),
-                'question_ids'=>array_values(array_filter(array_map('absint',(array) $ids))),
-                'source_hash'=>(string) ($dossier['source_hash'] ?? ''),
-                'last_validated_at'=>(string) ($dossier['last_validated_at'] ?? ''),
-            ),
-        );
+        $sources = (array)SEO_Solucionador_Dossiers::signals_for_category($category_id);
+        if (!$sources) {
+            return new WP_Error('solucionador_sources_missing','El dossier no expone fuentes editoriales utilizables.');
+        }
 
+        $base_source = $sources[0];
         $profile = SEO_Solucionador_Normalizer::profile(
-            (string) $source['source_text'],
-            (array) $source['hints']
+            (string)($base_source['source_text'] ?? ''),
+            (array)($base_source['hints'] ?? array())
         );
-        $profile = self::canonicalize_profile((array) $profile, $source);
+        $profile = self::canonicalize_profile((array)$profile,$base_source);
         if (!$profile || SEO_Solucionador_Normalizer::is_weak_profile($profile)) {
-            return new WP_Error('solucionador_profile_invalid', 'No se pudo preparar el perfil editorial de la categoría.');
+            return new WP_Error('solucionador_profile_invalid','No se pudo preparar el perfil editorial de la categoría.');
         }
 
-        $topic_id = SEO_Solucionador_DB::upsert_topic($profile, (string) $source['source_text']);
+        $topic_id = SEO_Solucionador_DB::upsert_topic($profile,(string)($base_source['source_text'] ?? ''));
         if (!$topic_id) {
-            return new WP_Error('solucionador_topic_write', 'No se pudo preparar la propuesta editorial.');
+            return new WP_Error('solucionador_topic_write','No se pudo preparar la propuesta editorial.');
         }
 
-        SEO_Solucionador_DB::add_evidence($topic_id, $source);
+        foreach ($sources as $source) {
+            SEO_Solucionador_DB::add_evidence($topic_id,$source);
+        }
         self::analyze_topic($topic_id);
 
         $topic = SEO_Solucionador_DB::get_topic($topic_id);
-        return $topic ?: new WP_Error('solucionador_topic_missing', 'La propuesta no quedó disponible tras analizarla.');
+        return $topic ?: new WP_Error('solucionador_topic_missing','La propuesta no quedó disponible tras analizarla.');
     }
 
     public static function scan($days = 180, $batch_size = 100) {
         SEO_Solucionador_DB::maybe_install();
         $batch_size = max(25,min(250,absint($batch_size)));
 
-        // Si el ciclo anterior terminó, una nueva ejecución manual inicia un
-        // ciclo completo nuevo. Si quedó a medias, conserva ambos cursores.
-        $last_scan = get_option('seo_solucionador_last_scan', array());
-        if (is_array($last_scan) && !empty($last_scan['complete'])) {
-            SEO_Solucionador_Dossiers::reset_scan();
-            delete_option(self::EDITORIAL_SCAN_OPTION);
-        }
+        // El estado de fuentes se migra de forma incremental. No se reinicia
+        // Dependiente sólo porque FAQ cambie, ni viceversa.
+        $last_scan = get_option('seo_solucionador_last_scan',array());
+        SEO_Solucionador_Dossiers::migrate_state(SEO_Solucionador_Dossiers::state());
 
-        // Fase 1: construir/actualizar dossiers ligeros de Academia de forma
-        // reanudable. Mientras no termine, no se cargan todas las preguntas.
+        // Fase 1: FAQ y Dependiente avanzan con cursores independientes.
         $academy = SEO_Solucionador_Dossiers::scan_batch($batch_size,false);
         if (is_wp_error($academy)) return $academy;
 
@@ -874,9 +858,9 @@ final class SEO_Solucionador_Engine {
                 'at'=>time(),
                 'days'=>absint($days),
                 'complete'=>false,
-                'phase'=>'academia_dossiers',
+                'phase'=>'source_dossiers',
                 'academy'=>$academy,
-                'message'=>'Academia se está procesando por lotes. Vuelve a ejecutar para continuar.',
+                'message'=>'FAQ y Dependiente se están procesando por carriles independientes. Las propuestas disponibles pueden revisarse mientras continúa el inventario.',
             );
             update_option('seo_solucionador_last_scan',$result,false);
             return $result;
@@ -973,8 +957,14 @@ final class SEO_Solucionador_Engine {
             'discarded'=>absint($state['discarded'] ?? 0),
             'reinforcement_skipped'=>0,
             'pruned_topics'=>$pruned_topics,
-            'seen_by_source'=>array('dependiente'=>absint($state['processed'] ?? 0)),
-            'accepted_by_source'=>array('dependiente'=>absint($state['accepted'] ?? 0)),
+            'seen_by_source'=>array(
+                'faq'=>absint($academy['faq_in_dossiers'] ?? 0),
+                'dependiente'=>absint($academy['dependiente_in_dossiers'] ?? 0),
+            ),
+            'accepted_by_source'=>array(
+                'faq'=>absint($academy['faq_in_dossiers'] ?? 0),
+                'dependiente'=>absint($academy['dependiente_in_dossiers'] ?? 0),
+            ),
             'discarded_by_source'=>array('dependiente'=>absint($state['discarded'] ?? 0)),
             'posts_indexed'=>absint($coverage_index['posts'] ?? 0),
             'pages_indexed'=>absint($coverage_index['pages'] ?? 0),

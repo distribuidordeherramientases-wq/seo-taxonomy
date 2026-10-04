@@ -51,21 +51,33 @@ final class SEO_Solucionador_Coverage {
         $action = sanitize_text_field((string) ($profile['action'] ?? ''));
         $category_id = absint($profile['category_id'] ?? 0);
 
-        $where = array('canonical_key=%s');
-        $params = array($key);
-        if ($object !== '') { $where[]='object_term=%s'; $params[]=$object; }
-        if ($action !== '') { $where[]='action_term=%s'; $params[]=$action; }
-        if ($category_id) { $where[]='category_id=%d'; $params[]=$category_id; }
-
-        $sql = "SELECT * FROM {$table} WHERE (" . implode(' OR ',$where) . ")
-                ORDER BY CASE WHEN canonical_key=%s THEN 0 WHEN category_id=%d AND %d>0 THEN 1 ELSE 2 END,
-                         CASE WHEN scope='title' THEN 0 WHEN scope='heading' THEN 1 ELSE 2 END,
-                         confidence DESC,id ASC
-                LIMIT 700";
-        $params[] = $key;
-        $params[] = $category_id;
-        $params[] = $category_id;
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql,$params),ARRAY_A);
+        $table = esc_sql($table);
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM `{$table}`
+                 WHERE (
+                    canonical_key=%s
+                    OR (%s<>'' AND object_term=%s)
+                    OR (%s<>'' AND action_term=%s)
+                    OR (%d>0 AND category_id=%d)
+                 )
+                 ORDER BY CASE WHEN canonical_key=%s THEN 0 WHEN category_id=%d AND %d>0 THEN 1 ELSE 2 END,
+                          CASE WHEN scope='title' THEN 0 WHEN scope='heading' THEN 1 ELSE 2 END,
+                          confidence DESC,id ASC
+                 LIMIT 700",
+                $key,
+                $object,
+                $object,
+                $action,
+                $action,
+                $category_id,
+                $category_id,
+                $key,
+                $category_id,
+                $category_id
+            ),
+            ARRAY_A
+        );
 
         $ranked = array();
         foreach ($rows as $row) {

@@ -921,7 +921,10 @@ function seo_images_get_registered_usages( $object_id, $object_types = 'product'
                 fecha DESC
             LIMIT %d";
 
-    $rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %s se generan localmente; valores enlazados mediante $wpdb->prepare().
+    $prepared_sql = $wpdb->prepare( $sql, $params );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+    $rows = $wpdb->get_results( $prepared_sql );
 
     if ( empty( $rows ) ) {
         return array();
@@ -1418,10 +1421,10 @@ if (!function_exists('seo_images_get_external_product_images')) {
                 ORDER BY is_primary DESC, position ASC, id ASC
                 LIMIT %d";
 
-        return (array) $wpdb->get_results(
-            $wpdb->prepare($sql, $params),
-            ARRAY_A
-        );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Columnas proceden de allowlist interna; valores y limite se enlazan mediante placeholders.
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
     }
 }
 

@@ -42,10 +42,14 @@ final class SEO_Comparador_Integration {
     public static function post_status_changed($new_status,$old_status,$post) {
         if (!$post instanceof WP_Post || $post->post_type!=='post' || $new_status===$old_status) return;
         global $wpdb;
-        $maps=(array)$wpdb->get_results($wpdb->prepare(
-            'SELECT * FROM ' . SEO_Comparador_DB::table('post_map') . ' WHERE post_id=%d',
-            absint($post->ID)
-        ),ARRAY_A);
+        $post_map_table = esc_sql(SEO_Comparador_DB::table('post_map'));
+        $maps = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM `{$post_map_table}` WHERE post_id=%d",
+                absint($post->ID)
+            ),
+            ARRAY_A
+        );
         foreach ($maps as $map) {
             $profile_id=absint($map['profile_id'] ?? 0);
             if (!$profile_id) continue;

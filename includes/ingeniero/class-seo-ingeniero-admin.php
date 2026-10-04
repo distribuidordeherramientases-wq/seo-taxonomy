@@ -209,7 +209,7 @@ final class SEO_Ingeniero_Admin {
 
         global $wpdb;
         SEO_Ingeniero_DB::maybe_install();
-        $table = SEO_Ingeniero_DB::table('editorial');
+        $table = esc_sql(SEO_Ingeniero_DB::table('editorial'));
 
         $after_id = absint($_REQUEST['after_id'] ?? 0);
         $created = absint($_REQUEST['created'] ?? 0);
@@ -220,13 +220,12 @@ final class SEO_Ingeniero_Admin {
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,status,post_id
-                 FROM %i
+                 FROM `{$table}`
                  WHERE id>%d
                    AND recommended_action='CREATE_POST'
                    AND status IN ('candidate','review','approved','needs_update')
                  ORDER BY id ASC
                  LIMIT %d",
-                $table,
                 $after_id,
                 $batch_size
             ),

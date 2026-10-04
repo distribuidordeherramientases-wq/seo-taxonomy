@@ -87,7 +87,10 @@ if (!function_exists('seo_attributes_get_definition')) {
             $sql .= ' AND activo = 1';
         }
         $sql .= ' LIMIT 1';
-        $row = $wpdb->get_row($wpdb->prepare($sql, $slug), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y clausula opcional controlada por booleano; slug enlazado mediante placeholder.
+        $prepared_sql = $wpdb->prepare($sql, $slug);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $row = $wpdb->get_row($prepared_sql, ARRAY_A);
         return is_array($row) ? $row : null;
     }
 }
@@ -337,8 +340,10 @@ if (!function_exists('seo_attributes_get_rows_for_products')) {
                 ORDER BY p.product_id ASC, a.orden ASC, a.nombre ASC, p.orden ASC, p.id ASC";
 
         if ($args) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where se compone con fragmentos internos y placeholders; valores enlazados mediante $wpdb->prepare().
             $sql = $wpdb->prepare($sql, $args);
         }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql solo contiene tablas internas y condiciones controladas; cuando hay valores externos ya esta preparado.
         $rows = $wpdb->get_results($sql);
         if (!is_array($rows)) {
             return [];
@@ -358,20 +363,24 @@ if (!function_exists('seo_attributes_get_catalog')) {
     function seo_attributes_get_catalog($active_only = true) {
         global $wpdb;
         $tables = seo_attributes_tables();
-        $where = $active_only ? 'WHERE a.activo = 1' : '';
-        $definitions = $wpdb->get_results(
-            "SELECT a.* FROM `{$tables['definitions']}` a {$where} ORDER BY a.orden ASC, a.nombre ASC",
-            ARRAY_A
-        );
+        if ($active_only) {
+            $definitions_sql = "SELECT a.* FROM `{$tables['definitions']}` a WHERE a.activo = 1 ORDER BY a.orden ASC, a.nombre ASC";
+        } else {
+            $definitions_sql = "SELECT a.* FROM `{$tables['definitions']}` a ORDER BY a.orden ASC, a.nombre ASC";
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta fija sobre tabla interna; no contiene entrada de usuario.
+        $definitions = $wpdb->get_results($definitions_sql, ARRAY_A);
         if (!is_array($definitions)) {
             return [];
         }
 
-        $term_rows = $wpdb->get_results(
-            "SELECT t.* FROM `{$tables['terms']}` t " . ($active_only ? 'WHERE t.activo = 1 ' : '') .
-            "ORDER BY t.atributo_id ASC, t.orden ASC, t.nombre ASC",
-            ARRAY_A
-        );
+        if ($active_only) {
+            $terms_sql = "SELECT t.* FROM `{$tables['terms']}` t WHERE t.activo = 1 ORDER BY t.atributo_id ASC, t.orden ASC, t.nombre ASC";
+        } else {
+            $terms_sql = "SELECT t.* FROM `{$tables['terms']}` t ORDER BY t.atributo_id ASC, t.orden ASC, t.nombre ASC";
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta fija sobre tabla interna; no contiene entrada de usuario.
+        $term_rows = $wpdb->get_results($terms_sql, ARRAY_A);
         $terms_by_attribute = [];
         foreach ((array) $term_rows as $term) {
             $terms_by_attribute[(int) ($term['atributo_id'] ?? 0)][] = $term;

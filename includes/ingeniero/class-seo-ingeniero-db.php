@@ -278,16 +278,28 @@ final class SEO_Ingeniero_DB {
 
     public static function knowledge_for_category($term_id, $only_active = true, $lesson = 'l1_technical') {
         global $wpdb;
-        $table = self::table('knowledge');
-        $sql = "SELECT * FROM {$table} WHERE term_id=%d AND lesson=%s";
-        $args = array(absint($term_id), sanitize_key($lesson));
+        $table = esc_sql(self::table('knowledge'));
+        $term_id = absint($term_id);
+        $lesson = sanitize_key($lesson);
         if ($only_active) {
-            $sql .= " AND status='active'";
+            $rows = (array) $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM `{$table}` WHERE term_id=%d AND lesson=%s AND status='active' ORDER BY knowledge_type ASC",
+                    $term_id,
+                    $lesson
+                ),
+                ARRAY_A
+            );
         } else {
-            $sql .= " AND status<>'superseded'";
+            $rows = (array) $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM `{$table}` WHERE term_id=%d AND lesson=%s AND status<>'superseded' ORDER BY knowledge_type ASC",
+                    $term_id,
+                    $lesson
+                ),
+                ARRAY_A
+            );
         }
-        $sql .= ' ORDER BY knowledge_type ASC';
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
         foreach ($rows as &$row) {
             $row['facts'] = self::decode_json($row['facts_json'] ?? '');
             $row['tags'] = self::decode_json($row['tags_json'] ?? '');
@@ -580,16 +592,46 @@ final class SEO_Ingeniero_DB {
         $page = max(1, absint($args['page']));
         $per_page = max(10, min(100, absint($args['per_page'])));
         $offset = ($page - 1) * $per_page;
-        $where_sql = implode(' AND ', $where);
+        $table = esc_sql($table);
 
-        $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
-        $total = $params
-            ? absint($wpdb->get_var($wpdb->prepare($count_sql, $params)))
-            : absint($wpdb->get_var($count_sql));
+        $status_filter = sanitize_key((string) ($args['status'] ?? ''));
+        $action_filter = strtoupper(sanitize_key((string) ($args['action'] ?? '')));
+        $term_filter = absint($args['term_id'] ?? 0);
 
-        $sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY updated_at DESC,id DESC LIMIT %d OFFSET %d";
-        $query_params = array_merge($params, array($per_page, $offset));
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $query_params), ARRAY_A);
+        $total = absint($wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM `{$table}`
+                 WHERE (%s='' OR status=%s)
+                   AND (%s='' OR recommended_action=%s)
+                   AND (%d=0 OR term_id=%d)",
+                $status_filter,
+                $status_filter,
+                $action_filter,
+                $action_filter,
+                $term_filter,
+                $term_filter
+            )
+        ));
+
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM `{$table}`
+                 WHERE (%s='' OR status=%s)
+                   AND (%s='' OR recommended_action=%s)
+                   AND (%d=0 OR term_id=%d)
+                 ORDER BY updated_at DESC,id DESC
+                 LIMIT %d OFFSET %d",
+                $status_filter,
+                $status_filter,
+                $action_filter,
+                $action_filter,
+                $term_filter,
+                $term_filter,
+                $per_page,
+                $offset
+            ),
+            ARRAY_A
+        );
         foreach ($rows as &$row) {
             $row = self::hydrate_editorial($row);
         }

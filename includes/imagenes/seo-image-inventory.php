@@ -336,7 +336,10 @@ if (!function_exists('seo_images_anomaly_low_image_products')) {
                 ORDER BY image_count ASC, si.supplier ASC, si.product_id ASC
                 LIMIT %d";
 
-        return (array) $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal table and optional supplier condition; values/limit are bound via $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the result of $wpdb->prepare().
+        return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
     }
 }
 
@@ -785,6 +788,7 @@ if (!function_exists('seo_images_handle_delete_broken_media_refs')) {
 
         // Limpia primero los usos SEO que apuntan a attachments que ya no existen.
         if (seo_images_table_exists($usages_table)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $usages_table is an internal validated table; fixed maintenance query.
             $usage_deleted = $wpdb->query(
                 "DELETE u
                  FROM {$usages_table} u
@@ -802,6 +806,7 @@ if (!function_exists('seo_images_handle_delete_broken_media_refs')) {
         }
 
         // Borra las filas del índice SEO cuyo attachment ya fue eliminado de WordPress.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $images_table is an internal validated table; fixed maintenance query.
         $deleted = $wpdb->query(
             "DELETE mi
              FROM {$images_table} mi
