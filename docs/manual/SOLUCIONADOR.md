@@ -8,31 +8,25 @@
 - **Issue:** #698.
 - **Validación:** staging antes de producción.
 
-## Responsabilidad
+## Objetivo
 
-Solucionador **no aprende**. Su función es recoger conocimiento editorial ya existente, organizarlo por `product_cat` y entregárselo a Editora.
+Solucionador no aprende y no investiga. Su trabajo es sencillo:
 
-Tiene exactamente dos entradas editoriales:
+1. leer material útil ya existente;
+2. agruparlo por `product_cat`;
+3. preparar una propuesta para Editora;
+4. crear únicamente un borrador cuando Editora lo decida.
+
+Flujo:
 
 ~~~text
-FUENTE 1 · FAQ
-seo_faq
-pregunta humana + respuesta humana
-                 │
-                 ├──────→ DOSSIER product_cat
-                 │               ↓
-FUENTE 2 · DEPENDIENTE           PROPUESTA
-conocimiento real/aprendido      ↓
-trainer + reglas consolidadas   EDITORA
-                                 ↓
-                               DRAFT
-                                 ↓
-                           edición humana
-                                 ↓
-                            publicación
+FAQ activas ───────────────┐
+                           ├──→ dossier product_cat → propuesta → Editora → draft
+Entrenador de Dependiente ─┘
+último run answered + pass_*
 ~~~
 
-No necesita Ingeniero, Comparador, Ojeador, Marketing ni Analista para generar dossiers.
+Solucionador no necesita Ingeniero, Comparador, Ojeador, Marketing ni Analista para generar dossiers.
 
 ## Fuente 1 — FAQ
 
@@ -40,374 +34,221 @@ Tabla:
 
 `{$wpdb->prefix}seo_faq`
 
-Una FAQ activa con pregunta, respuesta y asociación demostrable a una `product_cat` es material editorial válido por defecto.
+Una FAQ entra directamente cuando:
 
-Contrato mínimo:
+- está activa;
+- tiene pregunta y respuesta;
+- puede asociarse de forma demostrable a una `product_cat`.
 
-- `origin=faq`
-- `faq_id/source_id`
-- `question`
-- `answer` original
-- `object_type`
-- `object_id`
-- `category_id`
-- `product_id` cuando proceda
-- `source_hash`
-- `created_at/updated_at`
+La pregunta y la respuesta son contenido humano original.
 
-Reglas:
+No necesita:
 
-- no necesita pasar por Dependiente;
-- no necesita `pass_top1/pass_top3/pass_top8`;
-- no necesita masa mínima;
-- no se sustituye por una respuesta de Dependiente;
-- no se reinterpreta como conocimiento automático;
-- si `object_type=2`, el objeto es directamente una `product_cat`;
-- si `object_type=3`, se resuelve producto → `product_cat`;
-- no se inventa categoría por similitud textual.
+- haber pasado por Dependiente;
+- `pass_top1/pass_top3/pass_top8`;
+- masa mínima;
+- confianza de Academia.
 
-Enviar una pregunta FAQ a Academia es únicamente otra forma de entrenar Dependiente. Eso no cambia el origen de la FAQ directa.
+Se conserva:
+
+- `origin=faq`;
+- `source_id/faq_id`;
+- pregunta;
+- respuesta;
+- objeto;
+- categoría;
+- hash;
+- fecha.
 
 ## Fuente 2 — Dependiente
 
-Solucionador consume Dependiente mediante:
+Solucionador lee directamente:
 
-`SEO_Dependiente_Editorial_Knowledge`
+- `seo_dependiente_trainer_questions`;
+- `seo_dependiente_trainer_runs`.
 
-Archivo:
+No lee reglas semánticas, search logs, candidatos, estados transitorios ni otras tablas de conocimiento.
 
-`includes/dependiente/seo-dependiente-editorial-knowledge.php`
+Para cada pregunta activa del Entrenador:
 
-El proveedor encapsula las tablas internas para evitar que Solucionador dependa de su implementación.
+1. busca su **último run**;
+2. exige `status=answered`;
+3. exige `evaluation_status=pass_*`;
+4. sólo entonces la considera conocimiento aprendido por Dependiente.
 
-Actualmente puede exponer:
-
-1. **Entrenador / Academia**
-   - pregunta activa del currículo;
-   - último run `answered`;
-   - `evaluation_status=pass_*`;
-   - respuesta/evidencia que realmente devuelve Dependiente.
-
-2. **Reglas semánticas consolidadas**
-   - activas;
-   - `source=academy|learned`;
-   - nunca `academy_stage`, `learned_candidate` o `learned_rejected`.
-
-No se usan como conocimiento editorial:
-
-- candidatos pendientes;
-- reglas rechazadas;
-- estados transitorios;
-- search logs;
-- búsquedas de visitantes;
-- material que Dependiente todavía no considera aprendido/aprobado.
-
-Contrato normalizado:
-
-- `origin=dependiente`
-- `dependiente_source=trainer|academy|learned`
-- `source_id`
-- `category_id`
-- `product_id` cuando proceda
-- `question`
-- `answer`
-- `source_hash`
-- `validation`
-- `question_type`
-- `lesson_key`
-- `run_id` cuando exista
-- `confidence`
-- `first_seen_at/last_seen_at`
-- `editorial_candidate`
-- `discard_reason`
-
-Si una pregunta nació en una FAQ y después Dependiente la aprendió, dentro de este segundo carril continúa siendo:
+Editorialmente:
 
 `origin=dependiente`
 
-La trazabilidad técnica puede indicar que vino de Entrenador/FAQ, pero editorialmente se conserva lo que **realmente sabe Dependiente**.
+Se conserva, cuando existe:
 
-## No deduplicación FAQ vs Dependiente
+- `question_id`;
+- pregunta;
+- tipo;
+- lección;
+- origen técnico;
+- `run_id`;
+- validación;
+- score;
+- resultados/evidencia;
+- fecha del run.
 
-No se realiza deduplicación destructiva entre fuentes.
+Si la pregunta no tiene un último resultado bueno, Solucionador no la usa.
 
-Ejemplo:
+## Filtro de ruido
 
-~~~text
-FAQ
-Pregunta: ¿Cómo sé qué longitud de abrazadera necesito?
-Respuesta: [respuesta humana]
-
-DEPENDIENTE
-Pregunta: ¿Cómo sé qué longitud de abrazadera necesito?
-Respuesta: [respuesta que sabe Dependiente]
-Validación: pass_top1
-~~~
-
-Se conservan los dos items.
-
-No se elimina por:
-
-- texto idéntico;
-- similitud;
-- mismo tema;
-- mismo producto;
-- mismo `category_id`.
-
-Editora decide si usa uno, mezcla ambos o descarta uno.
-
-## Asociación con product_cat
-
-La unidad editorial es:
-
-**1 dossier por `category_id`**
-
-No existe un dossier FAQ separado de otro Dependiente.
-
-La categoría sólo se acepta cuando puede demostrarse mediante:
-
-- relación directa de FAQ con categoría;
-- FAQ de producto → producto → categorías WooCommerce;
-- metadatos canónicos del aprendizaje;
-- producto conocido → categorías WooCommerce;
-- relaciones de Vocabulary canónicas ya asignadas a `product_cat`.
-
-No se usa parecido textual.
-
-Un item sin categoría se contabiliza como **SIN_CATEGORY** y no origina propuesta hasta resolverla.
-
-## Modelo de item
-
-Identidades estables actuales:
-
-- `faq:123`
-- `dependiente:trainer:456`
-- `dependiente:semantic:789`
-
-Las claves mantienen separadas las dos fuentes incluso cuando pregunta y respuesta sean similares.
-
-## Filtro editorial de Dependiente
-
-El conocimiento fuente no se borra.
-
-Solucionador puede excluir de la candidatura editorial ruido de entrenamiento como:
+Después de comprobar que Dependiente la evaluó correctamente, Solucionador puede marcar como no candidata editorial preguntas puramente mecánicas, por ejemplo:
 
 - “¿Qué es esta categoría?”
 - “¿Qué productos contiene esta categoría?”
 - “Lista los productos de…”
 
-El proveedor marca:
+La pregunta no se borra del Entrenador.
 
-- `editorial_candidate=true|false`
-- `discard_reason`
+Se registra como descartada editorialmente para diagnóstico.
 
-FAQ activa y correctamente relacionada se considera candidata por defecto.
+## FAQ y Dependiente no se deduplican
 
-## Densidad de material
-
-No existe un bloqueo de “mínimo 3 preguntas”.
-
-El antiguo `minimum_academy_questions` sólo puede utilizarse como **indicador de densidad**.
-
-Una categoría con una única FAQ útil puede producir una propuesta.
-
-## Cobertura y duplicación
-
-Cobertura, riesgo de duplicación y canibalización son **recomendaciones editoriales**, no permisos.
-
-Acciones recomendadas principales:
-
-- `CREATE_POST`: no se detecta cobertura equivalente.
-- `IMPROVE_POST`: existe un post con cobertura débil/parcial.
-- `NO_ACTION`: existe cobertura, duplicación, conflicto o no hay una recomendación automática clara.
-- `DEFER`: falta `product_cat` demostrable.
-
-Aunque la recomendación sea `NO_ACTION`, el dossier sigue visible para Editora.
-
-## Dossier persistente
-
-Tabla:
-
-`{$wpdb->prefix}seo_solucionador_dossiers`
-
-Campos relevantes:
-
-- `category_id`
-- `category_name`
-- `question_count`
-- `faq_count`
-- `dependiente_count`
-- `faq_ids`
-- `dependiente_keys`
-- `question_ids` — compatibilidad con trainer antiguo
-- `item_hashes`
-- `source_hash`
-- `reviewed_hash`
-- `reviewed_item_hashes`
-- `editorial_status`
-- `scan_token`
-- fechas
-
-El `source_hash` se calcula con los hashes de todos los items de las dos fuentes y es estable frente al orden de lectura.
-
-Dos ejecuciones sin cambios mantienen el mismo hash.
-
-## Cambios posteriores
-
-Se comparan:
-
-`item_hashes actuales`
-
-contra:
-
-`reviewed_item_hashes`
-
-Estados:
-
-- **NEW**
-- **MODIFIED**
-- **RETIRED**
-- **UNCHANGED**
-
-Cualquiera de estos cambios no revisados provoca:
-
-`source_hash != reviewed_hash → NEEDS_UPDATE`
-
-Casos incluidos:
-
-- nueva FAQ;
-- respuesta FAQ modificada;
-- FAQ desactivada;
-- nuevo aprendizaje de Dependiente;
-- regla aprendida modificada/desactivada;
-- cambio en una respuesta/evidencia de Dependiente.
-
-Solucionador **no sobrescribe `post_content`**.
-
-Si el post está publicado, permanece exactamente como está hasta revisión humana.
-
-## Procesamiento incremental
-
-Los carriles son independientes:
-
-- `faq_cursor`
-- `dependiente_cursor.trainer`
-- `dependiente_cursor.semantic`
-
-Puede existir:
+Si existe la misma pregunta en FAQ y en Entrenador, se conservan las dos:
 
 ~~~text
-FAQ: complete
-Dependiente trainer: 20.000 / 38.391
-Dependiente semantic: complete
+FAQ
+pregunta + respuesta humana
+
+DEPENDIENTE
+misma pregunta + respuesta/evidencia aprendida
 ~~~
 
-y Editora puede revisar los dossiers ya disponibles.
+Editora decide cuál utilizar.
 
-La migración 0.6/0.7 reutiliza el cursor antiguo de Entrenador cuando es posible; añadir el collector FAQ o semántico no obliga a reiniciar el largo recorrido de preguntas.
+## Asociación a product_cat
 
-Si cambia una fuente terminada, se reconstruye únicamente ese carril.
+Solucionador sólo usa relaciones demostrables.
 
-## Propuesta editorial
+FAQ:
 
-El flujo obligatorio es:
+- categoría directa;
+- producto → categorías WooCommerce.
+
+Dependiente:
+
+- `expected_json`;
+- origen category/product/features;
+- producto → categorías WooCommerce;
+- asociación canónica ya guardada por Entrenador.
+
+No se inventa una categoría por similitud textual.
+
+Si no puede demostrarse la categoría, el elemento queda como **sin categoría** y no genera propuesta.
+
+## Dossier
+
+Existe un único dossier por `category_id`.
+
+Ejemplo:
 
 ~~~text
-FUENTES
-  ↓
-DOSSIER
-  ↓
-PROPUESTA
-  ↓
-REVISIÓN EDITORIAL
-  ↓
-DRAFT
-  ↓
-EDICIÓN HUMANA
-  ↓
-PUBLICACIÓN HUMANA
+Abrazaderas
+├─ FAQ 123
+├─ FAQ 456
+├─ Dependiente 115078
+└─ Dependiente 126929
 ~~~
 
-Solucionador:
+No existe un tercer origen mixto.
 
-- no publica;
-- no elige las preguntas definitivas;
-- no redacta la versión pública final;
-- no modifica silenciosamente posts publicados;
-- no altera las fuentes al marcar un item como usar/descartar.
+## Masa mínima
 
-## Interfaz de propuesta
+No hay bloqueo por número mínimo de preguntas.
 
-El material se presenta por origen.
+Una sola FAQ útil o una sola pregunta buena de Dependiente puede ser suficiente para que Editora vea el dossier.
 
-### FAQs
+La cantidad de material sólo sirve como indicador.
 
-Para cada item:
+## Recomendación editorial
 
-- estado editorial: NEW / MODIFIED / RETIRED / UNCHANGED;
-- pregunta;
-- respuesta humana original;
-- producto/categoría;
-- última actualización.
+Solucionador puede recomendar:
 
-### Dependiente
+- `CREATE_POST`;
+- `IMPROVE_POST`;
+- `NO_ACTION`;
+- `DEFER` si no hay categoría demostrable.
 
-Para cada item:
+Cobertura, duplicación y canibalización son indicadores, no permisos para ocultar el dossier.
 
-- estado editorial;
-- pregunta/conocimiento;
-- respuesta;
-- `dependiente_source`;
-- tipo;
-- lección;
-- validación;
-- score/confianza;
-- fecha del aprendizaje.
+## Cambios en las fuentes
 
-Cada novedad puede revisarse/seleccionarse/descartarse sin modificar la fuente original.
+Cada item mantiene un hash.
 
-## Draft y post publicado
+El dossier calcula un `source_hash` estable a partir de los hashes de sus items.
 
-`SEO_Solucionador_Posts::create_draft()` crea exclusivamente:
-
-`post_status=draft`
-
-El borrador incluye un brief interno separado en:
-
-- **FAQs editoriales**
-- **Entrevista a Dependiente**
-
-La Editora debe reescribir y decidir qué material utilizar.
-
-Cuando una fuente cambia:
+Comparación:
 
 ~~~text
-Publicado + conocimiento nuevo/modificado/retirado = NEEDS_UPDATE
+source_hash actual
+vs
+reviewed_hash
 ~~~
 
-El contenido público permanece estable.
+Si cambia una FAQ o cambia el último run válido de Dependiente:
+
+`NEEDS_UPDATE`
+
+Se distinguen:
+
+- NUEVO;
+- MODIFICADO;
+- RETIRADO.
+
+Nunca se sobrescribe automáticamente el contenido de un post.
+
+## Posts publicados
+
+Un post publicado permanece estable.
+
+~~~text
+post publicado + conocimiento nuevo = NEEDS_UPDATE
+~~~
+
+Editora debe revisar el cambio antes de modificar el contenido público.
+
+## Procesamiento por lotes
+
+Hay dos cursores independientes:
+
+- `faq_cursor`;
+- `dependiente_cursor`.
+
+El cursor de Dependiente recorre únicamente la tabla de preguntas del Entrenador.
+
+Para mejorar rendimiento, el worker:
+
+1. obtiene un lote pequeño de preguntas;
+2. busca sólo el último run de los IDs de ese lote;
+3. evalúa `answered + pass_*`;
+4. persiste únicamente los items útiles.
+
+No se agrupa toda la tabla de runs en cada lote.
+
+FAQ puede haber terminado mientras Dependiente sigue procesando.
 
 ## KPIs
 
-Resumen mínimo:
-
 ### FAQ
 
-- FAQs activas/totales;
+- activas;
 - procesadas;
 - con categoría;
-- sin categoría;
-- items FAQ en dossiers.
+- sin categoría.
 
 ### Dependiente
 
-- procesados;
-- aprendidos/aprobados;
-- candidatos editoriales;
-- descartados por ruido;
+- preguntas de Entrenador procesadas;
+- evaluadas con buen resultado;
+- útiles editorialmente;
+- descartadas por ruido;
 - con categoría;
-- sin categoría;
-- items Dependiente en dossiers.
+- sin categoría.
 
 ### Categorías
 
@@ -423,13 +264,54 @@ Resumen mínimo:
 - NEEDS_UPDATE;
 - publicados.
 
+## Interfaz editorial
+
+Dentro de una propuesta se muestran dos bloques separados.
+
+### FAQ
+
+- pregunta;
+- respuesta humana;
+- categoría/producto;
+- fecha;
+- estado editorial.
+
+### Dependiente
+
+- pregunta;
+- respuesta/evidencia;
+- tipo;
+- lección;
+- validación;
+- score;
+- fecha;
+- estado editorial.
+
+Cada item puede quedar:
+
+- pendiente;
+- usar;
+- descartar.
+
+Estas decisiones no modifican las tablas fuente.
+
+## Draft
+
+El flujo obligatorio es:
+
+~~~text
+fuentes → dossier → propuesta → revisión → draft → edición humana → publicación humana
+~~~
+
+Solucionador nunca publica automáticamente.
+
 ## Export JSON
 
 Schema:
 
 `seo-solucionador-export-v6`
 
-Cada dossier expone las fuentes por separado:
+Por dossier:
 
 ~~~json
 {
@@ -443,72 +325,17 @@ Cada dossier expone las fuentes por separado:
 }
 ~~~
 
-Cada item incluye como mínimo:
+Cada item expone claramente:
 
-- `origin`
-- `source_id`
-- `item_id`
-- `question`
-- `answer`
-- `hash`
-- `status`
+- origen;
+- source_id;
+- pregunta;
+- respuesta/evidencia;
+- hash;
+- estado.
 
-Dependiente añade validación, tipo, lección, origen interno y confianza cuando existen.
+## Principio final
 
-El resumen de evidencias debe distinguir:
+**Solucionador debe ser sencillo y eficiente.**
 
-- `faq`
-- `dependiente`
-
-Nunca volver a agregar todo como `source=dependiente`.
-
-## Dependencias
-
-Para generar dossiers Solucionador sólo necesita:
-
-- WordPress/WooCommerce `product_cat`;
-- `seo_faq`;
-- API editorial de Dependiente.
-
-Ingeniero, Comparador, Ojeador, Marketing y Analista pueden estar desactivados.
-
-La cobertura neutral puede ayudar a recomendar una acción, pero no es una fuente de conocimiento.
-
-## Tests de aceptación
-
-La suite 0.7.1 valida, entre otros:
-
-1. FAQ y Dependiente generan el mismo topic por categoría sin mezclar fuentes.
-2. El contrato declara exactamente `faq|dependiente`.
-3. Una sola FAQ puede recomendar `CREATE_POST`.
-4. Dependiente sin FAQ también puede hacerlo.
-5. Sin categoría demostrable se usa `DEFER`.
-6. Cobertura parcial recomienda `IMPROVE_POST`.
-7. Duplicación recomienda `NO_ACTION` pero no bloquea el dossier.
-8. FAQ y Dependiente con contenido equivalente conservan dos item_id.
-9. Se detectan NEW/MODIFIED/RETIRED.
-10. El source_hash es estable sin cambios.
-11. Desactivar una FAQ cambia el hash.
-12. Existe el proveedor editorial encapsulado de Dependiente.
-13. El contrato de post sigue siendo draft/humano.
-14. El export usa schema v6 y separa ambas fuentes.
-15. No existe dependencia obligatoria de Ingeniero/Comparador.
-16. El procesamiento es incremental/migrable.
-
-## Flujo final
-
-~~~text
-seo_faq ───────────────────────┐
-pregunta + respuesta humana    │
-                               ├──→ dossier product_cat
-Dependiente ───────────────────┘       ↓
-trainer + reglas consolidadas       propuesta
-                                      ↓
-                                   Editora
-                                      ↓
-                                    draft
-                                      ↓
-                              publicación humana
-~~~
-
-**Principio final:** Solucionador no aprende. Recoge conocimiento humano de FAQ y conocimiento real de Dependiente, los mantiene separados dentro de un único dossier por categoría y se los entrega a Editora.
+Para Dependiente no intenta reconstruir todo su conocimiento interno: lee las preguntas del Entrenador y utiliza únicamente aquellas cuyo último resultado Dependiente ha evaluado como bueno.
