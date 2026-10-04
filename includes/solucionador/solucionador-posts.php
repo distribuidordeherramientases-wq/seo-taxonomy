@@ -204,15 +204,16 @@ final class SEO_Solucionador_Posts {
         return array_values((array) SEO_Solucionador_Dossiers::question_details(absint($category_id)));
     }
 
-    private static function dossier_snapshot($category_id, array $details) {
+    private static function dossier_snapshot($category_id,array $details) {
         $dossier = class_exists('SEO_Solucionador_Dossiers')
-            ? (array) SEO_Solucionador_Dossiers::get_by_category(absint($category_id))
+            ? (array)SEO_Solucionador_Dossiers::get_by_category(absint($category_id))
             : array();
 
         $question_ids = array();
         $faq_ids = array();
         $run_ids = array();
         $item_keys = array();
+        $items = array();
         $origins = array('faq'=>0,'dependiente'=>0);
 
         foreach ($details as $row) {
@@ -225,9 +226,30 @@ final class SEO_Solucionador_Posts {
             if ($qid) $question_ids[] = $qid;
             if ($fid) $faq_ids[] = $fid;
             if ($rid) $run_ids[] = $rid;
-            if (preg_match('/^(dependiente|faq):[0-9]+$/',$item_key)) $item_keys[] = $item_key;
+            if (self::valid_item_key($item_key)) {
+                $item_keys[] = $item_key;
+                $items[$item_key] = array(
+                    'item_key'=>$item_key,
+                    'origin'=>$origin,
+                    'source_id'=>$row['source_id'] ?? null,
+                    'faq_id'=>$fid ?: null,
+                    'question_id'=>$qid ?: null,
+                    'question'=>sanitize_text_field((string)($row['question'] ?? '')),
+                    'answer'=>trim(wp_strip_all_tags((string)($row['answer'] ?? ''))),
+                    'question_type'=>sanitize_key((string)($row['question_type'] ?? '')),
+                    'lesson_key'=>sanitize_key((string)($row['lesson_key'] ?? '')),
+                    'dependiente_source'=>sanitize_key((string)($row['dependiente_source'] ?? '')),
+                    'evaluation_status'=>sanitize_key((string)($row['evaluation_status'] ?? '')),
+                    'evaluation_score'=>(float)($row['evaluation_score'] ?? 0),
+                    'product_id'=>absint($row['product_id'] ?? 0) ?: null,
+                    'observed_at'=>sanitize_text_field((string)($row['observed_at'] ?? '')),
+                    'source_hash'=>sanitize_text_field((string)($row['source_hash'] ?? '')),
+                    'editorial_choice'=>sanitize_key((string)($row['editorial_choice'] ?? 'pending')),
+                );
+            }
             if (isset($origins[$origin])) $origins[$origin]++;
         }
+        ksort($items,SORT_STRING);
 
         return array(
             'dossier_id'=>absint($dossier['id'] ?? 0),
@@ -237,10 +259,11 @@ final class SEO_Solucionador_Posts {
             'faq_ids'=>array_values(array_unique($faq_ids)),
             'run_ids'=>array_values(array_unique($run_ids)),
             'item_keys'=>array_values(array_unique($item_keys)),
+            'items'=>$items,
             'question_count'=>count($details),
             'origins'=>$origins,
             'source_hash'=>(string)($dossier['source_hash'] ?? ''),
-            'item_hashes'=>SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}', array()),
+            'item_hashes'=>SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array()),
             'last_validated_at'=>(string)($dossier['last_validated_at'] ?? ''),
             'captured_at'=>current_time('mysql'),
         );
@@ -294,11 +317,18 @@ final class SEO_Solucionador_Posts {
         return self::managed_post_id_by_category($category_id);
     }
 
+    private static function valid_item_key($key) {
+        return (bool)preg_match(
+            '/^(faq:[0-9]+|dependiente:(?:trainer|semantic):[0-9]+|dependiente:[0-9]+)$/',
+            sanitize_text_field((string)$key)
+        );
+    }
+
     private static function normalize_item_keys(array $keys) {
         $out = array();
         foreach ($keys as $key) {
             $key = sanitize_text_field((string)$key);
-            if (preg_match('/^(dependiente|faq):[0-9]+$/',$key)) $out[] = $key;
+            if (self::valid_item_key($key)) $out[] = $key;
         }
         $out = array_values(array_unique($out));
         sort($out,SORT_STRING);
@@ -318,14 +348,14 @@ final class SEO_Solucionador_Posts {
             'absint',
             (array)get_post_meta($post_id,self::META_PENDING_QUESTION_IDS,true)
         ))));
-        foreach ($legacy as $question_id) $keys[] = 'dependiente:' . $question_id;
+        foreach ($legacy as $question_id) $keys[] = 'dependiente:trainer:' . $question_id;
         return self::normalize_item_keys($keys);
     }
 
     public static function pending_question_ids($post_id) {
         $ids = array();
         foreach (self::pending_item_keys($post_id) as $key) {
-            if (strpos($key,'dependiente:') === 0) $ids[] = absint(substr($key,12));
+            if (preg_match('/^dependiente:(?:trainer:)?([0-9]+)$/',$key,$m)) $ids[] = absint($m[1]);
         }
         return array_values(array_unique(array_filter($ids)));
     }
@@ -342,14 +372,39 @@ final class SEO_Solucionador_Posts {
         $pending = self::pending_item_keys($post_id);
         if (!$pending) return array();
         $lookup = array_fill_keys($pending,true);
+        $out = array();
 
-        return array_values(array_filter(
-            self::question_details($category_id),
-            static function($row) use ($lookup) {
-                $key = sanitize_text_field((string)($row['item_key'] ?? ''));
-                return $key !== '' && !empty($lookup[$key]);
+        foreach (self::question_details($category_id) as $row) {
+            $key = sanitize_text_field((string)($row['item_key'] ?? ''));
+            if ($key !== '' && !empty($lookup[$key])) {
+                $out[$key] = $row;
             }
-        ));
+        }
+
+        // Los RETIRADOS ya no existen en la fuente actual. Se recupera su última
+        // copia del snapshot editorial del post sólo para que Editora sepa qué
+        // desapareció; nunca se reescribe la fuente ni el contenido publicado.
+        $snapshot = get_post_meta($post_id,self::META_SOURCE_SNAPSHOT,true);
+        $old_items = is_array($snapshot) ? (array)($snapshot['items'] ?? array()) : array();
+        foreach ($pending as $key) {
+            if (isset($out[$key])) continue;
+            if (!isset($old_items[$key]) || !is_array($old_items[$key])) {
+                $out[$key] = array(
+                    'item_key'=>$key,
+                    'origin'=>strpos($key,'faq:') === 0 ? 'faq' : 'dependiente',
+                    'question'=>'Elemento retirado de la fuente',
+                    'answer'=>'',
+                    'editorial_state'=>'retired',
+                );
+                continue;
+            }
+            $row = $old_items[$key];
+            $row['item_key'] = $key;
+            $row['editorial_state'] = 'retired';
+            $out[$key] = $row;
+        }
+
+        return array_values($out);
     }
 
     private static function clear_pending_questions($post_id) {
@@ -564,7 +619,7 @@ final class SEO_Solucionador_Posts {
         echo '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">';
         echo '<div><h2 style="margin:0 0 6px">Solucionador · revisión de novedades</h2>';
         if ($count) {
-            echo '<p style="margin:0"><strong>' . esc_html(number_format_i18n($count)) . ' elementos nuevos o modificados</strong>. El post conserva su estado actual; nada se publica ni se guarda automáticamente.</p>';
+            echo '<p style="margin:0"><strong>' . esc_html(number_format_i18n($count)) . ' elementos nuevos, modificados o retirados</strong>. El post conserva su estado actual; nada se publica ni se guarda automáticamente.</p>';
             if ($detected_at !== '') echo '<p class="description" style="margin:4px 0 0">Detectadas: ' . esc_html($detected_at) . '</p>';
         } else {
             echo '<p style="margin:0">No hay novedades pendientes de revisión.</p>';
@@ -598,7 +653,7 @@ final class SEO_Solucionador_Posts {
             foreach ($pending as $row) {
                 $item_key = sanitize_text_field((string)($row['item_key'] ?? ''));
                 $question = trim((string)($row['question'] ?? ''));
-                if (!preg_match('/^(dependiente|faq):[0-9]+$/',$item_key) || $question === '') continue;
+                if (!self::valid_item_key($item_key) || $question === '') continue;
                 $answer = class_exists('SEO_Solucionador_Dossiers')
                     ? SEO_Solucionador_Dossiers::answer_text((array)$row)
                     : '';
@@ -610,10 +665,15 @@ final class SEO_Solucionador_Posts {
                 if ($answer !== '') echo '<div style="margin-top:5px;line-height:1.55">' . esc_html($answer) . '</div>';
                 $trace = array();
                 $origin = sanitize_key((string)($row['origin'] ?? 'dependiente'));
+                $editorial_state = sanitize_key((string)($row['editorial_state'] ?? ''));
+                if ($editorial_state !== '' && $editorial_state !== 'unchanged') {
+                    $trace[] = strtoupper($editorial_state);
+                }
                 if ($origin === 'faq') {
-                    $trace[] = 'FAQ manual #' . absint($row['faq_id'] ?? 0);
+                    $trace[] = 'FAQ humana #' . absint($row['faq_id'] ?? 0);
                 } else {
-                    $trace[] = 'Academia/Dependiente';
+                    $dep_source = sanitize_key((string)($row['dependiente_source'] ?? ''));
+                    $trace[] = 'Dependiente' . ($dep_source !== '' ? ' · ' . $dep_source : '');
                 }
                 if (!empty($row['lesson_key'])) $trace[] = 'lección ' . (string)$row['lesson_key'];
                 if (!empty($row['question_type'])) $trace[] = 'tipo ' . (string)$row['question_type'];
@@ -846,7 +906,9 @@ final class SEO_Solucionador_Posts {
                 $answer = class_exists('SEO_Solucionador_Dossiers')
                     ? SEO_Solucionador_Dossiers::answer_text((array)$row)
                     : '';
-                $html .= '<li><strong>' . esc_html($question) . '</strong><br>';
+                $choice = sanitize_key((string)($row['editorial_choice'] ?? 'pending'));
+                $choice_label = array('use'=>'USAR','discard'=>'DESCARTAR','pending'=>'PENDIENTE')[$choice] ?? 'PENDIENTE';
+                $html .= '<li><strong>[' . esc_html($choice_label) . '] ' . esc_html($question) . '</strong><br>';
                 $html .= esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.');
                 $html .= '</li>';
             }
@@ -953,6 +1015,7 @@ final class SEO_Solucionador_Posts {
         SEO_Solucionador_DB::update_dossier_editorial($primary_category_id,array(
             'reviewed_hash'=>(string)($snapshot['source_hash'] ?? ''),
             'reviewed_item_hashes'=>wp_json_encode((array)($snapshot['item_hashes'] ?? array())),
+            'reviewed_items_snapshot'=>wp_json_encode((array)($snapshot['items'] ?? array())),
             'editorial_status'=>SEO_Editorial_Service_Contract::DRAFT,
             'reviewed_at'=>current_time('mysql'),
         ));
