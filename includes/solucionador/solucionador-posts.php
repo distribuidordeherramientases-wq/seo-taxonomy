@@ -319,7 +319,7 @@ final class SEO_Solucionador_Posts {
 
     private static function valid_item_key($key) {
         return (bool)preg_match(
-            '/^(faq:[0-9]+|dependiente:(?:trainer|semantic):[0-9]+|dependiente:[0-9]+)$/',
+            '/^(faq:[0-9]+|dependiente:(?:trainer:)?[0-9]+)$/',
             sanitize_text_field((string)$key)
         );
     }
@@ -348,7 +348,7 @@ final class SEO_Solucionador_Posts {
             'absint',
             (array)get_post_meta($post_id,self::META_PENDING_QUESTION_IDS,true)
         ))));
-        foreach ($legacy as $question_id) $keys[] = 'dependiente:trainer:' . $question_id;
+        foreach ($legacy as $question_id) $keys[] = 'dependiente:' . $question_id;
         return self::normalize_item_keys($keys);
     }
 
