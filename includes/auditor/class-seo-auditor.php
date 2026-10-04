@@ -346,7 +346,7 @@ final class SEO_Auditor {
         echo '</div>';
 
         echo '<div class="seo-auditor__metrics">';
-        self::metric('Hallazgos', absint($summary['findings'] ?? 0));
+        self::metric('Hallazgos', absint($summary['findings_total'] ?? $summary['findings'] ?? 0));
         self::metric('Criticos', absint($summary['critical'] ?? 0), 'critical');
         self::metric('Alta', absint($summary['high'] ?? 0), 'high');
         self::metric('Media', absint($summary['medium'] ?? 0), 'medium');
@@ -359,8 +359,13 @@ final class SEO_Auditor {
 
         self::render_priority_queue(
             (array) ($report['priority_queue'] ?? array()),
-            (array) ($report['priority_summary'] ?? array())
+            (array) ($report['priority_summary'] ?? array()),
+            (array) ($report['priority_queue_meta'] ?? array())
         );
+
+        if ('faqs' === $scope && !empty($report['faq_migration_inventory'])) {
+            self::render_faq_migration_inventory_summary((array) $report['faq_migration_inventory']);
+        }
 
         if ('engine' === $scope && !empty($report['behavior_audit'])) {
             self::render_behavior($report);
@@ -371,6 +376,14 @@ final class SEO_Auditor {
         }
 
         echo '<h3>Hallazgos</h3>';
+        $findings_meta=(array)($report['findings_meta'] ?? array());
+        if(!empty($findings_meta['truncated'])){
+            echo '<div class="notice notice-info inline"><p>La tabla de hallazgos es una muestra: '
+                . esc_html(number_format_i18n(absint($findings_meta['included_count'] ?? 0)))
+                . ' incluidos de '
+                . esc_html(number_format_i18n(absint($findings_meta['total_count'] ?? 0)))
+                . '. Los contadores de regla conservan el total real.</p></div>';
+        }
         self::render_finding_table(array_slice((array) ($report['findings'] ?? array()), 0, 250));
     }
 
@@ -4152,11 +4165,21 @@ final class SEO_Auditor {
         return $summary;
     }
 
-    private static function render_priority_queue($tasks, $summary=array()) {
+    private static function render_priority_queue($tasks, $summary=array(), $meta=array()) {
         $tasks = array_values((array) $tasks);
         $summary = (array) $summary;
+        $meta = (array) $meta;
         echo '<h3>Plan de trabajo priorizado</h3>';
-        echo '<p class="description">Auditor clasifica y prioriza; no corrige ni genera texto. P1 significa atender primero y puede ser CORREGIR_AHORA o VERIFICAR_AHORA; P2 espera conocimiento, P3 preserva FAQs útiles en Solucionador, P4 requiere criterio humano y P5 es informativo. El trafico aun no modifica la prioridad hasta integrar las metricas de Analista.</p>';
+        echo '<p class="description">Auditor clasifica y prioriza; no corrige ni genera texto. P1 significa atender primero y puede ser CORREGIR_AHORA o VERIFICAR_AHORA; P2 espera conocimiento, P3 preserva FAQs útiles en Solucionador, P4 requiere criterio humano y P5 es informativo. El tráfico aún no modifica la prioridad hasta integrar las métricas de Analista.</p>';
+        if(!empty($meta['truncated'])){
+            echo '<div class="notice notice-warning inline"><p>La cola canónica alcanzó el límite técnico de recopilación; el JSON no debe considerarse completo hasta reauditar con mayor capacidad.</p></div>';
+        }elseif(!empty($meta['ui']['truncated'])){
+            echo '<div class="notice notice-info inline"><p>La pantalla muestra '
+                . esc_html(number_format_i18n(absint($meta['ui']['included_count'] ?? self::PRIORITY_UI_LIMIT)))
+                . ' de '
+                . esc_html(number_format_i18n(absint($meta['ui']['total_count'] ?? count($tasks))))
+                . ' tareas. El JSON exportado contiene la cola completa.</p></div>';
+        }
 
         echo '<div class="seo-auditor__metrics">';
         foreach (array('P1'=>'Atender primero','P2'=>'Esperar enriquecimiento','P3'=>'Migrar conocimiento','P4'=>'Revisar','P5'=>'Informativo') as $priority=>$label) {
@@ -4172,7 +4195,7 @@ final class SEO_Auditor {
         echo '<div class="seo-auditor__quality-table-wrap"><table class="widefat striped seo-auditor__findings"><thead><tr>';
         echo '<th>Prioridad</th><th>Entidad</th><th>Problema</th><th>Estado / dependencia</th><th>Impacto esperado</th><th>Recomendacion</th>';
         echo '</tr></thead><tbody>';
-        foreach (array_slice($tasks, 0, 250) as $task) {
+        foreach (array_slice($tasks, 0, self::PRIORITY_UI_LIMIT) as $task) {
             $impact = (array) ($task['expected_impact'] ?? array());
             $edit = (string) ($task['edit_url'] ?? '');
             echo '<tr>';
@@ -4189,6 +4212,24 @@ final class SEO_Auditor {
             echo '</tr>';
         }
         echo '</tbody></table></div>';
+    }
+
+    private static function render_faq_migration_inventory_summary($inventory) {
+        $summary=(array)($inventory['summary'] ?? array());
+        echo '<h3>Inventario completo de migración FAQ</h3>';
+        echo '<p class="description">Clasificación de todas las FAQs activas, independiente del límite visual de hallazgos. Auditor no retira ni migra automáticamente.</p>';
+        echo '<div class="seo-auditor__metrics">';
+        self::metric('Total',absint($summary['total'] ?? 0));
+        self::metric('Migrar a Solucionador',absint($summary['MIGRATE'] ?? 0),'high');
+        self::metric('Candidatas a retirada',absint($summary['RETIRE_CANDIDATE'] ?? 0));
+        self::metric('Revisión humana',absint($summary['REVIEW'] ?? 0),'medium');
+        self::metric('Owner inválido',absint($summary['INVALID_OWNER'] ?? 0),'critical');
+        echo '</div>';
+        if(absint($summary['preservation_required'] ?? 0)>0){
+            echo '<div class="notice notice-warning inline"><p>'
+                . esc_html(number_format_i18n(absint($summary['preservation_required'] ?? 0)))
+                . ' FAQs requieren preservación confirmada en Solucionador antes de cualquier retirada pública.</p></div>';
+        }
     }
 
     private static function canonical_lesson_key($key) {
