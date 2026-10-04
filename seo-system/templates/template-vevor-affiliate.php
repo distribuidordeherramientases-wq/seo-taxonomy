@@ -54,6 +54,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
     $provider_categories = array();
     if (!empty($product_ids)) {
         $id_placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; valores enlazados mediante $wpdb->prepare().
         $sql = $wpdb->prepare(
             "SELECT DISTINCT categoria_proveedor
              FROM {$table}
@@ -64,7 +65,9 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
              LIMIT 20",
             ...array_merge(array('vevor'), array_map('absint', $product_ids))
         );
-        $provider_categories = array_values(array_filter(array_map('trim', (array) $wpdb->get_col($sql))));
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        $provider_rows = (array) $wpdb->get_col($sql);
+        $provider_categories = array_values(array_filter(array_map('trim', $provider_rows)));
     }
 
     $raw_tokens = preg_split('/[^\\p{L}\\p{N}]+/u', remove_accents(mb_strtolower($category_context->name . ' ' . $category_keywords)));
@@ -113,7 +116,10 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
                   AND (url_canonica IS NOT NULL OR url_origen IS NOT NULL)
                 ORDER BY actualizado DESC, id DESC
                 LIMIT 80";
-        $candidates = $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y placeholders se generan internamente; valores enlazados mediante $wpdb->prepare().
+        $sql = $wpdb->prepare($sql, ...$args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        $candidates = $wpdb->get_results($sql, ARRAY_A);
 
         $category_keys = array_fill_keys(array_map(static function ($value) {
             return sanitize_title(remove_accents(mb_strtolower((string) $value)));
