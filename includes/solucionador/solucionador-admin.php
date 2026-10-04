@@ -724,11 +724,24 @@ final class SEO_Solucionador_Admin {
         }
 
         if (!empty($changes['retired'])) {
-            echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">RETIRADOS desde la última revisión</h2><ul>';
-            foreach ((array)$changes['retired'] as $key) {
-                echo '<li><code>' . esc_html((string)$key) . '</code> · ya no existe en la fuente actual.</li>';
+            $retired_details = method_exists('SEO_Solucionador_Dossiers','retired_item_details')
+                ? SEO_Solucionador_Dossiers::retired_item_details($category_id)
+                : array();
+            echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">RETIRADOS desde la última revisión</h2>';
+            if ($retired_details) {
+                echo '<table class="widefat striped"><thead><tr><th>Origen</th><th>Elemento retirado</th><th>Última respuesta conocida</th></tr></thead><tbody>';
+                foreach ($retired_details as $item) {
+                    echo '<tr><td><strong>' . esc_html(strtoupper((string)($item['origin'] ?? ''))) . '</strong></td>';
+                    echo '<td><strong>' . esc_html((string)($item['question'] ?? 'Elemento retirado')) . '</strong><br><code>' . esc_html((string)($item['item_key'] ?? '')) . '</code></td>';
+                    echo '<td>' . esc_html((string)($item['answer'] ?? '')) . '</td></tr>';
+                }
+                echo '</tbody></table>';
+            } else {
+                echo '<ul>';
+                foreach ((array)$changes['retired'] as $key) echo '<li><code>' . esc_html((string)$key) . '</code></li>';
+                echo '</ul>';
             }
-            echo '</ul><p class="description">El contenido publicado no se modifica. Editora decide si debe retirar o mantener la información existente.</p></div>';
+            echo '<p class="description">El contenido publicado no se modifica. Editora decide si debe retirar o mantener la información existente.</p></div>';
         }
 
         submit_button('Guardar decisiones editoriales','primary');
