@@ -1579,9 +1579,11 @@ final class SEO_Solucionador_Dossiers {
         }
 
         $changes = self::item_changes($category_id);
+        $choices = self::item_editorial_states($category_id);
         foreach ($out as &$item) {
             $key = (string)($item['item_key'] ?? '');
             $item['editorial_state'] = (string)($changes['status'][$key] ?? 'unchanged');
+            $item['editorial_choice'] = (string)($choices[$key] ?? 'pending');
         }
         unset($item);
 
