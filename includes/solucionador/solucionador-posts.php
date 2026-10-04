@@ -317,18 +317,27 @@ final class SEO_Solucionador_Posts {
         return self::managed_post_id_by_category($category_id);
     }
 
+    private static function canonical_item_key($key) {
+        $key = sanitize_text_field((string)$key);
+        if (preg_match('/^faq:([0-9]+)$/',$key,$m)) return 'faq:' . absint($m[1]);
+        if (preg_match('/^dependiente:(trainer|semantic):([0-9]+)$/',$key,$m)) {
+            return 'dependiente:' . sanitize_key($m[1]) . ':' . absint($m[2]);
+        }
+        if (preg_match('/^dependiente:([0-9]+)$/',$key,$m)) {
+            return 'dependiente:trainer:' . absint($m[1]);
+        }
+        return '';
+    }
+
     private static function valid_item_key($key) {
-        return (bool)preg_match(
-            '/^(faq:[0-9]+|dependiente:(?:trainer:)?[0-9]+)$/',
-            sanitize_text_field((string)$key)
-        );
+        return self::canonical_item_key($key) !== '';
     }
 
     private static function normalize_item_keys(array $keys) {
         $out = array();
         foreach ($keys as $key) {
-            $key = sanitize_text_field((string)$key);
-            if (self::valid_item_key($key)) $out[] = $key;
+            $key = self::canonical_item_key($key);
+            if ($key !== '') $out[] = $key;
         }
         $out = array_values(array_unique($out));
         sort($out,SORT_STRING);
@@ -348,7 +357,7 @@ final class SEO_Solucionador_Posts {
             'absint',
             (array)get_post_meta($post_id,self::META_PENDING_QUESTION_IDS,true)
         ))));
-        foreach ($legacy as $question_id) $keys[] = 'dependiente:' . $question_id;
+        foreach ($legacy as $question_id) $keys[] = 'dependiente:trainer:' . $question_id;
         return self::normalize_item_keys($keys);
     }
 
@@ -449,7 +458,7 @@ final class SEO_Solucionador_Posts {
         // Compatibilidad para integraciones antiguas que sólo entienden qids.
         $legacy_qids = array();
         foreach ($pending_keys as $key) {
-            if (strpos($key,'dependiente:') === 0) $legacy_qids[] = absint(substr($key,12));
+            if (preg_match('/^dependiente:trainer:([0-9]+)$/',$key,$m)) $legacy_qids[] = absint($m[1]);
         }
         update_post_meta($post_id,self::META_PENDING_QUESTION_IDS,array_values(array_filter($legacy_qids)));
         update_post_meta($post_id,self::META_PENDING_SOURCE_HASH,(string)($dossier['source_hash'] ?? ''));
@@ -470,7 +479,7 @@ final class SEO_Solucionador_Posts {
                 SEO_Solucionador_DB::record_workflow(
                     $topic_id,
                     'needs_update',
-                    'El source_hash mixto ha cambiado. Se muestran exclusivamente elementos FAQ/Dependiente nuevos o modificados; el contenido publicado no se altera automáticamente.',
+                    'El source_hash del dossier ha cambiado. Se muestran elementos FAQ/Dependiente nuevos, modificados o retirados; el contenido publicado no se altera automáticamente.',
                     'IMPROVE_POST'
                 );
             }
@@ -511,7 +520,7 @@ final class SEO_Solucionador_Posts {
         // Mantener IDs antiguos sólo para preguntas Dependiente.
         $legacy_selected = array();
         foreach ($selected_keys as $key) {
-            if (strpos($key,'dependiente:') === 0) $legacy_selected[] = absint(substr($key,12));
+            if (preg_match('/^dependiente:trainer:([0-9]+)$/',$key,$m)) $legacy_selected[] = absint($m[1]);
         }
         update_post_meta($post_id,self::META_PENDING_SELECTED_IDS,array_values(array_filter($legacy_selected)));
 
@@ -536,7 +545,7 @@ final class SEO_Solucionador_Posts {
         if (!$selected) {
             foreach ((array)get_post_meta(absint($post_id),self::META_PENDING_SELECTED_IDS,true) as $id) {
                 $id = absint($id);
-                if ($id) $selected[] = 'dependiente:' . $id;
+                if ($id) $selected[] = 'dependiente:trainer:' . $id;
             }
             $selected = self::normalize_item_keys($selected);
         }
