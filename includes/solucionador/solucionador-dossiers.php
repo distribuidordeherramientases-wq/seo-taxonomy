@@ -1696,7 +1696,7 @@ final class SEO_Solucionador_Dossiers {
                 'signal_type'=>'category_editorial_source',
                 'entity_type'=>'product_cat','entity_id'=>$term_id,
                 'category_id'=>$term_id,'category_name'=>$name,
-                'source_text'=>'Conocimiento consolidado de Dependiente disponible para ' . $name . '.',
+                'source_text'=>'Preguntas de Entrenador validadas por Dependiente disponibles para ' . $name . '.',
                 'hints'=>array('intent'=>'dependiente_qa_basic','action'=>'resolver','object'=>$name,'category_id'=>$term_id),
                 'occurrences'=>$dependiente_count,
                 'confidence'=>max(0.50,min(1.0,(float)($row['score_avg'] ?? 0.80))),
