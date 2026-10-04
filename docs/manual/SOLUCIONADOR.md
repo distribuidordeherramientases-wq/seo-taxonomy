@@ -256,6 +256,46 @@ Solucionador:
 - no modifica silenciosamente un post publicado;
 - no altera las fuentes al marcar “Usar/Descartar”.
 
+## Cómo editar el material recibido
+
+> **IMPORTANTE: editar no significa limpiar el borrador.**
+
+Solucionador entrega **fuentes y material de trabajo**, no un artículo preparado para publicar. Editora debe interpretar el dossier y redactar el contenido final.
+
+Proceso editorial esperado:
+
+1. leer primero todas las FAQs y todo el material de Dependiente;
+2. identificar qué información aporta valor real al cliente;
+3. redactar el artículo de nuevo con una estructura propia;
+4. fusionar consultas repetitivas sobre potencia, dimensiones, capacidad, materiales, compatibilidad u otros atributos en explicaciones generales cuando resulte útil;
+5. transformar búsquedas de catálogo y coincidencias mecánicas en criterios de elección, explicaciones o recomendaciones;
+6. conservar o adaptar una FAQ humana cuando ya esté bien redactada;
+7. si Dependiente aporta una idea útil pero su respuesta es mecánica, pobre o demasiado ligada a productos concretos, conservar la idea y reescribirla;
+8. descartar cualquier afirmación que no pueda verificarse;
+9. eliminar material repetitivo, irrelevante o que sólo sirva para comprender el dossier;
+10. producir un único artículo coherente en el que el lector no pueda distinguir qué parte procedía de FAQ y cuál de Dependiente.
+
+No publicar literalmente consultas del tipo:
+
+- “Busco productos con tipo X y atributo Y”;
+- “Muéstrame productos con…”;
+- “Coincide en características”;
+- listados de productos sin explicación de por qué son relevantes.
+
+### Regla de control por párrafo
+
+Cada párrafo publicado debe aportar al menos una de estas cosas:
+
+- una explicación;
+- una recomendación;
+- una diferencia;
+- una precaución;
+- un criterio de decisión.
+
+Si un fragmento sólo reproduce una búsqueda, enumera productos porque sí, repite una característica sin explicar para qué sirve o conserva lenguaje del motor, todavía no está editado: debe transformarse o eliminarse.
+
+Las reglas de H1/H2/H3, listas, negritas, longitud y cierre son **secundarias** respecto a este principio. Primero se construye un artículo útil; después se aplica el formato.
+
 ## Cambios y NEEDS_UPDATE
 
 El dossier mantiene:
