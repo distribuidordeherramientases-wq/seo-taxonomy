@@ -374,6 +374,36 @@ final class SEO_Dependiente_Editorial_Knowledge {
             || self::table_exists(self::semantics_table());
     }
 
+    public static function inventory() {
+        global $wpdb;
+        $out = array(
+            'trainer_questions'=>0,
+            'semantic_rules'=>0,
+            'total'=>0,
+        );
+
+        $questions = self::questions_table();
+        if (self::table_exists($questions)) {
+            $where = self::curriculum_where();
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna, filtro fijo.
+            $out['trainer_questions'] = absint($wpdb->get_var(
+                "SELECT COUNT(*) FROM {$questions} q WHERE {$where}"
+            ));
+        }
+
+        $semantics = self::semantics_table();
+        if (self::table_exists($semantics)) {
+            $where = self::consolidated_semantics_where();
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna, filtro fijo.
+            $out['semantic_rules'] = absint($wpdb->get_var(
+                "SELECT COUNT(*) FROM {$semantics} WHERE {$where}"
+            ));
+        }
+
+        $out['total'] = $out['trainer_questions'] + $out['semantic_rules'];
+        return $out;
+    }
+
     public static function signature() {
         global $wpdb;
         $parts = array('provider'=>self::VERSION);
@@ -463,6 +493,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
             }
 
             $question_complete = count($q_rows)<$limit;
+            $delta_count = 0;
             if ($question_complete) {
                 $delta_sql = $wpdb->prepare(
                     "SELECT q.id question_id,q.lesson_key,q.source_type,q.source_id,q.source_key,
@@ -481,7 +512,9 @@ final class SEO_Dependiente_Editorial_Knowledge {
                     $run_cursor,$limit
                 );
                 // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado.
-                foreach ((array)$wpdb->get_results($delta_sql,ARRAY_A) as $delta) {
+                $delta_rows = (array)$wpdb->get_results($delta_sql,ARRAY_A);
+                $delta_count = count($delta_rows);
+                foreach ($delta_rows as $delta) {
                     $qid = absint($delta['question_id'] ?? 0);
                     if (!$qid) continue;
                     $runs_by_question[$qid] = $delta;
@@ -511,7 +544,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
                 else $stats['without_category']++;
                 $items[$item['item_id']] = $item;
             }
-            $trainer_complete = count($q_rows)<$limit;
+            $trainer_complete = $question_complete && $delta_count<$limit;
         } else {
             $trainer_complete = true;
         }
