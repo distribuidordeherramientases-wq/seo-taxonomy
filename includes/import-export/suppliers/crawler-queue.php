@@ -1903,13 +1903,13 @@ function seo_supplier_crawl_build_standard_csv( $recipe ) {
         'auto_' . sanitize_key( $recipe['id'] ) . '_' . wp_date( 'Ymd_His' ) . '.csv'
     );
     $path = trailingslashit( $storage['dir'] ) . $filename;
-    $out  = fopen( $path, 'w' );
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fputcsv() requiere un recurso nativo para generar el CSV preparado del proveedor.\n    $out  = fopen( $path, 'w' );
     if ( false === $out ) {
         return new WP_Error( 'supplier_auto_csv_open', 'No se pudo crear el CSV automatico.' );
     }
 
     $columns = seo_proveedores_cabecera_estandar();
-    fwrite( $out, "\xEF\xBB\xBF" );
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- BOM UTF-8 sobre el stream CSV preparado.\n    fwrite( $out, "\xEF\xBB\xBF" );
     fputcsv( $out, $columns, ';', '"', '' );
 
     global $wpdb;
@@ -1947,7 +1947,7 @@ function seo_supplier_crawl_build_standard_csv( $recipe ) {
         }
     } while ( count( (array) $rows ) === 500 );
 
-    fclose( $out );
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por fputcsv().\n    fclose( $out );
 
     if ( 0 === $written ) {
         wp_delete_file( $path );
