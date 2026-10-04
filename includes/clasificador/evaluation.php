@@ -74,7 +74,10 @@ if (!function_exists('seo_classifier_evaluation_product_ids')) {
             JOIN {$objects} ov ON ov.object_id=p.ID
             JOIN {$vocabulary} v ON v.id=ov.vocabulary_id
             WHERE {$where_sql}";
-        $total = (int)$wpdb->get_var($wpdb->prepare($count_sql, ...$query_args));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y WHERE proceden de estructuras internas; valores enlazados mediante $wpdb->prepare().
+        $prepared_count_sql = $wpdb->prepare($count_sql, ...$query_args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_count_sql es el resultado de $wpdb->prepare().
+        $total = (int)$wpdb->get_var($prepared_count_sql);
 
         $data_args = $query_args;
         $data_args[] = $limit;
@@ -86,7 +89,11 @@ if (!function_exists('seo_classifier_evaluation_product_ids')) {
             WHERE {$where_sql}
             ORDER BY p.ID DESC
             LIMIT %d OFFSET %d";
-        return array_values(array_map('absint', (array)$wpdb->get_col($wpdb->prepare($sql, ...$data_args))));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y WHERE proceden de estructuras internas; filtros/paginación enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, ...$data_args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $product_ids = (array)$wpdb->get_col($prepared_sql);
+        return array_values(array_map('absint', $product_ids));
     }
 }
 
