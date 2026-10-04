@@ -83,18 +83,17 @@ function seo_comentarista_get_indicators($product_id = 0)
         MAX(captured_at) AS latest_captured_at";
 
     if ($product_id) {
-        $summary = (array) $wpdb->get_row(
-            $wpdb->prepare(
-                "{$summary_select} FROM `{$table}` WHERE product_id=%d",
-                $product_id
-            ),
-            ARRAY_A
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SELECT y tabla son internos; product_id se enlaza mediante $wpdb->prepare().
+        $summary_sql = $wpdb->prepare(
+            "{$summary_select} FROM `{$table}` WHERE product_id=%d",
+            $product_id
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $summary_sql es el resultado de $wpdb->prepare().
+        $summary = (array) $wpdb->get_row($summary_sql, ARRAY_A);
     } else {
-        $summary = (array) $wpdb->get_row(
-            "{$summary_select} FROM `{$table}`",
-            ARRAY_A
-        );
+        $summary_sql = "{$summary_select} FROM `{$table}`";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta agregada fija sobre tabla interna, sin entrada de usuario.
+        $summary = (array) $wpdb->get_row($summary_sql, ARRAY_A);
     }
 
     foreach (array('records_total', 'published', 'draft', 'disabled', 'comments_total', 'comments_published', 'rated_comments', 'sources_distinct') as $key) {
@@ -108,43 +107,43 @@ function seo_comentarista_get_indicators($product_id = 0)
         : null;
 
     if ($product_id) {
-        $content_type_rows = (array) $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT content_type AS label, COUNT(*) AS total
-                 FROM `{$table}`
-                 WHERE product_id=%d
-                 GROUP BY content_type
-                 ORDER BY total DESC, label ASC",
-                $product_id
-            ),
-            ARRAY_A
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; product_id se enlaza mediante $wpdb->prepare().
+        $content_type_sql = $wpdb->prepare(
+            "SELECT content_type AS label, COUNT(*) AS total
+             FROM `{$table}`
+             WHERE product_id=%d
+             GROUP BY content_type
+             ORDER BY total DESC, label ASC",
+            $product_id
         );
-        $status_rows = (array) $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT status AS label, COUNT(*) AS total
-                 FROM `{$table}`
-                 WHERE product_id=%d
-                 GROUP BY status
-                 ORDER BY total DESC, label ASC",
-                $product_id
-            ),
-            ARRAY_A
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $content_type_sql es el resultado de $wpdb->prepare().
+        $content_type_rows = (array) $wpdb->get_results($content_type_sql, ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; product_id se enlaza mediante $wpdb->prepare().
+        $status_sql = $wpdb->prepare(
+            "SELECT status AS label, COUNT(*) AS total
+             FROM `{$table}`
+             WHERE product_id=%d
+             GROUP BY status
+             ORDER BY total DESC, label ASC",
+            $product_id
         );
-        $source_rows = (array) $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT
-                    COALESCE(NULLIF(source_name, ''), NULLIF(source_platform, ''), 'sin_fuente') AS source,
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN content_type = 'comment' THEN 1 ELSE 0 END) AS comments
-                 FROM `{$table}`
-                 WHERE product_id=%d
-                 GROUP BY source
-                 ORDER BY total DESC, source ASC
-                 LIMIT 20",
-                $product_id
-            ),
-            ARRAY_A
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $status_sql es el resultado de $wpdb->prepare().
+        $status_rows = (array) $wpdb->get_results($status_sql, ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; product_id se enlaza mediante $wpdb->prepare().
+        $source_sql = $wpdb->prepare(
+            "SELECT
+                COALESCE(NULLIF(source_name, ''), NULLIF(source_platform, ''), 'sin_fuente') AS source,
+                COUNT(*) AS total,
+                SUM(CASE WHEN content_type = 'comment' THEN 1 ELSE 0 END) AS comments
+             FROM `{$table}`
+             WHERE product_id=%d
+             GROUP BY source
+             ORDER BY total DESC, source ASC
+             LIMIT 20",
+            $product_id
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $source_sql es el resultado de $wpdb->prepare().
+        $source_rows = (array) $wpdb->get_results($source_sql, ARRAY_A);
     } else {
         $content_type_rows = (array) $wpdb->get_results(
             "SELECT content_type AS label, COUNT(*) AS total
