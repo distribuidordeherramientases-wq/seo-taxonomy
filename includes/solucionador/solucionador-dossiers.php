@@ -50,12 +50,12 @@ final class SEO_Solucionador_Dossiers {
         global $wpdb;
         $table = self::runs_table();
         if (!SEO_Solucionador_DB::table_exists($table)) return '';
-        // Los runs son append-only en Academia: max(id) detecta conocimiento nuevo.
+        // Los runs son append-only en Academia. Se observa cualquier run nuevo,
+        // no sólo pass_*, porque una reevaluación posterior también puede retirar
+        // conocimiento que antes formaba parte del dossier.
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna sin entrada de usuario.
         $row = (array)$wpdb->get_row(
-            "SELECT COUNT(*) total,COALESCE(MAX(id),0) max_id
-             FROM {$table}
-             WHERE status='answered' AND LEFT(COALESCE(evaluation_status,''),5)='pass_'",
+            "SELECT COUNT(*) total,COALESCE(MAX(id),0) max_id FROM {$table}",
             ARRAY_A
         );
         return hash('sha256',wp_json_encode(array(
