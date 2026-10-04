@@ -119,6 +119,7 @@ function seo_comentarista_coverage_stats()
                 GROUP BY p.ID
             ) x";
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta agregada construida solo con tablas internas y constantes.
     $row = (array) $wpdb->get_row($sql, ARRAY_A);
 
     $products = (int) ($row['products'] ?? 0);
@@ -189,13 +190,17 @@ function seo_comentarista_coverage_inventory($args = array())
 
     $count_sql = "SELECT COUNT(*) FROM ({$grouped}) coverage_rows";
     if ($conditions['args']) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $grouped procede de fragmentos internos y las entradas variables usan placeholders.
         $count_sql = $wpdb->prepare($count_sql, $conditions['args']);
     }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin args es SQL interno fijo; con args, $count_sql ya está preparado.
     $total = (int) $wpdb->get_var($count_sql);
 
     $list_sql = $grouped . ' ORDER BY evidence_count ASC, p.post_title ASC LIMIT %d OFFSET %d';
     $list_args = array_merge($conditions['args'], array($per_page, $offset));
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $grouped procede de fragmentos internos y paginación/entradas variables usan placeholders.
     $list_sql = $wpdb->prepare($list_sql, $list_args);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $list_sql es el resultado de $wpdb->prepare().
     $items = (array) $wpdb->get_results($list_sql, ARRAY_A);
 
     foreach ($items as &$item) {
