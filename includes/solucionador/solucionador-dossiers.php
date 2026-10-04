@@ -187,21 +187,21 @@ final class SEO_Solucionador_Dossiers {
         // temporalmente su conocimiento hasta reconstruirlo desde Academia.
         $table = SEO_Solucionador_DB::dossiers_table();
         if (SEO_Solucionador_DB::table_exists($table)) {
-            $wpdb->query(
-                $wpdb->prepare(
-                    "UPDATE %i
-                     SET question_count=0,
-                         question_ids='[]',
-                         score_avg=0,
-                         last_validated_at=NULL,
-                         source_hash='',
-                         scan_token=%s,
-                         updated_at=%s",
-                    $table,
-                    (string) $state['token'],
-                    current_time('mysql')
-                )
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table es una tabla interna validada; valores variables usan placeholders compatibles con WP 5.8.
+            $reset_sql = $wpdb->prepare(
+                "UPDATE {$table}
+                 SET question_count=0,
+                     question_ids='[]',
+                     score_avg=0,
+                     last_validated_at=NULL,
+                     source_hash='',
+                     scan_token=%s,
+                     updated_at=%s",
+                (string) $state['token'],
+                current_time('mysql')
             );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $reset_sql es el resultado de $wpdb->prepare().
+            $wpdb->query($reset_sql);
         }
         return $state;
     }
@@ -233,8 +233,9 @@ final class SEO_Solucionador_Dossiers {
         ));
         if (is_wp_error($terms)) return 0;
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $table es una tabla interna validada; consulta fija sin datos externos.
         $existing_rows = (array) $wpdb->get_results(
-            $wpdb->prepare('SELECT category_id,category_name FROM %i', $table),
+            "SELECT category_id,category_name FROM {$table}",
             ARRAY_A
         );
         $existing = array();
@@ -402,7 +403,8 @@ final class SEO_Solucionador_Dossiers {
         $cursor = absint($state['cursor'] ?? 0);
         $where = self::curriculum_where();
 
-        $rows = (array) $wpdb->get_results($wpdb->prepare(
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y filtro curricular son internos; cursor y límite se enlazan mediante placeholders.
+        $scan_sql = $wpdb->prepare(
             "SELECT
                 q.id question_id,q.lesson_key,q.lesson_order,q.module_no,
                 q.source_type,q.source_id,q.source_key,q.question_type,q.mode,
@@ -422,7 +424,9 @@ final class SEO_Solucionador_Dossiers {
              LIMIT %d",
             $cursor,
             $limit
-        ), ARRAY_A);
+        );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $scan_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($scan_sql, ARRAY_A);
 
         $batch_by_category = array();
         $last_cursor = $cursor;
@@ -543,9 +547,10 @@ final class SEO_Solucionador_Dossiers {
         $questions_total = 0;
         if (SEO_Solucionador_DB::table_exists(self::questions_table())) {
             $questions_table = self::questions_table();
-            $questions_total = absint($wpdb->get_var(
-                "SELECT COUNT(*) FROM {$questions_table} q WHERE " . self::curriculum_where()
-            ));
+            $curriculum_where = self::curriculum_where();
+            $questions_sql = "SELECT COUNT(*) FROM {$questions_table} q WHERE {$curriculum_where}";
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla y filtro curricular son internos y no contienen entrada de usuario.
+            $questions_total = absint($wpdb->get_var($questions_sql));
         }
 
         return array(
@@ -756,7 +761,10 @@ final class SEO_Solucionador_Dossiers {
                   AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_'
                 ORDER BY q.lesson_order ASC,q.id ASC";
 
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql,$ids),ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y lista de placeholders %d generada localmente; IDs enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql,$ids);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql,ARRAY_A);
         $out = array();
         foreach ($rows as $row) {
             $editorial_value = self::editorial_question_value($row);
