@@ -98,7 +98,7 @@ final class SEO_Auditor {
             wp_die(esc_html__('Ambito de auditoria no valido.', 'seo-taxonomy'));
         }
 
-        @set_time_limit('engine' === $scope ? 600 : 300);
+        @set_time_limit(300);
         $report = self::run_scoped_audit($scope);
         $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         $reports[$scope] = $report;
@@ -186,7 +186,7 @@ final class SEO_Auditor {
 
         echo '<div class="wrap"><section class="seo-auditor">';
         echo '<div class="seo-auditor__hero">';
-        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa cada area mediante auditorias independientes y de solo lectura. Se mantienen Productos, Categorias, Posts, Paginas/Landings, FAQs y Motor/indice; la auditoria global de catalogo se ha retirado para evitar timeouts.</p></div>';
+        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa cada area de contenido mediante auditorias independientes y de solo lectura. Se mantienen Productos, Categorias, Posts, Paginas/Landings y FAQs; los chequeos de motor e indice de Dependiente se realizan desde Plugin Validation.</p></div>';
         echo '</div>';
 
         self::render_content_audit_actions(array(), $scoped_reports);
@@ -247,7 +247,7 @@ final class SEO_Auditor {
         $scope_defs = self::scope_definitions();
 
         echo '<h3 style="margin:20px 0 10px">Auditorias por bloque</h3>';
-        echo '<p class="description" style="margin-top:0">Ejecuta solo el area que necesites. Cada bloque carga exclusivamente las fuentes necesarias; la auditoria global de catalogo se ha retirado para evitar timeouts.</p>';
+        echo '<p class="description" style="margin-top:0">Ejecuta solo el area de contenido que necesites. Cada bloque carga exclusivamente sus fuentes. Los chequeos de motor e indice de Dependiente se realizan desde Plugin Validation.</p>';
         echo '<div class="seo-auditor__audit-actions">';
         foreach ($scope_defs as $scope => $def) {
             $scope_report = !empty($scoped_reports[$scope]) ? (array) $scoped_reports[$scope] : array();
@@ -319,10 +319,6 @@ final class SEO_Auditor {
             'faqs' => array(
                 'label' => 'FAQs',
                 'description' => 'Owners, duplicados, respuestas, coherencia y orfandad. Carga solo la identidad minima de productos/categorias necesaria.',
-            ),
-            'engine' => array(
-                'label' => 'Motor / indice de Dependiente',
-                'description' => 'Indice derivado y pruebas conductuales contra el motor real. Es una auditoria profunda y puede tardar mas.',
             ),
         );
     }
