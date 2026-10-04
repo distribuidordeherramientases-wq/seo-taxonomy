@@ -3706,6 +3706,212 @@ final class SEO_Auditor {
         return false;
     }
 
+    private static function build_faq_migration_inventory($faqs,$published_product_ids,$categories,$products) {
+        $items=array();
+        $summary=array(
+            'total'=>0,
+            'MIGRATE'=>0,
+            'RETIRE_CANDIDATE'=>0,
+            'REVIEW'=>0,
+            'INVALID_OWNER'=>0,
+            'preservation_required'=>0,
+            'retirement_allowed'=>0,
+        );
+
+        foreach((array)$faqs as $faq){
+            $id=absint($faq['id'] ?? 0);
+            if(!$id)continue;
+            $ot=absint($faq['object_type'] ?? 0);
+            $oid=absint($faq['object_id'] ?? 0);
+            $question=trim(wp_strip_all_tags((string)($faq['question'] ?? '')));
+            $answer=trim(wp_strip_all_tags((string)($faq['answer'] ?? '')));
+            $owner_ok=false;
+            $owner_type='invalid';
+            $owner_title='';
+
+            if(3===$ot){
+                $owner_type='product';
+                $owner_ok=isset($published_product_ids[$oid]);
+                if($owner_ok)$owner_title=(string)($products[$oid]['title'] ?? get_the_title($oid));
+            }elseif(2===$ot){
+                $owner_type='product_cat';
+                $owner_ok=isset($categories[$oid]);
+                if($owner_ok)$owner_title=(string)($categories[$oid]->name ?? '');
+            }
+
+            $classification=self::faq_migration_classification($question,$answer,$owner_ok);
+            $class=(string)$classification['class'];
+            $preservation_required='MIGRATE'===$class;
+            $hash=hash('sha256',wp_json_encode(array(
+                'faq_id'=>$id,
+                'object_type'=>$ot,
+                'object_id'=>$oid,
+                'question'=>$question,
+                'answer'=>$answer,
+                'origin'=>'seo_faq',
+            ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+
+            $items[]=array(
+                'faq_id'=>$id,
+                'object_type'=>$ot,
+                'owner_type'=>$owner_type,
+                'object_id'=>$oid,
+                'category_id'=>2===$ot?$oid:0,
+                'owner_title'=>$owner_title,
+                'question'=>$question,
+                'answer'=>$answer,
+                'hash'=>$hash,
+                'origin'=>'seo_faq',
+                'class'=>$class,
+                'migration_status'=>$preservation_required?'PENDING_PRESERVATION':('INVALID_OWNER'===$class?'BLOCKED_INVALID_OWNER':'REVIEW_REQUIRED'),
+                'migration_reason'=>(string)$classification['reason'],
+                'source_rule'=>'faq_migration_inventory_v1',
+                'preservation_required'=>$preservation_required,
+                'solucionador_coverage'=>$preservation_required?'UNCONFIRMED':'NOT_REQUIRED',
+                // Auditor nunca autoriza la retirada por sí solo.
+                'retirement_allowed'=>false,
+                'created_at'=>(string)($faq['updated_at'] ?? ''),
+                'migrated_at'=>'',
+            );
+
+            $summary['total']++;
+            if(isset($summary[$class]))$summary[$class]++;
+            if($preservation_required)$summary['preservation_required']++;
+        }
+
+        return array(
+            'schema'=>array('name'=>'faq_migration_inventory','version'=>1),
+            'summary'=>$summary,
+            'items'=>$items,
+            'notes'=>array(
+                'complete_inventory'=>true,
+                'independent_from_finding_limit'=>true,
+                'read_only'=>true,
+                'faq_owner_semantic_drift_is_not_value_classifier'=>true,
+                'useful_faq_requires_solucionador_preservation_before_retirement'=>true,
+                'retirement_requires_human_review'=>true,
+            ),
+        );
+    }
+
+    private static function faq_migration_classification($question,$answer,$owner_ok) {
+        if(!$owner_ok){
+            return array('class'=>'INVALID_OWNER','reason'=>'El owner no existe o no pertenece al modelo canónico; primero debe sanearse el contexto.');
+        }
+        $question=trim((string)$question);
+        if($question===''){
+            return array('class'=>'REVIEW','reason'=>'Pregunta vacía o no evaluable; requiere revisión humana.');
+        }
+        if(self::priority_faq_simple_attribute_question($question)){
+            return array('class'=>'RETIRE_CANDIDATE','reason'=>'Pregunta simple que reproduce un atributo estructurado; revisar antes de retirar.');
+        }
+        $probe=array('entity_type'=>'faq','code'=>'faq_inventory','title'=>$question);
+        if(self::priority_faq_migration_candidate($probe)){
+            return array('class'=>'MIGRATE','reason'=>'Intención reutilizable de elección, compatibilidad, uso, medida, mantenimiento, seguridad, diagnóstico, instalación o accesorios.');
+        }
+        if(self::generic_faq_question($question) && self::strlen($answer)<120){
+            return array('class'=>'RETIRE_CANDIDATE','reason'=>'Pregunta genérica/repetitiva con respuesta breve; candidata a retirada posterior tras revisión.');
+        }
+        return array('class'=>'REVIEW','reason'=>'Valor editorial potencial no concluyente; conservar hasta revisión humana.');
+    }
+
+    private static function build_findings_meta($findings,$rule_counts) {
+        $included_by_rule=array();
+        foreach((array)$findings as $finding){
+            $code=sanitize_key((string)($finding['code'] ?? ''));
+            if($code)$included_by_rule[$code]=absint($included_by_rule[$code] ?? 0)+1;
+        }
+        $total=array_sum(array_map('absint',(array)$rule_counts));
+        $included=count((array)$findings);
+        return array(
+            'sampled'=>$total>$included,
+            'total_count'=>$total,
+            'included_count'=>$included,
+            'truncated'=>$total>$included,
+            'per_rule_limit'=>self::MAX_ENTITY_FINDINGS_PER_RULE,
+            'global_limit'=>self::MAX_FINDINGS,
+            'rule_counts'=>(array)$rule_counts,
+            'included_by_rule'=>$included_by_rule,
+        );
+    }
+
+    private static function build_priority_queue_meta($tasks) {
+        $total=count((array)$tasks);
+        return array(
+            'canonical'=>!self::$priority_findings_truncated,
+            'sampled'=>false,
+            'total_count'=>$total,
+            'included_count'=>$total,
+            'truncated'=>self::$priority_findings_truncated,
+            'source_findings_total'=>array_sum(array_map('absint',self::$rule_counts)),
+            'source_findings_collected'=>count(self::$priority_findings),
+            'ui'=>array(
+                'sampled'=>$total>self::PRIORITY_UI_LIMIT,
+                'total_count'=>$total,
+                'included_count'=>min($total,self::PRIORITY_UI_LIMIT),
+                'truncated'=>$total>self::PRIORITY_UI_LIMIT,
+            ),
+            'json_export_complete'=>!self::$priority_findings_truncated,
+        );
+    }
+
+    private static function apply_task_trace($tasks,$previous_tasks,$previous_resolved,$now) {
+        $previous=array();
+        foreach((array)$previous_tasks as $task){
+            $task_id=(string)($task['task_id'] ?? '');
+            if($task_id!=='')$previous[$task_id]=$task;
+        }
+        $resolved=array();
+        foreach((array)$previous_resolved as $task){
+            $task_id=(string)($task['task_id'] ?? '');
+            if($task_id!=='')$resolved[$task_id]=$task;
+        }
+
+        $current=array();
+        $current_ids=array();
+        foreach((array)$tasks as $task){
+            $task_id=(string)($task['task_id'] ?? '');
+            if($task_id==='')continue;
+            $current_ids[$task_id]=true;
+
+            if(isset($previous[$task_id])){
+                $prev=$previous[$task_id];
+                $task['first_seen']=(string)($prev['first_seen'] ?? $prev['last_seen'] ?? $now);
+                $task['previous_status']=(string)($prev['status'] ?? '');
+            }elseif(isset($resolved[$task_id])){
+                $prev=$resolved[$task_id];
+                $task['first_seen']=(string)($prev['first_seen'] ?? $now);
+                $task['previous_status']='RESOLVED';
+                unset($resolved[$task_id]);
+            }else{
+                $task['first_seen']=$now;
+                $task['previous_status']='';
+            }
+
+            $task['last_seen']=$now;
+            $task['resolved_at']='';
+            $task['resolution_reason']='';
+            $current[]=$task;
+        }
+
+        foreach($previous as $task_id=>$prev){
+            if(isset($current_ids[$task_id]))continue;
+            $prev['previous_status']=(string)($prev['status'] ?? '');
+            $prev['status']='RESOLVED';
+            $prev['status_label']='Resuelto/no detectado';
+            $prev['ready_now']=false;
+            $prev['last_seen']=(string)($prev['last_seen'] ?? $now);
+            $prev['resolved_at']=$now;
+            $prev['resolution_reason']='hallazgo_no_detectado_en_ultima_auditoria';
+            $resolved[$task_id]=$prev;
+        }
+
+        return array(
+            'current'=>array_values($current),
+            'resolved'=>array_values($resolved),
+        );
+    }
+
     private static function priority_dependency_for($finding, $action_class) {
         if ('VERIFICAR_AHORA' === $action_class) return 'source_verification';
         if ('MIGRAR_A_SOLUCIONADOR' === $action_class) return 'solucionador';
