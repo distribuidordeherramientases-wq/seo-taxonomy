@@ -219,7 +219,7 @@ final class SEO_Solucionador_Dossiers {
         return array(
             'token'=>wp_generate_uuid4(),
             'editorial_policy'=>self::EDITORIAL_POLICY_VERSION,
-            'dependiente_cursor'=>array('trainer'=>0,'semantic'=>0),
+            'dependiente_cursor'=>array('trainer'=>0,'trainer_run'=>0,'semantic'=>0),
             'dependiente_processed'=>0,
             'dependiente_learned'=>0,
             'dependiente_editorial_eligible'=>0,
@@ -365,8 +365,13 @@ final class SEO_Solucionador_Dossiers {
 
         $changed = false;
         $trainer_cursor = absint($state['dependiente_cursor']['trainer'] ?? $state['cursor'] ?? 0);
+        $trainer_run_cursor = absint($state['dependiente_cursor']['trainer_run'] ?? 0);
         $semantic_cursor = absint($state['dependiente_cursor']['semantic'] ?? 0);
-        $state['dependiente_cursor'] = array('trainer'=>$trainer_cursor,'semantic'=>$semantic_cursor);
+        $state['dependiente_cursor'] = array(
+            'trainer'=>$trainer_cursor,
+            'trainer_run'=>$trainer_run_cursor,
+            'semantic'=>$semantic_cursor,
+        );
 
         $aliases = array(
             'dependiente_processed'=>'processed',
@@ -816,16 +821,13 @@ final class SEO_Solucionador_Dossiers {
         if (!empty($state['dependiente_complete'])
             && (string)($state['dependiente_source_signature'] ?? '') !== ''
             && (string)$state['dependiente_source_signature'] !== $dep_signature) {
-            self::clear_source_lane('dependiente',(string)$state['token']);
-            $state['dependiente_cursor'] = array('trainer'=>0,'semantic'=>0);
-            $state['dependiente_processed'] = 0;
-            $state['dependiente_learned'] = 0;
-            $state['dependiente_editorial_eligible'] = 0;
-            $state['dependiente_editorial_discarded'] = 0;
-            $state['dependiente_with_category'] = 0;
-            $state['dependiente_without_category'] = 0;
+            /*
+             * Dependiente aprende de forma continua. Una firma nueva significa
+             * "hay novedades", no "vacía el histórico y empieza desde cero".
+             * Conservamos cursores y dossiers; batch() recogerá nuevas preguntas,
+             * nuevos runs de Entrenador y nuevas reglas desde sus high-water marks.
+             */
             $state['dependiente_complete'] = false;
-            $state['dependiente_source_signature'] = '';
             $state['dependiente_scan_signature'] = $dep_signature;
             $state['complete'] = false;
         }
@@ -881,23 +883,8 @@ final class SEO_Solucionador_Dossiers {
                 }
                 if (!empty($state['dependiente_complete'])) {
                     $end_signature = self::dependiente_source_signature();
-                    if ((string)($state['dependiente_scan_signature'] ?? '') !== ''
-                        && (string)$state['dependiente_scan_signature'] !== $end_signature) {
-                        self::clear_source_lane('dependiente',(string)$state['token']);
-                        $state['dependiente_cursor'] = array('trainer'=>0,'semantic'=>0);
-                        $state['dependiente_processed'] = 0;
-                        $state['dependiente_learned'] = 0;
-                        $state['dependiente_editorial_eligible'] = 0;
-                        $state['dependiente_editorial_discarded'] = 0;
-                        $state['dependiente_with_category'] = 0;
-                        $state['dependiente_without_category'] = 0;
-                        $state['dependiente_complete'] = false;
-                        $state['dependiente_source_signature'] = '';
-                        $state['dependiente_scan_signature'] = $end_signature;
-                    } else {
-                        $state['dependiente_source_signature'] = $end_signature;
-                        $state['dependiente_scan_signature'] = $end_signature;
-                    }
+                    $state['dependiente_source_signature'] = $end_signature;
+                    $state['dependiente_scan_signature'] = $end_signature;
                 }
             } catch (Throwable $e) {
                 $state['errors'] = absint($state['errors'] ?? 0) + 1;
