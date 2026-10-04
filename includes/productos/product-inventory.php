@@ -28,13 +28,6 @@ if (!function_exists('seo_product_inventory_table_exists')) {
     }
 }
 
-if (!function_exists('seo_product_inventory_prepare')) {
-    function seo_product_inventory_prepare($sql, array $args) {
-        global $wpdb;
-        return empty($args) ? $sql : $wpdb->prepare($sql, $args);
-    }
-}
-
 /**
  * Resuelve la jerarquia SEO a la que pertenece una categoria.
  * Se conserva como API publica para enlaces desde otras pantallas.
@@ -738,6 +731,7 @@ if (!function_exists('seo_product_inventory_get_kpis')) {
                 WHERE p.post_type = 'product'
                   AND p.post_status IN ('publish','draft','pending','private')";
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- La consulta se compone exclusivamente con tablas internas y fragmentos booleanos controlados por el propio inventario.
         $row = $wpdb->get_row($sql, ARRAY_A);
         $keys = ['total','published','with_category','with_type','with_attributes','with_supplier','content_complete','in_stock'];
         $result = [];
@@ -993,10 +987,13 @@ if (!function_exists('seo_product_inventory_page')) {
 
         list($where_sql, $where_args) = seo_product_inventory_build_where($filters, $category_scope);
 
-        $total_filtered = absint($wpdb->get_var(seo_product_inventory_prepare(
-            "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where_sql}",
-            $where_args
-        )));
+        $count_sql = "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE {$where_sql}";
+        if ($where_args) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where_sql solo contiene fragmentos internos/allowlists y placeholders generados por seo_product_inventory_build_where().
+            $count_sql = $wpdb->prepare($count_sql, $where_args);
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $count_sql no contiene datos externos sin enlazar.
+        $total_filtered = absint($wpdb->get_var($count_sql));
 
         $order_map = [
             'modified_desc' => 'p.post_modified DESC, p.ID DESC',
@@ -1015,14 +1012,15 @@ if (!function_exists('seo_product_inventory_page')) {
         $offset = ($filters['paged'] - 1) * $filters['per_page'];
 
         $row_args = array_merge($where_args, [$filters['per_page'], $offset]);
-        $posts = $wpdb->get_results(seo_product_inventory_prepare(
-            "SELECT p.ID, p.post_title, p.post_name, p.post_excerpt, p.post_content, p.post_status, p.post_modified
-             FROM {$wpdb->posts} p
-             WHERE {$where_sql}
-             ORDER BY {$order_by}
-             LIMIT %d OFFSET %d",
-            $row_args
-        ));
+        $rows_sql = "SELECT p.ID, p.post_title, p.post_name, p.post_excerpt, p.post_content, p.post_status, p.post_modified
+                     FROM {$wpdb->posts} p
+                     WHERE {$where_sql}
+                     ORDER BY {$order_by}
+                     LIMIT %d OFFSET %d";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where_sql procede del constructor interno y $order_by de una allowlist cerrada; valores y paginacion se enlazan mediante placeholders.
+        $rows_sql = $wpdb->prepare($rows_sql, $row_args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $rows_sql es el resultado de $wpdb->prepare().
+        $posts = $wpdb->get_results($rows_sql);
 
         $ids = array_values(array_filter(array_map(static function ($row) {
             return absint($row->ID ?? 0);
