@@ -590,11 +590,10 @@ if (!function_exists('seo_category_inventory_export_batch')) {
                         AND source_id IN ({$placeholders})
                         AND (target_type LIKE '%%faq%%' OR relation_type LIKE '%%faq%%')
                     )";
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal relations table plus generated %d placeholders; all category IDs are bound through prepare().
-            $relation_rows = $wpdb->get_results(
-                $wpdb->prepare($sql, ...array_merge($category_ids, $category_ids)),
-                ARRAY_A
-            );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal relations table plus generated %d placeholders; all category IDs are bound through prepare().
+            $prepared_relations_sql = $wpdb->prepare($sql, ...array_merge($category_ids, $category_ids));
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_relations_sql is the result of $wpdb->prepare().
+            $relation_rows = $wpdb->get_results($prepared_relations_sql, ARRAY_A);
 
             $faq_ids_by_category = [];
             $faq_relations_by_category = [];
@@ -1179,11 +1178,10 @@ if (!function_exists('seo_category_inventory_render')) {
                         AND (target_type LIKE '%%faq%%' OR relation_type LIKE '%%faq%%')
                     )";
 
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal relations table plus generated %d placeholders; all category IDs are bound through prepare().
-            $faq_relation_rows = $wpdb->get_results(
-                $wpdb->prepare($sql, ...array_merge($category_ids, $category_ids)),
-                ARRAY_A
-            );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal relations table plus generated %d placeholders; all category IDs are bound through prepare().
+            $prepared_faq_relations_sql = $wpdb->prepare($sql, ...array_merge($category_ids, $category_ids));
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_faq_relations_sql is the result of $wpdb->prepare().
+            $faq_relation_rows = $wpdb->get_results($prepared_faq_relations_sql, ARRAY_A);
 
             $faq_ids_by_category = [];
             $all_faq_ids = [];
@@ -1779,11 +1777,10 @@ if (!function_exists('seo_category_catalog_export_json')) {
                     GROUP BY tt.term_id, p.ID, p.post_title, p.post_name, p.post_status
                     ORDER BY tt.term_id ASC, p.post_title ASC";
 
-                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables plus generated %d placeholders; all category IDs are bound through prepare().
-                $product_rows = $wpdb->get_results(
-                    $wpdb->prepare($product_sql, ...$batch_category_ids),
-                    ARRAY_A
-                );
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables plus generated %d placeholders; all category IDs are bound through prepare().
+                $prepared_product_sql = $wpdb->prepare($product_sql, ...$batch_category_ids);
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_product_sql is the result of $wpdb->prepare().
+                $product_rows = $wpdb->get_results($prepared_product_sql, ARRAY_A);
 
                 foreach ((array) $product_rows as $product_row) {
                     $category_id = absint($product_row['category_id'] ?? 0);
@@ -2152,11 +2149,10 @@ if (!function_exists('seo_category_catalog_table_render')) {
                 GROUP BY tt.term_id, p.ID, p.post_title, p.post_status
                 ORDER BY tt.term_id ASC, p.post_title ASC";
 
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables plus generated %d placeholders; all category IDs are bound through prepare().
-            $product_rows = $wpdb->get_results(
-                $wpdb->prepare($product_sql, ...$page_category_ids),
-                ARRAY_A
-            );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal WordPress tables plus generated %d placeholders; all category IDs are bound through prepare().
+            $prepared_page_products_sql = $wpdb->prepare($product_sql, ...$page_category_ids);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_page_products_sql is the result of $wpdb->prepare().
+            $product_rows = $wpdb->get_results($prepared_page_products_sql, ARRAY_A);
 
             foreach ((array) $product_rows as $product_row) {
                 $category_id = absint($product_row['category_id'] ?? 0);
