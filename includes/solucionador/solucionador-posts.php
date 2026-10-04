@@ -905,7 +905,9 @@ final class SEO_Solucionador_Posts {
                 $answer = class_exists('SEO_Solucionador_Dossiers')
                     ? SEO_Solucionador_Dossiers::answer_text((array)$row)
                     : '';
-                $html .= '<li><strong>' . esc_html($question) . '</strong><br>';
+                $choice = sanitize_key((string)($row['editorial_choice'] ?? 'pending'));
+                $choice_label = array('use'=>'USAR','discard'=>'DESCARTAR','pending'=>'PENDIENTE')[$choice] ?? 'PENDIENTE';
+                $html .= '<li><strong>[' . esc_html($choice_label) . '] ' . esc_html($question) . '</strong><br>';
                 $html .= esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.');
                 $html .= '</li>';
             }
