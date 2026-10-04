@@ -818,12 +818,19 @@ function seo_post_opportunities_gsc_performance(array $posts, $days = 60)
 
     foreach (array_chunk(array_keys($hash_to_post), 180) as $hashes) {
         $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
-        $queries_select = $page_complete ? '0' : 'COUNT(DISTINCT query_hash)';
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla, fragmento SELECT y lista de placeholders se generan internamente; property/date/hash se enlazan mediante $wpdb->prepare().
-        $sql = $wpdb->prepare(
-            "SELECT data_date,page_hash,SUM(clicks) clicks,SUM(impressions) impressions," . $queries_select . " queries,CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END position FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY data_date,page_hash ORDER BY data_date ASC",
-            array_merge(array($property_hash,$from,$to),$hashes)
-        );
+        if ($page_complete) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla y lista de placeholders se generan internamente; property/date/hash se enlazan mediante $wpdb->prepare().
+            $sql = $wpdb->prepare(
+                "SELECT data_date,page_hash,SUM(clicks) clicks,SUM(impressions) impressions,0 queries,CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END position FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY data_date,page_hash ORDER BY data_date ASC",
+                array_merge(array($property_hash,$from,$to),$hashes)
+            );
+        } else {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla y lista de placeholders se generan internamente; property/date/hash se enlazan mediante $wpdb->prepare().
+            $sql = $wpdb->prepare(
+                "SELECT data_date,page_hash,SUM(clicks) clicks,SUM(impressions) impressions,COUNT(DISTINCT query_hash) queries,CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END position FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY data_date,page_hash ORDER BY data_date ASC",
+                array_merge(array($property_hash,$from,$to),$hashes)
+            );
+        }
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare() y solo contiene identificadores internos.
         foreach ((array)$wpdb->get_results($sql, ARRAY_A) as $row) {
             $post_id = (int)($hash_to_post[$row['page_hash']] ?? 0);
