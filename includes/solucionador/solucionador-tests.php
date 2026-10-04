@@ -142,7 +142,7 @@ final class SEO_Solucionador_Tests {
         $changes=SEO_Solucionador_Dossiers::compare_item_hashes_for_test($current,$reviewed);
         $tests[]=self::result(
             9,'Detecta NUEVO / MODIFICADO / RETIRADO',
-            $changes['new']===array('dependiente:semantic:789')
+            $changes['new']===array('dependiente:789')
                 && $changes['modified']===array('faq:123')
                 && $changes['retired']===array('dependiente:456'),
             '1 nuevo, 1 modificado, 1 retirado',
