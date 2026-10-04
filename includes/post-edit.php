@@ -429,30 +429,31 @@ if (!function_exists('seo_post_editor_render_solucionador_style_guide')) {
     function seo_post_editor_render_solucionador_style_guide($compact = false) {
         $compact = (bool) $compact;
         $style = $compact
-            ? 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:7px;padding:14px 16px;margin:14px 0;'
-            : 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:8px;padding:18px 20px;margin:18px 0;';
+            ? 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:7px;padding:12px 14px;margin:14px 0;'
+            : 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:8px;padding:14px 16px;margin:18px 0;';
 
-        echo '<div style="' . esc_attr($style) . '">';
-        echo '<h2 style="margin:0 0 8px;">Guía editorial · posts de Solucionador</h2>';
-        echo '<p style="margin:0 0 10px;">Estos borradores convierten preguntas reales en contenido útil y homogéneo. El título de WordPress ya actúa como <strong>H1</strong>; no debe repetirse dentro del contenido.</p>';
-        echo '<ol style="margin:0 0 10px 20px;line-height:1.6;">';
-        echo '<li><strong>Introducción:</strong> 1–2 párrafos breves que expliquen qué va a resolver el artículo y para qué tipo de usuario.</li>';
-        echo '<li><strong>Cada pregunta va como H2</strong>, redactada de forma natural, en estilo frase y terminada en signo de interrogación. No usar prefijos “Pregunta:” ni poner toda la pregunta en mayúsculas.</li>';
-        echo '<li><strong>Respuesta inmediatamente debajo</strong> en párrafo normal, sin tabular ni sangrar. Empezar por la respuesta directa y ampliar después sólo lo necesario.</li>';
-        echo '<li><strong>Listas</strong> únicamente cuando haya pasos, comprobaciones, opciones o requisitos; no convertir respuestas simples en listas artificiales.</li>';
-        echo '<li><strong>Negrita</strong> sólo para datos decisivos dentro de la respuesta. No usar la negrita como sustituto del H2.</li>';
-        echo '<li><strong>Subapartados:</strong> usar H3 sólo cuando una respuesta larga necesite separar pasos o casos. Nunca introducir otro H1.</li>';
-        echo '<li><strong>Contenido interno:</strong> eliminar antes de publicar marcas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, “Solucionador”, “Dependiente”, IDs, hashes, trazas o notas editoriales.</li>';
-        echo '<li><strong>Exactitud:</strong> no inventar especificaciones. Mantener únicamente información respaldada por el dossier, el catálogo o una fuente verificada.</li>';
-        echo '<li><strong>Relación comercial:</strong> conservar al menos una categoría de producto asociada mediante <code>post_to_category</code>. Los enlaces a categoría/productos deben ser útiles, no repetitivos.</li>';
-        echo '<li><strong>Publicación:</strong> mantener en borrador hasta revisar título, introducción, todas las respuestas, enlaces y relación con la categoría.</li>';
+        echo '<details style="' . esc_attr($style) . '">';
+        echo '<summary style="cursor:pointer;font-weight:700;font-size:14px;">Instrucciones de redacción · posts de Solucionador</summary>';
+        echo '<div style="margin-top:12px;line-height:1.6;">';
+        echo '<p><strong>Qué tipo de contenido es:</strong> salvo que trate un hecho temporal, este post no es una noticia. Es una guía práctica o un artículo informativo evergreen. El objetivo es que una persona termine de leer sabiendo mejor cómo elegir, usar, comparar o evitar errores sobre esa categoría.</p>';
+        echo '<p><strong>Estilo:</strong> escribe para una persona no experta, como si respondieras a un cliente en una tienda. Usa lenguaje sencillo, frases cortas y párrafos breves. Explica una idea cada vez. Si utilizas un término técnico, acláralo. No rellenes, no repitas y no escribas para un buscador.</p>';
+        echo '<ol style="margin:0 0 12px 20px;">';
+        echo '<li><strong>Título:</strong> el título de WordPress es el H1. Debe ser conciso y descriptivo y no debe repetirse dentro del contenido.</li>';
+        echo '<li><strong>Introducción:</strong> 1–2 párrafos breves explicando qué problema resolverá el artículo y para quién.</li>';
+        echo '<li><strong>Cuerpo:</strong> organizar en 3–6 bloques H2 según el material real: qué tener en cuenta, cómo elegir, tipos y diferencias, compatibilidad o medidas, errores habituales, seguridad o mantenimiento. No forzar apartados que el dossier no justifique.</li>';
+        echo '<li><strong>Preguntas concretas:</strong> cuando una FAQ merezca aparecer como pregunta visible, usar H3 con la pregunta natural y debajo la respuesta en párrafos normales, sin tabular ni sangrar. La primera frase debe dar la respuesta directa; después se amplía sólo lo necesario.</li>';
+        echo '<li><strong>FAQ y Dependiente:</strong> una FAQ humana puede conservarse casi literalmente si es buena. Las consultas de Dependiente deben transformarse en criterios útiles de elección, no copiarse como búsquedas ni como listados de productos.</li>';
+        echo '<li><strong>Duplicados:</strong> si FAQ y Dependiente repiten la misma idea, fusionar o conservar sólo la mejor versión.</li>';
+        echo '<li><strong>Listas y negritas:</strong> usar listas sólo para pasos, comprobaciones, opciones o requisitos. Usar negrita únicamente para datos decisivos; no como sustituto de títulos.</li>';
+        echo '<li><strong>Fiabilidad:</strong> no publicar como hecho una respuesta dudosa. No inventar especificaciones, compatibilidades ni ventajas. Si una recomendación contradice los atributos del producto, debe revisarse o descartarse.</li>';
+        echo '<li><strong>Tono:</strong> informar, no vender. Explicar ventajas y limitaciones y decir cuándo una solución puede no ser adecuada. Evitar adjetivos comerciales exagerados y afirmaciones absolutas sin justificar.</li>';
+        echo '<li><strong>Cierre:</strong> terminar con un breve apartado <em>En resumen</em> y, cuando proceda, un único enlace natural a la categoría o a productos relacionados.</li>';
+        echo '<li><strong>Extensión:</strong> no hay un número obligatorio de palabras. El artículo termina cuando resuelve bien la intención, sin relleno, repeticiones ni introducciones SEO artificiales.</li>';
+        echo '<li><strong>Antes de publicar:</strong> eliminar marcas internas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, referencias a Solucionador o Dependiente, IDs, hashes, trazas y notas editoriales.</li>';
         echo '</ol>';
-        echo '<div style="padding:10px 12px;background:#fff;border:1px solid #d7e7f3;border-radius:6px;line-height:1.55;">';
-        echo '<strong>Ejemplo de sintaxis pública</strong><br>';
-        echo '<code>H2: ¿Qué potencia necesito para este trabajo?</code><br>';
-        echo '<span>Respuesta directa en texto normal, sin sangría. Si hace falta, después se añaden detalles o una lista breve.</span>';
+        echo '<p style="margin:0;"><strong>Regla rápida:</strong> si una pregunta puede responderse bien en dos frases, no uses diez. El objetivo es que cualquier cliente entienda la respuesta a la primera lectura.</p>';
         echo '</div>';
-        echo '</div>';
+        echo '</details>';
     }
 }
 
