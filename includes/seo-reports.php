@@ -3745,6 +3745,7 @@ EXPORT CSV SEO TABLES
             fputcsv($output, $line, ';');
         }
     
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV del informe.
         fclose($output);
         exit;
     }
