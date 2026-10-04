@@ -287,6 +287,7 @@ final class SEO_Solucionador_Dossiers {
             'dependiente_question_scan_signature'=>'',
             'dependiente_run_source_signature'=>'',
             'dependiente_run_scan_signature'=>'',
+            'dependiente_rescan_active'=>false,
             'faq_cursor'=>0,
             'faq_processed'=>0,
             'faq_with_category'=>0,
@@ -294,6 +295,7 @@ final class SEO_Solucionador_Dossiers {
             'faq_complete'=>false,
             'faq_source_signature'=>'',
             'faq_scan_signature'=>'',
+            'faq_rescan_active'=>false,
             // aliases históricos
             'cursor'=>0,
             'processed'=>0,
@@ -362,8 +364,9 @@ final class SEO_Solucionador_Dossiers {
             'dependiente_complete'=>false,'dependiente_source_signature'=>'','dependiente_scan_signature'=>'',
             'dependiente_question_source_signature'=>'','dependiente_question_scan_signature'=>'',
             'dependiente_run_source_signature'=>'','dependiente_run_scan_signature'=>'',
+            'dependiente_rescan_active'=>false,
             'faq_cursor'=>0,'faq_processed'=>0,'faq_with_category'=>0,'faq_without_category'=>0,
-            'faq_complete'=>false,'faq_source_signature'=>'','faq_scan_signature'=>'',
+            'faq_complete'=>false,'faq_source_signature'=>'','faq_scan_signature'=>'','faq_rescan_active'=>false,
             'academy_source_signature'=>'','last_dependiente_at'=>'','last_faq_at'=>'','errors'=>0
         ) as $key=>$default) {
             if (!array_key_exists($key,$state)) {
@@ -570,7 +573,8 @@ final class SEO_Solucionador_Dossiers {
         return $changes;
     }
 
-    private static function editorial_status_for_hash($category_id,array $existing = null,$hash = '') {
+    private static function editorial_status_for_hash($category_id,$existing,$hash = '') {
+        $existing = is_array($existing) ? $existing : array();
         $reviewed_hash = (string)($existing['reviewed_hash'] ?? '');
         if ($reviewed_hash !== '' && $reviewed_hash !== (string)$hash) {
             return SEO_Editorial_Service_Contract::NEEDS_UPDATE;
@@ -698,6 +702,23 @@ final class SEO_Solucionador_Dossiers {
         return $wpdb->insert($table,$data) !== false;
     }
 
+    private static function sync_all_category_posts() {
+        global $wpdb;
+        if (!class_exists('SEO_Solucionador_Posts') || !method_exists('SEO_Solucionador_Posts','sync_category_post')) {
+            return 0;
+        }
+        $table = SEO_Solucionador_DB::dossiers_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) return 0;
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna fija.
+        $ids = (array)$wpdb->get_col("SELECT category_id FROM {$table} WHERE category_id>0 ORDER BY category_id ASC");
+        $synced = 0;
+        foreach (array_values(array_unique(array_filter(array_map('absint',$ids)))) as $category_id) {
+            SEO_Solucionador_Posts::sync_category_post($category_id);
+            $synced++;
+        }
+        return $synced;
+    }
+
     private static function clear_source_lane($origin,$token,$sync_posts = true) {
         global $wpdb;
         $origin = sanitize_key((string)$origin);
@@ -808,6 +829,7 @@ final class SEO_Solucionador_Dossiers {
             $state['faq_complete'] = false;
             $state['faq_source_signature'] = '';
             $state['faq_scan_signature'] = $faq_signature;
+            $state['faq_rescan_active'] = true;
             $state['complete'] = false;
         }
 
@@ -835,6 +857,7 @@ final class SEO_Solucionador_Dossiers {
                 $state['dependiente_scan_signature'] = $dep_signature;
                 $state['dependiente_question_scan_signature'] = $dep_question_signature;
                 $state['dependiente_run_scan_signature'] = $dep_run_signature;
+                $state['dependiente_rescan_active'] = true;
                 $state['complete'] = false;
             } elseif ($stored_run_signature !== '' && $stored_run_signature !== $dep_run_signature) {
                 // Nuevos runs sí son incrementales: se conservan dossiers y
@@ -1153,7 +1176,8 @@ final class SEO_Solucionador_Dossiers {
                 );
                 if ($saved) {
                     $changed_category_ids[] = absint($term_id);
-                    if (class_exists('SEO_Solucionador_Posts') && method_exists('SEO_Solucionador_Posts','sync_category_post')) {
+                    if (empty($state['faq_rescan_active']) && empty($state['dependiente_rescan_active'])
+                        && class_exists('SEO_Solucionador_Posts') && method_exists('SEO_Solucionador_Posts','sync_category_post')) {
                         SEO_Solucionador_Posts::sync_category_post($term_id);
                     }
                 }
@@ -1170,6 +1194,7 @@ final class SEO_Solucionador_Dossiers {
             $state['faq_without_category'] = 0;
             $state['faq_complete'] = false;
             $state['faq_source_signature'] = '';
+            $state['faq_rescan_active'] = true;
         }
 
         if ($restart_dependiente_after_batch) {
@@ -1186,6 +1211,19 @@ final class SEO_Solucionador_Dossiers {
             $state['dependiente_source_signature'] = '';
             $state['dependiente_question_source_signature'] = '';
             $state['dependiente_run_source_signature'] = '';
+            $state['dependiente_rescan_active'] = true;
+        }
+
+        // Un rescan correctivo no notifica novedades mientras el carril está
+        // incompleto. Al finalizar se sincroniza una sola vez el estado final,
+        // incluyendo categorías cuyo único item haya sido retirado.
+        if (!empty($state['faq_rescan_active']) && !empty($state['faq_complete'])) {
+            self::sync_all_category_posts();
+            $state['faq_rescan_active'] = false;
+        }
+        if (!empty($state['dependiente_rescan_active']) && !empty($state['dependiente_complete'])) {
+            self::sync_all_category_posts();
+            $state['dependiente_rescan_active'] = false;
         }
 
         // Aliases históricos.
