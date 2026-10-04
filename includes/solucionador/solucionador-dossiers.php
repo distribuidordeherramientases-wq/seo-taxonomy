@@ -345,11 +345,21 @@ final class SEO_Solucionador_Dossiers {
         }
 
         if ($policy_changed) {
-            $state['editorial_policy'] = self::EDITORIAL_POLICY_VERSION;
-            $state['complete'] = false;
-            $state['completed_at'] = '';
-            $changed = true;
             self::cleanup_non_trainer_dependiente_items((string)$state['token']);
+            $state['editorial_policy'] = self::EDITORIAL_POLICY_VERSION;
+            // El proveedor anterior ya había recorrido el carril Trainer. Se
+            // conserva ese cursor y no se reinicia el escaneo largo sólo por
+            // eliminar fuentes adicionales.
+            $trainer_signature = self::dependiente_source_signature();
+            $state['dependiente_scan_signature'] = $trainer_signature;
+            if (!empty($state['dependiente_complete'])) {
+                $state['dependiente_source_signature'] = $trainer_signature;
+            } else {
+                $state['dependiente_source_signature'] = '';
+            }
+            $state['complete'] = !empty($state['dependiente_complete']) && !empty($state['faq_complete']);
+            if (empty($state['complete'])) $state['completed_at'] = '';
+            $changed = true;
         }
 
         $state['cursor'] = $trainer_cursor;
