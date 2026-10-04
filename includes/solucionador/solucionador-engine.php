@@ -811,12 +811,7 @@ final class SEO_Solucionador_Engine {
             return new WP_Error('solucionador_category_name_missing','No se pudo resolver el nombre de la categoría.');
         }
 
-        $sources = array_values(array_filter(
-            (array)SEO_Solucionador_Dossiers::signals(5000,0),
-            static function($source) use ($category_id) {
-                return absint($source['category_id'] ?? 0) === $category_id;
-            }
-        ));
+        $sources = (array)SEO_Solucionador_Dossiers::signals_for_category($category_id);
         if (!$sources) {
             return new WP_Error('solucionador_sources_missing','El dossier no expone fuentes editoriales utilizables.');
         }
