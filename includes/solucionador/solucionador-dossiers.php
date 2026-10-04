@@ -359,6 +359,15 @@ final class SEO_Solucionador_Dossiers {
             $state['editorial_policy'] = self::EDITORIAL_POLICY_VERSION;
             $state['complete'] = false;
             $state['completed_at'] = '';
+
+            // Migración 0.7.x: si Dependiente estaba a mitad del inventario,
+            // conservar el high-water mark y tomar la firma del nuevo proveedor
+            // como inicio del tramo restante. Así no repetimos decenas de miles
+            // de preguntas sólo por cambiar la arquitectura del collector.
+            if (empty($state['dependiente_complete'])) {
+                $state['dependiente_scan_signature'] = self::dependiente_source_signature();
+                $state['dependiente_source_signature'] = '';
+            }
             $changed = true;
         }
 
