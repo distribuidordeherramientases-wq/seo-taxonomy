@@ -699,7 +699,8 @@ function seo_landing_export_seo_csv()
     }
 
     // BOM UTF-8 para que Excel abra correctamente tildes y eñes.
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- BOM UTF-8 sobre stream CSV del informe de landings.\n    fwrite($output, "\xEF\xBB\xBF");
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- BOM UTF-8 sobre stream CSV del informe de landings.
+    fwrite($output, "\xEF\xBB\xBF");
 
     fputcsv($output, array(
         'ID',
@@ -773,7 +774,8 @@ function seo_landing_export_seo_csv()
         ), ';');
     }
 
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV del informe de landings.\n    fclose($output);
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV del informe de landings.
+    fclose($output);
     exit;
 }
 add_action('admin_post_seo_landing_export_seo_csv', 'seo_landing_export_seo_csv');
