@@ -51,20 +51,22 @@ final class SEO_Solucionador_Dossiers {
         $questions = self::questions_table();
         if (!SEO_Solucionador_DB::table_exists($questions)) return '';
 
-        $where = self::curriculum_where();
-        // Cambios estructurales: altas/bajas, activación/desactivación o edición
-        // de una pregunta existente. updated_at permite detectar cambios con ID viejo.
+        // Se firma todo el currículo persistido (salvo laboratorio), no sólo
+        // las filas enabled=1. Así activar/desactivar una pregunta antigua también
+        // cambia la firma aunque el ID sea anterior al cursor.
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna y filtro fijo.
         $q = (array)$wpdb->get_row(
             "SELECT COUNT(q.id) total,
+                    SUM(CASE WHEN q.enabled=1 THEN 1 ELSE 0 END) enabled_total,
                     COALESCE(MAX(q.id),0) max_id,
                     COALESCE(MAX(q.updated_at),'') max_updated
              FROM {$questions} q
-             WHERE {$where}",
+             WHERE q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'",
             ARRAY_A
         );
         return hash('sha256',wp_json_encode(array(
             absint($q['total'] ?? 0),
+            absint($q['enabled_total'] ?? 0),
             absint($q['max_id'] ?? 0),
             (string)($q['max_updated'] ?? ''),
         )));
@@ -867,14 +869,39 @@ final class SEO_Solucionador_Dossiers {
                 $state['dependiente_question_scan_signature'] = $dep_question_signature;
                 $state['dependiente_run_scan_signature'] = $dep_run_signature;
                 $state['complete'] = false;
-            } elseif ((string)($state['dependiente_source_signature'] ?? '') !== ''
-                && (string)$state['dependiente_source_signature'] !== $dep_signature) {
-                // Compatibilidad con estados 0.7.1 anteriores a las firmas separadas.
-                $state['dependiente_complete'] = false;
-                $state['dependiente_scan_signature'] = $dep_signature;
-                $state['dependiente_question_scan_signature'] = $dep_question_signature;
-                $state['dependiente_run_scan_signature'] = $dep_run_signature;
-                $state['complete'] = false;
+            } elseif ($stored_question_signature === '' && $stored_run_signature === '') {
+                $legacy_signature = (string)($state['dependiente_source_signature'] ?? '');
+                if ($legacy_signature !== '' && $legacy_signature === $dep_signature) {
+                    // Migración segura: el estado completo coincide con la fuente
+                    // actual, por lo que se pueden sembrar las firmas separadas
+                    // sin repetir decenas de miles de preguntas.
+                    $state['dependiente_question_source_signature'] = $dep_question_signature;
+                    $state['dependiente_run_source_signature'] = $dep_run_signature;
+                    $state['dependiente_question_scan_signature'] = $dep_question_signature;
+                    $state['dependiente_run_scan_signature'] = $dep_run_signature;
+                } elseif ($legacy_signature !== '') {
+                    // Si la firma legacy cambió no sabemos si fue un run nuevo o
+                    // la edición de una pregunta antigua. Para no perder cambios,
+                    // hacemos un rescan sólo de Dependiente una única vez.
+                    self::clear_source_lane('dependiente',(string)$state['token'],false);
+                    $state['dependiente_cursor'] = 0;
+                    $state['dependiente_run_cursor'] = 0;
+                    $state['dependiente_processed'] = 0;
+                    $state['dependiente_learned'] = 0;
+                    $state['dependiente_editorial_eligible'] = 0;
+                    $state['dependiente_editorial_discarded'] = 0;
+                    $state['dependiente_with_category'] = 0;
+                    $state['dependiente_without_category'] = 0;
+                    $state['dependiente_complete'] = false;
+                    $state['dependiente_source_signature'] = '';
+                    $state['dependiente_question_source_signature'] = '';
+                    $state['dependiente_run_source_signature'] = '';
+                    $state['dependiente_scan_signature'] = $dep_signature;
+                    $state['dependiente_question_scan_signature'] = $dep_question_signature;
+                    $state['dependiente_run_scan_signature'] = $dep_run_signature;
+                    $state['dependiente_rescan_active'] = true;
+                    $state['complete'] = false;
+                }
             }
         }
 
