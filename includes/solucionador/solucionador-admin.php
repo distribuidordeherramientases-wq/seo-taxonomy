@@ -196,123 +196,15 @@ final class SEO_Solucionador_Admin {
 
     public static function handle_accept_all() {
         if (!current_user_can('manage_options')) {
-            wp_die('No tienes permisos para aceptar todas las propuestas.');
+            wp_die('No tienes permisos para gestionar Solucionador.');
         }
         check_admin_referer('seo_solucionador_accept_all');
-
-        global $wpdb;
-        SEO_Solucionador_DB::maybe_install();
-
-        $table = SEO_Solucionador_DB::dossiers_table();
-        if (!SEO_Solucionador_DB::table_exists($table)) {
-            set_transient(
-                'seo_solucionador_notice_' . get_current_user_id(),
-                'No existe todavía el inventario de Solucionador.',
-                90
-            );
-            self::redirect(array('sol_error'=>'accept_all_no_inventory'));
-        }
-
-        $after_id = absint($_REQUEST['after_id'] ?? 0);
-        $created = absint($_REQUEST['created'] ?? 0);
-        $skipped = absint($_REQUEST['skipped'] ?? 0);
-        $errors = absint($_REQUEST['errors'] ?? 0);
-        $batch_size = 50;
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table es una tabla interna validada; valores variables usan placeholders compatibles con WP 5.8.
-        $accept_sql = $wpdb->prepare(
-            "SELECT id,category_id,question_count
-             FROM {$table}
-             WHERE id>%d
-               AND question_count>0
-               AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)
-             ORDER BY id ASC
-             LIMIT %d",
-            $after_id,
-            $batch_size
+        set_transient(
+            'seo_solucionador_notice_' . get_current_user_id(),
+            'Aceptar todo está desactivado en Solucionador 0.7.1: cada dossier debe pasar por revisión editorial antes de crear un borrador.',
+            90
         );
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $accept_sql es el resultado de $wpdb->prepare().
-        $rows = (array) $wpdb->get_results($accept_sql, ARRAY_A);
-
-        $last_id = $after_id;
-        foreach ($rows as $dossier) {
-            $last_id = max($last_id, absint($dossier['id'] ?? 0));
-            $category_id = absint($dossier['category_id'] ?? 0);
-            if (!$category_id) {
-                $skipped++;
-                continue;
-            }
-
-            // No crear un segundo post gestionado para la misma product_cat.
-            $existing_posts = get_posts(array(
-                'post_type'=>'post',
-                'post_status'=>array('draft','publish','future','pending','private'),
-                'posts_per_page'=>1,
-                'fields'=>'ids',
-                'meta_key'=>SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID,
-                'meta_value'=>$category_id,
-                'no_found_rows'=>true,
-            ));
-            if ($existing_posts) {
-                $skipped++;
-                continue;
-            }
-
-            $topic = SEO_Solucionador_Engine::prepare_category_topic($category_id);
-            if (is_wp_error($topic)) {
-                $errors++;
-                continue;
-            }
-
-            $topic_id = absint($topic['id'] ?? 0);
-            if (!$topic_id) {
-                $errors++;
-                continue;
-            }
-
-            SEO_Solucionador_DB::update_topic($topic_id, array(
-                'status'=>'approved',
-                'workflow_state'=>'approved',
-            ));
-            SEO_Solucionador_DB::record_workflow(
-                $topic_id,
-                'approved',
-                'Aceptar todo es una decisión editorial explícita: crea borradores para dossiers con material útil y categoría demostrable; no publica contenido.',
-                'CREATE_POST'
-            );
-
-            $result = SEO_Solucionador_Posts::create_draft($topic_id, true);
-            if (is_wp_error($result)) {
-                $errors++;
-                continue;
-            }
-            $created++;
-        }
-
-        // Procesamiento por lotes para no intentar crear cientos de posts en
-        // una sola petición. El navegador continúa automáticamente.
-        if (count($rows) === $batch_size && $last_id > $after_id) {
-            $next = wp_nonce_url(
-                add_query_arg(array(
-                    'action'=>'seo_solucionador_accept_all',
-                    'after_id'=>$last_id,
-                    'created'=>$created,
-                    'skipped'=>$skipped,
-                    'errors'=>$errors,
-                ), admin_url('admin-post.php')),
-                'seo_solucionador_accept_all'
-            );
-            wp_safe_redirect($next);
-            exit;
-        }
-
-        wp_safe_redirect(self::url('diagnostics', array(
-            'sol_msg'=>'bulk_done',
-            'created'=>$created,
-            'skipped'=>$skipped,
-            'errors'=>$errors,
-        )));
-        exit;
+        self::redirect(array('sol_error'=>'bulk_review_required'));
     }
 
     public static function handle_post_action() {
@@ -650,15 +542,11 @@ final class SEO_Solucionador_Admin {
     private static function render_global_actions() {
         echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 4px">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
-        echo '<input type="hidden" name="action" value="seo_solucionador_accept_all">';
-        wp_nonce_field('seo_solucionador_accept_all');
-        echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Se crearán borradores para dossiers con material útil y categoría demostrable. La acción es editorial y no publica nada. ¿Continuar?\');">Aceptar todo</button>';
-        echo '</form>';
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
         echo '<input type="hidden" name="action" value="seo_solucionador_export_json">';
         wp_nonce_field('seo_solucionador_export_json');
         echo '<button type="submit" class="button">Descargar JSON</button>';
         echo '</form>';
+        echo '<span class="description">Cada dossier requiere revisión editorial individual antes de crear un borrador.</span>';
         echo '</div>';
     }
 
