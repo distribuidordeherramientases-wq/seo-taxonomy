@@ -14,7 +14,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_SOLUCIONADOR_VERSION')) {
-    define('SEO_SOLUCIONADOR_VERSION', '0.7.0');
+    define('SEO_SOLUCIONADOR_VERSION', '0.7.1');
 }
 if (!defined('SEO_SOLUCIONADOR_DB_VERSION')) {
     define('SEO_SOLUCIONADOR_DB_VERSION', '0.7.0');
