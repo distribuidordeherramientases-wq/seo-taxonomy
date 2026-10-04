@@ -253,7 +253,7 @@ final class SEO_Solucionador_Admin {
             // Compatibilidad con formularios 0.6 que todavía envíen qids.
             if (!$selected_keys && isset($_POST['selected_ids']) && is_array($_POST['selected_ids'])) {
                 foreach (array_map('absint',wp_unslash($_POST['selected_ids'])) as $question_id) {
-                    if ($question_id) $selected_keys[] = 'dependiente:' . $question_id;
+                    if ($question_id) $selected_keys[] = 'dependiente:trainer:' . $question_id;
                 }
             }
 
@@ -932,7 +932,7 @@ final class SEO_Solucionador_Admin {
         self::card('Aprendidas sin categoría',absint($academy['learned_without_category'] ?? 0),'No crean dossier ni URL hasta disponer de product_cat demostrable.');
         self::card('CREATE_POST',$counts['create_post'] ?? 0,'Dossiers sin cobertura equivalente; la densidad de material es informativa.');
         self::card('IMPROVE_POST', $counts['improve'] ?? 0, 'Existe un post equivalente con cobertura débil/parcial.');
-        self::card('MERGE_CONTENT', $counts['merge'] ?? 0, 'Existen piezas solapadas que conviene consolidar.');
+        self::card('MERGE_CONTENT · legado', $counts['merge'] ?? 0, 'Compatibilidad con propuestas antiguas; la decisión automática nueva usa NO_ACTION ante solapamiento.');
         self::card('NO_ACTION', $counts['no_action'] ?? 0, 'La intención básica ya está suficientemente cubierta.');
         self::card('DEFER / REVIEW',$counts['deferred'] ?? 0,'Falta categoría demostrable o existe una situación que requiere revisión.');
         self::card('Borradores', $counts['drafts'] ?? 0, 'Posts de trabajo; Solucionador nunca publica automáticamente.');
