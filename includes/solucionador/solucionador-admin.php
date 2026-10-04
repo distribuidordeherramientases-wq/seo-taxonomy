@@ -35,7 +35,7 @@ final class SEO_Solucionador_Admin {
             'title' => 'Solucionador',
             'icon' => 'dashicons-edit-page',
             'page' => 'seo-solucionador',
-            'desc' => 'Propone posts desde preguntas aprendidas, crea borradores y muestra su rendimiento en Google.',
+            'desc' => 'Prepara dossiers editoriales desde FAQs y conocimiento aprendido por Dependiente, crea borradores y muestra su rendimiento en Google.',
         );
         return $items;
     }
@@ -342,16 +342,24 @@ final class SEO_Solucionador_Admin {
         }
 
         if ($post_action === 'save_selection') {
-            $selected_ids = isset($_POST['selected_ids']) && is_array($_POST['selected_ids'])
-                ? array_map('absint', wp_unslash($_POST['selected_ids']))
-                : array();
-            $pending_ids = SEO_Solucionador_Posts::pending_question_ids($post_id);
-            $selection_mode = sanitize_key((string)($_POST['selection_mode'] ?? ''));
-            $reviewed_ids = $selection_mode === 'discard_unselected'
-                ? array_values(array_diff($pending_ids, $selected_ids))
+            $selected_keys = isset($_POST['selected_keys']) && is_array($_POST['selected_keys'])
+                ? array_map('sanitize_text_field', wp_unslash($_POST['selected_keys']))
                 : array();
 
-            $result = SEO_Solucionador_Posts::apply_pending_selection($post_id,$selected_ids,$reviewed_ids);
+            // Compatibilidad con formularios 0.6 que todavía envíen qids.
+            if (!$selected_keys && isset($_POST['selected_ids']) && is_array($_POST['selected_ids'])) {
+                foreach (array_map('absint',wp_unslash($_POST['selected_ids'])) as $question_id) {
+                    if ($question_id) $selected_keys[] = 'dependiente:' . $question_id;
+                }
+            }
+
+            $pending_keys = SEO_Solucionador_Posts::pending_item_keys($post_id);
+            $selection_mode = sanitize_key((string)($_POST['selection_mode'] ?? ''));
+            $reviewed_keys = $selection_mode === 'discard_unselected'
+                ? array_values(array_diff($pending_keys, $selected_keys))
+                : array();
+
+            $result = SEO_Solucionador_Posts::apply_pending_selection($post_id,$selected_keys,$reviewed_keys);
             if (is_wp_error($result)) {
                 set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
                 if ($return_to === 'editor') $return_editor($post_id,'error');
