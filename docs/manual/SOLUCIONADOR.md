@@ -291,8 +291,9 @@ Si el post está publicado, permanece exactamente como está hasta revisión hum
 Los carriles son independientes:
 
 - `faq_cursor`
-- `dependiente_cursor.trainer`
-- `dependiente_cursor.semantic`
+- `dependiente_cursor.trainer` — inventario de preguntas;
+- `dependiente_cursor.trainer_run` — nuevas respuestas/runs para preguntas ya conocidas;
+- `dependiente_cursor.semantic` — conocimiento semántico consolidado
 
 La palabra `complete` describe únicamente que **esa pasada de inventario alcanzó el final conocido de la fuente en ese momento**. No significa que Dependiente haya terminado de aprender ni constituye una condición para crear propuestas.
 
@@ -345,7 +346,7 @@ Una FAQ no necesita ser aprendida por Dependiente para entrar en Solucionador.
 
 Una pregunta de Entrenador sólo entra por el carril Dependiente cuando el conocimiento ya está validado, por ejemplo con último run `answered` y `evaluation_status=pass_*`.
 
-La migración conserva cursores cuando es compatible y cada fuente mantiene su propia reconciliación. Si una fuente requiere una nueva pasada, sólo se recorre ese carril y las propuestas disponibles siguen siendo utilizables durante el proceso.
+La migración conserva cursores cuando es compatible y cada fuente mantiene su propia reconciliación. En Dependiente, una firma nueva no vacía los dossiers: se continúa desde los high-water marks de preguntas, runs y reglas. Las propuestas disponibles siguen siendo utilizables durante el proceso.
 
 ## Propuesta editorial
 
