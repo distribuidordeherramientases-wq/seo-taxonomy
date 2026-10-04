@@ -207,21 +207,20 @@ final class SEO_Solucionador_Admin {
         $errors = absint($_REQUEST['errors'] ?? 0);
         $batch_size = 50;
 
-        $rows = (array) $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id,category_id,question_count
-                 FROM %i
-                 WHERE id>%d
-                   AND question_count>0
-                   AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)
-                 ORDER BY id ASC
-                 LIMIT %d",
-                $table,
-                $after_id,
-                $batch_size
-            ),
-            ARRAY_A
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table es una tabla interna validada; valores variables usan placeholders compatibles con WP 5.8.
+        $accept_sql = $wpdb->prepare(
+            "SELECT id,category_id,question_count
+             FROM {$table}
+             WHERE id>%d
+               AND question_count>0
+               AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)
+             ORDER BY id ASC
+             LIMIT %d",
+            $after_id,
+            $batch_size
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $accept_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($accept_sql, ARRAY_A);
 
         $last_id = $after_id;
         foreach ($rows as $dossier) {
@@ -964,8 +963,10 @@ final class SEO_Solucionador_Admin {
             'detail'=>'Señal separada de demanda. No origina dossiers ni URLs en Solucionador v0.5.',
         );
 
-        $coverage = SEO_Solucionador_DB::table_exists(SEO_Solucionador_DB::coverage_table())
-            ? absint($wpdb->get_var('SELECT COUNT(*) FROM ' . SEO_Solucionador_DB::coverage_table()))
+        $coverage_table = SEO_Solucionador_DB::coverage_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna controlada; consulta fija sin entrada de usuario.
+        $coverage = SEO_Solucionador_DB::table_exists($coverage_table)
+            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$coverage_table}"))
             : 0;
         $items['Cobertura editorial compartida'] = array(
             'available'=>$coverage > 0,
@@ -1482,7 +1483,11 @@ final class SEO_Solucionador_Admin {
         if ($category_filter) { $where[]='category_id=%d'; $params[]=$category_filter; }
 
         $sql = "SELECT * FROM {$table} WHERE " . implode(' AND ',$where) . " ORDER BY entity_type,entity_id,scope,id LIMIT 1200";
-        if ($params) $sql = $wpdb->prepare($sql,$params);
+        if ($params) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Condiciones generadas internamente; valores externos enlazados mediante placeholders.
+            $sql = $wpdb->prepare($sql,$params);
+        }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin parámetros es SQL interno fijo; con parámetros, $sql ya está preparado.
         $rows = (array) $wpdb->get_results($sql,ARRAY_A);
 
         $counts = (array) $wpdb->get_results("SELECT entity_type,COUNT(DISTINCT entity_id) entities,COUNT(*) fingerprints FROM {$table} GROUP BY entity_type ORDER BY entity_type",ARRAY_A);
