@@ -37,6 +37,7 @@ final class SEO_Solucionador_Catalog {
                    ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
                 INNER JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
                 WHERE tr.object_id IN ({$placeholders})";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Plantilla SQL y tablas proceden solo de estructuras internas; los valores variables se enlazan con $wpdb->prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $ids), ARRAY_A);
         foreach ($rows as $row) {
             $pid = absint($row['product_id'] ?? 0);
@@ -83,6 +84,7 @@ final class SEO_Solucionador_Catalog {
                 INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=t.term_id AND tt.taxonomy='product_cat'
                 WHERE " . implode(' OR ', $where) . "
                 ORDER BY tt.count DESC,t.name ASC LIMIT 30";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Plantilla SQL y tablas proceden solo de estructuras internas; los valores variables se enlazan con $wpdb->prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
         $needle = implode(' ', $phrases);
         foreach ($rows as $row) {
@@ -170,6 +172,7 @@ final class SEO_Solucionador_Catalog {
                   AND v.semantic_group IN ({$groups})
                   AND ov.object_id IN ({$placeholders})";
         $params = array_merge(array($object_type), $ids);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Plantilla SQL y tablas proceden solo de estructuras internas; los valores variables se enlazan con $wpdb->prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
         foreach ($rows as $row) {
             $oid = absint($row['object_id'] ?? 0);
@@ -227,6 +230,7 @@ final class SEO_Solucionador_Catalog {
                   AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
                   AND (" . implode(' OR ', $where) . ")
                 ORDER BY v.semantic_group,v.label LIMIT 120";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Plantilla SQL y tablas proceden solo de estructuras internas; los valores variables se enlazan con $wpdb->prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
         $needle = implode(' ', $phrases);
         foreach ($rows as $row) {
@@ -267,6 +271,7 @@ final class SEO_Solucionador_Catalog {
                 WHERE ov.object_type='product_cat' AND ov.status=1
                   AND v.semantic_group IN ({$allowed})
                   AND ov.vocabulary_id IN ({$placeholders})";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Plantilla SQL y tablas proceden solo de estructuras internas; los valores variables se enlazan con $wpdb->prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $candidate_ids), ARRAY_A);
         foreach ($rows as $row) {
             $cid = absint($row['category_id'] ?? 0);
@@ -290,6 +295,7 @@ final class SEO_Solucionador_Catalog {
                 GROUP BY ov.vocabulary_id,tt.term_id
                 ORDER BY matched_products DESC
                 LIMIT 180";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Plantilla SQL y tablas proceden solo de estructuras internas; los valores variables se enlazan con $wpdb->prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $candidate_ids), ARRAY_A);
         foreach ($rows as $row) {
             $cid = absint($row['category_id'] ?? 0);
