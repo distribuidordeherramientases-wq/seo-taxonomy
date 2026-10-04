@@ -1048,13 +1048,15 @@ final class SEO_Solucionador_Dossiers {
         $both = SEO_Solucionador_DB::table_exists($table)
             ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE dependiente_count>0 AND faq_count>0")) : 0;
 
-        $questions_total = 0;
-        if (SEO_Solucionador_DB::table_exists(self::questions_table())) {
-            $questions_table = self::questions_table();
-            $curriculum_where = self::curriculum_where();
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- consulta fija.
-            $questions_total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$questions_table} q WHERE {$curriculum_where}"));
-        }
+        $dep_inventory = class_exists('SEO_Dependiente_Editorial_Knowledge')
+            && method_exists('SEO_Dependiente_Editorial_Knowledge','inventory_stats')
+            ? SEO_Dependiente_Editorial_Knowledge::inventory_stats()
+            : array('trainer_total'=>0,'semantic_total'=>0,'total'=>0);
+        $questions_total = absint($dep_inventory['trainer_total'] ?? 0);
+        $dependiente_inventory_total = absint($dep_inventory['total'] ?? 0);
+
+        $faqs_all_total = SEO_Solucionador_DB::table_exists(self::faq_table())
+            ? absint($wpdb->get_var("SELECT COUNT(*) FROM " . self::faq_table())) : 0;
         $faqs_total = SEO_Solucionador_DB::table_exists(self::faq_table())
             ? absint($wpdb->get_var("SELECT COUNT(*) FROM " . self::faq_table() . " WHERE active=1")) : 0;
 
@@ -1062,6 +1064,9 @@ final class SEO_Solucionador_Dossiers {
             'available'=>SEO_Solucionador_DB::table_exists(self::faq_table())
                 || (class_exists('SEO_Dependiente_Editorial_Knowledge') && SEO_Dependiente_Editorial_Knowledge::available()),
             'questions_total'=>$questions_total,
+            'dependiente_inventory_total'=>$dependiente_inventory_total,
+            'dependiente_semantic_total'=>absint($dep_inventory['semantic_total'] ?? 0),
+            'faqs_all_total'=>$faqs_all_total,
             'faqs_total'=>$faqs_total,
             'scan_token'=>(string)($state['token'] ?? ''),
             'dependiente_cursor'=>(array)($state['dependiente_cursor'] ?? array()),
