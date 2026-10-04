@@ -2012,6 +2012,41 @@ final class SEO_Auditor {
         $a=self::identity_tokens($anchor);$b=self::identity_tokens($text);if(!$a||!$b)return 0.0;$hits=count(array_intersect($a,$b));return $hits/max(1,count($a));
     }
 
+    private static function best_cross_category_candidate($current_id,$text,$categories,$own_score=0.0) {
+        $current_id=absint($current_id);
+        $text=(string)$text;
+        $own_score=(float)$own_score;
+        $best=null;
+
+        foreach((array)$categories as $cid=>$term){
+            $cid=absint($cid);
+            if(!$cid||$cid===$current_id||!is_object($term))continue;
+            $name=trim((string)($term->name ?? ''));
+            if($name==='')continue;
+
+            $tokens=self::identity_tokens($name);
+            // Una coincidencia de una sola palabra es demasiado débil para acusar
+            // contenido cruzado. Exigimos identidad suficientemente específica.
+            if(count($tokens)<2)continue;
+
+            $score=self::text_alignment_ratio($name,$text);
+            $margin=$score-$own_score;
+            if($score<0.45||$margin<0.30)continue;
+
+            if(!$best||$score>(float)$best['alignment']){
+                $best=array(
+                    'category_id'=>$cid,
+                    'category'=>$name,
+                    'alignment'=>round($score,3),
+                    'own_alignment'=>round($own_score,3),
+                    'margin'=>round($margin,3),
+                    'evidence_type'=>'strong_cross_category_fit',
+                );
+            }
+        }
+        return $best;
+    }
+
     private static function snippet($text,$max=220) {
         $text=trim(preg_replace('/\s+/u',' ',wp_strip_all_tags((string)$text)));if(self::strlen($text)<=$max)return $text;return function_exists('mb_substr')?mb_substr($text,0,$max,'UTF-8').'…':substr($text,0,$max).'...';
     }
@@ -3457,12 +3492,39 @@ final class SEO_Auditor {
     private static function metric($label,$value,$class='') {echo '<div class="seo-auditor__metric '.($class?'is-'.esc_attr($class):'').'"><strong>'.esc_html(number_format_i18n(absint($value))).'</strong><span>'.esc_html($label).'</span></div>';}
 
     private static function finding($code,$severity,$entity_type,$entity_id,$title,$headline,$evidence=array(),$recommendation='') {
-        $code=sanitize_key((string)$code);$severity=sanitize_key((string)$severity);$entity_type=sanitize_key((string)$entity_type);
-        if (count(self::$findings) >= self::MAX_FINDINGS) return;
-        self::$rule_counts[$code]=absint(self::$rule_counts[$code]??0)+1;
-        if(self::$rule_counts[$code] > self::MAX_ENTITY_FINDINGS_PER_RULE) return;
+        $code=sanitize_key((string)$code);
+        $severity=sanitize_key((string)$severity);
+        $entity_type=sanitize_key((string)$entity_type);
         $id=is_numeric($entity_id)?absint($entity_id):(string)$entity_id;
-        self::$findings[]=array('code'=>$code,'severity'=>$severity,'scope'=>self::scope_for($code,$entity_type),'root_cause'=>self::root_cause_for($code,$entity_type),'entity_type'=>$entity_type,'entity_id'=>$id,'title'=>(string)$title,'headline'=>(string)$headline,'message'=>is_string($evidence)?$evidence:'','evidence'=>is_array($evidence)?$evidence:array(),'recommendation'=>(string)$recommendation,'edit_url'=>self::edit_url($entity_type,$id));
+
+        self::$rule_counts[$code]=absint(self::$rule_counts[$code]??0)+1;
+
+        $record=array(
+            'code'=>$code,
+            'severity'=>$severity,
+            'scope'=>self::scope_for($code,$entity_type),
+            'root_cause'=>self::root_cause_for($code,$entity_type),
+            'entity_type'=>$entity_type,
+            'entity_id'=>$id,
+            'title'=>(string)$title,
+            'headline'=>(string)$headline,
+            'message'=>is_string($evidence)?$evidence:'',
+            'evidence'=>is_array($evidence)?$evidence:array(),
+            'recommendation'=>(string)$recommendation,
+            'edit_url'=>self::edit_url($entity_type,$id),
+        );
+
+        // La cola editorial se construye con el conjunto completo de hallazgos.
+        // La tabla visual mantiene límites para no saturar wp-admin.
+        if(count(self::$priority_findings)<self::MAX_PRIORITY_FINDINGS){
+            self::$priority_findings[]=$record;
+        }else{
+            self::$priority_findings_truncated=true;
+        }
+
+        if(count(self::$findings)>=self::MAX_FINDINGS)return;
+        if(self::$rule_counts[$code]>self::MAX_ENTITY_FINDINGS_PER_RULE)return;
+        self::$findings[]=$record;
     }
 
     private static function audit_source_integrity($inventory) {
