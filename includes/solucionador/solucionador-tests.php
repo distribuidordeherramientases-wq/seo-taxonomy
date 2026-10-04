@@ -93,9 +93,24 @@ final class SEO_Solucionador_Tests {
             'FAQ y Dependiente convergen en el mismo dossier; no se crea un topic por fuente.'
         );
 
-        $t2=self::scenario('uncovered',0,2,77);
+        $faq_echo=array(
+            'question_type'=>'faq_owner_context',
+            'source_type'=>'faq',
+            'expected_json'=>wp_json_encode(array('kind'=>'faq','owner_type'=>2,'owner_id'=>39837)),
+            'question'=>'¿Cómo sé qué longitud de abrazadera necesito para un mueble o tablero?',
+        );
         $tests[]=self::result(
             2,
+            'FAQ aprendida no vuelve por Dependiente',
+            SEO_Solucionador_Dossiers::is_faq_training_echo($faq_echo)===true,
+            'true',
+            SEO_Solucionador_Dossiers::is_faq_training_echo($faq_echo)?'true':'false',
+            'La FAQ original entra desde seo_faq; Academia sólo entrena/evalúa a Dependiente.'
+        );
+
+        $t2=self::scenario('uncovered',0,2,77);
+        $tests[]=self::result(
+            3,
             'FAQ válida sin aprendizaje de Dependiente',
             (string)($t2['decision']['action']??'')==='CREATE_POST',
             'CREATE_POST',
@@ -105,7 +120,7 @@ final class SEO_Solucionador_Tests {
 
         $t3=self::scenario('uncovered',3,3,0);
         $tests[]=self::result(
-            3,
+            4,
             'Sin categoría demostrable',
             (string)($t3['decision']['action']??'')==='DEFER',
             'DEFER',
@@ -115,7 +130,7 @@ final class SEO_Solucionador_Tests {
 
         $t4=self::scenario('uncovered',5,4,77);
         $tests[]=self::result(
-            4,
+            5,
             'Dossier mixto sin cobertura',
             (string)($t4['decision']['action']??'')==='CREATE_POST',
             'CREATE_POST',
@@ -125,7 +140,7 @@ final class SEO_Solucionador_Tests {
 
         $t5=self::scenario('covered',4,4,77,'post');
         $tests[]=self::result(
-            5,
+            6,
             'Cobertura suficiente',
             (string)($t5['decision']['action']??'')==='NO_ACTION',
             'NO_ACTION',
@@ -135,7 +150,7 @@ final class SEO_Solucionador_Tests {
 
         $t6=self::scenario('partial_coverage',4,4,77,'post');
         $tests[]=self::result(
-            6,
+            7,
             'Post existente con cobertura parcial',
             (string)($t6['decision']['action']??'')==='IMPROVE_POST',
             'IMPROVE_POST',
@@ -145,7 +160,7 @@ final class SEO_Solucionador_Tests {
 
         $t7=self::scenario('duplicate',4,4,77,'post');
         $tests[]=self::result(
-            7,
+            8,
             'Piezas solapadas',
             (string)($t7['decision']['action']??'')==='MERGE_CONTENT',
             'MERGE_CONTENT',
@@ -155,7 +170,7 @@ final class SEO_Solucionador_Tests {
 
         $contract=SEO_Solucionador_Sources::editorial_source_contract();
         $tests[]=self::result(
-            8,
+            9,
             'Dos orígenes editoriales independientes',
             $contract===array('faq','dependiente_academia'),
             'faq, dependiente_academia',
@@ -170,7 +185,7 @@ final class SEO_Solucionador_Tests {
             && method_exists('SEO_Solucionador_Dossiers','changed_item_keys')
             && method_exists('SEO_Solucionador_Dossiers','review_item_keys');
         $tests[]=self::result(
-            9,
+            10,
             'Procesamiento reanudable y revisión por elemento',
             $batch_api,
             'scan_batch + question_details + changed/review item keys',
@@ -183,7 +198,7 @@ final class SEO_Solucionador_Tests {
             && defined('SEO_SOLUCIONADOR_VERSION')
             && version_compare(SEO_SOLUCIONADOR_VERSION,'0.7.0','>=');
         $tests[]=self::result(
-            10,
+            11,
             'Contrato de borrador humano',
             $post_contract,
             'API común de rol + Solucionador >= 0.7.0',
@@ -199,7 +214,7 @@ final class SEO_Solucionador_Tests {
             && defined('SEO_Solucionador_Posts::META_SOURCE_SNAPSHOT')
             && defined('SEO_Solucionador_Posts::META_PENDING_ITEM_KEYS');
         $tests[]=self::result(
-            11,
+            12,
             'Trazabilidad FAQ + Dependiente separada del texto editorial',
             $trace_contract,
             'category_id + faq_ids + question_ids + run_ids + source_hash + item_keys',
@@ -210,7 +225,7 @@ final class SEO_Solucionador_Tests {
         $coverage_contract=class_exists('SEO_Editorial_Coverage')
             && is_subclass_of('SEO_Solucionador_Coverage','SEO_Editorial_Coverage');
         $tests[]=self::result(
-            12,
+            13,
             'Cobertura neutral compartida',
             $coverage_contract,
             'SEO_Editorial_Coverage + wrapper compatible',
