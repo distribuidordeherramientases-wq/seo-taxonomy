@@ -256,14 +256,16 @@ final class SEO_Comparador_DB {
 
     public static function profile_count() {
         global $wpdb;
-        return absint($wpdb->get_var('SELECT COUNT(*) FROM ' . self::table('profiles')));
+        $profiles_table = esc_sql(self::table('profiles'));
+        return absint($wpdb->get_var("SELECT COUNT(*) FROM `{$profiles_table}`"));
     }
 
     public static function profile_status_counts() {
         global $wpdb;
+        $profiles_table = esc_sql(self::table('profiles'));
         $out = array();
         foreach ((array) $wpdb->get_results(
-            'SELECT status,COUNT(*) AS total FROM ' . self::table('profiles') . ' GROUP BY status',
+            "SELECT status,COUNT(*) AS total FROM `{$profiles_table}` GROUP BY status",
             ARRAY_A
         ) as $row) {
             $out[sanitize_key((string) ($row['status'] ?? ''))] = absint($row['total'] ?? 0);
@@ -273,11 +275,12 @@ final class SEO_Comparador_DB {
 
     public static function list_profiles_page($limit = 100, $offset = 0) {
         global $wpdb;
+        $profiles_table = esc_sql(self::table('profiles'));
         $limit = max(1, min(250, absint($limit)));
         $offset = max(0, absint($offset));
         return (array) $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT * FROM ' . self::table('profiles') . ' ORDER BY updated_at DESC,id DESC LIMIT %d OFFSET %d',
+                "SELECT * FROM `{$profiles_table}` ORDER BY updated_at DESC,id DESC LIMIT %d OFFSET %d",
                 $limit,
                 $offset
             ),
