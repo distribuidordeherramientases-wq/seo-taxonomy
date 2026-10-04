@@ -257,6 +257,10 @@ final class SEO_Dependiente_Editorial_Knowledge {
             'origin'=>'dependiente',
             'dependiente_source'=>'trainer',
             'source_id'=>$question_id,
+            'source_type_raw'=>sanitize_key((string)($row['source_type'] ?? '')),
+            'source_id_raw'=>absint($row['source_id'] ?? 0),
+            'source_key_raw'=>sanitize_text_field((string)($row['source_key'] ?? '')),
+            'expected_json_raw'=>(string)($row['expected_json'] ?? ''),
             'category_ids'=>$categories,
             'product_id'=>$product_id ?: null,
             'question'=>sanitize_text_field((string)($row['question'] ?? '')),
@@ -332,6 +336,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
             ? max(0,min(1,(float)$row['confidence']))
             : 0.75;
 
+        $relation_type = sanitize_key((string)($row['relation_type'] ?? ''));
         $item = array(
             'item_id'=>'dependiente:semantic:' . $id,
             'origin'=>'dependiente',
@@ -354,7 +359,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
                 'rule_key'=>sanitize_key((string)($row['rule_key'] ?? '')),
                 'rule_type'=>sanitize_key((string)($row['rule_type'] ?? '')),
                 'semantic_role'=>sanitize_key((string)($row['semantic_role'] ?? '')),
-                'relation_type'=>$relation = sanitize_key((string)($row['relation_type'] ?? '')),
+                'relation_type'=>$relation_type,
             ),
         );
         $item['source_hash'] = hash('sha256',wp_json_encode(array(
@@ -488,7 +493,6 @@ final class SEO_Dependiente_Editorial_Knowledge {
                 // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs preparados.
                 foreach ((array)$wpdb->get_results($prepared,ARRAY_A) as $run) {
                     $runs_by_question[absint($run['question_id'] ?? 0)] = $run;
-                    $run_cursor = max($run_cursor,absint($run['run_id'] ?? 0));
                 }
             }
 
