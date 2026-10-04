@@ -878,7 +878,8 @@ final class SEO_Solucionador_Admin {
         self::card('FAQs activas',absint($academy['faqs_total'] ?? 0),'Fuente editorial directa; no depende del aprendizaje de Dependiente.');
         self::card('FAQs en dossiers',absint($academy['faq_in_dossiers'] ?? 0),'FAQs activas con product_cat demostrable.');
         self::card('Preguntas aprendidas',absint($academy['learned'] ?? 0),'Dependiente: último run answered con evaluation_status pass_*.');
-        self::card('Dependiente en dossiers',absint($academy['dependiente_in_dossiers'] ?? 0),'Preguntas pass_* con valor editorial y product_cat.');
+        self::card('FAQ aprendidas ignoradas',absint($academy['faq_training_ignored'] ?? 0),'Se usan sólo para entrenar a Dependiente; Solucionador toma la FAQ original de seo_faq.');
+        self::card('Dependiente en dossiers',absint($academy['dependiente_in_dossiers'] ?? 0),'Preguntas pass_* con valor editorial que no proceden de FAQ y tienen product_cat.');
         self::card('Aprendidas sin categoría',absint($academy['learned_without_category'] ?? 0),'No crean dossier ni URL hasta disponer de product_cat demostrable.');
         self::card('CREATE_POST',$counts['create_post'] ?? 0,'Dossiers sin cobertura equivalente; la densidad de material es informativa.');
         self::card('IMPROVE_POST', $counts['improve'] ?? 0, 'Existe un post equivalente con cobertura débil/parcial.');
@@ -1025,6 +1026,7 @@ final class SEO_Solucionador_Admin {
         self::card('FAQs en dossiers',absint($academy['faq_in_dossiers']??0),'Con product_cat demostrable.');
         self::card('Preguntas currículo',absint($academy['questions_total']??0),'Fuente de evaluación/aprendizaje de Dependiente.');
         self::card('Aprendidas pass_*',absint($academy['learned']??0),'Última ejecución respondida y validada.');
+        self::card('Eco FAQ excluido',absint($academy['faq_training_ignored']??0),'No vuelve a Solucionador por el canal Dependiente.');
         self::card('Con product_cat',absint($academy['learned_with_category']??0),'Con asociación demostrable.');
         self::card('Sin product_cat',absint($academy['learned_without_category']??0),'No crean dossier ni URL.');
         self::card('Dossiers',absint($academy['categories_with_knowledge']??0),'Categorías con FAQ y/o conocimiento aprendido.');
@@ -1573,6 +1575,7 @@ final class SEO_Solucionador_Admin {
         self::card('Preguntas Academia',absint($academy['questions_total']??0),'Preguntas activas del currículo.');
         self::card('Procesadas',absint($academy['processed']??0),'Preguntas recorridas por el cursor.');
         self::card('Aprendidas',absint($academy['learned']??0),'Último run pass_*.');
+        self::card('Eco FAQ excluido',absint($academy['faq_training_ignored']??0),'Aprendido por Dependiente pero no reutilizado editorialmente; la FAQ original entra por seo_faq.');
         self::card('No aprendidas',absint($academy['not_learned']??0),'Sin pass_*.');
         self::card('Con categoría',absint($academy['learned_with_category']??0),'Pueden formar dossier.');
         self::card('Sin categoría',absint($academy['learned_without_category']??0),'No generan dossier ni URL.');
