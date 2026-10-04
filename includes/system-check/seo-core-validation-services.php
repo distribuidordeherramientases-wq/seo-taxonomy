@@ -85,7 +85,7 @@ function seo_core_service_health_registry() {
             'tables' => array('seo_comparador_profiles', 'seo_comparador_products', 'seo_comparador_editorial'),
         ),
         'dependiente' => array(
-            'label' => 'Dependiente',
+            'label' => 'Dependiente · motor e índice',
             'components' => array(
                 array('class', 'SEO_Dependiente_V3_DB'),
                 array('class', 'SEO_Dependiente_V3_App'),
@@ -196,12 +196,69 @@ function seo_core_service_health_runtime_probe($key) {
             if (!class_exists('SEO_Dependiente_V3_DB') || !is_callable(array('SEO_Dependiente_V3_DB', 'exists'))) {
                 return array('ok' => false, 'detail' => 'No se puede ejecutar la comprobación de Dependiente.', 'evidence' => array());
             }
+
             $index_ok = SEO_Dependiente_V3_DB::exists('seo_dependiente_index');
             $semantic_ok = SEO_Dependiente_V3_DB::exists('seo_dependiente_semantics');
+
+            if (!$index_ok || !$semantic_ok) {
+                return array(
+                    'ok' => false,
+                    'detail' => 'Dependiente no puede acceder a su índice o memoria semántica.',
+                    'evidence' => array(
+                        'index' => (bool) $index_ok,
+                        'semantics' => (bool) $semantic_ok,
+                        'motor_test' => false,
+                    ),
+                );
+            }
+
+            if (!class_exists('SEO_Dependiente_V3_Interpreter') || !class_exists('SEO_Dependiente_V3_Catalog')) {
+                return array(
+                    'ok' => false,
+                    'detail' => 'Índice disponible, pero no están cargados el intérprete o el motor V3.',
+                    'evidence' => array(
+                        'index' => true,
+                        'semantics' => true,
+                        'motor_test' => false,
+                    ),
+                );
+            }
+
+            $interpretation = SEO_Dependiente_V3_Interpreter::interpret('taladro');
+            $catalog = SEO_Dependiente_V3_Catalog::search($interpretation, array(
+                'page' => 1,
+                'per_page' => 6,
+            ));
+
+            if (is_wp_error($catalog)) {
+                return array(
+                    'ok' => false,
+                    'detail' => 'El motor V3 no supera el smoke test: ' . $catalog->get_error_message(),
+                    'evidence' => array(
+                        'index' => true,
+                        'semantics' => true,
+                        'motor_test' => false,
+                        'error_code' => $catalog->get_error_code(),
+                    ),
+                );
+            }
+
+            $products = is_array($catalog) ? (array) ($catalog['products'] ?? array()) : array();
+            $decision = is_array($catalog) ? (array) ($catalog['decision'] ?? array()) : array();
+            $debug = is_array($catalog) ? (array) ($catalog['debug'] ?? array()) : array();
+
             return array(
-                'ok' => $index_ok && $semantic_ok,
-                'detail' => $index_ok && $semantic_ok ? 'Índice y memoria semántica accesibles.' : 'Dependiente no puede acceder a su índice o memoria semántica.',
-                'evidence' => array('index' => (bool) $index_ok, 'semantics' => (bool) $semantic_ok),
+                'ok' => is_array($catalog),
+                'detail' => 'Índice y memoria semántica accesibles; motor V3 ejecutado correctamente.',
+                'evidence' => array(
+                    'index' => true,
+                    'semantics' => true,
+                    'motor_test' => true,
+                    'test_query' => 'taladro',
+                    'result_count' => count($products),
+                    'candidate_count' => absint($decision['candidate_count'] ?? 0),
+                    'index_available' => isset($debug['index_available']) ? (bool) $debug['index_available'] : true,
+                ),
             );
         }
 
