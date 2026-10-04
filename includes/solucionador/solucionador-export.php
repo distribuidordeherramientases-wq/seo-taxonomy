@@ -237,6 +237,7 @@ final class SEO_Solucionador_Export {
             ? (array) $wpdb->get_results("SELECT * FROM {$workflow_table} ORDER BY topic_id,id ASC",ARRAY_A)
             : array();
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
         $dossier_rows = SEO_Solucionador_DB::table_exists($dossiers_table)
             ? (array) $wpdb->get_results(
                 "SELECT id,category_id,category_name,question_count,dependiente_count,faq_count,
@@ -512,6 +513,7 @@ final class SEO_Solucionador_Export {
         global $wpdb;
         $allowed = array('status', 'coverage_status', 'recommended_action');
         if (!in_array($column, $allowed, true)) return array();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $column procede de allowlist cerrada y $table es interna; consulta sin entrada de usuario.
         $rows = (array) $wpdb->get_results(
             "SELECT {$column} value,COUNT(*) total FROM {$table} GROUP BY {$column} ORDER BY total DESC,value ASC",
             ARRAY_A
