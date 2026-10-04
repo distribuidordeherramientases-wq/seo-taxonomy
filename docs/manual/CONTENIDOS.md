@@ -72,13 +72,17 @@ El Auditor de datos se accede desde **SEO Taxonomy → Contenidos → Auditor**.
 
 Cada auditoría genera, además de hallazgos y calidad, un **Plan de trabajo priorizado**. Auditor no ejecuta ni redacta cambios: clasifica cada hallazgo para que Editora reciba una cola accionable:
 
-- **P1 · CORREGIR_AHORA**: errores objetivos, duplicados, referencias rotas o contradicciones fuertes. Los casos de identidad de producto que necesitan confirmar proveedor quedan en `NEEDS_SOURCE_VERIFICATION`.
+- **P1 · ATENDER PRIMERO**: la prioridad ya no implica por sí sola modificar contenido. Puede ser `CORREGIR_AHORA` cuando el error está confirmado o `VERIFICAR_AHORA` cuando necesita proveedor/fuente; en este último caso el estado es `NEEDS_SOURCE_VERIFICATION` y `ready_now=false`.
 - **P2 · ESPERAR_ENRIQUECIMIENTO**: contenido insuficiente que debe esperar conocimiento de Ingeniero/Solucionador en vez de rellenarse con texto genérico.
 - **P3 · MIGRAR_A_SOLUCIONADOR**: FAQs con intención útil de elección, uso, compatibilidad, mantenimiento, seguridad o problema real. Antes de retirar una FAQ se exige preservar `faq_id + object_type + object_id/category_id + pregunta + respuesta + hash + origen`.
-- **P4 · REVISAR**: señales heurísticas que requieren criterio humano y no justifican modificación automática.
+- **P4 · REVISAR**: señales heurísticas que requieren criterio humano y no justifican modificación automática. Un bajo solapamiento literal de una categoría queda aquí salvo evidencia independiente fuerte de contenido cruzado.
 - **P5 · INFORMATIVO**: métricas/contexto sin acción editorial directa.
 
-La salida JSON incorpora `task_id`, `priority`, `priority_score`, `action_class`, `status`, `ready_now`, `requires_source_check`, `depends_on`, entidad, problema, evidencia, recomendación y `expected_impact`. El impacto de tráfico queda marcado como **pendiente de Analista** hasta que esa integración aporte métricas fiables.
+Desde Auditor 0.12.x, `_seo_proveedor_id_externo` se audita con alcance **proveedor + ID externo**; el mismo valor en proveedores distintos no genera por sí solo un duplicado. GTIN/EAN/MPN conservan su semántica propia y no heredan automáticamente ese alcance.
+
+La auditoría de FAQs incluye `faq_migration_inventory`, un inventario completo e independiente del límite visual de hallazgos, con clases `MIGRATE`, `RETIRE_CANDIDATE`, `REVIEW` e `INVALID_OWNER`. Auditor sigue siendo de solo lectura y ninguna FAQ útil queda autorizada para retirada mientras la preservación en Solucionador no esté confirmada.
+
+La salida JSON incorpora `task_id`, `priority`, `priority_score`, `action_class`, `status`, `ready_now`, `requires_source_check`, `depends_on`, entidad, problema, evidencia, recomendación y `expected_impact`. También conserva `first_seen`, `last_seen`, `previous_status` y las tareas resueltas entre auditorías. `priority_queue_meta` y `findings_meta` declaran explícitamente totales y truncamiento; la UI puede mostrar una muestra mientras el JSON conserva la cola completa. El impacto de tráfico queda marcado como **pendiente de Analista** hasta que esa integración aporte métricas fiables.
 
 La auditoría de **Academia / Estudiante** queda separada dentro de **Dependiente → Auditor Academia**.
 
