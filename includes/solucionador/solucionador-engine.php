@@ -853,6 +853,26 @@ final class SEO_Solucionador_Engine {
         $academy = SEO_Solucionador_Dossiers::scan_batch($batch_size,false);
         if (is_wp_error($academy)) return $academy;
 
+        // Las propuestas no esperan al final del inventario completo. Cada lote
+        // materializa/actualiza inmediatamente las categorias cuyo dossier ha
+        // recibido nuevas FAQs o conocimiento validado de Dependiente.
+        $incremental = array('processed'=>0,'prepared'=>0,'errors'=>0);
+        foreach ((array)($academy['changed_category_ids'] ?? array()) as $category_id) {
+            $category_id = absint($category_id);
+            if (!$category_id) continue;
+            $incremental['processed']++;
+            try {
+                $prepared = self::prepare_category_topic($category_id);
+                if (is_wp_error($prepared)) {
+                    $incremental['errors']++;
+                    continue;
+                }
+                $incremental['prepared']++;
+            } catch (Throwable $e) {
+                $incremental['errors']++;
+            }
+        }
+
         if (empty($academy['scan_complete'])) {
             $result = array(
                 'at'=>time(),
@@ -860,7 +880,8 @@ final class SEO_Solucionador_Engine {
                 'complete'=>false,
                 'phase'=>'source_dossiers',
                 'academy'=>$academy,
-                'message'=>'FAQ y Dependiente se están procesando por carriles independientes. Las propuestas disponibles pueden revisarse mientras continúa el inventario.',
+                'incremental_proposals'=>$incremental,
+                'message'=>'FAQ y Dependiente se procesan por carriles independientes y cada lote genera o actualiza inmediatamente sus propuestas; no es necesario esperar a que termine Entrenador.',
             );
             update_option('seo_solucionador_last_scan',$result,false);
             return $result;
@@ -945,6 +966,7 @@ final class SEO_Solucionador_Engine {
             'complete'=>!empty($state['complete']),
             'phase'=>!empty($state['complete']) ? 'complete' : 'editorial_dossiers',
             'academy'=>$academy,
+            'incremental_proposals'=>$incremental,
             'editorial'=>array(
                 'cursor'=>absint($state['cursor'] ?? 0),
                 'processed'=>absint($state['processed'] ?? 0),

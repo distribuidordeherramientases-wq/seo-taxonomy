@@ -16,16 +16,42 @@ Su conocimiento se forma y mantiene mediante Academia y se apoya en capas especi
 
 Las señales de Auditor, Analista u Ojeador no deben incorporarse indiscriminadamente como conocimiento de Dependiente. Pueden indicar qué conviene aprender o revisar, pero cada servicio mantiene su responsabilidad.
 
+## Aprendizaje continuo
+
+Dependiente **no tiene un estado editorial de “aprendizaje terminado”**.
+
+Academia y Entrenador pueden seguir ejecutando lecciones, incorporando preguntas y validando respuestas de manera continua.
+
+Por ello, otros servicios no deben bloquearse esperando a que Dependiente termine de aprender.
+
 ## Relación con Solucionador
 
-Dependiente es una de las fuentes de conocimiento más importantes para Solucionador.
+Dependiente es una de las dos fuentes editoriales directas de Solucionador; la otra es la tabla canónica de FAQs.
 
-Las preguntas, necesidades, problemas y conocimiento que Dependiente puede resolver ayudan a detectar contenidos públicos útiles: guías, soluciones, comparativas o explicaciones que todavía no existen.
+Solucionador no espera al final de Academia ni al final de Entrenador. Cuando se ejecuta, consume el conocimiento que Dependiente **ya tiene validado en ese momento**.
 
-El flujo es:
+Para preguntas de Entrenador, el contrato editorial exige conocimiento ya resuelto y validado, por ejemplo:
 
-**Academia y servicios de conocimiento → Dependiente → Solucionador → contenido público**
+- último run `answered`;
+- `evaluation_status=pass_*`;
+- respuesta/evidencia disponible;
+- asociación demostrable con `product_cat`;
+- valor editorial suficiente.
 
-y después:
+El flujo correcto es:
 
-**uso del contenido + nuevas consultas → Analista/Auditor/Dependiente → nueva decisión de Solucionador**.
+~~~text
+Academia / Entrenador
+        ↓
+Dependiente aprende y valida
+        ↓
+Solucionador consulta la foto disponible
+        ↓
+dossier por product_cat
+        ↓
+propuesta para Editora
+~~~
+
+Mientras Solucionador ya puede tener propuestas disponibles, Dependiente puede continuar aprendiendo nuevas lecciones.
+
+Cuando aparezcan nuevas preguntas/respuestas validadas, una nueva ejecución o rescan de Solucionador las incorpora sin exigir un cierre global del aprendizaje.
