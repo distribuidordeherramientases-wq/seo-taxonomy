@@ -91,10 +91,9 @@ function seo_comentarista_get_indicators($product_id = 0)
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $summary_sql es el resultado de $wpdb->prepare().
         $summary = (array) $wpdb->get_row($summary_sql, ARRAY_A);
     } else {
-        $summary = (array) $wpdb->get_row(
-            "{$summary_select} FROM `{$table}`",
-            ARRAY_A
-        );
+        $summary_sql = "{$summary_select} FROM `{$table}`";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta agregada fija sobre tabla interna, sin entrada de usuario.
+        $summary = (array) $wpdb->get_row($summary_sql, ARRAY_A);
     }
 
     foreach (array('records_total', 'published', 'draft', 'disabled', 'comments_total', 'comments_published', 'rated_comments', 'sources_distinct') as $key) {
