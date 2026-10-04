@@ -867,16 +867,16 @@ final class SEO_Auditor {
         $v = $wpdb->prefix . 'seo_vocabulary';
         if (!self::table_exists($ov) || !self::table_exists($v)) return array();
 
-        $quoted = array();
-        foreach ($types as $type) $quoted[] = "'" . esc_sql($type) . "'";
-        $rows = (array) $wpdb->get_results(
-            "SELECT ov.object_type,ov.object_id,v.id vocabulary_id,v.semantic_group,v.slug,v.label
-             FROM {$ov} ov
-             INNER JOIN {$v} v ON v.id=ov.vocabulary_id AND v.active=1
-             WHERE ov.status=1 AND ov.object_type IN (" . implode(',', $quoted) . ")
-             ORDER BY ov.object_type,ov.object_id,v.semantic_group,v.id",
-            ARRAY_A
-        );
+        $placeholders = implode(',', array_fill(0, count($types), '%s'));
+        $sql = "SELECT ov.object_type,ov.object_id,v.id vocabulary_id,v.semantic_group,v.slug,v.label
+                FROM {$ov} ov
+                INNER JOIN {$v} v ON v.id=ov.vocabulary_id AND v.active=1
+                WHERE ov.status=1 AND ov.object_type IN ({$placeholders})
+                ORDER BY ov.object_type,ov.object_id,v.semantic_group,v.id";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y lista de placeholders %s generada localmente.
+        $sql = $wpdb->prepare($sql, ...$types);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($sql, ARRAY_A);
 
         $map = array();
         foreach ($rows as $row) {
@@ -1003,6 +1003,7 @@ final class SEO_Auditor {
         $category_content = array();
         $nodes = $wpdb->prefix . 'seo_nodes';
         if (self::table_exists($nodes)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
             $node_rows = (array) $wpdb->get_results(
                 "SELECT object_type,object_id,seo_role,keywords
                  FROM {$nodes}
@@ -1077,6 +1078,7 @@ final class SEO_Auditor {
         $category_content = array();
         $nodes = $wpdb->prefix . 'seo_nodes';
         if (self::table_exists($nodes)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
             $node_rows = (array) $wpdb->get_results(
                 "SELECT object_id,seo_role,keywords
                  FROM {$nodes}
@@ -1324,6 +1326,7 @@ final class SEO_Auditor {
             $ov_stats['inactive_managed'] = max(0,$ov_stats['managed_total']-$ov_stats['active_managed']);
             if (self::table_exists($vocab_table)) $ov_stats['orphan_vocabulary'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$ov_table} ov LEFT JOIN {$vocab_table} v ON v.id=ov.vocabulary_id WHERE ov.status=1 AND ov.object_type IN ('product','product_cat','post','page') AND v.id IS NULL"));
             $orphan_sql = "SELECT COUNT(*) FROM {$ov_table} ov WHERE ov.status=1 AND ov.object_type IN ('product','product_cat','post','page') AND ((ov.object_type='product' AND NOT EXISTS (SELECT 1 FROM {$wpdb->posts} p WHERE p.ID=ov.object_id AND p.post_type='product')) OR (ov.object_type='post' AND NOT EXISTS (SELECT 1 FROM {$wpdb->posts} p WHERE p.ID=ov.object_id AND p.post_type='post')) OR (ov.object_type='page' AND NOT EXISTS (SELECT 1 FROM {$wpdb->posts} p WHERE p.ID=ov.object_id AND p.post_type='page')) OR (ov.object_type='product_cat' AND NOT EXISTS (SELECT 1 FROM {$wpdb->term_taxonomy} tt WHERE tt.term_id=ov.object_id AND tt.taxonomy='product_cat')))";
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta fija construida solo con tablas internas/core.
             $ov_stats['orphan_objects'] = absint($wpdb->get_var($orphan_sql));
             foreach (array('product','product_cat','post','page') as $ot) {
                 $ov_stats['by_type'][$ot] = array('total'=>absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$ov_table} WHERE object_type=%s",$ot))),'active'=>absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$ov_table} WHERE object_type=%s AND status=1",$ot))));
@@ -1487,6 +1490,7 @@ final class SEO_Auditor {
         $ov = $wpdb->prefix . 'seo_object_vocabulary';
         $v = $wpdb->prefix . 'seo_vocabulary';
         if (!self::table_exists($ov) || !self::table_exists($v)) return array();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas validadas; consulta fija sin entrada de usuario.
         $rows = (array)$wpdb->get_results(
             "SELECT ov.object_type,ov.object_id,v.id vocabulary_id,v.semantic_group,v.slug,v.label
              FROM {$ov} ov INNER JOIN {$v} v ON v.id=ov.vocabulary_id AND v.active=1
