@@ -299,17 +299,17 @@ function seo_google_demand_get_period_query_page_rows($property_id, $date_from, 
             ORDER BY SUM(impressions) DESC, SUM(clicks) DESC
             LIMIT %d";
 
-    $rows = $wpdb->get_results(
-        $wpdb->prepare(
-            $sql,
-            hash('sha256', $property_id),
-            $date_from,
-            $date_to,
-            $min,
-            $limit
-        ),
-        ARRAY_A
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla GSC interna; propiedad, fechas, umbral y límite enlazados mediante $wpdb->prepare().
+    $prepared_sql = $wpdb->prepare(
+        $sql,
+        hash('sha256', $property_id),
+        $date_from,
+        $date_to,
+        $min,
+        $limit
     );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+    $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
 
     return is_array($rows) ? $rows : array();
 }
