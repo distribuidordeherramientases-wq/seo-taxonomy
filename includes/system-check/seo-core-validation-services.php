@@ -124,6 +124,168 @@ function seo_core_service_health_registry() {
     return (array) apply_filters('seo_core_service_health_registry', $registry);
 }
 
+function seo_core_service_health_runtime_probe($key) {
+    $key = sanitize_key((string) $key);
+
+    try {
+        if ($key === 'solucionador') {
+            if (!class_exists('SEO_Solucionador_Dossiers') || !is_callable(array('SEO_Solucionador_Dossiers', 'state'))) {
+                return array('ok' => false, 'detail' => 'No se puede leer el estado de Solucionador.', 'evidence' => array());
+            }
+            $state = SEO_Solucionador_Dossiers::state();
+            if (!is_array($state)) {
+                return array('ok' => false, 'detail' => 'Solucionador no devuelve un estado válido.', 'evidence' => array());
+            }
+            return array(
+                'ok' => true,
+                'detail' => 'Estado legible; cursor ' . absint($state['cursor'] ?? 0) . ', procesadas ' . absint($state['processed'] ?? 0) . '.',
+                'evidence' => array(
+                    'cursor' => absint($state['cursor'] ?? 0),
+                    'processed' => absint($state['processed'] ?? 0),
+                    'errors' => absint($state['errors'] ?? 0),
+                    'complete' => !empty($state['complete']),
+                    'updated_at' => (string) ($state['updated_at'] ?? ''),
+                ),
+            );
+        }
+
+        if ($key === 'ingeniero') {
+            if (!class_exists('SEO_Ingeniero') || !is_callable(array('SEO_Ingeniero', 'state'))) {
+                return array('ok' => false, 'detail' => 'No se puede leer el estado de Ingeniero.', 'evidence' => array());
+            }
+            $state = SEO_Ingeniero::state();
+            $status = sanitize_key((string) ($state['status'] ?? ''));
+            $error = trim((string) ($state['last_error'] ?? ''));
+            $ok = !in_array($status, array('error', 'failed'), true);
+            return array(
+                'ok' => $ok,
+                'detail' => $ok ? 'Estado operativo: ' . ($status !== '' ? $status : 'disponible') . '.' : 'Ingeniero está en error: ' . $error,
+                'evidence' => array(
+                    'status' => $status,
+                    'cursor' => absint($state['cursor'] ?? 0),
+                    'last_activity_at' => absint($state['last_activity_at'] ?? 0),
+                    'last_error' => $error,
+                ),
+            );
+        }
+
+        if ($key === 'comparador') {
+            if (!class_exists('SEO_Comparador_DB') || !is_callable(array('SEO_Comparador_DB', 'tables_exist'))) {
+                return array('ok' => false, 'detail' => 'No se puede ejecutar la comprobación de Comparador.', 'evidence' => array());
+            }
+            $tables_ok = (bool) SEO_Comparador_DB::tables_exist();
+            $state = get_option('seo_comparador_auto_refresh_state', array());
+            $state = is_array($state) ? $state : array();
+            return array(
+                'ok' => $tables_ok,
+                'detail' => $tables_ok ? 'Persistencia completa y estado automático legible.' : 'Comparador no reconoce todas sus tablas.',
+                'evidence' => array(
+                    'complete' => !empty($state['complete']),
+                    'processed' => absint($state['processed'] ?? 0),
+                    'errors' => absint($state['errors'] ?? 0),
+                    'updated_at' => (string) ($state['updated_at'] ?? ''),
+                ),
+            );
+        }
+
+        if ($key === 'dependiente') {
+            if (!class_exists('SEO_Dependiente_V3_DB') || !is_callable(array('SEO_Dependiente_V3_DB', 'exists'))) {
+                return array('ok' => false, 'detail' => 'No se puede ejecutar la comprobación de Dependiente.', 'evidence' => array());
+            }
+            $index_ok = SEO_Dependiente_V3_DB::exists('seo_dependiente_index');
+            $semantic_ok = SEO_Dependiente_V3_DB::exists('seo_dependiente_semantics');
+            return array(
+                'ok' => $index_ok && $semantic_ok,
+                'detail' => $index_ok && $semantic_ok ? 'Índice y memoria semántica accesibles.' : 'Dependiente no puede acceder a su índice o memoria semántica.',
+                'evidence' => array('index' => (bool) $index_ok, 'semantics' => (bool) $semantic_ok),
+            );
+        }
+
+        if ($key === 'academia') {
+            if (!class_exists('SEO_Dependiente_Entrenador')) {
+                return array('ok' => false, 'detail' => 'Academia no está cargada.', 'evidence' => array());
+            }
+            $state = get_option('seo_dependiente_academy_update_state', array());
+            $state = is_array($state) ? $state : array();
+            $status = sanitize_key((string) ($state['status'] ?? 'idle'));
+            $error = trim((string) ($state['last_error'] ?? ''));
+            $last_success = get_option('seo_dependiente_academy_update_last_success', array());
+            $last_success = is_array($last_success) ? $last_success : array();
+            $ok = $status !== 'error';
+            return array(
+                'ok' => $ok,
+                'detail' => $ok ? 'Academia accesible; estado ' . $status . '.' : 'Academia está en error: ' . $error,
+                'evidence' => array(
+                    'status' => $status,
+                    'last_error' => $error,
+                    'last_success' => (string) ($last_success['completed_local'] ?? $last_success['local'] ?? ''),
+                ),
+            );
+        }
+
+        if ($key === 'interprete') {
+            if (!class_exists('SEO_Dependiente_Interprete') || !is_callable(array('SEO_Dependiente_Interprete', 'interpret'))) {
+                return array('ok' => false, 'detail' => 'No se puede ejecutar Intérprete.', 'evidence' => array());
+            }
+            $sample = SEO_Dependiente_Interprete::interpret('necesito inflar las ruedas del coche');
+            $query = is_array($sample) ? trim((string) ($sample['dependiente_query'] ?? $sample['search_query'] ?? '')) : '';
+            return array(
+                'ok' => $query !== '',
+                'detail' => $query !== '' ? 'Smoke test correcto: ' . $query : 'El smoke test no devolvió consulta.',
+                'evidence' => array('input' => 'necesito inflar las ruedas del coche', 'output' => $query),
+            );
+        }
+
+        if ($key === 'ojeador') {
+            if (!class_exists('SEO_Ojeador_DB') || !is_callable(array('SEO_Ojeador_DB', 'latest_run'))) {
+                return array('ok' => false, 'detail' => 'No se puede leer el estado de Ojeador.', 'evidence' => array());
+            }
+            $run = SEO_Ojeador_DB::latest_run();
+            $run = is_array($run) ? $run : array();
+            $status = sanitize_key((string) ($run['status'] ?? 'idle'));
+            $error = trim((string) ($run['last_error'] ?? ''));
+            $ok = !in_array($status, array('error', 'failed'), true);
+            return array(
+                'ok' => $ok,
+                'detail' => $ok ? 'Estado legible; último run ' . ($status !== '' ? $status : 'sin ejecutar') . '.' : 'Ojeador está en error: ' . $error,
+                'evidence' => array(
+                    'status' => $status,
+                    'completed_at' => (string) ($run['completed_at'] ?? ''),
+                    'heartbeat_at' => (string) ($run['heartbeat_at'] ?? ''),
+                    'last_error' => $error,
+                ),
+            );
+        }
+
+        if ($key === 'comentarista') {
+            if (!function_exists('seo_comentarista_coverage_stats')) {
+                return array('ok' => false, 'detail' => 'No se puede ejecutar una lectura de Comentarista.', 'evidence' => array());
+            }
+            $stats = seo_comentarista_coverage_stats();
+            if (!is_array($stats)) {
+                return array('ok' => false, 'detail' => 'Comentarista no devolvió estadísticas válidas.', 'evidence' => array());
+            }
+            return array(
+                'ok' => true,
+                'detail' => 'Consulta de cobertura ejecutada correctamente.',
+                'evidence' => array(
+                    'products' => absint($stats['products'] ?? 0),
+                    'covered' => absint($stats['covered'] ?? 0),
+                    'coverage' => (float) ($stats['coverage'] ?? 0),
+                ),
+            );
+        }
+    } catch (Throwable $e) {
+        return array(
+            'ok' => false,
+            'detail' => 'Excepción en smoke test: ' . sanitize_text_field($e->getMessage()),
+            'evidence' => array('exception' => get_class($e)),
+        );
+    }
+
+    return array('ok' => true, 'detail' => 'Sin prueba específica adicional.', 'evidence' => array());
+}
+
 function seo_core_service_health_result($index, $key, $service) {
     $component_checks = array();
     $table_checks = array();
@@ -155,8 +317,15 @@ function seo_core_service_health_result($index, $key, $service) {
         }
     }
 
+    $runtime_probe = seo_core_service_health_runtime_probe($key);
+    $total_units++;
+    if (!empty($runtime_probe['ok'])) {
+        $passed_units++;
+    }
+
     $score = $total_units > 0 ? (int) round(($passed_units / $total_units) * 100) : 0;
-    $severity = $score >= 90 ? 'ok' : ($score >= 60 ? 'warning' : 'ko');
+    // Primera política de aceptación: el servicio es OK solo si pasa todo lo básico.
+    $severity = $score === 100 ? 'ok' : 'ko';
     $passed = $severity === 'ok';
 
     $details = array();
@@ -173,6 +342,10 @@ function seo_core_service_health_result($index, $key, $service) {
         }
     }
 
+    if (empty($runtime_probe['ok'])) {
+        $details[] = (string) ($runtime_probe['detail'] ?? 'smoke test fallido');
+    }
+
     if (empty($details)) {
         $counts = array();
         foreach ($table_checks as $row) {
@@ -180,7 +353,7 @@ function seo_core_service_health_result($index, $key, $service) {
                 $counts[] = $row['name'] . ': ' . number_format_i18n((int) $row['count']);
             }
         }
-        $detail = 'Operativo. ' . ($counts ? 'Registros: ' . implode(' · ', $counts) . '.' : 'Runtime y almacenamiento disponibles.');
+        $detail = 'Operativo. ' . trim((string) ($runtime_probe['detail'] ?? '')) . ' ' . ($counts ? 'Registros: ' . implode(' · ', $counts) . '.' : 'Runtime y almacenamiento disponibles.');
     } else {
         $detail = 'Revisar: ' . implode(' · ', $details) . '.';
     }
@@ -201,6 +374,7 @@ function seo_core_service_health_result($index, $key, $service) {
                 'score' => $score,
                 'components' => $component_checks,
                 'tables' => $table_checks,
+                'runtime_probe' => $runtime_probe,
             ),
         )
     );
@@ -214,26 +388,7 @@ function seo_core_system_test_internal_services() {
         $index++;
     }
 
-    // Smoke test de lectura pura del interprete.
-    if (class_exists('SEO_Dependiente_Interprete') && is_callable(array('SEO_Dependiente_Interprete', 'interpret'))) {
-        $sample = SEO_Dependiente_Interprete::interpret('necesito inflar las ruedas del coche');
-        $query = is_array($sample) ? trim((string) ($sample['dependiente_query'] ?? $sample['search_query'] ?? '')) : '';
-        foreach ($results as &$row) {
-            if (($row['area'] ?? '') !== 'interprete') {
-                continue;
-            }
-            $row['evidence']['smoke_test'] = array('input' => 'necesito inflar las ruedas del coche', 'output' => $query);
-            if ($query === '') {
-                $row['passed'] = false;
-                $row['severity'] = 'warning';
-                $row['status'] = 'warning';
-                $row['detail'] .= ' El smoke test lingüístico no devolvió consulta.';
-                $row['evidence']['score'] = min(70, (int) ($row['evidence']['score'] ?? 0));
-            }
-            break;
-        }
-        unset($row);
-    }
+
 
     return (array) apply_filters('seo_core_service_health_results', $results);
 }
