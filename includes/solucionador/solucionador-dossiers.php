@@ -234,6 +234,7 @@ final class SEO_Solucionador_Dossiers {
             'editorial_discarded'=>0,
             'learned_with_category'=>0,
             'learned_without_category'=>0,
+            'academy_complete'=>false,
             'faq_cursor'=>0,
             'faq_processed'=>0,
             'faq_with_category'=>0,
@@ -262,8 +263,8 @@ final class SEO_Solucionador_Dossiers {
         update_option(self::STATE_OPTION, $state, false);
 
         // Al cambiar de política editorial no se mezclan IDs antiguos con el
-        // nuevo filtro. Se conserva el inventario de categorías, pero se vacía
-        // temporalmente su conocimiento hasta reconstruirlo desde Academia.
+        // nuevo contrato. Se conserva el inventario de categorías, pero se vacía
+        // temporalmente el material hasta reconstruirlo desde FAQ + Academia.
         $table = SEO_Solucionador_DB::dossiers_table();
         if (SEO_Solucionador_DB::table_exists($table)) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table es una tabla interna validada; valores variables usan placeholders compatibles con WP 5.8.
@@ -291,7 +292,7 @@ final class SEO_Solucionador_Dossiers {
 
     /**
      * Garantiza un dossier ligero para TODAS las product_cat de WooCommerce.
-     * El conocimiento de Academia enriquece esos dossiers, pero nunca decide
+     * FAQ y Academia enriquecen esos dossiers, pero nunca deciden
      * si una categoría existe o no dentro de Solucionador.
      */
     public static function ensure_all_categories($token = '') {
