@@ -730,10 +730,20 @@ final class SEO_Solucionador_Admin {
                 : array();
             echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">RETIRADOS desde la última revisión</h2>';
             if ($retired_details) {
-                echo '<table class="widefat striped"><thead><tr><th>Origen</th><th>Elemento retirado</th><th>Última respuesta conocida</th></tr></thead><tbody>';
+                echo '<table class="widefat striped"><thead><tr><th style="width:120px">Decisión</th><th>Origen</th><th>Elemento retirado</th><th>Última respuesta conocida</th></tr></thead><tbody>';
                 foreach ($retired_details as $item) {
-                    echo '<tr><td><strong>' . esc_html(strtoupper((string)($item['origin'] ?? ''))) . '</strong></td>';
-                    echo '<td><strong>' . esc_html((string)($item['question'] ?? 'Elemento retirado')) . '</strong><br><code>' . esc_html((string)($item['item_key'] ?? '')) . '</code></td>';
+                    $key = sanitize_text_field((string)($item['item_key'] ?? ''));
+                    if ($key === '') continue;
+                    $choice = sanitize_key((string)($item['editorial_choice'] ?? ($states[$key] ?? 'pending')));
+                    if (!in_array($choice,array('pending','use','discard'),true)) $choice = 'pending';
+
+                    echo '<tr><td><select name="item_states[' . esc_attr($key) . ']">';
+                    foreach (array('pending'=>'Pendiente','use'=>'Usar','discard'=>'Descartar') as $value=>$text) {
+                        echo '<option value="' . esc_attr($value) . '" ' . selected($choice,$value,false) . '>' . esc_html($text) . '</option>';
+                    }
+                    echo '</select></td>';
+                    echo '<td><strong>' . esc_html(strtoupper((string)($item['origin'] ?? ''))) . '</strong></td>';
+                    echo '<td><strong>' . esc_html((string)($item['question'] ?? 'Elemento retirado')) . '</strong><br><code>' . esc_html($key) . '</code></td>';
                     echo '<td>' . esc_html((string)($item['answer'] ?? '')) . '</td></tr>';
                 }
                 echo '</tbody></table>';
@@ -742,7 +752,7 @@ final class SEO_Solucionador_Admin {
                 foreach ((array)$changes['retired'] as $key) echo '<li><code>' . esc_html((string)$key) . '</code></li>';
                 echo '</ul>';
             }
-            echo '<p class="description">El contenido publicado no se modifica. Editora decide si debe retirar o mantener la información existente.</p></div>';
+            echo '<p class="description">La decisión sólo se guarda en Solucionador. No restaura la fuente ni modifica el contenido publicado; Editora decide después si debe retirar o mantener esa información.</p></div>';
         }
 
         submit_button('Guardar decisiones editoriales','primary');
