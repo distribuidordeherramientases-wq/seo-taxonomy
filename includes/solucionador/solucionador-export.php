@@ -285,6 +285,9 @@ final class SEO_Solucionador_Export {
             ),
             'last_scan' => (array) get_option('seo_solucionador_last_scan', array()),
             'sources' => class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array(),
+            // Alias 0.6 para consumidores existentes. En 0.7 el contenido ya es
+            // mixto, por lo que los nuevos consumidores deben preferir "sources".
+            'academy' => class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array(),
             'summary' => self::summary($topics_table, $evidence_table, $coverage_table),
             'dossiers' => $dossier_rows,
             'topics' => $topic_rows,
