@@ -791,19 +791,9 @@ final class SEO_Solucionador_DB {
             $count = max(1,absint($row['occurrences'] ?? 1));
             $meta = (array)($row['source_meta_decoded'] ?? array());
 
-            // El dossier mixto mantiene source_type=dependiente por compatibilidad
-            // con topics históricos, pero sus orígenes se contabilizan separados.
-            $origins = (array)($meta['origins'] ?? array());
-            if ($type === 'dependiente' && $origins) {
-                $dep = absint($origins['dependiente'] ?? 0);
-                $faq = absint($origins['faq'] ?? 0);
-                $out['dependiente'] += $dep;
-                $out['faq'] += $faq;
-                $out['total'] += max(1,$dep+$faq);
-            } else {
-                $out['total'] += $count;
-                if (isset($out[$type])) $out[$type] += $count;
-            }
+            // 0.7.1: FAQ y Dependiente son dos fuentes reales y separadas.
+            $out['total'] += $count;
+            if (isset($out[$type])) $out[$type] += $count;
 
             $out['zero_results'] += absint($meta['zero_results'] ?? 0);
             $out['negative_feedback'] += absint($meta['negative_feedback'] ?? 0);
