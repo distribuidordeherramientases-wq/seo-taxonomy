@@ -1,31 +1,58 @@
 # Dependiente
 
-Sistema de búsqueda guiada y asistencia al cliente. Conceptualmente funciona como un **filtro inteligente**: interpreta una necesidad y utiliza catálogo, semántica, ranking y conocimiento aprendido para acercar al usuario a la solución adecuada y, cuando corresponde, a productos concretos.
+Dependiente es el sistema de búsqueda guiada y asistencia al cliente. Interpreta necesidades y utiliza catálogo, semántica, ranking y conocimiento aprendido para orientar al usuario hacia una solución y, cuando corresponde, hacia productos concretos.
 
-## Función
+## Aprendizaje continuo
 
-Dependiente debe saber resolver preguntas de uso, elección, compatibilidad y aplicación práctica, no limitarse a encontrar productos.
+Dependiente no tiene un estado funcional de **“aprendizaje terminado”**.
 
-Su conocimiento se forma y mantiene mediante Academia y se apoya en capas especializadas:
+Academia y Entrenador pueden seguir ejecutando lecciones, preguntas y evaluaciones de manera continua.
 
-- **Intérprete / Lingüista**: cómo expresa el cliente su necesidad;
-- **Ingeniero**: conocimiento técnico externo trazable;
-- **Clasificador**: estructura semántica y atributos del catálogo;
-- **Auditor Academia**: calidad del aprendizaje;
-- catálogo y Vocabulary canónicos.
+Las tablas que Solucionador observa para este flujo son:
 
-Las señales de Auditor, Analista u Ojeador no deben incorporarse indiscriminadamente como conocimiento de Dependiente. Pueden indicar qué conviene aprender o revisar, pero cada servicio mantiene su responsabilidad.
+- `seo_dependiente_trainer_questions`
+- `seo_dependiente_trainer_runs`
+
+Una pregunta puede existir desde hace tiempo y recibir posteriormente un nuevo run o una nueva respuesta.
 
 ## Relación con Solucionador
 
-Dependiente es una de las fuentes de conocimiento más importantes para Solucionador.
+Solucionador consume únicamente el conocimiento que Dependiente ya ha validado en el momento de la ejecución.
 
-Las preguntas, necesidades, problemas y conocimiento que Dependiente puede resolver ayudan a detectar contenidos públicos útiles: guías, soluciones, comparativas o explicaciones que todavía no existen.
+Para el carril Entrenador/Dependiente se exige, como base:
+
+- pregunta activa;
+- último run;
+- `status=answered`;
+- `evaluation_status=pass_*`;
+- relación demostrable con una `product_cat`;
+- utilidad editorial.
+
+Solucionador mantiene dos puntos de avance:
+
+- cursor de preguntas;
+- cursor de runs.
+
+Así puede detectar respuestas nuevas para preguntas antiguas sin reiniciar todo el histórico.
 
 El flujo es:
 
-**Academia y servicios de conocimiento → Dependiente → Solucionador → contenido público**
+~~~text
+Academia / Entrenador
+        ↓
+Dependiente aprende y valida
+        ↓
+Solucionador consulta lo disponible ahora
+        ↓
+dossier por product_cat
+        ↓
+propuesta para Editora
+~~~
 
-y después:
+Mientras una propuesta ya está disponible, Dependiente puede seguir aprendiendo nuevas lecciones.
 
-**uso del contenido + nuevas consultas → Analista/Auditor/Dependiente → nueva decisión de Solucionador**.
+## FAQs
+
+Las FAQs no pertenecen a este carril.
+
+`seo_faq` es una fuente editorial independiente de Solucionador. Una FAQ no necesita ser aprendida por Dependiente para poder formar parte de una propuesta.
