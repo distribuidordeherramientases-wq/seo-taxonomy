@@ -495,19 +495,38 @@ final class SEO_Solucionador_Dossiers {
         return count($live_ids);
     }
 
+    private static function canonical_item_key($item_key) {
+        $item_key = sanitize_text_field((string)$item_key);
+        if (preg_match('/^faq:([0-9]+)$/',$item_key,$m)) {
+            return 'faq:' . absint($m[1]);
+        }
+        if (preg_match('/^dependiente:(trainer|semantic):([0-9]+)$/',$item_key,$m)) {
+            return 'dependiente:' . sanitize_key($m[1]) . ':' . absint($m[2]);
+        }
+        // Migración 0.7.0: dependiente:123 era siempre una pregunta de Entrenador.
+        if (preg_match('/^dependiente:([0-9]+)$/',$item_key,$m)) {
+            return 'dependiente:trainer:' . absint($m[1]);
+        }
+        return '';
+    }
+
     private static function valid_item_key($item_key) {
-        return (bool)preg_match('/^(faq:[0-9]+|dependiente:(?:trainer:)?[0-9]+)$/',
-            sanitize_text_field((string)$item_key));
+        return self::canonical_item_key($item_key) !== '';
+    }
+
+    private static function normalize_item_hashes(array $hashes) {
+        $normalized = array();
+        foreach ($hashes as $key=>$hash) {
+            $key = self::canonical_item_key($key);
+            $hash = sanitize_text_field((string)$hash);
+            if ($key !== '' && $hash !== '') $normalized[$key] = $hash;
+        }
+        ksort($normalized,SORT_STRING);
+        return $normalized;
     }
 
     public static function source_hash_for_test($category_id,array $item_hashes) {
-        $normalized = array();
-        foreach ($item_hashes as $key=>$hash) {
-            $key = sanitize_text_field((string)$key);
-            $hash = sanitize_text_field((string)$hash);
-            if (self::valid_item_key($key) && $hash !== '') $normalized[$key] = $hash;
-        }
-        ksort($normalized,SORT_STRING);
+        $normalized = self::normalize_item_hashes($item_hashes);
         return hash('sha256',wp_json_encode(array(
             'category_id'=>absint($category_id),
             'item_hashes'=>$normalized,
@@ -515,10 +534,10 @@ final class SEO_Solucionador_Dossiers {
     }
 
     public static function compare_item_hashes_for_test(array $current,array $reviewed) {
+        $current = self::normalize_item_hashes($current);
+        $reviewed = self::normalize_item_hashes($reviewed);
         $changes = array('new'=>array(),'modified'=>array(),'retired'=>array(),'status'=>array());
         foreach ($current as $key=>$hash) {
-            $key = sanitize_text_field((string)$key);
-            if (!self::valid_item_key($key)) continue;
             if (!array_key_exists($key,$reviewed)) {
                 $changes['new'][] = $key;
                 $changes['status'][$key] = 'new';
@@ -528,8 +547,6 @@ final class SEO_Solucionador_Dossiers {
             }
         }
         foreach ($reviewed as $key=>$hash) {
-            $key = sanitize_text_field((string)$key);
-            if (!self::valid_item_key($key)) continue;
             if (!array_key_exists($key,$current)) {
                 $changes['retired'][] = $key;
                 $changes['status'][$key] = 'retired';
@@ -563,7 +580,10 @@ final class SEO_Solucionador_Dossiers {
             "SELECT * FROM {$table} WHERE category_id=%d LIMIT 1",$term_id
         ),ARRAY_A);
 
-        $dependiente_keys = array_values(array_unique(array_filter(array_map('sanitize_text_field',$dependiente_keys),array(__CLASS__,'valid_item_key'))));
+        $dependiente_keys = array_values(array_unique(array_filter(array_map(
+            array(__CLASS__,'canonical_item_key'),
+            $dependiente_keys
+        ))));
         $legacy_question_ids = array_values(array_unique(array_filter(array_map('absint',$legacy_question_ids))));
         $faq_ids = array_values(array_unique(array_filter(array_map('absint',$faq_ids))));
 
@@ -574,10 +594,10 @@ final class SEO_Solucionador_Dossiers {
         $previous_score_sum = 0.0;
 
         if ($existing && (string)($existing['scan_token'] ?? '') === (string)$token) {
-            $previous_keys = array_values(array_filter(
-                array_map('sanitize_text_field',(array)SEO_Solucionador_DB::decode_json($existing['dependiente_keys'] ?? '[]',array())),
-                array(__CLASS__,'valid_item_key')
-            ));
+            $previous_keys = array_values(array_unique(array_filter(array_map(
+                array(__CLASS__,'canonical_item_key'),
+                (array)SEO_Solucionador_DB::decode_json($existing['dependiente_keys'] ?? '[]',array())
+            ))));
             $previous_questions = array_values(array_unique(array_filter(array_map(
                 'absint',(array)SEO_Solucionador_DB::decode_json($existing['question_ids'] ?? '[]',array())
             ))));
@@ -588,7 +608,9 @@ final class SEO_Solucionador_Dossiers {
             $previous_faq = array_values(array_unique(array_filter(array_map(
                 'absint',(array)SEO_Solucionador_DB::decode_json($existing['faq_ids'] ?? '[]',array())
             ))));
-            $previous_item_hashes = SEO_Solucionador_DB::decode_json($existing['item_hashes'] ?? '{}',array());
+            $previous_item_hashes = self::normalize_item_hashes(
+                (array)SEO_Solucionador_DB::decode_json($existing['item_hashes'] ?? '{}',array())
+            );
             $previous_score_sum = (float)($existing['score_avg'] ?? 0) * count($previous_keys);
         }
 
@@ -599,12 +621,7 @@ final class SEO_Solucionador_Dossiers {
         sort($merged_questions,SORT_NUMERIC);
         sort($merged_faq,SORT_NUMERIC);
 
-        $normalized_hashes = array();
-        foreach ($item_hashes as $item_key=>$item_hash) {
-            $item_key = sanitize_text_field((string)$item_key);
-            $item_hash = sanitize_text_field((string)$item_hash);
-            if (self::valid_item_key($item_key) && $item_hash !== '') $normalized_hashes[$item_key] = $item_hash;
-        }
+        $normalized_hashes = self::normalize_item_hashes($item_hashes);
         $merged_item_hashes = array_merge((array)$previous_item_hashes,$normalized_hashes);
         ksort($merged_item_hashes,SORT_STRING);
 
@@ -666,7 +683,9 @@ final class SEO_Solucionador_Dossiers {
         foreach ($rows as $row) {
             $category_id = absint($row['category_id'] ?? 0);
             if (!$category_id) continue;
-            $hashes = SEO_Solucionador_DB::decode_json($row['item_hashes'] ?? '{}',array());
+            $hashes = self::normalize_item_hashes(
+                (array)SEO_Solucionador_DB::decode_json($row['item_hashes'] ?? '{}',array())
+            );
             foreach (array_keys((array)$hashes) as $key) {
                 if ($origin === 'faq' && strpos((string)$key,'faq:') === 0) unset($hashes[$key]);
                 if ($origin === 'dependiente' && strpos((string)$key,'dependiente:') === 0) unset($hashes[$key]);
@@ -675,7 +694,10 @@ final class SEO_Solucionador_Dossiers {
 
             $dep_keys = $origin === 'dependiente'
                 ? array()
-                : (array)SEO_Solucionador_DB::decode_json($row['dependiente_keys'] ?? '[]',array());
+                : array_values(array_unique(array_filter(array_map(
+                    array(__CLASS__,'canonical_item_key'),
+                    (array)SEO_Solucionador_DB::decode_json($row['dependiente_keys'] ?? '[]',array())
+                ))));
             $question_ids = $origin === 'dependiente'
                 ? array()
                 : (array)SEO_Solucionador_DB::decode_json($row['question_ids'] ?? '[]',array());
