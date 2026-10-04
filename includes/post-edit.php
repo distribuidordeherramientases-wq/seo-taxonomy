@@ -329,7 +329,10 @@ if (!function_exists('seo_post_editor_get_relation_map')) {
                   AND r.source_id IN ({$placeholders})
                 ORDER BY t.name ASC, r.target_id ASC";
 
-        $rows = $wpdb->get_results($wpdb->prepare($sql, $post_ids));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; post_ids enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $post_ids);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = $wpdb->get_results($prepared_sql);
 
         foreach ((array) $rows as $row) {
             $source_id = absint($row->source_id ?? 0);
