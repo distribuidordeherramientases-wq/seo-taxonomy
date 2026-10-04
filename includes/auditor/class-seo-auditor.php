@@ -398,8 +398,15 @@ final class SEO_Auditor {
         $scope = self::normalize_scope($scope);
         if (!$scope) return array();
 
+        $stored_scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
+        $previous_report = isset($stored_scoped_reports[$scope]) && is_array($stored_scoped_reports[$scope])
+            ? (array) $stored_scoped_reports[$scope]
+            : array();
+
         self::$findings = array();
         self::$rule_counts = array();
+        self::$priority_findings = array();
+        self::$priority_findings_truncated = false;
         $started = microtime(true);
         $extra = array();
         $inventory_summary = array();
@@ -462,6 +469,12 @@ final class SEO_Auditor {
                 $vocabulary,
                 (array) $inventory['category_content']
             );
+            $extra['faq_migration_inventory'] = self::build_faq_migration_inventory(
+                (array) $inventory['faqs'],
+                (array) $inventory['published_product_ids'],
+                (array) $inventory['categories'],
+                (array) $inventory['products']
+            );
             $inventory_summary = array(
                 'faqs' => count((array) $inventory['faqs']),
                 'products_minimal' => count((array) $inventory['products']),
@@ -503,13 +516,27 @@ final class SEO_Auditor {
             if (':' !== $key) $entities[$key] = true;
         }
         $summary['entities_to_review'] = count($entities);
-        $priority_queue = self::build_priority_queue(self::$findings);
+        $summary['findings_included'] = count(self::$findings);
+        $summary['findings_total'] = array_sum(array_map('absint', self::$rule_counts));
+        $summary['findings_sampled'] = $summary['findings_total'] > $summary['findings_included'];
+
+        $generated_at = current_time('mysql');
+        $priority_queue = self::build_priority_queue(self::$priority_findings);
+        $trace = self::apply_task_trace(
+            $priority_queue,
+            (array) ($previous_report['priority_queue'] ?? array()),
+            (array) ($previous_report['resolved_tasks'] ?? array()),
+            $generated_at
+        );
+        $priority_queue = (array) ($trace['current'] ?? array());
         $priority_summary = self::summarize_priority_queue($priority_queue);
+        $findings_meta = self::build_findings_meta(self::$findings, self::$rule_counts);
+        $priority_queue_meta = self::build_priority_queue_meta($priority_queue);
 
         $report = array(
             'schema' => array('name'=>'seo_data_auditor_scope','version'=>self::REPORT_VERSION),
             'auditor_version' => SEO_AUDITOR_VERSION,
-            'generated_at' => current_time('mysql'),
+            'generated_at' => $generated_at,
             'generated_at_gmt' => gmdate('Y-m-d H:i:s'),
             'execution_seconds' => round(microtime(true) - $started, 3),
             'mode' => 'manual_read_only',
@@ -518,9 +545,12 @@ final class SEO_Auditor {
             'summary' => $summary,
             'inventory' => $inventory_summary,
             'rule_counts' => self::$rule_counts,
-            'priority_queue_version' => 1,
+            'priority_queue_version' => 2,
             'priority_summary' => $priority_summary,
+            'priority_queue_meta' => $priority_queue_meta,
             'priority_queue' => $priority_queue,
+            'resolved_tasks' => (array) ($trace['resolved'] ?? array()),
+            'findings_meta' => $findings_meta,
             'findings' => array_slice(self::$findings, 0, self::MAX_FINDINGS),
             'notes' => array(
                 'read_only' => true,
@@ -538,8 +568,11 @@ final class SEO_Auditor {
     }
 
     public static function run_catalog_audit() {
+        $previous_report = self::last_catalog_report();
         self::$findings = array();
         self::$rule_counts = array();
+        self::$priority_findings = array();
+        self::$priority_findings_truncated = false;
         $started = microtime(true);
 
         $inventory = self::collect_inventory();
@@ -564,6 +597,7 @@ final class SEO_Auditor {
         if (!empty($caps['editorial'])) {
             self::audit_editorial((array)$inventory['editorial'], $object_vocabulary);
         }
+        $faq_migration_inventory = array();
         if (!empty($caps['faqs'])) {
             self::audit_faqs(
                 (array)$inventory['faqs'],
@@ -572,6 +606,12 @@ final class SEO_Auditor {
                 (array)$inventory['products'],
                 $object_vocabulary,
                 (array)$inventory['category_content']
+            );
+            $faq_migration_inventory = self::build_faq_migration_inventory(
+                (array)$inventory['faqs'],
+                (array)$inventory['published_product_ids'],
+                (array)$inventory['categories'],
+                (array)$inventory['products']
             );
         }
         if (!empty($caps['architecture'])) {
@@ -611,8 +651,22 @@ final class SEO_Auditor {
             if ($key !== ':') $entities[$key] = true;
         }
         $summary['entities_to_review'] = count($entities);
-        $priority_queue = self::build_priority_queue(self::$findings);
+        $summary['findings_included'] = count(self::$findings);
+        $summary['findings_total'] = array_sum(array_map('absint', self::$rule_counts));
+        $summary['findings_sampled'] = $summary['findings_total'] > $summary['findings_included'];
+
+        $generated_at = current_time('mysql');
+        $priority_queue = self::build_priority_queue(self::$priority_findings);
+        $trace = self::apply_task_trace(
+            $priority_queue,
+            (array) ($previous_report['priority_queue'] ?? array()),
+            (array) ($previous_report['resolved_tasks'] ?? array()),
+            $generated_at
+        );
+        $priority_queue = (array) ($trace['current'] ?? array());
         $priority_summary = self::summarize_priority_queue($priority_queue);
+        $findings_meta = self::build_findings_meta(self::$findings, self::$rule_counts);
+        $priority_queue_meta = self::build_priority_queue_meta($priority_queue);
         $systemic_patterns = self::build_systemic_patterns(self::$findings);
         $action_plan = self::build_action_plan($systemic_patterns);
         $source_quality = self::build_source_quality($inventory, self::$findings);
@@ -635,7 +689,7 @@ final class SEO_Auditor {
             'schema'=>array('name'=>'seo_data_auditor','version'=>self::REPORT_VERSION),
             'auditor_version'=>SEO_AUDITOR_VERSION,
             'dependiente_version'=>defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
-            'generated_at'=>current_time('mysql'),
+            'generated_at'=>$generated_at,
             'generated_at_gmt'=>gmdate('Y-m-d H:i:s'),
             'execution_seconds'=>round(microtime(true)-$started, 3),
             'mode'=>'manual_read_only',
@@ -651,10 +705,14 @@ final class SEO_Auditor {
             'source_integrity'=>$source_integrity,
             'systemic_patterns'=>$systemic_patterns,
             'action_plan'=>$action_plan,
-            'priority_queue_version'=>1,
+            'priority_queue_version'=>2,
             'priority_summary'=>$priority_summary,
+            'priority_queue_meta'=>$priority_queue_meta,
             'priority_queue'=>$priority_queue,
+            'resolved_tasks'=>(array)($trace['resolved'] ?? array()),
+            'findings_meta'=>$findings_meta,
             'findings'=>array_slice(self::$findings, 0, self::MAX_FINDINGS),
+            'faq_migration_inventory'=>$faq_migration_inventory,
             'category_profiles'=>array_slice($category_profiles, 0, self::MAX_CATEGORY_PROFILES),
             'category_rebalance_inventory'=>$category_rebalance_inventory,
             'architecture_profiles'=>$architecture_profiles,
