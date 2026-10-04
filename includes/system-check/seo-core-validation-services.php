@@ -499,3 +499,139 @@ function seo_core_system_test_services_connections($live_external = true) {
         seo_core_system_test_external_connections((bool) $live_external)
     );
 }
+
+
+/**
+ * Estado persistente del chequeo automático posterior a una release.
+ */
+function seo_core_service_release_state_option_name() {
+    return 'seo_core_service_release_health_v1';
+}
+
+function seo_core_service_release_get_state() {
+    $state = get_option(seo_core_service_release_state_option_name(), array());
+    return is_array($state) ? $state : array();
+}
+
+function seo_core_service_release_current_version() {
+    return defined('SEO_SYSTEM_VERSION') ? (string) SEO_SYSTEM_VERSION : '';
+}
+
+/**
+ * Detecta una nueva versión instalada y agenda una aceptación post-release.
+ *
+ * Se ejecuta con independencia del envío de diagnósticos por correo.
+ */
+function seo_core_service_release_schedule_if_needed() {
+    $version = seo_core_service_release_current_version();
+    if ($version === '') {
+        return;
+    }
+
+    $state = seo_core_service_release_get_state();
+    $observed = (string) ($state['observed_version'] ?? '');
+    $checked = (string) ($state['checked_version'] ?? '');
+
+    if ($observed === '') {
+        $state['observed_version'] = $version;
+        $state['detected_at'] = time();
+        update_option(seo_core_service_release_state_option_name(), $state, false);
+        return;
+    }
+
+    if ($observed !== $version) {
+        $state['previous_version'] = $observed;
+        $state['observed_version'] = $version;
+        $state['detected_at'] = time();
+        $state['status'] = 'pending';
+        update_option(seo_core_service_release_state_option_name(), $state, false);
+    }
+
+    if ($checked === $version) {
+        return;
+    }
+
+    if (!wp_next_scheduled('seo_core_service_health_after_release')) {
+        wp_schedule_single_event(time() + 120, 'seo_core_service_health_after_release');
+    }
+}
+add_action('admin_init', 'seo_core_service_release_schedule_if_needed', 35);
+
+/**
+ * Ejecuta la suite completa de aceptación tras cambio de versión.
+ */
+function seo_core_service_release_run_check() {
+    $version = seo_core_service_release_current_version();
+    if ($version === '' || !function_exists('seo_core_system_test_run_telemetry_suite')) {
+        return;
+    }
+
+    $started_at = time();
+    $state = seo_core_service_release_get_state();
+    $state['status'] = 'running';
+    $state['started_at'] = $started_at;
+    $state['observed_version'] = $version;
+    update_option(seo_core_service_release_state_option_name(), $state, false);
+
+    $results = seo_core_system_test_run_telemetry_suite(true, true);
+    $service_rows = array_values(array_filter((array) $results, static function ($row) {
+        return is_array($row) && isset($row['group']) && in_array($row['group'], array('services', 'connections'), true);
+    }));
+
+    $health = function_exists('seo_core_system_test_health_summary')
+        ? seo_core_system_test_health_summary($service_rows)
+        : array('score' => null, 'status' => 'unknown');
+
+    $failed = array();
+    foreach ($service_rows as $row) {
+        $score = isset($row['service_score'])
+            ? (int) $row['service_score']
+            : (isset($row['evidence']['score']) ? (int) $row['evidence']['score'] : 0);
+        if ($score >= 90 && in_array((string) ($row['severity'] ?? ''), array('ok', 'info'), true)) {
+            continue;
+        }
+        $failed[] = array(
+            'label' => (string) ($row['label'] ?? ''),
+            'group' => (string) ($row['group'] ?? ''),
+            'score' => max(0, min(100, $score)),
+            'severity' => (string) ($row['severity'] ?? ''),
+            'detail' => (string) ($row['detail'] ?? ''),
+        );
+    }
+
+    $state = array(
+        'observed_version' => $version,
+        'checked_version' => $version,
+        'previous_version' => (string) ($state['previous_version'] ?? ''),
+        'detected_at' => (int) ($state['detected_at'] ?? $started_at),
+        'started_at' => $started_at,
+        'checked_at' => time(),
+        'status' => empty($failed) && (($health['score'] ?? 0) >= 90) ? 'ok' : 'warning',
+        'score' => isset($health['score']) ? $health['score'] : null,
+        'health_status' => (string) ($health['status'] ?? 'unknown'),
+        'checks' => count($service_rows),
+        'failed' => $failed,
+    );
+    update_option(seo_core_service_release_state_option_name(), $state, false);
+}
+add_action('seo_core_service_health_after_release', 'seo_core_service_release_run_check');
+
+/**
+ * Datos compactos para la UI de Plugin Validation.
+ */
+function seo_core_service_release_summary() {
+    $state = seo_core_service_release_get_state();
+    $version = seo_core_service_release_current_version();
+    $checked_version = (string) ($state['checked_version'] ?? '');
+    $pending = $version !== '' && $checked_version !== $version;
+
+    return array(
+        'current_version' => $version,
+        'checked_version' => $checked_version,
+        'previous_version' => (string) ($state['previous_version'] ?? ''),
+        'checked_at' => (int) ($state['checked_at'] ?? 0),
+        'status' => $pending ? 'pending' : (string) ($state['status'] ?? 'unknown'),
+        'score' => isset($state['score']) ? $state['score'] : null,
+        'failed' => isset($state['failed']) && is_array($state['failed']) ? $state['failed'] : array(),
+    );
+}
