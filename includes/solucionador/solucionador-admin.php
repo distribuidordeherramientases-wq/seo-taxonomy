@@ -138,15 +138,33 @@ final class SEO_Solucionador_Admin {
             self::redirect(array('sol_msg'=>'draft_created','post_id'=>absint($result)));
         }
 
-        if ($proposal_action === 'discard') {
+        if ($proposal_action === 'reject') {
             if (class_exists('SEO_Solucionador_Dossiers')) {
                 SEO_Solucionador_Dossiers::mark_rejected($category_id);
             }
+            SEO_Solucionador_DB::update_topic($topic_id,array(
+                'status'=>'dismissed',
+                'workflow_state'=>'rejected',
+            ));
+            SEO_Solucionador_DB::record_workflow(
+                $topic_id,
+                'rejected',
+                'La Editora rechaza esta propuesta para el source_hash actual. Reaparecerá si cambia el material fuente.',
+                'NO_ACTION'
+            );
+            self::redirect(array('sol_msg'=>'rejected'));
+        }
+
+        if ($proposal_action === 'delete_proposal') {
+            if (class_exists('SEO_Solucionador_Dossiers')) {
+                SEO_Solucionador_Dossiers::clear_rejection($category_id);
+            }
             SEO_Solucionador_DB::delete_topic($topic_id);
-            self::redirect(array('sol_msg'=>'discarded'));
+            self::redirect(array('sol_msg'=>'proposal_deleted'));
         }
 
         if ($proposal_action === 'restore') {
+            if (class_exists('SEO_Solucionador_Dossiers')) SEO_Solucionador_Dossiers::clear_rejection($category_id);
             SEO_Solucionador_DB::update_topic($topic_id, array(
                 'status'=>'candidate',
                 'workflow_state'=>'candidate',
@@ -322,6 +340,26 @@ final class SEO_Solucionador_Admin {
             }
             if ($return_to === 'editor') $return_editor($post_id,'rescanned');
             self::redirect(array('sol_msg'=>'post_rescanned','post_id'=>$post_id,'pending'=>absint($result)));
+        }
+
+        if ($post_action === 'save_selection') {
+            $selected_ids = isset($_POST['selected_ids']) && is_array($_POST['selected_ids'])
+                ? array_map('absint', wp_unslash($_POST['selected_ids']))
+                : array();
+            $pending_ids = SEO_Solucionador_Posts::pending_question_ids($post_id);
+            $selection_mode = sanitize_key((string)($_POST['selection_mode'] ?? ''));
+            $reviewed_ids = $selection_mode === 'discard_unselected'
+                ? array_values(array_diff($pending_ids, $selected_ids))
+                : array();
+
+            $result = SEO_Solucionador_Posts::apply_pending_selection($post_id,$selected_ids,$reviewed_ids);
+            if (is_wp_error($result)) {
+                set_transient('seo_solucionador_notice_' . get_current_user_id(), $result->get_error_message(), 90);
+                if ($return_to === 'editor') $return_editor($post_id,'error');
+                self::redirect(array('sol_error'=>'post_selection'));
+            }
+            if ($return_to === 'editor') $return_editor($post_id,'selection_saved');
+            self::redirect(array('sol_msg'=>'selection_saved','post_id'=>$post_id));
         }
 
         if ($post_action === 'mark_reviewed') {
@@ -639,7 +677,8 @@ final class SEO_Solucionador_Admin {
         echo '<button type="submit" class="button" name="proposal_action" value="save_title">Guardar título</button>';
         echo '<button type="submit" class="button button-primary" name="proposal_action" value="create_draft">Crear borrador</button>';
         echo '<button type="submit" class="button" name="proposal_action" value="mark_reviewed">Marcar revisado</button>';
-        echo '<button type="submit" class="button button-link-delete" name="proposal_action" value="discard">Rechazar</button>';
+        echo '<button type="submit" class="button" name="proposal_action" value="reject">Rechazar</button>';
+        echo '<button type="submit" class="button button-link-delete" name="proposal_action" value="delete_proposal" onclick="return confirm(\'¿Borrar esta propuesta preparada? El dossier fuente seguirá existiendo y podrá regenerarse.\');">Borrar propuesta</button>';
         echo '</form>';
     }
 
@@ -662,11 +701,7 @@ final class SEO_Solucionador_Admin {
 
         echo '<button type="submit" class="button button-small" name="post_action" value="rescan">Reescanear</button>';
 
-        if ($status === 'publish') {
-            echo '<button type="submit" class="button button-small" name="post_action" value="to_draft">Volver a borrador</button>';
-        }
-
-        echo '<button type="submit" class="button button-small button-link-delete" name="post_action" value="delete" onclick="return confirm(\'¿Borrar definitivamente este post de Solucionador?\');">Borrar</button>';
+        echo '<button type="submit" class="button button-small button-link-delete" name="post_action" value="delete" onclick="return confirm(\'¿Borrar definitivamente este post? Esta acción no equivale a rechazar la propuesta editorial.\');">Borrar</button>';
         echo '</form>';
     }
 
