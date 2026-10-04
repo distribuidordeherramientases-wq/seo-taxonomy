@@ -176,7 +176,10 @@ final class SEO_Solucionador_DB {
             category_id BIGINT UNSIGNED NOT NULL,
             category_name VARCHAR(255) NOT NULL,
             question_count INT UNSIGNED NOT NULL DEFAULT 0,
+            dependiente_count INT UNSIGNED NOT NULL DEFAULT 0,
+            faq_count INT UNSIGNED NOT NULL DEFAULT 0,
             question_ids LONGTEXT NULL,
+            faq_ids LONGTEXT NULL,
             score_avg DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
             last_validated_at DATETIME NULL,
             source_hash CHAR(64) NOT NULL DEFAULT '',
@@ -198,6 +201,8 @@ final class SEO_Solucionador_DB {
             KEY reviewed_hash (reviewed_hash),
             KEY editorial_status (editorial_status),
             KEY question_count (question_count),
+            KEY dependiente_count (dependiente_count),
+            KEY faq_count (faq_count),
             KEY last_validated_at (last_validated_at)
         ) {$collate};";
 
