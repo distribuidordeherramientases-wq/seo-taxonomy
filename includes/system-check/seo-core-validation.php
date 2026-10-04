@@ -7584,6 +7584,28 @@ function seo_core_system_test_render_services_connections($results) {
     echo '<h2>Servicios y conexiones</h2>';
     echo '<p>Cada fila representa el estado agregado de un servicio o conexión. Su puntuación forma parte del cálculo global de Plugin Validation.</p>';
 
+    if (function_exists('seo_core_service_release_summary')) {
+        $release = seo_core_service_release_summary();
+        $release_status = (string) ($release['status'] ?? 'unknown');
+        $release_score = isset($release['score']) && $release['score'] !== null ? (int) $release['score'] . '%' : 'Pendiente';
+        $release_class = $release_status === 'ok' ? 'ok' : ($release_status === 'pending' ? 'warning' : 'important');
+        echo '<div class="seo-core-health-box seo-core-health-' . esc_attr($release_class) . '" style="margin:14px 0 20px;max-width:900px;">';
+        echo '<strong>Aceptación post-release</strong>';
+        echo '<div class="seo-core-health-value">' . esc_html($release_score) . '</div>';
+        echo '<span class="seo-core-test-muted">Versión actual: ' . esc_html((string) ($release['current_version'] ?? '—')) . ' · versión comprobada: ' . esc_html((string) ($release['checked_version'] ?? 'pendiente')) . '</span>';
+        if (!empty($release['checked_at'])) {
+            echo '<br><span class="seo-core-test-muted">Último chequeo: ' . esc_html(wp_date('Y-m-d H:i:s', (int) $release['checked_at'])) . '</span>';
+        }
+        if (!empty($release['failed']) && is_array($release['failed'])) {
+            echo '<ul style="margin:10px 0 0 18px;">';
+            foreach (array_slice($release['failed'], 0, 12) as $failed) {
+                echo '<li><strong>' . esc_html(preg_replace('/^\\d+(?:\\.\\d+)*\\s+/', '', (string) ($failed['label'] ?? 'Servicio'))) . '</strong> · ' . esc_html((int) ($failed['score'] ?? 0) . '%') . ' · ' . esc_html((string) ($failed['detail'] ?? '')) . '</li>';
+            }
+            echo '</ul>';
+        }
+        echo '</div>';
+    }
+
     foreach (array('services' => 'Servicios internos', 'connections' => 'Conexiones externas') as $group => $title) {
         $group_rows = array_values(array_filter($rows, static function ($result) use ($group) {
             return isset($result['group']) && $result['group'] === $group;
