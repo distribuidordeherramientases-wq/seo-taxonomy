@@ -555,7 +555,8 @@ final class SEO_Solucionador_Admin {
         $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
 
         echo '<div class="seo-sol-grid">';
-        self::card('FAQs activas',absint($academy['faqs_total'] ?? 0),'Pregunta + respuesta humana; entrada directa.');
+        self::card('FAQs totales',absint($academy['faqs_all_total'] ?? $academy['faqs_total'] ?? 0),'Inventario histórico de seo_faq.');
+        self::card('FAQs activas',absint($academy['faqs_total'] ?? 0),'Pregunta + respuesta humana; entrada editorial directa.');
         self::card('FAQs procesadas',absint($academy['faq_processed'] ?? 0),'Carril FAQ.');
         self::card('FAQs con categoría',absint($academy['faq_with_category'] ?? 0),'Asociación demostrable a product_cat.');
         self::card('FAQs sin categoría',absint($academy['faq_without_category'] ?? 0),'No generan propuesta hasta resolver product_cat.');
