@@ -349,10 +349,11 @@ function seo_comentarista_get($id)
     if (!$id || !seo_comentarista_table_exists()) {
         return null;
     }
-    return $wpdb->get_row(
-        $wpdb->prepare('SELECT * FROM ' . seo_comentarista_table_name() . ' WHERE id = %d LIMIT 1', $id),
-        ARRAY_A
-    );
+    $table = seo_comentarista_table_name();
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; id enlazado mediante placeholder.
+    $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+    return $wpdb->get_row($sql, ARRAY_A);
 }
 
 /**
@@ -376,15 +377,16 @@ function seo_comentarista_get_by_external_id($product_id, $source_platform, $ext
         return null;
     }
 
-    return $wpdb->get_row(
-        $wpdb->prepare(
-            'SELECT * FROM ' . seo_comentarista_table_name() . ' WHERE product_id = %d AND source_platform = %s AND external_id = %s ORDER BY id ASC LIMIT 1',
-            $product_id,
-            $source_platform,
-            $external_id
-        ),
-        ARRAY_A
+    $table = seo_comentarista_table_name();
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; valores externos enlazados mediante placeholders.
+    $sql = $wpdb->prepare(
+        "SELECT * FROM {$table} WHERE product_id = %d AND source_platform = %s AND external_id = %s ORDER BY id ASC LIMIT 1",
+        $product_id,
+        $source_platform,
+        $external_id
     );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+    return $wpdb->get_row($sql, ARRAY_A);
 }
 
 /**
@@ -406,24 +408,26 @@ function seo_comentarista_get_by_product($product_id, $status = null, $limit = 5
         return array();
     }
 
+    $table = seo_comentarista_table_name();
+
     if ($status !== null && $status !== '') {
-        return (array) $wpdb->get_results(
-            $wpdb->prepare(
-                'SELECT * FROM ' . seo_comentarista_table_name() . ' WHERE product_id = %d AND status = %s ORDER BY display_order ASC, id DESC LIMIT %d',
-                $product_id,
-                sanitize_key($status),
-                $limit
-            ),
-            ARRAY_A
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; valores externos enlazados mediante placeholders.
+        $sql = $wpdb->prepare(
+            "SELECT * FROM {$table} WHERE product_id = %d AND status = %s ORDER BY display_order ASC, id DESC LIMIT %d",
+            $product_id,
+            sanitize_key($status),
+            $limit
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        return (array) $wpdb->get_results($sql, ARRAY_A);
     }
 
-    return (array) $wpdb->get_results(
-        $wpdb->prepare(
-            'SELECT * FROM ' . seo_comentarista_table_name() . ' WHERE product_id = %d ORDER BY display_order ASC, id DESC LIMIT %d',
-            $product_id,
-            $limit
-        ),
-        ARRAY_A
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; valores externos enlazados mediante placeholders.
+    $sql = $wpdb->prepare(
+        "SELECT * FROM {$table} WHERE product_id = %d ORDER BY display_order ASC, id DESC LIMIT %d",
+        $product_id,
+        $limit
     );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+    return (array) $wpdb->get_results($sql, ARRAY_A);
 }
