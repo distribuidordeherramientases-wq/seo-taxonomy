@@ -257,9 +257,11 @@ function seo_comentarista_admin_page()
     $row = array_merge($defaults, is_array($edit) ? $edit : array());
 
     global $wpdb;
+    $table = seo_comentarista_table_name();
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna controlada; consulta fija sin entrada de usuario.
     $items = seo_comentarista_table_exists()
         ? (array) $wpdb->get_results(
-            'SELECT * FROM ' . seo_comentarista_table_name() . ' ORDER BY id DESC LIMIT 100',
+            "SELECT * FROM {$table} ORDER BY id DESC LIMIT 100",
             ARRAY_A
         )
         : array();
