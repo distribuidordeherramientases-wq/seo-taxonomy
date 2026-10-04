@@ -4740,6 +4740,7 @@ final class SEO_Dependiente_Entrenador {
         // un curso lineal de decenas de miles de filas. Solo productos/categorías:
         // object_type 3 / 2. El texto sigue siendo la materia de la FAQ, pero la
         // ruta de recuperación válida debe ser siempre owner-first.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $faq_scope_select solo puede ser una de dos expresiones internas y las tablas son internas.
         $rows=(array)$wpdb->get_results(
             "SELECT f.id,f.object_type,f.object_id,{$faq_scope_select},f.question,f.answer,
                     CASE WHEN f.object_type=3 THEN p.post_title ELSE t.name END owner_title
@@ -4842,6 +4843,7 @@ final class SEO_Dependiente_Entrenador {
                     SELECT 1 FROM {$objects} oe
                     WHERE oe.vocabulary_id=v.id AND oe.status=1 AND oe.object_type IN ('post','page')
               )";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta fija sobre tablas internas, sin entrada de usuario.
         $diag['assignment_candidates'] = absint($wpdb->get_var($candidate_sql));
         if (!empty($wpdb->last_error)) {
             $diag['wpdb_last_error'] = sanitize_text_field((string) $wpdb->last_error);
@@ -4877,6 +4879,7 @@ final class SEO_Dependiente_Entrenador {
                        AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
                      ORDER BY (pc.product_count+ec.editorial_count) DESC,v.id ASC
                      LIMIT {$limit}";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta generada con tablas internas y un limite entero acotado.
         $rows = (array) $wpdb->get_results($rows_sql, ARRAY_A);
         if (!empty($wpdb->last_error)) {
             $diag['wpdb_last_error'] = sanitize_text_field((string) $wpdb->last_error);
@@ -4893,16 +4896,19 @@ final class SEO_Dependiente_Entrenador {
         $ids = array_values(array_filter(array_map('absint', wp_list_pluck($rows, 'id'))));
         $related = array();
         if ($ids) {
-            $id_sql = implode(',', array_map('absint', $ids));
+            $id_placeholders = implode(',', array_fill(0, count($ids), '%d'));
             $assign_sql = "SELECT ov.vocabulary_id,ov.object_type,ov.object_id
                            FROM {$objects} ov
                            INNER JOIN {$wpdb->posts} p ON p.ID=ov.object_id
                            WHERE ov.status=1
-                             AND ov.vocabulary_id IN ({$id_sql})
+                             AND ov.vocabulary_id IN ({$id_placeholders})
                              AND p.post_status='publish'
                              AND ((ov.object_type='post' AND p.post_type='post')
                                   OR (ov.object_type='page' AND p.post_type='page'))
                            ORDER BY ov.vocabulary_id,ov.object_id";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y lista de placeholders %d generada localmente.
+            $assign_sql = $wpdb->prepare($assign_sql, ...$ids);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $assign_sql es el resultado de $wpdb->prepare().
             $assign = (array) $wpdb->get_results($assign_sql, ARRAY_A);
             if (!empty($wpdb->last_error)) {
                 $diag['wpdb_last_error'] = sanitize_text_field((string) $wpdb->last_error);
