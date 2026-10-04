@@ -831,6 +831,7 @@ final class SEO_Solucionador_Dossiers {
         }
 
         $batch_by_category = array();
+        $changed_category_ids = array();
 
         // FUENTE 1: conocimiento consolidado de Dependiente a través de su API.
         if ($dependiente_available && empty($state['dependiente_complete'])) {
@@ -987,8 +988,11 @@ final class SEO_Solucionador_Dossiers {
                     (string)$batch['last'],
                     (string)$state['token']
                 );
-                if ($saved && class_exists('SEO_Solucionador_Posts') && method_exists('SEO_Solucionador_Posts','sync_category_post')) {
-                    SEO_Solucionador_Posts::sync_category_post($term_id);
+                if ($saved) {
+                    $changed_category_ids[] = absint($term_id);
+                    if (class_exists('SEO_Solucionador_Posts') && method_exists('SEO_Solucionador_Posts','sync_category_post')) {
+                        SEO_Solucionador_Posts::sync_category_post($term_id);
+                    }
                 }
             } catch (Throwable $e) {
                 $state['errors'] = absint($state['errors'] ?? 0)+1;
@@ -1012,7 +1016,9 @@ final class SEO_Solucionador_Dossiers {
         if (!empty($state['complete'])) $state['completed_at'] = current_time('mysql');
 
         update_option(self::STATE_OPTION,$state,false);
-        return self::snapshot();
+        $snapshot = self::snapshot();
+        $snapshot['changed_category_ids'] = array_values(array_unique(array_filter(array_map('absint',$changed_category_ids))));
+        return $snapshot;
     }
 
     public static function snapshot() {
