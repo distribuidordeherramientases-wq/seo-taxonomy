@@ -560,7 +560,7 @@ final class SEO_Solucionador_Admin {
         self::card('FAQs procesadas',absint($academy['faq_processed'] ?? 0),'Carril FAQ.');
         self::card('FAQs con categoría',absint($academy['faq_with_category'] ?? 0),'Asociación demostrable a product_cat.');
         self::card('FAQs sin categoría',absint($academy['faq_without_category'] ?? 0),'No generan propuesta hasta resolver product_cat.');
-        self::card('Dependiente procesado',absint($academy['dependiente_processed'] ?? 0),'Trainer + reglas aprendidas/aprobadas.');
+        self::card('Dependiente procesado',absint($academy['dependiente_processed'] ?? 0),'Preguntas de Entrenador comprobadas contra su último run.');
         self::card('Dependiente útil',absint($academy['dependiente_editorial_eligible'] ?? 0),'Material candidato editorial.');
         self::card('Dependiente descartado',absint($academy['dependiente_editorial_discarded'] ?? 0),'Ruido de entrenamiento; no se borra de Dependiente.');
         self::card('Dependiente con categoría',absint($academy['dependiente_with_category'] ?? 0),'Asociación canónica demostrable.');
