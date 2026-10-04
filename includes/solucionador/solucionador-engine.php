@@ -87,9 +87,9 @@ final class SEO_Solucionador_Engine {
                 SEO_Solucionador_Dossiers::reset_scan();
                 $state = SEO_Solucionador_Dossiers::state();
             } elseif (!empty($state['complete'])) {
-                // Un estado completo con cero dossiers es incoherente si hay
-                // preguntas de Academia: reinicia el cursor para reconstruir.
-                if (!$has_dossiers) {
+                // Un estado completo se reconstruye si aparece material fuente
+                // nuevo/modificado o si no quedó ningún dossier utilizable.
+                if (!$has_dossiers || !empty($snapshot['source_changed'])) {
                     SEO_Solucionador_Dossiers::reset_scan();
                     $state = SEO_Solucionador_Dossiers::state();
                 } else {
