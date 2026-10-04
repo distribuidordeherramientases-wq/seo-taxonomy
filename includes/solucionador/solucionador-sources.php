@@ -1,13 +1,11 @@
 <?php
 /**
- * Solucionador - fuente editorial reducida.
+ * Solucionador - adaptador de fuentes editoriales.
  *
- * Arquitectura v0.5.0:
- * Academia/Entrenador -> dossier por product_cat -> cobertura -> brief.
- *
- * Dependiente no se modifica. Solucionador lee preguntas activas cuyo ultimo
- * run esta answered + pass_*. El search_log se conserva solo como refuerzo
- * ligero de prioridad para categorias que ya disponen de dossier.
+ * Contrato v0.7.1: sólo existen dos fuentes editoriales: FAQ y Dependiente.
+ * La lectura interna de Dependiente se encapsula en
+ * SEO_Dependiente_Editorial_Knowledge; search_log y otros servicios no originan
+ * material editorial de Solucionador.
  */
 
 defined('ABSPATH') || exit;
@@ -661,13 +659,13 @@ final class SEO_Solucionador_Sources {
     }
 
     public static function editorial_source_contract() {
-        return array('faq','dependiente_academia');
+        return array('faq','dependiente');
     }
 
     public static function all($days = 180, $limit = 100, $after_dossier_id = 0) {
-        // Arquitectura 0.7:
-        // FAQ manual y Academia/Entrenador son orígenes editoriales independientes
-        // que convergen en un único dossier persistido por product_cat.
+        // Arquitectura 0.7.1:
+        // FAQ y Dependiente son los dos únicos orígenes editoriales independientes
+        // y convergen en un único dossier persistido por product_cat.
         // Ingeniero, Ojeador, Comparador, Clasificador, Marketing, Comentarista,
         // Auditor y Analista mantienen sus procesos editoriales independientes.
         // Los detalles pesados se cargan sólo al abrir el brief.
