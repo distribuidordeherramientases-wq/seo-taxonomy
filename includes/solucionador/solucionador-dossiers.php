@@ -29,6 +29,41 @@ final class SEO_Solucionador_Dossiers {
         return $wpdb->prefix . 'seo_faq';
     }
 
+    private static function faq_source_signature() {
+        global $wpdb;
+        $table = self::faq_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) return '';
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna sin entrada de usuario.
+        $row = (array)$wpdb->get_row(
+            "SELECT COUNT(*) total,COALESCE(MAX(id),0) max_id,COALESCE(MAX(updated_at),'') max_updated
+             FROM {$table} WHERE active=1",
+            ARRAY_A
+        );
+        return hash('sha256',wp_json_encode(array(
+            absint($row['total'] ?? 0),
+            absint($row['max_id'] ?? 0),
+            (string)($row['max_updated'] ?? ''),
+        )));
+    }
+
+    private static function academy_source_signature() {
+        global $wpdb;
+        $table = self::runs_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) return '';
+        // Los runs son append-only en Academia: max(id) detecta conocimiento nuevo.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna sin entrada de usuario.
+        $row = (array)$wpdb->get_row(
+            "SELECT COUNT(*) total,COALESCE(MAX(id),0) max_id
+             FROM {$table}
+             WHERE status='answered' AND LEFT(COALESCE(evaluation_status,''),5)='pass_'",
+            ARRAY_A
+        );
+        return hash('sha256',wp_json_encode(array(
+            absint($row['total'] ?? 0),
+            absint($row['max_id'] ?? 0),
+        )));
+    }
+
     private static function curriculum_where() {
         return "q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'";
     }
@@ -204,6 +239,8 @@ final class SEO_Solucionador_Dossiers {
             'faq_with_category'=>0,
             'faq_without_category'=>0,
             'faq_complete'=>false,
+            'faq_source_signature'=>'',
+            'academy_source_signature'=>'',
             'errors'=>0,
             'last_run_at'=>'',
             'last_faq_at'=>'',
@@ -658,9 +695,11 @@ final class SEO_Solucionador_Dossiers {
         $state['complete'] = !empty($state['academy_complete']) && !empty($state['faq_complete']);
         if (!empty($state['complete'])) {
             $state['completed_at'] = current_time('mysql');
+            $state['faq_source_signature'] = self::faq_source_signature();
+            $state['academy_source_signature'] = self::academy_source_signature();
         }
 
-        update_option(self::STATE_OPTION, $state, false);
+        update_option(self::STATE_OPTION,$state,false);
         return self::snapshot();
     }
 
@@ -668,6 +707,12 @@ final class SEO_Solucionador_Dossiers {
         global $wpdb;
         $state = self::state();
         $table = SEO_Solucionador_DB::dossiers_table();
+        $current_faq_signature = self::faq_source_signature();
+        $current_academy_signature = self::academy_source_signature();
+        $source_changed = !empty($state['complete']) && (
+            ((string)($state['faq_source_signature'] ?? '') !== '' && (string)$state['faq_source_signature'] !== $current_faq_signature)
+            || ((string)($state['academy_source_signature'] ?? '') !== '' && (string)$state['academy_source_signature'] !== $current_academy_signature)
+        );
 
         // Solucionador inventaría TODAS las product_cat. FAQ y Academia enriquecen
         // el mismo dossier, pero no deciden qué categorías existen.
@@ -710,6 +755,9 @@ final class SEO_Solucionador_Dossiers {
             'cursor'=>absint($state['cursor'] ?? 0),
             'faq_cursor'=>absint($state['faq_cursor'] ?? 0),
             'scan_complete'=>!empty($state['complete']),
+            'source_changed'=>$source_changed,
+            'faq_source_signature'=>$current_faq_signature,
+            'academy_source_signature'=>$current_academy_signature,
             'academy_complete'=>!empty($state['academy_complete']),
             'faq_complete'=>!empty($state['faq_complete']),
             'processed'=>absint($state['processed'] ?? 0),
