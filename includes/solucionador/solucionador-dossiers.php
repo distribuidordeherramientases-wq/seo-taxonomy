@@ -262,6 +262,89 @@ final class SEO_Solucionador_Dossiers {
         return is_array($state) ? $state : array();
     }
 
+    private static function migrate_dossier_item_keys() {
+        global $wpdb;
+        $table = SEO_Solucionador_DB::dossiers_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) return 0;
+
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna fija.
+        $rows = (array)$wpdb->get_results("SELECT * FROM {$table}",ARRAY_A);
+        $updated = 0;
+
+        foreach ($rows as $row) {
+            $category_id = absint($row['category_id'] ?? 0);
+            if (!$category_id) continue;
+
+            $old_source_hash = (string)($row['source_hash'] ?? '');
+            $old_reviewed_hash = (string)($row['reviewed_hash'] ?? '');
+            $fully_reviewed = $old_source_hash !== '' && $old_reviewed_hash === $old_source_hash;
+
+            $normalize_map = static function(array $map) {
+                $out = array();
+                foreach ($map as $key=>$value) {
+                    $key = sanitize_text_field((string)$key);
+                    if (preg_match('/^dependiente:([0-9]+)$/',$key,$m)) {
+                        $key = 'dependiente:trainer:' . absint($m[1]);
+                    } elseif (preg_match('/^[0-9]+$/',$key)) {
+                        $key = 'dependiente:trainer:' . absint($key);
+                    }
+                    if (preg_match('/^(faq:[0-9]+|dependiente:(?:trainer|semantic):[0-9]+)$/',$key)) {
+                        $out[$key] = $value;
+                    }
+                }
+                ksort($out,SORT_STRING);
+                return $out;
+            };
+
+            $item_hashes = $normalize_map((array)SEO_Solucionador_DB::decode_json($row['item_hashes'] ?? '{}',array()));
+            $reviewed_hashes = $normalize_map((array)SEO_Solucionador_DB::decode_json($row['reviewed_item_hashes'] ?? '{}',array()));
+            $editorial_states = $normalize_map((array)SEO_Solucionador_DB::decode_json($row['editorial_item_states'] ?? '{}',array()));
+
+            $question_ids = array_values(array_unique(array_filter(array_map(
+                'absint',(array)SEO_Solucionador_DB::decode_json($row['question_ids'] ?? '[]',array())
+            ))));
+            $dependiente_keys = array();
+            foreach ((array)SEO_Solucionador_DB::decode_json($row['dependiente_keys'] ?? '[]',array()) as $key) {
+                $key = sanitize_text_field((string)$key);
+                if (preg_match('/^dependiente:([0-9]+)$/',$key,$m)) $key = 'dependiente:trainer:' . absint($m[1]);
+                if (preg_match('/^dependiente:(?:trainer|semantic):[0-9]+$/',$key)) $dependiente_keys[] = $key;
+            }
+            foreach ($question_ids as $question_id) $dependiente_keys[] = 'dependiente:trainer:' . $question_id;
+            foreach (array_keys($item_hashes) as $key) if (strpos($key,'dependiente:') === 0) $dependiente_keys[] = $key;
+            $dependiente_keys = array_values(array_unique($dependiente_keys));
+            sort($dependiente_keys,SORT_STRING);
+
+            $source_hash = self::source_hash_for_test($category_id,$item_hashes);
+            $reviewed_hash = $old_reviewed_hash;
+            if ($fully_reviewed) {
+                $reviewed_hash = $source_hash;
+                $reviewed_hashes = $item_hashes;
+            }
+
+            $status = SEO_Editorial_Service_Contract::normalize(
+                (string)($row['editorial_status'] ?? SEO_Editorial_Service_Contract::READY_FOR_REVIEW)
+            );
+            if (!$fully_reviewed && $reviewed_hash !== '' && $reviewed_hash !== $source_hash) {
+                $status = SEO_Editorial_Service_Contract::NEEDS_UPDATE;
+            }
+
+            $ok = $wpdb->update($table,array(
+                'dependiente_keys'=>wp_json_encode($dependiente_keys),
+                'dependiente_count'=>count($dependiente_keys),
+                'question_count'=>count($dependiente_keys)+absint($row['faq_count'] ?? 0),
+                'item_hashes'=>wp_json_encode($item_hashes),
+                'editorial_item_states'=>wp_json_encode($editorial_states),
+                'reviewed_item_hashes'=>wp_json_encode($reviewed_hashes),
+                'source_hash'=>$source_hash,
+                'reviewed_hash'=>$reviewed_hash,
+                'editorial_status'=>$status,
+                'updated_at'=>current_time('mysql'),
+            ),array('category_id'=>$category_id));
+            if ($ok !== false) $updated++;
+        }
+        return $updated;
+    }
+
     /**
      * Migra 0.6/0.7 sin reiniciar el largo cursor de Entrenador.
      * FAQ y reglas semánticas pueden empezar en paralelo desde su propio cursor.
@@ -309,6 +392,7 @@ final class SEO_Solucionador_Dossiers {
         }
 
         if ((string)($state['editorial_policy'] ?? '') !== self::EDITORIAL_POLICY_VERSION) {
+            self::migrate_dossier_item_keys();
             $state['editorial_policy'] = self::EDITORIAL_POLICY_VERSION;
             $state['complete'] = false;
             $state['completed_at'] = '';
