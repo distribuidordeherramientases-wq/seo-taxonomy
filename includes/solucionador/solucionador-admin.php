@@ -1267,7 +1267,7 @@ final class SEO_Solucionador_Admin {
             'category_id'=>$primary_category_id,
         );
         $coverage = SEO_Editorial_Coverage::find($profile);
-        $evidence = SEO_Solucionador_DB::evidence_for_topic($topic_id);
+        $evidence = SEO_Solucionador_DB::get_evidence_rows($topic_id);
 
         $question_details = ($primary_category_id && class_exists('SEO_Solucionador_Dossiers'))
             ? SEO_Solucionador_Dossiers::question_details($primary_category_id)
