@@ -143,7 +143,10 @@ if (!function_exists('seo_classifier_type_profile_candidates')) {
             JOIN {$v} vs ON vs.id=os.vocabulary_id AND vs.active=1 AND vs.semantic_group='tipo'
             JOIN {$wpdb->posts} p ON p.ID=os.object_id AND p.post_type='product' AND p.post_status='publish'
             WHERE os.object_type='product' AND os.status=1 AND vs.id IN ({$ph}){$exclude_sql}";
-        $source_total = (int) $wpdb->get_var($wpdb->prepare($source_sql, ...$base_args));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas, placeholders y filtro opcional se generan internamente; valores enlazados mediante $wpdb->prepare().
+        $source_sql = $wpdb->prepare($source_sql, ...$base_args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $source_sql es el resultado de $wpdb->prepare().
+        $source_total = (int) $wpdb->get_var($source_sql);
         if ($source_total < 1) return [];
 
         $labelled_sql = "SELECT COUNT(DISTINCT os.object_id)
@@ -155,7 +158,10 @@ if (!function_exists('seo_classifier_type_profile_candidates')) {
             WHERE os.object_type='product' AND os.status=1 AND vs.id IN ({$ph}){$exclude_sql}";
         $labelled_args = array_merge([$target_group], $type_ids);
         if ($exclude_product_id > 0) $labelled_args[] = $exclude_product_id;
-        $labelled_total = (int) $wpdb->get_var($wpdb->prepare($labelled_sql, ...$labelled_args));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas, placeholders y filtro opcional se generan internamente; valores enlazados mediante $wpdb->prepare().
+        $labelled_sql = $wpdb->prepare($labelled_sql, ...$labelled_args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $labelled_sql es el resultado de $wpdb->prepare().
+        $labelled_total = (int) $wpdb->get_var($labelled_sql);
         if ($labelled_total < 1) return [];
 
         $hits_sql = "SELECT vt.id,vt.slug,vt.label,COUNT(DISTINCT os.object_id) AS hits,AVG(ot.confidence) AS avg_confidence
@@ -168,7 +174,10 @@ if (!function_exists('seo_classifier_type_profile_candidates')) {
             GROUP BY vt.id,vt.slug,vt.label";
         $hits_args = array_merge([$target_group], $type_ids);
         if ($exclude_product_id > 0) $hits_args[] = $exclude_product_id;
-        $db_rows = $wpdb->get_results($wpdb->prepare($hits_sql, ...$hits_args), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas, placeholders y filtro opcional se generan internamente; valores enlazados mediante $wpdb->prepare().
+        $hits_sql = $wpdb->prepare($hits_sql, ...$hits_args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $hits_sql es el resultado de $wpdb->prepare().
+        $db_rows = $wpdb->get_results($hits_sql, ARRAY_A);
 
         $coverage = $labelled_total / max(1, $source_total);
         $rows = [];
@@ -226,7 +235,8 @@ if (!function_exists('seo_classifier_category_profile_candidates')) {
 
         $count_args = $category_ids;
         if ($exclude_product_id > 0) $count_args[] = $exclude_product_id;
-        $source_rows = $wpdb->get_results($wpdb->prepare(
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas core, lista de placeholders y filtro opcional se generan internamente.
+        $source_rows_sql = $wpdb->prepare(
             "SELECT tt.term_id AS category_id,COUNT(DISTINCT p.ID) AS source_total
              FROM {$wpdb->term_relationships} tr
              JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
@@ -234,7 +244,9 @@ if (!function_exists('seo_classifier_category_profile_candidates')) {
              WHERE tt.term_id IN ({$ph}){$exclude_sql}
              GROUP BY tt.term_id",
             ...$count_args
-        ), ARRAY_A);
+        );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $source_rows_sql es el resultado de $wpdb->prepare().
+        $source_rows = $wpdb->get_results($source_rows_sql, ARRAY_A);
         $source_totals = [];
         foreach ((array) $source_rows as $row) $source_totals[(int)$row['category_id']] = (int)$row['source_total'];
 
