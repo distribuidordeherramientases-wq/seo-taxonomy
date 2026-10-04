@@ -595,7 +595,7 @@ final class SEO_Ingeniero_DB {
         $table = esc_sql($table);
 
         $status_filter = sanitize_key((string) ($args['status'] ?? ''));
-        $action_filter = sanitize_key((string) ($args['action'] ?? ''));
+        $action_filter = strtoupper(sanitize_key((string) ($args['action'] ?? '')));
         $term_filter = absint($args['term_id'] ?? 0);
 
         $total = absint($wpdb->get_var(
