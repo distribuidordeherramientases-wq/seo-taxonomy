@@ -243,7 +243,9 @@ final class SEO_Solucionador_Dossiers {
             'faq_without_category'=>0,
             'faq_complete'=>false,
             'faq_source_signature'=>'',
+            'faq_scan_signature'=>'',
             'dependiente_source_signature'=>'',
+            'dependiente_scan_signature'=>'',
             'academy_source_signature'=>'',
             'errors'=>0,
             'last_dependiente_at'=>'',
@@ -297,7 +299,8 @@ final class SEO_Solucionador_Dossiers {
 
         foreach (array(
             'faq_cursor'=>0,'faq_processed'=>0,'faq_with_category'=>0,'faq_without_category'=>0,
-            'faq_complete'=>false,'faq_source_signature'=>'','dependiente_source_signature'=>'',
+            'faq_complete'=>false,'faq_source_signature'=>'','faq_scan_signature'=>'',
+            'dependiente_source_signature'=>'','dependiente_scan_signature'=>'',
             'academy_source_signature'=>'','last_dependiente_at'=>'','last_faq_at'=>'','errors'=>0
         ) as $key=>$default) {
             if (!array_key_exists($key,$state)) {
@@ -697,6 +700,13 @@ final class SEO_Solucionador_Dossiers {
         // Si una fuente ya terminada cambia, reiniciamos únicamente su carril.
         $faq_signature = self::faq_source_signature();
         $dep_signature = self::dependiente_source_signature();
+
+        if (empty($state['faq_complete']) && (string)($state['faq_scan_signature'] ?? '') === '') {
+            $state['faq_scan_signature'] = $faq_signature;
+        }
+        if (empty($state['dependiente_complete']) && (string)($state['dependiente_scan_signature'] ?? '') === '') {
+            $state['dependiente_scan_signature'] = $dep_signature;
+        }
         if (!empty($state['faq_complete'])
             && (string)($state['faq_source_signature'] ?? '') !== ''
             && (string)$state['faq_source_signature'] !== $faq_signature) {
@@ -707,6 +717,7 @@ final class SEO_Solucionador_Dossiers {
             $state['faq_without_category'] = 0;
             $state['faq_complete'] = false;
             $state['faq_source_signature'] = '';
+            $state['faq_scan_signature'] = $faq_signature;
             $state['complete'] = false;
         }
         if (!empty($state['dependiente_complete'])
@@ -722,6 +733,7 @@ final class SEO_Solucionador_Dossiers {
             $state['dependiente_without_category'] = 0;
             $state['dependiente_complete'] = false;
             $state['dependiente_source_signature'] = '';
+            $state['dependiente_scan_signature'] = $dep_signature;
             $state['complete'] = false;
         }
 
@@ -774,7 +786,24 @@ final class SEO_Solucionador_Dossiers {
                     }
                 }
                 if (!empty($state['dependiente_complete'])) {
-                    $state['dependiente_source_signature'] = self::dependiente_source_signature();
+                    $end_signature = self::dependiente_source_signature();
+                    if ((string)($state['dependiente_scan_signature'] ?? '') !== ''
+                        && (string)$state['dependiente_scan_signature'] !== $end_signature) {
+                        self::clear_source_lane('dependiente',(string)$state['token']);
+                        $state['dependiente_cursor'] = array('trainer'=>0,'semantic'=>0);
+                        $state['dependiente_processed'] = 0;
+                        $state['dependiente_learned'] = 0;
+                        $state['dependiente_editorial_eligible'] = 0;
+                        $state['dependiente_editorial_discarded'] = 0;
+                        $state['dependiente_with_category'] = 0;
+                        $state['dependiente_without_category'] = 0;
+                        $state['dependiente_complete'] = false;
+                        $state['dependiente_source_signature'] = '';
+                        $state['dependiente_scan_signature'] = $end_signature;
+                    } else {
+                        $state['dependiente_source_signature'] = $end_signature;
+                        $state['dependiente_scan_signature'] = $end_signature;
+                    }
                 }
             } catch (Throwable $e) {
                 $state['errors'] = absint($state['errors'] ?? 0) + 1;
@@ -835,7 +864,21 @@ final class SEO_Solucionador_Dossiers {
         $state['faq_cursor'] = $last_faq_cursor;
         if (!$faq_available || count($faq_rows)<$limit) {
             $state['faq_complete'] = true;
-            $state['faq_source_signature'] = self::faq_source_signature();
+            $end_signature = self::faq_source_signature();
+            if ((string)($state['faq_scan_signature'] ?? '') !== ''
+                && (string)$state['faq_scan_signature'] !== $end_signature) {
+                self::clear_source_lane('faq',(string)$state['token']);
+                $state['faq_cursor'] = 0;
+                $state['faq_processed'] = 0;
+                $state['faq_with_category'] = 0;
+                $state['faq_without_category'] = 0;
+                $state['faq_complete'] = false;
+                $state['faq_source_signature'] = '';
+                $state['faq_scan_signature'] = $end_signature;
+            } else {
+                $state['faq_source_signature'] = $end_signature;
+                $state['faq_scan_signature'] = $end_signature;
+            }
         }
 
         foreach ($batch_by_category as $term_id=>$batch) {
@@ -1105,6 +1148,43 @@ final class SEO_Solucionador_Dossiers {
             $keys[] = 'dependiente:trainer:' . $question_id;
         }
         return self::review_item_keys($category_id,$keys);
+    }
+
+    public static function item_editorial_states($category_id) {
+        $dossier = self::get_by_category($category_id);
+        if (!$dossier) return array();
+        $states = SEO_Solucionador_DB::decode_json($dossier['editorial_item_states'] ?? '{}',array());
+        $out = array();
+        foreach ((array)$states as $key=>$state) {
+            $key = sanitize_text_field((string)$key);
+            $state = sanitize_key((string)$state);
+            if (self::valid_item_key($key) && in_array($state,array('pending','use','discard'),true)) {
+                $out[$key] = $state;
+            }
+        }
+        ksort($out,SORT_STRING);
+        return $out;
+    }
+
+    public static function save_item_editorial_states($category_id,array $states) {
+        $category_id = absint($category_id);
+        $dossier = self::get_by_category($category_id);
+        if (!$dossier) return false;
+
+        $saved = self::item_editorial_states($category_id);
+        foreach ($states as $key=>$state) {
+            $key = sanitize_text_field((string)$key);
+            $state = sanitize_key((string)$state);
+            if (!self::valid_item_key($key)) continue;
+            if (!in_array($state,array('pending','use','discard'),true)) $state = 'pending';
+            $saved[$key] = $state;
+        }
+        ksort($saved,SORT_STRING);
+
+        return SEO_Solucionador_DB::update_dossier_editorial($category_id,array(
+            'editorial_item_states'=>wp_json_encode($saved),
+            'updated_at'=>current_time('mysql'),
+        ));
     }
 
     public static function clear_rejection($category_id) {
