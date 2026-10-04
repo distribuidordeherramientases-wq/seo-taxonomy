@@ -2390,7 +2390,21 @@ function seo_google_get_summary_trend_data($property_id, $days = 365) {
             hash('sha256', $property_id), $date_from, $latest_date
         ), ARRAY_A);
         // Never splice property totals with a different aggregation method.
-        if ($totals_rows) return $totals_rows;
+        // Search Console has no meaningful average position on a day with
+        // zero impressions. Preserve zero clicks/impressions, but expose
+        // position as null so charts/exports do not invent a ranking of 0.
+        if ($totals_rows) {
+            foreach ($totals_rows as &$total_row) {
+                $total_row['clicks'] = (float) ($total_row['clicks'] ?? 0);
+                $total_row['impressions'] = (float) ($total_row['impressions'] ?? 0);
+                $total_row['ctr'] = (float) ($total_row['ctr'] ?? 0);
+                $total_row['position'] = $total_row['impressions'] > 0
+                    ? (float) ($total_row['position'] ?? 0)
+                    : null;
+            }
+            unset($total_row);
+            return $totals_rows;
+        }
     }
 
     $rows = $wpdb->get_results(
@@ -2417,7 +2431,7 @@ function seo_google_get_summary_trend_data($property_id, $days = 365) {
         $row['clicks']      = (float) $row['clicks'];
         $row['impressions'] = (float) $row['impressions'];
         $row['ctr']         = (float) $row['ctr'];
-        $row['position']    = (float) $row['position'];
+        $row['position']    = $row['impressions'] > 0 ? (float) $row['position'] : null;
     }
     unset($row);
 
@@ -2443,7 +2457,7 @@ function seo_google_render_summary_charts(array $daily_rows) {
             'date'        => (string) $row['data_date'],
             'clicks'      => (float) $row['clicks'],
             'impressions' => (float) $row['impressions'],
-            'position'    => (float) $row['position'],
+            'position'    => isset($row['position']) ? (float) $row['position'] : null,
         );
     }
 
@@ -2527,16 +2541,21 @@ function aggregate(mode) {
                 key: key,
                 clicks: 0,
                 impressions: 0,
-                positionWeighted: 0
+                positionWeighted: 0,
+                positionImpressions: 0
             });
         }
 
         const bucket = buckets.get(key);
         const impressions = Number(row.impressions || 0);
-        const position = Number(row.position || 0);
+        const rawPosition = row.position;
+        const position = rawPosition === null || rawPosition === undefined ? null : Number(rawPosition);
         bucket.clicks += Number(row.clicks || 0);
         bucket.impressions += impressions;
-        bucket.positionWeighted += position * impressions;
+        if (impressions > 0 && position !== null && Number.isFinite(position) && position > 0) {
+            bucket.positionWeighted += position * impressions;
+            bucket.positionImpressions += impressions;
+        }
     });
 
     return Array.from(buckets.values()).map(function(bucket) {
@@ -2545,12 +2564,15 @@ function aggregate(mode) {
             label: labelFor(bucket.key, mode),
             clicks: bucket.clicks,
             impressions: bucket.impressions,
-            position: bucket.impressions > 0 ? bucket.positionWeighted / bucket.impressions : 0
+            position: bucket.positionImpressions > 0 ? bucket.positionWeighted / bucket.positionImpressions : null
         };
     });
 }
 
 function formatNumber(value, metric) {
+    if (metric === 'position' && (value === null || value === undefined || !Number.isFinite(Number(value)) || Number(value) <= 0)) {
+        return '—';
+    }
     const number = Number(value || 0);
     if (metric === 'position') {
         return number.toLocaleString('es-ES', {minimumFractionDigits: 1, maximumFractionDigits: 1});
@@ -2589,15 +2611,26 @@ function renderChart(container, rows, metric) {
     const margin = {top: 16, right: 18, bottom: 34, left: 54};
     const plotW = width - margin.left - margin.right;
     const plotH = height - margin.top - margin.bottom;
-    const values = rows.map(function(row){ return Number(row[metric] || 0); });
+    const values = rows.map(function(row){
+        if (metric === 'position') {
+            const value = row[metric];
+            if (value === null || value === undefined) return null;
+            const number = Number(value);
+            return Number.isFinite(number) && number > 0 ? number : null;
+        }
+        return Number(row[metric] || 0);
+    });
+    const validValues = metric === 'position'
+        ? values.filter(function(value){ return value !== null; })
+        : values;
 
-    if (!values.length) {
-        container.textContent = 'Sin datos.';
+    if (!validValues.length) {
+        container.textContent = metric === 'position' ? 'Sin posición válida para este periodo.' : 'Sin datos.';
         return;
     }
 
-    let min = Math.min.apply(null, values);
-    let max = Math.max.apply(null, values);
+    let min = Math.min.apply(null, validValues);
+    let max = Math.max.apply(null, validValues);
 
     if (metric !== 'position') {
         min = 0;
@@ -2661,8 +2694,9 @@ function renderChart(container, rows, metric) {
     });
 
     const points = values.map(function(value, index) {
+        if (metric === 'position' && value === null) return null;
         return x(index).toFixed(2) + ',' + y(value).toFixed(2);
-    });
+    }).filter(Boolean);
 
     const polyline = document.createElementNS(svgNS, 'polyline');
     polyline.setAttribute('points', points.join(' '));
@@ -2674,9 +2708,10 @@ function renderChart(container, rows, metric) {
     svg.appendChild(polyline);
 
     rows.forEach(function(row, index) {
+        if (metric === 'position' && values[index] === null) return;
         const dot = document.createElementNS(svgNS, 'circle');
         dot.setAttribute('cx', x(index));
-        dot.setAttribute('cy', y(row[metric]));
+        dot.setAttribute('cy', y(values[index]));
         dot.setAttribute('r', rows.length <= 31 ? '3' : '1.8');
         dot.setAttribute('fill', '#2271b1');
         const title = document.createElementNS(svgNS, 'title');
@@ -2697,7 +2732,17 @@ function render() {
 
         const latest = root.querySelector('[data-latest="' + metric + '"]');
         if (latest && rows.length) {
-            latest.textContent = formatNumber(rows[rows.length - 1][metric], metric);
+            let latestValue = rows[rows.length - 1][metric];
+            if (metric === 'position') {
+                for (let i = rows.length - 1; i >= 0; i--) {
+                    const candidate = rows[i][metric];
+                    if (candidate !== null && candidate !== undefined && Number.isFinite(Number(candidate)) && Number(candidate) > 0) {
+                        latestValue = candidate;
+                        break;
+                    }
+                }
+            }
+            latest.textContent = formatNumber(latestValue, metric);
         }
     });
 
