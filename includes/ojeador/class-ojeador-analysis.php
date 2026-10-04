@@ -172,8 +172,10 @@ final class SEO_Ojeador_Analysis {
         $where_sql = implode(' AND ', $where);
         $count_sql = "SELECT COUNT(*) FROM {$table} r LEFT JOIN {$categories} c ON c.term_id=r.term_id WHERE {$where_sql}";
         if ($params) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE se compone con fragmentos internos y placeholders; valores enlazados mediante $wpdb->prepare().
             $count_sql = $wpdb->prepare($count_sql, $params);
         }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin parámetros es SQL interno fijo; con parámetros, $count_sql ya está preparado.
         $total = absint($wpdb->get_var($count_sql));
 
         $per_page = max(20, min(200, absint($args['per_page'])));
@@ -198,7 +200,9 @@ final class SEO_Ojeador_Analysis {
         $select_params = $params;
         $select_params[] = $per_page;
         $select_params[] = $offset;
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y ORDER BY proceden de allowlists internas; valores/paginación enlazados mediante placeholders.
         $select_sql = $wpdb->prepare($select_sql, $select_params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $select_sql es el resultado de $wpdb->prepare().
         $rows = (array) $wpdb->get_results($select_sql, ARRAY_A);
 
         foreach ($rows as &$row) {
@@ -258,6 +262,7 @@ final class SEO_Ojeador_Analysis {
                 WHERE active=1
                 GROUP BY term_id";
         $out = array();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta agregada fija sobre tabla interna, sin entrada de usuario.
         foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $row) {
             $out[absint($row['term_id'] ?? 0)] = $row;
         }
