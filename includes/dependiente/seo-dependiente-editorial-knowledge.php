@@ -369,6 +369,36 @@ final class SEO_Dependiente_Editorial_Knowledge {
             || self::table_exists(self::semantics_table());
     }
 
+    public static function inventory_stats() {
+        global $wpdb;
+        $out = array(
+            'trainer_total'=>0,
+            'semantic_total'=>0,
+            'total'=>0,
+        );
+
+        $questions = self::questions_table();
+        if (self::table_exists($questions)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- consulta fija a tabla interna de Dependiente.
+            $out['trainer_total'] = absint($wpdb->get_var(
+                "SELECT COUNT(*) FROM {$questions}
+                 WHERE enabled=1 AND lesson_key<>'' AND lesson_key NOT LIKE 'lab\\_%'"
+            ));
+        }
+
+        $semantics = self::semantics_table();
+        if (self::table_exists($semantics)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- fuentes consolidadas fijas.
+            $out['semantic_total'] = absint($wpdb->get_var(
+                "SELECT COUNT(*) FROM {$semantics}
+                 WHERE active=1 AND source IN ('academy','learned')"
+            ));
+        }
+
+        $out['total'] = $out['trainer_total'] + $out['semantic_total'];
+        return $out;
+    }
+
     public static function signature() {
         global $wpdb;
         $parts = array('provider'=>self::PROVIDER_VERSION);
