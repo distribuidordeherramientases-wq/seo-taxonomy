@@ -12,7 +12,7 @@ defined('ABSPATH') || exit;
 final class SEO_Solucionador_Dossiers {
     const STATE_OPTION = 'seo_solucionador_academia_scan_state';
     const DEFAULT_BATCH = 150;
-    const EDITORIAL_POLICY_VERSION = 'v3-faq-plus-dependiente';
+    const EDITORIAL_POLICY_VERSION = 'v4-faq-direct-no-trainer-echo';
 
     private static function questions_table() {
         global $wpdb;
@@ -85,6 +85,17 @@ final class SEO_Solucionador_Dossiers {
      * Las preguntas triviales siguen existiendo en Academia; simplemente no
      * cuentan para la masa editorial ni entran en los posts de Solucionador.
      */
+    public static function is_faq_training_echo(array $row) {
+        $type = sanitize_key((string)($row['question_type'] ?? ''));
+        $source_type = sanitize_key((string)($row['source_type'] ?? ''));
+        $expected = self::decode($row['expected_json'] ?? '');
+        $kind = sanitize_key((string)($expected['kind'] ?? ''));
+
+        return $type === 'faq_owner_context'
+            || $source_type === 'faq'
+            || $kind === 'faq';
+    }
+
     public static function editorial_question_value(array $row) {
         $question = self::normalized_question($row['question'] ?? '');
         $type = sanitize_key((string) ($row['question_type'] ?? ''));
@@ -232,6 +243,7 @@ final class SEO_Solucionador_Dossiers {
             'learned'=>0,
             'editorial_eligible'=>0,
             'editorial_discarded'=>0,
+            'faq_training_ignored'=>0,
             'learned_with_category'=>0,
             'learned_without_category'=>0,
             'academy_complete'=>false,
@@ -563,6 +575,15 @@ final class SEO_Solucionador_Dossiers {
             if (!$learned) continue;
             $state['learned'] = absint($state['learned'] ?? 0) + 1;
 
+            // Las preguntas procedentes de FAQ sirven para entrenar/evaluar a
+            // Dependiente, pero NO vuelven a Solucionador por este canal.
+            // Solucionador toma la FAQ original (pregunta + respuesta) desde
+            // seo_faq para evitar duplicados y respuestas reconstruidas.
+            if (self::is_faq_training_echo($row)) {
+                $state['faq_training_ignored'] = absint($state['faq_training_ignored'] ?? 0) + 1;
+                continue;
+            }
+
             $editorial_value = self::editorial_question_value($row);
             if (empty($editorial_value['eligible'])) {
                 $state['editorial_discarded'] = absint($state['editorial_discarded'] ?? 0) + 1;
@@ -768,6 +789,7 @@ final class SEO_Solucionador_Dossiers {
             'editorial_policy'=>(string)($state['editorial_policy'] ?? ''),
             'editorial_eligible'=>absint($state['editorial_eligible'] ?? 0),
             'editorial_discarded'=>absint($state['editorial_discarded'] ?? 0),
+            'faq_training_ignored'=>absint($state['faq_training_ignored'] ?? 0),
             'learned_with_category'=>absint($state['learned_with_category'] ?? 0),
             'learned_without_category'=>absint($state['learned_without_category'] ?? 0),
             'faq_with_category'=>absint($state['faq_with_category'] ?? 0),
@@ -988,6 +1010,7 @@ final class SEO_Solucionador_Dossiers {
             $rows = (array)$wpdb->get_results($prepared_sql,ARRAY_A);
 
             foreach ($rows as $row) {
+                if (self::is_faq_training_echo($row)) continue;
                 $editorial_value = self::editorial_question_value($row);
                 if (empty($editorial_value['eligible'])) continue;
                 $question_id = absint($row['question_id'] ?? 0);
