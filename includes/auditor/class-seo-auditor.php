@@ -98,7 +98,7 @@ final class SEO_Auditor {
             wp_die(esc_html__('Ambito de auditoria no valido.', 'seo-taxonomy'));
         }
 
-        @set_time_limit(300);
+        @set_time_limit('engine' === $scope ? 600 : 300);
         $report = self::run_scoped_audit($scope);
         $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         $reports[$scope] = $report;
@@ -186,7 +186,7 @@ final class SEO_Auditor {
 
         echo '<div class="wrap"><section class="seo-auditor">';
         echo '<div class="seo-auditor__hero">';
-        echo '<div><h2>Auditor de contenidos y datos</h2><p>Auditorias de solo lectura separadas por bloque para evitar recorridos globales costosos. Ejecuta únicamente Productos, Categorias, Posts o Paginas/Landings.</p></div>';
+        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa cada area mediante auditorias independientes y de solo lectura. Se mantienen Productos, Categorias, Posts, Paginas/Landings, FAQs y Motor/indice; la auditoria global de catalogo se ha retirado para evitar timeouts.</p></div>';
         echo '</div>';
 
         self::render_content_audit_actions(array(), $scoped_reports);
@@ -194,8 +194,8 @@ final class SEO_Auditor {
         $scope_view = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
         if ($scope_view && !empty($scoped_reports[$scope_view])) {
             self::render_scope_report((array) $scoped_reports[$scope_view]);
-        } else {
-            echo '<div class="notice notice-info inline"><p>Selecciona uno de los cuatro bloques superiores. La auditoria global de catalogo, FAQs y Motor/indice ya no se ejecutan desde esta pantalla.</p></div>';
+        } elseif (!$scoped_reports) {
+            echo '<div class="notice notice-info inline"><p>Todavia no hay auditorias por bloque guardadas. Ejecuta el area que quieras desde los botones superiores.</p></div>';
         }
 
         echo '</section></div>';
@@ -247,7 +247,7 @@ final class SEO_Auditor {
         $scope_defs = self::scope_definitions();
 
         echo '<h3 style="margin:20px 0 10px">Auditorias por bloque</h3>';
-        echo '<p class="description" style="margin-top:0">Ejecuta solo el area que necesites. Cada bloque carga exclusivamente sus fuentes y evita recorrer todo el catalogo.</p>';
+        echo '<p class="description" style="margin-top:0">Ejecuta solo el area que necesites. Cada bloque carga exclusivamente las fuentes necesarias; la auditoria global de catalogo se ha retirado para evitar timeouts.</p>';
         echo '<div class="seo-auditor__audit-actions">';
         foreach ($scope_defs as $scope => $def) {
             $scope_report = !empty($scoped_reports[$scope]) ? (array) $scoped_reports[$scope] : array();
@@ -315,6 +315,14 @@ final class SEO_Auditor {
             'pages' => array(
                 'label' => 'Paginas y landings',
                 'description' => 'Paginas publicadas, incluidas landings y estructura editorial. Solo carga paginas.',
+            ),
+            'faqs' => array(
+                'label' => 'FAQs',
+                'description' => 'Owners, duplicados, respuestas, coherencia y orfandad. Carga solo la identidad minima de productos/categorias necesaria.',
+            ),
+            'engine' => array(
+                'label' => 'Motor / indice de Dependiente',
+                'description' => 'Indice derivado y pruebas conductuales contra el motor real. Es una auditoria profunda y puede tardar mas.',
             ),
         );
     }
