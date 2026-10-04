@@ -43,33 +43,33 @@ Solucionador no investiga, no consulta Internet, no compara mercado, no redacta 
 
 ## Dos entradas editoriales independientes
 
-La materia prima editorial procede de Academia/Entrenador.
+Solucionador recibe material por dos caminos que no dependen entre sí.
+
+### FAQ manual
+
+Tabla fuente:
+
+- `seo_faq`
+
+Una FAQ entra directamente cuando está activa, conserva pregunta y respuesta y puede resolverse a una `product_cat` demostrable. No necesita haber sido aprendida por Dependiente. El dossier conserva su `object_type/object_id`, `category_id`, `source_id` y `source_hash`.
+
+Enviar la misma FAQ al formulario de Academia es opcional y sirve exclusivamente para mejorar el conocimiento de Dependiente.
+
+### Dependiente / Academia
 
 Tablas fuente:
 
 - `seo_dependiente_trainer_questions`
 - `seo_dependiente_trainer_runs`
 
-Una pregunta entra en Solucionador únicamente cuando:
+Una pregunta de Entrenador entra cuando:
 
-1. está activa;
-2. pertenece al currículo;
-3. su último run está `answered`;
-4. `evaluation_status` empieza por `pass_`.
+1. pertenece al currículo activo;
+2. su último run está `answered`;
+3. `evaluation_status` empieza por `pass_*`;
+4. pasa el filtro editorial que elimina preguntas definitorias/catalogales triviales.
 
-Se conserva como contexto:
-
-- question;
-- question_type;
-- lesson_key;
-- source_type/source_id/source_key;
-- expected_json;
-- evaluation_status;
-- evaluation_score;
-- evaluation_json;
-- top_results;
-- response_meta;
-- fecha del último run.
+Se conserva como contexto la pregunta, tipo, lección, origen, expected, evaluación, resultados internos, metadatos y fecha del último run.
 
 FAQs y resultados internos de Academia son material para Editora. **Solucionador nunca los publica automáticamente ni obliga a conservar el formato pregunta-respuesta.**
 
