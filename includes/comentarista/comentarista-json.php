@@ -23,7 +23,7 @@ function seo_comentarista_get_indicators($product_id = 0)
     global $wpdb;
 
     $product_id = absint($product_id);
-    $table = seo_comentarista_table_name();
+    $table = esc_sql(seo_comentarista_table_name());
 
     $base = array(
         'service'      => 'comentarista',
@@ -70,14 +70,7 @@ function seo_comentarista_get_indicators($product_id = 0)
         );
     }
 
-    $where = '';
-    $where_args = array();
-    if ($product_id) {
-        $where = ' WHERE product_id = %d';
-        $where_args[] = $product_id;
-    }
-
-    $summary_sql = "SELECT
+    $summary_select = "SELECT
         COUNT(*) AS records_total,
         SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS published,
         SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS draft,
@@ -87,13 +80,22 @@ function seo_comentarista_get_indicators($product_id = 0)
         SUM(CASE WHEN content_type = 'comment' AND rating_value IS NOT NULL AND rating_scale IS NOT NULL AND rating_scale > 0 THEN 1 ELSE 0 END) AS rated_comments,
         AVG(CASE WHEN content_type = 'comment' AND rating_value IS NOT NULL AND rating_scale IS NOT NULL AND rating_scale > 0 THEN (rating_value / rating_scale) * 5 ELSE NULL END) AS average_rating_5,
         COUNT(DISTINCT CASE WHEN COALESCE(NULLIF(source_name, ''), NULLIF(source_platform, '')) IS NOT NULL THEN COALESCE(NULLIF(source_name, ''), NULLIF(source_platform, '')) END) AS sources_distinct,
-        MAX(captured_at) AS latest_captured_at
-        FROM {$table}{$where}";
+        MAX(captured_at) AS latest_captured_at";
 
-    if ($where_args) {
-        $summary_sql = $wpdb->prepare($summary_sql, $where_args);
+    if ($product_id) {
+        $summary = (array) $wpdb->get_row(
+            $wpdb->prepare(
+                "{$summary_select} FROM `{$table}` WHERE product_id=%d",
+                $product_id
+            ),
+            ARRAY_A
+        );
+    } else {
+        $summary = (array) $wpdb->get_row(
+            "{$summary_select} FROM `{$table}`",
+            ARRAY_A
+        );
     }
-    $summary = (array) $wpdb->get_row($summary_sql, ARRAY_A);
 
     foreach (array('records_total', 'published', 'draft', 'disabled', 'comments_total', 'comments_published', 'rated_comments', 'sources_distinct') as $key) {
         $base['kpis'][$key] = (int) ($summary[$key] ?? 0);
@@ -105,34 +107,78 @@ function seo_comentarista_get_indicators($product_id = 0)
         ? (string) $summary['latest_captured_at']
         : null;
 
-    $distribution_specs = array(
-        'content_types' => 'content_type',
-        'statuses'      => 'status',
-    );
-
-    foreach ($distribution_specs as $target => $column) {
-        $sql = "SELECT {$column} AS label, COUNT(*) AS total FROM {$table}{$where} GROUP BY {$column} ORDER BY total DESC, label ASC";
-        if ($where_args) {
-            $sql = $wpdb->prepare($sql, $where_args);
-        }
-        $rows = (array) $wpdb->get_results($sql, ARRAY_A);
-        foreach ($rows as $row) {
-            $base['distribution'][$target][(string) $row['label']] = (int) $row['total'];
-        }
+    if ($product_id) {
+        $content_type_rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT content_type AS label, COUNT(*) AS total
+                 FROM `{$table}`
+                 WHERE product_id=%d
+                 GROUP BY content_type
+                 ORDER BY total DESC, label ASC",
+                $product_id
+            ),
+            ARRAY_A
+        );
+        $status_rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT status AS label, COUNT(*) AS total
+                 FROM `{$table}`
+                 WHERE product_id=%d
+                 GROUP BY status
+                 ORDER BY total DESC, label ASC",
+                $product_id
+            ),
+            ARRAY_A
+        );
+        $source_rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT
+                    COALESCE(NULLIF(source_name, ''), NULLIF(source_platform, ''), 'sin_fuente') AS source,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN content_type = 'comment' THEN 1 ELSE 0 END) AS comments
+                 FROM `{$table}`
+                 WHERE product_id=%d
+                 GROUP BY source
+                 ORDER BY total DESC, source ASC
+                 LIMIT 20",
+                $product_id
+            ),
+            ARRAY_A
+        );
+    } else {
+        $content_type_rows = (array) $wpdb->get_results(
+            "SELECT content_type AS label, COUNT(*) AS total
+             FROM `{$table}`
+             GROUP BY content_type
+             ORDER BY total DESC, label ASC",
+            ARRAY_A
+        );
+        $status_rows = (array) $wpdb->get_results(
+            "SELECT status AS label, COUNT(*) AS total
+             FROM `{$table}`
+             GROUP BY status
+             ORDER BY total DESC, label ASC",
+            ARRAY_A
+        );
+        $source_rows = (array) $wpdb->get_results(
+            "SELECT
+                COALESCE(NULLIF(source_name, ''), NULLIF(source_platform, ''), 'sin_fuente') AS source,
+                COUNT(*) AS total,
+                SUM(CASE WHEN content_type = 'comment' THEN 1 ELSE 0 END) AS comments
+             FROM `{$table}`
+             GROUP BY source
+             ORDER BY total DESC, source ASC
+             LIMIT 20",
+            ARRAY_A
+        );
     }
 
-    $source_sql = "SELECT
-            COALESCE(NULLIF(source_name, ''), NULLIF(source_platform, ''), 'sin_fuente') AS source,
-            COUNT(*) AS total,
-            SUM(CASE WHEN content_type = 'comment' THEN 1 ELSE 0 END) AS comments
-        FROM {$table}{$where}
-        GROUP BY source
-        ORDER BY total DESC, source ASC
-        LIMIT 20";
-    if ($where_args) {
-        $source_sql = $wpdb->prepare($source_sql, $where_args);
+    foreach ($content_type_rows as $row) {
+        $base['distribution']['content_types'][(string) $row['label']] = (int) $row['total'];
     }
-    $source_rows = (array) $wpdb->get_results($source_sql, ARRAY_A);
+    foreach ($status_rows as $row) {
+        $base['distribution']['statuses'][(string) $row['label']] = (int) $row['total'];
+    }
     foreach ($source_rows as $row) {
         $base['distribution']['sources'][] = array(
             'source'   => (string) $row['source'],
