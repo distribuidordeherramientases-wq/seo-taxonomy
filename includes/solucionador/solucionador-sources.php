@@ -131,22 +131,23 @@ final class SEO_Solucionador_Sources {
         if (!self::table_exists($tables['questions']) || !self::table_exists($tables['runs'])) return $empty;
 
         $where = self::academy_where();
-        $row = $wpdb->get_row(
-            "SELECT
-                COUNT(q.id) questions_total,
-                SUM(CASE WHEN r.status='answered' AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_' THEN 1 ELSE 0 END) learned,
-                MAX(r.created_at) last_run_at
-             FROM {$tables['questions']} q
-             LEFT JOIN (
-                SELECT question_id,MAX(id) latest_run_id
-                FROM {$tables['runs']}
-                WHERE question_id IS NOT NULL
-                GROUP BY question_id
-             ) latest ON latest.question_id=q.id
-             LEFT JOIN {$tables['runs']} r ON r.id=latest.latest_run_id
-             WHERE {$where}",
-            ARRAY_A
-        );
+        $questions_table = $tables['questions'];
+        $runs_table = $tables['runs'];
+        $sql = "SELECT
+                    COUNT(q.id) questions_total,
+                    SUM(CASE WHEN r.status='answered' AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_' THEN 1 ELSE 0 END) learned,
+                    MAX(r.created_at) last_run_at
+                FROM {$questions_table} q
+                LEFT JOIN (
+                    SELECT question_id,MAX(id) latest_run_id
+                    FROM {$runs_table}
+                    WHERE question_id IS NOT NULL
+                    GROUP BY question_id
+                ) latest ON latest.question_id=q.id
+                LEFT JOIN {$runs_table} r ON r.id=latest.latest_run_id
+                WHERE {$where}";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas y filtro curricular proceden de helpers internos; consulta de solo lectura.
+        $row = $wpdb->get_row($sql, ARRAY_A);
         $total = absint($row['questions_total'] ?? 0);
         $learned = absint($row['learned'] ?? 0);
         $categories_total = wp_count_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
@@ -184,19 +185,22 @@ final class SEO_Solucionador_Sources {
         }
 
         $where = self::academy_where();
-        $rows = (array) $wpdb->get_results($wpdb->prepare(
+        $questions_table = $tables['questions'];
+        $runs_table = $tables['runs'];
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y filtro curricular son internos; cursor y límite se enlazan mediante placeholders.
+        $sql = $wpdb->prepare(
             "SELECT
                 q.id question_id,q.lesson_key,q.question_type,q.source_type,q.source_id,
                 q.source_key,q.question,q.expected_json,
                 r.id run_id,r.evaluation_status,r.evaluation_score,r.created_at run_created_at
-             FROM {$tables['questions']} q
+             FROM {$questions_table} q
              INNER JOIN (
                 SELECT question_id,MAX(id) latest_run_id
-                FROM {$tables['runs']}
+                FROM {$runs_table}
                 WHERE question_id IS NOT NULL
                 GROUP BY question_id
              ) latest ON latest.question_id=q.id
-             INNER JOIN {$tables['runs']} r ON r.id=latest.latest_run_id
+             INNER JOIN {$runs_table} r ON r.id=latest.latest_run_id
              WHERE {$where}
                AND q.id>%d
                AND r.status='answered'
@@ -205,7 +209,9 @@ final class SEO_Solucionador_Sources {
              LIMIT %d",
             $cursor,
             $limit
-        ), ARRAY_A);
+        );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($sql, ARRAY_A);
 
         $sources = array();
         $with_category = 0;
@@ -310,7 +316,10 @@ final class SEO_Solucionador_Sources {
                   AND r.status='answered'
                   AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_'
                 ORDER BY q.id ASC";
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql,$ids),ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+        $sql = $wpdb->prepare($sql,$ids);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($sql,ARRAY_A);
 
         $out = array();
         foreach ($rows as $row) {

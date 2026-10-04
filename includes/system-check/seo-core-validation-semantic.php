@@ -496,25 +496,34 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
     }
 
     $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
-    $where_ids = '';
     if ($category_ids) {
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-        $where_ids = $wpdb->prepare(" AND ov.object_id IN ({$placeholders})", ...$category_ids);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y lista de placeholders %d generada localmente; IDs enlazados mediante $wpdb->prepare().
+        $sql = $wpdb->prepare(
+            "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
+             FROM {$object_table} ov
+             INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+             WHERE ov.object_type = 'product_cat'
+               AND ov.status = 1
+               AND v.active = 1
+               AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+               AND ov.object_id IN ({$placeholders})
+             ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
+            ...$category_ids
+        );
+    } else {
+        $sql = "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
+                FROM {$object_table} ov
+                INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+                WHERE ov.object_type = 'product_cat'
+                  AND ov.status = 1
+                  AND v.active = 1
+                  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+                ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC";
     }
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y filtro de IDs previamente preparado; consulta de solo lectura.
-    $rows = $wpdb->get_results(
-        "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label\n"
-        . "FROM {$object_table} ov\n"
-        . "INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id\n"
-        . "WHERE ov.object_type = 'product_cat'\n"
-        . "  AND ov.status = 1\n"
-        . "  AND v.active = 1\n"
-        . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
-        . $where_ids
-        . " ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
-        ARRAY_A
-    );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin IDs es SQL interno fijo; con IDs, $sql es el resultado de $wpdb->prepare().
+    $rows = $wpdb->get_results($sql, ARRAY_A);
 
     foreach ((array) $rows as $row) {
         $object_id = absint($row['object_id'] ?? 0);

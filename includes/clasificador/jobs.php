@@ -345,7 +345,9 @@ if (!function_exists('seo_classifier_job_seed')) {
                 SELECT %d,p.ID,{$mask_sql},'pending',NOW(),NOW()
                 FROM {$wpdb->posts} p WHERE {$where_sql}";
         $seed_args = array_merge([$job_id], $args);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y fragmentos WHERE/máscara se generan internamente; valores enlazados mediante $wpdb->prepare().
         $prepared = $wpdb->prepare($sql, $seed_args);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared es el resultado de $wpdb->prepare().
         $result = $wpdb->query($prepared);
         if ($result === false) return new WP_Error('seo_classifier_job_seed_failed', $wpdb->last_error ?: 'No se pudo crear la cola.');
         $total = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$tables['items']} WHERE job_id=%d", $job_id));
@@ -785,9 +787,13 @@ if (!function_exists('seo_classifier_proposals_for_products')) {
         $tables = seo_classifier_jobs_tables();
         $ids = array_values(array_unique(array_filter(array_map('absint', $product_ids))));
         if (!$ids) return [];
-        $sql = "SELECT * FROM {$tables['proposals']} WHERE product_id IN (" . implode(',', $ids) . ')';
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $sql = "SELECT * FROM {$tables['proposals']} WHERE product_id IN ({$placeholders})";
         if ($active_only) $sql .= ' AND active=1';
         $sql .= ' ORDER BY product_id,semantic_group';
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %d generada localmente.
+        $sql = $wpdb->prepare($sql, ...$ids);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         $rows = (array)$wpdb->get_results($sql, ARRAY_A);
         $out = [];
         foreach ($rows as $row) {
@@ -882,8 +888,15 @@ if (!function_exists('seo_classifier_proposal_invalidate_product')) {
         }
         $groups = array_values(array_unique(array_filter(array_map('sanitize_key', (array)$groups))));
         if (!$groups) return;
-        $quoted = array_map(static function($g){ return "'" . esc_sql($g) . "'"; }, $groups);
-        $wpdb->query($wpdb->prepare("UPDATE {$tables['proposals']} SET active=0,updated_at=NOW() WHERE product_id=%d AND semantic_group IN (" . implode(',', $quoted) . ')', $product_id));
+        $placeholders = implode(',', array_fill(0, count($groups), '%s'));
+        $query_args = array_merge([$product_id], $groups);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %s generada localmente.
+        $sql = $wpdb->prepare(
+            "UPDATE {$tables['proposals']} SET active=0,updated_at=NOW() WHERE product_id=%d AND semantic_group IN ({$placeholders})",
+            ...$query_args
+        );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        $wpdb->query($sql);
     }
 }
 
