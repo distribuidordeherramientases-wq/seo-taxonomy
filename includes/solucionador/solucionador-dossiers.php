@@ -1055,10 +1055,16 @@ final class SEO_Solucionador_Dossiers {
         $questions_total = absint($dep_inventory['trainer_total'] ?? 0);
         $dependiente_inventory_total = absint($dep_inventory['total'] ?? 0);
 
-        $faqs_all_total = SEO_Solucionador_DB::table_exists(self::faq_table())
-            ? absint($wpdb->get_var("SELECT COUNT(*) FROM " . self::faq_table())) : 0;
-        $faqs_total = SEO_Solucionador_DB::table_exists(self::faq_table())
-            ? absint($wpdb->get_var("SELECT COUNT(*) FROM " . self::faq_table() . " WHERE active=1")) : 0;
+        $faq_table = self::faq_table();
+        if (SEO_Solucionador_DB::table_exists($faq_table)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
+            $faqs_all_total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table}"));
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
+            $faqs_total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1"));
+        } else {
+            $faqs_all_total = 0;
+            $faqs_total = 0;
+        }
 
         return array(
             'available'=>SEO_Solucionador_DB::table_exists(self::faq_table())
@@ -1432,8 +1438,9 @@ final class SEO_Solucionador_Dossiers {
                     FROM {$faq_table}
                     WHERE active=1 AND id IN ({$placeholders})
                     ORDER BY sort_order ASC,id ASC";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %d generada localmente; IDs enlazados mediante $wpdb->prepare().
             $prepared_sql = $wpdb->prepare($sql,$faq_ids);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs preparados.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
             $faq_rows = (array)$wpdb->get_results($prepared_sql,ARRAY_A);
             foreach ($faq_rows as $row) {
                 $faq_id = absint($row['id'] ?? 0);
