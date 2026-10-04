@@ -139,6 +139,7 @@ final class SEO_Data_Layer
             return self::$column_cache[$table_name];
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table_name se valida mediante assert_identifier() antes de construir el identificador.
         $columns = $wpdb->get_col('SHOW COLUMNS FROM `' . $table_name . '`', 0);
 
         if (!is_array($columns) || empty($columns)) {
@@ -235,7 +236,9 @@ final class SEO_Data_Layer
             $sql .= ' FOR UPDATE';
         }
 
-        $row = $wpdb->get_row(self::prepare($sql, $values), ARRAY_A);
+        $prepared_sql = self::prepare($sql, $values);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql procede del helper interno que delega en $wpdb->prepare(); tabla y columnas han sido validadas.
+        $row = $wpdb->get_row($prepared_sql, ARRAY_A);
 
         if ($row === null) {
             return null;
@@ -315,10 +318,9 @@ final class SEO_Data_Layer
         foreach (array_unique($required) as $table) {
             self::assert_identifier($table);
 
-            $status = $wpdb->get_row(
-                self::prepare('SHOW TABLE STATUS LIKE %s', [$table]),
-                ARRAY_A
-            );
+            $status_sql = $wpdb->prepare('SHOW TABLE STATUS LIKE %s', $table);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $status_sql es el resultado directo de $wpdb->prepare() con una tabla interna validada.
+            $status = $wpdb->get_row($status_sql, ARRAY_A);
 
             $exists = is_array($status) && !empty($status['Name']);
             $engine = $exists ? (string) $status['Engine'] : '';
