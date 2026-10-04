@@ -2,10 +2,10 @@
 
 ## Estado operativo
 
-- **Versión funcional:** 0.7.1.
+- **Versión funcional:** 0.7.2.
 - **Versión de esquema:** 0.7.1.
 - **Arquitectura de referencia:** 04/10/2026.
-- **Issue:** #698.
+- **Issues:** #698, #705.
 - **Validación:** staging antes de producción.
 
 ## Responsabilidad
@@ -294,19 +294,58 @@ Los carriles son independientes:
 - `dependiente_cursor.trainer`
 - `dependiente_cursor.semantic`
 
+La palabra `complete` describe únicamente que **esa pasada de inventario alcanzó el final conocido de la fuente en ese momento**. No significa que Dependiente haya terminado de aprender ni constituye una condición para crear propuestas.
+
+Dependiente es un sistema de aprendizaje continuo. Por tanto, Solucionador trabaja siempre con una **foto del conocimiento disponible en el momento de la ejecución**.
+
 Puede existir:
 
 ~~~text
-FAQ: complete
+FAQ: pasada actual completada
 Dependiente trainer: 20.000 / 38.391
-Dependiente semantic: complete
+Dependiente semantic: pasada actual completada
+Propuestas: disponibles y revisables
 ~~~
 
-y Editora puede revisar los dossiers ya disponibles.
+y Editora puede revisar los dossiers ya disponibles sin esperar a que Entrenador alcance 38.391/38.391 ni a que Dependiente deje de aprender.
 
-La migración 0.6/0.7 reutiliza el cursor antiguo de Entrenador cuando es posible; añadir el collector FAQ o semántico no obliga a reiniciar el largo recorrido de preguntas.
+### Ejecución por lote
 
-Si cambia una fuente terminada, se reconstruye únicamente ese carril.
+Desde **#705**, `scan_batch()` devuelve las categorías modificadas durante el lote mediante `changed_category_ids`.
+
+`SEO_Solucionador_Engine::scan()` procesa esas categorías inmediatamente con `prepare_category_topic()`.
+
+Por tanto:
+
+~~~text
+FAQ nueva / conocimiento validado nuevo de Dependiente
+                    ↓
+             dossier actualizado
+                    ↓
+          changed_category_ids
+                    ↓
+        propuesta creada/actualizada
+                    ↓
+             revisión de Editora
+~~~
+
+El inventario de las fuentes puede continuar después. La propuesta **no espera al final del escaneo global**.
+
+### Rescan y nuevas ejecuciones
+
+Cuando se activa el proceso, un worker o un rescan:
+
+1. FAQ se revisa como fuente independiente.
+2. Dependiente/Entrenador se revisa como fuente independiente.
+3. Las novedades encontradas actualizan únicamente los dossiers afectados.
+4. Las propuestas de esos dossiers se materializan en el mismo ciclo.
+5. Ningún carril bloquea al otro.
+
+Una FAQ no necesita ser aprendida por Dependiente para entrar en Solucionador.
+
+Una pregunta de Entrenador sólo entra por el carril Dependiente cuando el conocimiento ya está validado, por ejemplo con último run `answered` y `evaluation_status=pass_*`.
+
+La migración conserva cursores cuando es compatible y cada fuente mantiene su propia reconciliación. Si una fuente requiere una nueva pasada, sólo se recorre ese carril y las propuestas disponibles siguen siendo utilizables durante el proceso.
 
 ## Propuesta editorial
 
@@ -494,6 +533,9 @@ La suite 0.7.1 valida, entre otros:
 14. El export usa schema v6 y separa ambas fuentes.
 15. No existe dependencia obligatoria de Ingeniero/Comparador.
 16. El procesamiento es incremental/migrable.
+17. Un lote parcial de FAQ o Dependiente puede generar propuesta sin esperar al final del inventario.
+18. Entrenador puede seguir aprendiendo mientras Solucionador mantiene propuestas disponibles.
+19. Las categorías modificadas en un lote se materializan inmediatamente mediante `changed_category_ids → prepare_category_topic()`.
 
 ## Flujo final
 
