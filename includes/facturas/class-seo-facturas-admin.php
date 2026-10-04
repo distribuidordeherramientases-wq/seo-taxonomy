@@ -236,6 +236,7 @@ final class SEO_Facturas_Admin {
         header('Content-Type: application/pdf');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Content-Length: ' . filesize($document->pdf_path));
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- PDF validado dentro de rutas permitidas; streaming evita cargar el documento completo en memoria.
         readfile($document->pdf_path);
         exit;
     }
