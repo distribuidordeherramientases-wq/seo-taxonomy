@@ -253,7 +253,7 @@ final class SEO_Solucionador_Admin {
             // Compatibilidad con formularios 0.6 que todavía envíen qids.
             if (!$selected_keys && isset($_POST['selected_ids']) && is_array($_POST['selected_ids'])) {
                 foreach (array_map('absint',wp_unslash($_POST['selected_ids'])) as $question_id) {
-                    if ($question_id) $selected_keys[] = 'dependiente:' . $question_id;
+                    if ($question_id) $selected_keys[] = 'dependiente:trainer:' . $question_id;
                 }
             }
 
@@ -560,14 +560,15 @@ final class SEO_Solucionador_Admin {
         self::card('FAQs procesadas',absint($academy['faq_processed'] ?? 0),'Carril FAQ.');
         self::card('FAQs con categoría',absint($academy['faq_with_category'] ?? 0),'Asociación demostrable a product_cat.');
         self::card('FAQs sin categoría',absint($academy['faq_without_category'] ?? 0),'No generan propuesta hasta resolver product_cat.');
-        self::card('Dependiente procesado',absint($academy['dependiente_processed'] ?? 0),'Preguntas de Entrenador revisadas contra su último run.');
+        self::card('Dependiente procesado',absint($academy['dependiente_processed'] ?? 0),'Conocimiento revisado por el proveedor: Entrenador + reglas consolidadas.');
         self::card('Dependiente útil',absint($academy['dependiente_editorial_eligible'] ?? 0),'Material candidato editorial.');
-        self::card('Dependiente descartado',absint($academy['dependiente_editorial_discarded'] ?? 0),'Ruido de entrenamiento; no se borra de Dependiente.');
+        self::card('Dependiente descartado',absint($academy['dependiente_editorial_discarded'] ?? 0),'Ruido/no candidato editorial; nunca se borra de Dependiente.');
         self::card('Dependiente con categoría',absint($academy['dependiente_with_category'] ?? 0),'Asociación canónica demostrable.');
-        self::card('Dependiente sin categoría',absint($academy['dependiente_without_category'] ?? 0),'No genera propuesta.');
+        self::card('Dependiente sin categoría',absint($academy['dependiente_without_category'] ?? 0),'No genera propuesta hasta disponer de product_cat demostrable.');
+        self::card('Reglas consolidadas',absint($academy['dependiente_semantic_rules_total'] ?? 0),'Reglas semánticas activas/aprobadas disponibles en Dependiente.');
         self::card('Sólo FAQ',absint($academy['categories_only_faq'] ?? 0),'Categorías con FAQ y sin material Dependiente.');
         self::card('Sólo Dependiente',absint($academy['categories_only_dependiente'] ?? 0),'Categorías sin FAQ y con material Dependiente.');
-        self::card('FAQ + Dependiente',absint($academy['categories_faq_dependiente'] ?? 0),'Ambas fuentes conviven sin deduplicación destructiva.');
+        self::card('FAQ + Dependiente',absint($academy['categories_both_sources'] ?? $academy['categories_faq_dependiente'] ?? 0),'Ambas fuentes conviven sin deduplicación destructiva.');
         self::card('Sin información',absint($academy['categories_without_information'] ?? 0),'Sin material editorial asociado.');
         self::card('Propuestas',$counts['proposed'],'Dossiers todavía no convertidos en post.');
         self::card('Borradores',$counts['drafts'],'Pendientes de edición/publicación humana.');
@@ -582,11 +583,11 @@ final class SEO_Solucionador_Admin {
         $with_knowledge = absint($academy['categories_with_knowledge'] ?? 0);
         $without_knowledge = max(0, $categories_total - $with_knowledge);
         echo '<p><strong>' . esc_html(number_format_i18n($categories_total)) . '</strong> categorías de producto están inventariadas en Solucionador. '
-            . '<strong>' . esc_html(number_format_i18n($with_knowledge)) . '</strong> tienen preguntas editoriales útiles y '
+            . '<strong>' . esc_html(number_format_i18n($with_knowledge)) . '</strong> tienen material editorial útil y '
             . '<strong>' . esc_html(number_format_i18n($without_knowledge)) . '</strong> están esperando conocimiento útil.</p>';
         echo '<p class="description">El escaneo puede seguir avanzando mientras la Editora revisa propuestas ya disponibles. No existe un umbral de masa que bloquee la revisión.</p>';
         echo '<p class="description">Dependiente útil: <strong>' . esc_html(number_format_i18n(absint($academy['dependiente_editorial_eligible'] ?? 0))) . '</strong> · '
-            . 'ruido de entrenamiento no candidato: <strong>' . esc_html(number_format_i18n(absint($academy['dependiente_editorial_discarded'] ?? 0))) . '</strong>. '
+            . 'material no candidato: <strong>' . esc_html(number_format_i18n(absint($academy['dependiente_editorial_discarded'] ?? 0))) . '</strong>. '
             . 'Las FAQs activas correctamente relacionadas son material editorial válido por defecto.</p>';
         if (!empty($academy['updated_at'])) {
             echo '<p class="description">Conocimiento sincronizado automáticamente. Última actualización interna: ' . esc_html((string) $academy['updated_at']) . '.</p>';
@@ -931,19 +932,19 @@ final class SEO_Solucionador_Admin {
         self::card('Aprendidas sin categoría',absint($academy['learned_without_category'] ?? 0),'No crean dossier ni URL hasta disponer de product_cat demostrable.');
         self::card('CREATE_POST',$counts['create_post'] ?? 0,'Dossiers sin cobertura equivalente; la densidad de material es informativa.');
         self::card('IMPROVE_POST', $counts['improve'] ?? 0, 'Existe un post equivalente con cobertura débil/parcial.');
-        self::card('MERGE_CONTENT', $counts['merge'] ?? 0, 'Existen piezas solapadas que conviene consolidar.');
+        self::card('MERGE_CONTENT · legado', $counts['merge'] ?? 0, 'Compatibilidad con propuestas antiguas; la decisión automática nueva usa NO_ACTION ante solapamiento.');
         self::card('NO_ACTION', $counts['no_action'] ?? 0, 'La intención básica ya está suficientemente cubierta.');
         self::card('DEFER / REVIEW',$counts['deferred'] ?? 0,'Falta categoría demostrable o existe una situación que requiere revisión.');
         self::card('Borradores', $counts['drafts'] ?? 0, 'Posts de trabajo; Solucionador nunca publica automáticamente.');
         echo '</div>';
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Arquitectura separada</h2>';
-        echo '<p><strong>FAQ manual + Academia/Entrenador → dossier único por product_cat → Solucionador → Editora → post WordPress.</strong> Las dos entradas son independientes. Ingeniero y Comparador mantienen sus procesos propios. Solucionador no investiga, no compara mercado y no publica automáticamente.</p>';
+        echo '<p><strong>FAQ humana + Dependiente → dossier único por product_cat → Solucionador → Editora → draft → publicación humana.</strong> Las dos entradas son independientes. Ingeniero y Comparador mantienen sus procesos propios. Solucionador no investiga, no compara mercado y no publica automáticamente.</p>';
         echo '<p><a class="button button-primary" href="' . esc_url(self::url('proposals')) . '">Abrir dossiers/propuestas</a> <a class="button" href="' . esc_url(self::url('coverage')) . '">Revisar cobertura compartida</a></p>';
         echo '</div>';
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Procesar fuentes</h2>';
-        echo '<p>FAQ y Academia usan cursores persistentes independientes. Cada ejecución continúa donde terminó la anterior; las propuestas ya disponibles pueden revisarse mientras el inventario sigue avanzando.</p>';
+        echo '<p>FAQ y Dependiente usan cursores persistentes independientes. Cada ejecución continúa donde terminó la anterior; las propuestas ya disponibles pueden revisarse mientras el inventario sigue avanzando.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_solucionador_scan">';
         wp_nonce_field('seo_solucionador_scan');
         echo '<input type="hidden" name="days" value="180">';
@@ -959,7 +960,7 @@ final class SEO_Solucionador_Admin {
             echo ' · descartados: ' . esc_html(number_format_i18n(absint($last['discarded'] ?? 0))) . '</p>';
         }
         if ($academy) {
-            echo '<p class="description"><strong>Academia:</strong> cursor ' . esc_html(number_format_i18n(absint($academy['cursor'] ?? 0)))
+            echo '<p class="description"><strong>Dependiente · trainer:</strong> cursor ' . esc_html(number_format_i18n(absint($academy['cursor'] ?? 0)))
                 . ' · procesadas ' . esc_html(number_format_i18n(absint($academy['processed'] ?? 0)))
                 . ' · aprendidas con categoría ' . esc_html(number_format_i18n(absint($academy['learned_with_category'] ?? 0)))
                 . ' · <strong>FAQ:</strong> cursor ' . esc_html(number_format_i18n(absint($academy['faq_cursor'] ?? 0)))
@@ -1008,23 +1009,19 @@ final class SEO_Solucionador_Admin {
         $items = array();
         $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
 
-        $items['Dependiente · Academia'] = array(
-            'available'=>!empty($academy['available']),
-            'metric'=>absint($academy['categories_with_knowledge'] ?? 0),
-            'unit'=>'dossiers por categoría',
-            'detail'=>number_format_i18n(absint($academy['learned'] ?? 0)) . ' preguntas pass_* · '
-                . number_format_i18n(absint($academy['learned_without_category'] ?? 0)) . ' sin categoría',
+        $items['FAQ'] = array(
+            'available'=>!empty($academy['faqs_all_total']),
+            'metric'=>absint($academy['faq_in_dossiers'] ?? 0),
+            'unit'=>'items en dossiers',
+            'detail'=>number_format_i18n(absint($academy['faqs_total'] ?? 0)) . ' FAQs activas.',
         );
 
-        $search_table = $wpdb->prefix . 'seo_dependiente_search_log';
-        $searches = SEO_Solucionador_DB::table_exists($search_table)
-            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$search_table}"))
-            : 0;
-        $items['Dependiente · demanda real'] = array(
-            'available'=>$searches > 0,
-            'metric'=>$searches,
-            'unit'=>'consultas registradas',
-            'detail'=>'Señal separada de demanda. No origina dossiers ni URLs en Solucionador v0.5.',
+        $items['Dependiente · conocimiento consolidado'] = array(
+            'available'=>!empty($academy['available']),
+            'metric'=>absint($academy['dependiente_in_dossiers'] ?? 0),
+            'unit'=>'items en dossiers',
+            'detail'=>number_format_i18n(absint($academy['dependiente_trainer_questions_total'] ?? 0)) . ' preguntas de Entrenador · '
+                . number_format_i18n(absint($academy['dependiente_semantic_rules_total'] ?? 0)) . ' reglas consolidadas inventariables.',
         );
 
         $coverage_table = SEO_Solucionador_DB::coverage_table();
@@ -1056,7 +1053,7 @@ final class SEO_Solucionador_Admin {
             self::card($name, $value, trim((string) ($item['unit'] ?? '') . '. ' . (string) ($item['detail'] ?? '')));
         }
         echo '</div>';
-        echo '<p class="description">Estos indicadores se leen de los datos y conclusiones ya generados por cada servicio. Abrir Solucionador no lanza búsquedas web, Google Shopping ni investigación técnica.</p>';
+        echo '<p class="description">Las únicas fuentes editoriales son FAQ y Dependiente. Cobertura y Analista son capas auxiliares de recomendación/medición; nunca originan conocimiento ni contenido en Solucionador.</p>';
     }
 
     private static function render_diagnostics() {
@@ -1072,10 +1069,11 @@ final class SEO_Solucionador_Admin {
         echo '<div class="seo-sol-grid">';
         self::card('FAQs activas',absint($academy['faqs_total']??0),'Fuente editorial directa.');
         self::card('FAQs en dossiers',absint($academy['faq_in_dossiers']??0),'Con product_cat demostrable.');
-        self::card('Preguntas currículo',absint($academy['questions_total']??0),'Fuente de evaluación/aprendizaje de Dependiente.');
-        self::card('Aprendidas pass_*',absint($academy['learned']??0),'Última ejecución respondida y validada.');
-        self::card('Con product_cat',absint($academy['learned_with_category']??0),'Con asociación demostrable.');
-        self::card('Sin product_cat',absint($academy['learned_without_category']??0),'No crean dossier ni URL.');
+        self::card('Preguntas Entrenador',absint($academy['dependiente_trainer_questions_total'] ?? $academy['questions_total'] ?? 0),'Inventario de aprendizaje/evaluación.');
+        self::card('Reglas consolidadas',absint($academy['dependiente_semantic_rules_total'] ?? 0),'Conocimiento semántico activo/aprobado.');
+        self::card('Dependiente útil',absint($academy['dependiente_editorial_eligible'] ?? 0),'Items utilizables editorialmente.');
+        self::card('Dependiente con product_cat',absint($academy['dependiente_with_category'] ?? 0),'Asociación canónica demostrable.');
+        self::card('Dependiente sin product_cat',absint($academy['dependiente_without_category'] ?? 0),'No crea propuesta hasta resolver categoría.');
         self::card('Dossiers',absint($academy['categories_with_knowledge']??0),'Categorías con FAQ y/o conocimiento aprendido.');
         self::card('Sin material',absint($academy['categories_without_knowledge']??0),'Categorías WooCommerce sin material editorial.');
         self::card('Media / categoría',(float)($academy['avg_questions_per_category']??0),'Elementos FAQ + Dependiente por dossier.');
@@ -1109,7 +1107,7 @@ final class SEO_Solucionador_Admin {
         $labels = array(
             'NO_ACTION'=>'No actuar',
             'IMPROVE_POST'=>'Mejorar post',
-            'MERGE_CONTENT'=>'Fusionar / consolidar contenido',
+            'MERGE_CONTENT'=>'Fusionar / consolidar contenido (legado)',
             'CREATE_POST'=>'Crear post',
             'DEFER'=>'Aplazar / revisar',
         );
@@ -1323,7 +1321,7 @@ final class SEO_Solucionador_Admin {
 
         echo '<div class="seo-sol-opportunity-sections">';
         echo '<section><h3>1. Entrevista editorial: FAQ + Dependiente</h3>';
-        echo '<p>Las FAQs son una fuente directa y no necesitan haber sido aprendidas por Dependiente. Las respuestas de Dependiente sólo aparecen cuando su run está validado <code>pass_*</code>.</p>';
+        echo '<p>Las FAQs son una fuente directa y conservan su respuesta humana original. Dependiente aporta conocimiento consolidado: respuestas de Entrenador validadas <code>pass_*</code> y reglas activas/aprobadas cuando tienen relación canónica con la categoría.</p>';
         if (!$brief['question_details']) {
             echo '<p>No se ha recuperado material editorial para este dossier.</p>';
         } else {

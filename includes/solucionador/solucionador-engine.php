@@ -1,10 +1,11 @@
 <?php
 /**
- * Solucionador v0.7.1 - FAQ + preguntas de Entrenador validadas por Dependiente.
+ * Solucionador v0.7.1 - FAQ + conocimiento consolidado de Dependiente.
  *
  * Organiza exactamente dos fuentes editoriales independientes: FAQ humana y
- * preguntas de Entrenador cuyo último run fue answered + pass_*. No depende de Ingeniero, Comparador, Ojeador, Marketing ni
- * Analista para generar dossiers. No redacta contenido público ni publica.
+ * conocimiento que Dependiente considera aprendido/aprobado. No depende de
+ * Ingeniero, Comparador, Ojeador, Marketing ni Analista para generar dossiers.
+ * No redacta contenido público ni publica.
  */
 
 defined('ABSPATH') || exit;
@@ -38,7 +39,7 @@ final class SEO_Solucionador_Engine {
         $snapshot = SEO_Solucionador_Dossiers::snapshot();
         if (
             empty($snapshot['available'])
-            || (empty($snapshot['questions_total']) && empty($snapshot['faqs_total']))
+            || (empty($snapshot['dependiente_inventory_total']) && empty($snapshot['faqs_total']))
         ) {
             return $snapshot;
         }
@@ -126,7 +127,7 @@ final class SEO_Solucionador_Engine {
             $last_scan = get_option('seo_solucionador_last_scan', array());
             $state = SEO_Solucionador_Dossiers::state();
             $policy_mismatch = (string) ($state['editorial_policy'] ?? '') !== SEO_Solucionador_Dossiers::EDITORIAL_POLICY_VERSION;
-            $has_source_material = !empty($snapshot['questions_total']) || !empty($snapshot['faqs_total']);
+            $has_source_material = !empty($snapshot['dependiente_inventory_total']) || !empty($snapshot['faqs_total']);
             $needs_dossiers = $has_source_material
                 && (
                     empty($snapshot['scan_complete'])
@@ -225,7 +226,7 @@ final class SEO_Solucionador_Engine {
 
         $is_editorial_source = in_array($source_type,array('faq','dependiente'),true)
             && in_array($origin,array('faq','dependiente'),true)
-            && in_array($signal_type,array('category_editorial_source','academy_learned_dossier'),true);
+            && $signal_type === 'category_editorial_source';
         if (!$is_editorial_source) return $profile;
 
         $name = trim((string)($source['category_name'] ?? $meta['category_name'] ?? ''));
@@ -498,7 +499,6 @@ final class SEO_Solucionador_Engine {
     private static function content_type_for_action($action,array $coverage) {
         $action = strtoupper((string) $action);
         if (in_array($action,array('CREATE_POST','IMPROVE_POST'),true)) return 'post';
-        if ($action === 'MERGE_CONTENT') return 'merge';
         return sanitize_key((string) ($coverage['entity_type'] ?? 'none')) ?: 'none';
     }
 
@@ -616,8 +616,17 @@ final class SEO_Solucionador_Engine {
      * @return array|WP_Error
      */
     public static function ensure_initialized($days = 180) {
-        $last = get_option('seo_solucionador_last_scan', array());
-        if (is_array($last) && !empty($last['at']) && !empty($last['complete'])) {
+        $last = get_option('seo_solucionador_last_scan',array());
+        $snapshot = class_exists('SEO_Solucionador_Dossiers')
+            ? SEO_Solucionador_Dossiers::snapshot()
+            : array();
+        if (
+            is_array($last)
+            && !empty($last['at'])
+            && !empty($last['complete'])
+            && !empty($snapshot['scan_complete'])
+            && empty($snapshot['source_changed'])
+        ) {
             return $last;
         }
 

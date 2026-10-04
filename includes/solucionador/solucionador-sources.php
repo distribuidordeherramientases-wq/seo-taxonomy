@@ -4,9 +4,11 @@
  *
  * Contrato 0.7.1:
  * - FAQ: lectura directa de seo_faq.
- * - Dependiente: preguntas de Entrenador cuyo último run fue answered + pass_*.
+ * - Dependiente: conocimiento consolidado expuesto por
+ *   SEO_Dependiente_Editorial_Knowledge.
  *
- * La lectura real y los cursores viven en SEO_Solucionador_Dossiers.
+ * Solucionador sólo ve los dos orígenes editoriales faq|dependiente; no conoce
+ * candidatos, rechazadas, search_log ni la topología interna del aprendizaje.
  */
 
 defined('ABSPATH') || exit;
@@ -37,8 +39,9 @@ final class SEO_Solucionador_Sources {
     }
 
     /**
-     * Sólo señales originadas en Dependiente. No consulta search_log,
-     * reglas semánticas, Marketing ni ningún otro servicio.
+     * Sólo señales originadas en Dependiente. Incluye cualquier conocimiento
+     * consolidado que el proveedor haya incorporado al dossier, sin consultar
+     * search_log, Marketing ni otros servicios.
      */
     public static function dependiente($days = 180,$limit = 1600) {
         unset($days);
