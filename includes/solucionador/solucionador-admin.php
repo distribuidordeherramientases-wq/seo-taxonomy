@@ -758,9 +758,9 @@ final class SEO_Solucionador_Admin {
             }
             $title = self::simple_proposal_title($dossier,$topic);
 
-            $changed = method_exists('SEO_Solucionador_Dossiers','changed_item_ids')
-                ? count(SEO_Solucionador_Dossiers::changed_item_ids($category_id))
-                : 0;
+            $changed = method_exists('SEO_Solucionador_Dossiers','changed_item_keys')
+                ? count(SEO_Solucionador_Dossiers::changed_item_keys($category_id))
+                : count(SEO_Solucionador_Dossiers::changed_item_ids($category_id));
             $editorial_status = (string)($dossier['editorial_status'] ?? SEO_Editorial_Service_Contract::READY_FOR_REVIEW);
             if ($state['status'] === 'pending' && $editorial_status === SEO_Editorial_Service_Contract::REJECTED) {
                 $state['label'] = 'Rechazado';
@@ -768,7 +768,9 @@ final class SEO_Solucionador_Admin {
 
             echo '<tr>';
             echo '<td><strong>' . esc_html((string) ($dossier['category_name'] ?? '')) . '</strong><br><span class="description">' . esc_html($title) . '</span></td>';
-            echo '<td><strong>' . esc_html(number_format_i18n($question_count)) . '</strong> preguntas/respuestas<br><span class="description">Academia / Dependiente</span></td>';
+            $faq_count=absint($dossier['faq_count'] ?? 0);
+            $dependiente_count=absint($dossier['dependiente_count'] ?? 0);
+            echo '<td><strong>' . esc_html(number_format_i18n($question_count)) . '</strong> elementos<br><span class="description">FAQ ' . esc_html(number_format_i18n($faq_count)) . ' · Dependiente ' . esc_html(number_format_i18n($dependiente_count)) . '</span></td>';
             echo '<td>' . esc_html(number_format_i18n(round((float)($dossier['score_avg'] ?? 0) * 100))) . '%<br><span class="description">' . esc_html((string)($dossier['last_validated_at'] ?? '')) . '</span></td>';
             echo '<td><strong>' . esc_html(number_format_i18n($changed)) . '</strong><br><span class="description">nuevas o modificadas</span></td>';
             echo '<td><strong>' . esc_html($editorial_status) . '</strong><br><span class="description">' . esc_html($state['label']) . '</span></td>';
@@ -872,24 +874,27 @@ final class SEO_Solucionador_Admin {
         $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
 
         echo '<div class="seo-sol-grid">';
-        self::card('Dossiers con conocimiento', absint($academy['categories_with_knowledge'] ?? 0), 'Un dossier por product_cat con preguntas aprendidas.');
-        self::card('Preguntas aprendidas', absint($academy['learned'] ?? 0), 'Último run answered con evaluation_status pass_*.');
-        self::card('Aprendidas sin categoría', absint($academy['learned_without_category'] ?? 0), 'No crean dossier ni URL hasta disponer de product_cat demostrable.');
-        self::card('CREATE_POST', $counts['create_post'] ?? 0, 'Dossiers sin cobertura equivalente y con masa crítica.');
+        self::card('Dossiers con material',absint($academy['categories_with_knowledge'] ?? 0),'Un dossier por product_cat combinando FAQ + Dependiente.');
+        self::card('FAQs activas',absint($academy['faqs_total'] ?? 0),'Fuente editorial directa; no depende del aprendizaje de Dependiente.');
+        self::card('FAQs en dossiers',absint($academy['faq_in_dossiers'] ?? 0),'FAQs activas con product_cat demostrable.');
+        self::card('Preguntas aprendidas',absint($academy['learned'] ?? 0),'Dependiente: último run answered con evaluation_status pass_*.');
+        self::card('Dependiente en dossiers',absint($academy['dependiente_in_dossiers'] ?? 0),'Preguntas pass_* con valor editorial y product_cat.');
+        self::card('Aprendidas sin categoría',absint($academy['learned_without_category'] ?? 0),'No crean dossier ni URL hasta disponer de product_cat demostrable.');
+        self::card('CREATE_POST',$counts['create_post'] ?? 0,'Dossiers sin cobertura equivalente; la densidad de material es informativa.');
         self::card('IMPROVE_POST', $counts['improve'] ?? 0, 'Existe un post equivalente con cobertura débil/parcial.');
         self::card('MERGE_CONTENT', $counts['merge'] ?? 0, 'Existen piezas solapadas que conviene consolidar.');
         self::card('NO_ACTION', $counts['no_action'] ?? 0, 'La intención básica ya está suficientemente cubierta.');
-        self::card('DEFER / REVIEW', $counts['deferred'] ?? 0, 'Falta categoría, masa crítica o existe una situación que requiere revisión.');
+        self::card('DEFER / REVIEW',$counts['deferred'] ?? 0,'Falta categoría demostrable o existe una situación que requiere revisión.');
         self::card('Borradores', $counts['drafts'] ?? 0, 'Posts de trabajo; Solucionador nunca publica automáticamente.');
         echo '</div>';
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Arquitectura separada</h2>';
-        echo '<p><strong>Academia/Entrenador → Solucionador → brief básico → Editora → post WordPress.</strong> Ingeniero y Comparador tienen sus propios procesos editoriales. Solucionador no investiga, no compara mercado y no redacta respuestas públicas.</p>';
+        echo '<p><strong>FAQ manual + Academia/Entrenador → dossier único por product_cat → Solucionador → Editora → post WordPress.</strong> Las dos entradas son independientes. Ingeniero y Comparador mantienen sus procesos propios. Solucionador no investiga, no compara mercado y no publica automáticamente.</p>';
         echo '<p><a class="button button-primary" href="' . esc_url(self::url('proposals')) . '">Abrir dossiers/propuestas</a> <a class="button" href="' . esc_url(self::url('coverage')) . '">Revisar cobertura compartida</a></p>';
         echo '</div>';
 
-        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Procesar Academia</h2>';
-        echo '<p>El proceso usa lotes pequeños y cursores persistentes. Cada ejecución continúa donde terminó la anterior; no carga todas las preguntas en memoria.</p>';
+        echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Procesar fuentes</h2>';
+        echo '<p>FAQ y Academia usan cursores persistentes independientes. Cada ejecución continúa donde terminó la anterior; las propuestas ya disponibles pueden revisarse mientras el inventario sigue avanzando.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_solucionador_scan">';
         wp_nonce_field('seo_solucionador_scan');
         echo '<input type="hidden" name="days" value="180">';
@@ -907,8 +912,10 @@ final class SEO_Solucionador_Admin {
         if ($academy) {
             echo '<p class="description"><strong>Academia:</strong> cursor ' . esc_html(number_format_i18n(absint($academy['cursor'] ?? 0)))
                 . ' · procesadas ' . esc_html(number_format_i18n(absint($academy['processed'] ?? 0)))
-                . ' · con categoría ' . esc_html(number_format_i18n(absint($academy['learned_with_category'] ?? 0)))
-                . ' · sin categoría ' . esc_html(number_format_i18n(absint($academy['learned_without_category'] ?? 0)))
+                . ' · aprendidas con categoría ' . esc_html(number_format_i18n(absint($academy['learned_with_category'] ?? 0)))
+                . ' · <strong>FAQ:</strong> cursor ' . esc_html(number_format_i18n(absint($academy['faq_cursor'] ?? 0)))
+                . ' · procesadas ' . esc_html(number_format_i18n(absint($academy['faq_processed'] ?? 0)))
+                . ' · con categoría ' . esc_html(number_format_i18n(absint($academy['faq_with_category'] ?? 0)))
                 . ' · errores aislados ' . esc_html(number_format_i18n(absint($academy['errors'] ?? 0))) . '</p>';
         }
         echo '</div>';
@@ -1009,18 +1016,20 @@ final class SEO_Solucionador_Admin {
         $dossiers_table = SEO_Solucionador_DB::dossiers_table();
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
-        echo '<h2 style="margin-top:0">Diagnóstico Academia → Solucionador</h2>';
-        echo '<p>Este diagnóstico comprueba únicamente el circuito de contenido básico: preguntas aprendidas, resolución de product_cat, dossiers, cobertura y decisión editorial. Ingeniero y Comparador se diagnostican en sus propios procesos.</p>';
+        echo '<h2 style="margin-top:0">Diagnóstico FAQ + Academia → Solucionador</h2>';
+        echo '<p>Comprueba las dos entradas independientes, su resolución de product_cat, el dossier conjunto, cobertura y decisión editorial. Ingeniero y Comparador se diagnostican en sus propios procesos.</p>';
         echo '</div>';
 
         echo '<div class="seo-sol-grid">';
-        self::card('Preguntas currículo',absint($academy['questions_total']??0),'Activas y elegibles para el recorrido.');
+        self::card('FAQs activas',absint($academy['faqs_total']??0),'Fuente editorial directa.');
+        self::card('FAQs en dossiers',absint($academy['faq_in_dossiers']??0),'Con product_cat demostrable.');
+        self::card('Preguntas currículo',absint($academy['questions_total']??0),'Fuente de evaluación/aprendizaje de Dependiente.');
         self::card('Aprendidas pass_*',absint($academy['learned']??0),'Última ejecución respondida y validada.');
         self::card('Con product_cat',absint($academy['learned_with_category']??0),'Con asociación demostrable.');
         self::card('Sin product_cat',absint($academy['learned_without_category']??0),'No crean dossier ni URL.');
-        self::card('Dossiers',absint($academy['categories_with_knowledge']??0),'Categorías con conocimiento aprendido.');
-        self::card('Sin conocimiento',absint($academy['categories_without_knowledge']??0),'Categorías WooCommerce sin dossier.');
-        self::card('Media / categoría',(float)($academy['avg_questions_per_category']??0),'Preguntas aprendidas por dossier.');
+        self::card('Dossiers',absint($academy['categories_with_knowledge']??0),'Categorías con FAQ y/o conocimiento aprendido.');
+        self::card('Sin material',absint($academy['categories_without_knowledge']??0),'Categorías WooCommerce sin material editorial.');
+        self::card('Media / categoría',(float)($academy['avg_questions_per_category']??0),'Elementos FAQ + Dependiente por dossier.');
         self::card('Errores aislados',absint($academy['errors']??0),'No detienen el resto del lote.');
         echo '</div>';
 
@@ -1029,13 +1038,15 @@ final class SEO_Solucionador_Admin {
             echo '<p>La tabla de dossiers todavía no está disponible.</p></div>';
             return;
         }
-        $rows=(array)$wpdb->get_results("SELECT id,category_id,category_name,question_count,score_avg,last_validated_at FROM {$dossiers_table} ORDER BY question_count DESC,category_name ASC LIMIT 500",ARRAY_A);
-        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Categoría</th><th>Preguntas</th><th>Score medio</th><th>Última validación</th><th>Dossier</th></tr></thead><tbody>';
-        if(!$rows) echo '<tr><td colspan="5">Aún no hay dossiers. Continúa el procesamiento de Academia desde Resumen.</td></tr>';
+        $rows=(array)$wpdb->get_results("SELECT id,category_id,category_name,question_count,dependiente_count,faq_count,score_avg,last_validated_at FROM {$dossiers_table} ORDER BY question_count DESC,category_name ASC LIMIT 500",ARRAY_A);
+        echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Categoría</th><th>Total</th><th>FAQ</th><th>Dependiente</th><th>Score Dependiente</th><th>Última actualización</th><th>Dossier</th></tr></thead><tbody>';
+        if(!$rows) echo '<tr><td colspan="7">Aún no hay dossiers. Continúa el procesamiento de fuentes desde Resumen.</td></tr>';
         foreach($rows as $row){
             $term_id=absint($row['category_id']??0);
             echo '<tr><td><strong>' . esc_html((string)$row['category_name']) . '</strong><br><code>#' . esc_html($term_id) . '</code></td>';
             echo '<td>' . esc_html(number_format_i18n(absint($row['question_count']??0))) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n(absint($row['faq_count']??0))) . '</td>';
+            echo '<td>' . esc_html(number_format_i18n(absint($row['dependiente_count']??0))) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float)($row['score_avg']??0)*100,0)) . '%</td>';
             echo '<td>' . esc_html((string)($row['last_validated_at']??'')) . '</td>';
             echo '<td><a class="button button-small" href="' . esc_url(self::url('proposals',array('sol_category'=>$term_id))) . '">Ver propuesta</a></td></tr>';
@@ -1246,34 +1257,51 @@ final class SEO_Solucionador_Admin {
         echo '<div><h2 style="margin:0 0 6px">Dossier editorial #' . esc_html($brief['topic_id']) . '</h2><strong style="font-size:18px">' . esc_html($brief['topic']) . '</strong><br><code>' . esc_html((string)($topic['canonical_key'] ?? '')) . '</code></div>';
         echo '<a class="button" href="' . esc_url(self::url('proposals')) . '">Cerrar dossier</a></div>';
 
+        $faq_items=array_values(array_filter((array)$brief['question_details'],static function($row){
+            return sanitize_key((string)($row['origin'] ?? ''))==='faq';
+        }));
+        $dependiente_items=array_values(array_filter((array)$brief['question_details'],static function($row){
+            return sanitize_key((string)($row['origin'] ?? 'dependiente'))==='dependiente';
+        }));
+
         echo '<div class="seo-sol-grid" style="margin-top:14px">';
-        self::card('Preguntas aprendidas', count($brief['question_details']), 'Detalles cargados bajo demanda desde Academia.');
-        self::card('Acción', $brief['output'], $brief['decision_reason']);
-        self::card('Cobertura', self::coverage_label((string)($brief['coverage']['status'] ?? 'uncovered')), 'Similitud ' . number_format_i18n((float)($brief['coverage']['score'] ?? 0)*100,0) . '%.');
-        self::card('Workflow', self::workflow_label($brief['workflow_state']), 'La publicación sigue siendo humana.');
+        self::card('Material',count($brief['question_details']),'FAQ ' . count($faq_items) . ' · Dependiente ' . count($dependiente_items) . '.');
+        self::card('Acción',$brief['output'],$brief['decision_reason']);
+        self::card('Cobertura',self::coverage_label((string)($brief['coverage']['status'] ?? 'uncovered')),'Similitud ' . number_format_i18n((float)($brief['coverage']['score'] ?? 0)*100,0) . '%.');
+        self::card('Workflow',self::workflow_label($brief['workflow_state']),'La publicación sigue siendo humana.');
         echo '</div>';
 
         echo '<div class="seo-sol-opportunity-sections">';
-        echo '<section><h3>1. Academia / preguntas aprendidas</h3>';
-        echo '<p>Solucionador organiza conocimiento ya aprendido; no vuelve a entrenar Dependiente.</p>';
-        if (!$brief['question_details']) echo '<p>No se han recuperado detalles pass_* para este dossier.</p>';
-        else {
-            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Pregunta</th><th>Lección / tipo</th><th>Validación</th><th>Evidencia interna</th><th>Fecha</th></tr></thead><tbody>';
+        echo '<section><h3>1. Entrevista editorial: FAQ + Dependiente</h3>';
+        echo '<p>Las FAQs son una fuente directa y no necesitan haber sido aprendidas por Dependiente. Las respuestas de Dependiente sólo aparecen cuando su run está validado <code>pass_*</code>.</p>';
+        if (!$brief['question_details']) {
+            echo '<p>No se ha recuperado material editorial para este dossier.</p>';
+        } else {
+            echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Origen</th><th>Pregunta</th><th>Respuesta / evidencia</th><th>Validación</th><th>Fecha</th></tr></thead><tbody>';
             foreach ($brief['question_details'] as $item) {
-                $labels=array();
-                foreach (array_slice((array)($item['top_results'] ?? array()),0,3) as $result) {
-                    if (!is_array($result)) continue;
-                    $label=trim((string)($result['title'] ?? $result['name'] ?? $result['label'] ?? ''));
-                    if ($label!=='') $labels[]=$label;
+                $origin=sanitize_key((string)($item['origin'] ?? 'dependiente'));
+                $origin_label=$origin==='faq' ? 'FAQ' : 'Dependiente';
+                $answer=SEO_Solucionador_Dossiers::answer_text((array)$item);
+                $evidence=array();
+                if ($origin!=='faq') {
+                    foreach (array_slice((array)($item['top_results'] ?? array()),0,3) as $result) {
+                        if (!is_array($result)) continue;
+                        $label=trim((string)($result['title'] ?? $result['name'] ?? $result['label'] ?? ''));
+                        if ($label!=='') $evidence[]=$label;
+                    }
                 }
-                echo '<tr><td><strong>' . esc_html((string)$item['question']) . '</strong></td>';
-                echo '<td><code>' . esc_html((string)$item['lesson_key']) . '</code><br>' . esc_html((string)$item['question_type']) . '</td>';
-                echo '<td><strong>' . esc_html((string)$item['evaluation_status']) . '</strong><br>score ' . esc_html(number_format_i18n((float)$item['evaluation_score']*100,0)) . '%</td>';
-                echo '<td>' . esc_html($labels ? wp_trim_words(implode(' · ',$labels),30,'…') : 'Resultado interno disponible') . '</td>';
-                echo '<td>' . esc_html((string)$item['observed_at']) . '</td></tr>';
+                echo '<tr>';
+                echo '<td><strong>' . esc_html($origin_label) . '</strong>';
+                if ($origin==='faq' && !empty($item['faq_id'])) echo '<br><code>#' . esc_html(absint($item['faq_id'])) . '</code>';
+                echo '</td>';
+                echo '<td><strong>' . esc_html((string)$item['question']) . '</strong></td>';
+                echo '<td>' . esc_html($answer !== '' ? $answer : ($evidence ? wp_trim_words(implode(' · ',$evidence),40,'…') : 'Resultado interno disponible')) . '</td>';
+                echo '<td>' . esc_html((string)($item['evaluation_status'] ?? '')) . ($origin==='dependiente' ? '<br>score ' . esc_html(number_format_i18n((float)($item['evaluation_score'] ?? 0)*100,0)) . '%' : '') . '</td>';
+                echo '<td>' . esc_html((string)($item['observed_at'] ?? '')) . '</td>';
+                echo '</tr>';
             }
             echo '</tbody></table></div>';
-            echo '<p class="description"><strong>Regla:</strong> estos resultados son evidencia de trabajo. Editora redacta el contenido público; no se publican literalmente respuestas internas de Academia.</p>';
+            echo '<p class="description"><strong>Regla:</strong> todo este material es fuente interna para Editora. El borrador debe revisarse y sintetizarse; Solucionador no publica automáticamente ninguna pregunta-respuesta.</p>';
         }
         echo '</section>';
 
@@ -1530,7 +1558,7 @@ final class SEO_Solucionador_Admin {
             : array();
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Fuentes y contratos</h2>';
-        echo '<p><strong>Origen editorial único:</strong> Dependiente / Academia. Sólo preguntas activas cuyo último run está <code>answered</code> y <code>evaluation_status=pass_*</code>.</p>';
+        echo '<p><strong>Orígenes editoriales:</strong> <code>FAQ</code> manual activa + <code>Dependiente/Academia</code>. Son independientes; las FAQs no necesitan superar ningún run de Dependiente.</p>';
         echo '<p><strong>Demanda real:</strong> <code>seo_dependiente_search_log</code> queda separada y no origina temas.</p>';
         echo '<p><strong>Cobertura:</strong> <code>SEO_Editorial_Coverage</code> es la API neutral compartida.</p>';
         echo '<p><strong>Analista:</strong> mide resultados posteriores; no genera temas ni decisiones.</p>';
@@ -1538,7 +1566,10 @@ final class SEO_Solucionador_Admin {
         self::render_service_snapshot();
 
         $academy=class_exists('SEO_Solucionador_Dossiers')?SEO_Solucionador_Dossiers::snapshot():array();
-        echo '<h3>Academia · cobertura del conocimiento</h3><div class="seo-sol-grid">';
+        echo '<h3>FAQ + Academia · cobertura del material</h3><div class="seo-sol-grid">';
+        self::card('FAQs activas',absint($academy['faqs_total']??0),'Fuente editorial directa.');
+        self::card('FAQs procesadas',absint($academy['faq_processed']??0),'Recorridas por el cursor FAQ.');
+        self::card('FAQs en dossier',absint($academy['faq_in_dossiers']??0),'Con product_cat demostrable.');
         self::card('Preguntas Academia',absint($academy['questions_total']??0),'Preguntas activas del currículo.');
         self::card('Procesadas',absint($academy['processed']??0),'Preguntas recorridas por el cursor.');
         self::card('Aprendidas',absint($academy['learned']??0),'Último run pass_*.');
@@ -1547,8 +1578,8 @@ final class SEO_Solucionador_Admin {
         self::card('Sin categoría',absint($academy['learned_without_category']??0),'No generan dossier ni URL.');
         self::card('Categorías con conocimiento',absint($academy['categories_with_knowledge']??0),'Un dossier por product_cat.');
         self::card('Categorías sin conocimiento',absint($academy['categories_without_knowledge']??0),'Sin dossier todavía.');
-        self::card('Media preguntas / categoría',(float)($academy['avg_questions_per_category']??0),'Referencias por dossier.');
-        echo '</div><p class="description">Escaneo ' . (!empty($academy['scan_complete'])?'<strong>completo</strong>':'<strong>en curso</strong>') . ' · cursor ' . esc_html(number_format_i18n(absint($academy['cursor']??0))) . ' · última ejecución Academia ' . esc_html((string)(($academy['last_run_at']??'') ?: '—')) . ' · errores aislados ' . esc_html(number_format_i18n(absint($academy['errors']??0))) . '.</p>';
+        self::card('Media elementos / categoría',(float)($academy['avg_questions_per_category']??0),'FAQ + Dependiente por dossier.');
+        echo '</div><p class="description">Escaneo mixto ' . (!empty($academy['scan_complete'])?'<strong>completo</strong>':'<strong>en curso</strong>') . ' · cursor Academia ' . esc_html(number_format_i18n(absint($academy['cursor']??0))) . ' · cursor FAQ ' . esc_html(number_format_i18n(absint($academy['faq_cursor']??0))) . ' · errores aislados ' . esc_html(number_format_i18n(absint($academy['errors']??0))) . '.</p>';
 
         if($counts){ echo '<h3>Evidencia persistida</h3><ul>'; foreach($counts as $row) echo '<li><strong>' . esc_html((string)$row['source_type']) . ':</strong> ' . esc_html(number_format_i18n(absint($row['evidence']??0))) . '</li>'; echo '</ul>'; }
         echo '</div>';
@@ -1556,7 +1587,7 @@ final class SEO_Solucionador_Admin {
 
     private static function render_tests() {
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Tests · Arquitectura separada</h2>';
-        echo '<p class="description">Regresiones sin publicación automática para comprobar dossiers de Academia, cobertura, decisiones básicas, lotes y rol <code>dependiente_qa_basic</code>.</p>';
+        echo '<p class="description">Regresiones sin publicación automática para comprobar dossier mixto FAQ + Dependiente, cobertura, decisiones, trazabilidad y rol <code>dependiente_qa_basic</code>.</p>';
         $report = SEO_Solucionador_Tests::run();
         echo '<p><strong>' . esc_html(absint($report['passed'] ?? 0)) . '/' . esc_html(absint($report['total'] ?? 0)) . '</strong> pruebas superadas.</p>';
         echo '<div class="seo-sol-table"><table class="widefat striped"><thead><tr><th>Test</th><th>Resultado</th><th>Esperado</th><th>Actual</th><th>Regla</th></tr></thead><tbody>';
