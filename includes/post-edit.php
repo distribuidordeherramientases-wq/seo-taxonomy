@@ -438,18 +438,44 @@ if (!function_exists('seo_post_editor_render_solucionador_style_guide')) {
             ? 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:7px;padding:12px 14px;margin:14px 0;'
             : 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:8px;padding:14px 16px;margin:18px 0;';
 
-        echo '<details style="' . esc_attr($style) . '">';
+        // Se muestra abierto por defecto: estas instrucciones forman parte del
+        // proceso editorial, no son una ayuda opcional de formato.
+        echo '<details open style="' . esc_attr($style) . '">';
         echo '<summary style="cursor:pointer;font-weight:700;font-size:14px;">Instrucciones de redacción · posts de Solucionador</summary>';
         echo '<div style="margin-top:12px;line-height:1.6;">';
+
+        echo '<div style="background:#fff4e5;border:1px solid #dba617;border-left:4px solid #b26200;border-radius:6px;padding:12px 14px;margin:0 0 14px;">';
+        echo '<p style="margin:0 0 7px;"><strong>IMPORTANTE: editar no significa limpiar el borrador.</strong></p>';
+        echo '<p style="margin:0;">Solucionador entrega fuentes y material de trabajo. El editor debe interpretarlo y redactar el contenido final. No publiques el texto recibido con simples retoques. Reorganiza, resume, fusiona, elimina y reescribe cuanto sea necesario para que el resultado sea un artículo natural, coherente y útil para un cliente que nunca ha visto el dossier original.</p>';
+        echo '</div>';
+
+        echo '<h4 style="margin:0 0 7px;">Cómo editar el material recibido</h4>';
+        echo '<p>El contenido que aparece inicialmente en el borrador es <strong>material de trabajo, no texto para publicar</strong>. No lo edites frase por frase ni conserves necesariamente su estructura.</p>';
+        echo '<ol style="margin:0 0 14px 20px;">';
+        echo '<li><strong>Lee primero todo el dossier:</strong> revisa las FAQs y las respuestas/conocimiento de Dependiente para entender qué información aporta realmente cada elemento antes de escribir.</li>';
+        echo '<li><strong>Redacta el artículo de nuevo:</strong> selecciona lo útil y escribe con tus propias palabras. El objetivo no es embellecer el dossier, sino convertirlo en conocimiento comprensible para el cliente.</li>';
+        echo '<li><strong>Sintetiza consultas repetitivas:</strong> varias preguntas parecidas sobre potencia, dimensiones, capacidad, materiales, compatibilidad u otros atributos deben convertirse, cuando tenga sentido, en una explicación general útil.</li>';
+        echo '<li><strong>Transforma lenguaje de catálogo:</strong> no publiques preguntas artificiales como «Busco productos con tipo X y atributo Y» ni respuestas como «Coincide en características». Una búsqueda o coincidencia debe convertirse en una explicación, criterio de elección o recomendación comprensible.</li>';
+        echo '<li><strong>FAQ humana:</strong> si una FAQ ya está bien redactada y aporta valor, puede conservarse o adaptarse ligeramente para integrarla con naturalidad en el artículo.</li>';
+        echo '<li><strong>Dependiente:</strong> si aporta una idea útil pero la respuesta es mecánica, pobre, incorrecta o demasiado ligada a productos concretos, conserva sólo la idea válida y reescribe la explicación. Si no puede verificarse, descártala.</li>';
+        echo '<li><strong>Fusiona sin mostrar el origen:</strong> el lector nunca debe poder distinguir qué parte procedía de una FAQ y cuál de Dependiente. El resultado final debe leerse como un único artículo escrito de principio a fin por una persona.</li>';
+        echo '<li><strong>Descarta sin miedo:</strong> un elemento puede ser útil para comprender el dossier y aun así no merecer aparecer en el texto final.</li>';
+        echo '</ol>';
+
+        echo '<div style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;padding:10px 12px;margin:0 0 14px;">';
+        echo '<strong>Control de calidad por párrafo:</strong> cada párrafo publicado debe aportar al menos una explicación, una recomendación, una diferencia, una precaución o un criterio de decisión. Si únicamente reproduce una búsqueda, enumera productos porque sí, repite una característica sin explicar para qué sirve o contiene lenguaje del motor, todavía no está editado: transfórmalo o elimínalo.';
+        echo '</div>';
+
+        echo '<h4 style="margin:0 0 7px;">Formato y estilo del artículo final</h4>';
         echo '<p><strong>Qué tipo de contenido es:</strong> salvo que trate un hecho temporal, este post no es una noticia. Es una guía práctica o un artículo informativo evergreen. El objetivo es que una persona termine de leer sabiendo mejor cómo elegir, usar, comparar o evitar errores sobre esa categoría.</p>';
         echo '<p><strong>Estilo:</strong> escribe para una persona no experta, como si respondieras a un cliente en una tienda. Usa lenguaje sencillo, frases cortas y párrafos breves. Explica una idea cada vez. Si utilizas un término técnico, acláralo. No rellenes, no repitas y no escribas para un buscador.</p>';
         echo '<ol style="margin:0 0 12px 20px;">';
         echo '<li><strong>Título:</strong> el título de WordPress es el H1. Debe ser conciso y descriptivo y no debe repetirse dentro del contenido.</li>';
         echo '<li><strong>Introducción:</strong> 1–2 párrafos breves explicando qué problema resolverá el artículo y para quién.</li>';
         echo '<li><strong>Cuerpo:</strong> organizar en 3–6 bloques H2 según el material real: qué tener en cuenta, cómo elegir, tipos y diferencias, compatibilidad o medidas, errores habituales, seguridad o mantenimiento. No forzar apartados que el dossier no justifique.</li>';
-        echo '<li><strong>Preguntas concretas:</strong> cuando una FAQ merezca aparecer como pregunta visible, usar H3 con la pregunta natural y debajo la respuesta en párrafos normales, sin tabular ni sangrar. La primera frase debe dar la respuesta directa; después se amplía sólo lo necesario.</li>';
-        echo '<li><strong>FAQ y Dependiente:</strong> una FAQ humana puede conservarse casi literalmente si es buena. Las consultas de Dependiente deben transformarse en criterios útiles de elección, no copiarse como búsquedas ni como listados de productos.</li>';
-        echo '<li><strong>Duplicados:</strong> si FAQ y Dependiente repiten la misma idea, fusionar o conservar sólo la mejor versión.</li>';
+        echo '<li><strong>Preguntas concretas:</strong> cuando una pregunta merezca aparecer de forma visible, usar H3 con una formulación natural y debajo la respuesta en párrafos normales, sin tabular ni sangrar. La primera frase debe dar la respuesta directa; después se amplía sólo lo necesario.</li>';
+        echo '<li><strong>FAQ y Dependiente:</strong> son fuentes de trabajo, no bloques que deban copiarse por separado. Integra el conocimiento elegido dentro de una estructura editorial única.</li>';
+        echo '<li><strong>Duplicados:</strong> si FAQ y Dependiente repiten la misma idea, Editora decide si fusionar, resumir o conservar sólo la versión más útil. No es necesario mantener ambas en el artículo final.</li>';
         echo '<li><strong>Listas y negritas:</strong> usar listas sólo para pasos, comprobaciones, opciones o requisitos. Usar negrita únicamente para datos decisivos; no como sustituto de títulos.</li>';
         echo '<li><strong>Fiabilidad:</strong> no publicar como hecho una respuesta dudosa. No inventar especificaciones, compatibilidades ni ventajas. Si una recomendación contradice los atributos del producto, debe revisarse o descartarse.</li>';
         echo '<li><strong>Tono:</strong> informar, no vender. Explicar ventajas y limitaciones y decir cuándo una solución puede no ser adecuada. Evitar adjetivos comerciales exagerados y afirmaciones absolutas sin justificar.</li>';
