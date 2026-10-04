@@ -34,15 +34,11 @@ final class SEO_Auditor {
 
     public static function init() {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
-        // Acciones legacy: desde 0.6.0 apuntan a la auditoria de catalogo.
-        add_action('admin_post_seo_auditor_run', array(__CLASS__, 'handle_run'));
-        add_action('admin_post_seo_auditor_export', array(__CLASS__, 'handle_export'));
-
-        // Auditorias separadas: catalogo y Academia/Estudiante nunca se ejecutan juntas.
-        add_action('admin_post_seo_auditor_run_catalog', array(__CLASS__, 'handle_run_catalog'));
+        // Auditorias de contenido: desde 2.3.9 solo se exponen bloques ligeros.
+        // La auditoria global de catalogo queda retirada porque su coste provoca
+        // timeouts/errores en instalaciones con catalogos grandes.
         add_action('admin_post_seo_auditor_run_academy', array(__CLASS__, 'handle_run_academy'));
         add_action('admin_post_seo_auditor_run_scope', array(__CLASS__, 'handle_run_scope'));
-        add_action('admin_post_seo_auditor_export_catalog', array(__CLASS__, 'handle_export_catalog'));
         add_action('admin_post_seo_auditor_export_academy', array(__CLASS__, 'handle_export_academy'));
         add_action('admin_post_seo_auditor_export_scope', array(__CLASS__, 'handle_export_scope'));
         add_action('admin_post_seo_auditor_export_quality', array(__CLASS__, 'handle_export_quality'));
@@ -102,7 +98,7 @@ final class SEO_Auditor {
             wp_die(esc_html__('Ambito de auditoria no valido.', 'seo-taxonomy'));
         }
 
-        @set_time_limit('engine' === $scope ? 600 : 300);
+        @set_time_limit(300);
         $report = self::run_scoped_audit($scope);
         $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         $reports[$scope] = $report;
@@ -178,18 +174,9 @@ final class SEO_Auditor {
             wp_die(esc_html__('No tienes permisos para acceder al Auditor de contenidos.', 'seo-taxonomy'));
         }
 
-        $catalog_report = self::last_catalog_report();
         $scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
-        $history = (array) get_option(self::HISTORY_OPTION, array());
-        $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
-        if (!in_array($view, array('summary','quality','findings','categories','rebalance','architecture','behavior'), true)) {
-            $view = 'summary';
-        }
 
-        $audited = sanitize_key((string) ($_GET['audited'] ?? ''));
-        if ('catalog' === $audited) {
-            echo '<div class="notice notice-success is-dismissible"><p>Auditoria global de datos completada. No se ha ejecutado Academia ni se ha modificado contenido.</p></div>';
-        } elseif ('scope' === $audited) {
+        if ('scope' === sanitize_key((string) ($_GET['audited'] ?? ''))) {
             $done_scope = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
             $labels = self::scope_definitions();
             if ($done_scope && isset($labels[$done_scope])) {
@@ -199,40 +186,18 @@ final class SEO_Auditor {
 
         echo '<div class="wrap"><section class="seo-auditor">';
         echo '<div class="seo-auditor__hero">';
-        echo '<div><h2>Auditor de contenidos y datos</h2><p>Revisa la calidad y coherencia de productos, categorias, posts, paginas, FAQs, relaciones, arquitectura e indice. La auditoria es de solo lectura; la vista Equilibrar categorias permite aplicar exclusivamente propuestas aprobadas por un administrador.</p></div>';
+        echo '<div><h2>Auditor de contenidos y datos</h2><p>Auditorias de solo lectura separadas por bloque para evitar recorridos globales costosos. Ejecuta únicamente Productos, Categorias, Posts o Paginas/Landings.</p></div>';
         echo '</div>';
 
-        self::render_content_audit_actions($catalog_report, $scoped_reports);
+        self::render_content_audit_actions(array(), $scoped_reports);
 
         $scope_view = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
         if ($scope_view && !empty($scoped_reports[$scope_view])) {
             self::render_scope_report((array) $scoped_reports[$scope_view]);
-            echo '</section></div>';
-            return;
-        }
-
-        if (!$catalog_report && !$scoped_reports) {
-            echo '<div class="notice notice-info inline"><p>Todavia no hay auditorias de contenido guardadas. Puedes ejecutar solo el bloque que quieras desde los botones superiores.</p></div>';
-            echo '</section></div>';
-            return;
-        }
-
-        self::render_content_subnav($view);
-        if ('quality' === $view) {
-            self::render_quality_overview($scoped_reports);
-        } elseif ('findings' === $view) {
-            if ($catalog_report) self::render_findings($catalog_report); else self::render_missing_scope('catalogo');
-        } elseif ('categories' === $view) {
-            if ($catalog_report) self::render_categories($catalog_report); else self::render_missing_scope('catalogo');
-        } elseif ('rebalance' === $view) {
-            if ($catalog_report && class_exists('SEO_Auditor_Category_Rebalance')) SEO_Auditor_Category_Rebalance::render($catalog_report); else self::render_missing_scope('catalogo');
-        } elseif ('architecture' === $view) {
-            if ($catalog_report) self::render_architecture($catalog_report); else self::render_missing_scope('catalogo');
-        } elseif ('behavior' === $view) {
-            if ($catalog_report) self::render_behavior($catalog_report); else self::render_missing_scope('catalogo');
         } else {
-            self::render_catalog_summary_only($catalog_report, $history);
+            echo '<div class="notice notice-info inline"><p>Selecciona uno de los cuatro bloques superiores. La auditoria global de catalogo, FAQs y Motor/indice ya no se ejecutan desde esta pantalla.</p></div>';
         }
+
         echo '</section></div>';
     }
 
@@ -282,7 +247,7 @@ final class SEO_Auditor {
         $scope_defs = self::scope_definitions();
 
         echo '<h3 style="margin:20px 0 10px">Auditorias por bloque</h3>';
-        echo '<p class="description" style="margin-top:0">Ejecuta solo el area que necesites. Cada bloque carga exclusivamente las fuentes necesarias; la auditoria global queda para revisiones completas.</p>';
+        echo '<p class="description" style="margin-top:0">Ejecuta solo el area que necesites. Cada bloque carga exclusivamente sus fuentes y evita recorrer todo el catalogo.</p>';
         echo '<div class="seo-auditor__audit-actions">';
         foreach ($scope_defs as $scope => $def) {
             $scope_report = !empty($scoped_reports[$scope]) ? (array) $scoped_reports[$scope] : array();
@@ -306,22 +271,7 @@ final class SEO_Auditor {
         }
         echo '</div>';
 
-        echo '<h3 style="margin:22px 0 10px">Auditoria global de datos</h3>';
-        echo '<div class="seo-auditor__audit-actions">';
-        echo '<div class="seo-auditor__audit-card"><div><strong>Auditoria completa de catalogo</strong><p>Recorre productos, categorias, Vocabulary, FAQs, relaciones, arquitectura, indice y pruebas del motor en una sola ejecucion. No incluye Academia / Estudiante.</p>';
-        if ($catalog_report) echo '<span class="description">Ultima: '.esc_html((string)($catalog_report['generated_at']??'')).' · '.esc_html((string)($catalog_report['execution_seconds']??0)).' s</span>';
-        echo '</div><div class="seo-auditor__actions">';
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_run_catalog">';
-        wp_nonce_field('seo_auditor_run_catalog');
-        submit_button($catalog_report ? 'Repetir auditoria de catalogo' : 'Auditar catalogo', 'primary', 'submit', false);
-        echo '</form>';
-        if ($catalog_report) {
-            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_auditor_export_catalog">';
-            wp_nonce_field('seo_auditor_export_catalog');
-            submit_button('Descargar JSON catalogo', 'secondary', 'submit', false);
-            echo '</form>';
-        }
-        echo '</div></div></div>';
+
     }
 
     private static function render_academy_audit_actions($academy_report) {
@@ -365,14 +315,6 @@ final class SEO_Auditor {
             'pages' => array(
                 'label' => 'Paginas y landings',
                 'description' => 'Paginas publicadas, incluidas landings y estructura editorial. Solo carga paginas.',
-            ),
-            'faqs' => array(
-                'label' => 'FAQs',
-                'description' => 'Owners, duplicados, respuestas, coherencia y orfandad. Carga solo la identidad minima de productos/categorias necesaria.',
-            ),
-            'engine' => array(
-                'label' => 'Motor / indice de Dependiente',
-                'description' => 'Indice derivado y pruebas conductuales contra el motor real. Es una auditoria profunda y puede tardar mas.',
             ),
         );
     }
