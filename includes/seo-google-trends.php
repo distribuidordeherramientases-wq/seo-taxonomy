@@ -1972,6 +1972,29 @@ function seo_google_trends_detect_delimiter($handle) {
     return in_array($winner, $delimiters, true) ? $winner : ',';
 }
 
+/**
+ * Abre un stream CSV de Google Trends para lectura incremental.
+ *
+ * @param string $path Ruta del CSV.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function seo_google_trends_csv_stream_open($path, $mode) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv() requiere un recurso PHP nativo para streaming.
+    return fopen($path, $mode);
+}
+
+/**
+ * Cierra un stream CSV de Google Trends.
+ *
+ * @param resource $handle Recurso.
+ * @return bool
+ */
+function seo_google_trends_csv_stream_close($handle) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por fgetcsv().
+    return fclose($handle);
+}
+
 function seo_google_trends_import_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para importar Google Trends.', 'seo-taxonomy'));
@@ -1996,7 +2019,7 @@ function seo_google_trends_import_handler() {
         exit;
     }
 
-    $handle = fopen($_FILES['trends_csv']['tmp_name'], 'r');
+    $handle = seo_google_trends_csv_stream_open($_FILES['trends_csv']['tmp_name'], 'r');
     if (!$handle) {
         wp_safe_redirect(seo_google_admin_url('trends_market', array('trends_error' => 'file')));
         exit;
@@ -2022,7 +2045,7 @@ function seo_google_trends_import_handler() {
     }
 
     if (!isset($columns['query'])) {
-        fclose($handle);
+        seo_google_trends_csv_stream_close($handle);
         wp_safe_redirect(seo_google_admin_url('trends_market', array('trends_error' => 'columns')));
         exit;
     }
@@ -2066,7 +2089,7 @@ function seo_google_trends_import_handler() {
             $count++;
         }
     }
-    fclose($handle);
+    seo_google_trends_csv_stream_close($handle);
 
     wp_safe_redirect(seo_google_admin_url('trends_market', array('trends_notice' => 'imported', 'rows' => $count)));
     exit;
