@@ -1,9 +1,9 @@
 <?php
 /**
- * Solucionador v0.7.1 - FAQ + conocimiento consolidado de Dependiente.
+ * Solucionador v0.7.1 - FAQ + preguntas de Entrenador validadas por Dependiente.
  *
  * Organiza exactamente dos fuentes editoriales independientes: FAQ humana y
- * Dependiente. No depende de Ingeniero, Comparador, Ojeador, Marketing ni
+ * preguntas de Entrenador cuyo último run fue answered + pass_*. No depende de Ingeniero, Comparador, Ojeador, Marketing ni
  * Analista para generar dossiers. No redacta contenido público ni publica.
  */
 
