@@ -185,6 +185,7 @@ final class SEO_Solucionador_DB {
             last_validated_at DATETIME NULL,
             source_hash CHAR(64) NOT NULL DEFAULT '',
             item_hashes LONGTEXT NULL,
+            editorial_item_states LONGTEXT NULL,
             reviewed_hash CHAR(64) NOT NULL DEFAULT '',
             reviewed_item_hashes LONGTEXT NULL,
             editorial_status VARCHAR(30) NOT NULL DEFAULT 'COLLECTING',
