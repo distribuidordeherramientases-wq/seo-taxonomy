@@ -847,8 +847,8 @@ final class SEO_Solucionador_Dossiers {
                 foreach ((array)($dep_batch['items'] ?? array()) as $item) {
                     if (!is_array($item) || empty($item['editorial_candidate'])) continue;
                     $item_key = self::canonical_item_key($item['item_id'] ?? '');
-                    $source_hash = sanitize_text_field((string)($item['source_hash'] ?? ''));
-                    if ($item_key === '' || $source_hash === '') continue;
+                    $provider_hash = sanitize_text_field((string)($item['source_hash'] ?? ''));
+                    if ($item_key === '' || $provider_hash === '') continue;
 
                     $observed = sanitize_text_field((string)($item['last_seen_at'] ?? ''));
                     if ($observed > (string)($state['last_dependiente_at'] ?? '')) {
@@ -867,10 +867,29 @@ final class SEO_Solucionador_Dossiers {
                         }
 
                         $batch_by_category[$term_id]['dependiente_keys'][] = $item_key;
+                        $item_hash = $provider_hash;
                         if ((string)($item['dependiente_source'] ?? '') === 'trainer') {
-                            $batch_by_category[$term_id]['question_ids'][] = absint($item['source_id'] ?? 0);
+                            $question_id = absint($item['source_id'] ?? 0);
+                            $batch_by_category[$term_id]['question_ids'][] = $question_id;
+
+                            // Mantener la misma huella que 0.7.0/0.7.1 para no
+                            // marcar como MODIFIED todo el conocimiento trainer
+                            // únicamente por introducir el proveedor.
+                            $item_hash = self::dependiente_item_hash(array(
+                                'id'=>$question_id,
+                                'question'=>(string)($item['question'] ?? ''),
+                                'question_type'=>(string)($item['question_type'] ?? ''),
+                                'source_type'=>(string)($item['source_type_raw'] ?? ''),
+                                'source_id'=>absint($item['source_id_raw'] ?? 0),
+                                'expected_json'=>(string)($item['expected_json_raw'] ?? ''),
+                            ),array(
+                                'id'=>absint($item['run_id'] ?? 0),
+                                'evaluation_status'=>(string)($item['validation'] ?? ''),
+                                'evaluation_score'=>(float)($item['confidence'] ?? 0),
+                                'created_at'=>$observed,
+                            ),$term_id);
                         }
-                        $batch_by_category[$term_id]['item_hashes'][$item_key] = $source_hash;
+                        $batch_by_category[$term_id]['item_hashes'][$item_key] = $item_hash;
                         $batch_by_category[$term_id]['score_sum'] += $score;
                         $batch_by_category[$term_id]['score_count']++;
                         if ($observed > $batch_by_category[$term_id]['last']) {
