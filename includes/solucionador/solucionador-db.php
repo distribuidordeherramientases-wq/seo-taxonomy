@@ -188,6 +188,7 @@ final class SEO_Solucionador_DB {
             editorial_item_states LONGTEXT NULL,
             reviewed_hash CHAR(64) NOT NULL DEFAULT '',
             reviewed_item_hashes LONGTEXT NULL,
+            reviewed_items_snapshot LONGTEXT NULL,
             editorial_status VARCHAR(30) NOT NULL DEFAULT 'COLLECTING',
             reviewed_at DATETIME NULL,
             rejected_source_hash CHAR(64) NOT NULL DEFAULT '',
@@ -324,6 +325,7 @@ final class SEO_Solucionador_DB {
         $allowed = array(
             'reviewed_hash',
             'reviewed_item_hashes',
+            'reviewed_items_snapshot',
             'editorial_item_states',
             'editorial_status',
             'reviewed_at',
