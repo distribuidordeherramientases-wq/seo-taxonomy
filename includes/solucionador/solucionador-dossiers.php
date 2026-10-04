@@ -410,7 +410,7 @@ final class SEO_Solucionador_Dossiers {
 
     /**
      * Garantiza un dossier ligero para TODAS las product_cat de WooCommerce.
-     * FAQ y Academia enriquecen esos dossiers, pero nunca deciden
+     * FAQ y Dependiente enriquecen esos dossiers, pero nunca deciden
      * si una categoría existe o no dentro de Solucionador.
      */
     public static function ensure_all_categories($token = '') {
