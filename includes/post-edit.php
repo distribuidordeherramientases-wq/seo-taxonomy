@@ -390,6 +390,72 @@ if (!function_exists('seo_post_editor_get_ids_for_relation_filter')) {
     }
 }
 
+if (!function_exists('seo_post_editor_get_ids_with_product_cat_relation')) {
+    function seo_post_editor_get_ids_with_product_cat_relation() {
+        global $wpdb;
+
+        if (!seo_post_editor_relations_table_exists()) {
+            return array(0);
+        }
+
+        $table = seo_post_editor_relations_table();
+        return array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array) $wpdb->get_col(
+                "SELECT DISTINCT source_id
+                 FROM {$table}
+                 WHERE source_type = 'post'
+                   AND target_type = 'product_cat'
+                   AND relation_type = 'post_to_category'"
+            )
+        ))));
+    }
+}
+
+if (!function_exists('seo_post_editor_is_solucionador_post')) {
+    function seo_post_editor_is_solucionador_post($post_id) {
+        $post_id = absint($post_id);
+        if (!$post_id || get_post_type($post_id) !== 'post') {
+            return false;
+        }
+
+        $topic_id = absint(get_post_meta($post_id, '_seo_solucionador_topic_id', true));
+        $category_id = absint(get_post_meta($post_id, '_seo_solucionador_dossier_category_id', true));
+        return $topic_id > 0 && $category_id > 0;
+    }
+}
+
+if (!function_exists('seo_post_editor_render_solucionador_style_guide')) {
+    function seo_post_editor_render_solucionador_style_guide($compact = false) {
+        $compact = (bool) $compact;
+        $style = $compact
+            ? 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:7px;padding:14px 16px;margin:14px 0;'
+            : 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:8px;padding:18px 20px;margin:18px 0;';
+
+        echo '<div style="' . esc_attr($style) . '">';
+        echo '<h2 style="margin:0 0 8px;">Guía editorial · posts de Solucionador</h2>';
+        echo '<p style="margin:0 0 10px;">Estos borradores convierten preguntas reales en contenido útil y homogéneo. El título de WordPress ya actúa como <strong>H1</strong>; no debe repetirse dentro del contenido.</p>';
+        echo '<ol style="margin:0 0 10px 20px;line-height:1.6;">';
+        echo '<li><strong>Introducción:</strong> 1–2 párrafos breves que expliquen qué va a resolver el artículo y para qué tipo de usuario.</li>';
+        echo '<li><strong>Cada pregunta va como H2</strong>, redactada de forma natural, en estilo frase y terminada en signo de interrogación. No usar prefijos “Pregunta:” ni poner toda la pregunta en mayúsculas.</li>';
+        echo '<li><strong>Respuesta inmediatamente debajo</strong> en párrafo normal, sin tabular ni sangrar. Empezar por la respuesta directa y ampliar después sólo lo necesario.</li>';
+        echo '<li><strong>Listas</strong> únicamente cuando haya pasos, comprobaciones, opciones o requisitos; no convertir respuestas simples en listas artificiales.</li>';
+        echo '<li><strong>Negrita</strong> sólo para datos decisivos dentro de la respuesta. No usar la negrita como sustituto del H2.</li>';
+        echo '<li><strong>Subapartados:</strong> usar H3 sólo cuando una respuesta larga necesite separar pasos o casos. Nunca introducir otro H1.</li>';
+        echo '<li><strong>Contenido interno:</strong> eliminar antes de publicar marcas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, “Solucionador”, “Dependiente”, IDs, hashes, trazas o notas editoriales.</li>';
+        echo '<li><strong>Exactitud:</strong> no inventar especificaciones. Mantener únicamente información respaldada por el dossier, el catálogo o una fuente verificada.</li>';
+        echo '<li><strong>Relación comercial:</strong> conservar al menos una categoría de producto asociada mediante <code>post_to_category</code>. Los enlaces a categoría/productos deben ser útiles, no repetitivos.</li>';
+        echo '<li><strong>Publicación:</strong> mantener en borrador hasta revisar título, introducción, todas las respuestas, enlaces y relación con la categoría.</li>';
+        echo '</ol>';
+        echo '<div style="padding:10px 12px;background:#fff;border:1px solid #d7e7f3;border-radius:6px;line-height:1.55;">';
+        echo '<strong>Ejemplo de sintaxis pública</strong><br>';
+        echo '<code>H2: ¿Qué potencia necesito para este trabajo?</code><br>';
+        echo '<span>Respuesta directa en texto normal, sin sangría. Si hace falta, después se añaden detalles o una lista breve.</span>';
+        echo '</div>';
+        echo '</div>';
+    }
+}
+
 if (!function_exists('seo_post_editor_group_terms_by_parent')) {
     function seo_post_editor_group_terms_by_parent($terms) {
         $grouped = array();
@@ -687,6 +753,9 @@ if (!function_exists('seo_post_editor_current_section')) {
         if (in_array($tab, array('errors', 'errores'), true)) {
             return 'errors';
         }
+        if (in_array($tab, array('solucionador', 'solucionador_drafts'), true)) {
+            return 'solucionador';
+        }
 
         return 'edit';
     }
@@ -703,6 +772,8 @@ if (!function_exists('seo_post_editor_section_url')) {
             $args['tab'] = 'opportunities';
         } elseif ('errors' === $section) {
             $args['tab'] = 'errors';
+        } elseif ('solucionador' === $section) {
+            $args['tab'] = 'solucionador';
         }
 
         $base = !empty($context['base']) && 'edit.php' === $context['base'] ? 'edit.php' : 'admin.php';
@@ -717,8 +788,10 @@ if (!function_exists('seo_post_editor_render_tabs')) {
         }
 
         $edit_url = seo_post_editor_section_url('edit', $context);
+        $solucionador_url = seo_post_editor_section_url('solucionador', $context);
         echo '<h2 class="nav-tab-wrapper" style="margin-top:14px;">';
-        echo '<a class="nav-tab nav-tab-active" href="' . esc_url($edit_url) . '">Editar posts</a>';
+        echo '<a class="nav-tab ' . esc_attr($active_section === 'edit' ? 'nav-tab-active' : '') . '" href="' . esc_url($edit_url) . '">Editar posts</a>';
+        echo '<a class="nav-tab ' . esc_attr($active_section === 'solucionador' ? 'nav-tab-active' : '') . '" href="' . esc_url($solucionador_url) . '">Solucionador</a>';
         echo '</h2>';
         echo '<p class="description">El análisis de rendimiento, oportunidades y errores está centralizado en <a href="' . esc_url(class_exists('SEO_Solucionador_Admin') ? SEO_Solucionador_Admin::diagnostics_url('posts','opportunities') : admin_url('admin.php?page=seo-solucionador&tab=diagnostics&diag_scope=posts&diag_view=opportunities')) . '">Solucionador → Diagnóstico editorial</a>.</p>';
     }
@@ -841,6 +914,7 @@ if (!function_exists('seo_page_edit_posts')) {
             $excerpt = $creating ? '' : (string) $post->post_excerpt;
             $content = $creating ? '' : (string) $post->post_content;
             $content_role = $creating ? '' : seo_post_editor_public_content_role($post_id);
+            $is_solucionador_post = !$creating && seo_post_editor_is_solucionador_post($post_id);
 
             echo '<div style="max-width:1180px;padding:10px 0 30px;">';
             echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;flex-wrap:wrap;">';
@@ -863,6 +937,10 @@ if (!function_exists('seo_page_edit_posts')) {
             }
             if (!function_exists('seo_content_vocab_tables_ready') || !seo_content_vocab_tables_ready()) {
                 echo '<div class="notice notice-error inline"><p><strong>Vocabulary canonico no esta disponible.</strong> El guardado queda bloqueado para evitar volver a etiquetas WordPress.</p></div>';
+            }
+
+            if ($is_solucionador_post) {
+                seo_post_editor_render_solucionador_style_guide(true);
             }
 
             if (!$creating) {
@@ -1061,17 +1139,22 @@ if (!function_exists('seo_page_edit_posts')) {
             return;
         }
 
+        $solucionador_only = ($active_section === 'solucionador');
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $category_filter = isset($_GET['product_cat']) ? sanitize_text_field(wp_unslash($_GET['product_cat'])) : '';
-        $status = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '';
+        $status = $solucionador_only
+            ? 'draft'
+            : (isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '');
         $paged  = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
         $score_days = 28;
         $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
-        $reports_available = function_exists('seo_post_reports_get_summary') && function_exists('seo_post_reports_admin_url');
+        $reports_available = !$solucionador_only
+            && function_exists('seo_post_reports_get_summary')
+            && function_exists('seo_post_reports_admin_url');
 
         // Reutiliza el snapshot agregado de Google. No consulta entrada por entrada.
-        if (function_exists('seo_post_reports_catalog_snapshot')) {
+        if (!$solucionador_only && function_exists('seo_post_reports_catalog_snapshot')) {
             seo_post_reports_catalog_snapshot($score_days, false);
         }
 
@@ -1113,16 +1196,39 @@ if (!function_exists('seo_page_edit_posts')) {
             }
         }
 
+        $relation_ids = array();
         if ($category_filter !== '') {
             $relation_ids = seo_post_editor_get_ids_for_relation_filter($category_filter);
+        }
+
+        if ($solucionador_only) {
+            $solucionador_relation_ids = seo_post_editor_get_ids_with_product_cat_relation();
+            $relation_ids = $category_filter !== ''
+                ? array_values(array_intersect($solucionador_relation_ids, $relation_ids))
+                : $solucionador_relation_ids;
+
+            $args['meta_query'] = array(
+                'relation' => 'AND',
+                array(
+                    'key'     => '_seo_solucionador_topic_id',
+                    'compare' => 'EXISTS',
+                ),
+                array(
+                    'key'     => '_seo_solucionador_dossier_category_id',
+                    'compare' => 'EXISTS',
+                ),
+            );
+        }
+
+        if ($category_filter !== '' || $solucionador_only) {
             $args['post__in'] = !empty($relation_ids) ? $relation_ids : array(0);
         }
 
-        if (function_exists('seo_post_reports_score_posts_clauses')) {
+        if (!$solucionador_only && function_exists('seo_post_reports_score_posts_clauses')) {
             add_filter('posts_clauses', 'seo_post_reports_score_posts_clauses', 20, 2);
         }
         $query = new WP_Query($args);
-        if (function_exists('seo_post_reports_score_posts_clauses')) {
+        if (!$solucionador_only && function_exists('seo_post_reports_score_posts_clauses')) {
             remove_filter('posts_clauses', 'seo_post_reports_score_posts_clauses', 20);
         }
         $post_ids = wp_list_pluck($query->posts, 'ID');
@@ -1131,14 +1237,25 @@ if (!function_exists('seo_page_edit_posts')) {
         echo '<div style="padding:10px 0 30px;max-width:1280px;">';
         echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">';
         echo '<div>';
-        echo '<h1 style="margin-bottom:8px;">Editar posts</h1>';
-        echo '<p style="margin-top:0;color:#646970;">Selecciona una entrada para editarla. La categoria de producto se gestiona exclusivamente mediante SEO Relations.</p>';
+        echo '<h1 style="margin-bottom:8px;">' . ($solucionador_only ? 'Posts de Solucionador' : 'Editar posts') . '</h1>';
+        if ($solucionador_only) {
+            echo '<p style="margin-top:0;color:#646970;">Borradores creados por Solucionador que tienen al menos una categoría de producto asociada. Se muestran de forma independiente para revisión editorial.</p>';
+        } else {
+            echo '<p style="margin-top:0;color:#646970;">Selecciona una entrada para editarla. La categoria de producto se gestiona exclusivamente mediante SEO Relations.</p>';
+        }
         echo '</div>';
         echo '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-        echo '<a class="button button-primary" href="' . esc_url(seo_post_editor_admin_url(array('new_post' => 1), $context)) . '">Nueva entrada</a>';
+        if (!$solucionador_only) {
+            echo '<a class="button button-primary" href="' . esc_url(seo_post_editor_admin_url(array('new_post' => 1), $context)) . '">Nueva entrada</a>';
+        } else {
+            echo '<span style="color:#646970;font-weight:600;">' . esc_html(number_format_i18n((int) $query->found_posts)) . ' borradores pendientes</span>';
+        }
         echo '</div>';
         echo '</div>';
-        seo_post_editor_render_tabs('edit', $context);
+        seo_post_editor_render_tabs($active_section, $context);
+        if ($solucionador_only) {
+            seo_post_editor_render_solucionador_style_guide(false);
+        }
 
         if ($message !== '' && isset($notice_messages[$message])) {
             $notice = $notice_messages[$message];
@@ -1166,20 +1283,27 @@ if (!function_exists('seo_page_edit_posts')) {
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Categoria de producto</label>
                 <select name="product_cat" style="width:100%;">
                     <option value="">Todas</option>
-                    <option value="none" <?php selected($category_filter, 'none'); ?>>Sin categoria de producto</option>
+                    <?php if (!$solucionador_only): ?>
+                        <option value="none" <?php selected($category_filter, 'none'); ?>>Sin categoria de producto</option>
+                    <?php endif; ?>
                     <?php seo_post_editor_category_option_tree($categories, $category_filter); ?>
                 </select>
             </div>
 
             <div>
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Estado</label>
-                <select name="status" style="width:100%;">
-                    <option value="">Todos</option>
-                    <option value="publish" <?php selected($status, 'publish'); ?>>Publicado</option>
-                    <option value="draft" <?php selected($status, 'draft'); ?>>Borrador</option>
-                    <option value="pending" <?php selected($status, 'pending'); ?>>Pendiente</option>
-                    <option value="private" <?php selected($status, 'private'); ?>>Privado</option>
-                </select>
+                <?php if ($solucionador_only): ?>
+                    <input type="hidden" name="status" value="draft">
+                    <input type="text" value="Borrador" disabled style="width:100%;">
+                <?php else: ?>
+                    <select name="status" style="width:100%;">
+                        <option value="">Todos</option>
+                        <option value="publish" <?php selected($status, 'publish'); ?>>Publicado</option>
+                        <option value="draft" <?php selected($status, 'draft'); ?>>Borrador</option>
+                        <option value="pending" <?php selected($status, 'pending'); ?>>Pendiente</option>
+                        <option value="private" <?php selected($status, 'private'); ?>>Privado</option>
+                    </select>
+                <?php endif; ?>
             </div>
 
             <div style="display:flex;gap:6px;">
@@ -1207,7 +1331,13 @@ if (!function_exists('seo_page_edit_posts')) {
                     <th>Entrada</th>
                     <th style="width:290px;">Categorias de producto</th>
                     <th style="width:260px;">Vocabulary</th>
-                    <th style="width:145px;"><a href="<?php echo esc_url($score_sort_url); ?>" title="Cambiar orden por puntuación">Puntuación Google <?php echo esc_html($score_arrow); ?></a><br><small style="font-weight:400;color:#646970;">28 días</small></th>
+                    <th style="width:145px;">
+                        <?php if ($solucionador_only): ?>
+                            Material
+                        <?php else: ?>
+                            <a href="<?php echo esc_url($score_sort_url); ?>" title="Cambiar orden por puntuación">Puntuación Google <?php echo esc_html($score_arrow); ?></a><br><small style="font-weight:400;color:#646970;">28 días</small>
+                        <?php endif; ?>
+                    </th>
                     <th style="width:110px;">Estado</th>
                     <th style="width:145px;">Modificada</th>
                     <th style="width:150px;">Acciones</th>
@@ -1256,7 +1386,23 @@ if (!function_exists('seo_page_edit_posts')) {
                                 }
                                 ?>
                             </td>
-                            <td><span title="Índice comparativo de rendimiento Google de los últimos 28 días" style="display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:<?php echo esc_attr($score_bg); ?>;color:<?php echo esc_attr($score_fg); ?>;"><?php echo esc_html($score_text); ?></span></td>
+                            <td>
+                                <?php if ($solucionador_only): ?>
+                                    <?php
+                                    $source_snapshot = get_post_meta($post_id, '_seo_solucionador_source_snapshot', true);
+                                    $source_count = is_array($source_snapshot) ? absint($source_snapshot['question_count'] ?? 0) : 0;
+                                    $pending_count = class_exists('SEO_Solucionador_Posts') && method_exists('SEO_Solucionador_Posts', 'pending_question_count')
+                                        ? SEO_Solucionador_Posts::pending_question_count($post_id)
+                                        : 0;
+                                    ?>
+                                    <strong><?php echo esc_html(number_format_i18n($source_count)); ?> preguntas</strong>
+                                    <?php if ($pending_count > 0): ?>
+                                        <div style="margin-top:3px;color:#996800;font-size:12px;"><?php echo esc_html(number_format_i18n($pending_count)); ?> novedades</div>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span title="Índice comparativo de rendimiento Google de los últimos 28 días" style="display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:<?php echo esc_attr($score_bg); ?>;color:<?php echo esc_attr($score_fg); ?>;"><?php echo esc_html($score_text); ?></span>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo esc_html($post->post_status); ?></td>
                             <td><?php echo esc_html(mysql2date('d/m/Y H:i', $post->post_modified)); ?></td>
                             <td style="display:flex;gap:5px;flex-wrap:wrap;">
