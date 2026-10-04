@@ -2,7 +2,7 @@
 /**
  * Tests funcionales de Solucionador 0.7.1.
  *
- * Contrato: FAQ humana + conocimiento real de Dependiente -> dossier único por
+ * Contrato: FAQ humana + preguntas de Entrenador validadas por Dependiente -> dossier único por
  * product_cat -> propuesta -> Editora -> draft -> publicación humana.
  *
  * No escriben en BD ni modifican contenido.
@@ -98,7 +98,7 @@ final class SEO_Solucionador_Tests {
             4,'Dependiente sin FAQ también puede iniciar propuesta',
             (string)($t['decision']['action']??'')==='CREATE_POST',
             'CREATE_POST',(string)($t['decision']['action']??'∅'),
-            'El conocimiento real de Dependiente es una fuente independiente.'
+            'Una pregunta de Entrenador con último run answered/pass_* es una fuente independiente.'
         );
 
         $t=self::scenario('uncovered',2,2,0);
@@ -125,7 +125,7 @@ final class SEO_Solucionador_Tests {
             'Editora conserva el dossier y decide si fusiona, mejora o crea.'
         );
 
-        $both=array('faq:123'=>'hash-faq','dependiente:trainer:456'=>'hash-dep');
+        $both=array('faq:123'=>'hash-faq','dependiente:456'=>'hash-dep');
         $faq_only=array('faq:123'=>'hash-faq');
         $hash_both=SEO_Solucionador_Dossiers::source_hash_for_test(77,$both);
         $hash_faq=SEO_Solucionador_Dossiers::source_hash_for_test(77,$faq_only);
@@ -137,24 +137,24 @@ final class SEO_Solucionador_Tests {
             'La identidad es por origen/item_id; Editora resuelve posibles repetidos.'
         );
 
-        $reviewed=array('faq:123'=>'a','dependiente:trainer:456'=>'b');
-        $current=array('faq:123'=>'a2','dependiente:semantic:789'=>'c');
+        $reviewed=array('faq:123'=>'a','dependiente:456'=>'b');
+        $current=array('faq:123'=>'a2','dependiente:789'=>'c');
         $changes=SEO_Solucionador_Dossiers::compare_item_hashes_for_test($current,$reviewed);
         $tests[]=self::result(
             9,'Detecta NUEVO / MODIFICADO / RETIRADO',
-            $changes['new']===array('dependiente:semantic:789')
+            $changes['new']===array('dependiente:789')
                 && $changes['modified']===array('faq:123')
-                && $changes['retired']===array('dependiente:trainer:456'),
+                && $changes['retired']===array('dependiente:456'),
             '1 nuevo, 1 modificado, 1 retirado',
             count($changes['new']).' / '.count($changes['modified']).' / '.count($changes['retired']),
             'El cambio de fuentes genera NEEDS_UPDATE sin sobrescribir el post.'
         );
 
         $hash_order_a=SEO_Solucionador_Dossiers::source_hash_for_test(77,array(
-            'faq:1'=>'a','dependiente:trainer:2'=>'b'
+            'faq:1'=>'a','dependiente:2'=>'b'
         ));
         $hash_order_b=SEO_Solucionador_Dossiers::source_hash_for_test(77,array(
-            'dependiente:trainer:2'=>'b','faq:1'=>'a'
+            'dependiente:2'=>'b','faq:1'=>'a'
         ));
         $tests[]=self::result(
             10,'Dos ejecuciones sin cambios mantienen source_hash',
@@ -164,10 +164,10 @@ final class SEO_Solucionador_Tests {
         );
 
         $hash_active=SEO_Solucionador_Dossiers::source_hash_for_test(77,array(
-            'faq:1'=>'a','dependiente:trainer:2'=>'b'
+            'faq:1'=>'a','dependiente:2'=>'b'
         ));
         $hash_deactivated=SEO_Solucionador_Dossiers::source_hash_for_test(77,array(
-            'dependiente:trainer:2'=>'b'
+            'dependiente:2'=>'b'
         ));
         $tests[]=self::result(
             11,'Retirar/desactivar una FAQ cambia source_hash',
@@ -176,16 +176,15 @@ final class SEO_Solucionador_Tests {
             'La retirada se convierte en novedad editorial para revisión.'
         );
 
-        $provider=class_exists('SEO_Dependiente_Editorial_Knowledge')
-            && method_exists('SEO_Dependiente_Editorial_Knowledge','batch')
-            && method_exists('SEO_Dependiente_Editorial_Knowledge','details')
-            && method_exists('SEO_Dependiente_Editorial_Knowledge','signature');
+        $trainer_contract=method_exists('SEO_Solucionador_Dossiers','scan_batch')
+            && method_exists('SEO_Solucionador_Dossiers','question_details')
+            && SEO_Solucionador_Dossiers::EDITORIAL_POLICY_VERSION==='v5-faq-plus-trainer-pass';
         $tests[]=self::result(
-            12,'Dependiente expone un proveedor editorial encapsulado',
-            $provider,
-            'batch + details + signature',
-            $provider ? 'API disponible' : 'API incompleta',
-            'Solucionador no necesita conocer candidatos/rechazadas/search_log ni cada tabla interna.'
+            12,'Dependiente usa exclusivamente preguntas evaluadas de Entrenador',
+            $trainer_contract,
+            'trainer questions + último run answered/pass_*',
+            $trainer_contract ? 'contrato simple activo' : 'contrato incompleto',
+            'Solucionador no incorpora reglas semánticas, search_log ni proveedores adicionales.'
         );
 
         $post_contract=function_exists('seo_post_editor_set_public_content_role')
