@@ -1398,60 +1398,69 @@ final class SEO_Solucionador_Dossiers {
         return 'Respuesta validada por Dependiente; este entrenamiento no guardó una respuesta textual adicional.';
     }
 
+    private static function signals_from_dossier(array $row) {
+        $out = array();
+        $term_id = absint($row['category_id'] ?? 0);
+        $name = trim((string)($row['category_name'] ?? ''));
+        if (!$term_id || $name === '') return $out;
+
+        $dependiente_count = absint($row['dependiente_count'] ?? 0);
+        $faq_count = absint($row['faq_count'] ?? 0);
+        $base_meta = array(
+            'proposal_role'=>'origin',
+            'editorial_family'=>'dependiente_qa_basic',
+            'dossier_id'=>absint($row['id'] ?? 0),
+            'category_id'=>$term_id,
+            'category_name'=>$name,
+            'source_hash'=>(string)($row['source_hash'] ?? ''),
+            'last_validated_at'=>(string)($row['last_validated_at'] ?? ''),
+        );
+
+        if ($faq_count > 0) {
+            $out[] = array(
+                'dossier_id'=>absint($row['id'] ?? 0),
+                'source_type'=>'faq','proposal_role'=>'origin',
+                'source_id'=>'category:' . $term_id,
+                'signal_type'=>'category_editorial_source',
+                'entity_type'=>'product_cat','entity_id'=>$term_id,
+                'category_id'=>$term_id,'category_name'=>$name,
+                'source_text'=>'FAQs humanas disponibles para ' . $name . '.',
+                'hints'=>array('intent'=>'dependiente_qa_basic','action'=>'resolver','object'=>$name,'category_id'=>$term_id),
+                'occurrences'=>$faq_count,'confidence'=>1.0,'evidence_score'=>1.0,
+                'observed_at'=>(string)($row['last_validated_at'] ?? current_time('mysql')),
+                'source_meta'=>array_merge($base_meta,array('origin'=>'faq','item_count'=>$faq_count)),
+            );
+        }
+
+        if ($dependiente_count > 0) {
+            $out[] = array(
+                'dossier_id'=>absint($row['id'] ?? 0),
+                'source_type'=>'dependiente','proposal_role'=>'origin',
+                'source_id'=>'category:' . $term_id,
+                'signal_type'=>'category_editorial_source',
+                'entity_type'=>'product_cat','entity_id'=>$term_id,
+                'category_id'=>$term_id,'category_name'=>$name,
+                'source_text'=>'Conocimiento consolidado de Dependiente disponible para ' . $name . '.',
+                'hints'=>array('intent'=>'dependiente_qa_basic','action'=>'resolver','object'=>$name,'category_id'=>$term_id),
+                'occurrences'=>$dependiente_count,
+                'confidence'=>max(0.50,min(1.0,(float)($row['score_avg'] ?? 0.80))),
+                'evidence_score'=>1.0,
+                'observed_at'=>(string)($row['last_validated_at'] ?? current_time('mysql')),
+                'source_meta'=>array_merge($base_meta,array('origin'=>'dependiente','item_count'=>$dependiente_count)),
+            );
+        }
+        return $out;
+    }
+
+    public static function signals_for_category($category_id) {
+        $row = self::get_by_category(absint($category_id));
+        return $row ? self::signals_from_dossier((array)$row) : array();
+    }
+
     public static function signals($limit = 100,$after_id = 0) {
         $out = array();
         foreach (self::rows($limit,$after_id) as $row) {
-            $term_id = absint($row['category_id'] ?? 0);
-            $name = trim((string)($row['category_name'] ?? ''));
-            if (!$term_id || $name === '') continue;
-
-            $dependiente_count = absint($row['dependiente_count'] ?? 0);
-            $faq_count = absint($row['faq_count'] ?? 0);
-            $base_meta = array(
-                'proposal_role'=>'origin',
-                'editorial_family'=>'dependiente_qa_basic',
-                'dossier_id'=>absint($row['id'] ?? 0),
-                'category_id'=>$term_id,
-                'category_name'=>$name,
-                'source_hash'=>(string)($row['source_hash'] ?? ''),
-                'last_validated_at'=>(string)($row['last_validated_at'] ?? ''),
-            );
-
-            if ($faq_count > 0) {
-                $out[] = array(
-                    'dossier_id'=>absint($row['id'] ?? 0),
-                    'source_type'=>'faq',
-                    'proposal_role'=>'origin',
-                    'source_id'=>'category:' . $term_id,
-                    'signal_type'=>'category_editorial_source',
-                    'entity_type'=>'product_cat','entity_id'=>$term_id,
-                    'category_id'=>$term_id,'category_name'=>$name,
-                    'source_text'=>'FAQs humanas disponibles para ' . $name . '.',
-                    'hints'=>array('intent'=>'dependiente_qa_basic','action'=>'resolver','object'=>$name,'category_id'=>$term_id),
-                    'occurrences'=>$faq_count,'confidence'=>1.0,'evidence_score'=>1.0,
-                    'observed_at'=>(string)($row['last_validated_at'] ?? current_time('mysql')),
-                    'source_meta'=>array_merge($base_meta,array('origin'=>'faq','item_count'=>$faq_count)),
-                );
-            }
-
-            if ($dependiente_count > 0) {
-                $out[] = array(
-                    'dossier_id'=>absint($row['id'] ?? 0),
-                    'source_type'=>'dependiente',
-                    'proposal_role'=>'origin',
-                    'source_id'=>'category:' . $term_id,
-                    'signal_type'=>'category_editorial_source',
-                    'entity_type'=>'product_cat','entity_id'=>$term_id,
-                    'category_id'=>$term_id,'category_name'=>$name,
-                    'source_text'=>'Conocimiento consolidado de Dependiente disponible para ' . $name . '.',
-                    'hints'=>array('intent'=>'dependiente_qa_basic','action'=>'resolver','object'=>$name,'category_id'=>$term_id),
-                    'occurrences'=>$dependiente_count,
-                    'confidence'=>max(0.50,min(1.0,(float)($row['score_avg'] ?? 0.80))),
-                    'evidence_score'=>1.0,
-                    'observed_at'=>(string)($row['last_validated_at'] ?? current_time('mysql')),
-                    'source_meta'=>array_merge($base_meta,array('origin'=>'dependiente','item_count'=>$dependiente_count)),
-                );
-            }
+            $out = array_merge($out,self::signals_from_dossier((array)$row));
         }
         return $out;
     }
