@@ -55,7 +55,7 @@ final class SEO_Solucionador_Engine {
         // Mientras siga incompleto, cada carga procesa otro lote aunque ya
         // existan dossiers: evita quedarse detenido tras las primeras 500
         // preguntas cuando WP-Cron no ejecuta la continuación.
-        if ($has_dossiers && $scan_complete) {
+        if ($has_dossiers && $scan_complete && empty($snapshot['source_changed'])) {
             return $snapshot;
         }
 
@@ -71,7 +71,7 @@ final class SEO_Solucionador_Engine {
             if (
                 is_array($last_scan)
                 && !empty($last_scan['complete'])
-                && (!$scan_complete || !$has_dossiers)
+                && (!$scan_complete || !$has_dossiers || !empty($snapshot['source_changed']))
             ) {
                 delete_option('seo_solucionador_last_scan');
                 delete_option(self::EDITORIAL_SCAN_OPTION);
@@ -140,6 +140,7 @@ final class SEO_Solucionador_Engine {
             $needs_dossiers = $has_source_material
                 && (
                     empty($snapshot['scan_complete'])
+                    || !empty($snapshot['source_changed'])
                     || empty($snapshot['categories_with_knowledge'])
                     || $policy_mismatch
                 );
