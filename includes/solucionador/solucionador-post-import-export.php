@@ -535,8 +535,6 @@ if (!function_exists('seo_solucionador_posts_ie_validate_row')) {
 
 if (!function_exists('seo_solucionador_posts_ie_apply_row')) {
     function seo_solucionador_posts_ie_apply_row($row, $line) {
-        global $wpdb;
-
         $row = seo_solucionador_posts_ie_validate_row($row, $line);
         if (is_wp_error($row)) {
             return $row;
@@ -560,18 +558,14 @@ if (!function_exists('seo_solucionador_posts_ie_apply_row')) {
             $post_data['post_author'] = absint($row['post_author_id']);
         }
 
-        $wpdb->query('START TRANSACTION');
-
         $saved = wp_update_post(wp_slash($post_data), true);
         if (is_wp_error($saved)) {
-            $wpdb->query('ROLLBACK');
             return $saved;
         }
 
         if (array_key_exists('_category_ids', $row)) {
             $result = wp_set_post_terms($post_id, (array) $row['_category_ids'], 'category', false);
             if (is_wp_error($result)) {
-                $wpdb->query('ROLLBACK');
                 clean_post_cache($post_id);
                 return $result;
             }
@@ -580,7 +574,6 @@ if (!function_exists('seo_solucionador_posts_ie_apply_row')) {
         if (array_key_exists('_post_tag_ids', $row)) {
             $result = wp_set_post_terms($post_id, (array) $row['_post_tag_ids'], 'post_tag', false);
             if (is_wp_error($result)) {
-                $wpdb->query('ROLLBACK');
                 clean_post_cache($post_id);
                 return $result;
             }
@@ -589,7 +582,6 @@ if (!function_exists('seo_solucionador_posts_ie_apply_row')) {
         if (array_key_exists('_product_cat_ids', $row)) {
             $result = seo_post_editor_replace_product_cat_relations($post_id, (array) $row['_product_cat_ids']);
             if (is_wp_error($result)) {
-                $wpdb->query('ROLLBACK');
                 clean_post_cache($post_id);
                 return $result;
             }
@@ -610,7 +602,6 @@ if (!function_exists('seo_solucionador_posts_ie_apply_row')) {
                 sanitize_key((string) $row['public_content_role'])
             );
             if (is_wp_error($result)) {
-                $wpdb->query('ROLLBACK');
                 clean_post_cache($post_id);
                 return $result;
             }
@@ -620,7 +611,6 @@ if (!function_exists('seo_solucionador_posts_ie_apply_row')) {
             $log = array('advertencias' => 0, 'detalles' => array());
             seo_content_vocab_import_row('post', $post_id, $row, $line, $log);
             if (!empty($log['advertencias'])) {
-                $wpdb->query('ROLLBACK');
                 clean_post_cache($post_id);
                 return new WP_Error(
                     'seo_solucionador_posts_ie_vocab_write',
@@ -628,8 +618,6 @@ if (!function_exists('seo_solucionador_posts_ie_apply_row')) {
                 );
             }
         }
-
-        $wpdb->query('COMMIT');
         clean_post_cache($post_id);
         return true;
     }
