@@ -20,7 +20,8 @@ if ('cli' !== PHP_SAPI) {
 }
 
 if ($argc < 5) {
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.\n    fwrite(STDERR, "Argumentos insuficientes.\n");
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
+    fwrite(STDERR, "Argumentos insuficientes.\n");
     exit(64);
 }
 
@@ -30,7 +31,8 @@ $not_before  = (int) $argv[3];
 $signature   = (string) $argv[4];
 
 if ('' === $wp_load || !is_readable($wp_load)) {
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.\n    fwrite(STDERR, "No se puede cargar wp-load.php.\n");
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
+    fwrite(STDERR, "No se puede cargar wp-load.php.\n");
     exit(66);
 }
 
@@ -44,7 +46,8 @@ if (!defined('SEO_ACADEMY_DIRECT_WORKER')) {
 require_once $wp_load;
 
 if (!class_exists('SEO_Dependiente_Entrenador') || !is_callable(array('SEO_Dependiente_Entrenador', 'direct_cli_run'))) {
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.\n    fwrite(STDERR, "La Academia no ha cargado el motor directo.\n");
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
+    fwrite(STDERR, "La Academia no ha cargado el motor directo.\n");
     exit(69);
 }
 
