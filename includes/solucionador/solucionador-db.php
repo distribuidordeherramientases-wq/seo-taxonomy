@@ -324,6 +324,7 @@ final class SEO_Solucionador_DB {
         $allowed = array(
             'reviewed_hash',
             'reviewed_item_hashes',
+            'editorial_item_states',
             'editorial_status',
             'reviewed_at',
             'rejected_source_hash',
@@ -334,6 +335,7 @@ final class SEO_Solucionador_DB {
             if (array_key_exists($key, $data)) $write[$key] = $data[$key];
         }
         if (!$write) return false;
+        $write['updated_at'] = current_time('mysql');
 
         if (isset($write['editorial_status']) && class_exists('SEO_Editorial_Service_Contract')) {
             $write['editorial_status'] = SEO_Editorial_Service_Contract::normalize($write['editorial_status']);
