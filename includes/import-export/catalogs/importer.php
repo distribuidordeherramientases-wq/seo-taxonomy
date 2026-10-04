@@ -28,6 +28,29 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'admin_init', 'seo_ie_import_required_catalogs_csv' );
 
 /**
+ * Abre el stream CSV del importador de catálogos.
+ *
+ * @param string $path Ruta del CSV.
+ * @param string $mode Modo.
+ * @return resource|false
+ */
+function seo_ie_catalog_csv_stream_open( $path, $mode ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- seo_ie_read_csv_row() requiere un recurso PHP nativo para lectura incremental.
+    return fopen( $path, $mode );
+}
+
+/**
+ * Cierra el stream CSV del importador de catálogos.
+ *
+ * @param resource $handle Recurso.
+ * @return bool
+ */
+function seo_ie_catalog_csv_stream_close( $handle ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por el lector CSV incremental.
+    return fclose( $handle );
+}
+
+/**
  * Grupos semánticos que pueden crearse desde el importador masivo.
  * Los grupos internos del sistema se pueden exportar, pero no crear aquí.
  *
@@ -856,14 +879,14 @@ function seo_ie_import_required_catalogs_csv() {
         wp_die( esc_html__( 'No se ha recibido un CSV de catálogos válido.', 'seo-taxonomy' ) );
     }
 
-    $handle = fopen( $_FILES['required_catalogs_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_catalog_csv_stream_open( $_FILES['required_catalogs_csv']['tmp_name'], 'r' );
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de catálogos.', 'seo-taxonomy' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
     if ( false === $header ) {
-        fclose( $handle );
+        seo_ie_catalog_csv_stream_close( $handle );
         wp_die( esc_html__( 'El CSV de catálogos está vacío.', 'seo-taxonomy' ) );
     }
 
@@ -877,7 +900,7 @@ function seo_ie_import_required_catalogs_csv() {
     );
 
     if ( ! in_array( 'tipo_registro', $header, true ) && ! in_array( 'tabla', $header, true ) ) {
-        fclose( $handle );
+        seo_ie_catalog_csv_stream_close( $handle );
         wp_die( esc_html__( 'El CSV debe contener la columna tipo_registro (o tabla). Usa como plantilla el export de catálogos obligatorios.', 'seo-taxonomy' ) );
     }
 
@@ -938,7 +961,7 @@ function seo_ie_import_required_catalogs_csv() {
             }
         }
     }
-    fclose( $handle );
+    seo_ie_catalog_csv_stream_close( $handle );
 
     $maps_by_type = [];
     foreach ( $items as $item ) {
