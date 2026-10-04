@@ -1,8 +1,8 @@
 <?php
 /**
- * Tests funcionales de Solucionador v0.5.
+ * Tests funcionales de Solucionador v0.7.
  *
- * Arquitectura separada: Academia/Entrenador -> dossier category-first ->
+ * FAQ + Academia/Entrenador -> dossier mixto category-first ->
  * cobertura -> brief -> Editora -> post dependiente_qa_basic.
  *
  * No escriben en BD ni modifican contenido.
@@ -22,7 +22,7 @@ final class SEO_Solucionador_Tests {
         );
     }
 
-    private static function academy_profile($category_id = 77) {
+    private static function category_profile($category_id = 77) {
         return array(
             'intent'=>'dependiente_qa_basic',
             'key_intent'=>'dependiente_qa_basic',
@@ -34,17 +34,20 @@ final class SEO_Solucionador_Tests {
         );
     }
 
-    private static function scenario($coverage,$questions=5,$category_id=77,$entity_type='',$risks=array()) {
+    private static function scenario($coverage,$dependiente=5,$faq=0,$category_id=77,$entity_type='',$risks=array()) {
         return SEO_Solucionador_Engine::evaluate_scenario_for_test(array(
-            'profile'=>self::academy_profile($category_id),
-            'stats'=>array('total'=>$questions,'dependiente'=>$questions),
+            'profile'=>self::category_profile($category_id),
+            'stats'=>array(
+                'total'=>absint($dependiente)+absint($faq),
+                'dependiente'=>absint($dependiente),
+                'faq'=>absint($faq),
+            ),
             'coverage'=>array(
                 'status'=>$coverage,
                 'entity_type'=>$entity_type,
                 'entity_id'=>$entity_type ? 321 : 0,
                 'score'=>$coverage==='uncovered' ? 0 : 0.82,
             ),
-            'knowledge'=>array('status'=>'sufficient','count'=>$questions,'confidence'=>0.90),
             'risks'=>wp_parse_args($risks,array('duplication_risk'=>10,'cannibalization_risk'=>10)),
             'primary_category_id'=>$category_id,
         ));
@@ -53,69 +56,74 @@ final class SEO_Solucionador_Tests {
     public static function run() {
         $tests=array();
 
+        $category_id=77;
+        $category_name='Taladros';
         $source=array(
             'source_type'=>'dependiente',
-            'category_id'=>absint($category_id),
-            'category_name'=>(string)$category_name,
+            'category_id'=>$category_id,
+            'category_name'=>$category_name,
             'source_meta'=>array(
-                'dependiente_channel'=>'academy_learned_dossier',
+                'dependiente_channel'=>'faq_dependiente_dossier',
                 'editorial_family'=>'dependiente_qa_basic',
-                'category_id'=>77,
+                'category_id'=>$category_id,
                 'question_count'=>17,
+                'dependiente_count'=>7,
+                'faq_count'=>10,
+                'origins'=>array('dependiente'=>7,'faq'=>10),
             ),
             'hints'=>array(
                 'intent'=>'dependiente_qa_basic',
                 'action'=>'resolver',
-                'object'=>(string)$category_name,
-                'category_id'=>absint($category_id),
+                'object'=>$category_name,
+                'category_id'=>$category_id,
             ),
         );
         $profile=SEO_Solucionador_Engine::normalize_topic_for_test(
-            'Preguntas habituales sobre Taladros: conocimiento aprendido por Dependiente.',
+            'Dossier editorial sobre Taladros: FAQs manuales y conocimiento aprendido por Dependiente.',
             $source
         );
         $tests[]=self::result(
             1,
-            'Un dossier canónico por categoría',
+            'Un dossier canónico por categoría con dos orígenes',
             (string)($profile['intent']??'')==='dependiente_qa_basic'
-                && absint($profile['category_id']??0)===77
+                && absint($profile['category_id']??0)===$category_id
                 && (string)($profile['canonical_key']??'')==='dependiente-qa-basic|resolver|category-77|general|general',
             'dependiente_qa_basic · category 77 · canonical estable',
             (string)($profile['intent']??'∅').' · '.absint($profile['category_id']??0).' · '.(string)($profile['canonical_key']??'∅'),
-            'N preguntas de una categoría convergen en un dossier; no se crea una URL por pregunta.'
+            'FAQ y Dependiente convergen en el mismo dossier; no se crea un topic por fuente.'
         );
 
-        $t2=self::scenario('uncovered',2,77);
+        $t2=self::scenario('uncovered',0,2,77);
         $tests[]=self::result(
             2,
-            'Masa crítica insuficiente',
-            (string)($t2['decision']['action']??'')==='DEFER',
-            'DEFER',
+            'FAQ válida sin aprendizaje de Dependiente',
+            (string)($t2['decision']['action']??'')==='CREATE_POST',
+            'CREATE_POST',
             (string)($t2['decision']['action']??'∅'),
-            'Por defecto se requieren al menos 3 preguntas aprendidas pass_* antes de proponer CREATE_POST.'
+            'Una FAQ manual puede sostener una propuesta editorial aunque Dependiente no la haya aprendido; la densidad es sólo indicador.'
         );
 
-        $t3=self::scenario('uncovered',5,0);
+        $t3=self::scenario('uncovered',3,3,0);
         $tests[]=self::result(
             3,
             'Sin categoría demostrable',
             (string)($t3['decision']['action']??'')==='DEFER',
             'DEFER',
             (string)($t3['decision']['action']??'∅'),
-            'Una pregunta/dossier sin product_cat demostrable no crea URL.'
+            'Material sin product_cat demostrable no crea URL.'
         );
 
-        $t4=self::scenario('uncovered',5,77);
+        $t4=self::scenario('uncovered',5,4,77);
         $tests[]=self::result(
             4,
-            'Dossier suficiente sin cobertura',
+            'Dossier mixto sin cobertura',
             (string)($t4['decision']['action']??'')==='CREATE_POST',
             'CREATE_POST',
             (string)($t4['decision']['action']??'∅'),
-            'Masa crítica + product_cat + cobertura libre + bajo riesgo permiten proponer un post básico.'
+            'FAQ + Dependiente asociados a product_cat y sin cobertura permiten proponer un borrador.'
         );
 
-        $t5=self::scenario('covered',8,77,'post');
+        $t5=self::scenario('covered',4,4,77,'post');
         $tests[]=self::result(
             5,
             'Cobertura suficiente',
@@ -125,7 +133,7 @@ final class SEO_Solucionador_Tests {
             'Nunca se crea un segundo post cuando la intención ya está cubierta.'
         );
 
-        $t6=self::scenario('partial_coverage',8,77,'post');
+        $t6=self::scenario('partial_coverage',4,4,77,'post');
         $tests[]=self::result(
             6,
             'Post existente con cobertura parcial',
@@ -135,7 +143,7 @@ final class SEO_Solucionador_Tests {
             'La cobertura parcial de un post se amplía antes de crear otra URL.'
         );
 
-        $t7=self::scenario('duplicate',8,77,'post');
+        $t7=self::scenario('duplicate',4,4,77,'post');
         $tests[]=self::result(
             7,
             'Piezas solapadas',
@@ -148,51 +156,55 @@ final class SEO_Solucionador_Tests {
         $contract=SEO_Solucionador_Sources::editorial_source_contract();
         $tests[]=self::result(
             8,
-            'Origen editorial único',
-            $contract===array('dependiente_academia'),
-            'dependiente_academia',
+            'Dos orígenes editoriales independientes',
+            $contract===array('faq','dependiente_academia'),
+            'faq, dependiente_academia',
             implode(', ',array_map('strval',(array)$contract)),
-            'Ingeniero, Ojeador, Comparador, Auditor, Marketing, Clasificador, Comentarista y Analista no originan temas.'
+            'FAQ manual y Dependiente/Academia pueden alimentar Solucionador sin depender entre sí.'
         );
 
         $batch_api=class_exists('SEO_Solucionador_Dossiers')
             && method_exists('SEO_Solucionador_Dossiers','scan_batch')
             && method_exists('SEO_Solucionador_Dossiers','state')
-            && method_exists('SEO_Solucionador_Dossiers','question_details');
+            && method_exists('SEO_Solucionador_Dossiers','question_details')
+            && method_exists('SEO_Solucionador_Dossiers','changed_item_keys')
+            && method_exists('SEO_Solucionador_Dossiers','review_item_keys');
         $tests[]=self::result(
             9,
-            'Procesamiento reanudable y detalle bajo demanda',
+            'Procesamiento reanudable y revisión por elemento',
             $batch_api,
-            'scan_batch + state + question_details',
+            'scan_batch + question_details + changed/review item keys',
             $batch_api ? 'API disponible' : 'API incompleta',
-            'El escaneo debe continuar por cursor sin cargar todos los payloads pesados en una ejecución.'
+            'FAQ y Dependiente mantienen cursores y hashes propios dentro del mismo dossier.'
         );
 
         $post_contract=function_exists('seo_post_editor_set_public_content_role')
             && class_exists('SEO_Solucionador_Posts')
             && defined('SEO_SOLUCIONADOR_VERSION')
-            && version_compare(SEO_SOLUCIONADOR_VERSION,'0.5.0','>=');
+            && version_compare(SEO_SOLUCIONADOR_VERSION,'0.7.0','>=');
         $tests[]=self::result(
             10,
-            'Contrato de post dependiente_qa_basic',
+            'Contrato de borrador humano',
             $post_contract,
-            'API común de rol + Solucionador >= 0.5.0',
+            'API común de rol + Solucionador >= 0.7.0',
             $post_contract ? 'Contrato disponible' : 'Contrato incompleto',
-            'CREATE_POST debe terminar en draft, rol estable y relación post_to_category; la publicación sigue siendo humana.'
+            'CREATE_POST termina en draft; Solucionador nunca publica automáticamente.'
         );
 
         $trace_contract=defined('SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID')
             && defined('SEO_Solucionador_Posts::META_QUESTION_IDS')
+            && defined('SEO_Solucionador_Posts::META_FAQ_IDS')
             && defined('SEO_Solucionador_Posts::META_RUN_IDS')
             && defined('SEO_Solucionador_Posts::META_SOURCE_HASH')
-            && defined('SEO_Solucionador_Posts::META_SOURCE_SNAPSHOT');
+            && defined('SEO_Solucionador_Posts::META_SOURCE_SNAPSHOT')
+            && defined('SEO_Solucionador_Posts::META_PENDING_ITEM_KEYS');
         $tests[]=self::result(
             11,
-            'Trazabilidad del borrador separada del texto editorial',
+            'Trazabilidad FAQ + Dependiente separada del texto editorial',
             $trace_contract,
-            'category_id + question_ids + run_ids + source_hash + snapshot',
+            'category_id + faq_ids + question_ids + run_ids + source_hash + item_keys',
             $trace_contract ? 'Contrato de trazabilidad disponible' : 'Contrato incompleto',
-            'Editar post_content no debe destruir el inventario interno que originó el borrador.'
+            'Editar post_content no destruye el inventario interno que originó el borrador.'
         );
 
         $coverage_contract=class_exists('SEO_Editorial_Coverage')
@@ -203,7 +215,7 @@ final class SEO_Solucionador_Tests {
             $coverage_contract,
             'SEO_Editorial_Coverage + wrapper compatible',
             $coverage_contract ? 'API neutral disponible' : 'API neutral incompleta',
-            'La cobertura deja de pertenecer conceptualmente a Solucionador y conserva wrapper para compatibilidad.'
+            'La cobertura sigue separada del origen del conocimiento.'
         );
 
         $passed=count(array_filter($tests,static function($row){return !empty($row['pass']);}));

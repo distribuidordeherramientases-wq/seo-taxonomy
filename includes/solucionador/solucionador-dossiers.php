@@ -1,9 +1,10 @@
 <?php
 /**
- * Solucionador - dossiers category-first de Academia/Entrenador.
+ * Solucionador - dossiers category-first de FAQ + Academia/Entrenador.
  *
- * Mantiene una huella ligera por product_cat. Los payloads pesados de cada
- * pregunta se recuperan bajo demanda al abrir/exportar el brief.
+ * Mantiene una única huella editorial por product_cat con dos orígenes
+ * independientes: FAQs activas y preguntas realmente aprendidas por Dependiente.
+ * Los payloads completos se recuperan bajo demanda al abrir/exportar el brief.
  */
 
 defined('ABSPATH') || exit;
@@ -11,7 +12,7 @@ defined('ABSPATH') || exit;
 final class SEO_Solucionador_Dossiers {
     const STATE_OPTION = 'seo_solucionador_academia_scan_state';
     const DEFAULT_BATCH = 150;
-    const EDITORIAL_POLICY_VERSION = 'v2-useful-questions';
+    const EDITORIAL_POLICY_VERSION = 'v3-faq-plus-dependiente';
 
     private static function questions_table() {
         global $wpdb;
@@ -21,6 +22,46 @@ final class SEO_Solucionador_Dossiers {
     private static function runs_table() {
         global $wpdb;
         return $wpdb->prefix . 'seo_dependiente_trainer_runs';
+    }
+
+    private static function faq_table() {
+        global $wpdb;
+        return $wpdb->prefix . 'seo_faq';
+    }
+
+    private static function faq_source_signature() {
+        global $wpdb;
+        $table = self::faq_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) return '';
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna sin entrada de usuario.
+        $row = (array)$wpdb->get_row(
+            "SELECT COUNT(*) total,COALESCE(MAX(id),0) max_id,COALESCE(MAX(updated_at),'') max_updated
+             FROM {$table} WHERE active=1",
+            ARRAY_A
+        );
+        return hash('sha256',wp_json_encode(array(
+            absint($row['total'] ?? 0),
+            absint($row['max_id'] ?? 0),
+            (string)($row['max_updated'] ?? ''),
+        )));
+    }
+
+    private static function academy_source_signature() {
+        global $wpdb;
+        $table = self::runs_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) return '';
+        // Los runs son append-only en Academia. Se observa cualquier run nuevo,
+        // no sólo pass_*, porque una reevaluación posterior también puede retirar
+        // conocimiento que antes formaba parte del dossier.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna sin entrada de usuario.
+        $row = (array)$wpdb->get_row(
+            "SELECT COUNT(*) total,COALESCE(MAX(id),0) max_id FROM {$table}",
+            ARRAY_A
+        );
+        return hash('sha256',wp_json_encode(array(
+            absint($row['total'] ?? 0),
+            absint($row['max_id'] ?? 0),
+        )));
     }
 
     private static function curriculum_where() {
@@ -152,6 +193,36 @@ final class SEO_Solucionador_Dossiers {
         return self::valid_category_ids($ids);
     }
 
+    private static function faq_category_ids(array $row) {
+        $object_type = absint($row['object_type'] ?? 0);
+        $object_id = absint($row['object_id'] ?? 0);
+        if (!$object_type || !$object_id) return array();
+
+        if ($object_type === 2) {
+            return self::valid_category_ids(array($object_id));
+        }
+        if ($object_type === 3) {
+            return self::product_category_ids($object_id);
+        }
+
+        // Las FAQs de hubs/páginas no se expanden por parecido textual.
+        // Sólo entran cuando existe una product_cat demostrable.
+        return array();
+    }
+
+    private static function faq_item_hash(array $row, $category_id) {
+        return hash('sha256', wp_json_encode(array(
+            'origin'=>'faq',
+            'source_id'=>absint($row['id'] ?? $row['faq_id'] ?? 0),
+            'object_type'=>absint($row['object_type'] ?? 0),
+            'object_id'=>absint($row['object_id'] ?? 0),
+            'category_id'=>absint($category_id),
+            'question'=>sanitize_text_field((string)($row['question'] ?? '')),
+            'answer'=>trim(wp_strip_all_tags((string)($row['answer'] ?? ''))),
+            'updated_at'=>sanitize_text_field((string)($row['updated_at'] ?? '')),
+        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
     private static function fresh_state() {
         return array(
             'token'=>wp_generate_uuid4(),
@@ -163,8 +234,17 @@ final class SEO_Solucionador_Dossiers {
             'editorial_discarded'=>0,
             'learned_with_category'=>0,
             'learned_without_category'=>0,
+            'academy_complete'=>false,
+            'faq_cursor'=>0,
+            'faq_processed'=>0,
+            'faq_with_category'=>0,
+            'faq_without_category'=>0,
+            'faq_complete'=>false,
+            'faq_source_signature'=>'',
+            'academy_source_signature'=>'',
             'errors'=>0,
             'last_run_at'=>'',
+            'last_faq_at'=>'',
             'complete'=>false,
             'started_at'=>current_time('mysql'),
             'updated_at'=>current_time('mysql'),
@@ -183,15 +263,19 @@ final class SEO_Solucionador_Dossiers {
         update_option(self::STATE_OPTION, $state, false);
 
         // Al cambiar de política editorial no se mezclan IDs antiguos con el
-        // nuevo filtro. Se conserva el inventario de categorías, pero se vacía
-        // temporalmente su conocimiento hasta reconstruirlo desde Academia.
+        // nuevo contrato. Se conserva el inventario de categorías, pero se vacía
+        // temporalmente el material hasta reconstruirlo desde FAQ + Academia.
         $table = SEO_Solucionador_DB::dossiers_table();
         if (SEO_Solucionador_DB::table_exists($table)) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table es una tabla interna validada; valores variables usan placeholders compatibles con WP 5.8.
             $reset_sql = $wpdb->prepare(
                 "UPDATE {$table}
                  SET question_count=0,
+                     dependiente_count=0,
+                     faq_count=0,
                      question_ids='[]',
+                     faq_ids='[]',
+                     item_hashes='{}',
                      score_avg=0,
                      last_validated_at=NULL,
                      source_hash='',
@@ -208,7 +292,7 @@ final class SEO_Solucionador_Dossiers {
 
     /**
      * Garantiza un dossier ligero para TODAS las product_cat de WooCommerce.
-     * El conocimiento de Academia enriquece esos dossiers, pero nunca decide
+     * FAQ y Academia enriquecen esos dossiers, pero nunca deciden
      * si una categoría existe o no dentro de Solucionador.
      */
     public static function ensure_all_categories($token = '') {
@@ -268,6 +352,8 @@ final class SEO_Solucionador_Dossiers {
             $source_hash = hash('sha256', wp_json_encode(array(
                 'category_id'=>$term_id,
                 'question_ids'=>array(),
+                'faq_ids'=>array(),
+                'item_hashes'=>array(),
                 'score_avg'=>0,
                 'last_validated_at'=>'',
             )));
@@ -276,7 +362,10 @@ final class SEO_Solucionador_Dossiers {
                 'category_id'=>$term_id,
                 'category_name'=>$name,
                 'question_count'=>0,
+                'dependiente_count'=>0,
+                'faq_count'=>0,
                 'question_ids'=>'[]',
+                'faq_ids'=>'[]',
                 'score_avg'=>0,
                 'last_validated_at'=>null,
                 'source_hash'=>$source_hash,
@@ -299,11 +388,11 @@ final class SEO_Solucionador_Dossiers {
         return count($live_ids);
     }
 
-    private static function upsert_batch_dossier($term_id, array $question_ids, array $item_hashes, $score_sum, $last_validated_at, $token) {
+    private static function upsert_batch_dossier($term_id, array $dependiente_ids, array $faq_ids, array $item_hashes, $score_sum, $last_validated_at, $token) {
         global $wpdb;
         $table = SEO_Solucionador_DB::dossiers_table();
         $term_id = absint($term_id);
-        if (!$term_id || !$question_ids) return false;
+        if (!$term_id || (!$dependiente_ids && !$faq_ids)) return false;
 
         $term = get_term($term_id, 'product_cat');
         if (!$term || is_wp_error($term)) return false;
@@ -313,60 +402,82 @@ final class SEO_Solucionador_Dossiers {
             $term_id
         ), ARRAY_A);
 
-        $question_ids = array_values(array_unique(array_filter(array_map('absint', $question_ids))));
-        $previous_ids = array();
+        $dependiente_ids = array_values(array_unique(array_filter(array_map('absint', $dependiente_ids))));
+        $faq_ids = array_values(array_unique(array_filter(array_map('absint', $faq_ids))));
+        $previous_dependiente = array();
+        $previous_faq = array();
         $previous_item_hashes = array();
-        $previous_count = 0;
-        $previous_score_sum = 0.0;
+        $previous_dep_score_sum = 0.0;
 
-        if ($existing && (string) ($existing['scan_token'] ?? '') === (string) $token) {
-            $previous_ids = SEO_Solucionador_DB::decode_json($existing['question_ids'] ?? '[]', array());
-            $previous_ids = array_values(array_unique(array_filter(array_map('absint', (array) $previous_ids))));
+        if ($existing && (string)($existing['scan_token'] ?? '') === (string)$token) {
+            $previous_dependiente = array_values(array_unique(array_filter(array_map(
+                'absint',
+                (array) SEO_Solucionador_DB::decode_json($existing['question_ids'] ?? '[]', array())
+            ))));
+            $previous_faq = array_values(array_unique(array_filter(array_map(
+                'absint',
+                (array) SEO_Solucionador_DB::decode_json($existing['faq_ids'] ?? '[]', array())
+            ))));
             $previous_item_hashes = SEO_Solucionador_DB::decode_json($existing['item_hashes'] ?? '{}', array());
-            $previous_count = count($previous_ids);
-            $previous_score_sum = (float) ($existing['score_avg'] ?? 0) * $previous_count;
+            $previous_dep_score_sum = (float)($existing['score_avg'] ?? 0) * count($previous_dependiente);
         }
 
-        $merged_ids = array_values(array_unique(array_merge($previous_ids, $question_ids)));
-        sort($merged_ids, SORT_NUMERIC);
+        $merged_dependiente = array_values(array_unique(array_merge($previous_dependiente, $dependiente_ids)));
+        $merged_faq = array_values(array_unique(array_merge($previous_faq, $faq_ids)));
+        sort($merged_dependiente, SORT_NUMERIC);
+        sort($merged_faq, SORT_NUMERIC);
+
         $normalized_item_hashes = array();
-        foreach ($item_hashes as $qid=>$item_hash) {
-            $qid = absint($qid);
-            $item_hash = sanitize_text_field((string) $item_hash);
-            if ($qid && $item_hash !== '') $normalized_item_hashes[(string) $qid] = $item_hash;
+        foreach ($item_hashes as $item_key=>$item_hash) {
+            $item_key = sanitize_text_field((string)$item_key);
+            $item_hash = sanitize_text_field((string)$item_hash);
+            if (preg_match('/^(dependiente|faq):[0-9]+$/', $item_key) && $item_hash !== '') {
+                $normalized_item_hashes[$item_key] = $item_hash;
+            }
         }
-        $merged_item_hashes = array_merge((array) $previous_item_hashes, $normalized_item_hashes);
-        ksort($merged_item_hashes, SORT_NUMERIC);
-        $new_only_count = max(0, count($merged_ids) - $previous_count);
-        $combined_score_sum = $previous_score_sum + (float) $score_sum;
-        $count = count($merged_ids);
-        $avg = $count > 0 ? min(1, max(0, $combined_score_sum / max(1, $previous_count + $new_only_count))) : 0;
-        $last = (string) $last_validated_at;
-        if ($existing && (string) ($existing['scan_token'] ?? '') === (string) $token) {
-            $old_last = (string) ($existing['last_validated_at'] ?? '');
+        $merged_item_hashes = array_merge((array)$previous_item_hashes, $normalized_item_hashes);
+        ksort($merged_item_hashes, SORT_STRING);
+
+        $new_dependiente_count = max(0, count($merged_dependiente) - count($previous_dependiente));
+        $dep_count = count($merged_dependiente);
+        $faq_count = count($merged_faq);
+        $total_count = $dep_count + $faq_count;
+        $combined_score_sum = $previous_dep_score_sum + (float)$score_sum;
+        $avg = $dep_count > 0 ? min(1, max(0, $combined_score_sum / max(1, count($previous_dependiente) + $new_dependiente_count))) : 0;
+
+        $last = (string)$last_validated_at;
+        if ($existing && (string)($existing['scan_token'] ?? '') === (string)$token) {
+            $old_last = (string)($existing['last_validated_at'] ?? '');
             if ($old_last > $last) $last = $old_last;
         }
 
         $hash = hash('sha256', wp_json_encode(array(
             'category_id'=>$term_id,
-            'question_ids'=>$merged_ids,
+            'dependiente_ids'=>$merged_dependiente,
+            'faq_ids'=>$merged_faq,
             'item_hashes'=>$merged_item_hashes,
             'score_avg'=>round($avg,4),
             'last_validated_at'=>$last,
-        )));
+        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
         $now = current_time('mysql');
         $data = array(
-            'category_name'=>sanitize_text_field((string) $term->name),
-            'question_count'=>$count,
-            'question_ids'=>wp_json_encode($merged_ids),
+            'category_name'=>sanitize_text_field((string)$term->name),
+            'question_count'=>$total_count,
+            'dependiente_count'=>$dep_count,
+            'faq_count'=>$faq_count,
+            'question_ids'=>wp_json_encode($merged_dependiente),
+            'faq_ids'=>wp_json_encode($merged_faq),
             'item_hashes'=>wp_json_encode($merged_item_hashes),
             'score_avg'=>round($avg,4),
             'last_validated_at'=>$last !== '' ? $last : null,
             'source_hash'=>$hash,
             'editorial_status'=>($existing && !empty($existing['reviewed_hash']) && (string)$existing['reviewed_hash'] !== $hash)
                 ? SEO_Editorial_Service_Contract::NEEDS_UPDATE
-                : (($existing && !empty($existing['editorial_status'])) ? SEO_Editorial_Service_Contract::normalize($existing['editorial_status']) : SEO_Editorial_Service_Contract::READY_FOR_REVIEW),
-            'scan_token'=>(string) $token,
+                : (($existing && !empty($existing['editorial_status']))
+                    ? SEO_Editorial_Service_Contract::normalize($existing['editorial_status'])
+                    : SEO_Editorial_Service_Contract::READY_FOR_REVIEW),
+            'scan_token'=>(string)$token,
             'updated_at'=>$now,
         );
 
@@ -385,8 +496,12 @@ final class SEO_Solucionador_Dossiers {
 
         $questions = self::questions_table();
         $runs = self::runs_table();
-        if (!SEO_Solucionador_DB::table_exists($questions) || !SEO_Solucionador_DB::table_exists($runs)) {
-            return new WP_Error('solucionador_academia_missing', 'No están disponibles las tablas de Academia/Entrenador.');
+        $faq_table = self::faq_table();
+        $academy_available = SEO_Solucionador_DB::table_exists($questions) && SEO_Solucionador_DB::table_exists($runs);
+        $faq_available = SEO_Solucionador_DB::table_exists($faq_table);
+
+        if (!$academy_available && !$faq_available) {
+            return new WP_Error('solucionador_sources_missing', 'No están disponibles ni Academia/Entrenador ni la tabla de FAQs.');
         }
 
         $limit = max(25, min(500, absint($limit)));
@@ -395,42 +510,44 @@ final class SEO_Solucionador_Dossiers {
             $reset
             || !$state
             || empty($state['token'])
-            || (string) ($state['editorial_policy'] ?? '') !== self::EDITORIAL_POLICY_VERSION
+            || (string)($state['editorial_policy'] ?? '') !== self::EDITORIAL_POLICY_VERSION
         ) {
             $state = self::reset_scan();
         }
 
-        $cursor = absint($state['cursor'] ?? 0);
-        $where = self::curriculum_where();
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y filtro curricular son internos; cursor y límite se enlazan mediante placeholders.
-        $scan_sql = $wpdb->prepare(
-            "SELECT
-                q.id question_id,q.lesson_key,q.lesson_order,q.module_no,
-                q.source_type,q.source_id,q.source_key,q.question_type,q.mode,
-                q.question,q.expected_json,
-                r.id run_id,r.status run_status,r.evaluation_status,
-                r.evaluation_score,r.created_at run_created_at
-             FROM {$questions} q
-             LEFT JOIN (
-                SELECT question_id,MAX(id) latest_run_id
-                FROM {$runs}
-                WHERE question_id IS NOT NULL
-                GROUP BY question_id
-             ) latest ON latest.question_id=q.id
-             LEFT JOIN {$runs} r ON r.id=latest.latest_run_id
-             WHERE {$where} AND q.id>%d
-             ORDER BY q.id ASC
-             LIMIT %d",
-            $cursor,
-            $limit
-        );
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $scan_sql es el resultado de $wpdb->prepare().
-        $rows = (array) $wpdb->get_results($scan_sql, ARRAY_A);
-
         $batch_by_category = array();
-        $last_cursor = $cursor;
 
+        // Fuente 1: Dependiente/Entrenador. Sólo conocimiento realmente aprendido pass_*.
+        $cursor = absint($state['cursor'] ?? 0);
+        $rows = array();
+        if ($academy_available && empty($state['academy_complete'])) {
+            $where = self::curriculum_where();
+            $scan_sql = $wpdb->prepare(
+                "SELECT
+                    q.id question_id,q.lesson_key,q.lesson_order,q.module_no,
+                    q.source_type,q.source_id,q.source_key,q.question_type,q.mode,
+                    q.question,q.expected_json,
+                    r.id run_id,r.status run_status,r.evaluation_status,
+                    r.evaluation_score,r.created_at run_created_at
+                 FROM {$questions} q
+                 LEFT JOIN (
+                    SELECT question_id,MAX(id) latest_run_id
+                    FROM {$runs}
+                    WHERE question_id IS NOT NULL
+                    GROUP BY question_id
+                 ) latest ON latest.question_id=q.id
+                 LEFT JOIN {$runs} r ON r.id=latest.latest_run_id
+                 WHERE {$where} AND q.id>%d
+                 ORDER BY q.id ASC
+                 LIMIT %d",
+                $cursor,
+                $limit
+            );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado; tablas/filtro internos.
+            $rows = (array)$wpdb->get_results($scan_sql, ARRAY_A);
+        }
+
+        $last_cursor = $cursor;
         foreach ($rows as $row) {
             $question_id = absint($row['question_id'] ?? 0);
             if ($question_id > $last_cursor) $last_cursor = $question_id;
@@ -441,10 +558,9 @@ final class SEO_Solucionador_Dossiers {
                 $state['last_run_at'] = $run_at;
             }
 
-            $learned = (string) ($row['run_status'] ?? '') === 'answered'
-                && strpos((string) ($row['evaluation_status'] ?? ''), 'pass_') === 0;
+            $learned = (string)($row['run_status'] ?? '') === 'answered'
+                && strpos((string)($row['evaluation_status'] ?? ''), 'pass_') === 0;
             if (!$learned) continue;
-
             $state['learned'] = absint($state['learned'] ?? 0) + 1;
 
             $editorial_value = self::editorial_question_value($row);
@@ -469,37 +585,104 @@ final class SEO_Solucionador_Dossiers {
             $state['learned_with_category'] = absint($state['learned_with_category'] ?? 0) + 1;
             foreach ($category_ids as $term_id) {
                 if (!isset($batch_by_category[$term_id])) {
-                    $batch_by_category[$term_id] = array('ids'=>array(),'item_hashes'=>array(),'score_sum'=>0.0,'last'=>'');
+                    $batch_by_category[$term_id] = array(
+                        'dependiente_ids'=>array(),'faq_ids'=>array(),'item_hashes'=>array(),
+                        'score_sum'=>0.0,'last'=>''
+                    );
                 }
-                $batch_by_category[$term_id]['ids'][] = $question_id;
-                $batch_by_category[$term_id]['item_hashes'][(string)$question_id] = hash('sha256', wp_json_encode(array(
-                    'question'=>sanitize_text_field((string)($row['question'] ?? '')),
-                    'question_type'=>sanitize_key((string)($row['question_type'] ?? '')),
-                    'source_type'=>sanitize_key((string)($row['source_type'] ?? '')),
-                    'source_id'=>absint($row['source_id'] ?? 0),
-                    'source_key'=>sanitize_text_field((string)($row['source_key'] ?? '')),
-                    'expected_json'=>(string)($row['expected_json'] ?? ''),
-                    'run_id'=>absint($row['run_id'] ?? 0),
-                    'evaluation_status'=>sanitize_key((string)($row['evaluation_status'] ?? '')),
-                    'evaluation_score'=>round((float)($row['evaluation_score'] ?? 0),4),
-                )));
-                $batch_by_category[$term_id]['score_sum'] += max(0,min(1,(float) ($row['evaluation_score'] ?? 0)));
-                $observed = sanitize_text_field((string) ($row['run_created_at'] ?? ''));
-                if ($observed > $batch_by_category[$term_id]['last']) {
-                    $batch_by_category[$term_id]['last'] = $observed;
-                }
+                $batch_by_category[$term_id]['dependiente_ids'][] = $question_id;
+                $batch_by_category[$term_id]['item_hashes']['dependiente:' . $question_id] = hash(
+                    'sha256',
+                    wp_json_encode(array(
+                        'origin'=>'dependiente',
+                        'question'=>sanitize_text_field((string)($row['question'] ?? '')),
+                        'question_type'=>sanitize_key((string)($row['question_type'] ?? '')),
+                        'source_type'=>sanitize_key((string)($row['source_type'] ?? '')),
+                        'source_id'=>absint($row['source_id'] ?? 0),
+                        'source_key'=>sanitize_text_field((string)($row['source_key'] ?? '')),
+                        'expected_json'=>(string)($row['expected_json'] ?? ''),
+                        'run_id'=>absint($row['run_id'] ?? 0),
+                        'evaluation_status'=>sanitize_key((string)($row['evaluation_status'] ?? '')),
+                        'evaluation_score'=>round((float)($row['evaluation_score'] ?? 0),4),
+                        'category_id'=>absint($term_id),
+                    ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+                $batch_by_category[$term_id]['score_sum'] += max(0,min(1,(float)($row['evaluation_score'] ?? 0)));
+                if ($run_at > $batch_by_category[$term_id]['last']) $batch_by_category[$term_id]['last'] = $run_at;
             }
         }
+        $state['cursor'] = $last_cursor;
+        if (!$academy_available || count($rows) < $limit) $state['academy_complete'] = true;
+
+        // Fuente 2: FAQ manual activa. Es editorialmente válida para Solucionador
+        // aunque Dependiente nunca la haya aprendido.
+        $faq_cursor = absint($state['faq_cursor'] ?? 0);
+        $faq_rows = array();
+        if ($faq_available && empty($state['faq_complete'])) {
+            $faq_sql = $wpdb->prepare(
+                "SELECT id,object_type,object_id,question,answer,created_at,updated_at
+                 FROM {$faq_table}
+                 WHERE active=1 AND id>%d
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $faq_cursor,
+                $limit
+            );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado; tabla interna.
+            $faq_rows = (array)$wpdb->get_results($faq_sql, ARRAY_A);
+        }
+
+        $last_faq_cursor = $faq_cursor;
+        foreach ($faq_rows as $faq) {
+            $faq_id = absint($faq['id'] ?? 0);
+            if (!$faq_id) continue;
+            if ($faq_id > $last_faq_cursor) $last_faq_cursor = $faq_id;
+            $state['faq_processed'] = absint($state['faq_processed'] ?? 0) + 1;
+
+            $question = trim(wp_strip_all_tags((string)($faq['question'] ?? '')));
+            $answer = trim(wp_strip_all_tags((string)($faq['answer'] ?? '')));
+            if ($question === '' || $answer === '') continue;
+
+            try {
+                $category_ids = self::faq_category_ids($faq);
+            } catch (Throwable $e) {
+                $state['errors'] = absint($state['errors'] ?? 0) + 1;
+                continue;
+            }
+            if (!$category_ids) {
+                $state['faq_without_category'] = absint($state['faq_without_category'] ?? 0) + 1;
+                continue;
+            }
+
+            $state['faq_with_category'] = absint($state['faq_with_category'] ?? 0) + 1;
+            $faq_at = sanitize_text_field((string)($faq['updated_at'] ?? $faq['created_at'] ?? ''));
+            if ($faq_at > (string)($state['last_faq_at'] ?? '')) $state['last_faq_at'] = $faq_at;
+
+            foreach ($category_ids as $term_id) {
+                if (!isset($batch_by_category[$term_id])) {
+                    $batch_by_category[$term_id] = array(
+                        'dependiente_ids'=>array(),'faq_ids'=>array(),'item_hashes'=>array(),
+                        'score_sum'=>0.0,'last'=>''
+                    );
+                }
+                $batch_by_category[$term_id]['faq_ids'][] = $faq_id;
+                $batch_by_category[$term_id]['item_hashes']['faq:' . $faq_id] = self::faq_item_hash($faq,$term_id);
+                if ($faq_at > $batch_by_category[$term_id]['last']) $batch_by_category[$term_id]['last'] = $faq_at;
+            }
+        }
+        $state['faq_cursor'] = $last_faq_cursor;
+        if (!$faq_available || count($faq_rows) < $limit) $state['faq_complete'] = true;
 
         foreach ($batch_by_category as $term_id=>$batch) {
             try {
                 $saved = self::upsert_batch_dossier(
                     $term_id,
-                    (array) $batch['ids'],
-                    (array) $batch['item_hashes'],
-                    (float) $batch['score_sum'],
-                    (string) $batch['last'],
-                    (string) $state['token']
+                    (array)$batch['dependiente_ids'],
+                    (array)$batch['faq_ids'],
+                    (array)$batch['item_hashes'],
+                    (float)$batch['score_sum'],
+                    (string)$batch['last'],
+                    (string)$state['token']
                 );
                 if ($saved && class_exists('SEO_Solucionador_Posts') && method_exists('SEO_Solucionador_Posts','sync_category_post')) {
                     SEO_Solucionador_Posts::sync_category_post($term_id);
@@ -509,20 +692,15 @@ final class SEO_Solucionador_Dossiers {
             }
         }
 
-        $state['cursor'] = $last_cursor;
         $state['updated_at'] = current_time('mysql');
-
-        if (count($rows) < $limit) {
-            $state['complete'] = true;
+        $state['complete'] = !empty($state['academy_complete']) && !empty($state['faq_complete']);
+        if (!empty($state['complete'])) {
             $state['completed_at'] = current_time('mysql');
-            $table = SEO_Solucionador_DB::dossiers_table();
-            $wpdb->query($wpdb->prepare(
-                "DELETE FROM {$table} WHERE scan_token<>%s",
-                (string) $state['token']
-            ));
+            $state['faq_source_signature'] = self::faq_source_signature();
+            $state['academy_source_signature'] = self::academy_source_signature();
         }
 
-        update_option(self::STATE_OPTION, $state, false);
+        update_option(self::STATE_OPTION,$state,false);
         return self::snapshot();
     }
 
@@ -530,17 +708,30 @@ final class SEO_Solucionador_Dossiers {
         global $wpdb;
         $state = self::state();
         $table = SEO_Solucionador_DB::dossiers_table();
+        $current_faq_signature = self::faq_source_signature();
+        $current_academy_signature = self::academy_source_signature();
+        $source_changed = !empty($state['complete']) && (
+            ((string)($state['faq_source_signature'] ?? '') !== '' && (string)$state['faq_source_signature'] !== $current_faq_signature)
+            || ((string)($state['academy_source_signature'] ?? '') !== '' && (string)$state['academy_source_signature'] !== $current_academy_signature)
+        );
 
-        // Solucionador inventaría TODAS las product_cat. Academia solo aporta
-        // preguntas y respuestas; nunca filtra qué categorías aparecen.
-        self::ensure_all_categories((string) ($state['token'] ?? ''));
+        // Solucionador inventaría TODAS las product_cat. FAQ y Academia enriquecen
+        // el mismo dossier, pero no deciden qué categorías existen.
+        self::ensure_all_categories((string)($state['token'] ?? ''));
 
         $categories_with = SEO_Solucionador_DB::table_exists($table)
             ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE question_count>0"))
             : 0;
-        $questions_in_dossiers = SEO_Solucionador_DB::table_exists($table)
+        $items_in_dossiers = SEO_Solucionador_DB::table_exists($table)
             ? absint($wpdb->get_var("SELECT COALESCE(SUM(question_count),0) FROM {$table}"))
             : 0;
+        $dependiente_in_dossiers = SEO_Solucionador_DB::table_exists($table)
+            ? absint($wpdb->get_var("SELECT COALESCE(SUM(dependiente_count),0) FROM {$table}"))
+            : 0;
+        $faq_in_dossiers = SEO_Solucionador_DB::table_exists($table)
+            ? absint($wpdb->get_var("SELECT COALESCE(SUM(faq_count),0) FROM {$table}"))
+            : 0;
+
         $categories_total = wp_count_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
         $categories_total = is_wp_error($categories_total) ? 0 : absint($categories_total);
 
@@ -548,35 +739,52 @@ final class SEO_Solucionador_Dossiers {
         if (SEO_Solucionador_DB::table_exists(self::questions_table())) {
             $questions_table = self::questions_table();
             $curriculum_where = self::curriculum_where();
-            $questions_sql = "SELECT COUNT(*) FROM {$questions_table} q WHERE {$curriculum_where}";
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla y filtro curricular son internos y no contienen entrada de usuario.
-            $questions_total = absint($wpdb->get_var($questions_sql));
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla y filtro internos.
+            $questions_total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$questions_table} q WHERE {$curriculum_where}"));
         }
 
+        $faqs_total = SEO_Solucionador_DB::table_exists(self::faq_table())
+            ? absint($wpdb->get_var("SELECT COUNT(*) FROM " . self::faq_table() . " WHERE active=1"))
+            : 0;
+
         return array(
-            'available'=>SEO_Solucionador_DB::table_exists(self::questions_table()) && SEO_Solucionador_DB::table_exists(self::runs_table()),
+            'available'=>SEO_Solucionador_DB::table_exists(self::faq_table())
+                || (SEO_Solucionador_DB::table_exists(self::questions_table()) && SEO_Solucionador_DB::table_exists(self::runs_table())),
             'questions_total'=>$questions_total,
-            'scan_token'=>(string) ($state['token'] ?? ''),
+            'faqs_total'=>$faqs_total,
+            'scan_token'=>(string)($state['token'] ?? ''),
             'cursor'=>absint($state['cursor'] ?? 0),
+            'faq_cursor'=>absint($state['faq_cursor'] ?? 0),
             'scan_complete'=>!empty($state['complete']),
+            'source_changed'=>$source_changed,
+            'faq_source_signature'=>$current_faq_signature,
+            'academy_source_signature'=>$current_academy_signature,
+            'academy_complete'=>!empty($state['academy_complete']),
+            'faq_complete'=>!empty($state['faq_complete']),
             'processed'=>absint($state['processed'] ?? 0),
             'learned'=>absint($state['learned'] ?? 0),
             'not_learned'=>max(0,absint($state['processed'] ?? 0)-absint($state['learned'] ?? 0)),
-            'editorial_policy'=>(string) ($state['editorial_policy'] ?? ''),
+            'faq_processed'=>absint($state['faq_processed'] ?? 0),
+            'editorial_policy'=>(string)($state['editorial_policy'] ?? ''),
             'editorial_eligible'=>absint($state['editorial_eligible'] ?? 0),
             'editorial_discarded'=>absint($state['editorial_discarded'] ?? 0),
             'learned_with_category'=>absint($state['learned_with_category'] ?? 0),
             'learned_without_category'=>absint($state['learned_without_category'] ?? 0),
+            'faq_with_category'=>absint($state['faq_with_category'] ?? 0),
+            'faq_without_category'=>absint($state['faq_without_category'] ?? 0),
             'categories_with_knowledge'=>$categories_with,
             'categories_total'=>$categories_total,
             'categories_without_knowledge'=>max(0,$categories_total-$categories_with),
-            'questions_in_dossiers'=>$questions_in_dossiers,
-            'avg_questions_per_category'=>$categories_with ? round($questions_in_dossiers/$categories_with,2) : 0,
+            'questions_in_dossiers'=>$items_in_dossiers,
+            'dependiente_in_dossiers'=>$dependiente_in_dossiers,
+            'faq_in_dossiers'=>$faq_in_dossiers,
+            'avg_questions_per_category'=>$categories_with ? round($items_in_dossiers/$categories_with,2) : 0,
             'errors'=>absint($state['errors'] ?? 0),
-            'last_run_at'=>(string) ($state['last_run_at'] ?? ''),
-            'started_at'=>(string) ($state['started_at'] ?? ''),
-            'updated_at'=>(string) ($state['updated_at'] ?? ''),
-            'completed_at'=>(string) ($state['completed_at'] ?? ''),
+            'last_run_at'=>(string)($state['last_run_at'] ?? ''),
+            'last_faq_at'=>(string)($state['last_faq_at'] ?? ''),
+            'started_at'=>(string)($state['started_at'] ?? ''),
+            'updated_at'=>(string)($state['updated_at'] ?? ''),
+            'completed_at'=>(string)($state['completed_at'] ?? ''),
         );
     }
 
@@ -633,7 +841,7 @@ final class SEO_Solucionador_Dossiers {
         );
     }
 
-    public static function changed_item_ids($category_id) {
+    public static function changed_item_keys($category_id) {
         $dossier = self::get_by_category($category_id);
         if (!$dossier) return array();
 
@@ -641,41 +849,46 @@ final class SEO_Solucionador_Dossiers {
         $reviewed = SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}', array());
         $changed = array();
 
-        foreach ((array) $current as $question_id=>$item_hash) {
-            $question_id = absint($question_id);
-            if (!$question_id) continue;
-            if (!isset($reviewed[(string)$question_id]) || (string)$reviewed[(string)$question_id] !== (string)$item_hash) {
-                $changed[] = $question_id;
+        foreach ((array)$current as $item_key=>$item_hash) {
+            $item_key = sanitize_text_field((string)$item_key);
+            if (!preg_match('/^(dependiente|faq):[0-9]+$/', $item_key)) continue;
+            if (!isset($reviewed[$item_key]) || (string)$reviewed[$item_key] !== (string)$item_hash) {
+                $changed[] = $item_key;
             }
         }
-        sort($changed, SORT_NUMERIC);
+        sort($changed, SORT_STRING);
         return array_values(array_unique($changed));
     }
 
-    public static function review_item_ids($category_id, array $question_ids) {
+    public static function changed_item_ids($category_id) {
+        $ids = array();
+        foreach (self::changed_item_keys($category_id) as $key) {
+            if (strpos($key,'dependiente:') === 0) $ids[] = absint(substr($key,12));
+        }
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    public static function review_item_keys($category_id, array $item_keys) {
         $category_id = absint($category_id);
         $dossier = self::get_by_category($category_id);
         if (!$dossier) return false;
 
         $current = SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}', array());
         $reviewed = SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}', array());
-        $question_ids = array_values(array_unique(array_filter(array_map('absint', $question_ids))));
-        if (!$question_ids) return false;
 
-        foreach ($question_ids as $question_id) {
-            $key = (string) $question_id;
-            if (isset($current[$key])) {
-                $reviewed[$key] = (string) $current[$key];
-            }
+        foreach ($item_keys as $item_key) {
+            $item_key = sanitize_text_field((string)$item_key);
+            if (!preg_match('/^(dependiente|faq):[0-9]+$/', $item_key)) continue;
+            if (isset($current[$item_key])) $reviewed[$item_key] = (string)$current[$item_key];
         }
-        ksort($reviewed, SORT_NUMERIC);
+        ksort($reviewed, SORT_STRING);
 
         $remaining = array();
-        foreach ((array) $current as $question_id=>$item_hash) {
-            $key = (string) absint($question_id);
-            if ($key === '0') continue;
-            if (!isset($reviewed[$key]) || (string)$reviewed[$key] !== (string)$item_hash) {
-                $remaining[] = absint($question_id);
+        foreach ((array)$current as $item_key=>$item_hash) {
+            $item_key = sanitize_text_field((string)$item_key);
+            if (!preg_match('/^(dependiente|faq):[0-9]+$/', $item_key)) continue;
+            if (!isset($reviewed[$item_key]) || (string)$reviewed[$item_key] !== (string)$item_hash) {
+                $remaining[] = $item_key;
             }
         }
 
@@ -695,6 +908,14 @@ final class SEO_Solucionador_Dossiers {
             'editorial_status'=>$editorial_status,
             'reviewed_at'=>current_time('mysql'),
         ));
+    }
+
+    public static function review_item_ids($category_id, array $question_ids) {
+        $keys = array();
+        foreach (array_values(array_unique(array_filter(array_map('absint',$question_ids)))) as $question_id) {
+            $keys[] = 'dependiente:' . $question_id;
+        }
+        return self::review_item_keys($category_id,$keys);
     }
 
     public static function clear_rejection($category_id) {
@@ -733,62 +954,125 @@ final class SEO_Solucionador_Dossiers {
         $dossier = self::get_by_category($category_id);
         if (!$dossier) return array();
 
-        $ids = SEO_Solucionador_DB::decode_json($dossier['question_ids'] ?? '[]', array());
-        $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
-        if (!$ids) return array();
-        $ids = array_slice($ids,0,500);
-
-        $questions = self::questions_table();
-        $runs = self::runs_table();
-        $placeholders = implode(',', array_fill(0,count($ids),'%d'));
-
-        $sql = "SELECT
-                    q.id question_id,q.question,q.question_type,q.lesson_key,
-                    q.source_type,q.source_id,q.source_key,q.expected_json,
-                    r.id run_id,r.status run_status,r.search_strategy,
-                    r.evaluation_status,r.evaluation_score,r.evaluation_json,
-                    r.top_results,r.response_meta,r.created_at observed_at
-                FROM {$questions} q
-                INNER JOIN (
-                    SELECT question_id,MAX(id) latest_run_id
-                    FROM {$runs}
-                    WHERE question_id IS NOT NULL
-                    GROUP BY question_id
-                ) latest ON latest.question_id=q.id
-                INNER JOIN {$runs} r ON r.id=latest.latest_run_id
-                WHERE q.id IN ({$placeholders})
-                  AND r.status='answered'
-                  AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_'
-                ORDER BY q.lesson_order ASC,q.id ASC";
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y lista de placeholders %d generada localmente; IDs enlazados mediante $wpdb->prepare().
-        $prepared_sql = $wpdb->prepare($sql,$ids);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
-        $rows = (array) $wpdb->get_results($prepared_sql,ARRAY_A);
         $out = array();
-        foreach ($rows as $row) {
-            $editorial_value = self::editorial_question_value($row);
-            if (empty($editorial_value['eligible'])) continue;
 
-            $out[] = array(
-                'question_id'=>absint($row['question_id'] ?? 0),
-                'question'=>sanitize_text_field((string) ($row['question'] ?? '')),
-                'question_type'=>sanitize_key((string) ($row['question_type'] ?? '')),
-                'editorial_value'=>(string) ($editorial_value['reason'] ?? 'practical_customer_value'),
-                'lesson_key'=>sanitize_key((string) ($row['lesson_key'] ?? '')),
-                'source_type'=>sanitize_key((string) ($row['source_type'] ?? '')),
-                'source_id'=>absint($row['source_id'] ?? 0) ?: null,
-                'source_key'=>sanitize_text_field((string) ($row['source_key'] ?? '')),
-                'expected'=>self::decode($row['expected_json'] ?? ''),
-                'evaluation_status'=>sanitize_key((string) ($row['evaluation_status'] ?? '')),
-                'evaluation_score'=>max(0,min(1,(float) ($row['evaluation_score'] ?? 0))),
-                'evaluation'=>self::decode($row['evaluation_json'] ?? ''),
-                'top_results'=>array_values(array_slice(self::decode($row['top_results'] ?? ''),0,12)),
-                'response_meta'=>self::decode($row['response_meta'] ?? ''),
-                'search_strategy'=>sanitize_key((string) ($row['search_strategy'] ?? '')),
-                'observed_at'=>sanitize_text_field((string) ($row['observed_at'] ?? '')),
-            );
+        $ids = array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array)SEO_Solucionador_DB::decode_json($dossier['question_ids'] ?? '[]', array())
+        ))));
+        if ($ids && SEO_Solucionador_DB::table_exists(self::questions_table()) && SEO_Solucionador_DB::table_exists(self::runs_table())) {
+            $ids = array_slice($ids,0,500);
+            $questions = self::questions_table();
+            $runs = self::runs_table();
+            $placeholders = implode(',', array_fill(0,count($ids),'%d'));
+            $sql = "SELECT
+                        q.id question_id,q.question,q.question_type,q.lesson_key,
+                        q.source_type,q.source_id,q.source_key,q.expected_json,
+                        r.id run_id,r.status run_status,r.search_strategy,
+                        r.evaluation_status,r.evaluation_score,r.evaluation_json,
+                        r.top_results,r.response_meta,r.created_at observed_at
+                    FROM {$questions} q
+                    INNER JOIN (
+                        SELECT question_id,MAX(id) latest_run_id
+                        FROM {$runs}
+                        WHERE question_id IS NOT NULL
+                        GROUP BY question_id
+                    ) latest ON latest.question_id=q.id
+                    INNER JOIN {$runs} r ON r.id=latest.latest_run_id
+                    WHERE q.id IN ({$placeholders})
+                      AND r.status='answered'
+                      AND LEFT(COALESCE(r.evaluation_status,''),5)='pass_'
+                    ORDER BY q.lesson_order ASC,q.id ASC";
+            $prepared_sql = $wpdb->prepare($sql,$ids);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado con IDs enteros.
+            $rows = (array)$wpdb->get_results($prepared_sql,ARRAY_A);
+
+            foreach ($rows as $row) {
+                $editorial_value = self::editorial_question_value($row);
+                if (empty($editorial_value['eligible'])) continue;
+                $question_id = absint($row['question_id'] ?? 0);
+                $out[] = array(
+                    'origin'=>'dependiente',
+                    'item_key'=>'dependiente:' . $question_id,
+                    'question_id'=>$question_id,
+                    'faq_id'=>0,
+                    'question'=>sanitize_text_field((string)($row['question'] ?? '')),
+                    'answer'=>'',
+                    'question_type'=>sanitize_key((string)($row['question_type'] ?? '')),
+                    'editorial_value'=>(string)($editorial_value['reason'] ?? 'practical_customer_value'),
+                    'lesson_key'=>sanitize_key((string)($row['lesson_key'] ?? '')),
+                    'source_type'=>sanitize_key((string)($row['source_type'] ?? '')),
+                    'source_id'=>absint($row['source_id'] ?? 0) ?: null,
+                    'source_key'=>sanitize_text_field((string)($row['source_key'] ?? '')),
+                    'expected'=>self::decode($row['expected_json'] ?? ''),
+                    'evaluation_status'=>sanitize_key((string)($row['evaluation_status'] ?? '')),
+                    'evaluation_score'=>max(0,min(1,(float)($row['evaluation_score'] ?? 0))),
+                    'evaluation'=>self::decode($row['evaluation_json'] ?? ''),
+                    'top_results'=>array_values(array_slice(self::decode($row['top_results'] ?? ''),0,12)),
+                    'response_meta'=>self::decode($row['response_meta'] ?? ''),
+                    'search_strategy'=>sanitize_key((string)($row['search_strategy'] ?? '')),
+                    'observed_at'=>sanitize_text_field((string)($row['observed_at'] ?? '')),
+                    'category_id'=>absint($category_id),
+                );
+            }
         }
+
+        $faq_ids = array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array)SEO_Solucionador_DB::decode_json($dossier['faq_ids'] ?? '[]', array())
+        ))));
+        if ($faq_ids && SEO_Solucionador_DB::table_exists(self::faq_table())) {
+            $faq_ids = array_slice($faq_ids,0,500);
+            $faq_table = self::faq_table();
+            $placeholders = implode(',',array_fill(0,count($faq_ids),'%d'));
+            $sql = "SELECT id,object_type,object_id,question,answer,created_at,updated_at
+                    FROM {$faq_table}
+                    WHERE active=1 AND id IN ({$placeholders})
+                    ORDER BY sort_order ASC,id ASC";
+            $prepared_sql = $wpdb->prepare($sql,$faq_ids);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado con IDs enteros.
+            $faq_rows = (array)$wpdb->get_results($prepared_sql,ARRAY_A);
+
+            foreach ($faq_rows as $row) {
+                $faq_id = absint($row['id'] ?? 0);
+                $category_ids = self::faq_category_ids($row);
+                if (!$faq_id || !in_array(absint($category_id),$category_ids,true)) continue;
+
+                $source_hash = self::faq_item_hash($row,$category_id);
+                $out[] = array(
+                    'origin'=>'faq',
+                    'item_key'=>'faq:' . $faq_id,
+                    'question_id'=>0,
+                    'faq_id'=>$faq_id,
+                    'question'=>sanitize_text_field((string)($row['question'] ?? '')),
+                    'answer'=>trim(wp_strip_all_tags((string)($row['answer'] ?? ''))),
+                    'question_type'=>'faq_manual',
+                    'editorial_value'=>'manual_editorial_knowledge',
+                    'lesson_key'=>'',
+                    'source_type'=>'faq',
+                    'source_id'=>$faq_id,
+                    'source_key'=>'faq:' . $faq_id,
+                    'source_hash'=>$source_hash,
+                    'object_type'=>absint($row['object_type'] ?? 0),
+                    'object_id'=>absint($row['object_id'] ?? 0),
+                    'category_id'=>absint($category_id),
+                    'evaluation_status'=>'manual_source',
+                    'evaluation_score'=>1.0,
+                    'evaluation'=>array(),
+                    'top_results'=>array(),
+                    'response_meta'=>array(),
+                    'search_strategy'=>'',
+                    'observed_at'=>sanitize_text_field((string)($row['updated_at'] ?? $row['created_at'] ?? '')),
+                );
+            }
+        }
+
+        usort($out,static function($a,$b){
+            $oa=(string)($a['origin'] ?? '');
+            $ob=(string)($b['origin'] ?? '');
+            if ($oa !== $ob) return $oa === 'faq' ? -1 : 1;
+            return strcasecmp((string)($a['question'] ?? ''),(string)($b['question'] ?? ''));
+        });
         return $out;
     }
 
@@ -798,6 +1082,10 @@ final class SEO_Solucionador_Dossiers {
      * response_meta / evaluation guardados por Academia.
      */
     public static function answer_text(array $detail) {
+        if (sanitize_key((string)($detail['origin'] ?? '')) === 'faq') {
+            return trim(wp_strip_all_tags((string)($detail['answer'] ?? '')));
+        }
+
         $parts = array();
 
         foreach (array_slice((array) ($detail['top_results'] ?? array()), 0, 3) as $result) {
@@ -853,22 +1141,26 @@ final class SEO_Solucionador_Dossiers {
         $out = array();
         foreach (self::rows($limit,$after_id) as $row) {
             $term_id = absint($row['category_id'] ?? 0);
-            $name = trim((string) ($row['category_name'] ?? ''));
+            $name = trim((string)($row['category_name'] ?? ''));
             $count = absint($row['question_count'] ?? 0);
             if (!$term_id || $name === '' || !$count) continue;
-            $ids = SEO_Solucionador_DB::decode_json($row['question_ids'] ?? '[]',array());
+
+            $dependiente_ids = SEO_Solucionador_DB::decode_json($row['question_ids'] ?? '[]',array());
+            $faq_ids = SEO_Solucionador_DB::decode_json($row['faq_ids'] ?? '[]',array());
+            $dependiente_count = absint($row['dependiente_count'] ?? count((array)$dependiente_ids));
+            $faq_count = absint($row['faq_count'] ?? count((array)$faq_ids));
 
             $out[] = array(
                 'dossier_id'=>absint($row['id'] ?? 0),
                 'source_type'=>'dependiente',
                 'proposal_role'=>'origin',
-                'source_id'=>'academy-category:' . $term_id,
-                'signal_type'=>'learned_category_dossier',
+                'source_id'=>'mixed-category:' . $term_id,
+                'signal_type'=>'faq_dependiente_category_dossier',
                 'entity_type'=>'product_cat',
                 'entity_id'=>$term_id,
                 'category_id'=>$term_id,
                 'category_name'=>$name,
-                'source_text'=>'Preguntas habituales sobre ' . $name . ': conocimiento aprendido por Dependiente.',
+                'source_text'=>'Dossier editorial sobre ' . $name . ': FAQs manuales y conocimiento realmente aprendido por Dependiente.',
                 'hints'=>array(
                     'intent'=>'dependiente_qa_basic',
                     'action'=>'resolver',
@@ -876,20 +1168,26 @@ final class SEO_Solucionador_Dossiers {
                     'category_id'=>$term_id,
                 ),
                 'occurrences'=>$count,
-                'confidence'=>max(0.60,min(1.0,(float) ($row['score_avg'] ?? 0.90))),
+                'confidence'=>$dependiente_count > 0
+                    ? max(0.60,min(1.0,(float)($row['score_avg'] ?? 0.90)))
+                    : 0.90,
                 'evidence_score'=>1.00,
-                'observed_at'=>(string) ($row['last_validated_at'] ?? current_time('mysql')),
+                'observed_at'=>(string)($row['last_validated_at'] ?? current_time('mysql')),
                 'source_meta'=>array(
                     'proposal_role'=>'origin',
-                    'dependiente_channel'=>'academy_learned_dossier',
+                    'dependiente_channel'=>'faq_dependiente_dossier',
                     'editorial_family'=>'dependiente_qa_basic',
                     'dossier_id'=>absint($row['id'] ?? 0),
                     'category_id'=>$term_id,
                     'category_name'=>$name,
                     'question_count'=>$count,
-                    'question_ids'=>array_values(array_filter(array_map('absint',(array) $ids))),
-                    'source_hash'=>(string) ($row['source_hash'] ?? ''),
-                    'last_validated_at'=>(string) ($row['last_validated_at'] ?? ''),
+                    'dependiente_count'=>$dependiente_count,
+                    'faq_count'=>$faq_count,
+                    'question_ids'=>array_values(array_filter(array_map('absint',(array)$dependiente_ids))),
+                    'faq_ids'=>array_values(array_filter(array_map('absint',(array)$faq_ids))),
+                    'origins'=>array('dependiente'=>$dependiente_count,'faq'=>$faq_count),
+                    'source_hash'=>(string)($row['source_hash'] ?? ''),
+                    'last_validated_at'=>(string)($row['last_validated_at'] ?? ''),
                 ),
             );
         }

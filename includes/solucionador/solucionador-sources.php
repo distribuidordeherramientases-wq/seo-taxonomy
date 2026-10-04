@@ -451,8 +451,8 @@ final class SEO_Solucionador_Sources {
     }
 
     public static function dependiente($days = 180, $limit = 1600) {
-        // Desde v0.5.0 el único origen editorial es el dossier persistido de
-        // Academia. El search_log deja de originar temas independientes.
+        // Compatibilidad: devuelve el dossier persistido conjunto. La parte FAQ
+        // ya llega directamente a ese dossier y no depende de Academia.
         if (class_exists('SEO_Solucionador_Dossiers')) {
             return SEO_Solucionador_Dossiers::signals(min(500,max(1,absint($limit))),0);
         }
@@ -652,15 +652,16 @@ final class SEO_Solucionador_Sources {
     }
 
     public static function editorial_source_contract() {
-        return array('dependiente_academia');
+        return array('faq','dependiente_academia');
     }
 
     public static function all($days = 180, $limit = 100, $after_dossier_id = 0) {
-        // Arquitectura separada v0.5.0:
-        // Academia/Entrenador es el único origen editorial de Solucionador.
+        // Arquitectura 0.7:
+        // FAQ manual y Academia/Entrenador son orígenes editoriales independientes
+        // que convergen en un único dossier persistido por product_cat.
         // Ingeniero, Ojeador, Comparador, Clasificador, Marketing, Comentarista,
         // Auditor y Analista mantienen sus procesos editoriales independientes.
-        // Los detalles pesados de las preguntas se cargan sólo al abrir el brief.
+        // Los detalles pesados se cargan sólo al abrir el brief.
         if (!class_exists('SEO_Solucionador_Dossiers')) return array();
         return self::normalize_rows(
             SEO_Solucionador_Dossiers::signals(

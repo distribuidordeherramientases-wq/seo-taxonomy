@@ -176,7 +176,10 @@ final class SEO_Solucionador_DB {
             category_id BIGINT UNSIGNED NOT NULL,
             category_name VARCHAR(255) NOT NULL,
             question_count INT UNSIGNED NOT NULL DEFAULT 0,
+            dependiente_count INT UNSIGNED NOT NULL DEFAULT 0,
+            faq_count INT UNSIGNED NOT NULL DEFAULT 0,
             question_ids LONGTEXT NULL,
+            faq_ids LONGTEXT NULL,
             score_avg DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
             last_validated_at DATETIME NULL,
             source_hash CHAR(64) NOT NULL DEFAULT '',
@@ -198,6 +201,8 @@ final class SEO_Solucionador_DB {
             KEY reviewed_hash (reviewed_hash),
             KEY editorial_status (editorial_status),
             KEY question_count (question_count),
+            KEY dependiente_count (dependiente_count),
+            KEY faq_count (faq_count),
             KEY last_validated_at (last_validated_at)
         ) {$collate};";
 
@@ -768,6 +773,7 @@ final class SEO_Solucionador_DB {
         $out = array(
             'total' => 0,
             'dependiente' => 0,
+            'faq' => 0,
             'comentarista' => 0,
             'analista' => 0,
             'auditor' => 0,
@@ -780,11 +786,24 @@ final class SEO_Solucionador_DB {
             'negative_feedback' => 0,
         );
         foreach ($rows as $row) {
-            $type = sanitize_key((string) ($row['source_type'] ?? ''));
-            $count = max(1, absint($row['occurrences'] ?? 1));
-            $out['total'] += $count;
-            if (isset($out[$type])) $out[$type] += $count;
-            $meta = (array) ($row['source_meta_decoded'] ?? array());
+            $type = sanitize_key((string)($row['source_type'] ?? ''));
+            $count = max(1,absint($row['occurrences'] ?? 1));
+            $meta = (array)($row['source_meta_decoded'] ?? array());
+
+            // El dossier mixto mantiene source_type=dependiente por compatibilidad
+            // con topics históricos, pero sus orígenes se contabilizan separados.
+            $origins = (array)($meta['origins'] ?? array());
+            if ($type === 'dependiente' && $origins) {
+                $dep = absint($origins['dependiente'] ?? 0);
+                $faq = absint($origins['faq'] ?? 0);
+                $out['dependiente'] += $dep;
+                $out['faq'] += $faq;
+                $out['total'] += max(1,$dep+$faq);
+            } else {
+                $out['total'] += $count;
+                if (isset($out[$type])) $out[$type] += $count;
+            }
+
             $out['zero_results'] += absint($meta['zero_results'] ?? 0);
             $out['negative_feedback'] += absint($meta['negative_feedback'] ?? 0);
         }

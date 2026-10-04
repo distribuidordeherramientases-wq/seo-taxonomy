@@ -4,7 +4,7 @@
  *
  * El inventario/dossier interno es la fuente de verdad. El post_content recibe
  * una copia editorial legible para trabajarla; editar esa copia nunca modifica
- * ni sustituye la trazabilidad interna de preguntas y runs.
+ * ni sustituye la trazabilidad interna de FAQs, preguntas y runs.
  */
 
 defined('ABSPATH') || exit;
@@ -15,14 +15,17 @@ final class SEO_Solucionador_Posts {
     const META_CONTENT_ROLE = '_seo_solucionador_content_role';
     const META_DOSSIER_CATEGORY_ID = '_seo_solucionador_dossier_category_id';
     const META_QUESTION_IDS = '_seo_solucionador_question_ids';
+    const META_FAQ_IDS = '_seo_solucionador_faq_ids';
     const META_RUN_IDS = '_seo_solucionador_run_ids';
     const META_SOURCE_HASH = '_seo_solucionador_source_hash';
     const META_SOURCE_SNAPSHOT = '_seo_solucionador_source_snapshot';
     const META_ITEM_HASHES = '_seo_solucionador_item_hashes';
     const META_PENDING_QUESTION_IDS = '_seo_solucionador_pending_question_ids';
+    const META_PENDING_ITEM_KEYS = '_seo_solucionador_pending_item_keys';
     const META_PENDING_SOURCE_HASH = '_seo_solucionador_pending_source_hash';
     const META_PENDING_DETECTED_AT = '_seo_solucionador_pending_detected_at';
     const META_PENDING_SELECTED_IDS = '_seo_solucionador_pending_selected_ids';
+    const META_PENDING_SELECTED_KEYS = '_seo_solucionador_pending_selected_keys';
 
     public static function init() {
         add_action('transition_post_status', array(__CLASS__, 'transition_post_status'), 10, 3);
@@ -207,26 +210,38 @@ final class SEO_Solucionador_Posts {
             : array();
 
         $question_ids = array();
+        $faq_ids = array();
         $run_ids = array();
+        $item_keys = array();
+        $origins = array('faq'=>0,'dependiente'=>0);
+
         foreach ($details as $row) {
+            $origin = sanitize_key((string)($row['origin'] ?? 'dependiente'));
             $qid = absint($row['question_id'] ?? 0);
+            $fid = absint($row['faq_id'] ?? 0);
             $rid = absint($row['run_id'] ?? 0);
+            $item_key = sanitize_text_field((string)($row['item_key'] ?? ''));
+
             if ($qid) $question_ids[] = $qid;
+            if ($fid) $faq_ids[] = $fid;
             if ($rid) $run_ids[] = $rid;
+            if (preg_match('/^(dependiente|faq):[0-9]+$/',$item_key)) $item_keys[] = $item_key;
+            if (isset($origins[$origin])) $origins[$origin]++;
         }
-        $question_ids = array_values(array_unique($question_ids));
-        $run_ids = array_values(array_unique($run_ids));
 
         return array(
             'dossier_id'=>absint($dossier['id'] ?? 0),
             'category_id'=>absint($category_id),
-            'category_name'=>(string) ($dossier['category_name'] ?? ''),
-            'question_ids'=>$question_ids,
-            'run_ids'=>$run_ids,
-            'question_count'=>count($question_ids),
-            'source_hash'=>(string) ($dossier['source_hash'] ?? ''),
+            'category_name'=>(string)($dossier['category_name'] ?? ''),
+            'question_ids'=>array_values(array_unique($question_ids)),
+            'faq_ids'=>array_values(array_unique($faq_ids)),
+            'run_ids'=>array_values(array_unique($run_ids)),
+            'item_keys'=>array_values(array_unique($item_keys)),
+            'question_count'=>count($details),
+            'origins'=>$origins,
+            'source_hash'=>(string)($dossier['source_hash'] ?? ''),
             'item_hashes'=>SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}', array()),
-            'last_validated_at'=>(string) ($dossier['last_validated_at'] ?? ''),
+            'last_validated_at'=>(string)($dossier['last_validated_at'] ?? ''),
             'captured_at'=>current_time('mysql'),
         );
     }
@@ -238,8 +253,9 @@ final class SEO_Solucionador_Posts {
         $ok = true;
         $writes = array(
             self::META_DOSSIER_CATEGORY_ID => absint($snapshot['category_id'] ?? 0),
-            self::META_QUESTION_IDS => array_values((array) ($snapshot['question_ids'] ?? array())),
-            self::META_RUN_IDS => array_values((array) ($snapshot['run_ids'] ?? array())),
+            self::META_QUESTION_IDS => array_values((array)($snapshot['question_ids'] ?? array())),
+            self::META_FAQ_IDS => array_values((array)($snapshot['faq_ids'] ?? array())),
+            self::META_RUN_IDS => array_values((array)($snapshot['run_ids'] ?? array())),
             self::META_SOURCE_HASH => (string) ($snapshot['source_hash'] ?? ''),
             self::META_ITEM_HASHES => (array) ($snapshot['item_hashes'] ?? array()),
             self::META_SOURCE_SNAPSHOT => $snapshot,
@@ -278,17 +294,44 @@ final class SEO_Solucionador_Posts {
         return self::managed_post_id_by_category($category_id);
     }
 
-    public static function pending_question_ids($post_id) {
+    private static function normalize_item_keys(array $keys) {
+        $out = array();
+        foreach ($keys as $key) {
+            $key = sanitize_text_field((string)$key);
+            if (preg_match('/^(dependiente|faq):[0-9]+$/',$key)) $out[] = $key;
+        }
+        $out = array_values(array_unique($out));
+        sort($out,SORT_STRING);
+        return $out;
+    }
+
+    public static function pending_item_keys($post_id) {
         $post_id = absint($post_id);
         if (!$post_id) return array();
-        return array_values(array_unique(array_filter(array_map(
+
+        $keys = self::normalize_item_keys((array)get_post_meta($post_id,self::META_PENDING_ITEM_KEYS,true));
+        if ($keys) return $keys;
+
+        // Compatibilidad con borradores 0.6: los IDs antiguos eran siempre
+        // preguntas de Dependiente.
+        $legacy = array_values(array_unique(array_filter(array_map(
             'absint',
-            (array) get_post_meta($post_id,self::META_PENDING_QUESTION_IDS,true)
+            (array)get_post_meta($post_id,self::META_PENDING_QUESTION_IDS,true)
         ))));
+        foreach ($legacy as $question_id) $keys[] = 'dependiente:' . $question_id;
+        return self::normalize_item_keys($keys);
+    }
+
+    public static function pending_question_ids($post_id) {
+        $ids = array();
+        foreach (self::pending_item_keys($post_id) as $key) {
+            if (strpos($key,'dependiente:') === 0) $ids[] = absint(substr($key,12));
+        }
+        return array_values(array_unique(array_filter($ids)));
     }
 
     public static function pending_question_count($post_id) {
-        return count(self::pending_question_ids($post_id));
+        return count(self::pending_item_keys($post_id));
     }
 
     public static function pending_question_details($post_id) {
@@ -296,29 +339,32 @@ final class SEO_Solucionador_Posts {
         $category_id = absint(get_post_meta($post_id,self::META_DOSSIER_CATEGORY_ID,true));
         if (!$post_id || !$category_id) return array();
 
-        $pending = self::pending_question_ids($post_id);
+        $pending = self::pending_item_keys($post_id);
         if (!$pending) return array();
         $lookup = array_fill_keys($pending,true);
 
         return array_values(array_filter(
             self::question_details($category_id),
             static function($row) use ($lookup) {
-                return !empty($lookup[absint($row['question_id'] ?? 0)]);
+                $key = sanitize_text_field((string)($row['item_key'] ?? ''));
+                return $key !== '' && !empty($lookup[$key]);
             }
         ));
     }
 
     private static function clear_pending_questions($post_id) {
         delete_post_meta($post_id,self::META_PENDING_QUESTION_IDS);
+        delete_post_meta($post_id,self::META_PENDING_ITEM_KEYS);
         delete_post_meta($post_id,self::META_PENDING_SOURCE_HASH);
         delete_post_meta($post_id,self::META_PENDING_DETECTED_AT);
         delete_post_meta($post_id,self::META_PENDING_SELECTED_IDS);
+        delete_post_meta($post_id,self::META_PENDING_SELECTED_KEYS);
     }
 
     /**
-     * Cuando Academia aprende preguntas nuevas para una categoría que ya tiene
-     * post gestionado, NO se modifica post_content. Se guardan como novedades
-     * pendientes para que la Editora decida qué incorporar.
+     * Si cambia una FAQ o Dependiente aprende material nuevo para una categoría
+     * con post gestionado, NO se modifica post_content. Se exponen las novedades
+     * a Editora para decidir qué incorporar.
      */
     public static function sync_category_post($category_id) {
         $category_id = absint($category_id);
@@ -326,27 +372,34 @@ final class SEO_Solucionador_Posts {
         if (!$post_id) return false;
 
         $dossier = class_exists('SEO_Solucionador_Dossiers')
-            ? (array) SEO_Solucionador_Dossiers::get_by_category($category_id)
+            ? (array)SEO_Solucionador_Dossiers::get_by_category($category_id)
             : array();
         if (!$dossier) return 0;
 
-        $changed_ids = class_exists('SEO_Solucionador_Dossiers')
-            ? SEO_Solucionador_Dossiers::changed_item_ids($category_id)
-            : array();
+        $changed_keys = class_exists('SEO_Solucionador_Dossiers')
+            && method_exists('SEO_Solucionador_Dossiers','changed_item_keys')
+            ? SEO_Solucionador_Dossiers::changed_item_keys($category_id)
+            : array_map(static function($id){ return 'dependiente:' . absint($id); },
+                (array)SEO_Solucionador_Dossiers::changed_item_ids($category_id));
 
-        $old_pending = self::pending_question_ids($post_id);
-        sort($old_pending,SORT_NUMERIC);
-        $pending_ids = array_values(array_unique(array_filter(array_map('absint',(array)$changed_ids))));
-        sort($pending_ids,SORT_NUMERIC);
+        $old_pending = self::pending_item_keys($post_id);
+        $pending_keys = self::normalize_item_keys((array)$changed_keys);
 
-        if (!$pending_ids) {
+        if (!$pending_keys) {
             self::clear_pending_questions($post_id);
             return 0;
         }
 
-        update_post_meta($post_id,self::META_PENDING_QUESTION_IDS,$pending_ids);
+        update_post_meta($post_id,self::META_PENDING_ITEM_KEYS,$pending_keys);
+        // Compatibilidad para integraciones antiguas que sólo entienden qids.
+        $legacy_qids = array();
+        foreach ($pending_keys as $key) {
+            if (strpos($key,'dependiente:') === 0) $legacy_qids[] = absint(substr($key,12));
+        }
+        update_post_meta($post_id,self::META_PENDING_QUESTION_IDS,array_values(array_filter($legacy_qids)));
         update_post_meta($post_id,self::META_PENDING_SOURCE_HASH,(string)($dossier['source_hash'] ?? ''));
         update_post_meta($post_id,self::META_PENDING_DETECTED_AT,current_time('mysql'));
+
         SEO_Solucionador_DB::update_dossier_editorial($category_id,array(
             'editorial_status'=>SEO_Editorial_Service_Contract::NEEDS_UPDATE,
         ));
@@ -356,18 +409,18 @@ final class SEO_Solucionador_Posts {
             SEO_Solucionador_DB::update_topic($topic_id,array(
                 'workflow_state'=>'needs_update',
                 'recommended_action'=>'IMPROVE_POST',
-                'decision_reason'=>'El dossier contiene elementos nuevos o modificados desde la ultima revision editorial.',
+                'decision_reason'=>'El dossier contiene FAQs o conocimiento de Dependiente nuevos/modificados desde la última revisión editorial.',
             ));
-            if ($old_pending !== $pending_ids) {
+            if ($old_pending !== $pending_keys) {
                 SEO_Solucionador_DB::record_workflow(
                     $topic_id,
                     'needs_update',
-                    'El source_hash ha cambiado. Se muestran exclusivamente preguntas nuevas o modificadas; el contenido publicado no se altera automaticamente.',
+                    'El source_hash mixto ha cambiado. Se muestran exclusivamente elementos FAQ/Dependiente nuevos o modificados; el contenido publicado no se altera automáticamente.',
                     'IMPROVE_POST'
                 );
             }
         }
-        return count($pending_ids);
+        return count($pending_keys);
     }
 
     public static function refresh_pending_for_post($post_id) {
@@ -380,50 +433,65 @@ final class SEO_Solucionador_Posts {
         return is_wp_error($result) ? $result : absint($result);
     }
 
-    public static function apply_pending_selection($post_id, array $selected_ids, array $reviewed_ids) {
+    public static function apply_pending_selection($post_id, array $selected_keys, array $reviewed_keys) {
         $post_id = absint($post_id);
         $category_id = absint(get_post_meta($post_id,self::META_DOSSIER_CATEGORY_ID,true));
         if (!$post_id || !$category_id || get_post_type($post_id) !== 'post') {
             return new WP_Error('solucionador_post_invalid','El post no pertenece a un dossier válido de Solucionador.');
         }
 
-        $pending = self::pending_question_ids($post_id);
+        $pending = self::pending_item_keys($post_id);
         $pending_lookup = array_fill_keys($pending,true);
-        $selected_ids = array_values(array_unique(array_filter(array_map('absint',$selected_ids))));
-        $reviewed_ids = array_values(array_unique(array_filter(array_map('absint',$reviewed_ids))));
-        $selected_ids = array_values(array_filter($selected_ids, static function($id) use ($pending_lookup) {
-            return !empty($pending_lookup[$id]);
+        $selected_keys = self::normalize_item_keys($selected_keys);
+        $reviewed_keys = self::normalize_item_keys($reviewed_keys);
+        $selected_keys = array_values(array_filter($selected_keys,static function($key) use ($pending_lookup){
+            return !empty($pending_lookup[$key]);
         }));
-        $reviewed_ids = array_values(array_filter($reviewed_ids, static function($id) use ($pending_lookup) {
-            return !empty($pending_lookup[$id]);
+        $reviewed_keys = array_values(array_filter($reviewed_keys,static function($key) use ($pending_lookup){
+            return !empty($pending_lookup[$key]);
         }));
 
-        update_post_meta($post_id,self::META_PENDING_SELECTED_IDS,$selected_ids);
+        update_post_meta($post_id,self::META_PENDING_SELECTED_KEYS,$selected_keys);
 
-        if ($reviewed_ids && class_exists('SEO_Solucionador_Dossiers')) {
-            SEO_Solucionador_Dossiers::review_item_ids($category_id,$reviewed_ids);
+        // Mantener IDs antiguos sólo para preguntas Dependiente.
+        $legacy_selected = array();
+        foreach ($selected_keys as $key) {
+            if (strpos($key,'dependiente:') === 0) $legacy_selected[] = absint(substr($key,12));
+        }
+        update_post_meta($post_id,self::META_PENDING_SELECTED_IDS,array_values(array_filter($legacy_selected)));
+
+        if ($reviewed_keys && class_exists('SEO_Solucionador_Dossiers')) {
+            SEO_Solucionador_Dossiers::review_item_keys($category_id,$reviewed_keys);
         }
 
         self::sync_category_post($category_id);
 
         return array(
-            'selected_ids'=>$selected_ids,
-            'remaining_ids'=>self::pending_question_ids($post_id),
+            'selected_keys'=>$selected_keys,
+            'remaining_keys'=>self::pending_item_keys($post_id),
         );
     }
 
     public static function selected_pending_details($post_id) {
-        $selected = array_values(array_unique(array_filter(array_map(
-            'absint',
-            (array)get_post_meta($post_id,self::META_PENDING_SELECTED_IDS,true)
-        ))));
+        $selected = self::normalize_item_keys((array)get_post_meta(
+            absint($post_id),
+            self::META_PENDING_SELECTED_KEYS,
+            true
+        ));
+        if (!$selected) {
+            foreach ((array)get_post_meta(absint($post_id),self::META_PENDING_SELECTED_IDS,true) as $id) {
+                $id = absint($id);
+                if ($id) $selected[] = 'dependiente:' . $id;
+            }
+            $selected = self::normalize_item_keys($selected);
+        }
         if (!$selected) return array();
 
         $lookup = array_fill_keys($selected,true);
         return array_values(array_filter(
             self::pending_question_details($post_id),
             static function($row) use ($lookup) {
-                return !empty($lookup[absint($row['question_id'] ?? 0)]);
+                return !empty($lookup[sanitize_text_field((string)($row['item_key'] ?? ''))]);
             }
         ));
     }
@@ -471,11 +539,12 @@ final class SEO_Solucionador_Posts {
 
         $pending = self::pending_question_details($post_id);
         $count = count($pending);
-        $selected_ids = array_values(array_unique(array_filter(array_map(
-            'absint',
-            (array)get_post_meta($post_id,self::META_PENDING_SELECTED_IDS,true)
-        ))));
-        $selected_lookup = array_fill_keys($selected_ids,true);
+        $selected_keys = self::normalize_item_keys((array)get_post_meta(
+            $post_id,
+            self::META_PENDING_SELECTED_KEYS,
+            true
+        ));
+        $selected_lookup = array_fill_keys($selected_keys,true);
         $detected_at = (string) get_post_meta($post_id,self::META_PENDING_DETECTED_AT,true);
         $update_state = sanitize_key((string)($_GET['sol_update'] ?? ''));
 
@@ -527,19 +596,25 @@ final class SEO_Solucionador_Posts {
 
             echo '<div style="max-height:460px;overflow:auto;border-top:1px solid #dcdcde;padding-top:10px">';
             foreach ($pending as $row) {
-                $question_id = absint($row['question_id'] ?? 0);
+                $item_key = sanitize_text_field((string)($row['item_key'] ?? ''));
                 $question = trim((string)($row['question'] ?? ''));
-                if (!$question_id || $question === '') continue;
+                if (!preg_match('/^(dependiente|faq):[0-9]+$/',$item_key) || $question === '') continue;
                 $answer = class_exists('SEO_Solucionador_Dossiers')
                     ? SEO_Solucionador_Dossiers::answer_text((array)$row)
                     : '';
-                $checked = isset($selected_lookup[$question_id]) || !$selected_ids;
+                $checked = isset($selected_lookup[$item_key]) || !$selected_keys;
                 echo '<label style="display:block;padding:10px 0;border-bottom:1px solid #f0f0f1">';
                 echo '<div style="display:flex;gap:10px;align-items:flex-start">';
-                echo '<input type="checkbox" name="selected_ids[]" value="' . esc_attr($question_id) . '"' . checked($checked,true,false) . ' style="margin-top:3px">';
+                echo '<input type="checkbox" name="selected_keys[]" value="' . esc_attr($item_key) . '"' . checked($checked,true,false) . ' style="margin-top:3px">';
                 echo '<div><strong>' . esc_html($question) . '</strong>';
                 if ($answer !== '') echo '<div style="margin-top:5px;line-height:1.55">' . esc_html($answer) . '</div>';
                 $trace = array();
+                $origin = sanitize_key((string)($row['origin'] ?? 'dependiente'));
+                if ($origin === 'faq') {
+                    $trace[] = 'FAQ manual #' . absint($row['faq_id'] ?? 0);
+                } else {
+                    $trace[] = 'Academia/Dependiente';
+                }
                 if (!empty($row['lesson_key'])) $trace[] = 'lección ' . (string)$row['lesson_key'];
                 if (!empty($row['question_type'])) $trace[] = 'tipo ' . (string)$row['question_type'];
                 if (!empty($row['evaluation_status'])) {
@@ -547,16 +622,16 @@ final class SEO_Solucionador_Posts {
                     $trace[] = 'validación ' . (string)$row['evaluation_status'] . $score;
                 }
                 if (!empty($row['observed_at'])) $trace[] = 'observada ' . (string)$row['observed_at'];
-                if ($trace) echo '<div class="description" style="margin-top:5px">Origen: Academia/Dependiente · ' . esc_html(implode(' · ',$trace)) . '</div>';
+                if ($trace) echo '<div class="description" style="margin-top:5px">Origen: ' . esc_html(implode(' · ',$trace)) . '</div>';
                 echo '</div></div></label>';
             }
             echo '</div>';
             echo '</form>';
 
             $selected_details = self::selected_pending_details($post_id);
-            if (!$selected_details && !$selected_ids) $selected_details = $pending;
+            if (!$selected_details && !$selected_keys) $selected_details = $pending;
             if ($selected_details) {
-                $insert_html = '<h2>Nuevas preguntas de Solucionador</h2><ul>';
+                $insert_html = '<h2>Nuevo material de Solucionador</h2><ul>';
                 foreach ($selected_details as $row) {
                     $question = trim((string)($row['question'] ?? ''));
                     if ($question === '') continue;
@@ -749,21 +824,36 @@ final class SEO_Solucionador_Posts {
     }
 
     private static function build_editorial_brief($topic_id, array $topic, $category_id, array $details) {
-        $html = '<ul>';
-
+        $groups = array('faq'=>array(),'dependiente'=>array());
         foreach ($details as $row) {
-            $question = trim((string) ($row['question'] ?? ''));
-            if ($question === '') continue;
-            $answer = class_exists('SEO_Solucionador_Dossiers')
-                ? SEO_Solucionador_Dossiers::answer_text((array) $row)
-                : '';
-
-            $html .= '<li><strong>' . esc_html($question) . '</strong><br>';
-            $html .= esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.');
-            $html .= '</li>';
+            $origin = sanitize_key((string)($row['origin'] ?? 'dependiente'));
+            if (!isset($groups[$origin])) $origin = 'dependiente';
+            $groups[$origin][] = $row;
         }
 
-        return $html . '</ul>';
+        $html = '<p><em>Material interno de trabajo para Editora. No publicar literalmente sin revisión editorial.</em></p>';
+
+        $sections = array(
+            'faq'=>'FAQs editoriales',
+            'dependiente'=>'Entrevista a Dependiente',
+        );
+        foreach ($sections as $origin=>$label) {
+            if (empty($groups[$origin])) continue;
+            $html .= '<h2>' . esc_html($label) . '</h2><ul>';
+            foreach ($groups[$origin] as $row) {
+                $question = trim((string)($row['question'] ?? ''));
+                if ($question === '') continue;
+                $answer = class_exists('SEO_Solucionador_Dossiers')
+                    ? SEO_Solucionador_Dossiers::answer_text((array)$row)
+                    : '';
+                $html .= '<li><strong>' . esc_html($question) . '</strong><br>';
+                $html .= esc_html($answer !== '' ? $answer : 'Sin respuesta legible almacenada.');
+                $html .= '</li>';
+            }
+            $html .= '</ul>';
+        }
+
+        return $html;
     }
 
     public static function create_draft($topic_id, $human_override = false) {
@@ -843,7 +933,7 @@ final class SEO_Solucionador_Posts {
             wp_delete_post($post_id,true);
             return new WP_Error(
                 'solucionador_source_snapshot',
-                'No se pudo conservar la trazabilidad interna dossier/post/preguntas/runs.'
+                'No se pudo conservar la trazabilidad interna dossier/post/FAQs/preguntas/runs.'
             );
         }
 

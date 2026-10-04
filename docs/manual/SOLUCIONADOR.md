@@ -13,11 +13,10 @@
 Solucionador tiene un único cometido editorial:
 
 ~~~text
-Academia / Entrenador
-        ↓
+FAQ manual ───────────────┐
+                           ├──→ dossier único por product_cat
+Academia / Entrenador ─────┘
 preguntas aprendidas pass_*
-        ↓
-dossier básico por product_cat
         ↓
 cobertura editorial
         ↓
@@ -34,44 +33,45 @@ Solucionador **no** es el concentrador de todos los servicios.
 
 Los procesos editoriales quedan separados:
 
-- **Dependiente / Academia → Solucionador**: contenido básico de preguntas habituales.
+- **FAQ manual → Solucionador**: pregunta + respuesta editorial activa, sin depender de Dependiente.
+- **Dependiente / Academia → Solucionador**: preguntas realmente aprendidas y validadas `pass_*`.
 - **Ingeniero → proceso editorial propio**: contenido técnico especializado.
 - **Ojeador → Comparador**: contenido comparativo.
 - **Analista**: medición global.
 
 Solucionador no investiga, no consulta Internet, no compara mercado, no redacta contenido técnico, no ejecuta Google Shopping y no abre conexiones propias a GSC/GA4/Bing.
 
-## Entrada editorial única
+## Dos entradas editoriales independientes
 
-La materia prima editorial procede de Academia/Entrenador.
+Solucionador recibe material por dos caminos que no dependen entre sí.
+
+### FAQ manual
+
+Tabla fuente:
+
+- `seo_faq`
+
+Una FAQ entra directamente cuando está activa, conserva pregunta y respuesta y puede resolverse a una `product_cat` demostrable. No necesita haber sido aprendida por Dependiente. El dossier conserva su `object_type/object_id`, `category_id`, `source_id` y `source_hash`.
+
+Enviar la misma FAQ al formulario de Academia es opcional y sirve exclusivamente para mejorar el conocimiento de Dependiente.
+
+### Dependiente / Academia
 
 Tablas fuente:
 
 - `seo_dependiente_trainer_questions`
 - `seo_dependiente_trainer_runs`
 
-Una pregunta entra en Solucionador únicamente cuando:
+Una pregunta de Entrenador entra cuando:
 
-1. está activa;
-2. pertenece al currículo;
-3. su último run está `answered`;
-4. `evaluation_status` empieza por `pass_`.
+1. pertenece al currículo activo;
+2. su último run está `answered`;
+3. `evaluation_status` empieza por `pass_*`;
+4. pasa el filtro editorial que elimina preguntas definitorias/catalogales triviales.
 
-Se conserva como contexto:
+Se conserva como contexto la pregunta, tipo, lección, origen, expected, evaluación, resultados internos, metadatos y fecha del último run.
 
-- question;
-- question_type;
-- lesson_key;
-- source_type/source_id/source_key;
-- expected_json;
-- evaluation_status;
-- evaluation_score;
-- evaluation_json;
-- top_results;
-- response_meta;
-- fecha del último run.
-
-Los resultados internos de Academia son evidencia para Editora. **No se publican literalmente.**
+FAQs y resultados internos de Academia son material para Editora. **Solucionador nunca los publica automáticamente ni obliga a conservar el formato pregunta-respuesta.**
 
 ## Asociación con product_cat
 
@@ -82,17 +82,14 @@ Resolución admitida:
 - `kind=category` → category_id;
 - `kind=product` → producto → product_cat;
 - `kind=features` → source_product_id → product_cat;
-- `kind=faq`, owner_type=2 → product_cat;
-- `kind=faq`, owner_type=3 → producto → product_cat;
+- FAQ directa `object_type=2` → product_cat;
+- FAQ directa `object_type=3` → producto → product_cat;
+- preguntas de Academia con origen FAQ mantienen la resolución histórica equivalente;
 - source_type category/product cuando la relación es inequívoca.
 
 No se infiere una categoría por parecido textual.
 
-Una pregunta aprendida sin product_cat demostrable:
-
-- no crea dossier;
-- no crea URL;
-- permanece contabilizada en el KPI **Aprendidas sin categoría**.
+Un elemento sin product_cat demostrable no crea URL. Dependiente queda contabilizado como **Aprendido sin categoría** y FAQ como **FAQ sin categoría**.
 
 ## Dossier por categoría
 
@@ -106,21 +103,25 @@ El dossier persiste sólo información ligera:
 
 - category_id;
 - category_name;
-- question_count;
+- question_count total;
+- dependiente_count;
+- faq_count;
 - question_ids;
-- score_avg;
-- last_validated_at;
-- source_hash;
+- faq_ids;
+- item_hashes con claves `dependiente:ID` / `faq:ID`;
+- score_avg de la evidencia Dependiente;
+- last_validated_at / última actualización de fuente;
+- source_hash conjunto;
 - scan_token;
 - fechas.
 
 No guarda una copia gigante de `top_results`, `evaluation_json` o `response_meta`.
 
-Esos detalles se recuperan **bajo demanda** mediante `SEO_Solucionador_Dossiers::question_details()` al abrir el brief.
+Los detalles se recuperan **bajo demanda** mediante `SEO_Solucionador_Dossiers::question_details()`. Cada elemento conserva `origin=faq|dependiente`; una FAQ aporta además su respuesta, object_type/object_id, category_id, source_id y source_hash.
 
 ## Procesamiento por lotes
 
-El escaneo de Academia es reanudable.
+El escaneo mixto de FAQ y Academia es reanudable y mantiene cursores independientes.
 
 Estado persistente:
 
@@ -239,10 +240,10 @@ La prioridad sirve para ordenar dossiers, no sustituye los gates.
 
 Componentes actuales:
 
-- preguntas aprendidas;
+- material editorial FAQ + Dependiente;
 - encaje con product_cat/catálogo;
 - hueco de cobertura;
-- confianza de Academia;
+- confianza técnica/contextual;
 - penalización por duplicación.
 
 No utiliza amplitud de mercado, prioridades de Marketing ni conocimiento técnico de Ingeniero.
@@ -275,19 +276,16 @@ La navegación diaria de Solucionador queda reducida a tres vistas:
 Cobertura, Vocabulary, workflow, evidencias, tests y diagnóstico técnico siguen disponibles para el motor como infraestructura interna, pero no forman parte de la interfaz operativa.
 ## Brief para Editora
 
-Al abrir un dossier, Solucionador recupera bajo demanda las preguntas y resultados internos.
+Al abrir un dossier, Solucionador recupera bajo demanda las dos fuentes y las muestra separadas:
 
-El contenido visible para Editora se reduce a:
+- **FAQ**: pregunta + respuesta manual + trazabilidad del objeto/categoría;
+- **Dependiente**: pregunta aprendida + respuesta/evidencia interna + validación `pass_*`.
 
-- título propuesto;
-- preguntas aprendidas;
-- respuesta legible de Dependiente para cada pregunta.
-
-La evidencia técnica completa sigue guardada internamente y no se muestra en el flujo diario.
+Los repetidos entre ambas fuentes no bloquean el dossier: Editora puede eliminar, fusionar o sintetizar.
 
 Regla editorial:
 
-> Editora redacta. Solucionador no publica literalmente las respuestas internas de Academia.
+> Editora redacta. El dossier es una entrevista/biblioteca interna; Solucionador no publica literalmente FAQ ni respuestas de Dependiente.
 
 ## Contrato del post
 
@@ -296,12 +294,12 @@ Regla editorial:
 1. exige que la propuesta sea `CREATE_POST`;
 2. exige aprobación humana / brief_ready;
 3. vuelve a comprobar los gates;
-4. recupera desde el dossier las preguntas `pass_*` y el último run válido de cada una;
+4. recupera el material mixto del dossier;
 5. crea un `post` en estado `draft` y categoría editorial WordPress **Guías**;
-6. usa el título propuesto como `post_title` y deja `post_excerpt` vacío;
-7. escribe en `post_content` las mismas **preguntas y respuestas** que se muestran en la propuesta, encabezadas por el aviso de borrador editorial;
+6. usa el título propuesto como `post_title`;
+7. escribe un **brief interno** separado en “FAQs editoriales” y “Entrevista a Dependiente”, con aviso explícito de revisión;
 8. conserva `topic_id` y `canonical_key`;
-9. persiste en metadatos la trazabilidad `dossier/category_id -> question_ids -> run_ids -> source_hash`, independiente del texto editable del borrador;
+9. persiste en metadatos `faq_ids`, `question_ids`, `run_ids`, `item_keys` y `source_hash`, independientes del texto editable del borrador;
 10. asigna el rol estable `dependiente_qa_basic`;
 11. crea una única relación comercial `post_to_category` con la `product_cat` principal que originó el dossier;
 12. asigna Vocabulary combinando la propuesta editorial con los grupos canónicos activos ya disponibles en esa `product_cat`.
@@ -332,21 +330,19 @@ Las plantillas no consultan Academia directamente.
 
 La pestaña **Fuentes y servicios** muestra:
 
-### Dependiente / Academia
+### FAQ + Dependiente / Academia
 
-Origen editorial único.
+Dos orígenes editoriales independientes que convergen por product_cat.
 
 KPIs:
 
-- procesadas;
-- aprendidas;
-- no aprendidas;
-- aprendidas con categoría;
-- aprendidas sin categoría;
-- categorías con conocimiento;
-- categorías sin conocimiento;
-- media de preguntas por categoría;
-- cursor;
+- FAQs activas/procesadas/con categoría;
+- preguntas Academia procesadas/aprendidas/no aprendidas;
+- aprendidas con/sin categoría;
+- elementos FAQ y Dependiente dentro de dossiers;
+- categorías con/sin material;
+- media de elementos por categoría;
+- cursor FAQ y cursor Academia;
 - errores aislados;
 - estado del escaneo.
 
@@ -453,7 +449,7 @@ Un fallo debe bloquear conscientemente una promoción a producción.
 - El `post_content` nace con un brief editorial legible y advertencia de reescritura.
 - El post usa `dependiente_qa_basic`.
 - El post conserva una única relación comercial `post_to_category` con la `product_cat` de origen.
-- El post conserva snapshot interno de `question_ids`, `run_ids` y `source_hash` aunque se edite el texto.
+- El post conserva snapshot interno de `faq_ids`, `question_ids`, `run_ids`, `item_keys` y `source_hash` aunque se edite el texto.
 - El Vocabulary del post incorpora los grupos canónicos disponibles de la `product_cat` de origen.
 - Solucionador funciona sin Ingeniero, Ojeador o Comparador.
 - El escaneo es reanudable por lotes.
@@ -464,11 +460,10 @@ Un fallo debe bloquear conscientemente una promoción a producción.
 ## Flujo final
 
 ~~~text
-Academia / Entrenador
-        ↓
+FAQ manual ───────────────┐
+                           ├──→ resolución product_cat
+Academia / Entrenador ─────┘
 preguntas pass_*
-        ↓
-resolución product_cat
         ↓
 dossier ligero persistente
         ↓
@@ -489,4 +484,4 @@ plantillas
 Analista
 ~~~
 
-Solucionador queda como un servicio pequeño, category-first y predecible para contenido básico de Dependiente.
+Solucionador queda como un servicio category-first que combina FAQ editorial y conocimiento aprendido por Dependiente, conservando el origen de cada elemento y dejando siempre la redacción/publicación en manos de Editora.

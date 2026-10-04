@@ -6,7 +6,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Solucionador_Export {
-    const SCHEMA = 'seo-solucionador-export-v4';
+    const SCHEMA = 'seo-solucionador-export-v5';
 
     public static function init() {
         add_action('admin_post_seo_solucionador_export_json', array(__CLASS__, 'download'));
@@ -115,10 +115,14 @@ final class SEO_Solucionador_Export {
                 $question = trim((string) ($detail['question'] ?? ''));
                 if ($question === '') continue;
                 $questions[] = array(
-                    'question'=>(string) $question,
-                    'answer'=>SEO_Solucionador_Dossiers::answer_text((array) $detail),
-                    'validation'=>(string) ($detail['evaluation_status'] ?? ''),
-                    'validated_at'=>(string) ($detail['observed_at'] ?? ''),
+                    'origin'=>(string)($detail['origin'] ?? 'dependiente'),
+                    'item_key'=>(string)($detail['item_key'] ?? ''),
+                    'question_id'=>absint($detail['question_id'] ?? 0) ?: null,
+                    'faq_id'=>absint($detail['faq_id'] ?? 0) ?: null,
+                    'question'=>(string)$question,
+                    'answer'=>SEO_Solucionador_Dossiers::answer_text((array)$detail),
+                    'validation'=>(string)($detail['evaluation_status'] ?? ''),
+                    'validated_at'=>(string)($detail['observed_at'] ?? ''),
                 );
             }
 
@@ -228,33 +232,45 @@ final class SEO_Solucionador_Export {
 
         $dossier_rows = SEO_Solucionador_DB::table_exists($dossiers_table)
             ? (array) $wpdb->get_results(
-                "SELECT id,category_id,category_name,question_count,question_ids,score_avg,last_validated_at,source_hash,updated_at
+                "SELECT id,category_id,category_name,question_count,dependiente_count,faq_count,question_ids,faq_ids,score_avg,last_validated_at,source_hash,updated_at
                  FROM {$dossiers_table} ORDER BY category_name,id",
                 ARRAY_A
             )
             : array();
         foreach ($dossier_rows as &$dossier_row) {
             $dossier_row['question_ids'] = SEO_Solucionador_DB::decode_json($dossier_row['question_ids'] ?? '[]',array());
+            $dossier_row['faq_ids'] = SEO_Solucionador_DB::decode_json($dossier_row['faq_ids'] ?? '[]',array());
+            $dossier_row['origins'] = array(
+                'dependiente'=>absint($dossier_row['dependiente_count'] ?? 0),
+                'faq'=>absint($dossier_row['faq_count'] ?? 0),
+            );
 
             $questions = array();
             $category_id = absint($dossier_row['category_id'] ?? 0);
             if ($category_id && class_exists('SEO_Solucionador_Dossiers')) {
                 foreach ((array) SEO_Solucionador_Dossiers::question_details($category_id) as $detail) {
                     $questions[] = array(
-                        'question_id'=>absint($detail['question_id'] ?? 0),
-                        'question'=>(string) ($detail['question'] ?? ''),
-                        'answer'=>SEO_Solucionador_Dossiers::answer_text((array) $detail),
-                        'question_type'=>(string) ($detail['question_type'] ?? ''),
-                        'editorial_value'=>(string) ($detail['editorial_value'] ?? 'practical_customer_value'),
-                        'validation'=>(string) ($detail['evaluation_status'] ?? ''),
-                        'score'=>(float) ($detail['evaluation_score'] ?? 0),
-                        'validated_at'=>(string) ($detail['observed_at'] ?? ''),
+                        'origin'=>(string)($detail['origin'] ?? 'dependiente'),
+                        'item_key'=>(string)($detail['item_key'] ?? ''),
+                        'question_id'=>absint($detail['question_id'] ?? 0) ?: null,
+                        'faq_id'=>absint($detail['faq_id'] ?? 0) ?: null,
+                        'object_type'=>absint($detail['object_type'] ?? 0) ?: null,
+                        'object_id'=>absint($detail['object_id'] ?? 0) ?: null,
+                        'source_id'=>$detail['source_id'] ?? null,
+                        'source_hash'=>(string)($detail['source_hash'] ?? ''),
+                        'question'=>(string)($detail['question'] ?? ''),
+                        'answer'=>SEO_Solucionador_Dossiers::answer_text((array)$detail),
+                        'question_type'=>(string)($detail['question_type'] ?? ''),
+                        'editorial_value'=>(string)($detail['editorial_value'] ?? 'practical_customer_value'),
+                        'validation'=>(string)($detail['evaluation_status'] ?? ''),
+                        'score'=>(float)($detail['evaluation_score'] ?? 0),
+                        'validated_at'=>(string)($detail['observed_at'] ?? ''),
                     );
                 }
             }
             $dossier_row['editorial_question_count'] = count($questions);
             $dossier_row['questions'] = $questions;
-            $dossier_row['note'] = 'Incluye únicamente preguntas prácticas que pasan el filtro editorial; las preguntas definitorias/catalogales siguen en Academia pero no forman parte del dossier.';
+            $dossier_row['note'] = 'Dossier mixto: FAQs activas con respuesta editorial + preguntas prácticas realmente aprendidas por Dependiente. Las preguntas triviales/catalogales de Academia siguen excluidas.';
         }
         unset($dossier_row);
 
@@ -268,6 +284,9 @@ final class SEO_Solucionador_Export {
                 'db_version' => (string) get_option(SEO_Solucionador_DB::VERSION_OPTION, ''),
             ),
             'last_scan' => (array) get_option('seo_solucionador_last_scan', array()),
+            'sources' => class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array(),
+            // Alias 0.6 para consumidores existentes. En 0.7 el contenido ya es
+            // mixto, por lo que los nuevos consumidores deben preferir "sources".
             'academy' => class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array(),
             'summary' => self::summary($topics_table, $evidence_table, $coverage_table),
             'dossiers' => $dossier_rows,
