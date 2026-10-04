@@ -4,7 +4,7 @@
  *
  * Flujo editorial básico category-first.
  *
- * FAQ + conocimiento consolidado de Dependiente -> dossier por product_cat -> propuesta -> Editora.
+ * FAQ + preguntas de Entrenador validadas por Dependiente -> dossier por product_cat -> propuesta -> Editora.
  * Ingeniero, Comparador y el resto de procesos editoriales son independientes.
  *
  * Una propuesta es solo un registro. Solo al aprobar explicitamente una
