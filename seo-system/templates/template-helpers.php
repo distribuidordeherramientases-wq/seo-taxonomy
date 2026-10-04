@@ -1724,12 +1724,12 @@ if (!function_exists('dht_template_context_posts_for_categories')) {
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
         $query = "
             SELECT DISTINCT p.ID
-            FROM %i r
-            INNER JOIN %i p
+            FROM {$relations_table} r
+            INNER JOIN {$wpdb->posts} p
                 ON p.ID = r.source_id
                AND p.post_type = 'post'
                AND p.post_status = 'publish'
-            INNER JOIN %i pm
+            INNER JOIN {$wpdb->postmeta} pm
                 ON pm.post_id = p.ID
                AND pm.meta_key = %s
                AND pm.meta_value = %s
@@ -1741,19 +1741,16 @@ if (!function_exists('dht_template_context_posts_for_categories')) {
             LIMIT %d
         ";
 
-        $params = array(
-            $relations_table,
-            $wpdb->posts,
-            $wpdb->postmeta,
-            '_seo_solucionador_content_role',
-            $role,
-        );
+        $params = array('_seo_solucionador_content_role', $role);
         foreach ($category_ids as $category_id) {
             $params[] = $category_id;
         }
         $params[] = $limit;
 
-        $post_ids = (array) $wpdb->get_col($wpdb->prepare($query, $params));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas/core y placeholders %d generados localmente; valores enlazados mediante $wpdb->prepare().
+        $prepared_query = $wpdb->prepare($query, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_query es el resultado de $wpdb->prepare().
+        $post_ids = (array) $wpdb->get_col($prepared_query);
         $post_ids = array_values(array_unique(array_filter(array_map('absint', $post_ids))));
         wp_cache_set($cache_key, $post_ids, 'dht_template', 300);
 
@@ -1902,15 +1899,16 @@ if (!function_exists('dht_template_category_external_comments')) {
 
         $placeholders = implode(',', array_fill(0, count($term_ids), '%d'));
         $scan_limit = max(30, $limit * 8);
+        $comments_table = seo_comentarista_table_name();
         $query = "
             SELECT DISTINCT c.*, p.post_title AS product_title
-            FROM %i c
-            INNER JOIN %i p
+            FROM {$comments_table} c
+            INNER JOIN {$wpdb->posts} p
                 ON p.ID = c.product_id
                AND p.post_type = 'product'
                AND p.post_status = 'publish'
-            INNER JOIN %i tr ON tr.object_id = c.product_id
-            INNER JOIN %i tt
+            INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = c.product_id
+            INNER JOIN {$wpdb->term_taxonomy} tt
                 ON tt.term_taxonomy_id = tr.term_taxonomy_id
                AND tt.taxonomy = 'product_cat'
             WHERE c.status = 'published'
@@ -1920,18 +1918,13 @@ if (!function_exists('dht_template_category_external_comments')) {
             LIMIT %d
         ";
 
-        $params = array(
-            seo_comentarista_table_name(),
-            $wpdb->posts,
-            $wpdb->term_relationships,
-            $wpdb->term_taxonomy,
-        );
-        foreach ($term_ids as $category_id) {
-            $params[] = $category_id;
-        }
+        $params = array_values($term_ids);
         $params[] = $scan_limit;
 
-        $rows = (array) $wpdb->get_results($wpdb->prepare($query, $params), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas/core y placeholders %d generados localmente; IDs/límite enlazados mediante $wpdb->prepare().
+        $prepared_query = $wpdb->prepare($query, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_query es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_query, ARRAY_A);
         $out = array();
         $product_counts = array();
 
@@ -2633,7 +2626,10 @@ if (!function_exists('dht_template_category_meta_index')) {
                     FROM {$wpdb->postmeta}
                     WHERE post_id IN ({$placeholders})
                       AND meta_key IN ('_price', '_stock_status', '_wc_average_rating')";
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $chunk), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla core y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+            $prepared_sql = $wpdb->prepare($sql, $chunk);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
 
             foreach ((array) $rows as $row) {
                 $product_id = absint($row['post_id'] ?? 0);
