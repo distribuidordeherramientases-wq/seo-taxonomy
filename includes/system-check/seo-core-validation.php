@@ -807,7 +807,7 @@ function seo_core_system_test_run_all(
  * Ejecuta la parte funcional adecuada para tareas programadas.
  * El inventario estatico completo se reserva por defecto para actualizaciones.
  */
-function seo_core_system_test_run_telemetry_suite($include_code_integrity = false) {
+function seo_core_system_test_run_telemetry_suite($include_code_integrity = false, $live_external = false) {
     $started_at = time();
     $started_microtime = microtime(true);
     $origin = $include_code_integrity ? 'plugin_update' : 'scheduled';
@@ -837,7 +837,7 @@ function seo_core_system_test_run_telemetry_suite($include_code_integrity = fals
         $results = array_merge($results, seo_core_system_test_semantic_checks());
     }
     if (function_exists('seo_core_system_test_services_connections')) {
-        $results = array_merge($results, seo_core_system_test_services_connections(false));
+        $results = array_merge($results, seo_core_system_test_services_connections((bool) $live_external));
     }
     $results = array_merge($results, seo_core_system_test_technical());
 
