@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.11.0');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.12.0');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -24,6 +24,11 @@ if (is_readable($seo_core_semantic_test_module)) {
 $seo_core_visual_test_module = __DIR__ . '/seo-core-validation-visual.php';
 if (is_readable($seo_core_visual_test_module)) {
     require_once $seo_core_visual_test_module;
+}
+
+$seo_core_services_test_module = __DIR__ . '/seo-core-validation-services.php';
+if (is_readable($seo_core_services_test_module)) {
+    require_once $seo_core_services_test_module;
 }
 
 $seo_core_wporg_test_module = __DIR__ . '/seo-core-validation-wordpress-org.php';
@@ -383,7 +388,7 @@ function seo_core_system_test_get_active_tab() {
         ? sanitize_key(wp_unslash($_GET['seo_core_test_tab']))
         : 'summary';
 
-    if (in_array($tab, array('summary', 'code_integrity', 'operation', 'seo_content', 'settings'), true)) {
+    if (in_array($tab, array('summary', 'code_integrity', 'operation', 'seo_content', 'services', 'settings'), true)) {
         return $tab;
     }
 
@@ -538,6 +543,7 @@ function seo_core_system_test_tab_label($tab_id) {
         'code_integrity' => 'Integridad del código',
         'operation'      => 'Operación y tienda',
         'seo_content'     => 'SEO, datos y contenido',
+        'services'        => 'Servicios y conexiones',
         'advanced'        => 'Operación y tienda',
         'settings'       => 'Configuración',
         'functional'     => 'Funcionamiento público',
@@ -566,6 +572,7 @@ function seo_core_system_test_tab_description($tab_id) {
         'code_integrity' => 'La vista principal para revisar archivos, sintaxis, funciones, tipos, hooks y duplicados.',
         'operation'      => 'Funcionamiento público, responsive, enlaces, entorno, plantillas, catálogo, compra, correos y procesos técnicos.',
         'seo_content'     => 'Datos internos SEO Core, Data Layer / Action Scheduler y contenido-semántica.',
+        'services'        => 'Estado individual de los servicios del plugin y lectura real de conexiones Google/GitHub.',
         'advanced'        => 'Compatibilidad con la antigua vista de chequeos avanzados.',
         'settings'       => 'Muestras, tolerancias, debug y sugerencias de corrección asistida.',
         'functional'     => 'Navegación pública, respuesta HTML, búsqueda, encabezados, canonical y datos estructurados.',
@@ -589,7 +596,7 @@ function seo_core_system_test_tab_description($tab_id) {
 
 
 function seo_core_system_test_render_tabs($active_tab) {
-    $tab_ids = array('summary', 'code_integrity', 'operation', 'seo_content', 'settings');
+    $tab_ids = array('summary', 'code_integrity', 'operation', 'seo_content', 'services', 'settings');
 
     echo '<nav class="nav-tab-wrapper seo-core-test-tabs">';
     foreach ($tab_ids as $tab_id) {
@@ -780,6 +787,9 @@ function seo_core_system_test_run_all(
     if (function_exists('seo_core_system_test_semantic_checks')) {
         $results = array_merge($results, seo_core_system_test_semantic_checks());
     }
+    if (function_exists('seo_core_system_test_services_connections')) {
+        $results = array_merge($results, seo_core_system_test_services_connections(true));
+    }
     $results = array_merge($results, seo_core_system_test_technical());
 
     $metadata = seo_core_system_test_build_run_metadata(
@@ -825,6 +835,9 @@ function seo_core_system_test_run_telemetry_suite($include_code_integrity = fals
     }
     if (function_exists('seo_core_system_test_semantic_checks')) {
         $results = array_merge($results, seo_core_system_test_semantic_checks());
+    }
+    if (function_exists('seo_core_system_test_services_connections')) {
+        $results = array_merge($results, seo_core_system_test_services_connections(false));
     }
     $results = array_merge($results, seo_core_system_test_technical());
 
@@ -7173,6 +7186,12 @@ function seo_core_system_test_groups_for_tab($active_tab) {
             'semantic',
         );
     }
+    if ($active_tab === 'services') {
+        return array(
+            'services',
+            'connections',
+        );
+    }
     return array();
 }
 
@@ -7208,6 +7227,8 @@ function seo_core_system_test_render_compact_health($results, $active_tab = 'sum
         $scope_text = 'Agrupa continuidad del negocio, tienda, frontend, enlaces y procesos técnicos. El Resumen ya refleja estos KPIs sin volver a ejecutar pruebas.';
     } elseif ($active_tab === 'seo_content') {
         $scope_text = 'Agrupa datos internos SEO Core, Data Layer / Action Scheduler y contenido-semántica. El Resumen ya refleja estos KPIs sin volver a ejecutar pruebas.';
+    } elseif ($active_tab === 'services') {
+        $scope_text = 'Muestra una puntuación por servicio y por conexión externa. Estos resultados forman parte del estado global de Plugin Validation.';
     } else {
         $scope_text = 'Esta vista filtra únicamente la integridad del código. Su estado ya está incluido dentro del resumen global.';
     }
@@ -7264,6 +7285,10 @@ function seo_core_system_test_render_summary_tab_kpis($results) {
             'title' => 'SEO, datos y contenido',
             'groups' => seo_core_system_test_groups_for_tab('seo_content'),
         ),
+        'services' => array(
+            'title' => 'Servicios y conexiones',
+            'groups' => seo_core_system_test_groups_for_tab('services'),
+        ),
     );
 
     echo '<h3>Estado por pestaña</h3>';
@@ -7309,6 +7334,8 @@ function seo_core_system_test_render_module_overview($results) {
         'seo_system'     => array('title' => 'Datos internos SEO Core', 'tab' => 'seo_content'),
         'data_layer'     => array('title' => 'Data Layer / Scheduler', 'tab' => 'seo_content'),
         'semantic'       => array('title' => 'Contenido y semántica', 'tab' => 'seo_content'),
+        'services'       => array('title' => 'Servicios internos', 'tab' => 'services'),
+        'connections'    => array('title' => 'Conexiones Google / GitHub', 'tab' => 'services'),
     );
 
     echo '<h3>KPIs por área</h3>';
@@ -7470,7 +7497,7 @@ function seo_core_system_test_render_results($results, $active_tab) {
     $summary = seo_core_system_test_get_summary($results);
     $visible_results = seo_core_system_test_results_for_tab($results, $active_tab);
 
-    if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content'), true)) {
+    if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content', 'services'), true)) {
         seo_core_system_test_render_compact_health($visible_results, $active_tab);
     }
 
@@ -7489,8 +7516,53 @@ function seo_core_system_test_render_results($results, $active_tab) {
         return;
     }
 
+    if ($active_tab === 'services') {
+        seo_core_system_test_render_services_connections($results);
+        return;
+    }
+
     seo_core_system_test_render_summary($summary, $results);
 }
+
+function seo_core_system_test_render_services_connections($results) {
+    $rows = array_values(array_filter((array) $results, static function ($result) {
+        return isset($result['group']) && in_array($result['group'], array('services', 'connections'), true);
+    }));
+
+    echo '<h2>Servicios y conexiones</h2>';
+    echo '<p>Cada fila representa el estado agregado de un servicio o conexión. Su puntuación forma parte del cálculo global de Plugin Validation.</p>';
+
+    foreach (array('services' => 'Servicios internos', 'connections' => 'Conexiones externas') as $group => $title) {
+        $group_rows = array_values(array_filter($rows, static function ($result) use ($group) {
+            return isset($result['group']) && $result['group'] === $group;
+        }));
+
+        echo '<section class="seo-core-test-section">';
+        echo '<h2>' . esc_html($title) . '</h2>';
+        if (empty($group_rows)) {
+            echo '<p class="seo-core-test-empty">Todavía no hay resultados para este bloque.</p>';
+            echo '</section>';
+            continue;
+        }
+
+        echo '<div class="seo-core-test-table-wrap">';
+        echo '<table class="seo-core-test-table">';
+        echo '<thead><tr><th>Servicio</th><th>Estado</th><th>Valor</th><th>Detalle</th></tr></thead><tbody>';
+        foreach ($group_rows as $row) {
+            $score = isset($row['evidence']['score']) ? (int) $row['evidence']['score'] : null;
+            $label = preg_replace('/^\\d+(?:\\.\\d+)*\\s+/', '', (string) ($row['label'] ?? 'Servicio'));
+            echo '<tr>';
+            echo '<td><strong>' . esc_html($label) . '</strong></td>';
+            echo '<td>' . wp_kses_post(seo_core_system_test_result_badge($row)) . '</td>';
+            echo '<td><strong>' . esc_html($score === null ? '—' : $score . '%') . '</strong></td>';
+            echo '<td>' . esc_html((string) ($row['detail'] ?? '')) . '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table></div>';
+        echo '</section>';
+    }
+}
+
 
 function seo_core_system_test_render_advanced_checks($results, $active_tab = 'operation') {
     $requested = seo_core_system_test_get_requested_section();
@@ -8254,6 +8326,8 @@ function seo_core_system_test_render_group($results, $group, $show_heading = tru
         'functional' => 'Funcionalidad',
         'visual' => 'Responsive y calidad visual',
         'links_404' => 'Enlaces y 404',
+        'services' => 'Servicios internos',
+        'connections' => 'Conexiones externas',
     );
 
     if ($show_heading) {
