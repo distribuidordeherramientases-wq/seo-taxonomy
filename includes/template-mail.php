@@ -630,6 +630,7 @@ function seo_mail_download_template() {
     header('Content-Disposition: attachment; filename="' . basename($file_path) . '"');
     header('Content-Length: ' . filesize($file_path));
 
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Descarga administrativa validada; streaming evita cargar la plantilla completa en memoria.
     readfile($file_path);
     exit;
 }
