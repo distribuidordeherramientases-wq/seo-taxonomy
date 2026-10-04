@@ -167,6 +167,7 @@ final class SEO_Facturas_Customer_Documents {
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Content-Length: ' . filesize($document->pdf_path));
         header('X-Robots-Tag: noindex, nofollow, noarchive', true);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- PDF emitido y ruta validada; streaming evita cargar el documento completo en memoria.
         readfile($document->pdf_path);
         exit;
     }
