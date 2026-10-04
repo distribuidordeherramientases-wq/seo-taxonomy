@@ -232,9 +232,12 @@ if (!function_exists('seo_content_vocab_replace_manual_group')) {
                       AND active = 1
                       AND id IN ({$placeholders})";
             $params = array_merge(array($group), $requested_ids);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %d se generan localmente; todos los valores se enlazan mediante $wpdb->prepare().
+            $prepared_sql = $wpdb->prepare($sql, $params);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
             $valid_ids = array_values(array_unique(array_map(
                 'intval',
-                (array) $wpdb->get_col($wpdb->prepare($sql, $params))
+                (array) $wpdb->get_col($prepared_sql)
             )));
 
             if (count($valid_ids) !== count($requested_ids)) {
@@ -308,7 +311,10 @@ if (!function_exists('seo_content_vocab_replace_manual_group')) {
                       AND v.semantic_group = %s
                       AND ov.vocabulary_id IN ({$placeholders})";
             $params = array_merge(array($object_type, $object_id, $group), $to_remove);
-            $updated = $wpdb->query($wpdb->prepare($sql, $params));
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y lista de placeholders %d se generan localmente; los valores se enlazan mediante $wpdb->prepare().
+            $prepared_sql = $wpdb->prepare($sql, $params);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+            $updated = $wpdb->query($prepared_sql);
             if (false === $updated) {
                 return new WP_Error('seo_content_vocab_remove', 'No se pudieron retirar asignaciones de Vocabulary: ' . $wpdb->last_error);
             }
@@ -496,9 +502,12 @@ if (!function_exists('seo_content_vocab_export_group')) {
         }
         $sql .= " ORDER BY v.{$field} ASC";
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $field esta restringido a slug/label y los valores externos se enlazan mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
         return array_values(array_filter(array_map(
             'strval',
-            (array) $wpdb->get_col($wpdb->prepare($sql, $params))
+            (array) $wpdb->get_col($prepared_sql)
         )));
     }
 }
@@ -540,7 +549,10 @@ if (!function_exists('seo_content_vocab_validate_import_row')) {
                       AND active = 1
                       AND slug IN ({$placeholders})";
             $params = array_merge(array($group), $slugs);
-            $found = array_map('strval', (array) $wpdb->get_col($wpdb->prepare($sql, $params)));
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %s se generan localmente; valores enlazados mediante $wpdb->prepare().
+            $prepared_sql = $wpdb->prepare($sql, $params);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+            $found = array_map('strval', (array) $wpdb->get_col($prepared_sql));
             $missing = array_values(array_diff($slugs, $found));
             if (!$missing) {
                 continue;
@@ -609,7 +621,10 @@ if (!function_exists('seo_content_vocab_import_row')) {
                       AND active = 1
                       AND slug IN ({$placeholders})";
             $params = array_merge(array($group), $slugs);
-            $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %s se generan localmente; valores enlazados mediante $wpdb->prepare().
+            $prepared_sql = $wpdb->prepare($sql, $params);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
 
             $resolved = array();
             $found_slugs = array();
@@ -754,9 +769,12 @@ if (!function_exists('seo_content_vocab_find_post_ids_for_query')) {
                 ORDER BY semantic_hits DESC, ov.object_id DESC
                 LIMIT {$limit}";
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Condiciones LIKE y LIMIT se generan internamente; los valores de busqueda se enlazan mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
         return array_values(array_unique(array_filter(array_map(
             'absint',
-            (array) $wpdb->get_col($wpdb->prepare($sql, $params))
+            (array) $wpdb->get_col($prepared_sql)
         ))));
     }
 }
