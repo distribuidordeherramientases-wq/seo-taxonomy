@@ -1303,12 +1303,62 @@ final class SEO_Solucionador_Dossiers {
             ? SEO_Editorial_Service_Contract::PUBLISHED
             : ($post_id ? SEO_Editorial_Service_Contract::DRAFT : SEO_Editorial_Service_Contract::READY_FOR_REVIEW);
 
+        $snapshot = array();
+        foreach (self::question_details($category_id) as $item) {
+            $key = sanitize_text_field((string)($item['item_key'] ?? ''));
+            if (!self::valid_item_key($key)) continue;
+            $snapshot[$key] = array(
+                'item_key'=>$key,
+                'origin'=>sanitize_key((string)($item['origin'] ?? '')),
+                'source_id'=>$item['source_id'] ?? null,
+                'faq_id'=>absint($item['faq_id'] ?? 0) ?: null,
+                'question_id'=>absint($item['question_id'] ?? 0) ?: null,
+                'question'=>sanitize_text_field((string)($item['question'] ?? '')),
+                'answer'=>trim(wp_strip_all_tags((string)($item['answer'] ?? ''))),
+                'dependiente_source'=>sanitize_key((string)($item['dependiente_source'] ?? '')),
+                'question_type'=>sanitize_key((string)($item['question_type'] ?? '')),
+                'lesson_key'=>sanitize_key((string)($item['lesson_key'] ?? '')),
+                'evaluation_status'=>sanitize_key((string)($item['evaluation_status'] ?? '')),
+                'evaluation_score'=>(float)($item['evaluation_score'] ?? 0),
+                'product_id'=>absint($item['product_id'] ?? 0) ?: null,
+                'observed_at'=>sanitize_text_field((string)($item['observed_at'] ?? '')),
+                'source_hash'=>sanitize_text_field((string)($item['source_hash'] ?? '')),
+                'editorial_choice'=>sanitize_key((string)($item['editorial_choice'] ?? 'pending')),
+            );
+        }
+        ksort($snapshot,SORT_STRING);
+
         return SEO_Solucionador_DB::update_dossier_editorial($category_id, array(
             'reviewed_hash'=>(string)$dossier['source_hash'],
             'reviewed_item_hashes'=>(string)($dossier['item_hashes'] ?? '{}'),
+            'reviewed_items_snapshot'=>wp_json_encode($snapshot),
             'editorial_status'=>$editorial_status,
             'reviewed_at'=>current_time('mysql'),
         ));
+    }
+
+    public static function retired_item_details($category_id) {
+        $category_id = absint($category_id);
+        $dossier = self::get_by_category($category_id);
+        if (!$dossier) return array();
+
+        $changes = self::item_changes($category_id);
+        $retired = array_fill_keys((array)($changes['retired'] ?? array()),true);
+        if (!$retired) return array();
+
+        $snapshot = SEO_Solucionador_DB::decode_json($dossier['reviewed_items_snapshot'] ?? '{}',array());
+        $out = array();
+        foreach ($retired as $key=>$unused) {
+            unset($unused);
+            $row = isset($snapshot[$key]) && is_array($snapshot[$key])
+                ? $snapshot[$key]
+                : array('item_key'=>$key,'question'=>'Elemento retirado de la fuente','answer'=>'');
+            $row['item_key'] = $key;
+            $row['origin'] = sanitize_key((string)($row['origin'] ?? (strpos($key,'faq:')===0 ? 'faq' : 'dependiente')));
+            $row['editorial_state'] = 'retired';
+            $out[] = $row;
+        }
+        return $out;
     }
 
     public static function question_details($category_id) {
