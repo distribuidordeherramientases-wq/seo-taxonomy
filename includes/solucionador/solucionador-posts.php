@@ -22,6 +22,7 @@ final class SEO_Solucionador_Posts {
     const META_PENDING_QUESTION_IDS = '_seo_solucionador_pending_question_ids';
     const META_PENDING_SOURCE_HASH = '_seo_solucionador_pending_source_hash';
     const META_PENDING_DETECTED_AT = '_seo_solucionador_pending_detected_at';
+    const META_PENDING_SELECTED_IDS = '_seo_solucionador_pending_selected_ids';
 
     public static function init() {
         add_action('transition_post_status', array(__CLASS__, 'transition_post_status'), 10, 3);
@@ -311,6 +312,7 @@ final class SEO_Solucionador_Posts {
         delete_post_meta($post_id,self::META_PENDING_QUESTION_IDS);
         delete_post_meta($post_id,self::META_PENDING_SOURCE_HASH);
         delete_post_meta($post_id,self::META_PENDING_DETECTED_AT);
+        delete_post_meta($post_id,self::META_PENDING_SELECTED_IDS);
     }
 
     /**
@@ -378,6 +380,54 @@ final class SEO_Solucionador_Posts {
         return is_wp_error($result) ? $result : absint($result);
     }
 
+    public static function apply_pending_selection($post_id, array $selected_ids, array $reviewed_ids) {
+        $post_id = absint($post_id);
+        $category_id = absint(get_post_meta($post_id,self::META_DOSSIER_CATEGORY_ID,true));
+        if (!$post_id || !$category_id || get_post_type($post_id) !== 'post') {
+            return new WP_Error('solucionador_post_invalid','El post no pertenece a un dossier válido de Solucionador.');
+        }
+
+        $pending = self::pending_question_ids($post_id);
+        $pending_lookup = array_fill_keys($pending,true);
+        $selected_ids = array_values(array_unique(array_filter(array_map('absint',$selected_ids))));
+        $reviewed_ids = array_values(array_unique(array_filter(array_map('absint',$reviewed_ids))));
+        $selected_ids = array_values(array_filter($selected_ids, static function($id) use ($pending_lookup) {
+            return !empty($pending_lookup[$id]);
+        }));
+        $reviewed_ids = array_values(array_filter($reviewed_ids, static function($id) use ($pending_lookup) {
+            return !empty($pending_lookup[$id]);
+        }));
+
+        update_post_meta($post_id,self::META_PENDING_SELECTED_IDS,$selected_ids);
+
+        if ($reviewed_ids && class_exists('SEO_Solucionador_Dossiers')) {
+            SEO_Solucionador_Dossiers::review_item_ids($category_id,$reviewed_ids);
+        }
+
+        self::sync_category_post($category_id);
+
+        return array(
+            'selected_ids'=>$selected_ids,
+            'remaining_ids'=>self::pending_question_ids($post_id),
+        );
+    }
+
+    public static function selected_pending_details($post_id) {
+        $selected = array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array)get_post_meta($post_id,self::META_PENDING_SELECTED_IDS,true)
+        ))));
+        if (!$selected) return array();
+
+        $lookup = array_fill_keys($selected,true);
+        return array_values(array_filter(
+            self::pending_question_details($post_id),
+            static function($row) use ($lookup) {
+                return !empty($lookup[absint($row['question_id'] ?? 0)]);
+            }
+        ));
+    }
+
     public static function mark_pending_reviewed($post_id) {
         $post_id = absint($post_id);
         $category_id = absint(get_post_meta($post_id,self::META_DOSSIER_CATEGORY_ID,true));
@@ -421,12 +471,19 @@ final class SEO_Solucionador_Posts {
 
         $pending = self::pending_question_details($post_id);
         $count = count($pending);
+        $selected_ids = array_values(array_unique(array_filter(array_map(
+            'absint',
+            (array)get_post_meta($post_id,self::META_PENDING_SELECTED_IDS,true)
+        ))));
+        $selected_lookup = array_fill_keys($selected_ids,true);
         $detected_at = (string) get_post_meta($post_id,self::META_PENDING_DETECTED_AT,true);
         $update_state = sanitize_key((string)($_GET['sol_update'] ?? ''));
 
         echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px;">';
         if ($update_state === 'rescanned') {
             echo '<div class="notice notice-info inline" style="margin:0 0 12px"><p>Solucionador ha vuelto a comparar este post con el dossier actual.</p></div>';
+        } elseif ($update_state === 'selection_saved') {
+            echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Selección editorial guardada. Los elementos descartados dejan de aparecer salvo que cambien de hash.</p></div>';
         } elseif ($update_state === 'reviewed') {
             echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Novedades marcadas como revisadas. Las próximas preguntas nuevas volverán a aparecer aquí.</p></div>';
         } elseif ($update_state === 'error') {
@@ -434,91 +491,103 @@ final class SEO_Solucionador_Posts {
             delete_transient('seo_solucionador_notice_' . get_current_user_id());
             echo '<div class="notice notice-error inline" style="margin:0 0 12px"><p>' . esc_html($message ?: 'No se pudo actualizar la revisión de Solucionador.') . '</p></div>';
         }
+
         echo '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">';
-        echo '<div><h2 style="margin:0 0 6px">Solucionador · revisión de nuevas preguntas</h2>';
+        echo '<div><h2 style="margin:0 0 6px">Solucionador · revisión de novedades</h2>';
         if ($count) {
-            echo '<p style="margin:0"><strong>' . esc_html(number_format_i18n($count)) . ' preguntas/respuestas nuevas</strong> detectadas desde la última revisión. El post mantiene su estado actual —también si está publicado— y la versión pública no cambia hasta que la Editora decida guardar una actualización.</p>';
-            if ($detected_at !== '') {
-                echo '<p class="description" style="margin:4px 0 0">Detectadas: ' . esc_html($detected_at) . '</p>';
-            }
+            echo '<p style="margin:0"><strong>' . esc_html(number_format_i18n($count)) . ' elementos nuevos o modificados</strong>. El post conserva su estado actual; nada se publica ni se guarda automáticamente.</p>';
+            if ($detected_at !== '') echo '<p class="description" style="margin:4px 0 0">Detectadas: ' . esc_html($detected_at) . '</p>';
         } else {
-            echo '<p style="margin:0">No hay preguntas nuevas pendientes de revisión.</p>';
+            echo '<p style="margin:0">No hay novedades pendientes de revisión.</p>';
         }
         echo '</div>';
 
-        echo '<div style="display:flex;gap:8px;flex-wrap:wrap">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
         echo '<input type="hidden" name="action" value="seo_solucionador_post_action">';
         echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
         echo '<input type="hidden" name="post_action" value="rescan">';
         echo '<input type="hidden" name="return_to" value="editor">';
         wp_nonce_field('seo_solucionador_post_action_' . $post_id);
-        echo '<button type="submit" class="button">Reescanear preguntas</button>';
+        echo '<button type="submit" class="button">Reescanear</button>';
         echo '</form>';
+        echo '</div>';
 
         if ($count) {
-            $insert_html = '<h2>Nuevas preguntas de Solucionador</h2><ul>';
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:14px">';
+            echo '<input type="hidden" name="action" value="seo_solucionador_post_action">';
+            echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
+            echo '<input type="hidden" name="post_action" value="save_selection">';
+            echo '<input type="hidden" name="return_to" value="editor">';
+            wp_nonce_field('seo_solucionador_post_action_' . $post_id);
+
+            echo '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
+            echo '<button type="submit" class="button button-primary">Guardar selección</button>';
+            echo '<button type="submit" class="button" name="selection_mode" value="discard_unselected">Guardar selección y descartar no seleccionados</button>';
+            echo '</div>';
+
+            echo '<div style="max-height:460px;overflow:auto;border-top:1px solid #dcdcde;padding-top:10px">';
             foreach ($pending as $row) {
+                $question_id = absint($row['question_id'] ?? 0);
                 $question = trim((string)($row['question'] ?? ''));
-                if ($question === '') continue;
+                if (!$question_id || $question === '') continue;
                 $answer = class_exists('SEO_Solucionador_Dossiers')
                     ? SEO_Solucionador_Dossiers::answer_text((array)$row)
                     : '';
-                $insert_html .= '<li><strong>' . esc_html($question) . '</strong>';
-                if ($answer !== '') $insert_html .= '<br>' . esc_html($answer);
-                $insert_html .= '</li>';
+                $checked = isset($selected_lookup[$question_id]) || !$selected_ids;
+                echo '<label style="display:block;padding:10px 0;border-bottom:1px solid #f0f0f1">';
+                echo '<div style="display:flex;gap:10px;align-items:flex-start">';
+                echo '<input type="checkbox" name="selected_ids[]" value="' . esc_attr($question_id) . '"' . checked($checked,true,false) . ' style="margin-top:3px">';
+                echo '<div><strong>' . esc_html($question) . '</strong>';
+                if ($answer !== '') echo '<div style="margin-top:5px;line-height:1.55">' . esc_html($answer) . '</div>';
+                $trace = array();
+                if (!empty($row['lesson_key'])) $trace[] = 'lección ' . (string)$row['lesson_key'];
+                if (!empty($row['question_type'])) $trace[] = 'tipo ' . (string)$row['question_type'];
+                if (!empty($row['evaluation_status'])) {
+                    $score = isset($row['evaluation_score']) ? ' · ' . number_format_i18n((float)$row['evaluation_score'] * 100,0) . '%' : '';
+                    $trace[] = 'validación ' . (string)$row['evaluation_status'] . $score;
+                }
+                if (!empty($row['observed_at'])) $trace[] = 'observada ' . (string)$row['observed_at'];
+                if ($trace) echo '<div class="description" style="margin-top:5px">Origen: Academia/Dependiente · ' . esc_html(implode(' · ',$trace)) . '</div>';
+                echo '</div></div></label>';
             }
-            $insert_html .= '</ul>';
+            echo '</div>';
+            echo '</form>';
 
-            if (function_exists('seo_post_editor_render_prepend_payload')) {
-                seo_post_editor_render_prepend_payload(
-                    'seo-solucionador-pending-' . $post_id,
-                    $insert_html,
-                    'Incorporar al contenido de trabajo'
-                );
+            $selected_details = self::selected_pending_details($post_id);
+            if (!$selected_details && !$selected_ids) $selected_details = $pending;
+            if ($selected_details) {
+                $insert_html = '<h2>Nuevas preguntas de Solucionador</h2><ul>';
+                foreach ($selected_details as $row) {
+                    $question = trim((string)($row['question'] ?? ''));
+                    if ($question === '') continue;
+                    $answer = class_exists('SEO_Solucionador_Dossiers')
+                        ? SEO_Solucionador_Dossiers::answer_text((array)$row)
+                        : '';
+                    $insert_html .= '<li><strong>' . esc_html($question) . '</strong>';
+                    if ($answer !== '') $insert_html .= '<br>' . esc_html($answer);
+                    $insert_html .= '</li>';
+                }
+                $insert_html .= '</ul>';
+
+                if (function_exists('seo_post_editor_render_prepend_payload')) {
+                    seo_post_editor_render_prepend_payload(
+                        'seo-solucionador-pending-' . $post_id,
+                        $insert_html,
+                        'Incorporar seleccionadas al contenido de trabajo'
+                    );
+                }
             }
 
-            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:10px">';
             echo '<input type="hidden" name="action" value="seo_solucionador_post_action">';
             echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
             echo '<input type="hidden" name="post_action" value="mark_reviewed">';
             echo '<input type="hidden" name="return_to" value="editor">';
             wp_nonce_field('seo_solucionador_post_action_' . $post_id);
-            echo '<button type="submit" class="button">Marcar novedades como revisadas</button>';
+            echo '<button type="submit" class="button">Marcar todas las novedades como revisadas</button>';
             echo '</form>';
-        }
-        echo '</div></div>';
 
-        if ($count) {
-            echo '<div style="margin-top:14px;max-height:460px;overflow:auto;border-top:1px solid #dcdcde;padding-top:10px">';
-            foreach ($pending as $row) {
-                $question = trim((string)($row['question'] ?? ''));
-                if ($question === '') continue;
-                $answer = class_exists('SEO_Solucionador_Dossiers')
-                    ? SEO_Solucionador_Dossiers::answer_text((array)$row)
-                    : '';
-                echo '<div style="padding:10px 0;border-bottom:1px solid #f0f0f1">';
-                echo '<strong>' . esc_html($question) . '</strong>';
-                if ($answer !== '') {
-                    echo '<div style="margin-top:5px;line-height:1.55">' . esc_html($answer) . '</div>';
-                }
-                $trace = array();
-                if (!empty($row['lesson_key'])) $trace[] = 'lección ' . (string) $row['lesson_key'];
-                if (!empty($row['question_type'])) $trace[] = 'tipo ' . (string) $row['question_type'];
-                if (!empty($row['evaluation_status'])) {
-                    $score = isset($row['evaluation_score'])
-                        ? ' · ' . number_format_i18n((float)$row['evaluation_score'] * 100, 0) . '%'
-                        : '';
-                    $trace[] = 'validación ' . (string) $row['evaluation_status'] . $score;
-                }
-                if (!empty($row['observed_at'])) $trace[] = 'observada ' . (string) $row['observed_at'];
-                if ($trace) {
-                    echo '<div class="description" style="margin-top:5px">Origen: Academia/Dependiente · ' . esc_html(implode(' · ', $trace)) . '</div>';
-                }
-                echo '</div>';
-            }
-            echo '</div>';
-            echo '<p class="description" style="margin:10px 0 0">El botón <strong>Incorporar al contenido de trabajo</strong> sólo modifica el editor abierto en tu navegador: no guarda ni despublica el post. Revisa/reescribe, guarda cuando corresponda y después pulsa <strong>Marcar novedades como revisadas</strong>.</p>';
+            echo '<p class="description" style="margin:10px 0 0">La incorporación sólo modifica el editor abierto en el navegador. Revisa y reescribe antes de guardar. Los elementos descartados quedan revisados para este hash y reaparecen si su contenido cambia.</p>';
         }
         echo '</div>';
     }
