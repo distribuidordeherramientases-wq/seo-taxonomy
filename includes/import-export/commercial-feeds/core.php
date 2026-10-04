@@ -1257,6 +1257,7 @@ function seo_ie_cf_finish_build( array $state ) {
             continue;
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Publicación atómica del feed dentro del directorio gestionado; se preserva la semántica actual.
         if ( ! @rename( $temp, $final ) ) {
             $state['status'] = 'failed';
             $state['errors'][] = $channel . ': no se pudo publicar el archivo final.';

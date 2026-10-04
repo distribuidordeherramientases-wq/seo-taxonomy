@@ -116,7 +116,8 @@ function seo_core_system_test_semantic_product_image_inventory($product_ids) {
               . "MAX(CASE WHEN http_status IN (404,410) THEN 1 ELSE 0 END) AS has_missing"
             : "0 AS has_valid, 1 AS has_retry, 0 AS has_missing";
         $status_where = $has_status ? "AND status = 'active'" : '';
-        // $column procede de una lista blanca fija.
+        // $column procede de una lista blanca fija; tabla y fragmentos SELECT/WHERE son internos.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identificadores y fragmentos proceden de listas blancas/estado interno; consulta de solo lectura.
         $rows = $wpdb->get_results(
             "SELECT {$column} AS linked_product_id,\n"
             . "       1 AS has_registered,\n"
@@ -445,6 +446,7 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
         $params
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna.
     $rows = $wpdb->get_results($query, ARRAY_A);
     $result = array();
 
@@ -500,6 +502,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
         $where_ids = $wpdb->prepare(" AND ov.object_id IN ({$placeholders})", ...$category_ids);
     }
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y filtro de IDs previamente preparado; consulta de solo lectura.
     $rows = $wpdb->get_results(
         "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label\n"
         . "FROM {$object_table} ov\n"
@@ -1758,6 +1761,7 @@ function seo_core_system_test_semantic_snapshot() {
 
     if ($faq_available) {
         $faq_scope_select = $faq_has_legacy_scope ? 'ambito' : "'' AS ambito";
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $faq_scope_select solo puede ser una columna fija o un literal vacío; tabla interna y consulta de solo lectura.
         $faq_rows = $wpdb->get_results(
             "SELECT id, object_type, object_id, {$faq_scope_select}, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
              FROM {$faq_table}

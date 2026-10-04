@@ -344,6 +344,7 @@ function seo_post_opportunities_catalog_index()
     $primary_to_cluster = array();
 
     if (seo_post_opportunities_table_exists($rel_table)) {
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $rel_table deriva exclusivamente de $wpdb->prefix y la consulta no incorpora valores externos.
         $rows = $wpdb->get_results(
             "SELECT source_id, target_id, relation_type
              FROM {$rel_table}
@@ -817,10 +818,13 @@ function seo_post_opportunities_gsc_performance(array $posts, $days = 60)
 
     foreach (array_chunk(array_keys($hash_to_post), 180) as $hashes) {
         $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
+        $queries_select = $page_complete ? '0' : 'COUNT(DISTINCT query_hash)';
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla, fragmento SELECT y lista de placeholders se generan internamente; property/date/hash se enlazan mediante $wpdb->prepare().
         $sql = $wpdb->prepare(
-            "SELECT data_date,page_hash,SUM(clicks) clicks,SUM(impressions) impressions," . ($page_complete ? '0' : 'COUNT(DISTINCT query_hash)') . " queries,CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END position FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY data_date,page_hash ORDER BY data_date ASC",
+            "SELECT data_date,page_hash,SUM(clicks) clicks,SUM(impressions) impressions," . $queries_select . " queries,CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END position FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY data_date,page_hash ORDER BY data_date ASC",
             array_merge(array($property_hash,$from,$to),$hashes)
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare() y solo contiene identificadores internos.
         foreach ((array)$wpdb->get_results($sql, ARRAY_A) as $row) {
             $post_id = (int)($hash_to_post[$row['page_hash']] ?? 0);
             if (!$post_id) {
@@ -864,10 +868,12 @@ function seo_post_opportunities_gsc_performance(array $posts, $days = 60)
         $detail_table = seo_google_table('search_data');
         foreach (array_chunk(array_keys($hash_to_post), 180) as $hashes) {
             $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla y lista de placeholders se generan internamente; los valores se enlazan mediante $wpdb->prepare().
             $query_sql = $wpdb->prepare(
                 "SELECT page_hash,COUNT(DISTINCT query_hash) queries FROM {$detail_table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY page_hash",
                 array_merge(array($property_hash,$from,$to),$hashes)
             );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $query_sql es el resultado de $wpdb->prepare().
             foreach ((array)$wpdb->get_results($query_sql, ARRAY_A) as $query_row) {
                 $post_id = (int) ($hash_to_post[$query_row['page_hash']] ?? 0);
                 if ($post_id && isset($post_rows[$post_id])) $post_rows[$post_id]['queries'] += (int) $query_row['queries'];
@@ -974,6 +980,7 @@ function seo_post_opportunities_top_queries_for_post($post_id, $days = 60, $limi
     $hashes = seo_post_opportunities_gsc_url_hashes($url);
     $placeholders = implode(',',array_fill(0,count($hashes),'%s'));
     $table = seo_google_table('search_data');
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla y lista de placeholders se generan internamente; propiedad, fechas, hashes y limite se enlazan mediante $wpdb->prepare().
     $sql = $wpdb->prepare(
         "SELECT MAX(query_text) query_text,SUM(clicks) clicks,SUM(impressions) impressions,CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END position FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND page_hash IN ({$placeholders}) GROUP BY query_hash ORDER BY impressions DESC LIMIT %d",
         array_merge(
@@ -982,6 +989,7 @@ function seo_post_opportunities_top_queries_for_post($post_id, $days = 60, $limi
             array(max(1,min(25,absint($limit))))
         )
     );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
     return (array)$wpdb->get_results($sql,ARRAY_A);
 }
 
@@ -2237,6 +2245,7 @@ function seo_post_opportunities_export_handler()
         ), ';');
     }
 
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV de exportación administrativa.
     fclose($fh);
     exit;
 }

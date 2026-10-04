@@ -68,7 +68,17 @@ Mover el acceso a Contenidos **no modifica** tablas, datos, informes, handlers n
 
 ## Auditor de contenidos
 
-El Auditor de datos se accede desde **SEO Taxonomy → Contenidos → Auditor**. Permite ejecutar auditorías independientes de Productos, Categorías, Posts, Páginas, FAQs y Motor/índice, además de la auditoría global del catálogo y la vista de Calidad SEO.
+El Auditor de datos se accede desde **SEO Taxonomy → Contenidos → Auditor**. Ejecuta auditorías independientes y ligeras de **Productos, Categorías, Posts, Páginas/Landings y FAQs**. Los chequeos de motor/índice se realizan desde **Plugin Validation** y la antigua auditoría global de catálogo ya no se ofrece por su coste en catálogos grandes.
+
+Cada auditoría genera, además de hallazgos y calidad, un **Plan de trabajo priorizado**. Auditor no ejecuta ni redacta cambios: clasifica cada hallazgo para que Editora reciba una cola accionable:
+
+- **P1 · CORREGIR_AHORA**: errores objetivos, duplicados, referencias rotas o contradicciones fuertes. Los casos de identidad de producto que necesitan confirmar proveedor quedan en `NEEDS_SOURCE_VERIFICATION`.
+- **P2 · ESPERAR_ENRIQUECIMIENTO**: contenido insuficiente que debe esperar conocimiento de Ingeniero/Solucionador en vez de rellenarse con texto genérico.
+- **P3 · MIGRAR_A_SOLUCIONADOR**: FAQs con intención útil de elección, uso, compatibilidad, mantenimiento, seguridad o problema real. Antes de retirar una FAQ se exige preservar `faq_id + object_type + object_id/category_id + pregunta + respuesta + hash + origen`.
+- **P4 · REVISAR**: señales heurísticas que requieren criterio humano y no justifican modificación automática.
+- **P5 · INFORMATIVO**: métricas/contexto sin acción editorial directa.
+
+La salida JSON incorpora `task_id`, `priority`, `priority_score`, `action_class`, `status`, `ready_now`, `requires_source_check`, `depends_on`, entidad, problema, evidencia, recomendación y `expected_impact`. El impacto de tráfico queda marcado como **pendiente de Analista** hasta que esa integración aporte métricas fiables.
 
 La auditoría de **Academia / Estudiante** queda separada dentro de **Dependiente → Auditor Academia**.
 

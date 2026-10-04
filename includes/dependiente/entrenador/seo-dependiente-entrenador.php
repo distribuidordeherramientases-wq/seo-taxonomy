@@ -6429,6 +6429,7 @@ final class SEO_Dependiente_Entrenador {
         }
 
         if ('csv' === $ext) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv() requiere un recurso nativo para lectura incremental del archivo de laboratorio.
             $handle = fopen($path, 'rb');
             if (!$handle) {
                 throw new RuntimeException('No se pudo abrir el CSV.');
@@ -6457,6 +6458,7 @@ final class SEO_Dependiente_Entrenador {
                     }
                 }
             } finally {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso de lectura CSV del laboratorio.
                 fclose($handle);
             }
             if (!$rows) {

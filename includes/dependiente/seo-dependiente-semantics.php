@@ -19,6 +19,29 @@ final class SEO_Dependiente_Semantics {
     private static $academy_rules = null;
     private static $vocabulary_cache = array();
 
+    /**
+     * Abre el CSV de seed semántico para lectura incremental.
+     *
+     * @param string $path Ruta.
+     * @param string $mode Modo.
+     * @return resource|false
+     */
+    private static function csv_stream_open($path, $mode) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv() requiere un recurso PHP nativo y el archivo es un seed local del plugin.
+        return fopen($path, $mode);
+    }
+
+    /**
+     * Cierra el CSV de seed semántico.
+     *
+     * @param resource $handle Recurso.
+     * @return bool
+     */
+    private static function csv_stream_close($handle) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por fgetcsv().
+        return fclose($handle);
+    }
+
     public static function table() {
         global $wpdb;
         return $wpdb->prefix . 'seo_dependiente_semantics';
@@ -144,14 +167,14 @@ final class SEO_Dependiente_Semantics {
             return array();
         }
 
-        $handle = fopen($seed_file, 'rb');
+        $handle = self::csv_stream_open($seed_file, 'rb');
         if (!$handle) {
             return array();
         }
 
         $headers = fgetcsv($handle, 0, ',', '"', '');
         if (!$headers) {
-            fclose($handle);
+            self::csv_stream_close($handle);
             return array();
         }
         $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
@@ -163,7 +186,7 @@ final class SEO_Dependiente_Semantics {
             'relation_type','result_role','weight','priority','confidence','language','source','active'
         );
         if (array_diff($allowed, $headers)) {
-            fclose($handle);
+            self::csv_stream_close($handle);
             return array();
         }
 
@@ -174,7 +197,7 @@ final class SEO_Dependiente_Semantics {
             }
             $rows[] = array_combine($headers, $values);
         }
-        fclose($handle);
+        self::csv_stream_close($handle);
         return $rows;
     }
 

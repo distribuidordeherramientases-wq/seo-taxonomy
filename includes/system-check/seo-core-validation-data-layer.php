@@ -116,6 +116,7 @@ function seo_core_system_test_action_scheduler_checks() {
         : '';
     $group_select = $group_join !== '' ? "COALESCE(g.slug, '')" : "''";
 
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas y fragmentos JOIN/SELECT proceden exclusivamente de Action Scheduler y condiciones internas de solo lectura.
     $top_pending = $wpdb->get_row(
         "SELECT a.hook, {$group_select} AS action_group, COUNT(*) AS total,
                 MIN(a.scheduled_date_gmt) AS first_date,
@@ -246,6 +247,7 @@ function seo_core_system_test_data_layer_passive_checks() {
         empty($missing_columns) ? 'ok' : 'ko'
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- El nombre de tabla procede de SEO_Data_Layer::operations_table(); no contiene entrada de usuario.
     $totals = $wpdb->get_row(
         "SELECT
             COUNT(*) AS operations_total,
@@ -289,6 +291,7 @@ function seo_core_system_test_data_layer_passive_checks() {
         $totals['running_stale'] > 0 ? 'ko' : ($totals['preparatory_stale'] > 0 ? 'warning' : 'ok')
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Los nombres de tabla proceden del Data Layer interno y la consulta es de solo lectura.
     $orphan_changes = (int) $wpdb->get_var(
         "SELECT COUNT(*)
          FROM `{$changes}` c
@@ -304,6 +307,7 @@ function seo_core_system_test_data_layer_passive_checks() {
         $orphan_changes === 0 ? 'ok' : 'ko'
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Los nombres de tabla proceden del Data Layer interno y la consulta es de solo lectura.
     $completed_without_changes = (int) $wpdb->get_var(
         "SELECT COUNT(*)
          FROM (

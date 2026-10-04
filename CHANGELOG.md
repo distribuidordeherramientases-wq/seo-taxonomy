@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Auditor 0.11.0 añade una **cola editorial priorizada** por auditoría: P1 CORREGIR_AHORA, P2 ESPERAR_ENRIQUECIMIENTO, P3 MIGRAR_A_SOLUCIONADOR, P4 REVISAR y P5 INFORMATIVO.
+- Cada tarea de Auditor incluye `task_id`, estado, dependencia, evidencia, recomendación e impacto esperado; las contradicciones de identidad que necesitan proveedor quedan bloqueadas en `NEEDS_SOURCE_VERIFICATION` y las métricas de tráfico quedan pendientes de Analista.
+
 - Separado **Ingeniero** de Dependiente como servicio propio en **Contenidos**, con pestañas Investigación, Editorial, Datos y fuentes y Pruebas.
 - Añadido el proceso editorial técnico de Ingeniero con dossiers trazables, source_hash, cobertura neutral, acciones CREATE/IMPROVE/MERGE/NO_ACTION/NEEDS_REVIEW y borradores sólo tras aprobación humana.
 - Solucionador deja de consumir Ingeniero como fuente o requisito de conocimiento; ambos procesos reutilizan la API neutral de cobertura sin mezclar sus decisiones.

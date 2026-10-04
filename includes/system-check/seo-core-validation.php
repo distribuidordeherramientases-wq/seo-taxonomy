@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
-    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.11.0');
+    define('SEO_CORE_SYSTEM_TEST_VERSION', '8.12.0');
 }
 
 $seo_core_settings_module = __DIR__ . '/seo-core-validation-settings.php';
@@ -24,6 +24,11 @@ if (is_readable($seo_core_semantic_test_module)) {
 $seo_core_visual_test_module = __DIR__ . '/seo-core-validation-visual.php';
 if (is_readable($seo_core_visual_test_module)) {
     require_once $seo_core_visual_test_module;
+}
+
+$seo_core_services_test_module = __DIR__ . '/seo-core-validation-services.php';
+if (is_readable($seo_core_services_test_module)) {
+    require_once $seo_core_services_test_module;
 }
 
 $seo_core_wporg_test_module = __DIR__ . '/seo-core-validation-wordpress-org.php';
@@ -214,6 +219,7 @@ function seo_core_system_test_export_missing_product_excerpts() {
     }
 
     // UTF-8 BOM improves Excel compatibility; semicolon matches common es-ES CSV imports.
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- BOM UTF-8 sobre stream CSV de descarga administrativa.
     fwrite($out, "\xEF\xBB\xBF");
     fputcsv(
         $out,
@@ -243,6 +249,7 @@ function seo_core_system_test_export_missing_product_excerpts() {
         );
     }
 
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV de descarga administrativa.
     fclose($out);
     exit;
 }
@@ -358,7 +365,7 @@ function seo_core_system_test() {
         $settings_results = is_array($results) ? $results : seo_core_system_test_get_reporting_results();
         seo_core_validation_render_settings_page($settings_results);
     } elseif ($results === null) {
-        if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content'), true)) {
+        if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content', 'services'), true)) {
             seo_core_system_test_render_compact_health(array(), $active_tab);
         }
         seo_core_system_test_render_intro();
@@ -383,7 +390,7 @@ function seo_core_system_test_get_active_tab() {
         ? sanitize_key(wp_unslash($_GET['seo_core_test_tab']))
         : 'summary';
 
-    if (in_array($tab, array('summary', 'code_integrity', 'operation', 'seo_content', 'settings'), true)) {
+    if (in_array($tab, array('summary', 'code_integrity', 'operation', 'seo_content', 'services', 'settings'), true)) {
         return $tab;
     }
 
@@ -468,7 +475,7 @@ function seo_core_system_test_render_run_button($active_tab = 'summary') {
     wp_nonce_field('seo_core_system_test_run', 'seo_core_system_test_nonce');
     echo '<input type="hidden" name="seo_core_system_test_run" value="1">';
     submit_button('Ejecutar validación completa', 'primary', 'submit', false);
-    if (in_array($active_tab, array('operation', 'seo_content'), true)) {
+    if (in_array($active_tab, array('operation', 'seo_content', 'services'), true)) {
         echo '<p class="description" style="margin-top:8px;">Actualiza todos los chequeos pasivos. La auditoría 404 y la prueba transaccional del Data Layer conservan sus controles propios en sus áreas correspondientes.</p>';
     } else {
         echo '<p class="description" style="margin-top:8px;">Los tests se ejecutan en una sola pasada; cada vista solo organiza y filtra los resultados.</p>';
@@ -538,6 +545,7 @@ function seo_core_system_test_tab_label($tab_id) {
         'code_integrity' => 'Integridad del código',
         'operation'      => 'Operación y tienda',
         'seo_content'     => 'SEO, datos y contenido',
+        'services'        => 'Servicios y conexiones',
         'advanced'        => 'Operación y tienda',
         'settings'       => 'Configuración',
         'functional'     => 'Funcionamiento público',
@@ -566,6 +574,7 @@ function seo_core_system_test_tab_description($tab_id) {
         'code_integrity' => 'La vista principal para revisar archivos, sintaxis, funciones, tipos, hooks y duplicados.',
         'operation'      => 'Funcionamiento público, responsive, enlaces, entorno, plantillas, catálogo, compra, correos y procesos técnicos.',
         'seo_content'     => 'Datos internos SEO Core, Data Layer / Action Scheduler y contenido-semántica.',
+        'services'        => 'Estado individual de los servicios del plugin y lectura real de conexiones Google/GitHub.',
         'advanced'        => 'Compatibilidad con la antigua vista de chequeos avanzados.',
         'settings'       => 'Muestras, tolerancias, debug y sugerencias de corrección asistida.',
         'functional'     => 'Navegación pública, respuesta HTML, búsqueda, encabezados, canonical y datos estructurados.',
@@ -589,7 +598,7 @@ function seo_core_system_test_tab_description($tab_id) {
 
 
 function seo_core_system_test_render_tabs($active_tab) {
-    $tab_ids = array('summary', 'code_integrity', 'operation', 'seo_content', 'settings');
+    $tab_ids = array('summary', 'code_integrity', 'operation', 'seo_content', 'services', 'settings');
 
     echo '<nav class="nav-tab-wrapper seo-core-test-tabs">';
     foreach ($tab_ids as $tab_id) {
@@ -780,6 +789,9 @@ function seo_core_system_test_run_all(
     if (function_exists('seo_core_system_test_semantic_checks')) {
         $results = array_merge($results, seo_core_system_test_semantic_checks());
     }
+    if (function_exists('seo_core_system_test_services_connections')) {
+        $results = array_merge($results, seo_core_system_test_services_connections(true));
+    }
     $results = array_merge($results, seo_core_system_test_technical());
 
     $metadata = seo_core_system_test_build_run_metadata(
@@ -797,7 +809,7 @@ function seo_core_system_test_run_all(
  * Ejecuta la parte funcional adecuada para tareas programadas.
  * El inventario estatico completo se reserva por defecto para actualizaciones.
  */
-function seo_core_system_test_run_telemetry_suite($include_code_integrity = false) {
+function seo_core_system_test_run_telemetry_suite($include_code_integrity = false, $live_external = false) {
     $started_at = time();
     $started_microtime = microtime(true);
     $origin = $include_code_integrity ? 'plugin_update' : 'scheduled';
@@ -825,6 +837,9 @@ function seo_core_system_test_run_telemetry_suite($include_code_integrity = fals
     }
     if (function_exists('seo_core_system_test_semantic_checks')) {
         $results = array_merge($results, seo_core_system_test_semantic_checks());
+    }
+    if (function_exists('seo_core_system_test_services_connections')) {
+        $results = array_merge($results, seo_core_system_test_services_connections((bool) $live_external));
     }
     $results = array_merge($results, seo_core_system_test_technical());
 
@@ -7124,21 +7139,74 @@ function seo_core_system_test_incident_ids($results) {
 function seo_core_system_test_health_summary($results) {
     $counts = array('critical' => 0, 'important' => 0, 'warning' => 0, 'ok' => 0, 'info' => 0, 'not_evaluable' => 0, 'not_applicable' => 0, 'unknown' => 0);
     $confidence_values = array();
+    $weighted_penalty = 0.0;
+    $weighted_max = 0.0;
+
     foreach ((array) $results as $result) {
         if (!is_array($result) || seo_core_system_test_is_aggregate_result($result)) continue;
+
         $status = (string) ($result['status'] ?? '');
-        if (isset($counts[$status]) && in_array($status, array('not_evaluable', 'not_applicable', 'unknown'), true)) { $counts[$status]++; continue; }
+        if (isset($counts[$status]) && in_array($status, array('not_evaluable', 'not_applicable', 'unknown'), true)) {
+            $counts[$status]++;
+            continue;
+        }
+
         $impact = seo_core_system_test_result_impact($result);
         $units = 1;
-        if (in_array($impact, array('critical', 'important', 'warning'), true) && !empty($result['items']) && is_array($result['items'])) $units = max(1, count($result['items']));
+        if (in_array($impact, array('critical', 'important', 'warning'), true) && !empty($result['items']) && is_array($result['items'])) {
+            $units = max(1, count($result['items']));
+        }
         $counts[$impact] = isset($counts[$impact]) ? $counts[$impact] + $units : $units;
-        if (isset($result['confidence'])) $confidence_values[] = (int) $result['confidence'];
+
+        /*
+         * Cada comprobación aporta un máximo de 5 puntos de riesgo, igual que
+         * la fórmula histórica. Para servicios/conexiones usamos su score
+         * 0-100 de forma proporcional en vez de reducirlo a un simple badge.
+         */
+        $weighted_max += 5.0 * $units;
+        $group = (string) ($result['group'] ?? '');
+        $service_score = null;
+        if (in_array($group, array('services', 'connections'), true)) {
+            if (isset($result['service_score'])) {
+                $service_score = max(0, min(100, (int) $result['service_score']));
+            } elseif (isset($result['evidence']['score'])) {
+                $service_score = max(0, min(100, (int) $result['evidence']['score']));
+            }
+        }
+
+        if ($service_score !== null) {
+            $weighted_penalty += ((100 - $service_score) / 100) * 5.0 * $units;
+        } else {
+            $impact_penalty = array(
+                'critical' => 5.0,
+                'important' => 3.0,
+                'warning' => 1.0,
+                'ok' => 0.0,
+                'info' => 0.0,
+            );
+            $weighted_penalty += ($impact_penalty[$impact] ?? 0.0) * $units;
+        }
+
+        if (isset($result['confidence'])) {
+            $confidence_values[] = (int) $result['confidence'];
+        }
     }
+
     $actionable = $counts['critical'] + $counts['important'] + $counts['warning'] + $counts['ok'];
     $expected = $actionable + $counts['not_evaluable'] + $counts['unknown'];
-    $penalty = ($counts['critical'] * 5) + ($counts['important'] * 3) + $counts['warning'];
-    $score = $actionable > 0 ? max(0, (int) round(100 - (($penalty / ($actionable * 5)) * 100))) : null;
-    $status = $counts['critical'] > 0 ? 'critical' : ($counts['important'] > 0 ? 'important' : ($counts['warning'] > 0 ? 'warning' : ($counts['ok'] > 0 ? 'ok' : ($counts['not_evaluable'] > 0 ? 'not_evaluable' : 'info'))));
+    $score = $weighted_max > 0
+        ? max(0, (int) round(100 - (($weighted_penalty / $weighted_max) * 100)))
+        : null;
+    $status = $counts['critical'] > 0
+        ? 'critical'
+        : ($counts['important'] > 0
+            ? 'important'
+            : ($counts['warning'] > 0
+                ? 'warning'
+                : ($counts['ok'] > 0
+                    ? 'ok'
+                    : ($counts['not_evaluable'] > 0 ? 'not_evaluable' : 'info'))));
+
     return array_merge($counts, array(
         'total' => $actionable,
         'score' => $score,
@@ -7147,7 +7215,6 @@ function seo_core_system_test_health_summary($results) {
         'confidence' => !empty($confidence_values) ? (int) round(array_sum($confidence_values) / count($confidence_values)) : 0,
     ));
 }
-
 
 function seo_core_system_test_groups_for_tab($active_tab) {
     if ($active_tab === 'code_integrity') {
@@ -7171,6 +7238,12 @@ function seo_core_system_test_groups_for_tab($active_tab) {
             'seo_system',
             'data_layer',
             'semantic',
+        );
+    }
+    if ($active_tab === 'services') {
+        return array(
+            'services',
+            'connections',
         );
     }
     return array();
@@ -7208,6 +7281,8 @@ function seo_core_system_test_render_compact_health($results, $active_tab = 'sum
         $scope_text = 'Agrupa continuidad del negocio, tienda, frontend, enlaces y procesos técnicos. El Resumen ya refleja estos KPIs sin volver a ejecutar pruebas.';
     } elseif ($active_tab === 'seo_content') {
         $scope_text = 'Agrupa datos internos SEO Core, Data Layer / Action Scheduler y contenido-semántica. El Resumen ya refleja estos KPIs sin volver a ejecutar pruebas.';
+    } elseif ($active_tab === 'services') {
+        $scope_text = 'Muestra una puntuación por servicio y por conexión externa. Estos resultados forman parte del estado global de Plugin Validation.';
     } else {
         $scope_text = 'Esta vista filtra únicamente la integridad del código. Su estado ya está incluido dentro del resumen global.';
     }
@@ -7264,6 +7339,10 @@ function seo_core_system_test_render_summary_tab_kpis($results) {
             'title' => 'SEO, datos y contenido',
             'groups' => seo_core_system_test_groups_for_tab('seo_content'),
         ),
+        'services' => array(
+            'title' => 'Servicios y conexiones',
+            'groups' => seo_core_system_test_groups_for_tab('services'),
+        ),
     );
 
     echo '<h3>Estado por pestaña</h3>';
@@ -7309,6 +7388,8 @@ function seo_core_system_test_render_module_overview($results) {
         'seo_system'     => array('title' => 'Datos internos SEO Core', 'tab' => 'seo_content'),
         'data_layer'     => array('title' => 'Data Layer / Scheduler', 'tab' => 'seo_content'),
         'semantic'       => array('title' => 'Contenido y semántica', 'tab' => 'seo_content'),
+        'services'       => array('title' => 'Servicios internos', 'tab' => 'services'),
+        'connections'    => array('title' => 'Conexiones Google / GitHub', 'tab' => 'services'),
     );
 
     echo '<h3>KPIs por área</h3>';
@@ -7408,7 +7489,7 @@ function seo_core_system_test_result($group, $label, $passed, $detail = '', $sev
             : (function_exists('seo_core_validation_remediation_for_label') ? seo_core_validation_remediation_for_label($label) : array()),
         'health_impact' => array_key_exists('health_impact', $meta) ? ((int) $meta['health_impact'] === 0 ? 0 : 1) : 1,
     );
-    foreach (array('items', 'priority', 'status_code') as $key) {
+    foreach (array('items', 'priority', 'status_code', 'service_score') as $key) {
         if (array_key_exists($key, $meta)) $result[$key] = $meta[$key];
     }
     return $result;
@@ -7470,7 +7551,7 @@ function seo_core_system_test_render_results($results, $active_tab) {
     $summary = seo_core_system_test_get_summary($results);
     $visible_results = seo_core_system_test_results_for_tab($results, $active_tab);
 
-    if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content'), true)) {
+    if (in_array($active_tab, array('code_integrity', 'operation', 'seo_content', 'services'), true)) {
         seo_core_system_test_render_compact_health($visible_results, $active_tab);
     }
 
@@ -7489,8 +7570,75 @@ function seo_core_system_test_render_results($results, $active_tab) {
         return;
     }
 
+    if ($active_tab === 'services') {
+        seo_core_system_test_render_services_connections($results);
+        return;
+    }
+
     seo_core_system_test_render_summary($summary, $results);
 }
+
+function seo_core_system_test_render_services_connections($results) {
+    $rows = array_values(array_filter((array) $results, static function ($result) {
+        return isset($result['group']) && in_array($result['group'], array('services', 'connections'), true);
+    }));
+
+    echo '<h2>Servicios y conexiones</h2>';
+    echo '<p>Cada fila representa el estado agregado de un servicio o conexión. Su puntuación forma parte del cálculo global de Plugin Validation.</p>';
+
+    if (function_exists('seo_core_service_release_summary')) {
+        $release = seo_core_service_release_summary();
+        $release_status = (string) ($release['status'] ?? 'unknown');
+        $release_score = isset($release['score']) && $release['score'] !== null ? (int) $release['score'] . '%' : 'Pendiente';
+        $release_class = $release_status === 'ok' ? 'ok' : ($release_status === 'pending' ? 'warning' : 'important');
+        echo '<div class="seo-core-health-box seo-core-health-' . esc_attr($release_class) . '" style="margin:14px 0 20px;max-width:900px;">';
+        echo '<strong>Aceptación post-release</strong>';
+        echo '<div class="seo-core-health-value">' . esc_html($release_score) . '</div>';
+        echo '<span class="seo-core-test-muted">Versión actual: ' . esc_html((string) ($release['current_version'] ?? '—')) . ' · versión comprobada: ' . esc_html((string) ($release['checked_version'] ?? 'pendiente')) . '</span>';
+        if (!empty($release['checked_at'])) {
+            echo '<br><span class="seo-core-test-muted">Último chequeo: ' . esc_html(wp_date('Y-m-d H:i:s', (int) $release['checked_at'])) . '</span>';
+        }
+        if (!empty($release['failed']) && is_array($release['failed'])) {
+            echo '<ul style="margin:10px 0 0 18px;">';
+            foreach (array_slice($release['failed'], 0, 12) as $failed) {
+                echo '<li><strong>' . esc_html(preg_replace('/^\\d+(?:\\.\\d+)*\\s+/', '', (string) ($failed['label'] ?? 'Servicio'))) . '</strong> · ' . esc_html((int) ($failed['score'] ?? 0) . '%') . ' · ' . esc_html((string) ($failed['detail'] ?? '')) . '</li>';
+            }
+            echo '</ul>';
+        }
+        echo '</div>';
+    }
+
+    foreach (array('services' => 'Servicios internos', 'connections' => 'Conexiones externas') as $group => $title) {
+        $group_rows = array_values(array_filter($rows, static function ($result) use ($group) {
+            return isset($result['group']) && $result['group'] === $group;
+        }));
+
+        echo '<section class="seo-core-test-section">';
+        echo '<h2>' . esc_html($title) . '</h2>';
+        if (empty($group_rows)) {
+            echo '<p class="seo-core-test-empty">Todavía no hay resultados para este bloque.</p>';
+            echo '</section>';
+            continue;
+        }
+
+        echo '<div class="seo-core-test-table-wrap">';
+        echo '<table class="seo-core-test-table">';
+        echo '<thead><tr><th>Servicio</th><th>Estado</th><th>Valor</th><th>Detalle</th></tr></thead><tbody>';
+        foreach ($group_rows as $row) {
+            $score = isset($row['evidence']['score']) ? (int) $row['evidence']['score'] : null;
+            $label = preg_replace('/^\\d+(?:\\.\\d+)*\\s+/', '', (string) ($row['label'] ?? 'Servicio'));
+            echo '<tr>';
+            echo '<td><strong>' . esc_html($label) . '</strong></td>';
+            echo '<td>' . wp_kses_post(seo_core_system_test_result_badge($row)) . '</td>';
+            echo '<td><strong>' . esc_html($score === null ? '—' : $score . '%') . '</strong></td>';
+            echo '<td>' . esc_html((string) ($row['detail'] ?? '')) . '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table></div>';
+        echo '</section>';
+    }
+}
+
 
 function seo_core_system_test_render_advanced_checks($results, $active_tab = 'operation') {
     $requested = seo_core_system_test_get_requested_section();
@@ -8254,6 +8402,8 @@ function seo_core_system_test_render_group($results, $group, $show_heading = tru
         'functional' => 'Funcionalidad',
         'visual' => 'Responsive y calidad visual',
         'links_404' => 'Enlaces y 404',
+        'services' => 'Servicios internos',
+        'connections' => 'Conexiones externas',
     );
 
     if ($show_heading) {

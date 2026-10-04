@@ -32,6 +32,7 @@ require_once SEO_SOLUCIONADOR_PATH . 'solucionador-coverage.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-catalog.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-posts.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-engine.php';
+require_once SEO_SOLUCIONADOR_PATH . 'solucionador-process.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-export.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-tests.php';
 require_once SEO_SOLUCIONADOR_PATH . 'solucionador-admin.php';

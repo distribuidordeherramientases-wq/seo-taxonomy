@@ -4219,6 +4219,7 @@ function seo_google_export_csv_handler() {
             $row['position'],
         ), ';', '"', '');
     }
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV de Google Intelligence.
     fclose($output);
     exit;
 }

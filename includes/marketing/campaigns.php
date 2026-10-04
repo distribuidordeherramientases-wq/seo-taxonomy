@@ -1778,6 +1778,31 @@ function seo_marketing_campaigns_export_records()
 }
 
 /**
+ * Abre un stream CSV nativo para import/export de campañas.
+ *
+ * @param string $path Ruta o stream PHP.
+ * @param string $mode Modo.
+ * @return resource|false
+ */
+function seo_marketing_campaigns_csv_stream_open($path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fputcsv/fgetcsv requieren un recurso PHP nativo para streaming.
+    return fopen($path, $mode);
+}
+
+/**
+ * Cierra un stream CSV nativo de campañas.
+ *
+ * @param resource $handle Recurso.
+ * @return bool
+ */
+function seo_marketing_campaigns_csv_stream_close($handle)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por fputcsv/fgetcsv.
+    return fclose($handle);
+}
+
+/**
  * Descarga JSON o CSV completo de campanas y productos.
  */
 function seo_marketing_campaigns_handle_export()
@@ -1804,7 +1829,7 @@ function seo_marketing_campaigns_handle_export()
 
     if ($format === 'csv') {
         header('Content-Type: text/csv; charset=utf-8');
-        $out = fopen('php://output', 'w');
+        $out = seo_marketing_campaigns_csv_stream_open('php://output', 'w');
         if ($out === false) {
             wp_die('No se pudo abrir la salida CSV.');
         }
@@ -1822,7 +1847,7 @@ function seo_marketing_campaigns_handle_export()
             }
             fputcsv($out, $values, ';');
         }
-        fclose($out);
+        seo_marketing_campaigns_csv_stream_close($out);
         exit;
     }
 
@@ -1847,14 +1872,14 @@ add_action('admin_post_seo_marketing_campaigns_export', 'seo_marketing_campaigns
  */
 function seo_marketing_campaigns_import_read_csv($path)
 {
-    $handle = fopen($path, 'r');
+    $handle = seo_marketing_campaigns_csv_stream_open($path, 'r');
     if ($handle === false) {
         return new WP_Error('campaign_csv_open', 'No se pudo abrir el CSV.');
     }
 
     $first = fgets($handle);
     if ($first === false) {
-        fclose($handle);
+        seo_marketing_campaigns_csv_stream_close($handle);
         return new WP_Error('campaign_csv_empty', 'El CSV esta vacio.');
     }
 
@@ -1865,7 +1890,7 @@ function seo_marketing_campaigns_import_read_csv($path)
 
     $header = fgetcsv($handle, 0, $delimiter);
     if (!is_array($header)) {
-        fclose($handle);
+        seo_marketing_campaigns_csv_stream_close($handle);
         return new WP_Error('campaign_csv_header', 'No se pudo leer la cabecera CSV.');
     }
 
@@ -1887,7 +1912,7 @@ function seo_marketing_campaigns_import_read_csv($path)
         }
         $rows[] = $row;
     }
-    fclose($handle);
+    seo_marketing_campaigns_csv_stream_close($handle);
 
     return $rows;
 }

@@ -22,6 +22,7 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 
 if ( $argc < 7 ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
     fwrite( STDERR, "Argumentos insuficientes.\n" );
     exit( 64 );
 }
@@ -34,6 +35,7 @@ $not_before  = (int) $argv[5];
 $signature   = (string) $argv[6];
 
 if ( '' === $wp_load || ! is_readable( $wp_load ) ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
     fwrite( STDERR, "No se puede cargar wp-load.php.\n" );
     exit( 66 );
 }
@@ -55,6 +57,7 @@ if (
     || ! function_exists( 'seo_ie_product_import_claim_direct_dispatch' )
     || ! function_exists( 'seo_ie_product_import_run_direct_loop' )
 ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Salida de diagnóstico a STDERR en un entrypoint CLI; no escribe archivos del plugin.
     fwrite( STDERR, "El plugin no ha cargado el motor directo.\n" );
     exit( 69 );
 }
