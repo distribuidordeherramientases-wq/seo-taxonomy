@@ -17,7 +17,7 @@ final class SEO_Auditor {
     const ACADEMY_REPORT_OPTION = 'seo_auditor_last_academy_report';
     const SCOPED_REPORT_OPTION = 'seo_auditor_scoped_reports';
     const HISTORY_OPTION = 'seo_auditor_history';
-    const REPORT_VERSION = 9;
+    const REPORT_VERSION = 10;
     const MAX_BEHAVIOR_PROBES = 60;
     const MAX_BEHAVIOR_CROSS_PROBES = 24;
     const MAX_BEHAVIOR_FAQ_PROBES = 18;
@@ -28,9 +28,13 @@ final class SEO_Auditor {
     const MAX_CATEGORY_PROFILES = 250;
     const MAX_ENTITY_FINDINGS_PER_RULE = 60;
     const MAX_SYSTEMIC_PATTERNS = 50;
+    const MAX_PRIORITY_FINDINGS = 50000;
+    const PRIORITY_UI_LIMIT = 250;
 
     private static $findings = array();
     private static $rule_counts = array();
+    private static $priority_findings = array();
+    private static $priority_findings_truncated = false;
 
     public static function init() {
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
