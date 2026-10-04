@@ -1283,7 +1283,9 @@ if (!function_exists('seo_page_edit_posts')) {
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Categoria de producto</label>
                 <select name="product_cat" style="width:100%;">
                     <option value="">Todas</option>
-                    <option value="none" <?php selected($category_filter, 'none'); ?>>Sin categoria de producto</option>
+                    <?php if (!$solucionador_only): ?>
+                        <option value="none" <?php selected($category_filter, 'none'); ?>>Sin categoria de producto</option>
+                    <?php endif; ?>
                     <?php seo_post_editor_category_option_tree($categories, $category_filter); ?>
                 </select>
             </div>
