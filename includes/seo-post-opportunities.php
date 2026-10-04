@@ -2237,6 +2237,7 @@ function seo_post_opportunities_export_handler()
         ), ';');
     }
 
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV de exportación administrativa.
     fclose($fh);
     exit;
 }
