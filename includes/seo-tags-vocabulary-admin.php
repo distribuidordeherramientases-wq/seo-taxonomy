@@ -2249,7 +2249,7 @@ if (!function_exists('seo_tags_vocab_export_dictionary')) {
         }
 
         // BOM UTF-8 para que Excel abra correctamente acentos y eñes.
-        fwrite($output, "\xEF\xBB\xBF");
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- BOM UTF-8 sobre stream CSV del diccionario.\n        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, [
             'grupo',
             'valor_permitido',
@@ -2274,7 +2274,7 @@ if (!function_exists('seo_tags_vocab_export_dictionary')) {
             ], ';');
         }
 
-        fclose($output);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV del diccionario.\n        fclose($output);
         exit;
     }
 }
