@@ -54,7 +54,6 @@ if (!defined('SEO_DEPENDIENTE_INTERPRETER_ASSIST')) {
  */
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-index.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-semantics.php';
-require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-editorial-knowledge.php';
 
 $seo_dependiente_interpreter_bootstrap = SEO_DEPENDIENTE_PATH . 'interprete/seo-dependiente-interprete-bootstrap.php';
 if (is_readable($seo_dependiente_interpreter_bootstrap)) {
