@@ -3962,28 +3962,45 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
 
     $page_source = seo_google_pages_period_complete($property_id, $date_from, $date_to);
     $table = seo_google_table($page_source ? 'search_pages' : 'search_data');
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and a closed boolean-selected aggregate expression; all property/date/limit values are bound through prepare().
-    $rows = $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT
+
+    if ($page_source) {
+        $query_template = "SELECT
                 page_hash,
                 MAX(page_url) AS page_url,
                 SUM(clicks) AS clicks,
                 SUM(impressions) AS impressions,
-                " . ($page_source ? '0' : 'COUNT(DISTINCT query_hash)') . " AS queries,
+                0 AS queries,
                 CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
              FROM {$table}
              WHERE property_hash = %s AND search_type = 'web' AND data_date BETWEEN %s AND %s
              GROUP BY page_hash
              ORDER BY impressions DESC
-             LIMIT %d",
-            hash('sha256', $property_id),
-            $date_from,
-            $date_to,
-            max(1, min(10000, absint($limit)))
-        ),
-        ARRAY_A
+             LIMIT %d";
+    } else {
+        $query_template = "SELECT
+                page_hash,
+                MAX(page_url) AS page_url,
+                SUM(clicks) AS clicks,
+                SUM(impressions) AS impressions,
+                COUNT(DISTINCT query_hash) AS queries,
+                CASE WHEN SUM(impressions) > 0 THEN SUM(position * impressions) / SUM(impressions) ELSE 0 END AS position
+             FROM {$table}
+             WHERE property_hash = %s AND search_type = 'web' AND data_date BETWEEN %s AND %s
+             GROUP BY page_hash
+             ORDER BY impressions DESC
+             LIMIT %d";
+    }
+
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla GSC interna; propiedad, fechas y limite se enlazan mediante $wpdb->prepare().
+    $prepared_sql = $wpdb->prepare(
+        $query_template,
+        hash('sha256', $property_id),
+        $date_from,
+        $date_to,
+        max(1, min(10000, absint($limit)))
     );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+    $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
     if ($page_source) seo_google_attach_page_query_counts($rows, $property_id, $date_from, $date_to);
     return $rows;
 }
