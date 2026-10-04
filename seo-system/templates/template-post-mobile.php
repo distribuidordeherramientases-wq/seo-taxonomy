@@ -115,26 +115,27 @@ if (!function_exists('dht_post_v12_product_image_mobile')) {
         }
 
         if ($usage_table_available) {
-            $attachment_ids = $wpdb->get_col(
-                $wpdb->prepare(
-                    "SELECT attachment_id
-                     FROM {$usage_table}
-                     WHERE object_type = 'product'
-                       AND object_id = %d
-                       AND attachment_id IS NOT NULL
-                       AND attachment_id > 0
-                     ORDER BY
-                       CASE tipo_uso
-                         WHEN 'featured' THEN 1
-                         WHEN 'gallery' THEN 2
-                         WHEN 'content' THEN 3
-                         ELSE 9
-                       END ASC,
-                       fecha DESC
-                     LIMIT 12",
-                    $product_id
-                )
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; product_id enlazado mediante $wpdb->prepare().
+            $attachment_sql = $wpdb->prepare(
+                "SELECT attachment_id
+                 FROM {$usage_table}
+                 WHERE object_type = 'product'
+                   AND object_id = %d
+                   AND attachment_id IS NOT NULL
+                   AND attachment_id > 0
+                 ORDER BY
+                   CASE tipo_uso
+                     WHEN 'featured' THEN 1
+                     WHEN 'gallery' THEN 2
+                     WHEN 'content' THEN 3
+                     ELSE 9
+                   END ASC,
+                   fecha DESC
+                 LIMIT 12",
+                $product_id
             );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $attachment_sql es el resultado de $wpdb->prepare().
+            $attachment_ids = $wpdb->get_col($attachment_sql);
 
             foreach ((array) $attachment_ids as $attachment_id) {
                 $source = dht_post_v12_local_image_mobile($attachment_id, $size, true);
@@ -451,7 +452,10 @@ while (have_posts()) :
                 ORDER BY p.post_date DESC
                 LIMIT 12";
 
-        $related_post_ids = $wpdb->get_col($wpdb->prepare($sql, ...$params));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, ...$params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $related_post_ids = $wpdb->get_col($prepared_sql);
         $related_post_ids = array_values(array_unique(array_filter(array_map('absint', (array) $related_post_ids))));
     }
 
