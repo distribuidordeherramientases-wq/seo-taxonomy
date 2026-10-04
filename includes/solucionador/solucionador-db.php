@@ -179,6 +179,7 @@ final class SEO_Solucionador_DB {
             dependiente_count INT UNSIGNED NOT NULL DEFAULT 0,
             faq_count INT UNSIGNED NOT NULL DEFAULT 0,
             question_ids LONGTEXT NULL,
+            dependiente_keys LONGTEXT NULL,
             faq_ids LONGTEXT NULL,
             score_avg DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
             last_validated_at DATETIME NULL,
