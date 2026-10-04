@@ -112,6 +112,15 @@ final class SEO_Solucionador_Engine {
     public static function automatic_refresh() {
         if (!class_exists('SEO_Solucionador_Dossiers')) return;
 
+        if (function_exists('seo_process_supervisor_settings')) {
+            $manager = (array) seo_process_supervisor_settings();
+            if (!empty($manager['enabled']) && !empty($manager['solucionador'])) {
+                if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge(0, 'solucionador');
+                if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
+                return;
+            }
+        }
+
         $lock_key = 'seo_solucionador_auto_refresh_lock';
         if (get_transient($lock_key)) return;
         set_transient($lock_key, 1, 2 * MINUTE_IN_SECONDS);
