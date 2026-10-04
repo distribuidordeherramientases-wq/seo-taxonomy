@@ -1228,12 +1228,16 @@ final class SEO_Solucionador_Dossiers {
         $dossier = self::get_by_category($category_id);
         if (!$dossier) return false;
 
-        $current = SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array());
-        $reviewed = SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}',array());
+        $current = self::normalize_item_hashes(
+            (array)SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array())
+        );
+        $reviewed = self::normalize_item_hashes(
+            (array)SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}',array())
+        );
 
         foreach ($item_keys as $item_key) {
-            $item_key = sanitize_text_field((string)$item_key);
-            if (!self::valid_item_key($item_key)) continue;
+            $item_key = self::canonical_item_key($item_key);
+            if ($item_key === '') continue;
             if (isset($current[$item_key])) $reviewed[$item_key] = (string)$current[$item_key];
             else unset($reviewed[$item_key]); // retirada revisada.
         }
@@ -1336,8 +1340,8 @@ final class SEO_Solucionador_Dossiers {
 
         $snapshot = array();
         foreach (self::question_details($category_id) as $item) {
-            $key = sanitize_text_field((string)($item['item_key'] ?? ''));
-            if (!self::valid_item_key($key)) continue;
+            $key = self::canonical_item_key($item['item_key'] ?? '');
+            if ($key === '') continue;
             $snapshot[$key] = array(
                 'item_key'=>$key,
                 'origin'=>sanitize_key((string)($item['origin'] ?? '')),
@@ -1361,7 +1365,9 @@ final class SEO_Solucionador_Dossiers {
 
         return SEO_Solucionador_DB::update_dossier_editorial($category_id, array(
             'reviewed_hash'=>(string)$dossier['source_hash'],
-            'reviewed_item_hashes'=>(string)($dossier['item_hashes'] ?? '{}'),
+            'reviewed_item_hashes'=>wp_json_encode(self::normalize_item_hashes(
+                (array)SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array())
+            )),
             'reviewed_items_snapshot'=>wp_json_encode($snapshot),
             'editorial_status'=>$editorial_status,
             'reviewed_at'=>current_time('mysql'),
@@ -1381,6 +1387,8 @@ final class SEO_Solucionador_Dossiers {
         $out = array();
         foreach ($retired as $key=>$unused) {
             unset($unused);
+            $key = self::canonical_item_key($key);
+            if ($key === '') continue;
             $row = isset($snapshot[$key]) && is_array($snapshot[$key])
                 ? $snapshot[$key]
                 : array('item_key'=>$key,'question'=>'Elemento retirado de la fuente','answer'=>'');
