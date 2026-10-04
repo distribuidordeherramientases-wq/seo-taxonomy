@@ -235,9 +235,10 @@ if (!function_exists('seo_content_vocab_replace_manual_group')) {
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %d se generan localmente; todos los valores se enlazan mediante $wpdb->prepare().
             $prepared_sql = $wpdb->prepare($sql, $params);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+            $valid_rows = (array) $wpdb->get_col($prepared_sql);
             $valid_ids = array_values(array_unique(array_map(
                 'intval',
-                (array) $wpdb->get_col($prepared_sql)
+                $valid_rows
             )));
 
             if (count($valid_ids) !== count($requested_ids)) {
@@ -505,9 +506,10 @@ if (!function_exists('seo_content_vocab_export_group')) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $field esta restringido a slug/label y los valores externos se enlazan mediante $wpdb->prepare().
         $prepared_sql = $wpdb->prepare($sql, $params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $export_values = (array) $wpdb->get_col($prepared_sql);
         return array_values(array_filter(array_map(
             'strval',
-            (array) $wpdb->get_col($prepared_sql)
+            $export_values
         )));
     }
 }
@@ -772,9 +774,10 @@ if (!function_exists('seo_content_vocab_find_post_ids_for_query')) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Condiciones LIKE y LIMIT se generan internamente; los valores de busqueda se enlazan mediante $wpdb->prepare().
         $prepared_sql = $wpdb->prepare($sql, $params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $post_ids = (array) $wpdb->get_col($prepared_sql);
         return array_values(array_unique(array_filter(array_map(
             'absint',
-            (array) $wpdb->get_col($prepared_sql)
+            $post_ids
         ))));
     }
 }
