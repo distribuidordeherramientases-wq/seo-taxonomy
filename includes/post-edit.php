@@ -481,7 +481,7 @@ if (!function_exists('seo_post_editor_render_solucionador_style_guide')) {
         echo '<li><strong>Tono:</strong> informar, no vender. Explicar ventajas y limitaciones y decir cuándo una solución puede no ser adecuada. Evitar adjetivos comerciales exagerados y afirmaciones absolutas sin justificar.</li>';
         echo '<li><strong>Cierre:</strong> terminar con un breve apartado <em>En resumen</em> y, cuando proceda, un único enlace natural a la categoría o a productos relacionados.</li>';
         echo '<li><strong>Extensión:</strong> no hay un número obligatorio de palabras. El artículo termina cuando resuelve bien la intención, sin relleno, repeticiones ni introducciones SEO artificiales.</li>';
-        echo '<li><strong>Antes de publicar:</strong> eliminar marcas internas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, referencias a Solucionador o Dependiente, IDs, hashes, trazas y notas editoriales.</li>';
+        echo '<li><strong>Antes de publicar:</strong> eliminar marcas internas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, <code>[PENDIENTE]</code>, referencias a Solucionador o Dependiente, IDs, hashes, trazas y notas editoriales.</li>';
         echo '</ol>';
         echo '<p style="margin:0;"><strong>Regla rápida:</strong> si una pregunta puede responderse bien en dos frases, no uses diez. El objetivo es que cualquier cliente entienda la respuesta a la primera lectura.</p>';
         echo '</div>';
