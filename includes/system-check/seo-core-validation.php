@@ -219,7 +219,8 @@ function seo_core_system_test_export_missing_product_excerpts() {
     }
 
     // UTF-8 BOM improves Excel compatibility; semicolon matches common es-ES CSV imports.
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- BOM UTF-8 sobre stream CSV de descarga administrativa.\n    fwrite($out, "\xEF\xBB\xBF");
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- BOM UTF-8 sobre stream CSV de descarga administrativa.
+    fwrite($out, "\xEF\xBB\xBF");
     fputcsv(
         $out,
         array('product_id', 'sku', 'title', 'status', 'created_at', 'modified_at', 'description_length', 'excerpt_length', 'source'),
@@ -248,7 +249,8 @@ function seo_core_system_test_export_missing_product_excerpts() {
         );
     }
 
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV de descarga administrativa.\n    fclose($out);
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del stream CSV de descarga administrativa.
+    fclose($out);
     exit;
 }
 add_action('admin_post_seo_core_export_missing_product_excerpts', 'seo_core_system_test_export_missing_product_excerpts');
