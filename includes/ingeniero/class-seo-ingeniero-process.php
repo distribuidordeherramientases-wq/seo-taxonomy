@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class SEO_Ingeniero_Process {
+final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
     const LOCK_OPTION = 'seo_ingeniero_process_lock';
     const CATEGORIES_PER_CYCLE = 1;
     const EDITORIAL_STATE_OPTION = 'seo_ingeniero_editorial_refresh_state';
@@ -54,6 +54,15 @@ final class SEO_Ingeniero_Process {
     }
 
     public static function editorial_refresh() {
+        if (function_exists('seo_process_supervisor_settings')) {
+            $manager=(array)seo_process_supervisor_settings();
+            if (!empty($manager['enabled']) && !empty($manager['ingeniero'])) {
+                if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge(0,'ingeniero_editorial');
+                if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
+                return;
+            }
+        }
+
         $lock_key='seo_ingeniero_editorial_refresh_lock';
         if (get_transient($lock_key)) return;
         set_transient($lock_key,1,2*MINUTE_IN_SECONDS);
@@ -111,21 +120,138 @@ final class SEO_Ingeniero_Process {
 
     public static function filter_pending_work($pending) {
         $settings = function_exists('seo_process_supervisor_settings') ? (array) seo_process_supervisor_settings() : array('ingeniero'=>1);
-        return $pending || (!empty($settings['ingeniero']) && SEO_Ingeniero::is_pending());
+        return $pending || (!empty($settings['ingeniero']) && self::has_pending());
     }
 
     public static function filter_manager_targets($targets, $settings, $source) {
-        if (empty($settings['ingeniero']) || !SEO_Ingeniero::is_pending()) return $targets;
-        $targets[] = array(
-            'type'=>'ingeniero',
-            'data'=>array(),
-            'callback'=>array(__CLASS__, 'manager_target_callback'),
-        );
+        if (empty($settings['ingeniero'])) return $targets;
+
+        if (SEO_Ingeniero::is_pending()) {
+            $targets[] = array(
+                'type'=>'ingeniero',
+                'data'=>array(),
+                'callback'=>array(__CLASS__, 'manager_target_callback'),
+            );
+        }
+        if (self::editorial_has_pending()) {
+            $targets[] = array(
+                'type'=>'ingeniero_editorial',
+                'data'=>array(),
+                'callback'=>array(__CLASS__, 'editorial_manager_target_callback'),
+            );
+        }
         return $targets;
     }
 
     public static function manager_target_callback($budget, $source, $target) {
         return self::process_slice(max(5, absint($budget)), sanitize_key((string) $source));
+    }
+
+    private static function editorial_has_pending() {
+        if (get_option('seo_ingeniero_editorial_process_paused')) return false;
+        $ids=self::editorial_term_ids();
+        if (!$ids) return false;
+        $state=get_option(self::EDITORIAL_STATE_OPTION,array());
+        if (!is_array($state) || !$state) return true;
+        if (empty($state['complete'])) return true;
+        $completed=!empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;
+        return !$completed || (time()-$completed) >= 6*HOUR_IN_SECONDS;
+    }
+
+    public static function has_pending() {
+        return SEO_Ingeniero::is_pending() || self::editorial_has_pending();
+    }
+
+    public static function progress() {
+        $research=SEO_Ingeniero::progress();
+        $ids=self::editorial_term_ids();
+        $estate=get_option(self::EDITORIAL_STATE_OPTION,array());
+        if (!is_array($estate)) $estate=array();
+        return array(
+            'processed'=>absint($research['processed'] ?? 0),
+            'total'=>absint($research['total'] ?? 0),
+            'percentage'=>(float)($research['percentage'] ?? 0),
+            'pending'=>absint($research['pending'] ?? 0),
+            'editorial_processed'=>absint($estate['processed'] ?? 0),
+            'editorial_total'=>count($ids),
+            'editorial_cursor'=>absint($estate['cursor'] ?? 0),
+            'editorial_errors'=>absint($estate['errors'] ?? 0),
+            'editorial_updated_at'=>(string)($estate['updated_at'] ?? ''),
+        );
+    }
+
+    public static function health() {
+        $state=SEO_Ingeniero::state();
+        $p=self::progress();
+        return array(
+            'healthy'=>empty($state['last_error']) && $p['editorial_errors'] < 10,
+            'last_error'=>(string)($state['last_error'] ?? ''),
+            'errors'=>absint($state['errors'] ?? 0)+$p['editorial_errors'],
+        );
+    }
+
+    public static function pause() {
+        update_option('seo_ingeniero_editorial_process_paused',1,false);
+        SEO_Ingeniero::save_state(array('enabled'=>0,'status'=>'stopped','last_message'=>'Ingeniero pausado desde el Gestor de procesos.'));
+        return true;
+    }
+
+    public static function resume() {
+        delete_option('seo_ingeniero_editorial_process_paused');
+        if (SEO_Ingeniero::is_pending()) SEO_Ingeniero::dispatch(0);
+        if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge(0,'ingeniero');
+        return true;
+    }
+
+    public static function editorial_manager_target_callback($budget,$source,$target) {
+        return self::process_editorial_slice($budget,$source);
+    }
+
+    private static function process_editorial_slice($budget,$source='process_manager') {
+        $budget=max(5,min(55,absint($budget)));
+        if (!self::editorial_has_pending()) return false;
+        $lock_key='seo_ingeniero_editorial_refresh_lock';
+        if (get_transient($lock_key)) return false;
+        set_transient($lock_key,1,$budget+30);
+        $started=microtime(true);
+        $worked=false;
+        try {
+            SEO_Ingeniero_DB::maybe_install();
+            $state=get_option(self::EDITORIAL_STATE_OPTION,array());
+            if (!is_array($state) || !$state) $state=self::fresh_editorial_state();
+
+            if (!empty($state['complete'])) {
+                $completed=!empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;
+                if ($completed && (time()-$completed)<6*HOUR_IN_SECONDS) return false;
+                $state=self::fresh_editorial_state();
+            }
+
+            $ids=self::editorial_term_ids();
+            if (!$ids) return false;
+            if (empty($state['coverage_rebuilt']) && class_exists('SEO_Editorial_Coverage')) {
+                SEO_Editorial_Coverage::rebuild_index(7000);
+                $state['coverage_rebuilt']=true;
+            }
+
+            $cursor=max(0,absint($state['cursor'] ?? 0));
+            while ($cursor<count($ids) && (microtime(true)-$started)<max(2,$budget-2)) {
+                $result=SEO_Ingeniero::refresh_editorial_category(absint($ids[$cursor]),false);
+                $state['processed']=absint($state['processed'] ?? 0)+1;
+                if (is_wp_error($result)) $state['errors']=absint($state['errors'] ?? 0)+1;
+                $cursor++;
+                $state['cursor']=$cursor;
+                $state['updated_at']=current_time('mysql');
+                $worked=true;
+            }
+            if ($cursor>=count($ids)) {
+                $state['complete']=true;
+                $state['completed_at']=current_time('mysql');
+            }
+            update_option(self::EDITORIAL_STATE_OPTION,$state,false);
+            return $worked;
+        } finally {
+            delete_transient($lock_key);
+        }
     }
 
     public static function fallback_tick() {
