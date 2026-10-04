@@ -137,7 +137,10 @@ final class SEO_Dependiente_V3_Interpreter {
                  WHERE active=1 AND language='es' AND rule_type<>'route' AND normalized_expression IN ({$in})
                  ORDER BY LENGTH(normalized_expression) DESC, priority ASC, weight DESC, id ASC
                  LIMIT 250";
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $ngrams), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders generados por el motor; los n-gramas se enlazan mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $ngrams);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql, ARRAY_A);
 
         foreach ($rows as $row) {
             $expr = SEO_Dependiente_V3_DB::normalize($row['normalized_expression'] ?? '');
@@ -199,7 +202,10 @@ final class SEO_Dependiente_V3_Interpreter {
                  ORDER BY LENGTH(normalized_expression) DESC, validated DESC, context_required DESC,
                           confidence DESC, evidence_count DESC, priority ASC, id ASC
                  LIMIT 300";
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $ngrams), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders generados por el motor; los n-gramas se enlazan mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $ngrams);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql, ARRAY_A);
         if (!$rows) {
             return;
         }
@@ -366,7 +372,10 @@ final class SEO_Dependiente_V3_Interpreter {
                   FROM {$table}
                  WHERE active=1 AND slug IN ({$in})
                  ORDER BY semantic_group ASC, id ASC LIMIT 150";
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $slug_candidates), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders generados por el motor; los slugs se enlazan mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $slug_candidates);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql, ARRAY_A);
         foreach ($rows as $row) {
             $role = sanitize_key((string) ($row['semantic_group'] ?? '')) ?: 'term';
             $label = SEO_Dependiente_V3_DB::normalize($row['label'] ?? '');
