@@ -12,7 +12,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Dependiente_Editorial_Knowledge {
-    const PROVIDER_VERSION = '1.0.0';
+    const PROVIDER_VERSION = '1.1.0';
 
     private static function questions_table() {
         global $wpdb;
@@ -428,6 +428,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
         global $wpdb;
         $limit = max(25,min(500,absint($limit)));
         $trainer_cursor = absint($cursor['trainer'] ?? 0);
+        $trainer_run_cursor = absint($cursor['trainer_run'] ?? 0);
         $semantic_cursor = absint($cursor['semantic'] ?? 0);
         $items = array();
         $stats = array(
@@ -462,8 +463,49 @@ final class SEO_Dependiente_Editorial_Knowledge {
             $trainer_rows = (array)$wpdb->get_results($sql,ARRAY_A);
         }
 
+        $trainer_by_question = array();
         foreach ($trainer_rows as $row) {
             $trainer_cursor = max($trainer_cursor,absint($row['question_id'] ?? 0));
+            $trainer_run_cursor = max($trainer_run_cursor,absint($row['run_id'] ?? 0));
+            $trainer_by_question[absint($row['question_id'] ?? 0)] = $row;
+        }
+
+        /*
+         * Una vez alcanzado el final conocido de questions, Entrenador puede
+         * seguir generando runs para preguntas ya existentes. Esas respuestas
+         * nuevas se consumen por run_id, sin reiniciar ni vaciar el histórico.
+         */
+        $trainer_question_complete = !self::table_exists($questions) || count($trainer_rows)<$limit;
+        $trainer_run_rows = array();
+        if ($trainer_question_complete && self::table_exists($questions) && self::table_exists($runs)) {
+            $sql = $wpdb->prepare(
+                "SELECT q.id question_id,q.lesson_key,q.lesson_order,q.source_type,q.source_id,q.source_key,
+                        q.question_type,q.question,q.expected_json,
+                        r.id run_id,r.status run_status,r.search_strategy,r.evaluation_status,
+                        r.evaluation_score,r.evaluation_json,r.top_results,r.response_meta,r.created_at run_created_at
+                 FROM {$questions} q
+                 INNER JOIN (
+                    SELECT question_id,MAX(id) latest_run_id
+                    FROM {$runs}
+                    WHERE question_id IS NOT NULL
+                    GROUP BY question_id
+                 ) latest ON latest.question_id=q.id
+                 INNER JOIN {$runs} r ON r.id=latest.latest_run_id
+                 WHERE q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'
+                   AND r.id>%d
+                 ORDER BY r.id ASC
+                 LIMIT %d",
+                $trainer_run_cursor,$limit
+            );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado; tablas internas.
+            $trainer_run_rows = (array)$wpdb->get_results($sql,ARRAY_A);
+            foreach ($trainer_run_rows as $row) {
+                $trainer_run_cursor = max($trainer_run_cursor,absint($row['run_id'] ?? 0));
+                $trainer_by_question[absint($row['question_id'] ?? 0)] = $row;
+            }
+        }
+
+        foreach ($trainer_by_question as $row) {
             $stats['processed']++;
             $item = self::normalize_trainer_item($row);
             if (!$item) continue;
@@ -511,13 +553,20 @@ final class SEO_Dependiente_Editorial_Knowledge {
             $items[] = $item;
         }
 
+        $trainer_run_complete = !$trainer_question_complete || count($trainer_run_rows)<$limit;
+        $trainer_complete = $trainer_question_complete && $trainer_run_complete;
+        $semantic_complete = !self::table_exists($semantics) || count($semantic_rows)<$limit;
+
         return array(
             'items'=>$items,
-            'cursor'=>array('trainer'=>$trainer_cursor,'semantic'=>$semantic_cursor),
-            'trainer_complete'=>!self::table_exists($questions) || count($trainer_rows)<$limit,
-            'semantic_complete'=>!self::table_exists($semantics) || count($semantic_rows)<$limit,
-            'complete'=>(!self::table_exists($questions) || count($trainer_rows)<$limit)
-                && (!self::table_exists($semantics) || count($semantic_rows)<$limit),
+            'cursor'=>array(
+                'trainer'=>$trainer_cursor,
+                'trainer_run'=>$trainer_run_cursor,
+                'semantic'=>$semantic_cursor,
+            ),
+            'trainer_complete'=>$trainer_complete,
+            'semantic_complete'=>$semantic_complete,
+            'complete'=>$trainer_complete && $semantic_complete,
             'stats'=>$stats,
         );
     }
