@@ -1426,6 +1426,9 @@ final class SEO_Solucionador_Dossiers {
         if (!$dossier) return array();
 
         $out = array();
+        $current_item_hashes = self::normalize_item_hashes(
+            (array)SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array())
+        );
 
         // Dependiente: contenido real/aprobado expuesto por su proveedor.
         $dependiente_keys = array();
@@ -1467,7 +1470,7 @@ final class SEO_Solucionador_Dossiers {
                     'dependiente_source'=>$dep_source,
                     'source_id'=>$source_id ?: null,
                     'source_key'=>$item_key,
-                    'source_hash'=>sanitize_text_field((string)($item['source_hash'] ?? '')),
+                    'source_hash'=>sanitize_text_field((string)($current_item_hashes[$item_key] ?? $item['source_hash'] ?? '')),
                     'product_id'=>absint($item['product_id'] ?? 0) ?: null,
                     'expected'=>(array)($item['expected'] ?? array()),
                     'evaluation_status'=>sanitize_key((string)($item['validation'] ?? '')),
@@ -1504,7 +1507,9 @@ final class SEO_Solucionador_Dossiers {
                 $faq_id = absint($row['id'] ?? 0);
                 $category_ids = self::faq_category_ids($row);
                 if (!$faq_id || !in_array($category_id,$category_ids,true)) continue;
-                $source_hash = self::faq_item_hash($row,$category_id);
+                $source_hash = sanitize_text_field((string)(
+                    $current_item_hashes['faq:' . $faq_id] ?? self::faq_item_hash($row,$category_id)
+                ));
                 $object_type = absint($row['object_type'] ?? 0);
                 $object_id = absint($row['object_id'] ?? 0);
                 $out[] = array(
