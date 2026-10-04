@@ -844,6 +844,7 @@ final class SEO_Auditor {
                 'seo_title'=>'',
                 'seo_description'=>'',
                 'sku'=>'',
+                'supplier'=>'',
                 'identifiers'=>array(),
                 'shipping'=>array(),
                 'brand_name'=>'',
@@ -859,7 +860,7 @@ final class SEO_Auditor {
                 "SELECT pm.post_id,pm.meta_key,pm.meta_value
                  FROM {$wpdb->postmeta} pm
                  INNER JOIN {$wpdb->posts} p ON p.ID=pm.post_id AND p.post_type='product' AND p.post_status='publish'
-                 WHERE pm.meta_key IN ('_sku','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code')",
+                 WHERE pm.meta_key IN ('_sku','_seo_proveedor','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code')",
                 ARRAY_A
             );
             foreach ($meta_rows as $meta) {
@@ -868,6 +869,7 @@ final class SEO_Auditor {
                 $key = (string) ($meta['meta_key'] ?? '');
                 $value = trim((string) ($meta['meta_value'] ?? ''));
                 if ('_sku' === $key && '' === $products[$pid]['sku']) $products[$pid]['sku'] = $value;
+                elseif ('_seo_proveedor' === $key && '' === $products[$pid]['supplier']) $products[$pid]['supplier'] = $value;
                 elseif (in_array($key,array('_yoast_wpseo_title','rank_math_title','_aioseo_title'),true) && '' === $products[$pid]['seo_title']) $products[$pid]['seo_title'] = $value;
                 elseif (in_array($key,array('_yoast_wpseo_metadesc','rank_math_description','_aioseo_description'),true) && '' === $products[$pid]['seo_description']) $products[$pid]['seo_description'] = $value;
                 elseif (in_array($key,array('_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code'),true) && '' !== $value) $products[$pid]['identifiers'][$key] = $value;
@@ -1087,7 +1089,7 @@ final class SEO_Auditor {
                 "SELECT pm.post_id,pm.meta_key,pm.meta_value
                  FROM {$wpdb->postmeta} pm
                  INNER JOIN {$wpdb->posts} p ON p.ID=pm.post_id AND p.post_type='product' AND p.post_status='publish'
-                 WHERE pm.meta_key IN ('_sku','_product_attributes','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code','_weight','_length','_width','_height')",
+                 WHERE pm.meta_key IN ('_sku','_seo_proveedor','_product_attributes','_yoast_wpseo_title','_yoast_wpseo_metadesc','rank_math_title','rank_math_description','_aioseo_title','_aioseo_description','_seo_proveedor_id_externo','_seo_proveedor_mpn','_global_unique_id','_wc_gla_gtin','_alg_ean','_ean','ean','_gtin','gtin','wpm_gtin_code','_weight','_length','_width','_height')",
                 ARRAY_A
             );
             foreach ($meta_rows as $m) {
@@ -1519,9 +1521,53 @@ final class SEO_Auditor {
         }
 
         // Identificadores estables repetidos entre IDs distintos: senal fuerte de duplicidad o importacion incorrecta.
-        $sku_groups=array();$stable_groups=array();foreach($products as $pid=>$p){$sku=trim((string)($p['sku']??''));if($sku)$sku_groups[self::norm($sku)][absint($pid)]=true;foreach((array)($p['identifiers']??array()) as $ik=>$iv){$iv=trim((string)$iv);if($iv)$stable_groups[$ik.':'.self::norm($iv)][absint($pid)]=true;}}
-        foreach($sku_groups as $value=>$ids_map)if(count($ids_map)>1)self::finding('source_duplicate_sku','high','product_group','sku:'.$value,'SKU duplicado','El mismo SKU aparece en varios product_id publicados.',array('product_ids'=>array_keys($ids_map),'sku'=>$value),'Revisar si son productos duplicados, variantes mal importadas o un SKU reutilizado incorrectamente.');
-        foreach($stable_groups as $key=>$ids_map)if(count($ids_map)>1){list($kind,$value)=array_pad(explode(':',$key,2),2,'');self::finding('source_duplicate_identifier','high','product_group',$key,'Identificador comercial duplicado','El mismo identificador estable aparece en varios product_id publicados.',array('product_ids'=>array_keys($ids_map),'identifier_type'=>$kind,'value'=>$value),'Revisar GTIN/EAN/MPN/referencia/proveedor antes de consolidar o entrenar.');}
+        $sku_groups=array();
+        $stable_groups=array();
+        foreach($products as $pid=>$p){
+            $sku=trim((string)($p['sku']??''));
+            if($sku)$sku_groups[self::norm($sku)][absint($pid)]=true;
+            $supplier=trim((string)($p['supplier']??''));
+            foreach((array)($p['identifiers']??array()) as $ik=>$iv){
+                $iv=trim((string)$iv);
+                if($iv==='')continue;
+                if('_seo_proveedor_id_externo'===$ik){
+                    // El ID externo solo es único dentro del proveedor que lo emite.
+                    // Proveedores distintos pueden reutilizar legítimamente el mismo valor.
+                    $scope=self::norm($supplier);
+                    $group_key=$ik.'|'.$scope.'|'.self::norm($iv);
+                }else{
+                    // GTIN/EAN/MPN y otros identificadores conservan su semántica propia.
+                    $group_key=$ik.'||'.self::norm($iv);
+                }
+                $stable_groups[$group_key][absint($pid)]=true;
+            }
+        }
+        foreach($sku_groups as $value=>$ids_map){
+            if(count($ids_map)>1)self::finding('source_duplicate_sku','high','product_group','sku:'.$value,'SKU duplicado','El mismo SKU aparece en varios product_id publicados.',array('product_ids'=>array_keys($ids_map),'sku'=>$value),'Revisar si son productos duplicados, variantes mal importadas o un SKU reutilizado incorrectamente.');
+        }
+        foreach($stable_groups as $key=>$ids_map){
+            if(count($ids_map)<2)continue;
+            list($kind,$supplier_scope,$value)=array_pad(explode('|',$key,3),3,'');
+            $evidence=array(
+                'product_ids'=>array_keys($ids_map),
+                'identifier_type'=>$kind,
+                'value'=>$value,
+                'scope'=>'_seo_proveedor_id_externo'===$kind ? 'supplier+external_id' : 'identifier_semantics',
+            );
+            if('_seo_proveedor_id_externo'===$kind)$evidence['supplier']=$supplier_scope;
+            self::finding(
+                'source_duplicate_identifier',
+                'high',
+                'product_group',
+                $key,
+                'Identificador comercial duplicado',
+                '_seo_proveedor_id_externo'===$kind
+                    ? 'El mismo ID externo aparece en varios productos publicados del mismo proveedor.'
+                    : 'El mismo identificador estable aparece en varios product_id publicados.',
+                $evidence,
+                'Verificar la fuente antes de consolidar. Los IDs externos se evalúan por proveedor; GTIN/EAN/MPN mantienen su alcance propio.'
+            );
+        }
 
         // Identidad: mismo titulo no significa siempre duplicado. Distingue duplicado probable de variante legitima mal identificada.
         foreach ($title_groups as $norm=>$ids) {
@@ -1556,11 +1602,27 @@ final class SEO_Auditor {
             if ($count === 1) self::finding('category_single_product','low','category',$cid,$name,'Categoria con un solo producto',array('products'=>1),'Revisar si merece categoria propia o si debe fusionarse con una hermana semanticamente cercana.');
             if ($name_norm && $slug_norm && self::token_jaccard($name_norm,$slug_norm) < 0.34) self::finding('category_name_slug_drift','low','category',$cid,$name,'Nombre y slug poco alineados',array('slug'=>(string)$term->slug),'Revisar si el slug sigue representando la categoria actual.');
 
-            if ($excerpt !== '' && self::strlen($excerpt) >= 35 && self::text_alignment_ratio($identity,$excerpt) < 0.16) {
-                self::finding('category_excerpt_identity_drift','medium','category',$cid,$name,'Excerpt de categoria poco alineado con su identidad',array('excerpt'=>self::snippet($excerpt,220),'vocabulary'=>self::vocab_labels($vocab)),'Comprobar que el excerpt pertenece a esta categoria y no a otra fila/importacion.');
+            if ($excerpt !== '' && self::strlen($excerpt) >= 35) {
+                $own_score=self::text_alignment_ratio($identity,$excerpt);
+                if($own_score<0.16){
+                    $cross=self::best_cross_category_candidate($cid,$excerpt,$categories,$own_score);
+                    if($cross){
+                        self::finding('category_excerpt_identity_drift','high','category',$cid,$name,'Excerpt de categoria con evidencia fuerte de contenido cruzado',array('alignment'=>round($own_score,3),'excerpt'=>self::snippet($excerpt,220),'vocabulary'=>self::vocab_labels($vocab),'possible_other_category'=>$cross),'Verificar contra la categoría candidata y la fuente antes de editar.');
+                    }else{
+                        self::finding('category_excerpt_alignment_weak','low','category',$cid,$name,'Excerpt con baja coincidencia literal con la identidad',array('alignment'=>round($own_score,3),'excerpt'=>self::snippet($excerpt,220),'vocabulary'=>self::vocab_labels($vocab)),'Revisar sólo como señal semántica. El bajo solapamiento literal no demuestra que el excerpt pertenezca a otra categoría.');
+                    }
+                }
             }
-            if ($desc !== '' && self::strlen($desc) >= 80 && self::text_alignment_ratio($identity,$desc) < 0.14) {
-                self::finding('category_description_identity_drift','high','category',$cid,$name,'Descripcion de categoria posiblemente cruzada o desalineada',array('description'=>self::snippet($desc,260),'vocabulary'=>self::vocab_labels($vocab)),'Revisar la descripcion contra nombre, productos y Vocabulary antes de usar la categoria como fuente de Academia.');
+            if ($desc !== '' && self::strlen($desc) >= 80) {
+                $own_score=self::text_alignment_ratio($identity,$desc);
+                if($own_score<0.14){
+                    $cross=self::best_cross_category_candidate($cid,$desc,$categories,$own_score);
+                    if($cross){
+                        self::finding('category_description_identity_drift','high','category',$cid,$name,'Descripción de categoría con evidencia fuerte de contenido cruzado',array('alignment'=>round($own_score,3),'description'=>self::snippet($desc,260),'vocabulary'=>self::vocab_labels($vocab),'possible_other_category'=>$cross),'Verificar contra la categoría candidata, sus productos y Vocabulary antes de editar.');
+                    }else{
+                        self::finding('category_description_alignment_weak','low','category',$cid,$name,'Descripción con baja coincidencia literal con la identidad',array('alignment'=>round($own_score,3),'description'=>self::snippet($desc,260),'vocabulary'=>self::vocab_labels($vocab)),'Revisar sólo como señal. Una descripción funcional puede ser correcta aunque repita pocas palabras del nombre de categoría.');
+                    }
+                }
             }
         }
     }
@@ -3455,6 +3517,7 @@ final class SEO_Auditor {
     private static function priority_action_label($action_class) {
         $labels = array(
             'CORREGIR_AHORA' => 'Corregir ahora',
+            'VERIFICAR_AHORA' => 'Verificar ahora',
             'ESPERAR_ENRIQUECIMIENTO' => 'Esperar enriquecimiento',
             'MIGRAR_A_SOLUCIONADOR' => 'Migrar a Solucionador',
             'REVISAR' => 'Revisar',
@@ -3483,6 +3546,7 @@ final class SEO_Auditor {
             'product_description_identity_drift',
             'category_description_identity_drift',
             'category_excerpt_identity_drift',
+            'source_duplicate_identifier',
         ), true);
     }
 
@@ -3523,6 +3587,7 @@ final class SEO_Auditor {
     }
 
     private static function priority_dependency_for($finding, $action_class) {
+        if ('VERIFICAR_AHORA' === $action_class) return 'source_verification';
         if ('MIGRAR_A_SOLUCIONADOR' === $action_class) return 'solucionador';
         if ('ESPERAR_ENRIQUECIMIENTO' !== $action_class) return 'none';
 
@@ -3544,6 +3609,7 @@ final class SEO_Auditor {
         $score = (int) ($severity_score[$severity] ?? 4);
 
         if ('CORREGIR_AHORA' === $action_class) $score += 24;
+        elseif ('VERIFICAR_AHORA' === $action_class) $score += 22;
         elseif ('ESPERAR_ENRIQUECIMIENTO' === $action_class) $score += 14;
         elseif ('MIGRAR_A_SOLUCIONADOR' === $action_class) $score += 16;
         elseif ('REVISAR' === $action_class) $score += 8;
@@ -3562,7 +3628,7 @@ final class SEO_Auditor {
         $seo = in_array($type, array('product','category','post','page'), true) ? 'alto' : 'medio';
         $commercial = in_array($type, array('product','category'), true) ? 'alto' : ('faq' === $type ? 'medio' : 'bajo');
         $ai = ('faq' === $type || false !== strpos($code, 'vocabulary') || false !== strpos($code, 'semantic')) ? 'alto' : 'medio';
-        $integrity = 'CORREGIR_AHORA' === $action_class ? 'alto' : ('REVISAR' === $action_class ? 'medio' : 'bajo');
+        $integrity = in_array($action_class,array('CORREGIR_AHORA','VERIFICAR_AHORA'),true) ? 'alto' : ('REVISAR' === $action_class ? 'medio' : 'bajo');
 
         return array(
             'level' => $level,
@@ -3626,6 +3692,7 @@ final class SEO_Auditor {
             'category_empty','category_heterogeneous','category_merge_candidate',
             'category_multiple_secondary_hubs','category_name_slug_drift','category_oversized',
             'category_product_vocabulary_drift','category_single_product','category_split_candidate',
+            'category_description_alignment_weak','category_excerpt_alignment_weak',
             'category_without_secondary_hub','editorial_vocab_title_drift',
             'duplicate_faq_same_owner','faq_owner_semantic_drift',
             'architecture_over_sized','architecture_under_sized',
@@ -3658,14 +3725,21 @@ final class SEO_Auditor {
             $priority = (string) ($profile['priority'] ?? 'P5');
             $action_class = (string) ($profile['action_class'] ?? 'INFORMATIVO');
             $requires_source_check = self::priority_requires_source_check($finding);
+            if ('CORREGIR_AHORA' === $action_class && $requires_source_check) {
+                $action_class = 'VERIFICAR_AHORA';
+                $profile['reason'] = trim((string)($profile['reason'] ?? '') . ' Requiere evidencia de fuente/proveedor antes de autorizar edición.');
+            }
             $depends_on = self::priority_dependency_for($finding, $action_class);
             $impact = self::priority_impact_for($finding, $action_class);
 
             $ready_now = false;
             $status = 'NO_ACTION';
             if ('CORREGIR_AHORA' === $action_class) {
-                $ready_now = !$requires_source_check;
-                $status = $requires_source_check ? 'NEEDS_SOURCE_VERIFICATION' : 'READY_FOR_EDITOR';
+                $ready_now = true;
+                $status = 'READY_FOR_EDITOR';
+            } elseif ('VERIFICAR_AHORA' === $action_class) {
+                $ready_now = false;
+                $status = 'NEEDS_SOURCE_VERIFICATION';
             } elseif ('ESPERAR_ENRIQUECIMIENTO' === $action_class) {
                 $status = 'WAITING_FOR_ENRICHMENT';
             } elseif ('MIGRAR_A_SOLUCIONADOR' === $action_class) {
@@ -3756,10 +3830,10 @@ final class SEO_Auditor {
         $tasks = array_values((array) $tasks);
         $summary = (array) $summary;
         echo '<h3>Plan de trabajo priorizado</h3>';
-        echo '<p class="description">Auditor clasifica y prioriza; no corrige ni genera texto. P1 son defectos objetivos, P2 espera conocimiento, P3 preserva FAQs utiles en Solucionador, P4 requiere criterio humano y P5 es informativo. El trafico aun no modifica la prioridad hasta integrar las metricas de Analista.</p>';
+        echo '<p class="description">Auditor clasifica y prioriza; no corrige ni genera texto. P1 significa atender primero y puede ser CORREGIR_AHORA o VERIFICAR_AHORA; P2 espera conocimiento, P3 preserva FAQs útiles en Solucionador, P4 requiere criterio humano y P5 es informativo. El trafico aun no modifica la prioridad hasta integrar las metricas de Analista.</p>';
 
         echo '<div class="seo-auditor__metrics">';
-        foreach (array('P1'=>'Corregir ahora','P2'=>'Esperar enriquecimiento','P3'=>'Migrar conocimiento','P4'=>'Revisar','P5'=>'Informativo') as $priority=>$label) {
+        foreach (array('P1'=>'Atender primero','P2'=>'Esperar enriquecimiento','P3'=>'Migrar conocimiento','P4'=>'Revisar','P5'=>'Informativo') as $priority=>$label) {
             self::metric($label, absint($summary['by_priority'][$priority] ?? 0), 'P1' === $priority ? 'high' : ('P2' === $priority ? 'medium' : ''));
         }
         echo '</div>';
