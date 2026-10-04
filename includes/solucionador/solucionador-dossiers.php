@@ -464,6 +464,46 @@ final class SEO_Solucionador_Dossiers {
             sanitize_text_field((string)$item_key));
     }
 
+    public static function source_hash_for_test($category_id,array $item_hashes) {
+        $normalized = array();
+        foreach ($item_hashes as $key=>$hash) {
+            $key = sanitize_text_field((string)$key);
+            $hash = sanitize_text_field((string)$hash);
+            if (self::valid_item_key($key) && $hash !== '') $normalized[$key] = $hash;
+        }
+        ksort($normalized,SORT_STRING);
+        return hash('sha256',wp_json_encode(array(
+            'category_id'=>absint($category_id),
+            'item_hashes'=>$normalized,
+        ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+    }
+
+    public static function compare_item_hashes_for_test(array $current,array $reviewed) {
+        $changes = array('new'=>array(),'modified'=>array(),'retired'=>array(),'status'=>array());
+        foreach ($current as $key=>$hash) {
+            $key = sanitize_text_field((string)$key);
+            if (!self::valid_item_key($key)) continue;
+            if (!array_key_exists($key,$reviewed)) {
+                $changes['new'][] = $key;
+                $changes['status'][$key] = 'new';
+            } elseif ((string)$reviewed[$key] !== (string)$hash) {
+                $changes['modified'][] = $key;
+                $changes['status'][$key] = 'modified';
+            }
+        }
+        foreach ($reviewed as $key=>$hash) {
+            $key = sanitize_text_field((string)$key);
+            if (!self::valid_item_key($key)) continue;
+            if (!array_key_exists($key,$current)) {
+                $changes['retired'][] = $key;
+                $changes['status'][$key] = 'retired';
+            }
+        }
+        foreach (array('new','modified','retired') as $type) sort($changes[$type],SORT_STRING);
+        ksort($changes['status'],SORT_STRING);
+        return $changes;
+    }
+
     private static function upsert_batch_dossier(
         $term_id,
         array $dependiente_keys,
@@ -547,10 +587,7 @@ final class SEO_Solucionador_Dossiers {
         }
 
         // Estable: dos ejecuciones sin cambios producen exactamente el mismo hash.
-        $hash = hash('sha256',wp_json_encode(array(
-            'category_id'=>$term_id,
-            'item_hashes'=>$merged_item_hashes,
-        ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+        $hash = self::source_hash_for_test($term_id,$merged_item_hashes);
 
         $now = current_time('mysql');
         $data = array(
@@ -612,9 +649,7 @@ final class SEO_Solucionador_Dossiers {
 
             $dep_count = count(array_values(array_filter($dep_keys,array(__CLASS__,'valid_item_key'))));
             $faq_count = count(array_values(array_filter(array_map('absint',$faq_ids))));
-            $source_hash = hash('sha256',wp_json_encode(array(
-                'category_id'=>$category_id,'item_hashes'=>$hashes
-            ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+            $source_hash = self::source_hash_for_test($category_id,$hashes);
             $reviewed_hash = (string)($row['reviewed_hash'] ?? '');
             $status = $reviewed_hash !== '' && $reviewed_hash !== $source_hash
                 ? SEO_Editorial_Service_Contract::NEEDS_UPDATE
@@ -1003,30 +1038,7 @@ final class SEO_Solucionador_Dossiers {
 
         $current = SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array());
         $reviewed = SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}',array());
-        $changes = array('new'=>array(),'modified'=>array(),'retired'=>array(),'status'=>array());
-
-        foreach ((array)$current as $key=>$hash) {
-            $key = sanitize_text_field((string)$key);
-            if (!self::valid_item_key($key)) continue;
-            if (!array_key_exists($key,$reviewed)) {
-                $changes['new'][] = $key;
-                $changes['status'][$key] = 'new';
-            } elseif ((string)$reviewed[$key] !== (string)$hash) {
-                $changes['modified'][] = $key;
-                $changes['status'][$key] = 'modified';
-            }
-        }
-        foreach ((array)$reviewed as $key=>$hash) {
-            $key = sanitize_text_field((string)$key);
-            if (!self::valid_item_key($key)) continue;
-            if (!array_key_exists($key,$current)) {
-                $changes['retired'][] = $key;
-                $changes['status'][$key] = 'retired';
-            }
-        }
-        foreach (array('new','modified','retired') as $type) sort($changes[$type],SORT_STRING);
-        ksort($changes['status'],SORT_STRING);
-        return $changes;
+        return self::compare_item_hashes_for_test((array)$current,(array)$reviewed);
     }
 
     public static function changed_item_keys($category_id) {
