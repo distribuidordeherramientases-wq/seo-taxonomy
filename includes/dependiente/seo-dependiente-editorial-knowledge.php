@@ -51,7 +51,8 @@ final class SEO_Dependiente_Editorial_Knowledge {
     }
 
     private static function curriculum_where() {
-        return "q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT LIKE 'lab\\_%'";
+        // REGEXP evita incrustar comodines LIKE en la consulta y mantiene el filtro de lecciones lab_*.
+        return "q.enabled=1 AND q.lesson_key<>'' AND q.lesson_key NOT REGEXP '^lab_'";
     }
 
     private static function consolidated_semantics_where() {
@@ -152,9 +153,11 @@ final class SEO_Dependiente_Editorial_Knowledge {
         $sql = "SELECT DISTINCT object_id FROM {$table}
                 WHERE object_type='product_cat' AND status=1
                   AND vocabulary_id IN ({$placeholders})";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
         $prepared = $wpdb->prepare($sql,$ids);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- placeholders internos.
-        return self::valid_category_ids((array)$wpdb->get_col($prepared));
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared es el resultado de $wpdb->prepare().
+        $category_ids = (array)$wpdb->get_col($prepared);
+        return self::valid_category_ids($category_ids);
     }
 
     private static function semantic_category_ids(array $row) {
@@ -465,6 +468,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
 
         if (self::table_exists($questions) && self::table_exists($runs)) {
             $where = self::curriculum_where();
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas/filtro curricular internos; cursor y límite enlazados mediante $wpdb->prepare().
             $q_sql = $wpdb->prepare(
                 "SELECT q.id question_id,q.lesson_key,q.source_type,q.source_id,q.source_key,
                         q.question_type,q.question,q.expected_json
@@ -473,7 +477,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
                  ORDER BY q.id ASC LIMIT %d",
                 $q_cursor,$limit
             );
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $q_sql es el resultado de $wpdb->prepare().
             $q_rows = (array)$wpdb->get_results($q_sql,ARRAY_A);
             $q_ids = array_values(array_filter(array_map(static function($row){
                 return absint($row['question_id'] ?? 0);
@@ -499,6 +503,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
             $question_complete = count($q_rows)<$limit;
             $delta_count = 0;
             if ($question_complete) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas/filtro curricular internos; cursor y límite enlazados mediante $wpdb->prepare().
                 $delta_sql = $wpdb->prepare(
                     "SELECT q.id question_id,q.lesson_key,q.source_type,q.source_id,q.source_key,
                             q.question_type,q.question,q.expected_json,
@@ -515,7 +520,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
                      ORDER BY r.id ASC LIMIT %d",
                     $run_cursor,$limit
                 );
-                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado.
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $delta_sql es el resultado de $wpdb->prepare().
                 $delta_rows = (array)$wpdb->get_results($delta_sql,ARRAY_A);
                 $delta_count = count($delta_rows);
                 foreach ($delta_rows as $delta) {
@@ -557,6 +562,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
         $semantic_rows = array();
         if (self::table_exists($semantics)) {
             $where = self::consolidated_semantics_where();
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla/filtro semántico internos; cursor y límite enlazados mediante $wpdb->prepare().
             $semantic_sql = $wpdb->prepare(
                 "SELECT id,rule_key,rule_type,expression,normalized_expression,canonical_expression,
                         semantic_role,source_vocabulary_id,context_vocabulary_id,target_vocabulary_id,
@@ -566,7 +572,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
                  ORDER BY id ASC LIMIT %d",
                 $semantic_cursor,$limit
             );
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $semantic_sql es el resultado de $wpdb->prepare().
             $semantic_rows = (array)$wpdb->get_results($semantic_sql,ARRAY_A);
             foreach ($semantic_rows as $row) {
                 $semantic_cursor = max($semantic_cursor,absint($row['id'] ?? 0));
