@@ -1322,6 +1322,10 @@ final class SEO_Solucionador_Admin {
         echo '<div class="seo-sol-opportunity-sections">';
         echo '<section><h3>1. Entrevista editorial: FAQ + Dependiente</h3>';
         echo '<p>Las FAQs son una fuente directa y conservan su respuesta humana original. Dependiente aporta conocimiento consolidado: respuestas de Entrenador validadas <code>pass_*</code> y reglas activas/aprobadas cuando tienen relación canónica con la categoría.</p>';
+        echo '<div style="background:#fff4e5;border:1px solid #dba617;border-left:4px solid #b26200;border-radius:6px;padding:12px 14px;margin:12px 0;">';
+        echo '<p style="margin:0 0 6px"><strong>IMPORTANTE: editar no significa limpiar el borrador.</strong></p>';
+        echo '<p style="margin:0">Este dossier es material de trabajo. Editora debe leerlo completo, seleccionar lo útil y redactar un texto nuevo para el cliente: sintetizar preguntas repetitivas, transformar búsquedas y atributos en explicaciones útiles, descartar resultados pobres y eliminar cualquier lenguaje del motor. El artículo final debe leerse como una única pieza humana, sin distinguir FAQ de Dependiente.</p>';
+        echo '</div>';
         if (!$brief['question_details']) {
             echo '<p>No se ha recuperado material editorial para este dossier.</p>';
         } else {
@@ -1391,7 +1395,7 @@ final class SEO_Solucionador_Admin {
         echo '</ul>';
         if ($brief['preserve']) { echo '<h4>Contenido existente que no debe duplicarse</h4><ul>'; foreach ($brief['preserve'] as $item) echo '<li>' . esc_html($item) . '</li>'; echo '</ul>'; }
         if ($brief['links']) { echo '<h4>Enlaces internos recomendados</h4><ul>'; foreach ($brief['links'] as $link) echo '<li><a href="' . esc_url($link['url']) . '" target="_blank" rel="noopener">' . esc_html($link['label']) . '</a></li>'; echo '</ul>'; }
-        echo '<p class="description"><strong>Editora redacta.</strong> Solucionador no fija el texto final ni publica automáticamente.</p></section>';
+        echo '<p class="description"><strong>Editora redacta desde cero a partir del material útil.</strong> Solucionador no fija el texto final ni publica automáticamente; corregir o limpiar el dossier no equivale a editarlo.</p></section>';
 
         echo '<section><h3>6. Workflow y medición</h3><p>Los KPIs globales proceden de Analista.</p>';
         if ($brief['analista']) echo '<p><strong>Analista · 28 días:</strong> impresiones ' . esc_html(number_format_i18n(absint($brief['analista']['impressions'] ?? 0))) . ' · clics ' . esc_html(number_format_i18n(absint($brief['analista']['clicks'] ?? 0))) . ' · vistas ' . esc_html(number_format_i18n(absint($brief['analista']['pageviews'] ?? 0))) . '.</p>';
