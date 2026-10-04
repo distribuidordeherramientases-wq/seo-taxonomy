@@ -71,6 +71,7 @@ if (is_readable($seo_dependiente_actualizacion)) {
 }
 
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-training-quality.php';
+require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-editorial-knowledge.php';
 
 // Auditor academico: modulo hermano de solo lectura en STAGING.
 $seo_auditor_bootstrap = defined('SEO_SYSTEM_PATH')
