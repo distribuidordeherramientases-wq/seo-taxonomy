@@ -583,7 +583,7 @@ final class SEO_Solucionador_Dossiers {
             ))));
             // Migración transparente 0.7: deriva keys trainer de question_ids.
             if (!$previous_keys && $previous_questions) {
-                foreach ($previous_questions as $question_id) $previous_keys[] = 'dependiente:trainer:' . $question_id;
+                foreach ($previous_questions as $question_id) $previous_keys[] = 'dependiente:' . $question_id;
             }
             $previous_faq = array_values(array_unique(array_filter(array_map(
                 'absint',(array)SEO_Solucionador_DB::decode_json($existing['faq_ids'] ?? '[]',array())
