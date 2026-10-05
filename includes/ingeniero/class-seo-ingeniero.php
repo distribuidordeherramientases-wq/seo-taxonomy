@@ -15,6 +15,7 @@ final class SEO_Ingeniero {
     const CATEGORY_STATE_OPTION = 'seo_ingeniero_category_state_v1';
     const LESSON_TECHNICAL = 'l1_technical';
     const LESSON_PRACTICAL = 'l2_practical';
+    const TARGET_ACTIVE_KNOWLEDGE_PER_CATEGORY = 4;
 
     private static $provider = null;
 
@@ -142,7 +143,7 @@ final class SEO_Ingeniero {
         foreach ((array) $terms as $term) {
             $term_id = absint($term->term_id ?? 0);
             if (!$term_id) continue;
-            if ($only_missing && !empty($stats[$term_id]['knowledge'])) continue;
+            if ($only_missing && absint($stats[$term_id]['active'] ?? 0) >= self::TARGET_ACTIVE_KNOWLEDGE_PER_CATEGORY) continue;
             $rows[] = array(
                 'term_id'=>$term_id,
                 'name'=>(string) ($term->name ?? ''),
@@ -173,8 +174,8 @@ final class SEO_Ingeniero {
         $state['queue'] = $queue;
         $state['status'] = $queue ? 'prepared' : 'stopped';
         $state['last_message'] = $queue
-            ? sprintf('L1 preparada con %d categorías piloto.', count($queue))
-            : 'No hay categorías elegibles para preparar.';
+            ? sprintf('L1 preparada con %d categorías por investigar/completar.',count($queue))
+            : 'No hay categorías por debajo del objetivo técnico.';
         foreach ($queue as $term_id) {
             self::set_category_state($term_id, 'pendiente', array('last_error'=>''));
         }
