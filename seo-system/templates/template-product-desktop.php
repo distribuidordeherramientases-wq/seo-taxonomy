@@ -519,17 +519,22 @@ $schema_product_url = esc_url_raw((string) get_permalink($product_id));
 $schema_product_id = $schema_product_url !== '' ? $schema_product_url . '#product' : '';
 $schema_breadcrumb_id = $schema_product_url !== '' ? $schema_product_url . '#breadcrumb' : '';
 
-$schema_images = array();
-foreach ($gallery_ids as $schema_image_id) {
-    $schema_image_url = wp_get_attachment_image_url(absint($schema_image_id), 'full');
-    if ($schema_image_url) {
-        $schema_images[] = esc_url_raw((string) $schema_image_url);
+$schema_images = function_exists('seo_images_get_public_product_urls')
+    ? seo_images_get_public_product_urls($product, 10, true)
+    : array();
+
+if (empty($schema_images)) {
+    foreach ($gallery_ids as $schema_image_id) {
+        $schema_image_url = wp_get_attachment_image_url(absint($schema_image_id), 'full');
+        if ($schema_image_url) {
+            $schema_images[] = esc_url_raw((string) $schema_image_url);
+        }
     }
-}
-foreach ($external_images as $schema_external_image) {
-    $schema_image_url = esc_url_raw((string) ($schema_external_image['url'] ?? ''));
-    if ($schema_image_url !== '') {
-        $schema_images[] = $schema_image_url;
+    foreach ($external_images as $schema_external_image) {
+        $schema_image_url = esc_url_raw((string) ($schema_external_image['url'] ?? ''));
+        if ($schema_image_url !== '') {
+            $schema_images[] = $schema_image_url;
+        }
     }
 }
 $schema_images = array_values(array_unique(array_filter($schema_images)));
