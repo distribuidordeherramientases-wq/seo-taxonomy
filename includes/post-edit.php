@@ -431,6 +431,25 @@ if (!function_exists('seo_post_editor_is_solucionador_post')) {
     }
 }
 
+if (!function_exists('seo_post_editor_is_ingeniero_post')) {
+    /**
+     * Identifica el origen editorial Ingeniero por sus metadatos propios.
+     *
+     * El rol público _seo_solucionador_content_role es independiente y no se
+     * usa como criterio de pertenencia a esta pestaña.
+     */
+    function seo_post_editor_is_ingeniero_post($post_id) {
+        $post_id = absint($post_id);
+        if (!$post_id || get_post_type($post_id) !== 'post') {
+            return false;
+        }
+
+        $editorial_id = absint(get_post_meta($post_id, '_seo_ingeniero_editorial_id', true));
+        $topic_key = sanitize_key((string) get_post_meta($post_id, '_seo_ingeniero_topic_key', true));
+        return $editorial_id > 0 && $topic_key !== '';
+    }
+}
+
 if (!function_exists('seo_post_editor_render_solucionador_style_guide')) {
     function seo_post_editor_render_solucionador_style_guide($compact = false) {
         $compact = (bool) $compact;
@@ -796,6 +815,9 @@ if (!function_exists('seo_post_editor_current_section')) {
         if (in_array($tab, array('solucionador', 'solucionador_drafts'), true)) {
             return 'solucionador';
         }
+        if (in_array($tab, array('ingeniero', 'ingeniero_drafts'), true)) {
+            return 'ingeniero';
+        }
 
         return 'edit';
     }
@@ -814,6 +836,8 @@ if (!function_exists('seo_post_editor_section_url')) {
             $args['tab'] = 'errors';
         } elseif ('solucionador' === $section) {
             $args['tab'] = 'solucionador';
+        } elseif ('ingeniero' === $section) {
+            $args['tab'] = 'ingeniero';
         }
 
         $base = !empty($context['base']) && 'edit.php' === $context['base'] ? 'edit.php' : 'admin.php';
@@ -829,9 +853,11 @@ if (!function_exists('seo_post_editor_render_tabs')) {
 
         $edit_url = seo_post_editor_section_url('edit', $context);
         $solucionador_url = seo_post_editor_section_url('solucionador', $context);
+        $ingeniero_url = seo_post_editor_section_url('ingeniero', $context);
         echo '<h2 class="nav-tab-wrapper" style="margin-top:14px;">';
         echo '<a class="nav-tab ' . esc_attr($active_section === 'edit' ? 'nav-tab-active' : '') . '" href="' . esc_url($edit_url) . '">Editar posts</a>';
         echo '<a class="nav-tab ' . esc_attr($active_section === 'solucionador' ? 'nav-tab-active' : '') . '" href="' . esc_url($solucionador_url) . '">Solucionador</a>';
+        echo '<a class="nav-tab ' . esc_attr($active_section === 'ingeniero' ? 'nav-tab-active' : '') . '" href="' . esc_url($ingeniero_url) . '">Ingeniero</a>';
         echo '</h2>';
         echo '<p class="description">El análisis de rendimiento, oportunidades y errores está centralizado en <a href="' . esc_url(class_exists('SEO_Solucionador_Admin') ? SEO_Solucionador_Admin::diagnostics_url('posts','opportunities') : admin_url('admin.php?page=seo-solucionador&tab=diagnostics&diag_scope=posts&diag_view=opportunities')) . '">Solucionador → Diagnóstico editorial</a>.</p>';
     }
@@ -1180,21 +1206,23 @@ if (!function_exists('seo_page_edit_posts')) {
         }
 
         $solucionador_only = ($active_section === 'solucionador');
+        $ingeniero_only = ($active_section === 'ingeniero');
+        $service_only = $solucionador_only || $ingeniero_only;
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $category_filter = isset($_GET['product_cat']) ? sanitize_text_field(wp_unslash($_GET['product_cat'])) : '';
-        $status = $solucionador_only
+        $status = $service_only
             ? 'draft'
             : (isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '');
         $paged  = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
         $score_days = 28;
         $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
-        $reports_available = !$solucionador_only
+        $reports_available = !$service_only
             && function_exists('seo_post_reports_get_summary')
             && function_exists('seo_post_reports_admin_url');
 
         // Reutiliza el snapshot agregado de Google. No consulta entrada por entrada.
-        if (!$solucionador_only && function_exists('seo_post_reports_catalog_snapshot')) {
+        if (!$service_only && function_exists('seo_post_reports_catalog_snapshot')) {
             seo_post_reports_catalog_snapshot($score_days, false);
         }
 
@@ -1242,10 +1270,10 @@ if (!function_exists('seo_page_edit_posts')) {
         }
 
         if ($solucionador_only) {
-            $solucionador_relation_ids = seo_post_editor_get_ids_with_product_cat_relation();
+            $service_relation_ids = seo_post_editor_get_ids_with_product_cat_relation();
             $relation_ids = $category_filter !== ''
-                ? array_values(array_intersect($solucionador_relation_ids, $relation_ids))
-                : $solucionador_relation_ids;
+                ? array_values(array_intersect($service_relation_ids, $relation_ids))
+                : $service_relation_ids;
 
             $args['meta_query'] = array(
                 'relation' => 'AND',
@@ -1258,17 +1286,36 @@ if (!function_exists('seo_page_edit_posts')) {
                     'compare' => 'EXISTS',
                 ),
             );
+        } elseif ($ingeniero_only) {
+            $service_relation_ids = seo_post_editor_get_ids_with_product_cat_relation();
+            $relation_ids = $category_filter !== ''
+                ? array_values(array_intersect($service_relation_ids, $relation_ids))
+                : $service_relation_ids;
+
+            // El origen Ingeniero se identifica exclusivamente por metadatos
+            // propios del proceso editorial, no por el rol público.
+            $args['meta_query'] = array(
+                'relation' => 'AND',
+                array(
+                    'key'     => '_seo_ingeniero_editorial_id',
+                    'compare' => 'EXISTS',
+                ),
+                array(
+                    'key'     => '_seo_ingeniero_topic_key',
+                    'compare' => 'EXISTS',
+                ),
+            );
         }
 
-        if ($category_filter !== '' || $solucionador_only) {
+        if ($category_filter !== '' || $service_only) {
             $args['post__in'] = !empty($relation_ids) ? $relation_ids : array(0);
         }
 
-        if (!$solucionador_only && function_exists('seo_post_reports_score_posts_clauses')) {
+        if (!$service_only && function_exists('seo_post_reports_score_posts_clauses')) {
             add_filter('posts_clauses', 'seo_post_reports_score_posts_clauses', 20, 2);
         }
         $query = new WP_Query($args);
-        if (!$solucionador_only && function_exists('seo_post_reports_score_posts_clauses')) {
+        if (!$service_only && function_exists('seo_post_reports_score_posts_clauses')) {
             remove_filter('posts_clauses', 'seo_post_reports_score_posts_clauses', 20);
         }
         $post_ids = wp_list_pluck($query->posts, 'ID');
@@ -1277,15 +1324,20 @@ if (!function_exists('seo_page_edit_posts')) {
         echo '<div style="padding:10px 0 30px;max-width:1280px;">';
         echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">';
         echo '<div>';
-        echo '<h1 style="margin-bottom:8px;">' . ($solucionador_only ? 'Posts de Solucionador' : 'Editar posts') . '</h1>';
+        $section_title = $solucionador_only
+            ? 'Posts de Solucionador'
+            : ($ingeniero_only ? 'Posts de Ingeniero' : 'Editar posts');
+        echo '<h1 style="margin-bottom:8px;">' . esc_html($section_title) . '</h1>';
         if ($solucionador_only) {
             echo '<p style="margin-top:0;color:#646970;">Borradores creados por Solucionador que tienen al menos una categoría de producto asociada. Se muestran de forma independiente para revisión editorial.</p>';
+        } elseif ($ingeniero_only) {
+            echo '<p style="margin-top:0;color:#646970;">Borradores creados por el proceso editorial de Ingeniero, identificados por sus metadatos propios y con categoría de producto asociada. El rol público es independiente de este filtro.</p>';
         } else {
             echo '<p style="margin-top:0;color:#646970;">Selecciona una entrada para editarla. La categoria de producto se gestiona exclusivamente mediante SEO Relations.</p>';
         }
         echo '</div>';
         echo '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-        if (!$solucionador_only) {
+        if (!$service_only) {
             echo '<a class="button button-primary" href="' . esc_url(seo_post_editor_admin_url(array('new_post' => 1), $context)) . '">Nueva entrada</a>';
         } else {
             echo '<span style="color:#646970;font-weight:600;">' . esc_html(number_format_i18n((int) $query->found_posts)) . ' borradores pendientes</span>';
@@ -1329,7 +1381,7 @@ if (!function_exists('seo_page_edit_posts')) {
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Categoria de producto</label>
                 <select name="product_cat" style="width:100%;">
                     <option value="">Todas</option>
-                    <?php if (!$solucionador_only): ?>
+                    <?php if (!$service_only): ?>
                         <option value="none" <?php selected($category_filter, 'none'); ?>>Sin categoria de producto</option>
                     <?php endif; ?>
                     <?php seo_post_editor_category_option_tree($categories, $category_filter); ?>
@@ -1338,7 +1390,7 @@ if (!function_exists('seo_page_edit_posts')) {
 
             <div>
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Estado</label>
-                <?php if ($solucionador_only): ?>
+                <?php if ($service_only): ?>
                     <input type="hidden" name="status" value="draft">
                     <input type="text" value="Borrador" disabled style="width:100%;">
                 <?php else: ?>
@@ -1378,7 +1430,7 @@ if (!function_exists('seo_page_edit_posts')) {
                     <th style="width:290px;">Categorias de producto</th>
                     <th style="width:260px;">Vocabulary</th>
                     <th style="width:145px;">
-                        <?php if ($solucionador_only): ?>
+                        <?php if ($service_only): ?>
                             Material
                         <?php else: ?>
                             <a href="<?php echo esc_url($score_sort_url); ?>" title="Cambiar orden por puntuación">Puntuación Google <?php echo esc_html($score_arrow); ?></a><br><small style="font-weight:400;color:#646970;">28 días</small>
@@ -1442,6 +1494,21 @@ if (!function_exists('seo_page_edit_posts')) {
                                         : 0;
                                     ?>
                                     <strong><?php echo esc_html(number_format_i18n($source_count)); ?> preguntas</strong>
+                                    <?php if ($pending_count > 0): ?>
+                                        <div style="margin-top:3px;color:#996800;font-size:12px;"><?php echo esc_html(number_format_i18n($pending_count)); ?> novedades</div>
+                                    <?php endif; ?>
+                                <?php elseif ($ingeniero_only): ?>
+                                    <?php
+                                    $knowledge_snapshot = get_post_meta($post_id, '_seo_ingeniero_knowledge_snapshot', true);
+                                    $knowledge_ids = (array) get_post_meta($post_id, '_seo_ingeniero_knowledge_ids', true);
+                                    $knowledge_count = is_array($knowledge_snapshot) && $knowledge_snapshot
+                                        ? count($knowledge_snapshot)
+                                        : count(array_values(array_unique(array_filter(array_map('absint', $knowledge_ids)))));
+                                    $pending_count = class_exists('SEO_Ingeniero_Posts') && method_exists('SEO_Ingeniero_Posts', 'pending_count')
+                                        ? SEO_Ingeniero_Posts::pending_count($post_id)
+                                        : 0;
+                                    ?>
+                                    <strong><?php echo esc_html(number_format_i18n($knowledge_count)); ?> conocimientos</strong>
                                     <?php if ($pending_count > 0): ?>
                                         <div style="margin-top:3px;color:#996800;font-size:12px;"><?php echo esc_html(number_format_i18n($pending_count)); ?> novedades</div>
                                     <?php endif; ?>
