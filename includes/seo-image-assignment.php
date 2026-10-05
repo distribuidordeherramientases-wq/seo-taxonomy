@@ -135,6 +135,7 @@ if (!function_exists('seo_images_assignment_get_objects')) {
         $nodes_table = seo_images_table_nodes();
 
         if (seo_images_table_exists($nodes_table)) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal nodes table returned by the plugin helper and existence-checked above.
             $ids = (array) $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT DISTINCT object_id
@@ -149,6 +150,7 @@ if (!function_exists('seo_images_assignment_get_objects')) {
         } else {
             $relations_table = seo_images_table_relations();
             if (seo_images_table_exists($relations_table)) {
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal relations table returned by the plugin helper and existence-checked above.
                 $ids = (array) $wpdb->get_col(
                     $wpdb->prepare(
                         "SELECT DISTINCT source_id
@@ -216,6 +218,7 @@ if (!function_exists('seo_images_assignment_get_category_ids')) {
                 $object_id
             );
 
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql uses only validated internal relation tables and prepared IDs.
             return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($sql)))));
         }
 
@@ -278,6 +281,7 @@ if (!function_exists('seo_images_assignment_get_category_ids')) {
             return array();
         }
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql uses only validated internal relation tables and prepared IDs.
         return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($sql)))));
     }
 }
