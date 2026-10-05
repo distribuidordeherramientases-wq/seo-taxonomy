@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 final class SEO_Ingeniero_DB {
     const OPTION_DB_VERSION = 'seo_ingeniero_db_version';
     const DB_VERSION = '0.2.0';
+    const EDITORIAL_EXPORT_CONTRACT = 'full-category-dossier-v1';
 
     public static function table($name) {
         global $wpdb;
@@ -534,7 +535,7 @@ final class SEO_Ingeniero_DB {
                 'name'=>'seo_ingeniero',
                 'version'=>self::DB_VERSION,
                 'service_version'=>defined('SEO_INGENIERO_VERSION') ? SEO_INGENIERO_VERSION : '',
-                'editorial_contract'=>'full-category-dossier-v1',
+                'editorial_contract'=>self::EDITORIAL_EXPORT_CONTRACT,
             ),
             'generated_at_gmt'=>gmdate('Y-m-d H:i:s'),
             'term_id'=>$term_id,
