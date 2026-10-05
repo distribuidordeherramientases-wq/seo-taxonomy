@@ -930,7 +930,7 @@ final class SEO_Solucionador_Dossiers {
         return $updated;
     }
 
-    public static function scan_batch(    public static function scan_batch($limit = self::DEFAULT_BATCH,$reset = false) {
+    public static function scan_batch($limit = self::DEFAULT_BATCH,$reset = false) {
         global $wpdb;
         SEO_Solucionador_DB::maybe_install();
 
