@@ -445,45 +445,52 @@ if (!function_exists('seo_post_editor_render_solucionador_style_guide')) {
         echo '<div style="margin-top:12px;line-height:1.6;">';
 
         echo '<div style="background:#fff4e5;border:1px solid #dba617;border-left:4px solid #b26200;border-radius:6px;padding:12px 14px;margin:0 0 14px;">';
-        echo '<p style="margin:0 0 7px;"><strong>IMPORTANTE: editar no significa limpiar el borrador.</strong></p>';
-        echo '<p style="margin:0;">Solucionador entrega fuentes y material de trabajo. El editor debe interpretarlo y redactar el contenido final. No publiques el texto recibido con simples retoques. Reorganiza, resume, fusiona, elimina y reescribe cuanto sea necesario para que el resultado sea un artículo natural, coherente y útil para un cliente que nunca ha visto el dossier original.</p>';
+        echo '<p style="margin:0 0 7px;"><strong>IMPORTANTE: editar no significa limpiar el borrador ni rellenar una plantilla.</strong></p>';
+        echo '<p style="margin:0;">Solucionador entrega evidencias y material de trabajo. El editor debe interpretarlo y redactar el contenido final desde cero cuando sea necesario. No publiques el texto recibido con simples retoques y no completes apartados con párrafos estándar. El dossier de cada categoría decide qué merece explicarse, en qué orden y con qué profundidad.</p>';
         echo '</div>';
 
-        echo '<h4 style="margin:0 0 7px;">Cómo editar el material recibido</h4>';
-        echo '<p>El contenido que aparece inicialmente en el borrador es <strong>material de trabajo, no texto para publicar</strong>. No lo edites frase por frase ni conserves necesariamente su estructura.</p>';
+        echo '<h4 style="margin:0 0 7px;">Redactar a partir de evidencias</h4>';
+        echo '<p>El borrador inicial es <strong>material de trabajo, no texto para publicar</strong>. La originalidad no se consigue cambiando sinónimos ni introduciendo variaciones artificiales: se consigue usando información específica y útil de esa categoría.</p>';
         echo '<ol style="margin:0 0 14px 20px;">';
-        echo '<li><strong>Lee primero todo el dossier:</strong> revisa las FAQs y las respuestas/conocimiento de Dependiente para entender qué información aporta realmente cada elemento antes de escribir.</li>';
-        echo '<li><strong>Redacta el artículo de nuevo:</strong> selecciona lo útil y escribe con tus propias palabras. El objetivo no es embellecer el dossier, sino convertirlo en conocimiento comprensible para el cliente.</li>';
-        echo '<li><strong>Sintetiza consultas repetitivas:</strong> varias preguntas parecidas sobre potencia, dimensiones, capacidad, materiales, compatibilidad u otros atributos deben convertirse, cuando tenga sentido, en una explicación general útil.</li>';
-        echo '<li><strong>Transforma lenguaje de catálogo:</strong> no publiques preguntas artificiales como «Busco productos con tipo X y atributo Y» ni respuestas como «Coincide en características». Una búsqueda o coincidencia debe convertirse en una explicación, criterio de elección o recomendación comprensible.</li>';
-        echo '<li><strong>FAQ humana:</strong> si una FAQ ya está bien redactada y aporta valor, puede conservarse o adaptarse ligeramente para integrarla con naturalidad en el artículo.</li>';
-        echo '<li><strong>Dependiente:</strong> si aporta una idea útil pero la respuesta es mecánica, pobre, incorrecta o demasiado ligada a productos concretos, conserva sólo la idea válida y reescribe la explicación. Si no puede verificarse, descártala.</li>';
-        echo '<li><strong>Fusiona sin mostrar el origen:</strong> el lector nunca debe poder distinguir qué parte procedía de una FAQ y cuál de Dependiente. El resultado final debe leerse como un único artículo escrito de principio a fin por una persona.</li>';
-        echo '<li><strong>Descarta sin miedo:</strong> un elemento puede ser útil para comprender el dossier y aun así no merecer aparecer en el texto final.</li>';
+        echo '<li><strong>Lee todo el dossier antes de escribir:</strong> revisa FAQs, conocimiento de Dependiente y demás evidencias disponibles. Primero entiende qué información sólida existe.</li>';
+        echo '<li><strong>Selecciona sólo lo útil:</strong> conserva datos, dudas, diferencias, limitaciones y criterios de decisión que aporten valor real. El material mediocre, irrelevante, repetitivo o dudoso se descarta.</li>';
+        echo '<li><strong>El dossier decide el artículo:</strong> no hay una secuencia fija de apartados. Un post puede necesitar tres bloques y otro seis; uno puede empezar por una incompatibilidad, otro por una pregunta y otro por un criterio de elección.</li>';
+        echo '<li><strong>No reutilices párrafos estándar:</strong> no copies explicaciones, transiciones o advertencias de otros posts para completar huecos. Sólo se admite repetir una regla universal cuando sea realmente imprescindible y esté respaldada.</li>';
+        echo '<li><strong>Hazlo específico de la categoría:</strong> convierte las evidencias en decisiones propias de ese tema: caudal y altura en bombas, apertura y garganta en abrazaderas, plataforma de batería en herramientas, peso de puerta en automatismos, o los criterios concretos que correspondan.</li>';
+        echo '<li><strong>Transforma Dependiente:</strong> no publiques consultas como «Busco productos con tipo X y atributo Y» ni respuestas como «Coincide en características». Si hay una idea válida, conviértela en una explicación o criterio comprensible; si no puede verificarse, descártala.</li>';
+        echo '<li><strong>FAQ humana:</strong> si una FAQ está bien redactada, es fiable y aporta valor, puede conservarse o adaptarse ligeramente. Si repite otra idea, fusiona ambas.</li>';
+        echo '<li><strong>No inventes diferenciación:</strong> si el dossier no contiene material suficiente para un apartado, no lo escribas. Es preferible un artículo más corto a completar con consejos genéricos intercambiables.</li>';
+        echo '<li><strong>No añadas conocimiento técnico sin respaldo:</strong> no introduzcas por tu cuenta especificaciones, normas, compatibilidades, capacidades o afirmaciones nuevas. En electricidad, baterías, gas, elevación, seguridad u otros temas sensibles, una afirmación importante debe estar respaldada por el material disponible; si no, elimínala o déjala pendiente de verificación.</li>';
+        echo '<li><strong>Integra las fuentes:</strong> el resultado final debe ser un único artículo coherente. El lector no necesita saber qué fragmento procedía de FAQ, Dependiente o cualquier otra fuente interna.</li>';
         echo '</ol>';
 
-        echo '<div style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;padding:10px 12px;margin:0 0 14px;">';
-        echo '<strong>Control de calidad por párrafo:</strong> cada párrafo publicado debe aportar al menos una explicación, una recomendación, una diferencia, una precaución o un criterio de decisión. Si únicamente reproduce una búsqueda, enumera productos porque sí, repite una característica sin explicar para qué sirve o contiene lenguaje del motor, todavía no está editado: transfórmalo o elimínalo.';
+        echo '<div style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;padding:10px 12px;margin:0 0 10px;">';
+        echo '<strong>Prueba de especificidad:</strong> quita mentalmente el nombre de la categoría. Si el artículo podría publicarse casi igual en muchas otras categorías, todavía es demasiado genérico. Revisa el dossier y busca información diferencial; no soluciones el problema cambiando palabras de forma cosmética.';
+        echo '</div>';
+
+        echo '<div style="background:#f0f6fc;border:1px solid #c3d7e8;border-radius:6px;padding:10px 12px;margin:0 0 14px;">';
+        echo '<strong>Control por párrafo:</strong> cada párrafo debe aportar una explicación, un criterio de elección, una diferencia, una recomendación, una limitación o una precaución concreta. Si sólo reproduce una búsqueda, enumera productos, repite una característica sin explicar su utilidad o podría intercambiarse con decenas de artículos, reescríbelo o elimínalo.';
         echo '</div>';
 
         echo '<h4 style="margin:0 0 7px;">Formato y estilo del artículo final</h4>';
-        echo '<p><strong>Qué tipo de contenido es:</strong> salvo que trate un hecho temporal, este post no es una noticia. Es una guía práctica o un artículo informativo evergreen. El objetivo es que una persona termine de leer sabiendo mejor cómo elegir, usar, comparar o evitar errores sobre esa categoría.</p>';
+        echo '<p><strong>Qué tipo de contenido es:</strong> salvo que trate un hecho temporal, este post no es una noticia. Es una guía práctica o un artículo informativo evergreen cuyo objetivo es ayudar a una persona a elegir, usar, comparar o evitar errores sobre esa categoría.</p>';
         echo '<p><strong>Estilo:</strong> escribe para una persona no experta, como si respondieras a un cliente en una tienda. Usa lenguaje sencillo, frases cortas y párrafos breves. Explica una idea cada vez. Si utilizas un término técnico, acláralo. No rellenes, no repitas y no escribas para un buscador.</p>';
         echo '<ol style="margin:0 0 12px 20px;">';
-        echo '<li><strong>Título:</strong> el título de WordPress es el H1. Debe ser conciso y descriptivo y no debe repetirse dentro del contenido.</li>';
-        echo '<li><strong>Introducción:</strong> 1–2 párrafos breves explicando qué problema resolverá el artículo y para quién.</li>';
-        echo '<li><strong>Cuerpo:</strong> organizar en 3–6 bloques H2 según el material real: qué tener en cuenta, cómo elegir, tipos y diferencias, compatibilidad o medidas, errores habituales, seguridad o mantenimiento. No forzar apartados que el dossier no justifique.</li>';
-        echo '<li><strong>Preguntas concretas:</strong> cuando una pregunta merezca aparecer de forma visible, usar H3 con una formulación natural y debajo la respuesta en párrafos normales, sin tabular ni sangrar. La primera frase debe dar la respuesta directa; después se amplía sólo lo necesario.</li>';
-        echo '<li><strong>FAQ y Dependiente:</strong> son fuentes de trabajo, no bloques que deban copiarse por separado. Integra el conocimiento elegido dentro de una estructura editorial única.</li>';
-        echo '<li><strong>Duplicados:</strong> si FAQ y Dependiente repiten la misma idea, Editora decide si fusionar, resumir o conservar sólo la versión más útil. No es necesario mantener ambas en el artículo final.</li>';
-        echo '<li><strong>Listas y negritas:</strong> usar listas sólo para pasos, comprobaciones, opciones o requisitos. Usar negrita únicamente para datos decisivos; no como sustituto de títulos.</li>';
-        echo '<li><strong>Fiabilidad:</strong> no publicar como hecho una respuesta dudosa. No inventar especificaciones, compatibilidades ni ventajas. Si una recomendación contradice los atributos del producto, debe revisarse o descartarse.</li>';
-        echo '<li><strong>Tono:</strong> informar, no vender. Explicar ventajas y limitaciones y decir cuándo una solución puede no ser adecuada. Evitar adjetivos comerciales exagerados y afirmaciones absolutas sin justificar.</li>';
-        echo '<li><strong>Cierre:</strong> terminar con un breve apartado <em>En resumen</em> y, cuando proceda, un único enlace natural a la categoría o a productos relacionados.</li>';
-        echo '<li><strong>Extensión:</strong> no hay un número obligatorio de palabras. El artículo termina cuando resuelve bien la intención, sin relleno, repeticiones ni introducciones SEO artificiales.</li>';
-        echo '<li><strong>Antes de publicar:</strong> eliminar marcas internas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, <code>[PENDIENTE]</code>, referencias a Solucionador o Dependiente, IDs, hashes, trazas y notas editoriales.</li>';
+        echo '<li><strong>Título:</strong> el título de WordPress es el H1. Debe ser conciso, descriptivo y propio del contenido real; no debe repetirse dentro del cuerpo.</li>';
+        echo '<li><strong>Inicio:</strong> no hay una introducción obligatoria de plantilla. Empieza por el problema, la duda, la diferencia o la limitación que mejor sitúe al lector. Si basta un párrafo breve, usa uno.</li>';
+        echo '<li><strong>Cuerpo:</strong> usa los H2 que el material justifique, sin número ni orden prefijados. Cada H2 debe apoyarse en información concreta encontrada para esa categoría. Si el dossier no justifica un apartado, no lo crees.</li>';
+        echo '<li><strong>Preguntas concretas:</strong> cuando una pregunta real merezca aparecer de forma visible, usa H3 con una formulación natural y responde debajo en párrafos normales. No conviertas todas las evidencias en preguntas por sistema.</li>';
+        echo '<li><strong>FAQ y Dependiente:</strong> son fuentes de trabajo, no bloques que deban copiarse por separado. Integra sólo el conocimiento seleccionado dentro de una estructura editorial propia.</li>';
+        echo '<li><strong>Duplicados:</strong> si varias fuentes repiten la misma idea, fusiona, resume o conserva sólo la versión más útil.</li>';
+        echo '<li><strong>Listas y negritas:</strong> usa listas únicamente cuando mejoren una secuencia, comprobación, comparación u opciones. Usa negrita sólo para datos decisivos; no como sustituto de títulos.</li>';
+        echo '<li><strong>Fiabilidad:</strong> no publiques como hecho una respuesta dudosa y no deduzcas compatibilidades o ventajas que el dossier no demuestre.</li>';
+        echo '<li><strong>Tono:</strong> informa, no vendas. Explica ventajas y limitaciones y señala cuándo una solución puede no ser adecuada. Evita adjetivos comerciales exagerados y afirmaciones absolutas sin justificar.</li>';
+        echo '<li><strong>Cierre:</strong> utiliza <em>En resumen</em> sólo cuando ayude a condensar decisiones importantes. Si únicamente repetiría lo ya dicho, puede omitirse. Cuando proceda, añade un único enlace natural a la categoría o a productos relacionados.</li>';
+        echo '<li><strong>Extensión:</strong> no existe un número obligatorio de palabras. El artículo termina cuando resuelve bien la intención con la evidencia disponible, sin relleno ni repeticiones.</li>';
+        echo '<li><strong>Antes de publicar:</strong> elimina marcas internas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, <code>[PENDIENTE]</code>, referencias a Solucionador o Dependiente, IDs, hashes, trazas y notas editoriales.</li>';
         echo '</ol>';
-        echo '<p style="margin:0;"><strong>Regla rápida:</strong> si una pregunta puede responderse bien en dos frases, no uses diez. El objetivo es que cualquier cliente entienda la respuesta a la primera lectura.</p>';
+
+        echo '<p style="margin:0;"><strong>Regla final:</strong> el texto debe tener razones para existir en esa URL concreta. Si al cambiar el nombre de la categoría la mayor parte del artículo sigue funcionando igual, todavía necesita diferenciación editorial.</p>';
         echo '</div>';
         echo '</details>';
     }
