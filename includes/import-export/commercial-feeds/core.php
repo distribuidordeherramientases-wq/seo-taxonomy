@@ -1450,40 +1450,53 @@ function seo_ie_cf_google_category( $term_id ) {
  * Imagenes locales/externas. Variaciones heredan las imagenes del padre.
  */
 function seo_ie_cf_product_images( $product, $limit = 6 ) {
+    $limit = max( 1, min( 10, absint( $limit ) ) );
+
+    /*
+     * Fuente única para Merchant/feeds y datos estructurados.
+     * El núcleo de imágenes prioriza Media y proveedor y sólo permite
+     * logo/site icon cuando el producto no tiene ninguna imagen real.
+     */
+    if ( function_exists( 'seo_images_get_public_product_urls' ) ) {
+        return array_values(
+            array_filter(
+                array_map(
+                    'esc_url_raw',
+                    (array) seo_images_get_public_product_urls( $product, $limit, true )
+                )
+            )
+        );
+    }
+
+    // Compatibilidad defensiva para instalaciones incompletas/antiguas.
     $ids = [ absint( $product->get_id() ) ];
     if ( method_exists( $product, 'get_parent_id' ) && $product->get_parent_id() ) {
         $ids[] = absint( $product->get_parent_id() );
     }
-    $ids = array_values( array_unique( array_filter( $ids ) ) );
+    $ids  = array_values( array_unique( array_filter( $ids ) ) );
     $urls = [];
 
     foreach ( $ids as $product_id ) {
-        $wc = wc_get_product( $product_id );
-        if ( $wc ) {
-            $attachment_ids = array_merge( [ absint( $wc->get_image_id() ) ], array_map( 'absint', (array) $wc->get_gallery_image_ids() ) );
-            foreach ( $attachment_ids as $attachment_id ) {
-                if ( $attachment_id < 1 ) {
-                    continue;
-                }
-                $url = esc_url_raw( (string) wp_get_attachment_image_url( $attachment_id, 'full' ) );
-                if ( $url && ! isset( $urls[ $url ] ) ) {
-                    $urls[ $url ] = $url;
-                }
-                if ( count( $urls ) >= $limit ) {
-                    break 2;
-                }
+        $featured = absint( get_post_thumbnail_id( $product_id ) );
+        $gallery  = (string) get_post_meta( $product_id, '_product_image_gallery', true );
+        $attachment_ids = [ $featured ];
+
+        if ( '' !== $gallery ) {
+            $attachment_ids = array_merge( $attachment_ids, array_map( 'absint', explode( ',', $gallery ) ) );
+        }
+
+        foreach ( array_values( array_unique( array_filter( $attachment_ids ) ) ) as $attachment_id ) {
+            $url = esc_url_raw( (string) wp_get_attachment_image_url( $attachment_id, 'full' ) );
+            if ( $url && ! isset( $urls[ $url ] ) ) {
+                $urls[ $url ] = $url;
+            }
+            if ( count( $urls ) >= $limit ) {
+                break 2;
             }
         }
 
         if ( function_exists( 'seo_images_get_external_product_images' ) ) {
-            $rows = (array) seo_images_get_external_product_images( $product_id, $limit );
-            foreach ( $rows as $row ) {
-                $stored_http = absint( $row['http_status'] ?? 0 );
-                $last_checked = trim( (string) ( $row['last_checked'] ?? '' ) );
-                if ( in_array( $stored_http, [ 404, 410 ], true ) && '' !== $last_checked ) {
-                    continue;
-                }
-
+            foreach ( (array) seo_images_get_external_product_images( $product_id, $limit ) as $row ) {
                 $url = esc_url_raw( (string) ( $row['image_url'] ?? '' ) );
                 if ( $url && preg_match( '#^https?://#i', $url ) && ! isset( $urls[ $url ] ) ) {
                     $urls[ $url ] = $url;
