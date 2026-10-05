@@ -136,6 +136,7 @@ if (!function_exists('dht_page_product_image_source_mobile')) {
         }
 
         if ($media_tables_available) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Media table names come from internal helpers and are existence-checked immediately above.
             $attachment_ids = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT u.attachment_id
