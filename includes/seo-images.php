@@ -1429,9 +1429,6 @@ if (!function_exists('seo_images_get_external_product_images')) {
 }
 
 /**
- * Comprueba si un producto dispone de al menos una imagen utilizable, local o externa.
- */
-/**
  * Devuelve la URL externa principal activa de un producto.
  *
  * Centraliza el acceso de las plantillas a seo_supplier_images y sustituye
@@ -1452,6 +1449,208 @@ if (!function_exists('seo_images_get_external_primary_url')) {
     }
 }
 
+if (!function_exists('seo_images_public_logo_fallback')) {
+    /**
+     * Devuelve el logo/site icon únicamente como último recurso comercial.
+     *
+     * @return array|null
+     */
+    function seo_images_public_logo_fallback() {
+        $logo_id = absint(get_theme_mod('custom_logo'));
+        if ($logo_id > 0 && seo_images_is_valid_attachment($logo_id)) {
+            $url = wp_get_attachment_image_url($logo_id, 'full');
+            if ($url) {
+                return array(
+                    'attachment_id' => $logo_id,
+                    'url'           => esc_url_raw((string) $url),
+                    'source'        => 'site_logo',
+                );
+            }
+        }
+
+        $site_icon_id = absint(get_option('site_icon'));
+        if ($site_icon_id > 0 && seo_images_is_valid_attachment($site_icon_id)) {
+            $url = wp_get_attachment_image_url($site_icon_id, 'full');
+            if ($url) {
+                return array(
+                    'attachment_id' => $site_icon_id,
+                    'url'           => esc_url_raw((string) $url),
+                    'source'        => 'site_icon',
+                );
+            }
+        }
+
+        $site_icon = function_exists('get_site_icon_url') ? esc_url_raw((string) get_site_icon_url(512)) : '';
+        if ($site_icon && preg_match('#^https?://#i', $site_icon)) {
+            return array(
+                'attachment_id' => 0,
+                'url'           => $site_icon,
+                'source'        => 'site_icon',
+            );
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('seo_images_get_public_product_urls')) {
+    /**
+     * Resolvedor canónico de imágenes públicas/comerciales de producto.
+     *
+     * Prioridad:
+     * 1. Media asignada directamente al producto.
+     * 2. Media registrada para el producto en seo_media_usos.
+     * 3. Imágenes externas activas del proveedor.
+     * 4. Recursos equivalentes del producto padre (variaciones).
+     * 5. Logo/site icon únicamente cuando no existe ninguna imagen real.
+     *
+     * El logo/site icon se excluye siempre de las fuentes normales, incluso si
+     * quedó asignado históricamente como destacada o galería.
+     *
+     * @param int|WC_Product $product Producto o ID.
+     * @param int            $limit Máximo de URLs.
+     * @param bool           $include_logo_fallback Permitir logo como último recurso.
+     * @return array
+     */
+    function seo_images_get_public_product_urls($product, $limit = 6, $include_logo_fallback = true) {
+        $limit = max(1, min(10, absint($limit)));
+
+        if (is_numeric($product) && function_exists('wc_get_product')) {
+            $product = wc_get_product(absint($product));
+        }
+
+        if (!is_object($product) || !method_exists($product, 'get_id')) {
+            return array();
+        }
+
+        $product_id = absint($product->get_id());
+        if ($product_id < 1) {
+            return array();
+        }
+
+        $site_asset_ids = array_values(array_unique(array_filter(array(
+            absint(get_theme_mod('custom_logo')),
+            absint(get_option('site_icon')),
+        ))));
+
+        $urls = array();
+        $seen = array();
+
+        $add_url = static function($url, $attachment_id = 0) use (&$urls, &$seen, $limit, $site_asset_ids) {
+            if (count($urls) >= $limit) {
+                return;
+            }
+
+            $attachment_id = absint($attachment_id);
+            if ($attachment_id > 0 && in_array($attachment_id, $site_asset_ids, true)) {
+                return;
+            }
+
+            $url = esc_url_raw((string) $url);
+            if (!$url || !preg_match('#^https?://#i', $url) || isset($seen[$url])) {
+                return;
+            }
+
+            $seen[$url] = true;
+            $urls[] = $url;
+        };
+
+        $add_local_object = static function($object_id) use (&$add_url, $limit) {
+            $object_id = absint($object_id);
+            if ($object_id < 1) {
+                return;
+            }
+
+            $attachment_ids = array();
+
+            $featured = absint(get_post_thumbnail_id($object_id));
+            if ($featured > 0) {
+                $attachment_ids[] = $featured;
+            }
+
+            $gallery_raw = (string) get_post_meta($object_id, '_product_image_gallery', true);
+            if ($gallery_raw !== '') {
+                foreach (explode(',', $gallery_raw) as $gallery_id) {
+                    $gallery_id = absint($gallery_id);
+                    if ($gallery_id > 0) {
+                        $attachment_ids[] = $gallery_id;
+                    }
+                }
+            }
+
+            foreach (array_values(array_unique($attachment_ids)) as $attachment_id) {
+                if (!seo_images_is_valid_attachment($attachment_id)) {
+                    continue;
+                }
+
+                $url = wp_get_attachment_image_url($attachment_id, 'full');
+                if ($url) {
+                    $add_url($url, $attachment_id);
+                }
+
+                if (count($attachment_ids) >= $limit && count($attachment_ids) >= $limit) {
+                    // El límite real lo controla $add_url; este bloque evita trabajo adicional.
+                }
+            }
+        };
+
+        $add_registered = static function($object_id) use (&$add_url) {
+            foreach (seo_images_get_registered_usages(absint($object_id), 'product', 100) as $usage) {
+                $attachment_id = absint($usage->attachment_id ?? 0);
+                if (!$attachment_id || !seo_images_is_valid_attachment($attachment_id)) {
+                    continue;
+                }
+
+                $url = wp_get_attachment_image_url($attachment_id, 'full');
+                if ($url) {
+                    $add_url($url, $attachment_id);
+                }
+            }
+        };
+
+        $add_external = static function($object_id) use (&$add_url, $limit) {
+            foreach ((array) seo_images_get_external_product_images(absint($object_id), $limit) as $row) {
+                $stored_http = absint($row['http_status'] ?? 0);
+                $last_checked = trim((string) ($row['last_checked'] ?? ''));
+                if (in_array($stored_http, array(404, 410), true) && $last_checked !== '') {
+                    continue;
+                }
+
+                $add_url($row['image_url'] ?? '', 0);
+            }
+        };
+
+        // Producto/variación actual.
+        $add_local_object($product_id);
+        $add_registered($product_id);
+        $add_external($product_id);
+
+        // Variaciones: sólo si aún queda capacidad, heredar del padre.
+        $parent_id = method_exists($product, 'get_parent_id') ? absint($product->get_parent_id()) : 0;
+        if ($parent_id > 0 && count($urls) < $limit) {
+            $add_local_object($parent_id);
+            $add_registered($parent_id);
+            $add_external($parent_id);
+        }
+
+        // El logo nunca es imagen adicional: sólo se usa si no existe ninguna real.
+        if (empty($urls) && $include_logo_fallback) {
+            $fallback = seo_images_public_logo_fallback();
+            if (is_array($fallback) && !empty($fallback['url'])) {
+                $url = esc_url_raw((string) $fallback['url']);
+                if ($url && preg_match('#^https?://#i', $url)) {
+                    $urls[] = $url;
+                }
+            }
+        }
+
+        return array_slice(array_values(array_unique($urls)), 0, $limit);
+    }
+}
+
+/**
+ * Comprueba si un producto dispone de al menos una imagen utilizable, local o externa.
+ */
 if (!function_exists('seo_images_product_has_usable_image')) {
     function seo_images_product_has_usable_image($product_id) {
         $product_id = absint($product_id);
