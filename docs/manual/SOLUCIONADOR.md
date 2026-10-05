@@ -397,6 +397,19 @@ y Editora puede revisar propuestas existentes.
 
 Cambiar FAQ no reinicia el recorrido de Dependiente.
 
+### Rescan estable y no destructivo
+
+Cada carril conserva una firma de inicio de pasada. Al alcanzar el final:
+
+- si la firma final coincide con la inicial, la pasada es estable y puede reconciliar retirados;
+- si la fuente cambió mientras el cursor avanzaba, se repite **sólo ese carril**;
+- durante la repetición se mantiene visible el último snapshot válido;
+- no se vacían FAQ ni Dependiente antes de reconstruirlos;
+- un elemento se marca **RETIRED** únicamente al terminar una pasada estable y comprobar que realmente ya no existe o ya no pertenece a esa categoría;
+- `sync_category_post()` sólo se dispara cuando el `source_hash` final cambia realmente.
+
+Esto evita perder modificaciones que ocurren por detrás del cursor y evita `NEEDS_UPDATE` falsos durante una reconstrucción.
+
 La migración conserva el cursor largo de Entrenador cuando existe. Los nuevos collectors continúan en sus propios cursores.
 
 ## KPIs

@@ -254,15 +254,24 @@ final class SEO_Solucionador_Tests {
             'Las únicas fuentes de conocimiento son FAQ y Dependiente.'
         );
 
+        $tests[]=self::result(
+            18,'Una pasada sólo se cierra con firma estable',
+            SEO_Solucionador_Dossiers::scan_pass_is_stable_for_test('firma-a','firma-a')
+                && !SEO_Solucionador_Dossiers::scan_pass_is_stable_for_test('firma-a','firma-b'),
+            'misma firma=true; firma distinta=false',
+            SEO_Solucionador_Dossiers::scan_pass_is_stable_for_test('firma-a','firma-a') ? 'comparador activo' : 'comparador incorrecto',
+            'Si FAQ o Dependiente cambian detrás del cursor, se repite sólo ese carril sin vaciar el snapshot vigente.'
+        );
+
         $batch_api=method_exists('SEO_Solucionador_Dossiers','scan_batch')
             && method_exists('SEO_Solucionador_Dossiers','migrate_state')
             && method_exists('SEO_Solucionador_Dossiers','item_changes');
         $tests[]=self::result(
-            18,'Procesamiento incremental y migrable',
+            19,'Procesamiento incremental y migrable',
             $batch_api,
             'scan_batch + migrate_state + item_changes',
             $batch_api ? 'API disponible' : 'API incompleta',
-            'FAQ y Dependiente mantienen progreso independiente y un dossier por categoría.'
+            'FAQ y Dependiente mantienen progreso independiente; los rescans conservan el último snapshot hasta una pasada estable.'
         );
 
         $passed=count(array_filter($tests,static function($row){return !empty($row['pass']);}));

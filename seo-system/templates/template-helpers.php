@@ -307,7 +307,11 @@ if (!function_exists('dht_shared_product_image_candidates')) {
             }
         }
 
-        if ($include_logo) {
+        /*
+         * El logo es estrictamente el último recurso. No se incorpora como
+         * fallback adicional si ya existe una imagen real de producto.
+         */
+        if ($include_logo && empty($candidates)) {
             $logo = dht_shared_site_logo_candidate();
             if ($logo) {
                 $add($logo);
