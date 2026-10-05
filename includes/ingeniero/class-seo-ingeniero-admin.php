@@ -464,6 +464,15 @@ final class SEO_Ingeniero_Admin {
             'per_page'=>30,
         ));
         $counts = SEO_Ingeniero_DB::editorial_counts();
+        $totals = SEO_Ingeniero_DB::totals();
+        $stats_map = SEO_Ingeniero_DB::category_stats_map(SEO_Ingeniero::LESSON_TECHNICAL);
+        $categories_with_active=0;
+        $categories_below_target=0;
+        foreach ((array)$stats_map as $stat) {
+            $active=absint($stat['active'] ?? 0);
+            if ($active > 0) $categories_with_active++;
+            if ($active > 0 && $active < SEO_Ingeniero::TARGET_ACTIVE_KNOWLEDGE_PER_CATEGORY) $categories_below_target++;
+        }
         $detail_id = absint($_GET['editorial_id'] ?? 0);
 
         echo '<section class="seo-ingeniero-editorial">';
@@ -471,10 +480,13 @@ final class SEO_Ingeniero_Admin {
         echo '<h2 style="margin-top:0">Editorial técnico</h2>';
         echo '<p>Convierte <strong>todo el conocimiento active y trazable de cada product_cat</strong> en un único dossier técnico. Ingeniero recomienda <code>CREATE_POST</code>, <code>IMPROVE_POST</code>, <code>MERGE_CONTENT</code>, <code>NO_ACTION</code> o <code>NEEDS_REVIEW</code>, pero no vuelve a filtrar el knowledge que ya fue aceptado por la investigación.</p>';
         echo '<p class="description">Cada knowledge activo se presenta a Editora como una pregunta-respuesta técnica, conservando tipo, confianza, evidencias y fuentes. Los borradores se crean sólo tras aprobación humana y nunca se publican automáticamente.</p>';
-        echo '<p><strong>Regla 0.3.3:</strong> una categoría = un dossier <code>technical-overview</code>. No se descartan bloques por tener una sola evidencia o por no alcanzar masa de una familia editorial.</p>';
+        echo '<p><strong>Regla 0.3.3:</strong> una categoría = un dossier <code>technical-overview</code>. No se descartan bloques por tener una sola evidencia o por no alcanzar masa de una familia editorial. Investigación mantiene como objetivo <strong>4 knowledge activos por categoría</strong>.</p>';
         echo '</div>';
 
         $cards = array(
+            'Knowledge activo'=>$totals['active_knowledge'] ?? 0,
+            'Categorías con knowledge'=>$categories_with_active,
+            'Categorías <4'=>$categories_below_target,
             'Dossiers'=>$counts['total'] ?? 0,
             'Crear post'=>$counts['CREATE_POST'] ?? 0,
             'Mejorar'=>$counts['IMPROVE_POST'] ?? 0,
