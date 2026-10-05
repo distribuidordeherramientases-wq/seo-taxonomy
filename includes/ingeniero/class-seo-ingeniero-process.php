@@ -31,6 +31,7 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
 
     private static function fresh_editorial_state() {
         return array(
+            'contract_version'=>'full-category-dossier-v1',
             'cursor'=>0,
             'processed'=>0,
             'errors'=>0,
@@ -70,7 +71,11 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
         try {
             SEO_Ingeniero_DB::maybe_install();
             $state=get_option(self::EDITORIAL_STATE_OPTION,array());
-            if (!is_array($state) || !$state) $state=self::fresh_editorial_state();
+            if (!is_array($state)
+                || !$state
+                || (string)($state['contract_version'] ?? '') !== 'full-category-dossier-v1') {
+                $state=self::fresh_editorial_state();
+            }
 
             if (!empty($state['complete'])) {
                 $completed=!empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;
@@ -153,6 +158,7 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
         if (!$ids) return false;
         $state=get_option(self::EDITORIAL_STATE_OPTION,array());
         if (!is_array($state) || !$state) return true;
+        if ((string)($state['contract_version'] ?? '') !== 'full-category-dossier-v1') return true;
         if (empty($state['complete'])) return true;
         $completed=!empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;
         return !$completed || (time()-$completed) >= 6*HOUR_IN_SECONDS;
@@ -218,7 +224,11 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
         try {
             SEO_Ingeniero_DB::maybe_install();
             $state=get_option(self::EDITORIAL_STATE_OPTION,array());
-            if (!is_array($state) || !$state) $state=self::fresh_editorial_state();
+            if (!is_array($state)
+                || !$state
+                || (string)($state['contract_version'] ?? '') !== 'full-category-dossier-v1') {
+                $state=self::fresh_editorial_state();
+            }
 
             if (!empty($state['complete'])) {
                 $completed=!empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;

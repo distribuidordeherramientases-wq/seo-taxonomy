@@ -464,17 +464,29 @@ final class SEO_Ingeniero_Admin {
             'per_page'=>30,
         ));
         $counts = SEO_Ingeniero_DB::editorial_counts();
+        $totals = SEO_Ingeniero_DB::totals();
+        $stats_map = SEO_Ingeniero_DB::category_stats_map(SEO_Ingeniero::LESSON_TECHNICAL);
+        $categories_with_active=0;
+        $categories_below_target=0;
+        foreach ((array)$stats_map as $stat) {
+            $active=absint($stat['active'] ?? 0);
+            if ($active > 0) $categories_with_active++;
+            if ($active > 0 && $active < SEO_Ingeniero::TARGET_ACTIVE_KNOWLEDGE_PER_CATEGORY) $categories_below_target++;
+        }
         $detail_id = absint($_GET['editorial_id'] ?? 0);
 
         echo '<section class="seo-ingeniero-editorial">';
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
         echo '<h2 style="margin-top:0">Editorial técnico</h2>';
-        echo '<p>Convierte únicamente <strong>conocimiento active y trazable</strong> en dossiers técnicos. Ingeniero decide <code>CREATE_POST</code>, <code>IMPROVE_POST</code>, <code>MERGE_CONTENT</code>, <code>NO_ACTION</code> o <code>NEEDS_REVIEW</code> sin depender de Solucionador.</p>';
-        echo '<p class="description">Los dossiers guardan referencias a knowledge/sources y un <code>source_hash</code>; no duplican el contenido de investigación. Los borradores se crean sólo tras aprobación humana y nunca se publican automáticamente.</p>';
-        echo '<p><strong>Preparación automática:</strong> todas las categorías con conocimiento activo se convierten en dossiers editoriales en segundo plano. Aquí sólo tienes que revisar, aprobar, devolver a revisión o cerrar cada propuesta.</p>';
+        echo '<p>Convierte <strong>todo el conocimiento active y trazable de cada product_cat</strong> en un único dossier técnico. Ingeniero recomienda <code>CREATE_POST</code>, <code>IMPROVE_POST</code>, <code>MERGE_CONTENT</code>, <code>NO_ACTION</code> o <code>NEEDS_REVIEW</code>, pero no vuelve a filtrar el knowledge que ya fue aceptado por la investigación.</p>';
+        echo '<p class="description">Cada knowledge activo se presenta a Editora como una pregunta-respuesta técnica, conservando tipo, confianza, evidencias y fuentes. Los borradores se crean sólo tras aprobación humana y nunca se publican automáticamente.</p>';
+        echo '<p><strong>Regla 0.3.3:</strong> una categoría = un dossier <code>technical-overview</code>. No se descartan bloques por tener una sola evidencia o por no alcanzar masa de una familia editorial. Investigación mantiene como objetivo <strong>4 knowledge activos por categoría</strong>.</p>';
         echo '</div>';
 
         $cards = array(
+            'Knowledge activo'=>$totals['active_knowledge'] ?? 0,
+            'Categorías con knowledge'=>$categories_with_active,
+            'Categorías <4'=>$categories_below_target,
             'Dossiers'=>$counts['total'] ?? 0,
             'Crear post'=>$counts['CREATE_POST'] ?? 0,
             'Mejorar'=>$counts['IMPROVE_POST'] ?? 0,
@@ -532,7 +544,7 @@ final class SEO_Ingeniero_Admin {
             echo '<td><code>' . esc_html((string) ($row['recommended_action'] ?? '')) . '</code></td>';
             echo '<td><code>' . esc_html((string) ($row['coverage_status'] ?? '')) . '</code></td>';
             echo '<td><code>' . esc_html((string) ($row['status'] ?? '')) . '</code></td>';
-            echo '<td>' . esc_html(number_format_i18n(count((array) ($row['knowledge_ids'] ?? array())))) . ' knowledge<br>' . esc_html(number_format_i18n(count((array) ($row['source_ids'] ?? array())))) . ' fuentes</td>';
+            echo '<td><strong>' . esc_html(number_format_i18n(count((array)($row['knowledge_ids'] ?? array())))) . ' Q&A técnicas</strong><br>' . esc_html(number_format_i18n(count((array)($row['source_ids'] ?? array())))) . ' fuentes</td>';
             echo '<td>';
             if ($post_id && 'post' === get_post_type($post_id)) {
                 echo '<a href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">#' . esc_html($post_id) . ' · ' . esc_html((string) get_post_status($post_id)) . '</a>';
@@ -603,11 +615,31 @@ final class SEO_Ingeniero_Admin {
         echo '<p><strong>' . esc_html((string) ($dossier['suggested_title'] ?? '')) . '</strong></p>';
         echo '<p>Categoría: <strong>' . esc_html((string) ($category['name'] ?? '')) . '</strong> · Tema: <code>' . esc_html((string) ($dossier['topic_key'] ?? '')) . '</code> · Acción: <code>' . esc_html((string) ($dossier['recommended_action'] ?? '')) . '</code>.</p>';
 
+        $qa_items=(array)($brief['qa_items'] ?? array());
+        echo '<h3>Preguntas y respuestas técnicas · ' . esc_html(number_format_i18n(count($qa_items))) . '</h3>';
+        echo '<p class="description">Se muestran todos los knowledge activos incluidos en el dossier. La pregunta es una formulación editorial del tipo de conocimiento; la respuesta es la síntesis técnica almacenada por Ingeniero.</p>';
+        if ($qa_items) {
+            echo '<div style="display:grid;gap:10px">';
+            foreach ($qa_items as $item) {
+                echo '<div style="border:1px solid #dcdcde;border-radius:5px;padding:12px">';
+                echo '<strong>' . esc_html((string)($item['question'] ?? '')) . '</strong>';
+                echo '<p style="margin:7px 0">' . esc_html((string)($item['answer'] ?? '')) . '</p>';
+                echo '<div class="description">Tipo: <code>' . esc_html((string)($item['knowledge_type'] ?? '')) . '</code>'
+                    . ' · Confianza: ' . esc_html(number_format_i18n((float)($item['confidence'] ?? 0)*100,1)) . '%'
+                    . ' · Fuentes: ' . esc_html(number_format_i18n(count((array)($item['source_ids'] ?? array()))))
+                    . ' · Knowledge #' . esc_html(absint($item['knowledge_id'] ?? 0)) . '</div>';
+                echo '</div>';
+            }
+            echo '</div>';
+        } else {
+            echo '<p>No hay preguntas-respuestas técnicas en este dossier.</p>';
+        }
+
         echo '<h3>Must cover</h3><ul>';
         foreach ((array) ($brief['must_cover'] ?? array()) as $item) echo '<li>' . esc_html((string) $item) . '</li>';
         echo '</ul>';
 
-        echo '<h3>Knowledge incluido</h3><table class="widefat striped"><thead><tr><th>Tipo / concepto</th><th>Síntesis</th><th>Confianza</th><th>Evidencias</th></tr></thead><tbody>';
+        echo '<h3>Diagnóstico del knowledge incluido</h3><table class="widefat striped"><thead><tr><th>Tipo / concepto</th><th>Síntesis</th><th>Confianza</th><th>Evidencias</th></tr></thead><tbody>';
         foreach ((array) ($brief['knowledge'] ?? array()) as $row) {
             echo '<tr><td><code>' . esc_html((string) ($row['knowledge_type'] ?? '')) . '</code><br>' . esc_html((string) ($row['concept'] ?? '')) . '</td>';
             echo '<td>' . esc_html((string) ($row['summary'] ?? '')) . '</td>';
