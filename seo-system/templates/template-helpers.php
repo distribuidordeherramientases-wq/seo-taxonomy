@@ -206,11 +206,6 @@ if (!function_exists('dht_shared_site_logo_candidate')) {
             }
         }
 
-        $site_icon = function_exists('get_site_icon_url') ? get_site_icon_url(512) : '';
-        if ($site_icon) {
-            return array('attachment_id' => 0, 'url' => esc_url_raw($site_icon), 'source' => 'logo');
-        }
-
         return null;
     }
 }
