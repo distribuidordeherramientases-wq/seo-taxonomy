@@ -1587,10 +1587,6 @@ if (!function_exists('seo_images_get_public_product_urls')) {
                 if ($url) {
                     $add_url($url, $attachment_id);
                 }
-
-                if (count($attachment_ids) >= $limit && count($attachment_ids) >= $limit) {
-                    // El límite real lo controla $add_url; este bloque evita trabajo adicional.
-                }
             }
         };
 
