@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero {
-    const VERSION = '0.3.2';
+    const VERSION = '0.3.3';
     const STATE_OPTION = 'seo_ingeniero_state_v1';
     const CATEGORY_STATE_OPTION = 'seo_ingeniero_category_state_v1';
     const LESSON_TECHNICAL = 'l1_technical';
@@ -674,7 +674,7 @@ final class SEO_Ingeniero {
             }
 
             $title = self::editorial_title((string) $term->name, $topic_key);
-            $summary = self::limit_text(implode(' ', array_slice($summary_parts, 0, 4)), 1200);
+            $summary = self::limit_text(implode(' ', $summary_parts), 3000);
             $coverage = class_exists('SEO_Editorial_Coverage')
                 ? SEO_Editorial_Coverage::find_technical($term_id, $title, $summary)
                 : array('status'=>'uncovered','post_id'=>0,'matches'=>array());
@@ -682,10 +682,12 @@ final class SEO_Ingeniero {
             $avg_confidence = $confidence ? array_sum($confidence) / count($confidence) : 0.0;
             $action = self::editorial_action($coverage, count($knowledge_ids), count($source_ids), $avg_confidence);
             $status = $existing ? (string) ($existing['status'] ?? 'candidate') : 'candidate';
-            if ('NEEDS_REVIEW' === $action && !in_array($status, array('draft','published','needs_update'), true)) {
+            if ('NEEDS_REVIEW' === $action && !in_array($status,array('draft','published','needs_update'),true)) {
                 $status = 'review';
-            } elseif ('NO_ACTION' === $action && !in_array($status, array('draft','published','needs_update'), true)) {
-                $status = 'closed';
+            } elseif ('closed' === $status && !in_array($action,array('NO_ACTION'),true)) {
+                // Un dossier cerrado manualmente sólo se reactiva si la
+                // recomendación cambia materialmente.
+                $status = 'review';
             }
 
             $id = SEO_Ingeniero_DB::upsert_editorial(array(
@@ -720,9 +722,9 @@ final class SEO_Ingeniero {
         foreach ((array) ($existing_rows['rows'] ?? array()) as $row) {
             $topic_key = sanitize_key((string) ($row['topic_key'] ?? ''));
             if ($topic_key === '' || in_array($topic_key, $current_topic_keys, true)) continue;
-            SEO_Ingeniero_DB::update_editorial(absint($row['id'] ?? 0), array(
-                'status'=>!empty($row['post_id']) ? 'needs_update' : 'review',
-                'recommended_action'=>'NEEDS_REVIEW',
+            SEO_Ingeniero_DB::update_editorial(absint($row['id'] ?? 0),array(
+                'status'=>!empty($row['post_id']) ? 'needs_update' : 'closed',
+                'recommended_action'=>!empty($row['post_id']) ? 'IMPROVE_POST' : 'NO_ACTION',
             ));
         }
 
@@ -756,7 +758,8 @@ final class SEO_Ingeniero {
             if ($label !== '') $must_cover[] = $label . ' · ' . str_replace('_',' ',(string) ($row['knowledge_type'] ?? ''));
         }
 
-        $sources = SEO_Ingeniero_DB::sources_by_ids((array) ($dossier['source_ids'] ?? array()));
+        $qa_items = array_map(array(__CLASS__,'editorial_qa_item'),$knowledge);
+        $sources = SEO_Ingeniero_DB::sources_by_ids((array)($dossier['source_ids'] ?? array()));
         $term = $term_id ? get_term($term_id, 'product_cat') : null;
         $internal_links = self::editorial_internal_links($term_id);
         $post_id = absint($dossier['post_id'] ?? 0);
@@ -771,6 +774,9 @@ final class SEO_Ingeniero {
                 'name'=>$term && !is_wp_error($term) ? (string) $term->name : '',
             ),
             'knowledge'=>$knowledge,
+            'qa_items'=>$qa_items,
+            'knowledge_count'=>count($knowledge),
+            'qa_count'=>count($qa_items),
             'sources'=>array_map(static function($row) {
                 return array(
                     'id'=>absint($row['id'] ?? 0),
@@ -852,37 +858,13 @@ final class SEO_Ingeniero {
     }
 
     private static function editorial_groups(array $knowledge) {
-        $families = array(
-            'fundamentals'=>array('definition','function','terminology','type'),
-            'selection'=>array('application','compatibility','limitation'),
-            'maintenance'=>array('maintenance','problem'),
-            'safety'=>array('safety','regulation'),
-        );
-        $by_family = array();
-        foreach ($knowledge as $row) {
-            $type = sanitize_key((string) ($row['knowledge_type'] ?? ''));
-            $family = 'fundamentals';
-            foreach ($families as $key=>$types) {
-                if (in_array($type, $types, true)) {
-                    $family = $key;
-                    break;
-                }
-            }
-            $by_family[$family][] = $row;
-        }
-
-        $eligible = array();
-        foreach ($by_family as $key=>$rows) {
-            $sources = array();
-            foreach ($rows as $row) $sources = array_merge($sources, (array) ($row['source_ids'] ?? array()));
-            $sources = array_values(array_unique(array_filter(array_map('absint', $sources))));
-            if (count($rows) >= 2 && count($sources) >= 2) $eligible[$key] = $rows;
-        }
-
-        // Regla conservadora: una propuesta por categoría salvo que existan al
-        // menos dos intenciones técnicas con evidencia independiente suficiente.
-        if (count($eligible) < 2) return array('technical-overview'=>$knowledge);
-        return $eligible;
+        // 0.3.3: una product_cat = un dossier editorial. La investigación ya
+        // decidió qué knowledge está active; la capa editorial no vuelve a
+        // filtrar ni a dividir ese conocimiento por "masa" de familia.
+        $rows = array_values(array_filter($knowledge,static function($row){
+            return sanitize_key((string)($row['status'] ?? 'active')) === 'active';
+        }));
+        return $rows ? array('technical-overview'=>$rows) : array();
     }
 
     private static function editorial_title($category_name, $topic_key) {
@@ -917,15 +899,80 @@ final class SEO_Ingeniero {
 
     private static function editorial_action(array $coverage, $knowledge_count, $source_count, $avg_confidence) {
         $knowledge_count = absint($knowledge_count);
-        $source_count = absint($source_count);
-        $avg_confidence = (float) $avg_confidence;
-        if ($knowledge_count < 2 || $source_count < 2 || $avg_confidence < 0.60) return 'NEEDS_REVIEW';
+        if ($knowledge_count < 1) return 'NEEDS_REVIEW';
 
-        $status = sanitize_key((string) ($coverage['status'] ?? 'uncovered'));
-        if (in_array($status, array('duplicate','conflict'), true)) return 'MERGE_CONTENT';
-        if ('covered' === $status) return 'NO_ACTION';
-        if (in_array($status, array('partial_coverage','weak_coverage'), true) && absint($coverage['post_id'] ?? 0)) return 'IMPROVE_POST';
+        // Fuentes/confianza son indicadores para Editora; nunca ocultan un
+        // knowledge que Ingeniero ya considera active.
+        $status = sanitize_key((string)($coverage['status'] ?? 'uncovered'));
+        if (in_array($status,array('duplicate','conflict'),true)) return 'MERGE_CONTENT';
+        if ($status === 'covered') return 'NO_ACTION';
+        if (in_array($status,array('partial_coverage','weak_coverage'),true) && absint($coverage['post_id'] ?? 0)) {
+            return 'IMPROVE_POST';
+        }
         return 'CREATE_POST';
+    }
+
+    public static function editorial_question_for_knowledge(array $row) {
+        $type = sanitize_key((string)($row['knowledge_type'] ?? ''));
+        $concept = trim((string)($row['concept'] ?? ''));
+        if ($concept === '') $concept = 'esta categoría';
+
+        $templates = array(
+            'definition'=>'¿Qué es %s y qué aspectos técnicos conviene conocer?',
+            'function'=>'¿Cómo funciona %s?',
+            'application'=>'¿Para qué aplicaciones se utiliza %s?',
+            'type'=>'¿Qué tipos o variantes de %s existen?',
+            'compatibility'=>'¿Qué compatibilidades o requisitos hay que comprobar en %s?',
+            'limitation'=>'¿Qué limitaciones tiene %s?',
+            'maintenance'=>'¿Qué mantenimiento requiere %s?',
+            'safety'=>'¿Qué precauciones de seguridad deben tenerse en cuenta con %s?',
+            'problem'=>'¿Qué problemas habituales pueden aparecer con %s?',
+            'terminology'=>'¿Qué términos técnicos conviene conocer sobre %s?',
+            'regulation'=>'¿Qué normativa o requisitos técnicos afectan a %s?',
+            'selection'=>'¿Qué criterios ayudan a elegir %s?',
+            'performance'=>'¿Qué prestaciones o rendimiento deben evaluarse en %s?',
+            'capacity'=>'¿Qué capacidad debe considerarse en %s?',
+            'maneuverability'=>'¿Qué aspectos de maniobrabilidad son importantes en %s?',
+            'connectivity'=>'¿Qué conexiones o interfaces debe comprobarse en %s?',
+            'design'=>'¿Qué aspectos de diseño son relevantes en %s?',
+            'comparison'=>'¿Qué diferencias técnicas conviene comparar en %s?',
+            'protection'=>'¿Qué requisitos de protección deben considerarse en %s?',
+        );
+        $template = $templates[$type] ?? '¿Qué información técnica relevante hay que conocer sobre %s?';
+        return sprintf($template,$concept);
+    }
+
+    public static function editorial_qa_item(array $row) {
+        $id = absint($row['id'] ?? 0);
+        $source_ids = array_values(array_unique(array_filter(array_map('absint',(array)($row['source_ids'] ?? array())))));
+        sort($source_ids,SORT_NUMERIC);
+        $answer = trim((string)($row['summary'] ?? ''));
+        $question = self::editorial_question_for_knowledge($row);
+        $item_hash = hash('sha256',wp_json_encode(array(
+            'id'=>$id,
+            'knowledge_type'=>sanitize_key((string)($row['knowledge_type'] ?? '')),
+            'concept'=>(string)($row['concept'] ?? ''),
+            'question'=>$question,
+            'answer'=>$answer,
+            'confidence'=>round((float)($row['confidence'] ?? 0),5),
+            'source_ids'=>$source_ids,
+            'updated_at'=>(string)($row['updated_at'] ?? ''),
+        ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+
+        return array(
+            'item_id'=>'knowledge:' . $id,
+            'knowledge_id'=>$id,
+            'knowledge_type'=>sanitize_key((string)($row['knowledge_type'] ?? '')),
+            'concept'=>(string)($row['concept'] ?? ''),
+            'question'=>$question,
+            'answer'=>$answer,
+            'confidence'=>(float)($row['confidence'] ?? 0),
+            'facts'=>(array)($row['facts'] ?? array()),
+            'source_ids'=>$source_ids,
+            'item_hash'=>$item_hash,
+            'updated_at'=>(string)($row['updated_at'] ?? ''),
+            'status'=>(string)($row['status'] ?? ''),
+        );
     }
 
     /**
@@ -935,8 +982,12 @@ final class SEO_Ingeniero {
     public static function editorial_groups_for_test(array $knowledge) {
         $groups = self::editorial_groups($knowledge);
         $out = array();
-        foreach ($groups as $key=>$rows) $out[$key] = count((array) $rows);
+        foreach ($groups as $key=>$rows) $out[$key] = count((array)$rows);
         return $out;
+    }
+
+    public static function editorial_qa_for_test(array $row) {
+        return self::editorial_qa_item($row);
     }
 
     public static function editorial_source_hash_for_test(array $rows, array $source_ids) {
