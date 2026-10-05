@@ -468,6 +468,21 @@ Cada item puede marcarse:
 
 Esta decisión editorial no modifica la fuente.
 
+### Aceptar todos
+
+La pantalla de Solucionador incluye un botón **Aceptar todos** para convertir en borradores todas las propuestas pendientes que tengan material útil y una `product_cat` válida.
+
+Reglas:
+
+- procesa en lotes de 50 para evitar timeouts;
+- crea exclusivamente posts `draft`;
+- omite propuestas ya convertidas, rechazadas para el `source_hash` actual o inválidas;
+- no publica;
+- no modifica posts ya existentes;
+- al finalizar informa de borradores creados, omitidos y errores.
+
+La aprobación masiva equivale únicamente a autorizar la creación del material de trabajo. La edición y publicación siguen siendo humanas.
+
 ## Draft y posts publicados
 
 `SEO_Solucionador_Posts::create_draft()` crea únicamente un `post_status=draft`.
