@@ -718,7 +718,11 @@ final class SEO_Solucionador_Dossiers {
             'updated_at'=>$now,
         );
 
-        if ($existing) return $wpdb->update($table,$data,array('category_id'=>$term_id)) !== false;
+        if ($existing) {
+            $hash_changed = (string)($existing['source_hash'] ?? '') !== $hash;
+            $ok = $wpdb->update($table,$data,array('category_id'=>$term_id));
+            return $ok !== false && $hash_changed;
+        }
         $data['category_id'] = $term_id;
         $data['created_at'] = $now;
         return $wpdb->insert($table,$data) !== false;
