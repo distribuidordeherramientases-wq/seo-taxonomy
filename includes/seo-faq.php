@@ -225,10 +225,10 @@ function seo_faq_increment_block_metric($object_type, $object_id, $metric)
                 {$time_field} = VALUES({$time_field}),
                 updated_at = VALUES(updated_at)";
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Table is internal; metric/time fields come from the closed $allowed map; data values are bound through prepare().
-    return $wpdb->query(
-        $wpdb->prepare($sql, (int) $object_type, absint($object_id), $now, $now)
-    );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table is internal; metric/time fields come from the closed $allowed map; data values are bound here.
+    $prepared_sql = $wpdb->prepare($sql, (int) $object_type, absint($object_id), $now, $now);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the result of $wpdb->prepare().
+    return $wpdb->query($prepared_sql);
 }
 
 /**
