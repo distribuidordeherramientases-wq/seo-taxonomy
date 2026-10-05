@@ -238,6 +238,7 @@ return static function () {
         }
 
         $existing_id = absint(
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $object_vocabulary is an internal prefixed migration table; query is migration-only.
             $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT id

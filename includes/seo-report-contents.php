@@ -399,6 +399,7 @@ function seo_report_contents_get_product_summary() {
         ? "AND COALESCE(a.attribute_count, 0) > 0"
         : '';
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $missing_attrs_sql is built from internal/core tables and fixed predicates only.
     $row = $wpdb->get_row("
         SELECT
             COUNT(*) AS total,

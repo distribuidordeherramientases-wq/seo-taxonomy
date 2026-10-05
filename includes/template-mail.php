@@ -687,6 +687,7 @@ function seo_mail_get_active_mappings() {
         return $cache;
     }
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $mail_table is an internal prefixed table validated by this mail subsystem.
     $rows = $wpdb->get_results(
         "SELECT mail.mail_key,
                 mail.template_key,

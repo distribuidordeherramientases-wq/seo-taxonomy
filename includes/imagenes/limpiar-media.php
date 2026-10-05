@@ -90,6 +90,7 @@ if (!function_exists('seo_images_cleanup_pending_candidates')) {
         $candidates = seo_images_cleanup_table_candidates();
         $log        = seo_images_cleanup_table_log();
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $candidates is an internal cleanup table returned by the plugin helper.
         return (array) $wpdb->get_results(
             "SELECT c.*
              FROM {$candidates} c
