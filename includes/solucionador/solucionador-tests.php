@@ -142,9 +142,9 @@ final class SEO_Solucionador_Tests {
         $changes=SEO_Solucionador_Dossiers::compare_item_hashes_for_test($current,$reviewed);
         $tests[]=self::result(
             9,'Detecta NUEVO / MODIFICADO / RETIRADO',
-            $changes['new']===array('dependiente:semantic:789')
+            $changes['new']===array('dependiente:trainer:789')
                 && $changes['modified']===array('faq:123')
-                && $changes['retired']===array('dependiente:456'),
+                && $changes['retired']===array('dependiente:trainer:456'),
             '1 nuevo, 1 modificado, 1 retirado',
             count($changes['new']).' / '.count($changes['modified']).' / '.count($changes['retired']),
             'El cambio de fuentes genera NEEDS_UPDATE sin sobrescribir el post.'
@@ -220,15 +220,25 @@ final class SEO_Solucionador_Tests {
             'El contrato de generación sólo exige FAQ/Dependiente y product_cat demostrable.'
         );
 
+        $tests[]=self::result(
+            16,
+            'Una pasada sólo es estable si la firma no cambia durante el recorrido',
+            SEO_Solucionador_Dossiers::scan_pass_is_stable_for_test('firma-a','firma-a')
+                && !SEO_Solucionador_Dossiers::scan_pass_is_stable_for_test('firma-a','firma-b'),
+            'estable con firmas iguales; repetir con firmas distintas',
+            SEO_Solucionador_Dossiers::scan_pass_is_stable_for_test('firma-a','firma-a') ? 'comparador activo' : 'comparador incorrecto',
+            'Evita perder cambios que ocurren por detrás del cursor durante escaneos largos.'
+        );
+
         $batch_api=method_exists('SEO_Solucionador_Dossiers','scan_batch')
             && method_exists('SEO_Solucionador_Dossiers','migrate_state')
             && method_exists('SEO_Solucionador_Dossiers','item_changes');
         $tests[]=self::result(
-            16,'Procesamiento incremental y migrable',
+            17,'Procesamiento incremental y migrable',
             $batch_api,
             'scan_batch + migrate_state + item_changes',
             $batch_api ? 'API disponible' : 'API incompleta',
-            'FAQ y Dependiente mantienen cursores independientes y no generan dossiers duplicados.'
+            'FAQ y Dependiente mantienen cursores independientes; el rescan es no destructivo hasta terminar una pasada estable.'
         );
 
         $passed=count(array_filter($tests,static function($row){return !empty($row['pass']);}));
