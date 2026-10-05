@@ -16,6 +16,8 @@ if (!class_exists('SEO_Transporte_Costes')) {
         public static function init() {
             add_action('admin_menu', array(__CLASS__, 'register_page'), 30);
             add_action('admin_post_seo_transporte_save', array(__CLASS__, 'save_settings'));
+            add_action('admin_post_seo_transporte_export', array(__CLASS__, 'export_settings'));
+            add_action('admin_post_seo_transporte_import', array(__CLASS__, 'import_settings'));
 
             /*
              * WooCommerce deja de calcular transporte si no detecta ningun metodo
@@ -168,15 +170,14 @@ if (!class_exists('SEO_Transporte_Costes')) {
             );
         }
 
-        public static function save_settings() {
-            if (!current_user_can(self::capability())) {
-                wp_die(esc_html__('No tienes permisos para modificar el transporte.', 'seo-taxonomy'));
+        private static function invalidate_shipping_cache() {
+            if (class_exists('WC_Cache_Helper') && is_callable(array('WC_Cache_Helper', 'get_transient_version'))) {
+                WC_Cache_Helper::get_transient_version('shipping', true);
             }
-            check_admin_referer('seo_transporte_save');
+        }
 
-            $raw = isset($_POST['seo_transporte']) && is_array($_POST['seo_transporte'])
-                ? wp_unslash($_POST['seo_transporte'])
-                : array();
+        private static function sanitize_settings_payload($raw) {
+            $raw = is_array($raw) ? $raw : array();
 
             $default_regions = array('peninsula', 'baleares', 'canarias', 'ceuta', 'melilla');
             $default_region  = isset($raw['default_region']) ? sanitize_key($raw['default_region']) : 'peninsula';
@@ -190,7 +191,6 @@ if (!class_exists('SEO_Transporte_Costes')) {
                     continue;
                 }
                 $clean = self::sanitize_rule($rule, $index);
-                // Las filas completamente vacias no se guardan.
                 $has_content = !empty($clean['name'])
                     || !empty($clean['enabled'])
                     || 0.0 !== (float) $clean['fixed_cost']
@@ -222,25 +222,180 @@ if (!class_exists('SEO_Transporte_Costes')) {
             $status = 'saved';
             if ($enabled && empty($active_rules)) {
                 $enabled = 0;
-                $status  = 'no_rules';
+                $status = 'no_rules';
             }
 
-            $settings = array(
-                'enabled'               => $enabled,
-                'only_spain'            => !empty($raw['only_spain']) ? 1 : 0,
-                'default_region'        => $default_region,
-                'rate_label'            => !empty($raw['rate_label']) ? sanitize_text_field($raw['rate_label']) : 'Transporte',
-                'shipping_taxable'      => !empty($raw['shipping_taxable']) ? 1 : 0,
-                'require_known_metrics' => !empty($raw['require_known_metrics']) ? 1 : 0,
-                'rules'                 => $rules,
+            return array(
+                'settings' => array(
+                    'enabled'               => $enabled,
+                    'only_spain'            => !empty($raw['only_spain']) ? 1 : 0,
+                    'default_region'        => $default_region,
+                    'rate_label'            => !empty($raw['rate_label']) ? sanitize_text_field($raw['rate_label']) : 'Transporte',
+                    'shipping_taxable'      => !empty($raw['shipping_taxable']) ? 1 : 0,
+                    'require_known_metrics' => !empty($raw['require_known_metrics']) ? 1 : 0,
+                    'rules'                 => $rules,
+                ),
+                'status' => $status,
+            );
+        }
+
+        private static function import_notice_key() {
+            return 'seo_transporte_import_notice_' . get_current_user_id();
+        }
+
+        private static function set_import_notice($type, $message) {
+            set_transient(
+                self::import_notice_key(),
+                array(
+                    'type'    => sanitize_key((string) $type),
+                    'message' => sanitize_text_field((string) $message),
+                ),
+                10 * MINUTE_IN_SECONDS
+            );
+        }
+
+        private static function render_import_notice() {
+            $notice = get_transient(self::import_notice_key());
+            if (!is_array($notice)) {
+                return;
+            }
+            delete_transient(self::import_notice_key());
+
+            $type = in_array(($notice['type'] ?? ''), array('success', 'warning', 'error', 'info'), true)
+                ? $notice['type']
+                : 'info';
+
+            echo '<div class="notice notice-' . esc_attr($type) . ' is-dismissible"><p>'
+                . esc_html((string) ($notice['message'] ?? ''))
+                . '</p></div>';
+        }
+
+        public static function export_settings() {
+            if (!current_user_can(self::capability())) {
+                wp_die(esc_html__('No tienes permisos para exportar la configuración de transporte.', 'seo-taxonomy'));
+            }
+            check_admin_referer('seo_transporte_export');
+
+            $payload = array(
+                'schema' => array(
+                    'name'    => 'seo-transporte-costes',
+                    'version' => 1,
+                ),
+                'generated_at' => gmdate('c'),
+                'site' => array(
+                    'home_url'       => home_url('/'),
+                    'plugin_version' => defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '',
+                ),
+                'settings' => self::settings(),
             );
 
-            update_option(self::OPTION, $settings, false);
+            nocache_headers();
+            header('X-Content-Type-Options: nosniff');
+            header('Content-Type: application/json; charset=utf-8');
+            header('Content-Disposition: attachment; filename="seo-transporte-' . gmdate('Ymd-His') . '.json"');
+            echo wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
 
-            // Invalida las tarifas cacheadas de WooCommerce tras cambiar reglas.
-            if (class_exists('WC_Cache_Helper') && is_callable(array('WC_Cache_Helper', 'get_transient_version'))) {
-                WC_Cache_Helper::get_transient_version('shipping', true);
+        public static function import_settings() {
+            if (!current_user_can(self::capability())) {
+                wp_die(esc_html__('No tienes permisos para importar la configuración de transporte.', 'seo-taxonomy'));
             }
+            check_admin_referer('seo_transporte_import');
+
+            $file = $_FILES['seo_transporte_json'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Metadatos de subida validados a continuación.
+            if (!is_array($file) || empty($file['tmp_name']) || !isset($file['error']) || UPLOAD_ERR_OK !== (int) $file['error']) {
+                self::set_import_notice('error', 'No se recibió un archivo JSON válido.');
+                wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+                exit;
+            }
+
+            $size = absint($file['size'] ?? 0);
+            $name = sanitize_file_name((string) ($file['name'] ?? ''));
+            if ($size < 1 || $size > 2 * MB_IN_BYTES || strtolower((string) pathinfo($name, PATHINFO_EXTENSION)) !== 'json') {
+                self::set_import_notice('error', 'El archivo debe ser JSON y no superar 2 MiB.');
+                wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+                exit;
+            }
+
+            $tmp_name = (string) $file['tmp_name'];
+            if (!is_uploaded_file($tmp_name)) {
+                self::set_import_notice('error', 'El archivo recibido no supera la validación de subida.');
+                wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+                exit;
+            }
+
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+            global $wp_filesystem;
+
+            if (!$wp_filesystem) {
+                self::set_import_notice('error', 'No se pudo inicializar el sistema de archivos de WordPress.');
+                wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+                exit;
+            }
+
+            $raw = $wp_filesystem->get_contents($tmp_name);
+            if (!is_string($raw) || trim($raw) === '') {
+                self::set_import_notice('error', 'El archivo JSON está vacío o no se pudo leer.');
+                wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+                exit;
+            }
+
+            $payload = json_decode($raw, true);
+            if (!is_array($payload) || JSON_ERROR_NONE !== json_last_error()) {
+                self::set_import_notice('error', 'El archivo no contiene JSON válido.');
+                wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+                exit;
+            }
+
+            $schema = (array) ($payload['schema'] ?? array());
+            if (($schema['name'] ?? '') !== 'seo-transporte-costes' || absint($schema['version'] ?? 0) !== 1) {
+                self::set_import_notice('error', 'El JSON no corresponde a una exportación compatible del gestor de transporte.');
+                wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+                exit;
+            }
+
+            $normalized = self::sanitize_settings_payload((array) ($payload['settings'] ?? array()));
+            $settings = (array) ($normalized['settings'] ?? array());
+            $status = sanitize_key((string) ($normalized['status'] ?? 'saved'));
+
+            update_option(self::OPTION, $settings, false);
+            self::invalidate_shipping_cache();
+
+            $rule_count = count((array) ($settings['rules'] ?? array()));
+            if ('no_rules' === $status) {
+                self::set_import_notice(
+                    'warning',
+                    'Configuración importada con ' . $rule_count . ' reglas. El gestor ha quedado desactivado porque no hay ninguna regla activa.'
+                );
+            } else {
+                self::set_import_notice(
+                    'success',
+                    'Configuración de transporte importada correctamente: ' . $rule_count . ' reglas restauradas.'
+                );
+            }
+
+            wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+            exit;
+        }
+
+        public static function save_settings() {
+            if (!current_user_can(self::capability())) {
+                wp_die(esc_html__('No tienes permisos para modificar el transporte.', 'seo-taxonomy'));
+            }
+            check_admin_referer('seo_transporte_save');
+
+            $raw = isset($_POST['seo_transporte']) && is_array($_POST['seo_transporte'])
+                ? wp_unslash($_POST['seo_transporte'])
+                : array();
+
+            $normalized = self::sanitize_settings_payload($raw);
+            $settings = (array) ($normalized['settings'] ?? array());
+            $status = sanitize_key((string) ($normalized['status'] ?? 'saved'));
+
+            update_option(self::OPTION, $settings, false);
+            self::invalidate_shipping_cache();
 
             wp_safe_redirect(add_query_arg(array('page' => self::PAGE, 'seo_transport_status' => $status), admin_url('admin.php')));
             exit;
@@ -348,7 +503,32 @@ if (!class_exists('SEO_Transporte_Costes')) {
                     <div class="notice notice-warning"><p><strong>El gestor no se ha activado.</strong> Debe existir al menos una regla activa para evitar bloquear el checkout.</p></div>
                 <?php endif; ?>
 
+                <?php self::render_import_notice(); ?>
+
                 <p class="seo-transport-intro">Una sola pantalla controla el coste que verá el cliente en carrito y checkout. Cuando el gestor está activo, las tarifas configuradas en WooCommerce se ignoran y este motor devuelve una única tarifa según destino, subtotal, peso y dimensiones.</p>
+
+                <div class="seo-transport-panel seo-transport-transfer">
+                    <div>
+                        <h2>Importar / exportar reglas</h2>
+                        <p>Descarga toda la configuración de transporte en JSON para copiarla a otra instalación o conservarla como copia de seguridad.</p>
+                        <p class="description"><strong>Importar reemplaza la configuración actual</strong> por la del archivo: opciones generales y todas las reglas, prioridades, destinos, límites y costes.</p>
+                    </div>
+                    <div class="seo-transport-transfer__actions">
+                        <?php
+                        $export_url = wp_nonce_url(
+                            admin_url('admin-post.php?action=seo_transporte_export'),
+                            'seo_transporte_export'
+                        );
+                        ?>
+                        <a class="button button-secondary" href="<?php echo esc_url($export_url); ?>">Exportar reglas (JSON)</a>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+                            <input type="hidden" name="action" value="seo_transporte_import" />
+                            <?php wp_nonce_field('seo_transporte_import'); ?>
+                            <input type="file" name="seo_transporte_json" accept=".json,application/json" required />
+                            <button type="submit" class="button button-primary">Importar reglas</button>
+                        </form>
+                    </div>
+                </div>
 
                 <?php if (!class_exists('WooCommerce')) : ?>
                     <div class="notice notice-error inline"><p>WooCommerce debe estar activo para calcular el transporte.</p></div>
@@ -399,7 +579,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 </form>
             </div>
             <style>
-                .seo-transporte-wrap .nav-tab-wrapper{margin-bottom:16px}.seo-transport-intro{max-width:1100px;font-size:14px}.seo-transport-panel{background:#fff;border:1px solid #dcdcde;border-radius:4px;padding:18px 20px;margin:18px 0;max-width:1180px}.seo-transport-panel h2{margin-top:0}.seo-transport-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:10px 18px}.seo-transport-toggle{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #e2e4e7;border-radius:4px}.seo-transport-toggle input{margin-top:3px}.seo-transport-toggle small{display:block;color:#646970;margin-top:3px}.seo-transport-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px 14px}.seo-transport-grid--identity{grid-template-columns:120px 2fr 1fr}.seo-transport-grid--general{grid-template-columns:1fr 1fr;margin-top:16px}.seo-transport-grid label>span{display:block;font-weight:600;margin-bottom:4px}.seo-transport-grid input,.seo-transport-grid select{width:100%}.seo-transport-rule{border:1px solid #c3c4c7;border-left:4px solid #4f73c9;border-radius:4px;padding:16px;margin:14px 0;background:#fcfcfc}.seo-transport-rule-head,.seo-transport-title-row{display:flex;justify-content:space-between;gap:16px;align-items:center}.seo-transport-rule h3{margin:18px 0 8px;font-size:14px}.seo-transport-title-row p{margin:4px 0 0}.seo-transport-help p{max-width:1050px}.seo-transport-remove{cursor:pointer}@media(max-width:900px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr 1fr}}@media(max-width:600px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr}}
+                .seo-transporte-wrap .nav-tab-wrapper{margin-bottom:16px}.seo-transport-intro{max-width:1100px;font-size:14px}.seo-transport-transfer{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;flex-wrap:wrap}.seo-transport-transfer>div:first-child{max-width:720px}.seo-transport-transfer__actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.seo-transport-transfer__actions form{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0}.seo-transport-panel{background:#fff;border:1px solid #dcdcde;border-radius:4px;padding:18px 20px;margin:18px 0;max-width:1180px}.seo-transport-panel h2{margin-top:0}.seo-transport-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:10px 18px}.seo-transport-toggle{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #e2e4e7;border-radius:4px}.seo-transport-toggle input{margin-top:3px}.seo-transport-toggle small{display:block;color:#646970;margin-top:3px}.seo-transport-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px 14px}.seo-transport-grid--identity{grid-template-columns:120px 2fr 1fr}.seo-transport-grid--general{grid-template-columns:1fr 1fr;margin-top:16px}.seo-transport-grid label>span{display:block;font-weight:600;margin-bottom:4px}.seo-transport-grid input,.seo-transport-grid select{width:100%}.seo-transport-rule{border:1px solid #c3c4c7;border-left:4px solid #4f73c9;border-radius:4px;padding:16px;margin:14px 0;background:#fcfcfc}.seo-transport-rule-head,.seo-transport-title-row{display:flex;justify-content:space-between;gap:16px;align-items:center}.seo-transport-rule h3{margin:18px 0 8px;font-size:14px}.seo-transport-title-row p{margin:4px 0 0}.seo-transport-help p{max-width:1050px}.seo-transport-remove{cursor:pointer}@media(max-width:900px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr 1fr}}@media(max-width:600px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr}}
             </style>
             <script>
             (function(){
