@@ -493,6 +493,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
                           SELECT question_id,MAX(id) latest_run_id FROM {$runs}
                           WHERE question_id IN ({$ph}) GROUP BY question_id
                         ) latest ON latest.latest_run_id=r.id";
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql contains only internal trainer tables plus generated %d placeholders; IDs are bound in this prepare() call.
                 $prepared = $wpdb->prepare($sql,$q_ids);
                 // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs preparados.
                 foreach ((array)$wpdb->get_results($prepared,ARRAY_A) as $run) {
@@ -638,6 +639,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
                     INNER JOIN {$r} rr ON rr.id=latest.latest_run_id
                     WHERE q.id IN ({$ph})";
             $args = array_merge($trainer_ids,$trainer_ids);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql contains only internal tables plus generated %d placeholders; IDs are bound in this prepare() call.
             $prepared = $wpdb->prepare($sql,$args);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs preparados.
             foreach ((array)$wpdb->get_results($prepared,ARRAY_A) as $row) {
@@ -654,6 +656,7 @@ final class SEO_Dependiente_Editorial_Knowledge {
                            semantic_role,source_vocabulary_id,context_vocabulary_id,target_vocabulary_id,
                            target_group,target_slug,relation_type,confidence,source,metadata,active,created_at,updated_at
                     FROM {$semantics} WHERE id IN ({$ph})";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql contains only internal tables plus generated %d placeholders; IDs are bound in this prepare() call.
             $prepared = $wpdb->prepare($sql,$semantic_ids);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs preparados.
             foreach ((array)$wpdb->get_results($prepared,ARRAY_A) as $row) {
