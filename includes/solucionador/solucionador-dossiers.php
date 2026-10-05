@@ -1600,6 +1600,7 @@ final class SEO_Solucionador_Dossiers {
         if (!$retired) return array();
 
         $snapshot = SEO_Solucionador_DB::decode_json($dossier['reviewed_items_snapshot'] ?? '{}',array());
+        $choices = self::item_editorial_states($category_id);
         $out = array();
         foreach ($retired as $key=>$unused) {
             unset($unused);
@@ -1611,6 +1612,12 @@ final class SEO_Solucionador_Dossiers {
             $row['item_key'] = $key;
             $row['origin'] = sanitize_key((string)($row['origin'] ?? (strpos($key,'faq:')===0 ? 'faq' : 'dependiente')));
             $row['editorial_state'] = 'retired';
+            // La decisión editorial es estado propio del dossier, no de la
+            // fuente retirada. Debe sobrevivir y prevalecer sobre el snapshot.
+            $row['editorial_choice'] = sanitize_key((string)($choices[$key] ?? $row['editorial_choice'] ?? 'pending'));
+            if (!in_array($row['editorial_choice'],array('pending','use','discard'),true)) {
+                $row['editorial_choice'] = 'pending';
+            }
             $out[] = $row;
         }
         return $out;
