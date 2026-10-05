@@ -895,7 +895,13 @@ final class SEO_Ingeniero {
         sort($parts);
         $source_ids = array_values(array_unique(array_filter(array_map('absint', $source_ids))));
         sort($source_ids);
-        return hash('sha256', implode('||', $parts) . '::' . implode(',', $source_ids));
+        // Incluye la versión del contrato editorial: al desplegar 0.3.3
+        // los dossiers/posts 0.3.2 se marcan para revisión aunque el knowledge
+        // técnico no haya cambiado, porque antes podían omitir bloques o nacer vacíos.
+        return hash(
+            'sha256',
+            'full-category-dossier-v1::' . implode('||',$parts) . '::' . implode(',',$source_ids)
+        );
     }
 
     private static function editorial_action(array $coverage, $knowledge_count, $source_count, $avg_confidence) {
