@@ -239,6 +239,7 @@ final class SEO_Solucionador_Export {
 
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
         $dossier_rows = SEO_Solucionador_DB::table_exists($dossiers_table)
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $dossiers_table is an internal Solucionador table validated before this read.
             ? (array) $wpdb->get_results(
                 "SELECT id,category_id,category_name,question_count,dependiente_count,faq_count,
                         question_ids,dependiente_keys,faq_ids,score_avg,last_validated_at,source_hash,

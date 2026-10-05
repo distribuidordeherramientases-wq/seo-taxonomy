@@ -480,6 +480,7 @@ if (!function_exists('seo_reports_anomalies_json_replace_manual_vocabulary')) {
 
             $protected_ids = array_map(
                 'absint',
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $objects_table is an internal prefixed vocabulary-assignment table.
                 (array) $wpdb->get_col(
                     $wpdb->prepare(
                         "SELECT ov.vocabulary_id

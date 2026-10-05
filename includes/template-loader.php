@@ -183,6 +183,7 @@ function seo_template_get_registered_template($template_key) {
         $fields .= ', device_variants_enabled';
     }
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $fields is built from a closed internal field allowlist only.
     return $wpdb->get_row($wpdb->prepare(
         "SELECT {$fields}
          FROM {$wpdb->prefix}seo_templates
