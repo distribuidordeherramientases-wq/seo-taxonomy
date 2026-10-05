@@ -44,28 +44,6 @@ add_action('wp', function () {
 
 
 /* =========================================================
-   WOOCOMMERCE: GALERÍA PRODUCTO (MEJORADO)
-========================================================= */
-add_filter('woocommerce_product_get_gallery_image_ids', function($gallery, $product) {
-
-    $raw = get_post_meta($product->get_id(), 'Purchase note', true);
-
-    if (empty($raw)) return $gallery;
-
-    $urls = array_filter(array_map('trim', explode(',', $raw)));
-    $image_ids = [];
-
-    foreach ($urls as $url) {
-        $attachment_id = attachment_url_to_postid($url);
-        $image_ids[] = $attachment_id ? $attachment_id : $url;
-    }
-
-    return $image_ids;
-
-}, 10, 2);
-
-
-/* =========================================================
    LIMPIEZA WOOCOMMERCE (CUPONES + WRAPPERS)
 ========================================================= */
 remove_action('woocommerce_before_main_content', 'woocommerce_output_content_wrapper', 10);
