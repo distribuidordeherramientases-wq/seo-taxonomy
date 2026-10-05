@@ -283,25 +283,16 @@ function seo_google_demand_get_period_query_page_rows($property_id, $date_from, 
     $limit = max(1000, min(50000, absint($limit)));
     $min   = max(0, (float) $min_impressions);
 
-    $sql = "SELECT
-                query_hash,
-                page_hash,
-                MAX(query_text) AS query_text,
-                MAX(page_url) AS page_url,
-                SUM(impressions) AS impressions,
-                SUM(clicks) AS clicks,
-                SUM(position * impressions) AS position_weight
-            FROM {$table}
-            WHERE property_hash = %s
-              AND data_date BETWEEN %s AND %s
-            GROUP BY query_hash, page_hash
-            HAVING SUM(impressions) >= %f
-            ORDER BY SUM(impressions) DESC, SUM(clicks) DESC
-            LIMIT %d";
-
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla GSC interna; propiedad, fechas, umbral y límite enlazados mediante $wpdb->prepare().
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal GSC table; property, dates, threshold and limit are bound through $wpdb->prepare().
     $prepared_sql = $wpdb->prepare(
-        $sql,
+        "SELECT query_hash,page_hash,MAX(query_text) AS query_text,MAX(page_url) AS page_url,
+                SUM(impressions) AS impressions,SUM(clicks) AS clicks,SUM(position * impressions) AS position_weight
+         FROM {$table}
+         WHERE property_hash=%s AND data_date BETWEEN %s AND %s
+         GROUP BY query_hash,page_hash
+         HAVING SUM(impressions)>=%f
+         ORDER BY SUM(impressions) DESC,SUM(clicks) DESC
+         LIMIT %d",
         hash('sha256', $property_id),
         $date_from,
         $date_to,

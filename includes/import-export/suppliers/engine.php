@@ -6161,10 +6161,7 @@ function seo_proveedores_render_catalogo() {
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SELECT/order fragments come from closed internal lists; pagination/filter values are placeholders.
     $prepared_query = $wpdb->prepare( $query, $query_params );
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_query is the direct result of $wpdb->prepare() above.
-    $rows = $wpdb->get_results(
-        $prepared_query,
-        ARRAY_A
-    );
+    $rows = $wpdb->get_results($prepared_query, ARRAY_A);
 
     $catalog_sql_error = (string) $wpdb->last_error;
 
