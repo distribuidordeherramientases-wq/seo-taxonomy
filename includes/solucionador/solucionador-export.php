@@ -118,6 +118,7 @@ final class SEO_Solucionador_Export {
                 $items[$origin][] = array(
                     'origin'=>$origin,
                     'source_id'=>$detail['source_id'] ?? null,
+                    'item_id'=>(string)($detail['item_key'] ?? ''),
                     'item_key'=>(string)($detail['item_key'] ?? ''),
                     'question'=>$question,
                     'answer'=>SEO_Solucionador_Dossiers::answer_text((array)$detail),
@@ -236,7 +237,9 @@ final class SEO_Solucionador_Export {
             ? (array) $wpdb->get_results("SELECT * FROM {$workflow_table} ORDER BY topic_id,id ASC",ARRAY_A)
             : array();
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
         $dossier_rows = SEO_Solucionador_DB::table_exists($dossiers_table)
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $dossiers_table is an internal Solucionador table validated before this read.
             ? (array) $wpdb->get_results(
                 "SELECT id,category_id,category_name,question_count,dependiente_count,faq_count,
                         question_ids,dependiente_keys,faq_ids,score_avg,last_validated_at,source_hash,
@@ -280,6 +283,32 @@ final class SEO_Solucionador_Export {
                     );
                 }
             }
+
+            if ($category_id && method_exists('SEO_Solucionador_Dossiers','retired_item_details')) {
+                foreach ((array)SEO_Solucionador_Dossiers::retired_item_details($category_id) as $detail) {
+                    $origin = sanitize_key((string)($detail['origin'] ?? 'dependiente'));
+                    if (!isset($items[$origin])) continue;
+                    $items[$origin][] = array(
+                        'origin'=>$origin,
+                        'source_id'=>$detail['source_id'] ?? null,
+                        'item_id'=>(string)($detail['item_key'] ?? ''),
+                        'product_id'=>absint($detail['product_id'] ?? 0) ?: null,
+                        'question'=>(string)($detail['question'] ?? ''),
+                        'answer'=>(string)($detail['answer'] ?? ''),
+                        'hash'=>(string)($detail['source_hash'] ?? ''),
+                        'status'=>'retired',
+                        'editorial_choice'=>(string)($detail['editorial_choice'] ?? 'pending'),
+                        'validation'=>(string)($detail['evaluation_status'] ?? ''),
+                        'question_type'=>(string)($detail['question_type'] ?? ''),
+                        'lesson_key'=>(string)($detail['lesson_key'] ?? ''),
+                        'dependiente_source'=>(string)($detail['dependiente_source'] ?? ''),
+                        'confidence'=>(float)($detail['evaluation_score'] ?? 0),
+                        'first_seen_at'=>(string)($detail['first_seen_at'] ?? ''),
+                        'last_seen_at'=>(string)($detail['observed_at'] ?? ''),
+                    );
+                }
+            }
+
             $changes = $category_id && method_exists('SEO_Solucionador_Dossiers','item_changes')
                 ? SEO_Solucionador_Dossiers::item_changes($category_id)
                 : array('new'=>array(),'modified'=>array(),'retired'=>array());
@@ -485,6 +514,7 @@ final class SEO_Solucionador_Export {
         global $wpdb;
         $allowed = array('status', 'coverage_status', 'recommended_action');
         if (!in_array($column, $allowed, true)) return array();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $column procede de allowlist cerrada y $table es interna; consulta sin entrada de usuario.
         $rows = (array) $wpdb->get_results(
             "SELECT {$column} value,COUNT(*) total FROM {$table} GROUP BY {$column} ORDER BY total DESC,value ASC",
             ARRAY_A

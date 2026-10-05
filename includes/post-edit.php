@@ -329,7 +329,10 @@ if (!function_exists('seo_post_editor_get_relation_map')) {
                   AND r.source_id IN ({$placeholders})
                 ORDER BY t.name ASC, r.target_id ASC";
 
-        $rows = $wpdb->get_results($wpdb->prepare($sql, $post_ids));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; post_ids enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $post_ids);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = $wpdb->get_results($prepared_sql);
 
         foreach ((array) $rows as $row) {
             $source_id = absint($row->source_id ?? 0);
@@ -431,6 +434,25 @@ if (!function_exists('seo_post_editor_is_solucionador_post')) {
     }
 }
 
+if (!function_exists('seo_post_editor_is_ingeniero_post')) {
+    /**
+     * Identifica el origen editorial Ingeniero por sus metadatos propios.
+     *
+     * El rol público _seo_solucionador_content_role es independiente y no se
+     * usa como criterio de pertenencia a esta pestaña.
+     */
+    function seo_post_editor_is_ingeniero_post($post_id) {
+        $post_id = absint($post_id);
+        if (!$post_id || get_post_type($post_id) !== 'post') {
+            return false;
+        }
+
+        $editorial_id = absint(get_post_meta($post_id, '_seo_ingeniero_editorial_id', true));
+        $topic_key = sanitize_key((string) get_post_meta($post_id, '_seo_ingeniero_topic_key', true));
+        return $editorial_id > 0 && $topic_key !== '';
+    }
+}
+
 if (!function_exists('seo_post_editor_render_solucionador_style_guide')) {
     function seo_post_editor_render_solucionador_style_guide($compact = false) {
         $compact = (bool) $compact;
@@ -438,26 +460,59 @@ if (!function_exists('seo_post_editor_render_solucionador_style_guide')) {
             ? 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:7px;padding:12px 14px;margin:14px 0;'
             : 'background:#f6fbff;border:1px solid #b8d7ee;border-left:4px solid #2271b1;border-radius:8px;padding:14px 16px;margin:18px 0;';
 
-        echo '<details style="' . esc_attr($style) . '">';
+        // Se muestra abierto por defecto: estas instrucciones forman parte del
+        // proceso editorial, no son una ayuda opcional de formato.
+        echo '<details open style="' . esc_attr($style) . '">';
         echo '<summary style="cursor:pointer;font-weight:700;font-size:14px;">Instrucciones de redacción · posts de Solucionador</summary>';
         echo '<div style="margin-top:12px;line-height:1.6;">';
-        echo '<p><strong>Qué tipo de contenido es:</strong> salvo que trate un hecho temporal, este post no es una noticia. Es una guía práctica o un artículo informativo evergreen. El objetivo es que una persona termine de leer sabiendo mejor cómo elegir, usar, comparar o evitar errores sobre esa categoría.</p>';
+
+        echo '<div style="background:#fff4e5;border:1px solid #dba617;border-left:4px solid #b26200;border-radius:6px;padding:12px 14px;margin:0 0 14px;">';
+        echo '<p style="margin:0 0 7px;"><strong>IMPORTANTE: editar no significa limpiar el borrador ni rellenar una plantilla.</strong></p>';
+        echo '<p style="margin:0;">Solucionador entrega evidencias y material de trabajo. El editor debe interpretarlo y redactar el contenido final desde cero cuando sea necesario. No publiques el texto recibido con simples retoques y no completes apartados con párrafos estándar. El dossier de cada categoría decide qué merece explicarse, en qué orden y con qué profundidad.</p>';
+        echo '</div>';
+
+        echo '<h4 style="margin:0 0 7px;">Redactar a partir de evidencias</h4>';
+        echo '<p>El borrador inicial es <strong>material de trabajo, no texto para publicar</strong>. La originalidad no se consigue cambiando sinónimos ni introduciendo variaciones artificiales: se consigue usando información específica y útil de esa categoría.</p>';
+        echo '<ol style="margin:0 0 14px 20px;">';
+        echo '<li><strong>Lee todo el dossier antes de escribir:</strong> revisa FAQs, conocimiento de Dependiente y demás evidencias disponibles. Primero entiende qué información sólida existe.</li>';
+        echo '<li><strong>Selecciona sólo lo útil:</strong> conserva datos, dudas, diferencias, limitaciones y criterios de decisión que aporten valor real. El material mediocre, irrelevante, repetitivo o dudoso se descarta.</li>';
+        echo '<li><strong>El dossier decide el artículo:</strong> no hay una secuencia fija de apartados. Un post puede necesitar tres bloques y otro seis; uno puede empezar por una incompatibilidad, otro por una pregunta y otro por un criterio de elección.</li>';
+        echo '<li><strong>No reutilices párrafos estándar:</strong> no copies explicaciones, transiciones o advertencias de otros posts para completar huecos. Sólo se admite repetir una regla universal cuando sea realmente imprescindible y esté respaldada.</li>';
+        echo '<li><strong>Hazlo específico de la categoría:</strong> convierte las evidencias en decisiones propias de ese tema: caudal y altura en bombas, apertura y garganta en abrazaderas, plataforma de batería en herramientas, peso de puerta en automatismos, o los criterios concretos que correspondan.</li>';
+        echo '<li><strong>Transforma Dependiente:</strong> no publiques consultas como «Busco productos con tipo X y atributo Y» ni respuestas como «Coincide en características». Si hay una idea válida, conviértela en una explicación o criterio comprensible; si no puede verificarse, descártala.</li>';
+        echo '<li><strong>FAQ humana:</strong> si una FAQ está bien redactada, es fiable y aporta valor, puede conservarse o adaptarse ligeramente. Si repite otra idea, fusiona ambas.</li>';
+        echo '<li><strong>No inventes diferenciación:</strong> si el dossier no contiene material suficiente para un apartado, no lo escribas. Es preferible un artículo más corto a completar con consejos genéricos intercambiables.</li>';
+        echo '<li><strong>No añadas conocimiento técnico sin respaldo:</strong> no introduzcas por tu cuenta especificaciones, normas, compatibilidades, capacidades o afirmaciones nuevas. En electricidad, baterías, gas, elevación, seguridad u otros temas sensibles, una afirmación importante debe estar respaldada por el material disponible; si no, elimínala o déjala pendiente de verificación.</li>';
+        echo '<li><strong>Integra las fuentes:</strong> el resultado final debe ser un único artículo coherente. El lector no necesita saber qué fragmento procedía de FAQ, Dependiente o cualquier otra fuente interna.</li>';
+        echo '</ol>';
+
+        echo '<div style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:6px;padding:10px 12px;margin:0 0 10px;">';
+        echo '<strong>Prueba de especificidad:</strong> quita mentalmente el nombre de la categoría. Si el artículo podría publicarse casi igual en muchas otras categorías, todavía es demasiado genérico. Revisa el dossier y busca información diferencial; no soluciones el problema cambiando palabras de forma cosmética.';
+        echo '</div>';
+
+        echo '<div style="background:#f0f6fc;border:1px solid #c3d7e8;border-radius:6px;padding:10px 12px;margin:0 0 14px;">';
+        echo '<strong>Control por párrafo:</strong> cada párrafo debe aportar una explicación, un criterio de elección, una diferencia, una recomendación, una limitación o una precaución concreta. Si sólo reproduce una búsqueda, enumera productos, repite una característica sin explicar su utilidad o podría intercambiarse con decenas de artículos, reescríbelo o elimínalo.';
+        echo '</div>';
+
+        echo '<h4 style="margin:0 0 7px;">Formato y estilo del artículo final</h4>';
+        echo '<p><strong>Qué tipo de contenido es:</strong> salvo que trate un hecho temporal, este post no es una noticia. Es una guía práctica o un artículo informativo evergreen cuyo objetivo es ayudar a una persona a elegir, usar, comparar o evitar errores sobre esa categoría.</p>';
         echo '<p><strong>Estilo:</strong> escribe para una persona no experta, como si respondieras a un cliente en una tienda. Usa lenguaje sencillo, frases cortas y párrafos breves. Explica una idea cada vez. Si utilizas un término técnico, acláralo. No rellenes, no repitas y no escribas para un buscador.</p>';
         echo '<ol style="margin:0 0 12px 20px;">';
-        echo '<li><strong>Título:</strong> el título de WordPress es el H1. Debe ser conciso y descriptivo y no debe repetirse dentro del contenido.</li>';
-        echo '<li><strong>Introducción:</strong> 1–2 párrafos breves explicando qué problema resolverá el artículo y para quién.</li>';
-        echo '<li><strong>Cuerpo:</strong> organizar en 3–6 bloques H2 según el material real: qué tener en cuenta, cómo elegir, tipos y diferencias, compatibilidad o medidas, errores habituales, seguridad o mantenimiento. No forzar apartados que el dossier no justifique.</li>';
-        echo '<li><strong>Preguntas concretas:</strong> cuando una FAQ merezca aparecer como pregunta visible, usar H3 con la pregunta natural y debajo la respuesta en párrafos normales, sin tabular ni sangrar. La primera frase debe dar la respuesta directa; después se amplía sólo lo necesario.</li>';
-        echo '<li><strong>FAQ y Dependiente:</strong> una FAQ humana puede conservarse casi literalmente si es buena. Las consultas de Dependiente deben transformarse en criterios útiles de elección, no copiarse como búsquedas ni como listados de productos.</li>';
-        echo '<li><strong>Duplicados:</strong> si FAQ y Dependiente repiten la misma idea, fusionar o conservar sólo la mejor versión.</li>';
-        echo '<li><strong>Listas y negritas:</strong> usar listas sólo para pasos, comprobaciones, opciones o requisitos. Usar negrita únicamente para datos decisivos; no como sustituto de títulos.</li>';
-        echo '<li><strong>Fiabilidad:</strong> no publicar como hecho una respuesta dudosa. No inventar especificaciones, compatibilidades ni ventajas. Si una recomendación contradice los atributos del producto, debe revisarse o descartarse.</li>';
-        echo '<li><strong>Tono:</strong> informar, no vender. Explicar ventajas y limitaciones y decir cuándo una solución puede no ser adecuada. Evitar adjetivos comerciales exagerados y afirmaciones absolutas sin justificar.</li>';
-        echo '<li><strong>Cierre:</strong> terminar con un breve apartado <em>En resumen</em> y, cuando proceda, un único enlace natural a la categoría o a productos relacionados.</li>';
-        echo '<li><strong>Extensión:</strong> no hay un número obligatorio de palabras. El artículo termina cuando resuelve bien la intención, sin relleno, repeticiones ni introducciones SEO artificiales.</li>';
-        echo '<li><strong>Antes de publicar:</strong> eliminar marcas internas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, referencias a Solucionador o Dependiente, IDs, hashes, trazas y notas editoriales.</li>';
+        echo '<li><strong>Título:</strong> el título de WordPress es el H1. Debe ser conciso, descriptivo y propio del contenido real; no debe repetirse dentro del cuerpo.</li>';
+        echo '<li><strong>Inicio:</strong> no hay una introducción obligatoria de plantilla. Empieza por el problema, la duda, la diferencia o la limitación que mejor sitúe al lector. Si basta un párrafo breve, usa uno.</li>';
+        echo '<li><strong>Cuerpo:</strong> usa los H2 que el material justifique, sin número ni orden prefijados. Cada H2 debe apoyarse en información concreta encontrada para esa categoría. Si el dossier no justifica un apartado, no lo crees.</li>';
+        echo '<li><strong>Preguntas concretas:</strong> cuando una pregunta real merezca aparecer de forma visible, usa H3 con una formulación natural y responde debajo en párrafos normales. No conviertas todas las evidencias en preguntas por sistema.</li>';
+        echo '<li><strong>FAQ y Dependiente:</strong> son fuentes de trabajo, no bloques que deban copiarse por separado. Integra sólo el conocimiento seleccionado dentro de una estructura editorial propia.</li>';
+        echo '<li><strong>Duplicados:</strong> si varias fuentes repiten la misma idea, fusiona, resume o conserva sólo la versión más útil.</li>';
+        echo '<li><strong>Listas y negritas:</strong> usa listas únicamente cuando mejoren una secuencia, comprobación, comparación u opciones. Usa negrita sólo para datos decisivos; no como sustituto de títulos.</li>';
+        echo '<li><strong>Fiabilidad:</strong> no publiques como hecho una respuesta dudosa y no deduzcas compatibilidades o ventajas que el dossier no demuestre.</li>';
+        echo '<li><strong>Tono:</strong> informa, no vendas. Explica ventajas y limitaciones y señala cuándo una solución puede no ser adecuada. Evita adjetivos comerciales exagerados y afirmaciones absolutas sin justificar.</li>';
+        echo '<li><strong>Cierre:</strong> utiliza <em>En resumen</em> sólo cuando ayude a condensar decisiones importantes. Si únicamente repetiría lo ya dicho, puede omitirse. Cuando proceda, añade un único enlace natural a la categoría o a productos relacionados.</li>';
+        echo '<li><strong>Extensión:</strong> no existe un número obligatorio de palabras. El artículo termina cuando resuelve bien la intención con la evidencia disponible, sin relleno ni repeticiones.</li>';
+        echo '<li><strong>Antes de publicar:</strong> elimina marcas internas como <code>[USAR]</code>, <code>[DESCARTAR]</code>, <code>[PENDIENTE]</code>, referencias a Solucionador o Dependiente, IDs, hashes, trazas y notas editoriales.</li>';
         echo '</ol>';
-        echo '<p style="margin:0;"><strong>Regla rápida:</strong> si una pregunta puede responderse bien en dos frases, no uses diez. El objetivo es que cualquier cliente entienda la respuesta a la primera lectura.</p>';
+
+        echo '<p style="margin:0;"><strong>Regla final:</strong> el texto debe tener razones para existir en esa URL concreta. Si al cambiar el nombre de la categoría la mayor parte del artículo sigue funcionando igual, todavía necesita diferenciación editorial.</p>';
         echo '</div>';
         echo '</details>';
     }
@@ -763,6 +818,9 @@ if (!function_exists('seo_post_editor_current_section')) {
         if (in_array($tab, array('solucionador', 'solucionador_drafts'), true)) {
             return 'solucionador';
         }
+        if (in_array($tab, array('ingeniero', 'ingeniero_drafts'), true)) {
+            return 'ingeniero';
+        }
 
         return 'edit';
     }
@@ -781,6 +839,8 @@ if (!function_exists('seo_post_editor_section_url')) {
             $args['tab'] = 'errors';
         } elseif ('solucionador' === $section) {
             $args['tab'] = 'solucionador';
+        } elseif ('ingeniero' === $section) {
+            $args['tab'] = 'ingeniero';
         }
 
         $base = !empty($context['base']) && 'edit.php' === $context['base'] ? 'edit.php' : 'admin.php';
@@ -796,9 +856,11 @@ if (!function_exists('seo_post_editor_render_tabs')) {
 
         $edit_url = seo_post_editor_section_url('edit', $context);
         $solucionador_url = seo_post_editor_section_url('solucionador', $context);
+        $ingeniero_url = seo_post_editor_section_url('ingeniero', $context);
         echo '<h2 class="nav-tab-wrapper" style="margin-top:14px;">';
         echo '<a class="nav-tab ' . esc_attr($active_section === 'edit' ? 'nav-tab-active' : '') . '" href="' . esc_url($edit_url) . '">Editar posts</a>';
         echo '<a class="nav-tab ' . esc_attr($active_section === 'solucionador' ? 'nav-tab-active' : '') . '" href="' . esc_url($solucionador_url) . '">Solucionador</a>';
+        echo '<a class="nav-tab ' . esc_attr($active_section === 'ingeniero' ? 'nav-tab-active' : '') . '" href="' . esc_url($ingeniero_url) . '">Ingeniero</a>';
         echo '</h2>';
         echo '<p class="description">El análisis de rendimiento, oportunidades y errores está centralizado en <a href="' . esc_url(class_exists('SEO_Solucionador_Admin') ? SEO_Solucionador_Admin::diagnostics_url('posts','opportunities') : admin_url('admin.php?page=seo-solucionador&tab=diagnostics&diag_scope=posts&diag_view=opportunities')) . '">Solucionador → Diagnóstico editorial</a>.</p>';
     }
@@ -1147,21 +1209,23 @@ if (!function_exists('seo_page_edit_posts')) {
         }
 
         $solucionador_only = ($active_section === 'solucionador');
+        $ingeniero_only = ($active_section === 'ingeniero');
+        $service_only = $solucionador_only || $ingeniero_only;
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $category_filter = isset($_GET['product_cat']) ? sanitize_text_field(wp_unslash($_GET['product_cat'])) : '';
-        $status = $solucionador_only
+        $status = $service_only
             ? 'draft'
             : (isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '');
         $paged  = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
         $score_days = 28;
         $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
-        $reports_available = !$solucionador_only
+        $reports_available = !$service_only
             && function_exists('seo_post_reports_get_summary')
             && function_exists('seo_post_reports_admin_url');
 
         // Reutiliza el snapshot agregado de Google. No consulta entrada por entrada.
-        if (!$solucionador_only && function_exists('seo_post_reports_catalog_snapshot')) {
+        if (!$service_only && function_exists('seo_post_reports_catalog_snapshot')) {
             seo_post_reports_catalog_snapshot($score_days, false);
         }
 
@@ -1209,10 +1273,10 @@ if (!function_exists('seo_page_edit_posts')) {
         }
 
         if ($solucionador_only) {
-            $solucionador_relation_ids = seo_post_editor_get_ids_with_product_cat_relation();
+            $service_relation_ids = seo_post_editor_get_ids_with_product_cat_relation();
             $relation_ids = $category_filter !== ''
-                ? array_values(array_intersect($solucionador_relation_ids, $relation_ids))
-                : $solucionador_relation_ids;
+                ? array_values(array_intersect($service_relation_ids, $relation_ids))
+                : $service_relation_ids;
 
             $args['meta_query'] = array(
                 'relation' => 'AND',
@@ -1225,17 +1289,36 @@ if (!function_exists('seo_page_edit_posts')) {
                     'compare' => 'EXISTS',
                 ),
             );
+        } elseif ($ingeniero_only) {
+            $service_relation_ids = seo_post_editor_get_ids_with_product_cat_relation();
+            $relation_ids = $category_filter !== ''
+                ? array_values(array_intersect($service_relation_ids, $relation_ids))
+                : $service_relation_ids;
+
+            // El origen Ingeniero se identifica exclusivamente por metadatos
+            // propios del proceso editorial, no por el rol público.
+            $args['meta_query'] = array(
+                'relation' => 'AND',
+                array(
+                    'key'     => '_seo_ingeniero_editorial_id',
+                    'compare' => 'EXISTS',
+                ),
+                array(
+                    'key'     => '_seo_ingeniero_topic_key',
+                    'compare' => 'EXISTS',
+                ),
+            );
         }
 
-        if ($category_filter !== '' || $solucionador_only) {
+        if ($category_filter !== '' || $service_only) {
             $args['post__in'] = !empty($relation_ids) ? $relation_ids : array(0);
         }
 
-        if (!$solucionador_only && function_exists('seo_post_reports_score_posts_clauses')) {
+        if (!$service_only && function_exists('seo_post_reports_score_posts_clauses')) {
             add_filter('posts_clauses', 'seo_post_reports_score_posts_clauses', 20, 2);
         }
         $query = new WP_Query($args);
-        if (!$solucionador_only && function_exists('seo_post_reports_score_posts_clauses')) {
+        if (!$service_only && function_exists('seo_post_reports_score_posts_clauses')) {
             remove_filter('posts_clauses', 'seo_post_reports_score_posts_clauses', 20);
         }
         $post_ids = wp_list_pluck($query->posts, 'ID');
@@ -1244,15 +1327,20 @@ if (!function_exists('seo_page_edit_posts')) {
         echo '<div style="padding:10px 0 30px;max-width:1280px;">';
         echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">';
         echo '<div>';
-        echo '<h1 style="margin-bottom:8px;">' . ($solucionador_only ? 'Posts de Solucionador' : 'Editar posts') . '</h1>';
+        $section_title = $solucionador_only
+            ? 'Posts de Solucionador'
+            : ($ingeniero_only ? 'Posts de Ingeniero' : 'Editar posts');
+        echo '<h1 style="margin-bottom:8px;">' . esc_html($section_title) . '</h1>';
         if ($solucionador_only) {
             echo '<p style="margin-top:0;color:#646970;">Borradores creados por Solucionador que tienen al menos una categoría de producto asociada. Se muestran de forma independiente para revisión editorial.</p>';
+        } elseif ($ingeniero_only) {
+            echo '<p style="margin-top:0;color:#646970;">Borradores creados por el proceso editorial de Ingeniero, identificados por sus metadatos propios y con categoría de producto asociada. El rol público es independiente de este filtro.</p>';
         } else {
             echo '<p style="margin-top:0;color:#646970;">Selecciona una entrada para editarla. La categoria de producto se gestiona exclusivamente mediante SEO Relations.</p>';
         }
         echo '</div>';
         echo '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-        if (!$solucionador_only) {
+        if (!$service_only) {
             echo '<a class="button button-primary" href="' . esc_url(seo_post_editor_admin_url(array('new_post' => 1), $context)) . '">Nueva entrada</a>';
         } else {
             echo '<span style="color:#646970;font-weight:600;">' . esc_html(number_format_i18n((int) $query->found_posts)) . ' borradores pendientes</span>';
@@ -1296,7 +1384,7 @@ if (!function_exists('seo_page_edit_posts')) {
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Categoria de producto</label>
                 <select name="product_cat" style="width:100%;">
                     <option value="">Todas</option>
-                    <?php if (!$solucionador_only): ?>
+                    <?php if (!$service_only): ?>
                         <option value="none" <?php selected($category_filter, 'none'); ?>>Sin categoria de producto</option>
                     <?php endif; ?>
                     <?php seo_post_editor_category_option_tree($categories, $category_filter); ?>
@@ -1305,7 +1393,7 @@ if (!function_exists('seo_page_edit_posts')) {
 
             <div>
                 <label style="display:block;font-weight:600;margin-bottom:5px;">Estado</label>
-                <?php if ($solucionador_only): ?>
+                <?php if ($service_only): ?>
                     <input type="hidden" name="status" value="draft">
                     <input type="text" value="Borrador" disabled style="width:100%;">
                 <?php else: ?>
@@ -1345,7 +1433,7 @@ if (!function_exists('seo_page_edit_posts')) {
                     <th style="width:290px;">Categorias de producto</th>
                     <th style="width:260px;">Vocabulary</th>
                     <th style="width:145px;">
-                        <?php if ($solucionador_only): ?>
+                        <?php if ($service_only): ?>
                             Material
                         <?php else: ?>
                             <a href="<?php echo esc_url($score_sort_url); ?>" title="Cambiar orden por puntuación">Puntuación Google <?php echo esc_html($score_arrow); ?></a><br><small style="font-weight:400;color:#646970;">28 días</small>
@@ -1409,6 +1497,21 @@ if (!function_exists('seo_page_edit_posts')) {
                                         : 0;
                                     ?>
                                     <strong><?php echo esc_html(number_format_i18n($source_count)); ?> preguntas</strong>
+                                    <?php if ($pending_count > 0): ?>
+                                        <div style="margin-top:3px;color:#996800;font-size:12px;"><?php echo esc_html(number_format_i18n($pending_count)); ?> novedades</div>
+                                    <?php endif; ?>
+                                <?php elseif ($ingeniero_only): ?>
+                                    <?php
+                                    $knowledge_snapshot = get_post_meta($post_id, '_seo_ingeniero_knowledge_snapshot', true);
+                                    $knowledge_ids = (array) get_post_meta($post_id, '_seo_ingeniero_knowledge_ids', true);
+                                    $knowledge_count = is_array($knowledge_snapshot) && $knowledge_snapshot
+                                        ? count($knowledge_snapshot)
+                                        : count(array_values(array_unique(array_filter(array_map('absint', $knowledge_ids)))));
+                                    $pending_count = class_exists('SEO_Ingeniero_Posts') && method_exists('SEO_Ingeniero_Posts', 'pending_count')
+                                        ? SEO_Ingeniero_Posts::pending_count($post_id)
+                                        : 0;
+                                    ?>
+                                    <strong><?php echo esc_html(number_format_i18n($knowledge_count)); ?> conocimientos</strong>
                                     <?php if ($pending_count > 0): ?>
                                         <div style="margin-top:3px;color:#996800;font-size:12px;"><?php echo esc_html(number_format_i18n($pending_count)); ?> novedades</div>
                                     <?php endif; ?>

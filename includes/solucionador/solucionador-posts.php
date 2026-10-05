@@ -317,18 +317,27 @@ final class SEO_Solucionador_Posts {
         return self::managed_post_id_by_category($category_id);
     }
 
+    private static function canonical_item_key($key) {
+        $key = sanitize_text_field((string)$key);
+        if (preg_match('/^faq:([0-9]+)$/',$key,$m)) return 'faq:' . absint($m[1]);
+        if (preg_match('/^dependiente:(trainer|semantic):([0-9]+)$/',$key,$m)) {
+            return 'dependiente:' . sanitize_key($m[1]) . ':' . absint($m[2]);
+        }
+        if (preg_match('/^dependiente:([0-9]+)$/',$key,$m)) {
+            return 'dependiente:trainer:' . absint($m[1]);
+        }
+        return '';
+    }
+
     private static function valid_item_key($key) {
-        return (bool)preg_match(
-            '/^(faq:[0-9]+|dependiente:(?:trainer:)?[0-9]+)$/',
-            sanitize_text_field((string)$key)
-        );
+        return self::canonical_item_key($key) !== '';
     }
 
     private static function normalize_item_keys(array $keys) {
         $out = array();
         foreach ($keys as $key) {
-            $key = sanitize_text_field((string)$key);
-            if (self::valid_item_key($key)) $out[] = $key;
+            $key = self::canonical_item_key($key);
+            if ($key !== '') $out[] = $key;
         }
         $out = array_values(array_unique($out));
         sort($out,SORT_STRING);
@@ -348,7 +357,7 @@ final class SEO_Solucionador_Posts {
             'absint',
             (array)get_post_meta($post_id,self::META_PENDING_QUESTION_IDS,true)
         ))));
-        foreach ($legacy as $question_id) $keys[] = 'dependiente:' . $question_id;
+        foreach ($legacy as $question_id) $keys[] = 'dependiente:trainer:' . $question_id;
         return self::normalize_item_keys($keys);
     }
 
@@ -434,7 +443,7 @@ final class SEO_Solucionador_Posts {
         $changed_keys = class_exists('SEO_Solucionador_Dossiers')
             && method_exists('SEO_Solucionador_Dossiers','changed_item_keys')
             ? SEO_Solucionador_Dossiers::changed_item_keys($category_id)
-            : array_map(static function($id){ return 'dependiente:' . absint($id); },
+            : array_map(static function($id){ return 'dependiente:trainer:' . absint($id); },
                 (array)SEO_Solucionador_Dossiers::changed_item_ids($category_id));
 
         $old_pending = self::pending_item_keys($post_id);
@@ -449,7 +458,7 @@ final class SEO_Solucionador_Posts {
         // Compatibilidad para integraciones antiguas que sólo entienden qids.
         $legacy_qids = array();
         foreach ($pending_keys as $key) {
-            if (strpos($key,'dependiente:') === 0) $legacy_qids[] = absint(substr($key,12));
+            if (preg_match('/^dependiente:trainer:([0-9]+)$/',$key,$m)) $legacy_qids[] = absint($m[1]);
         }
         update_post_meta($post_id,self::META_PENDING_QUESTION_IDS,array_values(array_filter($legacy_qids)));
         update_post_meta($post_id,self::META_PENDING_SOURCE_HASH,(string)($dossier['source_hash'] ?? ''));
@@ -464,13 +473,13 @@ final class SEO_Solucionador_Posts {
             SEO_Solucionador_DB::update_topic($topic_id,array(
                 'workflow_state'=>'needs_update',
                 'recommended_action'=>'IMPROVE_POST',
-                'decision_reason'=>'El dossier contiene FAQs o conocimiento de Dependiente nuevos/modificados desde la última revisión editorial.',
+                'decision_reason'=>'El dossier contiene FAQs o conocimiento de Dependiente nuevos, modificados o retirados desde la última revisión editorial.',
             ));
             if ($old_pending !== $pending_keys) {
                 SEO_Solucionador_DB::record_workflow(
                     $topic_id,
                     'needs_update',
-                    'El source_hash mixto ha cambiado. Se muestran exclusivamente elementos FAQ/Dependiente nuevos o modificados; el contenido publicado no se altera automáticamente.',
+                    'El source_hash del dossier ha cambiado. Se muestran elementos FAQ/Dependiente nuevos, modificados o retirados; el contenido publicado no se altera automáticamente.',
                     'IMPROVE_POST'
                 );
             }
@@ -511,7 +520,7 @@ final class SEO_Solucionador_Posts {
         // Mantener IDs antiguos sólo para preguntas Dependiente.
         $legacy_selected = array();
         foreach ($selected_keys as $key) {
-            if (strpos($key,'dependiente:') === 0) $legacy_selected[] = absint(substr($key,12));
+            if (preg_match('/^dependiente:trainer:([0-9]+)$/',$key,$m)) $legacy_selected[] = absint($m[1]);
         }
         update_post_meta($post_id,self::META_PENDING_SELECTED_IDS,array_values(array_filter($legacy_selected)));
 
@@ -536,7 +545,7 @@ final class SEO_Solucionador_Posts {
         if (!$selected) {
             foreach ((array)get_post_meta(absint($post_id),self::META_PENDING_SELECTED_IDS,true) as $id) {
                 $id = absint($id);
-                if ($id) $selected[] = 'dependiente:' . $id;
+                if ($id) $selected[] = 'dependiente:trainer:' . $id;
             }
             $selected = self::normalize_item_keys($selected);
         }
@@ -580,7 +589,7 @@ final class SEO_Solucionador_Posts {
             SEO_Solucionador_DB::record_workflow(
                 $topic_id,
                 $workflow,
-                'La Editora revisó las nuevas preguntas detectadas y decidió qué incorporar al contenido.',
+                'La Editora revisó los elementos nuevos, modificados o retirados y decidió qué incorporar al contenido.',
                 'NO_ACTION'
             );
         }
@@ -609,7 +618,7 @@ final class SEO_Solucionador_Posts {
         } elseif ($update_state === 'selection_saved') {
             echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Selección editorial guardada. Los elementos descartados dejan de aparecer salvo que cambien de hash.</p></div>';
         } elseif ($update_state === 'reviewed') {
-            echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Novedades marcadas como revisadas. Las próximas preguntas nuevas volverán a aparecer aquí.</p></div>';
+            echo '<div class="notice notice-success inline" style="margin:0 0 12px"><p>Novedades marcadas como revisadas. Los próximos elementos nuevos, modificados o retirados volverán a aparecer aquí.</p></div>';
         } elseif ($update_state === 'error') {
             $message = get_transient('seo_solucionador_notice_' . get_current_user_id());
             delete_transient('seo_solucionador_notice_' . get_current_user_id());
@@ -891,7 +900,11 @@ final class SEO_Solucionador_Posts {
             $groups[$origin][] = $row;
         }
 
-        $html = '<p><em>Material interno de trabajo para Editora. No publicar literalmente sin revisión editorial.</em></p>';
+        $html = '<div style="border-left:4px solid #dba617;padding:10px 12px;margin:0 0 16px;background:#fff8e5;">';
+        $html .= '<p><strong>IMPORTANTE: editar no significa limpiar este borrador.</strong></p>';
+        $html .= '<p>Lo que sigue son fuentes y material de trabajo. Lee el conjunto completo, selecciona lo útil y redacta de nuevo el artículo. Reorganiza, resume, fusiona, elimina y reescribe cuanto sea necesario. No publiques consultas de catálogo, lenguaje del motor ni respuestas mecánicas como si fueran texto final.</p>';
+        $html .= '<p>El resultado debe leerse como un único artículo natural para el cliente, sin que pueda distinguirse qué parte procedía de FAQ o de Dependiente.</p>';
+        $html .= '</div>';
 
         $sections = array(
             'faq'=>'FAQs editoriales',

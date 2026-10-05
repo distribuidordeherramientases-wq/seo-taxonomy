@@ -755,6 +755,7 @@ function seo_google_trends_upsert_signal(array $row) {
         $imported_at
     );
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado directo de $wpdb->prepare().
     return false !== $wpdb->query($sql);
 }
 
@@ -2103,7 +2104,9 @@ function seo_google_trends_clear_handler() {
 
     global $wpdb;
     seo_google_trends_maybe_install();
-    $wpdb->query('TRUNCATE TABLE ' . seo_google_trends_table());
+    $table = seo_google_trends_table();
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna controlada; mantenimiento fijo sin entrada de usuario.
+    $wpdb->query("TRUNCATE TABLE {$table}");
     delete_option(SEO_GOOGLE_TRENDS_LAST_SYNC_OPTION);
     delete_transient(SEO_GOOGLE_TRENDS_LAST_ERROR_TRANSIENT);
     delete_transient(SEO_GOOGLE_TRENDS_SYNC_LOCK_TRANSIENT);

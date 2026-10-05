@@ -1912,7 +1912,7 @@ final class SEO_Dependiente_API {
             $where_groups[] = '(' . implode(' OR ', $variant_parts) . ')';
         }
         $params[] = min(self::CANDIDATE_LIMIT, max(20, absint($limit)));
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where_groups contains only fixed SQL templates with %s placeholders; every value is bound through $params.
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- $where_groups contains only fixed SQL templates with %s placeholders; every value is bound through $params.
         $sql = $wpdb->prepare(
             "SELECT DISTINCT p.ID
                FROM {$wpdb->posts} p
@@ -1923,6 +1923,7 @@ final class SEO_Dependiente_API {
               LIMIT %d",
             $params
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above; generated predicates contain placeholders only.
         return array_values(array_filter(array_map('absint', (array) $wpdb->get_col($sql))));
     }

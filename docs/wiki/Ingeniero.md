@@ -4,7 +4,7 @@ Ingeniero es el servicio de **investigación técnica y proceso editorial especi
 
 Ruta administrativa: **SEO Taxonomy → Contenidos → Ingeniero**.
 
-Desde la versión interna 0.3.0 se ejecuta como servicio independiente de Dependiente. Conserva la investigación y persistencia técnica existentes y añade un circuito editorial propio:
+Desde la versión interna 0.3.0 se ejecuta como servicio independiente de Dependiente. En 0.3.3 la capa editorial se simplifica para que **todo knowledge active de una categoría llegue a Editora**, sin un segundo filtro por masa o familia:
 
 ~~~text
 Fuentes técnicas
@@ -44,22 +44,41 @@ El worker procesa **exactamente una categoría por ciclo**. Así no carga `activ
 
 ### Editorial
 
-La pestaña **Editorial** transforma conocimiento active en dossiers técnicos sin copiar las fuentes ni duplicar el conocimiento.
+La pestaña **Editorial** transforma conocimiento `active` en dossiers técnicos sin copiar las fuentes ni duplicar la investigación.
 
-Persistencia: wp_seo_ingeniero_editorial.
+Persistencia: `wp_seo_ingeniero_editorial`.
 
-Campos principales: term_id, topic_key, knowledge_ids_json, source_ids_json, source_hash, suggested_title, coverage_status, recommended_action, status, post_id y timestamps.
+Campos principales: `term_id`, `topic_key`, `knowledge_ids_json`, `source_ids_json`, `source_hash`, `suggested_title`, `coverage_status`, `recommended_action`, `status`, `post_id` y timestamps.
 
-La clave única term_id + topic_key evita duplicar una propuesta en ejecuciones posteriores.
+La clave única `term_id + topic_key` evita duplicar una propuesta en ejecuciones posteriores.
 
-Por defecto se genera **una propuesta técnica por categoría**. Sólo se divide cuando hay al menos dos intenciones técnicas diferenciadas y cada una dispone de evidencia suficiente. Las familias orientativas son:
+### Regla 0.3.3: dossier completo
 
-- fundamentos / funcionamiento;
-- elección / compatibilidad;
-- mantenimiento / problemas;
-- seguridad / normativa.
+Existe **un único dossier canónico por categoría**:
 
-No son una taxonomía rígida: la agrupación parte de los knowledge_type realmente disponibles.
+`topic_key=technical-overview`
+
+Ese dossier incluye **todo el knowledge active** de la `product_cat`.
+
+La capa editorial ya no divide por familias ni exige que una familia tenga dos knowledge y dos fuentes para aparecer. La investigación decide qué knowledge es válido/active; Editorial lo organiza y lo entrega a Editora.
+
+Cada knowledge se normaliza además como pregunta-respuesta técnica:
+
+- `definition` → “¿Qué es ... y qué aspectos técnicos conviene conocer?”;
+- `function` → “¿Cómo funciona ...?”;
+- `compatibility` → “¿Qué compatibilidades o requisitos hay que comprobar ...?”;
+- `safety` → “¿Qué precauciones de seguridad ...?”;
+- mantenimiento, normativa, limitaciones, aplicaciones, tipos, problemas, etc. siguen el mismo contrato.
+
+La **respuesta** es la síntesis técnica persistida en `summary`; se conservan `facts`, `source_ids`, `confidence`, tipo y fecha para trazabilidad.
+
+No se deduplica ni descarta un knowledge active por masa mínima.
+
+## Objetivo mínimo de investigación
+
+Ingeniero mantiene como objetivo operativo **4 knowledge activos por product_cat**. Una categoría con 1–3 knowledge activos vuelve a considerarse pendiente de completar cuando se prepara la cola de investigación.
+
+Este objetivo pertenece a Investigación. Editorial no usa “4” como gate: si sólo existe un knowledge activo, igualmente se muestra a Editora.
 
 ## Cobertura editorial
 
@@ -73,11 +92,20 @@ Actualmente esta API reutiliza mediante un wrapper de compatibilidad el índice 
 | IMPROVE_POST | Existe un post relacionado pero la cobertura es parcial |
 | MERGE_CONTENT | Hay piezas técnicas solapadas o en conflicto |
 | NO_ACTION | La intención técnica ya está cubierta |
-| NEEDS_REVIEW | Falta confianza, fuentes o masa técnica suficiente |
+| NEEDS_REVIEW | No existe knowledge activo suficiente para formular una propuesta; confianza/fuentes quedan como indicadores para Editora, no como gate |
 
 ## Brief para Editora
 
-Al abrir un dossier se construye el brief bajo demanda. Incluye título, categoría y topic_key; knowledge con síntesis/confianza; evidencias y source_ids; fuentes trazables; lista must cover; cobertura; enlaces internos a categorías/productos propios; y advertencia de verificación.
+Al abrir un dossier se construye el brief bajo demanda. Incluye:
+
+- título, categoría y `topic_key`;
+- **todas las preguntas-respuestas técnicas** derivadas del knowledge activo;
+- tipo, síntesis, confianza, evidencias y `source_ids`;
+- fuentes trazables;
+- lista `must cover`;
+- cobertura;
+- enlaces internos a categorías/productos propios;
+- advertencia de verificación.
 
 El dossier sólo persiste IDs y referencias. No copia páginas, manuales ni artículos de terceros.
 
@@ -87,14 +115,26 @@ Ingeniero nunca autopublica. Un post nuevo sólo se crea si la acción es CREATE
 
 El borrador:
 
-- usa post_type=post y post_status=draft;
-- guarda el rol estable ingeniero_qa_specialized;
-- guarda relación post_to_category;
-- conserva el ID del dossier, topic_key y source_hash;
+- usa `post_type=post` y `post_status=draft`;
+- nace con un **brief interno editable** que contiene todas las preguntas-respuestas del dossier;
+- el brief avisa expresamente de que debe revisarse/sintetizarse antes de publicar;
+- guarda el rol estable `ingeniero_qa_specialized`;
+- guarda relación `post_to_category`;
+- conserva el ID del dossier, `topic_key`, `source_hash` y snapshot de knowledge;
 - reutiliza Vocabulary canónico de la categoría mediante la API común;
-- queda en manos de la Editora.
+- queda en manos de Editora.
 
-Un cambio posterior en conocimiento o fuentes modifica source_hash. Si ya existe post, el dossier pasa a needs_update; si todavía no existe, vuelve a revisión. Nunca se sobrescribe un post publicado.
+Ingeniero nunca publica automáticamente.
+
+Un cambio posterior en conocimiento o fuentes modifica `source_hash`. Si ya existe post, el dossier pasa a `needs_update`; si todavía no existe, vuelve a revisión. Nunca se sobrescribe un post publicado.
+
+Desde 0.3.3 la comparación del snapshot distingue:
+
+- **NUEVO**;
+- **MODIFICADO**;
+- **RETIRADO**.
+
+Los retirados se muestran a Editora con su última copia conocida; el contenido público no se modifica en silencio.
 
 ## Salida pública
 
@@ -104,7 +144,7 @@ Las plantillas son de sólo lectura: no investigan ni recalculan dossiers durant
 
 ## Métricas
 
-Ingeniero muestra KPIs operativos de categorías activas, dossiers, acciones, borradores, publicados y needs_update. Las métricas web —impresiones, clics, CTR, posición, sesiones y vistas— pertenecen a Analista. Ingeniero no llama por su cuenta a GSC, GA4 o Bing.
+Ingeniero muestra KPIs operativos de categorías activas, knowledge, dossiers, acciones, borradores, publicados y `needs_update`. El export permite comparar el número de `active_knowledge` con los `qa_items` incluidos en los dossiers y detectar categorías por debajo de cuatro bloques técnicos. Las métricas web —impresiones, clics, CTR, posición, sesiones y vistas— pertenecen a Analista. Ingeniero no llama por su cuenta a GSC, GA4 o Bing.
 
 ## Integración
 
@@ -119,13 +159,14 @@ Ingeniero muestra KPIs operativos de categorías activas, dossiers, acciones, bo
 - investigación y actualización editorial se procesan categoría a categoría;
 - Editorial está paginado;
 - el brief completo sólo se construye al abrir una propuesta;
-- un dossier se omite cuando su source_hash no cambia;
-- no se carga active_knowledge de todas las categorías en una sola petición;
-- fuentes y knowledge se referencian, no se duplican.
+- un dossier se omite cuando su `source_hash` no cambia;
+- no se carga `active_knowledge` de todas las categorías en una sola petición;
+- fuentes y knowledge se referencian, no se duplican;
+- no se aplica un segundo filtro editorial que reduzca el knowledge activo.
 
 ## Pruebas
 
-La pestaña **Pruebas** comprueba agrupación conservadora, división con evidencia, estabilidad/cambio de source_hash, matriz de acciones, aprobación humana, unicidad term_id + topic_key y el rol ingeniero_qa_specialized.
+La pestaña **Pruebas** comprueba dossier único completo, conservación de todo knowledge activo, generación de preguntas-respuestas, estabilidad/cambio de `source_hash`, ausencia de gate por masa, detección NUEVO/MODIFICADO/RETIRADO, aprobación humana, unicidad `term_id + topic_key` y el rol `ingeniero_qa_specialized`.
 
 ## Código
 

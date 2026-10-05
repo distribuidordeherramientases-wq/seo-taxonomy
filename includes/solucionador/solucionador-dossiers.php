@@ -1,9 +1,9 @@
 <?php
 /**
- * Solucionador - dossiers category-first de FAQ + preguntas aprendidas por Dependiente.
+ * Solucionador - dossiers category-first de FAQ + conocimiento consolidado de Dependiente.
  *
  * Mantiene una única huella editorial por product_cat con dos orígenes
- * independientes: FAQs activas y preguntas de Entrenador cuyo último resultado Dependiente ha evaluado como bueno.
+ * independientes: FAQs activas y conocimiento que Dependiente considera aprendido/aprobado.
  * Los payloads completos se recuperan bajo demanda al abrir/exportar el brief.
  */
 
@@ -12,7 +12,7 @@ defined('ABSPATH') || exit;
 final class SEO_Solucionador_Dossiers {
     const STATE_OPTION = 'seo_solucionador_academia_scan_state';
     const DEFAULT_BATCH = 150;
-    const EDITORIAL_POLICY_VERSION = 'v5-faq-plus-trainer-pass';
+    const EDITORIAL_POLICY_VERSION = 'v6-faq-plus-dependiente-provider';
 
     private static function questions_table() {
         global $wpdb;
@@ -47,27 +47,26 @@ final class SEO_Solucionador_Dossiers {
     }
 
     private static function dependiente_source_signature() {
+        if (class_exists('SEO_Dependiente_Editorial_Knowledge')) {
+            return (string)SEO_Dependiente_Editorial_Knowledge::signature();
+        }
+
+        // Fallback defensivo para instalaciones que aún no hayan cargado el
+        // proveedor. No se usa como contrato editorial principal.
         global $wpdb;
         $questions = self::questions_table();
         $runs = self::runs_table();
         if (!SEO_Solucionador_DB::table_exists($questions) || !SEO_Solucionador_DB::table_exists($runs)) return '';
-
         $where = self::curriculum_where();
-        // Firma barata: cambios de preguntas activas o nuevos runs de evaluación.
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas y filtro fijo.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas, filtro fijo.
         $q = (array)$wpdb->get_row(
-            "SELECT COUNT(q.id) total,COALESCE(MAX(q.id),0) max_id
-             FROM {$questions} q
-             WHERE {$where}",
+            "SELECT COUNT(q.id) total,COALESCE(MAX(q.id),0) max_id FROM {$questions} q WHERE {$where}",
             ARRAY_A
         );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna.
         $max_run = absint($wpdb->get_var("SELECT COALESCE(MAX(id),0) FROM {$runs} WHERE question_id IS NOT NULL"));
-
         return hash('sha256',wp_json_encode(array(
-            absint($q['total'] ?? 0),
-            absint($q['max_id'] ?? 0),
-            $max_run,
+            absint($q['total'] ?? 0),absint($q['max_id'] ?? 0),$max_run
         )));
     }
 
@@ -257,6 +256,7 @@ final class SEO_Solucionador_Dossiers {
             'editorial_policy'=>self::EDITORIAL_POLICY_VERSION,
             'dependiente_cursor'=>0,
             'dependiente_run_cursor'=>0,
+            'dependiente_semantic_cursor'=>0,
             'dependiente_processed'=>0,
             'dependiente_learned'=>0,
             'dependiente_editorial_eligible'=>0,
@@ -321,6 +321,12 @@ final class SEO_Solucionador_Dossiers {
                 : 0;
             $changed = true;
         }
+        if (!array_key_exists('dependiente_semantic_cursor',$state)) {
+            $state['dependiente_semantic_cursor'] = is_array($old_cursor)
+                ? absint($old_cursor['semantic'] ?? 0)
+                : 0;
+            $changed = true;
+        }
 
         $aliases = array(
             'dependiente_processed'=>'processed',
@@ -353,6 +359,15 @@ final class SEO_Solucionador_Dossiers {
             $state['editorial_policy'] = self::EDITORIAL_POLICY_VERSION;
             $state['complete'] = false;
             $state['completed_at'] = '';
+
+            // Migración 0.7.x: si Dependiente estaba a mitad del inventario,
+            // conservar el high-water mark y tomar la firma del nuevo proveedor
+            // como inicio del tramo restante. Así no repetimos decenas de miles
+            // de preguntas sólo por cambiar la arquitectura del collector.
+            if (empty($state['dependiente_complete'])) {
+                $state['dependiente_scan_signature'] = self::dependiente_source_signature();
+                $state['dependiente_source_signature'] = '';
+            }
             $changed = true;
         }
 
@@ -404,7 +419,7 @@ final class SEO_Solucionador_Dossiers {
 
     /**
      * Garantiza un dossier ligero para TODAS las product_cat de WooCommerce.
-     * FAQ y Academia enriquecen esos dossiers, pero nunca deciden
+     * FAQ y Dependiente enriquecen esos dossiers, pero nunca deciden
      * si una categoría existe o no dentro de Solucionador.
      */
     public static function ensure_all_categories($token = '') {
@@ -502,19 +517,38 @@ final class SEO_Solucionador_Dossiers {
         return count($live_ids);
     }
 
+    private static function canonical_item_key($item_key) {
+        $item_key = sanitize_text_field((string)$item_key);
+        if (preg_match('/^faq:([0-9]+)$/',$item_key,$m)) {
+            return 'faq:' . absint($m[1]);
+        }
+        if (preg_match('/^dependiente:(trainer|semantic):([0-9]+)$/',$item_key,$m)) {
+            return 'dependiente:' . sanitize_key($m[1]) . ':' . absint($m[2]);
+        }
+        // Compatibilidad 0.7.0/0.7.1 inicial: dependiente:123 = trainer.
+        if (preg_match('/^dependiente:([0-9]+)$/',$item_key,$m)) {
+            return 'dependiente:trainer:' . absint($m[1]);
+        }
+        return '';
+    }
+
     private static function valid_item_key($item_key) {
-        return (bool)preg_match('/^(faq:[0-9]+|dependiente:(?:trainer:)?[0-9]+)$/',
-            sanitize_text_field((string)$item_key));
+        return self::canonical_item_key($item_key) !== '';
+    }
+
+    private static function normalize_item_hashes(array $hashes) {
+        $normalized = array();
+        foreach ($hashes as $key=>$hash) {
+            $key = self::canonical_item_key($key);
+            $hash = sanitize_text_field((string)$hash);
+            if ($key !== '' && $hash !== '') $normalized[$key] = $hash;
+        }
+        ksort($normalized,SORT_STRING);
+        return $normalized;
     }
 
     public static function source_hash_for_test($category_id,array $item_hashes) {
-        $normalized = array();
-        foreach ($item_hashes as $key=>$hash) {
-            $key = sanitize_text_field((string)$key);
-            $hash = sanitize_text_field((string)$hash);
-            if (self::valid_item_key($key) && $hash !== '') $normalized[$key] = $hash;
-        }
-        ksort($normalized,SORT_STRING);
+        $normalized = self::normalize_item_hashes($item_hashes);
         return hash('sha256',wp_json_encode(array(
             'category_id'=>absint($category_id),
             'item_hashes'=>$normalized,
@@ -522,10 +556,11 @@ final class SEO_Solucionador_Dossiers {
     }
 
     public static function compare_item_hashes_for_test(array $current,array $reviewed) {
+        $current = self::normalize_item_hashes($current);
+        $reviewed = self::normalize_item_hashes($reviewed);
         $changes = array('new'=>array(),'modified'=>array(),'retired'=>array(),'status'=>array());
+
         foreach ($current as $key=>$hash) {
-            $key = sanitize_text_field((string)$key);
-            if (!self::valid_item_key($key)) continue;
             if (!array_key_exists($key,$reviewed)) {
                 $changes['new'][] = $key;
                 $changes['status'][$key] = 'new';
@@ -535,8 +570,6 @@ final class SEO_Solucionador_Dossiers {
             }
         }
         foreach ($reviewed as $key=>$hash) {
-            $key = sanitize_text_field((string)$key);
-            if (!self::valid_item_key($key)) continue;
             if (!array_key_exists($key,$current)) {
                 $changes['retired'][] = $key;
                 $changes['status'][$key] = 'retired';
@@ -570,7 +603,10 @@ final class SEO_Solucionador_Dossiers {
             "SELECT * FROM {$table} WHERE category_id=%d LIMIT 1",$term_id
         ),ARRAY_A);
 
-        $dependiente_keys = array_values(array_unique(array_filter(array_map('sanitize_text_field',$dependiente_keys),array(__CLASS__,'valid_item_key'))));
+        $dependiente_keys = array_values(array_unique(array_filter(array_map(
+            array(__CLASS__,'canonical_item_key'),
+            $dependiente_keys
+        ))));
         $legacy_question_ids = array_values(array_unique(array_filter(array_map('absint',$legacy_question_ids))));
         $faq_ids = array_values(array_unique(array_filter(array_map('absint',$faq_ids))));
 
@@ -581,21 +617,23 @@ final class SEO_Solucionador_Dossiers {
         $previous_score_sum = 0.0;
 
         if ($existing && (string)($existing['scan_token'] ?? '') === (string)$token) {
-            $previous_keys = array_values(array_filter(
-                array_map('sanitize_text_field',(array)SEO_Solucionador_DB::decode_json($existing['dependiente_keys'] ?? '[]',array())),
-                array(__CLASS__,'valid_item_key')
-            ));
+            $previous_keys = array_values(array_unique(array_filter(array_map(
+                array(__CLASS__,'canonical_item_key'),
+                (array)SEO_Solucionador_DB::decode_json($existing['dependiente_keys'] ?? '[]',array())
+            ))));
             $previous_questions = array_values(array_unique(array_filter(array_map(
                 'absint',(array)SEO_Solucionador_DB::decode_json($existing['question_ids'] ?? '[]',array())
             ))));
             // Migración transparente 0.7: deriva keys trainer de question_ids.
             if (!$previous_keys && $previous_questions) {
-                foreach ($previous_questions as $question_id) $previous_keys[] = 'dependiente:' . $question_id;
+                foreach ($previous_questions as $question_id) $previous_keys[] = 'dependiente:trainer:' . $question_id;
             }
             $previous_faq = array_values(array_unique(array_filter(array_map(
                 'absint',(array)SEO_Solucionador_DB::decode_json($existing['faq_ids'] ?? '[]',array())
             ))));
-            $previous_item_hashes = SEO_Solucionador_DB::decode_json($existing['item_hashes'] ?? '{}',array());
+            $previous_item_hashes = self::normalize_item_hashes(
+                (array)SEO_Solucionador_DB::decode_json($existing['item_hashes'] ?? '{}',array())
+            );
             $previous_score_sum = (float)($existing['score_avg'] ?? 0) * count($previous_keys);
         }
 
@@ -606,12 +644,7 @@ final class SEO_Solucionador_Dossiers {
         sort($merged_questions,SORT_NUMERIC);
         sort($merged_faq,SORT_NUMERIC);
 
-        $normalized_hashes = array();
-        foreach ($item_hashes as $item_key=>$item_hash) {
-            $item_key = sanitize_text_field((string)$item_key);
-            $item_hash = sanitize_text_field((string)$item_hash);
-            if (self::valid_item_key($item_key) && $item_hash !== '') $normalized_hashes[$item_key] = $item_hash;
-        }
+        $normalized_hashes = self::normalize_item_hashes($item_hashes);
         $merged_item_hashes = array_merge((array)$previous_item_hashes,$normalized_hashes);
         ksort($merged_item_hashes,SORT_STRING);
 
@@ -673,7 +706,9 @@ final class SEO_Solucionador_Dossiers {
         foreach ($rows as $row) {
             $category_id = absint($row['category_id'] ?? 0);
             if (!$category_id) continue;
-            $hashes = SEO_Solucionador_DB::decode_json($row['item_hashes'] ?? '{}',array());
+            $hashes = self::normalize_item_hashes(
+                (array)SEO_Solucionador_DB::decode_json($row['item_hashes'] ?? '{}',array())
+            );
             foreach (array_keys((array)$hashes) as $key) {
                 if ($origin === 'faq' && strpos((string)$key,'faq:') === 0) unset($hashes[$key]);
                 if ($origin === 'dependiente' && strpos((string)$key,'dependiente:') === 0) unset($hashes[$key]);
@@ -682,7 +717,10 @@ final class SEO_Solucionador_Dossiers {
 
             $dep_keys = $origin === 'dependiente'
                 ? array()
-                : (array)SEO_Solucionador_DB::decode_json($row['dependiente_keys'] ?? '[]',array());
+                : array_values(array_unique(array_filter(array_map(
+                    array(__CLASS__,'canonical_item_key'),
+                    (array)SEO_Solucionador_DB::decode_json($row['dependiente_keys'] ?? '[]',array())
+                ))));
             $question_ids = $origin === 'dependiente'
                 ? array()
                 : (array)SEO_Solucionador_DB::decode_json($row['question_ids'] ?? '[]',array());
@@ -726,15 +764,12 @@ final class SEO_Solucionador_Dossiers {
         global $wpdb;
         SEO_Solucionador_DB::maybe_install();
 
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
         $faq_table = self::faq_table();
-
-        $dependiente_available = SEO_Solucionador_DB::table_exists($questions_table)
-            && SEO_Solucionador_DB::table_exists($runs_table);
+        $dependiente_available = class_exists('SEO_Dependiente_Editorial_Knowledge')
+            && SEO_Dependiente_Editorial_Knowledge::available();
         $faq_available = SEO_Solucionador_DB::table_exists($faq_table);
         if (!$dependiente_available && !$faq_available) {
-            return new WP_Error('solucionador_sources_missing','No están disponibles ni Entrenador/Dependiente ni la tabla de FAQs.');
+            return new WP_Error('solucionador_sources_missing','No están disponibles ni Dependiente ni la tabla de FAQs.');
         }
 
         $limit = max(25,min(500,absint($limit)));
@@ -750,7 +785,8 @@ final class SEO_Solucionador_Dossiers {
             $state['dependiente_scan_signature'] = $dep_signature;
         }
 
-        // Si una fuente ya terminada cambió, se reinicia únicamente esa fuente.
+        // Cada fuente se invalida de forma independiente. Nunca se reinicia el
+        // carril largo de Dependiente porque cambie una FAQ.
         if (!empty($state['faq_complete'])
             && (string)($state['faq_source_signature'] ?? '') !== ''
             && (string)$state['faq_source_signature'] !== $faq_signature) {
@@ -768,10 +804,20 @@ final class SEO_Solucionador_Dossiers {
         if (!empty($state['dependiente_complete'])
             && (string)($state['dependiente_source_signature'] ?? '') !== ''
             && (string)$state['dependiente_source_signature'] !== $dep_signature) {
-            // Dependiente aprende continuamente. Una firma nueva significa que
-            // hay novedades; conservamos dossiers y cursores y sólo retomamos
-            // la lectura incremental desde los high-water marks conocidos.
+            // Para detectar también modificaciones/desactivaciones de reglas
+            // existentes se reconstruye únicamente el carril Dependiente.
+            self::clear_source_lane('dependiente',(string)$state['token']);
+            $state['dependiente_cursor'] = 0;
+            $state['dependiente_run_cursor'] = 0;
+            $state['dependiente_semantic_cursor'] = 0;
+            $state['dependiente_processed'] = 0;
+            $state['dependiente_learned'] = 0;
+            $state['dependiente_editorial_eligible'] = 0;
+            $state['dependiente_editorial_discarded'] = 0;
+            $state['dependiente_with_category'] = 0;
+            $state['dependiente_without_category'] = 0;
             $state['dependiente_complete'] = false;
+            $state['dependiente_source_signature'] = '';
             $state['dependiente_scan_signature'] = $dep_signature;
             $state['complete'] = false;
         }
@@ -782,185 +828,114 @@ final class SEO_Solucionador_Dossiers {
         /**
          * FUENTE DEPENDIENTE
          *
-         * Sencillo: leer preguntas del Entrenador y aceptar únicamente aquellas
-         * cuyo último run fue answered + pass_*.
+         * Solucionador no conoce las tablas internas: consume el proveedor de
+         * conocimiento consolidado de Dependiente. Puede incluir Entrenador y
+         * reglas semánticas activas/aprobadas.
          */
         if ($dependiente_available && empty($state['dependiente_complete'])) {
-            $dep_cursor = absint($state['dependiente_cursor'] ?? 0);
-            $where = self::curriculum_where();
-            $q_sql = $wpdb->prepare(
-                "SELECT q.id,q.lesson_key,q.source_type,q.source_id,q.source_key,
-                        q.question_type,q.question,q.expected_json
-                 FROM {$questions_table} q
-                 WHERE {$where} AND q.id>%d
-                 ORDER BY q.id ASC
-                 LIMIT %d",
-                $dep_cursor,$limit
-            );
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado y tablas internas.
-            $q_rows = (array)$wpdb->get_results($q_sql,ARRAY_A);
+            try {
+                $dep_batch = SEO_Dependiente_Editorial_Knowledge::batch(array(
+                    'trainer_question'=>absint($state['dependiente_cursor'] ?? 0),
+                    'trainer_run'=>absint($state['dependiente_run_cursor'] ?? 0),
+                    'semantic'=>absint($state['dependiente_semantic_cursor'] ?? 0),
+                ),$limit);
 
-            $q_ids = array_values(array_filter(array_map(static function($row){
-                return absint($row['id'] ?? 0);
-            },$q_rows)));
+                $dep_stats = (array)($dep_batch['stats'] ?? array());
+                $state['dependiente_processed'] += absint($dep_stats['processed'] ?? 0);
+                $state['dependiente_learned'] += absint($dep_stats['learned'] ?? 0);
+                $state['dependiente_editorial_eligible'] += absint($dep_stats['editorial_eligible'] ?? 0);
+                $state['dependiente_editorial_discarded'] += absint($dep_stats['editorial_discarded'] ?? 0);
+                $state['dependiente_with_category'] += absint($dep_stats['with_category'] ?? 0);
+                $state['dependiente_without_category'] += absint($dep_stats['without_category'] ?? 0);
 
-            $runs_by_question = array();
-            if ($q_ids) {
-                $placeholders = implode(',',array_fill(0,count($q_ids),'%d'));
-                $run_sql = "SELECT r.id,r.question_id,r.status,r.search_strategy,r.evaluation_status,
-                                   r.evaluation_score,r.evaluation_json,r.top_results,r.response_meta,r.created_at
-                            FROM {$runs_table} r
-                            INNER JOIN (
-                                SELECT question_id,MAX(id) latest_run_id
-                                FROM {$runs_table}
-                                WHERE question_id IN ({$placeholders})
-                                GROUP BY question_id
-                            ) latest ON latest.latest_run_id=r.id";
-                $run_sql = $wpdb->prepare($run_sql,$q_ids);
-                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs enlazados con prepare().
-                foreach ((array)$wpdb->get_results($run_sql,ARRAY_A) as $run) {
-                    $runs_by_question[absint($run['question_id'] ?? 0)] = $run;
-                    $state['dependiente_run_cursor'] = max(
-                        absint($state['dependiente_run_cursor'] ?? 0),
-                        absint($run['id'] ?? 0)
-                    );
-                }
-            }
+                $dep_cursor = (array)($dep_batch['cursor'] ?? array());
+                $state['dependiente_cursor'] = absint($dep_cursor['trainer_question'] ?? $state['dependiente_cursor']);
+                $state['dependiente_run_cursor'] = absint($dep_cursor['trainer_run'] ?? $state['dependiente_run_cursor']);
+                $state['dependiente_semantic_cursor'] = absint($dep_cursor['semantic'] ?? $state['dependiente_semantic_cursor']);
 
-            /*
-             * Cuando ya alcanzamos el final conocido de la tabla de preguntas,
-             * Entrenador puede seguir generando nuevas respuestas para preguntas
-             * antiguas. Las recogemos por run_id sin reiniciar el inventario.
-             */
-            $question_inventory_complete = count($q_rows)<$limit;
-            $delta_run_rows = array();
-            if ($question_inventory_complete) {
-                $run_cursor = absint($state['dependiente_run_cursor'] ?? 0);
-                $delta_sql = $wpdb->prepare(
-                    "SELECT q.id,q.lesson_key,q.source_type,q.source_id,q.source_key,
-                            q.question_type,q.question,q.expected_json,
-                            r.id run_id,r.question_id,r.status run_status,r.search_strategy,
-                            r.evaluation_status,r.evaluation_score,r.evaluation_json,
-                            r.top_results,r.response_meta,r.created_at run_created_at
-                     FROM {$questions_table} q
-                     INNER JOIN (
-                        SELECT question_id,MAX(id) latest_run_id
-                        FROM {$runs_table}
-                        WHERE question_id IS NOT NULL
-                        GROUP BY question_id
-                     ) latest ON latest.question_id=q.id
-                     INNER JOIN {$runs_table} r ON r.id=latest.latest_run_id
-                     WHERE {$where} AND r.id>%d
-                     ORDER BY r.id ASC
-                     LIMIT %d",
-                    $run_cursor,$limit
-                );
-                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL preparado y tablas internas.
-                $delta_run_rows = (array)$wpdb->get_results($delta_sql,ARRAY_A);
+                foreach ((array)($dep_batch['items'] ?? array()) as $item) {
+                    if (!is_array($item) || empty($item['editorial_candidate'])) continue;
+                    $item_key = self::canonical_item_key($item['item_id'] ?? '');
+                    $provider_hash = sanitize_text_field((string)($item['source_hash'] ?? ''));
+                    if ($item_key === '' || $provider_hash === '') continue;
 
-                foreach ($delta_run_rows as $delta) {
-                    $question_id = absint($delta['id'] ?? 0);
-                    if (!$question_id) continue;
-
-                    $q_rows[] = array(
-                        'id'=>$question_id,
-                        'lesson_key'=>(string)($delta['lesson_key'] ?? ''),
-                        'source_type'=>(string)($delta['source_type'] ?? ''),
-                        'source_id'=>absint($delta['source_id'] ?? 0),
-                        'source_key'=>(string)($delta['source_key'] ?? ''),
-                        'question_type'=>(string)($delta['question_type'] ?? ''),
-                        'question'=>(string)($delta['question'] ?? ''),
-                        'expected_json'=>(string)($delta['expected_json'] ?? ''),
-                    );
-                    $runs_by_question[$question_id] = array(
-                        'id'=>absint($delta['run_id'] ?? 0),
-                        'question_id'=>$question_id,
-                        'status'=>(string)($delta['run_status'] ?? ''),
-                        'search_strategy'=>(string)($delta['search_strategy'] ?? ''),
-                        'evaluation_status'=>(string)($delta['evaluation_status'] ?? ''),
-                        'evaluation_score'=>(float)($delta['evaluation_score'] ?? 0),
-                        'evaluation_json'=>(string)($delta['evaluation_json'] ?? ''),
-                        'top_results'=>(string)($delta['top_results'] ?? ''),
-                        'response_meta'=>(string)($delta['response_meta'] ?? ''),
-                        'created_at'=>(string)($delta['run_created_at'] ?? ''),
-                    );
-                    $state['dependiente_run_cursor'] = max(
-                        absint($state['dependiente_run_cursor'] ?? 0),
-                        absint($delta['run_id'] ?? 0)
-                    );
-                }
-            }
-
-            foreach ($q_rows as $question) {
-                $question_id = absint($question['id'] ?? 0);
-                if (!$question_id) continue;
-                $state['dependiente_cursor'] = max(absint($state['dependiente_cursor'] ?? 0),$question_id);
-                $state['dependiente_processed']++;
-
-                $run = (array)($runs_by_question[$question_id] ?? array());
-                $validation = sanitize_key((string)($run['evaluation_status'] ?? ''));
-                $good = (string)($run['status'] ?? '') === 'answered' && strpos($validation,'pass_') === 0;
-                if (!$good) continue;
-
-                $state['dependiente_learned']++;
-
-                $editorial = self::editorial_question_value($question);
-                if (empty($editorial['eligible'])) {
-                    $state['dependiente_editorial_discarded']++;
-                    continue;
-                }
-                $state['dependiente_editorial_eligible']++;
-
-                $category_ids = self::category_ids($question);
-                if (!$category_ids) {
-                    $state['dependiente_without_category']++;
-                    continue;
-                }
-                $state['dependiente_with_category']++;
-
-                $observed = sanitize_text_field((string)($run['created_at'] ?? ''));
-                if ($observed > (string)($state['last_dependiente_at'] ?? '')) {
-                    $state['last_dependiente_at'] = $observed;
-                }
-                $score = max(0,min(1,(float)($run['evaluation_score'] ?? 0)));
-                $item_key = 'dependiente:' . $question_id;
-
-                foreach ($category_ids as $term_id) {
-                    $term_id = absint($term_id);
-                    if (!$term_id) continue;
-                    if (!isset($batch_by_category[$term_id])) {
-                        $batch_by_category[$term_id] = array(
-                            'dependiente_keys'=>array(),'question_ids'=>array(),'faq_ids'=>array(),
-                            'item_hashes'=>array(),'score_sum'=>0.0,'score_count'=>0,'last'=>''
-                        );
+                    $observed = sanitize_text_field((string)($item['last_seen_at'] ?? ''));
+                    if ($observed > (string)($state['last_dependiente_at'] ?? '')) {
+                        $state['last_dependiente_at'] = $observed;
                     }
-                    $batch_by_category[$term_id]['dependiente_keys'][] = $item_key;
-                    $batch_by_category[$term_id]['question_ids'][] = $question_id;
-                    $batch_by_category[$term_id]['item_hashes'][$item_key] = self::dependiente_item_hash($question,$run,$term_id);
-                    $batch_by_category[$term_id]['score_sum'] += $score;
-                    $batch_by_category[$term_id]['score_count']++;
-                    if ($observed > $batch_by_category[$term_id]['last']) {
-                        $batch_by_category[$term_id]['last'] = $observed;
+                    $score = max(0,min(1,(float)($item['confidence'] ?? 0)));
+
+                    foreach ((array)($item['category_ids'] ?? array()) as $term_id) {
+                        $term_id = absint($term_id);
+                        if (!$term_id) continue;
+                        if (!isset($batch_by_category[$term_id])) {
+                            $batch_by_category[$term_id] = array(
+                                'dependiente_keys'=>array(),'question_ids'=>array(),'faq_ids'=>array(),
+                                'item_hashes'=>array(),'score_sum'=>0.0,'score_count'=>0,'last'=>''
+                            );
+                        }
+
+                        $batch_by_category[$term_id]['dependiente_keys'][] = $item_key;
+                        $item_hash = $provider_hash;
+                        if ((string)($item['dependiente_source'] ?? '') === 'trainer') {
+                            $question_id = absint($item['source_id'] ?? 0);
+                            $batch_by_category[$term_id]['question_ids'][] = $question_id;
+
+                            // Mantener la misma huella que 0.7.0/0.7.1 para no
+                            // marcar como MODIFIED todo el conocimiento trainer
+                            // únicamente por introducir el proveedor.
+                            $item_hash = self::dependiente_item_hash(array(
+                                'id'=>$question_id,
+                                'question'=>(string)($item['question'] ?? ''),
+                                'question_type'=>(string)($item['question_type'] ?? ''),
+                                'source_type'=>(string)($item['source_type_raw'] ?? ''),
+                                'source_id'=>absint($item['source_id_raw'] ?? 0),
+                                'expected_json'=>(string)($item['expected_json_raw'] ?? ''),
+                            ),array(
+                                'id'=>absint($item['run_id'] ?? 0),
+                                'evaluation_status'=>(string)($item['validation'] ?? ''),
+                                'evaluation_score'=>(float)($item['confidence'] ?? 0),
+                                'created_at'=>$observed,
+                            ),$term_id);
+                        }
+                        $batch_by_category[$term_id]['item_hashes'][$item_key] = $item_hash;
+                        $batch_by_category[$term_id]['score_sum'] += $score;
+                        $batch_by_category[$term_id]['score_count']++;
+                        if ($observed > $batch_by_category[$term_id]['last']) {
+                            $batch_by_category[$term_id]['last'] = $observed;
+                        }
                     }
                 }
-            }
 
-            $delta_runs_complete = count($delta_run_rows)<$limit;
-            if ($question_inventory_complete && $delta_runs_complete) {
-                $end_signature = self::dependiente_source_signature();
-                if ((string)($state['dependiente_scan_signature'] ?? '') !== ''
-                    && (string)$state['dependiente_scan_signature'] !== $end_signature) {
-                    // Llegó conocimiento nuevo durante esta misma pasada.
-                    // Conservamos lo ya procesado y continuamos en el próximo lote.
-                    $state['dependiente_complete'] = false;
-                    $state['dependiente_scan_signature'] = $end_signature;
+                if (!empty($dep_batch['complete'])) {
+                    $end_signature = self::dependiente_source_signature();
+                    if ((string)($state['dependiente_scan_signature'] ?? '') !== ''
+                        && (string)$state['dependiente_scan_signature'] !== $end_signature) {
+                        // La fuente cambió durante el propio recorrido. Repetimos
+                        // sólo Dependiente para no perder MODIFIED/RETIRED.
+                        self::clear_source_lane('dependiente',(string)$state['token']);
+                        $state['dependiente_cursor'] = 0;
+                        $state['dependiente_run_cursor'] = 0;
+                        $state['dependiente_semantic_cursor'] = 0;
+                        $state['dependiente_processed'] = 0;
+                        $state['dependiente_learned'] = 0;
+                        $state['dependiente_editorial_eligible'] = 0;
+                        $state['dependiente_editorial_discarded'] = 0;
+                        $state['dependiente_with_category'] = 0;
+                        $state['dependiente_without_category'] = 0;
+                        $state['dependiente_complete'] = false;
+                        $state['dependiente_source_signature'] = '';
+                        $state['dependiente_scan_signature'] = $end_signature;
+                    } else {
+                        $state['dependiente_complete'] = true;
+                        $state['dependiente_source_signature'] = $end_signature;
+                        $state['dependiente_scan_signature'] = $end_signature;
+                    }
                 } else {
-                    $state['dependiente_complete'] = true;
-                    $state['dependiente_source_signature'] = $end_signature;
-                    $state['dependiente_scan_signature'] = $end_signature;
+                    $state['dependiente_complete'] = false;
                 }
-            } else {
-                $state['dependiente_complete'] = false;
+            } catch (Throwable $e) {
+                $state['errors']++;
             }
         } elseif (!$dependiente_available) {
             $state['dependiente_complete'] = true;
@@ -1118,14 +1093,12 @@ final class SEO_Solucionador_Dossiers {
         $both = SEO_Solucionador_DB::table_exists($table)
             ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE dependiente_count>0 AND faq_count>0")) : 0;
 
-        $questions_total = 0;
-        if (SEO_Solucionador_DB::table_exists(self::questions_table())) {
-            $questions_table = self::questions_table();
-            $where = self::curriculum_where();
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla y filtro internos.
-            $questions_total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$questions_table} q WHERE {$where}"));
-        }
-        $dependiente_inventory_total = absint($state['dependiente_learned'] ?? 0);
+        $dependiente_inventory = class_exists('SEO_Dependiente_Editorial_Knowledge')
+            ? (array)SEO_Dependiente_Editorial_Knowledge::inventory()
+            : array('trainer_questions'=>0,'semantic_rules'=>0,'total'=>0);
+        $questions_total = absint($dependiente_inventory['trainer_questions'] ?? 0);
+        $semantic_rules_total = absint($dependiente_inventory['semantic_rules'] ?? 0);
+        $dependiente_inventory_total = absint($dependiente_inventory['total'] ?? 0);
 
         $faq_table = self::faq_table();
         if (SEO_Solucionador_DB::table_exists($faq_table)) {
@@ -1140,14 +1113,17 @@ final class SEO_Solucionador_Dossiers {
 
         return array(
             'available'=>SEO_Solucionador_DB::table_exists(self::faq_table())
-                || (SEO_Solucionador_DB::table_exists(self::questions_table()) && SEO_Solucionador_DB::table_exists(self::runs_table())),
+                || (class_exists('SEO_Dependiente_Editorial_Knowledge') && SEO_Dependiente_Editorial_Knowledge::available()),
             'questions_total'=>$questions_total,
+            'dependiente_trainer_questions_total'=>$questions_total,
+            'dependiente_semantic_rules_total'=>$semantic_rules_total,
             'dependiente_inventory_total'=>$dependiente_inventory_total,
             'faqs_all_total'=>$faqs_all_total,
             'faqs_total'=>$faqs_total,
             'scan_token'=>(string)($state['token'] ?? ''),
             'dependiente_cursor'=>absint($state['dependiente_cursor'] ?? 0),
             'dependiente_run_cursor'=>absint($state['dependiente_run_cursor'] ?? 0),
+            'dependiente_semantic_cursor'=>absint($state['dependiente_semantic_cursor'] ?? 0),
             'cursor'=>absint($state['cursor'] ?? 0),
             'faq_cursor'=>absint($state['faq_cursor'] ?? 0),
             'scan_complete'=>!empty($state['complete']),
@@ -1183,6 +1159,8 @@ final class SEO_Solucionador_Dossiers {
             'categories_without_knowledge'=>max(0,$categories_total-$categories_with),
             'categories_only_faq'=>$only_faq,
             'categories_only_dependiente'=>$only_dependiente,
+            'categories_both_sources'=>$both,
+            // Alias de compatibilidad; no representa una tercera fuente.
             'categories_faq_dependiente'=>$both,
             'categories_without_information'=>max(0,$categories_total-$categories_with),
             'questions_in_dossiers'=>$items_in_dossiers,
@@ -1280,12 +1258,16 @@ final class SEO_Solucionador_Dossiers {
         $dossier = self::get_by_category($category_id);
         if (!$dossier) return false;
 
-        $current = SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array());
-        $reviewed = SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}',array());
+        $current = self::normalize_item_hashes(
+            (array)SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array())
+        );
+        $reviewed = self::normalize_item_hashes(
+            (array)SEO_Solucionador_DB::decode_json($dossier['reviewed_item_hashes'] ?? '{}',array())
+        );
 
         foreach ($item_keys as $item_key) {
-            $item_key = sanitize_text_field((string)$item_key);
-            if (!self::valid_item_key($item_key)) continue;
+            $item_key = self::canonical_item_key($item_key);
+            if ($item_key === '') continue;
             if (isset($current[$item_key])) $reviewed[$item_key] = (string)$current[$item_key];
             else unset($reviewed[$item_key]); // retirada revisada.
         }
@@ -1321,7 +1303,7 @@ final class SEO_Solucionador_Dossiers {
     public static function review_item_ids($category_id,array $question_ids) {
         $keys = array();
         foreach (array_values(array_unique(array_filter(array_map('absint',$question_ids)))) as $question_id) {
-            $keys[] = 'dependiente:' . $question_id;
+            $keys[] = 'dependiente:trainer:' . $question_id;
         }
         return self::review_item_keys($category_id,$keys);
     }
@@ -1332,9 +1314,9 @@ final class SEO_Solucionador_Dossiers {
         $states = SEO_Solucionador_DB::decode_json($dossier['editorial_item_states'] ?? '{}',array());
         $out = array();
         foreach ((array)$states as $key=>$state) {
-            $key = sanitize_text_field((string)$key);
+            $key = self::canonical_item_key($key);
             $state = sanitize_key((string)$state);
-            if (self::valid_item_key($key) && in_array($state,array('pending','use','discard'),true)) {
+            if ($key !== '' && in_array($state,array('pending','use','discard'),true)) {
                 $out[$key] = $state;
             }
         }
@@ -1349,9 +1331,9 @@ final class SEO_Solucionador_Dossiers {
 
         $saved = self::item_editorial_states($category_id);
         foreach ($states as $key=>$state) {
-            $key = sanitize_text_field((string)$key);
+            $key = self::canonical_item_key($key);
             $state = sanitize_key((string)$state);
-            if (!self::valid_item_key($key)) continue;
+            if ($key === '') continue;
             if (!in_array($state,array('pending','use','discard'),true)) $state = 'pending';
             $saved[$key] = $state;
         }
@@ -1388,8 +1370,8 @@ final class SEO_Solucionador_Dossiers {
 
         $snapshot = array();
         foreach (self::question_details($category_id) as $item) {
-            $key = sanitize_text_field((string)($item['item_key'] ?? ''));
-            if (!self::valid_item_key($key)) continue;
+            $key = self::canonical_item_key($item['item_key'] ?? '');
+            if ($key === '') continue;
             $snapshot[$key] = array(
                 'item_key'=>$key,
                 'origin'=>sanitize_key((string)($item['origin'] ?? '')),
@@ -1413,7 +1395,9 @@ final class SEO_Solucionador_Dossiers {
 
         return SEO_Solucionador_DB::update_dossier_editorial($category_id, array(
             'reviewed_hash'=>(string)$dossier['source_hash'],
-            'reviewed_item_hashes'=>(string)($dossier['item_hashes'] ?? '{}'),
+            'reviewed_item_hashes'=>wp_json_encode(self::normalize_item_hashes(
+                (array)SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array())
+            )),
             'reviewed_items_snapshot'=>wp_json_encode($snapshot),
             'editorial_status'=>$editorial_status,
             'reviewed_at'=>current_time('mysql'),
@@ -1433,6 +1417,8 @@ final class SEO_Solucionador_Dossiers {
         $out = array();
         foreach ($retired as $key=>$unused) {
             unset($unused);
+            $key = self::canonical_item_key($key);
+            if ($key === '') continue;
             $row = isset($snapshot[$key]) && is_array($snapshot[$key])
                 ? $snapshot[$key]
                 : array('item_key'=>$key,'question'=>'Elemento retirado de la fuente','answer'=>'');
@@ -1451,92 +1437,62 @@ final class SEO_Solucionador_Dossiers {
         if (!$dossier) return array();
 
         $out = array();
+        $current_item_hashes = self::normalize_item_hashes(
+            (array)SEO_Solucionador_DB::decode_json($dossier['item_hashes'] ?? '{}',array())
+        );
 
-        // Dependiente: únicamente preguntas de Entrenador cuyo último run sigue
-        // siendo answered + pass_*.
-        $question_ids = array();
+        // Dependiente: contenido real/aprobado expuesto por su proveedor.
+        $dependiente_keys = array();
         foreach ((array)SEO_Solucionador_DB::decode_json($dossier['dependiente_keys'] ?? '[]',array()) as $key) {
-            if (preg_match('/^dependiente:(?:trainer:)?([0-9]+)$/',(string)$key,$m)) {
-                $question_ids[] = absint($m[1]);
+            $key = self::canonical_item_key($key);
+            if ($key !== '' && strpos($key,'dependiente:') === 0) $dependiente_keys[] = $key;
+        }
+        if (!$dependiente_keys) {
+            // Compatibilidad con dossiers previos a dependiente_keys.
+            foreach ((array)SEO_Solucionador_DB::decode_json($dossier['question_ids'] ?? '[]',array()) as $question_id) {
+                $question_id = absint($question_id);
+                if ($question_id) $dependiente_keys[] = 'dependiente:trainer:' . $question_id;
             }
         }
-        if (!$question_ids) {
-            $question_ids = array_map('absint',(array)SEO_Solucionador_DB::decode_json($dossier['question_ids'] ?? '[]',array()));
-        }
-        $question_ids = array_values(array_unique(array_filter($question_ids)));
+        $dependiente_keys = array_values(array_unique($dependiente_keys));
 
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
-        if ($question_ids
-            && SEO_Solucionador_DB::table_exists($questions_table)
-            && SEO_Solucionador_DB::table_exists($runs_table)) {
-            $placeholders = implode(',',array_fill(0,count($question_ids),'%d'));
-
-            $q_sql = "SELECT id,lesson_key,source_type,source_id,source_key,question_type,question,expected_json
-                      FROM {$questions_table}
-                      WHERE id IN ({$placeholders})";
-            $q_sql = $wpdb->prepare($q_sql,$question_ids);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs preparados.
-            $questions = (array)$wpdb->get_results($q_sql,ARRAY_A);
-            $questions_by_id = array();
-            foreach ($questions as $question) {
-                $questions_by_id[absint($question['id'] ?? 0)] = $question;
-            }
-
-            $run_sql = "SELECT r.id,r.question_id,r.status,r.search_strategy,r.evaluation_status,
-                               r.evaluation_score,r.evaluation_json,r.top_results,r.response_meta,r.created_at
-                        FROM {$runs_table} r
-                        INNER JOIN (
-                            SELECT question_id,MAX(id) latest_run_id
-                            FROM {$runs_table}
-                            WHERE question_id IN ({$placeholders})
-                            GROUP BY question_id
-                        ) latest ON latest.latest_run_id=r.id";
-            $run_sql = $wpdb->prepare($run_sql,$question_ids);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs preparados.
-            $runs = (array)$wpdb->get_results($run_sql,ARRAY_A);
-
-            foreach ($runs as $run) {
-                $question_id = absint($run['question_id'] ?? 0);
-                $question = (array)($questions_by_id[$question_id] ?? array());
-                if (!$question) continue;
-
-                $validation = sanitize_key((string)($run['evaluation_status'] ?? ''));
-                if ((string)($run['status'] ?? '') !== 'answered' || strpos($validation,'pass_') !== 0) continue;
-
-                $editorial = self::editorial_question_value($question);
-                if (empty($editorial['eligible'])) continue;
-
-                $category_ids = self::category_ids($question);
+        if ($dependiente_keys && class_exists('SEO_Dependiente_Editorial_Knowledge')) {
+            foreach (SEO_Dependiente_Editorial_Knowledge::details($dependiente_keys) as $item) {
+                if (!is_array($item) || empty($item['editorial_candidate'])) continue;
+                $category_ids = array_map('absint',(array)($item['category_ids'] ?? array()));
                 if (!in_array($category_id,$category_ids,true)) continue;
 
-                $item_key = 'dependiente:' . $question_id;
+                $item_key = self::canonical_item_key($item['item_id'] ?? '');
+                if ($item_key === '') continue;
+                $dep_source = sanitize_key((string)($item['dependiente_source'] ?? ''));
+                $source_id = absint($item['source_id'] ?? 0);
+
                 $out[] = array(
                     'origin'=>'dependiente',
                     'item_key'=>$item_key,
-                    'question_id'=>$question_id,
+                    'question_id'=>$dep_source === 'trainer' ? $source_id : 0,
                     'faq_id'=>0,
-                    'question'=>sanitize_text_field((string)($question['question'] ?? '')),
-                    'answer'=>'',
-                    'question_type'=>sanitize_key((string)($question['question_type'] ?? '')),
-                    'editorial_value'=>(string)($editorial['reason'] ?? 'practical_customer_value'),
-                    'lesson_key'=>sanitize_key((string)($question['lesson_key'] ?? '')),
+                    'question'=>sanitize_text_field((string)($item['question'] ?? '')),
+                    'answer'=>trim(wp_strip_all_tags((string)($item['answer'] ?? ''))),
+                    'question_type'=>sanitize_key((string)($item['question_type'] ?? '')),
+                    'editorial_value'=>'dependiente_consolidated_knowledge',
+                    'lesson_key'=>sanitize_key((string)($item['lesson_key'] ?? '')),
                     'source_type'=>'dependiente',
-                    'dependiente_source'=>'trainer',
-                    'source_id'=>$question_id,
-                    'source_key'=>sanitize_text_field((string)($question['source_key'] ?? '')),
-                    'source_hash'=>self::dependiente_item_hash($question,$run,$category_id),
-                    'product_id'=>absint(self::decode($question['expected_json'] ?? '')['product_id'] ?? 0) ?: null,
-                    'expected'=>self::decode($question['expected_json'] ?? ''),
-                    'evaluation_status'=>$validation,
-                    'evaluation_score'=>max(0,min(1,(float)($run['evaluation_score'] ?? 0))),
-                    'evaluation'=>self::decode($run['evaluation_json'] ?? ''),
-                    'top_results'=>array_values(array_slice(self::decode($run['top_results'] ?? ''),0,12)),
-                    'response_meta'=>self::decode($run['response_meta'] ?? ''),
-                    'search_strategy'=>sanitize_key((string)($run['search_strategy'] ?? '')),
-                    'run_id'=>absint($run['id'] ?? 0),
-                    'first_seen_at'=>sanitize_text_field((string)($run['created_at'] ?? '')),
-                    'observed_at'=>sanitize_text_field((string)($run['created_at'] ?? '')),
+                    'dependiente_source'=>$dep_source,
+                    'source_id'=>$source_id ?: null,
+                    'source_key'=>$item_key,
+                    'source_hash'=>sanitize_text_field((string)($current_item_hashes[$item_key] ?? $item['source_hash'] ?? '')),
+                    'product_id'=>absint($item['product_id'] ?? 0) ?: null,
+                    'expected'=>(array)($item['expected'] ?? array()),
+                    'evaluation_status'=>sanitize_key((string)($item['validation'] ?? '')),
+                    'evaluation_score'=>max(0,min(1,(float)($item['confidence'] ?? 0))),
+                    'evaluation'=>(array)($item['evaluation'] ?? array()),
+                    'top_results'=>array_values(array_slice((array)($item['top_results'] ?? array()),0,12)),
+                    'response_meta'=>(array)($item['response_meta'] ?? array()),
+                    'search_strategy'=>sanitize_key((string)($item['search_strategy'] ?? '')),
+                    'run_id'=>absint($item['run_id'] ?? 0) ?: null,
+                    'first_seen_at'=>sanitize_text_field((string)($item['first_seen_at'] ?? '')),
+                    'observed_at'=>sanitize_text_field((string)($item['last_seen_at'] ?? '')),
                     'category_id'=>$category_id,
                 );
             }
@@ -1562,7 +1518,9 @@ final class SEO_Solucionador_Dossiers {
                 $faq_id = absint($row['id'] ?? 0);
                 $category_ids = self::faq_category_ids($row);
                 if (!$faq_id || !in_array($category_id,$category_ids,true)) continue;
-                $source_hash = self::faq_item_hash($row,$category_id);
+                $source_hash = sanitize_text_field((string)(
+                    $current_item_hashes['faq:' . $faq_id] ?? self::faq_item_hash($row,$category_id)
+                ));
                 $object_type = absint($row['object_type'] ?? 0);
                 $object_id = absint($row['object_id'] ?? 0);
                 $out[] = array(
@@ -1594,9 +1552,12 @@ final class SEO_Solucionador_Dossiers {
         }
 
         $changes = self::item_changes($category_id);
+        $choices = self::item_editorial_states($category_id);
         foreach ($out as &$item) {
-            $key = (string)($item['item_key'] ?? '');
+            $key = self::canonical_item_key($item['item_key'] ?? '');
+            if ($key !== '') $item['item_key'] = $key;
             $item['editorial_state'] = (string)($changes['status'][$key] ?? 'unchanged');
+            $item['editorial_choice'] = (string)($choices[$key] ?? 'pending');
         }
         unset($item);
 

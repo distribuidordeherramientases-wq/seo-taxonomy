@@ -1251,22 +1251,36 @@ function seo_reports_category_vocabulary_map($category_ids = array()) {
     global $wpdb;
 
     $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
-    $where_ids = '';
-    if (!empty($category_ids)) {
-        $where_ids = ' AND ov.object_id IN (' . implode(',', $category_ids) . ')';
-    }
+    $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+    $vocab_table = $wpdb->prefix . 'seo_vocabulary';
 
-    $rows = $wpdb->get_results(
-        "SELECT ov.object_id, v.semantic_group, v.label\n"
-        . "FROM {$wpdb->prefix}seo_object_vocabulary ov\n"
-        . "JOIN {$wpdb->prefix}seo_vocabulary v ON v.id = ov.vocabulary_id\n"
-        . "WHERE ov.object_type = 'product_cat'\n"
-        . "  AND ov.status = 1\n"
-        . "  AND v.active = 1\n"
-        . "  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')\n"
-        . $where_ids . "\n"
-        . "ORDER BY ov.object_id, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label"
-    );
+    if ($category_ids) {
+        $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+        $sql = $wpdb->prepare(
+            "SELECT ov.object_id, v.semantic_group, v.label
+             FROM {$object_table} ov
+             JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+             WHERE ov.object_type = 'product_cat'
+               AND ov.status = 1
+               AND v.active = 1
+               AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+               AND ov.object_id IN ({$placeholders})
+             ORDER BY ov.object_id, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label",
+            ...$category_ids
+        );
+    } else {
+        $sql = "SELECT ov.object_id, v.semantic_group, v.label
+                FROM {$object_table} ov
+                JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+                WHERE ov.object_type = 'product_cat'
+                  AND ov.status = 1
+                  AND v.active = 1
+                  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+                ORDER BY ov.object_id, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label";
+    }
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin filtro es SQL interno fijo; con filtro, $sql es resultado de $wpdb->prepare().
+    $rows = $wpdb->get_results($sql);
 
     $map = array();
     foreach ((array) $rows as $row) {

@@ -19,9 +19,15 @@ final class SEO_Solucionador_Process implements SEO_Managed_Service_Process {
     public static function has_pending() {
         if (!class_exists('SEO_Solucionador_Dossiers')) return false;
         $snapshot = SEO_Solucionador_Dossiers::snapshot();
-        if (empty($snapshot['available']) || empty($snapshot['questions_total'])) return false;
-        if (empty($snapshot['scan_complete'])) return true;
-        $last = get_option('seo_solucionador_last_scan', array());
+        if (empty($snapshot['available'])) return false;
+
+        $has_material = absint($snapshot['faqs_total'] ?? 0) > 0
+            || absint($snapshot['dependiente_inventory_total'] ?? 0) > 0;
+        if (!$has_material) return false;
+
+        if (empty($snapshot['scan_complete']) || !empty($snapshot['source_changed'])) return true;
+
+        $last = get_option('seo_solucionador_last_scan',array());
         return !is_array($last) || empty($last['complete']);
     }
 
@@ -54,22 +60,37 @@ final class SEO_Solucionador_Process implements SEO_Managed_Service_Process {
 
     public static function progress() {
         $s = SEO_Solucionador_Dossiers::snapshot();
-        $total = absint($s['questions_total'] ?? 0);
-        $done = absint($s['processed'] ?? 0);
+
+        $faq_total = absint($s['faqs_total'] ?? 0);
+        $dep_total = absint($s['dependiente_inventory_total'] ?? 0);
+        $faq_done = min($faq_total,absint($s['faq_processed'] ?? 0));
+        $dep_done = min($dep_total,absint($s['dependiente_processed'] ?? 0));
+        $total = $faq_total + $dep_total;
+        $done = $faq_done + $dep_done;
+
         return array(
             'processed'=>$done,
             'total'=>$total,
             'pending'=>max(0,$total-$done),
             'percentage'=>$total ? round(($done/$total)*100,1) : 0,
-            'cursor'=>absint($s['cursor'] ?? 0),
+            // Compatibilidad: cursor numérico histórico = trainer question cursor.
+            'cursor'=>absint($s['dependiente_cursor'] ?? $s['cursor'] ?? 0),
+            'dependiente_cursor'=>absint($s['dependiente_cursor'] ?? 0),
+            'dependiente_run_cursor'=>absint($s['dependiente_run_cursor'] ?? 0),
+            'dependiente_semantic_cursor'=>absint($s['dependiente_semantic_cursor'] ?? 0),
+            'faq_cursor'=>absint($s['faq_cursor'] ?? 0),
+            'faq_processed'=>$faq_done,
+            'faq_total'=>$faq_total,
+            'dependiente_processed'=>$dep_done,
+            'dependiente_total'=>$dep_total,
             'errors'=>absint($s['errors'] ?? 0),
             'updated_at'=>(string)($s['updated_at'] ?? ''),
             'categories_with_knowledge'=>absint($s['categories_with_knowledge'] ?? 0),
             'categories_total'=>absint($s['categories_total'] ?? 0),
-            'learned'=>absint($s['learned'] ?? 0),
-            'eligible'=>absint($s['editorial_eligible'] ?? 0),
-            'with_category'=>absint($s['learned_with_category'] ?? 0),
-            'complete'=>!empty($s['scan_complete']) && !self::has_pending(),
+            'learned'=>absint($s['dependiente_learned'] ?? $s['learned'] ?? 0),
+            'eligible'=>absint($s['dependiente_editorial_eligible'] ?? $s['editorial_eligible'] ?? 0),
+            'with_category'=>absint($s['dependiente_with_category'] ?? $s['learned_with_category'] ?? 0),
+            'complete'=>!empty($s['scan_complete']) && empty($s['source_changed']) && !self::has_pending(),
         );
     }
 

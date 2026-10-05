@@ -17,6 +17,7 @@ final class SEO_Editorial_Coverage {
         $ov = $wpdb->prefix . 'seo_object_vocabulary';
         $v = $wpdb->prefix . 'seo_vocabulary';
         if (!SEO_Solucionador_DB::table_exists($ov) || !SEO_Solucionador_DB::table_exists($v)) return '';
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ov/$v are internal prefixed tables validated immediately above.
         $labels = (array) $wpdb->get_col($wpdb->prepare(
             "SELECT v.label
              FROM {$ov} ov
@@ -475,6 +476,7 @@ final class SEO_Editorial_Coverage {
         $params[] = $key;
         $params[] = $category_id;
         $params[] = $category_id;
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal coverage table; all dynamic values are bound through $wpdb->prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql,$params),ARRAY_A);
 
         $ranked = array();

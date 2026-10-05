@@ -1716,7 +1716,10 @@ function seo_social_network_scheduler_exportable_content_rows()
             WHERE post_status = 'publish'
               AND post_type IN ({$placeholders})
             ORDER BY post_modified DESC, ID DESC";
-    $rows = $wpdb->get_results($wpdb->prepare($sql, $types)); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla core y placeholders %s generados localmente; tipos enlazados mediante $wpdb->prepare().
+    $prepared_sql = $wpdb->prepare($sql, $types);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+    $rows = $wpdb->get_results($prepared_sql);
 
     $result = array();
     foreach ((array) $rows as $row) {
@@ -1754,6 +1757,7 @@ function seo_social_network_scheduler_exportable_agenda_rows()
          ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC, pm.post_id ASC",
         $like
     );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
     $rows = $wpdb->get_results($sql);
     $providers = function_exists('seo_social_network_get_providers') ? seo_social_network_get_providers() : array();
     $result = array();

@@ -106,6 +106,7 @@ if (!function_exists('dht_blog_v2_product_image')) {
         }
 
         if ($usage_table_available) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $usage_table comes from the internal Media table helper and is existence-checked immediately above.
             $attachment_ids = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id

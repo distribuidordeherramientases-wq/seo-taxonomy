@@ -224,6 +224,7 @@ final class SEO_Ojeador_Stars {
                   )
                 ORDER BY p.ID ASC,tt.term_id ASC";
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas core e internas validadas; consulta fija sin entrada de usuario.
         $rows = (array) $wpdb->get_results($sql, ARRAY_A);
         foreach ($rows as &$row) {
             $cost = self::first_positive(array($row['precio_con_iva'] ?? null, $row['provider_cost_meta'] ?? null, $row['precio_sin_iva'] ?? null));

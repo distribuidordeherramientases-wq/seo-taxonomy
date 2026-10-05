@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 final class SEO_Ingeniero_DB {
     const OPTION_DB_VERSION = 'seo_ingeniero_db_version';
     const DB_VERSION = '0.2.0';
+    const EDITORIAL_EXPORT_CONTRACT = 'full-category-dossier-v1';
 
     public static function table($name) {
         global $wpdb;
@@ -445,12 +446,25 @@ final class SEO_Ingeniero_DB {
         $term_id = absint($term_id);
         $sources = self::table('sources');
         $knowledge = self::table('knowledge');
+        $editorial_table = self::table('editorial');
+
         if ($term_id) {
-            $src = (array) $wpdb->get_results($wpdb->prepare("SELECT * FROM {$sources} WHERE term_id=%d AND status<>'superseded' ORDER BY id ASC", $term_id), ARRAY_A);
-            $kn = self::knowledge_for_category($term_id, false);
+            $src = (array)$wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$sources} WHERE term_id=%d AND status<>'superseded' ORDER BY id ASC",
+                $term_id
+            ),ARRAY_A);
+            $kn = self::knowledge_for_category($term_id,false);
+            $ed = (array)$wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$editorial_table} WHERE term_id=%d ORDER BY id ASC",
+                $term_id
+            ),ARRAY_A);
         } else {
-            $src = (array) $wpdb->get_results("SELECT * FROM {$sources} WHERE status<>'superseded' ORDER BY term_id,id ASC", ARRAY_A);
-            $kn = (array) $wpdb->get_results("SELECT * FROM {$knowledge} WHERE status<>'superseded' ORDER BY term_id,knowledge_type ASC", ARRAY_A);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
+            $src = (array)$wpdb->get_results("SELECT * FROM {$sources} WHERE status<>'superseded' ORDER BY term_id,id ASC",ARRAY_A);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
+            $kn = (array)$wpdb->get_results("SELECT * FROM {$knowledge} WHERE status<>'superseded' ORDER BY term_id,knowledge_type ASC",ARRAY_A);
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
+            $ed = (array)$wpdb->get_results("SELECT * FROM {$editorial_table} ORDER BY term_id,id ASC",ARRAY_A);
         }
 
         foreach ($src as &$row) {
@@ -458,22 +472,86 @@ final class SEO_Ingeniero_DB {
             unset($row['metadata_json']);
         }
         unset($row);
+
+        $knowledge_by_id = array();
+        $active_by_term = array();
         foreach ($kn as &$row) {
             if (isset($row['facts_json'])) {
                 $row['facts'] = self::decode_json($row['facts_json']);
                 $row['tags'] = self::decode_json($row['tags_json'] ?? '');
                 $row['source_ids'] = self::decode_json($row['source_ids_json'] ?? '');
-                unset($row['facts_json'], $row['tags_json'], $row['source_ids_json']);
+                unset($row['facts_json'],$row['tags_json'],$row['source_ids_json']);
+            }
+            $kid = absint($row['id'] ?? 0);
+            if ($kid) $knowledge_by_id[$kid] = $row;
+            if (sanitize_key((string)($row['status'] ?? '')) === 'active') {
+                $tid = absint($row['term_id'] ?? 0);
+                if ($tid) $active_by_term[$tid] = absint($active_by_term[$tid] ?? 0)+1;
             }
         }
         unset($row);
 
+        $editorial = array();
+        $qa_total = 0;
+        foreach ($ed as $row) {
+            $row = self::hydrate_editorial($row);
+            $qa_items = array();
+            foreach ((array)($row['knowledge_ids'] ?? array()) as $knowledge_id) {
+                $knowledge_id = absint($knowledge_id);
+                if (!$knowledge_id || empty($knowledge_by_id[$knowledge_id])) continue;
+                $knowledge_row = (array)$knowledge_by_id[$knowledge_id];
+                if (sanitize_key((string)($knowledge_row['status'] ?? '')) !== 'active') continue;
+                if (class_exists('SEO_Ingeniero') && method_exists('SEO_Ingeniero','editorial_qa_item')) {
+                    $qa_items[] = SEO_Ingeniero::editorial_qa_item($knowledge_row);
+                } else {
+                    $qa_items[] = array(
+                        'item_id'=>'knowledge:' . $knowledge_id,
+                        'knowledge_id'=>$knowledge_id,
+                        'knowledge_type'=>(string)($knowledge_row['knowledge_type'] ?? ''),
+                        'concept'=>(string)($knowledge_row['concept'] ?? ''),
+                        'question'=>'',
+                        'answer'=>(string)($knowledge_row['summary'] ?? ''),
+                        'confidence'=>(float)($knowledge_row['confidence'] ?? 0),
+                        'source_ids'=>(array)($knowledge_row['source_ids'] ?? array()),
+                    );
+                }
+            }
+            $row['knowledge_count'] = count((array)($row['knowledge_ids'] ?? array()));
+            $row['qa_count'] = count($qa_items);
+            $row['qa_items'] = $qa_items;
+            $qa_total += count($qa_items);
+            $editorial[] = $row;
+        }
+
+        $active_counts = array_values($active_by_term);
+        $categories_with_active = count($active_counts);
+        $categories_below_four = count(array_filter($active_counts,static function($count){
+            return absint($count) < 4;
+        }));
+        $active_total = array_sum($active_counts);
+
         return array(
-            'schema' => array('name'=>'seo_ingeniero','version'=>self::DB_VERSION),
-            'generated_at_gmt' => gmdate('Y-m-d H:i:s'),
-            'term_id' => $term_id,
-            'sources' => $src,
-            'knowledge' => $kn,
+            'schema'=>array(
+                'name'=>'seo_ingeniero',
+                'version'=>self::DB_VERSION,
+                'service_version'=>defined('SEO_INGENIERO_VERSION') ? SEO_INGENIERO_VERSION : '',
+                'editorial_contract'=>self::EDITORIAL_EXPORT_CONTRACT,
+            ),
+            'generated_at_gmt'=>gmdate('Y-m-d H:i:s'),
+            'term_id'=>$term_id,
+            'summary'=>array(
+                'sources'=>count($src),
+                'knowledge'=>count($kn),
+                'active_knowledge'=>$active_total,
+                'categories_with_active_knowledge'=>$categories_with_active,
+                'avg_active_knowledge_per_category'=>$categories_with_active ? round($active_total/$categories_with_active,2) : 0,
+                'categories_below_four_active_knowledge'=>$categories_below_four,
+                'editorial_dossiers'=>count($editorial),
+                'qa_items_in_editorial'=>$qa_total,
+            ),
+            'sources'=>$src,
+            'knowledge'=>$kn,
+            'editorial'=>$editorial,
         );
     }
 

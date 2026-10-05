@@ -234,6 +234,7 @@ final class SEO_Dependiente_Semantics {
         FROM `{$legacy_table}`
         WHERE `COL 1` <> 'rule_key'";
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla legacy fija validada previamente; consulta sin entrada de usuario.
         return (array) $wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -565,14 +566,16 @@ final class SEO_Dependiente_Semantics {
 
         $vocabulary_ids = array_keys($ids);
         $placeholders = implode(',', array_fill(0, count($vocabulary_ids), '%d'));
-        $sql = $wpdb->prepare(
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; IDs/límite enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare(
             "SELECT object_id, vocabulary_id FROM {$objects}
              WHERE object_type = 'product' AND status = 1
                AND vocabulary_id IN ({$placeholders})
              LIMIT %d",
             array_merge($vocabulary_ids, array(min(2000, max(1, absint($limit) * 3))))
         );
-        $rows = (array) $wpdb->get_results($sql, ARRAY_A);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql, ARRAY_A);
         $scores = array();
         foreach ($rows as $row) {
             $product_id = absint($row['object_id']);

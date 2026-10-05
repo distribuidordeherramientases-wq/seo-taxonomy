@@ -94,6 +94,7 @@ final class SEO_Dependiente_Reset {
             // manual, aprendido, candidato o rechazado se elimina.
             if (self::table_exists($tables['semantics'])) {
                 $sql = "DELETE FROM `" . esc_sql($tables['semantics']) . "` WHERE source <> 'seed' OR source IS NULL";
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Identificador interno escapado; consulta fija sin entrada de usuario.
                 if (false === $wpdb->query($sql)) {
                     throw new RuntimeException('No se pudo limpiar la semantica aprendida.');
                 }

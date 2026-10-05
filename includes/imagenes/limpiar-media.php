@@ -26,6 +26,7 @@ if (!function_exists('seo_images_cleanup_pending_delete_count')) {
         $candidates = seo_images_cleanup_table_candidates();
         $log        = seo_images_cleanup_table_log();
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas del limpiador; consulta fija sin entrada de usuario.
         return max(0, (int) $wpdb->get_var(
             "SELECT COUNT(*)
              FROM {$candidates} c
@@ -57,6 +58,7 @@ if (!function_exists('seo_images_cleanup_delete_stats')) {
         );
 
         $candidates = seo_images_cleanup_table_candidates();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas del limpiador; consulta fija sin entrada de usuario.
         $rows = (array) $wpdb->get_results(
             "SELECT l.status, COUNT(*) AS total
              FROM {$table} l
@@ -88,6 +90,7 @@ if (!function_exists('seo_images_cleanup_pending_candidates')) {
         $candidates = seo_images_cleanup_table_candidates();
         $log        = seo_images_cleanup_table_log();
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $candidates is an internal cleanup table returned by the plugin helper.
         return (array) $wpdb->get_results(
             "SELECT c.*
              FROM {$candidates} c
@@ -469,6 +472,7 @@ if (!function_exists('seo_images_cleanup_retry_errors')) {
         $candidates = seo_images_cleanup_table_candidates();
         $log        = seo_images_cleanup_table_log();
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas del limpiador; mantenimiento fijo sin entrada de usuario.
         $deleted = $wpdb->query(
             "DELETE l
              FROM {$log} l

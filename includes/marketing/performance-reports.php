@@ -562,23 +562,23 @@ function seo_marketing_performance_campaign_metrics($campaign)
     }, $product_rows))));
     $product_map = array_fill_keys($product_ids, true);
 
-    $social = $wpdb->get_row(
-        $wpdb->prepare(
-            "SELECT
-                COUNT(*) publications,
-                COALESCE(SUM(clicks),0) clicks,
-                COALESCE(SUM(reactions),0) reactions,
-                COALESCE(SUM(comments),0) comments,
-                COALESCE(SUM(shares),0) shares,
-                COALESCE(SUM(impressions),0) impressions,
-                COALESCE(SUM(reach),0) reach
-             FROM {$social_table}
-             WHERE campaign_id = %d
-               AND status = 'published'",
-            $campaign_id
-        ),
-        ARRAY_A
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla social interna; campaign_id enlazado mediante $wpdb->prepare().
+    $social_sql = $wpdb->prepare(
+        "SELECT
+            COUNT(*) publications,
+            COALESCE(SUM(clicks),0) clicks,
+            COALESCE(SUM(reactions),0) reactions,
+            COALESCE(SUM(comments),0) comments,
+            COALESCE(SUM(shares),0) shares,
+            COALESCE(SUM(impressions),0) impressions,
+            COALESCE(SUM(reach),0) reach
+         FROM {$social_table}
+         WHERE campaign_id = %d
+           AND status = 'published'",
+        $campaign_id
     );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $social_sql es el resultado de $wpdb->prepare().
+    $social = $wpdb->get_row($social_sql, ARRAY_A);
     $social = is_array($social) ? $social : array();
 
     $strip_visits = 0;
@@ -614,18 +614,18 @@ function seo_marketing_performance_campaign_metrics($campaign)
         );
     }
 
-    $social_by_product = (array) $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT content_id,
-                    COALESCE(SUM(clicks),0) clicks
-             FROM {$social_table}
-             WHERE campaign_id = %d
-               AND status = 'published'
-             GROUP BY content_id",
-            $campaign_id
-        ),
-        ARRAY_A
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla social interna; campaign_id enlazado mediante $wpdb->prepare().
+    $social_products_sql = $wpdb->prepare(
+        "SELECT content_id,
+                COALESCE(SUM(clicks),0) clicks
+         FROM {$social_table}
+         WHERE campaign_id = %d
+           AND status = 'published'
+         GROUP BY content_id",
+        $campaign_id
     );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $social_products_sql es el resultado de $wpdb->prepare().
+    $social_by_product = (array) $wpdb->get_results($social_products_sql, ARRAY_A);
     foreach ($social_by_product as $row) {
         $pid = absint($row['content_id'] ?? 0);
         if (isset($product_metrics[$pid])) {
