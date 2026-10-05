@@ -199,12 +199,120 @@ final class SEO_Solucionador_Admin {
             wp_die('No tienes permisos para gestionar Solucionador.');
         }
         check_admin_referer('seo_solucionador_accept_all');
-        set_transient(
-            'seo_solucionador_notice_' . get_current_user_id(),
-            'Aceptar todo está desactivado en Solucionador 0.7.1: cada dossier debe pasar por revisión editorial antes de crear un borrador.',
-            90
+
+        global $wpdb;
+        SEO_Solucionador_DB::maybe_install();
+        $table = SEO_Solucionador_DB::dossiers_table();
+        if (!SEO_Solucionador_DB::table_exists($table)) {
+            set_transient(
+                'seo_solucionador_notice_' . get_current_user_id(),
+                'La tabla de dossiers todavía no está disponible.',
+                90
+            );
+            self::redirect(array('sol_error'=>'bulk_dossiers_missing'));
+        }
+
+        $after_id = absint($_REQUEST['after_id'] ?? 0);
+        $created = absint($_REQUEST['created'] ?? 0);
+        $skipped = absint($_REQUEST['skipped'] ?? 0);
+        $errors = absint($_REQUEST['errors'] ?? 0);
+        $batch_size = 50;
+
+        $rows = (array)$wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id,category_id,question_count,source_hash,rejected_source_hash
+                 FROM {$table}
+                 WHERE id>%d
+                   AND question_count>0
+                   AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $after_id,
+                $batch_size
+            ),
+            ARRAY_A
         );
-        self::redirect(array('sol_error'=>'bulk_review_required'));
+
+        $last_id = $after_id;
+        foreach ($rows as $row) {
+            $dossier_id = absint($row['id'] ?? 0);
+            $category_id = absint($row['category_id'] ?? 0);
+            $last_id = max($last_id,$dossier_id);
+
+            if (!$dossier_id || !$category_id || absint($row['question_count'] ?? 0) < 1) {
+                $skipped++;
+                continue;
+            }
+
+            $term = get_term($category_id,'product_cat');
+            if (!$term || is_wp_error($term)) {
+                $skipped++;
+                continue;
+            }
+
+            $existing_post = SEO_Solucionador_Posts::managed_post_id_by_category_public($category_id);
+            if ($existing_post && get_post_status($existing_post) !== 'trash') {
+                $skipped++;
+                continue;
+            }
+
+            $topic = SEO_Solucionador_Engine::prepare_category_topic($category_id);
+            if (is_wp_error($topic)) {
+                $errors++;
+                continue;
+            }
+
+            $topic_id = absint($topic['id'] ?? 0);
+            if (!$topic_id) {
+                $errors++;
+                continue;
+            }
+
+            SEO_Solucionador_DB::update_topic($topic_id,array(
+                'status'=>'approved',
+                'workflow_state'=>'approved',
+            ));
+            SEO_Solucionador_DB::record_workflow(
+                $topic_id,
+                'approved',
+                'La Editora acepta esta propuesta mediante Aceptar todos. Se crea únicamente un post draft para revisión humana.',
+                'CREATE_POST'
+            );
+
+            $result = SEO_Solucionador_Posts::create_draft($topic_id,true);
+            if (is_wp_error($result)) {
+                $errors++;
+                continue;
+            }
+
+            if (absint($result) > 0) {
+                $created++;
+            } else {
+                $errors++;
+            }
+        }
+
+        if (count($rows) === $batch_size && $last_id > $after_id) {
+            $next = wp_nonce_url(
+                add_query_arg(array(
+                    'action'=>'seo_solucionador_accept_all',
+                    'after_id'=>$last_id,
+                    'created'=>$created,
+                    'skipped'=>$skipped,
+                    'errors'=>$errors,
+                ),admin_url('admin-post.php')),
+                'seo_solucionador_accept_all'
+            );
+            wp_safe_redirect($next);
+            exit;
+        }
+
+        self::redirect(array(
+            'sol_msg'=>'bulk_done',
+            'created'=>$created,
+            'skipped'=>$skipped,
+            'errors'=>$errors,
+        ));
     }
 
     public static function handle_post_action() {
@@ -540,13 +648,23 @@ final class SEO_Solucionador_Admin {
     }
 
     private static function render_global_actions() {
+        $counts = self::simple_counts();
+
         echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 4px">';
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
+        echo '<input type="hidden" name="action" value="seo_solucionador_accept_all">';
+        wp_nonce_field('seo_solucionador_accept_all');
+        echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Se convertirán en post draft todas las propuestas pendientes de Solucionador que tengan material útil y product_cat válida. Las ya convertidas, rechazadas o inválidas se omitirán. No se publicará nada automáticamente. ¿Continuar?\');">Aceptar todos</button>';
+        echo '</form>';
+
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
         echo '<input type="hidden" name="action" value="seo_solucionador_export_json">';
         wp_nonce_field('seo_solucionador_export_json');
         echo '<button type="submit" class="button">Descargar JSON</button>';
         echo '</form>';
-        echo '<span class="description">Cada dossier requiere revisión editorial individual antes de crear un borrador.</span>';
+
+        echo '<span class="description">Pendientes estimadas: <strong>' . esc_html(number_format_i18n(absint($counts['proposed'] ?? 0))) . '</strong>. Aceptar todos crea únicamente borradores; la publicación sigue siendo humana.</span>';
         echo '</div>';
     }
 
