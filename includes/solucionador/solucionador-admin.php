@@ -202,7 +202,7 @@ final class SEO_Solucionador_Admin {
 
         global $wpdb;
         SEO_Solucionador_DB::maybe_install();
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql(SEO_Solucionador_DB::dossiers_table());
         if (!SEO_Solucionador_DB::table_exists($table)) {
             set_transient(
                 'seo_solucionador_notice_' . get_current_user_id(),
@@ -212,16 +212,17 @@ final class SEO_Solucionador_Admin {
             self::redirect(array('sol_error'=>'bulk_dossiers_missing'));
         }
 
-        $after_id = absint($_REQUEST['after_id'] ?? 0);
-        $created = absint($_REQUEST['created'] ?? 0);
-        $skipped = absint($_REQUEST['skipped'] ?? 0);
-        $errors = absint($_REQUEST['errors'] ?? 0);
+        $after_id = isset($_REQUEST['after_id']) ? absint(wp_unslash($_REQUEST['after_id'])) : 0;
+        $created = isset($_REQUEST['created']) ? absint(wp_unslash($_REQUEST['created'])) : 0;
+        $skipped = isset($_REQUEST['skipped']) ? absint(wp_unslash($_REQUEST['skipped'])) : 0;
+        $errors = isset($_REQUEST['errors']) ? absint(wp_unslash($_REQUEST['errors'])) : 0;
         $batch_size = 50;
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nombre de tabla interno escapado; valores preparados.
         $rows = (array)$wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,category_id,question_count,source_hash,rejected_source_hash
-                 FROM {$table}
+                 FROM `{$table}`
                  WHERE id>%d
                    AND question_count>0
                    AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)
