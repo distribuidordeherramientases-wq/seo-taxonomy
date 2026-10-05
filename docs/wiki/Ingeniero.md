@@ -74,6 +74,12 @@ La **respuesta** es la síntesis técnica persistida en `summary`; se conservan 
 
 No se deduplica ni descarta un knowledge active por masa mínima.
 
+## Objetivo mínimo de investigación
+
+Ingeniero mantiene como objetivo operativo **4 knowledge activos por product_cat**. Una categoría con 1–3 knowledge activos vuelve a considerarse pendiente de completar cuando se prepara la cola de investigación.
+
+Este objetivo pertenece a Investigación. Editorial no usa “4” como gate: si sólo existe un knowledge activo, igualmente se muestra a Editora.
+
 ## Cobertura editorial
 
 Ingeniero usa SEO_Editorial_Coverage, la API neutral compartida de cobertura.
