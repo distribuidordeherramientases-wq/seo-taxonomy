@@ -128,6 +128,7 @@ final class SEO_Auditor_Category_Rebalance {
                     INNER JOIN {$wpdb->posts} p ON p.ID=tr.object_id AND p.post_type='product' AND p.post_status='publish'
                     WHERE tt.taxonomy='product_cat'
                     GROUP BY tt.term_id";
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Fixed read-only query over core WordPress tables, no external input.
             foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $row) {
                 $counts[absint($row['term_id'] ?? 0)] = absint($row['products'] ?? 0);
             }
@@ -694,6 +695,7 @@ final class SEO_Auditor_Category_Rebalance {
         }
 
         $groups = array('rol'=>array(),'tipo'=>array(),'aplicacion'=>array(),'plataforma'=>array(),'subtipo'=>array());
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $v is an internal prefixed vocabulary table; source_id is bound through $wpdb->prepare().
         $source_vocab = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT ov.vocabulary_id,v.semantic_group
              FROM {$wpdb->prefix}seo_object_vocabulary ov

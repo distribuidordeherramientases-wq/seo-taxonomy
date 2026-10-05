@@ -38,6 +38,7 @@ if (!function_exists('seo_product_get_provider_suggestions')) {
         if (seo_product_table_exists($catalog_table)) {
             $providers = array_merge(
                 $providers,
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
                 (array) $wpdb->get_col(
                     "SELECT DISTINCT proveedor
                      FROM {$catalog_table}
@@ -114,6 +115,7 @@ if (!function_exists('seo_product_get_type_role_map')) {
             return $map;
         }
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas validadas; consulta fija sin entrada de usuario.
         $rows = $wpdb->get_results(
             "SELECT trm.type_vocabulary_id, trm.role_vocabulary_id, rv.label AS role_label
              FROM {$type_role_table} trm

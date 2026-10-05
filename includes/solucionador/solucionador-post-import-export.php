@@ -281,6 +281,7 @@ if (!function_exists('seo_solucionador_posts_ie_export_handler')) {
             wp_die(esc_html__('No se pudo generar el CSV.', 'seo-taxonomy'));
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- php://output is an explicit response stream, not an arbitrary filesystem path.
         fwrite($out, "\xEF\xBB\xBF");
         $columns = seo_solucionador_posts_ie_columns();
         fputcsv($out, $columns, ';', '"', '');
@@ -297,6 +298,7 @@ if (!function_exists('seo_solucionador_posts_ie_export_handler')) {
             fputcsv($out, $values, ';', '"', '');
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- php://output is an explicit response stream, not an arbitrary filesystem path.
         fclose($out);
         exit;
     }
@@ -368,6 +370,7 @@ if (!function_exists('seo_solucionador_posts_ie_redirect')) {
 
 if (!function_exists('seo_solucionador_posts_ie_csv_rows')) {
     function seo_solucionador_posts_ie_csv_rows($path) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv requires a stream handle for the validated uploaded CSV temporary file.
         $fh = fopen((string) $path, 'r');
         if (!$fh) {
             return new WP_Error('seo_solucionador_posts_ie_open', 'No se pudo abrir el CSV.');
@@ -375,6 +378,7 @@ if (!function_exists('seo_solucionador_posts_ie_csv_rows')) {
 
         $header = fgetcsv($fh, 0, ';', '"', '');
         if (!is_array($header)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Explicit CSV stream handle must be closed on header error.
             fclose($fh);
             return new WP_Error('seo_solucionador_posts_ie_header', 'El CSV no tiene una cabecera válida.');
         }
@@ -385,6 +389,7 @@ if (!function_exists('seo_solucionador_posts_ie_csv_rows')) {
         $header = array_map('sanitize_key', $header);
 
         if (!in_array('post_id', $header, true) || !in_array('post_title', $header, true)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Explicit CSV stream handle must be closed on validation error.
             fclose($fh);
             return new WP_Error('seo_solucionador_posts_ie_columns', 'El CSV debe contener post_id y post_title.');
         }
@@ -403,6 +408,7 @@ if (!function_exists('seo_solucionador_posts_ie_csv_rows')) {
             $values = array_pad($values, count($header), '');
             $row = array_combine($header, array_slice($values, 0, count($header)));
             if (!is_array($row)) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Explicit CSV stream handle must be closed on parser error.
                 fclose($fh);
                 return new WP_Error('seo_solucionador_posts_ie_row', sprintf('No se pudo interpretar la fila %d.', $line));
             }
@@ -411,6 +417,7 @@ if (!function_exists('seo_solucionador_posts_ie_csv_rows')) {
             $rows[] = $row;
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Explicit CSV stream handle must be closed after fgetcsv parsing.
         fclose($fh);
         return $rows;
     }

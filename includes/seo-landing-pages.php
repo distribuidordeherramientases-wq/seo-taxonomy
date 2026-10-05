@@ -265,20 +265,20 @@ function seo_landing_get_existing()
         $stats_select = 'COALESCE(s.views_30d,0) AS views_30d, COALESCE(s.views_total,0) AS views_total';
     }
 
-    $rows = $wpdb->get_results(
-        "SELECT DISTINCT p.ID, p.post_title, p.post_status, p.post_date, p.post_modified,
-                {$stats_select}
-         FROM {$wpdb->posts} p
-         INNER JOIN {$nodes} n
-             ON n.object_id = p.ID
-            AND n.object_type = 'page'
-            AND n.seo_role = 'landing'
-            AND n.status = 1
-         {$stats_join}
-         WHERE p.post_type = 'page'
-           AND p.post_status NOT IN ('trash','auto-draft')
-         ORDER BY p.post_status = 'publish' DESC, views_30d DESC, p.post_modified DESC"
-    );
+    $query = "SELECT DISTINCT p.ID, p.post_title, p.post_status, p.post_date, p.post_modified,
+                     {$stats_select}
+              FROM {$wpdb->posts} p
+              INNER JOIN {$nodes} n
+                  ON n.object_id = p.ID
+                 AND n.object_type = 'page'
+                 AND n.seo_role = 'landing'
+                 AND n.status = 1
+              {$stats_join}
+              WHERE p.post_type = 'page'
+                AND p.post_status NOT IN ('trash','auto-draft')
+              ORDER BY p.post_status = 'publish' DESC, views_30d DESC, p.post_modified DESC";
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SELECT/JOIN se eligen solo entre fragmentos internos cerrados; no hay entrada de usuario.
+    $rows = $wpdb->get_results($query);
 
     return is_array($rows) ? $rows : array();
 }
@@ -365,6 +365,7 @@ function seo_landing_get_coverage_gaps($limit = 40)
         LIMIT {$limit}
     ";
 
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas/core y limite entero acotado; consulta sin entrada de usuario.
     $rows = $wpdb->get_results($sql);
     return is_array($rows) ? $rows : array();
 }

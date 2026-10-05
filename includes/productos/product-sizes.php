@@ -191,6 +191,7 @@ if (!function_exists('seo_product_sizes_collect_products')) {
             ORDER BY p.ID DESC
         ";
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Fixed read-only query over core WooCommerce/WordPress tables; no external input.
         $rows = $wpdb->get_results($sql, ARRAY_A);
         if (!is_array($rows)) {
             return [];

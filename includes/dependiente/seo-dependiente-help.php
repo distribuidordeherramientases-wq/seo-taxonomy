@@ -131,15 +131,17 @@ final class SEO_Dependiente_Help {
             // Si el ultimo gesto del cliente no genero search_id (por ejemplo,
             // navegacion visual), recuperamos su busqueda anonima mas reciente.
             if (!$search && $browser_session_hash && SEO_Dependiente_Search_Log::table_exists()) {
-                $latest_uuid = (string) $wpdb->get_var(
-                    $wpdb->prepare(
-                        'SELECT search_uuid FROM ' . SEO_Dependiente_Search_Log::table()
-                        . ' WHERE session_hash = %s AND created_at >= DATE_SUB(%s, INTERVAL 2 HOUR)'
-                        . ' ORDER BY id DESC LIMIT 1',
-                        $browser_session_hash,
-                        current_time('mysql')
-                    )
+                $search_log_table = SEO_Dependiente_Search_Log::table();
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal search-log table; session/time values are bound below.
+                $latest_sql = $wpdb->prepare(
+                    "SELECT search_uuid FROM {$search_log_table}
+                     WHERE session_hash = %s AND created_at >= DATE_SUB(%s, INTERVAL 2 HOUR)
+                     ORDER BY id DESC LIMIT 1",
+                    $browser_session_hash,
+                    current_time('mysql')
                 );
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $latest_sql is the result of $wpdb->prepare().
+                $latest_uuid = (string) $wpdb->get_var($latest_sql);
                 if ($latest_uuid) {
                     $search_uuid = $latest_uuid;
                     $search = SEO_Dependiente_Search_Log::get_search($search_uuid);

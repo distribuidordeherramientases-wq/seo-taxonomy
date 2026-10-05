@@ -253,7 +253,10 @@ function seo_reports_ai_search_page_changes($property_id, array $period, array $
           AND page_hash IN ({$placeholders})
         GROUP BY page_hash";
 
-    $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla GSC interna y placeholders generados localmente; fechas/hash/páginas enlazados mediante $wpdb->prepare().
+    $prepared_sql = $wpdb->prepare($sql, $args);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+    $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
     $out = array();
     foreach ((array) $rows as $row) {
         $out[(string) $row['page_hash']] = array(

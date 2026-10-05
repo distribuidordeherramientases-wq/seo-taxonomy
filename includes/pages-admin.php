@@ -168,7 +168,10 @@ if (!function_exists('seo_page_editor_get_pages_by_roles')) {
                   AND p.post_status IN ({$status_placeholders})
                 ORDER BY n.seo_role ASC, p.post_title ASC";
 
-        return (array) $wpdb->get_results($wpdb->prepare($sql, $params));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL uses core/internal tables plus generated placeholders; all role/status values are bound here.
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the result of $wpdb->prepare().
+        return (array) $wpdb->get_results($prepared_sql);
     }
 }
 

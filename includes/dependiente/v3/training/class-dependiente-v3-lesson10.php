@@ -117,7 +117,10 @@ final class SEO_Dependiente_V3_Lesson10 {
                    AND r.evaluation_status='fail'
                  ORDER BY q.lesson_order ASC,q.id ASC";
         $params = array_merge($lesson_keys, $lesson_keys);
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y listas de placeholders %s generadas localmente; lesson keys enlazadas mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql, ARRAY_A);
         self::$stats['historical_failed_rows'] = count($rows);
 
         $prepared_rows = array();
@@ -555,11 +558,13 @@ final class SEO_Dependiente_V3_Lesson10 {
         if ($faq_ids && self::table_exists($faq_table)) {
             foreach (array_chunk($faq_ids, 500) as $chunk) {
                 $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
-                $sql = $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+                $prepared_faq_sql = $wpdb->prepare(
                     "SELECT id,object_type,object_id,active FROM {$faq_table} WHERE id IN ({$placeholders})",
                     $chunk
                 );
-                foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $faq) {
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_faq_sql es el resultado de $wpdb->prepare().
+                foreach ((array) $wpdb->get_results($prepared_faq_sql, ARRAY_A) as $faq) {
                     self::$faq_cache[absint($faq['id'] ?? 0)] = $faq;
                 }
             }
@@ -569,11 +574,13 @@ final class SEO_Dependiente_V3_Lesson10 {
         if ($post_ids) {
             foreach (array_chunk($post_ids, 500) as $chunk) {
                 $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
-                $sql = $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla core y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+                $prepared_post_sql = $wpdb->prepare(
                     "SELECT ID,post_type,post_status FROM {$wpdb->posts} WHERE ID IN ({$placeholders})",
                     $chunk
                 );
-                foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $post) {
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_post_sql es el resultado de $wpdb->prepare().
+                foreach ((array) $wpdb->get_results($prepared_post_sql, ARRAY_A) as $post) {
                     self::$post_cache[absint($post['ID'] ?? 0)] = $post;
                 }
             }

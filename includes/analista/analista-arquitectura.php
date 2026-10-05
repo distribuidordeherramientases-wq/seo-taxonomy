@@ -321,8 +321,11 @@ if (!function_exists('seo_analista_architecture_gpc')) {
         $out = array('categories'=>array(),'products'=>0,'rows'=>0);
         if (!$keys || !taxonomy_exists('product_cat')) return $out;
         $placeholders = implode(',', array_fill(0, count($keys), '%s'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla core y placeholders %s generados localmente; claves enlazadas mediante $wpdb->prepare().
         $exists_sql = $wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key IN ({$placeholders}) AND meta_value<>''", $keys);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $exists_sql es el resultado de $wpdb->prepare().
         if (!(int) $wpdb->get_var($exists_sql)) return $out;
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas core y placeholders %s generados localmente; claves enlazadas mediante $wpdb->prepare().
         $sql = $wpdb->prepare(
             "SELECT tt.term_id,pm.meta_value,COUNT(DISTINCT p.ID) AS n
              FROM {$wpdb->posts} p
@@ -334,6 +337,7 @@ if (!function_exists('seo_analista_architecture_gpc')) {
              ORDER BY n DESC LIMIT 4000",
             $keys
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         $rows = (array) $wpdb->get_results($sql, ARRAY_A);
         $product_sum = 0;
         foreach ($rows as $row) {

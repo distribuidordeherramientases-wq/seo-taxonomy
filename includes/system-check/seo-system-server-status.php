@@ -2443,6 +2443,7 @@ function seo_server_status_mysql_query_benchmark() {
     foreach ($tests as $test) {
         $wpdb->last_error = '';
         $started = microtime(true);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL definido exclusivamente en la lista interna de pruebas de solo lectura.
         $wpdb->get_var($test['sql']);
         $elapsed_ms = max(0.0, (microtime(true) - $started) * 1000.0);
         $samples[] = array(
@@ -3067,33 +3068,34 @@ function seo_server_status_count_products_without_any_image_source() {
         $external_links[] = "(si.{$column} = p.ID)";
     }
     $status_where = in_array('status', $columns, true) ? "AND si.status = 'active'" : '';
+    $external_link_sql = implode(' OR ', $external_links);
 
-    return (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM {$wpdb->posts} p
-         WHERE p.post_type = 'product'
-           AND p.post_status = 'publish'
-           AND NOT EXISTS (
-                SELECT 1
-                FROM {$wpdb->postmeta} pm
-                INNER JOIN {$wpdb->posts} a
-                   ON a.ID = CAST(pm.meta_value AS UNSIGNED)
-                  AND a.post_type = 'attachment'
-                WHERE pm.post_id = p.ID
-                  AND pm.meta_key = '_thumbnail_id'
-                  AND pm.meta_value IS NOT NULL
-                  AND pm.meta_value <> ''
-                  AND pm.meta_value <> '0'
-           )
-           AND NOT EXISTS (
-                SELECT 1
-                FROM {$supplier_table} si
-                WHERE (" . implode(' OR ', $external_links) . ")
-                  {$status_where}
-                  AND si.image_url IS NOT NULL
-                  AND TRIM(si.image_url) <> ''
-           )"
-    );
+    $sql = "SELECT COUNT(*)
+            FROM {$wpdb->posts} p
+            WHERE p.post_type = 'product'
+              AND p.post_status = 'publish'
+              AND NOT EXISTS (
+                   SELECT 1
+                   FROM {$wpdb->postmeta} pm
+                   INNER JOIN {$wpdb->posts} a
+                      ON a.ID = CAST(pm.meta_value AS UNSIGNED)
+                     AND a.post_type = 'attachment'
+                   WHERE pm.post_id = p.ID
+                     AND pm.meta_key = '_thumbnail_id'
+                     AND pm.meta_value IS NOT NULL
+                     AND pm.meta_value <> ''
+                     AND pm.meta_value <> '0'
+              )
+              AND NOT EXISTS (
+                   SELECT 1
+                   FROM {$supplier_table} si
+                   WHERE ({$external_link_sql})
+                     {$status_where}
+                     AND si.image_url IS NOT NULL
+                     AND TRIM(si.image_url) <> ''
+              )";
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columnas proceden de allowlists e inventario interno; consulta fija de solo lectura.
+    return (int) $wpdb->get_var($sql);
 }
 
 /**

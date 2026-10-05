@@ -226,7 +226,10 @@ if (!function_exists('seo_images_cleanup_source_rows')) {
                 ORDER BY {$id_col} ASC
                 LIMIT %d";
 
-        $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columnas proceden de definición interna validada; valores y límite enlazados mediante $wpdb->prepare().
+        $prepared_sql = $wpdb->prepare($sql, $params);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+        $rows = (array) $wpdb->get_results($prepared_sql, ARRAY_A);
 
         if ($wpdb->last_error !== '') {
             throw new RuntimeException(

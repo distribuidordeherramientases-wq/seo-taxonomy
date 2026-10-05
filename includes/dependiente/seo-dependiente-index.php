@@ -427,6 +427,7 @@ final class SEO_Dependiente_Index {
             'SELECT * FROM `' . esc_sql(self::table()) . "` WHERE product_id IN ({$placeholders})",
             $ids
         );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the result of $wpdb->prepare() over the internal index table.
         $rows = (array) $wpdb->get_results($sql, ARRAY_A);
         $mapped = array();
         foreach ($rows as $row) {
@@ -870,6 +871,7 @@ final class SEO_Dependiente_Index {
                           AND TRIM(image_url) <> ''
                         ORDER BY " . implode(', ', $order) . " LIMIT 1";
 
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL is assembled from allowlisted internal columns and all values are bound through $wpdb->prepare().
                 $url = esc_url_raw((string) $wpdb->get_var($wpdb->prepare($sql, $params)));
                 if (self::is_remote_image_url($url)) {
                     return $cache[$product_id] = $url;

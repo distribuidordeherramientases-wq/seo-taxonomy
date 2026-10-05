@@ -183,6 +183,7 @@ final class SEO_Dependiente_Insights {
         $days = self::normalize_days($days);
         $limit = min(30, max(1, absint($limit)));
         $table = SEO_Dependiente_Search_Log::table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $column is selected from an internal allowlist before this query.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT {$column} AS value, COUNT(*) AS qty

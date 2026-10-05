@@ -103,6 +103,7 @@ $supplier_images_exists = $wpdb->get_var(
 ) === $supplier_images_table;
 
 if ($supplier_images_exists) {
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $supplier_images_table is an internal prefixed table and is existence-checked above.
     $external_rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT

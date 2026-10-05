@@ -680,6 +680,7 @@ if (!function_exists('seo_analista_content_work')) {
                     "SELECT ID, post_title, post_name, post_content, post_excerpt, post_modified\n                     FROM {$wpdb->posts}\n                     WHERE post_status='publish' AND post_type='product' AND post_name IN ({$placeholders})",
                     $chunk
                 );
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() with generated slug placeholders.
                 $products = (array) $wpdb->get_results($sql, ARRAY_A);
                 foreach ($products as $post) {
                     $id = absint($post['ID'] ?? 0);
