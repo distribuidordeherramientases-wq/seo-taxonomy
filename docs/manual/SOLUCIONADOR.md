@@ -258,43 +258,91 @@ Solucionador:
 
 ## Cómo editar el material recibido
 
-> **IMPORTANTE: editar no significa limpiar el borrador.**
+> **IMPORTANTE: editar no significa limpiar el borrador ni rellenar una plantilla.**
 
-Solucionador entrega **fuentes y material de trabajo**, no un artículo preparado para publicar. Editora debe interpretar el dossier y redactar el contenido final.
+Solucionador entrega **evidencias y material de trabajo**, no un artículo preparado para publicar. Editora debe interpretar el dossier y redactar el contenido final. La originalidad no se busca con sinónimos, faltas, muletillas o variaciones aleatorias: nace de la información específica de cada categoría.
+
+### Redactar a partir de evidencias
 
 Proceso editorial esperado:
 
-1. leer primero todas las FAQs y todo el material de Dependiente;
-2. identificar qué información aporta valor real al cliente;
-3. redactar el artículo de nuevo con una estructura propia;
-4. fusionar consultas repetitivas sobre potencia, dimensiones, capacidad, materiales, compatibilidad u otros atributos en explicaciones generales cuando resulte útil;
-5. transformar búsquedas de catálogo y coincidencias mecánicas en criterios de elección, explicaciones o recomendaciones;
-6. conservar o adaptar una FAQ humana cuando ya esté bien redactada;
-7. si Dependiente aporta una idea útil pero su respuesta es mecánica, pobre o demasiado ligada a productos concretos, conservar la idea y reescribirla;
-8. descartar cualquier afirmación que no pueda verificarse;
-9. eliminar material repetitivo, irrelevante o que sólo sirva para comprender el dossier;
-10. producir un único artículo coherente en el que el lector no pueda distinguir qué parte procedía de FAQ y cuál de Dependiente.
+1. leer primero todas las FAQs, el conocimiento de Dependiente y el resto del dossier;
+2. identificar qué datos, dudas, diferencias, limitaciones y criterios aportan valor real al cliente;
+3. descartar material mediocre, irrelevante, repetitivo, incorrecto o no verificable;
+4. dejar que el dossier determine los temas, el orden y la profundidad del artículo;
+5. no imponer una estructura fija: un artículo puede necesitar tres bloques y otro seis; puede empezar por una incompatibilidad, una pregunta o un criterio de elección;
+6. no reutilizar párrafos, transiciones o advertencias estándar para completar huecos;
+7. transformar consultas de catálogo y coincidencias mecánicas en explicaciones y criterios comprensibles;
+8. conservar o adaptar una FAQ humana cuando sea buena y fusionarla cuando repita otra idea;
+9. convertir el conocimiento válido de Dependiente en información editorial; nunca copiar su lenguaje mecánico;
+10. no crear un apartado si el dossier no contiene evidencia suficiente para sostenerlo;
+11. no añadir por cuenta propia especificaciones, normas, compatibilidades, capacidades o afirmaciones técnicas nuevas;
+12. integrar las fuentes en un único artículo coherente, sin exponer al lector su procedencia interna.
 
-No publicar literalmente consultas del tipo:
+No publicar literalmente consultas o respuestas del tipo:
 
 - “Busco productos con tipo X y atributo Y”;
 - “Muéstrame productos con…”;
 - “Coincide en características”;
+- “Familia de producto adecuada”;
 - listados de productos sin explicación de por qué son relevantes.
 
-### Regla de control por párrafo
+### Especificidad y diferenciación
+
+La señal de calidad principal es la **especificidad**.
+
+Cada artículo debe apoyarse en criterios que tengan sentido para su propia categoría. Ejemplos:
+
+- caudal y altura en bombas;
+- apertura y garganta en abrazaderas;
+- plataforma de batería en herramientas;
+- peso y tipo de puerta en automatismos.
+
+No se deben usar consejos universales como relleno cuando el dossier no aporta información propia.
+
+**Prueba de especificidad:** quitar mentalmente el nombre de la categoría. Si el texto podría publicarse casi igual en muchas otras categorías, todavía es demasiado genérico y necesita más diferenciación editorial.
+
+La solución no es cambiar palabras de forma cosmética. Hay que volver a las evidencias y encontrar qué información propia falta.
+
+### Control por párrafo
 
 Cada párrafo publicado debe aportar al menos una de estas cosas:
 
 - una explicación;
+- un criterio de elección;
+- una diferencia relevante;
 - una recomendación;
-- una diferencia;
-- una precaución;
-- un criterio de decisión.
+- una limitación;
+- una precaución.
 
-Si un fragmento sólo reproduce una búsqueda, enumera productos porque sí, repite una característica sin explicar para qué sirve o conserva lenguaje del motor, todavía no está editado: debe transformarse o eliminarse.
+Si un fragmento sólo reproduce una búsqueda, enumera productos, repite una característica sin explicar su utilidad o podría intercambiarse con decenas de artículos, todavía no está editado: debe transformarse o eliminarse.
 
-Las reglas de H1/H2/H3, listas, negritas, longitud y cierre son **secundarias** respecto a este principio. Primero se construye un artículo útil; después se aplica el formato.
+### Fiabilidad técnica
+
+Al transformar el dossier se puede explicar y relacionar la información disponible, pero no añadir conocimiento técnico nuevo sin respaldo.
+
+Especialmente en electricidad, baterías, gas, elevación, seguridad y otras materias sensibles:
+
+- no inventar normas;
+- no deducir compatibilidades;
+- no asumir capacidades;
+- no convertir una coincidencia del catálogo en una afirmación técnica.
+
+Si una afirmación importante no está respaldada por el material disponible, se elimina o queda pendiente de verificación.
+
+### Formato como guía secundaria
+
+Las reglas de H1/H2/H3, listas, negritas, longitud y cierre son secundarias respecto al contenido.
+
+- El título de WordPress es el H1 y no se repite dentro del cuerpo.
+- El inicio puede ser una explicación breve, una pregunta, una incompatibilidad o el criterio que mejor sitúe al lector.
+- Se usan únicamente los H2 que el dossier justifique, sin número ni orden prefijados.
+- Una pregunta concreta puede aparecer como H3 cuando ayude al lector; no todas las fuentes deben convertirse en preguntas.
+- Las listas se usan sólo cuando mejoren pasos, comprobaciones, opciones o comparaciones.
+- `En resumen` es opcional: se utiliza si sintetiza decisiones importantes, no como cierre automático.
+- No existe una longitud mínima ni máxima obligatoria.
+
+**Regla final:** el texto debe tener razones para existir en esa URL concreta. Si al cambiar el nombre de la categoría la mayor parte del artículo sigue funcionando igual, todavía necesita diferenciación editorial.
 
 ## Cambios y NEEDS_UPDATE
 
