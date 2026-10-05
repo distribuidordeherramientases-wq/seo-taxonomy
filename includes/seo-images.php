@@ -1468,27 +1468,6 @@ if (!function_exists('seo_images_public_logo_fallback')) {
             }
         }
 
-        $site_icon_id = absint(get_option('site_icon'));
-        if ($site_icon_id > 0 && seo_images_is_valid_attachment($site_icon_id)) {
-            $url = wp_get_attachment_image_url($site_icon_id, 'full');
-            if ($url) {
-                return array(
-                    'attachment_id' => $site_icon_id,
-                    'url'           => esc_url_raw((string) $url),
-                    'source'        => 'site_icon',
-                );
-            }
-        }
-
-        $site_icon = function_exists('get_site_icon_url') ? esc_url_raw((string) get_site_icon_url(512)) : '';
-        if ($site_icon && preg_match('#^https?://#i', $site_icon)) {
-            return array(
-                'attachment_id' => 0,
-                'url'           => $site_icon,
-                'source'        => 'site_icon',
-            );
-        }
-
         return null;
     }
 }
@@ -1502,10 +1481,10 @@ if (!function_exists('seo_images_get_public_product_urls')) {
      * 2. Media registrada para el producto en seo_media_usos.
      * 3. Imágenes externas activas del proveedor.
      * 4. Recursos equivalentes del producto padre (variaciones).
-     * 5. Logo/site icon únicamente cuando no existe ninguna imagen real.
+     * 5. Logo corporativo (custom_logo) únicamente cuando no existe ninguna imagen real.
      *
-     * El logo/site icon se excluye siempre de las fuentes normales, incluso si
-     * quedó asignado históricamente como destacada o galería.
+     * El logo corporativo se excluye siempre de las fuentes normales, incluso
+     * si quedó asignado históricamente como destacada o galería.
      *
      * @param int|WC_Product $product Producto o ID.
      * @param int            $limit Máximo de URLs.
@@ -1530,7 +1509,6 @@ if (!function_exists('seo_images_get_public_product_urls')) {
 
         $site_asset_ids = array_values(array_unique(array_filter(array(
             absint(get_theme_mod('custom_logo')),
-            absint(get_option('site_icon')),
         ))));
 
         $urls = array();
@@ -1629,7 +1607,7 @@ if (!function_exists('seo_images_get_public_product_urls')) {
             $add_external($parent_id);
         }
 
-        // El logo nunca es imagen adicional: sólo se usa si no existe ninguna real.
+        // El logo corporativo nunca es imagen adicional: sólo se usa si no existe ninguna real.
         if (empty($urls) && $include_logo_fallback) {
             $fallback = seo_images_public_logo_fallback();
             if (is_array($fallback) && !empty($fallback['url'])) {
