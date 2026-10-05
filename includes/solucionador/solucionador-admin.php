@@ -269,6 +269,12 @@ final class SEO_Solucionador_Admin {
                 continue;
             }
 
+            $topic_post_id = absint($topic['draft_post_id'] ?? 0);
+            if ($topic_post_id && get_post_status($topic_post_id) && get_post_status($topic_post_id) !== 'trash') {
+                $skipped++;
+                continue;
+            }
+
             SEO_Solucionador_DB::update_topic($topic_id,array(
                 'status'=>'approved',
                 'workflow_state'=>'approved',
