@@ -168,6 +168,7 @@ if (!function_exists('dht_shop_get_media_candidates')) {
         }
 
         if ($tables_available[$tables_key]) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Media table names come from internal helpers and both tables are existence-checked above.
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT u.attachment_id, u.tipo_uso, i.url_origen
