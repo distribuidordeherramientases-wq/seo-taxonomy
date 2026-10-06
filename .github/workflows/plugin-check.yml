@@ -6,8 +6,6 @@ on:
     branches:
       - staging
       - main
-      - 'fix/**'
-      - 'docs/**'
   workflow_dispatch:
 
 concurrency:
@@ -25,9 +23,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build WordPress.org package tree
+        run: |
+          rm -rf build/seo-taxonomy
+          mkdir -p build/seo-taxonomy
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='build/' \
+            --exclude='docs/' \
+            --exclude='SUPPLIER-SYNC-V2.md' \
+            ./ build/seo-taxonomy/
+
       - name: Run WordPress Plugin Check
         uses: wordpress/plugin-check-action@v1
         with:
-          build-dir: './'
+          build-dir: './build/seo-taxonomy'
           slug: seo-taxonomy
           wp-version: latest
