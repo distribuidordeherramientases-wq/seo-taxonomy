@@ -1,0 +1,42 @@
+name: Build WordPress.org Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build clean plugin tree
+        run: |
+          rm -rf build
+          mkdir -p build/seo-taxonomy
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='build/' \
+            --exclude='docs/' \
+            --exclude='CONTRIBUTING.md' \
+            --exclude='README.md' \
+            --exclude='SUPPLIER-SYNC-V2.md' \
+            ./ build/seo-taxonomy/
+
+      - name: Create ZIP
+        working-directory: build
+        run: zip -qr seo-taxonomy.zip seo-taxonomy
+
+      - name: Upload WordPress.org package
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-taxonomy-wordpress-org-${{ github.sha }}
+          path: build/seo-taxonomy.zip
+          if-no-files-found: error
+          retention-days: 14
