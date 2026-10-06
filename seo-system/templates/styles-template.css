@@ -6746,8 +6746,27 @@ html {
         grid-template-columns: minmax(0, 1.35fr) minmax(320px, .8fr);
     }
 
+    /* La portada mantiene siempre los tres clusters en una sola fila.
+       En anchos intermedios la imagen pasa arriba para no estrechar el texto. */
     .dht-front-structure .sf-structure-cluster-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .dht-front-structure .sf-structure-cluster {
+        grid-template-columns: 1fr;
+        grid-template-rows: 118px auto;
+    }
+
+    .dht-front-structure .sf-structure-cluster-media {
+        min-height: 118px;
+    }
+
+    .dht-front-structure .sf-structure-cluster-copy {
+        padding: 14px 15px 16px;
+    }
+
+    .dht-front-structure .sf-structure-cluster-copy strong {
+        font-size: 17px;
     }
 
     .dht-front-structure .sf-primary-hub-grid {
@@ -6860,12 +6879,20 @@ html {
         font-size: 9px;
     }
 
+    /* En móvil los tres clusters ocupan exactamente el ancho disponible.
+       Se evita el carrusel parcial y cualquier hueco visual sobrante. */
     .dht-front-structure .sf-mobile-cluster-track--light {
-        margin-right: -12px;
-        padding-right: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-right: 0;
+        padding-right: 0;
+        overflow: visible;
     }
 
     .dht-front-structure .sf-mobile-cluster--light {
+        min-width: 0;
+        max-width: none;
         border-color: #d8e1e7;
         background: #fff;
         color: var(--sf-ink);
@@ -6873,7 +6900,15 @@ html {
     }
 
     .dht-front-structure .sf-mobile-cluster--light > span {
+        aspect-ratio: 1.18 / 1;
         background: linear-gradient(135deg, #e8eef3, #f8fafb);
+    }
+
+    .dht-front-structure .sf-mobile-cluster--light strong {
+        min-height: 44px;
+        padding: 7px 5px;
+        font-size: 10px;
+        text-align: center;
     }
 
     .dht-front-structure .sf-mobile-cluster--light .sf-structure-placeholder {
