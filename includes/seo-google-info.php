@@ -3096,7 +3096,7 @@ function seo_google_attach_page_query_counts(&$rows, $property_id, $date_from, $
         "SELECT page_hash,COUNT(DISTINCT query_hash) AS queries FROM {$table}
          WHERE property_hash=%s AND search_type='web' AND data_date BETWEEN %s AND %s
            AND page_hash IN ({$placeholders}) GROUP BY page_hash",
-        array_merge(array(hash('sha256', $property_id), $date_from, $date_to), $hashes)
+        ...array_merge(array(hash('sha256', $property_id), $date_from, $date_to), $hashes)
     ), ARRAY_A);
     $by_hash = array();
     foreach ((array) $counts as $count) $by_hash[$count['page_hash']] = (int) $count['queries'];

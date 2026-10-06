@@ -1,31 +1,23 @@
-name: WordPress Plugin Check
+name: Build WordPress.org Package
 
 on:
-  pull_request:
-  push:
-    branches:
-      - staging
-      - main
   workflow_dispatch:
-
-concurrency:
-  group: wp-plugin-check-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  plugin-check:
+  package:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build WordPress.org package tree
+      - name: Build clean plugin tree
         run: |
-          rm -rf build/seo-taxonomy
+          rm -rf build
           mkdir -p build/seo-taxonomy
           rsync -a \
             --exclude='.git/' \
@@ -37,9 +29,14 @@ jobs:
             --exclude='SUPPLIER-SYNC-V2.md' \
             ./ build/seo-taxonomy/
 
-      - name: Run WordPress Plugin Check
-        uses: wordpress/plugin-check-action@v1
+      - name: Create ZIP
+        working-directory: build
+        run: zip -qr seo-taxonomy.zip seo-taxonomy
+
+      - name: Upload WordPress.org package
+        uses: actions/upload-artifact@v4
         with:
-          build-dir: './build/seo-taxonomy'
-          slug: seo-taxonomy
-          wp-version: latest
+          name: seo-taxonomy-wordpress-org-${{ github.sha }}
+          path: build/seo-taxonomy.zip
+          if-no-files-found: error
+          retention-days: 14
