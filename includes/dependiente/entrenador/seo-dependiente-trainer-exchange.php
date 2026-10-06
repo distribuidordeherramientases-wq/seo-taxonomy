@@ -36,7 +36,7 @@ final class SEO_Dependiente_Trainer_Exchange {
                 <div>
                     <h2 class="seo-dependiente-admin__box-title">Preguntas del Entrenador · Importar / Exportar CSV</h2>
                     <p class="description">
-                        Exporta todas las preguntas activas del currículo, hayan sido respondidas, suspendidas o estén todavía pendientes.
+                        Exporta todas las preguntas activas de Entrenador: currículo, Laboratorio y preguntas manuales/importadas, hayan sido respondidas, suspendidas o estén todavía pendientes.
                         El valor editorial de la pregunta se conserva separado del resultado de aprendizaje de Dependiente.
                     </p>
                 </div>
@@ -535,16 +535,29 @@ final class SEO_Dependiente_Trainer_Exchange {
     }
 
     private static function lesson_exists($lesson_key) {
+        static $cache = array();
+
         global $wpdb;
-        $lessons = self::lessons_table();
-        if (!self::table_exists($lessons)) {
+        $lesson_key = sanitize_key((string) $lesson_key);
+        if ($lesson_key === '') {
             return false;
         }
+        if (array_key_exists($lesson_key, $cache)) {
+            return $cache[$lesson_key];
+        }
+
+        $lessons = self::lessons_table();
+        if (!self::table_exists($lessons)) {
+            $cache[$lesson_key] = false;
+            return false;
+        }
+
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna; clave enlazada mediante prepare().
-        return (bool) $wpdb->get_var($wpdb->prepare(
+        $cache[$lesson_key] = (bool) $wpdb->get_var($wpdb->prepare(
             "SELECT 1 FROM {$lessons} WHERE lesson_key=%s LIMIT 1",
-            sanitize_key((string) $lesson_key)
+            $lesson_key
         ));
+        return $cache[$lesson_key];
     }
 
     private static function max_sequence($lesson_key) {
