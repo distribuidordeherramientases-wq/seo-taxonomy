@@ -316,6 +316,12 @@ final class SEO_Dependiente_Entrenador {
                 </div>
             </section>
 
+            <?php
+            if (class_exists('SEO_Dependiente_Trainer_Exchange')) {
+                SEO_Dependiente_Trainer_Exchange::render_card();
+            }
+            ?>
+
             <?php if ($current && isset($definitions[$current_key])) :
                 self::render_current_lesson($current_key, $definitions[$current_key], $current, $preflight, $modules, $next_module, $summary, $auto_running);
             endif; ?>
