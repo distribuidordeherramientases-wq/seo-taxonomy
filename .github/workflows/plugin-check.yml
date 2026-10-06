@@ -32,6 +32,8 @@ jobs:
             --exclude='.github/' \
             --exclude='build/' \
             --exclude='docs/' \
+            --exclude='CONTRIBUTING.md' \
+            --exclude='README.md' \
             --exclude='SUPPLIER-SYNC-V2.md' \
             ./ build/seo-taxonomy/
 
