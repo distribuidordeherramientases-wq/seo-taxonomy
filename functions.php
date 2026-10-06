@@ -199,6 +199,19 @@ function interceptar_redireccion_antes_de_wordpress() {
 
     $tabla = $wpdb->prefix . 'seo_redirects';
 
+    /*
+     * En instalaciones limpias (por ejemplo Plugin Check) el hook send_headers
+     * puede ejecutarse antes de que el instalador haya creado las tablas SEO.
+     * No intentamos leer redirecciones hasta confirmar que la tabla existe.
+     */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema capability check; cached for the current request.
+    $tabla_existente = $wpdb->get_var(
+        $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($tabla))
+    );
+    if ($tabla_existente !== $tabla) {
+        return;
+    }
+
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal redirects table; both URL variants are bound through prepare().
     $redireccion = $wpdb->get_row(
         $wpdb->prepare(
