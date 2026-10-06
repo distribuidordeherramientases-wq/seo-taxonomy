@@ -348,6 +348,25 @@ final class SEO_Dependiente_Trainer_Exchange {
         return strpos(sanitize_key((string) $row['evaluation_status']), 'pass_') === 0 ? 'si' : 'no';
     }
 
+    private static function question_scope(array $row) {
+        $lesson_key = sanitize_key((string) ($row['lesson_key'] ?? ''));
+        $source_type = sanitize_key((string) ($row['source_type'] ?? ''));
+
+        if ($lesson_key !== '' && strpos($lesson_key, 'lab_') === 0) {
+            return 'laboratory';
+        }
+
+        if ($lesson_key !== '' && self::lesson_exists($lesson_key)) {
+            return 'curriculum';
+        }
+
+        if (in_array($source_type, array('manual_training','imported','manual'), true)) {
+            return 'manual';
+        }
+
+        return 'manual';
+    }
+
     private static function export_rows() {
         global $wpdb;
         $questions = self::questions_table();
@@ -375,7 +394,6 @@ final class SEO_Dependiente_Trainer_Exchange {
                 ) r ON r.question_id=q.id
                 WHERE q.enabled=1
                   AND q.lesson_key<>''
-                  AND q.lesson_key NOT REGEXP '^lab_'
                 ORDER BY q.lesson_order ASC,q.lesson_key ASC,q.module_no ASC,q.sequence_no ASC,q.id ASC";
 
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- consulta fija sobre tablas internas; no contiene entrada externa.
@@ -415,7 +433,7 @@ final class SEO_Dependiente_Trainer_Exchange {
         fwrite($out, "\xEF\xBB\xBF");
 
         $header = array(
-            'question_id','question_hash','category_id','category_ids','categoria','product_id',
+            'question_id','question_hash','question_scope','category_id','category_ids','categoria','product_id',
             'question','respuesta_dependiente','question_type','lesson_key','lesson_order','module_no','sequence_no',
             'run_id','run_status','evaluation_status','evaluation_score','evaluation_score_pct','aprendida',
             'editorial_value','discard_reason','source_type','source_id','source_key','mode','enabled',
@@ -433,6 +451,7 @@ final class SEO_Dependiente_Trainer_Exchange {
             fputcsv($out, array(
                 absint($row['question_id'] ?? 0),
                 (string) ($row['question_hash'] ?? ''),
+                self::question_scope($row),
                 absint($context['category_ids'][0] ?? 0) ?: '',
                 implode('|', array_map('absint', (array) $context['category_ids'])),
                 implode(' | ', (array) $context['category_names']),
@@ -547,8 +566,21 @@ final class SEO_Dependiente_Trainer_Exchange {
         $question = sanitize_text_field((string) ($row['question'] ?? ''));
         $question = function_exists('mb_substr') ? mb_substr($question, 0, 500, 'UTF-8') : substr($question, 0, 500);
 
-        if ($lesson_key === '' || strpos($lesson_key, 'lab_') === 0 || !self::lesson_exists($lesson_key)) {
-            return new WP_Error('trainer_exchange_lesson', sprintf('Fila %d: lesson_key no válido o no perteneciente al currículo.', $line));
+        $question_scope = sanitize_key((string) ($row['question_scope'] ?? ''));
+        if (!in_array($question_scope, array('curriculum','laboratory','manual'), true)) {
+            $question_scope = strpos($lesson_key, 'lab_') === 0
+                ? 'laboratory'
+                : (self::lesson_exists($lesson_key) ? 'curriculum' : 'manual');
+        }
+
+        if ($lesson_key === '') {
+            return new WP_Error('trainer_exchange_lesson', sprintf('Fila %d: lesson_key vacío.', $line));
+        }
+        if ($question_scope === 'curriculum' && !self::lesson_exists($lesson_key)) {
+            return new WP_Error('trainer_exchange_lesson', sprintf('Fila %d: la lección curricular no existe en este sitio.', $line));
+        }
+        if ($question_scope === 'laboratory' && strpos($lesson_key, 'lab_') !== 0) {
+            return new WP_Error('trainer_exchange_lesson', sprintf('Fila %d: una pregunta de laboratorio debe conservar un lesson_key lab_*.', $line));
         }
         if ($question === '') {
             return new WP_Error('trainer_exchange_question', sprintf('Fila %d: pregunta vacía.', $line));
@@ -618,6 +650,10 @@ final class SEO_Dependiente_Trainer_Exchange {
         $lessons = self::lessons_table();
 
         foreach (array_values(array_unique(array_filter(array_map('sanitize_key', $lesson_keys)))) as $lesson_key) {
+            if (!self::lesson_exists($lesson_key)) {
+                continue;
+            }
+
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas; clave enlazada mediante prepare().
             $stats = (array) $wpdb->get_row($wpdb->prepare(
                 "SELECT COUNT(*) AS item_count,COALESCE(MAX(module_no),0) AS module_count
