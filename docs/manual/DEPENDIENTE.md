@@ -122,9 +122,15 @@ Estados de `aprendida`:
 
 Por tanto, una pregunta útil que Dependiente suspenda **se sigue exportando**. Esto permite reutilizarla posteriormente como materia prima para FAQ v2 u otros procesos editoriales sin modificar el comportamiento actual de Solucionador.
 
-Columnas principales: `question_id`, `question_hash`, categoría, producto, pregunta, respuesta observada de Dependiente, tipo, lección, run, estado, evaluación, puntuación, aprendida, valor editorial, motivo de descarte, fuente y `expected_json`.
+La exportación incluye tres ámbitos, identificados en `question_scope`:
 
-La importación no sobrescribe resultados existentes. Las columnas de respuesta, aprendizaje y calidad son de solo lectura: sólo se generan mediante ejecuciones reales de Academia/Dependiente.
+- `curriculum`: preguntas del currículo oficial;
+- `laboratory`: lotes de Academia con `lesson_key=lab_*`;
+- `manual`: preguntas manuales o importadas fuera del currículo oficial.
+
+Columnas principales: `question_id`, `question_hash`, `question_scope`, categoría, producto, pregunta, respuesta observada de Dependiente, tipo, lección, run, estado, evaluación, puntuación, aprendida, valor editorial, motivo de descarte, fuente y `expected_json`.
+
+La importación no sobrescribe resultados existentes. Las columnas de respuesta, aprendizaje y calidad son de solo lectura: sólo se generan mediante ejecuciones reales de Academia/Dependiente. Los lotes de Laboratorio y preguntas manuales también pueden reimportarse sin fabricar runs ni evaluaciones.
 
 ### Laboratorio de preguntas
 
