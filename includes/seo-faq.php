@@ -244,6 +244,12 @@ function seo_faq_track_event()
 {
     global $wpdb;
 
+    /*
+     * Telemetría pública anónima: no depende de una sesión autenticada.
+     * La petición se autoriza mediante seo_faq_tracking_token(), validado
+     * inmediatamente después de normalizar el payload.
+     */
+    // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Public telemetry uses a signed destination token instead of a user-session nonce.
     $event       = isset($_POST['event']) ? sanitize_key(wp_unslash($_POST['event'])) : '';
     $object_type = isset($_POST['object_type']) ? absint($_POST['object_type']) : 0;
     $object_id   = isset($_POST['object_id']) ? absint($_POST['object_id']) : 0;
@@ -253,6 +259,7 @@ function seo_faq_track_event()
     $error_type  = isset($_POST['error_type']) ? sanitize_key(wp_unslash($_POST['error_type'])) : '';
     $first_open  = !empty($_POST['first_open']) ? 1 : 0;
     $token       = isset($_POST['token']) ? sanitize_text_field(wp_unslash($_POST['token'])) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended
 
     if (!in_array($object_type, [1, 2, 3], true) || $object_id <= 0) {
         wp_send_json_error(['message' => 'Destino FAQ invalido.'], 400);
