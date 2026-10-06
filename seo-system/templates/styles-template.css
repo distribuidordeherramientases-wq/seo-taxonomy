@@ -8539,6 +8539,115 @@ html {
 .dht-category-description-inline__full>:last-child{
     margin-bottom:0;
 }
+
+/* Categoria: descripcion + preguntas de Dependiente plegadas antes del catalogo */
+.dht-category-knowledge-row{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin:10px 0 12px;
+}
+.dht-category-knowledge-row>:only-child{
+    grid-column:1 / -1;
+}
+.dht-category-knowledge-card{
+    min-width:0;
+    margin:0;
+    overflow:hidden;
+    border:1px solid #e2e7eb;
+    border-radius:10px;
+    background:#f8fafc;
+    color:#33404c;
+}
+.dht-category-knowledge-card>summary{
+    display:flex;
+    min-height:44px;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    list-style:none;
+    color:var(--dht-primary-dark);
+    font-size:13px;
+    font-weight:800;
+    line-height:1.3;
+    cursor:pointer;
+}
+.dht-category-knowledge-card>summary::-webkit-details-marker{
+    display:none;
+}
+.dht-category-knowledge-card>summary small{
+    margin-left:auto;
+    color:#6b7680;
+    font-size:10px;
+    font-weight:700;
+    white-space:nowrap;
+}
+.dht-category-knowledge-card__icon{
+    display:inline-flex;
+    width:20px;
+    height:20px;
+    flex:0 0 20px;
+    align-items:center;
+    justify-content:center;
+    margin-left:auto;
+    border-radius:999px;
+    background:#fff;
+    color:var(--dht-primary-dark);
+    font-size:16px;
+    line-height:1;
+}
+.dht-category-knowledge-card>summary small + .dht-category-knowledge-card__icon{
+    margin-left:0;
+}
+.dht-category-knowledge-card__icon::before{
+    content:"+";
+}
+.dht-category-knowledge-card[open]>summary .dht-category-knowledge-card__icon::before{
+    content:"−";
+}
+.dht-category-knowledge-card__body{
+    padding:12px 13px 13px;
+    border-top:1px solid #e2e7eb;
+    background:#fff;
+    color:#4d5965;
+    font-size:13px;
+    line-height:1.55;
+}
+.dht-category-knowledge-card__body>:first-child{
+    margin-top:0;
+}
+.dht-category-knowledge-card__body>:last-child{
+    margin-bottom:0;
+}
+.dht-category-dependiente-qa{
+    padding-top:4px;
+    padding-bottom:4px;
+}
+.dht-category-dependiente-qa__item{
+    margin:0;
+    border-bottom:1px solid #e7ebef;
+}
+.dht-category-dependiente-qa__item:last-child{
+    border-bottom:0;
+}
+.dht-category-dependiente-qa__item>summary{
+    padding:10px 2px;
+    color:#26323d;
+    font-size:12px;
+    font-weight:750;
+    line-height:1.4;
+    cursor:pointer;
+}
+.dht-category-dependiente-qa__answer{
+    padding:0 2px 11px;
+    color:#4d5965;
+}
+.dht-category-dependiente-qa__answer>:first-child{
+    margin-top:0;
+}
+.dht-category-dependiente-qa__answer>:last-child{
+    margin-bottom:0;
+}
 .dht-category-hero-meta{
     margin-top:10px;
 }
@@ -8600,6 +8709,20 @@ html {
     .dht-category-description-inline{
         margin:8px 0 10px;
         padding:10px 11px;
+        font-size:12px;
+    }
+    .dht-category-knowledge-row{
+        grid-template-columns:1fr;
+        gap:7px;
+        margin:8px 0 10px;
+    }
+    .dht-category-knowledge-card>summary{
+        min-height:42px;
+        padding:9px 10px;
+        font-size:12px;
+    }
+    .dht-category-knowledge-card__body{
+        padding:10px 11px 11px;
         font-size:12px;
     }
     .dht-category-products{

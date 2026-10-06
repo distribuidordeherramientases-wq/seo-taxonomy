@@ -103,13 +103,25 @@ $category_description = (string) $wpdb->get_var(
 );
 
 $category_description_plain = trim(wp_strip_all_tags($category_description));
-$category_description_words = $category_description_plain !== ''
-    ? preg_split('/\s+/u', $category_description_plain, -1, PREG_SPLIT_NO_EMPTY)
-    : array();
-$category_description_has_more = count((array) $category_description_words) > 42;
-$category_description_preview = $category_description_plain !== ''
-    ? wp_trim_words($category_description_plain, 42, '…')
-    : '';
+
+/*
+ * Preguntas y respuestas de Dependiente.
+ * Internamente siguen almacenadas en seo_faq; el cambio es de presentacion
+ * publica en la categoria, no de contrato de datos.
+ */
+$faq_table = $wpdb->prefix . 'seo_faq';
+$category_faqs = (array) $wpdb->get_results(
+    $wpdb->prepare(
+        "SELECT id, question, answer
+         FROM {$faq_table}
+         WHERE object_type = %d
+           AND object_id = %d
+           AND active = 1
+         ORDER BY sort_order ASC, id ASC",
+        2,
+        $term->term_id
+    )
+);
 
 $category_tags = array_values(
     array_filter(
@@ -303,15 +315,39 @@ $json = array(
 
                     <?php endif; ?>
 
-                    <?php if ($category_description_preview !== '') : ?>
-                        <div class="dht-category-description-inline">
-                            <span class="dht-category-description-kicker">Sobre esta categoría</span>
-                            <p><?php echo esc_html($category_description_preview); ?></p>
-                            <?php if ($category_description_has_more) : ?>
-                                <details>
-                                    <summary>Ver descripción completa</summary>
-                                    <div class="dht-category-description-inline__full">
+                    <?php if ($category_description_plain !== '' || !empty($category_faqs)) : ?>
+                        <div class="dht-category-knowledge-row" aria-label="Información de la categoría">
+                            <?php if ($category_description_plain !== '') : ?>
+                                <details class="dht-category-knowledge-card">
+                                    <summary>
+                                        <span>Información de la categoría</span>
+                                        <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
+                                    </summary>
+                                    <div class="dht-category-knowledge-card__body">
                                         <?php echo wp_kses_post($category_description); ?>
+                                    </div>
+                                </details>
+                            <?php endif; ?>
+
+                            <?php if (!empty($category_faqs)) : ?>
+                                <details class="dht-category-knowledge-card">
+                                    <summary>
+                                        <span>Preguntas y respuestas de Dependiente</span>
+                                        <small><?php echo esc_html(number_format_i18n(count($category_faqs))); ?> preguntas</small>
+                                        <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
+                                    </summary>
+                                    <div class="dht-category-knowledge-card__body dht-category-dependiente-qa">
+                                        <?php foreach ($category_faqs as $category_faq) : ?>
+                                            <details
+                                                class="dht-category-dependiente-qa__item"
+                                                data-seo-faq-id="<?php echo esc_attr((string) $category_faq->id); ?>"
+                                            >
+                                                <summary><?php echo esc_html($category_faq->question); ?></summary>
+                                                <div class="dht-category-dependiente-qa__answer">
+                                                    <?php echo wp_kses_post($category_faq->answer); ?>
+                                                </div>
+                                            </details>
+                                        <?php endforeach; ?>
                                     </div>
                                 </details>
                             <?php endif; ?>
