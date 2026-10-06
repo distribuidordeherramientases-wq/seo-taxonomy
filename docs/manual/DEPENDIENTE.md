@@ -102,6 +102,29 @@ Controles:
 - **Descargar curso completo (JSON)** [Exporta].
 - **Descargar progreso** [Exporta].
 - **Descargar informe completo** [Exporta].
+- **Exportar preguntas · CSV** [Exporta]: descarga todas las preguntas activas del currículo de Entrenador, estén aprendidas, suspendidas o todavía pendientes. Incluye el último run disponible, respuesta observada, `evaluation_status`, `evaluation_score`, estado `aprendida` y valoración editorial independiente.
+- **Importar preguntas · CSV** [Guarda]: importación aditiva e idempotente por `question_hash`. Añade preguntas nuevas al currículo pero no importa ni fabrica runs, respuestas, evaluaciones o puntuaciones.
+
+### CSV de preguntas del Entrenador
+
+El intercambio CSV separa explícitamente el valor de la pregunta del resultado de aprendizaje de Dependiente.
+
+Estados de `aprendida`:
+
+- `si`: el último `evaluation_status` empieza por `pass_`;
+- `no`: existe evaluación pero no ha superado el aprendizaje;
+- `pendiente`: todavía no existe evaluación.
+
+`editorial_value` se calcula de forma independiente:
+
+- `useful`: pregunta con valor práctico potencial;
+- `not_useful`: pregunta de identidad/listado del catálogo, definición mecánica u otro ruido de entrenamiento.
+
+Por tanto, una pregunta útil que Dependiente suspenda **se sigue exportando**. Esto permite reutilizarla posteriormente como materia prima para FAQ v2 u otros procesos editoriales sin modificar el comportamiento actual de Solucionador.
+
+Columnas principales: `question_id`, `question_hash`, categoría, producto, pregunta, respuesta observada de Dependiente, tipo, lección, run, estado, evaluación, puntuación, aprendida, valor editorial, motivo de descarte, fuente y `expected_json`.
+
+La importación no sobrescribe resultados existentes. Las columnas de respuesta, aprendizaje y calidad son de solo lectura: sólo se generan mediante ejecuciones reales de Academia/Dependiente.
 
 ### Laboratorio de preguntas
 
