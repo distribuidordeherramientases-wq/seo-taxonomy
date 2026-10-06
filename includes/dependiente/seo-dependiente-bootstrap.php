@@ -65,6 +65,11 @@ require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-amazon.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-api.php';
 require_once SEO_DEPENDIENTE_PATH . 'entrenador/seo-dependiente-entrenador.php';
 
+$seo_dependiente_trainer_exchange = SEO_DEPENDIENTE_PATH . 'entrenador/seo-dependiente-trainer-exchange.php';
+if (is_readable($seo_dependiente_trainer_exchange)) {
+    require_once $seo_dependiente_trainer_exchange;
+}
+
 $seo_dependiente_actualizacion = SEO_DEPENDIENTE_PATH . 'entrenador/seo-dependiente-actualizacion.php';
 if (is_readable($seo_dependiente_actualizacion)) {
     require_once $seo_dependiente_actualizacion;
