@@ -21,6 +21,7 @@ jobs:
           mkdir -p build/seo-taxonomy
           rsync -a \
             --exclude='.git/' \
+            --exclude='.*' \
             --exclude='.github/' \
             --exclude='build/' \
             --exclude='docs/' \
