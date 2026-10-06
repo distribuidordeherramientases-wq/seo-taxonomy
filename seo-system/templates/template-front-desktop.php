@@ -583,7 +583,7 @@ if ($table_exists === $relations_table) {
         }
         return $right_weight <=> $left_weight;
     });
-    $cluster_ids = dht_template_public_post_ids(array_slice($cluster_ids, 0, 6));
+    $cluster_ids = dht_template_public_post_ids(array_slice($cluster_ids, 0, 3));
 
     $primary_from_targets = $wpdb->get_col(
         "SELECT target_id
