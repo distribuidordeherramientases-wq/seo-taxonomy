@@ -1777,8 +1777,8 @@ if (!function_exists('dht_template_context_post_excerpt')) {
 
 if (!function_exists('dht_template_render_context_posts')) {
     /**
-     * Render ligero: titulo + contexto breve + enlace al post canonico.
-     * No replica respuestas completas en producto/categoria.
+     * Render ligero y plegado: titulo + excerpt + enlace al post canonico.
+     * No replica el cuerpo del articulo en producto/categoria.
      */
     function dht_template_render_context_posts($posts, $title, $variant = 'dependiente', $context = 'product')
     {
@@ -1803,36 +1803,47 @@ if (!function_exists('dht_template_render_context_posts')) {
 
         $variant = in_array($variant, array('dependiente', 'ingeniero'), true) ? $variant : 'dependiente';
         $context = in_array($context, array('product', 'category'), true) ? $context : 'product';
-        $kicker = 'ingeniero' === $variant ? 'Conocimiento técnico' : 'Ayuda para elegir';
-        $link_label = 'ingeniero' === $variant ? 'Leer información técnica' : 'Ver respuesta';
+        $kicker = 'ingeniero' === $variant ? 'Contenido técnico editorial' : 'Contenido editorial';
+        $link_label = 'ingeniero' === $variant ? 'Leer información técnica' : 'Leer guía';
         ?>
         <section class="dht-context-posts dht-context-posts--<?php echo esc_attr($variant); ?> dht-context-posts--<?php echo esc_attr($context); ?>">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
-            <header class="dht-context-posts__header">
-                <span class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></span>
-                <h2><?php echo esc_html($title); ?></h2>
-            </header>
-            <div class="dht-context-posts__grid">
-                <?php foreach ($valid as $context_post) : ?>
-                    <?php
-                    $context_excerpt = dht_template_context_post_excerpt($context_post, 30);
-                    $context_url = get_permalink($context_post);
-                    ?>
-                    <article class="dht-context-post-card">
-                        <h3>
-                            <a href="<?php echo esc_url($context_url); ?>">
-                                <?php echo esc_html($context_post->post_title); ?>
-                            </a>
-                        </h3>
-                        <?php if ($context_excerpt !== '') : ?>
-                            <p><?php echo esc_html($context_excerpt); ?></p>
-                        <?php endif; ?>
-                        <a class="dht-context-post-card__link" href="<?php echo esc_url($context_url); ?>">
-                            <?php echo esc_html($link_label); ?> →
-                        </a>
-                    </article>
-                <?php endforeach; ?>
-            </div>
+            <details class="dht-context-posts__details">
+                <summary class="dht-context-posts__summary">
+                    <span class="dht-context-posts__summary-copy">
+                        <small class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></small>
+                        <strong><?php echo esc_html($title); ?></strong>
+                    </span>
+                    <small class="dht-context-posts__count">
+                        <?php echo esc_html(number_format_i18n(count($valid))); ?>
+                        <?php echo 1 === count($valid) ? ' artículo' : ' artículos'; ?>
+                    </small>
+                    <span class="dht-context-posts__icon" aria-hidden="true"></span>
+                </summary>
+                <div class="dht-context-posts__body">
+                    <div class="dht-context-posts__grid">
+                        <?php foreach ($valid as $context_post) : ?>
+                            <?php
+                            $context_excerpt = dht_template_context_post_excerpt($context_post, 30);
+                            $context_url = get_permalink($context_post);
+                            ?>
+                            <article class="dht-context-post-card">
+                                <h3>
+                                    <a href="<?php echo esc_url($context_url); ?>">
+                                        <?php echo esc_html($context_post->post_title); ?>
+                                    </a>
+                                </h3>
+                                <?php if ($context_excerpt !== '') : ?>
+                                    <p><?php echo esc_html($context_excerpt); ?></p>
+                                <?php endif; ?>
+                                <a class="dht-context-post-card__link" href="<?php echo esc_url($context_url); ?>">
+                                    <?php echo esc_html($link_label); ?> →
+                                </a>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </details>
             <?php if ('category' === $context) : ?></div><?php endif; ?>
         </section>
         <?php
@@ -2100,8 +2111,20 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Preguntas habituales',
+            'Información interesante de Dependiente',
             'dependiente',
+            'product'
+        );
+
+        $ingeniero_posts = dht_template_context_posts_for_categories(
+            $category_ids,
+            'ingeniero_qa_specialized',
+            4
+        );
+        dht_template_render_context_posts(
+            $ingeniero_posts,
+            'Información especializada',
+            'ingeniero',
             'product'
         );
 
@@ -2113,18 +2136,6 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
         dht_template_render_external_comments(
             $external_comments,
             'Comentarios externos sobre este producto',
-            'product'
-        );
-
-        $ingeniero_posts = dht_template_context_posts_for_categories(
-            $category_ids,
-            'ingeniero_qa_specialized',
-            4
-        );
-        dht_template_render_context_posts(
-            $ingeniero_posts,
-            'Información técnica',
-            'ingeniero',
             'product'
         );
     }
@@ -2144,10 +2155,6 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
             return;
         }
 
-        if (function_exists('seo_comparador_render_category_block')) {
-            seo_comparador_render_category_block($term_id);
-        }
-
         $dependiente_posts = dht_template_context_posts_for_categories(
             array($term_id),
             'dependiente_qa_basic',
@@ -2155,15 +2162,8 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Preguntas habituales',
+            'Información interesante de Dependiente',
             'dependiente',
-            'category'
-        );
-
-        $external_comments = dht_template_category_external_comments($term_id, 6, 2);
-        dht_template_render_external_comments(
-            $external_comments,
-            'Comentarios externos sobre productos de esta categoría',
             'category'
         );
 
@@ -2174,8 +2174,19 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         );
         dht_template_render_context_posts(
             $ingeniero_posts,
-            'Información técnica',
+            'Información especializada',
             'ingeniero',
+            'category'
+        );
+
+        if (function_exists('seo_comparador_render_category_block')) {
+            seo_comparador_render_category_block($term_id);
+        }
+
+        $external_comments = dht_template_category_external_comments($term_id, 6, 2);
+        dht_template_render_external_comments(
+            $external_comments,
+            'Comentarios externos sobre productos de esta categoría',
             'category'
         );
     }
