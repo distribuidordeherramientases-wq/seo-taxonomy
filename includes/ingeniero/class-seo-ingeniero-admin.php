@@ -451,15 +451,14 @@ final class SEO_Ingeniero_Admin {
         echo '</div>';
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h3 style="margin-top:0">Fuente de búsqueda y presupuesto</h3>';
-        echo '<p>Proveedores Google compartidos con Ojeador: <strong>SerpApi → ScraperAPI</strong>. Ingeniero prueba primero SerpApi y, si no está disponible, alcanza cuota o falla, continúa con ScraperAPI. Las dos API keys se gestionan en <strong>Herramientas → Conexiones con proveedores</strong>.</p>';
-        echo '<p>Ingeniero mantiene un <strong>presupuesto local independiente</strong> sobre sus búsquedas lógicas, aunque una búsqueda pueda necesitar dos intentos de proveedor durante un fallback.</p>';
-        echo '<p><strong>Uso Ingeniero:</strong> ' . esc_html(number_format_i18n($usage['used'])) . ' / ' . esc_html(number_format_i18n($usage['limit'])) . ' búsquedas este mes.</p>';
+        echo '<h3 style="margin-top:0">Fuente de búsqueda</h3>';
+        echo '<p>Proveedores Google compartidos con Ojeador: <strong>SerpApi → ScraperAPI</strong>. Ingeniero prueba primero SerpApi y, cuando la cuota real está agotada o la conexión falla, continúa automáticamente con ScraperAPI. Las dos API keys se gestionan en <strong>Herramientas → Conexiones con proveedores</strong>.</p>';
+        echo '<p>El contador propio de Ingeniero es <strong>informativo</strong> y ya no bloquea la investigación ni impide el fallback entre proveedores.</p>';
+        echo '<p><strong>Búsquedas lógicas de Ingeniero este mes:</strong> ' . esc_html(number_format_i18n($usage['used'])) . '.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_settings">';
         wp_nonce_field('seo_ingeniero_settings');
         echo '<table class="form-table"><tbody>';
-        echo '<tr><th>Límite mensual local</th><td><input type="number" name="ingeniero[monthly_query_limit]" min="1" max="100000" value="' . esc_attr(absint($settings['monthly_query_limit'])) . '"></td></tr>';
         echo '<tr><th>Resultados por consulta</th><td><input type="number" name="ingeniero[results_per_query]" min="3" max="10" value="' . esc_attr(absint($settings['results_per_query'])) . '"></td></tr>';
         echo '<tr><th>Consultas por categoría</th><td><input type="number" name="ingeniero[queries_per_category]" min="1" max="4" value="' . esc_attr(absint($settings['queries_per_category'])) . '"></td></tr>';
         echo '<tr><th>Páginas HTML a leer</th><td><input type="number" name="ingeniero[fetch_pages]" min="0" max="8" value="' . esc_attr(absint($settings['fetch_pages'])) . '"><p class="description">Los PDFs solo se detectan y quedan <code>pdf_pending</code>; no se añade parser pesado en v1.</p></td></tr>';
