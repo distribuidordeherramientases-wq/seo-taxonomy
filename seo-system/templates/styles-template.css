@@ -9826,3 +9826,59 @@ html {
         grid-template-columns:minmax(90px,.8fr) minmax(0,1.2fr);
     }
 }
+
+
+/* DHT MOBILE CATEGORY HERO HARDENING 2026-10-07 */
+/*
+ * La categoría móvil debe ser siempre una sola columna:
+ * imagen -> H1 -> excerpt -> description plegada -> acciones -> catálogo.
+ * Esta regla se deja al final del CSS para blindarla frente a reglas generales posteriores.
+ */
+@media (max-width: 767px) {
+    .dht-mobile-template .dht-category-hero-grid {
+        display: grid !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-auto-flow: row !important;
+        gap: 16px !important;
+    }
+
+    .dht-mobile-template .dht-category-media,
+    .dht-mobile-template .dht-category-summary {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        grid-column: 1 !important;
+    }
+
+    .dht-mobile-template .dht-category-media {
+        min-height: 0 !important;
+        aspect-ratio: auto !important;
+        padding: 14px !important;
+        overflow: hidden !important;
+    }
+
+    .dht-mobile-template .dht-category-media img {
+        display: block !important;
+        width: auto !important;
+        max-width: min(100%, 220px) !important;
+        height: auto !important;
+        max-height: 220px !important;
+        margin: 0 auto !important;
+        object-fit: contain !important;
+    }
+
+    .dht-mobile-template .dht-category-summary,
+    .dht-mobile-template .dht-category-summary > * {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-wrap: anywhere;
+    }
+
+    .dht-mobile-template .dht-category-knowledge-row {
+        width: 100% !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
