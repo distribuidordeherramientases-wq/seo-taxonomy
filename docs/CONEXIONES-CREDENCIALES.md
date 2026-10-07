@@ -265,12 +265,33 @@ Debe registrarse como Redirect URI en la aplicación de X.
 
 ---
 
-## SerpApi / Ojeador
+## SerpApi + ScraperAPI / Ojeador
 
-### API key
-Clave utilizada por Ojeador para las consultas de Google Shopping.
+Las dos conexiones se configuran en **Herramientas → Ojeador** y son compartidas por Ojeador e Ingeniero.
+
+### SerpApi API key
+Proveedor primario para Google Shopping y Google Search.
 
 **Ejemplo ficticio:** `serpapi_EXAMPLE_NOT_REAL_123456`
+
+También puede definirse mediante `SEO_OJEADOR_SERPAPI_KEY` en `wp-config.php`.
+
+### ScraperAPI API key
+Proveedor secundario/fallback para Google Shopping y Google Search.
+
+**Ejemplo ficticio:** `scraperapi_EXAMPLE_NOT_REAL_123456`
+
+También puede definirse mediante `SEO_OJEADOR_SCRAPERAPI_KEY` en `wp-config.php`.
+
+Orden operativo:
+
+1. SerpApi.
+2. Si falta conexión, se alcanza la cuota o la petición falla, ScraperAPI.
+3. Si el primer proveedor responde correctamente aunque devuelva 0 resultados, no se ejecuta el segundo.
+
+Ojeador usa el endpoint estructurado de Google Shopping de ScraperAPI. Ingeniero usa el endpoint estructurado de Google Search. Las respuestas se normalizan antes de llegar a cada servicio.
+
+Si un campo de API key se deja vacío, se conserva la credencial ya almacenada.
 
 ### Actualizar cada
 Intervalo entre revisiones de una categoría.
@@ -286,7 +307,9 @@ El valor debe ajustarse a la capacidad del servidor y a la cuota disponible.
 Evita repetir una consulta reciente durante el periodo configurado.
 
 ### Límite mensual local
-Protección interna para no superar el volumen de consultas previsto.
+Protección interna de SerpApi en Ojeador. Si se alcanza y ScraperAPI está configurado, las nuevas consultas pueden continuar por el proveedor secundario.
+
+Ingeniero mantiene además su propio límite local de búsquedas lógicas, independiente de la cuota concreta de cada proveedor.
 
 ---
 
