@@ -418,6 +418,21 @@ $json = array(
         }
     }
 
+    if (empty($category_choice_criteria) && function_exists('dht_amazon_compare_points')) {
+        $category_choice_criteria = (array) dht_amazon_compare_points($term->name);
+    }
+
+    $category_choice_criteria = array_slice(
+        array_values(array_unique(array_filter(array_map(
+            static function ($criterion) {
+                return trim(wp_strip_all_tags((string) $criterion));
+            },
+            $category_choice_criteria
+        )))),
+        0,
+        5
+    );
+
     if (function_exists('wc_set_loop_prop')) {
         wc_set_loop_prop('columns', 2);
         wc_set_loop_prop('total', count($grid_products));
@@ -426,6 +441,21 @@ $json = array(
 
     <section id="dht-category-products" class="dht-section dht-category-products dht-category-products--faceted">
         <div class="dht-container">
+
+            <?php if (!empty($category_choice_criteria)) : ?>
+                <div class="dht-category-comparison-guide" aria-label="Qué conviene comparar antes de elegir">
+                    <div class="dht-category-comparison-guide__intro">
+                        <span class="dht-category-comparison-guide__kicker">Antes de elegir</span>
+                        <h2>Qué conviene comparar en <?php echo esc_html($term->name); ?></h2>
+                        <p>Revisa estos criterios antes de comparar los productos de esta categoría.</p>
+                    </div>
+                    <ul class="dht-category-comparison-guide__list">
+                        <?php foreach ($category_choice_criteria as $criterion) : ?>
+                            <li><?php echo esc_html($criterion); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
 
             <?php if (function_exists('dht_template_render_category_toolbar')) : ?>
                 <?php dht_template_render_category_toolbar($category_catalog, $term->name); ?>
@@ -454,17 +484,6 @@ $json = array(
             ?>
 
             <div class="dht-category-products-panel dht-mobile-products-panel dht-category-products-panel--faceted">
-
-                <?php if (!empty($category_choice_criteria)) : ?>
-                    <div class="dht-category-choice-criteria" aria-label="Criterios de comparación presentes en los productos">
-                        <strong>Compara especialmente</strong>
-                        <div class="dht-category-choice-criteria__items">
-                            <?php foreach ($category_choice_criteria as $criterion) : ?>
-                                <span><?php echo esc_html($criterion); ?></span>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
 
                 <?php if ($grid_products) : ?>
                     <?php
