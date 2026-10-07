@@ -441,7 +441,7 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
             'state'=>$view_state,
             'speed'=>$speed,
             'response'=>$duration > 0 ? number_format_i18n($duration,2) . ' s último lote' : 'Sin lote medido',
-            'load'=>'L1 técnica · SerpApi ' . number_format_i18n($usage['used']) . '/' . number_format_i18n($usage['limit']),
+            'load'=>'L1 técnica · Google SerpApi→ScraperAPI · ' . number_format_i18n($usage['used']) . '/' . number_format_i18n($usage['limit']) . ' búsquedas',
             'activity'=>!empty($state['last_activity_at']) ? gmdate('Y-m-d H:i:s', absint($state['last_activity_at'])) . ' UTC' : 'Sin actividad',
             'activity_age'=>null,
             'progress'=>$progress['total'] ? $progress['percentage'] : null,
