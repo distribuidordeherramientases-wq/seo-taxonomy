@@ -452,8 +452,9 @@ final class SEO_Ingeniero_Admin {
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Fuente de búsqueda y presupuesto</h3>';
-        echo '<p>Provider: <strong>SerpApi · Google web</strong>. Reutiliza la API key de Ojeador, pero Ingeniero mantiene un <strong>presupuesto local independiente</strong>. Las consultas web usan <code>engine=google</code> y resultados orgánicos estructurados.</p>';
-        echo '<p><strong>Uso Ingeniero:</strong> ' . esc_html(number_format_i18n($usage['used'])) . ' / ' . esc_html(number_format_i18n($usage['limit'])) . ' consultas este mes.</p>';
+        echo '<p>Proveedores Google compartidos con Ojeador: <strong>SerpApi → ScraperAPI</strong>. Ingeniero prueba primero SerpApi y, si no está disponible, alcanza cuota o falla, continúa con ScraperAPI. Las dos API keys se gestionan en <strong>Herramientas → Ojeador</strong>.</p>';
+        echo '<p>Ingeniero mantiene un <strong>presupuesto local independiente</strong> sobre sus búsquedas lógicas, aunque una búsqueda pueda necesitar dos intentos de proveedor durante un fallback.</p>';
+        echo '<p><strong>Uso Ingeniero:</strong> ' . esc_html(number_format_i18n($usage['used'])) . ' / ' . esc_html(number_format_i18n($usage['limit'])) . ' búsquedas este mes.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_settings">';
         wp_nonce_field('seo_ingeniero_settings');
