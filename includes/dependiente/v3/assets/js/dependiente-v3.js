@@ -22,6 +22,7 @@
         const debugPanel = root.querySelector('[data-dep3-debug]');
         const debugContent = root.querySelector('[data-dep3-debug-content]');
         const clearCategory = root.querySelector('[data-dep3-clear-category]');
+        const browse = root.querySelector('[data-dep3-browse]');
 
         let currentQuery = '';
         let currentCategory = '';
@@ -79,6 +80,7 @@
             status.className = 'dependiente-v3__status is-loading';
             status.textContent = currentCategory ? 'Afinando con tu elección…' : 'Interpretando lo que necesitas…';
             workspace.hidden = false;
+            if (browse) browse.hidden = true;
             productsSection.hidden = true;
             categoriesSection.hidden = true;
 
