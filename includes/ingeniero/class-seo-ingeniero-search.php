@@ -15,7 +15,7 @@ final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provi
 
     public static function defaults() {
         return array(
-            'provider' => 'serpapi',
+            'provider' => 'google_provider_chain',
             'monthly_query_limit' => 60,
             'results_per_query' => 6,
             'queries_per_category' => 3,
@@ -32,7 +32,7 @@ final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provi
         $current = self::settings();
         $raw = is_array($raw) ? $raw : array();
         $settings = array(
-            'provider' => 'serpapi',
+            'provider' => 'google_provider_chain',
             'monthly_query_limit' => max(1, min(100000, absint($raw['monthly_query_limit'] ?? $current['monthly_query_limit']))),
             'results_per_query' => max(3, min(10, absint($raw['results_per_query'] ?? $current['results_per_query']))),
             'queries_per_category' => max(1, min(4, absint($raw['queries_per_category'] ?? $current['queries_per_category']))),
@@ -82,75 +82,58 @@ final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provi
 
     public function search($query, $context = array()) {
         $query = trim((string) $query);
-        if ($query === '') return new WP_Error('ingeniero_query_empty', 'Consulta externa vacía.');
-
-        $key = $this->api_key();
-        if ($key === '') return new WP_Error('ingeniero_serpapi_key', 'Falta la API key de SerpApi. Ingeniero reutiliza la conexión existente de Ojeador.');
-
-        $usage = self::usage_month();
-        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
-            return new WP_Error('ingeniero_budget', 'Ingeniero ha alcanzado su presupuesto mensual independiente de SerpApi.');
+        if ($query === '') {
+            return new WP_Error('ingeniero_query_empty', 'Consulta externa vacía.');
         }
 
-        $settings = self::settings();
-        $args = array(
-            'engine'=>'google',
-            'q'=>$query,
-            'google_domain'=>'google.es',
-            'gl'=>'es',
-            'hl'=>'es',
-            'device'=>'desktop',
-            'num'=>absint($settings['results_per_query']),
-            'api_key'=>$key,
-        );
-
-        self::record_request();
-        $started = microtime(true);
-        $response = wp_safe_remote_get(add_query_arg($args, self::API_URL), array(
-            'timeout'=>35,
-            'redirection'=>3,
-            'headers'=>array(
-                'Accept'=>'application/json',
-                'User-Agent'=>'SEO-Taxonomy-Ingeniero/0.1.0',
-            ),
-        ));
-        $duration_ms = max(0, (int) round((microtime(true)-$started)*1000));
-
-        if (is_wp_error($response)) return $response;
-        $code = absint(wp_remote_retrieve_response_code($response));
-        $raw_body = (string) wp_remote_retrieve_body($response);
-        $body = json_decode($raw_body, true);
-
-        if (429 === $code) {
-            $message = is_array($body) && !empty($body['error'])
-                ? (is_array($body['error']) ? (string) ($body['error']['message'] ?? 'SerpApi ha limitado las consultas.') : (string) $body['error'])
-                : 'SerpApi ha limitado las consultas o la cuenta se ha quedado sin búsquedas disponibles.';
-            $retry_after = trim((string) wp_remote_retrieve_header($response, 'retry-after'));
+        if (
+            !class_exists('SEO_Ojeador_Shopping')
+            || !is_callable(array('SEO_Ojeador_Shopping','search_google_web'))
+        ) {
             return new WP_Error(
-                'ingeniero_serpapi_rate_limit',
-                sanitize_text_field($message),
-                array('http_status'=>429,'retry_after'=>$retry_after)
+                'ingeniero_google_provider',
+                'No está disponible la capa compartida de conexión Google de Ojeador.'
             );
         }
 
-        if ($code < 200 || $code >= 300 || !is_array($body)) {
-            return new WP_Error('ingeniero_serpapi_http', 'SerpApi devolvió HTTP ' . $code . '.', array('http_status'=>$code));
+        $usage = self::usage_month();
+        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
+            return new WP_Error(
+                'ingeniero_budget',
+                'Ingeniero ha alcanzado su presupuesto mensual local de búsquedas externas.'
+            );
         }
-        if (!empty($body['error'])) {
-            $message = is_array($body['error']) ? (string) ($body['error']['message'] ?? 'Error SerpApi') : (string) $body['error'];
-            return new WP_Error('ingeniero_serpapi_api', sanitize_text_field($message));
+
+        $settings = self::settings();
+        self::record_request();
+
+        $provider_trace = array();
+        $body = SEO_Ojeador_Shopping::search_google_web(
+            $query,
+            array('num'=>absint($settings['results_per_query'])),
+            $provider_trace
+        );
+        if (is_wp_error($body)) {
+            return new WP_Error(
+                'ingeniero_google_provider',
+                $body->get_error_message(),
+                array(
+                    'provider_trace'=>(array)($provider_trace['attempts'] ?? array()),
+                    'provider'=>sanitize_key((string)($provider_trace['provider'] ?? '')),
+                )
+            );
         }
 
         $rows = array();
         foreach ((array) ($body['organic_results'] ?? array()) as $row) {
             if (!is_array($row)) continue;
-            $url = esc_url_raw((string) ($row['link'] ?? ''));
+            $url = esc_url_raw((string) ($row['link'] ?? $row['url'] ?? ''));
             if ($url === '') continue;
             $rows[] = array(
                 'position'=>absint($row['position'] ?? 0),
                 'title'=>sanitize_text_field((string) ($row['title'] ?? '')),
                 'url'=>$url,
-                'snippet'=>sanitize_textarea_field((string) ($row['snippet'] ?? '')),
+                'snippet'=>sanitize_textarea_field((string) ($row['snippet'] ?? $row['description'] ?? '')),
                 'date'=>sanitize_text_field((string) ($row['date'] ?? '')),
                 'source'=>sanitize_text_field((string) ($row['source'] ?? '')),
             );
@@ -159,8 +142,10 @@ final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provi
         return array(
             'query'=>$query,
             'results'=>$rows,
-            'duration_ms'=>$duration_ms,
+            'duration_ms'=>absint($provider_trace['duration_ms'] ?? 0),
             'search_id'=>sanitize_text_field((string) ($body['search_metadata']['id'] ?? '')),
+            'provider'=>sanitize_key((string) ($provider_trace['provider'] ?? '')),
+            'provider_attempts'=>(array) ($provider_trace['attempts'] ?? array()),
         );
     }
 }
