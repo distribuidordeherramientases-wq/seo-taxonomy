@@ -260,16 +260,16 @@ final class SEO_Ingeniero_Admin {
         }
 
         if (count($rows) === $batch_size && $last_id > $after_id) {
-            $next = wp_nonce_url(
-                add_query_arg(array(
-                    'action'=>'seo_ingeniero_editorial_accept_all',
-                    'after_id'=>$last_id,
-                    'created'=>$created,
-                    'skipped'=>$skipped,
-                    'errors'=>$errors,
-                ), admin_url('admin-post.php')),
-                'seo_ingeniero_editorial_accept_all'
-            );
+            // No usar wp_nonce_url() para una cabecera Location: escapa la URL
+            // para HTML. La siguiente tanda necesita recibir _wpnonce intacto.
+            $next = add_query_arg(array(
+                'action'=>'seo_ingeniero_editorial_accept_all',
+                'after_id'=>$last_id,
+                'created'=>$created,
+                'skipped'=>$skipped,
+                'errors'=>$errors,
+                '_wpnonce'=>wp_create_nonce('seo_ingeniero_editorial_accept_all'),
+            ), admin_url('admin-post.php'));
             wp_safe_redirect($next);
             exit;
         }
@@ -300,7 +300,35 @@ final class SEO_Ingeniero_Admin {
         }
 
         if ('approve' === $command) {
-            SEO_Ingeniero_DB::update_editorial($editorial_id, array('status'=>'approved'));
+            $updated = SEO_Ingeniero_DB::update_editorial($editorial_id, array('status'=>'approved'));
+            if (is_wp_error($updated)) {
+                self::redirect(array(
+                    'ingeniero_error'=>rawurlencode($updated->get_error_message()),
+                    'editorial_id'=>$editorial_id,
+                ), 'editorial');
+            }
+
+            // Para CREATE_POST, la aprobación humana equivale a aceptar la
+            // propuesta y convertirla inmediatamente en borrador. No se exige
+            // un segundo clic "Crear borrador".
+            if (
+                'CREATE_POST' === strtoupper((string) ($dossier['recommended_action'] ?? ''))
+                && absint($dossier['post_id'] ?? 0) < 1
+            ) {
+                $post_id = SEO_Ingeniero_Posts::create_draft($editorial_id);
+                if (is_wp_error($post_id)) {
+                    self::redirect(array(
+                        'ingeniero_error'=>rawurlencode($post_id->get_error_message()),
+                        'editorial_id'=>$editorial_id,
+                    ), 'editorial');
+                }
+                self::redirect(array(
+                    'ingeniero_notice'=>'editorial_draft',
+                    'editorial_id'=>$editorial_id,
+                    'post_id'=>absint($post_id),
+                ), 'editorial');
+            }
+
             self::redirect(array('ingeniero_notice'=>'editorial_approved','editorial_id'=>$editorial_id), 'editorial');
         }
 
@@ -568,7 +596,11 @@ final class SEO_Ingeniero_Admin {
             echo '<td style="min-width:250px"><a class="button button-small" href="' . esc_url(self::page_url('editorial', array('editorial_id'=>$id))) . '">Ver brief</a> ';
             self::render_editorial_action_button($id, 'reanalyze', 'Reanalizar', 'secondary');
             if (in_array((string) ($row['status'] ?? ''), array('candidate','review','needs_update'), true)) {
-                self::render_editorial_action_button($id, 'approve', 'Aprobar', 'primary');
+                $approve_label = (
+                    'CREATE_POST' === strtoupper((string) ($row['recommended_action'] ?? ''))
+                    && !$post_id
+                ) ? 'Aprobar y crear borrador' : 'Aprobar';
+                self::render_editorial_action_button($id, 'approve', $approve_label, 'primary');
             }
             if ('approved' === (string) ($row['status'] ?? '') && 'CREATE_POST' === strtoupper((string) ($row['recommended_action'] ?? '')) && !$post_id) {
                 self::render_editorial_action_button($id, 'create_draft', 'Crear borrador', 'primary');
@@ -709,7 +741,13 @@ final class SEO_Ingeniero_Admin {
         $post_id = absint($dossier['post_id'] ?? 0);
         echo '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">';
         self::render_editorial_action_button($editorial_id, 'reanalyze', 'Reanalizar cobertura', 'secondary');
-        if (in_array($status,array('candidate','review','needs_update'),true)) self::render_editorial_action_button($editorial_id,'approve','Aprobar propuesta','primary');
+        if (in_array($status,array('candidate','review','needs_update'),true)) {
+            $approve_label = (
+                'CREATE_POST' === strtoupper((string) ($dossier['recommended_action'] ?? ''))
+                && !$post_id
+            ) ? 'Aprobar y crear borrador' : 'Aprobar propuesta';
+            self::render_editorial_action_button($editorial_id,'approve',$approve_label,'primary');
+        }
         if ('approved' === $status && 'CREATE_POST' === strtoupper((string) ($dossier['recommended_action'] ?? '')) && !$post_id) self::render_editorial_action_button($editorial_id,'create_draft','Crear borrador','primary');
         if (!$post_id && !in_array($status,array('closed','published'),true)) self::render_editorial_action_button($editorial_id,'close','Cerrar / no actuar','secondary');
         if ($post_id && 'post' === get_post_type($post_id)) echo '<a class="button button-primary" href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">Abrir post #' . esc_html($post_id) . '</a>';
