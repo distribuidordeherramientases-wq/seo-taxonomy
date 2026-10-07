@@ -1,6 +1,6 @@
 <?php
 /**
- * Pruebas funcionales deterministas del proceso editorial de Ingeniero 0.3.3.
+ * Pruebas funcionales deterministas del proceso editorial de Ingeniero 0.3.4.
  *
  * No crean posts, no modifican conocimiento y no llaman a servicios externos.
  */
@@ -95,20 +95,33 @@ final class SEO_Ingeniero_Tests {
         );
 
         $blocked = SEO_Ingeniero_Posts::can_create_draft(array(
-            'recommended_action'=>'CREATE_POST',
+            'recommended_action'=>'NO_ACTION',
             'status'=>'candidate',
             'term_id'=>10,
         ));
-        $allowed = SEO_Ingeniero_Posts::can_create_draft(array(
+        $allowed_create = SEO_Ingeniero_Posts::can_create_draft(array(
             'recommended_action'=>'CREATE_POST',
+            'status'=>'approved',
+            'term_id'=>10,
+        ));
+        $allowed_merge = SEO_Ingeniero_Posts::can_create_draft(array(
+            'recommended_action'=>'MERGE_CONTENT',
+            'status'=>'approved',
+            'term_id'=>10,
+        ));
+        $allowed_covered = SEO_Ingeniero_Posts::can_create_draft(array(
+            'recommended_action'=>'NO_ACTION',
             'status'=>'approved',
             'term_id'=>10,
         ));
         self::add(
             $tests,
             'ING-ED-008',
-            is_wp_error($blocked) && true===$allowed,
-            'El borrador sigue exigiendo aprobación humana previa.'
+            is_wp_error($blocked)
+                && true===$allowed_create
+                && true===$allowed_merge
+                && true===$allowed_covered,
+            'La aprobación humana es el gate del draft; la recomendación de cobertura no bloquea Aceptar todo.'
         );
 
         global $wpdb;
