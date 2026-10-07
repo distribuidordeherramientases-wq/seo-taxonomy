@@ -172,7 +172,8 @@ final class SEO_Ojeador_Admin {
         $settings = SEO_Ojeador_Shopping::settings();
         $safe_settings = $settings;
         $safe_settings['api_key_configured'] = !empty($settings['api_key']);
-        unset($safe_settings['api_key']);
+        $safe_settings['scraperapi_key_configured'] = !empty($settings['scraperapi_key']);
+        unset($safe_settings['api_key'], $safe_settings['scraperapi_key']);
         $usage = SEO_Ojeador_Shopping::usage_month();
         $summary = SEO_Ojeador_DB::category_summary();
         $analysis_export = SEO_Ojeador_Analysis::dashboard(200);
@@ -637,6 +638,7 @@ final class SEO_Ojeador_Admin {
 
         $settings = SEO_Ojeador_Shopping::settings();
         $usage = SEO_Ojeador_Shopping::usage_month();
+        $scraper_usage = SEO_Ojeador_Shopping::scraperapi_usage_month();
         $ready = SEO_Ojeador_Shopping::readiness();
         $run = SEO_Ojeador_DB::active_run();
         if (!$run) $run = SEO_Ojeador_DB::latest_run();
@@ -744,6 +746,7 @@ final class SEO_Ojeador_Admin {
                     <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['consulted'])); ?></strong><span>Consultadas</span></div>
                     <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['pending'])); ?></strong><span>Pendientes</span></div>
                     <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($usage['used'])); ?> / <?php echo esc_html(number_format_i18n($usage['limit'])); ?></strong><span>Uso SerpApi</span></div>
+                    <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n(absint($scraper_usage['requests'] ?? 0))); ?></strong><span>Peticiones ScraperAPI</span></div>
                     <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['with_results'])); ?></strong><span>Con resultados</span></div>
                     <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['errors'] ?? 0)); ?></strong><span>Errores</span></div>
                     <div class="seo-ojeador-card"><strong><?php echo esc_html(number_format_i18n($summary['coverage'], 1)); ?>%</strong><span>Cobertura consultada</span></div>
@@ -779,7 +782,8 @@ final class SEO_Ojeador_Admin {
                 <details class="seo-ojeador-box seo-ojeador-config"><summary>Conexión Google Shopping y ritmo</summary>
                     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_settings_save'); ?><input type="hidden" name="action" value="seo_ojeador_settings_save">
                         <div class="seo-ojeador-grid">
-                            <label><strong>SerpApi API key</strong><input type="password" name="ojeador[api_key]" value="" placeholder="<?php echo esc_attr($settings['api_key'] !== '' ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password"></label>
+                            <label><strong>SerpApi API key</strong><input type="password" name="ojeador[api_key]" value="" placeholder="<?php echo esc_attr($settings['api_key'] !== '' ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password"><small>Proveedor primario para Google.</small></label>
+                            <label><strong>ScraperAPI API key</strong><input type="password" name="ojeador[scraperapi_key]" value="" placeholder="<?php echo esc_attr(!empty($settings['scraperapi_key']) ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password"><small>Fallback automático. Orden: SerpApi → ScraperAPI.</small></label>
                             <label><strong>Actualizar cada</strong><input type="number" min="6" max="2160" name="ojeador[interval_hours]" value="<?php echo absint($settings['interval_hours']); ?>"><small>Horas por categoría.</small></label>
                             <label><strong>Categorías por paso</strong><input type="number" min="1" max="20" name="ojeador[batch_size]" value="<?php echo absint($settings['batch_size']); ?>"></label>
                             <label><strong>Reutilizar consulta durante</strong><input type="number" min="1" max="168" name="ojeador[query_reuse_hours]" value="<?php echo absint($settings['query_reuse_hours']); ?>"><small>Horas.</small></label>
