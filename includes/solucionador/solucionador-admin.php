@@ -300,16 +300,18 @@ final class SEO_Solucionador_Admin {
         }
 
         if (count($rows) === $batch_size && $last_id > $after_id) {
-            $next = wp_nonce_url(
-                add_query_arg(array(
-                    'action'=>'seo_solucionador_accept_all',
-                    'after_id'=>$last_id,
-                    'created'=>$created,
-                    'skipped'=>$skipped,
-                    'errors'=>$errors,
-                ),admin_url('admin-post.php')),
-                'seo_solucionador_accept_all'
-            );
+            // No usar wp_nonce_url() aquí: devuelve la URL escapada para HTML
+            // y no debe reutilizarse directamente como cabecera Location.
+            // La continuación interna necesita los separadores "&" reales
+            // para que WordPress reciba _wpnonce en el siguiente lote.
+            $next = add_query_arg(array(
+                'action'=>'seo_solucionador_accept_all',
+                'after_id'=>$last_id,
+                'created'=>$created,
+                'skipped'=>$skipped,
+                'errors'=>$errors,
+                '_wpnonce'=>wp_create_nonce('seo_solucionador_accept_all'),
+            ),admin_url('admin-post.php'));
             wp_safe_redirect($next);
             exit;
         }

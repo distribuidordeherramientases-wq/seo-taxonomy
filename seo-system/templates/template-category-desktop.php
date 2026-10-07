@@ -66,13 +66,29 @@ dht_template_render_header();
    DATOS SEO
 ========================================================== */
 
-$excerpt = get_term_meta(
-    $term->term_id,
-    'seo_excerpt',
-    true
+global $wpdb;
+
+/*
+ * Excerpt canonico: el editor de categorias lo guarda en seo_nodes.
+ * Se conserva el term meta solo como respaldo legacy.
+ */
+$excerpt = (string) $wpdb->get_var(
+    $wpdb->prepare(
+        "SELECT keywords
+         FROM {$wpdb->prefix}seo_nodes
+         WHERE object_type = 'category'
+           AND object_id = %d
+           AND seo_role = 'excerpt'
+           AND status = 1
+         ORDER BY updated_at DESC, id DESC
+         LIMIT 1",
+        $term->term_id
+    )
 );
 
-global $wpdb;
+if (trim(wp_strip_all_tags($excerpt)) === '') {
+    $excerpt = (string) get_term_meta($term->term_id, 'seo_excerpt', true);
+}
 
 $keywords = (string) $wpdb->get_var(
     $wpdb->prepare(
@@ -96,20 +112,36 @@ $category_description = (string) $wpdb->get_var(
            AND object_id = %d
            AND seo_role = 'description'
            AND status = 1
-         ORDER BY id DESC
+         ORDER BY updated_at DESC, id DESC
          LIMIT 1",
         $term->term_id
     )
 );
 
+if (trim(wp_strip_all_tags($category_description)) === '') {
+    $category_description = (string) term_description($term->term_id, 'product_cat');
+}
+
 $category_description_plain = trim(wp_strip_all_tags($category_description));
-$category_description_words = $category_description_plain !== ''
-    ? preg_split('/\s+/u', $category_description_plain, -1, PREG_SPLIT_NO_EMPTY)
-    : array();
-$category_description_has_more = count((array) $category_description_words) > 42;
-$category_description_preview = $category_description_plain !== ''
-    ? wp_trim_words($category_description_plain, 42, '…')
-    : '';
+
+/*
+ * Preguntas y respuestas de Dependiente.
+ * Internamente siguen almacenadas en seo_faq; el cambio es de presentacion
+ * publica en la categoria, no de contrato de datos.
+ */
+$faq_table = $wpdb->prefix . 'seo_faq';
+$category_faqs = (array) $wpdb->get_results(
+    $wpdb->prepare(
+        "SELECT id, question, answer
+         FROM {$faq_table}
+         WHERE object_type = %d
+           AND object_id = %d
+           AND active = 1
+         ORDER BY sort_order ASC, id ASC",
+        2,
+        $term->term_id
+    )
+);
 
 $category_tags = array_values(
     array_filter(
@@ -303,18 +335,17 @@ $json = array(
 
                     <?php endif; ?>
 
-                    <?php if ($category_description_preview !== '') : ?>
-                        <div class="dht-category-description-inline">
-                            <span class="dht-category-description-kicker">Sobre esta categoría</span>
-                            <p><?php echo esc_html($category_description_preview); ?></p>
-                            <?php if ($category_description_has_more) : ?>
-                                <details>
-                                    <summary>Ver descripción completa</summary>
-                                    <div class="dht-category-description-inline__full">
-                                        <?php echo wp_kses_post($category_description); ?>
-                                    </div>
-                                </details>
-                            <?php endif; ?>
+                    <?php if ($category_description_plain !== '') : ?>
+                        <div class="dht-category-knowledge-row" aria-label="Información de la categoría">
+                            <details class="dht-category-knowledge-card">
+                                <summary>
+                                    <span>Información de la categoría</span>
+                                    <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
+                                </summary>
+                                <div class="dht-category-knowledge-card__body">
+                                    <?php echo wp_kses_post($category_description); ?>
+                                </div>
+                            </details>
                         </div>
                     <?php endif; ?>
 
@@ -387,6 +418,21 @@ $json = array(
         }
     }
 
+    if (empty($category_choice_criteria) && function_exists('dht_amazon_compare_points')) {
+        $category_choice_criteria = (array) dht_amazon_compare_points($term->name);
+    }
+
+    $category_choice_criteria = array_slice(
+        array_values(array_unique(array_filter(array_map(
+            static function ($criterion) {
+                return trim(wp_strip_all_tags((string) $criterion));
+            },
+            $category_choice_criteria
+        )))),
+        0,
+        6
+    );
+
     if (function_exists('wc_set_loop_prop')) {
         wc_set_loop_prop('columns', 3);
         wc_set_loop_prop('total', count($grid_products));
@@ -395,6 +441,21 @@ $json = array(
 
     <section id="dht-category-products" class="dht-section dht-category-products dht-category-products--faceted">
         <div class="dht-container">
+
+            <?php if (!empty($category_choice_criteria)) : ?>
+                <div class="dht-category-comparison-guide" aria-label="Qué conviene comparar antes de elegir">
+                    <div class="dht-category-comparison-guide__intro">
+                        <span class="dht-category-comparison-guide__kicker">Antes de elegir</span>
+                        <h2>Qué conviene comparar en <?php echo esc_html($term->name); ?></h2>
+                        <p>Revisa estos criterios antes de comparar los productos de esta categoría.</p>
+                    </div>
+                    <ul class="dht-category-comparison-guide__list">
+                        <?php foreach ($category_choice_criteria as $criterion) : ?>
+                            <li><?php echo esc_html($criterion); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
 
             <?php if (function_exists('dht_template_render_category_toolbar')) : ?>
                 <?php dht_template_render_category_toolbar($category_catalog, $term->name); ?>
@@ -417,17 +478,6 @@ $json = array(
                 </aside>
 
                 <div class="dht-category-products-panel dht-desktop-products-panel dht-category-products-panel--faceted">
-
-                    <?php if (!empty($category_choice_criteria)) : ?>
-                        <div class="dht-category-choice-criteria" aria-label="Criterios de comparación presentes en los productos">
-                            <strong>Compara especialmente</strong>
-                            <div class="dht-category-choice-criteria__items">
-                                <?php foreach ($category_choice_criteria as $criterion) : ?>
-                                    <span><?php echo esc_html($criterion); ?></span>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    <?php endif; ?>
 
                     <?php if ($grid_products) : ?>
                         <?php
@@ -460,6 +510,35 @@ $json = array(
     </section>
 
     <?php wp_reset_postdata(); ?>
+
+    <?php if (!empty($category_faqs)) : ?>
+        <section class="dht-category-faq-section" aria-label="Preguntas y respuestas de Dependiente">
+            <div class="dht-container">
+                <div class="dht-category-knowledge-row">
+                    <details class="dht-category-knowledge-card">
+                        <summary>
+                            <span>Preguntas y respuestas de Dependiente</span>
+                            <small><?php echo esc_html(number_format_i18n(count($category_faqs))); ?> preguntas</small>
+                            <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
+                        </summary>
+                        <div class="dht-category-knowledge-card__body dht-category-dependiente-qa">
+                            <?php foreach ($category_faqs as $category_faq) : ?>
+                                <details
+                                    class="dht-category-dependiente-qa__item"
+                                    data-seo-faq-id="<?php echo esc_attr((string) $category_faq->id); ?>"
+                                >
+                                    <summary><?php echo esc_html($category_faq->question); ?></summary>
+                                    <div class="dht-category-dependiente-qa__answer">
+                                        <?php echo wp_kses_post($category_faq->answer); ?>
+                                    </div>
+                                </details>
+                            <?php endforeach; ?>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
 
     <section class="dht-section dht-category-assistant-section" aria-label="Ayuda para elegir">
         <div class="dht-container">

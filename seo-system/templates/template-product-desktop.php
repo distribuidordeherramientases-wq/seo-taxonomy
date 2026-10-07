@@ -82,6 +82,20 @@ $gallery_ids      = array_values(array_unique(array_filter(
 
 global $wpdb;
 
+$faq_table = $wpdb->prefix . 'seo_faq';
+$product_faqs = (array) $wpdb->get_results(
+    $wpdb->prepare(
+        "SELECT id, question, answer
+         FROM {$faq_table}
+         WHERE object_type = %d
+           AND object_id = %d
+           AND active = 1
+         ORDER BY sort_order ASC, id ASC",
+        3,
+        $product_id
+    )
+);
+
 $supplier_stock = dht_supplier_product_stock_state($product_id);
 $supplier_out_of_stock = !empty($supplier_stock['is_out_of_stock']);
 
@@ -1100,6 +1114,34 @@ $schema_product_graph = array(
       dht_template_render_product_context_blocks($product_id);
   }
   ?>
+
+
+  <?php if (!empty($product_faqs)) : ?>
+    <section class="dht-product-faq-section" aria-label="Preguntas y respuestas de Dependiente">
+      <div class="dht-category-knowledge-row">
+        <details class="dht-category-knowledge-card">
+          <summary>
+            <span>Preguntas y respuestas de Dependiente</span>
+            <small><?php echo esc_html(number_format_i18n(count($product_faqs))); ?> preguntas</small>
+            <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
+          </summary>
+          <div class="dht-category-knowledge-card__body dht-category-dependiente-qa">
+            <?php foreach ($product_faqs as $product_faq) : ?>
+              <details
+                class="dht-category-dependiente-qa__item"
+                data-seo-faq-id="<?php echo esc_attr((string) $product_faq->id); ?>"
+              >
+                <summary><?php echo esc_html($product_faq->question); ?></summary>
+                <div class="dht-category-dependiente-qa__answer">
+                  <?php echo wp_kses_post($product_faq->answer); ?>
+                </div>
+              </details>
+            <?php endforeach; ?>
+          </div>
+        </details>
+      </div>
+    </section>
+  <?php endif; ?>
 
   <section id="reviews" class="dh-product-reviews dh-product-customer-reviews">
     <h2>Opiniones de clientes</h2>

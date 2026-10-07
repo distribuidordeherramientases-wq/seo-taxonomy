@@ -770,32 +770,32 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
             <div class="sf-shell">
                 <div class="sf-assistance-compact__panel">
                     <div class="sf-assistance-compact__finder">
-                        <div class="sf-assistance-compact__identity">
-                            <?php if ($dht_dependiente_image) : ?>
-                                <img src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Dependiente, asistente del catálogo" loading="lazy">
-                            <?php endif; ?>
-                            <div>
-                                <span class="sf-eyebrow">Ayuda para elegir</span>
-                                <h1 id="dht-home-title">¿No sabes exactamente qué producto necesitas?</h1>
-                            </div>
-                        </div>
-                        <p>Describe lo que quieres hacer y Dependiente buscará opciones dentro del catálogo.</p>
-                        <form class="sf-home-search-form" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
-                            <label class="screen-reader-text" for="dht-home-search">Describe lo que necesitas</label>
-                            <input id="dht-home-search" type="search" name="dep_q" placeholder="Ej.: perforar hormigón, reparar un grifo..." autocomplete="off">
-                            <button type="submit">Buscar con Dependiente</button>
+                        <h1 id="dht-home-title" class="screen-reader-text">Encuentra la herramienta que necesitas con Dependiente</h1>
+                        <?php if ($dht_dependiente_image) : ?>
+                            <img class="sf-assistance-compact__avatar" src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Dependiente, asistente del catálogo" loading="lazy">
+                        <?php endif; ?>
+                        <form class="sf-home-search-form sf-home-search-form--compact" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
+                            <label class="screen-reader-text" for="dht-home-search">Pregunta al Dependiente lo que necesitas</label>
+                            <input id="dht-home-search" type="search" name="dep_q" placeholder="Pregunta al Dependiente lo que necesitas" autocomplete="off">
+                            <button type="submit">Buscar</button>
                         </form>
                     </div>
 
                     <div class="sf-assistance-compact__human">
-                        <span class="sf-service-kicker">Compra con respaldo</span>
-                        <strong>¿Prefieres hablar con una persona?</strong>
-                        <p>Te ayudamos con dudas de compra, proveedor, seguimiento o incidencias.</p>
+                        <div class="sf-assistance-compact__human-copy">
+                            <span class="sf-service-kicker">Atención personal</span>
+                            <strong>¿Prefieres hablar con una persona?</strong>
+                            <span>Dudas de compra, proveedor, seguimiento o incidencias.</span>
+                        </div>
                         <div class="sf-service-actions">
                             <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
                             <a class="sf-assistance-compact__link" href="<?php echo esc_url($dht_service_url); ?>">Conocer el servicio</a>
                         </div>
                     </div>
+
+                    <p class="sf-assistance-compact__promise">
+                        Nuestro servicio te acompaña antes y después de la compra: preventa, seguimiento del envío, postventa, garantías, devoluciones e incidencias con proveedores externos.
+                    </p>
                 </div>
             </div>
         </section>
