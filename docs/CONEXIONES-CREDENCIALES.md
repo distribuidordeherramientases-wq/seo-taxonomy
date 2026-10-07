@@ -289,6 +289,8 @@ Orden operativo:
 2. Si falta conexión, se alcanza la cuota o la petición falla, ScraperAPI.
 3. Si el primer proveedor responde correctamente aunque devuelva 0 resultados, no se ejecuta el segundo.
 
+En la interfaz las dos credenciales aparecen como conexiones separadas, una debajo de la otra. El botón **Probar cadena SerpApi → ScraperAPI** comprueba el mismo orden de fallback sin exponer ninguna clave.
+
 Ojeador usa el endpoint estructurado de Google Shopping de ScraperAPI. Ingeniero usa el endpoint estructurado de Google Search. Las respuestas se normalizan antes de llegar a cada servicio.
 
 Si un campo de API key se deja vacío, se conserva la credencial ya almacenada.
