@@ -18,7 +18,9 @@ Filtros Categoría, Producto/marca/modelo, Comercio, Precio min/max, Rating mín
 ## Operación y consultas
 Buscador de categoría/consulta, tabla de estado y log.
 
-Configuración: **SerpApi API key**, **ScraperAPI API key**, Actualizar cada N horas, Categorías por paso, Reutilizar consulta N horas, Límite mensual local y checkbox **Mantener el mercado actualizado automáticamente**. **Guardar**.
+Configuración: dos bloques de conexión independientes, **Conexión 1 · SerpApi** y **Conexión 2 · ScraperAPI**, seguidos del ritmo de actualización. Cada bloque indica si la credencial está configurada. **Guardar conexiones y configuración** conserva las claves existentes cuando el campo queda vacío.
+
+Botón **Probar cadena SerpApi → ScraperAPI**: valida primero SerpApi mediante Account API; sólo si no está disponible o no tiene cuota prueba ScraperAPI. La prueba de ScraperAPI realiza una petición estructurada de Google Search.
 
 ## Proveedores Google
 
