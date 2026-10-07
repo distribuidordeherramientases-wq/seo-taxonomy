@@ -452,7 +452,7 @@ final class SEO_Ingeniero_Admin {
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Fuente de búsqueda y presupuesto</h3>';
-        echo '<p>Proveedores Google compartidos con Ojeador: <strong>SerpApi → ScraperAPI</strong>. Ingeniero prueba primero SerpApi y, si no está disponible, alcanza cuota o falla, continúa con ScraperAPI. Las dos API keys se gestionan en <strong>Herramientas → Ojeador</strong>.</p>';
+        echo '<p>Proveedores Google compartidos con Ojeador: <strong>SerpApi → ScraperAPI</strong>. Ingeniero prueba primero SerpApi y, si no está disponible, alcanza cuota o falla, continúa con ScraperAPI. Las dos API keys se gestionan en <strong>Herramientas → Conexiones con proveedores</strong>.</p>';
         echo '<p>Ingeniero mantiene un <strong>presupuesto local independiente</strong> sobre sus búsquedas lógicas, aunque una búsqueda pueda necesitar dos intentos de proveedor durante un fallback.</p>';
         echo '<p><strong>Uso Ingeniero:</strong> ' . esc_html(number_format_i18n($usage['used'])) . ' / ' . esc_html(number_format_i18n($usage['limit'])) . ' búsquedas este mes.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
