@@ -348,12 +348,6 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             return;
         }
 
-        if ( class_exists( 'SEO_Ojeador_Admin' ) && is_callable( array( 'SEO_Ojeador_Admin', 'render_shared_google_connections' ) ) ) {
-            SEO_Ojeador_Admin::render_shared_google_connections();
-        } else {
-            echo '<div class="notice notice-warning inline"><p>No está disponible la configuración compartida SerpApi / ScraperAPI para Ojeador e Ingeniero.</p></div>';
-        }
-
         if ( isset( $connections['google_intelligence'] ) && function_exists( 'seo_google_render_settings' ) && function_exists( 'seo_google_render_sync_status' ) ) {
             echo '<section id="seo-google-intelligence-connection" style="margin-top:22px;scroll-margin-top:40px;">';
             echo '<div style="border-top:1px solid #dcdcde;padding-top:20px;margin-bottom:16px;">';
