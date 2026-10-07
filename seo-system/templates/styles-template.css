@@ -8751,7 +8751,17 @@ html {
     margin-bottom:0;
 }
 
-/* Categoria: descripcion + preguntas de Dependiente plegadas antes del catalogo */
+/* Acordeones de información y FAQ reutilizados en categorías y productos. */
+.dht-category-faq-section{
+    padding:0 0 20px;
+}
+.dht-product-faq-section{
+    margin-top:32px;
+}
+.dht-product-faq-section .dht-category-knowledge-row,
+.dht-category-faq-section .dht-category-knowledge-row{
+    margin:0;
+}
 .dht-category-knowledge-row{
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -8926,6 +8936,16 @@ html {
         grid-template-columns:1fr;
         gap:7px;
         margin:8px 0 10px;
+    }
+    .dht-category-faq-section{
+        padding-bottom:14px;
+    }
+    .dht-product-faq-section{
+        margin-top:22px;
+    }
+    .dht-product-faq-section .dht-category-knowledge-row,
+    .dht-category-faq-section .dht-category-knowledge-row{
+        margin:0;
     }
     .dht-category-knowledge-card>summary{
         min-height:42px;
