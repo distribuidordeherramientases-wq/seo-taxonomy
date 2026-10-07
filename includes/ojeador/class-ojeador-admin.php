@@ -18,6 +18,7 @@ final class SEO_Ojeador_Admin {
         add_filter('seo_tools_cards', array(__CLASS__, 'register_tool_card'));
         add_action('admin_footer', array(__CLASS__, 'tools_fallback_card'), 99);
         add_action('admin_post_seo_ojeador_settings_save', array(__CLASS__, 'save_settings'));
+        add_action('admin_post_seo_ojeador_test_provider_chain', array(__CLASS__, 'test_provider_chain'));
         add_action('admin_post_seo_ojeador_start', array(__CLASS__, 'start'));
         add_action('admin_post_seo_ojeador_stop', array(__CLASS__, 'stop'));
         add_action('admin_post_seo_ojeador_export_json', array(__CLASS__, 'export_json'));
@@ -82,12 +83,189 @@ final class SEO_Ojeador_Admin {
         exit;
     }
 
+    private static function redirect_provider_connections($args = array(), $anchor = 'seo-google-shared-providers') {
+        $url = add_query_arg(array_merge(array('page'=>'seo-provider-connections'), $args), admin_url('admin.php'));
+        if ($anchor !== '') {
+            $url .= '#' . sanitize_html_class($anchor);
+        }
+        wp_safe_redirect($url);
+        exit;
+    }
+
+    private static function return_to_provider_connections() {
+        return isset($_POST['ojeador_return'])
+            && sanitize_key((string) wp_unslash($_POST['ojeador_return'])) === 'provider_connections';
+    }
+
     public static function save_settings() {
         self::guard('seo_ojeador_settings_save');
         $raw = isset($_POST['ojeador']) && is_array($_POST['ojeador']) ? wp_unslash($_POST['ojeador']) : array();
-        $raw['auto_enabled'] = empty($raw['auto_enabled']) ? 0 : 1;
+        $scope = isset($_POST['ojeador_scope']) ? sanitize_key((string) wp_unslash($_POST['ojeador_scope'])) : 'operation';
+
+        // El checkbox sólo pertenece al formulario operativo de Ojeador. El
+        // formulario central de proveedores no debe desactivar auto_enabled.
+        if ($scope === 'operation') {
+            $raw['auto_enabled'] = empty($raw['auto_enabled']) ? 0 : 1;
+        }
+
         SEO_Ojeador_Shopping::save_settings($raw);
-        self::redirect(array('ojeador_notice'=>'settings_saved'));
+
+        if (self::return_to_provider_connections()) {
+            self::redirect_provider_connections(array('ojeador_google_notice'=>'settings_saved'));
+        }
+
+        self::redirect(array('ojeador_tab'=>'operation','ojeador_notice'=>'settings_saved'));
+    }
+
+    public static function test_provider_chain() {
+        self::guard('seo_ojeador_test_provider_chain');
+        $result = SEO_Ojeador_Shopping::test_connection_chain();
+
+        if (self::return_to_provider_connections()) {
+            if (is_wp_error($result)) {
+                self::redirect_provider_connections(array(
+                    'ojeador_google_error'=>rawurlencode($result->get_error_message()),
+                ));
+            }
+            self::redirect_provider_connections(array(
+                'ojeador_google_notice'=>'connection_ok',
+                'ojeador_google_provider'=>sanitize_key((string) ($result['provider'] ?? '')),
+            ));
+        }
+
+        if (is_wp_error($result)) {
+            self::redirect(array(
+                'ojeador_tab'=>'operation',
+                'ojeador_error'=>rawurlencode($result->get_error_message()),
+            ));
+        }
+
+        self::redirect(array(
+            'ojeador_tab'=>'operation',
+            'ojeador_notice'=>'connection_ok',
+            'ojeador_provider'=>sanitize_key((string) ($result['provider'] ?? '')),
+        ));
+    }
+
+    public static function render_shared_google_connections() {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $settings = SEO_Ojeador_Shopping::settings();
+        $usage = SEO_Ojeador_Shopping::usage_month();
+        $scraper_usage = SEO_Ojeador_Shopping::scraperapi_usage_month();
+        $notice = isset($_GET['ojeador_google_notice'])
+            ? sanitize_key((string) wp_unslash($_GET['ojeador_google_notice']))
+            : '';
+        $error = isset($_GET['ojeador_google_error'])
+            ? sanitize_text_field(rawurldecode((string) wp_unslash($_GET['ojeador_google_error'])))
+            : '';
+        $tested_provider = isset($_GET['ojeador_google_provider'])
+            ? sanitize_key((string) wp_unslash($_GET['ojeador_google_provider']))
+            : '';
+
+        ?>
+        <section id="seo-google-shared-providers" class="card" style="max-width:none;padding:20px;margin-top:20px;scroll-margin-top:40px;">
+            <style>
+                #seo-google-shared-providers .seo-google-provider-stack{display:grid;gap:12px;margin:16px 0}
+                #seo-google-shared-providers .seo-google-provider{border:1px solid #dcdcde;border-radius:7px;padding:15px;background:#f6f7f7}
+                #seo-google-shared-providers .seo-google-provider-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+                #seo-google-shared-providers .seo-google-provider-status{font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px;background:#dcdcde}
+                #seo-google-shared-providers .seo-google-provider-status.is-ok{background:#d7f0dd;color:#006b1b}
+                #seo-google-shared-providers input[type="password"],#seo-google-shared-providers input[type="number"]{width:100%;max-width:680px;margin-top:5px}
+                #seo-google-shared-providers small{display:block;color:#646970;margin-top:4px}
+                #seo-google-shared-providers .seo-google-chain{padding:11px 13px;background:#f0f6fc;border-left:4px solid #2271b1;margin:12px 0}
+                #seo-google-shared-providers .seo-google-usage{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0;color:#50575e}
+            </style>
+
+            <div style="border-bottom:1px solid #dcdcde;padding-bottom:14px;margin-bottom:14px;">
+                <p style="margin:0 0 5px;"><strong style="font-size:12px;text-transform:uppercase;color:#646970;">Servicios compartidos de búsqueda Google</strong></p>
+                <h2 style="margin:0 0 7px;">SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero</h2>
+                <p style="margin:0;max-width:980px;">
+                    Estas dos conexiones se configuran una sola vez. <strong>Ojeador</strong> las utiliza para Google Shopping e
+                    <strong>Ingeniero</strong> para Google Search. El orden automático es SerpApi primero y ScraperAPI como respaldo.
+                </p>
+            </div>
+
+            <?php if ($notice === 'settings_saved') : ?>
+                <div class="notice notice-success inline"><p>Conexiones Google guardadas.</p></div>
+            <?php endif; ?>
+
+            <?php if ($notice === 'connection_ok') : ?>
+                <div class="notice notice-success inline"><p><strong>Cadena de conexión operativa.</strong>
+                    <?php if ($tested_provider === 'scraperapi') : ?>
+                        SerpApi no estaba disponible y ScraperAPI respondió correctamente como fallback.
+                    <?php else : ?>
+                        SerpApi respondió correctamente; ScraperAPI queda preparada como fallback.
+                    <?php endif; ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php if ($error !== '') : ?>
+                <div class="notice notice-error inline"><p><?php echo esc_html($error); ?></p></div>
+            <?php endif; ?>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <?php wp_nonce_field('seo_ojeador_settings_save'); ?>
+                <input type="hidden" name="action" value="seo_ojeador_settings_save">
+                <input type="hidden" name="ojeador_scope" value="connections">
+                <input type="hidden" name="ojeador_return" value="provider_connections">
+
+                <div class="seo-google-provider-stack">
+                    <div class="seo-google-provider">
+                        <div class="seo-google-provider-head">
+                            <strong>Conexión 1 · SerpApi</strong>
+                            <span class="seo-google-provider-status <?php echo !empty($settings['api_key']) ? 'is-ok' : ''; ?>">
+                                <?php echo !empty($settings['api_key']) ? 'Configurada' : 'Sin configurar'; ?>
+                            </span>
+                        </div>
+                        <label>SerpApi API key
+                            <input type="password" name="ojeador[api_key]" value="" placeholder="<?php echo esc_attr(!empty($settings['api_key']) ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password">
+                            <small>Proveedor primario para Ojeador e Ingeniero.</small>
+                        </label>
+                    </div>
+
+                    <div class="seo-google-provider">
+                        <div class="seo-google-provider-head">
+                            <strong>Conexión 2 · ScraperAPI</strong>
+                            <span class="seo-google-provider-status <?php echo !empty($settings['scraperapi_key']) ? 'is-ok' : ''; ?>">
+                                <?php echo !empty($settings['scraperapi_key']) ? 'Configurada' : 'Sin configurar'; ?>
+                            </span>
+                        </div>
+                        <label>ScraperAPI API key
+                            <input type="password" name="ojeador[scraperapi_key]" value="" placeholder="<?php echo esc_attr(!empty($settings['scraperapi_key']) ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password">
+                            <small>Proveedor de respaldo. Se usa cuando SerpApi no está disponible, alcanza cuota o falla.</small>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="seo-google-chain"><strong>Orden automático:</strong> SerpApi → ScraperAPI. Una respuesta válida de SerpApi, aunque tenga 0 resultados, no activa el segundo proveedor.</div>
+
+                <p>
+                    <label><strong>Límite mensual local SerpApi</strong><br>
+                        <input type="number" min="1" max="1000000" name="ojeador[monthly_query_limit]" value="<?php echo absint($settings['monthly_query_limit']); ?>">
+                        <small>Cuando se alcanza este límite, Ojeador e Ingeniero pueden continuar con ScraperAPI si está configurado.</small>
+                    </label>
+                </p>
+
+                <div class="seo-google-usage">
+                    <span><strong>SerpApi:</strong> <?php echo esc_html(number_format_i18n(absint($usage['used'] ?? 0))); ?> / <?php echo esc_html(number_format_i18n(absint($usage['limit'] ?? 0))); ?></span>
+                    <span><strong>ScraperAPI:</strong> <?php echo esc_html(number_format_i18n(absint($scraper_usage['requests'] ?? 0))); ?> peticiones locales este mes</span>
+                </div>
+
+                <p><button class="button button-primary" type="submit">Guardar conexiones Google</button></p>
+            </form>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:12px;padding-top:12px;border-top:1px solid #dcdcde;">
+                <?php wp_nonce_field('seo_ojeador_test_provider_chain'); ?>
+                <input type="hidden" name="action" value="seo_ojeador_test_provider_chain">
+                <input type="hidden" name="ojeador_return" value="provider_connections">
+                <button class="button" type="submit">Probar cadena SerpApi → ScraperAPI</button>
+                <small>SerpApi se valida sin gastar una búsqueda. Sólo si debe probar ScraperAPI se realiza una petición estructurada de Google Search.</small>
+            </form>
+        </section>
+        <?php
     }
 
     public static function start() {
@@ -699,7 +877,7 @@ final class SEO_Ojeador_Admin {
                 .seo-ojeador-card,.seo-ojeador-box{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:15px}.seo-ojeador-card strong{display:block;font-size:24px;line-height:1.1}.seo-ojeador-card span{color:#646970}.seo-ojeador-card small{font-size:11px}.seo-ojeador-kpi-action{border-left:4px solid #008a20}
                 .seo-ojeador-table{overflow:auto;background:#fff;border:1px solid #dcdcde;border-radius:8px}.seo-ojeador-table table{border:0;margin:0}.seo-ojeador-table td{vertical-align:top}.seo-ojeador-muted{color:#646970}.seo-ojeador-pill{font-weight:600;white-space:nowrap}
                 .seo-ojeador-run{margin:12px 0 0;padding:10px 12px;background:#f6f7f7;border-radius:6px}.seo-ojeador-config{margin-top:18px}.seo-ojeador-config summary{cursor:pointer;font-weight:600;font-size:15px}
-                .seo-ojeador-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:14px}.seo-ojeador-grid label{display:block}.seo-ojeador-grid input{width:100%;margin-top:5px}.seo-ojeador-grid small{display:block;color:#646970;margin-top:4px}.seo-ojeador-analysis-detail summary{cursor:pointer;font-weight:600;font-size:15px}.seo-ojeador-analysis-cards{margin-top:10px}
+                .seo-ojeador-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:14px}.seo-ojeador-grid label{display:block}.seo-ojeador-grid input{width:100%;margin-top:5px}.seo-ojeador-grid small{display:block;color:#646970;margin-top:4px}.seo-ojeador-provider-stack{display:grid;gap:10px;margin:14px 0}.seo-ojeador-provider{border:1px solid #dcdcde;border-radius:7px;padding:14px;background:#f6f7f7}.seo-ojeador-provider-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}.seo-ojeador-provider-status{font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px;background:#dcdcde}.seo-ojeador-provider-status.is-ok{background:#d7f0dd;color:#006b1b}.seo-ojeador-provider label{display:block}.seo-ojeador-provider input{width:100%;max-width:620px;margin-top:5px}.seo-ojeador-provider small{display:block;color:#646970;margin-top:4px}.seo-ojeador-chain{padding:10px 12px;background:#f0f6fc;border-left:4px solid #2271b1;margin:10px 0}.seo-ojeador-analysis-detail summary{cursor:pointer;font-weight:600;font-size:15px}.seo-ojeador-analysis-cards{margin-top:10px}
                 .seo-ojeador-action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}.seo-ojeador-filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px}.seo-ojeador-filter-grid label{display:block}.seo-ojeador-filter-grid input,.seo-ojeador-filter-grid select{width:100%;margin-top:5px}.seo-ojeador-filter-grid .seo-ojeador-check{display:flex;gap:7px;align-items:center;padding-top:24px}.seo-ojeador-filter-grid .seo-ojeador-check input{width:auto;margin:0}
                 .nav-tab-wrapper{margin-top:18px}.seo-ojeador-products .tablenav-pages,.seo-ojeador-stars .tablenav-pages{display:flex;gap:8px;align-items:center}.seo-ojeador-star-strong{border-left:4px solid #008a20;background:#f0f8f1}.seo-ojeador-price-good{border-left:4px solid #008a20;background:#f0f8f1}.seo-ojeador-price-market{border-left:4px solid #dba617;background:#fff8e5}.seo-ojeador-price-bad{border-left:4px solid #b32d2e;background:#fcf0f1}.seo-ojeador-row-good td:first-child{border-left:5px solid #008a20}.seo-ojeador-row-market td:first-child{border-left:5px solid #dba617}.seo-ojeador-row-bad td:first-child{border-left:5px solid #b32d2e}.seo-ojeador-row-neutral td:first-child{border-left:5px solid #8c8f94}
             </style>
@@ -721,6 +899,16 @@ final class SEO_Ojeador_Admin {
             </div>
 
             <?php if ($notice === 'settings_saved') : ?><div class="notice notice-success inline"><p>Configuración guardada.</p></div><?php endif; ?>
+            <?php if ($notice === 'connection_ok') : ?>
+                <?php $tested_provider = sanitize_key((string) ($_GET['ojeador_provider'] ?? '')); ?>
+                <div class="notice notice-success inline"><p><strong>Cadena de conexión operativa.</strong>
+                    <?php if ($tested_provider === 'scraperapi') : ?>
+                        SerpApi no estaba disponible y ScraperAPI respondió correctamente como fallback.
+                    <?php else : ?>
+                        SerpApi respondió correctamente; ScraperAPI queda preparada como fallback.
+                    <?php endif; ?>
+                </p></div>
+            <?php endif; ?>
             <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías aptas.</p></div><?php endif; ?>
             <?php if ($notice === 'scan_stopped') : ?><div class="notice notice-info inline"><p>Proceso detenido.</p></div><?php endif; ?>
             <?php if ($error !== '') : ?><div class="notice notice-error inline"><p><?php echo esc_html($error); ?></p></div><?php endif; ?>
@@ -779,17 +967,23 @@ final class SEO_Ojeador_Admin {
                     <?php endforeach; ?>
                 </tbody></table></div>
 
-                <details class="seo-ojeador-box seo-ojeador-config"><summary>Conexión Google Shopping y ritmo</summary>
-                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><?php wp_nonce_field('seo_ojeador_settings_save'); ?><input type="hidden" name="action" value="seo_ojeador_settings_save">
+                <details class="seo-ojeador-box seo-ojeador-config"><summary>Ritmo de Ojeador</summary>
+                    <p class="seo-ojeador-muted" style="margin:12px 0 0;">
+                        Las credenciales compartidas de <strong>SerpApi y ScraperAPI</strong> se gestionan en
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=seo-provider-connections#seo-google-shared-providers')); ?>">Conexiones con proveedores</a>.
+                    </p>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                        <?php wp_nonce_field('seo_ojeador_settings_save'); ?>
+                        <input type="hidden" name="action" value="seo_ojeador_settings_save">
+                        <input type="hidden" name="ojeador_scope" value="operation">
+
                         <div class="seo-ojeador-grid">
-                            <label><strong>SerpApi API key</strong><input type="password" name="ojeador[api_key]" value="" placeholder="<?php echo esc_attr($settings['api_key'] !== '' ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password"><small>Proveedor primario para Google.</small></label>
-                            <label><strong>ScraperAPI API key</strong><input type="password" name="ojeador[scraperapi_key]" value="" placeholder="<?php echo esc_attr(!empty($settings['scraperapi_key']) ? 'Configurada · dejar vacío para conservar' : 'API key'); ?>" autocomplete="new-password"><small>Fallback automático. Orden: SerpApi → ScraperAPI.</small></label>
                             <label><strong>Actualizar cada</strong><input type="number" min="6" max="2160" name="ojeador[interval_hours]" value="<?php echo absint($settings['interval_hours']); ?>"><small>Horas por categoría.</small></label>
                             <label><strong>Categorías por paso</strong><input type="number" min="1" max="20" name="ojeador[batch_size]" value="<?php echo absint($settings['batch_size']); ?>"></label>
                             <label><strong>Reutilizar consulta durante</strong><input type="number" min="1" max="168" name="ojeador[query_reuse_hours]" value="<?php echo absint($settings['query_reuse_hours']); ?>"><small>Horas.</small></label>
-                            <label><strong>Límite mensual local</strong><input type="number" min="1" max="1000000" name="ojeador[monthly_query_limit]" value="<?php echo absint($settings['monthly_query_limit']); ?>"></label>
                         </div>
-                        <p><label><input type="checkbox" name="ojeador[auto_enabled]" value="1" <?php checked(!empty($settings['auto_enabled'])); ?>> Mantener el mercado actualizado automáticamente</label></p><p><button class="button button-primary" type="submit">Guardar</button></p>
+                        <p><label><input type="checkbox" name="ojeador[auto_enabled]" value="1" <?php checked(!empty($settings['auto_enabled'])); ?>> Mantener el mercado actualizado automáticamente</label></p>
+                        <p><button class="button button-primary" type="submit">Guardar ritmo de Ojeador</button></p>
                     </form>
                 </details>
 

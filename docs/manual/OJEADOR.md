@@ -18,7 +18,9 @@ Filtros Categoría, Producto/marca/modelo, Comercio, Precio min/max, Rating mín
 ## Operación y consultas
 Buscador de categoría/consulta, tabla de estado y log.
 
-Configuración: **SerpApi API key**, **ScraperAPI API key**, Actualizar cada N horas, Categorías por paso, Reutilizar consulta N horas, Límite mensual local y checkbox **Mantener el mercado actualizado automáticamente**. **Guardar**.
+La pestaña mantiene sólo la configuración operativa propia de Ojeador: **Actualizar cada**, **Categorías por paso**, **Reutilizar consulta durante** y **Mantener el mercado actualizado automáticamente**.
+
+Las credenciales de **SerpApi** y **ScraperAPI**, el límite local de SerpApi y el botón **Probar cadena SerpApi → ScraperAPI** se gestionan de forma central en **SEO Taxonomy → Herramientas → Conexiones con proveedores**, dentro del bloque **SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero**.
 
 ## Proveedores Google
 

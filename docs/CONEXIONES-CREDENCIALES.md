@@ -265,9 +265,11 @@ Debe registrarse como Redirect URI en la aplicación de X.
 
 ---
 
-## SerpApi + ScraperAPI / Ojeador
+## SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero
 
-Las dos conexiones se configuran en **Herramientas → Ojeador** y son compartidas por Ojeador e Ingeniero.
+Ruta: **SEO Taxonomy → Herramientas → Conexiones con proveedores**.
+
+Las dos conexiones se configuran una sola vez y son compartidas por **Ojeador** e **Ingeniero**. Ojeador las usa para Google Shopping; Ingeniero para Google Search.
 
 ### SerpApi API key
 Proveedor primario para Google Shopping y Google Search.
@@ -289,25 +291,16 @@ Orden operativo:
 2. Si falta conexión, se alcanza la cuota o la petición falla, ScraperAPI.
 3. Si el primer proveedor responde correctamente aunque devuelva 0 resultados, no se ejecuta el segundo.
 
+En la interfaz las dos credenciales aparecen como conexiones separadas, una debajo de la otra. El botón **Probar cadena SerpApi → ScraperAPI** comprueba el mismo orden de fallback sin exponer ninguna clave.
+
 Ojeador usa el endpoint estructurado de Google Shopping de ScraperAPI. Ingeniero usa el endpoint estructurado de Google Search. Las respuestas se normalizan antes de llegar a cada servicio.
 
 Si un campo de API key se deja vacío, se conserva la credencial ya almacenada.
 
-### Actualizar cada
-Intervalo entre revisiones de una categoría.
+### Límite mensual local SerpApi
+Protección compartida de la cadena Google. Si se alcanza y ScraperAPI está configurado, Ojeador e Ingeniero pueden continuar por el proveedor secundario.
 
-**Ejemplo:** `720` horas para una revisión aproximadamente mensual.
-
-### Categorías por paso
-Número de categorías que procesa cada ciclo.
-
-El valor debe ajustarse a la capacidad del servidor y a la cuota disponible.
-
-### Reutilizar consulta durante
-Evita repetir una consulta reciente durante el periodo configurado.
-
-### Límite mensual local
-Protección interna de SerpApi en Ojeador. Si se alcanza y ScraperAPI está configurado, las nuevas consultas pueden continuar por el proveedor secundario.
+Los ajustes **Actualizar cada**, **Categorías por paso**, **Reutilizar consulta durante** y **Mantener el mercado actualizado automáticamente** permanecen en Ojeador porque son parámetros de operación del servicio, no credenciales de proveedor.
 
 Ingeniero mantiene además su propio límite local de búsquedas lógicas, independiente de la cuota concreta de cada proveedor.
 

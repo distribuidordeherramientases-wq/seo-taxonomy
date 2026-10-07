@@ -66,13 +66,21 @@ final class SEO_Ojeador_Shopping {
     public static function save_settings($raw) {
         $current = self::settings();
         $raw = is_array($raw) ? $raw : array();
+
+        // Los formularios de Ojeador y Conexiones con proveedores editan
+        // subconjuntos distintos de esta configuración compartida. Partimos
+        // siempre del estado actual para que guardar una API key no resetee el
+        // ritmo de Ojeador y viceversa.
+        $merged = array_merge($current, $raw);
+
         if (empty($raw['api_key']) && !defined('SEO_OJEADOR_SERPAPI_KEY')) {
-            $raw['api_key'] = (string) ($current['api_key'] ?? '');
+            $merged['api_key'] = (string) ($current['api_key'] ?? '');
         }
         if (empty($raw['scraperapi_key']) && !defined('SEO_OJEADOR_SCRAPERAPI_KEY')) {
-            $raw['scraperapi_key'] = (string) ($current['scraperapi_key'] ?? '');
+            $merged['scraperapi_key'] = (string) ($current['scraperapi_key'] ?? '');
         }
-        $settings = self::sanitize_settings($raw);
+
+        $settings = self::sanitize_settings($merged);
         update_option(self::OPTION_SETTINGS, $settings, false);
         return $settings;
     }
@@ -105,6 +113,135 @@ final class SEO_Ojeador_Shopping {
         return new WP_Error(
             'ojeador_shopping_budget',
             'SerpApi ha alcanzado el límite mensual configurado y ScraperAPI no está configurado.'
+        );
+    }
+
+    /**
+     * Prueba la cadena de conexiones en el mismo orden operativo.
+     *
+     * SerpApi se valida con Account API para no gastar una búsqueda. Sólo si
+     * SerpApi no está disponible o no tiene cuota se prueba ScraperAPI mediante
+     * su endpoint estructurado de Google Search.
+     *
+     * @return array|WP_Error
+     */
+    public static function test_connection_chain() {
+        $settings = self::settings();
+        $attempts = array();
+
+        $serpapi_key = trim((string) ($settings['api_key'] ?? ''));
+        if ($serpapi_key !== '') {
+            $provider = self::provider_usage(true);
+            if (!is_wp_error($provider)) {
+                $configured_limit = absint($settings['monthly_query_limit'] ?? 0);
+                $provider_limit = absint($provider['searches_per_month'] ?? 0);
+                $effective_limit = $configured_limit;
+                if ($provider_limit > 0) {
+                    $effective_limit = $effective_limit > 0 ? min($effective_limit, $provider_limit) : $provider_limit;
+                }
+                $used = absint($provider['this_month_usage'] ?? 0);
+                if ($effective_limit < 1 || $used < $effective_limit) {
+                    $attempts[] = array(
+                        'provider'=>'serpapi',
+                        'status'=>'ok',
+                        'detail'=>'Account API operativa.',
+                    );
+                    return array(
+                        'provider'=>'serpapi',
+                        'message'=>'SerpApi está conectada y disponible. ScraperAPI queda como fallback.',
+                        'attempts'=>$attempts,
+                    );
+                }
+                $attempts[] = array(
+                    'provider'=>'serpapi',
+                    'status'=>'quota',
+                    'detail'=>'Límite mensual alcanzado.',
+                );
+            } else {
+                $attempts[] = array(
+                    'provider'=>'serpapi',
+                    'status'=>'error',
+                    'detail'=>sanitize_text_field($provider->get_error_message()),
+                );
+            }
+        } else {
+            $attempts[] = array(
+                'provider'=>'serpapi',
+                'status'=>'missing',
+                'detail'=>'Sin API key.',
+            );
+        }
+
+        $scraperapi_key = trim((string) ($settings['scraperapi_key'] ?? ''));
+        if ($scraperapi_key !== '') {
+            $started = microtime(true);
+            self::record_scraperapi_request_attempt();
+            $response = wp_safe_remote_get(add_query_arg(array(
+                'api_key'=>$scraperapi_key,
+                'country'=>'es',
+                'query'=>'herramientas',
+            ), self::SCRAPERAPI_SEARCH_URL), array(
+                'timeout'=>35,
+                'redirection'=>3,
+                'headers'=>array(
+                    'Accept'=>'application/json',
+                    'User-Agent'=>'SEO-System-Ojeador-Connection-Test/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.9.1'),
+                ),
+            ));
+            $duration_ms = max(0, (int) round((microtime(true)-$started)*1000));
+
+            if (!is_wp_error($response)) {
+                $code = absint(wp_remote_retrieve_response_code($response));
+                $body = json_decode((string) wp_remote_retrieve_body($response), true);
+                if ($code >= 200 && $code < 300 && is_array($body) && empty($body['error'])) {
+                    $attempts[] = array(
+                        'provider'=>'scraperapi',
+                        'status'=>'ok',
+                        'detail'=>'Google Search estructurado operativo.',
+                        'http_code'=>$code,
+                        'duration_ms'=>$duration_ms,
+                    );
+                    return array(
+                        'provider'=>'scraperapi',
+                        'message'=>'SerpApi no estaba disponible; ScraperAPI ha respondido correctamente como fallback.',
+                        'attempts'=>$attempts,
+                    );
+                }
+
+                $message = self::provider_error_message('scraperapi', $response, $body);
+                $attempts[] = array(
+                    'provider'=>'scraperapi',
+                    'status'=>'error',
+                    'detail'=>$message,
+                    'http_code'=>$code,
+                    'duration_ms'=>$duration_ms,
+                );
+            } else {
+                $attempts[] = array(
+                    'provider'=>'scraperapi',
+                    'status'=>'error',
+                    'detail'=>sanitize_text_field($response->get_error_message()),
+                    'http_code'=>0,
+                    'duration_ms'=>$duration_ms,
+                );
+            }
+        } else {
+            $attempts[] = array(
+                'provider'=>'scraperapi',
+                'status'=>'missing',
+                'detail'=>'Sin API key.',
+            );
+        }
+
+        $parts = array();
+        foreach ($attempts as $attempt) {
+            $parts[] = ucfirst((string) ($attempt['provider'] ?? 'proveedor')) . ': ' . (string) ($attempt['detail'] ?? 'no disponible');
+        }
+
+        return new WP_Error(
+            'ojeador_google_connection_failed',
+            sanitize_text_field(implode(' | ', $parts)),
+            array('attempts'=>$attempts)
         );
     }
 
