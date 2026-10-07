@@ -83,7 +83,7 @@ Este objetivo pertenece a Investigación. Editorial no usa “4” como gate: si
 
 ## Proveedores de búsqueda Google
 
-Ingeniero reutiliza las conexiones configuradas en **Herramientas → Ojeador** y no guarda una segunda copia de las credenciales.
+Ingeniero reutiliza las conexiones configuradas en **Herramientas → Conexiones con proveedores**, dentro del bloque **SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero**, y no guarda una segunda copia de las credenciales.
 
 Orden serial:
 
