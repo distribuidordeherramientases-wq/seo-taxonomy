@@ -358,6 +358,12 @@ function seo_provider_connections_page() {
     echo '<h1>Conexiones con proveedores</h1>';
     echo '<p>Configuración central de conexiones compartidas. Los importadores, catálogos, recetas y sincronizaciones de proveedores permanecen en Importar / Exportar.</p>';
 
+    if (class_exists('SEO_Ojeador_Admin') && is_callable(array('SEO_Ojeador_Admin', 'render_shared_google_connections'))) {
+        SEO_Ojeador_Admin::render_shared_google_connections();
+    } else {
+        echo '<div class="notice notice-warning inline"><p>No está disponible la conexión compartida SerpApi / ScraperAPI para Ojeador e Ingeniero.</p></div>';
+    }
+
     if (function_exists('seo_proveedores_render_conexiones')) {
         seo_proveedores_render_conexiones();
     } else {
