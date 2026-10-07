@@ -472,13 +472,6 @@ if (!function_exists('dht_render_amazon_category_block')) {
                     <p>Además de los productos disponibles en nuestro catálogo, esta familia puede incluir variantes con distintas medidas, capacidades, configuraciones y aplicaciones. Esta selección amplía la exploración para ayudarte a localizar opciones que todavía no estén disponibles directamente en nuestra tienda.</p>
                 </div>
 
-                <div class="dht-amazon-compare">
-                    <h3>Qué conviene comparar en <?php echo esc_html($term->name); ?></h3>
-                    <ul>
-                        <?php foreach (dht_amazon_compare_points($term->name) as $point) : ?><li><?php echo esc_html($point); ?></li><?php endforeach; ?>
-                    </ul>
-                </div>
-
                 <?php if (!empty($products)) : ?>
                     <div class="dht-amazon-grid">
                         <?php foreach ($products as $product_item) dht_amazon_card_markup($product_item, array('type' => 'category', 'object_id' => $term->term_id)); ?>
