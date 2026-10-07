@@ -80,6 +80,22 @@ Ingeniero mantiene como objetivo operativo **4 knowledge activos por product_cat
 
 Este objetivo pertenece a Investigación. Editorial no usa “4” como gate: si sólo existe un knowledge activo, igualmente se muestra a Editora.
 
+
+## Proveedores de búsqueda Google
+
+Ingeniero reutiliza las conexiones configuradas en **Herramientas → Ojeador** y no guarda una segunda copia de las credenciales.
+
+Orden serial:
+
+1. **SerpApi**;
+2. **ScraperAPI** si SerpApi no está disponible, ha agotado cuota o falla.
+
+ScraperAPI utiliza el endpoint estructurado de **Google Search**. Ambos proveedores se normalizan al mismo contrato de `organic_results`, por lo que Investigación no depende del proveedor concreto.
+
+Una respuesta válida con cero resultados se considera válida y no dispara el segundo proveedor. El fallback sólo se utiliza ante indisponibilidad, cuota, rate limit, error HTTP/API/red o respuesta inválida.
+
+Ingeniero mantiene su propio límite mensual local de búsquedas lógicas. Ese límite es independiente del proveedor que finalmente atienda cada búsqueda.
+
 ## Cobertura editorial
 
 Ingeniero usa SEO_Editorial_Coverage, la API neutral compartida de cobertura.
@@ -111,7 +127,9 @@ El dossier sólo persiste IDs y referencias. No copia páginas, manuales ni art�
 
 ## Borradores
 
-Ingeniero nunca autopublica. Un post nuevo sólo se crea si la acción es CREATE_POST, la propuesta está approved y la categoría product_cat sigue siendo válida.
+Ingeniero nunca autopublica. Un post nuevo sólo se crea si la acción es CREATE_POST, la propuesta ha sido aceptada por Editora y la categoría product_cat sigue siendo válida.
+
+En el flujo actual, **Aprobar y crear borrador** es una única acción humana para propuestas CREATE_POST: al aprobar, Ingeniero cambia la propuesta a `approved` y crea inmediatamente el borrador. Las propuestas ya aprobadas sin post pueden recuperarse con **Aceptar todo**, que crea los borradores pendientes sin duplicar los existentes.
 
 El borrador:
 

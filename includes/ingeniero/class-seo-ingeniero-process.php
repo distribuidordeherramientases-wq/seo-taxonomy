@@ -307,7 +307,7 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
             $processed_now++;
             if (is_wp_error($result)) {
                 $errors_now++;
-                $blocking_error = in_array($result->get_error_code(), array('ingeniero_budget','ingeniero_serpapi_key','ingeniero_serpapi_api','ingeniero_serpapi_rate_limit'), true);
+                $blocking_error = in_array($result->get_error_code(), array('ingeniero_budget','ingeniero_google_provider','ingeniero_serpapi_key','ingeniero_serpapi_api','ingeniero_serpapi_rate_limit'), true);
                 SEO_Ingeniero::set_category_state($term_id, 'error', array(
                     'last_error'=>$result->get_error_message(),
                 ));
@@ -441,7 +441,7 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
             'state'=>$view_state,
             'speed'=>$speed,
             'response'=>$duration > 0 ? number_format_i18n($duration,2) . ' s último lote' : 'Sin lote medido',
-            'load'=>'L1 técnica · SerpApi ' . number_format_i18n($usage['used']) . '/' . number_format_i18n($usage['limit']),
+            'load'=>'L1 técnica · Google SerpApi→ScraperAPI · ' . number_format_i18n($usage['used']) . '/' . number_format_i18n($usage['limit']) . ' búsquedas',
             'activity'=>!empty($state['last_activity_at']) ? gmdate('Y-m-d H:i:s', absint($state['last_activity_at'])) . ' UTC' : 'Sin actividad',
             'activity_age'=>null,
             'progress'=>$progress['total'] ? $progress['percentage'] : null,
