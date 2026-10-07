@@ -96,14 +96,9 @@ final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provi
             );
         }
 
-        $usage = self::usage_month();
-        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
-            return new WP_Error(
-                'ingeniero_budget',
-                'Ingeniero ha alcanzado su presupuesto mensual local de búsquedas externas.'
-            );
-        }
-
+        // El contador local de Ingeniero es diagnóstico, no una cuota de
+        // proveedor. La disponibilidad real la decide la cadena compartida
+        // SerpApi -> ScraperAPI; por tanto no debe bloquear el fallback.
         $settings = self::settings();
         self::record_request();
 
