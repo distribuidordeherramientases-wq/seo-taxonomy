@@ -18,6 +18,19 @@ Filtros Categoría, Producto/marca/modelo, Comercio, Precio min/max, Rating mín
 ## Operación y consultas
 Buscador de categoría/consulta, tabla de estado y log.
 
-Configuración: SerpApi API key, Actualizar cada N horas, Categorías por paso, Reutilizar consulta N horas, Límite mensual local y checkbox **Mantener el mercado actualizado automáticamente**. **Guardar**.
+Configuración: **SerpApi API key**, **ScraperAPI API key**, Actualizar cada N horas, Categorías por paso, Reutilizar consulta N horas, Límite mensual local y checkbox **Mantener el mercado actualizado automáticamente**. **Guardar**.
+
+## Proveedores Google
+
+Ojeador utiliza una cadena serial de proveedores:
+
+1. **SerpApi** como proveedor primario mientras la conexión esté disponible y no haya alcanzado la cuota configurada/proveedor.
+2. **ScraperAPI** como fallback automático cuando SerpApi no está configurado, alcanza cuota o devuelve error de red, HTTP, API o JSON inválido.
+
+Una respuesta válida sin resultados no activa el fallback: se considera una consulta correcta con 0 resultados.
+
+Para Google Shopping, ScraperAPI usa el endpoint estructurado `/structured/google/shopping`. Las respuestas se normalizan al mismo esquema interno que SerpApi para que Ojeador, Comparador y los snapshots de mercado no dependan del proveedor concreto.
+
+La interfaz muestra el uso de SerpApi y el número local de peticiones realizadas a ScraperAPI. Las API keys nunca se incluyen en las exportaciones JSON.
 
 Exportaciones: **JSON completo (auditoría)** y **log JSON**.
