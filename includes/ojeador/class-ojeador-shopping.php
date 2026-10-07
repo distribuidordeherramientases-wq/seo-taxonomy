@@ -99,7 +99,7 @@ final class SEO_Ojeador_Shopping {
 
         if ($serpapi_configured) {
             $usage = self::usage_month();
-            if ($usage['limit'] < 1 || $usage['used'] < $usage['limit']) {
+            if (empty($usage['exhausted'])) {
                 return true;
             }
         }
@@ -133,18 +133,16 @@ final class SEO_Ojeador_Shopping {
         if ($serpapi_key !== '') {
             $provider = self::provider_usage(true);
             if (!is_wp_error($provider)) {
-                $configured_limit = absint($settings['monthly_query_limit'] ?? 0);
-                $provider_limit = absint($provider['searches_per_month'] ?? 0);
-                $effective_limit = $configured_limit;
-                if ($provider_limit > 0) {
-                    $effective_limit = $effective_limit > 0 ? min($effective_limit, $provider_limit) : $provider_limit;
-                }
-                $used = absint($provider['this_month_usage'] ?? 0);
-                if ($effective_limit < 1 || $used < $effective_limit) {
+                $quota = self::serpapi_quota_state(
+                    $provider,
+                    absint($settings['monthly_query_limit'] ?? 0)
+                );
+
+                if (empty($quota['exhausted'])) {
                     $attempts[] = array(
                         'provider'=>'serpapi',
                         'status'=>'ok',
-                        'detail'=>'Account API operativa.',
+                        'detail'=>'Account API operativa y con cuota disponible.',
                     );
                     return array(
                         'provider'=>'serpapi',
@@ -152,10 +150,14 @@ final class SEO_Ojeador_Shopping {
                         'attempts'=>$attempts,
                     );
                 }
+
+                $detail = $quota['remaining'] !== null
+                    ? 'Cuota agotada: 0 búsquedas restantes.'
+                    : 'Límite mensual alcanzado.';
                 $attempts[] = array(
                     'provider'=>'serpapi',
                     'status'=>'quota',
-                    'detail'=>'Límite mensual alcanzado.',
+                    'detail'=>$detail,
                 );
             } else {
                 $attempts[] = array(
@@ -310,8 +312,8 @@ final class SEO_Ojeador_Shopping {
             'plan_renewal_date' => sanitize_text_field((string) ($body['plan_renewal_date'] ?? '')),
             'searches_per_month' => absint($body['searches_per_month'] ?? 0),
             'this_month_usage' => absint($body['this_month_usage'] ?? 0),
-            'plan_searches_left' => absint($body['plan_searches_left'] ?? 0),
-            'total_searches_left' => absint($body['total_searches_left'] ?? 0),
+            'plan_searches_left' => array_key_exists('plan_searches_left', $body) ? absint($body['plan_searches_left']) : null,
+            'total_searches_left' => array_key_exists('total_searches_left', $body) ? absint($body['total_searches_left']) : null,
             'this_hour_searches' => absint($body['this_hour_searches'] ?? 0),
             'last_hour_searches' => absint($body['last_hour_searches'] ?? 0),
             'account_rate_limit_per_hour' => absint($body['account_rate_limit_per_hour'] ?? 0),
@@ -319,6 +321,38 @@ final class SEO_Ojeador_Shopping {
         );
         set_transient(self::ACCOUNT_TRANSIENT, $clean, 30);
         return $clean;
+    }
+
+    private static function serpapi_quota_state(array $provider, $configured_limit = 0) {
+        $configured_limit = absint($configured_limit);
+        $provider_used = absint($provider['this_month_usage'] ?? 0);
+        $provider_limit = absint($provider['searches_per_month'] ?? 0);
+
+        $effective_limit = $configured_limit;
+        if ($provider_limit > 0) {
+            $effective_limit = $effective_limit > 0
+                ? min($effective_limit, $provider_limit)
+                : $provider_limit;
+        }
+
+        $remaining = null;
+        if (array_key_exists('total_searches_left', $provider) && $provider['total_searches_left'] !== null) {
+            $remaining = absint($provider['total_searches_left']);
+        } elseif (array_key_exists('plan_searches_left', $provider) && $provider['plan_searches_left'] !== null) {
+            $remaining = absint($provider['plan_searches_left']);
+        }
+
+        $exhausted = $remaining !== null
+            ? $remaining < 1
+            : ($effective_limit > 0 && $provider_used >= $effective_limit);
+
+        return array(
+            'used'=>$provider_used,
+            'provider_limit'=>$provider_limit,
+            'effective_limit'=>$effective_limit,
+            'remaining'=>$remaining,
+            'exhausted'=>$exhausted,
+        );
     }
 
     /**
@@ -338,22 +372,24 @@ final class SEO_Ojeador_Shopping {
 
         $provider = self::provider_usage(false);
         if (!is_wp_error($provider)) {
-            $provider_used = absint($provider['this_month_usage'] ?? 0);
-            $provider_limit = absint($provider['searches_per_month'] ?? 0);
-            $effective_limit = $configured_limit;
-            if ($provider_limit > 0) {
-                $effective_limit = $effective_limit > 0 ? min($effective_limit, $provider_limit) : $provider_limit;
-            }
+            $quota = self::serpapi_quota_state($provider, $configured_limit);
+            $provider_used = absint($quota['used']);
+            $effective_limit = absint($quota['effective_limit']);
+            $remaining = $quota['remaining'];
+
             return array(
                 'month' => $month,
                 'used' => $provider_used,
                 'limit' => $effective_limit,
-                'remaining' => $effective_limit > 0 ? max(0, $effective_limit - $provider_used) : 0,
+                'remaining' => $remaining !== null
+                    ? absint($remaining)
+                    : ($effective_limit > 0 ? max(0, $effective_limit - $provider_used) : 0),
                 'source' => 'serpapi_account',
                 'local_requests' => $local_requests,
                 'provider_used' => $provider_used,
-                'provider_limit' => $provider_limit,
-                'provider_remaining' => absint($provider['total_searches_left'] ?? $provider['plan_searches_left'] ?? 0),
+                'provider_limit' => absint($quota['provider_limit']),
+                'provider_remaining' => $remaining,
+                'exhausted' => !empty($quota['exhausted']),
                 'difference_local_minus_provider' => $local_requests - $provider_used,
                 'provider' => $provider,
             );
@@ -369,6 +405,7 @@ final class SEO_Ojeador_Shopping {
             'provider_used' => null,
             'provider_limit' => null,
             'provider_remaining' => null,
+            'exhausted' => $configured_limit > 0 && $local_requests >= $configured_limit,
             'difference_local_minus_provider' => null,
             'provider_error' => $provider->get_error_message(),
         );
@@ -485,9 +522,11 @@ final class SEO_Ojeador_Shopping {
         $serpapi_allowed = $serpapi_key !== '';
         if ($serpapi_allowed) {
             $usage = self::usage_month();
-            if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
+            if (!empty($usage['exhausted'])) {
                 $serpapi_allowed = false;
-                $errors[] = 'SerpApi: límite mensual alcanzado.';
+                $errors[] = $usage['provider_remaining'] === 0
+                    ? 'SerpApi: cuota agotada (0 búsquedas restantes).'
+                    : 'SerpApi: límite mensual alcanzado.';
             }
         }
 
