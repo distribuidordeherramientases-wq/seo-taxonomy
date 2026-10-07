@@ -335,42 +335,17 @@ $json = array(
 
                     <?php endif; ?>
 
-                    <?php if ($category_description_plain !== '' || !empty($category_faqs)) : ?>
+                    <?php if ($category_description_plain !== '') : ?>
                         <div class="dht-category-knowledge-row" aria-label="Información de la categoría">
-                            <?php if ($category_description_plain !== '') : ?>
-                                <details class="dht-category-knowledge-card">
-                                    <summary>
-                                        <span>Información de la categoría</span>
-                                        <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
-                                    </summary>
-                                    <div class="dht-category-knowledge-card__body">
-                                        <?php echo wp_kses_post($category_description); ?>
-                                    </div>
-                                </details>
-                            <?php endif; ?>
-
-                            <?php if (!empty($category_faqs)) : ?>
-                                <details class="dht-category-knowledge-card">
-                                    <summary>
-                                        <span>Preguntas y respuestas de Dependiente</span>
-                                        <small><?php echo esc_html(number_format_i18n(count($category_faqs))); ?> preguntas</small>
-                                        <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
-                                    </summary>
-                                    <div class="dht-category-knowledge-card__body dht-category-dependiente-qa">
-                                        <?php foreach ($category_faqs as $category_faq) : ?>
-                                            <details
-                                                class="dht-category-dependiente-qa__item"
-                                                data-seo-faq-id="<?php echo esc_attr((string) $category_faq->id); ?>"
-                                            >
-                                                <summary><?php echo esc_html($category_faq->question); ?></summary>
-                                                <div class="dht-category-dependiente-qa__answer">
-                                                    <?php echo wp_kses_post($category_faq->answer); ?>
-                                                </div>
-                                            </details>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </details>
-                            <?php endif; ?>
+                            <details class="dht-category-knowledge-card">
+                                <summary>
+                                    <span>Información de la categoría</span>
+                                    <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
+                                </summary>
+                                <div class="dht-category-knowledge-card__body">
+                                    <?php echo wp_kses_post($category_description); ?>
+                                </div>
+                            </details>
                         </div>
                     <?php endif; ?>
 
@@ -516,6 +491,35 @@ $json = array(
     </section>
 
     <?php wp_reset_postdata(); ?>
+
+    <?php if (!empty($category_faqs)) : ?>
+        <section class="dht-category-faq-section" aria-label="Preguntas y respuestas de Dependiente">
+            <div class="dht-container">
+                <div class="dht-category-knowledge-row">
+                    <details class="dht-category-knowledge-card">
+                        <summary>
+                            <span>Preguntas y respuestas de Dependiente</span>
+                            <small><?php echo esc_html(number_format_i18n(count($category_faqs))); ?> preguntas</small>
+                            <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
+                        </summary>
+                        <div class="dht-category-knowledge-card__body dht-category-dependiente-qa">
+                            <?php foreach ($category_faqs as $category_faq) : ?>
+                                <details
+                                    class="dht-category-dependiente-qa__item"
+                                    data-seo-faq-id="<?php echo esc_attr((string) $category_faq->id); ?>"
+                                >
+                                    <summary><?php echo esc_html($category_faq->question); ?></summary>
+                                    <div class="dht-category-dependiente-qa__answer">
+                                        <?php echo wp_kses_post($category_faq->answer); ?>
+                                    </div>
+                                </details>
+                            <?php endforeach; ?>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
 
     <section class="dht-section dht-category-assistant-section" aria-label="Ayuda para elegir">
         <div class="dht-container">
