@@ -1,6 +1,6 @@
 <?php
 /**
- * Google Shopping client for Ojeador via SerpApi.
+ * Google Shopping client for Ojeador via SerpApi with ScraperAPI fallback.
  *
  * Ojeador does not scrape merchant sites. It asks a structured Google Shopping
  * results provider for matching products and their store offers.
@@ -16,12 +16,16 @@ final class SEO_Ojeador_Shopping {
     const OPTION_SETTINGS = 'seo_ojeador_shopping_settings';
     const API_URL = 'https://serpapi.com/search.json';
     const ACCOUNT_URL = 'https://serpapi.com/account.json';
-    const OPTION_USAGE = 'seo_ojeador_serpapi_usage_v1'; // local outbound request attempts, not billing.
+    const SCRAPERAPI_SHOPPING_URL = 'https://api.scraperapi.com/structured/google/shopping';
+    const SCRAPERAPI_SEARCH_URL = 'https://api.scraperapi.com/structured/google/search';
+    const OPTION_USAGE = 'seo_ojeador_serpapi_usage_v1'; // local SerpApi request attempts, not billing.
+    const OPTION_SCRAPERAPI_USAGE = 'seo_ojeador_scraperapi_usage_v1'; // local ScraperAPI request attempts.
     const ACCOUNT_TRANSIENT = 'seo_ojeador_serpapi_account_v1';
 
     public static function defaults() {
         return array(
             'api_key' => '',
+            'scraperapi_key' => '',
             'auto_enabled' => 0,
             // Category market snapshots are intentionally slower than exact-product pricing.
             'interval_hours' => 720,
@@ -40,6 +44,9 @@ final class SEO_Ojeador_Shopping {
         if (defined('SEO_OJEADOR_SERPAPI_KEY') && SEO_OJEADOR_SERPAPI_KEY) {
             $settings['api_key'] = (string) SEO_OJEADOR_SERPAPI_KEY;
         }
+        if (defined('SEO_OJEADOR_SCRAPERAPI_KEY') && SEO_OJEADOR_SCRAPERAPI_KEY) {
+            $settings['scraperapi_key'] = (string) SEO_OJEADOR_SCRAPERAPI_KEY;
+        }
         return self::sanitize_settings($settings);
     }
 
@@ -47,6 +54,7 @@ final class SEO_Ojeador_Shopping {
         $raw = wp_parse_args(is_array($raw) ? $raw : array(), self::defaults());
         return array(
             'api_key' => sanitize_text_field((string) $raw['api_key']),
+            'scraperapi_key' => sanitize_text_field((string) $raw['scraperapi_key']),
             'auto_enabled' => empty($raw['auto_enabled']) ? 0 : 1,
             'interval_hours' => max(6, min(2160, absint($raw['interval_hours']))),
             'batch_size' => max(1, min(20, absint($raw['batch_size']))),
@@ -61,6 +69,9 @@ final class SEO_Ojeador_Shopping {
         if (empty($raw['api_key']) && !defined('SEO_OJEADOR_SERPAPI_KEY')) {
             $raw['api_key'] = (string) ($current['api_key'] ?? '');
         }
+        if (empty($raw['scraperapi_key']) && !defined('SEO_OJEADOR_SCRAPERAPI_KEY')) {
+            $raw['scraperapi_key'] = (string) ($current['scraperapi_key'] ?? '');
+        }
         $settings = self::sanitize_settings($raw);
         update_option(self::OPTION_SETTINGS, $settings, false);
         return $settings;
@@ -68,14 +79,33 @@ final class SEO_Ojeador_Shopping {
 
     public static function readiness() {
         $s = self::settings();
-        if ($s['api_key'] === '') {
-            return new WP_Error('ojeador_shopping_key', 'Falta la API key de SerpApi para consultar Google Shopping.');
+        $serpapi_configured = trim((string) ($s['api_key'] ?? '')) !== '';
+        $scraperapi_configured = trim((string) ($s['scraperapi_key'] ?? '')) !== '';
+
+        if (!$serpapi_configured && !$scraperapi_configured) {
+            return new WP_Error(
+                'ojeador_google_provider_key',
+                'Configura una API key de SerpApi o ScraperAPI para consultar Google.'
+            );
         }
-        $usage = self::usage_month();
-        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
-            return new WP_Error('ojeador_shopping_budget', 'Se ha alcanzado el límite mensual configurado de consultas a SerpApi.');
+
+        if ($serpapi_configured) {
+            $usage = self::usage_month();
+            if ($usage['limit'] < 1 || $usage['used'] < $usage['limit']) {
+                return true;
+            }
         }
-        return true;
+
+        // ScraperAPI actúa como segundo proveedor cuando SerpApi no está
+        // configurado, ha agotado la cuota o falla durante la petición.
+        if ($scraperapi_configured) {
+            return true;
+        }
+
+        return new WP_Error(
+            'ojeador_shopping_budget',
+            'SerpApi ha alcanzado el límite mensual configurado y ScraperAPI no está configurado.'
+        );
     }
 
     /**
@@ -217,6 +247,241 @@ final class SEO_Ojeador_Shopping {
             $stored = array_slice($stored, -18, null, true);
         }
         update_option(self::OPTION_USAGE, $stored, false);
+    }
+
+
+    public static function scraperapi_usage_month() {
+        $month = gmdate('Y-m');
+        $stored = get_option(self::OPTION_SCRAPERAPI_USAGE, array());
+        $stored = is_array($stored) ? $stored : array();
+        $requests = absint($stored[$month] ?? 0);
+
+        return array(
+            'month' => $month,
+            'requests' => $requests,
+            // Google requests currently consume provider credits according to
+            // ScraperAPI plan/domain rules. We deliberately report requests,
+            // not a fabricated authoritative credit balance.
+            'source' => 'local_requests',
+        );
+    }
+
+    private static function record_scraperapi_request_attempt() {
+        $month = gmdate('Y-m');
+        $stored = get_option(self::OPTION_SCRAPERAPI_USAGE, array());
+        $stored = is_array($stored) ? $stored : array();
+        $stored[$month] = absint($stored[$month] ?? 0) + 1;
+        if (count($stored) > 18) {
+            ksort($stored);
+            $stored = array_slice($stored, -18, null, true);
+        }
+        update_option(self::OPTION_SCRAPERAPI_USAGE, $stored, false);
+    }
+
+    private static function provider_error_message($provider, $response, $body = null) {
+        $provider = sanitize_key((string) $provider);
+        if (is_wp_error($response)) {
+            return $response->get_error_message();
+        }
+
+        $code = absint(wp_remote_retrieve_response_code($response));
+        if (is_array($body) && !empty($body['error'])) {
+            $error = $body['error'];
+            if (is_array($error)) {
+                return sanitize_text_field((string) ($error['message'] ?? ($error['detail'] ?? ($provider . ' error HTTP ' . $code))));
+            }
+            return sanitize_text_field((string) $error);
+        }
+
+        return ($provider === 'scraperapi' ? 'ScraperAPI' : 'SerpApi') . ' HTTP ' . $code . '.';
+    }
+
+    private static function normalize_scraperapi_shopping(array $body) {
+        foreach (array('shopping_results','inline_shopping_results','featured_shopping_results') as $key) {
+            if (empty($body[$key]) || !is_array($body[$key])) {
+                continue;
+            }
+            foreach ($body[$key] as &$row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                if (empty($row['product_id']) && !empty($row['docid'])) {
+                    $row['product_id'] = (string) $row['docid'];
+                }
+                if (empty($row['google_product_id']) && !empty($row['docid'])) {
+                    $row['google_product_id'] = (string) $row['docid'];
+                }
+                if (empty($row['delivery']) && !empty($row['delivery_options'])) {
+                    $row['delivery'] = (string) $row['delivery_options'];
+                }
+            }
+            unset($row);
+        }
+        return $body;
+    }
+
+    /**
+     * Ejecuta una petición Google en serie: SerpApi primero y ScraperAPI como
+     * fallback. Una respuesta HTTP/API válida, aunque venga sin resultados, se
+     * considera definitiva y no consume el segundo proveedor.
+     *
+     * @param string $mode shopping|search|immersive
+     * @param array  $args Argumentos canónicos estilo SerpApi.
+     * @param array  $trace Salida con proveedor, intentos y duración.
+     * @return array|WP_Error
+     */
+    private static function provider_chain_request($mode, $args, &$trace = null) {
+        $mode = sanitize_key((string) $mode);
+        $args = is_array($args) ? $args : array();
+        $settings = self::settings();
+        $trace = array(
+            'provider' => '',
+            'attempts' => array(),
+            'api_queries' => 0,
+            'duration_ms' => 0,
+        );
+        $errors = array();
+
+        $serpapi_key = trim((string) ($settings['api_key'] ?? ''));
+        $scraperapi_key = trim((string) ($settings['scraperapi_key'] ?? ''));
+
+        $serpapi_allowed = $serpapi_key !== '';
+        if ($serpapi_allowed) {
+            $usage = self::usage_month();
+            if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
+                $serpapi_allowed = false;
+                $errors[] = 'SerpApi: límite mensual alcanzado.';
+            }
+        }
+
+        if ($serpapi_allowed) {
+            $serp_args = array_merge($args, array('api_key'=>$serpapi_key));
+            $url = add_query_arg($serp_args, self::API_URL);
+            $started = microtime(true);
+            self::record_request_attempt();
+            $trace['api_queries']++;
+
+            $response = wp_safe_remote_get($url, array(
+                'timeout'=>35,
+                'redirection'=>3,
+                'headers'=>array(
+                    'Accept'=>'application/json',
+                    'User-Agent'=>'SEO-System-Google-Provider/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.9.1'),
+                ),
+            ));
+            $duration_ms = max(0, (int) round((microtime(true)-$started)*1000));
+            $trace['duration_ms'] += $duration_ms;
+
+            if (!is_wp_error($response)) {
+                $code = absint(wp_remote_retrieve_response_code($response));
+                $body = json_decode((string) wp_remote_retrieve_body($response), true);
+                if ($code >= 200 && $code < 300 && is_array($body) && empty($body['error'])) {
+                    $trace['provider'] = 'serpapi';
+                    $trace['attempts'][] = array('provider'=>'serpapi','status'=>'ok','http_code'=>$code,'duration_ms'=>$duration_ms);
+                    return $body;
+                }
+                $message = self::provider_error_message('serpapi', $response, $body);
+                $trace['attempts'][] = array('provider'=>'serpapi','status'=>'error','http_code'=>$code,'duration_ms'=>$duration_ms,'message'=>$message);
+                $errors[] = 'SerpApi: ' . $message;
+            } else {
+                $message = $response->get_error_message();
+                $trace['attempts'][] = array('provider'=>'serpapi','status'=>'error','http_code'=>0,'duration_ms'=>$duration_ms,'message'=>$message);
+                $errors[] = 'SerpApi: ' . $message;
+            }
+        } elseif ($serpapi_key === '') {
+            $errors[] = 'SerpApi: sin API key.';
+        }
+
+        // El endpoint estructurado de ScraperAPI cubre Google Search y Google
+        // Shopping. No sustituye el endpoint immersive_product de SerpApi.
+        $scraper_supported = in_array($mode, array('shopping','search'), true);
+        if ($scraperapi_key !== '' && $scraper_supported) {
+            $endpoint = $mode === 'search' ? self::SCRAPERAPI_SEARCH_URL : self::SCRAPERAPI_SHOPPING_URL;
+            $scraper_args = array(
+                'api_key' => $scraperapi_key,
+                'query' => sanitize_text_field((string) ($args['q'] ?? '')),
+                'country' => 'es',
+            );
+            if (!empty($args['page'])) {
+                $scraper_args['page'] = max(1, absint($args['page']));
+            }
+
+            $started = microtime(true);
+            self::record_scraperapi_request_attempt();
+            $trace['api_queries']++;
+
+            $response = wp_safe_remote_get(add_query_arg($scraper_args, $endpoint), array(
+                'timeout'=>40,
+                'redirection'=>3,
+                'headers'=>array(
+                    'Accept'=>'application/json',
+                    'User-Agent'=>'SEO-System-Google-Provider/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.9.1'),
+                ),
+            ));
+            $duration_ms = max(0, (int) round((microtime(true)-$started)*1000));
+            $trace['duration_ms'] += $duration_ms;
+
+            if (!is_wp_error($response)) {
+                $code = absint(wp_remote_retrieve_response_code($response));
+                $body = json_decode((string) wp_remote_retrieve_body($response), true);
+                if ($code >= 200 && $code < 300 && is_array($body) && empty($body['error'])) {
+                    if ($mode === 'shopping') {
+                        $body = self::normalize_scraperapi_shopping($body);
+                    }
+                    $trace['provider'] = 'scraperapi';
+                    $trace['attempts'][] = array('provider'=>'scraperapi','status'=>'ok','http_code'=>$code,'duration_ms'=>$duration_ms);
+                    return $body;
+                }
+                $message = self::provider_error_message('scraperapi', $response, $body);
+                $trace['attempts'][] = array('provider'=>'scraperapi','status'=>'error','http_code'=>$code,'duration_ms'=>$duration_ms,'message'=>$message);
+                $errors[] = 'ScraperAPI: ' . $message;
+            } else {
+                $message = $response->get_error_message();
+                $trace['attempts'][] = array('provider'=>'scraperapi','status'=>'error','http_code'=>0,'duration_ms'=>$duration_ms,'message'=>$message);
+                $errors[] = 'ScraperAPI: ' . $message;
+            }
+        } elseif ($scraperapi_key === '') {
+            $errors[] = 'ScraperAPI: sin API key.';
+        } elseif (!$scraper_supported) {
+            $errors[] = 'ScraperAPI: el modo ' . $mode . ' no tiene fallback estructurado configurado.';
+        }
+
+        $message = $errors ? implode(' | ', array_values(array_unique($errors))) : 'No hay proveedores Google disponibles.';
+        return new WP_Error(
+            'google_provider_chain_failed',
+            sanitize_text_field($message),
+            array('provider_trace'=>$trace)
+        );
+    }
+
+    /**
+     * Búsqueda web de Google compartida con Ingeniero.
+     *
+     * @return array|WP_Error
+     */
+    public static function search_google_web($query, $options = array(), &$trace = null) {
+        $query = trim((string) $query);
+        if ($query === '') {
+            return new WP_Error('google_provider_query_empty', 'Consulta Google vacía.');
+        }
+
+        $options = is_array($options) ? $options : array();
+        $args = array(
+            'engine'=>'google',
+            'q'=>$query,
+            'google_domain'=>'google.es',
+            'gl'=>'es',
+            'hl'=>'es',
+            'device'=>'desktop',
+        );
+        if (!empty($options['num'])) {
+            $args['num'] = max(1, min(20, absint($options['num'])));
+        }
+        if (!empty($options['page'])) {
+            $args['page'] = max(1, absint($options['page']));
+        }
+
+        return self::provider_chain_request('search', $args, $trace);
     }
 
     private static function trace_error($code, $message, $trace = array()) {
@@ -708,13 +973,14 @@ final class SEO_Ojeador_Shopping {
     }
 
     private static function request($args, $context = array(), &$trace = null) {
-        $s = self::settings();
         $args = (array) $args;
         $context = is_array($context) ? $context : array();
         $trace = array(
             'api_queries' => 0,
             'query_log_id' => 0,
             'raw_result_count' => 0,
+            'provider' => '',
+            'attempts' => array(),
         );
 
         $query = sanitize_text_field((string) ($context['query_text'] ?? $args['q'] ?? ''));
@@ -734,24 +1000,7 @@ final class SEO_Ojeador_Shopping {
             $trace['query_log_id'] = absint($log_id);
         }
 
-        $usage = self::usage_month();
-        if ($usage['limit'] > 0 && $usage['used'] >= $usage['limit']) {
-            if ($trace['query_log_id'] > 0) {
-                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
-                    'event_status' => 'budget_blocked',
-                    'error_code' => 'ojeador_shopping_budget',
-                    'error_message' => 'Límite mensual de consultas alcanzado.',
-                    'completed_at' => SEO_Ojeador_DB::utc_now(),
-                ));
-            }
-            return self::trace_error('ojeador_shopping_budget', 'Límite mensual de consultas alcanzado.', $trace);
-        }
-
-        $args = array_merge($args, array('api_key' => $s['api_key']));
-        $url = add_query_arg($args, self::API_URL);
-        $started = microtime(true);
-        self::record_request_attempt();
-        $trace['api_queries'] = 1;
+        $mode = $engine === 'google' ? 'search' : ($engine === 'google_immersive_product' ? 'immersive' : 'shopping');
         if ($trace['query_log_id'] > 0) {
             SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
                 'event_status' => 'requesting',
@@ -759,92 +1008,46 @@ final class SEO_Ojeador_Shopping {
             ));
         }
 
-        $response = wp_safe_remote_get($url, array(
-            'timeout' => 35,
-            'redirection' => 3,
-            'headers' => array(
-                'Accept' => 'application/json',
-                'User-Agent' => 'SEO-System-Ojeador/' . (defined('SEO_OJEADOR_VERSION') ? SEO_OJEADOR_VERSION : '0.6.4'),
-            ),
-        ));
-        $duration_ms = max(0, (int) round((microtime(true) - $started) * 1000));
+        $provider_trace = array();
+        $body = self::provider_chain_request($mode, $args, $provider_trace);
+        $trace['api_queries'] = absint($provider_trace['api_queries'] ?? 0);
+        $trace['provider'] = sanitize_key((string) ($provider_trace['provider'] ?? ''));
+        $trace['attempts'] = (array) ($provider_trace['attempts'] ?? array());
 
-        if (is_wp_error($response)) {
-            if ($trace['query_log_id'] > 0) {
-                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
-                    'event_status' => 'network_error',
-                    'duration_ms' => $duration_ms,
-                    'error_code' => $response->get_error_code(),
-                    'error_message' => $response->get_error_message(),
-                    'completed_at' => SEO_Ojeador_DB::utc_now(),
-                ));
-            }
-            return self::trace_error($response->get_error_code() ?: 'ojeador_network', $response->get_error_message(), $trace);
-        }
-
-        $code = absint(wp_remote_retrieve_response_code($response));
-        $raw_body = wp_remote_retrieve_body($response);
-        $body = json_decode($raw_body, true);
-        if ($code < 200 || $code >= 300) {
-            $message = 'Google Shopping API HTTP ' . $code . '.';
-            if (is_array($body) && !empty($body['error'])) {
-                $message = is_array($body['error']) ? (string) ($body['error']['message'] ?? $message) : (string) $body['error'];
-            }
-            if ($trace['query_log_id'] > 0) {
-                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
-                    'event_status' => 'http_error',
-                    'http_code' => $code,
-                    'duration_ms' => $duration_ms,
-                    'error_code' => 'ojeador_shopping_http',
-                    'error_message' => $message,
-                    'completed_at' => SEO_Ojeador_DB::utc_now(),
-                ));
-            }
-            return self::trace_error('ojeador_shopping_http', sanitize_text_field($message), $trace);
-        }
-        if (!is_array($body)) {
-            $message = 'SerpApi devolvió una respuesta que no es JSON válido.';
-            if ($trace['query_log_id'] > 0) {
-                SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
-                    'event_status' => 'parse_error',
-                    'http_code' => $code,
-                    'duration_ms' => $duration_ms,
-                    'error_code' => 'ojeador_shopping_json',
-                    'error_message' => $message,
-                    'completed_at' => SEO_Ojeador_DB::utc_now(),
-                ));
-            }
-            return self::trace_error('ojeador_shopping_json', $message, $trace);
-        }
-        if (!empty($body['error'])) {
-            $message = is_array($body['error']) ? (string) ($body['error']['message'] ?? 'Error de Google Shopping.') : (string) $body['error'];
+        if (is_wp_error($body)) {
+            $message = $body->get_error_message();
             if ($trace['query_log_id'] > 0) {
                 SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
                     'event_status' => 'api_error',
-                    'http_code' => $code,
-                    'duration_ms' => $duration_ms,
-                    'error_code' => 'ojeador_shopping_api',
+                    'duration_ms' => absint($provider_trace['duration_ms'] ?? 0),
+                    'error_code' => $body->get_error_code(),
                     'error_message' => $message,
+                    'metadata' => array(
+                        'provider_chain' => $trace['attempts'],
+                    ),
                     'completed_at' => SEO_Ojeador_DB::utc_now(),
                 ));
             }
-            return self::trace_error('ojeador_shopping_api', sanitize_text_field($message), $trace);
+            return self::trace_error($body->get_error_code(), $message, $trace);
         }
 
         $metadata = is_array($body['search_metadata'] ?? null) ? $body['search_metadata'] : array();
         $raw_result_count = self::count_response_results($body);
         $trace['raw_result_count'] = $raw_result_count;
+
         if ($trace['query_log_id'] > 0) {
             SEO_Ojeador_DB::update_query_log($trace['query_log_id'], array(
                 'event_status' => 'response_ok',
-                'http_code' => $code,
+                'http_code' => 200,
                 'provider_search_id' => (string) ($metadata['id'] ?? ''),
-                'provider_status' => (string) ($metadata['status'] ?? ''),
+                'provider_status' => (string) ($metadata['status'] ?? $trace['provider']),
                 'provider_created_at' => (string) ($metadata['created_at'] ?? ''),
                 'provider_processed_at' => (string) ($metadata['processed_at'] ?? ''),
                 'raw_result_count' => $raw_result_count,
-                'duration_ms' => $duration_ms,
+                'duration_ms' => absint($provider_trace['duration_ms'] ?? 0),
                 'metadata' => array(
+                    'provider' => $trace['provider'],
+                    'provider_chain' => $trace['attempts'],
                     'search_metadata' => array(
                         'id' => (string) ($metadata['id'] ?? ''),
                         'status' => (string) ($metadata['status'] ?? ''),
@@ -856,6 +1059,7 @@ final class SEO_Ojeador_Shopping {
                 'completed_at' => SEO_Ojeador_DB::utc_now(),
             ));
         }
+
         return $body;
     }
 
