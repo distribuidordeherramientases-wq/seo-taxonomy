@@ -18,9 +18,9 @@ Filtros Categoría, Producto/marca/modelo, Comercio, Precio min/max, Rating mín
 ## Operación y consultas
 Buscador de categoría/consulta, tabla de estado y log.
 
-Configuración: dos bloques de conexión independientes, **Conexión 1 · SerpApi** y **Conexión 2 · ScraperAPI**, seguidos del ritmo de actualización. Cada bloque indica si la credencial está configurada. **Guardar conexiones y configuración** conserva las claves existentes cuando el campo queda vacío.
+La pestaña mantiene sólo la configuración operativa propia de Ojeador: **Actualizar cada**, **Categorías por paso**, **Reutilizar consulta durante** y **Mantener el mercado actualizado automáticamente**.
 
-Botón **Probar cadena SerpApi → ScraperAPI**: valida primero SerpApi mediante Account API; sólo si no está disponible o no tiene cuota prueba ScraperAPI. La prueba de ScraperAPI realiza una petición estructurada de Google Search.
+Las credenciales de **SerpApi** y **ScraperAPI**, el límite local de SerpApi y el botón **Probar cadena SerpApi → ScraperAPI** se gestionan de forma central en **SEO Taxonomy → Herramientas → Conexiones con proveedores**, dentro del bloque **SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero**.
 
 ## Proveedores Google
 
