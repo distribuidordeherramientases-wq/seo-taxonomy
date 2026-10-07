@@ -7557,32 +7557,243 @@ html {
    MARKETING 2026-09 · JERARQUIA COMERCIAL
    Producto primero; asistencia compacta y contextual.
 ========================================================== */
-.sf-assistance-compact{padding:22px 0;background:#f7f9fb;border-bottom:1px solid #e5e9ed}
-.sf-assistance-compact__panel{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr);gap:18px;align-items:stretch}
-.sf-assistance-compact__finder,.sf-assistance-compact__human{min-width:0;padding:20px 22px;border:1px solid #dfe5ea;border-radius:14px;background:#fff}
-.sf-assistance-compact__identity{display:flex;align-items:center;gap:14px;margin-bottom:8px}
-.sf-assistance-compact__identity img{width:64px;height:64px;flex:0 0 64px;border-radius:14px;object-fit:cover;object-position:center top}
-.sf-assistance-compact__finder h1{margin:2px 0 0;font-size:clamp(22px,2.4vw,32px);line-height:1.08}
-.sf-assistance-compact__finder>p,.sf-assistance-compact__human p{margin:8px 0 14px;color:#5f6b76;font-size:14px;line-height:1.5}
-.sf-assistance-compact__human{display:flex;flex-direction:column;justify-content:center;background:#f4faf6}
-.sf-assistance-compact__human>strong{margin-top:4px;font-size:20px;line-height:1.2}
-.sf-assistance-compact__link{background:transparent!important;color:#1d6b43!important;border:1px solid #bfd7c8!important}
-.sf-mobile-assistance{padding:14px 0 20px;background:#f7f9fb}
-.sf-mobile-assistance-card{padding:16px;border:1px solid #dfe5ea;border-radius:14px;background:#fff}
-.sf-mobile-assistance-title{display:flex;align-items:center;gap:10px}
-.sf-mobile-assistance-title img{width:48px;height:48px;flex:0 0 48px;border-radius:11px;object-fit:cover;object-position:center top}
-.sf-mobile-assistance-title h1{margin:2px 0 0;font-size:22px;line-height:1.1}
-.sf-mobile-assistance-card>p{margin:10px 0 12px;color:#5f6b76;font-size:13px;line-height:1.45}
-.sf-mobile-assistance-human{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px;padding-top:12px;border-top:1px solid #e6eaee;font-size:13px}
-.sf-mobile-assistance-human strong{margin-right:auto}
-.sf-mobile-assistance-human a{font-weight:800;text-decoration:none}
+.sf-assistance-compact{
+  padding:12px 0;
+  border-top:1px solid #cfdee7;
+  border-bottom:1px solid #cfdee7;
+  background:#e7f1f5;
+}
+.sf-assistance-compact__panel{
+  display:grid;
+  grid-template-columns:minmax(0,1.55fr) minmax(330px,.85fr);
+  gap:10px 12px;
+  align-items:stretch;
+}
+.sf-assistance-compact__finder,
+.sf-assistance-compact__human{
+  min-width:0;
+  min-height:74px;
+  padding:10px 12px;
+  border:1px solid rgba(116,148,167,.28);
+  border-radius:12px;
+  background:rgba(255,255,255,.82);
+}
+.sf-assistance-compact__finder{
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:11px;
+  align-items:center;
+}
+.sf-assistance-compact__avatar{
+  width:58px;
+  height:58px;
+  border-radius:12px;
+  object-fit:cover;
+  object-position:center top;
+}
+.dht-storefront--desktop .sf-assistance-compact .sf-home-search-form--compact{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid #c7d5de;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:none;
+}
+.dht-storefront--desktop .sf-assistance-compact .sf-home-search-form--compact input[type=search]{
+  min-height:46px;
+  padding:0 14px;
+  font-size:14px;
+}
+.dht-storefront--desktop .sf-assistance-compact .sf-home-search-form--compact button{
+  min-width:96px;
+  min-height:46px;
+  padding:0 14px;
+  background:#f3b600;
+  color:#102b43;
+  font-size:13px;
+}
+.sf-assistance-compact__human{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.sf-assistance-compact__human-copy{
+  min-width:0;
+  flex:1 1 auto;
+}
+.sf-assistance-compact__human-copy .sf-service-kicker{
+  display:block;
+  margin-bottom:2px;
+}
+.sf-assistance-compact__human-copy strong{
+  display:block;
+  color:#1a3448;
+  font-size:15px;
+  line-height:1.25;
+}
+.sf-assistance-compact__human-copy>span:last-child{
+  display:block;
+  margin-top:2px;
+  color:#60717e;
+  font-size:11px;
+  line-height:1.35;
+}
+.sf-assistance-compact__human .sf-service-actions{
+  display:flex;
+  flex:0 0 auto;
+  gap:7px;
+  margin:0;
+}
+.sf-assistance-compact__human .sf-service-actions a{
+  min-height:36px;
+  padding:0 11px;
+  border-radius:8px;
+  font-size:11px;
+  white-space:nowrap;
+}
+.sf-assistance-compact__link{
+  background:#fff!important;
+  color:#1d6b43!important;
+  border:1px solid #bfd7c8!important;
+}
+.sf-assistance-compact__promise{
+  grid-column:1 / -1;
+  margin:0;
+  padding:7px 12px;
+  border-radius:9px;
+  background:#d8e9ef;
+  color:#35566a;
+  font-size:11px;
+  font-weight:650;
+  line-height:1.4;
+  text-align:center;
+}
+.sf-mobile-assistance{
+  padding:10px 0;
+  border-top:1px solid #cfdee7;
+  border-bottom:1px solid #cfdee7;
+  background:#e7f1f5;
+}
+.sf-mobile-assistance-card{
+  padding:10px;
+  border:1px solid rgba(116,148,167,.28);
+  border-radius:12px;
+  background:rgba(255,255,255,.78);
+}
+.sf-mobile-assistance-finder{
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr);
+  gap:8px;
+  align-items:center;
+}
+.sf-mobile-assistance-avatar{
+  width:44px;
+  height:44px;
+  border-radius:10px;
+  object-fit:cover;
+  object-position:center top;
+}
+.dht-front-structure.dht-storefront--mobile .sf-mobile-assistance .sf-home-search-form--compact{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid #c7d5de;
+  border-radius:9px;
+  background:#fff;
+}
+.dht-front-structure.dht-storefront--mobile .sf-mobile-assistance .sf-home-search-form--compact input[type=search]{
+  min-width:0;
+  min-height:42px;
+  padding:0 9px;
+  border:0!important;
+  font-size:12px;
+}
+.dht-front-structure.dht-storefront--mobile .sf-mobile-assistance .sf-home-search-form--compact button{
+  min-height:42px;
+  padding:0 10px;
+  border:0;
+  background:#f3b600;
+  color:#17324a;
+  font-size:11px;
+  font-weight:850;
+}
+.sf-mobile-assistance-human{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:2px 10px;
+  align-items:center;
+  margin-top:9px;
+  padding-top:9px;
+  border-top:1px solid #d5e0e6;
+}
+.sf-mobile-assistance-human strong{
+  color:#1a3448;
+  font-size:12px;
+}
+.sf-mobile-assistance-human>span{
+  grid-column:1;
+  color:#657682;
+  font-size:10px;
+  line-height:1.3;
+}
+.sf-mobile-assistance-human__actions{
+  grid-column:2;
+  grid-row:1 / span 2;
+  display:flex;
+  gap:5px;
+}
+.sf-mobile-assistance-human__actions a{
+  display:inline-flex;
+  min-height:32px;
+  align-items:center;
+  justify-content:center;
+  padding:0 8px;
+  border-radius:7px;
+  background:#0b64ad;
+  color:#fff;
+  font-size:10px;
+  font-weight:800;
+  text-decoration:none;
+  white-space:nowrap;
+}
+.sf-mobile-assistance-human__actions a:last-child{
+  border:1px solid #bfd7c8;
+  background:#fff;
+  color:#1d6b43;
+}
+.sf-mobile-assistance-promise{
+  margin:9px 0 0!important;
+  padding:7px 8px;
+  border-radius:8px;
+  background:#d8e9ef;
+  color:#35566a!important;
+  font-size:10px!important;
+  font-weight:650;
+  line-height:1.35!important;
+  text-align:center;
+}
 .dh-purchase-support{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 4px;padding:12px 14px;border:1px solid #dfe6ec;border-radius:10px;background:#f7faf8;color:#334155;font-size:13px;line-height:1.4}
 .dh-purchase-support span{flex:1 1 320px}
 .dh-purchase-support a{font-weight:800;text-decoration:none;white-space:nowrap}
+@media(max-width:1100px){
+  .sf-assistance-compact__panel{grid-template-columns:minmax(0,1.3fr) minmax(300px,.9fr)}
+  .sf-assistance-compact__human{align-items:flex-start;flex-direction:column}
+}
 @media(max-width:767px){
   .sf-assistance-compact__panel{grid-template-columns:1fr}
-  .sf-assistance-compact__finder,.sf-assistance-compact__human{padding:16px}
+  .sf-assistance-compact__finder,.sf-assistance-compact__human{padding:10px}
   .dh-purchase-support{align-items:flex-start}
+}
+@media(max-width:390px){
+  .sf-mobile-assistance-human{
+    grid-template-columns:1fr;
+  }
+  .sf-mobile-assistance-human__actions{
+    grid-column:1;
+    grid-row:auto;
+    margin-top:5px;
+  }
 }
 
 
