@@ -207,6 +207,7 @@ function seo_save_category_editor_data($term_id, array $data) {
                      WHERE object_type = 'category'
                      AND object_id = %d
                      AND seo_role = 'excerpt'
+                     ORDER BY updated_at DESC, id DESC
                      LIMIT 1",
                     $term_id
                 )
@@ -262,6 +263,7 @@ function seo_save_category_editor_data($term_id, array $data) {
                  WHERE object_type = 'category'
                    AND object_id = %d
                    AND seo_role = 'description'
+                 ORDER BY updated_at DESC, id DESC
                  LIMIT 1",
                 $term_id
             )

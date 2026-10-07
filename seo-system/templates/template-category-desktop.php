@@ -66,13 +66,29 @@ dht_template_render_header();
    DATOS SEO
 ========================================================== */
 
-$excerpt = get_term_meta(
-    $term->term_id,
-    'seo_excerpt',
-    true
+global $wpdb;
+
+/*
+ * Excerpt canonico: el editor de categorias lo guarda en seo_nodes.
+ * Se conserva el term meta solo como respaldo legacy.
+ */
+$excerpt = (string) $wpdb->get_var(
+    $wpdb->prepare(
+        "SELECT keywords
+         FROM {$wpdb->prefix}seo_nodes
+         WHERE object_type = 'category'
+           AND object_id = %d
+           AND seo_role = 'excerpt'
+           AND status = 1
+         ORDER BY updated_at DESC, id DESC
+         LIMIT 1",
+        $term->term_id
+    )
 );
 
-global $wpdb;
+if (trim(wp_strip_all_tags($excerpt)) === '') {
+    $excerpt = (string) get_term_meta($term->term_id, 'seo_excerpt', true);
+}
 
 $keywords = (string) $wpdb->get_var(
     $wpdb->prepare(
@@ -96,11 +112,15 @@ $category_description = (string) $wpdb->get_var(
            AND object_id = %d
            AND seo_role = 'description'
            AND status = 1
-         ORDER BY id DESC
+         ORDER BY updated_at DESC, id DESC
          LIMIT 1",
         $term->term_id
     )
 );
+
+if (trim(wp_strip_all_tags($category_description)) === '') {
+    $category_description = (string) term_description($term->term_id, 'product_cat');
+}
 
 $category_description_plain = trim(wp_strip_all_tags($category_description));
 
