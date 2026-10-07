@@ -80,6 +80,22 @@ Ingeniero mantiene como objetivo operativo **4 knowledge activos por product_cat
 
 Este objetivo pertenece a Investigación. Editorial no usa “4” como gate: si sólo existe un knowledge activo, igualmente se muestra a Editora.
 
+
+## Proveedores de búsqueda Google
+
+Ingeniero reutiliza las conexiones configuradas en **Herramientas → Ojeador** y no guarda una segunda copia de las credenciales.
+
+Orden serial:
+
+1. **SerpApi**;
+2. **ScraperAPI** si SerpApi no está disponible, ha agotado cuota o falla.
+
+ScraperAPI utiliza el endpoint estructurado de **Google Search**. Ambos proveedores se normalizan al mismo contrato de `organic_results`, por lo que Investigación no depende del proveedor concreto.
+
+Una respuesta válida con cero resultados se considera válida y no dispara el segundo proveedor. El fallback sólo se utiliza ante indisponibilidad, cuota, rate limit, error HTTP/API/red o respuesta inválida.
+
+Ingeniero mantiene su propio límite mensual local de búsquedas lógicas. Ese límite es independiente del proveedor que finalmente atienda cada búsqueda.
+
 ## Cobertura editorial
 
 Ingeniero usa SEO_Editorial_Coverage, la API neutral compartida de cobertura.
