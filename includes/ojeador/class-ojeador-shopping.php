@@ -66,13 +66,21 @@ final class SEO_Ojeador_Shopping {
     public static function save_settings($raw) {
         $current = self::settings();
         $raw = is_array($raw) ? $raw : array();
+
+        // Los formularios de Ojeador y Conexiones con proveedores editan
+        // subconjuntos distintos de esta configuración compartida. Partimos
+        // siempre del estado actual para que guardar una API key no resetee el
+        // ritmo de Ojeador y viceversa.
+        $merged = array_merge($current, $raw);
+
         if (empty($raw['api_key']) && !defined('SEO_OJEADOR_SERPAPI_KEY')) {
-            $raw['api_key'] = (string) ($current['api_key'] ?? '');
+            $merged['api_key'] = (string) ($current['api_key'] ?? '');
         }
         if (empty($raw['scraperapi_key']) && !defined('SEO_OJEADOR_SCRAPERAPI_KEY')) {
-            $raw['scraperapi_key'] = (string) ($current['scraperapi_key'] ?? '');
+            $merged['scraperapi_key'] = (string) ($current['scraperapi_key'] ?? '');
         }
-        $settings = self::sanitize_settings($raw);
+
+        $settings = self::sanitize_settings($merged);
         update_option(self::OPTION_SETTINGS, $settings, false);
         return $settings;
     }
