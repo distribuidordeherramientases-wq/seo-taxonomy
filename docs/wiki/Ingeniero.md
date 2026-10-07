@@ -127,9 +127,9 @@ El dossier sólo persiste IDs y referencias. No copia páginas, manuales ni art�
 
 ## Borradores
 
-Ingeniero nunca autopublica. Un post nuevo sólo se crea si la acción es CREATE_POST, la propuesta ha sido aceptada por Editora y la categoría product_cat sigue siendo válida.
+Ingeniero nunca autopublica. La acción recomendada (`CREATE_POST`, `IMPROVE_POST`, `MERGE_CONTENT`, `NO_ACTION` o `NEEDS_REVIEW`) es un diagnóstico de cobertura y no sustituye la decisión humana de Editora.
 
-En el flujo actual, **Aprobar y crear borrador** es una única acción humana para propuestas CREATE_POST: al aprobar, Ingeniero cambia la propuesta a `approved` y crea inmediatamente el borrador. Las propuestas ya aprobadas sin post pueden recuperarse con **Aceptar todo**, que crea los borradores pendientes sin duplicar los existentes.
+Desde 0.3.4, **Aprobar** es una única acción humana: si el dossier activo no tiene todavía post, Ingeniero cambia la propuesta a `approved` y crea inmediatamente un borrador, aunque la cobertura recomiende `MERGE_CONTENT` o `NO_ACTION`. **Aceptar todo** aplica la misma regla por lotes a todas las propuestas activas `candidate`, `review`, `approved` o `needs_update` que no tengan un post vigente. Los dossiers `closed` quedan fuera para no resucitar propuestas históricas o cerradas deliberadamente.
 
 El borrador:
 
