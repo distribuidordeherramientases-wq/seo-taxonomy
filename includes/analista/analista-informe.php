@@ -446,6 +446,11 @@ if (!function_exists('seo_analista_render_comparison')) {
         echo '<textarea name="tracked_keywords" rows="8" class="large-text code">' . esc_textarea(implode("\n", (array) ($settings['tracked_keywords'] ?? array()))) . '</textarea>';
         submit_button('Guardar comparación', 'secondary', 'submit', false);
         echo '</form></details></section>';
+
+        if (function_exists('seo_analista_render_competitive_deep_panel')) {
+            $competitive_days = absint($data['period']['days'] ?? 28);
+            seo_analista_render_competitive_deep_panel($competitive_days);
+        }
     }
 }
 
