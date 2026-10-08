@@ -2243,28 +2243,29 @@ if (!function_exists('dht_template_front_top_viewed_categories')) {
             ? seo_category_reports_summary_meta_key('pageviews', $days)
             : '_seo_google_category_pageviews_' . $days;
 
-        $ids = $wpdb->get_col(
-            $wpdb->prepare(
-                "SELECT tt.term_id
-                 FROM {$wpdb->term_taxonomy} tt
-                 INNER JOIN {$wpdb->termmeta} tm
-                    ON tm.term_id = tt.term_id
-                   AND tm.meta_key = %s
-                 WHERE tt.taxonomy = 'product_cat'
-                   AND tt.count > 0
-                   AND CAST(tm.meta_value AS UNSIGNED) > 0
-                 ORDER BY CAST(tm.meta_value AS UNSIGNED) DESC, tt.count DESC, tt.term_id ASC
-                 LIMIT %d",
-                $pageviews_key,
-                $limit
-            )
-        );
-
         $out = array();
-        foreach ((array) $ids as $term_id) {
-            $term = get_term(absint($term_id), 'product_cat');
-            if ($term instanceof WP_Term && !is_wp_error($term)) {
+        $ranked_terms = get_terms(array(
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => true,
+            'number'     => $limit * 3,
+            'meta_key'   => $pageviews_key,
+            'orderby'    => 'meta_value_num',
+            'order'      => 'DESC',
+        ));
+
+        if (!is_wp_error($ranked_terms)) {
+            foreach ($ranked_terms as $term) {
+                if (!$term instanceof WP_Term) {
+                    continue;
+                }
+                $pageviews = max(0, (int) get_term_meta($term->term_id, $pageviews_key, true));
+                if ($pageviews < 1) {
+                    continue;
+                }
                 $out[$term->term_id] = $term;
+                if (count($out) >= $limit) {
+                    break;
+                }
             }
         }
 
