@@ -1779,9 +1779,9 @@ if (!function_exists('dht_template_render_context_posts')) {
     /**
      * Render ligero de contenido editorial relacionado.
      *
-     * En categorias el contenido se muestra directamente en parrilla porque
-     * aparece despues del catalogo y no interrumpe la decision de compra.
-     * En producto se conserva el bloque plegado para mantener la ficha compacta.
+     * En categorias y productos el contenido se muestra directamente en parrilla
+     * cuando ya ha terminado la zona principal de compra. En producto funciona
+     * como biblioteca editorial complementaria y enlaza siempre al post canónico.
      */
     function dht_template_render_context_posts($posts, $title, $variant = 'dependiente', $context = 'product')
     {
@@ -1815,25 +1815,33 @@ if (!function_exists('dht_template_render_context_posts')) {
         );
         ?>
         <section class="dht-context-posts dht-context-posts--<?php echo esc_attr($variant); ?> dht-context-posts--<?php echo esc_attr($context); ?>">
-            <?php if ('category' === $context) : ?>
-                <div class="dht-container">
-                    <header class="dht-context-posts__header dht-context-posts__header--visible">
-                        <div>
-                            <span class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></span>
-                            <h2><?php echo esc_html($title); ?></h2>
-                        </div>
-                        <span class="dht-context-posts__count dht-context-posts__count--visible">
-                            <?php echo esc_html($count_label); ?>
-                        </span>
-                    </header>
+            <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
+                <header class="dht-context-posts__header dht-context-posts__header--visible">
+                    <div>
+                        <span class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></span>
+                        <h2><?php echo esc_html($title); ?></h2>
+                    </div>
+                    <span class="dht-context-posts__count dht-context-posts__count--visible">
+                        <?php echo esc_html($count_label); ?>
+                    </span>
+                </header>
 
-                    <div class="dht-context-posts__grid dht-context-posts__grid--visible">
-                        <?php foreach ($valid as $context_post) : ?>
-                            <?php
-                            $context_excerpt = dht_template_context_post_excerpt($context_post, 30);
-                            $context_url = get_permalink($context_post);
-                            ?>
-                            <article class="dht-context-post-card">
+                <div class="dht-context-posts__grid dht-context-posts__grid--visible">
+                    <?php foreach ($valid as $context_post) : ?>
+                        <?php
+                        $context_excerpt = dht_template_context_post_excerpt($context_post, 30);
+                        $context_url = get_permalink($context_post);
+                        $context_image = 'product' === $context && function_exists('dht_template_post_image_url')
+                            ? dht_template_post_image_url($context_post->ID, 'medium_large')
+                            : '';
+                        ?>
+                        <article class="dht-context-post-card<?php echo $context_image ? ' dht-context-post-card--with-media' : ''; ?>">
+                            <?php if ($context_image) : ?>
+                                <a class="dht-context-post-card__media" href="<?php echo esc_url($context_url); ?>" tabindex="-1" aria-hidden="true">
+                                    <img src="<?php echo esc_url($context_image); ?>" alt="" loading="lazy">
+                                </a>
+                            <?php endif; ?>
+                            <div class="dht-context-post-card__content">
                                 <h3>
                                     <a href="<?php echo esc_url($context_url); ?>">
                                         <?php echo esc_html($context_post->post_title); ?>
@@ -1845,47 +1853,11 @@ if (!function_exists('dht_template_render_context_posts')) {
                                 <a class="dht-context-post-card__link" href="<?php echo esc_url($context_url); ?>">
                                     <?php echo esc_html($link_label); ?> →
                                 </a>
-                            </article>
-                        <?php endforeach; ?>
-                    </div>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
                 </div>
-            <?php else : ?>
-                <details class="dht-context-posts__details">
-                    <summary class="dht-context-posts__summary">
-                        <span class="dht-context-posts__summary-copy">
-                            <small class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></small>
-                            <strong><?php echo esc_html($title); ?></strong>
-                        </span>
-                        <small class="dht-context-posts__count">
-                            <?php echo esc_html($count_label); ?>
-                        </small>
-                        <span class="dht-context-posts__icon" aria-hidden="true"></span>
-                    </summary>
-                    <div class="dht-context-posts__body">
-                        <div class="dht-context-posts__grid">
-                            <?php foreach ($valid as $context_post) : ?>
-                                <?php
-                                $context_excerpt = dht_template_context_post_excerpt($context_post, 30);
-                                $context_url = get_permalink($context_post);
-                                ?>
-                                <article class="dht-context-post-card">
-                                    <h3>
-                                        <a href="<?php echo esc_url($context_url); ?>">
-                                            <?php echo esc_html($context_post->post_title); ?>
-                                        </a>
-                                    </h3>
-                                    <?php if ($context_excerpt !== '') : ?>
-                                        <p><?php echo esc_html($context_excerpt); ?></p>
-                                    <?php endif; ?>
-                                    <a class="dht-context-post-card__link" href="<?php echo esc_url($context_url); ?>">
-                                        <?php echo esc_html($link_label); ?> →
-                                    </a>
-                                </article>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </details>
-            <?php endif; ?>
+            <?php if ('category' === $context) : ?></div><?php endif; ?>
         </section>
         <?php
     }
@@ -2164,14 +2136,18 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
 
         $category_ids = dht_template_product_context_category_ids($product_id);
 
+        if (function_exists('seo_comparador_render_product_block')) {
+            seo_comparador_render_product_block($product_id);
+        }
+
         $dependiente_posts = dht_template_context_posts_for_categories(
             $category_ids,
             'dependiente_qa_basic',
-            4
+            3
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Información interesante de Dependiente',
+            'Guías para elegir',
             'dependiente',
             'product'
         );
@@ -2179,7 +2155,7 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
         $ingeniero_posts = dht_template_context_posts_for_categories(
             $category_ids,
             'ingeniero_qa_specialized',
-            4
+            3
         );
         dht_template_render_context_posts(
             $ingeniero_posts,
@@ -2188,14 +2164,10 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
             'product'
         );
 
-        if (function_exists('seo_comparador_render_product_block')) {
-            seo_comparador_render_product_block($product_id);
-        }
-
-        $external_comments = dht_template_product_external_comments($product_id, 12);
+        $external_comments = dht_template_product_external_comments($product_id, 8);
         dht_template_render_external_comments(
             $external_comments,
-            'Comentarios externos sobre este producto',
+            'Qué dicen otras fuentes',
             'product'
         );
     }
@@ -2552,6 +2524,10 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
             $kicker = 'Tu Dependiente del catálogo';
             $title = '¿Quieres localizar una opción concreta?';
             $body = 'Escribe lo que buscas y continúa en Dependiente.';
+        } elseif ('product' === $variant) {
+            $kicker = 'Comprueba antes de comprar';
+            $title = '¿Este producto encaja con lo que necesitas?';
+            $body = 'Pregunta por uso, compatibilidad, medidas o características. Dependiente parte del producto que estás viendo y te ayuda a contrastarlo con tu necesidad.';
         } else {
             $kicker = 'Busca con Dependiente';
             $title = $context !== ''
@@ -2560,9 +2536,15 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
             $body = 'Empieza por un producto, una necesidad, una aplicación, una marca o una referencia. Dependiente relaciona la consulta con el catálogo para ayudarte a localizar opciones.';
         }
 
-        $placeholder = $context !== ''
-            ? 'Producto, uso o necesidad en ' . $context . '...'
-            : 'Producto, necesidad, uso o referencia...';
+        if ('product' === $variant && $context !== '') {
+            $placeholder = 'Ej.: ¿Me sirve para el trabajo que necesito?';
+            $input_value = 'Sobre "' . $context . '": ';
+        } else {
+            $placeholder = $context !== ''
+                ? 'Producto, uso o necesidad en ' . $context . '...'
+                : 'Producto, necesidad, uso o referencia...';
+            $input_value = '';
+        }
         $input_id = wp_unique_id('dht-dependiente-query-');
         ?>
         <aside class="dht-assistant-cta dht-assistant-cta--<?php echo esc_attr($variant); ?>" aria-label="Buscar con Dependiente">
@@ -2575,13 +2557,19 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
             <div class="dht-assistant-cta__action">
                 <form class="dht-assistant-cta__form" action="<?php echo esc_url($url); ?>" method="get">
                     <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>">Describe lo que buscas</label>
-                    <input id="<?php echo esc_attr($input_id); ?>" type="search" name="dep_q" value="" placeholder="<?php echo esc_attr($placeholder); ?>" autocomplete="off">
+                    <input id="<?php echo esc_attr($input_id); ?>" type="search" name="dep_q" value="<?php echo esc_attr($input_value); ?>" placeholder="<?php echo esc_attr($placeholder); ?>" autocomplete="off">
                     <button type="submit">Preguntar al Dependiente</button>
                 </form>
                 <div class="dht-assistant-cta__links">
-                    <a href="<?php echo esc_url($shop_url); ?>">Ver catálogo</a>
-                    <span aria-hidden="true">·</span>
-                    <a href="<?php echo esc_url($service_url); ?>">Nuestro acompañamiento</a>
+                    <?php if ('product' === $variant) : ?>
+                        <?php $whatsapp_url = 'https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $context . '.'); ?>
+                        <span>¿Prefieres una persona?</span>
+                        <a href="<?php echo esc_url($whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
+                    <?php else : ?>
+                        <a href="<?php echo esc_url($shop_url); ?>">Ver catálogo</a>
+                        <span aria-hidden="true">·</span>
+                        <a href="<?php echo esc_url($service_url); ?>">Nuestro acompañamiento</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </aside>

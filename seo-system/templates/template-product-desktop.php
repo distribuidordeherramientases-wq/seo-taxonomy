@@ -888,26 +888,6 @@ $schema_product_graph = array(
 
       </div>
 
-      <section id="dh-product-description" class="dh-product-description dh-product-description--primary">
-        <div class="dh-product-description-content">
-          <?php the_content(); ?>
-        </div>
-      </section>
-
-      <?php if (!empty($product_specifications)) : ?>
-        <section class="dh-product-specifications dh-product-specifications--primary" aria-labelledby="dh-product-specifications-title">
-          <h2 id="dh-product-specifications-title">Especificaciones técnicas</h2>
-          <dl class="dh-product-specifications-list">
-            <?php foreach ($product_specifications as $specification) : ?>
-              <div class="dh-product-specification-row">
-                <dt><?php echo esc_html($specification['label']); ?></dt>
-                <dd><?php echo esc_html($specification['value']); ?></dd>
-              </div>
-            <?php endforeach; ?>
-          </dl>
-        </section>
-      <?php endif; ?>
-
     </div>
 
     <section class="dh-product-summary">
@@ -1064,45 +1044,74 @@ $schema_product_graph = array(
             <div><span aria-hidden="true">🛡️</span><strong>Garantía</strong></div>
           </div>
 
-          <div class="dh-purchase-support" aria-label="Ayuda antes de comprar">
-            <span><strong>¿Dudas antes de comprar?</strong> Te ayudamos antes del pedido.</span>
-            <div class="dh-purchase-support__actions">
-              <a class="dh-support-button dh-support-button--whatsapp" href="<?php echo esc_url('https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $product->get_name() . '. ' . get_permalink($product_id))); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-              <a class="dh-support-button dh-support-button--service" href="<?php echo esc_url(dht_template_service_page_url()); ?>">Soporte</a>
-            </div>
-          </div>
 
         </div>
 
-      </div>
-
-      <div class="dh-product-classification" aria-label="Categorías, etiquetas y atributos del producto">
-        <div class="dh-product-classification__chips">
-          <?php foreach ($classification_category_terms as $product_category_term) : ?>
-            <?php $product_category_url = get_term_link($product_category_term); ?>
-            <?php if (!is_wp_error($product_category_url)) : ?>
-              <a class="dh-product-chip dh-product-chip--category" href="<?php echo esc_url($product_category_url); ?>">
-                <?php echo esc_html($product_category_term->name); ?>
-              </a>
-            <?php endif; ?>
-          <?php endforeach; ?>
-
-          <?php foreach ($product_specifications as $specification) : ?>
-            <span class="dh-product-chip dh-product-chip--attribute">
-              <strong><?php echo esc_html($specification['label']); ?>:</strong>
-              <?php echo esc_html($specification['value']); ?>
-            </span>
-          <?php endforeach; ?>
-
-          <?php foreach ($technical_tags as $tag) : ?>
-            <span class="dh-product-chip dh-product-chip--semantic"><?php echo esc_html($tag); ?></span>
-          <?php endforeach; ?>
-        </div>
       </div>
 
     </section>
 
   </div>
+
+  <section class="dh-product-decision-assistant" aria-label="Comprobar si este producto encaja">
+    <?php
+    if (function_exists('dht_template_render_dependiente_cta')) {
+        dht_template_render_dependiente_cta($product->get_name(), 'product');
+    }
+    ?>
+  </section>
+
+  <section id="dh-product-description" class="dh-product-description dh-product-description--full">
+    <div class="dh-product-section-heading">
+      <span>Información del producto</span>
+      <h2>Descripción</h2>
+    </div>
+    <div class="dh-product-description-content">
+      <?php the_content(); ?>
+    </div>
+  </section>
+
+  <?php if (!empty($product_specifications)) : ?>
+    <section class="dh-product-specifications dh-product-specifications--full" aria-labelledby="dh-product-specifications-title">
+      <div class="dh-product-section-heading">
+        <span>Datos técnicos</span>
+        <h2 id="dh-product-specifications-title">Especificaciones técnicas</h2>
+      </div>
+      <dl class="dh-product-specifications-list">
+        <?php foreach ($product_specifications as $specification) : ?>
+          <div class="dh-product-specification-row">
+            <dt><?php echo esc_html($specification['label']); ?></dt>
+            <dd><?php echo esc_html($specification['value']); ?></dd>
+          </div>
+        <?php endforeach; ?>
+      </dl>
+    </section>
+  <?php endif; ?>
+
+  <?php if (!empty($classification_category_terms) || !empty($technical_tags)) : ?>
+    <section class="dh-product-classification-section dh-product-classification-section--secondary" aria-label="Categorías y usos relacionados">
+      <div class="dh-product-classification">
+        <div class="dh-product-classification__chips">
+          <?php foreach ($classification_category_terms as $product_category_term) : ?>
+            <?php $product_category_url = get_term_link($product_category_term); ?>
+            <?php if (!is_wp_error($product_category_url)) : ?>
+              <a class="dh-product-chip dh-product-chip--category" href="<?php echo esc_url($product_category_url); ?>"><?php echo esc_html($product_category_term->name); ?></a>
+            <?php endif; ?>
+          <?php endforeach; ?>
+          <?php foreach (array_slice($technical_tags, 0, 5) as $tag) : ?>
+            <span class="dh-product-chip dh-product-chip--semantic"><?php echo esc_html($tag); ?></span>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </section>
+  <?php endif; ?>
+
+  <div class="dh-product-complementary">
+    <header class="dh-product-complementary__header">
+      <span>Información complementaria</span>
+      <h2>Más información sobre este producto</h2>
+      <p>Comparativas, guías, contenido técnico y experiencias externas para profundizar después de la decisión de compra.</p>
+    </header>
 
   <?php
   /*
@@ -1142,6 +1151,8 @@ $schema_product_graph = array(
       </div>
     </section>
   <?php endif; ?>
+
+  </div>
 
   <section id="reviews" class="dh-product-reviews dh-product-customer-reviews">
     <h2>Opiniones de clientes</h2>
