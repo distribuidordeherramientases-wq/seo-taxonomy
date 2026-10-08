@@ -56,45 +56,13 @@ Esto permite mantener enlaces internos, formularios y redirecciones existentes. 
 
 ## FAQs
 
-El acceso visible a FAQs está en **SEO Taxonomy → Contenidos → FAQs**. La pantalla conserva el slug administrativo histórico `seo-faq`; sólo cambia su ubicación dentro del lanzador.
+La tarjeta **FAQs** abre **SEO Taxonomy → Contenidos → FAQs**.
 
-Pestañas: **Hubs SEO**, **Categorías**, **Productos** e **Informe**.
-
-En edición se puede seleccionar el elemento, crear una **Nueva FAQ**, ordenar, editar Pregunta/Respuesta, activar o desactivar y Guardar/Actualizar.
-
-La pestaña **Informe** permite filtrar por Buscar, Nivel, Estado, Diagnóstico, renders, aperturas y orden. Incluye KPIs de cobertura, calidad, diagnóstico editorial e interacción, además de las limpiezas de copias y huérfanas ya existentes.
-
-Mover el acceso a Contenidos **no modifica** tablas, datos, informes, handlers ni la lógica de FAQs.
+El manual operativo completo está en [FAQs](FAQS.md) e incluye pestañas, filtros jerárquicos, búsqueda, selección múltiple, campos Pregunta/Respuesta/Orden/Activa, creación, edición, activación, borrado, informe, duplicados y huérfanas.
 
 ## Auditor de contenidos
 
-El Auditor de datos se accede desde **SEO Taxonomy → Contenidos → Auditor**. Ejecuta auditorías independientes y ligeras de **Productos, Categorías, Posts, Páginas/Landings y FAQs**. Los chequeos de motor/índice se realizan desde **Plugin Validation** y la antigua auditoría global de catálogo ya no se ofrece por su coste en catálogos grandes.
+La tarjeta **Auditor** abre **SEO Taxonomy → Contenidos → Auditor**.
 
-Cada auditoría genera, además de hallazgos y calidad, un **Plan de trabajo priorizado**. Auditor no ejecuta ni redacta cambios: clasifica cada hallazgo para que Editora reciba una cola accionable:
+El manual operativo completo está en [Auditor](AUDITOR.md) e incluye cada bloque de auditoría, botones Auditar/Repetir/Ver último/JSON, métricas, prioridades y la separación respecto a Auditor Academia y Plugin Validation.
 
-- **P1 · ATENDER PRIMERO**: la prioridad ya no implica por sí sola modificar contenido. Puede ser `CORREGIR_AHORA` cuando el error está confirmado o `VERIFICAR_AHORA` cuando necesita proveedor/fuente; en este último caso el estado es `NEEDS_SOURCE_VERIFICATION` y `ready_now=false`.
-- **P2 · ESPERAR_ENRIQUECIMIENTO**: contenido insuficiente que debe esperar conocimiento de Ingeniero/Solucionador en vez de rellenarse con texto genérico.
-- **P3 · MIGRAR_A_SOLUCIONADOR**: FAQs con intención útil de elección, uso, compatibilidad, mantenimiento, seguridad o problema real. Antes de retirar una FAQ se exige preservar `faq_id + object_type + object_id/category_id + pregunta + respuesta + hash + origen`.
-- **P4 · REVISAR**: señales heurísticas que requieren criterio humano y no justifican modificación automática. Un bajo solapamiento literal de una categoría queda aquí salvo evidencia independiente fuerte de contenido cruzado.
-- **P5 · INFORMATIVO**: métricas/contexto sin acción editorial directa.
-
-Desde Auditor 0.12.x, `_seo_proveedor_id_externo` se audita con alcance **proveedor + ID externo**; el mismo valor en proveedores distintos no genera por sí solo un duplicado. GTIN/EAN/MPN conservan su semántica propia y no heredan automáticamente ese alcance.
-
-La auditoría de FAQs incluye `faq_migration_inventory`, un inventario completo e independiente del límite visual de hallazgos, con clases `MIGRATE`, `RETIRE_CANDIDATE`, `REVIEW` e `INVALID_OWNER`. Auditor sigue siendo de solo lectura y ninguna FAQ útil queda autorizada para retirada mientras la preservación en Solucionador no esté confirmada.
-
-La salida JSON incorpora `task_id`, `priority`, `priority_score`, `action_class`, `status`, `ready_now`, `requires_source_check`, `depends_on`, entidad, problema, evidencia, recomendación y `expected_impact`. También conserva `first_seen`, `last_seen`, `previous_status` y las tareas resueltas entre auditorías. `priority_queue_meta` y `findings_meta` declaran explícitamente totales y truncamiento; la UI puede mostrar una muestra mientras el JSON conserva la cola completa. El impacto de tráfico queda marcado como **pendiente de Analista** hasta que esa integración aporte métricas fiables.
-
-La auditoría de **Academia / Estudiante** queda separada dentro de **Dependiente → Auditor Academia**.
-
-### Equilibrar categorías
-
-La subvista **Equilibrar categorías** distingue entre diagnóstico y ejecución:
-
-- **Revisar por división**: categorías por encima del tamaño objetivo, aunque todavía no haya cohortes TIPO/SUBTIPO suficientes para proponer cómo dividir.
-- **Propuestas de división**: subconjunto con evidencia semántica suficiente y destinos/cohortes revisables.
-- **Revisar concentración**: categorías de 1–4 productos, aunque todavía no exista una hermana suficientemente parecida.
-- **Propuestas de concentración**: subconjunto con un destino sugerido suficientemente similar.
-
-Un contador a cero en **Propuestas** no significa que la taxonomía esté equilibrada; los contadores de **Revisar** muestran los casos que merecen atención aunque Auditor todavía no pueda proponer una operación segura.
-
-Las filas diagnósticas son de solo lectura. Solo una propuesta aprobada puede ejecutarse.

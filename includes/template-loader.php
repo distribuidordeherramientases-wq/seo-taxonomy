@@ -344,6 +344,19 @@ function seo_template_loader($template) {
 
         $object_id = get_queried_object_id();
 
+        /*
+         * Dependiente V3 tiene su propia plantilla publica. El filtro de este
+         * loader corre con PHP_INT_MAX, por lo que sin esta excepcion la
+         * plantilla generica por seo_role pisa la seleccion hecha por V3.
+         */
+        $dependiente_page_id = absint(get_option('seo_dependiente_page_id', 0));
+        if (
+            ($dependiente_page_id > 0 && $object_id === $dependiente_page_id)
+            || is_page('dependiente')
+        ) {
+            return $template;
+        }
+
         $role = $wpdb->get_var($wpdb->prepare(
             "SELECT seo_role
              FROM {$wpdb->prefix}seo_nodes

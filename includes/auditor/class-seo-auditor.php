@@ -17,7 +17,7 @@ final class SEO_Auditor {
     const ACADEMY_REPORT_OPTION = 'seo_auditor_last_academy_report';
     const SCOPED_REPORT_OPTION = 'seo_auditor_scoped_reports';
     const HISTORY_OPTION = 'seo_auditor_history';
-    const REPORT_VERSION = 10;
+    const REPORT_VERSION = 11;
     const MAX_BEHAVIOR_PROBES = 60;
     const MAX_BEHAVIOR_CROSS_PROBES = 24;
     const MAX_BEHAVIOR_FAQ_PROBES = 18;
@@ -357,6 +357,8 @@ final class SEO_Auditor {
             echo '<p class="description">' . esc_html((string) $report['notes']['performance']) . '</p>';
         }
 
+        self::render_decision_context((array) ($report['contexto_de_decision'] ?? array()));
+
         self::render_priority_queue(
             (array) ($report['priority_queue'] ?? array()),
             (array) ($report['priority_summary'] ?? array()),
@@ -534,7 +536,16 @@ final class SEO_Auditor {
         $summary['findings_sampled'] = $summary['findings_total'] > $summary['findings_included'];
 
         $generated_at = current_time('mysql');
+        $decision_context_bundle = class_exists('SEO_Auditor_Decision_Context')
+            ? SEO_Auditor_Decision_Context::build($scope)
+            : array();
         $priority_queue = self::build_priority_queue(self::$priority_findings);
+        if (class_exists('SEO_Auditor_Decision_Context')) {
+            $priority_queue = SEO_Auditor_Decision_Context::enrich_tasks(
+                $priority_queue,
+                $decision_context_bundle
+            );
+        }
         $trace = self::apply_task_trace(
             $priority_queue,
             (array) ($previous_report['priority_queue'] ?? array()),
@@ -563,6 +574,9 @@ final class SEO_Auditor {
             'priority_queue_meta' => $priority_queue_meta,
             'priority_queue' => $priority_queue,
             'resolved_tasks' => (array) ($trace['resolved'] ?? array()),
+            'contexto_de_decision' => class_exists('SEO_Auditor_Decision_Context')
+                ? SEO_Auditor_Decision_Context::public_context($decision_context_bundle)
+                : array(),
             'findings_meta' => $findings_meta,
             'findings' => array_slice(self::$findings, 0, self::MAX_FINDINGS),
             'notes' => array(
@@ -669,7 +683,16 @@ final class SEO_Auditor {
         $summary['findings_sampled'] = $summary['findings_total'] > $summary['findings_included'];
 
         $generated_at = current_time('mysql');
+        $decision_context_bundle = class_exists('SEO_Auditor_Decision_Context')
+            ? SEO_Auditor_Decision_Context::build('catalog')
+            : array();
         $priority_queue = self::build_priority_queue(self::$priority_findings);
+        if (class_exists('SEO_Auditor_Decision_Context')) {
+            $priority_queue = SEO_Auditor_Decision_Context::enrich_tasks(
+                $priority_queue,
+                $decision_context_bundle
+            );
+        }
         $trace = self::apply_task_trace(
             $priority_queue,
             (array) ($previous_report['priority_queue'] ?? array()),
@@ -723,6 +746,9 @@ final class SEO_Auditor {
             'priority_queue_meta'=>$priority_queue_meta,
             'priority_queue'=>$priority_queue,
             'resolved_tasks'=>(array)($trace['resolved'] ?? array()),
+            'contexto_de_decision'=>class_exists('SEO_Auditor_Decision_Context')
+                ? SEO_Auditor_Decision_Context::public_context($decision_context_bundle)
+                : array(),
             'findings_meta'=>$findings_meta,
             'findings'=>array_slice(self::$findings, 0, self::MAX_FINDINGS),
             'faq_migration_inventory'=>$faq_migration_inventory,
@@ -4169,12 +4195,43 @@ final class SEO_Auditor {
         return $summary;
     }
 
+    private static function render_decision_context($context) {
+        $context = is_array($context) ? $context : array();
+        $sources = (array) ($context['sources'] ?? array());
+        if (!$sources) {
+            return;
+        }
+
+        echo '<h3>Contexto de decisión</h3>';
+        echo '<p class="description">Lecturas ya persistidas de otros servicios. Auditor no consulta APIs externas desde esta pantalla y no sustituye la interpretación de Analista, Ojeador, Dependiente, Comparador o Solucionador.</p>';
+        echo '<div class="seo-auditor__metrics">';
+        $labels = array(
+            'analista' => 'Analista',
+            'ojeador' => 'Ojeador',
+            'dependiente' => 'Dependiente',
+            'comparador' => 'Comparador',
+            'suppliers' => 'Proveedores',
+        );
+        foreach ($labels as $key => $label) {
+            $row = (array) ($sources[$key] ?? array());
+            $state = sanitize_key((string) ($row['state'] ?? 'unavailable')) ?: 'unavailable';
+            $value = strtoupper($state);
+            $tone = 'fresh' === $state ? '' : ('unavailable' === $state || 'stale' === $state ? 'medium' : '');
+            self::metric($label, $value, $tone);
+        }
+        echo '</div>';
+
+        echo '<details style="margin:10px 0 18px"><summary>Ver estado y alcance de las fuentes</summary>';
+        echo '<pre>' . esc_html(wp_json_encode($sources, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)) . '</pre>';
+        echo '</details>';
+    }
+
     private static function render_priority_queue($tasks, $summary=array(), $meta=array()) {
         $tasks = array_values((array) $tasks);
         $summary = (array) $summary;
         $meta = (array) $meta;
         echo '<h3>Plan de trabajo priorizado</h3>';
-        echo '<p class="description">Auditor clasifica y prioriza; no corrige ni genera texto. P1 significa atender primero y puede ser CORREGIR_AHORA o VERIFICAR_AHORA; P2 espera conocimiento, P3 preserva FAQs útiles en Solucionador, P4 requiere criterio humano y P5 es informativo. El tráfico aún no modifica la prioridad hasta integrar las métricas de Analista.</p>';
+        echo '<p class="description">Auditor clasifica y prioriza; no corrige ni genera texto. P1 significa atender primero y puede ser CORREGIR_AHORA o VERIFICAR_AHORA; P2 espera conocimiento, P3 preserva FAQs útiles en Solucionador, P4 requiere criterio humano y P5 es informativo. Cuando existe una conclusión local de Analista, sólo ordena mejor tareas dentro de la misma P; nunca cambia la clase del hallazgo ni sustituye a Solucionador.</p>';
         if(!empty($meta['truncated'])){
             echo '<div class="notice notice-warning inline"><p>La cola canónica alcanzó el límite técnico de recopilación; el JSON no debe considerarse completo hasta reauditar con mayor capacidad.</p></div>';
         }elseif(!empty($meta['ui']['truncated'])){
@@ -4209,9 +4266,21 @@ final class SEO_Auditor {
             if (!empty($task['evidence'])) {
                 echo '<details><summary>Ver evidencia</summary><pre>' . esc_html(wp_json_encode($task['evidence'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)) . '</pre></details>';
             }
+            if (!empty($task['contexto_de_decision'])) {
+                echo '<details><summary>Contexto de decisión</summary><pre>' . esc_html(wp_json_encode($task['contexto_de_decision'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)) . '</pre></details>';
+            }
             echo '</td>';
             echo '<td><strong>' . esc_html((string) ($task['status_label'] ?? '')) . '</strong><div class="description">Depende de: ' . esc_html((string) ($task['depends_on'] ?? 'none')) . '</div>' . (!empty($task['requires_source_check']) ? '<div class="description">Contrastar proveedor/fuente antes de editar.</div>' : '') . '</td>';
-            echo '<td><strong>' . esc_html(strtoupper((string) ($impact['level'] ?? ''))) . ' · ' . esc_html(absint($impact['score'] ?? 0)) . '/100</strong><div class="description">SEO ' . esc_html((string) ($impact['seo'] ?? '')) . ' · IA ' . esc_html((string) ($impact['ai_visibility'] ?? '')) . ' · Comercial ' . esc_html((string) ($impact['commercial'] ?? '')) . '</div><div class="description">Trafico: pendiente Analista</div></td>';
+            $analista_context = (array) (($task['contexto_de_decision']['analista'] ?? array()));
+            $analista_metrics = (array) ($analista_context['metrics'] ?? array());
+            $traffic_text = 'no disponible';
+            if (array_key_exists('impressions', $analista_metrics) && null !== $analista_metrics['impressions']) {
+                $traffic_text = number_format_i18n((float) $analista_metrics['impressions'], 0) . ' imp.';
+                if (array_key_exists('clicks', $analista_metrics) && null !== $analista_metrics['clicks']) {
+                    $traffic_text .= ' · ' . number_format_i18n((float) $analista_metrics['clicks'], 0) . ' clics';
+                }
+            }
+            echo '<td><strong>' . esc_html(strtoupper((string) ($impact['level'] ?? ''))) . ' · ' . esc_html(absint($impact['score'] ?? 0)) . '/100</strong><div class="description">SEO ' . esc_html((string) ($impact['seo'] ?? '')) . ' · IA ' . esc_html((string) ($impact['ai_visibility'] ?? '')) . ' · Comercial ' . esc_html((string) ($impact['commercial'] ?? '')) . '</div><div class="description">Analista: ' . esc_html($traffic_text) . '</div></td>';
             echo '<td>' . esc_html((string) ($task['recommendation'] ?? '')) . '</td>';
             echo '</tr>';
         }

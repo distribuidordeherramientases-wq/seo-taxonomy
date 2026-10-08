@@ -32,9 +32,10 @@ final class SEO_Ingeniero_Posts {
     }
 
     public static function can_create_draft(array $dossier) {
-        if ('CREATE_POST' !== strtoupper((string) ($dossier['recommended_action'] ?? ''))) {
-            return new WP_Error('ingeniero_editorial_action', 'Esta propuesta no requiere crear un post nuevo.');
-        }
+        // recommended_action es una recomendación editorial/diagnóstica, no un
+        // bloqueo de la decisión humana. Si Editora aprueba el dossier activo,
+        // Ingeniero debe convertirlo en draft aunque la cobertura sugiera
+        // MERGE_CONTENT o NO_ACTION.
         if ('approved' !== sanitize_key((string) ($dossier['status'] ?? ''))) {
             return new WP_Error('ingeniero_editorial_not_approved', 'La propuesta debe aprobarse antes de crear el borrador.');
         }

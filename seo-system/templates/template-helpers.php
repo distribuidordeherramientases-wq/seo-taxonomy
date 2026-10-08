@@ -1777,8 +1777,11 @@ if (!function_exists('dht_template_context_post_excerpt')) {
 
 if (!function_exists('dht_template_render_context_posts')) {
     /**
-     * Render ligero y plegado: titulo + excerpt + enlace al post canonico.
-     * No replica el cuerpo del articulo en producto/categoria.
+     * Render ligero de contenido editorial relacionado.
+     *
+     * En categorias y productos el contenido se muestra directamente en parrilla
+     * cuando ya ha terminado la zona principal de compra. En producto funciona
+     * como biblioteca editorial complementaria y enlaza siempre al post canónico.
      */
     function dht_template_render_context_posts($posts, $title, $variant = 'dependiente', $context = 'product')
     {
@@ -1805,29 +1808,40 @@ if (!function_exists('dht_template_render_context_posts')) {
         $context = in_array($context, array('product', 'category'), true) ? $context : 'product';
         $kicker = 'ingeniero' === $variant ? 'Contenido técnico editorial' : 'Contenido editorial';
         $link_label = 'ingeniero' === $variant ? 'Leer información técnica' : 'Leer guía';
+        $count_label = sprintf(
+            /* translators: %d: número de artículos editoriales relacionados. */
+            _n('%d artículo', '%d artículos', count($valid), 'seo-taxonomy'),
+            count($valid)
+        );
         ?>
         <section class="dht-context-posts dht-context-posts--<?php echo esc_attr($variant); ?> dht-context-posts--<?php echo esc_attr($context); ?>">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
-            <details class="dht-context-posts__details">
-                <summary class="dht-context-posts__summary">
-                    <span class="dht-context-posts__summary-copy">
-                        <small class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></small>
-                        <strong><?php echo esc_html($title); ?></strong>
+                <header class="dht-context-posts__header dht-context-posts__header--visible">
+                    <div>
+                        <span class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></span>
+                        <h2><?php echo esc_html($title); ?></h2>
+                    </div>
+                    <span class="dht-context-posts__count dht-context-posts__count--visible">
+                        <?php echo esc_html($count_label); ?>
                     </span>
-                    <small class="dht-context-posts__count">
-                        <?php echo esc_html(number_format_i18n(count($valid))); ?>
-                        <?php echo 1 === count($valid) ? ' artículo' : ' artículos'; ?>
-                    </small>
-                    <span class="dht-context-posts__icon" aria-hidden="true"></span>
-                </summary>
-                <div class="dht-context-posts__body">
-                    <div class="dht-context-posts__grid">
-                        <?php foreach ($valid as $context_post) : ?>
-                            <?php
-                            $context_excerpt = dht_template_context_post_excerpt($context_post, 30);
-                            $context_url = get_permalink($context_post);
-                            ?>
-                            <article class="dht-context-post-card">
+                </header>
+
+                <div class="dht-context-posts__grid dht-context-posts__grid--visible">
+                    <?php foreach ($valid as $context_post) : ?>
+                        <?php
+                        $context_excerpt = dht_template_context_post_excerpt($context_post, 30);
+                        $context_url = get_permalink($context_post);
+                        $context_image = 'product' === $context && function_exists('dht_template_post_image_url')
+                            ? dht_template_post_image_url($context_post->ID, 'medium_large')
+                            : '';
+                        ?>
+                        <article class="dht-context-post-card<?php echo $context_image ? ' dht-context-post-card--with-media' : ''; ?>">
+                            <?php if ($context_image) : ?>
+                                <a class="dht-context-post-card__media" href="<?php echo esc_url($context_url); ?>" tabindex="-1" aria-hidden="true">
+                                    <img src="<?php echo esc_url($context_image); ?>" alt="" loading="lazy">
+                                </a>
+                            <?php endif; ?>
+                            <div class="dht-context-post-card__content">
                                 <h3>
                                     <a href="<?php echo esc_url($context_url); ?>">
                                         <?php echo esc_html($context_post->post_title); ?>
@@ -1839,11 +1853,10 @@ if (!function_exists('dht_template_render_context_posts')) {
                                 <a class="dht-context-post-card__link" href="<?php echo esc_url($context_url); ?>">
                                     <?php echo esc_html($link_label); ?> →
                                 </a>
-                            </article>
-                        <?php endforeach; ?>
-                    </div>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
                 </div>
-            </details>
             <?php if ('category' === $context) : ?></div><?php endif; ?>
         </section>
         <?php
@@ -1982,10 +1995,9 @@ if (!function_exists('dht_template_render_external_comments')) {
     /**
      * Renderiza comentarios externos persistidos por Comentarista.
      *
-     * La seccion solo se imprime cuando existe al menos un comentario con texto
-     * valido. Los comentarios quedan plegados inicialmente para no saturar la
-     * ficha y mantienen separada cualquier valoracion externa de las reseñas
-     * WooCommerce de la tienda.
+     * En categorias se muestran directamente porque forman parte del contenido
+     * editorial posterior al catalogo. En producto se conserva la persiana para
+     * no alargar la zona principal de la ficha.
      */
     function dht_template_render_external_comments($rows, $title, $context = 'product')
     {
@@ -2013,71 +2025,91 @@ if (!function_exists('dht_template_render_external_comments')) {
             ),
             $comment_count
         );
+        $count_label = sprintf(
+            /* translators: %d: número de comentarios externos disponibles. */
+            _n('%d comentario externo', '%d comentarios externos', $comment_count, 'seo-taxonomy'),
+            $comment_count
+        );
         ?>
         <section class="dht-external-comments dht-external-comments--<?php echo esc_attr($context); ?> seo-comentarista">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
             <header class="dht-external-comments__header">
-                <span class="dht-context-posts__kicker">Experiencias externas</span>
-                <h2><?php echo esc_html($title); ?></h2>
+                <div class="dht-external-comments__heading">
+                    <span class="dht-context-posts__kicker">Experiencias externas</span>
+                    <h2><?php echo esc_html($title); ?></h2>
+                </div>
+                <?php if ('category' === $context) : ?>
+                    <span class="dht-external-comments__count"><?php echo esc_html($count_label); ?></span>
+                <?php endif; ?>
                 <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
             </header>
 
-            <details class="dht-external-comments__details">
-                <summary>
-                    <span><?php echo esc_html($summary_label); ?></span>
-                    <span class="dht-external-comments__toggle" aria-hidden="true">+</span>
-                </summary>
+            <?php if ('category' === $context) : ?>
+                <div class="dht-external-comments__list dht-external-comments__list--visible">
+            <?php else : ?>
+                <details class="dht-external-comments__details">
+                    <summary>
+                        <span><?php echo esc_html($summary_label); ?></span>
+                        <span class="dht-external-comments__toggle" aria-hidden="true">+</span>
+                    </summary>
+                    <div class="dht-external-comments__list">
+            <?php endif; ?>
 
-                <div class="dht-external-comments__list">
-                    <?php foreach ($valid as $external_comment) : ?>
-                        <?php
-                        $external_comment_text = dht_template_external_comment_text($external_comment);
-                        $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
-                            ? seo_comentarista_render_source_meta($external_comment)
-                            : '';
-                        $external_comment_rating = function_exists('seo_comentarista_rating_text')
-                            ? seo_comentarista_rating_text($external_comment)
-                            : '';
-                        $product_title = trim((string) ($external_comment['product_title'] ?? ''));
-                        $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
-                        ?>
-                        <article class="dht-external-comment">
-                            <?php if ('category' === $context && $product_title !== '') : ?>
-                                <h3 class="dht-external-comment__product">
-                                    <?php if ($product_url !== '') : ?>
-                                        <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
-                                    <?php else : ?>
-                                        <?php echo esc_html($product_title); ?>
-                                    <?php endif; ?>
-                                </h3>
-                            <?php endif; ?>
-
-                            <div class="dht-external-comment__meta">
-                                <strong>Comentario externo</strong>
-                                <?php if ($external_comment_rating !== '') : ?>
-                                    <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                <?php foreach ($valid as $external_comment) : ?>
+                    <?php
+                    $external_comment_text = dht_template_external_comment_text($external_comment);
+                    $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
+                        ? seo_comentarista_render_source_meta($external_comment)
+                        : '';
+                    $external_comment_rating = function_exists('seo_comentarista_rating_text')
+                        ? seo_comentarista_rating_text($external_comment)
+                        : '';
+                    $product_title = trim((string) ($external_comment['product_title'] ?? ''));
+                    $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
+                    ?>
+                    <article class="dht-external-comment">
+                        <?php if ('category' === $context && $product_title !== '') : ?>
+                            <h3 class="dht-external-comment__product">
+                                <?php if ($product_url !== '') : ?>
+                                    <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
+                                <?php else : ?>
+                                    <?php echo esc_html($product_title); ?>
                                 <?php endif; ?>
-                            </div>
+                            </h3>
+                        <?php endif; ?>
 
-                            <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
-
-                            <?php if ($external_comment_meta !== '') : ?>
-                                <p class="dht-external-comment__source">
-                                    <strong>Fuente:</strong>
-                                    <?php echo wp_kses($external_comment_meta, array(
-                                        'strong' => array(),
-                                        'a' => array(
-                                            'href' => array(),
-                                            'target' => array(),
-                                            'rel' => array(),
-                                        ),
-                                    )); ?>
-                                </p>
+                        <div class="dht-external-comment__meta">
+                            <strong>Comentario externo</strong>
+                            <?php if ($external_comment_rating !== '') : ?>
+                                <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
                             <?php endif; ?>
-                        </article>
-                    <?php endforeach; ?>
+                        </div>
+
+                        <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
+
+                        <?php if ($external_comment_meta !== '') : ?>
+                            <p class="dht-external-comment__source">
+                                <strong>Fuente:</strong>
+                                <?php echo wp_kses($external_comment_meta, array(
+                                    'strong' => array(),
+                                    'a' => array(
+                                        'href' => array(),
+                                        'target' => array(),
+                                        'rel' => array(),
+                                    ),
+                                )); ?>
+                            </p>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+
+            <?php if ('category' === $context) : ?>
                 </div>
-            </details>
+            <?php else : ?>
+                    </div>
+                </details>
+            <?php endif; ?>
+
             <?php if ('category' === $context) : ?></div><?php endif; ?>
         </section>
         <?php
@@ -2104,14 +2136,18 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
 
         $category_ids = dht_template_product_context_category_ids($product_id);
 
+        if (function_exists('seo_comparador_render_product_block')) {
+            seo_comparador_render_product_block($product_id);
+        }
+
         $dependiente_posts = dht_template_context_posts_for_categories(
             $category_ids,
             'dependiente_qa_basic',
-            4
+            3
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Información interesante de Dependiente',
+            'Guías para elegir',
             'dependiente',
             'product'
         );
@@ -2119,7 +2155,7 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
         $ingeniero_posts = dht_template_context_posts_for_categories(
             $category_ids,
             'ingeniero_qa_specialized',
-            4
+            3
         );
         dht_template_render_context_posts(
             $ingeniero_posts,
@@ -2128,14 +2164,10 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
             'product'
         );
 
-        if (function_exists('seo_comparador_render_product_block')) {
-            seo_comparador_render_product_block($product_id);
-        }
-
-        $external_comments = dht_template_product_external_comments($product_id, 12);
+        $external_comments = dht_template_product_external_comments($product_id, 8);
         dht_template_render_external_comments(
             $external_comments,
-            'Comentarios externos sobre este producto',
+            'Qué dicen otras fuentes',
             'product'
         );
     }
@@ -2162,7 +2194,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Información interesante de Dependiente',
+            'Guías para elegir',
             'dependiente',
             'category'
         );
@@ -2492,6 +2524,10 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
             $kicker = 'Tu Dependiente del catálogo';
             $title = '¿Quieres localizar una opción concreta?';
             $body = 'Escribe lo que buscas y continúa en Dependiente.';
+        } elseif ('product' === $variant) {
+            $kicker = 'Comprueba antes de comprar';
+            $title = '¿Este producto encaja con lo que necesitas?';
+            $body = 'Pregunta por uso, compatibilidad, medidas o características. Dependiente parte del producto que estás viendo y te ayuda a contrastarlo con tu necesidad.';
         } else {
             $kicker = 'Busca con Dependiente';
             $title = $context !== ''
@@ -2500,9 +2536,15 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
             $body = 'Empieza por un producto, una necesidad, una aplicación, una marca o una referencia. Dependiente relaciona la consulta con el catálogo para ayudarte a localizar opciones.';
         }
 
-        $placeholder = $context !== ''
-            ? 'Producto, uso o necesidad en ' . $context . '...'
-            : 'Producto, necesidad, uso o referencia...';
+        if ('product' === $variant && $context !== '') {
+            $placeholder = 'Ej.: ¿Me sirve para el trabajo que necesito?';
+            $input_value = 'Sobre "' . $context . '": ';
+        } else {
+            $placeholder = $context !== ''
+                ? 'Producto, uso o necesidad en ' . $context . '...'
+                : 'Producto, necesidad, uso o referencia...';
+            $input_value = '';
+        }
         $input_id = wp_unique_id('dht-dependiente-query-');
         ?>
         <aside class="dht-assistant-cta dht-assistant-cta--<?php echo esc_attr($variant); ?>" aria-label="Buscar con Dependiente">
@@ -2515,13 +2557,19 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
             <div class="dht-assistant-cta__action">
                 <form class="dht-assistant-cta__form" action="<?php echo esc_url($url); ?>" method="get">
                     <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>">Describe lo que buscas</label>
-                    <input id="<?php echo esc_attr($input_id); ?>" type="search" name="dep_q" value="" placeholder="<?php echo esc_attr($placeholder); ?>" autocomplete="off">
+                    <input id="<?php echo esc_attr($input_id); ?>" type="search" name="dep_q" value="<?php echo esc_attr($input_value); ?>" placeholder="<?php echo esc_attr($placeholder); ?>" autocomplete="off">
                     <button type="submit">Preguntar al Dependiente</button>
                 </form>
                 <div class="dht-assistant-cta__links">
-                    <a href="<?php echo esc_url($shop_url); ?>">Ver catálogo</a>
-                    <span aria-hidden="true">·</span>
-                    <a href="<?php echo esc_url($service_url); ?>">Nuestro acompañamiento</a>
+                    <?php if ('product' === $variant) : ?>
+                        <?php $whatsapp_url = 'https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $context . '.'); ?>
+                        <span>¿Prefieres una persona?</span>
+                        <a href="<?php echo esc_url($whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
+                    <?php else : ?>
+                        <a href="<?php echo esc_url($shop_url); ?>">Ver catálogo</a>
+                        <span aria-hidden="true">·</span>
+                        <a href="<?php echo esc_url($service_url); ?>">Nuestro acompañamiento</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </aside>

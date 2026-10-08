@@ -606,7 +606,8 @@ if (function_exists('generate_navigation_position')) {
  *
  * En el funnel transaccional se omite para no introducir salidas innecesarias.
  */
-$dht_show_value_bar = true;
+$dht_compact_dependiente_header = !empty($GLOBALS['dht_compact_dependiente_header']);
+$dht_show_value_bar = !$dht_compact_dependiente_header;
 if (
     (function_exists('is_front_page') && is_front_page())
     || (function_exists('is_cart') && is_cart())
@@ -671,9 +672,10 @@ unset($dht_show_value_bar);
  * pero no deben interponerse cuando el usuario ya ha elegido un producto o
  * esta avanzando por el funnel de compra.
  */
-$dht_show_campaigns = true;
+$dht_show_campaigns = !$dht_compact_dependiente_header;
 if (
-    (function_exists('is_product') && is_product())
+    (function_exists('is_front_page') && is_front_page())
+    || (function_exists('is_product') && is_product())
     || (function_exists('is_cart') && is_cart())
     || (function_exists('is_checkout') && is_checkout())
     || (function_exists('is_account_page') && is_account_page())
@@ -703,7 +705,8 @@ if (
 unset($dht_show_campaigns);
 
 /* Migas de pan globales, debajo de la navegacion principal. */
-if (function_exists('dht_header_render_breadcrumbs')) {
+if (!$dht_compact_dependiente_header && function_exists('dht_header_render_breadcrumbs')) {
     dht_header_render_breadcrumbs();
 }
+unset($dht_compact_dependiente_header);
 ?>

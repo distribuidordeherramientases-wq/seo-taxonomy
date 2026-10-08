@@ -219,10 +219,9 @@ final class SEO_Ingeniero_Admin {
 
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id,status,post_id
+                "SELECT id,status,post_id,recommended_action
                  FROM `{$table}`
                  WHERE id>%d
-                   AND recommended_action='CREATE_POST'
                    AND status IN ('candidate','review','approved','needs_update')
                  ORDER BY id ASC
                  LIMIT %d",
@@ -308,13 +307,10 @@ final class SEO_Ingeniero_Admin {
                 ), 'editorial');
             }
 
-            // Para CREATE_POST, la aprobación humana equivale a aceptar la
-            // propuesta y convertirla inmediatamente en borrador. No se exige
-            // un segundo clic "Crear borrador".
-            if (
-                'CREATE_POST' === strtoupper((string) ($dossier['recommended_action'] ?? ''))
-                && absint($dossier['post_id'] ?? 0) < 1
-            ) {
+            // La acción recomendada es informativa. La aprobación humana
+            // equivale a aceptar el dossier activo y convertirlo en borrador,
+            // aunque cobertura sugiera MERGE_CONTENT o NO_ACTION.
+            if (absint($dossier['post_id'] ?? 0) < 1) {
                 $post_id = SEO_Ingeniero_Posts::create_draft($editorial_id);
                 if (is_wp_error($post_id)) {
                     self::redirect(array(
@@ -507,7 +503,7 @@ final class SEO_Ingeniero_Admin {
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
         echo '<h2 style="margin-top:0">Editorial técnico</h2>';
         echo '<p>Convierte <strong>todo el conocimiento active y trazable de cada product_cat</strong> en un único dossier técnico. Ingeniero recomienda <code>CREATE_POST</code>, <code>IMPROVE_POST</code>, <code>MERGE_CONTENT</code>, <code>NO_ACTION</code> o <code>NEEDS_REVIEW</code>, pero no vuelve a filtrar el knowledge que ya fue aceptado por la investigación.</p>';
-        echo '<p class="description">Cada knowledge activo se presenta a Editora como una pregunta-respuesta técnica, conservando tipo, confianza, evidencias y fuentes. Los borradores se crean sólo tras aprobación humana y nunca se publican automáticamente.</p>';
+        echo '<p class="description">Cada knowledge activo se presenta a Editora como una pregunta-respuesta técnica, conservando tipo, confianza, evidencias y fuentes. La acción recomendada es diagnóstica: tras aprobación humana, el dossier activo se convierte en borrador aunque la cobertura indique MERGE_CONTENT o NO_ACTION. Nunca se publica automáticamente.</p>';
         echo '<p><strong>Regla 0.3.3:</strong> una categoría = un dossier <code>technical-overview</code>. No se descartan bloques por tener una sola evidencia o por no alcanzar masa de una familia editorial. Investigación mantiene como objetivo <strong>4 knowledge activos por categoría</strong>.</p>';
         echo '</div>';
 
@@ -535,7 +531,7 @@ final class SEO_Ingeniero_Admin {
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_editorial_accept_all">';
         wp_nonce_field('seo_ingeniero_editorial_accept_all');
-        echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Se aprobarán y convertirán en borrador todas las propuestas CREATE_POST elegibles de Ingeniero. No se publicará nada automáticamente. ¿Continuar?\');">Aceptar todo</button>';
+        echo '<button type="submit" class="button button-primary" onclick="return confirm(\'Se aprobarán y convertirán en borrador todas las propuestas editoriales activas de Ingeniero que todavía no tengan post. Las recomendaciones de cobertura se conservan como diagnóstico. No se publicará nada automáticamente. ¿Continuar?\');">Aceptar todo</button>';
         echo '</form>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_export">';
@@ -748,7 +744,7 @@ final class SEO_Ingeniero_Admin {
             ) ? 'Aprobar y crear borrador' : 'Aprobar propuesta';
             self::render_editorial_action_button($editorial_id,'approve',$approve_label,'primary');
         }
-        if ('approved' === $status && 'CREATE_POST' === strtoupper((string) ($dossier['recommended_action'] ?? '')) && !$post_id) self::render_editorial_action_button($editorial_id,'create_draft','Crear borrador','primary');
+        if ('approved' === $status && !$post_id) self::render_editorial_action_button($editorial_id,'create_draft','Crear borrador','primary');
         if (!$post_id && !in_array($status,array('closed','published'),true)) self::render_editorial_action_button($editorial_id,'close','Cerrar / no actuar','secondary');
         if ($post_id && 'post' === get_post_type($post_id)) echo '<a class="button button-primary" href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">Abrir post #' . esc_html($post_id) . '</a>';
         echo '</div>';

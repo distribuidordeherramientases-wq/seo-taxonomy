@@ -766,34 +766,49 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
 
 <main class="dht-storefront dht-storefront--mobile dht-front-structure" id="dht-storefront">
     <div class="sf-layout sf-layout--mobile">
-        <section class="sf-mobile-assistance" aria-labelledby="dht-home-title-mobile">
+        <section class="sf-mobile-dependiente-hero" aria-labelledby="dht-home-title-mobile">
             <div class="sf-mobile-shell">
-                <div class="sf-mobile-assistance-card">
-                    <div class="sf-mobile-assistance-finder">
-                        <h1 id="dht-home-title-mobile" class="screen-reader-text">Encuentra la herramienta que necesitas con Dependiente</h1>
+                <div class="sf-mobile-dependiente-hero__card">
+                    <div class="sf-mobile-dependiente-hero__intro">
                         <?php if ($dht_dependiente_image) : ?>
-                            <img class="sf-mobile-assistance-avatar" src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Dependiente, asistente del catálogo" loading="lazy">
+                            <img class="sf-mobile-dependiente-hero__avatar" src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Dependiente, asistente del catálogo" loading="eager">
                         <?php endif; ?>
-                        <form class="sf-home-search-form sf-home-search-form--compact" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
-                            <label class="screen-reader-text" for="dht-home-search-mobile">Pregunta al Dependiente lo que necesitas</label>
-                            <input id="dht-home-search-mobile" type="search" name="dep_q" placeholder="Pregunta al Dependiente lo que necesitas" autocomplete="off">
-                            <button type="submit">Buscar</button>
-                        </form>
-                    </div>
-
-                    <div class="sf-mobile-assistance-human">
-                        <strong>¿Prefieres una persona?</strong>
-                        <span>Dudas de compra, proveedor, seguimiento o incidencias.</span>
-                        <div class="sf-mobile-assistance-human__actions">
-                            <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-                            <a href="<?php echo esc_url($dht_service_url); ?>">Conocer el servicio</a>
+                        <div>
+                            <span class="sf-eyebrow">Tu Dependiente</span>
+                            <h1 id="dht-home-title-mobile">¿Qué necesitas hacer?</h1>
+                            <p>Cuéntanos el trabajo o problema. Te ayudamos a encontrar la herramienta adecuada.</p>
                         </div>
                     </div>
 
-                    <p class="sf-mobile-assistance-promise">
-                        Preventa y postventa, seguimiento del envío, garantías, devoluciones e incidencias con proveedores externos.
-                    </p>
+                    <form class="sf-mobile-dependiente-hero__form" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
+                        <label class="screen-reader-text" for="dht-home-search-mobile">Describe qué necesitas hacer</label>
+                        <input id="dht-home-search-mobile" type="search" name="dep_q" placeholder="Describe lo que necesitas hacer..." autocomplete="off">
+                        <button type="submit">Preguntar al Dependiente</button>
+                    </form>
+
+                    <a class="sf-mobile-dependiente-hero__example" href="<?php echo esc_url(add_query_arg('dep_q', 'Necesito quitar unos tornillos muy duros de las ruedas del coche', home_url('/dependiente/'))); ?>">Ejemplo: «Necesito quitar unos tornillos muy duros…»</a>
+
+                    <div class="sf-mobile-dependiente-hero__human">
+                        <div><strong>¿Prefieres una persona?</strong><span>Compra, pedidos, entregas o incidencias.</span></div>
+                        <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
+                    </div>
                 </div>
+            </div>
+        </section>
+
+        <section class="sf-mobile-front-benefits" aria-label="Ventajas del servicio">
+            <div class="sf-mobile-shell sf-mobile-front-benefits__grid">
+                <div><strong>Preventa</strong><span>Te ayudamos a elegir</span></div>
+                <div><strong>Envío</strong><span>Seguimiento</span></div>
+                <div><strong>Postventa</strong><span>Garantía y ayuda</span></div>
+                <div><strong>Devoluciones</strong><span>También con proveedores</span></div>
+            </div>
+        </section>
+
+        <section class="sf-mobile-section sf-mobile-section--products sf-mobile-front-now" aria-labelledby="dht-front-now-title-mobile">
+            <div class="sf-mobile-shell">
+                <div class="sf-mobile-heading"><h2 id="dht-front-now-title-mobile">Lo que más interesa ahora</h2><a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver tienda</a></div>
+                <?php $render_products(array_slice($popular_products, 0, 6), 'sf-products--mobile sf-products--front-now'); ?>
             </div>
         </section>
 
@@ -868,12 +883,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
             </div>
         </section>
 
-        <section class="sf-mobile-section sf-mobile-section--products">
-            <div class="sf-mobile-shell">
-                <div class="sf-mobile-heading"><h2>Productos populares</h2><a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver más</a></div>
-                <?php $render_products(array_slice($popular_products, 0, 10), 'sf-products--mobile'); ?>
-            </div>
-        </section>
+
 
         <?php if (!empty($sale_products)) : ?>
             <section class="sf-mobile-section sf-mobile-section--products">

@@ -45,6 +45,9 @@ jobs:
               "docs/manual/CLASIFICADOR.md": ("Clasificador.md", "Clasificador"),
               "docs/manual/PAGINAS.md": ("Paginas.md", "Paginas"),
               "docs/manual/ENTRADAS.md": ("Entradas.md", "Entradas"),
+              "docs/manual/FAQS.md": ("FAQs.md", "FAQs"),
+              "docs/manual/AUDITOR.md": ("Auditor.md", "Auditor"),
+              "docs/manual/INGENIERO.md": ("Ingeniero.md", "Ingeniero"),
               "docs/manual/IMAGENES.md": ("Imagenes.md", "Imagenes"),
               "docs/manual/INFORMES.md": ("Informes.md", "Informes"),
               "docs/manual/DEPENDIENTE.md": ("Dependiente.md", "Dependiente"),
@@ -116,6 +119,9 @@ jobs:
           - [[Clasificador|Clasificador]]
           - [[Páginas|Paginas]]
           - [[Entradas|Entradas]]
+          - [[FAQs|FAQs]]
+          - [[Auditor|Auditor]]
+          - [[Ingeniero|Ingeniero]]
           - [[Imágenes|Imagenes]]
           - [[Informes|Informes]]
           - [[Dependiente|Dependiente]]
