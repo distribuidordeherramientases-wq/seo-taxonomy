@@ -674,7 +674,8 @@ unset($dht_show_value_bar);
  */
 $dht_show_campaigns = !$dht_compact_dependiente_header;
 if (
-    (function_exists('is_product') && is_product())
+    (function_exists('is_front_page') && is_front_page())
+    || (function_exists('is_product') && is_product())
     || (function_exists('is_cart') && is_cart())
     || (function_exists('is_checkout') && is_checkout())
     || (function_exists('is_account_page') && is_account_page())
