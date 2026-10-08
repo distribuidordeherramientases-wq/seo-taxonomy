@@ -10255,3 +10255,246 @@ html {
   .dht-front-structure.dht-storefront--desktop .sf-front-benefits__grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .dht-front-structure.dht-storefront--desktop .sf-front-now .sf-products--front-now{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* DHT PRODUCT COMMERCIAL + EDITORIAL HIERARCHY 2.3.10 2026-10-08 */
+/* La primera zona decide y compra; el contenido largo comienza después. */
+.dh-product-decision-assistant{
+  margin:24px 0 0;
+}
+.dh-product-decision-assistant .dht-assistant-cta--product{
+  grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);
+  gap:18px;
+  padding:16px 18px;
+  border-radius:14px;
+  box-shadow:none;
+}
+.dh-product-decision-assistant .dht-assistant-cta--product .dht-assistant-cta__title{
+  font-size:18px;
+}
+.dh-product-decision-assistant .dht-assistant-cta--product .dht-assistant-cta__copy p{
+  font-size:13px;
+  line-height:1.45;
+}
+.dh-product-decision-assistant .dht-assistant-cta--product .dht-assistant-cta__form input[type="search"]{
+  font-size:12px;
+}
+.dh-product-decision-assistant .dht-assistant-cta--product .dht-assistant-cta__links{
+  align-items:center;
+}
+.dh-product-decision-assistant .dht-assistant-cta--product .dht-assistant-cta__links span{
+  color:#667085;
+}
+.dh-product-decision-assistant .dht-assistant-cta--product .dht-assistant-cta__links a{
+  color:#167747;
+}
+
+.dh-product-description--full,
+.dh-product-specifications--full,
+.dht-mobile-template .dh-product-description--mobile,
+.dht-mobile-template .dh-product-specifications--mobile{
+  margin-top:28px;
+  padding:26px 28px;
+  border:1px solid var(--dht-border,#dfe5ea);
+  border-radius:16px;
+  background:#fff;
+  box-shadow:none;
+}
+.dh-product-section-heading{
+  margin:0 0 18px;
+}
+.dh-product-section-heading>span{
+  display:block;
+  margin-bottom:4px;
+  color:var(--dht-primary);
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.dh-product-section-heading h2{
+  margin:0!important;
+  color:var(--dht-text,#182230);
+  font-size:clamp(22px,2.2vw,30px)!important;
+  line-height:1.18;
+}
+.dh-product-description--full .dh-product-description-content,
+.dht-mobile-template .dh-product-description--mobile .dh-product-description-content{
+  max-width:1080px;
+  color:#3f4b57;
+  line-height:1.7;
+}
+.dh-product-specifications--full .dh-product-specifications-list{
+  max-width:1100px;
+}
+.dh-product-classification-section--secondary{
+  margin-top:16px;
+  padding:12px 14px;
+  border-color:#e6eaee;
+  background:#fafbfc;
+}
+.dh-product-classification-section--secondary .dh-product-classification__chips>a,
+.dh-product-classification-section--secondary .dh-product-classification__chips>span{
+  padding:5px 8px;
+  font-size:11px;
+  font-weight:650;
+}
+
+.dh-product-complementary{
+  margin-top:38px;
+  padding-top:30px;
+  border-top:1px solid #dfe5ea;
+}
+.dh-product-complementary__header{
+  max-width:880px;
+  margin:0 0 8px;
+}
+.dh-product-complementary__header>span{
+  display:block;
+  margin-bottom:5px;
+  color:var(--dht-primary);
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.dh-product-complementary__header h2{
+  margin:0 0 8px;
+  color:var(--dht-text,#182230);
+  font-size:clamp(25px,2.5vw,34px);
+  line-height:1.15;
+}
+.dh-product-complementary__header p{
+  margin:0;
+  color:#667085;
+  font-size:14px;
+  line-height:1.55;
+}
+
+/* Los posts relacionados funcionan como biblioteca editorial, no como controles. */
+.dh-product-complementary .dht-context-posts--product{
+  margin-top:28px;
+}
+.dh-product-complementary .dht-context-posts--product .dht-context-posts__header--visible{
+  display:flex;
+  max-width:none;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:14px;
+}
+.dh-product-complementary .dht-context-posts--product .dht-context-posts__header--visible h2{
+  margin-bottom:0;
+}
+.dh-product-complementary .dht-context-posts--product .dht-context-posts__grid--visible{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.dht-context-post-card__content{
+  display:flex;
+  min-width:0;
+  flex:1 1 auto;
+  flex-direction:column;
+}
+.dht-context-post-card__media{
+  display:block;
+  margin:-18px -18px 15px;
+  overflow:hidden;
+  border-radius:14px 14px 0 0;
+  background:#f1f4f6;
+  aspect-ratio:16/8;
+}
+.dht-context-post-card__media img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.dh-product-complementary .dht-context-post-card{
+  overflow:hidden;
+  box-shadow:none;
+}
+.dh-product-complementary .dht-context-post-card p{
+  display:-webkit-box;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+}
+.dh-product-complementary .dht-external-comments--product{
+  margin-top:30px;
+}
+.dh-product-complementary .dht-external-comments--product .dht-external-comments__header{
+  max-width:960px;
+}
+.dh-product-complementary .dht-product-faq-section{
+  margin-top:30px;
+}
+
+/* Ya no se usa la nube completa de atributos dentro del primer pliegue. */
+.dht-desktop-template .dh-product-summary>.dh-product-classification{
+  display:none;
+}
+
+@media(max-width:980px){
+  .dh-product-decision-assistant .dht-assistant-cta--product{
+    grid-template-columns:1fr;
+  }
+  .dh-product-complementary .dht-context-posts--product .dht-context-posts__grid--visible{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:767px){
+  .dh-product-decision-assistant{
+    margin-top:16px;
+  }
+  .dh-product-decision-assistant .dht-assistant-cta--product{
+    gap:11px;
+    padding:13px;
+    border-radius:12px;
+  }
+  .dh-product-decision-assistant .dht-assistant-cta--product .dht-assistant-cta__title{
+    font-size:16px;
+  }
+  .dh-product-decision-assistant .dht-assistant-cta--product .dht-assistant-cta__copy p{
+    font-size:12px;
+  }
+  .dh-product-description--full,
+  .dh-product-specifications--full,
+  .dht-mobile-template .dh-product-description--mobile,
+  .dht-mobile-template .dh-product-specifications--mobile{
+    margin-top:16px;
+    padding:16px;
+    border-radius:12px;
+  }
+  .dh-product-section-heading{
+    margin-bottom:12px;
+  }
+  .dh-product-complementary{
+    margin-top:26px;
+    padding-top:22px;
+  }
+  .dh-product-complementary__header h2{
+    font-size:24px;
+  }
+  .dh-product-complementary__header p{
+    font-size:12px;
+  }
+  .dh-product-complementary .dht-context-posts--product{
+    margin-top:22px;
+  }
+  .dh-product-complementary .dht-context-posts--product .dht-context-posts__header--visible{
+    align-items:flex-start;
+    gap:8px;
+  }
+  .dh-product-complementary .dht-context-posts--product .dht-context-posts__grid--visible{
+    grid-template-columns:1fr;
+  }
+  .dht-context-post-card__media{
+    margin:-15px -15px 13px;
+    aspect-ratio:16/7;
+  }
+  .dh-product-classification-section--secondary{
+    margin-top:12px!important;
+    padding:10px!important;
+  }
+}
