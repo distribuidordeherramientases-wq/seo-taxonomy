@@ -388,7 +388,7 @@ if (!function_exists('seo_analista_competitive_public_audit')) {
             isset($home_metrics['category_links']) ? ((int) $home_metrics['category_links'] >= 4) : null,
             array_key_exists('search', $home_signals) ? (bool) $home_signals['search'] : null,
             array_key_exists('breadcrumbs', $page_signals) ? (bool) $page_signals['breadcrumbs'] : null,
-            $sitemap_declared,
+            !empty($robots['code']) ? $sitemap_declared : null,
         ), 78);
 
         $linking = seo_analista_competitive_dimension(array(
