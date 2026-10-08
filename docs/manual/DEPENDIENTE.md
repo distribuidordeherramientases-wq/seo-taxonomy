@@ -161,88 +161,10 @@ También muestra Modo de formación, Progreso, Informe completo y tabla Módulo 
 
 ## Ingeniero
 
-Ingeniero añade una capa de **conocimiento técnico externo por categoría** sin mezclarla con el índice comercial de Dependiente.
+Ingeniero es ahora un servicio independiente dentro de **SEO Taxonomy → Contenidos → Ingeniero**. Dependiente no contiene su interfaz operativa.
 
-### Lección 1 · Documentación técnica
+Consulta el manual completo en **Ingeniero**, donde se documentan Investigación, Editorial, Datos y fuentes, Pruebas, todos sus campos, botones, filtros y estados.
 
-V1 investiga categorías WooCommerce con productos y prioriza inicialmente las de mayor catálogo.
-
-Controles:
-
-- **Categorías piloto**: número de categorías a preparar.
-- **Preparar lección** [Proceso]: crea la cola sin realizar todavía consultas externas.
-- **Iniciar / continuar investigación** [Proceso][API]: entrega el trabajo al Gestor de procesos.
-- **Detener** [Proceso].
-- **Exportar JSON** [Exporta].
-- **Revisar conocimiento** [Consulta]: abre fuentes, evidencia, confianza y estado.
-- **Reinvestigar categoría** [Proceso][API]: encola la categoría de nuevo; no bloquea la petición del administrador.
-- **Aprobar / Mantener revisión / Rechazar** [Guarda]: revisión humana del conocimiento consolidado.
-
-KPIs visibles: categorías con productos, investigadas, pendientes, en revisión, errores, fuentes, conocimientos, confianza media y última investigación.
-
-### Importar / Exportar conocimiento
-
-Ingeniero permite trabajar con conocimiento obtenido fuera de SerpApi.
-
-Controles:
-
-- **Exportar conocimiento JSON** [Exporta]: paquete canónico con categorías, conocimiento y fuentes.
-- **Exportar conocimiento CSV** [Exporta]: formato tabular para revisión o trabajo externo.
-- **Descargar plantilla CSV** [Exporta].
-- **Importar conocimiento** [Guarda]: acepta JSON o CSV UTF-8.
-
-Reglas de seguridad de la importación:
-
-- cada conocimiento debe conservar al menos una URL de fuente;
-- el sistema intenta resolver la categoría por term_id, slug o nombre;
-- todo conocimiento importado entra en estado **review**;
-- nunca se activa ni publica automáticamente;
-- las evidencias externas se limitan a fragmentos breves;
-- el resumen importado se considera síntesis externa pendiente de revisión humana;
-- el modo **Añadir solo** evita sobrescribir conocimiento existente;
-- el modo **Actualizar existentes** reemplaza el bloque correspondiente, pero también lo deja en revisión.
-
-Este flujo permite incorporar investigación hecha por otras herramientas o procesos sin consumir SerpApi.
-
-### Búsqueda y presupuesto
-
-V1 usa un provider desacoplado y la implementación SerpApi/Google web. Reutiliza la credencial existente de Ojeador, pero mantiene un límite local independiente para Ingeniero.
-
-Campos:
-
-- Límite mensual local.
-- Resultados por consulta.
-- Consultas por categoría.
-- Páginas HTML a leer.
-- **Guardar configuración** [Guarda].
-
-Los PDFs se detectan y quedan como `pdf_pending`; v1 no añade un parser pesado.
-
-### Calidad y trazabilidad
-
-- organismo/normativa: confianza alta;
-- documentación técnica: media-alta;
-- web especializada: media;
-- comunidad/opinión: baja.
-
-Una fuente de confianza alta puede sostener conocimiento activo. Fuentes técnicas no oficiales requieren confirmación entre fuentes para activarse automáticamente. Lo dudoso queda en **revisar**.
-
-**Política editorial:** Ingeniero separa siempre la evidencia de la redacción. Las frases de origen solo pueden conservarse como evidencia breve y con enlace a la fuente. El resumen/contenido generado debe ser una síntesis propia, no una copia ni una concatenación de textos externos.
-
-La relación es siempre: `conocimiento → source_ids → URL/fuente`. La pantalla de revisión muestra el enlace original junto a cada evidencia para poder comprobarla.
-
-No se guardan copias completas de páginas o manuales.
-
-### Separación de capas
-
-- `seo_dependiente_index`: nuestro catálogo.
-- `seo_ingeniero_knowledge`: conocimiento técnico externo.
-
-La función `SEO_Ingeniero::active_knowledge(term_id)` expone conocimiento aprobado para futuras integraciones. En v1 **no se inyecta todavía en las respuestas públicas de Dependiente**.
-
-### Lección 2 · Experiencia práctica
-
-Preparada pero desactivada en v1. Su finalidad futura es recoger foros/comunidades y mantener esa evidencia marcada como experiencia/opinión, no como hecho técnico.
 ## Conocimiento
 
 - **Exportar conocimiento** [Exporta].
@@ -252,17 +174,9 @@ Preparada pero desactivada en v1. Su finalidad futura es recoger foros/comunidad
 
 ## Auditor
 
-Auditor permite ejecutar bloques independientes para evitar recorrer siempre todo el catálogo:
+Dentro de Dependiente sólo permanece **Auditor Academia**, dedicado al aprendizaje, Entrenador, runs, reglas y snapshots.
 
-- Productos · contenido e identidad.
-- Categorías y arquitectura.
-- Posts.
-- Páginas y landings.
-- FAQs.
-- Motor / índice de Dependiente.
+Las auditorías de Productos, Categorías, Posts, Páginas/Landings y FAQs se gestionan en **SEO Taxonomy → Contenidos → Auditor**. Los chequeos técnicos de motor/índice pertenecen a **Herramientas → Plugin Validation**.
 
-Cada bloque puede ejecutarse, revisar su último informe y exportar JSON.
+Consulta el manual completo de **Auditor** para cada botón, salida JSON y alcance.
 
-En Dependiente se conserva únicamente **Auditor Academia**, que revisa lecciones, runs, promoción de reglas, snapshots y aprendizaje. La auditoría de productos, categorías, posts, páginas, FAQs, relaciones e índice se ha movido a **SEO Taxonomy → Contenidos → Auditor**.
-
-Las auditorías son de solo lectura. Los hallazgos son señales de revisión, no órdenes automáticas de cambio.
