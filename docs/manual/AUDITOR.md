@@ -82,6 +82,31 @@ Prioridades operativas:
 
 Una prioridad alta no autoriza por sí sola un cambio automático.
 
+### Contexto de decisión
+
+Cada auditoría incorpora un bloque `contexto_de_decision` construido exclusivamente con lecturas ya persistidas. Auditor **no llama directamente** a GA4, Bing, SerpApi, ScraperAPI ni Google Shopping.
+
+Fuentes de contexto:
+
+- **Analista**: rendimiento y prioridad por entidad calculados desde sus datos locales disponibles.
+- **Ojeador**: último snapshot persistido de mercado por categoría.
+- **Dependiente**: búsquedas, apariciones, clics, términos sin resolver y resultados cero del log local.
+- **Comparador**: perfiles comparativos persistidos y su estado.
+- **Proveedores**: frescura e incidencias resumidas de los datos ya importados.
+
+Estados:
+
+- `fresh`: snapshot disponible y vigente;
+- `partial`: sólo existe cobertura parcial o una parte requiere revisión;
+- `stale`: el snapshot está vencido o marcado para actualización;
+- `unavailable`: no existe una observación utilizable.
+
+**Importante:** `0` significa cero observado. La ausencia de dato se representa como `null` o `unavailable`; Auditor no convierte datos desconocidos en cero.
+
+Cuando Analista dispone de una prioridad para la misma entidad, Auditor puede usarla únicamente para **ordenar mejor tareas dentro de la misma prioridad P1–P5**. No cambia la clase del hallazgo y no convierte una señal de demanda en un problema interno nuevo.
+
+En cada tarea, **Contexto de decisión** despliega las señales asociadas a la entidad y sus categorías relacionadas.
+
 ### Hallazgos
 
 La tabla de hallazgos es una vista de diagnóstico. Cuando el volumen es grande puede ser una muestra; el informe conserva los totales declarados por sus metadatos.
