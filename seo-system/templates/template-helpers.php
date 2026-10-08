@@ -2222,7 +2222,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Información interesante de Dependiente',
+            'Guías para elegir',
             'dependiente',
             'category'
         );
