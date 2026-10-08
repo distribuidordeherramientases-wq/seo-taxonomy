@@ -46,6 +46,9 @@ Release estable que consolida el ciclo de parches **2.3.8.x** desplegado entre e
 
 ### Auditor, Analista y control de calidad
 
+- Analista 3.8.0 incorpora **Informe competitivo profundo**: dominios configurables, muestreo SERP automático con SerpApi → ScraperAPI, auditoría pública acotada, matriz 1–5 con confianza de evidencia, fortalezas/brechas, plan priorizado y exportación JSON.
+- Search Console, GA4 y Bing se mantienen exclusivos del dominio propio; los competidores se evalúan sólo con evidencia pública observable y los datos ausentes quedan como N/D.
+
 - Auditor 0.13.0 añade `contexto_de_decision`: consume exclusivamente snapshots/lecturas persistidas de Analista, Ojeador, Dependiente, Comparador y proveedores, sin abrir nuevas llamadas externas durante la auditoría.
 - Los estados de contexto distinguen `fresh`, `partial`, `stale` y `unavailable`; un dato ausente se conserva como `null` y no como cero.
 - La prioridad precomputada por Analista puede ordenar tareas dentro de la misma P1–P5, pero no cambia la clase interna del hallazgo ni sustituye a Solucionador.
