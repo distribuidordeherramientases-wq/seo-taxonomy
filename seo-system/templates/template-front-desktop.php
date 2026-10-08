@@ -766,37 +766,75 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
 
 <main class="dht-storefront dht-storefront--desktop dht-front-structure" id="dht-storefront">
     <div class="sf-layout sf-layout--desktop">
-        <section class="sf-assistance-compact" aria-labelledby="dht-home-title">
+        <section class="sf-dependiente-hero" aria-labelledby="dht-home-title">
             <div class="sf-shell">
-                <div class="sf-assistance-compact__panel">
-                    <div class="sf-assistance-compact__finder">
-                        <h1 id="dht-home-title" class="screen-reader-text">Encuentra la herramienta que necesitas con Dependiente</h1>
+                <div class="sf-dependiente-hero__grid">
+                    <div class="sf-dependiente-hero__media">
                         <?php if ($dht_dependiente_image) : ?>
-                            <img class="sf-assistance-compact__avatar" src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Dependiente, asistente del catálogo" loading="lazy">
+                            <img src="<?php echo esc_url($dht_dependiente_image); ?>" alt="Dependiente, asistente del catálogo" loading="eager">
                         <?php endif; ?>
-                        <form class="sf-home-search-form sf-home-search-form--compact" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
-                            <label class="screen-reader-text" for="dht-home-search">Pregunta al Dependiente lo que necesitas</label>
-                            <input id="dht-home-search" type="search" name="dep_q" placeholder="Pregunta al Dependiente lo que necesitas" autocomplete="off">
-                            <button type="submit">Buscar</button>
+                        <span>Tu Dependiente de confianza</span>
+                    </div>
+
+                    <div class="sf-dependiente-hero__main">
+                        <span class="sf-eyebrow">Ayuda para elegir</span>
+                        <h1 id="dht-home-title">¿Qué necesitas hacer?</h1>
+                        <p class="sf-dependiente-hero__lead">Explícaselo al Dependiente y te ayudamos a encontrar la herramienta adecuada, aunque no sepas cómo se llama.</p>
+
+                        <form class="sf-dependiente-hero__form" role="search" method="get" action="<?php echo esc_url(home_url('/dependiente/')); ?>">
+                            <label class="screen-reader-text" for="dht-home-search">Describe qué necesitas hacer</label>
+                            <input id="dht-home-search" type="search" name="dep_q" placeholder="Ej.: Necesito quitar unos tornillos muy duros de las ruedas del coche..." autocomplete="off">
+                            <button type="submit">Preguntar al Dependiente</button>
                         </form>
+
+                        <div class="sf-dependiente-hero__examples" aria-label="Ejemplos de preguntas">
+                            <?php
+                            $dht_dependiente_examples = array(
+                                '¿Qué compresor necesito para pintar un coche?',
+                                'Herramienta para cortar azulejos de gran formato',
+                                'Taladro a batería para uso profesional intenso',
+                            );
+                            foreach ($dht_dependiente_examples as $dht_example) :
+                                $dht_example_url = add_query_arg('dep_q', $dht_example, home_url('/dependiente/'));
+                                ?>
+                                <a href="<?php echo esc_url($dht_example_url); ?>"><?php echo esc_html($dht_example); ?></a>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <ul class="sf-dependiente-hero__proof">
+                            <li>Te orienta por uso, medidas, compatibilidad y características.</li>
+                            <li>Trabaja con productos de nuestro catálogo.</li>
+                            <li>Puedes explicarte con tus propias palabras.</li>
+                        </ul>
                     </div>
 
-                    <div class="sf-assistance-compact__human">
-                        <div class="sf-assistance-compact__human-copy">
-                            <span class="sf-service-kicker">Atención personal</span>
-                            <strong>¿Prefieres hablar con una persona?</strong>
-                            <span>Dudas de compra, proveedor, seguimiento o incidencias.</span>
-                        </div>
-                        <div class="sf-service-actions">
-                            <a href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
-                            <a class="sf-assistance-compact__link" href="<?php echo esc_url($dht_service_url); ?>">Conocer el servicio</a>
-                        </div>
-                    </div>
-
-                    <p class="sf-assistance-compact__promise">
-                        Nuestro servicio te acompaña antes y después de la compra: preventa, seguimiento del envío, postventa, garantías, devoluciones e incidencias con proveedores externos.
-                    </p>
+                    <aside class="sf-dependiente-hero__human" aria-label="Atención humana">
+                        <span class="sf-service-kicker">Atención humana</span>
+                        <strong>¿Prefieres hablar con una persona?</strong>
+                        <p>Para dudas de compra, pedidos, entregas, devoluciones o incidencias.</p>
+                        <a class="sf-dependiente-hero__whatsapp" href="<?php echo esc_url($dht_whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
+                        <a class="sf-dependiente-hero__secondary" href="<?php echo esc_url($dht_service_url); ?>">Ver cómo te ayudamos <span aria-hidden="true">→</span></a>
+                    </aside>
                 </div>
+            </div>
+        </section>
+
+        <section class="sf-front-benefits" aria-label="Ventajas del servicio">
+            <div class="sf-shell sf-front-benefits__grid">
+                <div class="sf-front-benefit"><span aria-hidden="true">🚚</span><div><strong>Envío gratis desde 50 €</strong><small>Península. Islas con tarifa específica.</small></div></div>
+                <div class="sf-front-benefit"><span aria-hidden="true">◉</span><div><strong>Te acompañamos en el proceso</strong><small>Preventa, seguimiento, postventa y garantía.</small></div></div>
+                <div class="sf-front-benefit"><span aria-hidden="true">↩</span><div><strong>Devoluciones e incidencias</strong><small>También con proveedores externos.</small></div></div>
+                <div class="sf-front-benefit"><span aria-hidden="true">✓</span><div><strong>Compra con confianza</strong><small>Catálogo profesional y soporte cuando lo necesitas.</small></div></div>
+            </div>
+        </section>
+
+        <section class="sf-section sf-section--products sf-front-now" aria-labelledby="dht-front-now-title">
+            <div class="sf-shell">
+                <div class="sf-section-head sf-section-head--tight">
+                    <div><span class="sf-eyebrow">Selección del catálogo</span><h2 id="dht-front-now-title">Lo que más interesa ahora</h2></div>
+                    <a class="sf-text-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver tienda <span aria-hidden="true">→</span></a>
+                </div>
+                <?php $render_products(array_slice($popular_products, 0, 4), 'sf-products--desktop sf-products--front-now'); ?>
             </div>
         </section>
 
@@ -941,15 +979,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
             </div>
         </section>
 
-        <section class="sf-section sf-section--products">
-            <div class="sf-shell">
-                <div class="sf-section-head sf-section-head--tight">
-                    <div><span class="sf-eyebrow">Demanda del catálogo</span><h2>Productos populares</h2></div>
-                    <a class="sf-text-link" href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver más <span aria-hidden="true">→</span></a>
-                </div>
-                <?php $render_products($popular_products, 'sf-products--desktop'); ?>
-            </div>
-        </section>
+
 
         <?php if (!empty($sale_products)) : ?>
             <section class="sf-section sf-section--products sf-section--soft">
