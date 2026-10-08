@@ -732,7 +732,12 @@ foreach (array_slice((array) $cluster_ids, 0, 3) as $dht_cluster_id) {
 }
 $dht_taller_hub_id = 0;
 foreach ((array) $hub_primary_ids as $dht_hub_id) {
-    if (false !== strpos(sanitize_title(get_the_title($dht_hub_id)), 'taller')) {
+    $dht_hub_search_text = remove_accents(strtolower(
+        (string) get_the_title($dht_hub_id) . ' ' .
+        (string) get_post_field('post_excerpt', $dht_hub_id) . ' ' .
+        (string) get_post_field('post_content', $dht_hub_id)
+    ));
+    if (false !== strpos($dht_hub_search_text, 'taller')) {
         $dht_taller_hub_id = absint($dht_hub_id);
         break;
     }
@@ -984,14 +989,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
 
 
 
-        <?php if (!empty($sale_products)) : ?>
-            <section class="sf-mobile-section sf-mobile-section--products">
-                <div class="sf-mobile-shell">
-                    <div class="sf-mobile-heading"><h2>Ofertas</h2></div>
-                    <?php $render_products(array_slice($sale_products, 0, 10), 'sf-products--mobile'); ?>
-                </div>
-            </section>
-        <?php endif; ?>
+
 
         <section class="sf-mobile-section sf-mobile-section--products">
             <div class="sf-mobile-shell">
