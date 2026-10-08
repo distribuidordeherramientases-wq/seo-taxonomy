@@ -55,6 +55,16 @@ if (!function_exists('seo_analista_competitive_organic_rows')) {
     }
 }
 
+if (!function_exists('seo_analista_competitive_remote_allowed')) {
+    function seo_analista_competitive_remote_allowed($set = null) {
+        static $allowed = false;
+        if (null !== $set) {
+            $allowed = (bool) $set;
+        }
+        return $allowed;
+    }
+}
+
 if (!function_exists('seo_analista_competitive_serp_rows')) {
     /**
      * Adaptador automatico de rankings para Analista.
@@ -89,6 +99,11 @@ if (!function_exists('seo_analista_competitive_serp_rows')) {
             if (is_array($cached) && isset($cached['organic'])) {
                 $organic = (array) $cached['organic'];
                 $provider = sanitize_key((string) ($cached['provider'] ?? 'cache'));
+            } elseif (!seo_analista_competitive_remote_allowed()) {
+                // Las vistas normales pueden reutilizar cache, pero nunca abren
+                // consultas nuevas. El consumo remoto se habilita solo durante
+                // Generar informe competitivo.
+                continue;
             } else {
                 $response = SEO_Ojeador_Shopping::search_google_web($keyword, array('num'=>20), $trace);
                 if (is_wp_error($response)) {
@@ -599,7 +614,12 @@ if (!function_exists('seo_analista_build_competitive_report')) {
             return new WP_Error('analista_competitive_no_domains', 'Añade al menos un dominio competidor antes de generar el informe.');
         }
 
-        $rank = seo_analista_competitive_rank_summary($keywords, $competitors);
+        seo_analista_competitive_remote_allowed(true);
+        try {
+            $rank = seo_analista_competitive_rank_summary($keywords, $competitors);
+        } finally {
+            seo_analista_competitive_remote_allowed(false);
+        }
         $domains = array_values(array_unique(array_merge(array($own), $competitors)));
         $matrix = array();
 
