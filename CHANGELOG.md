@@ -46,6 +46,10 @@ Release estable que consolida el ciclo de parches **2.3.8.x** desplegado entre e
 
 ### Auditor, Analista y control de calidad
 
+- Auditor 0.13.0 añade `contexto_de_decision`: consume exclusivamente snapshots/lecturas persistidas de Analista, Ojeador, Dependiente, Comparador y proveedores, sin abrir nuevas llamadas externas durante la auditoría.
+- Los estados de contexto distinguen `fresh`, `partial`, `stale` y `unavailable`; un dato ausente se conserva como `null` y no como cero.
+- La prioridad precomputada por Analista puede ordenar tareas dentro de la misma P1–P5, pero no cambia la clase interna del hallazgo ni sustituye a Solucionador.
+
 - Dividido **Auditor** en auditorías independientes por bloques: Productos, Categorías y arquitectura, Posts, Páginas/Landings, FAQs y Motor/índice de Dependiente.
 - Separados explícitamente **Auditor de contenidos** y **Auditor de Academia** para evitar mezclar diagnósticos de catálogo con aprendizaje.
 - Añadida una **puntuación interna de calidad SEO** por entidad, con desglose de relevancia, rigor, diferenciación, arquitectura semántica y preparación técnica.
