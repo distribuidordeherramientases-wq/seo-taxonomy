@@ -91,3 +91,53 @@ Permite definir competidores y palabras que se quieren vigilar.
 **Guardar comparación** [Guarda].
 
 Analista carga los bloques bajo demanda para evitar calcular todos los informes cada vez que se abre la página.
+
+### Informe competitivo profundo
+
+Dentro de **Analista → Comparación**, después de guardar competidores y palabras vigiladas, aparece el bloque **Informe competitivo profundo**.
+
+**Competidores configurados** [Consulta]: número de dominios guardados en la comparación. El informe profundo analiza como máximo 8 competidores por ejecución.
+
+**Keywords vigiladas** [Consulta]: número de palabras/intenciones configuradas. Si no hay ninguna, Analista toma automáticamente una muestra limitada de consultas accionables de Search Console del dominio propio.
+
+**Último informe** [Consulta]: fecha del último informe competitivo persistido.
+
+**Generar informe competitivo** [Proceso][API]: ejecuta de forma explícita el informe. Abrir la pantalla no consume consultas externas. La ejecución puede usar la conexión compartida **SerpApi → ScraperAPI** para muestrear Google Search y realiza un rastreo público acotado de cada dominio.
+
+El informe separa estrictamente:
+
+- **dominio propio**: puede usar Search Console, GA4 y Bing, además de la evidencia pública;
+- **competidores**: sólo utiliza evidencia pública observable y el muestreo SERP;
+- **Google Trends**: se usa como contexto de demanda temática, nunca como tráfico estimado de un dominio.
+
+Dimensiones comparadas:
+
+- **SERP**;
+- **Arquitectura**;
+- **Producto**;
+- **Enlazado**;
+- **Confianza**;
+- **UX**;
+- **Técnico observable**.
+
+Cada dimensión muestra una puntuación sobre 5 y un porcentaje de **confianza de evidencia**. Si faltan datos, se muestra **N/D**; la ausencia de datos no se transforma en cero ni penaliza artificialmente el índice.
+
+El muestreo público revisa, de forma limitada:
+
+- homepage;
+- `robots.txt`;
+- sitemap declarado en robots;
+- una URL representativa encontrada en las SERP, cuando existe;
+- title, meta description, canonical, H1, schema, enlaces internos y señales comerciales observables;
+- señales de ficha como precio, stock, SKU/EAN, reviews, envío, devoluciones, garantía, especificaciones y compatibilidad, cuando la URL representativa parece una ficha de producto.
+
+**Exportar JSON** [Exporta]: descarga el último informe completo, incluyendo matriz competitiva, keywords muestreadas, contexto propio, fortalezas, brechas, plan priorizado y límites de evidencia.
+
+#### Límites
+
+- Search Console, GA4 y Bing sólo describen el sitio conectado.
+- La visibilidad de los competidores es un muestreo sobre las keywords analizadas, no una estimación de tráfico total.
+- Google Trends no se interpreta como tráfico de dominio.
+- El rastreo competitivo es una muestra pública y no sustituye Screaming Frog/Sitebulb.
+- Core Web Vitals homogéneos y autoridad/backlinks requieren fuentes adicionales; si no están disponibles quedan como N/D.
+
