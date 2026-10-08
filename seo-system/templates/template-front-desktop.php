@@ -737,8 +737,12 @@ foreach (array_slice((array) $cluster_ids, 0, 3) as $dht_cluster_id) {
 
 $dht_taller_hub_id = 0;
 foreach ((array) $hub_primary_ids as $dht_hub_id) {
-    $dht_hub_title_key = sanitize_title(get_the_title($dht_hub_id));
-    if (false !== strpos($dht_hub_title_key, 'taller')) {
+    $dht_hub_search_text = remove_accents(strtolower(
+        (string) get_the_title($dht_hub_id) . ' ' .
+        (string) get_post_field('post_excerpt', $dht_hub_id) . ' ' .
+        (string) get_post_field('post_content', $dht_hub_id)
+    ));
+    if (false !== strpos($dht_hub_search_text, 'taller')) {
         $dht_taller_hub_id = absint($dht_hub_id);
         break;
     }
@@ -1114,14 +1118,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
 
 
 
-        <?php if (!empty($sale_products)) : ?>
-            <section class="sf-section sf-section--products sf-section--soft">
-                <div class="sf-shell">
-                    <div class="sf-section-head sf-section-head--tight"><div><span class="sf-eyebrow">Oportunidades</span><h2>Ofertas destacadas</h2></div></div>
-                    <?php $render_products($sale_products, 'sf-products--desktop'); ?>
-                </div>
-            </section>
-        <?php endif; ?>
+
 
         <?php if (!empty($more_categories)) : ?>
             <section class="sf-section">
