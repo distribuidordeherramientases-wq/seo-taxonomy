@@ -1777,11 +1777,11 @@ if (!function_exists('dht_template_context_post_excerpt')) {
 
 if (!function_exists('dht_template_render_context_posts')) {
     /**
-     * Render ligero: titulo + excerpt + enlace al post canonico.
+     * Render ligero de contenido editorial relacionado.
      *
-     * En categorias el contenido editorial aparece siempre visible, porque se
-     * muestra despues del catalogo y debe funcionar como biblioteca relacionada.
-     * En producto conserva el patron plegado para no competir con la compra.
+     * En categorias el contenido se muestra directamente en parrilla porque
+     * aparece despues del catalogo y no interrumpe la decision de compra.
+     * En producto se conserva el bloque plegado para mantener la ficha compacta.
      */
     function dht_template_render_context_posts($posts, $title, $variant = 'dependiente', $context = 'product')
     {
@@ -1822,7 +1822,9 @@ if (!function_exists('dht_template_render_context_posts')) {
                             <span class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></span>
                             <h2><?php echo esc_html($title); ?></h2>
                         </div>
-                        <small class="dht-context-posts__count"><?php echo esc_html($count_label); ?></small>
+                        <span class="dht-context-posts__count dht-context-posts__count--visible">
+                            <?php echo esc_html($count_label); ?>
+                        </span>
                     </header>
 
                     <div class="dht-context-posts__grid dht-context-posts__grid--visible">
@@ -1854,7 +1856,9 @@ if (!function_exists('dht_template_render_context_posts')) {
                             <small class="dht-context-posts__kicker"><?php echo esc_html($kicker); ?></small>
                             <strong><?php echo esc_html($title); ?></strong>
                         </span>
-                        <small class="dht-context-posts__count"><?php echo esc_html($count_label); ?></small>
+                        <small class="dht-context-posts__count">
+                            <?php echo esc_html($count_label); ?>
+                        </small>
                         <span class="dht-context-posts__icon" aria-hidden="true"></span>
                     </summary>
                     <div class="dht-context-posts__body">
@@ -2019,9 +2023,9 @@ if (!function_exists('dht_template_render_external_comments')) {
     /**
      * Renderiza comentarios externos persistidos por Comentarista.
      *
-     * En categorias quedan visibles como contenido relacionado posterior al
-     * catalogo. En fichas de producto siguen plegados para no desplazar la
-     * informacion principal de compra.
+     * En categorias se muestran directamente porque forman parte del contenido
+     * editorial posterior al catalogo. En producto se conserva la persiana para
+     * no alargar la zona principal de la ficha.
      */
     function dht_template_render_external_comments($rows, $title, $context = 'product')
     {
@@ -2049,118 +2053,92 @@ if (!function_exists('dht_template_render_external_comments')) {
             ),
             $comment_count
         );
+        $count_label = sprintf(
+            /* translators: %d: número de comentarios externos disponibles. */
+            _n('%d comentario externo', '%d comentarios externos', $comment_count, 'seo-taxonomy'),
+            $comment_count
+        );
         ?>
         <section class="dht-external-comments dht-external-comments--<?php echo esc_attr($context); ?> seo-comentarista">
-            <?php if ('category' === $context) : ?>
-                <div class="dht-container">
-                    <header class="dht-external-comments__header">
-                        <span class="dht-context-posts__kicker">Experiencias externas</span>
-                        <h2><?php echo esc_html($title); ?></h2>
-                        <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
-                    </header>
-
-                    <div class="dht-external-comments__list dht-external-comments__list--visible">
-                        <?php foreach ($valid as $external_comment) : ?>
-                            <?php
-                            $external_comment_text = dht_template_external_comment_text($external_comment);
-                            $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
-                                ? seo_comentarista_render_source_meta($external_comment)
-                                : '';
-                            $external_comment_rating = function_exists('seo_comentarista_rating_text')
-                                ? seo_comentarista_rating_text($external_comment)
-                                : '';
-                            $product_title = trim((string) ($external_comment['product_title'] ?? ''));
-                            $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
-                            ?>
-                            <article class="dht-external-comment">
-                                <?php if ($product_title !== '') : ?>
-                                    <h3 class="dht-external-comment__product">
-                                        <?php if ($product_url !== '') : ?>
-                                            <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
-                                        <?php else : ?>
-                                            <?php echo esc_html($product_title); ?>
-                                        <?php endif; ?>
-                                    </h3>
-                                <?php endif; ?>
-
-                                <div class="dht-external-comment__meta">
-                                    <strong>Comentario externo</strong>
-                                    <?php if ($external_comment_rating !== '') : ?>
-                                        <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
-                                    <?php endif; ?>
-                                </div>
-
-                                <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
-
-                                <?php if ($external_comment_meta !== '') : ?>
-                                    <p class="dht-external-comment__source">
-                                        <strong>Fuente:</strong>
-                                        <?php echo wp_kses($external_comment_meta, array(
-                                            'strong' => array(),
-                                            'a' => array(
-                                                'href' => array(),
-                                                'target' => array(),
-                                                'rel' => array(),
-                                            ),
-                                        )); ?>
-                                    </p>
-                                <?php endif; ?>
-                            </article>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php else : ?>
-                <header class="dht-external-comments__header">
+            <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
+            <header class="dht-external-comments__header">
+                <div class="dht-external-comments__heading">
                     <span class="dht-context-posts__kicker">Experiencias externas</span>
                     <h2><?php echo esc_html($title); ?></h2>
-                    <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
-                </header>
+                </div>
+                <?php if ('category' === $context) : ?>
+                    <span class="dht-external-comments__count"><?php echo esc_html($count_label); ?></span>
+                <?php endif; ?>
+                <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
+            </header>
 
+            <?php if ('category' === $context) : ?>
+                <div class="dht-external-comments__list dht-external-comments__list--visible">
+            <?php else : ?>
                 <details class="dht-external-comments__details">
                     <summary>
                         <span><?php echo esc_html($summary_label); ?></span>
                         <span class="dht-external-comments__toggle" aria-hidden="true">+</span>
                     </summary>
-
                     <div class="dht-external-comments__list">
-                        <?php foreach ($valid as $external_comment) : ?>
-                            <?php
-                            $external_comment_text = dht_template_external_comment_text($external_comment);
-                            $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
-                                ? seo_comentarista_render_source_meta($external_comment)
-                                : '';
-                            $external_comment_rating = function_exists('seo_comentarista_rating_text')
-                                ? seo_comentarista_rating_text($external_comment)
-                                : '';
-                            ?>
-                            <article class="dht-external-comment">
-                                <div class="dht-external-comment__meta">
-                                    <strong>Comentario externo</strong>
-                                    <?php if ($external_comment_rating !== '') : ?>
-                                        <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
-                                    <?php endif; ?>
-                                </div>
+            <?php endif; ?>
 
-                                <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
-
-                                <?php if ($external_comment_meta !== '') : ?>
-                                    <p class="dht-external-comment__source">
-                                        <strong>Fuente:</strong>
-                                        <?php echo wp_kses($external_comment_meta, array(
-                                            'strong' => array(),
-                                            'a' => array(
-                                                'href' => array(),
-                                                'target' => array(),
-                                                'rel' => array(),
-                                            ),
-                                        )); ?>
-                                    </p>
+                <?php foreach ($valid as $external_comment) : ?>
+                    <?php
+                    $external_comment_text = dht_template_external_comment_text($external_comment);
+                    $external_comment_meta = function_exists('seo_comentarista_render_source_meta')
+                        ? seo_comentarista_render_source_meta($external_comment)
+                        : '';
+                    $external_comment_rating = function_exists('seo_comentarista_rating_text')
+                        ? seo_comentarista_rating_text($external_comment)
+                        : '';
+                    $product_title = trim((string) ($external_comment['product_title'] ?? ''));
+                    $product_url = esc_url_raw((string) ($external_comment['product_url'] ?? ''));
+                    ?>
+                    <article class="dht-external-comment">
+                        <?php if ('category' === $context && $product_title !== '') : ?>
+                            <h3 class="dht-external-comment__product">
+                                <?php if ($product_url !== '') : ?>
+                                    <a href="<?php echo esc_url($product_url); ?>"><?php echo esc_html($product_title); ?></a>
+                                <?php else : ?>
+                                    <?php echo esc_html($product_title); ?>
                                 <?php endif; ?>
-                            </article>
-                        <?php endforeach; ?>
+                            </h3>
+                        <?php endif; ?>
+
+                        <div class="dht-external-comment__meta">
+                            <strong>Comentario externo</strong>
+                            <?php if ($external_comment_rating !== '') : ?>
+                                <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                            <?php endif; ?>
+                        </div>
+
+                        <blockquote><?php echo wp_kses_post(wpautop($external_comment_text)); ?></blockquote>
+
+                        <?php if ($external_comment_meta !== '') : ?>
+                            <p class="dht-external-comment__source">
+                                <strong>Fuente:</strong>
+                                <?php echo wp_kses($external_comment_meta, array(
+                                    'strong' => array(),
+                                    'a' => array(
+                                        'href' => array(),
+                                        'target' => array(),
+                                        'rel' => array(),
+                                    ),
+                                )); ?>
+                            </p>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+
+            <?php if ('category' === $context) : ?>
+                </div>
+            <?php else : ?>
                     </div>
                 </details>
             <?php endif; ?>
+
+            <?php if ('category' === $context) : ?></div><?php endif; ?>
         </section>
         <?php
     }
