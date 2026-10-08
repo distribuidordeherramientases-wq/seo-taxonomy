@@ -2224,6 +2224,76 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
     }
 }
 
+
+/* ==========================================================
+   PORTADA: CATEGORIAS CON MAYOR INTERES REAL
+   Usa el snapshot de Analista ya persistido en termmeta; nunca llama
+   a GA4/GSC al pintar la portada. Si no hay snapshot, cae de forma
+   segura a categorías con productos para no dejar el bloque vacío.
+========================================================== */
+if (!function_exists('dht_template_front_top_viewed_categories')) {
+    function dht_template_front_top_viewed_categories($limit = 4, $days = 28)
+    {
+        global $wpdb;
+
+        $limit = max(1, min(8, absint($limit)));
+        $days  = max(1, absint($days));
+
+        $pageviews_key = function_exists('seo_category_reports_summary_meta_key')
+            ? seo_category_reports_summary_meta_key('pageviews', $days)
+            : '_seo_google_category_pageviews_' . $days;
+
+        $out = array();
+        $ranked_terms = get_terms(array(
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => true,
+            'number'     => $limit * 3,
+            'meta_key'   => $pageviews_key,
+            'orderby'    => 'meta_value_num',
+            'order'      => 'DESC',
+        ));
+
+        if (!is_wp_error($ranked_terms)) {
+            foreach ($ranked_terms as $term) {
+                if (!$term instanceof WP_Term) {
+                    continue;
+                }
+                $pageviews = max(0, (int) get_term_meta($term->term_id, $pageviews_key, true));
+                if ($pageviews < 1) {
+                    continue;
+                }
+                $out[$term->term_id] = $term;
+                if (count($out) >= $limit) {
+                    break;
+                }
+            }
+        }
+
+        if (count($out) < $limit) {
+            $fallback = get_terms(array(
+                'taxonomy'   => 'product_cat',
+                'hide_empty' => true,
+                'number'     => $limit * 3,
+                'orderby'    => 'count',
+                'order'      => 'DESC',
+            ));
+            if (!is_wp_error($fallback)) {
+                foreach ($fallback as $term) {
+                    if (!$term instanceof WP_Term || isset($out[$term->term_id])) {
+                        continue;
+                    }
+                    $out[$term->term_id] = $term;
+                    if (count($out) >= $limit) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return array_slice(array_values($out), 0, $limit);
+    }
+}
+
 /* ==========================================================
    SELECTOR CENTRAL DE PLANTILLAS POR DISPOSITIVO
    Los archivos template-*.php gestores solo piden una ruta.

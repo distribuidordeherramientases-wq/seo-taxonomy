@@ -708,6 +708,47 @@ $get_cluster_image = static function ($cluster_id) use ($wpdb, $relations_table,
     return $term_id ? dht_template_term_image_url($term_id, 'medium_large', true) : '';
 };
 
+/* Portada comercial: interés real + campaña activa. */
+$dht_front_top_categories = function_exists('dht_template_front_top_viewed_categories')
+    ? dht_template_front_top_viewed_categories(4, 28)
+    : array();
+
+$dht_front_campaign = null;
+$dht_front_campaign_products = array();
+if (function_exists('seo_marketing_campaigns_get_public_active')) {
+    foreach ((array) seo_marketing_campaigns_get_public_active() as $dht_campaign_candidate) {
+        if (empty($dht_campaign_candidate['campaign']) || empty($dht_campaign_candidate['products'])) {
+            continue;
+        }
+        $dht_front_campaign = $dht_campaign_candidate['campaign'];
+        $dht_front_campaign_products = array_values((array) $dht_campaign_candidate['products']);
+        break;
+    }
+}
+
+$dht_front_area_items = array();
+foreach (array_slice((array) $cluster_ids, 0, 3) as $dht_cluster_id) {
+    $dht_front_area_items[] = array('type' => 'cluster', 'id' => absint($dht_cluster_id));
+}
+$dht_taller_hub_id = 0;
+foreach ((array) $hub_primary_ids as $dht_hub_id) {
+    $dht_hub_search_text = remove_accents(strtolower(
+        (string) get_the_title($dht_hub_id) . ' ' .
+        (string) get_post_field('post_excerpt', $dht_hub_id) . ' ' .
+        (string) get_post_field('post_content', $dht_hub_id)
+    ));
+    if (false !== strpos($dht_hub_search_text, 'taller')) {
+        $dht_taller_hub_id = absint($dht_hub_id);
+        break;
+    }
+}
+if ($dht_taller_hub_id < 1 && !empty($hub_primary_ids)) {
+    $dht_taller_hub_id = absint(reset($hub_primary_ids));
+}
+if ($dht_taller_hub_id > 0) {
+    $dht_front_area_items[] = array('type' => 'hub_primary', 'id' => $dht_taller_hub_id);
+}
+
 $latest_posts = get_posts(array(
     'post_type'      => 'post',
     'post_status'    => 'publish',
@@ -805,24 +846,87 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
             </div>
         </section>
 
-        <section class="sf-mobile-section sf-mobile-section--products sf-mobile-front-now" aria-labelledby="dht-front-now-title-mobile">
+        <section class="sf-mobile-front-commercial" aria-label="Interés y campañas">
             <div class="sf-mobile-shell">
-                <div class="sf-mobile-heading"><h2 id="dht-front-now-title-mobile">Lo que más interesa ahora</h2><a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver tienda</a></div>
-                <?php $render_products(array_slice($popular_products, 0, 6), 'sf-products--mobile sf-products--front-now'); ?>
+                <section class="sf-mobile-front-interest" aria-labelledby="dht-mobile-interest-title">
+                    <div class="sf-mobile-heading">
+                        <div><span class="sf-eyebrow">Más visitadas</span><h2 id="dht-mobile-interest-title">Lo que más interesa</h2></div>
+                        <a href="<?php echo esc_url(dht_template_shop_url()); ?>">Ver catálogo</a>
+                    </div>
+                    <div class="sf-mobile-front-interest-grid">
+                        <?php foreach ($dht_front_top_categories as $dht_interest_term) :
+                            $dht_interest_image = $get_term_image($dht_interest_term, 'woocommerce_thumbnail');
+                            ?>
+                            <a class="sf-mobile-front-interest-card" href="<?php echo esc_url(dht_template_safe_term_link($dht_interest_term)); ?>">
+                                <span><?php if ($dht_interest_image) : ?><img src="<?php echo esc_url($dht_interest_image); ?>" alt="" loading="lazy"><?php endif; ?></span>
+                                <strong><?php echo esc_html($dht_interest_term->name); ?></strong>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+
+                <?php if (!empty($dht_front_campaign_products) && $dht_front_campaign) : ?>
+                    <section class="sf-mobile-front-campaign" aria-labelledby="dht-mobile-campaign-title" data-front-campaign>
+                        <div class="sf-mobile-heading">
+                            <div><span class="sf-eyebrow">Campaña activa</span><h2 id="dht-mobile-campaign-title"><?php echo esc_html((string) $dht_front_campaign->name); ?></h2></div>
+                            <?php if (count($dht_front_campaign_products) > 4) : ?>
+                                <div class="sf-front-campaign-nav" aria-label="Cambiar productos de campaña">
+                                    <button type="button" data-front-campaign-prev aria-label="Productos anteriores">‹</button>
+                                    <button type="button" data-front-campaign-next aria-label="Productos siguientes">›</button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="sf-front-campaign-pages">
+                            <?php foreach (array_chunk($dht_front_campaign_products, 4) as $dht_campaign_page_index => $dht_campaign_page) : ?>
+                                <div class="sf-front-campaign-page sf-front-campaign-page--mobile<?php echo 0 === $dht_campaign_page_index ? ' is-active' : ''; ?>" data-front-campaign-page="<?php echo esc_attr((string) $dht_campaign_page_index); ?>"<?php echo 0 === $dht_campaign_page_index ? '' : ' hidden'; ?>>
+                                    <?php foreach ($dht_campaign_page as $dht_product_item) :
+                                        $dht_campaign_product = $dht_product_item['product'] ?? null;
+                                        if (!$dht_campaign_product || !is_a($dht_campaign_product, 'WC_Product')) continue;
+                                        $dht_campaign_url = function_exists('seo_marketing_performance_campaign_url')
+                                            ? seo_marketing_performance_campaign_url($dht_front_campaign, absint($dht_product_item['id'] ?? 0), (string) ($dht_product_item['url'] ?? get_permalink($dht_campaign_product->get_id())))
+                                            : (string) ($dht_product_item['url'] ?? get_permalink($dht_campaign_product->get_id()));
+                                        $dht_campaign_image = function_exists('dht_shared_product_card_image_html')
+                                            ? dht_shared_product_card_image_html($dht_campaign_product, 'woocommerce_thumbnail', 3, array('loading'=>'lazy','alt'=>(string) ($dht_product_item['name'] ?? $dht_campaign_product->get_name())))
+                                            : $dht_campaign_product->get_image('woocommerce_thumbnail');
+                                        $dht_campaign_price = (float) ($dht_product_item['campaign_price'] ?? $dht_campaign_product->get_price());
+                                        $dht_regular_price = (float) ($dht_product_item['regular_price'] ?? $dht_campaign_product->get_regular_price());
+                                        ?>
+                                        <a class="sf-front-campaign-card" href="<?php echo esc_url($dht_campaign_url); ?>">
+                                            <span class="sf-front-campaign-media">
+                                                <?php if (!empty($dht_product_item['discount_percent'])) : ?><span class="sf-front-campaign-discount">-<?php echo esc_html((string) absint($dht_product_item['discount_percent'])); ?>%</span><?php endif; ?>
+                                                <?php echo $dht_campaign_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                            </span>
+                                            <strong><?php echo esc_html((string) ($dht_product_item['name'] ?? $dht_campaign_product->get_name())); ?></strong>
+                                            <span class="sf-front-campaign-prices">
+                                                <b><?php echo wp_kses_post(wc_price($dht_campaign_price)); ?></b>
+                                                <?php if ($dht_regular_price > $dht_campaign_price && $dht_regular_price > 0) : ?><del><?php echo wp_kses_post(wc_price($dht_regular_price)); ?></del><?php endif; ?>
+                                            </span>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
             </div>
         </section>
 
-        <?php if (!empty($cluster_ids)) : ?>
+        <?php if (!empty($dht_front_area_items)) : ?>
             <section class="sf-mobile-section sf-mobile-section--structure">
                 <div class="sf-mobile-shell">
                     <div class="sf-mobile-heading"><div><span class="sf-eyebrow">Visión general</span><h2>Empieza por un área</h2></div></div>
                     <div class="sf-mobile-cluster-track sf-mobile-cluster-track--light">
-                        <?php foreach ($cluster_ids as $cluster_id) :
-                            $image = $get_cluster_image($cluster_id);
+                        <?php foreach ($dht_front_area_items as $dht_area_item) :
+                            $dht_area_id = absint($dht_area_item['id'] ?? 0);
+                            $dht_area_type = (string) ($dht_area_item['type'] ?? 'cluster');
+                            if ($dht_area_id < 1) continue;
+                            $dht_area_image = 'hub_primary' === $dht_area_type
+                                ? dht_template_node_image_url('hub_primary', $dht_area_id, 'medium_large')
+                                : $get_cluster_image($dht_area_id);
                             ?>
-                            <a class="sf-mobile-cluster sf-mobile-cluster--light" href="<?php echo esc_url(get_permalink($cluster_id)); ?>">
-                                <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php else : ?><span class="sf-structure-placeholder" aria-hidden="true">Área</span><?php endif; ?></span>
-                                <strong><?php echo esc_html(get_the_title($cluster_id)); ?></strong>
+                            <a class="sf-mobile-cluster sf-mobile-cluster--light<?php echo 'hub_primary' === $dht_area_type ? ' sf-mobile-cluster--hub' : ''; ?>" href="<?php echo esc_url(get_permalink($dht_area_id)); ?>">
+                                <span><?php if ($dht_area_image) : ?><img src="<?php echo esc_url($dht_area_image); ?>" alt="" loading="lazy"><?php else : ?><span class="sf-structure-placeholder" aria-hidden="true"><?php echo 'hub_primary' === $dht_area_type ? 'Taller' : 'Área'; ?></span><?php endif; ?></span>
+                                <strong><?php echo esc_html(get_the_title($dht_area_id)); ?></strong>
                             </a>
                         <?php endforeach; ?>
                     </div>
@@ -885,14 +989,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
 
 
 
-        <?php if (!empty($sale_products)) : ?>
-            <section class="sf-mobile-section sf-mobile-section--products">
-                <div class="sf-mobile-shell">
-                    <div class="sf-mobile-heading"><h2>Ofertas</h2></div>
-                    <?php $render_products(array_slice($sale_products, 0, 10), 'sf-products--mobile'); ?>
-                </div>
-            </section>
-        <?php endif; ?>
+
 
         <section class="sf-mobile-section sf-mobile-section--products">
             <div class="sf-mobile-shell">
@@ -920,5 +1017,25 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
         <?php endif; ?>
     </div>
 </main>
+
+<script>
+document.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-front-campaign-prev],[data-front-campaign-next]');
+    if (!button) return;
+    const campaign = button.closest('[data-front-campaign]');
+    if (!campaign) return;
+    const pages = Array.from(campaign.querySelectorAll('[data-front-campaign-page]'));
+    if (pages.length < 2) return;
+    let index = pages.findIndex(function (page) { return !page.hidden; });
+    if (index < 0) index = 0;
+    index += button.hasAttribute('data-front-campaign-next') ? 1 : -1;
+    if (index < 0) index = pages.length - 1;
+    if (index >= pages.length) index = 0;
+    pages.forEach(function (page, pageIndex) {
+        page.hidden = pageIndex !== index;
+        page.classList.toggle('is-active', pageIndex === index);
+    });
+});
+</script>
 
 <?php dht_template_render_footer(); ?>
