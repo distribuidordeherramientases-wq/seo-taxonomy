@@ -33,3 +33,17 @@ ANALISTA 3.7.0 - PROPUESTAS DE CAMPANAS
 - El JSON maestro pasa a schema version 6 e incluye la seccion campanas.
 - Marketing > Campanas > Propuestas de Analista permite convertir una propuesta en campana real con un boton.
 - Al activar se guarda un snapshot de productos, fechas, coste, mercado, demanda y margenes; la campana usa el motor existente de aplicacion/restauracion de precios.
+
+
+ANALISTA 3.8.1 - VALIDACION DE INSTRUCCIONES
+- Mantiene la carga bajo demanda de 3.8.0.
+- Añade analista-validacion.php y analista-tests.php.
+- Valida consulta-entidad-destino antes de convertir una señal en instrucción.
+- Distingue match exacto, parcial, no demostrado y conflicto de modelo.
+- Añade buckets INVESTIGAR y ESPERAR_DATOS, además de HACER_AHORA/HACER_DESPUES/VIGILAR.
+- Penaliza muestras pequeñas y crecimientos con base previa insuficiente mediante umbrales configurables.
+- Comprueba title/meta efectivos antes de marcar ausencia.
+- Separa preparación comercial (stock, precio, proveedor, margen/comisión) de la oportunidad SEO.
+- Deduplica nueva creación frente a contenido publicado de Dependiente, Ingeniero y Comparador.
+- Exporta contrato de tareas en JSON schema 7 y persiste baseline/revisiones 28/60/90 sin autoejecución.
+- Fuentes muestra diagnóstico de Action Scheduler y siete pruebas de aceptación.
