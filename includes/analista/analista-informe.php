@@ -444,7 +444,18 @@ if (!function_exists('seo_analista_render_comparison')) {
         echo '<textarea name="competitors" rows="6" class="large-text code">' . esc_textarea(implode("\n", (array) ($settings['competitors'] ?? array()))) . '</textarea>';
         echo '<p><strong>Palabras clave vigiladas</strong><br><span class="description">Una palabra o intención por línea. Analista seguirá nuestra posición y, cuando haya posiciones externas automáticas, la distancia con los competidores.</span></p>';
         echo '<textarea name="tracked_keywords" rows="8" class="large-text code">' . esc_textarea(implode("\n", (array) ($settings['tracked_keywords'] ?? array()))) . '</textarea>';
-        submit_button('Guardar comparación', 'secondary', 'submit', false);
+        $validation_settings = (array) ($settings['validation'] ?? array());
+        echo '<hr><h3>Umbrales de evidencia · Analista 3.8.1</h3>';
+        echo '<p class="description">Son parámetros internos configurables, no reglas SEO universales. Se usan para decidir cuándo una muestra es demasiado pequeña y cuándo un match puede ejecutarse.</p>';
+        echo '<table class="form-table"><tbody>';
+        echo '<tr><th><label for="validation_small_sample_max">Muestra mínima / baja</label></th><td><input id="validation_small_sample_max" name="validation_small_sample_max" type="number" min="1" max="20" value="' . esc_attr((string) absint($validation_settings['small_sample_max'] ?? 4)) . '"> impresiones o menos → evidencia baja.</td></tr>';
+        echo '<tr><th><label for="validation_reliable_impressions">Impresiones fiables</label></th><td><input id="validation_reliable_impressions" name="validation_reliable_impressions" type="number" min="5" max="100" value="' . esc_attr((string) absint($validation_settings['reliable_impressions'] ?? 20)) . '"></td></tr>';
+        echo '<tr><th><label for="validation_high_confidence_impressions">Volumen alto</label></th><td><input id="validation_high_confidence_impressions" name="validation_high_confidence_impressions" type="number" min="10" max="500" value="' . esc_attr((string) absint($validation_settings['high_confidence_impressions'] ?? 50)) . '"></td></tr>';
+        echo '<tr><th><label for="validation_minimum_previous_base">Base previa mínima</label></th><td><input id="validation_minimum_previous_base" name="validation_minimum_previous_base" type="number" min="1" max="50" value="' . esc_attr((string) absint($validation_settings['minimum_previous_base'] ?? 5)) . '"> para confiar en porcentajes de crecimiento.</td></tr>';
+        echo '<tr><th><label for="validation_partial_match_min">Match parcial mínimo</label></th><td><input id="validation_partial_match_min" name="validation_partial_match_min" type="number" min="40" max="90" value="' . esc_attr((string) absint($validation_settings['partial_match_min'] ?? 58)) . '"> / 100</td></tr>';
+        echo '<tr><th><label for="validation_exact_match_min">Match exacto mínimo</label></th><td><input id="validation_exact_match_min" name="validation_exact_match_min" type="number" min="60" max="99" value="' . esc_attr((string) absint($validation_settings['exact_match_min'] ?? 82)) . '"> / 100</td></tr>';
+        echo '</tbody></table>';
+        submit_button('Guardar comparación y umbrales', 'secondary', 'submit', false);
         echo '</form></details></section>';
 
         if (function_exists('seo_analista_render_competitive_deep_panel')) {
@@ -461,6 +472,32 @@ if (!function_exists('seo_analista_render_directive_details')) {
         $keywords = array_values(array_filter((array) ($row['keywords'] ?? $row['evidence'] ?? array())));
         $entity = (array) ($row['entity'] ?? array());
         $target = (array) ($row['target'] ?? array());
+
+        $query = (string) ($row['query'] ?? '');
+        $match_type = (string) ($row['match_type'] ?? '');
+        $match_confidence = absint($row['match_confidence'] ?? 0);
+        $confidence_level = (string) ($row['confidence_level'] ?? '');
+        $evidence = (array) ($row['evidence_volume'] ?? array());
+        $commercial = (array) ($row['commercial_readiness'] ?? array());
+        $priority_breakdown = (array) ($row['priority_breakdown'] ?? array());
+        $dependencies = array_values(array_filter((array) ($row['dependencies'] ?? array())));
+
+        echo '<div class="seo-analista-directive-block seo-analista-validation"><strong>Validación antes de ejecutar</strong><ul>';
+        if ($query !== '') echo '<li><strong>Consulta:</strong> ' . esc_html($query) . '</li>';
+        echo '<li><strong>Destino:</strong> ' . (!empty($row['target_resolved']) ? '<a target="_blank" rel="noopener" href="' . esc_url((string) ($row['target_url'] ?? '')) . '">' . esc_html((string) ($row['target_url'] ?? '')) . '</a>' : '<span>destino sin resolver</span>') . '</li>';
+        if ($match_type !== '') echo '<li><strong>Match:</strong> ' . esc_html(strtoupper($match_type)) . ' · ' . esc_html((string) $match_confidence) . '/100' . (!empty($row['match_reason']) ? ' · ' . esc_html((string) $row['match_reason']) : '') . '</li>';
+        if ($confidence_level !== '') echo '<li><strong>Confianza:</strong> ' . esc_html(strtoupper($confidence_level)) . ' · ' . esc_html((string) absint($row['confidence'] ?? 0)) . '/100</li>';
+        echo '<li><strong>Evidencia:</strong> ' . esc_html(number_format_i18n(absint($evidence['impressions'] ?? 0))) . ' impresiones · ' . esc_html(number_format_i18n(absint($evidence['clicks'] ?? 0))) . ' clics · ' . esc_html(number_format_i18n(absint($evidence['queries'] ?? 0))) . ' consultas · delta ' . esc_html(number_format_i18n((float) ($evidence['absolute_delta'] ?? 0), 0)) . '</li>';
+        if (!empty($commercial['label'])) echo '<li><strong>Preparación comercial:</strong> ' . esc_html((string) $commercial['label']) . '</li>';
+        if (!empty($row['recommended_owner'])) echo '<li><strong>Responsable recomendado:</strong> ' . esc_html((string) $row['recommended_owner']) . '</li>';
+        if ($priority_breakdown) echo '<li><strong>Prioridad:</strong> ' . esc_html((string) absint($priority_breakdown['pre_validation_score'] ?? 0)) . ' → ' . esc_html((string) absint($priority_breakdown['final_score'] ?? 0)) . ' tras validación.</li>';
+        echo '</ul></div>';
+
+        if ($dependencies) {
+            echo '<div class="seo-analista-directive-block"><strong>Dependencias antes de ejecutar</strong><ul>';
+            foreach ($dependencies as $dependency) echo '<li>' . esc_html((string) $dependency) . '</li>';
+            echo '</ul></div>';
+        }
 
         if ($issues) {
             echo '<div class="seo-analista-directive-block"><strong>Qué revisar</strong><ul>';
@@ -518,6 +555,12 @@ if (!function_exists('seo_analista_render_directive_rows')) {
             if (isset($catalog['products']) && null !== $catalog['products']) $meta[] = 'Productos: ' . number_format_i18n((int) $catalog['products']);
             if (!empty($row['metrics']['position'])) $meta[] = 'Posición: ' . number_format_i18n((float) $row['metrics']['position'], 1);
             if (!empty($row['metrics']['impressions'])) $meta[] = 'Impresiones: ' . number_format_i18n((float) $row['metrics']['impressions'], 0);
+            if (isset($row['metrics']['clicks'])) $meta[] = 'Clics: ' . number_format_i18n((float) $row['metrics']['clicks'], 0);
+            if (isset($row['metrics']['ctr'])) $meta[] = 'CTR: ' . number_format_i18n(((float) $row['metrics']['ctr']) * 100, 2) . '%';
+            if (isset($row['evidence_volume']['previous_impressions'])) $meta[] = 'Base anterior: ' . number_format_i18n((float) $row['evidence_volume']['previous_impressions'], 0);
+            if (!empty($row['match_type'])) $meta[] = 'Match: ' . strtoupper((string) $row['match_type']) . ' ' . absint($row['match_confidence'] ?? 0) . '/100';
+            if (!empty($row['confidence_level'])) $meta[] = 'Confianza: ' . strtoupper((string) $row['confidence_level']);
+            if (!empty($row['recommended_owner'])) $meta[] = 'Owner: ' . (string) $row['recommended_owner'];
             $growth_previous = isset($row['growth_quality']['previous']) ? (float) $row['growth_quality']['previous'] : null;
             $growth_current = isset($row['growth_quality']['current']) ? (float) $row['growth_quality']['current'] : null;
             if ($growth_previous !== null && $growth_previous <= 0 && $growth_current > 0) {
@@ -541,9 +584,9 @@ if (!function_exists('seo_analista_render_directive_rows')) {
             if (!empty($row['catalog_strategy']['label'])) $meta[] = 'Surtido: ' . (string) $row['catalog_strategy']['label'];
             if (!empty($row['family_demand']['label'])) $meta[] = (string) $row['family_demand']['label'];
             if (!empty($row['objective'])) {
-                $meta[] = 'Autoridad ' . absint($row['objective']['authority'] ?? 0) . '/100';
-                $meta[] = 'Visitas ' . absint($row['objective']['traffic'] ?? 0) . '/100';
-                $meta[] = 'Ventas ' . absint($row['objective']['sales'] ?? 0) . '/100';
+                $meta[] = 'Score interno autoridad ' . absint($row['objective']['authority'] ?? 0) . '/100';
+                $meta[] = 'Score interno visitas ' . absint($row['objective']['traffic'] ?? 0) . '/100';
+                $meta[] = 'Score interno ventas ' . absint($row['objective']['sales'] ?? 0) . '/100';
             }
             if (isset($row['confidence'])) $meta[] = 'Confianza ' . absint($row['confidence']) . '/100';
             if ($meta) echo '<div class="seo-analista-plan-meta">' . esc_html(implode(' · ', $meta)) . '</div>';
@@ -624,9 +667,11 @@ if (!function_exists('seo_analista_render_trends_view')) {
 if (!function_exists('seo_analista_render_plan')) {
     function seo_analista_render_plan(array $plan, $limit = 30) {
         $groups = array(
-            'HACER_AHORA' => array('title'=>'Hacer ahora','description'=>'Los trabajos con mejor combinación de impacto, cercanía al resultado y confianza. Máximo 10.'),
-            'HACER_DESPUES' => array('title'=>'Hacer después','description'=>'Oportunidades válidas, pero con menor retorno inmediato o menor evidencia.'),
-            'VIGILAR' => array('title'=>'Vigilar','description'=>'Señales que deben madurar antes de invertir trabajo editorial o estructural.'),
+            'HACER_AHORA' => array('title'=>'Hacer ahora','description'=>'Solo trabajos con destino y entidad validados, evidencia suficiente y confianza compatible con ejecución. Máximo 10; no se rellena artificialmente.'),
+            'HACER_DESPUES' => array('title'=>'Hacer después','description'=>'Trabajo válido y verificable, pero con menor retorno inmediato, menor urgencia o alguna validación pendiente no bloqueante.'),
+            'INVESTIGAR' => array('title'=>'Investigar antes de tocar contenido','description'=>'Destino, entidad, modelo, surtido o preparación comercial no están suficientemente demostrados.'),
+            'VIGILAR' => array('title'=>'Vigilar','description'=>'Señales válidas pero todavía inmaduras para dedicar trabajo de ejecución.'),
+            'ESPERAR_DATOS' => array('title'=>'Esperar datos','description'=>'La muestra es demasiado pequeña o inestable; conservar línea base y revisar cuando aumente la evidencia.'),
             'SIN_ACCION' => array('title'=>'Sin acción por ahora','description'=>'No existe evidencia suficiente para dedicar recursos ahora.'),
         );
         $bucketed = array();
@@ -651,7 +696,9 @@ if (!function_exists('seo_analista_render_roadmap')) {
         echo '<div class="seo-analista-grid">';
         seo_analista_render_metric_card('Hacer ahora', number_format_i18n((int) ($summary['hacer_ahora'] ?? $summary['high'] ?? 0)), '', 'Máximo 10 trabajos con mejor retorno esperado.');
         seo_analista_render_metric_card('Hacer después', number_format_i18n((int) ($summary['hacer_despues'] ?? 0)), '', 'Oportunidades válidas de segunda prioridad.');
+        seo_analista_render_metric_card('Investigar', number_format_i18n((int) ($summary['investigar'] ?? 0)), '', 'Hay que resolver destino, asociación o comercialidad antes de ejecutar.');
         seo_analista_render_metric_card('Vigilar', number_format_i18n((int) ($summary['vigilar'] ?? 0)), '', 'Señales que aún necesitan más evidencia.');
+        seo_analista_render_metric_card('Esperar datos', number_format_i18n((int) ($summary['esperar_datos'] ?? 0)), '', 'Muestra demasiado pequeña o inestable para priorizar.');
         seo_analista_render_metric_card('Objetivo autoridad', number_format_i18n((int) ($summary['authority'] ?? 0)), '', 'Trabajos cuyo objetivo principal es ganar autoridad.');
         seo_analista_render_metric_card('Objetivo visitas', number_format_i18n((int) ($summary['traffic'] ?? 0)), '', 'Trabajos cuyo objetivo principal es ganar tráfico orgánico.');
         seo_analista_render_metric_card('Objetivo ventas', number_format_i18n((int) ($summary['sales'] ?? 0)), '', 'Trabajos cuyo objetivo principal es mejorar demanda comercial.');
