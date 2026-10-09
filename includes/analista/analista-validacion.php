@@ -350,6 +350,35 @@ if (!function_exists('seo_analista_editorial_coverage')) {
         $type = sanitize_key((string) ($entity['type'] ?? ''));
         $id = absint($entity['id'] ?? 0);
         $category_ids = array();
+        $existing_entity = array(
+            'available'=>false,
+            'type'=>$type,
+            'id'=>$id,
+            'title'=>(string) ($entity['title'] ?? ''),
+            'url'=>(string) ($entity['url'] ?? $row['target_url'] ?? $row['target']['url'] ?? ''),
+            'has_content'=>false,
+        );
+
+        if ($id > 0 && in_array($type, array('post','page','product','cluster','hub_primary','hub_secondary'), true)) {
+            $existing_post = get_post($id);
+            if ($existing_post instanceof WP_Post && $existing_post->post_status === 'publish') {
+                $existing_entity['available'] = true;
+                $existing_entity['title'] = (string) get_the_title($id);
+                $existing_entity['url'] = (string) get_permalink($id);
+                $existing_entity['has_content'] = trim(wp_strip_all_tags((string) $existing_post->post_content)) !== ''
+                    || trim((string) $existing_post->post_excerpt) !== '';
+            }
+        } elseif ($type === 'category' && $id > 0) {
+            $existing_term = get_term($id, 'product_cat');
+            if ($existing_term instanceof WP_Term && !is_wp_error($existing_term)) {
+                $existing_entity['available'] = true;
+                $term_url = get_term_link($existing_term);
+                if (!is_wp_error($term_url)) $existing_entity['url'] = (string) $term_url;
+                $existing_entity['title'] = (string) $existing_term->name;
+                $existing_entity['has_content'] = trim(wp_strip_all_tags((string) $existing_term->description)) !== ''
+                    || trim((string) get_term_meta($id, 'excerpt', true)) !== '';
+            }
+        }
 
         if ($type === 'category' && $id > 0) {
             $category_ids[] = $id;
@@ -360,14 +389,28 @@ if (!function_exists('seo_analista_editorial_coverage')) {
         if (!empty($row['catalog']['term_id'])) $category_ids[] = absint($row['catalog']['term_id']);
         $category_ids = array_values(array_unique(array_filter($category_ids)));
         sort($category_ids);
-        if (!$category_ids) return array('available'=>false,'posts'=>array(),'roles'=>array());
+        if (!$category_ids) {
+            return array(
+                'available'=>(bool) $existing_entity['available'],
+                'existing_entity'=>$existing_entity,
+                'posts'=>array(),
+                'roles'=>array(),
+            );
+        }
 
         $key = implode('-', $category_ids);
         if (isset($cache[$key])) return $cache[$key];
 
         $relations = $wpdb->prefix . 'seo_relations';
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($relations)));
-        if ($exists !== $relations) return $cache[$key] = array('available'=>false,'posts'=>array(),'roles'=>array());
+        if ($exists !== $relations) {
+            return $cache[$key] = array(
+                'available'=>(bool) $existing_entity['available'],
+                'existing_entity'=>$existing_entity,
+                'posts'=>array(),
+                'roles'=>array(),
+            );
+        }
 
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
         $query_args = array_merge(array($relations, $wpdb->posts), $category_ids);
@@ -399,7 +442,8 @@ if (!function_exists('seo_analista_editorial_coverage')) {
         }
 
         return $cache[$key] = array(
-            'available'=>(bool) $posts,
+            'available'=>(bool) ($existing_entity['available'] || $posts),
+            'existing_entity'=>$existing_entity,
             'posts'=>$posts,
             'roles'=>array_values(array_unique($roles))
         );
@@ -451,8 +495,13 @@ if (!function_exists('seo_analista_atomic_actions')) {
         }
 
         if (strpos($legacy_action, 'CREAR_') === 0) {
-            if (!empty($coverage['available'])) {
-                $actions[] = array('type'=>'ACTUALIZAR_CONTENIDO','detail'=>'Ya existe contenido relacionado de Dependiente/Ingeniero/Comparador: revisar actualización o enlazado antes de abrir otra URL.','owner'=>'Editora');
+            $existing_coverage = (array) ($coverage['existing_entity'] ?? array());
+            if (!empty($existing_coverage['available']) || !empty($coverage['posts'])) {
+                $actions[] = array(
+                    'type'=>'ACTUALIZAR_CONTENIDO',
+                    'detail'=>'Ya existe una URL o cobertura editorial relacionada. Revisar actualización, ampliación o enlazado antes de crear otra URL.',
+                    'owner'=>'Editora'
+                );
             } else {
                 $actions[] = array('type'=>'CREAR_CONTENIDO','detail'=>'Crear contenido solo tras confirmar destino, ausencia de cobertura equivalente y revisión editorial.','owner'=>'Editora');
             }
