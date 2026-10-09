@@ -499,23 +499,6 @@ if (!function_exists('seo_analista_render_directive_details')) {
             echo '</ul></div>';
         }
 
-        $task_id = sanitize_key((string) ($row['task_id'] ?? ''));
-        if ($task_id !== '' && function_exists('seo_analista_task_history') && function_exists('seo_analista_task_status_url')) {
-            $task_history = seo_analista_task_history($task_id);
-            $task_status = (string) ($task_history['status'] ?? $row['status'] ?? 'proposed');
-            echo '<div class="seo-analista-directive-block"><strong>Seguimiento de la tarea</strong>';
-            echo '<p>ID <code>' . esc_html($task_id) . '</code> · estado <strong>' . esc_html(strtoupper(str_replace('_', ' ', $task_status))) . '</strong>';
-            if (!empty($task_history['executed_at'])) echo ' · ejecutada ' . esc_html((string) $task_history['executed_at']);
-            echo '</p><div class="seo-analista-links">';
-            foreach (array('in_progress'=>'Marcar en curso','executed'=>'Marcar ejecutada','dismissed'=>'Descartar') as $status_key => $status_label) {
-                $status_url = seo_analista_task_status_url($task_id, $status_key);
-                if ($status_url !== '' && $task_status !== $status_key) {
-                    echo '<a class="button button-small" href="' . esc_url($status_url) . '">' . esc_html($status_label) . '</a> ';
-                }
-            }
-            echo '</div></div>';
-        }
-
         if ($issues) {
             echo '<div class="seo-analista-directive-block"><strong>Qué revisar</strong><ul>';
             foreach (array_slice($issues, 0, 8) as $issue) echo '<li>' . esc_html((string) $issue) . '</li>';
