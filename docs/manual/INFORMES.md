@@ -108,8 +108,8 @@ Antes de mostrar una instrucción, Analista 3.8.1 valida:
 Los estados del plan son:
 
 - **HACER AHORA**: destino y asociación validados, evidencia suficiente y confianza compatible con ejecución. Máximo 10; el sistema no rellena el cupo.
-- **HACER DESPUÉS**: trabajo válido, pero menos urgente o con validaciones no bloqueantes.
-- **INVESTIGAR**: existe conflicto de modelo, entidad/destino no demostrados o falta una validación comercial crítica.
+- **HACER DESPUÉS**: trabajo válido, pero menos urgente; en 3.8.2 también puede contener una oportunidad SEO válida temporalmente bloqueada por una dependencia comercial explícita.
+- **INVESTIGAR**: conflicto de modelo, entidad no demostrada o destino sin resolver. Los bloqueos puramente comerciales ya no se clasifican aquí.
 - **VIGILAR**: señal coherente pero todavía inmadura.
 - **ESPERAR DATOS**: muestra demasiado pequeña o crecimiento sobre base insuficiente.
 - **SIN ACCIÓN**: compatibilidad histórica para señales sin valor de trabajo.
@@ -139,7 +139,7 @@ Analista **diagnostica y deriva**. No publica, no crea posts/URLs ni modifica ca
 - **SEO/taxonomía** resuelve asociaciones, destinos y enlazado.
 - **Ingeniero / Solucionador / Comparador** aportan cobertura o evidencia; Analista no duplica sus workers.
 
-En **Fuentes** se muestran las siete pruebas de aceptación de 3.8.1 y un diagnóstico separado de Action Scheduler para detectar colas vencidas que puedan afectar a la frescura de datos.
+En **Fuentes** se muestran las pruebas de aceptación de 3.8.1/3.8.2 y un diagnóstico separado de Action Scheduler para detectar colas vencidas que puedan afectar a la frescura de datos.
 
 
 ### Corrección del Plan de acción · Analista 3.8.2
