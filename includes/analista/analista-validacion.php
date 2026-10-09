@@ -145,24 +145,54 @@ if (!function_exists('seo_analista_entity_identity_text')) {
     }
 }
 
+if (!function_exists('seo_analista_intent_fit_for_entity')) {
+    function seo_analista_intent_fit_for_entity($query, array $row) {
+        $query_intent = function_exists('seo_analista_intent')
+            ? sanitize_key((string) seo_analista_intent($query))
+            : 'unknown';
+        $declared_intent = sanitize_key((string) ($row['intent'] ?? ''));
+        $entity_type = sanitize_key((string) ($row['entity']['type'] ?? ''));
+
+        $fit = 'medium';
+        if ($declared_intent !== '' && $query_intent !== 'unknown') {
+            $fit = $declared_intent === $query_intent ? 'high' : 'medium';
+        }
+
+        if (in_array($entity_type, array('product','category','cluster','hub_primary','hub_secondary'), true)) {
+            if (in_array($query_intent, array('transaccional','comercial'), true)) $fit = 'high';
+            elseif ($query_intent === 'informativa') $fit = $declared_intent === 'informativa' ? 'high' : 'medium';
+        } elseif (in_array($entity_type, array('post','page'), true)) {
+            if ($query_intent === 'informativa') $fit = 'high';
+            elseif ($query_intent === 'transaccional') $fit = 'low';
+        }
+
+        return array(
+            'query_intent'=>$query_intent,
+            'declared_intent'=>$declared_intent,
+            'fit'=>$fit,
+        );
+    }
+}
+
 if (!function_exists('seo_analista_validate_query_entity')) {
     function seo_analista_validate_query_entity($query, array $row) {
         $query = trim((string) $query);
         $entity = (array) ($row['entity'] ?? array());
+        $intent_profile = seo_analista_intent_fit_for_entity($query, $row);
         $type = sanitize_key((string) ($entity['type'] ?? ''));
         $title = trim((string) ($entity['title'] ?? $row['topic'] ?? ''));
         $target = seo_analista_resolve_target_url($row);
 
         if ($query === '') {
             return array(
-                'match_type'=>'unproven','match_confidence'=>20,'intent_fit'=>'unknown',
+                'match_type'=>'unproven','match_confidence'=>20,'intent_fit'=>(string) ($intent_profile['fit'] ?? 'unknown'),'query_intent'=>(string) ($intent_profile['query_intent'] ?? 'unknown'),
                 'model_conflict'=>false,'target'=>$target,'reason'=>'No hay una consulta concreta para validar la atribución.'
             );
         }
 
         if (!$target['resolved'] || $title === '') {
             return array(
-                'match_type'=>'unproven','match_confidence'=>15,'intent_fit'=>'unknown',
+                'match_type'=>'unproven','match_confidence'=>15,'intent_fit'=>(string) ($intent_profile['fit'] ?? 'unknown'),'query_intent'=>(string) ($intent_profile['query_intent'] ?? 'unknown'),
                 'model_conflict'=>false,'target'=>$target,'reason'=>'La consulta existe, pero el destino no está resuelto de forma verificable.'
             );
         }
@@ -181,7 +211,7 @@ if (!function_exists('seo_analista_validate_query_entity')) {
 
         if ($model_conflict) {
             return array(
-                'match_type'=>'conflict','match_confidence'=>5,'intent_fit'=>'low',
+                'match_type'=>'conflict','match_confidence'=>5,'intent_fit'=>'low','query_intent'=>(string) ($intent_profile['query_intent'] ?? 'unknown'),
                 'model_conflict'=>true,'target'=>$target,
                 'reason'=>'Conflicto de modelo o variante: la consulta contiene identificadores distintos de los de la entidad atribuida.',
                 'query_models'=>$query_models,'entity_models'=>$entity_models
@@ -194,7 +224,7 @@ if (!function_exists('seo_analista_validate_query_entity')) {
 
         if ($type === 'product' && $query_models && $entity_models && array_intersect($query_models, $entity_models)) {
             return array(
-                'match_type'=>'exact','match_confidence'=>96,'intent_fit'=>'high',
+                'match_type'=>'exact','match_confidence'=>96,'intent_fit'=>(string) ($intent_profile['fit'] ?? 'medium'),'query_intent'=>(string) ($intent_profile['query_intent'] ?? 'unknown'),
                 'model_conflict'=>false,'target'=>$target,'reason'=>'Modelo/identificador compatible con la entidad.',
                 'similarity'=>$similarity,'query_models'=>$query_models,'entity_models'=>$entity_models
             );
@@ -204,7 +234,7 @@ if (!function_exists('seo_analista_validate_query_entity')) {
         // genéricos solo por compartir taxonomía.
         if (in_array($type, array('category','cluster','hub_primary','hub_secondary'), true) && $query_models && $similarity < 0.58) {
             return array(
-                'match_type'=>'unproven','match_confidence'=>28,'intent_fit'=>'low',
+                'match_type'=>'unproven','match_confidence'=>28,'intent_fit'=>(string) ($intent_profile['fit'] ?? 'low'),'query_intent'=>(string) ($intent_profile['query_intent'] ?? 'unknown'),
                 'model_conflict'=>false,'target'=>$target,
                 'reason'=>'La consulta es específica de modelo/variante y la entidad es demasiado amplia para asumir que sea su destino SEO.',
                 'similarity'=>$similarity,'query_models'=>$query_models
@@ -232,7 +262,8 @@ if (!function_exists('seo_analista_validate_query_entity')) {
         return array(
             'match_type'=>$type_label,
             'match_confidence'=>$confidence,
-            'intent_fit'=>$intent_fit,
+            'intent_fit'=>(string) ($intent_profile['fit'] ?? $intent_fit),
+            'query_intent'=>(string) ($intent_profile['query_intent'] ?? 'unknown'),
             'model_conflict'=>false,
             'target'=>$target,
             'reason'=>$type_label === 'unproven'
@@ -716,6 +747,7 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $row['match_type'] = (string) ($validation['match_type'] ?? 'unproven');
         $row['match_confidence'] = absint($validation['match_confidence'] ?? 0);
         $row['intent_fit'] = (string) ($validation['intent_fit'] ?? 'unknown');
+        $row['query_intent'] = (string) ($validation['query_intent'] ?? (function_exists('seo_analista_intent') ? seo_analista_intent($query) : 'unknown'));
         $row['target_url'] = (string) ($validation['target']['url'] ?? '');
         $row['target_resolved'] = !empty($validation['target']['resolved']);
         $row['match_reason'] = (string) ($validation['reason'] ?? '');
@@ -783,6 +815,7 @@ if (!function_exists('seo_analista_task_contract')) {
             'match_type'=>(string) ($row['match_type'] ?? 'unproven'),
             'match_confidence'=>absint($row['match_confidence'] ?? 0),
             'intent_fit'=>(string) ($row['intent_fit'] ?? 'unknown'),
+            'query_intent'=>(string) ($row['query_intent'] ?? 'unknown'),
             'evidence_count'=>absint($row['evidence_volume']['evidence_count'] ?? 0),
             'impressions'=>(float) ($row['metrics']['impressions'] ?? 0),
             'clicks'=>(float) ($row['metrics']['clicks'] ?? 0),
