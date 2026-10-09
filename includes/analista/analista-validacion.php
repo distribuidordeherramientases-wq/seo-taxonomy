@@ -640,12 +640,12 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
             '60d'=>gmdate('Y-m-d', strtotime('+60 days')),
             '90d'=>gmdate('Y-m-d', strtotime('+90 days')),
         );
-        $row['priority_breakdown'] = array(
-            'pre_validation_score'=>$priority,
-            'penalties'=>$penalties,
-            'final_score'=>$validated_priority,
-            'rule'=>'Score previo de estrategia + penalizaciones explícitas de evidencia, matching y preparación comercial.',
-        );
+        $strategy_breakdown = (array) ($row['priority_breakdown'] ?? array());
+        $strategy_breakdown['pre_validation_score'] = $priority;
+        $strategy_breakdown['validation_penalties'] = $penalties;
+        $strategy_breakdown['final_score'] = $validated_priority;
+        $strategy_breakdown['rule'] = '86% impacto objetivo + 14% confianza + ajustes de posición/familia/catálogo/señal; después penalizaciones explícitas de evidencia, matching y preparación comercial.';
+        $row['priority_breakdown'] = $strategy_breakdown;
 
         // La accion visible debe reflejar la accion atomica segura, no una
         // recomendacion legacy mas agresiva.
