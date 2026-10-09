@@ -199,8 +199,8 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'summary' => $plan_summary,
                 'plan' => $plan,
             ),
-            'sources' => array(
-                'data_sources' => $source_health,
+            'sources' => $source_health,
+            'operational_health' => array(
                 'action_scheduler' => $scheduler_health,
             ),
             'privacy' => array(
