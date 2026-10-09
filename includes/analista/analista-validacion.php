@@ -263,8 +263,15 @@ if (!function_exists('seo_analista_try_auto_resolve_target')) {
         if (function_exists('seo_analista_find_best_local_target')) {
             $local_target = (array) seo_analista_find_best_local_target($query, $days);
             if (!empty($local_target['row']) && is_array($local_target['row'])) {
-                $candidate_row = array_replace_recursive($row, (array) $local_target['row']);
-                // Las métricas/objetivo pertenecen a la señal actual, no al candidato histórico.
+                $local_row = (array) $local_target['row'];
+                $candidate_row = $row;
+                foreach (array('entity','target','catalog') as $replace_key) {
+                    if (!empty($local_row[$replace_key]) && is_array($local_row[$replace_key])) {
+                        $candidate_row[$replace_key] = $local_row[$replace_key];
+                    }
+                }
+                // La señal, score y bucket pertenecen a la consulta actual,
+                // nunca al registro histórico usado solo como candidato.
                 $candidate_row['metrics'] = (array) ($row['metrics'] ?? array());
                 $candidate_row['objective'] = (array) ($row['objective'] ?? array());
                 $candidate_row['issues'] = (array) ($row['issues'] ?? array());
@@ -272,6 +279,14 @@ if (!function_exists('seo_analista_try_auto_resolve_target')) {
                 $candidate_row['source'] = (string) ($row['source'] ?? '');
                 $candidate_row['action'] = (string) ($row['action'] ?? '');
                 $candidate_row['recommended_changes'] = (array) ($row['recommended_changes'] ?? array());
+                $candidate_row['priority'] = (int) ($row['priority'] ?? 0);
+                $candidate_row['work_bucket'] = (string) ($row['work_bucket'] ?? 'VIGILAR');
+                $candidate_row['confidence'] = (int) ($row['confidence'] ?? 0);
+                $candidate_row['priority_breakdown'] = (array) ($row['priority_breakdown'] ?? array());
+                $candidate_row['reason'] = (string) ($row['reason'] ?? '');
+                $candidate_row['why_now'] = (array) ($row['why_now'] ?? array());
+                $candidate_row['measurement'] = (array) ($row['measurement'] ?? array());
+                $candidate_row['growth_quality'] = (array) ($row['growth_quality'] ?? array());
                 $candidates[] = array(
                     'row'=>$candidate_row,
                     'method'=>'local_content_index',
