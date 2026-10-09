@@ -336,7 +336,9 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
                 continue;
             }
 
-            $needs_review = absint($result['review'] ?? 0) > 0;
+            // L2/L3 nacen en revisión deliberadamente; el estado operativo de
+            // la categoría sigue reflejando sólo si L1 técnico necesita revisión.
+            $needs_review = absint($result['technical_review'] ?? $result['review'] ?? 0) > 0;
             if ($needs_review) $review_now++;
             else $learned_now++;
 
@@ -345,6 +347,8 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
                 'sources'=>absint($result['sources'] ?? 0),
                 'knowledge'=>absint($result['knowledge'] ?? 0),
                 'confidence'=>SEO_Ingeniero::category_confidence($term_id),
+                'layers_checked'=>(array) ($result['layers_checked'] ?? array()),
+                'layer_counts'=>(array) ($result['layers'] ?? array()),
                 'last_research_at'=>time(),
             ));
 
@@ -358,7 +362,7 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
                 'learned'=>absint($state['learned'] ?? 0)+($needs_review?0:1),
                 'review'=>absint($state['review'] ?? 0)+($needs_review?1:0),
                 'last_error'=>'',
-                'last_message'=>$label . ': ' . absint($result['sources'] ?? 0) . ' fuentes, ' . absint($result['knowledge'] ?? 0) . ' bloques de conocimiento.',
+                'last_message'=>$label . ': ' . absint($result['sources'] ?? 0) . ' fuentes, ' . absint($result['knowledge'] ?? 0) . ' bloques · L1/L2/L3 clasificados.',
                 'last_activity_at'=>time(),
             ));
         }
@@ -378,7 +382,7 @@ final class SEO_Ingeniero_Process implements SEO_Managed_Service_Process {
                 $changes['enabled'] = 0;
                 $changes['status'] = 'completed';
                 $changes['completed_at'] = time();
-                $changes['last_message'] = 'L1 completada para las categorías preparadas.';
+                $changes['last_message'] = 'Investigación L1/L2/L3 completada para las categorías preparadas.';
                 SEO_Ingeniero::clear_fallback();
             }
         }

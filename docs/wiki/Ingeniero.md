@@ -201,3 +201,12 @@ El servicio vive fuera de Dependiente:
 - includes/ingeniero/ingeniero-bootstrap.php
 
 La cobertura compartida vive en includes/editorial/class-seo-editorial-coverage.php.
+
+
+## Capas L1 / L2 / L3
+
+- **L1 · Técnica** (`l1_technical`): manuales, fichas, fabricantes, normativa, organismos y especificaciones.
+- **L2 · Práctica** (`l2_practical`): foros, Reddit, comunidades, preguntas, problemas, comparaciones, compatibilidad y casos de uso. Estas señales son experiencia/opinión y no se elevan automáticamente a hecho técnico.
+- **L3 · Actualidad** (`l3_current`): noticias, lanzamientos, nuevas gamas, cambios tecnológicos, ferias y novedades de fabricante.
+
+Ingeniero reutiliza las tablas existentes. `lesson` separa la capa, `source_type` clasifica el origen y `knowledge_type` clasifica el subtipo de evidencia. La interfaz de revisión permite filtrar por capa. L2 y L3 se conservan inicialmente en revisión y no se incorporan al dossier técnico actual hasta que Editorial defina su uso.

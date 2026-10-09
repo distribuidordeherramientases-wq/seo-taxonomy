@@ -1,20 +1,23 @@
 <?php
 /**
- * Ingeniero: conocimiento externo técnico por categoría.
+ * Ingeniero: conocimiento externo por categoría, clasificado por capa.
  *
- * V1:
- * - L1 Documentación técnica activa.
- * - L2 Experiencia práctica preparada pero desactivada.
+ * 0.4:
+ * - L1 Documentación técnica: manuales, fabricantes, normativa y fichas.
+ * - L2 Experiencia práctica: foros, comunidades, dudas y problemas de uso.
+ * - L3 Actualidad sectorial: noticias, lanzamientos y cambios tecnológicos.
+ * - Cada fuente y evidencia conserva su capa y subtipo desde la recopilación.
  * - No modifica catálogo, índice público ni respuestas de Dependiente.
  */
 defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero {
-    const VERSION = '0.3.4';
+    const VERSION = '0.4.0';
     const STATE_OPTION = 'seo_ingeniero_state_v1';
     const CATEGORY_STATE_OPTION = 'seo_ingeniero_category_state_v1';
     const LESSON_TECHNICAL = 'l1_technical';
     const LESSON_PRACTICAL = 'l2_practical';
+    const LESSON_CURRENT = 'l3_current';
     const TARGET_ACTIVE_KNOWLEDGE_PER_CATEGORY = 4;
 
     private static $provider = null;
@@ -37,8 +40,13 @@ final class SEO_Ingeniero {
             ),
             self::LESSON_PRACTICAL => array(
                 'label'=>'L2 · Experiencia práctica',
-                'enabled'=>false,
-                'description'=>'Foros, comunidades y experiencia profesional. Preparada para una fase posterior.',
+                'enabled'=>true,
+                'description'=>'Foros, comunidades, preguntas, problemas, comparaciones y experiencia de uso. Se conserva como señal práctica/opinión, no como hecho técnico.',
+            ),
+            self::LESSON_CURRENT => array(
+                'label'=>'L3 · Actualidad sectorial',
+                'enabled'=>true,
+                'description'=>'Noticias, lanzamientos, novedades de fabricante, ferias y cambios tecnológicos. La fecha y vigencia forman parte de la trazabilidad.',
             ),
         );
     }
@@ -138,12 +146,23 @@ final class SEO_Ingeniero {
         ));
         if (is_wp_error($terms)) return array();
 
-        $stats = $only_missing ? SEO_Ingeniero_DB::category_stats_map(self::LESSON_TECHNICAL) : array();
+        $technical_stats = $only_missing ? SEO_Ingeniero_DB::category_stats_map(self::LESSON_TECHNICAL) : array();
+        $practical_stats = $only_missing ? SEO_Ingeniero_DB::category_stats_map(self::LESSON_PRACTICAL) : array();
+        $current_stats = $only_missing ? SEO_Ingeniero_DB::category_stats_map(self::LESSON_CURRENT) : array();
+        $category_states = $only_missing ? self::category_states() : array();
         $rows = array();
         foreach ((array) $terms as $term) {
             $term_id = absint($term->term_id ?? 0);
             if (!$term_id) continue;
-            if ($only_missing && absint($stats[$term_id]['active'] ?? 0) >= self::TARGET_ACTIVE_KNOWLEDGE_PER_CATEGORY) continue;
+            if ($only_missing) {
+                $checked = isset($category_states[$term_id]['layers_checked']) && is_array($category_states[$term_id]['layers_checked'])
+                    ? array_map('sanitize_key', $category_states[$term_id]['layers_checked'])
+                    : array();
+                $technical_done = absint($technical_stats[$term_id]['active'] ?? 0) >= self::TARGET_ACTIVE_KNOWLEDGE_PER_CATEGORY;
+                $practical_done = absint($practical_stats[$term_id]['sources'] ?? 0) > 0 || in_array(self::LESSON_PRACTICAL, $checked, true);
+                $current_done = absint($current_stats[$term_id]['sources'] ?? 0) > 0 || in_array(self::LESSON_CURRENT, $checked, true);
+                if ($technical_done && $practical_done && $current_done) continue;
+            }
             $rows[] = array(
                 'term_id'=>$term_id,
                 'name'=>(string) ($term->name ?? ''),
@@ -174,8 +193,8 @@ final class SEO_Ingeniero {
         $state['queue'] = $queue;
         $state['status'] = $queue ? 'prepared' : 'stopped';
         $state['last_message'] = $queue
-            ? sprintf('L1 preparada con %d categorías por investigar/completar.',count($queue))
-            : 'No hay categorías por debajo del objetivo técnico.';
+            ? sprintf('Investigación L1/L2/L3 preparada con %d categorías por investigar/completar.',count($queue))
+            : 'No hay categorías pendientes de investigación externa.';
         foreach ($queue as $term_id) {
             self::set_category_state($term_id, 'pendiente', array('last_error'=>''));
         }
@@ -276,113 +295,262 @@ final class SEO_Ingeniero {
         $provider = self::provider();
         if (is_wp_error($provider)) return $provider;
 
-        $queries = self::technical_queries($name);
-        $queries = array_slice($queries, 0, max(1, absint($settings['queries_per_category'] ?? 3)));
-        $results = array();
-        $seen = array();
+        // El presupuesto sigue siendo por categoría. Desde 0.4 se reparte entre
+        // las tres capas, garantizando al menos una consulta por L1/L2/L3.
+        $query_budget = max(3, min(9, absint($settings['queries_per_category'] ?? 3)));
+        $plan = self::query_plan($name, $query_budget);
+        $fetch_pages = max(0, absint($settings['fetch_pages'] ?? 4));
+        $fetch_per_layer = $fetch_pages > 0 ? max(1, (int) ceil($fetch_pages / 3)) : 0;
+
         $api_queries = 0;
+        $total_sources = 0;
+        $total_knowledge = 0;
+        $total_active = 0;
+        $total_review = 0;
+        $technical_review = 0;
+        $layer_counts = array();
+        $layers_checked = array();
 
-        foreach ($queries as $query_type=>$query) {
-            $response = $provider->search($query, array('term_id'=>$term_id,'lesson'=>self::LESSON_TECHNICAL,'query_type'=>$query_type));
-            if (is_wp_error($response)) return $response;
-            $api_queries++;
-            foreach ((array) ($response['results'] ?? array()) as $row) {
-                $url = esc_url_raw((string) ($row['url'] ?? ''));
-                if ($url === '') continue;
-                $key = strtolower($url);
-                if (isset($seen[$key])) continue;
-                $seen[$key] = true;
-                $row['query_type'] = $query_type;
-                $results[] = $row;
-            }
-        }
+        foreach ($plan as $lesson=>$queries) {
+            $results = array();
+            $seen = array();
 
-        if (!$results) {
-            return new WP_Error('ingeniero_no_results', 'No se han encontrado fuentes externas útiles para esta categoría.');
-        }
+            foreach ((array) $queries as $query_type=>$query) {
+                $response = $provider->search($query, array(
+                    'term_id'=>$term_id,
+                    'lesson'=>$lesson,
+                    'query_type'=>$query_type,
+                    'information_type'=>self::lesson_information_type($lesson),
+                ));
+                if (is_wp_error($response)) return $response;
+                $api_queries++;
 
-        usort($results, array(__CLASS__, 'compare_result_priority'));
-        $fetch_limit = max(0, absint($settings['fetch_pages'] ?? 4));
-        $source_rows = array();
-        $fetched = 0;
-
-        foreach ($results as $row) {
-            if (count($source_rows) >= 12) break;
-            $classification = self::classify_source((string) ($row['url'] ?? ''), (string) ($row['title'] ?? ''));
-            $is_pdf = !empty($classification['pdf']);
-            $page = array('status'=>0,'text'=>'','content_hash'=>'');
-            if (!$is_pdf && $fetched < $fetch_limit) {
-                $page = self::fetch_page_text((string) $row['url']);
-                $fetched++;
+                foreach ((array) ($response['results'] ?? array()) as $row) {
+                    $url = esc_url_raw((string) ($row['url'] ?? ''));
+                    if ($url === '') continue;
+                    $key = strtolower($url);
+                    if (isset($seen[$key])) continue;
+                    $seen[$key] = true;
+                    $row['query_type'] = $query_type;
+                    $results[] = $row;
+                }
             }
 
-            $status = $is_pdf ? 'pdf_pending' : (!empty($page['text']) ? 'fetched' : 'search_only');
-            $source_id = SEO_Ingeniero_DB::upsert_source(array(
-                'term_id'=>$term_id,
-                'lesson'=>self::LESSON_TECHNICAL,
-                'url'=>$row['url'],
-                'domain'=>$classification['domain'],
-                'title'=>$row['title'],
-                'source_type'=>$classification['source_type'],
-                'trust_level'=>$classification['trust_level'],
-                'published_at'=>$row['date'] ?? '',
-                'retrieved_at'=>gmdate('Y-m-d H:i:s'),
-                'http_status'=>$page['status'] ?? 0,
-                'content_hash'=>$page['content_hash'] ?? '',
-                'status'=>$status,
-                'metadata'=>array(
-                    'position'=>absint($row['position'] ?? 0),
+            $layers_checked[] = $lesson;
+            if (!$results) {
+                $layer_counts[$lesson] = array('sources'=>0,'knowledge'=>0,'active'=>0,'review'=>0);
+                continue;
+            }
+
+            usort($results, static function($a, $b) use ($lesson) {
+                return self::compare_result_priority_for_lesson($a, $b, $lesson);
+            });
+
+            $source_rows = array();
+            $fetched = 0;
+            foreach ($results as $row) {
+                if (count($source_rows) >= 8) break;
+
+                $classification = self::classify_source((string) ($row['url'] ?? ''), (string) ($row['title'] ?? ''));
+
+                // Frontera estricta: L1 no toma comunidades como hechos técnicos.
+                if ($lesson === self::LESSON_TECHNICAL && $classification['source_type'] === 'community') continue;
+                // L2 se reserva a conversación/experiencia. Evita que una ficha
+                // comercial aparezca etiquetada como señal práctica.
+                if ($lesson === self::LESSON_PRACTICAL && $classification['source_type'] !== 'community') continue;
+
+                $is_pdf = !empty($classification['pdf']);
+                $page = array('status'=>0,'text'=>'','content_hash'=>'');
+                if (!$is_pdf && $fetched < $fetch_per_layer) {
+                    $page = self::fetch_page_text((string) $row['url']);
+                    $fetched++;
+                }
+
+                $status = $is_pdf ? 'pdf_pending' : (!empty($page['text']) ? 'fetched' : 'search_only');
+                $information_type = self::lesson_information_type($lesson);
+                $source_id = SEO_Ingeniero_DB::upsert_source(array(
+                    'term_id'=>$term_id,
+                    'lesson'=>$lesson,
+                    'url'=>$row['url'],
+                    'domain'=>$classification['domain'],
+                    'title'=>$row['title'],
+                    'source_type'=>$classification['source_type'],
+                    'trust_level'=>$classification['trust_level'],
+                    'published_at'=>$row['date'] ?? '',
+                    'retrieved_at'=>gmdate('Y-m-d H:i:s'),
+                    'http_status'=>$page['status'] ?? 0,
+                    'content_hash'=>$page['content_hash'] ?? '',
+                    'status'=>$status,
+                    'metadata'=>array(
+                        'position'=>absint($row['position'] ?? 0),
+                        'query_type'=>sanitize_key((string) ($row['query_type'] ?? '')),
+                        'information_type'=>$information_type,
+                        'lesson_label'=>self::lesson_label($lesson),
+                        'snippet'=>self::limit_words((string) ($row['snippet'] ?? ''), 24),
+                        'pdf_pending'=>$is_pdf ? 1 : 0,
+                    ),
+                ));
+                if (is_wp_error($source_id)) continue;
+
+                $source_rows[] = array(
+                    'id'=>absint($source_id),
+                    'url'=>(string) $row['url'],
+                    'title'=>(string) $row['title'],
+                    'snippet'=>(string) ($row['snippet'] ?? ''),
+                    'text'=>(string) ($page['text'] ?? ''),
+                    'source_type'=>$classification['source_type'],
+                    'trust_level'=>$classification['trust_level'],
                     'query_type'=>sanitize_key((string) ($row['query_type'] ?? '')),
-                    'snippet'=>self::limit_words((string) ($row['snippet'] ?? ''), 24),
-                    'pdf_pending'=>$is_pdf ? 1 : 0,
-                ),
-            ));
-            if (is_wp_error($source_id)) continue;
+                    'published_at'=>sanitize_text_field((string) ($row['date'] ?? '')),
+                    'information_type'=>$information_type,
+                    'lesson'=>$lesson,
+                    'pdf'=>$is_pdf,
+                );
+            }
 
-            $source_rows[] = array(
-                'id'=>absint($source_id),
-                'url'=>(string) $row['url'],
-                'title'=>(string) $row['title'],
-                'snippet'=>(string) ($row['snippet'] ?? ''),
-                'text'=>(string) ($page['text'] ?? ''),
-                'source_type'=>$classification['source_type'],
-                'trust_level'=>$classification['trust_level'],
-                'query_type'=>sanitize_key((string) ($row['query_type'] ?? '')),
-                'pdf'=>$is_pdf,
+            if ($lesson === self::LESSON_TECHNICAL) {
+                $knowledge = self::build_knowledge($term_id, $name, $source_rows);
+            } elseif ($lesson === self::LESSON_PRACTICAL) {
+                $knowledge = self::build_practical_knowledge($term_id, $name, $source_rows);
+            } else {
+                $knowledge = self::build_current_knowledge($term_id, $name, $source_rows);
+            }
+
+            $active = 0;
+            $review = 0;
+            foreach ($knowledge as $item) {
+                $saved = SEO_Ingeniero_DB::upsert_knowledge($item);
+                if (is_wp_error($saved)) continue;
+                if ('active' === $item['status']) $active++;
+                else $review++;
+            }
+
+            if ($lesson === self::LESSON_TECHNICAL) $technical_review = $review;
+            $layer_counts[$lesson] = array(
+                'sources'=>count($source_rows),
+                'knowledge'=>count($knowledge),
+                'active'=>$active,
+                'review'=>$review,
             );
+            $total_sources += count($source_rows);
+            $total_knowledge += count($knowledge);
+            $total_active += $active;
+            $total_review += $review;
         }
 
-        if (!$source_rows) {
-            return new WP_Error('ingeniero_sources_save', 'No se pudo guardar ninguna fuente útil.');
-        }
-
-        $knowledge = self::build_knowledge($term_id, $name, $source_rows);
-        $active = 0;
-        $review = 0;
-        foreach ($knowledge as $item) {
-            $saved = SEO_Ingeniero_DB::upsert_knowledge($item);
-            if (is_wp_error($saved)) continue;
-            if ('active' === $item['status']) $active++;
-            else $review++;
+        if ($total_sources < 1) {
+            return new WP_Error('ingeniero_no_results', 'No se han encontrado fuentes externas útiles para esta categoría.');
         }
 
         return array(
             'term_id'=>$term_id,
             'category'=>$name,
-            'sources'=>count($source_rows),
-            'knowledge'=>count($knowledge),
-            'active'=>$active,
-            'review'=>$review,
+            'sources'=>$total_sources,
+            'knowledge'=>$total_knowledge,
+            'active'=>$total_active,
+            'review'=>$total_review,
+            'technical_review'=>$technical_review,
             'api_queries'=>$api_queries,
+            'layers'=>$layer_counts,
+            'layers_checked'=>array_values(array_unique($layers_checked)),
         );
+    }
+
+    private static function query_plan($name, $budget) {
+        $budget = max(3, min(9, absint($budget)));
+        $sets = array(
+            self::LESSON_TECHNICAL => self::technical_queries($name),
+            self::LESSON_PRACTICAL => self::practical_queries($name),
+            self::LESSON_CURRENT => self::current_queries($name),
+        );
+        $plan = array();
+        $offsets = array();
+
+        foreach ($sets as $lesson=>$queries) {
+            $plan[$lesson] = array_slice($queries, 0, 1, true);
+            $offsets[$lesson] = 1;
+        }
+
+        $remaining = $budget - 3;
+        // Si hay presupuesto extra, L2 recibe el primer refuerzo porque la
+        // ampliación 0.4 busca deliberadamente más señal de foros/comunidades.
+        $order = array(
+            self::LESSON_PRACTICAL,
+            self::LESSON_TECHNICAL,
+            self::LESSON_CURRENT,
+            self::LESSON_PRACTICAL,
+            self::LESSON_TECHNICAL,
+            self::LESSON_CURRENT,
+        );
+        foreach ($order as $lesson) {
+            if ($remaining < 1) break;
+            $pairs = array_slice($sets[$lesson], $offsets[$lesson], 1, true);
+            if ($pairs) {
+                $plan[$lesson] += $pairs;
+                $offsets[$lesson]++;
+                $remaining--;
+            }
+        }
+        return $plan;
     }
 
     private static function technical_queries($name) {
         return array(
-            'definition' => '"' . $name . '" qué es funcionamiento tipos aplicaciones ficha técnica',
-            'safety' => '"' . $name . '" manual seguridad mantenimiento compatibilidad limitaciones',
-            'regulation' => '"' . $name . '" normativa seguridad especificaciones técnicas problemas habituales',
+            'technical_definition' => '"' . $name . '" qué es funcionamiento tipos aplicaciones ficha técnica',
+            'technical_safety' => '"' . $name . '" manual seguridad mantenimiento compatibilidad limitaciones',
+            'technical_regulation' => '"' . $name . '" normativa seguridad especificaciones técnicas problemas habituales',
         );
+    }
+
+    private static function practical_queries($name) {
+        return array(
+            'practical_forums' => '"' . $name . '" foro problemas opiniones experiencia dudas',
+            'practical_reddit' => '"' . $name . '" reddit problemas recomendaciones comparación',
+            'practical_questions' => '"' . $name . '" "merece la pena" "qué problema" experiencia usuario',
+        );
+    }
+
+    private static function current_queries($name) {
+        $year = gmdate('Y');
+        return array(
+            'current_news' => '"' . $name . '" noticias novedades lanzamiento ' . $year,
+            'current_manufacturer' => '"' . $name . '" fabricante nueva gama actualización nueva generación',
+            'current_technology' => '"' . $name . '" tecnología innovación feria novedades sector',
+        );
+    }
+
+    public static function lesson_label($lesson) {
+        $lessons = self::lessons();
+        return isset($lessons[$lesson]['label']) ? (string) $lessons[$lesson]['label'] : (string) $lesson;
+    }
+
+    public static function lesson_information_type($lesson) {
+        $lesson = sanitize_key((string) $lesson);
+        if ($lesson === self::LESSON_PRACTICAL) return 'practical';
+        if ($lesson === self::LESSON_CURRENT) return 'current';
+        return 'technical';
+    }
+
+    private static function compare_result_priority_for_lesson($a, $b, $lesson) {
+        $ca = self::classify_source((string) ($a['url'] ?? ''), (string) ($a['title'] ?? ''));
+        $cb = self::classify_source((string) ($b['url'] ?? ''), (string) ($b['title'] ?? ''));
+        $weights = array('high'=>40,'medium_high'=>30,'medium'=>20,'low'=>10);
+        $wa = $weights[$ca['trust_level']] ?? 0;
+        $wb = $weights[$cb['trust_level']] ?? 0;
+
+        if ($lesson === self::LESSON_PRACTICAL) {
+            if ($ca['source_type'] === 'community') $wa += 50;
+            if ($cb['source_type'] === 'community') $wb += 50;
+        } elseif ($lesson === self::LESSON_CURRENT) {
+            if ($ca['source_type'] === 'industry_news') $wa += 40;
+            if ($cb['source_type'] === 'industry_news') $wb += 40;
+        } else {
+            if (in_array($ca['source_type'], array('official_body','standards_body','technical_document'), true)) $wa += 40;
+            if (in_array($cb['source_type'], array('official_body','standards_body','technical_document'), true)) $wb += 40;
+        }
+
+        if ($wa !== $wb) return $wb <=> $wa;
+        return absint($a['position'] ?? 999) <=> absint($b['position'] ?? 999);
     }
 
     private static function compare_result_priority($a, $b) {
@@ -412,8 +580,11 @@ final class SEO_Ingeniero {
         if ($manual) {
             return array('domain'=>$host,'source_type'=>'technical_document','trust_level'=>'medium_high','pdf'=>$pdf);
         }
-        if (preg_match('/(foro|forum|reddit|quora|facebook|youtube|tiktok)/', $haystack)) {
+        if (preg_match('/(foro|forum|reddit|quora|facebook|youtube|tiktok|community|comunidad)/', $haystack)) {
             return array('domain'=>$host,'source_type'=>'community','trust_level'=>'low','pdf'=>$pdf);
+        }
+        if (preg_match('/(news|noticia|actualidad|press|prensa|lanzamiento|launch|presenta|anuncia|nueva-gama|new-generation|feria|expo)/', $haystack)) {
+            return array('domain'=>$host,'source_type'=>'industry_news','trust_level'=>'medium','pdf'=>$pdf);
         }
         if (preg_match('/(blog|magazine|revista|academy|institut|universit|ingenier|tecnic)/', $haystack)) {
             return array('domain'=>$host,'source_type'=>'technical_specialist','trust_level'=>'medium_high','pdf'=>$pdf);
@@ -519,6 +690,124 @@ final class SEO_Ingeniero {
                 'source_ids'=>array_values(array_unique(array_filter($source_ids))),
                 'confidence'=>round($confidence,5),
                 'status'=>$status,
+            );
+        }
+
+        return $out;
+    }
+
+    private static function build_practical_knowledge($term_id, $category_name, $sources) {
+        $definitions = array(
+            'practical_question'=>array('cómo','como','qué','que','merece la pena','recomienda','duda','pregunta'),
+            'practical_problem'=>array('problema','fallo','no funciona','se rompe','atasca','avería','averia','difícil','dificil'),
+            'practical_comparison'=>array(' vs ','frente a','comparar','comparación','comparacion','diferencia','mejor que'),
+            'practical_compatibility'=>array('compatible','sirve para','vale para','encaja','adaptador','medida'),
+            'practical_use_case'=>array('uso','utilizo','trabajo','tarea','caso','experiencia','profesional'),
+        );
+        $labels = array(
+            'practical_question'=>'preguntas y dudas de usuarios',
+            'practical_problem'=>'problemas y dificultades de uso',
+            'practical_comparison'=>'comparaciones recurrentes',
+            'practical_compatibility'=>'dudas de compatibilidad',
+            'practical_use_case'=>'casos de uso y experiencia práctica',
+        );
+        return self::build_signal_knowledge(
+            $term_id,
+            $category_name,
+            $sources,
+            self::LESSON_PRACTICAL,
+            'practical',
+            $definitions,
+            $labels
+        );
+    }
+
+    private static function build_current_knowledge($term_id, $category_name, $sources) {
+        $definitions = array(
+            'current_launch'=>array('lanza','lanzamiento','presenta','anuncia','nuevo modelo','nueva gama','nueva generación','nueva generacion'),
+            'current_technology'=>array('tecnología','tecnologia','innovación','innovacion','nuevo sistema','plataforma','patente'),
+            'current_manufacturer'=>array('fabricante','actualiza','actualización','actualizacion','catálogo','catalogo','serie'),
+            'current_industry'=>array('noticia','actualidad','sector','feria','evento','mercado','tendencia'),
+        );
+        $labels = array(
+            'current_launch'=>'lanzamientos y nuevas gamas',
+            'current_technology'=>'cambios e innovaciones tecnológicas',
+            'current_manufacturer'=>'actualizaciones de fabricantes',
+            'current_industry'=>'actualidad sectorial',
+        );
+        return self::build_signal_knowledge(
+            $term_id,
+            $category_name,
+            $sources,
+            self::LESSON_CURRENT,
+            'current',
+            $definitions,
+            $labels
+        );
+    }
+
+    private static function build_signal_knowledge($term_id, $category_name, $sources, $lesson, $information_type, $definitions, $labels) {
+        $out = array();
+
+        foreach ((array) $definitions as $type=>$keywords) {
+            $evidence = array();
+            $source_ids = array();
+            $domains = array();
+
+            foreach ((array) $sources as $source) {
+                if (!empty($source['pdf'])) continue;
+                $pool = trim((string) ($source['snippet'] ?? '') . ' ' . (string) ($source['text'] ?? ''));
+                if ($pool === '') continue;
+                $sentence = self::best_sentence($pool, $keywords);
+                if ($sentence === '') continue;
+
+                $domain = strtolower((string) wp_parse_url((string) ($source['url'] ?? ''), PHP_URL_HOST));
+                if ($domain !== '') $domains[] = $domain;
+                $source_ids[] = absint($source['id'] ?? 0);
+                $evidence[] = array(
+                    'source_id'=>absint($source['id'] ?? 0),
+                    'source_url'=>esc_url_raw((string) ($source['url'] ?? '')),
+                    'source_title'=>sanitize_text_field((string) ($source['title'] ?? '')),
+                    'source_type'=>sanitize_key((string) ($source['source_type'] ?? '')),
+                    'trust_level'=>sanitize_key((string) ($source['trust_level'] ?? 'medium')),
+                    'published_at'=>sanitize_text_field((string) ($source['published_at'] ?? '')),
+                    'information_type'=>$information_type,
+                    'evidence_type'=>sanitize_key((string) $type),
+                    'evidence'=>self::limit_words($sentence, 24),
+                );
+                if (count($evidence) >= 5) break;
+            }
+
+            if (!$evidence) continue;
+            $domains = array_values(array_unique(array_filter($domains)));
+            $source_ids = array_values(array_unique(array_filter($source_ids)));
+            $repeated = count($domains) >= 2 && count($evidence) >= 2;
+            $confidence = min(0.85, 0.30 + (count($evidence) * 0.07) + (count($domains) * 0.06));
+            $label = $labels[$type] ?? str_replace('_',' ',(string) $type);
+
+            if ($information_type === 'practical') {
+                $summary = ($repeated ? 'Se repiten señales' : 'Se ha detectado una señal')
+                    . ' en comunidades sobre ' . $label . ' en ' . $category_name . '. '
+                    . 'Esta capa representa preguntas, experiencia u opinión de usuarios y no confirma por sí sola un hecho técnico.';
+            } else {
+                $summary = ($repeated ? 'Varias fuentes recientes aportan señales' : 'Se ha detectado una señal de actualidad')
+                    . ' sobre ' . $label . ' en ' . $category_name . '. '
+                    . 'La fecha, vigencia y fuente deben verificarse antes de convertirla en una afirmación editorial.';
+            }
+
+            $out[] = array(
+                'term_id'=>$term_id,
+                'lesson'=>$lesson,
+                'knowledge_type'=>$type,
+                'concept'=>$category_name,
+                'summary'=>self::limit_text($summary, 700),
+                'facts'=>$evidence,
+                'tags'=>array($category_name,$information_type,$type),
+                'source_ids'=>$source_ids,
+                'confidence'=>round($confidence,5),
+                // L2/L3 se recopilan y clasifican, pero no contaminan el dossier
+                // técnico actual hasta que Editora decida cómo utilizarlos.
+                'status'=>'review',
             );
         }
 
