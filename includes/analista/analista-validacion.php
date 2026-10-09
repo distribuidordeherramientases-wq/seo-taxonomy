@@ -419,6 +419,9 @@ if (!function_exists('seo_analista_atomic_actions')) {
             $actions[] = array('type'=>'ESPERAR_DATOS','detail'=>'La muestra es demasiado pequeña para convertir posición o crecimiento en una instrucción de ejecución.','owner'=>'SEO/taxonomía');
         }
 
+        if (strpos($issue_text, '404') !== false || strpos($issue_text, 'no indexable') !== false || strpos($issue_text, 'canonical') !== false) {
+            $actions[] = array('type'=>'REVISAR_TECNICO','detail'=>'Resolver primero la incidencia técnica/canónica antes de invertir trabajo editorial en la URL.','owner'=>'Técnico');
+        }
         if (strpos($issue_text, 'seo title') !== false || strpos($issue_text, 'meta description') !== false || strpos($issue_text, 'ctr bajo') !== false) {
             $actions[] = array('type'=>'REVISAR_META','detail'=>'Comprobar primero title/meta efectivos y ajustar snippet solo si el problema está confirmado.','owner'=>'Editora');
         }
