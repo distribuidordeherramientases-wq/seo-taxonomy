@@ -185,6 +185,7 @@ if (!function_exists('seo_analista_google_plan')) {
                 'action_label' => $meta['label'],
                 'channel' => $meta['channel'],
                 'topic' => $display_topic,
+                'query' => $topic,
                 'reason' => $reason,
                 'sources' => $sources,
                 'source' => implode(' + ', $sources),
@@ -193,10 +194,16 @@ if (!function_exists('seo_analista_google_plan')) {
                 'intent' => $intent,
                 'metrics' => array(
                     'impressions' => (float) ($metrics['impressions'] ?? 0),
+                    'clicks' => (float) ($metrics['clicks'] ?? 0),
+                    'ctr' => (float) ($metrics['ctr'] ?? 0),
                     'position' => (float) ($metrics['position'] ?? 0),
+                    'queries' => max(1, (int) ($metrics['queries'] ?? 1)),
+                    'previous_impressions' => (float) ($metrics['previous_impressions'] ?? 0),
+                    'impressions_delta' => (float) ($metrics['impressions_delta'] ?? 0),
                     'search_score' => (float) ($metrics['search_score'] ?? 0),
                     'market_score' => (float) ($metrics['market_score'] ?? 0),
                 ),
+                'period' => array('days'=>$days,'label'=>$days . ' días'),
                 'catalog' => array(
                     'category' => $category,
                     'products' => $products,
@@ -223,6 +230,7 @@ if (!function_exists('seo_analista_google_plan')) {
             if ($candidate['priority'] > $existing['priority']) {
                 $existing['priority'] = $candidate['priority'];
                 $existing['reason'] = $candidate['reason'];
+                $existing['query'] = $candidate['query'];
                 $existing['metrics'] = $candidate['metrics'];
                 $existing['market'] = $candidate['market'];
                 $existing['target'] = $candidate['target'];
