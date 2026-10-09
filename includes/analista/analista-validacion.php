@@ -495,6 +495,7 @@ if (!function_exists('seo_analista_commercial_readiness')) {
             'supplier'=>null,
             'margin_or_commission'=>null,
             'available'=>null,
+            'missing_fields'=>array(),
             'ga4_signals'=>array(
                 'available'=>false,
                 'sessions'=>null,
@@ -536,30 +537,45 @@ if (!function_exists('seo_analista_commercial_readiness')) {
                         break;
                     }
                 }
+                $missing = array();
+                if (!$out['stock']) $missing[] = 'stock';
+                if (!$out['available']) $missing[] = 'disponibilidad';
+                if ($out['price'] <= 0) $missing[] = 'precio_final';
+                if ($out['supplier'] === null) $missing[] = 'proveedor';
+                if ($out['margin_or_commission'] === null) $missing[] = 'margen_comision';
+                if (empty($out['ga4_signals']['available'])) $missing[] = 'ga4';
+                $out['missing_fields'] = $missing;
+
                 if (!$out['stock'] || !$out['available'] || $out['price'] <= 0) {
                     $out['status'] = 'not_ready';
-                    $out['label'] = 'Oferta no preparada';
-                } elseif ($out['supplier'] !== null
-                    && $out['margin_or_commission'] !== null
-                    && !empty($out['ga4_signals']['available'])) {
+                    $out['label'] = 'Oferta no preparada · falta ' . implode(', ', $missing);
+                } elseif (!$missing) {
                     $out['status'] = 'verified';
                     $out['label'] = 'Comercial verificado';
                 } else {
                     $out['status'] = 'partial';
-                    $missing = array();
-                    if ($out['supplier'] === null) $missing[] = 'proveedor';
-                    if ($out['margin_or_commission'] === null) $missing[] = 'margen/comisión';
-                    if (empty($out['ga4_signals']['available'])) $missing[] = 'GA4';
-                    $out['label'] = 'Comercial parcialmente verificado'
-                        . ($missing ? ' · falta ' . implode(', ', $missing) : '');
+                    $out['label'] = 'Comercial parcialmente verificado · falta ' . implode(', ', $missing);
                 }
             }
         } elseif ($type === 'category') {
             $products = isset($row['catalog']['products']) ? (int) $row['catalog']['products'] : null;
             if ($products !== null && $products > 0) {
                 $out['available'] = true;
+                $out['stock'] = null;
+                $out['price'] = null;
+                $out['missing_fields'] = array('stock_categoria','precio_categoria','proveedor','margen_comision');
+                if (empty($out['ga4_signals']['available'])) $out['missing_fields'][] = 'ga4';
                 $out['status'] = 'partial';
-                $out['label'] = 'Surtido existente; margen/proveedor por validar';
+                $out['label'] = 'Surtido existente (' . $products . ' productos); falta validar ' . implode(', ', $out['missing_fields']);
+            } elseif ($products !== null && $products <= 0) {
+                $out['available'] = false;
+                $out['missing_fields'] = array('surtido','stock_categoria','precio_categoria','proveedor','margen_comision');
+                if (empty($out['ga4_signals']['available'])) $out['missing_fields'][] = 'ga4';
+                $out['status'] = 'not_ready';
+                $out['label'] = 'Categoría sin surtido acreditado';
+            } else {
+                $out['missing_fields'] = array('surtido','stock_categoria','precio_categoria','proveedor','margen_comision');
+                if (empty($out['ga4_signals']['available'])) $out['missing_fields'][] = 'ga4';
             }
         }
 
@@ -673,6 +689,195 @@ if (!function_exists('seo_analista_editorial_coverage')) {
             'posts'=>$posts,
             'roles'=>array_values(array_unique($roles))
         );
+    }
+}
+
+
+if (!function_exists('seo_analista_execution_gate')) {
+    function seo_analista_execution_gate(array $row, array $validation, array $evidence, array $commercial) {
+        $base_bucket = (string) ($row['work_bucket'] ?? 'VIGILAR');
+        $candidate_bucket = $base_bucket;
+        $confidence = max(0, min(100, (int) ($row['confidence'] ?? 0)));
+        if ($confidence < 50 && $candidate_bucket === 'HACER_AHORA') {
+            $candidate_bucket = 'HACER_DESPUES';
+        }
+
+        $gate = array(
+            'state'=>'READY',
+            'blocker_type'=>'none',
+            'hard'=>false,
+            'bucket'=>$candidate_bucket,
+            'bucket_if_unblocked'=>$candidate_bucket,
+            'unlock_condition'=>'Sin dependencia bloqueante.',
+            'missing'=>array(),
+        );
+
+        if (($validation['match_type'] ?? '') === 'conflict') {
+            $gate['state'] = 'BLOCKED_ENTITY_CONFLICT';
+            $gate['blocker_type'] = 'entity';
+            $gate['hard'] = true;
+            $gate['bucket'] = 'INVESTIGAR';
+            $gate['unlock_condition'] = 'Resolver el conflicto de modelo/variante y obtener match exacto o parcial sin contradicción.';
+            $gate['missing'] = array('entidad_correcta');
+            return $gate;
+        }
+
+        if (empty($validation['target']['resolved'])) {
+            $gate['state'] = 'BLOCKED_TARGET';
+            $gate['blocker_type'] = 'entity';
+            $gate['hard'] = true;
+            $gate['bucket'] = 'INVESTIGAR';
+            $gate['unlock_condition'] = 'Resolver una URL local/canónica existente para la consulta y revalidar la correspondencia.';
+            $gate['missing'] = array('target_url');
+            return $gate;
+        }
+
+        if (($validation['match_type'] ?? '') === 'unproven') {
+            $gate['state'] = 'BLOCKED_ENTITY_MATCH';
+            $gate['blocker_type'] = 'entity';
+            $gate['hard'] = true;
+            $gate['bucket'] = 'INVESTIGAR';
+            $gate['unlock_condition'] = 'Elevar la correspondencia consulta-entidad a exacta o parcial por encima del umbral configurado.';
+            $gate['missing'] = array('match_consulta_entidad');
+            return $gate;
+        }
+
+        if (!empty($evidence['small_sample']) && !seo_analista_has_independent_critical_issue($row)) {
+            $settings = (array) ($evidence['settings'] ?? seo_analista_validation_settings());
+            $gate['state'] = 'BLOCKED_EVIDENCE';
+            $gate['blocker_type'] = 'evidence';
+            $gate['hard'] = false;
+            $gate['bucket'] = 'ESPERAR_DATOS';
+            $gate['unlock_condition'] = 'Alcanzar al menos ' . absint($settings['reliable_impressions'] ?? 20) . ' impresiones o detectar un defecto crítico independiente.';
+            $gate['missing'] = array('volumen_evidencia');
+            return $gate;
+        }
+
+        if ((string) ($row['objective']['primary'] ?? '') === 'sales'
+            && in_array((string) ($commercial['status'] ?? 'unknown'), array('unknown','partial','not_ready'), true)) {
+            $gate['state'] = 'BLOCKED_COMMERCIAL';
+            $gate['blocker_type'] = 'commercial';
+            $gate['hard'] = false;
+            $gate['bucket'] = $candidate_bucket === 'HACER_AHORA' ? 'HACER_DESPUES' : $candidate_bucket;
+            $gate['bucket_if_unblocked'] = $candidate_bucket;
+            $missing = array_values(array_unique(array_filter((array) ($commercial['missing_fields'] ?? array()))));
+            $gate['missing'] = $missing;
+            $gate['unlock_condition'] = $missing
+                ? 'Validar: ' . implode(', ', $missing) . '. Al desaparecer el bloqueo se recupera el bucket ' . $candidate_bucket . ' sin modificar el score.'
+                : 'Completar la validación comercial. Al resolverse se recupera el bucket ' . $candidate_bucket . ' sin modificar el score.';
+            return $gate;
+        }
+
+        return $gate;
+    }
+}
+
+if (!function_exists('seo_analista_investigation_steps')) {
+    function seo_analista_investigation_steps(array $row, array $validation, array $evidence, array $commercial, array $gate, array $auto_resolution = array()) {
+        $steps = array();
+        $query = (string) ($row['query'] ?? seo_analista_primary_query($row));
+        $entity = (array) ($row['entity'] ?? array());
+        $entity_label = trim((string) ($entity['title'] ?? ''));
+        $match_type = (string) ($validation['match_type'] ?? 'unproven');
+        $match_confidence = absint($validation['match_confidence'] ?? 0);
+
+        if (($gate['blocker_type'] ?? '') === 'entity') {
+            if (($gate['state'] ?? '') === 'BLOCKED_ENTITY_CONFLICT') {
+                $steps[] = array(
+                    'code'=>'CHECK_MODEL_ENTITY',
+                    'check'=>'Comparar los identificadores de la consulta con modelo/MPN/SKU de la entidad atribuida y buscar el producto exacto en el catálogo.',
+                    'current'=>'Consulta: ' . $query . ' · entidad: ' . ($entity_label !== '' ? $entity_label : 'sin entidad') . ' · match ' . $match_type . ' ' . $match_confidence . '/100.',
+                    'unlock'=>'Sin conflicto de modelo y match exacto/parcial con la URL correcta.',
+                    'owner'=>'SEO/taxonomía',
+                );
+            } elseif (($gate['state'] ?? '') === 'BLOCKED_TARGET') {
+                $steps[] = array(
+                    'code'=>'RESOLVE_TARGET_URL',
+                    'check'=>'Buscar primero categoría product_cat equivalente; después producto/hub/página local ya existente. No crear URL desde Analista.',
+                    'current'=>'Consulta: ' . $query . ' · no hay URL local/canónica validada.',
+                    'unlock'=>'URL local existente resuelta y validada contra la consulta.',
+                    'owner'=>'SEO/taxonomía',
+                );
+            } else {
+                $steps[] = array(
+                    'code'=>'CONFIRM_ENTITY_MATCH',
+                    'check'=>'Revisar título, slug, categoría, intención y términos específicos compartidos entre la consulta y la entidad actual.',
+                    'current'=>'Consulta: ' . $query . ' · entidad: ' . ($entity_label !== '' ? $entity_label : 'sin entidad') . ' · match ' . $match_type . ' ' . $match_confidence . '/100.',
+                    'unlock'=>'Match exacto o parcial por encima del umbral configurado y sin conflicto de modelo.',
+                    'owner'=>'SEO/taxonomía',
+                );
+            }
+            if (!empty($auto_resolution['attempted']) && empty($auto_resolution['resolved'])) {
+                $steps[] = array(
+                    'code'=>'REVIEW_REJECTED_LOCAL_CANDIDATE',
+                    'check'=>'Revisar manualmente si existe una entidad local que el resolver automático rechazó por baja afinidad o riesgo de modelo.',
+                    'current'=>(string) ($auto_resolution['reason'] ?? 'No hubo candidato seguro.'),
+                    'unlock'=>'Candidato local confirmado con evidencia suficiente o descarte explícito de la señal.',
+                    'owner'=>'SEO/taxonomía',
+                );
+            }
+        } elseif (($gate['blocker_type'] ?? '') === 'evidence') {
+            $settings = (array) ($evidence['settings'] ?? seo_analista_validation_settings());
+            $steps[] = array(
+                'code'=>'WAIT_FOR_EVIDENCE',
+                'check'=>'Mantener la línea base y volver a medir la misma consulta/URL sin cambiar contenido solo por la posición actual.',
+                'current'=>absint($evidence['impressions'] ?? 0) . ' impresiones · ' . absint($evidence['clicks'] ?? 0) . ' clics.',
+                'unlock'=>'Alcanzar ' . absint($settings['reliable_impressions'] ?? 20) . ' impresiones o disponer de un defecto crítico independiente.',
+                'owner'=>'SEO/taxonomía',
+            );
+        } elseif (($gate['blocker_type'] ?? '') === 'commercial') {
+            $labels = array(
+                'surtido'=>'Confirmar que la categoría tiene productos vendibles.',
+                'stock'=>'Confirmar stock del producto.',
+                'stock_categoria'=>'Calcular cuántos productos de la categoría están realmente en stock.',
+                'disponibilidad'=>'Confirmar que el producto es comprable.',
+                'precio_final'=>'Confirmar precio final de venta.',
+                'precio_categoria'=>'Comprobar rango de precios real de la categoría.',
+                'proveedor'=>'Confirmar proveedor responsable.',
+                'margen_comision'=>'Confirmar margen o comisión disponible.',
+                'ga4'=>'Comprobar señales GA4 de la URL/categoría sin mezclarlas con GSC.',
+            );
+            foreach ((array) ($gate['missing'] ?? array()) as $field) {
+                $field = sanitize_key((string) $field);
+                $steps[] = array(
+                    'code'=>'CHECK_COMMERCIAL_' . strtoupper($field),
+                    'check'=>(string) ($labels[$field] ?? ('Validar el dato comercial ' . $field . '.')),
+                    'current'=>'Dato no verificado en el Plan de acción.',
+                    'unlock'=>'El campo ' . $field . ' queda validado y deja de figurar como dependencia.',
+                    'owner'=>'Catálogo/proveedores',
+                );
+            }
+        }
+
+        return $steps;
+    }
+}
+
+if (!function_exists('seo_analista_action_gate_summary')) {
+    function seo_analista_action_gate_summary(array $plan) {
+        $out = array(
+            'total'=>0,
+            'auto_resolved'=>0,
+            'ready'=>0,
+            'blocked_entity'=>0,
+            'blocked_evidence'=>0,
+            'blocked_commercial'=>0,
+            'high_value_blocked'=>0,
+        );
+        foreach ($plan as $row) {
+            if (!is_array($row)) continue;
+            $out['total']++;
+            if (!empty($row['auto_resolution']['resolved'])) $out['auto_resolved']++;
+            $blocker = (string) ($row['blocker_type'] ?? 'none');
+            if ($blocker === 'entity') $out['blocked_entity']++;
+            elseif ($blocker === 'evidence') $out['blocked_evidence']++;
+            elseif ($blocker === 'commercial') $out['blocked_commercial']++;
+            else $out['ready']++;
+            if ((int) ($row['priority_score'] ?? 0) >= 72 && (string) ($row['work_bucket'] ?? '') !== 'HACER_AHORA') {
+                $out['high_value_blocked']++;
+            }
+        }
+        return $out;
     }
 }
 
