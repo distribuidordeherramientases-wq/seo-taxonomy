@@ -370,17 +370,22 @@ if (!function_exists('seo_analista_editorial_coverage')) {
         if ($exists !== $relations) return $cache[$key] = array('available'=>false,'posts'=>array(),'roles'=>array());
 
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-        $sql = "SELECT DISTINCT r.source_id
-                FROM {$relations} r
-                INNER JOIN {$wpdb->posts} p ON p.ID = r.source_id
-                WHERE r.source_type = 'post'
-                  AND r.target_type = 'product_cat'
-                  AND r.relation_type = 'post_to_category'
-                  AND r.target_id IN ({$placeholders})
-                  AND p.post_type = 'post'
-                  AND p.post_status = 'publish'
-                LIMIT 20";
-        $post_ids = $wpdb->get_col($wpdb->prepare($sql, $category_ids)); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $query_args = array_merge(array($relations, $wpdb->posts), $category_ids);
+        $sql = $wpdb->prepare(
+            "SELECT DISTINCT r.source_id
+             FROM %i r
+             INNER JOIN %i p ON p.ID = r.source_id
+             WHERE r.source_type = 'post'
+               AND r.target_type = 'product_cat'
+               AND r.relation_type = 'post_to_category'
+               AND r.target_id IN ({$placeholders})
+               AND p.post_type = 'post'
+               AND p.post_status = 'publish'
+             LIMIT 20",
+            $query_args
+        );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query is fully prepared above and cached per request by category key.
+        $post_ids = $wpdb->get_col($sql);
 
         $roles = array();
         $posts = array();
