@@ -41,6 +41,7 @@ if (!function_exists('seo_analista_action_meta')) {
             'CORREGIR_ASOCIACION' => array('label' => 'Corregir asociación', 'channel' => 'seo'),
             'REVISAR_ENLAZADO' => array('label' => 'Revisar enlazado interno', 'channel' => 'seo'),
             'REVISAR_META' => array('label' => 'Revisar title/meta efectivos', 'channel' => 'contenido'),
+            'REVISAR_TECNICO' => array('label' => 'Revisar incidencia técnica', 'channel' => 'seo'),
             'MEJORAR_COBERTURA' => array('label' => 'Mejorar cobertura específica', 'channel' => 'contenido'),
             'REVISAR_OFERTA_PRECIO' => array('label' => 'Revisar oferta y precio', 'channel' => 'catalogo'),
             'INVESTIGAR_SURTIDO' => array('label' => 'Investigar surtido', 'channel' => 'catalogo'),
