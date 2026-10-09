@@ -52,7 +52,7 @@ La segunda corrección del Plan de acción reduce el exceso de `INVESTIGAR` sin 
 - El resolver automático se vuelve a validar; no puede sustituir un modelo específico por una categoría genérica de baja afinidad.
 - Los bloqueos se separan en **entity**, **evidence** y **commercial**.
 - `INVESTIGAR` se reserva para entidad/destino/modelo no resueltos.
-- Las oportunidades SEO válidas con bloqueo comercial quedan en **HACER DESPUÉS** y exponen exactamente qué falta.
+- Las oportunidades SEO válidas con bloqueo comercial quedan en **HACER DESPUÉS** y exponen exactamente qué falta; para categorías se usa una muestra acotada de productos para comprobar stock, precio, proveedor y margen. GA4 se mantiene como señal separada y no bloquea por sí sola si la oferta ya está validada.
 - Cada tarea define `unlock_condition` y `bucket_if_unblocked`.
 - La prioridad no se modifica por resolver o no resolver una dependencia; el gate determina si la tarea es ejecutable.
 - El diagnóstico `gate_summary` permite detectar oportunidades de score alto que el filtro conservador está reteniendo.
