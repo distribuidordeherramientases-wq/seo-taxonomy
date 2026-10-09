@@ -2,11 +2,11 @@
 
 Ruta: **SEO Taxonomy → Contenidos → Ingeniero**
 
-Ingeniero investiga conocimiento técnico por `product_cat`, conserva las fuentes y prepara dossiers editoriales especializados. No publica automáticamente.
+Ingeniero investiga conocimiento externo por `product_cat`, conserva las fuentes y clasifica cada evidencia desde la recopilación en tres capas: **L1 técnica**, **L2 práctica/comunidad** y **L3 actualidad sectorial**. No publica automáticamente. La capa editorial actual sigue utilizando L1 técnico hasta que se defina el tratamiento editorial específico de L2/L3.
 
 ## Pestañas
 
-- **Investigación**: prepara y ejecuta la investigación técnica por categoría.
+- **Investigación**: prepara y ejecuta la investigación externa L1/L2/L3 por categoría.
 - **Editorial**: convierte conocimiento activo en dossiers y permite su aprobación humana.
 - **Datos y fuentes**: importa y exporta conocimiento técnico con trazabilidad.
 - **Pruebas**: ejecuta comprobaciones funcionales deterministas sin consultar servicios externos.
@@ -17,7 +17,23 @@ Ingeniero investiga conocimiento técnico por `product_cat`, conserva las fuente
 
 Los contadores superiores resumen categorías, fuentes, knowledge y estado de trabajo. Son informativos; no ejecutan acciones.
 
-### Lección 1 · Documentación técnica
+### Investigación L1 / L2 / L3
+
+Cada categoría se investiga en tres capas y cada registro conserva el campo `lesson`:
+
+- `l1_technical` · **L1 Técnica**: manuales, fichas, fabricantes, organismos, normativa y especificaciones.
+- `l2_practical` · **L2 Práctica**: foros, Reddit, comunidades, preguntas, problemas, comparaciones, compatibilidad y casos de uso. Se guarda como señal práctica/opinión; no confirma hechos técnicos.
+- `l3_current` · **L3 Actualidad**: noticias, lanzamientos, nuevas gamas, cambios tecnológicos, ferias y actualizaciones de fabricante. Conserva fecha y fuente para poder revisar vigencia.
+
+Además de `lesson`, las fuentes mantienen `source_type` y el conocimiento mantiene `knowledge_type`, por lo que no hace falta crear tablas separadas para distinguir capas o subtipos.
+
+#### Ejemplos de subtipos
+
+L2 puede producir `practical_question`, `practical_problem`, `practical_comparison`, `practical_compatibility` y `practical_use_case`.
+
+L3 puede producir `current_launch`, `current_technology`, `current_manufacturer` y `current_industry`.
+
+### Preparación y ejecución
 
 **Categorías por lote**: número de categorías pendientes que se preparan en una operación. Acepta de 1 a 100. No inicia por sí solo la investigación.
 
@@ -42,7 +58,7 @@ Ingeniero utiliza las conexiones compartidas configuradas en **Herramientas → 
 
 **Resultados por consulta** [Guarda]: número de resultados de búsqueda que se solicitan en cada consulta. Rango visible: 3–10.
 
-**Consultas por categoría** [Guarda]: número máximo de consultas técnicas realizadas por categoría. Rango visible: 1–4.
+**Consultas por categoría** [Guarda]: presupuesto de consultas por categoría. Ingeniero garantiza al menos una consulta de cada capa L1/L2/L3 y, cuando hay presupuesto adicional, refuerza primero L2.
 
 **Páginas HTML a leer** [Guarda][API]: número máximo de páginas HTML que Ingeniero intentará descargar para extraer evidencia. Rango visible: 0–8. Los PDF se detectan, pero quedan como `pdf_pending` en esta versión.
 
@@ -64,9 +80,11 @@ La tabla de categorías muestra el estado de investigación de cada `product_cat
 
 **Rechazar** [Guarda]: marca el knowledge como rechazado para que no forme parte del dossier editorial activo.
 
-### Lección 2 · Experiencia práctica
+### Filtros de revisión por capa
 
-En la versión actual aparece como **desactivada**. Es informativa y no ofrece una acción de ejecución.
+Al abrir **Revisar conocimiento** en una categoría aparecen los filtros **Todas | L1 Técnica | L2 Práctica | L3 Actualidad**. El filtro afecta al conocimiento consolidado y a las fuentes originales mostradas.
+
+L2 y L3 se guardan inicialmente en estado `review` para que no contaminen automáticamente el dossier técnico actual. Editora puede revisar, aprobar o rechazar cada bloque, pero su uso para crear posts/FAQs/noticias se definirá en una fase editorial posterior.
 
 ## Editorial
 
