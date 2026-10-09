@@ -480,11 +480,20 @@ if (!function_exists('seo_analista_render_directive_details')) {
         $evidence = (array) ($row['evidence_volume'] ?? array());
         $commercial = (array) ($row['commercial_readiness'] ?? array());
         $priority_breakdown = (array) ($row['priority_breakdown'] ?? array());
+        $gate = (array) ($row['execution_gate'] ?? array());
+        $steps = (array) ($row['investigation_steps'] ?? array());
+        $auto_resolution = (array) ($row['auto_resolution'] ?? array());
         $dependencies = array_values(array_filter((array) ($row['dependencies'] ?? array())));
 
         echo '<div class="seo-analista-directive-block seo-analista-validation"><strong>Validación antes de ejecutar</strong><ul>';
         if ($query !== '') echo '<li><strong>Consulta:</strong> ' . esc_html($query) . '</li>';
         echo '<li><strong>Destino:</strong> ' . (!empty($row['target_resolved']) ? '<a target="_blank" rel="noopener" href="' . esc_url((string) ($row['target_url'] ?? '')) . '">' . esc_html((string) ($row['target_url'] ?? '')) . '</a>' : '<span>destino sin resolver</span>') . '</li>';
+        if (!empty($auto_resolution['resolved'])) {
+            echo '<li><strong>Resolución automática:</strong> ' . esc_html((string) ($auto_resolution['method'] ?? 'taxonomía local')) . ' · score ' . esc_html(number_format_i18n((float) ($auto_resolution['score'] ?? 0), 2)) . ' · ' . esc_html((string) ($auto_resolution['reason'] ?? '')) . '</li>';
+        }
+        if (!empty($gate['state'])) {
+            echo '<li><strong>Gate de ejecución:</strong> ' . esc_html((string) $gate['state']) . ' · bloqueo ' . esc_html((string) ($gate['blocker_type'] ?? 'none')) . ' · bucket actual ' . esc_html(str_replace('_', ' ', (string) ($row['work_bucket'] ?? ''))) . ' · al desbloquear ' . esc_html(str_replace('_', ' ', (string) ($row['bucket_if_unblocked'] ?? $gate['bucket_if_unblocked'] ?? ''))) . '</li>';
+        }
         if ($match_type !== '') echo '<li><strong>Match:</strong> ' . esc_html(strtoupper($match_type)) . ' · ' . esc_html((string) $match_confidence) . '/100 · <strong>Intención:</strong> ' . esc_html((string) ($row['query_intent'] ?? 'unknown')) . ' / ajuste ' . esc_html(strtoupper((string) ($row['intent_fit'] ?? 'unknown'))) . (!empty($row['match_reason']) ? ' · ' . esc_html((string) $row['match_reason']) : '') . '</li>';
         if ($confidence_level !== '') echo '<li><strong>Confianza:</strong> ' . esc_html(strtoupper($confidence_level)) . ' · ' . esc_html((string) absint($row['confidence'] ?? 0)) . '/100</li>';
         echo '<li><strong>Evidencia GSC/SEO:</strong> ' . esc_html(number_format_i18n(absint($evidence['impressions'] ?? 0))) . ' impresiones · ' . esc_html(number_format_i18n(absint($evidence['clicks'] ?? 0))) . ' clics · ' . esc_html(number_format_i18n(absint($evidence['queries'] ?? 0))) . ' consultas · delta ' . esc_html(number_format_i18n((float) ($evidence['absolute_delta'] ?? 0), 0)) . '</li>';
@@ -500,8 +509,22 @@ if (!function_exists('seo_analista_render_directive_details')) {
             if ($ga4_parts) echo '<li><strong>Señales GA4 (separadas de GSC):</strong> ' . esc_html(implode(' · ', $ga4_parts)) . '</li>';
         }
         if (!empty($row['recommended_owner'])) echo '<li><strong>Responsable recomendado:</strong> ' . esc_html((string) $row['recommended_owner']) . '</li>';
-        if ($priority_breakdown) echo '<li><strong>Prioridad:</strong> ' . esc_html((string) absint($priority_breakdown['pre_validation_score'] ?? 0)) . ' → ' . esc_html((string) absint($priority_breakdown['final_score'] ?? 0)) . ' tras validación.</li>';
+        if ($priority_breakdown) echo '<li><strong>Prioridad:</strong> ' . esc_html((string) absint($priority_breakdown['final_score'] ?? $row['priority_score'] ?? 0)) . '/100 · score estable; los gates modifican ejecutabilidad/confianza, no inflan la puntuación.</li>';
         echo '</ul></div>';
+
+        if ($steps) {
+            echo '<div class="seo-analista-directive-block seo-analista-unlock"><strong>Comprobaciones para desbloquear</strong><ol>';
+            foreach ($steps as $step) {
+                echo '<li><strong>' . esc_html((string) ($step['code'] ?? 'CHECK')) . '</strong> · ' . esc_html((string) ($step['check'] ?? ''));
+                if (!empty($step['current'])) echo '<br><small><strong>Ahora:</strong> ' . esc_html((string) $step['current']) . '</small>';
+                if (!empty($step['unlock'])) echo '<br><small><strong>Desbloquea cuando:</strong> ' . esc_html((string) $step['unlock']) . '</small>';
+                if (!empty($step['owner'])) echo '<br><small><strong>Responsable:</strong> ' . esc_html((string) $step['owner']) . '</small>';
+                echo '</li>';
+            }
+            echo '</ol>';
+            if (!empty($row['unlock_condition'])) echo '<p><strong>Condición global:</strong> ' . esc_html((string) $row['unlock_condition']) . '</p>';
+            echo '</div>';
+        }
 
         if ($dependencies) {
             echo '<div class="seo-analista-directive-block"><strong>Dependencias antes de ejecutar</strong><ul>';
@@ -572,7 +595,7 @@ if (!function_exists('seo_analista_render_directive_rows')) {
             if (!empty($row['confidence_level'])) $meta[] = 'Confianza: ' . strtoupper((string) $row['confidence_level']);
             if (!empty($row['recommended_owner'])) $meta[] = 'Owner: ' . (string) $row['recommended_owner'];
             if (!empty($row['pre_validation_bucket']) && (string) $row['pre_validation_bucket'] !== (string) ($row['work_bucket'] ?? '')) {
-                $meta[] = '3.8.0 habría quedado: ' . str_replace('_', ' ', (string) $row['pre_validation_bucket']);
+                $meta[] = 'Bucket base antes de gates: ' . str_replace('_', ' ', (string) $row['pre_validation_bucket']);
             }
             $growth_previous = isset($row['growth_quality']['previous']) ? (float) $row['growth_quality']['previous'] : null;
             $growth_current = isset($row['growth_quality']['current']) ? (float) $row['growth_quality']['current'] : null;
@@ -679,10 +702,20 @@ if (!function_exists('seo_analista_render_trends_view')) {
 
 if (!function_exists('seo_analista_render_plan')) {
     function seo_analista_render_plan(array $plan, $limit = 30) {
+        if (function_exists('seo_analista_action_gate_summary')) {
+            $gate_summary = seo_analista_action_gate_summary($plan);
+            echo '<div class="seo-analista-grid compact">';
+            seo_analista_render_metric_card('Auto-resueltas', number_format_i18n((int) ($gate_summary['auto_resolved'] ?? 0)), '', 'Asociaciones que 3.8.2 resolvió con taxonomía/índice local antes de entregar el plan.');
+            seo_analista_render_metric_card('Bloqueo entidad', number_format_i18n((int) ($gate_summary['blocked_entity'] ?? 0)), '', 'Requieren resolver URL, modelo o correspondencia consulta-entidad.');
+            seo_analista_render_metric_card('Bloqueo comercial', number_format_i18n((int) ($gate_summary['blocked_commercial'] ?? 0)), '', 'SEO válido; faltan datos comerciales concretos para desbloquear la ejecución.');
+            seo_analista_render_metric_card('Evidencia insuficiente', number_format_i18n((int) ($gate_summary['blocked_evidence'] ?? 0)), '', 'Señales que esperan volumen mínimo, no investigación genérica.');
+            seo_analista_render_metric_card('Score alto bloqueado', number_format_i18n((int) ($gate_summary['high_value_blocked'] ?? 0)), '', 'Control para detectar oportunidades valiosas retenidas por un gate.');
+            echo '</div>';
+        }
         $groups = array(
             'HACER_AHORA' => array('title'=>'Hacer ahora','description'=>'Solo trabajos con destino y entidad validados, evidencia suficiente y confianza compatible con ejecución. Máximo 10; no se rellena artificialmente.'),
-            'HACER_DESPUES' => array('title'=>'Hacer después','description'=>'Trabajo válido y verificable, pero con menor retorno inmediato, menor urgencia o alguna validación pendiente no bloqueante.'),
-            'INVESTIGAR' => array('title'=>'Investigar antes de tocar contenido','description'=>'Destino, entidad, modelo, surtido o preparación comercial no están suficientemente demostrados.'),
+            'HACER_DESPUES' => array('title'=>'Hacer después','description'=>'Oportunidad válida. Puede ser segunda prioridad o estar temporalmente bloqueada por una dependencia comercial concreta; la tarjeta indica qué la desbloquea.'),
+            'INVESTIGAR' => array('title'=>'Investigar antes de tocar contenido','description'=>'Solo para entidad/destino/modelo no resueltos. Cada tarea debe incluir comprobación concreta, valor actual y condición de desbloqueo.'),
             'VIGILAR' => array('title'=>'Vigilar','description'=>'Señales válidas pero todavía inmaduras para dedicar trabajo de ejecución.'),
             'ESPERAR_DATOS' => array('title'=>'Esperar datos','description'=>'La muestra es demasiado pequeña o inestable; conservar línea base y revisar cuando aumente la evidencia.'),
             'SIN_ACCION' => array('title'=>'Sin acción por ahora','description'=>'No existe evidencia suficiente para dedicar recursos ahora.'),
@@ -709,7 +742,7 @@ if (!function_exists('seo_analista_render_roadmap')) {
         echo '<div class="seo-analista-grid">';
         seo_analista_render_metric_card('Hacer ahora', number_format_i18n((int) ($summary['hacer_ahora'] ?? $summary['high'] ?? 0)), '', 'Máximo 10 trabajos con mejor retorno esperado.');
         seo_analista_render_metric_card('Hacer después', number_format_i18n((int) ($summary['hacer_despues'] ?? 0)), '', 'Oportunidades válidas de segunda prioridad.');
-        seo_analista_render_metric_card('Investigar', number_format_i18n((int) ($summary['investigar'] ?? 0)), '', 'Hay que resolver destino, asociación o comercialidad antes de ejecutar.');
+        seo_analista_render_metric_card('Investigar', number_format_i18n((int) ($summary['investigar'] ?? 0)), '', 'Solo asociación, modelo o destino no resueltos; ya no absorbe bloqueos comerciales.');
         seo_analista_render_metric_card('Vigilar', number_format_i18n((int) ($summary['vigilar'] ?? 0)), '', 'Señales que aún necesitan más evidencia.');
         seo_analista_render_metric_card('Esperar datos', number_format_i18n((int) ($summary['esperar_datos'] ?? 0)), '', 'Muestra demasiado pequeña o inestable para priorizar.');
         seo_analista_render_metric_card('Objetivo autoridad', number_format_i18n((int) ($summary['authority'] ?? 0)), '', 'Trabajos cuyo objetivo principal es ganar autoridad.');
