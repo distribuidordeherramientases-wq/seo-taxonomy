@@ -578,6 +578,9 @@ if (!function_exists('seo_analista_render_directive_rows')) {
             if (!empty($row['match_type'])) $meta[] = 'Match: ' . strtoupper((string) $row['match_type']) . ' ' . absint($row['match_confidence'] ?? 0) . '/100';
             if (!empty($row['confidence_level'])) $meta[] = 'Confianza: ' . strtoupper((string) $row['confidence_level']);
             if (!empty($row['recommended_owner'])) $meta[] = 'Owner: ' . (string) $row['recommended_owner'];
+            if (!empty($row['pre_validation_bucket']) && (string) $row['pre_validation_bucket'] !== (string) ($row['work_bucket'] ?? '')) {
+                $meta[] = '3.8.0 habría quedado: ' . str_replace('_', ' ', (string) $row['pre_validation_bucket']);
+            }
             $growth_previous = isset($row['growth_quality']['previous']) ? (float) $row['growth_quality']['previous'] : null;
             $growth_current = isset($row['growth_quality']['current']) ? (float) $row['growth_quality']['current'] : null;
             if ($growth_previous !== null && $growth_previous <= 0 && $growth_current > 0) {
