@@ -141,6 +141,25 @@ Analista **diagnostica y deriva**. No publica, no crea posts/URLs ni modifica ca
 
 En **Fuentes** se muestran las siete pruebas de aceptación de 3.8.1 y un diagnóstico separado de Action Scheduler para detectar colas vencidas que puedan afectar a la frescura de datos.
 
+
+### Corrección del Plan de acción · Analista 3.8.2
+
+3.8.2 mantiene intactos los demás módulos de Analista y modifica únicamente la **generación/explicación de tareas del Plan de acción**.
+
+Cambios:
+
+- antes de devolver **INVESTIGAR**, intenta resolver la consulta contra la taxonomía `product_cat` y el índice local de entidades ya conocido por Analista;
+- un candidato automático solo se acepta si vuelve a superar la validación de entidad, URL e identificadores; las consultas con modelo no se degradan a categorías genéricas;
+- **INVESTIGAR** queda reservado a conflictos de modelo, entidad no demostrada o destino sin resolver;
+- una oportunidad SEO válida con datos comerciales incompletos pasa a **HACER DESPUÉS** con gate `BLOCKED_COMMERCIAL`, no a INVESTIGAR;
+- una muestra insuficiente pasa a **ESPERAR DATOS**;
+- el **score de oportunidad permanece estable** cuando existe una dependencia: los gates modifican ejecutabilidad/confianza, no la puntuación;
+- cada bloqueo incluye `blocker_type`, `investigation_steps`, valor actual, condición de desbloqueo, responsable y `bucket_if_unblocked`;
+- si se resuelve una dependencia comercial y el bucket base era HACER AHORA, la siguiente ejecución puede devolver la tarea a HACER AHORA sin subir artificialmente el score;
+- el informe muestra un diagnóstico agregado de asociaciones auto-resueltas, bloqueos de entidad, bloqueos comerciales, evidencia insuficiente y tareas de score alto retenidas por un gate.
+
+Ejemplo comercial: una categoría puede tener demanda SEO suficiente pero quedar temporalmente en HACER DESPUÉS porque faltan `stock_categoria`, `precio_categoria`, proveedor, margen/comisión o GA4. La tarjeta enumera exactamente los campos pendientes y qué debe ocurrir para desbloquearla.
+
 ### Informe competitivo profundo
 
 Dentro de **Analista → Comparación**, después de guardar competidores y palabras vigiladas, aparece el bloque **Informe competitivo profundo**.
