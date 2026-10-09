@@ -149,6 +149,27 @@ final class SEO_Ingeniero_Exchange {
                 $source_map[absint($source['id'] ?? 0)] = $source;
             }
 
+            foreach ((array) ($category['raw_sources'] ?? array()) as $raw_source) {
+                if (!is_array($raw_source)) continue;
+                $raw_url = esc_url_raw((string)($raw_source['url'] ?? ''));
+                if ($raw_url === '') { $result['errors']++; continue; }
+
+                $raw_result = SEO_Ingeniero::ingest_raw_source(
+                    $term_id,
+                    sanitize_key((string)($raw_source['lesson'] ?? SEO_Ingeniero::LESSON_TECHNICAL)),
+                    $raw_url,
+                    sanitize_text_field((string)($raw_source['title'] ?? '')),
+                    sanitize_text_field((string)($raw_source['published_at'] ?? ''))
+                );
+                if (is_wp_error($raw_result)) {
+                    $result['errors']++;
+                } else {
+                    $result['sources']++;
+                    $result['knowledge'] += absint($raw_result['knowledge'] ?? 0);
+                    $category_imported_knowledge += absint($raw_result['knowledge'] ?? 0);
+                }
+            }
+
             foreach ((array) ($category['knowledge'] ?? array()) as $knowledge) {
                 $facts = (array) ($knowledge['facts'] ?? array());
                 if (!$facts) {
@@ -217,6 +238,7 @@ final class SEO_Ingeniero_Exchange {
             'source_type',
             'trust_level',
             'evidence',
+            'published_at',
         );
     }
 
@@ -306,7 +328,7 @@ final class SEO_Ingeniero_Exchange {
             return sanitize_key(trim($value));
         }, $headers);
 
-        $required = array('knowledge_type','summary','source_url');
+        $required = array('source_url');
         foreach ($required as $field) {
             if (!in_array($field, $headers, true)) {
                 self::csv_stream_close($handle);
@@ -332,12 +354,29 @@ final class SEO_Ingeniero_Exchange {
             $summary = sanitize_textarea_field((string) ($data['summary'] ?? ''));
             $source_url = esc_url_raw((string) ($data['source_url'] ?? ''));
 
-            if ($type === '' || $summary === '' || $source_url === '') {
-                $groups['__errors'][] = 'Línea ' . $line . ': knowledge_type, summary y source_url son obligatorios.';
+            if ($source_url === '') {
+                $groups['__errors'][] = 'Línea ' . $line . ': source_url es obligatorio.';
                 continue;
             }
 
             $category_key = $term_id ? 'id:' . $term_id : ($slug ? 'slug:' . $slug : 'name:' . strtolower($name));
+
+            // Una fila sin knowledge_type/summary se interpreta como fuente cruda.
+            // Ingeniero la descargará, clasificará y extraerá conocimiento para revisión.
+            if ($type === '' || $summary === '') {
+                if (!isset($groups['__raw__'])) $groups['__raw__'] = array();
+                $groups['__raw__'][] = array(
+                    'term_id'=>$term_id,
+                    'category_slug'=>$slug,
+                    'category_name'=>$name,
+                    'lesson'=>$lesson,
+                    'source_url'=>$source_url,
+                    'source_title'=>sanitize_text_field((string)($data['source_title'] ?? '')),
+                    'published_at'=>sanitize_text_field((string)($data['published_at'] ?? '')),
+                );
+                continue;
+            }
+
             $group_key = $category_key . '|' . $lesson . '|' . $type;
 
             if (!isset($groups[$group_key])) {
@@ -378,7 +417,8 @@ final class SEO_Ingeniero_Exchange {
         self::csv_stream_close($handle);
 
         $errors = isset($groups['__errors']) ? $groups['__errors'] : array();
-        unset($groups['__errors']);
+        $raw_rows = isset($groups['__raw__']) ? $groups['__raw__'] : array();
+        unset($groups['__errors'],$groups['__raw__']);
 
         $categories = array();
         foreach ($groups as $group) {
@@ -422,6 +462,28 @@ final class SEO_Ingeniero_Exchange {
                 'tags'=>$group['tags'],
                 'facts'=>$facts,
                 'status'=>'review',
+            );
+        }
+
+        foreach ($raw_rows as $raw) {
+            $category_key = !empty($raw['term_id'])
+                ? 'id:' . absint($raw['term_id'])
+                : (!empty($raw['category_slug']) ? 'slug:' . $raw['category_slug'] : 'name:' . strtolower((string)$raw['category_name']));
+            if (!isset($categories[$category_key])) {
+                $categories[$category_key] = array(
+                    'term_id'=>absint($raw['term_id'] ?? 0),
+                    'category_slug'=>(string)($raw['category_slug'] ?? ''),
+                    'category_name'=>(string)($raw['category_name'] ?? ''),
+                    'sources'=>array(),
+                    'knowledge'=>array(),
+                    'raw_sources'=>array(),
+                );
+            }
+            $categories[$category_key]['raw_sources'][] = array(
+                'lesson'=>sanitize_key((string)($raw['lesson'] ?? SEO_Ingeniero::LESSON_TECHNICAL)),
+                'url'=>esc_url_raw((string)($raw['source_url'] ?? '')),
+                'title'=>sanitize_text_field((string)($raw['source_title'] ?? '')),
+                'published_at'=>sanitize_text_field((string)($raw['published_at'] ?? '')),
             );
         }
 

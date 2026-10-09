@@ -38,6 +38,17 @@ if (!function_exists('seo_analista_action_meta')) {
             'INVESTIGAR_CATALOGO' => array('label' => 'Investigar hueco de catálogo', 'channel' => 'catalogo'),
             'INVESTIGAR_PRODUCTO' => array('label' => 'Cubrir demanda interna', 'channel' => 'catalogo'),
             'REVISAR_PROVEEDOR' => array('label' => 'Revisar proveedor', 'channel' => 'proveedores'),
+            'CORREGIR_ASOCIACION' => array('label' => 'Corregir asociación', 'channel' => 'seo'),
+            'REVISAR_ENLAZADO' => array('label' => 'Revisar enlazado interno', 'channel' => 'seo'),
+            'REVISAR_META' => array('label' => 'Revisar title/meta efectivos', 'channel' => 'contenido'),
+            'REVISAR_TECNICO' => array('label' => 'Revisar incidencia técnica', 'channel' => 'seo'),
+            'MEJORAR_COBERTURA' => array('label' => 'Mejorar cobertura específica', 'channel' => 'contenido'),
+            'REVISAR_OFERTA_PRECIO' => array('label' => 'Revisar oferta y precio', 'channel' => 'catalogo'),
+            'INVESTIGAR_SURTIDO' => array('label' => 'Investigar surtido', 'channel' => 'catalogo'),
+            'MEJORAR_FICHA' => array('label' => 'Mejorar ficha', 'channel' => 'contenido'),
+            'ACTUALIZAR_CONTENIDO' => array('label' => 'Actualizar contenido existente', 'channel' => 'contenido'),
+            'INVESTIGAR_COBERTURA' => array('label' => 'Investigar cobertura/destino', 'channel' => 'seo'),
+            'ESPERAR_DATOS' => array('label' => 'Esperar datos', 'channel' => 'seguimiento'),
             'VIGILAR' => array('label' => 'Vigilar', 'channel' => 'seguimiento'),
         );
         return $map[$code] ?? array('label' => ucwords(strtolower(str_replace('_', ' ', (string) $code))), 'channel' => 'seo');
@@ -175,6 +186,7 @@ if (!function_exists('seo_analista_google_plan')) {
                 'action_label' => $meta['label'],
                 'channel' => $meta['channel'],
                 'topic' => $display_topic,
+                'query' => $topic,
                 'reason' => $reason,
                 'sources' => $sources,
                 'source' => implode(' + ', $sources),
@@ -183,10 +195,16 @@ if (!function_exists('seo_analista_google_plan')) {
                 'intent' => $intent,
                 'metrics' => array(
                     'impressions' => (float) ($metrics['impressions'] ?? 0),
+                    'clicks' => (float) ($metrics['clicks'] ?? 0),
+                    'ctr' => (float) ($metrics['ctr'] ?? 0),
                     'position' => (float) ($metrics['position'] ?? 0),
+                    'queries' => max(1, (int) ($metrics['queries'] ?? 1)),
+                    'previous_impressions' => (float) ($metrics['previous_impressions'] ?? 0),
+                    'impressions_delta' => (float) ($metrics['impressions_delta'] ?? 0),
                     'search_score' => (float) ($metrics['search_score'] ?? 0),
                     'market_score' => (float) ($metrics['market_score'] ?? 0),
                 ),
+                'period' => array('days'=>$days,'label'=>$days . ' días'),
                 'catalog' => array(
                     'category' => $category,
                     'products' => $products,
@@ -213,6 +231,7 @@ if (!function_exists('seo_analista_google_plan')) {
             if ($candidate['priority'] > $existing['priority']) {
                 $existing['priority'] = $candidate['priority'];
                 $existing['reason'] = $candidate['reason'];
+                $existing['query'] = $candidate['query'];
                 $existing['metrics'] = $candidate['metrics'];
                 $existing['market'] = $candidate['market'];
                 $existing['target'] = $candidate['target'];

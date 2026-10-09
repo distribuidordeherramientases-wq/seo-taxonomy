@@ -656,6 +656,18 @@ final class SEO_Ojeador_Shopping {
         if (!empty($options['page'])) {
             $args['page'] = max(1, absint($options['page']));
         }
+        // Ingeniero L3 puede solicitar resultados de actualidad sin crear un
+        // proveedor paralelo. SerpApi admite Google News mediante tbm=nws.
+        // El fallback ScraperAPI conserva la misma consulta web cuando no
+        // soporte ese modificador estructurado.
+        if (!empty($options['news'])) {
+            $args['tbm'] = 'nws';
+            $days = max(1, min(365, absint($options['recency_days'] ?? 90)));
+            if ($days <= 1) $args['tbs'] = 'qdr:d';
+            elseif ($days <= 7) $args['tbs'] = 'qdr:w';
+            elseif ($days <= 31) $args['tbs'] = 'qdr:m';
+            else $args['tbs'] = 'qdr:y';
+        }
 
         return self::provider_chain_request('search', $args, $trace);
     }

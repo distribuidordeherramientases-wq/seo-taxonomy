@@ -103,9 +103,14 @@ final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provi
         self::record_request();
 
         $provider_trace = array();
+        $options = array('num'=>absint($settings['results_per_query']));
+        if (sanitize_key((string)($context['lesson'] ?? '')) === SEO_Ingeniero::LESSON_CURRENT) {
+            $options['news'] = 1;
+            $options['recency_days'] = 90;
+        }
         $body = SEO_Ojeador_Shopping::search_google_web(
             $query,
-            array('num'=>absint($settings['results_per_query'])),
+            $options,
             $provider_trace
         );
         if (is_wp_error($body)) {

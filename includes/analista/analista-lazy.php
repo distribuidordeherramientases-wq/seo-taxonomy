@@ -38,7 +38,7 @@ if (!function_exists('seo_analista_lazy_reports')) {
             ),
             'trabajo' => array(
                 'label' => 'Plan de acción',
-                'description' => 'Máximo 10 HACER AHORA, priorizados por cercanía a Top 10, impacto, confianza y tipo de intervención.',
+                'description' => 'Cola validada: máximo 10 HACER AHORA y, cuando falta evidencia, INVESTIGAR / VIGILAR / ESPERAR DATOS.',
             ),
             'competencia' => array(
                 'label' => 'Competencia',
@@ -284,6 +284,24 @@ if (!function_exists('seo_analista_lazy_render_sources')) {
         $competition = seo_analista_competition_snapshot(20);
         $suppliers = seo_analista_supplier_snapshot(20);
         seo_analista_render_sources($health, $competition, $suppliers);
+
+        if (function_exists('seo_analista_action_scheduler_health')) {
+            $scheduler = seo_analista_action_scheduler_health();
+            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Frescura operativa · Action Scheduler</h2><p>Se revisa por separado porque una cola vencida puede dejar fuentes desactualizadas sin que el dato parezca erróneo.</p></div></div>';
+            echo '<p><strong>Estado:</strong> ' . esc_html(strtoupper((string) ($scheduler['state'] ?? 'unknown'))) . ' · <strong>vencidas detectadas:</strong> ' . esc_html(number_format_i18n(absint($scheduler['overdue'] ?? 0))) . '</p>';
+            echo '<p class="description">' . esc_html((string) ($scheduler['detail'] ?? '')) . '</p></section>';
+        }
+
+        if (function_exists('seo_analista_381_self_tests')) {
+            $tests = seo_analista_381_self_tests();
+            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Pruebas Analista 3.8.1</h2><p>Casos de aceptación de matching, destino, muestra mínima, metadatos efectivos y crecimiento sobre bases pequeñas.</p></div></div>';
+            echo '<p><strong>' . esc_html(number_format_i18n(absint($tests['passed'] ?? 0))) . '/' . esc_html(number_format_i18n(absint($tests['total'] ?? 0))) . '</strong> pruebas superadas.</p>';
+            echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Prueba</th><th>Estado</th><th>Regla</th></tr></thead><tbody>';
+            foreach ((array) ($tests['tests'] ?? array()) as $test) {
+                echo '<tr><td><code>' . esc_html((string) ($test['code'] ?? '')) . '</code></td><td>' . (!empty($test['passed']) ? '<strong style="color:#0a7a37">OK</strong>' : '<strong style="color:#b42318">FALLO</strong>') . '</td><td>' . esc_html((string) ($test['detail'] ?? '')) . '</td></tr>';
+            }
+            echo '</tbody></table></div></section>';
+        }
     }
 }
 

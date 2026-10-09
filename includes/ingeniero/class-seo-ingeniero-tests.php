@@ -1,6 +1,6 @@
 <?php
 /**
- * Pruebas funcionales deterministas del proceso editorial de Ingeniero 0.3.4.
+ * Pruebas funcionales deterministas del proceso editorial de Ingeniero 0.5.0.
  *
  * No crean posts, no modifican conocimiento y no llaman a servicios externos.
  */
@@ -22,8 +22,11 @@ final class SEO_Ingeniero_Tests {
         self::add(
             $tests,
             'ING-ED-001',
-            count($groups)===1 && absint($groups['technical-overview'] ?? 0)===4,
-            'Una categoría produce un único dossier technical-overview con TODO el knowledge activo.'
+            count($groups)===3
+                && absint($groups['technical-foundations'] ?? 0)===2
+                && absint($groups['technical-selection'] ?? 0)===1
+                && absint($groups['technical-safety'] ?? 0)===1,
+            'Una categoría se divide en temas editoriales técnicos en lugar de un único dossier monolítico.'
         );
 
         $mixed = array_merge($base,array(
@@ -34,8 +37,12 @@ final class SEO_Ingeniero_Tests {
         self::add(
             $tests,
             'ING-ED-002',
-            count($mixed_groups)===1 && absint($mixed_groups['technical-overview'] ?? 0)===6,
-            'No se descartan familias con una sola pieza ni se divide el dossier por masa editorial.'
+            count($mixed_groups)===4
+                && absint($mixed_groups['technical-foundations'] ?? 0)===2
+                && absint($mixed_groups['technical-selection'] ?? 0)===1
+                && absint($mixed_groups['technical-maintenance'] ?? 0)===1
+                && absint($mixed_groups['technical-safety'] ?? 0)===2,
+            'Los hallazgos se agrupan por tema sin crear un post por cada evidencia.'
         );
 
         $hash_a = SEO_Ingeniero::editorial_source_hash_for_test($mixed,array(11,12,13,14,15,16));
@@ -49,10 +56,10 @@ final class SEO_Ingeniero_Tests {
 
         $actions=array(
             SEO_Ingeniero::editorial_action_for_test(array('status'=>'uncovered'),1,1,0.40)==='CREATE_POST',
-            SEO_Ingeniero::editorial_action_for_test(array('status'=>'partial_coverage','post_id'=>33),1,1,0.40)==='IMPROVE_POST',
-            SEO_Ingeniero::editorial_action_for_test(array('status'=>'duplicate'),1,1,0.40)==='MERGE_CONTENT',
-            SEO_Ingeniero::editorial_action_for_test(array('status'=>'covered'),1,1,0.40)==='NO_ACTION',
-            SEO_Ingeniero::editorial_action_for_test(array('status'=>'uncovered'),0,0,0.00)==='NEEDS_REVIEW',
+            SEO_Ingeniero::editorial_action_for_test(array('status'=>'partial_coverage','post_id'=>33),1,1,0.40)==='IMPROVE_EXISTING_POST',
+            SEO_Ingeniero::editorial_action_for_test(array('status'=>'duplicate'),1,1,0.40)==='DISCARD',
+            SEO_Ingeniero::editorial_action_for_test(array('status'=>'covered'),1,1,0.40)==='DISCARD',
+            SEO_Ingeniero::editorial_action_for_test(array('status'=>'uncovered'),0,0,0.00)==='DISCARD',
         );
         self::add(
             $tests,
@@ -155,13 +162,13 @@ final class SEO_Ingeniero_Tests {
         );
 
         $export_contract=defined('SEO_Ingeniero_DB::EDITORIAL_EXPORT_CONTRACT')
-            && SEO_Ingeniero_DB::EDITORIAL_EXPORT_CONTRACT==='full-category-dossier-v1'
+            && SEO_Ingeniero_DB::EDITORIAL_EXPORT_CONTRACT==='topic-dossier-v2'
             && method_exists('SEO_Ingeniero_DB','export_payload');
         self::add(
             $tests,
             'ING-ED-012',
             $export_contract,
-            'El export declara el contrato full-category-dossier-v1 sin cargar el corpus completo durante la prueba.'
+            'El export declara el contrato topic-dossier-v2 sin cargar el corpus completo durante la prueba.'
         );
 
         return $tests;

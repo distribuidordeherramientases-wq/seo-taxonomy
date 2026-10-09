@@ -365,7 +365,7 @@ final class SEO_Ingeniero_Admin {
 
         echo '<div class="wrap seo-ingeniero-admin">';
         echo '<h1>Ingeniero <small style="font-weight:400;color:#646970">v' . esc_html(SEO_INGENIERO_VERSION) . '</small></h1>';
-        echo '<p><strong>Servicio técnico y editorial independiente.</strong> Investiga por categoría, conserva trazabilidad de fuentes y prepara dossiers técnicos para la Editora. No depende de Solucionador para decidir sus posts.</p>';
+        echo '<p><strong>Servicio de investigación externa y editorial.</strong> Investiga por categoría y clasifica cada fuente/evidencia como <strong>L1 técnica</strong>, <strong>L2 práctica</strong> o <strong>L3 actualidad</strong>, conservando trazabilidad para su uso editorial posterior.</p>';
         echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Ingeniero">';
         foreach (array('research'=>'Investigación', 'editorial'=>'Editorial', 'data'=>'Datos y fuentes', 'tests'=>'Pruebas') as $key=>$label) {
             echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' . esc_url(self::page_url($key)) . '">' . esc_html($label) . '</a>';
@@ -405,14 +405,14 @@ final class SEO_Ingeniero_Admin {
         echo '<section class="seo-ingeniero">';
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h2 style="margin-top:0">Ingeniero</h2>';
-        echo '<p>Investigación técnica por categoría. Ingeniero consulta fuentes externas, crea una síntesis propia y conserva siempre la referencia al origen. La salida editorial se gestiona aparte en la pestaña <strong>Editorial</strong> y nunca autopublica.</p>';
-        echo '<p class="description">Separación deliberada: <code>seo_dependiente_index</code> sigue representando nuestro catálogo; <code>seo_ingeniero_knowledge</code> conserva teoría externa trazable por fuentes.</p>';
+        echo '<p>Ingeniero investiga cada categoría en tres capas: <strong>L1 técnica</strong>, <strong>L2 práctica/comunidad</strong> y <strong>L3 actualidad sectorial</strong>. Cada evidencia conserva su capa, subtipo, fuente, confianza y fecha. La salida editorial se gestiona aparte y nunca autopublica.</p>';
+        echo '<p class="description">Separación deliberada: L1 puede respaldar hechos técnicos; L2 conserva preguntas/experiencias sin elevarlas automáticamente a hecho; L3 conserva novedades con fecha y vigencia.</p>';
         echo '</div>';
 
         self::render_kpis($all_candidates, $stats_map, $category_states, $totals, $state);
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h3 style="margin-top:0">Lección 1 · Documentación técnica</h3>';
+        echo '<h3 style="margin-top:0">Investigación externa L1 / L2 / L3</h3>';
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_prepare">';
@@ -468,8 +468,10 @@ final class SEO_Ingeniero_Admin {
         if ($detail_term_id) self::render_category_detail($detail_term_id);
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h3 style="margin-top:0">Lección 2 · Experiencia práctica</h3>';
-        echo '<p><strong>Desactivada en v1.</strong> Queda reservada para foros, comunidades profesionales y experiencia de uso. Sus evidencias se marcarán como experiencia/opinión y nunca se elevarán automáticamente a hecho técnico.</p>';
+        echo '<h3 style="margin-top:0">Capas de conocimiento activas</h3>';
+        echo '<p><strong>L1 · Técnica:</strong> manuales, fichas, fabricantes, organismos y normativa.</p>';
+        echo '<p><strong>L2 · Práctica:</strong> foros, Reddit, comunidades, dudas, problemas, comparaciones y casos de uso. Sus señales no se convierten automáticamente en hechos técnicos.</p>';
+        echo '<p><strong>L3 · Actualidad:</strong> noticias, lanzamientos, nuevas gamas, cambios tecnológicos, ferias y actualizaciones de fabricante. Se conserva fecha y fuente para revisar vigencia.</p>';
         echo '</div>';
 
         echo '</section>';
@@ -501,10 +503,10 @@ final class SEO_Ingeniero_Admin {
 
         echo '<section class="seo-ingeniero-editorial">';
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
-        echo '<h2 style="margin-top:0">Editorial técnico</h2>';
-        echo '<p>Convierte <strong>todo el conocimiento active y trazable de cada product_cat</strong> en un único dossier técnico. Ingeniero recomienda <code>CREATE_POST</code>, <code>IMPROVE_POST</code>, <code>MERGE_CONTENT</code>, <code>NO_ACTION</code> o <code>NEEDS_REVIEW</code>, pero no vuelve a filtrar el knowledge que ya fue aceptado por la investigación.</p>';
-        echo '<p class="description">Cada knowledge activo se presenta a Editora como una pregunta-respuesta técnica, conservando tipo, confianza, evidencias y fuentes. La acción recomendada es diagnóstica: tras aprobación humana, el dossier activo se convierte en borrador aunque la cobertura indique MERGE_CONTENT o NO_ACTION. Nunca se publica automáticamente.</p>';
-        echo '<p><strong>Regla 0.3.3:</strong> una categoría = un dossier <code>technical-overview</code>. No se descartan bloques por tener una sola evidencia o por no alcanzar masa de una familia editorial. Investigación mantiene como objetivo <strong>4 knowledge activos por categoría</strong>.</p>';
+        echo '<h2 style="margin-top:0">Editorial por temas</h2>';
+        echo '<p>Ingeniero agrupa la investigación L1/L2/L3 por <strong>tema editorial</strong>. Una categoría puede producir cero, una o varias propuestas cuando exista masa suficiente y no haya contenido equivalente.</p>';
+        echo '<p class="description">Acciones: <code>CREATE_POST</code>, <code>IMPROVE_EXISTING_POST</code>, <code>CREATE_FAQ</code>, <code>WATCH</code> y <code>DISCARD</code>. L2 se trata como experiencia/opinión; L3 conserva frescura; ningún contenido se publica automáticamente.</p>';
+        echo '<p><strong>Regla 0.5.0:</strong> la unidad editorial es el tema, no la categoría. Los temas técnicos y prácticos relacionados pueden fusionarse en un dossier mixto para evitar posts duplicados.</p>';
         echo '</div>';
 
         $cards = array(
@@ -513,10 +515,10 @@ final class SEO_Ingeniero_Admin {
             'Categorías <4'=>$categories_below_target,
             'Dossiers'=>$counts['total'] ?? 0,
             'Crear post'=>$counts['CREATE_POST'] ?? 0,
-            'Mejorar'=>$counts['IMPROVE_POST'] ?? 0,
-            'Fusionar'=>$counts['MERGE_CONTENT'] ?? 0,
-            'Sin acción'=>$counts['NO_ACTION'] ?? 0,
-            'Revisión'=>$counts['NEEDS_REVIEW'] ?? 0,
+            'Mejorar'=>$counts['IMPROVE_EXISTING_POST'] ?? 0,
+            'Crear FAQ'=>$counts['CREATE_FAQ'] ?? 0,
+            'Vigilar'=>$counts['WATCH'] ?? 0,
+            'Descartar'=>$counts['DISCARD'] ?? 0,
             'Borradores'=>$counts['draft'] ?? 0,
             'Publicados'=>$counts['published'] ?? 0,
             'Necesitan actualizar'=>$counts['needs_update'] ?? 0,
@@ -548,7 +550,7 @@ final class SEO_Ingeniero_Admin {
         }
         echo '</select></label>';
         echo '<label>Acción<br><select name="editorial_action"><option value="">Todas</option>';
-        foreach (array('CREATE_POST','IMPROVE_POST','MERGE_CONTENT','NO_ACTION','NEEDS_REVIEW') as $key) {
+        foreach (array('CREATE_POST','IMPROVE_EXISTING_POST','CREATE_FAQ','WATCH','DISCARD') as $key) {
             echo '<option value="' . esc_attr($key) . '" ' . selected($action,$key,false) . '>' . esc_html($key) . '</option>';
         }
         echo '</select></label>';
@@ -568,7 +570,10 @@ final class SEO_Ingeniero_Admin {
             echo '<td><code>' . esc_html((string) ($row['recommended_action'] ?? '')) . '</code></td>';
             echo '<td><code>' . esc_html((string) ($row['coverage_status'] ?? '')) . '</code></td>';
             echo '<td><code>' . esc_html((string) ($row['status'] ?? '')) . '</code></td>';
-            echo '<td><strong>' . esc_html(number_format_i18n(count((array)($row['knowledge_ids'] ?? array())))) . ' Q&A técnicas</strong><br>' . esc_html(number_format_i18n(count((array)($row['source_ids'] ?? array())))) . ' fuentes</td>';
+            echo '<td><strong>' . esc_html(number_format_i18n(absint($row['evidence_count'] ?? count((array)($row['knowledge_ids'] ?? array()))))) . ' evidencias</strong><br>'
+                . esc_html(number_format_i18n(absint($row['domain_count'] ?? 0))) . ' dominios · '
+                . esc_html((string)($row['primary_layer'] ?? '')) . ' · '
+                . esc_html((string)($row['content_type'] ?? '')) . '</td>';
             echo '<td>';
             if ($post_id && 'post' === get_post_type($post_id)) {
                 echo '<a href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">#' . esc_html($post_id) . ' · ' . esc_html((string) get_post_status($post_id)) . '</a>';
@@ -593,12 +598,12 @@ final class SEO_Ingeniero_Admin {
             self::render_editorial_action_button($id, 'reanalyze', 'Reanalizar', 'secondary');
             if (in_array((string) ($row['status'] ?? ''), array('candidate','review','needs_update'), true)) {
                 $approve_label = (
-                    'CREATE_POST' === strtoupper((string) ($row['recommended_action'] ?? ''))
+                    in_array(strtoupper((string)($row['recommended_action'] ?? '')),array('CREATE_POST','CREATE_FAQ'),true)
                     && !$post_id
                 ) ? 'Aprobar y crear borrador' : 'Aprobar';
                 self::render_editorial_action_button($id, 'approve', $approve_label, 'primary');
             }
-            if ('approved' === (string) ($row['status'] ?? '') && 'CREATE_POST' === strtoupper((string) ($row['recommended_action'] ?? '')) && !$post_id) {
+            if ('approved' === (string) ($row['status'] ?? '') && in_array(strtoupper((string)($row['recommended_action'] ?? '')),array('CREATE_POST','CREATE_FAQ'),true) && !$post_id) {
                 self::render_editorial_action_button($id, 'create_draft', 'Crear borrador', 'primary');
             }
             echo '</td></tr>';
@@ -639,9 +644,9 @@ final class SEO_Ingeniero_Admin {
         $dossier = (array) ($brief['dossier'] ?? array());
         $category = (array) ($brief['category'] ?? array());
         echo '<div id="ingeniero-editorial-brief" class="postbox" style="padding:18px;margin-top:18px">';
-        echo '<h2 style="margin-top:0">Brief técnico para Editora</h2>';
+        echo '<h2 style="margin-top:0">Brief editorial para Editora</h2>';
         echo '<p><strong>' . esc_html((string) ($dossier['suggested_title'] ?? '')) . '</strong></p>';
-        echo '<p>Categoría: <strong>' . esc_html((string) ($category['name'] ?? '')) . '</strong> · Tema: <code>' . esc_html((string) ($dossier['topic_key'] ?? '')) . '</code> · Acción: <code>' . esc_html((string) ($dossier['recommended_action'] ?? '')) . '</code>.</p>';
+        echo '<p>Categoría: <strong>' . esc_html((string) ($category['name'] ?? '')) . '</strong> · Tema: <code>' . esc_html((string) ($dossier['topic_key'] ?? '')) . '</code> · Acción: <code>' . esc_html((string) ($dossier['recommended_action'] ?? '')) . '</code> · Capa: <code>' . esc_html((string)($dossier['primary_layer'] ?? '')) . '</code> · Tipo: <code>' . esc_html((string)($dossier['content_type'] ?? '')) . '</code>.</p>';
 
         $qa_items=(array)($brief['qa_items'] ?? array());
         echo '<h3>Preguntas y respuestas técnicas · ' . esc_html(number_format_i18n(count($qa_items))) . '</h3>';
@@ -894,17 +899,50 @@ final class SEO_Ingeniero_Admin {
     private static function render_category_detail($term_id) {
         $term = get_term($term_id, 'product_cat');
         if (!$term || is_wp_error($term)) return;
-        $sources = SEO_Ingeniero_DB::sources_for_category($term_id);
-        $knowledge = SEO_Ingeniero_DB::knowledge_for_category($term_id, false);
+
+        $requested_layer = sanitize_key((string) ($_GET['info_layer'] ?? 'all'));
+        $allowed_layers = array(
+            'all'=>'Todas',
+            SEO_Ingeniero::LESSON_TECHNICAL=>'L1 · Técnica',
+            SEO_Ingeniero::LESSON_PRACTICAL=>'L2 · Práctica',
+            SEO_Ingeniero::LESSON_CURRENT=>'L3 · Actualidad',
+        );
+        if (!isset($allowed_layers[$requested_layer])) $requested_layer = 'all';
+
+        $lessons = $requested_layer === 'all'
+            ? array(SEO_Ingeniero::LESSON_TECHNICAL, SEO_Ingeniero::LESSON_PRACTICAL, SEO_Ingeniero::LESSON_CURRENT)
+            : array($requested_layer);
+
+        $sources = array();
+        $knowledge = array();
+        foreach ($lessons as $lesson) {
+            foreach (SEO_Ingeniero_DB::sources_for_category($term_id, $lesson) as $row) {
+                $row['lesson'] = $lesson;
+                $sources[] = $row;
+            }
+            foreach (SEO_Ingeniero_DB::knowledge_for_category($term_id, false, $lesson) as $row) {
+                $row['lesson'] = $lesson;
+                $knowledge[] = $row;
+            }
+        }
 
         echo '<div id="ingeniero-review" class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Revisión · ' . esc_html((string) $term->name) . '</h3>';
-        echo '<p>El conocimiento activo alimenta el Clasificador y el proceso editorial propio de Ingeniero. La publicación pública sólo aparece cuando la Editora publica un post con rol <code>ingeniero_qa_specialized</code>.</p>';
+        echo '<p>Filtra la evidencia por capa para distinguir datos técnicos, señales prácticas y actualidad antes de decidir su uso editorial.</p>';
+
+        echo '<p style="display:flex;gap:6px;flex-wrap:wrap">';
+        foreach ($allowed_layers as $key=>$label) {
+            $url = self::page_url('research', array('term_id'=>$term_id,'info_layer'=>$key));
+            echo '<a class="button ' . ($requested_layer === $key ? 'button-primary' : '') . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+        }
+        echo '</p>';
 
         echo '<h4>Conocimiento consolidado</h4>';
-        echo '<table class="widefat striped"><thead><tr><th>Tipo</th><th>Resumen/evidencia</th><th>Confianza</th><th>Estado</th><th>Revisión</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th>Capa</th><th>Subtipo</th><th>Resumen/evidencia</th><th>Confianza</th><th>Estado</th><th>Revisión</th></tr></thead><tbody>';
         foreach ($knowledge as $row) {
-            echo '<tr><td><code>' . esc_html((string) ($row['knowledge_type'] ?? '')) . '</code></td>';
+            $lesson = sanitize_key((string) ($row['lesson'] ?? SEO_Ingeniero::LESSON_TECHNICAL));
+            echo '<tr><td><strong>' . esc_html(SEO_Ingeniero::lesson_label($lesson)) . '</strong></td>';
+            echo '<td><code>' . esc_html((string) ($row['knowledge_type'] ?? '')) . '</code></td>';
             echo '<td><strong>Síntesis propia:</strong> ' . esc_html((string) ($row['summary'] ?? ''));
             $facts = isset($row['facts']) && is_array($row['facts']) ? $row['facts'] : array();
             if ($facts) {
@@ -913,7 +951,10 @@ final class SEO_Ingeniero_Admin {
                     $url = esc_url((string) ($fact['source_url'] ?? ''));
                     $title = (string) ($fact['source_title'] ?? '');
                     $evidence = (string) ($fact['evidence'] ?? '');
-                    echo '<li style="margin-bottom:8px">' . esc_html($evidence);
+                    $etype = sanitize_key((string) ($fact['evidence_type'] ?? ''));
+                    echo '<li style="margin-bottom:8px">';
+                    if ($etype !== '') echo '<code>' . esc_html($etype) . '</code> ';
+                    echo esc_html($evidence);
                     if ($url) {
                         echo '<br><a href="' . esc_url($url) . '" target="_blank" rel="noopener">Fuente: ' . esc_html($title ?: $url) . '</a>';
                     }
@@ -932,18 +973,20 @@ final class SEO_Ingeniero_Admin {
             echo '<button class="button button-small" name="decision" value="reject">Rechazar</button>';
             echo '</form></td></tr>';
         }
-        if (!$knowledge) echo '<tr><td colspan="5">Todavía no hay conocimiento consolidado.</td></tr>';
+        if (!$knowledge) echo '<tr><td colspan="6">Todavía no hay conocimiento consolidado para esta capa.</td></tr>';
         echo '</tbody></table>';
 
-        echo '<h4 style="margin-top:20px">Fuentes originales consultadas</h4><p class="description">Estas referencias permiten comprobar el origen. El texto de Ingeniero no se publica copiando estas fuentes: se conserva evidencia breve y se genera una síntesis separada.</p>';
-        echo '<table class="widefat striped"><thead><tr><th>Fuente</th><th>Tipo</th><th>Confianza</th><th>Estado</th></tr></thead><tbody>';
+        echo '<h4 style="margin-top:20px">Fuentes originales consultadas</h4>';
+        echo '<table class="widefat striped"><thead><tr><th>Capa</th><th>Fuente</th><th>Tipo</th><th>Confianza</th><th>Estado</th></tr></thead><tbody>';
         foreach ($sources as $source) {
-            echo '<tr><td><a href="' . esc_url((string) $source['url']) . '" target="_blank" rel="noopener">' . esc_html((string) ($source['title'] ?: $source['domain'])) . '</a><div class="description">' . esc_html((string) $source['domain']) . '</div></td>';
+            $lesson = sanitize_key((string) ($source['lesson'] ?? SEO_Ingeniero::LESSON_TECHNICAL));
+            echo '<tr><td><strong>' . esc_html(SEO_Ingeniero::lesson_label($lesson)) . '</strong></td>';
+            echo '<td><a href="' . esc_url((string) $source['url']) . '" target="_blank" rel="noopener">' . esc_html((string) ($source['title'] ?: $source['domain'])) . '</a><div class="description">' . esc_html((string) $source['domain']) . '</div></td>';
             echo '<td><code>' . esc_html((string) $source['source_type']) . '</code></td>';
             echo '<td>' . esc_html((string) $source['trust_level']) . '</td>';
             echo '<td><code>' . esc_html((string) $source['status']) . '</code></td></tr>';
         }
-        if (!$sources) echo '<tr><td colspan="4">No hay fuentes guardadas.</td></tr>';
+        if (!$sources) echo '<tr><td colspan="5">No hay fuentes guardadas para esta capa.</td></tr>';
         echo '</tbody></table>';
 
         echo '<p style="margin-top:15px"><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';

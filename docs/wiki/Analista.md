@@ -22,6 +22,27 @@ La separación es:
 - **Analista** interpreta comportamiento, demanda y mercado.
 - **Solucionador** utiliza ambas capas para tomar decisiones editoriales.
 
+## Analista 3.8.1 · validación antes de ejecutar
+
+La cola de trabajo deja de tratar una señal estadística como una instrucción suficiente por sí sola. Antes de priorizar valida **consulta, entidad, destino, evidencia y preparación comercial**.
+
+Reglas principales:
+
+- una consulta de modelo/variante que contradice el producto atribuido produce **CORREGIR ASOCIACIÓN / INVESTIGAR**;
+- una categoría amplia no absorbe consultas específicas de otro tipo/modelo solo por parentesco taxonómico;
+- una URL no resuelta produce **INVESTIGAR COBERTURA** y nunca “mejorar esta URL”;
+- 1–4 impresiones (por defecto, configurable) se tratan como muestra baja y no convierten una posición 5–20 en quick win fiable;
+- los porcentajes de crecimiento muestran también base anterior y variación absoluta;
+- title/meta se consideran efectivos cuando los gestiona postmeta, una plantilla de plugin SEO o el fallback público del sitio;
+- antes de proponer una nueva URL se comprueba cobertura publicada de Dependiente, Ingeniero y Comparador relacionada con la categoría;
+- para objetivos de ventas, stock, precio, proveedor y margen/comisión se separan de la señal SEO; si faltan, la preparación comercial queda explícitamente no verificada.
+
+La prioridad y la confianza son dimensiones independientes. Los buckets operativos son **HACER AHORA, HACER DESPUÉS, INVESTIGAR, VIGILAR y ESPERAR DATOS**. HACER AHORA está limitado a diez trabajos y no se rellena artificialmente.
+
+Cada tarea expone un contrato auditable con task_id, entidad, URL objetivo, consulta, match, evidencia, métricas, prioridad, confianza, objetivo, acción atómica, dependencias, responsable, baseline y revisión 28/60/90 días.
+
+Analista sigue siendo **solo diagnóstico y derivación**. No crea ni publica contenido, no modifica categorías y no abre workers adicionales.
+
 ## Informe competitivo profundo
 
 Analista puede generar, bajo demanda, un **informe competitivo profundo** a partir de los dominios configurados en la vista Comparación.
