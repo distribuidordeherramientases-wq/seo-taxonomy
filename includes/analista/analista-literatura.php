@@ -627,6 +627,7 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
             'target' => array('title' => (string) $title, 'url' => (string) $url),
             'issues' => array_values(array_unique((array) $profile['issues'])),
             'recommended_changes' => array_values(array_unique((array) $profile['recommended_changes'])),
+            'seo_meta' => $seo_meta,
             'content' => array(
                 'word_count' => (int) $profile['word_count'],
                 'excerpt_word_count' => (int) $profile['excerpt_word_count'],
