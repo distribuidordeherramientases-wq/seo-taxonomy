@@ -720,6 +720,28 @@ if (!function_exists('seo_analista_persist_task_baselines')) {
                 $existing['status'] = 'proposed';
                 $existing['action_executed'] = '';
             }
+
+            /*
+             * Analista no administra tareas: Auditor u otra capa de workflow
+             * puede aportar estado/accion ejecutada mediante este filtro.
+             */
+            $tracking = apply_filters(
+                'seo_analista_task_tracking_state',
+                array(
+                    'status'=>(string) ($existing['status'] ?? 'proposed'),
+                    'action_executed'=>(string) ($existing['action_executed'] ?? ''),
+                ),
+                $task,
+                $existing
+            );
+            if (is_array($tracking)) {
+                $candidate_status = sanitize_key((string) ($tracking['status'] ?? 'proposed'));
+                if (in_array($candidate_status, array('proposed','queued','in_progress','executed','dismissed'), true)) {
+                    $existing['status'] = $candidate_status;
+                }
+                $existing['action_executed'] = sanitize_text_field((string) ($tracking['action_executed'] ?? ''));
+            }
+
             $existing['last_seen'] = $now;
             $existing['last_task'] = $task;
             $existing['review_dates'] = (array) ($task['review_dates'] ?? array());
@@ -743,58 +765,6 @@ if (!function_exists('seo_analista_task_history')) {
         $history = is_array($history) ? $history : array();
         if ($task_id === '') return $history;
         return (array) ($history[sanitize_key($task_id)] ?? array());
-    }
-}
-
-if (!function_exists('seo_analista_task_status_url')) {
-    function seo_analista_task_status_url($task_id, $status) {
-        $task_id = sanitize_key((string) $task_id);
-        $status = sanitize_key((string) $status);
-        if ($task_id === '' || !in_array($status, array('proposed','in_progress','executed','dismissed'), true)) return '';
-        return wp_nonce_url(
-            add_query_arg(
-                array(
-                    'action'=>'seo_analista_update_task_status',
-                    'task_id'=>$task_id,
-                    'task_status'=>$status,
-                ),
-                admin_url('admin-post.php')
-            ),
-            'seo_analista_task_status_' . $task_id,
-            'seo_analista_task_nonce'
-        );
-    }
-}
-
-if (!function_exists('seo_analista_update_task_status_handler')) {
-    function seo_analista_update_task_status_handler() {
-        if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para actualizar tareas de Analista.', 'seo-taxonomy'));
-        }
-        $task_id = isset($_GET['task_id']) ? sanitize_key(wp_unslash($_GET['task_id'])) : '';
-        $status = isset($_GET['task_status']) ? sanitize_key(wp_unslash($_GET['task_status'])) : '';
-        if ($task_id === '' || !in_array($status, array('proposed','in_progress','executed','dismissed'), true)) {
-            wp_die(esc_html__('Estado de tarea no válido.', 'seo-taxonomy'));
-        }
-        check_admin_referer('seo_analista_task_status_' . $task_id, 'seo_analista_task_nonce');
-
-        $history = seo_analista_task_history();
-        if (!isset($history[$task_id]) || !is_array($history[$task_id])) {
-            wp_die(esc_html__('La tarea ya no está disponible en el historial de Analista.', 'seo-taxonomy'));
-        }
-        $history[$task_id]['status'] = $status;
-        $history[$task_id]['status_updated_at'] = current_time('mysql');
-        if ($status === 'executed') {
-            $history[$task_id]['action_executed'] = (string) ($history[$task_id]['last_task']['action_type'] ?? '');
-            $history[$task_id]['executed_at'] = current_time('mysql');
-        }
-        update_option(SEO_ANALISTA_TASK_HISTORY_OPTION, $history, false);
-
-        $redirect = function_exists('seo_analista_admin_url')
-            ? seo_analista_admin_url(array('analista_view'=>'trabajo','analista_notice'=>'task_updated'))
-            : admin_url('admin.php?page=seo-reports&tab=analista');
-        wp_safe_redirect($redirect);
-        exit;
     }
 }
 
