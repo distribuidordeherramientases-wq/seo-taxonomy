@@ -46,6 +46,10 @@ Release estable que consolida el ciclo de parches **2.3.8.x** desplegado entre e
 
 ### Auditor, Analista y control de calidad
 
+- Analista 3.8.1 endurece el **plan de acción bajo demanda**: valida consulta ↔ entidad ↔ URL, detecta conflictos de modelo, penaliza muestras mínimas y separa prioridad de confianza antes de emitir instrucciones.
+- Añadidos buckets **INVESTIGAR** y **ESPERAR DATOS**, acciones atómicas, owner/dependencias, preparación comercial explícita y contrato auditable con baseline y revisiones 28/60/90; HACER_AHORA conserva el máximo de 10 sin rellenarlo artificialmente.
+- Analista 3.8.1 comprueba metadatos efectivos de plugin/plantilla antes de declarar title/meta ausentes, consulta cobertura publicada de Dependiente/Ingeniero/Comparador antes de sugerir nueva URL y añade 7 pruebas de aceptación más diagnóstico de Action Scheduler.
+
 - Analista 3.8.0 incorpora **Informe competitivo profundo**: dominios configurables, muestreo SERP automático con SerpApi → ScraperAPI, auditoría pública acotada, matriz 1–5 con confianza de evidencia, fortalezas/brechas, plan priorizado y exportación JSON.
 - Search Console, GA4 y Bing se mantienen exclusivos del dominio propio; los competidores se evalúan sólo con evidencia pública observable y los datos ausentes quedan como N/D.
 
