@@ -436,7 +436,7 @@ if (!function_exists('seo_analista_editorial_coverage')) {
             );
         }
 
-        $key = implode('-', $category_ids);
+        $key = $type . ':' . $id . '|cats:' . implode('-', $category_ids);
         if (isset($cache[$key])) return $cache[$key];
 
         $relations = $wpdb->prefix . 'seo_relations';
