@@ -210,3 +210,26 @@ La cobertura compartida vive en includes/editorial/class-seo-editorial-coverage.
 - **L3 · Actualidad** (`l3_current`): noticias, lanzamientos, nuevas gamas, cambios tecnológicos, ferias y novedades de fabricante.
 
 Ingeniero reutiliza las tablas existentes. `lesson` separa la capa, `source_type` clasifica el origen y `knowledge_type` clasifica el subtipo de evidencia. La interfaz de revisión permite filtrar por capa. L2 y L3 se conservan inicialmente en revisión y no se incorporan al dossier técnico actual hasta que Editorial defina su uso.
+
+
+## Editorial por temas · 0.5.0
+
+Ingeniero ya no limita la salida editorial a un único dossier técnico por categoría. Agrupa evidencias similares y utiliza el **tema** como unidad editorial.
+
+Flujo:
+
+`BUSCAR → RECOPILAR → CLASIFICAR L1/L2/L3 → RELACIONAR CATEGORÍA/PRODUCTOS → AGRUPAR TEMAS → CONTRASTAR → COMPROBAR COBERTURA → PROPONER → DRAFT → EDITORA`
+
+Acciones:
+
+- `CREATE_POST`
+- `IMPROVE_EXISTING_POST`
+- `CREATE_FAQ`
+- `WATCH`
+- `DISCARD`
+
+Los temas L1+L2 compatibles pueden fusionarse en dossiers mixtos. L3 conserva frescura y utiliza búsqueda reciente de Google/Google News mediante la cadena compartida SerpApi → ScraperAPI.
+
+Cuando una evidencia menciona un producto existente en WooCommerce, Ingeniero intenta asociar el `product_id`, SKU, marca y modelo; esta información se agrega al dossier de categoría si representa un patrón general.
+
+El importador CSV/JSON admite también fuentes crudas. Una fila con `source_url` y sin conocimiento elaborado se procesa como fuente externa y entra en revisión.

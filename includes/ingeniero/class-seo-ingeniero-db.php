@@ -9,8 +9,8 @@ defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero_DB {
     const OPTION_DB_VERSION = 'seo_ingeniero_db_version';
-    const DB_VERSION = '0.2.0';
-    const EDITORIAL_EXPORT_CONTRACT = 'full-category-dossier-v1';
+    const DB_VERSION = '0.3.0';
+    const EDITORIAL_EXPORT_CONTRACT = 'topic-dossier-v2';
 
     public static function table($name) {
         global $wpdb;
@@ -102,10 +102,18 @@ final class SEO_Ingeniero_DB {
             topic_key varchar(191) NOT NULL,
             knowledge_ids_json longtext NULL,
             source_ids_json longtext NULL,
+            product_ids_json longtext NULL,
             source_hash char(64) NOT NULL DEFAULT '',
+            primary_layer varchar(64) NOT NULL DEFAULT 'l1_technical',
+            content_type varchar(64) NOT NULL DEFAULT 'technical',
+            evidence_count int(10) unsigned NOT NULL DEFAULT 0,
+            domain_count int(10) unsigned NOT NULL DEFAULT 0,
+            confidence decimal(6,5) NOT NULL DEFAULT 0,
+            freshness varchar(32) NOT NULL DEFAULT 'unknown',
+            topic_meta_json longtext NULL,
             suggested_title text NULL,
             coverage_status varchar(32) NOT NULL DEFAULT 'uncovered',
-            recommended_action varchar(32) NOT NULL DEFAULT 'NEEDS_REVIEW',
+            recommended_action varchar(32) NOT NULL DEFAULT 'WATCH',
             coverage_json longtext NULL,
             status varchar(32) NOT NULL DEFAULT 'candidate',
             post_id bigint(20) unsigned NULL,
@@ -116,6 +124,8 @@ final class SEO_Ingeniero_DB {
             PRIMARY KEY (id),
             UNIQUE KEY term_topic (term_id,topic_key),
             KEY source_hash (source_hash),
+            KEY primary_layer (primary_layer),
+            KEY content_type (content_type),
             KEY recommended_action (recommended_action),
             KEY status (status),
             KEY post_id (post_id)
@@ -575,6 +585,7 @@ final class SEO_Ingeniero_DB {
 
         $knowledge_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($data['knowledge_ids'] ?? array())))));
         $source_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($data['source_ids'] ?? array())))));
+        $product_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($data['product_ids'] ?? array())))));
         $source_hash = sanitize_text_field((string) ($data['source_hash'] ?? ''));
         $status = sanitize_key((string) ($data['status'] ?? 'candidate'));
         $source_changed = $existing
@@ -597,10 +608,18 @@ final class SEO_Ingeniero_DB {
             'topic_key'          => $topic_key,
             'knowledge_ids_json' => wp_json_encode($knowledge_ids),
             'source_ids_json'    => wp_json_encode($source_ids),
+            'product_ids_json'   => wp_json_encode($product_ids),
             'source_hash'        => $source_hash,
+            'primary_layer'      => sanitize_key((string) ($data['primary_layer'] ?? 'l1_technical')),
+            'content_type'       => sanitize_key((string) ($data['content_type'] ?? 'technical')),
+            'evidence_count'     => absint($data['evidence_count'] ?? 0),
+            'domain_count'       => absint($data['domain_count'] ?? 0),
+            'confidence'         => max(0, min(1, (float) ($data['confidence'] ?? 0))),
+            'freshness'          => sanitize_key((string) ($data['freshness'] ?? 'unknown')),
+            'topic_meta_json'    => wp_json_encode((array) ($data['topic_meta'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'suggested_title'    => sanitize_text_field((string) ($data['suggested_title'] ?? '')),
             'coverage_status'    => sanitize_key((string) ($data['coverage_status'] ?? 'uncovered')),
-            'recommended_action' => strtoupper(sanitize_key((string) ($data['recommended_action'] ?? 'NEEDS_REVIEW'))),
+            'recommended_action' => strtoupper(sanitize_key((string) ($data['recommended_action'] ?? 'WATCH'))),
             'coverage_json'      => wp_json_encode((array) ($data['coverage'] ?? array()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'status'             => $status,
             'last_analyzed_at'   => gmdate('Y-m-d H:i:s'),
@@ -732,8 +751,15 @@ final class SEO_Ingeniero_DB {
             ARRAY_A
         );
         $out = array(
-            'total'=>0,'CREATE_POST'=>0,'IMPROVE_POST'=>0,'MERGE_CONTENT'=>0,'NO_ACTION'=>0,'NEEDS_REVIEW'=>0,
-            'candidate'=>0,'approved'=>0,'draft'=>0,'published'=>0,'needs_update'=>0,
+            'total'=>0,
+            'CREATE_POST'=>0,
+            'IMPROVE_EXISTING_POST'=>0,
+            'CREATE_FAQ'=>0,
+            'WATCH'=>0,
+            'DISCARD'=>0,
+            // Compatibilidad con propuestas anteriores.
+            'IMPROVE_POST'=>0,'MERGE_CONTENT'=>0,'NO_ACTION'=>0,'NEEDS_REVIEW'=>0,
+            'candidate'=>0,'review'=>0,'approved'=>0,'draft'=>0,'published'=>0,'needs_update'=>0,'closed'=>0,
         );
         foreach ($rows as $row) {
             $n = absint($row['total'] ?? 0);
@@ -749,13 +775,21 @@ final class SEO_Ingeniero_DB {
     public static function update_editorial($id, $data) {
         global $wpdb;
         $table = self::table('editorial');
-        $allowed = array('status','post_id','recommended_action','coverage_status','suggested_title','source_hash');
+        $allowed = array(
+            'status','post_id','recommended_action','coverage_status','suggested_title','source_hash',
+            'primary_layer','content_type','freshness','confidence','evidence_count','domain_count',
+            'product_ids','topic_meta'
+        );
         $row = array();
         foreach ((array) $data as $key=>$value) {
             if (!in_array($key, $allowed, true)) continue;
             if ('post_id' === $key) $row[$key] = absint($value) ?: null;
             elseif ('recommended_action' === $key) $row[$key] = strtoupper(sanitize_key((string) $value));
             elseif ('suggested_title' === $key) $row[$key] = sanitize_text_field((string) $value);
+            elseif ('confidence' === $key) $row[$key] = max(0, min(1, (float) $value));
+            elseif ('evidence_count' === $key || 'domain_count' === $key) $row[$key] = absint($value);
+            elseif ('product_ids' === $key) $row['product_ids_json'] = wp_json_encode(array_values(array_unique(array_filter(array_map('absint',(array)$value)))));
+            elseif ('topic_meta' === $key) $row['topic_meta_json'] = wp_json_encode((array)$value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             else $row[$key] = sanitize_key((string) $value);
         }
         if (!$row) return false;
@@ -783,8 +817,16 @@ final class SEO_Ingeniero_DB {
         $row = is_array($row) ? $row : array();
         $row['knowledge_ids'] = self::decode_json($row['knowledge_ids_json'] ?? '');
         $row['source_ids'] = self::decode_json($row['source_ids_json'] ?? '');
+        $row['product_ids'] = self::decode_json($row['product_ids_json'] ?? '');
         $row['coverage'] = self::decode_json($row['coverage_json'] ?? '');
-        unset($row['knowledge_ids_json'], $row['source_ids_json'], $row['coverage_json']);
+        $row['topic_meta'] = self::decode_json($row['topic_meta_json'] ?? '');
+        unset(
+            $row['knowledge_ids_json'],
+            $row['source_ids_json'],
+            $row['product_ids_json'],
+            $row['coverage_json'],
+            $row['topic_meta_json']
+        );
         return $row;
     }
 

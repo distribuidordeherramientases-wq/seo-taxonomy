@@ -16,6 +16,13 @@ final class SEO_Ingeniero_Posts {
     const META_KNOWLEDGE_SNAPSHOT = '_seo_ingeniero_knowledge_snapshot';
     const META_PENDING_CHANGESET = '_seo_ingeniero_pending_changeset';
     const META_CONTENT_ROLE = '_seo_solucionador_content_role';
+    const META_SOURCE_LAYER = '_seo_ingeniero_source_layer';
+    const META_CONTENT_TYPE = '_seo_ingeniero_content_type';
+    const META_CATEGORY_ID = '_seo_ingeniero_category_id';
+    const META_RELATED_PRODUCTS = '_seo_ingeniero_related_product_ids';
+    const META_SOURCE_IDS = '_seo_ingeniero_source_ids';
+    const META_CONFIDENCE = '_seo_ingeniero_confidence';
+    const META_FRESHNESS = '_seo_ingeniero_freshness';
 
     public static function init() {
         add_action('transition_post_status', array(__CLASS__, 'transition_post_status'), 20, 3);
@@ -53,7 +60,7 @@ final class SEO_Ingeniero_Posts {
         if (!$term_id || !$wanted) return array();
 
         $snapshot = array();
-        foreach ((array)SEO_Ingeniero::active_knowledge($term_id) as $row) {
+        foreach ((array)SEO_Ingeniero::editorial_knowledge($term_id) as $row) {
             $id = absint($row['id'] ?? 0);
             if (!$id || empty($wanted[$id])) continue;
             $qa = SEO_Ingeniero::editorial_qa_item((array)$row);
@@ -105,11 +112,16 @@ final class SEO_Ingeniero_Posts {
         $items = (array)($brief['qa_items'] ?? array());
 
         $html = '<div class="seo-ingeniero-editorial-brief">';
-        $html .= '<p><strong>Borrador editorial de Ingeniero.</strong> Este contenido es un dossier técnico interno para Editora. Debe revisarse, sintetizarse y adaptarse antes de publicar.</p>';
+        $html .= '<p><strong>Borrador editorial de Ingeniero.</strong> Este contenido es un dossier interno para Editora. Debe revisarse, contrastarse y adaptarse antes de publicar.</p>';
         if (!empty($category['name'])) {
             $html .= '<p><strong>Categoría:</strong> ' . esc_html((string)$category['name']) . '</p>';
         }
-        $html .= '<h2>Preguntas y respuestas técnicas disponibles</h2>';
+        $topic = (array)($brief['topic'] ?? array());
+        $html .= '<p><strong>Capa principal:</strong> ' . esc_html((string)($topic['primary_layer'] ?? '')) . ' · <strong>Tipo:</strong> ' . esc_html((string)($topic['content_type'] ?? '')) . ' · <strong>Frescura:</strong> ' . esc_html((string)($topic['freshness'] ?? '')) . '</p>';
+        if (!empty($topic['product_ids'])) {
+            $html .= '<p><strong>Productos relacionados:</strong> ' . esc_html(implode(', ',array_map('absint',(array)$topic['product_ids']))) . '</p>';
+        }
+        $html .= '<h2>Evidencias y preguntas disponibles</h2>';
         foreach ($items as $item) {
             $question = trim((string)($item['question'] ?? ''));
             $answer = trim((string)($item['answer'] ?? ''));
@@ -174,6 +186,13 @@ final class SEO_Ingeniero_Posts {
         );
         update_post_meta($post_id,self::META_KNOWLEDGE_SNAPSHOT,self::knowledge_snapshot($dossier));
         update_post_meta($post_id,self::META_CONTENT_ROLE,'ingeniero_qa_specialized');
+        update_post_meta($post_id,self::META_SOURCE_LAYER,sanitize_key((string)($dossier['primary_layer'] ?? 'l1_technical')));
+        update_post_meta($post_id,self::META_CONTENT_TYPE,sanitize_key((string)($dossier['content_type'] ?? 'technical')));
+        update_post_meta($post_id,self::META_CATEGORY_ID,$term_id);
+        update_post_meta($post_id,self::META_RELATED_PRODUCTS,array_values(array_unique(array_filter(array_map('absint',(array)($dossier['product_ids'] ?? array()))))));
+        update_post_meta($post_id,self::META_SOURCE_IDS,array_values(array_unique(array_filter(array_map('absint',(array)($dossier['source_ids'] ?? array()))))));
+        update_post_meta($post_id,self::META_CONFIDENCE,max(0,min(1,(float)($dossier['confidence'] ?? 0))));
+        update_post_meta($post_id,self::META_FRESHNESS,sanitize_key((string)($dossier['freshness'] ?? 'unknown')));
 
         $relation = self::assign_category($post_id, $term_id);
         if (is_wp_error($relation)) {

@@ -503,10 +503,10 @@ final class SEO_Ingeniero_Admin {
 
         echo '<section class="seo-ingeniero-editorial">';
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
-        echo '<h2 style="margin-top:0">Editorial técnico</h2>';
-        echo '<p>Convierte <strong>todo el conocimiento active y trazable de cada product_cat</strong> en un único dossier técnico. Ingeniero recomienda <code>CREATE_POST</code>, <code>IMPROVE_POST</code>, <code>MERGE_CONTENT</code>, <code>NO_ACTION</code> o <code>NEEDS_REVIEW</code>, pero no vuelve a filtrar el knowledge que ya fue aceptado por la investigación.</p>';
-        echo '<p class="description">Cada knowledge activo se presenta a Editora como una pregunta-respuesta técnica, conservando tipo, confianza, evidencias y fuentes. La acción recomendada es diagnóstica: tras aprobación humana, el dossier activo se convierte en borrador aunque la cobertura indique MERGE_CONTENT o NO_ACTION. Nunca se publica automáticamente.</p>';
-        echo '<p><strong>Regla 0.3.3:</strong> una categoría = un dossier <code>technical-overview</code>. No se descartan bloques por tener una sola evidencia o por no alcanzar masa de una familia editorial. Investigación mantiene como objetivo <strong>4 knowledge activos por categoría</strong>.</p>';
+        echo '<h2 style="margin-top:0">Editorial por temas</h2>';
+        echo '<p>Ingeniero agrupa la investigación L1/L2/L3 por <strong>tema editorial</strong>. Una categoría puede producir cero, una o varias propuestas cuando exista masa suficiente y no haya contenido equivalente.</p>';
+        echo '<p class="description">Acciones: <code>CREATE_POST</code>, <code>IMPROVE_EXISTING_POST</code>, <code>CREATE_FAQ</code>, <code>WATCH</code> y <code>DISCARD</code>. L2 se trata como experiencia/opinión; L3 conserva frescura; ningún contenido se publica automáticamente.</p>';
+        echo '<p><strong>Regla 0.5.0:</strong> la unidad editorial es el tema, no la categoría. Los temas técnicos y prácticos relacionados pueden fusionarse en un dossier mixto para evitar posts duplicados.</p>';
         echo '</div>';
 
         $cards = array(
@@ -515,10 +515,10 @@ final class SEO_Ingeniero_Admin {
             'Categorías <4'=>$categories_below_target,
             'Dossiers'=>$counts['total'] ?? 0,
             'Crear post'=>$counts['CREATE_POST'] ?? 0,
-            'Mejorar'=>$counts['IMPROVE_POST'] ?? 0,
-            'Fusionar'=>$counts['MERGE_CONTENT'] ?? 0,
-            'Sin acción'=>$counts['NO_ACTION'] ?? 0,
-            'Revisión'=>$counts['NEEDS_REVIEW'] ?? 0,
+            'Mejorar'=>$counts['IMPROVE_EXISTING_POST'] ?? 0,
+            'Crear FAQ'=>$counts['CREATE_FAQ'] ?? 0,
+            'Vigilar'=>$counts['WATCH'] ?? 0,
+            'Descartar'=>$counts['DISCARD'] ?? 0,
             'Borradores'=>$counts['draft'] ?? 0,
             'Publicados'=>$counts['published'] ?? 0,
             'Necesitan actualizar'=>$counts['needs_update'] ?? 0,
@@ -550,7 +550,7 @@ final class SEO_Ingeniero_Admin {
         }
         echo '</select></label>';
         echo '<label>Acción<br><select name="editorial_action"><option value="">Todas</option>';
-        foreach (array('CREATE_POST','IMPROVE_POST','MERGE_CONTENT','NO_ACTION','NEEDS_REVIEW') as $key) {
+        foreach (array('CREATE_POST','IMPROVE_EXISTING_POST','CREATE_FAQ','WATCH','DISCARD') as $key) {
             echo '<option value="' . esc_attr($key) . '" ' . selected($action,$key,false) . '>' . esc_html($key) . '</option>';
         }
         echo '</select></label>';
@@ -570,7 +570,10 @@ final class SEO_Ingeniero_Admin {
             echo '<td><code>' . esc_html((string) ($row['recommended_action'] ?? '')) . '</code></td>';
             echo '<td><code>' . esc_html((string) ($row['coverage_status'] ?? '')) . '</code></td>';
             echo '<td><code>' . esc_html((string) ($row['status'] ?? '')) . '</code></td>';
-            echo '<td><strong>' . esc_html(number_format_i18n(count((array)($row['knowledge_ids'] ?? array())))) . ' Q&A técnicas</strong><br>' . esc_html(number_format_i18n(count((array)($row['source_ids'] ?? array())))) . ' fuentes</td>';
+            echo '<td><strong>' . esc_html(number_format_i18n(absint($row['evidence_count'] ?? count((array)($row['knowledge_ids'] ?? array()))))) . ' evidencias</strong><br>'
+                . esc_html(number_format_i18n(absint($row['domain_count'] ?? 0))) . ' dominios · '
+                . esc_html((string)($row['primary_layer'] ?? '')) . ' · '
+                . esc_html((string)($row['content_type'] ?? '')) . '</td>';
             echo '<td>';
             if ($post_id && 'post' === get_post_type($post_id)) {
                 echo '<a href="' . esc_url(SEO_Ingeniero_Posts::edit_url($post_id)) . '">#' . esc_html($post_id) . ' · ' . esc_html((string) get_post_status($post_id)) . '</a>';
@@ -595,12 +598,12 @@ final class SEO_Ingeniero_Admin {
             self::render_editorial_action_button($id, 'reanalyze', 'Reanalizar', 'secondary');
             if (in_array((string) ($row['status'] ?? ''), array('candidate','review','needs_update'), true)) {
                 $approve_label = (
-                    'CREATE_POST' === strtoupper((string) ($row['recommended_action'] ?? ''))
+                    in_array(strtoupper((string)($row['recommended_action'] ?? '')),array('CREATE_POST','CREATE_FAQ'),true)
                     && !$post_id
                 ) ? 'Aprobar y crear borrador' : 'Aprobar';
                 self::render_editorial_action_button($id, 'approve', $approve_label, 'primary');
             }
-            if ('approved' === (string) ($row['status'] ?? '') && 'CREATE_POST' === strtoupper((string) ($row['recommended_action'] ?? '')) && !$post_id) {
+            if ('approved' === (string) ($row['status'] ?? '') && in_array(strtoupper((string)($row['recommended_action'] ?? '')),array('CREATE_POST','CREATE_FAQ'),true) && !$post_id) {
                 self::render_editorial_action_button($id, 'create_draft', 'Crear borrador', 'primary');
             }
             echo '</td></tr>';
@@ -641,9 +644,9 @@ final class SEO_Ingeniero_Admin {
         $dossier = (array) ($brief['dossier'] ?? array());
         $category = (array) ($brief['category'] ?? array());
         echo '<div id="ingeniero-editorial-brief" class="postbox" style="padding:18px;margin-top:18px">';
-        echo '<h2 style="margin-top:0">Brief técnico para Editora</h2>';
+        echo '<h2 style="margin-top:0">Brief editorial para Editora</h2>';
         echo '<p><strong>' . esc_html((string) ($dossier['suggested_title'] ?? '')) . '</strong></p>';
-        echo '<p>Categoría: <strong>' . esc_html((string) ($category['name'] ?? '')) . '</strong> · Tema: <code>' . esc_html((string) ($dossier['topic_key'] ?? '')) . '</code> · Acción: <code>' . esc_html((string) ($dossier['recommended_action'] ?? '')) . '</code>.</p>';
+        echo '<p>Categoría: <strong>' . esc_html((string) ($category['name'] ?? '')) . '</strong> · Tema: <code>' . esc_html((string) ($dossier['topic_key'] ?? '')) . '</code> · Acción: <code>' . esc_html((string) ($dossier['recommended_action'] ?? '')) . '</code> · Capa: <code>' . esc_html((string)($dossier['primary_layer'] ?? '')) . '</code> · Tipo: <code>' . esc_html((string)($dossier['content_type'] ?? '')) . '</code>.</p>';
 
         $qa_items=(array)($brief['qa_items'] ?? array());
         echo '<h3>Preguntas y respuestas técnicas · ' . esc_html(number_format_i18n(count($qa_items))) . '</h3>';
