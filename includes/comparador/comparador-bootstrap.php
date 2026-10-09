@@ -1,14 +1,15 @@
 <?php
 /**
- * Comparador - bootstrap.
+ * Comparador - bootstrap v2.
  *
- * Inteligencia comparativa de catálogo propio + mercado observado.
+ * Ojeador recopila el mercado. Comparador analiza snapshots ya persistidos,
+ * prepara un dossier interno por categoria y propone un post de mercado.
  */
 
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_COMPARADOR_VERSION')) {
-    define('SEO_COMPARADOR_VERSION', '1.2.2');
+    define('SEO_COMPARADOR_VERSION', '2.0.0');
 }
 if (!defined('SEO_COMPARADOR_PATH')) {
     define('SEO_COMPARADOR_PATH', __DIR__ . '/');
@@ -19,19 +20,22 @@ $seo_editorial_coverage = dirname(SEO_COMPARADOR_PATH) . '/editorial/class-seo-e
 if (is_readable($seo_editorial_coverage)) {
     require_once $seo_editorial_coverage;
 }
+
+// El motor legado conserva utilidades de normalizacion, persistencia y enlace
+// de posts. Su init() no se ejecuta: el flujo automatico v1 queda sustituido
+// por SEO_Comparador_Service + SEO_Comparador_Process.
 require_once SEO_COMPARADOR_PATH . 'comparador-engine.php';
+require_once SEO_COMPARADOR_PATH . 'comparador-service.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-process.php';
-require_once SEO_COMPARADOR_PATH . 'comparador-io.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-public.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-integration.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-tests.php';
 require_once SEO_COMPARADOR_PATH . 'comparador-admin.php';
 
-SEO_Comparador_Engine::init();
 add_action('init', array('SEO_Comparador_DB','maybe_install'), 6);
+SEO_Comparador_Service::init();
 SEO_Comparador_Public::init();
 SEO_Comparador_Integration::init();
-SEO_Comparador_IO::init();
 SEO_Comparador_Admin::init();
 
 if (!function_exists('seo_comparador_store_compare_max')) {
@@ -40,3 +44,4 @@ if (!function_exists('seo_comparador_store_compare_max')) {
         return max(2, min(6, absint($settings['store_compare_max'] ?? 6)));
     }
 }
+
