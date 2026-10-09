@@ -478,8 +478,59 @@ if (!function_exists('seo_analista_has_independent_critical_issue')) {
     }
 }
 
+if (!function_exists('seo_analista_hydrate_entity_from_target')) {
+    function seo_analista_hydrate_entity_from_target(array $row) {
+        $entity = (array) ($row['entity'] ?? array());
+        if (!empty($entity['type']) && (!empty($entity['id']) || !empty($entity['url']))) return $row;
+
+        $term_id = absint($row['catalog']['term_id'] ?? 0);
+        if ($term_id > 0) {
+            $term = get_term($term_id, 'product_cat');
+            if ($term instanceof WP_Term && !is_wp_error($term)) {
+                $url = get_term_link($term);
+                if (!is_wp_error($url)) {
+                    $row['entity'] = array(
+                        'type'=>'category',
+                        'type_label'=>'Categoría',
+                        'id'=>$term_id,
+                        'title'=>(string) $term->name,
+                        'url'=>(string) $url,
+                        'edit_url'=>admin_url('term.php?taxonomy=product_cat&tag_ID=' . $term_id . '&post_type=product'),
+                    );
+                    $row['target'] = array(
+                        'title'=>(string) $term->name,
+                        'url'=>(string) $url,
+                    );
+                    return $row;
+                }
+            }
+        }
+
+        $target_url = trim((string) ($row['target']['url'] ?? ''));
+        if ($target_url !== '') {
+            $post_id = url_to_postid($target_url);
+            if ($post_id > 0) {
+                $post_type = get_post_type($post_id);
+                $type = $post_type === 'product' ? 'product' : ($post_type === 'page' ? 'page' : ($post_type === 'post' ? 'post' : ''));
+                if ($type !== '') {
+                    $row['entity'] = array(
+                        'type'=>$type,
+                        'type_label'=>ucfirst($type),
+                        'id'=>$post_id,
+                        'title'=>(string) get_the_title($post_id),
+                        'url'=>(string) get_permalink($post_id),
+                        'edit_url'=>(string) get_edit_post_link($post_id, ''),
+                    );
+                }
+            }
+        }
+        return $row;
+    }
+}
+
 if (!function_exists('seo_analista_validate_and_finalize_task')) {
     function seo_analista_validate_and_finalize_task(array $row, $days = 28) {
+        $row = seo_analista_hydrate_entity_from_target($row);
         $query = seo_analista_primary_query($row);
         $validation = seo_analista_validate_query_entity($query, $row);
         $evidence = seo_analista_evidence_profile($row);
