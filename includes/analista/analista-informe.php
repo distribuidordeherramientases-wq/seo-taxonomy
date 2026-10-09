@@ -487,8 +487,18 @@ if (!function_exists('seo_analista_render_directive_details')) {
         echo '<li><strong>Destino:</strong> ' . (!empty($row['target_resolved']) ? '<a target="_blank" rel="noopener" href="' . esc_url((string) ($row['target_url'] ?? '')) . '">' . esc_html((string) ($row['target_url'] ?? '')) . '</a>' : '<span>destino sin resolver</span>') . '</li>';
         if ($match_type !== '') echo '<li><strong>Match:</strong> ' . esc_html(strtoupper($match_type)) . ' · ' . esc_html((string) $match_confidence) . '/100' . (!empty($row['match_reason']) ? ' · ' . esc_html((string) $row['match_reason']) : '') . '</li>';
         if ($confidence_level !== '') echo '<li><strong>Confianza:</strong> ' . esc_html(strtoupper($confidence_level)) . ' · ' . esc_html((string) absint($row['confidence'] ?? 0)) . '/100</li>';
-        echo '<li><strong>Evidencia:</strong> ' . esc_html(number_format_i18n(absint($evidence['impressions'] ?? 0))) . ' impresiones · ' . esc_html(number_format_i18n(absint($evidence['clicks'] ?? 0))) . ' clics · ' . esc_html(number_format_i18n(absint($evidence['queries'] ?? 0))) . ' consultas · delta ' . esc_html(number_format_i18n((float) ($evidence['absolute_delta'] ?? 0), 0)) . '</li>';
+        echo '<li><strong>Evidencia GSC/SEO:</strong> ' . esc_html(number_format_i18n(absint($evidence['impressions'] ?? 0))) . ' impresiones · ' . esc_html(number_format_i18n(absint($evidence['clicks'] ?? 0))) . ' clics · ' . esc_html(number_format_i18n(absint($evidence['queries'] ?? 0))) . ' consultas · delta ' . esc_html(number_format_i18n((float) ($evidence['absolute_delta'] ?? 0), 0)) . '</li>';
+        if (!empty($evidence['sources'])) echo '<li><strong>Fuentes:</strong> ' . esc_html(implode(' · ', array_map('strval', (array) $evidence['sources']))) . '</li>';
         if (!empty($commercial['label'])) echo '<li><strong>Preparación comercial:</strong> ' . esc_html((string) $commercial['label']) . '</li>';
+        $ga4 = (array) ($commercial['ga4_signals'] ?? array());
+        if (!empty($ga4['available'])) {
+            $ga4_parts = array();
+            if ($ga4['sessions'] !== null) $ga4_parts[] = 'sesiones ' . number_format_i18n((float) $ga4['sessions'], 0);
+            if ($ga4['pageviews'] !== null) $ga4_parts[] = 'vistas ' . number_format_i18n((float) $ga4['pageviews'], 0);
+            if ($ga4['conversions'] !== null) $ga4_parts[] = 'conversiones ' . number_format_i18n((float) $ga4['conversions'], 0);
+            if ($ga4['revenue'] !== null) $ga4_parts[] = 'ingresos ' . number_format_i18n((float) $ga4['revenue'], 2);
+            if ($ga4_parts) echo '<li><strong>Señales GA4 (separadas de GSC):</strong> ' . esc_html(implode(' · ', $ga4_parts)) . '</li>';
+        }
         if (!empty($row['recommended_owner'])) echo '<li><strong>Responsable recomendado:</strong> ' . esc_html((string) $row['recommended_owner']) . '</li>';
         if ($priority_breakdown) echo '<li><strong>Prioridad:</strong> ' . esc_html((string) absint($priority_breakdown['pre_validation_score'] ?? 0)) . ' → ' . esc_html((string) absint($priority_breakdown['final_score'] ?? 0)) . ' tras validación.</li>';
         echo '</ul></div>';
