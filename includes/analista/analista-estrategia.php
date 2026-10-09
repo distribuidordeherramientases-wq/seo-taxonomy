@@ -426,13 +426,23 @@ if (!function_exists('seo_analista_enrich_business_row')) {
         $impact = ($values[0] ?? 0) * 0.55 + ($values[1] ?? 0) * 0.30 + ($values[2] ?? 0) * 0.15;
         $confidence = seo_analista_business_confidence($row, $health);
         $priority = (int) round($impact * 0.86 + $confidence * 0.14);
+        $priority_breakdown = array(
+            'objective_weighted_score' => round($impact, 2),
+            'objective_weight' => 0.86,
+            'confidence_score' => $confidence,
+            'confidence_weight' => 0.14,
+            'base_score' => $priority,
+            'adjustments' => array(),
+        );
 
         $metrics = (array) ($row['metrics'] ?? array());
         $impressions = (float) ($metrics['impressions'] ?? 0);
         $bing_impressions = (float) ($metrics['bing_impressions'] ?? 0);
         $position = (float) ($metrics['position'] ?? 0);
         $position_profile = seo_analista_position_profile($position, $impressions);
-        $priority += (int) ($position_profile['priority_adjustment'] ?? 0);
+        $position_adjustment = (int) ($position_profile['priority_adjustment'] ?? 0);
+        $priority += $position_adjustment;
+        if ($position_adjustment !== 0) $priority_breakdown['adjustments']['position_profile'] = $position_adjustment;
 
         // Una categoría comercial que ya concentra muchas consultas merece
         // competir con las quick wins: es una familia, no una keyword aislada.
@@ -446,11 +456,17 @@ if (!function_exists('seo_analista_enrich_business_row')) {
             elseif ($impressions >= 50 && $query_count >= 8) $family_demand_bonus = 5;
         }
         $priority += $family_demand_bonus;
+        if ($family_demand_bonus !== 0) $priority_breakdown['adjustments']['family_demand'] = $family_demand_bonus;
 
         $previous_position = max(0.0, (float) ($metrics['previous_position'] ?? 0));
         $position_gain = ($previous_position > 0 && $position > 0) ? $previous_position - $position : 0.0;
-        if ($position_gain >= 5) $priority += 3;
-        elseif ($position_gain <= -5) $priority -= 4;
+        if ($position_gain >= 5) {
+            $priority += 3;
+            $priority_breakdown['adjustments']['position_movement'] = 3;
+        } elseif ($position_gain <= -5) {
+            $priority -= 4;
+            $priority_breakdown['adjustments']['position_movement'] = -4;
+        }
 
         // Normaliza el crecimiento con la misma fórmula que usa la estrategia.
         // Así el informe no mezcla deltas agregados de distintas señales.
@@ -460,12 +476,26 @@ if (!function_exists('seo_analista_enrich_business_row')) {
         if (isset($growth['raw_growth_pct'])) $metrics['impressions_growth_pct'] = (float) $growth['raw_growth_pct'];
 
         $catalog_strategy = seo_analista_catalog_strategy(array_merge($row, array('metrics'=>$metrics)));
-        if ($catalog_strategy) $priority += (int) ($catalog_strategy['priority_adjustment'] ?? 0);
+        if ($catalog_strategy) {
+            $catalog_adjustment = (int) ($catalog_strategy['priority_adjustment'] ?? 0);
+            $priority += $catalog_adjustment;
+            if ($catalog_adjustment !== 0) $priority_breakdown['adjustments']['catalog_strategy'] = $catalog_adjustment;
+        }
         $has_demand_evidence = $impressions >= 10 || $bing_impressions >= 20 || !empty($row['internal_search']) || !empty($row['competition']) || !empty($row['market']['breakout']);
-        if (!$has_demand_evidence) $priority -= 10;
-        if ($position > 70 && $impressions < 100) $priority -= 7;
-        if ($position <= 0 && $impressions <= 0 && $bing_impressions <= 0 && empty($row['internal_search']) && empty($row['competition'])) $priority -= 8;
+        if (!$has_demand_evidence) {
+            $priority -= 10;
+            $priority_breakdown['adjustments']['no_demand_evidence'] = -10;
+        }
+        if ($position > 70 && $impressions < 100) {
+            $priority -= 7;
+            $priority_breakdown['adjustments']['weak_remote_position'] = -7;
+        }
+        if ($position <= 0 && $impressions <= 0 && $bing_impressions <= 0 && empty($row['internal_search']) && empty($row['competition'])) {
+            $priority -= 8;
+            $priority_breakdown['adjustments']['no_observable_signal'] = -8;
+        }
         $priority = max(0, min(99, $priority));
+        $priority_breakdown['strategy_score'] = $priority;
 
         $bucket = 'SIN_ACCION';
         if ($priority >= 72 && $confidence >= 42 && $has_demand_evidence && max($objective_scores) >= 65) $bucket = 'HACER_AHORA';
@@ -474,6 +504,7 @@ if (!function_exists('seo_analista_enrich_business_row')) {
 
         $row['legacy_priority'] = (int) ($row['priority'] ?? 0);
         $row['priority'] = $priority;
+        $row['priority_breakdown'] = $priority_breakdown;
         $row['work_bucket'] = $bucket;
         $row['metrics'] = $metrics;
         $row['intervention'] = $position_profile;
