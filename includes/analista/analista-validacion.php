@@ -633,6 +633,15 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $row['owner'] = $owner;
         $row['dependencies'] = array_values(array_unique($dependencies));
         $row['status'] = 'proposed';
+        $row['action_executed'] = '';
+        if (function_exists('seo_analista_task_history')) {
+            $existing_tracking = seo_analista_task_history($task_id);
+            $existing_status = sanitize_key((string) ($existing_tracking['status'] ?? ''));
+            if (in_array($existing_status, array('proposed','queued','in_progress','executed','dismissed'), true)) {
+                $row['status'] = $existing_status;
+            }
+            $row['action_executed'] = sanitize_text_field((string) ($existing_tracking['action_executed'] ?? ''));
+        }
         $row['task_id'] = $task_id;
         $row['period'] = $period;
         $row['baseline'] = $baseline;
@@ -698,6 +707,7 @@ if (!function_exists('seo_analista_task_contract')) {
             'dependencies'=>(array) ($row['dependencies'] ?? array()),
             'owner'=>(string) ($row['recommended_owner'] ?? $row['owner'] ?? ''),
             'status'=>(string) ($row['status'] ?? 'proposed'),
+            'action_executed'=>(string) ($row['action_executed'] ?? ''),
             'baseline'=>(array) ($row['baseline'] ?? array()),
             'verification_date'=>(string) ($row['verification_date'] ?? ''),
             'review_dates'=>(array) ($row['review_dates'] ?? array()),
