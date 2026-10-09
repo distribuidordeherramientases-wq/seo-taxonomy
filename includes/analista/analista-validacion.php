@@ -687,6 +687,8 @@ if (!function_exists('seo_analista_task_contract')) {
             'period'=>(array) ($row['period'] ?? array()),
             'priority_score'=>absint($row['priority_score'] ?? $row['priority'] ?? 0),
             'priority_breakdown'=>(array) ($row['priority_breakdown'] ?? array()),
+            'pre_validation_bucket'=>(string) ($row['pre_validation_bucket'] ?? ''),
+            'final_bucket'=>(string) ($row['work_bucket'] ?? ''),
             'confidence_level'=>(string) ($row['confidence_level'] ?? 'low'),
             'confidence'=>absint($row['confidence'] ?? 0),
             'objective'=>(array) ($row['objective'] ?? array()),
