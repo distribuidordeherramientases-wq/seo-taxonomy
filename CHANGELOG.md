@@ -46,6 +46,10 @@ Release estable que consolida el ciclo de parches **2.3.8.x** desplegado entre e
 
 ### Auditor, Analista y control de calidad
 
+- Analista 3.8.2 corrige el exceso de **INVESTIGAR**: intenta resolver primero categorías/entidades locales y reserva ese bucket a modelo, entidad o destino realmente no resueltos.
+- Las oportunidades SEO bloqueadas por stock/precio/proveedor/margen se mantienen como **HACER DESPUÉS** con condición explícita de desbloqueo y bucket potencial, sin alterar artificialmente el score; GA4 queda como señal de medición separada y no bloquea por sí sola.
+- Cada tarea expone comprobaciones concretas, valor actual, owner, `unlock_condition`, `bucket_if_unblocked` y diagnóstico agregado de gates; JSON schema 8.
+
 - Analista 3.8.1 endurece el **plan de acción bajo demanda**: valida consulta ↔ entidad ↔ URL, detecta conflictos de modelo, penaliza muestras mínimas y separa prioridad de confianza antes de emitir instrucciones.
 - Añadidos buckets **INVESTIGAR** y **ESPERAR DATOS**, acciones atómicas, owner/dependencias, preparación comercial explícita y contrato auditable con baseline y revisiones 28/60/90; HACER_AHORA conserva el máximo de 10 sin rellenarlo artificialmente.
 - Analista 3.8.1 comprueba metadatos efectivos de plugin/plantilla antes de declarar title/meta ausentes, consulta cobertura publicada de Dependiente/Ingeniero/Comparador antes de sugerir nueva URL y añade 7 pruebas de aceptación más diagnóstico de Action Scheduler.

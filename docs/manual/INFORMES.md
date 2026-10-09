@@ -108,8 +108,8 @@ Antes de mostrar una instrucción, Analista 3.8.1 valida:
 Los estados del plan son:
 
 - **HACER AHORA**: destino y asociación validados, evidencia suficiente y confianza compatible con ejecución. Máximo 10; el sistema no rellena el cupo.
-- **HACER DESPUÉS**: trabajo válido, pero menos urgente o con validaciones no bloqueantes.
-- **INVESTIGAR**: existe conflicto de modelo, entidad/destino no demostrados o falta una validación comercial crítica.
+- **HACER DESPUÉS**: trabajo válido, pero menos urgente; en 3.8.2 también puede contener una oportunidad SEO válida temporalmente bloqueada por una dependencia comercial explícita.
+- **INVESTIGAR**: conflicto de modelo, entidad no demostrada o destino sin resolver. Los bloqueos puramente comerciales ya no se clasifican aquí.
 - **VIGILAR**: señal coherente pero todavía inmadura.
 - **ESPERAR DATOS**: muestra demasiado pequeña o crecimiento sobre base insuficiente.
 - **SIN ACCIÓN**: compatibilidad histórica para señales sin valor de trabajo.
@@ -139,7 +139,26 @@ Analista **diagnostica y deriva**. No publica, no crea posts/URLs ni modifica ca
 - **SEO/taxonomía** resuelve asociaciones, destinos y enlazado.
 - **Ingeniero / Solucionador / Comparador** aportan cobertura o evidencia; Analista no duplica sus workers.
 
-En **Fuentes** se muestran las siete pruebas de aceptación de 3.8.1 y un diagnóstico separado de Action Scheduler para detectar colas vencidas que puedan afectar a la frescura de datos.
+En **Fuentes** se muestran las pruebas de aceptación de 3.8.1/3.8.2 y un diagnóstico separado de Action Scheduler para detectar colas vencidas que puedan afectar a la frescura de datos.
+
+
+### Corrección del Plan de acción · Analista 3.8.2
+
+3.8.2 mantiene intactos los demás módulos de Analista y modifica únicamente la **generación/explicación de tareas del Plan de acción**.
+
+Cambios:
+
+- antes de devolver **INVESTIGAR**, intenta resolver la consulta contra la taxonomía `product_cat` y el índice local de entidades ya conocido por Analista;
+- un candidato automático solo se acepta si vuelve a superar la validación de entidad, URL e identificadores; las consultas con modelo no se degradan a categorías genéricas;
+- **INVESTIGAR** queda reservado a conflictos de modelo, entidad no demostrada o destino sin resolver;
+- una oportunidad SEO válida con datos comerciales incompletos pasa a **HACER DESPUÉS** con gate `BLOCKED_COMMERCIAL`, no a INVESTIGAR;
+- una muestra insuficiente pasa a **ESPERAR DATOS**;
+- el **score de oportunidad permanece estable** cuando existe una dependencia: los gates modifican ejecutabilidad/confianza, no la puntuación;
+- cada bloqueo incluye `blocker_type`, `investigation_steps`, valor actual, condición de desbloqueo, responsable y `bucket_if_unblocked`;
+- si se resuelve una dependencia comercial y el bucket base era HACER AHORA, la siguiente ejecución puede devolver la tarea a HACER AHORA sin subir artificialmente el score;
+- el informe muestra un diagnóstico agregado de asociaciones auto-resueltas, bloqueos de entidad, bloqueos comerciales, evidencia insuficiente y tareas de score alto retenidas por un gate.
+
+Ejemplo comercial: una categoría puede tener demanda SEO suficiente pero quedar temporalmente en HACER DESPUÉS porque faltan `stock_categoria`, `precio_categoria`, proveedor o margen/comisión. Analista toma una muestra acotada de productos de la categoría para intentar validar esos datos sin cargar todo el catálogo. GA4 se muestra como señal de medición separada; su ausencia por sí sola no bloquea una oportunidad SEO si la oferta comercial ya está acreditada. La tarjeta enumera exactamente los campos bloqueantes y qué debe ocurrir para desbloquearla.
 
 ### Informe competitivo profundo
 

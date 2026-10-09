@@ -47,3 +47,15 @@ ANALISTA 3.8.1 - VALIDACION DE INSTRUCCIONES
 - Deduplica nueva creación frente a contenido publicado de Dependiente, Ingeniero y Comparador.
 - Exporta contrato de tareas en JSON schema 7 y persiste baseline/revisiones 28/60/90 sin autoejecución.
 - Fuentes muestra diagnóstico de Action Scheduler y siete pruebas de aceptación.
+
+
+ANALISTA 3.8.2 - PLAN DE ACCION DESBLOQUEABLE
+- Corrección puntual sobre 3.8.1; no cambia otros módulos.
+- Intenta resolver destinos con product_cat e índice local antes de INVESTIGAR.
+- INVESTIGAR queda para entidad/modelo/URL no resueltos.
+- Bloqueos comerciales se separan como BLOCKED_COMMERCIAL y mantienen la oportunidad en HACER_DESPUES cuando corresponde.
+- Cada tarea incluye blocker_type, investigation_steps, unlock_condition y bucket_if_unblocked.
+- El score de oportunidad permanece estable; los gates afectan ejecutabilidad/confianza, no inflan prioridad.
+- Añadido gate_summary para auditar auto-resoluciones y oportunidades valiosas bloqueadas.
+- JSON unificado pasa a schema version 8.
+- Pruebas 3.8.2 cubren desbloqueo comercial, INVESTIGAR concreto y diagnóstico de gates.
