@@ -51,9 +51,6 @@ if (function_exists('seo_analista_bing_save_settings_handler')) {
 if (function_exists('seo_analista_export_json_handler')) {
     add_action('admin_post_seo_analista_export_json', 'seo_analista_export_json_handler');
 }
-if (function_exists('seo_analista_update_task_status_handler')) {
-    add_action('admin_post_seo_analista_update_task_status', 'seo_analista_update_task_status_handler');
-}
 if (function_exists('seo_analista_ajax_partial_report')) {
     add_action('wp_ajax_seo_analista_partial_report', 'seo_analista_ajax_partial_report');
 }
