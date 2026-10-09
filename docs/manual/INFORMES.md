@@ -158,7 +158,7 @@ Cambios:
 - si se resuelve una dependencia comercial y el bucket base era HACER AHORA, la siguiente ejecución puede devolver la tarea a HACER AHORA sin subir artificialmente el score;
 - el informe muestra un diagnóstico agregado de asociaciones auto-resueltas, bloqueos de entidad, bloqueos comerciales, evidencia insuficiente y tareas de score alto retenidas por un gate.
 
-Ejemplo comercial: una categoría puede tener demanda SEO suficiente pero quedar temporalmente en HACER DESPUÉS porque faltan `stock_categoria`, `precio_categoria`, proveedor, margen/comisión o GA4. La tarjeta enumera exactamente los campos pendientes y qué debe ocurrir para desbloquearla.
+Ejemplo comercial: una categoría puede tener demanda SEO suficiente pero quedar temporalmente en HACER DESPUÉS porque faltan `stock_categoria`, `precio_categoria`, proveedor o margen/comisión. Analista toma una muestra acotada de productos de la categoría para intentar validar esos datos sin cargar todo el catálogo. GA4 se muestra como señal de medición separada; su ausencia por sí sola no bloquea una oportunidad SEO si la oferta comercial ya está acreditada. La tarjeta enumera exactamente los campos bloqueantes y qué debe ocurrir para desbloquearla.
 
 ### Informe competitivo profundo
 
