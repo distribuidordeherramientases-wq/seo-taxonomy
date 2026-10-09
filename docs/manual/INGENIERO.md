@@ -2,7 +2,7 @@
 
 Ruta: **SEO Taxonomy → Contenidos → Ingeniero**
 
-Ingeniero investiga conocimiento externo por `product_cat`, conserva las fuentes y clasifica cada evidencia desde la recopilación en tres capas: **L1 técnica**, **L2 práctica/comunidad** y **L3 actualidad sectorial**. No publica automáticamente. La capa editorial actual sigue utilizando L1 técnico hasta que se defina el tratamiento editorial específico de L2/L3.
+Ingeniero investiga conocimiento externo por `product_cat`, conserva las fuentes y clasifica cada evidencia desde la recopilación en tres capas: **L1 técnica**, **L2 práctica/comunidad** y **L3 actualidad sectorial**. En 0.5.0 las tres capas pueden generar propuestas editoriales por tema. No publica automáticamente.
 
 ## Pestañas
 
@@ -88,7 +88,19 @@ L2 y L3 se guardan inicialmente en estado `review` para que no contaminen autom�
 
 ## Editorial
 
-Editorial genera un único dossier `technical-overview` por categoría con todo el knowledge `active` disponible.
+Desde 0.5.0 la unidad editorial es el **tema**, no la categoría. Una categoría puede generar cero, una o varias propuestas.
+
+Ingeniero agrupa hallazgos similares, combina L1 y L2 cuando tratan el mismo problema y comprueba cobertura existente antes de proponer contenido.
+
+Acciones disponibles:
+
+- `CREATE_POST`
+- `IMPROVE_EXISTING_POST`
+- `CREATE_FAQ`
+- `WATCH`
+- `DISCARD`
+
+L2 puede generar propuestas aun cuando su knowledge siga en revisión; esto no convierte experiencia/opinión en hecho técnico. L3 incorpora frescura y puede quedar en `WATCH` si la novedad es antigua o no tiene fecha fiable.
 
 ### Contadores
 
@@ -96,7 +108,7 @@ Editorial genera un único dossier `technical-overview` por categoría con todo 
 - **Categorías con knowledge**: categorías con al menos un knowledge activo.
 - **Categorías <4**: categorías con knowledge pero por debajo del objetivo operativo de cuatro piezas.
 - **Dossiers**: dossiers editoriales existentes.
-- **Crear post / Mejorar / Fusionar / Sin acción / Revisión**: distribución por recomendación de cobertura.
+- **Crear post / Mejorar / Crear FAQ / Vigilar / Descartar**: distribución por decisión editorial.
 - **Borradores**: posts WordPress creados por Ingeniero y todavía no publicados.
 - **Publicados**: posts de Ingeniero publicados.
 - **Necesitan actualizar**: dossiers cuyo conocimiento cambió después de crear el post.
@@ -196,7 +208,7 @@ Campos CSV principales:
 - `trust_level`
 - `evidence`
 
-`knowledge_type`, `summary` y `source_url` son obligatorios para una fila importable.
+`source_url` es obligatorio. Si `knowledge_type` y `summary` están vacíos, la fila se interpreta como **fuente cruda** y Ingeniero intenta descargarla, clasificarla L1/L2/L3 y extraer conocimiento para revisión.
 
 ## Pruebas
 
@@ -224,3 +236,33 @@ El rol público se guarda aparte en:
 Ese rol público no sustituye al Vocabulary ni a la relación `post_to_category`.
 
 Los borradores pueden revisarse también desde **Contenidos → Entradas → Ingeniero**.
+
+
+## Vinculación a productos
+
+Cuando las evidencias mencionan productos concretos de la categoría, Ingeniero intenta relacionarlas de forma conservadora con productos WooCommerce mediante SKU y coincidencias de nombre. La propuesta editorial conserva:
+
+- `category_id`
+- `related_product_ids`
+- marca/modelo cuando puede obtenerlos del catálogo
+- `source_ids`
+- capa principal
+- tipo de contenido
+- confianza
+- frescura
+
+La información de producto se integra en el tema de categoría cuando representa un patrón útil; no implica crear automáticamente un post por producto.
+
+## Metadatos de drafts 0.5.0
+
+Además de los metadatos históricos, los drafts conservan:
+
+- `_seo_ingeniero_source_layer`
+- `_seo_ingeniero_content_type`
+- `_seo_ingeniero_category_id`
+- `_seo_ingeniero_related_product_ids`
+- `_seo_ingeniero_source_ids`
+- `_seo_ingeniero_confidence`
+- `_seo_ingeniero_freshness`
+
+El estado WordPress inicial sigue siendo `draft`. Editora revisa y decide la publicación.
