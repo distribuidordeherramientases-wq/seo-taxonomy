@@ -87,6 +87,15 @@ if (!function_exists('seo_analista_build_json_export')) {
         $campaigns = function_exists('seo_analista_campaign_proposals')
             ? seo_analista_campaign_proposals($days, 12, false)
             : array('available'=>false,'proposals'=>array(),'blocked_by_price'=>array());
+        $task_contract = function_exists('seo_analista_task_contract')
+            ? array_map('seo_analista_task_contract', $plan)
+            : $plan;
+        $scheduler_health = function_exists('seo_analista_action_scheduler_health')
+            ? seo_analista_action_scheduler_health()
+            : array('available'=>false,'state'=>'unknown','overdue'=>0);
+        $validation_tests = function_exists('seo_analista_381_self_tests')
+            ? seo_analista_381_self_tests()
+            : array();
 
         $queries = array();
         foreach (array_slice((array) ($data['queries'] ?? array()), 0, 120) as $row) {
@@ -102,7 +111,7 @@ if (!function_exists('seo_analista_build_json_export')) {
         $payload = array(
             'schema' => array(
                 'name' => 'seo-analista-unificado',
-                'version' => 6,
+                'version' => 7,
             ),
             'generated_at' => gmdate('c'),
             'site' => array(
@@ -174,9 +183,15 @@ if (!function_exists('seo_analista_build_json_export')) {
             ),
             'estrategia' => array(
                 'objetivos' => array('autoridad', 'visitas', 'ventas'),
-                'regla' => 'Una entidad = una tarea; fuentes no disponibles pesan 0; la intensidad cambia según posición; HACER_AHORA se limita a 10 trabajos.',
+                'regla' => 'Una entidad = una tarea; prioridad y confianza se calculan por separado; un destino no resuelto, conflicto de modelo o muestra mínima bloquea la ejecución editorial inmediata; HACER_AHORA se limita a 10 y nunca se rellena artificialmente.',
                 'summary' => $plan_summary,
                 'plan_accion' => $plan,
+                'task_contract' => $task_contract,
+                'validation' => array(
+                    'version' => '3.8.1',
+                    'settings' => function_exists('seo_analista_validation_settings') ? seo_analista_validation_settings() : array(),
+                    'tests' => $validation_tests,
+                ),
             ),
             'campanas' => $campaigns,
             'arquitectura' => $architecture_advice,
@@ -184,7 +199,10 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'summary' => $plan_summary,
                 'plan' => $plan,
             ),
-            'sources' => $source_health,
+            'sources' => array(
+                'data_sources' => $source_health,
+                'action_scheduler' => $scheduler_health,
+            ),
             'privacy' => array(
                 'credentials_included' => false,
                 'tokens_included' => false,
