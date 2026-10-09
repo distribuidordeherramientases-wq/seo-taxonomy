@@ -43,6 +43,20 @@ Cada tarea expone un contrato auditable con task_id, entidad, URL objetivo, cons
 
 Analista sigue siendo **solo diagnóstico y derivación**. No crea ni publica contenido, no modifica categorías y no abre workers adicionales.
 
+
+## Analista 3.8.2 · gates y tareas desbloqueables
+
+La segunda corrección del Plan de acción reduce el exceso de `INVESTIGAR` sin rebajar la seguridad de 3.8.1.
+
+- Analista intenta resolver automáticamente una consulta contra categorías y entidades locales existentes antes de entregar la tarea.
+- El resolver automático se vuelve a validar; no puede sustituir un modelo específico por una categoría genérica de baja afinidad.
+- Los bloqueos se separan en **entity**, **evidence** y **commercial**.
+- `INVESTIGAR` se reserva para entidad/destino/modelo no resueltos.
+- Las oportunidades SEO válidas con bloqueo comercial quedan en **HACER DESPUÉS** y exponen exactamente qué falta; para categorías se usa una muestra acotada de productos para comprobar stock, precio, proveedor y margen. GA4 se mantiene como señal separada y no bloquea por sí sola si la oferta ya está validada.
+- Cada tarea define `unlock_condition` y `bucket_if_unblocked`.
+- La prioridad no se modifica por resolver o no resolver una dependencia; el gate determina si la tarea es ejecutable.
+- El diagnóstico `gate_summary` permite detectar oportunidades de score alto que el filtro conservador está reteniendo.
+
 ## Informe competitivo profundo
 
 Analista puede generar, bajo demanda, un **informe competitivo profundo** a partir de los dominios configurados en la vista Comparación.

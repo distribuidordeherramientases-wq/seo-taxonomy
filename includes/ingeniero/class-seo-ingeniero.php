@@ -1526,8 +1526,6 @@ final class SEO_Ingeniero {
         return $matches;
     }
 
-    public static function editorial_question_for_knowledge
-
     public static function editorial_question_for_knowledge(array $row) {
         $type = sanitize_key((string)($row['knowledge_type'] ?? ''));
         $concept = trim((string)($row['concept'] ?? ''));
