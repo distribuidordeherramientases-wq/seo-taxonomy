@@ -139,12 +139,29 @@ if (!function_exists('seo_analista_get_settings')) {
                 'leroymerlin.es',
             ),
             'tracked_keywords' => array(),
+            'validation' => array(
+                'small_sample_max' => 4,
+                'reliable_impressions' => 20,
+                'high_confidence_impressions' => 50,
+                'minimum_previous_base' => 5,
+                'partial_match_min' => 58,
+                'exact_match_min' => 82,
+            ),
         );
 
         $settings = get_option(SEO_ANALISTA_OPTION_SETTINGS, array());
         $settings = wp_parse_args(is_array($settings) ? $settings : array(), $defaults);
         $settings['competitors'] = seo_analista_sanitize_domains((array) $settings['competitors']);
         $settings['tracked_keywords'] = seo_analista_sanitize_keywords((array) $settings['tracked_keywords']);
+        $validation = wp_parse_args((array) ($settings['validation'] ?? array()), $defaults['validation']);
+        $settings['validation'] = array(
+            'small_sample_max' => max(1, min(20, absint($validation['small_sample_max']))),
+            'reliable_impressions' => max(5, min(100, absint($validation['reliable_impressions']))),
+            'high_confidence_impressions' => max(10, min(500, absint($validation['high_confidence_impressions']))),
+            'minimum_previous_base' => max(1, min(50, absint($validation['minimum_previous_base']))),
+            'partial_match_min' => max(40, min(90, absint($validation['partial_match_min']))),
+            'exact_match_min' => max(60, min(99, absint($validation['exact_match_min']))),
+        );
         return $settings;
     }
 }
@@ -203,11 +220,29 @@ if (!function_exists('seo_analista_save_settings_handler')) {
         $keywords = preg_split('/[\r\n]+/', $raw_keywords);
         $keywords = seo_analista_sanitize_keywords(is_array($keywords) ? $keywords : array());
 
+        $current = seo_analista_get_settings();
+        $validation = array(
+            'small_sample_max' => isset($_POST['validation_small_sample_max']) ? absint(wp_unslash($_POST['validation_small_sample_max'])) : absint($current['validation']['small_sample_max'] ?? 4),
+            'reliable_impressions' => isset($_POST['validation_reliable_impressions']) ? absint(wp_unslash($_POST['validation_reliable_impressions'])) : absint($current['validation']['reliable_impressions'] ?? 20),
+            'high_confidence_impressions' => isset($_POST['validation_high_confidence_impressions']) ? absint(wp_unslash($_POST['validation_high_confidence_impressions'])) : absint($current['validation']['high_confidence_impressions'] ?? 50),
+            'minimum_previous_base' => isset($_POST['validation_minimum_previous_base']) ? absint(wp_unslash($_POST['validation_minimum_previous_base'])) : absint($current['validation']['minimum_previous_base'] ?? 5),
+            'partial_match_min' => isset($_POST['validation_partial_match_min']) ? absint(wp_unslash($_POST['validation_partial_match_min'])) : absint($current['validation']['partial_match_min'] ?? 58),
+            'exact_match_min' => isset($_POST['validation_exact_match_min']) ? absint(wp_unslash($_POST['validation_exact_match_min'])) : absint($current['validation']['exact_match_min'] ?? 82),
+        );
+
         update_option(
             SEO_ANALISTA_OPTION_SETTINGS,
             array(
                 'competitors' => $domains,
                 'tracked_keywords' => $keywords,
+                'validation' => array(
+                    'small_sample_max' => max(1, min(20, $validation['small_sample_max'])),
+                    'reliable_impressions' => max(5, min(100, $validation['reliable_impressions'])),
+                    'high_confidence_impressions' => max(10, min(500, $validation['high_confidence_impressions'])),
+                    'minimum_previous_base' => max(1, min(50, $validation['minimum_previous_base'])),
+                    'partial_match_min' => max(40, min(90, $validation['partial_match_min'])),
+                    'exact_match_min' => max(60, min(99, $validation['exact_match_min'])),
+                ),
             ),
             false
         );
