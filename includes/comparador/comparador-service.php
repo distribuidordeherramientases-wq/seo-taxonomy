@@ -36,6 +36,9 @@ final class SEO_Comparador_Service {
         if (class_exists('SEO_Comparador_Engine')) {
             delete_option(SEO_Comparador_Engine::AUTO_STATE_OPTION);
         }
+        if (class_exists('SEO_Comparador_Process') && method_exists('SEO_Comparador_Process','clear_dirty_queue')) {
+            SEO_Comparador_Process::clear_dirty_queue();
+        }
         if (function_exists('seo_process_supervisor_nudge')) {
             seo_process_supervisor_nudge(0, 'comparador');
         }

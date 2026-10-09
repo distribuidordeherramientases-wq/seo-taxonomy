@@ -18,33 +18,21 @@ final class SEO_Comparador_Integration {
         if (!$term_id) return;
 
         $profile = SEO_Comparador_DB::profile_for_category($term_id);
-        if (!$profile) {
-            SEO_Comparador_Service::queue_refresh();
-            return;
+        if ($profile && !empty($profile['id'])) {
+            SEO_Comparador_DB::update_status(
+                absint($profile['id']),
+                'detected',
+                'sources_changed',
+                $reason,
+                $origin
+            );
         }
 
-        $profile_id = absint($profile['id'] ?? 0);
-        if (!$profile_id) return;
-        $map = SEO_Comparador_DB::post_map($profile_id);
-        $post_id = absint($map['post_id'] ?? 0);
-        $post_status = $post_id ? (string)get_post_status($post_id) : '';
-
-        if ($post_id && $post_status === 'publish') {
-            $target = 'needs_update';
-        } elseif ($post_id && in_array($post_status,array('draft','pending','private','future'),true)) {
-            $target = 'needs_update';
-        } else {
-            $target = 'detected';
+        if (class_exists('SEO_Comparador_Process') && method_exists('SEO_Comparador_Process','enqueue_category')) {
+            SEO_Comparador_Process::enqueue_category($term_id);
+        } elseif (function_exists('seo_process_supervisor_nudge')) {
+            seo_process_supervisor_nudge(0, 'comparador');
         }
-
-        SEO_Comparador_DB::update_status(
-            $profile_id,
-            $target,
-            'sources_changed',
-            $reason,
-            $origin
-        );
-        SEO_Comparador_Service::queue_refresh();
     }
 
     public static function product_changed($post_id,$post,$update) {

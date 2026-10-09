@@ -9,6 +9,7 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Comparador_Process implements SEO_Managed_Service_Process {
     const LOCK = 'seo_comparador_process_manager_lock';
+    const DIRTY_OPTION = 'seo_comparador_dirty_categories';
 
     public static function init() {
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__,'filter_pending_work'), 41, 1);
@@ -19,6 +20,29 @@ final class SEO_Comparador_Process implements SEO_Managed_Service_Process {
     private static function state() {
         $state = get_option(SEO_Comparador_Engine::AUTO_STATE_OPTION, array());
         return is_array($state) ? $state : array();
+    }
+
+
+    private static function dirty_ids() {
+        $ids = get_option(self::DIRTY_OPTION, array());
+        return array_values(array_unique(array_filter(array_map('absint', is_array($ids) ? $ids : array()))));
+    }
+
+    public static function enqueue_category($term_id) {
+        $term_id = absint($term_id);
+        if (!$term_id) return false;
+        $ids = self::dirty_ids();
+        if (!in_array($term_id, $ids, true)) {
+            $ids[] = $term_id;
+            update_option(self::DIRTY_OPTION, array_values($ids), false);
+        }
+        if (function_exists('seo_process_supervisor_nudge')) seo_process_supervisor_nudge(0, 'comparador');
+        if (function_exists('seo_process_supervisor_schedule_backup')) seo_process_supervisor_schedule_backup();
+        return true;
+    }
+
+    public static function clear_dirty_queue() {
+        delete_option(self::DIRTY_OPTION);
     }
 
     private static function category_ids() {
@@ -54,6 +78,7 @@ final class SEO_Comparador_Process implements SEO_Managed_Service_Process {
 
     public static function has_pending() {
         if (get_option('seo_comparador_process_paused')) return false;
+        if (self::dirty_ids()) return true;
         $state = self::state();
         if (!$state || empty($state['complete'])) return true;
         $completed = !empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;
@@ -73,9 +98,34 @@ final class SEO_Comparador_Process implements SEO_Managed_Service_Process {
             $state = self::state();
             if (!$state) $state = self::fresh_state();
 
+            // Las categorías invalidadas por un nuevo snapshot de Ojeador o por
+            // cambios de catálogo se atienden primero, sin reiniciar el barrido
+            // completo. Así un escaneo de Ojeador no devuelve el cursor a cero.
+            $dirty = self::dirty_ids();
+            while ($dirty && (microtime(true) - $started) < max(2, $budget - 2)) {
+                $term_id = absint(array_shift($dirty));
+                update_option(self::DIRTY_OPTION, array_values($dirty), false);
+                if (!$term_id) continue;
+                $result = SEO_Comparador_Service::analyze_category($term_id);
+                $state['processed'] = absint($state['processed'] ?? 0) + 1;
+                if (is_wp_error($result)) $state['errors'] = absint($state['errors'] ?? 0) + 1;
+                $state['updated_at'] = current_time('mysql');
+                $worked = true;
+            }
+
+            if ((microtime(true) - $started) >= max(2, $budget - 2)) {
+                update_option(SEO_Comparador_Engine::AUTO_STATE_OPTION, $state, false);
+                self::managed_update('processed', '');
+                return true;
+            }
+
             if (!empty($state['complete'])) {
                 $completed = !empty($state['completed_at']) ? strtotime((string)$state['completed_at']) : 0;
-                if ($completed && (time() - $completed) < 6 * HOUR_IN_SECONDS) return false;
+                if ($completed && (time() - $completed) < 6 * HOUR_IN_SECONDS) {
+                    update_option(SEO_Comparador_Engine::AUTO_STATE_OPTION, $state, false);
+                    self::managed_update($worked ? 'processed' : 'waiting', '');
+                    return $worked;
+                }
                 $state = self::fresh_state();
             }
 
@@ -123,7 +173,8 @@ final class SEO_Comparador_Process implements SEO_Managed_Service_Process {
             'processed'=>absint($state['processed'] ?? 0),
             'cursor'=>$cursor,
             'total'=>$total,
-            'pending'=>max(0, $total - $cursor),
+            'pending'=>max(0, $total - $cursor) + count(self::dirty_ids()),
+            'dirty'=>count(self::dirty_ids()),
             'percentage'=>$total ? round(($cursor / $total) * 100, 1) : 0,
             'errors'=>absint($state['errors'] ?? 0),
             'updated_at'=>(string)($state['updated_at'] ?? ''),

@@ -76,8 +76,7 @@ final class SEO_Comparador_Admin {
     public static function handle_accept() {
         $profile_id = absint($_POST['profile_id'] ?? 0);
         self::guard('seo_comparador_accept_' . $profile_id);
-        $post_id = SEO_Comparador_Service::accept_and_create_draft($profile_id);
-        if (is_wp_error($post_id)) self::redirect(array('cmp_error'=>rawurlencode($post_id->get_error_message()),'profile_id'=>$profile_id));
+        $post_id = SEO_Comparador_Service::accept_and_create_draft($profile_id);        if (is_wp_error($post_id)) self::redirect(array('cmp_error'=>rawurlencode($post_id->get_error_message()),'profile_id'=>$profile_id));
         self::redirect(array('cmp_notice'=>'draft_created','profile_id'=>$profile_id,'post_id'=>absint($post_id)));
     }
 
@@ -130,7 +129,8 @@ final class SEO_Comparador_Admin {
         }
         $messages = array(
             'refresh_started'=>'Se ha reiniciado el análisis de Comparador. El Gestor recorrerá de nuevo las categorías usando los snapshots actuales de Ojeador.',
-            'reanalyzed'=>'Categoría reanalizada.',            'draft_created'=>'Propuesta aceptada y convertida en borrador.',
+            'reanalyzed'=>'Categoría reanalizada.',
+            'draft_created'=>'Propuesta aceptada y convertida en borrador.',
             'rejected'=>'Propuesta descartada.',
             'all_accepted'=>'Propuestas aceptadas y convertidas en borrador.',
         );
@@ -295,12 +295,12 @@ final class SEO_Comparador_Admin {
         echo '</div>';
 
         $rows = self::filtered_profiles();
-        echo '<table class="widefat striped"><thead><tr><th>Categoría</th><th>Estado</th><th>Propios</th><th>Mercado</th><th>Ejes</th><th>Acción</th></tr></thead><tbody>';
-        if (!$rows) echo '<tr><td colspan="6">No hay perfiles con este filtro.</td></tr>';
+        echo '<table class="widefat striped"><thead><tr><th>Categoría</th><th>Estado</th><th>Propios</th><th>Mercado</th><th>Acción</th></tr></thead><tbody>';
+        if (!$rows) echo '<tr><td colspan="5">No hay perfiles con este filtro.</td></tr>';
         foreach ($rows as $row) {
             $profile_id = absint($row['id'] ?? 0);
             $row_status = sanitize_key((string)($row['status'] ?? ''));
-            echo '<tr><td><strong>' . esc_html((string)($row['canonical_name'] ?? '')) . '</strong></td><td>' . esc_html(self::status_label($row_status)) . '</td><td>' . esc_html(number_format_i18n(absint($row['own_products_count'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n(absint($row['external_products_comparable'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n(absint($row['comparison_axes_count'] ?? 0))) . '</td><td><a class="button button-small" href="' . esc_url(self::page_url(array('status'=>$status,'profile_id'=>$profile_id))) . '">Ver propuesta</a></td></tr>';
+            echo '<tr><td><strong>' . esc_html((string)($row['canonical_name'] ?? '')) . '</strong></td><td>' . esc_html(self::status_label($row_status)) . '</td><td>' . esc_html(number_format_i18n(absint($row['own_products_count'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n(absint($row['external_products_comparable'] ?? 0))) . '</td><td><a class="button button-small" href="' . esc_url(self::page_url(array('status'=>$status,'profile_id'=>$profile_id))) . '">Ver propuesta</a></td></tr>';
         }
         echo '</tbody></table></div>';
     }
