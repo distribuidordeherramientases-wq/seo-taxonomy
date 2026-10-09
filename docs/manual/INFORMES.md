@@ -92,6 +92,55 @@ Permite definir competidores y palabras que se quieren vigilar.
 
 Analista carga los bloques bajo demanda para evitar calcular todos los informes cada vez que se abre la página.
 
+### Plan de acción validado · Analista 3.8.1
+
+El bloque **Plan de acción** sigue siendo **bajo demanda**: abrir Informes > Analista no calcula esta cola. Al pulsar Plan de acción se genera únicamente ese informe.
+
+Antes de mostrar una instrucción, Analista 3.8.1 valida:
+
+1. **Consulta ↔ entidad**: marca, modelo/variante, SKU/MPN cuando están disponibles, intención, categoría y URL.
+2. **Destino**: una instrucción de edición necesita una URL local/canónica resuelta. Si no existe, la salida es **INVESTIGAR COBERTURA**.
+3. **Volumen de evidencia**: impresiones, clics, número de consultas y base del periodo anterior. Las muestras pequeñas no se convierten en quick wins solo por posición.
+4. **Preparación comercial**: stock/disponibilidad, precio y, cuando existen, proveedor y margen/comisión.
+5. **Cobertura editorial existente**: categoría/producto y posts publicados de Dependiente, Ingeniero y Comparador. Se prefiere actualizar/enlazar antes que crear otra URL.
+6. **Metadatos efectivos**: Analista distingue postmeta explícito de title/meta gestionados por plugin SEO o fallback de plantilla, para no generar falsos positivos de “meta inexistente”.
+
+Los estados del plan son:
+
+- **HACER AHORA**: destino y asociación validados, evidencia suficiente y confianza compatible con ejecución. Máximo 10; el sistema no rellena el cupo.
+- **HACER DESPUÉS**: trabajo válido, pero menos urgente o con validaciones no bloqueantes.
+- **INVESTIGAR**: existe conflicto de modelo, entidad/destino no demostrados o falta una validación comercial crítica.
+- **VIGILAR**: señal coherente pero todavía inmadura.
+- **ESPERAR DATOS**: muestra demasiado pequeña o crecimiento sobre base insuficiente.
+- **SIN ACCIÓN**: compatibilidad histórica para señales sin valor de trabajo.
+
+Cada tarjeta muestra **consulta exacta, URL atribuida, tipo/confianza de match, impresiones, clics, CTR, posición, variación absoluta, base anterior, confianza, preparación comercial, responsable recomendado y dependencias**.
+
+Los valores **Autoridad / Visitas / Ventas** son **scores internos de priorización**. No son métricas de autoridad de Google.
+
+#### Umbrales configurables
+
+En **Analista → Comparación**, el formulario de configuración incluye los umbrales internos de evidencia y matching. Son criterios operativos del proyecto, no reglas SEO universales:
+
+- máximo de impresiones considerado muestra pequeña;
+- impresiones consideradas fiables;
+- volumen alto;
+- base previa mínima para interpretar porcentajes;
+- match parcial mínimo;
+- match exacto mínimo.
+
+#### Seguridad y responsabilidades
+
+Analista **diagnostica y deriva**. No publica, no crea posts/URLs ni modifica categorías o productos automáticamente.
+
+- **Auditor** conserva la gestión de anomalías/tareas.
+- **Editora** revisa cambios de contenido.
+- **Catálogo/proveedores** valida surtido, disponibilidad, proveedor, precio y margen.
+- **SEO/taxonomía** resuelve asociaciones, destinos y enlazado.
+- **Ingeniero / Solucionador / Comparador** aportan cobertura o evidencia; Analista no duplica sus workers.
+
+En **Fuentes** se muestran las siete pruebas de aceptación de 3.8.1 y un diagnóstico separado de Action Scheduler para detectar colas vencidas que puedan afectar a la frescura de datos.
+
 ### Informe competitivo profundo
 
 Dentro de **Analista → Comparación**, después de guardar competidores y palabras vigiladas, aparece el bloque **Informe competitivo profundo**.
