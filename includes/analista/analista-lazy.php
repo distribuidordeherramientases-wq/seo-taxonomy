@@ -292,9 +292,9 @@ if (!function_exists('seo_analista_lazy_render_sources')) {
             echo '<p class="description">' . esc_html((string) ($scheduler['detail'] ?? '')) . '</p></section>';
         }
 
-        if (function_exists('seo_analista_381_self_tests')) {
-            $tests = seo_analista_381_self_tests();
-            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Pruebas Analista 3.8.1</h2><p>Casos de aceptación de matching, destino, muestra mínima, metadatos efectivos y crecimiento sobre bases pequeñas.</p></div></div>';
+        if (function_exists('seo_analista_382_self_tests') || function_exists('seo_analista_381_self_tests')) {
+            $tests = function_exists('seo_analista_382_self_tests') ? seo_analista_382_self_tests() : seo_analista_381_self_tests();
+            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Pruebas Analista ' . esc_html((string) ($tests['version'] ?? '3.8.2')) . '</h2><p>Matching, destino, muestra mínima, metadatos efectivos, crecimiento, gates comerciales y tareas INVESTIGAR concretas.</p></div></div>';
             echo '<p><strong>' . esc_html(number_format_i18n(absint($tests['passed'] ?? 0))) . '/' . esc_html(number_format_i18n(absint($tests['total'] ?? 0))) . '</strong> pruebas superadas.</p>';
             echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Prueba</th><th>Estado</th><th>Regla</th></tr></thead><tbody>';
             foreach ((array) ($tests['tests'] ?? array()) as $test) {
