@@ -31,15 +31,76 @@ if (!function_exists('seo_analista_first_meta')) {
 
 if (!function_exists('seo_analista_seo_meta_snapshot')) {
     function seo_analista_seo_meta_snapshot($post_id) {
+        $post_id = absint($post_id);
+        $title = seo_analista_first_meta($post_id, array(
+            '_yoast_wpseo_title', 'rank_math_title', '_rank_math_title',
+            '_seopress_titles_title', '_aioseo_title', '_seo_title', 'seo_title',
+        ));
+        $description = seo_analista_first_meta($post_id, array(
+            '_yoast_wpseo_metadesc', 'rank_math_description', '_rank_math_description',
+            '_seopress_titles_desc', '_aioseo_description', '_seo_description', 'seo_description',
+        ));
+
+        $title_source = $title !== '' ? 'postmeta' : '';
+        $description_source = $description !== '' ? 'postmeta' : '';
+        $seo_plugin_active = defined('WPSEO_VERSION')
+            || defined('RANK_MATH_VERSION')
+            || defined('SEOPRESS_VERSION')
+            || defined('AIOSEO_VERSION');
+
+        /*
+         * 3.8.1: ausencia de postmeta no equivale a ausencia del meta efectivo.
+         * Los plugins SEO pueden generar title/description por plantilla global.
+         * Cuando uno esta activo no fabricamos el valor: marcamos la gestion
+         * como efectiva para impedir el falso positivo y dejamos la inspeccion
+         * del snippet como accion separada si CTR/demanda lo justifican.
+         */
+        if ($seo_plugin_active) {
+            if ($title === '') {
+                $title = '[gestionado por plantilla del plugin SEO]';
+                $title_source = 'seo_plugin_template';
+            }
+            if ($description === '') {
+                $description = '[gestionada por plantilla del plugin SEO]';
+                $description_source = 'seo_plugin_template';
+            }
+        } else {
+            /*
+             * La cabecera publica del plugin usa el titulo de WordPress y, como
+             * fallback de description, excerpt o contenido. Replicamos ese
+             * contrato sin lanzar una peticion HTTP a la URL.
+             */
+            if ($title === '' && $post_id > 0) {
+                $fallback_title = trim((string) get_the_title($post_id));
+                if ($fallback_title !== '') {
+                    $title = $fallback_title;
+                    $title_source = 'wordpress_template';
+                }
+            }
+            if ($description === '' && $post_id > 0) {
+                $fallback_description = trim((string) get_post_field('post_excerpt', $post_id));
+                if ($fallback_description === '') {
+                    $raw_content = (string) get_post_field('post_content', $post_id);
+                    $fallback_description = wp_trim_words(
+                        wp_strip_all_tags(strip_shortcodes($raw_content)),
+                        30,
+                        ''
+                    );
+                }
+                $fallback_description = trim((string) apply_filters('dht_meta_description', $fallback_description));
+                if ($fallback_description !== '') {
+                    $description = $fallback_description;
+                    $description_source = 'dht_template_fallback';
+                }
+            }
+        }
+
         return array(
-            'title' => seo_analista_first_meta($post_id, array(
-                '_yoast_wpseo_title', 'rank_math_title', '_rank_math_title',
-                '_seopress_titles_title', '_aioseo_title', '_seo_title', 'seo_title',
-            )),
-            'description' => seo_analista_first_meta($post_id, array(
-                '_yoast_wpseo_metadesc', 'rank_math_description', '_rank_math_description',
-                '_seopress_titles_desc', '_aioseo_description', '_seo_description', 'seo_description',
-            )),
+            'title' => $title,
+            'description' => $description,
+            'title_source' => $title_source,
+            'description_source' => $description_source,
+            'effective_checked' => true,
         );
     }
 }
