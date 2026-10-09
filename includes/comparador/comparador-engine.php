@@ -655,22 +655,18 @@ final class SEO_Comparador_Engine {
     }
 
     public static function profile_quality_status($own_count, $external_count, $publishable_axes, $semantic_conflicts = 0) {
-        $settings = self::settings();
         if (absint($semantic_conflicts) > 0) return 'blocked';
-        if (absint($own_count) < 1) return 'blocked';
-        if (absint($own_count) + absint($external_count) < absint($settings['min_products'])) return 'needs_review';
-        if (absint($publishable_axes) < 1) return 'needs_review';
-        return 'needs_review';
+        if (absint($external_count) < 1) return 'waiting_ojeador';
+        return 'candidate';
     }
 
     public static function resolve_recalculated_status($old_status, $old_hash, $new_hash, $has_published_post, $base_status) {
         $old_status = sanitize_key((string) $old_status);
-        $base_status = sanitize_key((string) $base_status) ?: 'needs_review';
+        $base_status = sanitize_key((string) $base_status) ?: 'waiting_ojeador';
         if ($base_status === 'blocked') return 'blocked';
-        if (in_array($old_status,array('ready_for_editorial','ready_for_solucionador'),true) && (string) $old_hash === (string) $new_hash) return 'ready_for_editorial';
         if ($has_published_post && (string) $old_hash !== '' && (string) $old_hash !== (string) $new_hash) return 'needs_update';
-        if (in_array($old_status,array('approved','post_draft','published','monitoring'),true) && (string) $old_hash === (string) $new_hash) return $old_status;
-        return 'needs_review';
+        if (in_array($old_status,array('approved','post_draft','published','monitoring','rejected'),true) && (string) $old_hash === (string) $new_hash) return $old_status;
+        return $base_status;
     }
 
     public static function build_profile($term_id) {
@@ -883,64 +879,157 @@ final class SEO_Comparador_Engine {
         global $wpdb;
         $profile=SEO_Comparador_DB::get_profile($profile_id);
         if (!$profile) return new WP_Error('comparador_profile','Perfil no encontrado.');
-        $axes=array_values(array_filter(SEO_Comparador_DB::axes($profile_id),static function($a){return !empty($a['publishable']);}));
-        $criteria=array();
-        foreach ($axes as $axis) $criteria[]=sanitize_text_field((string)$axis['label']);
+
         $name=sanitize_text_field((string)$profile['canonical_name']);
-        $own=absint($profile['own_products_count']);
-        $external=absint($profile['external_products_comparable']);
+        $products=SEO_Comparador_DB::products($profile_id);
+        $values=SEO_Comparador_DB::values_for_profile($profile_id);
+        $external=array_values(array_filter($products,static function($p){ return ($p['source_type'] ?? '')==='external'; }));
+        $own=array_values(array_filter($products,static function($p){ return ($p['source_type'] ?? '')==='own'; }));
 
-        $summary='La comparación de ' . $name . ' reúne ' . number_format_i18n($own) . ' productos del catálogo propio';
-        if ($external) $summary.=' y ' . number_format_i18n($external) . ' referencias externas deduplicadas observadas previamente por Ojeador';
-        $summary.='. ';
-        if ($criteria) {
-            $summary.='Los ejes con cobertura y confianza suficientes son ' . implode(', ',array_slice($criteria,0,8)) . '. ';
-            $summary.='Estos ejes describen diferencias observables entre configuraciones y sirven como base para explicar criterios de elección sin establecer rankings no demostrados.';
-        } else {
-            $summary.='Todavía no hay ejes con cobertura y confianza suficientes para una síntesis pública fiable.';
+        $brands=array();
+        foreach ($external as $p) {
+            $brand=trim(sanitize_text_field((string)($p['brand'] ?? '')));
+            if ($brand!=='') $brands[$brand]=($brands[$brand] ?? 0)+1;
         }
-        $summary.=' Los datos externos desconocidos permanecen como DESCONOCIDO y no se completan por inferencia.';
+        arsort($brands);
+        $brand_names=array_slice(array_keys($brands),0,12);
 
-        $excerpt=$criteria
-            ? 'Panorama comparativo de ' . $name . ': diferencias relevantes en ' . implode(', ',array_slice($criteria,0,4)) . ' y relación con nuestro catálogo.'
-            : 'Perfil comparativo de ' . $name . ' pendiente de completar datos suficientes.';
+        $external_prices=array();
+        $own_prices=array();
+        foreach ($values as $v) {
+            if (($v['axis_key'] ?? '')!=='price') continue;
+            $number=(float)($v['normalized_value'] ?? 0);
+            if ($number<=0) continue;
+            if (($v['source_type'] ?? '')==='external') $external_prices[]=$number;
+            elseif (($v['source_type'] ?? '')==='own') $own_prices[]=$number;
+        }
+        sort($external_prices,SORT_NUMERIC);
+        sort($own_prices,SORT_NUMERIC);
+        $median=static function(array $nums) {
+            $count=count($nums);
+            if (!$count) return null;
+            $mid=(int)floor($count/2);
+            return $count%2 ? (float)$nums[$mid] : ((float)$nums[$mid-1]+(float)$nums[$mid])/2;
+        };
+        $fmt=static function($n) {
+            return $n===null ? '' : number_format_i18n((float)$n,2) . ' €';
+        };
 
-        $limits=array(
-            'unknown_values_are_not_inferred'=>true,
-            'merchant_is_not_editorial_axis'=>true,
-            'external_products_seen'=>absint($profile['external_products_seen']),
-            'external_products_comparable'=>$external,
-            'source_snapshot_at'=>(string)$profile['source_snapshot_at'],
-        );
+        $external_count=count($external);
+        $own_count=count($own);
+        $market_parts=array();
+        if ($external_count) $market_parts[]='Ojeador ha recopilado ' . number_format_i18n($external_count) . ' referencias externas comparables';
+        if ($brand_names) $market_parts[]='las marcas más repetidas en la muestra son ' . implode(', ',$brand_names);
+        if ($external_prices) {
+            $market_parts[]='los precios observados van de ' . $fmt(reset($external_prices)) . ' a ' . $fmt(end($external_prices))
+                . ', con una mediana de ' . $fmt($median($external_prices));
+        }
+        $market_overview=$market_parts
+            ? implode('. ',$market_parts) . '.'
+            : 'Ojeador todavía no ha aportado referencias externas suficientes para elaborar un panorama de mercado.';
+
+        $own_parts=array();
+        if ($own_count) $own_parts[]='Nuestro catálogo contiene ' . number_format_i18n($own_count) . ' productos de esta categoría';
+        if ($own_prices) {
+            $own_parts[]='sus precios van de ' . $fmt(reset($own_prices)) . ' a ' . $fmt(end($own_prices))
+                . ', con una mediana de ' . $fmt($median($own_prices));
+        }
+        if ($external_prices && $own_prices) {
+            $market_median=$median($external_prices);
+            $own_median=$median($own_prices);
+            if ($market_median>0) {
+                $delta=(($own_median-$market_median)/$market_median)*100;
+                $own_parts[]='la mediana propia está ' . number_format_i18n(abs($delta),1) . '% '
+                    . ($delta<0 ? 'por debajo' : ($delta>0 ? 'por encima' : 'en línea')) . ' de la mediana observada';
+            }
+        }
+        $own_catalog_position=$own_parts ? implode('. ',$own_parts) . '.' : 'No hay precios propios suficientes para comparar la posición del catálogo.';
+
+        $summary='<strong>Datos recopilados por Ojeador para ' . esc_html($name) . '.</strong> '
+            . esc_html($market_overview) . ' ' . esc_html($own_catalog_position);
+
+        $suggested_title='Mercado de ' . $name . ': marcas, precios y panorama general';
+        $excerpt='Panorama de mercado de ' . $name . ' a partir de referencias observadas por Ojeador y del catálogo propio.';
+        $comparison_text='<p>' . esc_html($market_overview) . '</p>'
+            . '<p>' . esc_html($own_catalog_position) . '</p>';
+
         $existing=SEO_Comparador_DB::editorial($profile_id);
-        $manual_import=!empty($existing)
-            && sanitize_key((string)($existing['origin'] ?? ''))==='manual_import'
-            && trim((string)($existing['comparison_text'] ?? ''))!=='';
-
-        if ($manual_import) {
-            // Recalcular fuentes/ejes no debe pisar la comparativa editorial importada.
-            // Se actualiza sólo el contexto generado por el sistema.
-            $row=array(
-                'summary'=>wp_kses_post($summary),
-                'generated_at'=>self::now(),
-                'updated_at'=>self::now(),
-            );
-        } else {
-            $version=max(1,absint($existing['version'] ?? 0)+1);
-            $row=array(
-                'summary'=>wp_kses_post($summary),
-                'excerpt'=>sanitize_textarea_field($excerpt),
-                'buying_criteria'=>wp_json_encode($criteria,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-                'limits'=>wp_json_encode($limits,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-                'origin'=>'generated',
-                'version'=>$version,
-                'generated_at'=>self::now(),
-                'updated_at'=>self::now(),
-            );
-        }
+        $version=max(1,absint($existing['version'] ?? 0)+1);
+        $row=array(
+            'summary'=>wp_kses_post($summary),
+            'suggested_title'=>sanitize_text_field($suggested_title),
+            'excerpt'=>sanitize_textarea_field($excerpt),
+            'comparison_text'=>wp_kses_post($comparison_text),
+            'product_types'=>wp_json_encode(array(),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'main_differences'=>wp_json_encode(array(),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'buying_criteria'=>wp_json_encode(array(),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'use_cases'=>wp_json_encode(array(),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'market_overview'=>sanitize_textarea_field($market_overview),
+            'own_catalog_position'=>sanitize_textarea_field($own_catalog_position),
+            'editorial_limitations'=>sanitize_textarea_field(
+                $external_count
+                    ? 'El informe resume únicamente la muestra persistida por Ojeador; no muestra tiendas ni enlaces externos al público.'
+                    : 'Pendiente de datos de Ojeador.'
+            ),
+            'conclusion'=>'',
+            'origin'=>'generated',
+            'source_hash_at_edit'=>(string)($profile['source_hash'] ?? ''),
+            'source_snapshot_at_edit'=>(string)($profile['source_snapshot_at'] ?? ''),
+            'version'=>$version,
+            'generated_at'=>self::now(),
+            'updated_at'=>self::now(),
+        );
         if ($existing) $wpdb->update(SEO_Comparador_DB::table('editorial'),$row,array('profile_id'=>absint($profile_id)));
         else { $row['profile_id']=absint($profile_id); $wpdb->insert(SEO_Comparador_DB::table('editorial'),$row); }
+
+        $has_post=SEO_Comparador_DB::post_map($profile_id);
+        if (empty($has_post['post_id'])) {
+            $wpdb->update(SEO_Comparador_DB::table('profiles'),array(
+                'recommended_action'=>$external_count ? 'CREATE_POST' : '',
+                'decision_reason'=>$external_count
+                    ? 'Ojeador dispone de datos de mercado para esta categoría; Comparador ha preparado una propuesta editorial.'
+                    : 'Pendiente de que Ojeador aporte datos de mercado.',
+                'status'=>$external_count ? 'candidate' : 'waiting_ojeador',
+                'editorial_decided_at'=>self::now(),
+                'updated_at'=>self::now(),
+            ),array('id'=>absint($profile_id)));
+        }
         return SEO_Comparador_DB::editorial($profile_id);
+    }
+
+    public static function accept_proposal($profile_id) {
+        global $wpdb;
+        $profile_id=absint($profile_id);
+        $profile=SEO_Comparador_DB::get_profile($profile_id);
+        if (!$profile) return new WP_Error('comparador_profile','Perfil no encontrado.');
+        if (absint($profile['external_products_comparable'] ?? 0)<1) {
+            return new WP_Error('comparador_no_ojeador','Ojeador todavía no ha aportado datos de mercado para esta categoría.');
+        }
+        $map=SEO_Comparador_DB::post_map($profile_id);
+        if (!empty($map['post_id']) && get_post(absint($map['post_id']))) {
+            return new WP_Error('comparador_post_exists','La propuesta ya tiene un post vinculado.');
+        }
+        $wpdb->update(SEO_Comparador_DB::table('profiles'),array(
+            'status'=>'approved',
+            'recommended_action'=>'CREATE_POST',
+            'decision_reason'=>'Propuesta aceptada por la Editora.',
+            'editorial_decided_at'=>self::now(),
+            'updated_at'=>self::now(),
+        ),array('id'=>$profile_id));
+        return self::create_editorial_draft($profile_id);
+    }
+
+    public static function reject_proposal($profile_id,$reason='') {
+        $profile_id=absint($profile_id);
+        if (!SEO_Comparador_DB::get_profile($profile_id)) return new WP_Error('comparador_profile','Perfil no encontrado.');
+        SEO_Comparador_DB::update_status(
+            $profile_id,
+            'rejected',
+            'reject_proposal',
+            $reason!=='' ? $reason : 'Propuesta descartada por la Editora.',
+            'admin'
+        );
+        return true;
     }
 
     private static function review_payload($profile_id) {
@@ -1522,30 +1611,22 @@ final class SEO_Comparador_Engine {
     }
 
     private static function draft_content(array $profile,array $editorial,array $axes) {
-        $comparison_text = trim((string) ($editorial['comparison_text'] ?? ''));
-        if ($comparison_text !== '') return wp_kses_post($comparison_text);
+        $name=sanitize_text_field((string)($profile['canonical_name'] ?? ''));
+        $market=trim((string)($editorial['market_overview'] ?? ''));
+        $own=trim((string)($editorial['own_catalog_position'] ?? ''));
+        $limitations=trim((string)($editorial['editorial_limitations'] ?? ''));
 
-        $parts = array();
-        $summary = trim((string) ($editorial['summary'] ?? ''));
-        if ($summary !== '') $parts[] = '<p>' . esc_html($summary) . '</p>';
-
-        $labels = array_values(array_filter(array_map(static function($axis) {
-            return !empty($axis['publishable']) ? sanitize_text_field((string) ($axis['label'] ?? '')) : '';
-        },$axes)));
-        if ($labels) {
-            $parts[] = '<h2>Criterios de comparación</h2><p>' . esc_html(implode(', ',array_slice($labels,0,10))) . '.</p>';
+        $parts=array();
+        $parts[]='<p><strong>Material de trabajo de Comparador.</strong> Este borrador resume la información que Ojeador ha recopilado para la categoría ' . esc_html($name) . '. Edita el texto antes de publicar; no añadas tiendas ni enlaces externos.</p>';
+        if ($market!=='') {
+            $parts[]='<h2>Panorama de mercado</h2><p>' . esc_html($market) . '</p>';
         }
-
-        $limitations = trim((string) ($editorial['editorial_limitations'] ?? ''));
-        if ($limitations !== '') {
-            $parts[] = '<h2>Limitaciones de la comparativa</h2><p>' . esc_html($limitations) . '</p>';
+        if ($own!=='') {
+            $parts[]='<h2>Posición de nuestro catálogo</h2><p>' . esc_html($own) . '</p>';
         }
-
-        $conclusion = trim((string) ($editorial['conclusion'] ?? ''));
-        if ($conclusion !== '') {
-            $parts[] = '<h2>Conclusión</h2><p>' . esc_html($conclusion) . '</p>';
+        if ($limitations!=='') {
+            $parts[]='<p><em>' . esc_html($limitations) . '</em></p>';
         }
-
         return implode("\n\n",$parts);
     }
 
@@ -1572,7 +1653,7 @@ final class SEO_Comparador_Engine {
 
         $title = trim((string) ($editorial['suggested_title'] ?? ''));
         if ($title === '') {
-            $title = 'Comparativa de ' . sanitize_text_field((string) $profile['canonical_name']) . ': diferencias y criterios de elección';
+            $title = 'Mercado de ' . sanitize_text_field((string) $profile['canonical_name']) . ': marcas, precios y panorama general';
         }
         $excerpt = sanitize_textarea_field((string) ($editorial['excerpt'] ?? ''));
         $axes = SEO_Comparador_DB::axes($profile_id);
