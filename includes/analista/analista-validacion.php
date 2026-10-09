@@ -255,6 +255,14 @@ if (!function_exists('seo_analista_evidence_profile')) {
         $previous = max(0, (int) round((float) ($metrics['previous_impressions'] ?? 0)));
         $delta = isset($metrics['impressions_delta']) ? (float) $metrics['impressions_delta'] : ($impressions - $previous);
         $sources = array_values(array_unique(array_filter((array) ($row['sources'] ?? array()))));
+        $legacy_source = trim((string) ($row['source'] ?? ''));
+        if ($legacy_source !== '') {
+            foreach (preg_split('/\s*[\/|,+]\s*/', $legacy_source) as $source_name) {
+                $source_name = trim((string) $source_name);
+                if ($source_name !== '') $sources[] = $source_name;
+            }
+            $sources = array_values(array_unique($sources));
+        }
         $independent = max(1, count($sources));
         if ($queries > 0) $independent += min(3, $queries);
 
@@ -277,6 +285,7 @@ if (!function_exists('seo_analista_evidence_profile')) {
             'previous_impressions'=>$previous,
             'absolute_delta'=>$delta,
             'evidence_count'=>$independent,
+            'sources'=>$sources,
             'small_sample'=>$small,
             'growth_unstable'=>$growth_unstable,
             'priority_penalty'=>$penalty,
@@ -297,8 +306,30 @@ if (!function_exists('seo_analista_commercial_readiness')) {
             'price'=>null,
             'supplier'=>null,
             'margin_or_commission'=>null,
-            'available'=>null
+            'available'=>null,
+            'ga4_signals'=>array(
+                'available'=>false,
+                'sessions'=>null,
+                'pageviews'=>null,
+                'conversions'=>null,
+                'revenue'=>null,
+            ),
         );
+
+        $metrics = (array) ($row['metrics'] ?? array());
+        $ga4_available = array_key_exists('sessions', $metrics)
+            || array_key_exists('pageviews', $metrics)
+            || array_key_exists('conversions', $metrics)
+            || array_key_exists('revenue', $metrics);
+        if ($ga4_available) {
+            $out['ga4_signals'] = array(
+                'available'=>true,
+                'sessions'=>array_key_exists('sessions', $metrics) ? max(0, (float) $metrics['sessions']) : null,
+                'pageviews'=>array_key_exists('pageviews', $metrics) ? max(0, (float) $metrics['pageviews']) : null,
+                'conversions'=>array_key_exists('conversions', $metrics) ? max(0, (float) $metrics['conversions']) : null,
+                'revenue'=>array_key_exists('revenue', $metrics) ? max(0, (float) $metrics['revenue']) : null,
+            );
+        }
 
         if ($type === 'product' && $id > 0 && function_exists('wc_get_product')) {
             $product = wc_get_product($id);
@@ -320,12 +351,19 @@ if (!function_exists('seo_analista_commercial_readiness')) {
                 if (!$out['stock'] || !$out['available'] || $out['price'] <= 0) {
                     $out['status'] = 'not_ready';
                     $out['label'] = 'Oferta no preparada';
-                } elseif ($out['supplier'] !== null && $out['margin_or_commission'] !== null) {
+                } elseif ($out['supplier'] !== null
+                    && $out['margin_or_commission'] !== null
+                    && !empty($out['ga4_signals']['available'])) {
                     $out['status'] = 'verified';
                     $out['label'] = 'Comercial verificado';
                 } else {
                     $out['status'] = 'partial';
-                    $out['label'] = 'Comercial parcialmente verificado';
+                    $missing = array();
+                    if ($out['supplier'] === null) $missing[] = 'proveedor';
+                    if ($out['margin_or_commission'] === null) $missing[] = 'margen/comisión';
+                    if (empty($out['ga4_signals']['available'])) $missing[] = 'GA4';
+                    $out['label'] = 'Comercial parcialmente verificado'
+                        . ($missing ? ' · falta ' . implode(', ', $missing) : '');
                 }
             }
         } elseif ($type === 'category') {
