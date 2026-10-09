@@ -174,6 +174,163 @@ if (!function_exists('seo_analista_intent_fit_for_entity')) {
     }
 }
 
+
+if (!function_exists('seo_analista_entity_row_from_term')) {
+    function seo_analista_entity_row_from_term($term_id) {
+        $term_id = absint($term_id);
+        if ($term_id < 1) return array();
+        $term = get_term($term_id, 'product_cat');
+        if (!$term instanceof WP_Term || is_wp_error($term)) return array();
+        $url = get_term_link($term, 'product_cat');
+        if (is_wp_error($url) || !$url) return array();
+        return array(
+            'entity'=>array(
+                'type'=>'category',
+                'type_label'=>'Categoría',
+                'id'=>$term_id,
+                'title'=>(string) $term->name,
+                'url'=>(string) $url,
+                'edit_url'=>admin_url('term.php?taxonomy=product_cat&tag_ID=' . $term_id . '&post_type=product'),
+            ),
+            'target'=>array(
+                'title'=>(string) $term->name,
+                'url'=>(string) $url,
+            ),
+            'catalog'=>array(
+                'term_id'=>$term_id,
+                'products'=>(int) $term->count,
+            ),
+        );
+    }
+}
+
+if (!function_exists('seo_analista_try_auto_resolve_target')) {
+    /**
+     * Intenta resolver un destino local antes de devolver INVESTIGAR.
+     * Solo acepta candidatos que pasan de nuevo por el validador 3.8.1.
+     */
+    function seo_analista_try_auto_resolve_target(array $row, $query, $days = 28) {
+        $query = trim((string) $query);
+        $result = array(
+            'attempted'=>false,
+            'resolved'=>false,
+            'method'=>'',
+            'score'=>0.0,
+            'candidate'=>array(),
+            'reason'=>'',
+        );
+        if ($query === '') return array($row, $result);
+
+        $current_validation = seo_analista_validate_query_entity($query, $row);
+        if (!empty($current_validation['target']['resolved'])
+            && in_array((string) ($current_validation['match_type'] ?? ''), array('exact','partial'), true)
+            && empty($current_validation['model_conflict'])) {
+            $result['reason'] = 'El destino actual ya está suficientemente validado.';
+            return array($row, $result);
+        }
+
+        $result['attempted'] = true;
+        $query_models = seo_analista_model_tokens($query);
+        $candidates = array();
+
+        // 1) Taxonomía de producto: fuente preferente para consultas de familia.
+        if (function_exists('seo_analista_local_category_context')) {
+            $local = (array) seo_analista_local_category_context($query);
+            $term_id = absint($local['term_id'] ?? $local['category_id'] ?? 0);
+            $score = (float) ($local['match_score'] ?? 0);
+            if ($term_id > 0 && $score >= 0.58) {
+                $candidate = seo_analista_entity_row_from_term($term_id);
+                if ($candidate) {
+                    $candidate['topic'] = (string) ($row['topic'] ?? $query);
+                    $candidate['intent'] = (string) ($row['intent'] ?? '');
+                    $candidate['metrics'] = (array) ($row['metrics'] ?? array());
+                    $candidate['objective'] = (array) ($row['objective'] ?? array());
+                    $candidate['issues'] = (array) ($row['issues'] ?? array());
+                    $candidate['sources'] = (array) ($row['sources'] ?? array());
+                    $candidate['source'] = (string) ($row['source'] ?? '');
+                    $candidate['action'] = (string) ($row['action'] ?? '');
+                    $candidate['recommended_changes'] = (array) ($row['recommended_changes'] ?? array());
+                    $candidates[] = array(
+                        'row'=>array_replace_recursive($row, $candidate),
+                        'method'=>'taxonomy_product_cat',
+                        'score'=>$score,
+                    );
+                }
+            }
+        }
+
+        // 2) Resto de entidades locales ya conocidas por Analista.
+        if (function_exists('seo_analista_find_best_local_target')) {
+            $local_target = (array) seo_analista_find_best_local_target($query, $days);
+            if (!empty($local_target['row']) && is_array($local_target['row'])) {
+                $candidate_row = array_replace_recursive($row, (array) $local_target['row']);
+                // Las métricas/objetivo pertenecen a la señal actual, no al candidato histórico.
+                $candidate_row['metrics'] = (array) ($row['metrics'] ?? array());
+                $candidate_row['objective'] = (array) ($row['objective'] ?? array());
+                $candidate_row['issues'] = (array) ($row['issues'] ?? array());
+                $candidate_row['sources'] = (array) ($row['sources'] ?? array());
+                $candidate_row['source'] = (string) ($row['source'] ?? '');
+                $candidate_row['action'] = (string) ($row['action'] ?? '');
+                $candidate_row['recommended_changes'] = (array) ($row['recommended_changes'] ?? array());
+                $candidates[] = array(
+                    'row'=>$candidate_row,
+                    'method'=>'local_content_index',
+                    'score'=>(float) ($local_target['score'] ?? 0),
+                );
+            }
+        }
+
+        usort($candidates, static function($left, $right) {
+            return ((float) ($right['score'] ?? 0)) <=> ((float) ($left['score'] ?? 0));
+        });
+
+        foreach ($candidates as $candidate) {
+            $candidate_row = (array) ($candidate['row'] ?? array());
+            $entity = (array) ($candidate_row['entity'] ?? array());
+            $type = sanitize_key((string) ($entity['type'] ?? ''));
+            $score = (float) ($candidate['score'] ?? 0);
+            $candidate_models = seo_analista_model_tokens(seo_analista_entity_identity_text($candidate_row));
+
+            // Consultas con modelo no se degradan a categorías genéricas.
+            if ($query_models && in_array($type, array('category','cluster','hub_primary','hub_secondary'), true) && $score < 0.90) {
+                continue;
+            }
+            if ($type === 'product' && $query_models && $candidate_models && !array_intersect($query_models, $candidate_models)) {
+                continue;
+            }
+
+            $candidate_validation = seo_analista_validate_query_entity($query, $candidate_row);
+            if (empty($candidate_validation['target']['resolved'])
+                || !in_array((string) ($candidate_validation['match_type'] ?? ''), array('exact','partial'), true)
+                || !empty($candidate_validation['model_conflict'])) {
+                continue;
+            }
+
+            $minimum = $type === 'product' ? 0.72 : (in_array($type, array('category','cluster','hub_primary','hub_secondary'), true) ? 0.64 : 0.70);
+            if ($score < $minimum && (float) ($candidate_validation['similarity'] ?? 0) < $minimum) {
+                continue;
+            }
+
+            $result['resolved'] = true;
+            $result['method'] = (string) ($candidate['method'] ?? '');
+            $result['score'] = max($score, (float) ($candidate_validation['similarity'] ?? 0));
+            $result['candidate'] = array(
+                'type'=>$type,
+                'id'=>absint($entity['id'] ?? 0),
+                'title'=>(string) ($entity['title'] ?? ''),
+                'url'=>(string) ($candidate_validation['target']['url'] ?? ''),
+                'match_type'=>(string) ($candidate_validation['match_type'] ?? ''),
+                'match_confidence'=>absint($candidate_validation['match_confidence'] ?? 0),
+            );
+            $result['reason'] = 'Destino local resuelto automáticamente y revalidado contra la consulta.';
+            return array($candidate_row, $result);
+        }
+
+        $result['reason'] = 'No se encontró un candidato local suficientemente fuerte y seguro.';
+        return array($row, $result);
+    }
+}
+
 if (!function_exists('seo_analista_validate_query_entity')) {
     function seo_analista_validate_query_entity($query, array $row) {
         $query = trim((string) $query);
