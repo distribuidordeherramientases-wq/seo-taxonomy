@@ -602,10 +602,21 @@ if (!function_exists('seo_analista_prioritize_portfolio')) {
         $out = array();
         foreach ($rows as $row) {
             if (!is_array($row)) continue;
-            $out[] = seo_analista_enrich_business_row($row, $health);
+            $enriched = seo_analista_enrich_business_row($row, $health);
+            if (function_exists('seo_analista_validate_and_finalize_task')) {
+                $enriched = seo_analista_validate_and_finalize_task($enriched, $days);
+            }
+            $out[] = $enriched;
         }
 
-        $bucket_order = array('HACER_AHORA'=>0,'HACER_DESPUES'=>1,'VIGILAR'=>2,'SIN_ACCION'=>3);
+        $bucket_order = array(
+            'HACER_AHORA'=>0,
+            'HACER_DESPUES'=>1,
+            'INVESTIGAR'=>2,
+            'VIGILAR'=>3,
+            'ESPERAR_DATOS'=>4,
+            'SIN_ACCION'=>5,
+        );
         usort($out, static function($a, $b) use ($bucket_order) {
             $ab = $bucket_order[$a['work_bucket'] ?? 'SIN_ACCION'] ?? 9;
             $bb = $bucket_order[$b['work_bucket'] ?? 'SIN_ACCION'] ?? 9;
@@ -619,7 +630,7 @@ if (!function_exists('seo_analista_prioritize_portfolio')) {
         foreach ($out as &$row) {
             if (($row['work_bucket'] ?? '') !== 'HACER_AHORA') continue;
             $now++;
-            if ($now > max(3, min(15, absint($now_limit)))) $row['work_bucket'] = 'HACER_DESPUES';
+            if ($now > max(1, min(10, absint($now_limit)))) $row['work_bucket'] = 'HACER_DESPUES';
         }
         unset($row);
 
@@ -629,7 +640,11 @@ if (!function_exists('seo_analista_prioritize_portfolio')) {
             if ($ab !== $bb) return $ab <=> $bb;
             return (int) ($b['priority'] ?? 0) <=> (int) ($a['priority'] ?? 0);
         });
-        return array_slice($out, 0, max(10, min(100, absint($limit))));
+        $result = array_slice($out, 0, max(10, min(100, absint($limit))));
+        if (function_exists('seo_analista_persist_task_baselines')) {
+            seo_analista_persist_task_baselines($result);
+        }
+        return $result;
     }
 }
 
@@ -639,7 +654,9 @@ if (!function_exists('seo_analista_strategy_summary')) {
             'total' => count($plan),
             'hacer_ahora' => 0,
             'hacer_despues' => 0,
+            'investigar' => 0,
             'vigilar' => 0,
+            'esperar_datos' => 0,
             'sin_accion' => 0,
             'authority' => 0,
             'traffic' => 0,
@@ -656,7 +673,9 @@ if (!function_exists('seo_analista_strategy_summary')) {
             $bucket = (string) ($row['work_bucket'] ?? 'SIN_ACCION');
             if ($bucket === 'HACER_AHORA') $out['hacer_ahora']++;
             elseif ($bucket === 'HACER_DESPUES') $out['hacer_despues']++;
+            elseif ($bucket === 'INVESTIGAR') $out['investigar']++;
             elseif ($bucket === 'VIGILAR') $out['vigilar']++;
+            elseif ($bucket === 'ESPERAR_DATOS') $out['esperar_datos']++;
             else $out['sin_accion']++;
             $objective = (string) ($row['objective']['primary'] ?? '');
             if (isset($out[$objective])) $out[$objective]++;
