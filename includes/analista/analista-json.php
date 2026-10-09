@@ -93,8 +93,11 @@ if (!function_exists('seo_analista_build_json_export')) {
         $scheduler_health = function_exists('seo_analista_action_scheduler_health')
             ? seo_analista_action_scheduler_health()
             : array('available'=>false,'state'=>'unknown','overdue'=>0);
-        $validation_tests = function_exists('seo_analista_381_self_tests')
-            ? seo_analista_381_self_tests()
+        $validation_tests = function_exists('seo_analista_382_self_tests')
+            ? seo_analista_382_self_tests()
+            : (function_exists('seo_analista_381_self_tests') ? seo_analista_381_self_tests() : array());
+        $gate_summary = function_exists('seo_analista_action_gate_summary')
+            ? seo_analista_action_gate_summary($plan)
             : array();
 
         $queries = array();
@@ -111,7 +114,7 @@ if (!function_exists('seo_analista_build_json_export')) {
         $payload = array(
             'schema' => array(
                 'name' => 'seo-analista-unificado',
-                'version' => 7,
+                'version' => 8,
             ),
             'generated_at' => gmdate('c'),
             'site' => array(
@@ -183,12 +186,13 @@ if (!function_exists('seo_analista_build_json_export')) {
             ),
             'estrategia' => array(
                 'objetivos' => array('autoridad', 'visitas', 'ventas'),
-                'regla' => 'Una entidad = una tarea; prioridad y confianza se calculan por separado; un destino no resuelto, conflicto de modelo o muestra mínima bloquea la ejecución editorial inmediata; HACER_AHORA se limita a 10 y nunca se rellena artificialmente.',
+                'regla' => 'El score de oportunidad permanece estable; matching, evidencia y comercialidad actúan como gates. Analista intenta resolver primero la taxonomía local; INVESTIGAR queda reservado a entidad/destino/modelo no resueltos. HACER_AHORA mantiene máximo 10 sin relleno artificial.',
                 'summary' => $plan_summary,
+                'gate_summary' => $gate_summary,
                 'plan_accion' => $plan,
                 'task_contract' => $task_contract,
                 'validation' => array(
-                    'version' => '3.8.1',
+                    'version' => '3.8.2',
                     'settings' => function_exists('seo_analista_validation_settings') ? seo_analista_validation_settings() : array(),
                     'tests' => $validation_tests,
                 ),
