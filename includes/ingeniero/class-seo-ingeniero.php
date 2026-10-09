@@ -592,6 +592,72 @@ final class SEO_Ingeniero {
         return array('domain'=>$host,'source_type'=>'specialized_web','trust_level'=>'medium','pdf'=>$pdf);
     }
 
+    public static function ingest_raw_source($term_id, $lesson, $url, $title = '', $published_at = '') {
+        $term_id = absint($term_id);
+        $lesson = sanitize_key((string)$lesson);
+        $url = esc_url_raw((string)$url);
+        if (!$term_id || $url === '') return new WP_Error('ingeniero_raw_source_invalid','Fuente cruda sin categoría o URL válida.');
+        if (!in_array($lesson,array(self::LESSON_TECHNICAL,self::LESSON_PRACTICAL,self::LESSON_CURRENT),true)) {
+            $lesson = self::LESSON_TECHNICAL;
+        }
+
+        $term = get_term($term_id,'product_cat');
+        if (!$term || is_wp_error($term)) return new WP_Error('ingeniero_raw_source_category','La categoría de la fuente cruda no existe.');
+
+        $classification = self::classify_source($url,$title);
+        if ($lesson === self::LESSON_TECHNICAL && $classification['source_type'] === 'community') {
+            return new WP_Error('ingeniero_raw_source_layer','Una comunidad no puede importarse como L1 técnico.');
+        }
+
+        $page = !empty($classification['pdf'])
+            ? array('status'=>0,'text'=>'','content_hash'=>'')
+            : self::fetch_page_text($url);
+
+        $source_id = SEO_Ingeniero_DB::upsert_source(array(
+            'term_id'=>$term_id,
+            'lesson'=>$lesson,
+            'url'=>$url,
+            'domain'=>$classification['domain'],
+            'title'=>sanitize_text_field((string)$title),
+            'source_type'=>$classification['source_type'],
+            'trust_level'=>$classification['trust_level'],
+            'published_at'=>$published_at,
+            'retrieved_at'=>gmdate('Y-m-d H:i:s'),
+            'http_status'=>absint($page['status'] ?? 0),
+            'content_hash'=>(string)($page['content_hash'] ?? ''),
+            'status'=>!empty($classification['pdf']) ? 'pdf_pending' : (!empty($page['text']) ? 'fetched' : 'search_only'),
+            'metadata'=>array('import_origin'=>'raw_source','information_type'=>self::lesson_information_type($lesson)),
+        ));
+        if (is_wp_error($source_id)) return $source_id;
+
+        $source = array(
+            'id'=>absint($source_id),
+            'url'=>$url,
+            'title'=>sanitize_text_field((string)$title),
+            'snippet'=>'',
+            'text'=>(string)($page['text'] ?? ''),
+            'source_type'=>$classification['source_type'],
+            'trust_level'=>$classification['trust_level'],
+            'published_at'=>sanitize_text_field((string)$published_at),
+            'lesson'=>$lesson,
+            'pdf'=>!empty($classification['pdf']),
+        );
+
+        if ($lesson === self::LESSON_PRACTICAL) $knowledge = self::build_practical_knowledge($term_id,(string)$term->name,array($source));
+        elseif ($lesson === self::LESSON_CURRENT) $knowledge = self::build_current_knowledge($term_id,(string)$term->name,array($source));
+        else $knowledge = self::build_knowledge($term_id,(string)$term->name,array($source));
+
+        $saved = 0;
+        foreach ($knowledge as $item) {
+            // Fuentes importadas nunca activan conocimiento automáticamente.
+            $item['status'] = 'review';
+            $result = SEO_Ingeniero_DB::upsert_knowledge($item);
+            if (!is_wp_error($result)) $saved++;
+        }
+
+        return array('source_id'=>absint($source_id),'knowledge'=>$saved,'lesson'=>$lesson);
+    }
+
     private static function fetch_page_text($url) {
         $response = wp_safe_remote_get($url, array(
             'timeout'=>18,
@@ -1281,6 +1347,9 @@ final class SEO_Ingeniero {
         if ($evidence_count < 1) return 'DISCARD';
         if ($post_id && in_array($coverage_status,array('covered','partial_coverage','weak_coverage','duplicate','conflict'),true)) {
             return 'IMPROVE_EXISTING_POST';
+        }
+        if (!$post_id && in_array($coverage_status,array('covered','duplicate','conflict'),true)) {
+            return 'DISCARD';
         }
         if ($layer === self::LESSON_CURRENT && in_array($freshness,array('stale','unknown'),true)) return 'WATCH';
         if ($layer === self::LESSON_PRACTICAL && ($evidence_count < 2 || $domain_count < 2 || $confidence < 0.45)) return 'WATCH';
