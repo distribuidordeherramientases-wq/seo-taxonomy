@@ -497,6 +497,95 @@ if (!function_exists('seo_analista_evidence_profile')) {
     }
 }
 
+if (!function_exists('seo_analista_category_commercial_snapshot')) {
+    function seo_analista_category_commercial_snapshot($term_id, $sample_limit = 30) {
+        static $cache = array();
+        $term_id = absint($term_id);
+        $sample_limit = max(5, min(50, absint($sample_limit)));
+        $cache_key = $term_id . ':' . $sample_limit;
+        if (isset($cache[$cache_key])) return $cache[$cache_key];
+
+        $empty = array(
+            'available'=>false,
+            'total_products'=>0,
+            'sampled_products'=>0,
+            'sellable_products'=>0,
+            'priced_products'=>0,
+            'provider_known'=>0,
+            'margin_known'=>0,
+            'min_price'=>null,
+            'max_price'=>null,
+            'average_margin'=>null,
+            'providers'=>array(),
+        );
+        if ($term_id < 1 || !function_exists('wc_get_products')) return $cache[$cache_key] = $empty;
+
+        $term = get_term($term_id, 'product_cat');
+        if (!$term instanceof WP_Term || is_wp_error($term)) return $cache[$cache_key] = $empty;
+
+        $ids = wc_get_products(array(
+            'status'=>'publish',
+            'category'=>array((string) $term->slug),
+            'limit'=>$sample_limit,
+            'return'=>'ids',
+            'orderby'=>'date',
+            'order'=>'DESC',
+        ));
+        if (!is_array($ids)) $ids = array();
+
+        $out = $empty;
+        $out['available'] = true;
+        $out['total_products'] = (int) $term->count;
+        $prices = array();
+        $margins = array();
+        $providers = array();
+
+        foreach ($ids as $product_id) {
+            $product_id = absint($product_id);
+            $product = $product_id > 0 ? wc_get_product($product_id) : null;
+            if (!$product || !is_a($product, 'WC_Product')) continue;
+            $out['sampled_products']++;
+
+            $price = (float) $product->get_price();
+            if ($price > 0) {
+                $out['priced_products']++;
+                $prices[] = $price;
+            }
+            if ($price > 0 && $product->is_in_stock() && $product->is_purchasable()) {
+                $out['sellable_products']++;
+            }
+
+            $provider = trim((string) get_post_meta($product_id, '_seo_proveedor', true));
+            if ($provider !== '') {
+                $out['provider_known']++;
+                $providers[$provider] = true;
+            }
+
+            $cost = null;
+            foreach (array('_seo_precio_proveedor','_cost_price','_purchase_price','_supplier_cost','cost_price') as $cost_key) {
+                $raw_cost = get_post_meta($product_id, $cost_key, true);
+                if ($raw_cost !== '' && is_numeric($raw_cost) && (float) $raw_cost > 0) {
+                    $cost = (float) $raw_cost;
+                    break;
+                }
+            }
+            if ($cost !== null && $price > 0) {
+                $margin = (($price - $cost) / $price) * 100;
+                $margins[] = $margin;
+                $out['margin_known']++;
+            }
+        }
+
+        if ($prices) {
+            $out['min_price'] = min($prices);
+            $out['max_price'] = max($prices);
+        }
+        if ($margins) $out['average_margin'] = round(array_sum($margins) / count($margins), 2);
+        $out['providers'] = array_keys($providers);
+        return $cache[$cache_key] = $out;
+    }
+}
+
 if (!function_exists('seo_analista_commercial_readiness')) {
     function seo_analista_commercial_readiness(array $row) {
         $entity = (array) ($row['entity'] ?? array());
@@ -511,6 +600,9 @@ if (!function_exists('seo_analista_commercial_readiness')) {
             'margin_or_commission'=>null,
             'available'=>null,
             'missing_fields'=>array(),
+            'blocking_fields'=>array(),
+            'informational_fields'=>array(),
+            'category_sample'=>array(),
             'ga4_signals'=>array(
                 'available'=>false,
                 'sessions'=>null,
@@ -545,52 +637,82 @@ if (!function_exists('seo_analista_commercial_readiness')) {
                     $value = trim((string) get_post_meta($id, $key, true));
                     if ($value !== '') { $out['supplier'] = $value; break; }
                 }
-                foreach (array('_cost_price','_purchase_price','_supplier_cost','cost_price') as $key) {
+                foreach (array('_seo_precio_proveedor','_cost_price','_purchase_price','_supplier_cost','cost_price') as $key) {
                     $cost = get_post_meta($id, $key, true);
                     if ($cost !== '' && is_numeric($cost) && (float) $cost > 0 && $out['price'] > 0) {
                         $out['margin_or_commission'] = round((($out['price'] - (float) $cost) / $out['price']) * 100, 2);
                         break;
                     }
                 }
-                $missing = array();
-                if (!$out['stock']) $missing[] = 'stock';
-                if (!$out['available']) $missing[] = 'disponibilidad';
-                if ($out['price'] <= 0) $missing[] = 'precio_final';
-                if ($out['supplier'] === null) $missing[] = 'proveedor';
-                if ($out['margin_or_commission'] === null) $missing[] = 'margen_comision';
-                if (empty($out['ga4_signals']['available'])) $missing[] = 'ga4';
-                $out['missing_fields'] = $missing;
+                $blocking = array();
+                if (!$out['stock']) $blocking[] = 'stock';
+                if (!$out['available']) $blocking[] = 'disponibilidad';
+                if ($out['price'] <= 0) $blocking[] = 'precio_final';
+                if ($out['supplier'] === null) $blocking[] = 'proveedor';
+                if ($out['margin_or_commission'] === null) $blocking[] = 'margen_comision';
+                $informational = empty($out['ga4_signals']['available']) ? array('ga4') : array();
+                $out['blocking_fields'] = $blocking;
+                $out['informational_fields'] = $informational;
+                $out['missing_fields'] = array_values(array_unique(array_merge($blocking, $informational)));
 
                 if (!$out['stock'] || !$out['available'] || $out['price'] <= 0) {
                     $out['status'] = 'not_ready';
-                    $out['label'] = 'Oferta no preparada · falta ' . implode(', ', $missing);
-                } elseif (!$missing) {
-                    $out['status'] = 'verified';
-                    $out['label'] = 'Comercial verificado';
-                } else {
+                    $out['label'] = 'Oferta no preparada · bloquea ' . implode(', ', $blocking);
+                } elseif ($blocking) {
                     $out['status'] = 'partial';
-                    $out['label'] = 'Comercial parcialmente verificado · falta ' . implode(', ', $missing);
+                    $out['label'] = 'Oferta parcialmente verificada · bloquea ' . implode(', ', $blocking);
+                } else {
+                    $out['status'] = 'verified';
+                    $out['label'] = 'Oferta comercial verificada'
+                        . ($informational ? ' · GA4 no disponible para esta tarea (no bloqueante)' : '');
                 }
             }
         } elseif ($type === 'category') {
             $products = isset($row['catalog']['products']) ? (int) $row['catalog']['products'] : null;
-            if ($products !== null && $products > 0) {
-                $out['available'] = true;
-                $out['stock'] = null;
-                $out['price'] = null;
-                $out['missing_fields'] = array('stock_categoria','precio_categoria','proveedor','margen_comision');
-                if (empty($out['ga4_signals']['available'])) $out['missing_fields'][] = 'ga4';
-                $out['status'] = 'partial';
-                $out['label'] = 'Surtido existente (' . $products . ' productos); falta validar ' . implode(', ', $out['missing_fields']);
-            } elseif ($products !== null && $products <= 0) {
-                $out['available'] = false;
-                $out['missing_fields'] = array('surtido','stock_categoria','precio_categoria','proveedor','margen_comision');
-                if (empty($out['ga4_signals']['available'])) $out['missing_fields'][] = 'ga4';
+            $sample = $id > 0 ? seo_analista_category_commercial_snapshot($id, 30) : array();
+            $out['category_sample'] = $sample;
+            if (!empty($sample['available'])) {
+                $products = (int) ($sample['total_products'] ?? $products ?? 0);
+                $out['available'] = ((int) ($sample['sellable_products'] ?? 0)) > 0;
+                $out['stock'] = $out['available'];
+                if (isset($sample['min_price']) && $sample['min_price'] !== null) {
+                    $out['price'] = array(
+                        'min'=>(float) $sample['min_price'],
+                        'max'=>(float) ($sample['max_price'] ?? $sample['min_price']),
+                    );
+                }
+                $providers = array_values(array_filter((array) ($sample['providers'] ?? array())));
+                $out['supplier'] = $providers ? implode(', ', array_slice($providers, 0, 5)) : null;
+                $out['margin_or_commission'] = $sample['average_margin'] ?? null;
+            }
+
+            $blocking = array();
+            if ($products === null || $products <= 0) $blocking[] = 'surtido';
+            if (empty($out['stock'])) $blocking[] = 'stock_categoria';
+            if ($out['price'] === null) $blocking[] = 'precio_categoria';
+            if ($out['supplier'] === null) $blocking[] = 'proveedor';
+            if ($out['margin_or_commission'] === null) $blocking[] = 'margen_comision';
+            $informational = empty($out['ga4_signals']['available']) ? array('ga4') : array();
+
+            $out['blocking_fields'] = array_values(array_unique($blocking));
+            $out['informational_fields'] = $informational;
+            $out['missing_fields'] = array_values(array_unique(array_merge($blocking, $informational)));
+
+            if ($products !== null && $products <= 0) {
                 $out['status'] = 'not_ready';
                 $out['label'] = 'Categoría sin surtido acreditado';
+            } elseif ($blocking) {
+                $sampled = absint($sample['sampled_products'] ?? 0);
+                $out['status'] = 'partial';
+                $out['label'] = 'Oferta de categoría parcialmente verificada'
+                    . ($sampled > 0 ? ' · muestra ' . $sampled . ' productos' : '')
+                    . ' · bloquea ' . implode(', ', $blocking);
             } else {
-                $out['missing_fields'] = array('surtido','stock_categoria','precio_categoria','proveedor','margen_comision');
-                if (empty($out['ga4_signals']['available'])) $out['missing_fields'][] = 'ga4';
+                $sampled = absint($sample['sampled_products'] ?? 0);
+                $out['status'] = 'verified';
+                $out['label'] = 'Oferta de categoría verificada'
+                    . ($sampled > 0 ? ' · muestra ' . $sampled . ' productos' : '')
+                    . ($informational ? ' · GA4 no disponible para esta tarea (no bloqueante)' : '');
             }
         }
 
@@ -768,18 +890,15 @@ if (!function_exists('seo_analista_execution_gate')) {
             return $gate;
         }
 
-        if ((string) ($row['objective']['primary'] ?? '') === 'sales'
-            && in_array((string) ($commercial['status'] ?? 'unknown'), array('unknown','partial','not_ready'), true)) {
+        $commercial_blocking = array_values(array_unique(array_filter((array) ($commercial['blocking_fields'] ?? array()))));
+        if ((string) ($row['objective']['primary'] ?? '') === 'sales' && $commercial_blocking) {
             $gate['state'] = 'BLOCKED_COMMERCIAL';
             $gate['blocker_type'] = 'commercial';
             $gate['hard'] = false;
             $gate['bucket'] = $candidate_bucket === 'HACER_AHORA' ? 'HACER_DESPUES' : $candidate_bucket;
             $gate['bucket_if_unblocked'] = $candidate_bucket;
-            $missing = array_values(array_unique(array_filter((array) ($commercial['missing_fields'] ?? array()))));
-            $gate['missing'] = $missing;
-            $gate['unlock_condition'] = $missing
-                ? 'Validar: ' . implode(', ', $missing) . '. Al desaparecer el bloqueo se recupera el bucket ' . $candidate_bucket . ' sin modificar el score.'
-                : 'Completar la validación comercial. Al resolverse se recupera el bucket ' . $candidate_bucket . ' sin modificar el score.';
+            $gate['missing'] = $commercial_blocking;
+            $gate['unlock_condition'] = 'Validar: ' . implode(', ', $commercial_blocking) . '. Al desaparecer el bloqueo se recupera el bucket ' . $candidate_bucket . ' sin modificar el score.';
             return $gate;
         }
 
