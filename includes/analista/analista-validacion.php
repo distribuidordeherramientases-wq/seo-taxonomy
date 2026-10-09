@@ -555,7 +555,8 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $confidence = max(0, min(100, $confidence));
         $confidence_level = $confidence >= 75 ? 'high' : ($confidence >= 50 ? 'medium' : 'low');
 
-        $bucket = (string) ($row['work_bucket'] ?? 'VIGILAR');
+        $pre_validation_bucket = (string) ($row['work_bucket'] ?? 'VIGILAR');
+        $bucket = $pre_validation_bucket;
         if (($validation['match_type'] ?? '') === 'conflict') {
             $bucket = 'INVESTIGAR';
         } elseif (empty($validation['target']['resolved']) || ($validation['match_type'] ?? '') === 'unproven') {
@@ -613,6 +614,7 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $row['priority'] = $validated_priority;
         $row['priority_score'] = $validated_priority;
         $row['work_bucket'] = $bucket;
+        $row['pre_validation_bucket'] = $pre_validation_bucket;
         $row['confidence'] = $confidence;
         $row['confidence_level'] = $confidence_level;
         $row['query'] = $query;
