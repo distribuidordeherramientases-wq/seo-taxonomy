@@ -162,10 +162,7 @@ final class SEO_Comparador_Engine {
                 return;
             }
 
-            if (empty($state['coverage_rebuilt']) && class_exists('SEO_Editorial_Coverage')) {
-                SEO_Editorial_Coverage::rebuild_index(7000);
-                $state['coverage_rebuilt']=true;
-            }
+            $state['coverage_rebuilt']=true;
 
             $cursor=max(0,absint($state['cursor'] ?? 0));
             $slice=array_slice($ids,$cursor,10);
@@ -174,11 +171,6 @@ final class SEO_Comparador_Engine {
                 $profile=self::build_profile($term_id);
                 $state['processed']=absint($state['processed'] ?? 0)+1;
                 if (is_wp_error($profile) || empty($profile['id'])) {
-                    $state['errors']=absint($state['errors'] ?? 0)+1;
-                    continue;
-                }
-                $decision=self::evaluate_editorial_decision(absint($profile['id']));
-                if (is_wp_error($decision)) {
                     $state['errors']=absint($state['errors'] ?? 0)+1;
                 }
             }
