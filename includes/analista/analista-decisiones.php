@@ -38,6 +38,16 @@ if (!function_exists('seo_analista_action_meta')) {
             'INVESTIGAR_CATALOGO' => array('label' => 'Investigar hueco de catálogo', 'channel' => 'catalogo'),
             'INVESTIGAR_PRODUCTO' => array('label' => 'Cubrir demanda interna', 'channel' => 'catalogo'),
             'REVISAR_PROVEEDOR' => array('label' => 'Revisar proveedor', 'channel' => 'proveedores'),
+            'CORREGIR_ASOCIACION' => array('label' => 'Corregir asociación', 'channel' => 'seo'),
+            'REVISAR_ENLAZADO' => array('label' => 'Revisar enlazado interno', 'channel' => 'seo'),
+            'REVISAR_META' => array('label' => 'Revisar title/meta efectivos', 'channel' => 'contenido'),
+            'MEJORAR_COBERTURA' => array('label' => 'Mejorar cobertura específica', 'channel' => 'contenido'),
+            'REVISAR_OFERTA_PRECIO' => array('label' => 'Revisar oferta y precio', 'channel' => 'catalogo'),
+            'INVESTIGAR_SURTIDO' => array('label' => 'Investigar surtido', 'channel' => 'catalogo'),
+            'MEJORAR_FICHA' => array('label' => 'Mejorar ficha', 'channel' => 'contenido'),
+            'ACTUALIZAR_CONTENIDO' => array('label' => 'Actualizar contenido existente', 'channel' => 'contenido'),
+            'INVESTIGAR_COBERTURA' => array('label' => 'Investigar cobertura/destino', 'channel' => 'seo'),
+            'ESPERAR_DATOS' => array('label' => 'Esperar datos', 'channel' => 'seguimiento'),
             'VIGILAR' => array('label' => 'Vigilar', 'channel' => 'seguimiento'),
         );
         return $map[$code] ?? array('label' => ucwords(strtolower(str_replace('_', ' ', (string) $code))), 'channel' => 'seo');
