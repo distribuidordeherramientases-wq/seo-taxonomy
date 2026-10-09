@@ -10,7 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_ANALISTA_VERSION')) {
-    define('SEO_ANALISTA_VERSION', '3.8.0');
+    define('SEO_ANALISTA_VERSION', '3.8.1');
 }
 
 $seo_analista_files = array(
@@ -25,10 +25,12 @@ $seo_analista_files = array(
     __DIR__ . '/analista-literatura.php',
     __DIR__ . '/analista-competencia.php',
     __DIR__ . '/analista-competitivo.php',
+    __DIR__ . '/analista-validacion.php',
     __DIR__ . '/analista-estrategia.php',
     __DIR__ . '/analista-decisiones.php',
     __DIR__ . '/analista-campanas.php',
     __DIR__ . '/analista-json.php',
+    __DIR__ . '/analista-tests.php',
     __DIR__ . '/analista-informe.php',
     __DIR__ . '/analista-lazy.php',
 );
