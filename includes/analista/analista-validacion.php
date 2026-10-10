@@ -1475,14 +1475,10 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $commercial = seo_analista_commercial_readiness($row);
         $coverage = seo_analista_editorial_coverage($row);
 
-        /*
-         * 3.8.2: el score de oportunidad no cambia porque falte una dependencia.
-         * Matching, muestra y comercialidad actúan como gates/confianza. Así una
-         * tarea puede desbloquearse sin "fabricar" una subida de puntuación.
-         */
         $priority = max(0, min(99, (int) ($row['priority'] ?? 0)));
         $confidence_adjustments = array();
         $confidence = max(0, min(100, (int) ($row['confidence'] ?? 0)));
+
         if (!empty($evidence['priority_penalty'])) {
             $confidence_adjustments['evidence'] = -absint($evidence['priority_penalty']);
             $confidence -= absint($evidence['priority_penalty']);
@@ -1504,12 +1500,14 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $gate_row = $row;
         $gate_row['confidence'] = $confidence;
         $gate = seo_analista_execution_gate($gate_row, $validation, $evidence, $commercial);
-        $bucket = (string) ($gate['bucket'] ?? $pre_validation_bucket);
         $steps = seo_analista_investigation_steps($row, $validation, $evidence, $commercial, $gate, $auto_resolution);
 
         $atomic = seo_analista_atomic_actions($row, $validation, $evidence, $commercial, $coverage, $gate, $steps);
-        $action_type = (string) ($atomic[0]['type'] ?? 'VIGILAR');
-        $owner = (string) ($atomic[0]['owner'] ?? 'SEO/taxonomía');
+        $decision = seo_analista_reconcile_task_decision($row, $atomic, $validation, $evidence, $gate);
+        $primary_action = (array) ($decision['primary_action'] ?? array());
+        $bucket = (string) ($decision['work_bucket'] ?? 'VIGILAR');
+        $action_type = (string) ($decision['intervention_type'] ?? $primary_action['type'] ?? 'VIGILAR');
+        $owner = (string) ($decision['owner'] ?? $primary_action['owner'] ?? 'SEO/taxonomía');
 
         $dependencies = array();
         foreach ($steps as $step) {
@@ -1519,16 +1517,6 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         if (!empty($coverage['available']) && strpos((string) ($row['action'] ?? ''), 'CREAR_') === 0) {
             $dependencies[] = 'Revisar la cobertura editorial existente antes de abrir una nueva URL.';
         }
-
-        $entity = (array) ($row['entity'] ?? array());
-        $task_seed = implode('|', array(
-            sanitize_key((string) ($entity['type'] ?? 'unknown')),
-            absint($entity['id'] ?? 0),
-            (string) ($validation['target']['url'] ?? ''),
-            $query,
-            $action_type,
-        ));
-        $task_id = 'ana381_' . substr(hash('sha256', $task_seed), 0, 20);
 
         $period = array(
             'days'=>absint($days),
@@ -1546,11 +1534,33 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
             'absolute_delta'=>(float) ($evidence['absolute_delta'] ?? 0),
         );
 
+        /*
+         * 3.8.3: la identidad de seguimiento se basa en consulta + tema, no
+         * en el bucket, acción o URL final. Así resolver un bloqueo no crea
+         * otra tarea distinta y se conserva la trazabilidad.
+         */
+        $trace_seed = seo_analista_normalize_text($query) . '|' . seo_analista_normalize_text((string) ($row['topic'] ?? ''));
+        if ($trace_seed === '|') {
+            $trace_seed = sanitize_key((string) ($row['entity']['type'] ?? 'unknown')) . '|' . absint($row['entity']['id'] ?? 0);
+        }
+        $task_id = 'ana383_' . substr(hash('sha256', $trace_seed), 0, 20);
+
+        // Compatibilidad con el ID usado por 3.8.1/3.8.2 para recuperar estado.
+        $entity = (array) ($row['entity'] ?? array());
+        $legacy_seed = implode('|', array(
+            sanitize_key((string) ($entity['type'] ?? 'unknown')),
+            absint($entity['id'] ?? 0),
+            (string) ($validation['target']['url'] ?? ''),
+            $query,
+            $action_type,
+        ));
+        $legacy_task_id = 'ana381_' . substr(hash('sha256', $legacy_seed), 0, 20);
+
         $row['priority'] = $priority;
         $row['priority_score'] = $priority;
         $row['work_bucket'] = $bucket;
         $row['pre_validation_bucket'] = $pre_validation_bucket;
-        $row['bucket_if_unblocked'] = (string) ($gate['bucket_if_unblocked'] ?? $pre_validation_bucket);
+        $row['bucket_if_unblocked'] = (string) ($gate['bucket_if_unblocked'] ?? $bucket);
         $row['confidence'] = $confidence;
         $row['confidence_level'] = $confidence_level;
         $row['query'] = $query;
@@ -1569,22 +1579,17 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $row['blocker_type'] = (string) ($gate['blocker_type'] ?? 'none');
         $row['unlock_condition'] = (string) ($gate['unlock_condition'] ?? '');
         $row['investigation_steps'] = $steps;
+        $row['task_decision'] = $decision;
+        $row['signal_state'] = (array) ($decision['signal_state'] ?? array());
+        $row['primary_action'] = $primary_action;
         $row['action_type'] = $action_type;
-        $row['action_details'] = $atomic;
+        $row['action_details'] = (array) ($decision['actions'] ?? $atomic);
         $row['recommended_owner'] = $owner;
         $row['owner'] = $owner;
         $row['dependencies'] = array_values(array_unique($dependencies));
-        $row['status'] = 'proposed';
-        $row['action_executed'] = '';
-        if (function_exists('seo_analista_task_history')) {
-            $existing_tracking = seo_analista_task_history($task_id);
-            $existing_status = sanitize_key((string) ($existing_tracking['status'] ?? ''));
-            if (in_array($existing_status, array('proposed','queued','in_progress','executed','dismissed'), true)) {
-                $row['status'] = $existing_status;
-            }
-            $row['action_executed'] = sanitize_text_field((string) ($existing_tracking['action_executed'] ?? ''));
-        }
         $row['task_id'] = $task_id;
+        $row['trace_id'] = $task_id;
+        $row['legacy_task_id'] = $legacy_task_id;
         $row['period'] = $period;
         $row['baseline'] = $baseline;
         $row['verification_date'] = gmdate('Y-m-d', strtotime('+28 days'));
@@ -1600,20 +1605,45 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $strategy_breakdown['validation_adjustments_applied_to_priority'] = false;
         $strategy_breakdown['final_score'] = $priority;
         $strategy_breakdown['confidence_after_validation'] = $confidence;
-        $strategy_breakdown['rule'] = 'El score de oportunidad permanece estable. Matching, evidencia y comercialidad condicionan confianza y bucket mediante execution gates.';
+        $strategy_breakdown['rule'] = 'El score de oportunidad permanece estable; la fuente única task_decision decide bucket, acción ejecutable, intervención y bloqueo.';
         $row['priority_breakdown'] = $strategy_breakdown;
 
         $row['legacy_action'] = (string) ($row['action'] ?? '');
         $row['action'] = $action_type;
         if (function_exists('seo_analista_action_meta')) {
             $meta = seo_analista_action_meta($action_type);
-            $row['action_label'] = (string) ($meta['label'] ?? $action_type);
+            $row['action_label'] = (string) ($decision['intervention_label'] ?? $meta['label'] ?? $action_type);
             $row['channel'] = (string) ($meta['channel'] ?? ($row['channel'] ?? 'seo'));
+        } else {
+            $row['action_label'] = (string) ($decision['intervention_label'] ?? $action_type);
         }
-        $row['recommended_changes'] = array_values(array_unique(array_map(
-            static function($action){ return (string) ($action['detail'] ?? ''); },
-            $atomic
-        )));
+
+        $instruction = trim((string) ($primary_action['instruction'] ?? $primary_action['detail'] ?? ''));
+        $row['recommended_changes'] = $instruction !== '' ? array($instruction) : array();
+        $row['measurement'] = seo_analista_measurement_for_primary_action($primary_action, $row);
+
+        $row['status'] = 'proposed';
+        $row['action_executed'] = '';
+        $existing_tracking = array();
+        if (function_exists('seo_analista_task_history')) {
+            $existing_tracking = seo_analista_task_history($task_id);
+            if (!$existing_tracking && $legacy_task_id !== $task_id) {
+                $existing_tracking = seo_analista_task_history($legacy_task_id);
+                if ($existing_tracking) $row['migrated_from_task_id'] = $legacy_task_id;
+            }
+        }
+        if ($existing_tracking) {
+            $row = seo_analista_apply_history_state($row, $existing_tracking);
+        }
+
+        // La decisión final es la única fuente de verdad para contador, tarjeta y JSON.
+        if (!empty($row['task_decision']) && is_array($row['task_decision'])) {
+            $row['task_decision']['work_bucket'] = (string) ($row['work_bucket'] ?? 'VIGILAR');
+            $row['task_decision']['primary_action'] = (array) ($row['primary_action'] ?? array());
+            $row['task_decision']['execution_ready'] = !empty($row['primary_action']['executable'])
+                && (string) ($row['work_bucket'] ?? '') === 'HACER_AHORA'
+                && (string) ($row['status'] ?? 'proposed') === 'proposed';
+        }
 
         return $row;
     }
