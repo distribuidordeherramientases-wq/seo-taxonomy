@@ -1654,6 +1654,8 @@ if (!function_exists('seo_analista_task_contract')) {
         $entity = (array) ($row['entity'] ?? array());
         return array(
             'task_id'=>(string) ($row['task_id'] ?? ''),
+            'trace_id'=>(string) ($row['trace_id'] ?? $row['task_id'] ?? ''),
+            'legacy_task_id'=>(string) ($row['legacy_task_id'] ?? ''),
             'entity_type'=>(string) ($entity['type'] ?? ''),
             'entity_id'=>absint($entity['id'] ?? 0),
             'target_url'=>(string) ($row['target_url'] ?? ''),
@@ -1673,6 +1675,9 @@ if (!function_exists('seo_analista_task_contract')) {
             'pre_validation_bucket'=>(string) ($row['pre_validation_bucket'] ?? ''),
             'final_bucket'=>(string) ($row['work_bucket'] ?? ''),
             'bucket_if_unblocked'=>(string) ($row['bucket_if_unblocked'] ?? ''),
+            'task_decision'=>(array) ($row['task_decision'] ?? array()),
+            'signal_state'=>(array) ($row['signal_state'] ?? array()),
+            'primary_action'=>(array) ($row['primary_action'] ?? array()),
             'execution_gate'=>(array) ($row['execution_gate'] ?? array()),
             'blocker_type'=>(string) ($row['blocker_type'] ?? 'none'),
             'unlock_condition'=>(string) ($row['unlock_condition'] ?? ''),
@@ -1689,6 +1694,7 @@ if (!function_exists('seo_analista_task_contract')) {
             'status'=>(string) ($row['status'] ?? 'proposed'),
             'action_executed'=>(string) ($row['action_executed'] ?? ''),
             'baseline'=>(array) ($row['baseline'] ?? array()),
+            'measurement'=>(array) ($row['measurement'] ?? array()),
             'verification_date'=>(string) ($row['verification_date'] ?? ''),
             'review_dates'=>(array) ($row['review_dates'] ?? array()),
         );
@@ -1706,6 +1712,12 @@ if (!function_exists('seo_analista_persist_task_baselines')) {
             $id = (string) ($task['task_id'] ?? '');
             if ($id === '') continue;
             $existing = (array) ($history[$id] ?? array());
+            $legacy_id = sanitize_key((string) ($task['legacy_task_id'] ?? ''));
+            if (!$existing && $legacy_id !== '' && $legacy_id !== $id && !empty($history[$legacy_id]) && is_array($history[$legacy_id])) {
+                $existing = (array) $history[$legacy_id];
+                $existing['migrated_from_task_id'] = $legacy_id;
+                unset($history[$legacy_id]);
+            }
             if (empty($existing['first_seen'])) {
                 $existing['first_seen'] = $now;
                 $existing['baseline'] = (array) ($task['baseline'] ?? array());
