@@ -217,6 +217,7 @@ final class SEO_Dependiente_Search_Log {
      *
      * Eventos soportados:
      * - click: clic en un producto;
+     * - category_choice: eleccion explicita de una categoria sugerida por V3;
      * - helpful: valoracion positiva/negativa;
      * - clarification_shown: se mostro una pregunta de desambiguacion;
      * - clarify: el cliente confirmo una opcion o escribio "otro";
@@ -255,6 +256,30 @@ final class SEO_Dependiente_Search_Log {
             $updates['clicked_at'] = current_time('mysql');
             $event['product_id'] = $product_id;
             $event['position'] = $position;
+            if (!empty($data['origin_search_id'])) {
+                $event['origin_search_id'] = self::substr(sanitize_text_field((string) $data['origin_search_id']), 36);
+            }
+        } elseif ('category_choice' === $event_type) {
+            $category_id = absint($data['category_id'] ?? 0);
+            $category_slug = sanitize_title((string) ($data['category_slug'] ?? ''));
+            $term = $category_id ? get_term($category_id, 'product_cat') : null;
+            if ((!$term || is_wp_error($term)) && $category_slug) {
+                $term = get_term_by('slug', $category_slug, 'product_cat');
+            }
+            if (!$term instanceof WP_Term || is_wp_error($term)) {
+                return false;
+            }
+            $category_id = absint($term->term_id);
+            $category_slug = sanitize_title((string) $term->slug);
+            $category_name = sanitize_text_field((string) $term->name);
+            $position = absint($data['position'] ?? 0);
+            $event['category_id'] = $category_id;
+            $event['category_slug'] = $category_slug;
+            $event['category_name'] = $category_name;
+            $event['position'] = $position;
+            if (!empty($data['origin_search_id'])) {
+                $event['origin_search_id'] = self::substr(sanitize_text_field((string) $data['origin_search_id']), 36);
+            }
         } elseif ('helpful' === $event_type) {
             $value = (int) ($data['value'] ?? 0);
             $updates['feedback'] = $value > 0 ? 1 : ($value < 0 ? -1 : 0);
@@ -322,6 +347,14 @@ final class SEO_Dependiente_Search_Log {
         }
         if ('click' === $event_type) {
             SEO_Dependiente_Learning::observe_click($search_uuid, $product_id, $position);
+        } elseif ('category_choice' === $event_type) {
+            SEO_Dependiente_Learning::observe_category_choice(
+                $search_uuid,
+                $category_id,
+                $category_slug,
+                $category_name,
+                $position
+            );
         } elseif ('clarify' === $event_type) {
             SEO_Dependiente_Learning::observe_clarification($search_uuid, $clarification);
         }

@@ -16,6 +16,18 @@ Las tablas que Solucionador observa para este flujo son:
 Una pregunta puede existir desde hace tiempo y recibir posteriormente un nuevo run o una nueva respuesta.
 
 
+## Evidencia de aprendizaje desde elecciones de cliente
+
+Dependiente V3 registra la consulta pública y, desde 2.3.10, conserva también las **elecciones explícitas del cliente** como evidencia supervisada:
+
+- al pulsar una categoría propuesta en “¿Cuál de estas opciones encaja mejor?”, se registra un evento `category_choice` con la consulta, categoría, posición y `search_uuid`;
+- al pulsar un producto, se registra el evento `click` con producto, posición y recorrido de búsqueda;
+- ambos casos generan evidencia en el Search Log aunque la consulta no contenga términos desconocidos.
+
+Estas señales **no activan reglas automáticamente**. Se guardan como candidatos/evidencia con revisión requerida. La finalidad es permitir que Dependiente aprenda rutas y ranking a partir de elecciones reales sin convertir un clic aislado en verdad canónica.
+
+El aprendizaje léxico anterior se mantiene: si existen términos realmente desconocidos, un clic puede seguir aportando candidatos semánticos inactivos. La nueva evidencia de ruta es adicional y permite aprender también de consultas donde todas las palabras ya eran conocidas pero el orden de categorías o productos no era correcto.
+
 ## Informe de errores de la Actualización continua
 
 La **Lección continua · Actualización** exporta un JSON reconstruido desde las tablas reales de preguntas y ejecuciones de Academia. Desde la versión de informe 1.0.3 / schema 2, el documento no se limita a los contadores `passed/failed`: añade `learning_diagnostics`.

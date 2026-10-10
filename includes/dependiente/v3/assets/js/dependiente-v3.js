@@ -26,6 +26,9 @@
 
         let currentQuery = '';
         let currentCategory = '';
+        let currentSearchUuid = '';
+        let originSearchUuid = '';
+        let currentSuggestions = [];
         let controller = null;
 
         if (config.showDebug && debugPanel) debugPanel.hidden = false;
@@ -36,6 +39,9 @@
             if (!query) return;
             currentQuery = query;
             currentCategory = '';
+            currentSearchUuid = '';
+            originSearchUuid = '';
+            currentSuggestions = [];
             runSearch(1);
         });
 
@@ -51,8 +57,37 @@
             if (!button) return;
             const selected = button.getAttribute('data-dep3-category') || '';
             if (!selected) return;
+
+            const item = currentSuggestions.find(function (candidate) {
+                return String(candidate.slug || '') === selected;
+            }) || {};
+            const choiceName = item.name || (button.querySelector('.dependiente-v3__choice-name') ? button.querySelector('.dependiente-v3__choice-name').textContent : '');
+            recordLearningEvidence({
+                search_id: currentSearchUuid || originSearchUuid,
+                origin_search_id: originSearchUuid || currentSearchUuid,
+                event: 'category_choice',
+                category_id: Number(item.id || item.term_id || 0),
+                category_slug: selected,
+                category_name: String(choiceName || ''),
+                position: Number(item.rank || 0)
+            });
+
             currentCategory = selected;
             runSearch(1);
+        });
+
+        products.addEventListener('click', function (event) {
+            const link = event.target.closest('[data-dep3-product-link]');
+            if (!link) return;
+            const productId = Number(link.getAttribute('data-product-id') || 0);
+            if (!productId) return;
+            recordLearningEvidence({
+                search_id: currentSearchUuid || originSearchUuid,
+                origin_search_id: originSearchUuid || currentSearchUuid,
+                event: 'click',
+                product_id: productId,
+                position: Number(link.getAttribute('data-product-position') || 0)
+            });
         });
 
         pagination.addEventListener('click', function (event) {
@@ -116,6 +151,22 @@
             }
         }
 
+        function recordLearningEvidence(payload) {
+            if (!config.feedbackEndpoint || !payload || !payload.search_id || !payload.event) return;
+            fetch(config.feedbackEndpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                keepalive: true,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            }).catch(function () {
+                // La evidencia nunca debe bloquear la experiencia del cliente.
+            });
+        }
+
         function updateBrowserUrl() {
             const browserUrl = new URL(window.location.href);
             browserUrl.searchParams.set('dep_q', currentQuery);
@@ -127,6 +178,11 @@
         function render(data) {
             const decision = data.decision || {};
             const suggestions = data.suggestions || data.categories || [];
+            if (data.search_uuid) {
+                currentSearchUuid = String(data.search_uuid);
+                if (!originSearchUuid) originSearchUuid = currentSearchUuid;
+            }
+            currentSuggestions = suggestions.slice(0, 8);
             renderStatus(data, decision, suggestions);
             renderSuggestions(suggestions, decision);
 
@@ -190,19 +246,22 @@
                 products.innerHTML = '<div class="dependiente-v3__empty"><strong>No hay productos en esta opción.</strong><span>Quita la elección o prueba otra de las interpretaciones.</span></div>';
                 return;
             }
-            products.innerHTML = items.map(function (item) {
+            products.innerHTML = items.map(function (item, index) {
                 const cats = (item.categories || []).slice(0, 2).join(' · ');
                 const image = item.image ? '<img src="' + esc(item.image) + '" alt="" loading="lazy">' : '<span class="dependiente-v3__image-placeholder">Producto</span>';
                 const price = item.price_html || (item.price != null ? esc(item.price) : '');
+                const productId = Number(item.id || item.product_id || 0);
+                const productPosition = Number(item.rank || item.position || (index + 1));
+                const learningAttrs = ' data-dep3-product-link data-product-id="' + esc(productId) + '" data-product-position="' + esc(productPosition) + '"';
                 return '<article class="dependiente-v3__product">' +
-                    '<a class="dependiente-v3__image" href="' + esc(item.url) + '">' + image + '</a>' +
+                    '<a class="dependiente-v3__image" href="' + esc(item.url) + '"' + learningAttrs + '>' + image + '</a>' +
                     '<div class="dependiente-v3__product-body">' +
                     '<div class="dependiente-v3__meta">' + esc(cats) + '</div>' +
-                    '<h3><a href="' + esc(item.url) + '">' + esc(item.title) + '</a></h3>' +
+                    '<h3><a href="' + esc(item.url) + '"' + learningAttrs + '>' + esc(item.title) + '</a></h3>' +
                     (item.excerpt ? '<p>' + esc(item.excerpt) + '</p>' : '') +
                     '<div class="dependiente-v3__product-foot"><span class="dependiente-v3__price">' + price + '</span>' +
                     '<span class="dependiente-v3__stock ' + (item.in_stock ? 'is-in' : 'is-out') + '">' + (item.in_stock ? 'En stock' : 'Sin stock') + '</span></div>' +
-                    '<a class="dependiente-v3__product-link" href="' + esc(item.url) + '">Ver producto</a>' +
+                    '<a class="dependiente-v3__product-link" href="' + esc(item.url) + '"' + learningAttrs + '>Ver producto</a>' +
                     '</div></article>';
             }).join('');
         }

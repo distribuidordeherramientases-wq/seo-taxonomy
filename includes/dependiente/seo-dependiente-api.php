@@ -918,7 +918,7 @@ final class SEO_Dependiente_API {
         $params = self::request_params($request);
         $search_id = isset($params['search_id']) ? sanitize_text_field((string) $params['search_id']) : '';
         $event = isset($params['event']) ? sanitize_key((string) $params['event']) : '';
-        if (!$search_id || !in_array($event, array('click', 'helpful', 'clarification_shown', 'clarify'), true)) {
+        if (!$search_id || !in_array($event, array('click', 'helpful', 'clarification_shown', 'clarify', 'category_choice'), true)) {
             return new WP_Error('seo_dependiente_feedback_invalid', 'Datos de feedback incompletos.', array('status' => 400));
         }
         if (!class_exists('SEO_Dependiente_Search_Log')) {
@@ -939,7 +939,11 @@ final class SEO_Dependiente_API {
             'source'       => sanitize_key((string) ($params['source'] ?? '')),
             'source_group' => sanitize_key((string) ($params['source_group'] ?? '')),
             'source_slug'  => sanitize_title((string) ($params['source_slug'] ?? '')),
-            'is_other'     => !empty($params['is_other']) ? 1 : 0,
+            'is_other'          => !empty($params['is_other']) ? 1 : 0,
+            'category_id'       => absint($params['category_id'] ?? 0),
+            'category_slug'     => sanitize_title((string) ($params['category_slug'] ?? '')),
+            'category_name'     => sanitize_text_field((string) ($params['category_name'] ?? '')),
+            'origin_search_id'  => sanitize_text_field((string) ($params['origin_search_id'] ?? '')),
         ));
         if (!$ok) {
             return new WP_Error('seo_dependiente_feedback_failed', 'No se pudo registrar el feedback.', array('status' => 404));
