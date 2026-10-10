@@ -139,7 +139,7 @@ Analista **diagnostica y deriva**. No publica, no crea posts/URLs ni modifica ca
 - **SEO/taxonomía** resuelve asociaciones, destinos y enlazado.
 - **Ingeniero / Solucionador / Comparador** aportan cobertura o evidencia; Analista no duplica sus workers.
 
-En **Fuentes** se muestran las pruebas de aceptación de 3.8.1/3.8.2 y un diagnóstico separado de Action Scheduler para detectar colas vencidas que puedan afectar a la frescura de datos.
+En **Fuentes** se muestran las pruebas de aceptación de 3.8.1/3.8.2/3.8.3 y un diagnóstico separado de Action Scheduler para detectar colas vencidas que puedan afectar a la frescura de datos.
 
 
 ### Corrección del Plan de acción · Analista 3.8.2
@@ -159,6 +159,30 @@ Cambios:
 - el informe muestra un diagnóstico agregado de asociaciones auto-resueltas, bloqueos de entidad, bloqueos comerciales, evidencia insuficiente y tareas de score alto retenidas por un gate.
 
 Ejemplo comercial: una categoría puede tener demanda SEO suficiente pero quedar temporalmente en HACER DESPUÉS porque faltan `stock_categoria`, `precio_categoria`, proveedor o margen/comisión. Analista toma una muestra acotada de productos de la categoría para intentar validar esos datos sin cargar todo el catálogo. GA4 se muestra como señal de medición separada; su ausencia por sí sola no bloquea una oportunidad SEO si la oferta comercial ya está acreditada. La tarjeta enumera exactamente los campos bloqueantes y qué debe ocurrir para desbloquearla.
+
+
+### Coherencia de tarea · Analista 3.8.3
+
+3.8.3 es una corrección puntual del **Plan de acción**. No cambia otros informes ni servicios.
+
+La tarjeta se construye desde una única decisión `task_decision`, que contiene:
+
+- **Estado de la señal**: aceleración, descenso, mejora/pérdida de posición, muestra insuficiente o señal estable.
+- **Prioridad de trabajo**: HACER AHORA, HACER DESPUÉS, INVESTIGAR, VIGILAR, ESPERAR DATOS o SIN ACCIÓN.
+- **Tipo de intervención**: la acción primaria de trabajo.
+- **Bloqueo**: entidad/destino, evidencia, dependencia comercial o sin bloqueo.
+
+Una tarea solo puede quedar en **HACER AHORA** cuando su acción primaria es ejecutable y tiene **verbo, objeto, destino, responsable, URL validada y gate READY**. Si la única instrucción es observar, esperar, investigar o mantener la línea base, se reclasifica automáticamente.
+
+El bloque **Qué hacer** muestra una sola acción primaria. Las comprobaciones de INVESTIGAR permanecen en un bloque separado e indican **duda pendiente, valor actual, fuente donde verificar, criterio de salida y responsable**.
+
+El límite de diez HACER AHORA actualiza también `task_decision`; por tanto contador, sección, etiqueta, gate y JSON leen el mismo bucket final.
+
+La identidad de seguimiento usa una clave estable por consulta/tema. Resolver una dependencia no crea una tarea nueva: se conserva la trazabilidad y se migra el identificador anterior cuando existe.
+
+La medición se vincula a la intervención concreta y siempre conserva la línea base de impresiones, clics, posición y periodo. Los resultados se interpretan como asociación temporal, no como causalidad automática.
+
+Las pruebas T01–T06 verifican: Cámaras sin acción ejecutable, contrato de HACER AHORA, separación de etiquetas, coherencia de contadores/JSON, trazabilidad al resolver bloqueos y regresiones de evidencia/URL/modelo/tarea ejecutada/oportunidad ejecutable.
 
 ### Informe competitivo profundo
 

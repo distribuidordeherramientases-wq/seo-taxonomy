@@ -46,6 +46,10 @@ Release estable que consolida el ciclo de parches **2.3.8.x** desplegado entre e
 
 ### Auditor, Analista y control de calidad
 
+- Analista 3.8.3 corrige la contradicción entre **HACER AHORA** y acciones de vigilar/esperar/investigar: una tarea inmediata exige acción primaria ejecutable con verbo, objeto, destino, responsable y URL validada.
+- La tarjeta separa **Estado de la señal / Prioridad de trabajo / Tipo de intervención / Bloqueo** y `task_decision` pasa a ser la fuente única para contador, sección, etiqueta y JSON.
+- INVESTIGAR añade fuente de verificación y criterio de salida; las tareas ejecutadas no se duplican y el seguimiento usa un ID estable. JSON schema 9 y pruebas T01–T06.
+
 - Analista 3.8.2 corrige el exceso de **INVESTIGAR**: intenta resolver primero categorías/entidades locales y reserva ese bucket a modelo, entidad o destino realmente no resueltos.
 - Las oportunidades SEO bloqueadas por stock/precio/proveedor/margen se mantienen como **HACER DESPUÉS** con condición explícita de desbloqueo y bucket potencial, sin alterar artificialmente el score; GA4 queda como señal de medición separada y no bloquea por sí sola.
 - Cada tarea expone comprobaciones concretas, valor actual, owner, `unlock_condition`, `bucket_if_unblocked` y diagnóstico agregado de gates; JSON schema 8.
