@@ -1190,26 +1190,32 @@ if (!function_exists('seo_analista_reconcile_task_decision')) {
         }
 
         $bucket = (string) ($gate['bucket'] ?? $row['work_bucket'] ?? 'VIGILAR');
+        $primary_type = (string) ($primary['type'] ?? '');
         if ($bucket === 'HACER_AHORA' && empty($primary['executable'])) {
-            $type = (string) ($primary['type'] ?? '');
-            if (in_array($type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','INVESTIGAR_SURTIDO'), true)
+            if (in_array($primary_type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','INVESTIGAR_SURTIDO'), true)
                 || (string) ($gate['blocker_type'] ?? '') === 'entity') {
                 $bucket = 'INVESTIGAR';
-            } elseif ($type === 'ESPERAR_DATOS' || (string) ($gate['blocker_type'] ?? '') === 'evidence') {
+            } elseif ($primary_type === 'ESPERAR_DATOS' || (string) ($gate['blocker_type'] ?? '') === 'evidence') {
                 $bucket = 'ESPERAR_DATOS';
-            } elseif ((string) ($gate['blocker_type'] ?? '') === 'commercial') {
+            } elseif ((string) ($gate['blocker_type'] ?? '') === 'commercial' || $primary_type === 'CREAR_CONTENIDO') {
                 $bucket = 'HACER_DESPUES';
             } else {
                 $bucket = 'VIGILAR';
             }
         }
 
-        // R05: si no hay una acción ejecutable ni una comprobación concreta,
-        // VIGILAR es más honesto que fabricar trabajo.
-        if (empty($primary['executable'])
-            && (string) ($gate['state'] ?? 'READY') === 'READY'
-            && !in_array($bucket, array('INVESTIGAR','ESPERAR_DATOS'), true)) {
-            $bucket = 'VIGILAR';
+        // R05: una instrucción de observación/espera/investigación conserva
+        // su bucket semántico aunque el score previo fuera alto. En cambio una
+        // tarea válida de segunda prioridad no se degrada solo por no ser
+        // ejecutable inmediatamente.
+        if ((string) ($gate['state'] ?? 'READY') === 'READY') {
+            if ($primary_type === 'VIGILAR') {
+                $bucket = 'VIGILAR';
+            } elseif ($primary_type === 'ESPERAR_DATOS') {
+                $bucket = 'ESPERAR_DATOS';
+            } elseif (in_array($primary_type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','INVESTIGAR_SURTIDO'), true)) {
+                $bucket = 'INVESTIGAR';
+            }
         }
 
         $signal = seo_analista_signal_state($row, $evidence);
