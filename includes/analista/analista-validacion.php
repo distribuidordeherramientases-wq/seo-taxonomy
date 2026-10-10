@@ -1294,35 +1294,35 @@ if (!function_exists('seo_analista_atomic_actions')) {
         if (strpos($issue_text, '404') !== false || strpos($issue_text, 'no indexable') !== false || strpos($issue_text, 'canonical') !== false) {
             $actions[] = array(
                 'type'=>'REVISAR_TECNICO',
-                'detail'=>'Comprobar la incidencia técnica detectada en ' . ($target_url !== '' ? $target_url : 'la URL objetivo') . ': ' . implode('; ', $issues) . '.',
+                'detail'=>'Corregir la incidencia técnica/canónica detectada en ' . ($target_url !== '' ? $target_url : 'la URL objetivo') . ': ' . implode('; ', $issues) . '.',
                 'owner'=>'Técnico'
             );
         }
         if (strpos($issue_text, 'seo title') !== false || strpos($issue_text, 'meta description') !== false || strpos($issue_text, 'ctr bajo') !== false) {
             $actions[] = array(
                 'type'=>'REVISAR_META',
-                'detail'=>'Revisar title/meta efectivos de ' . ($target_url !== '' ? $target_url : 'la URL objetivo') . ' para la consulta «' . $query . '». Incidencia observada: ' . implode('; ', $issues) . '.',
+                'detail'=>'Ajustar el title/meta efectivo de ' . ($target_url !== '' ? $target_url : 'la URL objetivo') . ' para la consulta «' . $query . '». Incidencia observada: ' . implode('; ', $issues) . '.',
                 'owner'=>'Editora'
             );
         }
         if (strpos($issue_text, 'enlazado interno') !== false) {
             $actions[] = array(
                 'type'=>'REVISAR_ENLAZADO',
-                'detail'=>'Comprobar cuántos enlaces internos relevantes recibe ' . ($target_url !== '' ? $target_url : 'la entidad') . ' y añadirlos solo desde categorías, hubs o posts semánticamente relacionados con «' . $query . '».',
+                'detail'=>'Añadir enlaces internos relevantes hacia ' . ($target_url !== '' ? $target_url : 'la entidad') . ' desde categorías, hubs o posts semánticamente relacionados con «' . $query . '».',
                 'owner'=>'SEO/taxonomía'
             );
         }
         if (strpos($issue_text, 'cobertura textual') !== false || strpos($issue_text, 'excerpt') !== false || strpos($issue_text, 'vocabulary') !== false) {
             $actions[] = array(
                 'type'=>'MEJORAR_COBERTURA',
-                'detail'=>'Corregir únicamente estos huecos en ' . ($target_url !== '' ? $target_url : 'la entidad validada') . ': ' . implode('; ', $issues) . '. La ampliación debe responder a «' . $query . '» sin incorporar temas ajenos.',
+                'detail'=>'Ampliar la cobertura de ' . ($target_url !== '' ? $target_url : 'la entidad validada') . ' para «' . $query . '» corrigiendo estos huecos: ' . implode('; ', $issues) . '. No incorporar temas ajenos a la intención validada.',
                 'owner'=>'Editora'
             );
         }
         if ((strpos($issue_text, 'descripcion corta') !== false || sanitize_key((string) ($row['entity']['type'] ?? '')) === 'product') && $issues) {
             $actions[] = array(
                 'type'=>'MEJORAR_FICHA',
-                'detail'=>'Corregir en la ficha validada los defectos concretos: ' . implode('; ', $issues) . '. Consulta asociada: «' . $query . '».',
+                'detail'=>'Corregir en ' . ($target_url !== '' ? $target_url : 'la ficha validada') . ' estos defectos concretos: ' . implode('; ', $issues) . '. Consulta asociada: «' . $query . '».',
                 'owner'=>'Editora'
             );
         }
@@ -1340,12 +1340,18 @@ if (!function_exists('seo_analista_atomic_actions')) {
             $existing_coverage = (array) ($coverage['existing_entity'] ?? array());
             if (!empty($existing_coverage['available']) || !empty($coverage['posts'])) {
                 $titles = array();
+                $coverage_target_url = '';
                 foreach ((array) ($coverage['posts'] ?? array()) as $post) {
                     if (!empty($post['title'])) $titles[] = (string) $post['title'];
+                    if ($coverage_target_url === '' && !empty($post['url'])) $coverage_target_url = (string) $post['url'];
+                }
+                if ($coverage_target_url === '') {
+                    $coverage_target_url = (string) ($existing_coverage['url'] ?? $target_url);
                 }
                 $actions[] = array(
                     'type'=>'ACTUALIZAR_CONTENIDO',
-                    'detail'=>'Ya existe cobertura relacionada' . ($titles ? ': ' . implode(' · ', array_slice($titles, 0, 3)) : '') . '. Revisar actualización o enlazado antes de crear otra URL.',
+                    'target_url'=>$coverage_target_url,
+                    'detail'=>'Actualizar ' . ($titles ? '«' . (string) reset($titles) . '»' : 'el contenido existente') . ' para cubrir «' . $query . '» y enlazarlo con la entidad canónica cuando proceda.',
                     'owner'=>'Editora'
                 );
             } else {
