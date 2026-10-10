@@ -250,6 +250,8 @@ final class SEO_Dependiente_Statistics {
             'endDate' => $dates['endDate'],
             'dimensions' => array(),
             'dimensionFilterGroups' => array($filter),
+            'dataState' => 'final',
+            'aggregationType' => 'byPage',
             'rowLimit' => 10,
         ));
         if (is_wp_error($summary)) {
@@ -270,6 +272,8 @@ final class SEO_Dependiente_Statistics {
             'endDate' => $dates['endDate'],
             'dimensions' => array('query'),
             'dimensionFilterGroups' => array($filter),
+            'dataState' => 'final',
+            'aggregationType' => 'byPage',
             'rowLimit' => 20,
         ));
         if (!is_wp_error($queries)) {
