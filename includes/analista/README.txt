@@ -59,3 +59,18 @@ ANALISTA 3.8.2 - PLAN DE ACCION DESBLOQUEABLE
 - Añadido gate_summary para auditar auto-resoluciones y oportunidades valiosas bloqueadas.
 - JSON unificado pasa a schema version 8.
 - Pruebas 3.8.2 cubren desbloqueo comercial, INVESTIGAR concreto y diagnóstico de gates.
+
+
+ANALISTA 3.8.3 - COHERENCIA DEL PLAN DE ACCION
+- Corrección focalizada en generación, clasificación y presentación de tareas.
+- task_decision es la fuente única de verdad de bucket, señal, intervención y bloqueo.
+- HACER_AHORA requiere acción primaria ejecutable con verbo, objeto, destino, owner y URL validada.
+- Si Qué hacer equivale a vigilar, esperar o investigar, la tarea se reclasifica automáticamente.
+- La tarjeta separa Estado de la señal / Prioridad de trabajo / Tipo de intervención / Bloqueo.
+- Qué hacer muestra una única acción primaria; INVESTIGAR conserva comprobaciones aparte.
+- investigation_steps añade fuente de verificación, valor actual y criterio de salida.
+- El límite de diez HACER_AHORA mantiene sincronizado task_decision.
+- Nuevo ID estable ana383_ por consulta/tema y migración del ID legacy para conservar trazabilidad.
+- Las tareas ya ejecutadas no vuelven a proponerse como ejecutables.
+- JSON unificado pasa a schema version 9 con plan_consistency.
+- Pruebas T01-T06 cubren coherencia de Cámaras, acción ejecutable, etiquetas, contadores/JSON, trazabilidad y regresiones.
