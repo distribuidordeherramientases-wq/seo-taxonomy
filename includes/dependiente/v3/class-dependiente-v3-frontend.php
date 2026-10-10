@@ -261,7 +261,7 @@ final class SEO_Dependiente_V3_Frontend {
 
     public static function enqueue_assets() {
         // Sufijo propio para invalidar caches sin cambiar la version global del plugin.
-        $asset_version = SEO_DEPENDIENTE_VERSION . '-dependiente-home-20261007';
+        $asset_version = SEO_DEPENDIENTE_VERSION . '-choice-learning-20261010';
         wp_enqueue_style(
             'seo-dependiente-v3',
             SEO_DEPENDIENTE_V3_URL . 'assets/css/dependiente-v3.css',
@@ -278,6 +278,7 @@ final class SEO_Dependiente_V3_Frontend {
         );
         wp_localize_script('seo-dependiente-v3', 'SEO_DEPENDIENTE_V3', array(
             'endpoint' => esc_url_raw(rest_url('seo-taxonomy/v3/search')),
+            'feedbackEndpoint' => esc_url_raw(rest_url('seo-taxonomy/v1/search-feedback')),
             'showDebug' => current_user_can('manage_options'),
             'version' => SEO_DEPENDIENTE_VERSION,
         ));

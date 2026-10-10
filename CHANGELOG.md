@@ -2,6 +2,9 @@
 
 ## [2.3.10] - 2026-10-06
 
+- Dependiente V3 registra las **elecciones explícitas del cliente** como evidencia supervisada: `category_choice` para categorías sugeridas y `click` para productos, conservando consulta, posición y recorrido mediante `search_uuid`.
+- La evidencia se guarda aunque todos los términos de la consulta ya sean conocidos; sirve para aprender rutas/ranking y no activa reglas semánticas automáticamente.
+
 - El informe de la **Actualización continua de Academia** pasa a schema 2 y exporta los fallos reales de cada módulo con pregunta, respuesta esperada, resultados devueltos, diagnóstico, fuente formativa y contexto de la entidad.
 - Añadido `learning_diagnostics` para separar fallos de aprendizaje de errores técnicos y agrupar por módulo, diagnóstico, tipo de fuente y tipo de pregunta; en M1 las categorías se tratan como referencia formativa protegida y las sugerencias de revisión se marcan como hipótesis, no como causa demostrada.
 - El diagnóstico se reconstruye desde las ejecuciones ya persistidas, por lo que puede analizar el run en curso sin repetir la formación.
