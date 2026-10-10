@@ -15,7 +15,7 @@ defined('ABSPATH') || exit;
  * workers que ya controla Academia.
  */
 final class SEO_Dependiente_Actualizacion {
-    const VERSION = '1.0.2';
+    const VERSION = '1.0.3';
     const STATE_OPTION = 'seo_dependiente_academy_update_state';
     const HISTORY_OPTION = 'seo_dependiente_academy_update_history';
     const LAST_SUCCESS_OPTION = 'seo_dependiente_academy_update_last_success';
@@ -123,6 +123,7 @@ final class SEO_Dependiente_Actualizacion {
                 <div class="seo-dependiente-trainer__update-actions">
                     <button type="button" class="button button-primary" data-trainer-update-start <?php disabled(!$available || $running); ?>><?php echo $running ? 'Actualización en curso…' : 'Actualizar conocimiento'; ?></button>
                     <button type="button" class="button" data-trainer-update-export <?php disabled(empty($state['run_id'])); ?>>Descargar informe JSON</button>
+                    <span class="description">El informe incluye el detalle real de fallos, diagnóstico y fuente formativa para poder revisar qué necesita aprender mejor.</span>
                 </div>
             </div>
 
@@ -252,12 +253,14 @@ final class SEO_Dependiente_Actualizacion {
         if (empty($state['run_id'])) {
             wp_send_json_error(array('message' => 'Todavía no existe una actualización para exportar.'), 404);
         }
+        $diagnostics = self::build_learning_diagnostics((string) ($state['lesson_key'] ?? ''));
         $document = array(
             'schema'         => 'seo-dependiente-academy-update',
-            'schema_version' => 1,
+            'schema_version' => 2,
             'generated_at'   => current_time('c'),
             'update_version' => self::VERSION,
             'state'          => $state,
+            'learning_diagnostics' => $diagnostics,
             'history'        => array_slice((array) get_option(self::HISTORY_OPTION, array()), 0, 10),
         );
         wp_send_json_success(array(
@@ -827,6 +830,364 @@ final class SEO_Dependiente_Actualizacion {
             'vocabulary' => absint($delta['vocabulary'] ?? 0),
             'faqs'       => absint($delta['faqs'] ?? 0),
         );
+    }
+
+    /**
+     * Reconstruye los fallos reales de la Actualización desde las tablas de
+     * preguntas/ejecuciones. No modifica la formación ni vuelve a ejecutar
+     * preguntas: por eso también sirve para el run que ya esté en curso.
+     */
+    private static function build_learning_diagnostics($lesson_key) {
+        global $wpdb;
+
+        $lesson_key = sanitize_key((string) $lesson_key);
+        $empty = array(
+            'available' => false,
+            'lesson_key' => $lesson_key,
+            'summary' => array(
+                'total_failures' => 0,
+                'learning_failures' => 0,
+                'technical_errors' => 0,
+                'by_module' => array(),
+                'by_diagnostic_type' => array(),
+                'by_source_type' => array(),
+                'by_question_type' => array(),
+            ),
+            'failures' => array(),
+            'interpretation_note' => 'Los diagnósticos indican dónde revisar la formación; no demuestran por sí solos la causa del fallo.',
+        );
+        if (!$lesson_key || !class_exists('SEO_Dependiente_Entrenador')) {
+            return $empty;
+        }
+
+        $questions_table = SEO_Dependiente_Entrenador::questions_table();
+        $runs_table = SEO_Dependiente_Entrenador::runs_table();
+        if (!self::table_exists($questions_table) || !self::table_exists($runs_table)) {
+            return $empty;
+        }
+
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas de Academia; lesson_key es el único valor externo y se enlaza con prepare().
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT
+                r.id AS run_id,
+                r.module_no,
+                r.question_id,
+                r.source_type,
+                r.source_id,
+                r.question_type,
+                r.question,
+                r.status,
+                r.result_count,
+                r.returned_count,
+                r.search_strategy,
+                r.execution_ms,
+                r.evaluation_status,
+                r.evaluation_score,
+                r.evaluation_json,
+                r.top_results,
+                r.response_meta,
+                r.error_message,
+                r.created_at,
+                q.source_key,
+                q.expected_json
+             FROM {$runs_table} r
+             LEFT JOIN {$questions_table} q ON q.id = r.question_id
+             WHERE r.lesson_key = %s
+               AND (
+                    r.status = 'error'
+                    OR r.evaluation_status = 'error'
+                    OR r.evaluation_status = 'fail'
+               )
+             ORDER BY r.module_no ASC, r.id ASC",
+            $lesson_key
+        ), ARRAY_A);
+
+        $summary = $empty['summary'];
+        $failures = array();
+        $labels = self::module_labels();
+
+        foreach ($rows as $row) {
+            $module = absint($row['module_no'] ?? 0);
+            $module_label = (string) ($labels[$module] ?? ('M' . $module));
+            $evaluation = self::decode_json($row['evaluation_json'] ?? '');
+            $expected = self::decode_json($row['expected_json'] ?? '');
+            $top_results = array_values(array_slice(self::decode_json($row['top_results'] ?? ''), 0, 8));
+            $response_meta = self::decode_json($row['response_meta'] ?? '');
+            $diagnostic_type = sanitize_key((string) ($evaluation['diagnostic_type'] ?? ''));
+            if (!$diagnostic_type) {
+                $diagnostic_type = ('error' === (string) ($row['status'] ?? '') || 'error' === (string) ($row['evaluation_status'] ?? ''))
+                    ? 'technical_error'
+                    : 'unclassified_failure';
+            }
+
+            // expected ya se exporta por separado; evitamos duplicarlo dentro
+            // de evaluation para mantener el JSON manejable en runs grandes.
+            if (isset($evaluation['expected'])) {
+                unset($evaluation['expected']);
+            }
+
+            $source_type = sanitize_key((string) ($row['source_type'] ?? ''));
+            $source_id = absint($row['source_id'] ?? 0);
+            $question_type = sanitize_key((string) ($row['question_type'] ?? 'other'));
+            $technical = 'technical_error' === $diagnostic_type
+                || 'error' === (string) ($row['status'] ?? '')
+                || 'error' === (string) ($row['evaluation_status'] ?? '');
+
+            $context = self::learning_source_context($source_type, $source_id, $expected);
+            $review = self::learning_review_hint(
+                $module,
+                $diagnostic_type,
+                $source_type,
+                $context,
+                $expected
+            );
+
+            $failure = array(
+                'run_id' => absint($row['run_id'] ?? 0),
+                'module' => $module,
+                'module_label' => $module_label,
+                'question_id' => absint($row['question_id'] ?? 0),
+                'question' => (string) ($row['question'] ?? ''),
+                'question_type' => $question_type,
+                'source' => array(
+                    'type' => $source_type,
+                    'id' => $source_id,
+                    'key' => (string) ($row['source_key'] ?? ''),
+                ),
+                'result' => array(
+                    'status' => (string) ($row['status'] ?? ''),
+                    'evaluation_status' => (string) ($row['evaluation_status'] ?? ''),
+                    'evaluation_score' => isset($row['evaluation_score']) ? (float) $row['evaluation_score'] : null,
+                    'diagnostic_type' => $diagnostic_type,
+                    'result_count' => absint($row['result_count'] ?? 0),
+                    'returned_count' => absint($row['returned_count'] ?? 0),
+                    'search_strategy' => (string) ($row['search_strategy'] ?? ''),
+                    'execution_ms' => isset($row['execution_ms']) ? (float) $row['execution_ms'] : null,
+                    'technical_error' => (string) ($row['error_message'] ?? ''),
+                    'created_at' => (string) ($row['created_at'] ?? ''),
+                ),
+                'expected' => $expected,
+                'evaluation' => $evaluation,
+                'returned_top_results' => $top_results,
+                'response_diagnostic' => array(
+                    'clarification' => $response_meta['clarification'] ?? null,
+                    'semantic' => is_array($response_meta['semantic'] ?? null) ? $response_meta['semantic'] : array(),
+                    'search_diagnostic' => is_array($response_meta['search_diagnostic'] ?? null) ? $response_meta['search_diagnostic'] : array(),
+                ),
+                'training_source_context' => $context,
+                'training_review' => $review,
+            );
+            $failures[] = $failure;
+
+            $summary['total_failures']++;
+            if ($technical) {
+                $summary['technical_errors']++;
+            } else {
+                $summary['learning_failures']++;
+            }
+
+            if (!isset($summary['by_module'][$module])) {
+                $summary['by_module'][$module] = array(
+                    'label' => $module_label,
+                    'failures' => 0,
+                    'learning_failures' => 0,
+                    'technical_errors' => 0,
+                    'diagnostic_types' => array(),
+                );
+            }
+            $summary['by_module'][$module]['failures']++;
+            $summary['by_module'][$module][$technical ? 'technical_errors' : 'learning_failures']++;
+            if (!isset($summary['by_module'][$module]['diagnostic_types'][$diagnostic_type])) {
+                $summary['by_module'][$module]['diagnostic_types'][$diagnostic_type] = 0;
+            }
+            $summary['by_module'][$module]['diagnostic_types'][$diagnostic_type]++;
+
+            foreach (array(
+                'by_diagnostic_type' => $diagnostic_type,
+                'by_source_type' => $source_type ?: 'unknown',
+                'by_question_type' => $question_type ?: 'other',
+            ) as $group_key => $group_value) {
+                if (!isset($summary[$group_key][$group_value])) {
+                    $summary[$group_key][$group_value] = 0;
+                }
+                $summary[$group_key][$group_value]++;
+            }
+        }
+
+        return array(
+            'available' => true,
+            'lesson_key' => $lesson_key,
+            'summary' => $summary,
+            'failures' => $failures,
+            'interpretation_note' => 'Un fallo es una evidencia real de que esa comprobación no se superó. training_review es una pista de investigación, no una causa demostrada ni una orden de modificar contenido.',
+            'category_policy' => 'Las categorías actuales se tratan como material formativo de referencia. El informe aporta su descripción y jerarquía para contrastar el fallo, pero no propone reescribirlas automáticamente.',
+        );
+    }
+
+    /**
+     * Adjunta el contexto de la fuente con la que se está enseñando.
+     * Mantiene el tamaño acotado: no duplica textos completos muy largos.
+     */
+    private static function learning_source_context($source_type, $source_id, $expected = array()) {
+        $source_type = sanitize_key((string) $source_type);
+        $source_id = absint($source_id);
+        $expected = is_array($expected) ? $expected : array();
+
+        if ('category' === $source_type && $source_id) {
+            $term = get_term($source_id, 'product_cat');
+            if ($term instanceof WP_Term && !is_wp_error($term)) {
+                $description = trim(wp_strip_all_tags((string) $term->description));
+                $parent = $term->parent ? get_term(absint($term->parent), 'product_cat') : null;
+                $children = get_term_children($source_id, 'product_cat');
+                if (is_wp_error($children)) $children = array();
+                $url = get_term_link($term);
+                if (is_wp_error($url)) $url = '';
+                return array(
+                    'kind' => 'product_category',
+                    'id' => $source_id,
+                    'name' => (string) $term->name,
+                    'slug' => (string) $term->slug,
+                    'parent_id' => absint($term->parent),
+                    'parent_name' => $parent instanceof WP_Term && !is_wp_error($parent) ? (string) $parent->name : '',
+                    'category_path' => (array) ($expected['category_path'] ?? array()),
+                    'product_count' => absint($term->count),
+                    'children_count' => count((array) $children),
+                    'description_present' => '' !== $description,
+                    'description_chars' => function_exists('mb_strlen') ? mb_strlen($description) : strlen($description),
+                    'description_excerpt' => self::short_text($description, 1400),
+                    'public_url' => (string) $url,
+                    'edit_url' => admin_url('term.php?taxonomy=product_cat&tag_ID=' . $source_id . '&post_type=product'),
+                );
+            }
+        }
+
+        if ('product' === $source_type && $source_id) {
+            $product = function_exists('wc_get_product') ? wc_get_product($source_id) : null;
+            if ($product && is_a($product, 'WC_Product')) {
+                $category_names = array();
+                foreach ((array) $product->get_category_ids() as $term_id) {
+                    $term = get_term(absint($term_id), 'product_cat');
+                    if ($term instanceof WP_Term && !is_wp_error($term)) {
+                        $category_names[] = (string) $term->name;
+                    }
+                }
+                return array(
+                    'kind' => 'product',
+                    'id' => $source_id,
+                    'title' => (string) $product->get_name(),
+                    'sku' => (string) $product->get_sku(),
+                    'status' => (string) $product->get_status(),
+                    'stock_status' => (string) $product->get_stock_status(),
+                    'categories' => array_values(array_unique($category_names)),
+                    'public_url' => (string) get_permalink($source_id),
+                    'edit_url' => (string) get_edit_post_link($source_id, ''),
+                );
+            }
+        }
+
+        return array(
+            'kind' => $source_type ?: 'unknown',
+            'id' => $source_id,
+            'expected_owner' => array(
+                'owner_type' => $expected['owner_type'] ?? null,
+                'owner_id' => $expected['owner_id'] ?? null,
+                'owner_title' => $expected['owner_title'] ?? '',
+            ),
+        );
+    }
+
+    /**
+     * Traduce el diagnóstico técnico del evaluador a una pista de revisión
+     * comprensible. Deliberadamente no afirma que esa sea la causa real.
+     */
+    private static function learning_review_hint($module, $diagnostic_type, $source_type, $context, $expected) {
+        $diagnostic_type = sanitize_key((string) $diagnostic_type);
+        $source_type = sanitize_key((string) $source_type);
+        $review = array(
+            'certainty' => 'hypothesis',
+            'diagnostic_type' => $diagnostic_type,
+            'what_happened' => 'La comprobación no alcanzó la respuesta esperada.',
+            'review_first' => array(),
+            'do_not_assume' => 'No modificar la fuente automáticamente: confirmar primero la causa con expected, resultados devueltos y diagnóstico de búsqueda.',
+        );
+
+        $map = array(
+            'technical_error' => array(
+                'what_happened' => 'La ejecución falló técnicamente; no puede interpretarse como desconocimiento del estudiante.',
+                'review_first' => array('Error técnico de Academia/API', 'logs de ejecución'),
+            ),
+            'curriculum_invalid' => array(
+                'what_happened' => 'La verdad esperada o el ejercicio parecen inválidos para el evaluador.',
+                'review_first' => array('Definición del ejercicio', 'fuente canónica usada para generar expected'),
+            ),
+            'parser_gap' => array(
+                'what_happened' => 'El Intérprete no consiguió estructurar suficientemente la pregunta.',
+                'review_first' => array('Vocabulary y sinónimos', 'contexto de jerarquía', 'reglas del Intérprete'),
+            ),
+            'semantic_route_unresolved' => array(
+                'what_happened' => 'Se detectó intención/ruta semántica, pero no se resolvió hasta una entidad recuperable.',
+                'review_first' => array('rutas semánticas', 'jerarquía', 'alias de categoría', 'Vocabulary'),
+            ),
+            'semantic_expansion_skipped' => array(
+                'what_happened' => 'Había una ruta semántica pero la expansión no llegó a ejecutarse.',
+                'review_first' => array('motor de recuperación', 'reglas de expansión semántica'),
+            ),
+            'semantic_candidates_filtered' => array(
+                'what_happened' => 'Existían candidatos semánticos, pero fueron filtrados antes del resultado final.',
+                'review_first' => array('filtros del ranking', 'compatibilidad de candidatos', 'señales de recuperación'),
+            ),
+            'ranking_gap' => array(
+                'what_happened' => 'Hubo resultados, pero la entidad esperada no quedó entre los candidatos aceptados.',
+                'review_first' => array('fronteras entre familias', 'jerarquía', 'Vocabulary', 'señales de ranking'),
+            ),
+            'retrieval_gap' => array(
+                'what_happened' => 'El motor no recuperó la entidad esperada.',
+                'review_first' => array('indexación del conocimiento', 'rutas/alias', 'Vocabulary', 'asociación con la fuente'),
+            ),
+            'editorial_retrieval_gap' => array(
+                'what_happened' => 'No se recuperó el contenido editorial esperado.',
+                'review_first' => array('relación editorial con la entidad', 'metadatos del post', 'recuperación editorial'),
+            ),
+            'faq_owner_retrieval_gap' => array(
+                'what_happened' => 'No se recuperó la FAQ esperada para su propietario.',
+                'review_first' => array('owner de la FAQ', 'asociación FAQ-entidad', 'recuperación contextual'),
+            ),
+            'faq_owner_ranking_gap' => array(
+                'what_happened' => 'La FAQ correcta existe, pero quedó demasiado abajo en el ranking.',
+                'review_first' => array('ranking de FAQs', 'owner/contexto', 'señales semánticas'),
+            ),
+            'cross_retrieval_gap' => array(
+                'what_happened' => 'Falló una relación cruzada esperada entre conocimiento de producto y contenido.',
+                'review_first' => array('relaciones cruzadas', 'Vocabulary', 'enlaces entre entidades'),
+            ),
+            'unclassified_failure' => array(
+                'what_happened' => 'La comprobación falló sin un diagnóstico más específico.',
+                'review_first' => array('expected', 'resultados devueltos', 'diagnóstico de búsqueda'),
+            ),
+        );
+        if (isset($map[$diagnostic_type])) {
+            $review = array_merge($review, $map[$diagnostic_type]);
+        }
+
+        if (1 === absint($module) && 'category' === $source_type) {
+            $review['m1_category_guidance'] = array(
+                'category_is_reference' => true,
+                'instruction' => 'Primero comprobar si la descripción actual de la categoría ya enseña correctamente el concepto. Si es suficiente, revisar antes las rutas/relaciones y el contexto de Hub secundario → Hub primario → Cluster. No reescribir la categoría por un fallo aislado.',
+                'description_present' => !empty($context['description_present']),
+                'description_chars' => absint($context['description_chars'] ?? 0),
+            );
+        }
+
+        return $review;
+    }
+
+    private static function short_text($text, $limit) {
+        $text = trim(preg_replace('/\s+/u', ' ', (string) $text));
+        $limit = max(80, absint($limit));
+        if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+            return mb_strlen($text) > $limit ? rtrim(mb_substr($text, 0, $limit - 1)) . '…' : $text;
+        }
+        return strlen($text) > $limit ? rtrim(substr($text, 0, $limit - 1)) . '…' : $text;
     }
 
     private static function aggregate_summary($state) {
