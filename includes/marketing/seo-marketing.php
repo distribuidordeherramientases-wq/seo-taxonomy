@@ -174,7 +174,7 @@ function seo_marketing_style_defaults()
         'card_padding'             => 25,
         'card_image_height'        => 230,
 
-        // Índice de Soluciones / parrilla de landings.
+        // Índice de Proyectos / parrilla de landings.
         'solutions_columns_desktop' => 3,
         'solutions_columns_tablet'  => 2,
         'solutions_columns_mobile'  => 1,
@@ -3543,7 +3543,7 @@ function seo_marketing_render_style_checkout($settings)
  */
 function seo_marketing_render_style_solutions($settings)
 {
-    echo '<section class="seo-style-section"><h2>7. Índice de Soluciones</h2>';
+    echo '<section class="seo-style-section"><h2>7. Índice de Proyectos</h2>';
     echo '<p>Controla la parrilla que presenta las páginas con rol <code>landing</code> en <code>template-soluciones.php</code>. La plantilla decide el contenido; aquí solo se define su presentación.</p>';
     echo '<div class="seo-style-fields">';
     seo_marketing_style_number_field('solutions_columns_desktop', 'Columnas escritorio', $settings['solutions_columns_desktop'], 1, 5);

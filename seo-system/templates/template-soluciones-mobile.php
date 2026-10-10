@@ -420,7 +420,7 @@ $json = array(
     '@context' => 'https://schema.org',
     '@graph'   => array(
         array('@type' => 'CollectionPage', '@id' => get_permalink($page_id) . '#collection', 'url' => get_permalink($page_id), 'name' => $page_title, 'description' => $page_intro, 'inLanguage' => get_bloginfo('language')),
-        array('@type' => 'ItemList', '@id' => get_permalink($page_id) . '#soluciones', 'name' => 'Soluciones', 'numberOfItems' => count($item_list), 'itemListElement' => $item_list),
+        array('@type' => 'ItemList', '@id' => get_permalink($page_id) . '#soluciones', 'name' => 'Proyectos', 'numberOfItems' => count($item_list), 'itemListElement' => $item_list),
     ),
 );
 
@@ -560,11 +560,11 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
 <main class="solutions-index-page dht-solutions-news-v3 dht-mobile-template">
     <header class="dht-solutions-hero">
         <div class="hub-container">
-            <span class="dht-kicker">Guías de compra · Aplicaciones · Soluciones</span>
+            <span class="dht-kicker">Guías de compra · Aplicaciones · Proyectos</span>
             <h1><?php echo esc_html($page_title); ?></h1>
             <p><?php echo esc_html($page_intro); ?></p>
             <div class="dht-solutions-hero-meta" aria-label="Resumen del índice">
-                <span><?php echo esc_html(count($landing_ids)); ?> soluciones publicadas</span><span>Selección por necesidad</span><span>Conexión con catálogo real</span>
+                <span><?php echo esc_html(count($landing_ids)); ?> proyectos publicados</span><span>Selección por necesidad</span><span>Conexión con catálogo real</span>
             </div>
         </div>
     </header>
@@ -584,8 +584,8 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
             <section class="dht-news-section" aria-labelledby="dht-solutions-portada-title">
                 <div class="hub-container">
                     <div class="dht-section-head">
-                        <div><span class="dht-eyebrow">En portada</span><h2 id="dht-solutions-portada-title">Explora soluciones</h2></div>
-                        <p>Cinco soluciones visibles de inmediato; el archivo completo queda debajo.</p>
+                        <div><span class="dht-eyebrow">En portada</span><h2 id="dht-solutions-portada-title">Explora proyectos</h2></div>
+                        <p>Cinco proyectos visibles de inmediato; el archivo completo queda debajo.</p>
                     </div>
                     <div class="dht-front-grid">
                         <article class="dht-lead-card">
@@ -628,7 +628,7 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
             <section class="dht-news-section" aria-labelledby="solutions-index-title">
                 <div class="hub-container">
                     <div class="dht-section-head">
-                        <div><span class="dht-eyebrow"><?php echo $paged > 1 ? 'Archivo' : 'Más soluciones'; ?></span><h2 id="solutions-index-title"><?php echo $paged > 1 ? 'Soluciones' : 'Todas las soluciones'; ?></h2></div>
+                        <div><span class="dht-eyebrow"><?php echo $paged > 1 ? 'Archivo' : 'Más proyectos'; ?></span><h2 id="solutions-index-title"><?php echo $paged > 1 ? 'Proyectos' : 'Todos los proyectos'; ?></h2></div>
                         <p>Guías organizadas alrededor de una necesidad real: oficio, trabajo, aplicación, comparación o decisión de compra.</p>
                     </div>
                     <div class="dht-solutions-grid">
@@ -654,13 +654,13 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
                     <?php
                     $pagination = paginate_links(array('total' => (int) $landing_query->max_num_pages, 'current' => $paged, 'type' => 'list', 'prev_text' => '← Anterior', 'next_text' => 'Siguiente →'));
                     if ($pagination) : ?>
-                        <nav class="solutions-pagination" aria-label="Paginación de soluciones"><?php echo wp_kses_post($pagination); ?></nav>
+                        <nav class="solutions-pagination" aria-label="Paginación de proyectos"><?php echo wp_kses_post($pagination); ?></nav>
                     <?php endif; ?>
                 </div>
             </section>
         <?php endif; ?>
     <?php else : ?>
-        <section class="dht-news-section"><div class="hub-container"><p>Todavía no hay soluciones publicadas.</p></div></section>
+        <section class="dht-news-section"><div class="hub-container"><p>Todavía no hay proyectos publicados.</p></div></section>
     <?php endif; ?>
 
     <?php wp_reset_postdata(); ?>

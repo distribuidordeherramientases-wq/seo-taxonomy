@@ -1,7 +1,7 @@
 <?php
 /* DHT INDEX VIEWPORT-FIRST V3 */
 /**
- * Template Name: Índice de Soluciones
+ * Template Name: Índice de Proyectos
  * Gestor de variante soluciones: móvil / escritorio.
  */
 
