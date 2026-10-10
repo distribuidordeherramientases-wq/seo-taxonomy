@@ -57,6 +57,21 @@ La segunda corrección del Plan de acción reduce el exceso de `INVESTIGAR` sin 
 - La prioridad no se modifica por resolver o no resolver una dependencia; el gate determina si la tarea es ejecutable.
 - El diagnóstico `gate_summary` permite detectar oportunidades de score alto que el filtro conservador está reteniendo.
 
+
+## Analista 3.8.3 · contrato único y HACER AHORA ejecutable
+
+La tercera corrección del Plan de acción elimina contradicciones entre señal, bucket y texto de acción.
+
+- `task_decision` es la fuente única de verdad para bucket, intervención, bloqueo y acción primaria.
+- **HACER AHORA** exige acción ejecutable con verbo, objeto, destino, responsable y URL validada.
+- Una acción de observar/esperar/investigar nunca puede quedar en HACER AHORA.
+- El estado de la señal se muestra separado de la prioridad de trabajo, de modo que una señal estable o en aceleración no se confunde con el bucket.
+- INVESTIGAR incluye fuente de verificación y criterio de salida.
+- El límite máximo de diez actualiza el contrato, no solo el campo visible.
+- `task_id`/traza se estabiliza por consulta y tema; al resolver un bloqueo no se duplica la tarea.
+- Una tarea ya ejecutada pasa a SIN ACCIÓN y deja de proponer de nuevo la intervención.
+- El JSON incorpora el contrato completo y un informe de consistencia del plan.
+
 ## Informe competitivo profundo
 
 Analista puede generar, bajo demanda, un **informe competitivo profundo** a partir de los dominios configurados en la vista Comparación.
