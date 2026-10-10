@@ -300,15 +300,15 @@ if (!function_exists('seo_analista_383_self_tests')) {
         // T02 · Toda tarea HACER AHORA tiene una única acción estructurada y ejecutable.
         $executable = array(
             'priority'=>84,'work_bucket'=>'HACER_AHORA','confidence'=>86,
-            'topic'=>'Llaves dinamométricas',
-            'query'=>'llaves dinamométricas',
+            'topic'=>'Llaves dinamométricas prueba contrato 383',
+            'query'=>'llaves dinamométricas prueba contrato 383',
             'entity'=>array(
-                'type'=>'category','id'=>0,'title'=>'Llaves dinamométricas',
-                'url'=>home_url('/categoria-producto/llaves-dinamometricas/')
+                'type'=>'category','id'=>0,'title'=>'Llaves dinamométricas prueba contrato 383',
+                'url'=>home_url('/categoria-producto/llaves-dinamometricas-prueba-contrato-383/')
             ),
             'target'=>array(
-                'title'=>'Llaves dinamométricas',
-                'url'=>home_url('/categoria-producto/llaves-dinamometricas/')
+                'title'=>'Llaves dinamométricas prueba contrato 383',
+                'url'=>home_url('/categoria-producto/llaves-dinamometricas-prueba-contrato-383/')
             ),
             'metrics'=>array(
                 'impressions'=>80,'clicks'=>5,'ctr'=>0.0625,'position'=>14.5,
@@ -450,11 +450,20 @@ if (!function_exists('seo_analista_383_self_tests')) {
             array('status'=>'executed','action_executed'=>(string) ($executable_result['action_type'] ?? ''))
         );
 
+        $model_safe = (
+            (string) ($model_conflict['match_type'] ?? '') === 'conflict'
+            && (string) ($model_conflict['work_bucket'] ?? '') === 'INVESTIGAR'
+        ) || (
+            !empty($model_conflict['auto_resolution']['resolved'])
+            && in_array((string) ($model_conflict['match_type'] ?? ''), array('exact','partial'), true)
+            && (string) ($model_conflict['target_url'] ?? '') !== home_url('/producto/bosch-gbh-18v-18-x/')
+        );
+
         $tests[] = seo_analista_381_test_row(
             'ANA383-T06',
             (string) ($low_evidence['work_bucket'] ?? '') === 'ESPERAR_DATOS'
                 && (string) ($bad_url['work_bucket'] ?? '') === 'INVESTIGAR'
-                && in_array((string) ($model_conflict['work_bucket'] ?? ''), array('INVESTIGAR','HACER_DESPUES'), true)
+                && $model_safe
                 && (string) ($executed['work_bucket'] ?? '') === 'SIN_ACCION'
                 && (string) ($executable_result['work_bucket'] ?? '') === 'HACER_AHORA'
                 && !empty($executable_result['task_decision']['execution_ready']),
