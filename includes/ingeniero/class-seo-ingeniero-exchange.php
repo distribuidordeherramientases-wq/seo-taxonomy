@@ -599,7 +599,7 @@ final class SEO_Ingeniero_Exchange {
 
             foreach ((array) ($category['sources'] ?? array()) as $source) {
                 if (!is_array($source)) continue;
-                $url = esc_url_raw((string) ($source['url'] ?? ''));
+                $url = SEO_Ingeniero::resolve_source_url((string)($source['url'] ?? ''));
                 if ($url === '') { $result['errors']++; continue; }
 
                 $classification = SEO_Ingeniero::classify_source($url, (string) ($source['title'] ?? ''));
@@ -669,7 +669,7 @@ final class SEO_Ingeniero_Exchange {
 
                 foreach ((array) ($knowledge['facts'] ?? array()) as $fact) {
                     if (!is_array($fact)) continue;
-                    $url = esc_url_raw((string) ($fact['source_url'] ?? ''));
+                    $url = SEO_Ingeniero::resolve_source_url((string)($fact['source_url'] ?? ''));
                     $local_id = 0;
 
                     if ($url !== '') {
