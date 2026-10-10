@@ -62,6 +62,7 @@ final class SEO_Dependiente_Learning {
 
         // Ejemplo: "apañar un grifo" -> "reparar un grifo".
         if (empty($previous['detected_intent']) && !empty($current['detected_intent']) && $same_object) {
+            if ($unknown && $vocabulary) {
             foreach (array_slice($unknown, 0, 3) as $term) {
                 $candidate = self::upsert_candidate(array(
                     'expression'           => $term,
@@ -121,17 +122,36 @@ final class SEO_Dependiente_Learning {
             return array();
         }
 
-        $unknown = self::filter_unknown_terms(self::decode_json($log['unresolved_terms'] ?? ''));
-        if (!$unknown) {
-            return array();
-        }
-
-        $vocabulary = self::product_vocabulary($product_id);
-        if (!$vocabulary) {
-            return array();
-        }
-
         $created = array();
+
+        // Un clic en V3 es evidencia comercial incluso si Dependiente ya conoce
+        // todas las palabras de la consulta. Se guarda en el Search Log como
+        // candidato supervisado y NO se activa en la tabla semantica.
+        $product = function_exists('wc_get_product') ? wc_get_product($product_id) : null;
+        if ($product instanceof WC_Product) {
+            $query_expression = self::normalize((string) ($log['query_normalized'] ?? $log['query_original'] ?? ''));
+            if ($query_expression) {
+                $created[] = array(
+                    'expression' => $query_expression,
+                    'canonical_expression' => 'product:' . $product_id,
+                    'semantic_role' => 'product_choice',
+                    'relation_type' => 'selected_product',
+                    'evidence' => 'click',
+                    'source' => 'customer_choice',
+                    'active' => 0,
+                    'requires_review' => 1,
+                    'target_group' => 'product',
+                    'target_id' => $product_id,
+                    'target_slug' => sanitize_title((string) $product->get_slug()),
+                    'target_label' => sanitize_text_field((string) $product->get_name()),
+                    'position' => absint($position),
+                    'query_example' => sanitize_text_field((string) ($log['query_original'] ?? '')),
+                );
+            }
+        }
+
+        $unknown = self::filter_unknown_terms(self::decode_json($log['unresolved_terms'] ?? ''));
+        $vocabulary = $unknown ? self::product_vocabulary($product_id) : array();
         foreach (array_slice($unknown, 0, 3) as $term) {
             foreach (array_slice($vocabulary, 0, 8) as $concept) {
                 $role = self::role_for_group((string) ($concept['semantic_group'] ?? ''));
@@ -169,10 +189,69 @@ final class SEO_Dependiente_Learning {
             }
         }
 
+            }
+        }
+
         if ($created) {
             SEO_Dependiente_Search_Log::merge_learning_candidates(absint($log['id']), $created);
         }
         return $created;
+    }
+
+    /**
+     * Registra una eleccion explicita de categoria como evidencia de ruta.
+     *
+     * A diferencia del aprendizaje lexical, esta evidencia no necesita terminos
+     * desconocidos: precisamente sirve para aprender que una consulta conocida
+     * fue ordenada hacia una categoria concreta por decision del cliente.
+     *
+     * La evidencia queda solo en Search Log / learning_candidate. No crea ni
+     * activa una regla en wp_seo_dependiente_semantics.
+     */
+    public static function observe_category_choice($search_uuid, $category_id = 0, $category_slug = '', $category_name = '', $position = 0) {
+        if (!self::ready() || !class_exists('SEO_Dependiente_Search_Log')) {
+            return array();
+        }
+
+        $log = SEO_Dependiente_Search_Log::get_search($search_uuid);
+        if (!$log) {
+            return array();
+        }
+
+        $category_id = absint($category_id);
+        $category_slug = sanitize_title((string) $category_slug);
+        $term = $category_id ? get_term($category_id, 'product_cat') : null;
+        if ((!$term || is_wp_error($term)) && $category_slug) {
+            $term = get_term_by('slug', $category_slug, 'product_cat');
+        }
+        if (!$term instanceof WP_Term || is_wp_error($term)) {
+            return array();
+        }
+
+        $query_expression = self::normalize((string) ($log['query_normalized'] ?? $log['query_original'] ?? ''));
+        if (!$query_expression) {
+            return array();
+        }
+
+        $candidate = array(
+            'expression' => $query_expression,
+            'canonical_expression' => 'product_cat:' . sanitize_title((string) $term->slug),
+            'semantic_role' => 'category_choice',
+            'relation_type' => 'selected_category',
+            'evidence' => 'category_choice',
+            'source' => 'customer_choice',
+            'active' => 0,
+            'requires_review' => 1,
+            'target_group' => 'product_cat',
+            'target_id' => absint($term->term_id),
+            'target_slug' => sanitize_title((string) $term->slug),
+            'target_label' => sanitize_text_field((string) $term->name),
+            'position' => absint($position),
+            'query_example' => sanitize_text_field((string) ($log['query_original'] ?? '')),
+        );
+
+        SEO_Dependiente_Search_Log::merge_learning_candidates(absint($log['id']), array($candidate));
+        return array($candidate);
     }
 
     /**
