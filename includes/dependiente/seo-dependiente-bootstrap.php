@@ -87,6 +87,7 @@ if (is_readable($seo_auditor_bootstrap)) {
 }
 
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-insights.php';
+require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-statistics.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-reset.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-knowledge-transfer.php';
 require_once SEO_DEPENDIENTE_PATH . 'seo-dependiente-admin.php';
