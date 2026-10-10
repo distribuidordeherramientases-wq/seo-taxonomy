@@ -1819,7 +1819,7 @@ if (!function_exists('seo_analista_task_contract')) {
             'priority_score'=>absint($row['priority_score'] ?? $row['priority'] ?? 0),
             'priority_breakdown'=>(array) ($row['priority_breakdown'] ?? array()),
             'pre_validation_bucket'=>(string) ($row['pre_validation_bucket'] ?? ''),
-            'final_bucket'=>(string) ($row['work_bucket'] ?? ''),
+            'final_bucket'=>function_exists('seo_analista_task_bucket') ? seo_analista_task_bucket($row) : (string) ($row['work_bucket'] ?? ''),
             'bucket_if_unblocked'=>(string) ($row['bucket_if_unblocked'] ?? ''),
             'task_decision'=>(array) ($row['task_decision'] ?? array()),
             'signal_state'=>(array) ($row['signal_state'] ?? array()),
