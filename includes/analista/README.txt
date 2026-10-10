@@ -74,3 +74,4 @@ ANALISTA 3.8.3 - COHERENCIA DEL PLAN DE ACCION
 - Las tareas ya ejecutadas no vuelven a proponerse como ejecutables.
 - JSON unificado pasa a schema version 9 con plan_consistency.
 - Pruebas T01-T06 cubren coherencia de Cámaras, acción ejecutable, etiquetas, contadores/JSON, trazabilidad y regresiones.
+- Criterio de cierre: plan_consistency debe quedar OK y ninguna tarea HACER_AHORA puede carecer de primary_action ejecutable.
