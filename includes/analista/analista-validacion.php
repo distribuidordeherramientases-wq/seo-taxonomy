@@ -921,6 +921,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                     'code'=>'CHECK_MODEL_ENTITY',
                     'check'=>'Comparar los identificadores de la consulta con modelo/MPN/SKU de la entidad atribuida y buscar el producto exacto en el catálogo.',
                     'current'=>'Consulta: ' . $query . ' · entidad: ' . ($entity_label !== '' ? $entity_label : 'sin entidad') . ' · match ' . $match_type . ' ' . $match_confidence . '/100.',
+                    'source'=>'Catálogo WooCommerce + SKU/MPN/atributos del producto + Search Console.',
                     'unlock'=>'Sin conflicto de modelo y match exacto/parcial con la URL correcta.',
                     'owner'=>'SEO/taxonomía',
                 );
@@ -929,6 +930,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                     'code'=>'RESOLVE_TARGET_URL',
                     'check'=>'Buscar primero categoría product_cat equivalente; después producto/hub/página local ya existente. No crear URL desde Analista.',
                     'current'=>'Consulta: ' . $query . ' · no hay URL local/canónica validada.',
+                    'source'=>'Taxonomía product_cat + índice local de entidades de WordPress.',
                     'unlock'=>'URL local existente resuelta y validada contra la consulta.',
                     'owner'=>'SEO/taxonomía',
                 );
@@ -937,6 +939,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                     'code'=>'CONFIRM_ENTITY_MATCH',
                     'check'=>'Revisar título, slug, categoría, intención y términos específicos compartidos entre la consulta y la entidad actual.',
                     'current'=>'Consulta: ' . $query . ' · entidad: ' . ($entity_label !== '' ? $entity_label : 'sin entidad') . ' · match ' . $match_type . ' ' . $match_confidence . '/100.',
+                    'source'=>'Search Console + título/slug/taxonomía/entidad local de WordPress.',
                     'unlock'=>'Match exacto o parcial por encima del umbral configurado y sin conflicto de modelo.',
                     'owner'=>'SEO/taxonomía',
                 );
@@ -946,6 +949,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                     'code'=>'REVIEW_REJECTED_LOCAL_CANDIDATE',
                     'check'=>'Revisar manualmente si existe una entidad local que el resolver automático rechazó por baja afinidad o riesgo de modelo.',
                     'current'=>(string) ($auto_resolution['reason'] ?? 'No hubo candidato seguro.'),
+                    'source'=>'Taxonomía product_cat + índice local de Analista.',
                     'unlock'=>'Candidato local confirmado con evidencia suficiente o descarte explícito de la señal.',
                     'owner'=>'SEO/taxonomía',
                 );
@@ -956,6 +960,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                 'code'=>'WAIT_FOR_EVIDENCE',
                 'check'=>'Mantener la línea base y volver a medir la misma consulta/URL sin cambiar contenido solo por la posición actual.',
                 'current'=>absint($evidence['impressions'] ?? 0) . ' impresiones · ' . absint($evidence['clicks'] ?? 0) . ' clics.',
+                'source'=>'Google Search Console + línea base persistida del Plan de acción.',
                 'unlock'=>'Alcanzar ' . absint($settings['reliable_impressions'] ?? 20) . ' impresiones o disponer de un defecto crítico independiente.',
                 'owner'=>'SEO/taxonomía',
             );
@@ -971,12 +976,24 @@ if (!function_exists('seo_analista_investigation_steps')) {
                 'margen_comision'=>'Confirmar margen o comisión disponible.',
                 'ga4'=>'Comprobar señales GA4 de la URL/categoría sin mezclarlas con GSC.',
             );
+            $sources = array(
+                'surtido'=>'WooCommerce: categoría y productos publicados.',
+                'stock'=>'WooCommerce: estado de stock del producto.',
+                'stock_categoria'=>'WooCommerce: muestra de productos de la categoría.',
+                'disponibilidad'=>'WooCommerce: is_purchasable / disponibilidad.',
+                'precio_final'=>'WooCommerce: precio actual del producto.',
+                'precio_categoria'=>'WooCommerce: rango de precios de la muestra de categoría.',
+                'proveedor'=>'Metadato de proveedor del producto (_seo_proveedor).',
+                'margen_comision'=>'Precio de venta + coste/proveedor (_seo_precio_proveedor o coste disponible).',
+                'ga4'=>'Google Analytics 4 para la URL/categoría.',
+            );
             foreach ((array) ($gate['missing'] ?? array()) as $field) {
                 $field = sanitize_key((string) $field);
                 $steps[] = array(
                     'code'=>'CHECK_COMMERCIAL_' . strtoupper($field),
                     'check'=>(string) ($labels[$field] ?? ('Validar el dato comercial ' . $field . '.')),
                     'current'=>'Dato no verificado en el Plan de acción.',
+                    'source'=>(string) ($sources[$field] ?? 'Catálogo/proveedores.'),
                     'unlock'=>'El campo ' . $field . ' queda validado y deja de figurar como dependencia.',
                     'owner'=>'Catálogo/proveedores',
                 );
