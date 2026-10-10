@@ -113,7 +113,7 @@ final class SEO_Dependiente_Learning {
      */
     public static function observe_click($search_uuid, $product_id, $position = 0) {
         $product_id = absint($product_id);
-        if (!$product_id || !self::ready() || !class_exists('SEO_Dependiente_Search_Log')) {
+        if (!$product_id || !class_exists('SEO_Dependiente_Search_Log')) {
             return array();
         }
 
@@ -153,7 +153,7 @@ final class SEO_Dependiente_Learning {
         // Conserva el aprendizaje lexical legacy cuando existan terminos no
         // resueltos, pero ya no condiciona la evidencia comercial del clic.
         $unknown = self::filter_unknown_terms(self::decode_json($log['unresolved_terms'] ?? ''));
-        $vocabulary = $unknown ? self::product_vocabulary($product_id) : array();
+        $vocabulary = ($unknown && self::ready()) ? self::product_vocabulary($product_id) : array();
         if ($unknown && $vocabulary) {
             foreach (array_slice($unknown, 0, 3) as $term) {
                 foreach (array_slice($vocabulary, 0, 8) as $concept) {
@@ -210,7 +210,7 @@ final class SEO_Dependiente_Learning {
      * activa una regla en wp_seo_dependiente_semantics.
      */
     public static function observe_category_choice($search_uuid, $category_id = 0, $category_slug = '', $category_name = '', $position = 0) {
-        if (!self::ready() || !class_exists('SEO_Dependiente_Search_Log')) {
+        if (!class_exists('SEO_Dependiente_Search_Log')) {
             return array();
         }
 
