@@ -1312,6 +1312,16 @@ if (!function_exists('seo_analista_plan_consistency_report')) {
                 );
             }
 
+            $decision_intervention = (string) ($decision['intervention_type'] ?? '');
+            $row_intervention = (string) ($row['action_type'] ?? $row['action'] ?? '');
+            if ($decision_intervention !== '' && $row_intervention !== '' && $decision_intervention !== $row_intervention) {
+                $issues[] = array(
+                    'task_id'=>$task_id,
+                    'code'=>'INTERVENTION_MISMATCH',
+                    'detail'=>'action_type y task_decision.intervention_type no coinciden.',
+                );
+            }
+
             if ($bucket === 'HACER_AHORA') {
                 $required = array(
                     'target_resolved'=>!empty($row['target_resolved']),
@@ -1336,6 +1346,20 @@ if (!function_exists('seo_analista_plan_consistency_report')) {
                         'task_id'=>$task_id,
                         'code'=>'HACER_AHORA_NOT_READY',
                         'detail'=>'HACER AHORA no está autorizado por la decisión única.',
+                    );
+                }
+                if ((string) ($decision['blocker']['type'] ?? 'none') !== 'none') {
+                    $issues[] = array(
+                        'task_id'=>$task_id,
+                        'code'=>'HACER_AHORA_BLOCKED',
+                        'detail'=>'HACER AHORA conserva un bloqueo activo.',
+                    );
+                }
+                if (count((array) ($row['recommended_changes'] ?? array())) !== 1) {
+                    $issues[] = array(
+                        'task_id'=>$task_id,
+                        'code'=>'HACER_AHORA_MULTI_ACTION',
+                        'detail'=>'HACER AHORA debe exponer una única acción primaria.',
                     );
                 }
             }
