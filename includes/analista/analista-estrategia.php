@@ -668,6 +668,11 @@ if (!function_exists('seo_analista_prioritize_portfolio')) {
                     $row['task_decision']['execution_ready'] = false;
                     $row['task_decision']['decision_reason'] = 'Acción ejecutable, pero queda en HACER DESPUÉS por el límite máximo de diez tareas HACER AHORA.';
                 }
+                if (!empty($row['execution_gate']) && is_array($row['execution_gate'])) {
+                    $row['execution_gate']['bucket'] = 'HACER_DESPUES';
+                    $row['execution_gate']['final_bucket'] = 'HACER_DESPUES';
+                    $row['execution_gate']['quota_limited'] = true;
+                }
             }
         }
         unset($row);
