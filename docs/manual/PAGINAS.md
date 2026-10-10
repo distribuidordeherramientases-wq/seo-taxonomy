@@ -5,8 +5,8 @@ Ruta: **SEO Taxonomy → Páginas**
 ## Pestañas
 
 - Estructura SEO
-- Landings
-- Informe landings
+- Proyectos
+- Informe de Proyectos
 - Corporativas
 - Errores
 
@@ -32,7 +32,7 @@ Acciones:
 
 Trabaja con páginas de rol Cluster, Hub primario y Hub secundario. Los selectores de relación permiten situar la página en la estructura.
 
-## Landings
+## Proyectos
 
 Además del contenido, muestra la relación comercial:
 
@@ -48,7 +48,7 @@ Controles:
 - **Añadir directa** [Guarda].
 - las categorías seleccionadas pueden retirarse de la selección antes de guardar.
 
-## Informe landings
+## Informe de Proyectos
 
 ### Candidata editorial
 
@@ -72,7 +72,7 @@ La página incluye bloques de ayuda: Requisitos obligatorios, Test del comprador
 - Rendimiento de landings.
 - Señales externas.
 - **Sincronizar para revisión** [Proceso/Guarda según la fuente].
-- Landings existentes: ID, estado, contador 30d, GA4, GSC y fecha de actualización.
+- Proyectos existentes: ID, estado, contador 30d, GA4, GSC y fecha de actualización.
 - Candidatas y decisiones.
 - Huecos de cobertura por Hub secundario.
 
@@ -83,3 +83,5 @@ Muestra páginas de rol corporativo. No exige relación directa con product_cat.
 ## Errores
 
 Usa el escáner de salud para las páginas WordPress publicadas. Los botones de iniciar/parar y los filtros funcionan igual que en la pestaña Errores de otros objetos.
+
+Proyectos gestiona páginas con rol `landing`. Su informe y sus candidatas permanecen en Páginas; los enlaces antiguos desde Solucionador con ámbito `pages` vuelven a este informe. Solucionador gestiona propuestas de posts. El índice público se llama Proyectos y conserva su URL existente.

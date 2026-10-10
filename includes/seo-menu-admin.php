@@ -355,7 +355,7 @@ function seo_menu_manager_page() {
     echo '<label style="display:flex;align-items:flex-start;gap:6px;max-width:290px;">';
     echo '<input type="checkbox" name="seo_include_solutions" value="1" style="margin-top:2px;" ' .
         checked($preview_include_solutions, 1, false) . '>';
-    echo '<span><strong>Incluir Soluciones</strong><br><span style="color:#646970;font-size:12px;">Añade la página “Soluciones”, que recopila las páginas con rol <code>landing</code>.</span></span>';
+    echo '<span><strong>Incluir Proyectos</strong><br><span style="color:#646970;font-size:12px;">Añade la página “Proyectos”, que recopila las páginas con rol <code>landing</code>.</span></span>';
     echo '</label>';
 
     echo '<label style="display:flex;align-items:flex-start;gap:6px;max-width:250px;">';
@@ -455,9 +455,9 @@ function seo_menu_manager_page() {
             $solutions_url = $solutions_page instanceof WP_Post ? get_permalink($solutions_page->ID) : home_url('/soluciones/');
 
             echo '<div style="margin:15px 0;padding:12px;border-left:4px solid #46b450;">';
-            echo '<h3 style="margin:0 0 6px;"><a href="' . esc_url($solutions_url) . '" target="_blank" rel="noopener noreferrer">Soluciones</a></h3>';
+            echo '<h3 style="margin:0 0 6px;"><a href="' . esc_url($solutions_url) . '" target="_blank" rel="noopener noreferrer">Proyectos</a></h3>';
             echo '<p style="margin:0;color:#646970;">';
-            echo 'Se añadirá un único enlace principal a la página Soluciones, que recopila las páginas con rol landing';
+            echo 'Se añadirá un único enlace principal a la página Proyectos, que recopila las páginas con rol landing';
             if (!empty($solutions)) {
                 echo ' (' . intval(count($solutions)) . ' landings activas y publicadas en la parrilla)';
             }
@@ -998,7 +998,7 @@ function seo_menu_get_generated_kind_label($menu_item_id) {
         'cluster'       => 'Cluster',
         'hub_primary'   => 'Hub primario',
         'hub_secondary' => 'Hub secundario',
-        'solutions'     => 'Soluciones',
+        'solutions'     => 'Proyectos',
         'blog'          => 'Blog',
         'dependiente'   => 'Dependiente',
         'legacy'        => 'Estructura automática anterior',
@@ -1931,7 +1931,7 @@ function seo_menu_prepare_solutions_page($page_id) {
     if (!$post instanceof WP_Post || $post->post_type !== 'page') {
         return new WP_Error(
             'invalid_solutions_page',
-            'La página de Soluciones no es válida.'
+            'La página de Proyectos no es válida.'
         );
     }
 
@@ -1950,7 +1950,7 @@ function seo_menu_prepare_solutions_page($page_id) {
         [
             'ID'           => $page_id,
             'post_status'  => 'publish',
-            'post_title'   => 'Soluciones',
+            'post_title'   => 'Proyectos',
             'post_name'    => 'soluciones',
             'post_content' => '[seo_solutions_index]',
         ],
@@ -2007,7 +2007,7 @@ function seo_menu_get_or_create_solutions_page() {
         [
             'post_type'    => 'page',
             'post_status'  => 'publish',
-            'post_title'   => 'Soluciones',
+            'post_title'   => 'Proyectos',
             'post_name'    => 'soluciones',
             'post_content' => '[seo_solutions_index]',
         ],
@@ -2042,7 +2042,7 @@ function seo_menu_render_solutions_index() {
         <header class="seo-solutions-index__header">
 
             <h1 id="seo-solutions-title">
-                Soluciones
+                Proyectos
             </h1>
 
             <p>
@@ -2135,7 +2135,7 @@ function seo_menu_render_solutions_index() {
         <?php else : ?>
 
             <p>
-                No hay soluciones publicadas en este momento.
+                No hay proyectos publicados en este momento.
             </p>
 
         <?php endif; ?>
@@ -2613,13 +2613,13 @@ function seo_tree_to_wp_menu(
         if (!$solutions_url) {
             return new WP_Error(
                 'invalid_solutions_page',
-                'No se ha podido localizar o crear la página Soluciones.'
+                'No se ha podido localizar o crear la página Proyectos.'
             );
         }
 
         $result = seo_menu_add_optional_top_level_link(
             $menu_id,
-            'Soluciones',
+            'Proyectos',
             $solutions_url,
             $position,
             'solutions'
@@ -2968,3 +2968,27 @@ function seo_menu_activate($menu_id) {
 
     return true;
 }
+
+/** Rename the existing landing index and its menu labels; preserve publication state. */
+add_action('admin_init', function () {
+    if (!current_user_can('manage_options') || get_option('seo_projects_labels_v1')) return;
+    $page_id = absint(get_option('seo_menu_solutions_page_id', 0));
+    $page = $page_id ? get_post($page_id) : get_page_by_path('soluciones', OBJECT, 'page');
+    if (!$page instanceof WP_Post || $page->post_type !== 'page') return;
+    $ok = true;
+    if (in_array($page->post_title, array('Soluciones', 'Solucionador'), true)) {
+        $result = wp_update_post(array('ID'=>$page->ID, 'post_title'=>'Proyectos'), true);
+        if (is_wp_error($result)) $ok = false;
+    }
+    foreach ((array) wp_get_nav_menus() as $menu) {
+        foreach ((array) wp_get_nav_menu_items($menu->term_id) as $item) {
+            $linked = ($item->object === 'page' && (int) $item->object_id === (int) $page->ID);
+            $linked = $linked || untrailingslashit((string) $item->url) === untrailingslashit((string) get_permalink($page->ID));
+            if ($linked && in_array($item->title, array('Soluciones', 'Solucionador'), true)) {
+                $result = wp_update_post(array('ID'=>$item->ID, 'post_title'=>'Proyectos'), true);
+                if (is_wp_error($result)) $ok = false;
+            }
+        }
+    }
+    if ($ok) update_option('seo_projects_labels_v1', 1, false);
+});
