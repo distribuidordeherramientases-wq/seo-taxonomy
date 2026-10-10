@@ -1,4 +1,4 @@
-=== SEO Taxonomy ===
+=== TaxoCommerce SEO - Catalog, Trends, Content & Feeds ===
 
 Contributors: davidperezmartorell
 Tags: seo, woocommerce, taxonomy, catalog, automation
@@ -13,7 +13,7 @@ SEO and commercial platform for WooCommerce: taxonomy, catalog, analytics, autom
 
 == Description ==
 
-SEO Taxonomy is a modular platform for WordPress and WooCommerce designed for sites with large product catalogs and integrated SEO, commercial, and operational management needs.
+TaxoCommerce SEO is a modular platform for WordPress and WooCommerce designed for sites with large product catalogs and integrated SEO, commercial, and operational management needs.
 
 The plugin centralizes tools that are often spread across multiple screens and processes.
 
@@ -36,14 +36,14 @@ Key features:
 * Process manager and workers for heavy operations.
 * Diagnostic, maintenance, and validation tools.
 
-SEO Taxonomy is actively developed and uses staging to validate changes before promoting them to production.
+TaxoCommerce SEO is actively developed and uses staging to validate changes before promoting them to production.
 
 == Installation ==
 
 1. Download the plugin package.
 2. Upload the `seo-taxonomy` folder to `/wp-content/plugins/` or install the ZIP file from WordPress.
-3. Activate **SEO Taxonomy** from **Plugins**.
-4. Open **SEO Taxonomy** in the WordPress administration area.
+3. Activate **TaxoCommerce SEO** from **Plugins**.
+4. Open **TaxoCommerce SEO** in the WordPress administration area.
 5. Review the modules you intend to use and configure external connections only when required.
 6. On WooCommerce installations, verify the catalog, taxes, currency, and environment before running bulk operations.
 
@@ -73,7 +73,7 @@ Not all of them. Some modules can use external services to obtain additional inf
 
 == External services ==
 
-SEO Taxonomy can connect to external services only when the administrator enables or uses the corresponding module. The plugin does not automatically load third-party analytics beacons.
+TaxoCommerce SEO can connect to external services only when the administrator enables or uses the corresponding module. The plugin does not automatically load third-party analytics beacons.
 
 = Google APIs (Search Console, Analytics, OAuth, Trends, and Cloud Run) =
 
