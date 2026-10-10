@@ -1259,12 +1259,21 @@ if (!function_exists('seo_analista_apply_history_state')) {
         $row['action_executed'] = sanitize_text_field((string) ($history['action_executed'] ?? ''));
         if (in_array($status, array('queued','in_progress','executed','dismissed'), true)) {
             $row['work_bucket'] = 'SIN_ACCION';
+            $message = $status === 'executed'
+                ? 'No repetir la acción: ya fue ejecutada. Conservar la trazabilidad y medir contra la línea base antes de proponer otra intervención.'
+                : 'No duplicar la acción: la tarea ya está gestionada en el flujo de trabajo.';
+            if (!empty($row['primary_action']) && is_array($row['primary_action'])) {
+                $row['primary_action']['executable'] = false;
+                $row['primary_action']['instruction'] = $message;
+            }
+            $row['recommended_changes'] = array($message);
             if (!empty($row['task_decision']) && is_array($row['task_decision'])) {
                 $row['task_decision']['work_bucket'] = 'SIN_ACCION';
                 $row['task_decision']['execution_ready'] = false;
                 $row['task_decision']['decision_reason'] = $status === 'executed'
                     ? 'La tarea ya fue ejecutada; conservar la trazabilidad y medir antes de proponer otra intervención.'
                     : 'La tarea ya está gestionada en el flujo de trabajo; no duplicar la ejecución.';
+                $row['task_decision']['primary_action'] = (array) ($row['primary_action'] ?? array());
             }
         }
         return $row;
