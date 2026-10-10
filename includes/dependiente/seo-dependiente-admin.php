@@ -46,7 +46,7 @@ final class SEO_Dependiente_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['tab'] ?? 'settings'));
-        if (!in_array($tab, array('settings', 'diagnostic', 'learning', 'trainer', 'interpreter', 'knowledge', 'auditor'), true)) {
+        if (!in_array($tab, array('settings', 'statistics', 'diagnostic', 'learning', 'trainer', 'interpreter', 'knowledge', 'auditor'), true)) {
             $tab = 'settings';
         }
         ?>
@@ -56,6 +56,7 @@ final class SEO_Dependiente_Admin {
 
             <nav class="nav-tab-wrapper seo-dependiente-admin__tabs" aria-label="Secciones de Dependiente">
                 <?php self::render_tab_link('settings', 'Configuración', $tab); ?>
+                <?php self::render_tab_link('statistics', 'Estadísticas', $tab); ?>
                 <?php self::render_tab_link('diagnostic', 'Informe', $tab); ?>
                 <?php self::render_tab_link('learning', 'Aprendizaje', $tab); ?>
                 <?php self::render_tab_link('trainer', 'Academia', $tab); ?>
@@ -65,7 +66,13 @@ final class SEO_Dependiente_Admin {
             </nav>
 
             <?php
-            if ('diagnostic' === $tab) {
+            if ('statistics' === $tab) {
+                if (class_exists('SEO_Dependiente_Statistics')) {
+                    SEO_Dependiente_Statistics::render_tab();
+                } else {
+                    echo '<div class="notice notice-error"><p>No está disponible el módulo de estadísticas.</p></div>';
+                }
+            } elseif ('diagnostic' === $tab) {
                 self::render_diagnostic_tab();
             } elseif ('learning' === $tab) {
                 self::render_learning_tab();
