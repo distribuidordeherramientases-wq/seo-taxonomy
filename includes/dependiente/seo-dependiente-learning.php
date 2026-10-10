@@ -150,45 +150,46 @@ final class SEO_Dependiente_Learning {
             }
         }
 
+        // Conserva el aprendizaje lexical legacy cuando existan terminos no
+        // resueltos, pero ya no condiciona la evidencia comercial del clic.
         $unknown = self::filter_unknown_terms(self::decode_json($log['unresolved_terms'] ?? ''));
         $vocabulary = $unknown ? self::product_vocabulary($product_id) : array();
-        foreach (array_slice($unknown, 0, 3) as $term) {
-            foreach (array_slice($vocabulary, 0, 8) as $concept) {
-                $role = self::role_for_group((string) ($concept['semantic_group'] ?? ''));
-                if (!$role) {
-                    continue;
-                }
+        if ($unknown && $vocabulary) {
+            foreach (array_slice($unknown, 0, 3) as $term) {
+                foreach (array_slice($vocabulary, 0, 8) as $concept) {
+                    $role = self::role_for_group((string) ($concept['semantic_group'] ?? ''));
+                    if (!$role) {
+                        continue;
+                    }
 
-                $canonical = self::normalize((string) ($concept['slug'] ?: $concept['label']));
-                if (!$canonical || $canonical === $term) {
-                    continue;
-                }
+                    $canonical = self::normalize((string) ($concept['slug'] ?: $concept['label']));
+                    if (!$canonical || $canonical === $term) {
+                        continue;
+                    }
 
-                $candidate = self::upsert_candidate(array(
-                    'expression'           => $term,
-                    'canonical_expression' => $canonical,
-                    'semantic_role'        => $role,
-                    'relation_type'        => 'related',
-                    'evidence_type'        => 'click',
-                    'session_hash'         => (string) ($log['session_hash'] ?? ''),
-                    'product_id'           => $product_id,
-                    'position'             => absint($position),
-                    'query_example'        => (string) ($log['query_original'] ?? ''),
-                    'source_log_id'        => absint($log['id'] ?? 0),
-                    'target_vocabulary_id' => absint($concept['id'] ?? 0),
-                    'target_group'         => sanitize_key((string) ($concept['semantic_group'] ?? '')),
-                    'target_slug'          => self::normalize((string) ($concept['slug'] ?? '')),
-                    'target_label'         => sanitize_text_field((string) ($concept['label'] ?? '')),
-                    'catalog_confidence'   => isset($concept['confidence']) && is_numeric($concept['confidence'])
-                        ? (float) $concept['confidence']
-                        : null,
-                ));
-                if ($candidate) {
-                    $created[] = $candidate;
+                    $candidate = self::upsert_candidate(array(
+                        'expression'           => $term,
+                        'canonical_expression' => $canonical,
+                        'semantic_role'        => $role,
+                        'relation_type'        => 'related',
+                        'evidence_type'        => 'click',
+                        'session_hash'         => (string) ($log['session_hash'] ?? ''),
+                        'product_id'           => $product_id,
+                        'position'             => absint($position),
+                        'query_example'        => (string) ($log['query_original'] ?? ''),
+                        'source_log_id'        => absint($log['id'] ?? 0),
+                        'target_vocabulary_id' => absint($concept['id'] ?? 0),
+                        'target_group'         => sanitize_key((string) ($concept['semantic_group'] ?? '')),
+                        'target_slug'          => self::normalize((string) ($concept['slug'] ?? '')),
+                        'target_label'         => sanitize_text_field((string) ($concept['label'] ?? '')),
+                        'catalog_confidence'   => isset($concept['confidence']) && is_numeric($concept['confidence'])
+                            ? (float) $concept['confidence']
+                            : null,
+                    ));
+                    if ($candidate) {
+                        $created[] = $candidate;
+                    }
                 }
-            }
-        }
-
             }
         }
 
