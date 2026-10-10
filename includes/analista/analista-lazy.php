@@ -274,6 +274,12 @@ if (!function_exists('seo_analista_lazy_render_work')) {
         $summary = seo_analista_plan_summary($plan);
         $suppliers = seo_analista_supplier_snapshot(40);
         $search = seo_analista_internal_search_snapshot($days, 40);
+        $consistency = function_exists('seo_analista_plan_consistency_report')
+            ? seo_analista_plan_consistency_report($plan)
+            : array('ok'=>true,'issues'=>array());
+        if (empty($consistency['ok'])) {
+            echo '<div class="notice notice-error inline"><p><strong>Plan de acción incoherente:</strong> ' . esc_html(number_format_i18n(count((array) ($consistency['issues'] ?? array())))) . ' discrepancias entre bucket, decisión o acción ejecutable. No debe darse por válido hasta resolverlas.</p></div>';
+        }
         seo_analista_render_roadmap($plan, $summary, $suppliers, $search);
     }
 }
@@ -292,9 +298,11 @@ if (!function_exists('seo_analista_lazy_render_sources')) {
             echo '<p class="description">' . esc_html((string) ($scheduler['detail'] ?? '')) . '</p></section>';
         }
 
-        if (function_exists('seo_analista_382_self_tests') || function_exists('seo_analista_381_self_tests')) {
-            $tests = function_exists('seo_analista_382_self_tests') ? seo_analista_382_self_tests() : seo_analista_381_self_tests();
-            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Pruebas Analista ' . esc_html((string) ($tests['version'] ?? '3.8.2')) . '</h2><p>Matching, destino, muestra mínima, metadatos efectivos, crecimiento, gates comerciales y tareas INVESTIGAR concretas.</p></div></div>';
+        if (function_exists('seo_analista_383_self_tests') || function_exists('seo_analista_382_self_tests') || function_exists('seo_analista_381_self_tests')) {
+            $tests = function_exists('seo_analista_383_self_tests')
+                ? seo_analista_383_self_tests()
+                : (function_exists('seo_analista_382_self_tests') ? seo_analista_382_self_tests() : seo_analista_381_self_tests());
+            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Pruebas Analista ' . esc_html((string) ($tests['version'] ?? '3.8.3')) . '</h2><p>Incluye T01-T06: coherencia HACER AHORA, acción ejecutable, etiquetas separadas, contadores/JSON, trazabilidad y regresiones.</p></div></div>';
             echo '<p><strong>' . esc_html(number_format_i18n(absint($tests['passed'] ?? 0))) . '/' . esc_html(number_format_i18n(absint($tests['total'] ?? 0))) . '</strong> pruebas superadas.</p>';
             echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Prueba</th><th>Estado</th><th>Regla</th></tr></thead><tbody>';
             foreach ((array) ($tests['tests'] ?? array()) as $test) {
