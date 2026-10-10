@@ -1197,13 +1197,24 @@ if (!function_exists('seo_analista_reconcile_task_decision')) {
 
         $signal = seo_analista_signal_state($row, $evidence);
         $blocker_type = (string) ($gate['blocker_type'] ?? 'none');
-        $blocker_label = $blocker_type === 'none' ? 'Sin bloqueo' : strtoupper($blocker_type);
+        $blocker_labels = array(
+            'none'=>'Sin bloqueo',
+            'entity'=>'Entidad / destino',
+            'evidence'=>'Evidencia insuficiente',
+            'commercial'=>'Dependencia comercial',
+        );
+        $blocker_label = (string) ($blocker_labels[$blocker_type] ?? strtoupper($blocker_type));
+        $intervention_type = (string) ($primary['type'] ?? 'VIGILAR');
+        $intervention_meta = function_exists('seo_analista_action_meta')
+            ? seo_analista_action_meta($intervention_type)
+            : array('label'=>$intervention_type);
 
         return array(
             'version'=>'3.8.3',
             'signal_state'=>$signal,
             'work_bucket'=>$bucket,
-            'intervention_type'=>(string) ($primary['type'] ?? 'VIGILAR'),
+            'intervention_type'=>$intervention_type,
+            'intervention_label'=>(string) ($intervention_meta['label'] ?? $intervention_type),
             'blocker'=>array(
                 'type'=>$blocker_type,
                 'label'=>$blocker_label,
@@ -1211,6 +1222,7 @@ if (!function_exists('seo_analista_reconcile_task_decision')) {
                 'unlock_condition'=>(string) ($gate['unlock_condition'] ?? ''),
             ),
             'primary_action'=>$primary,
+            'actions'=>$normalized,
             'execution_ready'=>!empty($primary['executable']) && $bucket === 'HACER_AHORA',
             'owner'=>(string) ($primary['owner'] ?? ''),
             'target_url'=>(string) ($primary['destination'] ?? $validation['target']['url'] ?? ''),
