@@ -1024,7 +1024,10 @@ if (!function_exists('seo_analista_action_gate_summary')) {
             elseif ($blocker === 'evidence') $out['blocked_evidence']++;
             elseif ($blocker === 'commercial') $out['blocked_commercial']++;
             else $out['ready']++;
-            if ((int) ($row['priority_score'] ?? 0) >= 72 && (string) ($row['work_bucket'] ?? '') !== 'HACER_AHORA') {
+            $final_bucket = function_exists('seo_analista_task_bucket')
+                ? seo_analista_task_bucket((array) $row)
+                : (string) ($row['work_bucket'] ?? '');
+            if ((int) ($row['priority_score'] ?? 0) >= 72 && $final_bucket !== 'HACER_AHORA') {
                 $out['high_value_blocked']++;
             }
         }
