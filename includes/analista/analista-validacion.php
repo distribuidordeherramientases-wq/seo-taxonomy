@@ -1287,6 +1287,15 @@ if (!function_exists('seo_analista_apply_history_state')) {
 }
 
 
+if (!function_exists('seo_analista_task_bucket')) {
+    function seo_analista_task_bucket(array $row) {
+        $decision = (array) ($row['task_decision'] ?? array());
+        $bucket = (string) ($decision['work_bucket'] ?? $row['work_bucket'] ?? 'SIN_ACCION');
+        $allowed = array('HACER_AHORA','HACER_DESPUES','INVESTIGAR','VIGILAR','ESPERAR_DATOS','SIN_ACCION');
+        return in_array($bucket, $allowed, true) ? $bucket : 'SIN_ACCION';
+    }
+}
+
 if (!function_exists('seo_analista_plan_consistency_report')) {
     function seo_analista_plan_consistency_report(array $plan) {
         $counts = array(
