@@ -1275,6 +1275,11 @@ if (!function_exists('seo_analista_apply_history_state')) {
                 $row['primary_action']['executable'] = false;
                 $row['primary_action']['instruction'] = $message;
             }
+            if (!empty($row['execution_gate']) && is_array($row['execution_gate'])) {
+                $row['execution_gate']['bucket'] = 'SIN_ACCION';
+                $row['execution_gate']['final_bucket'] = 'SIN_ACCION';
+                $row['execution_gate']['state'] = $status === 'executed' ? 'TASK_EXECUTED' : 'TASK_MANAGED';
+            }
             $row['recommended_changes'] = array($message);
             if (!empty($row['task_decision']) && is_array($row['task_decision'])) {
                 $row['task_decision']['work_bucket'] = 'SIN_ACCION';
@@ -1327,6 +1332,14 @@ if (!function_exists('seo_analista_plan_consistency_report')) {
                     'task_id'=>$task_id,
                     'code'=>'BUCKET_MISMATCH',
                     'detail'=>'work_bucket y task_decision.work_bucket no coinciden.',
+                );
+            }
+            $gate_bucket = (string) ($row['execution_gate']['final_bucket'] ?? $row['execution_gate']['bucket'] ?? $bucket);
+            if ($gate_bucket !== $bucket) {
+                $issues[] = array(
+                    'task_id'=>$task_id,
+                    'code'=>'GATE_BUCKET_MISMATCH',
+                    'detail'=>'execution_gate y decisión final no coinciden en el bucket.',
                 );
             }
 
@@ -1652,6 +1665,9 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $decision = seo_analista_reconcile_task_decision($row, $atomic, $validation, $evidence, $gate);
         $primary_action = (array) ($decision['primary_action'] ?? array());
         $bucket = (string) ($decision['work_bucket'] ?? 'VIGILAR');
+        $gate['pre_reconciliation_bucket'] = (string) ($gate['bucket'] ?? $pre_validation_bucket);
+        $gate['bucket'] = $bucket;
+        $gate['final_bucket'] = $bucket;
         $action_type = (string) ($decision['intervention_type'] ?? $primary_action['type'] ?? 'VIGILAR');
         $owner = (string) ($decision['owner'] ?? $primary_action['owner'] ?? 'SEO/taxonomía');
 
