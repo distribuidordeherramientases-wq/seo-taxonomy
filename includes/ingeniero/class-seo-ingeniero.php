@@ -326,11 +326,12 @@ final class SEO_Ingeniero {
                 $api_queries++;
 
                 foreach ((array) ($response['results'] ?? array()) as $row) {
-                    $url = esc_url_raw((string) ($row['url'] ?? ''));
+                    $url = self::resolve_source_url((string) ($row['url'] ?? ''));
                     if ($url === '') continue;
                     $key = strtolower($url);
                     if (isset($seen[$key])) continue;
                     $seen[$key] = true;
+                    $row['url'] = $url;
                     $row['query_type'] = $query_type;
                     $results[] = $row;
                 }
@@ -656,6 +657,65 @@ final class SEO_Ingeniero {
         }
 
         return array('source_id'=>absint($source_id),'knowledge'=>$saved,'lesson'=>$lesson);
+    }
+
+    public static function lesson_type_from_layer($layer) {
+        $layer = sanitize_key((string)$layer);
+        if ($layer === self::LESSON_TECHNICAL) return 'L1';
+        if ($layer === self::LESSON_PRACTICAL) return 'L2';
+        if ($layer === self::LESSON_CURRENT) return 'L3';
+        if ($layer === 'mixed') return 'MIXED';
+        return '';
+    }
+
+    public static function resolve_source_url($url) {
+        $url = esc_url_raw((string)$url);
+        if ($url === '') return '';
+
+        $host = strtolower((string)wp_parse_url($url,PHP_URL_HOST));
+        $path = strtolower((string)wp_parse_url($url,PHP_URL_PATH));
+        $is_google_redirect = (
+            $host !== ''
+            && preg_match('/(^|\.)google\.[a-z.]+$/',$host)
+            && (strpos($path,'/goto') !== false || strpos($path,'/url') !== false)
+        );
+
+        if (!$is_google_redirect) return $url;
+
+        $query = array();
+        parse_str((string)wp_parse_url($url,PHP_URL_QUERY),$query);
+        foreach (array('url','q','target','u','dest','destination') as $key) {
+            if (empty($query[$key]) || !is_scalar($query[$key])) continue;
+            $candidate = esc_url_raw(rawurldecode((string)$query[$key]));
+            if ($candidate === '') continue;
+            $candidate_host = strtolower((string)wp_parse_url($candidate,PHP_URL_HOST));
+            if ($candidate_host !== '' && !preg_match('/(^|\.)google\.[a-z.]+$/',$candidate_host)) {
+                return $candidate;
+            }
+        }
+
+        $cache_key = 'seo_ing_redirect_' . substr(hash('sha256',$url),0,32);
+        $cached = get_transient($cache_key);
+        if (is_string($cached) && $cached !== '') return esc_url_raw($cached);
+
+        $response = wp_safe_remote_get($url,array(
+            'timeout'=>8,
+            'redirection'=>0,
+            'headers'=>array('User-Agent'=>'SEO-Ingeniero/' . self::VERSION),
+        ));
+        if (!is_wp_error($response)) {
+            $location = wp_remote_retrieve_header($response,'location');
+            $candidate = esc_url_raw(is_string($location) ? $location : '');
+            if ($candidate !== '') {
+                $candidate_host = strtolower((string)wp_parse_url($candidate,PHP_URL_HOST));
+                if ($candidate_host !== '' && !preg_match('/(^|\.)google\.[a-z.]+$/',$candidate_host)) {
+                    set_transient($cache_key,$candidate,7 * DAY_IN_SECONDS);
+                    return $candidate;
+                }
+            }
+        }
+
+        return '';
     }
 
     private static function fetch_page_text($url) {
@@ -1059,9 +1119,12 @@ final class SEO_Ingeniero {
                 'confidence'=>$meta['confidence'],
                 'freshness'=>$meta['freshness'],
                 'topic_meta'=>array(
+                    'lesson_type'=>$meta['lesson_type'],
                     'layers'=>$meta['layers'],
                     'knowledge_types'=>$meta['knowledge_types'],
                     'product_matches'=>$meta['product_matches'],
+                    'technical_sources_verified'=>$meta['technical_sources_verified'],
+                    'technical_sources_unverified'=>$meta['technical_sources_unverified'],
                     'newest_source_at'=>$meta['newest_source_at'],
                     'oldest_source_at'=>$meta['oldest_source_at'],
                 ),
@@ -1345,6 +1408,9 @@ final class SEO_Ingeniero {
         $freshness = sanitize_key((string)($meta['freshness'] ?? 'unknown'));
 
         if ($evidence_count < 1) return 'DISCARD';
+        if (in_array($layer,array(self::LESSON_TECHNICAL,'mixed'),true) && absint($meta['technical_sources_unverified'] ?? 0) > 0 && absint($meta['technical_sources_verified'] ?? 0) < 1) {
+            return 'WATCH';
+        }
         if ($post_id && in_array($coverage_status,array('covered','partial_coverage','weak_coverage','duplicate','conflict'),true)) {
             return 'IMPROVE_EXISTING_POST';
         }
@@ -1385,6 +1451,8 @@ final class SEO_Ingeniero {
         $sources = SEO_Ingeniero_DB::sources_by_ids($source_ids);
         $domains = array();
         $dates = array();
+        $technical_sources_verified = 0;
+        $technical_sources_unverified = 0;
         foreach ($sources as $source) {
             $domain = strtolower(trim((string)($source['domain'] ?? '')));
             if ($domain !== '') $domains[] = $domain;
@@ -1392,6 +1460,16 @@ final class SEO_Ingeniero {
             if ($date === '') $date = trim((string)($source['retrieved_at'] ?? ''));
             $ts = $date !== '' ? strtotime($date) : false;
             if ($ts) $dates[] = $ts;
+
+            if (sanitize_key((string)($source['lesson'] ?? '')) === self::LESSON_TECHNICAL) {
+                $source_status = sanitize_key((string)($source['status'] ?? ''));
+                $http_status = absint($source['http_status'] ?? 0);
+                if ($source_status === 'fetched' && $http_status >= 200 && $http_status < 400) {
+                    $technical_sources_verified++;
+                } else {
+                    $technical_sources_unverified++;
+                }
+            }
         }
         $domains = array_values(array_unique($domains));
         rsort($dates,SORT_NUMERIC);
@@ -1410,9 +1488,12 @@ final class SEO_Ingeniero {
             'layers'=>$layers,
             'knowledge_types'=>$types,
             'primary_layer'=>$primary_layer,
+            'lesson_type'=>self::lesson_type_from_layer($primary_layer),
             'content_type'=>$content_type,
             'evidence_count'=>$evidence_count,
             'domain_count'=>count($domains),
+            'technical_sources_verified'=>$technical_sources_verified,
+            'technical_sources_unverified'=>$technical_sources_unverified,
             'confidence'=>$confidence ? round(array_sum($confidence)/count($confidence),5) : 0,
             'freshness'=>$freshness,
             'summary_parts'=>$summary_parts,
@@ -1573,9 +1654,12 @@ final class SEO_Ingeniero {
             'updated_at'=>(string)($row['updated_at'] ?? ''),
         ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
 
+        $lesson = sanitize_key((string)($row['lesson'] ?? self::LESSON_TECHNICAL));
         return array(
             'item_id'=>'knowledge:' . $id,
             'knowledge_id'=>$id,
+            'lesson'=>$lesson,
+            'lesson_type'=>self::lesson_type_from_layer($lesson),
             'knowledge_type'=>sanitize_key((string)($row['knowledge_type'] ?? '')),
             'concept'=>(string)($row['concept'] ?? ''),
             'question'=>$question,
