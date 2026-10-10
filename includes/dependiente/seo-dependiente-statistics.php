@@ -12,12 +12,12 @@ defined('ABSPATH') || exit;
  */
 final class SEO_Dependiente_Statistics {
     public static function allowed_periods() {
-        return array(7, 28, 90);
+        return array(7, 30, 90);
     }
 
     public static function normalize_days($days) {
         $days = absint($days);
-        return in_array($days, self::allowed_periods(), true) ? $days : 28;
+        return in_array($days, self::allowed_periods(), true) ? $days : 30;
     }
 
     public static function render_tab() {
@@ -63,6 +63,11 @@ final class SEO_Dependiente_Statistics {
 
         echo '<div class="seo-dependiente-admin__diagnostic-grid">';
         self::render_list_box(
+            'De dónde llegan las visitas',
+            (array) ($ga4['sources'] ?? array()),
+            'Google Analytics · fuente/medio de las sesiones que vieron la página de Dependiente.'
+        );
+        self::render_list_box(
             'Cómo encuentran Dependiente en Google',
             (array) ($gsc['queries'] ?? array()),
             'Search Console · consultas que generaron impresiones o clics hacia la página de Dependiente.'
@@ -103,13 +108,15 @@ final class SEO_Dependiente_Statistics {
         echo '</section>';
     }
 
-    public static function collect($days = 28) {
+    public static function collect($days = 30) {
         $days = self::normalize_days($days);
         $page_id = absint(get_option('seo_dependiente_page_id', 0));
         $url = $page_id ? get_permalink($page_id) : home_url('/dependiente/');
         if (!$url) {
             $url = home_url('/dependiente/');
         }
+
+        self::ensure_google_reporting();
 
         return array(
             'days' => $days,
@@ -127,6 +134,7 @@ final class SEO_Dependiente_Statistics {
             'sessions' => 0,
             'users' => 0,
             'pageviews' => 0,
+            'sources' => array(),
         );
 
         if (!function_exists('seo_google_analytics_run_report')) {
@@ -169,6 +177,44 @@ final class SEO_Dependiente_Statistics {
             $out['sessions'] += absint($row['metricValues'][0]['value'] ?? 0);
             $out['users'] += absint($row['metricValues'][1]['value'] ?? 0);
             $out['pageviews'] += absint($row['metricValues'][2]['value'] ?? 0);
+        }
+
+        $sources = seo_google_analytics_run_report(array(
+            'dateRanges' => array($dates),
+            'dimensions' => array(
+                array('name' => 'sessionSourceMedium'),
+                array('name' => 'pagePath'),
+            ),
+            'metrics' => array(
+                array('name' => 'sessions'),
+                array('name' => 'activeUsers'),
+            ),
+            'dimensionFilter' => array(
+                'filter' => array(
+                    'fieldName' => 'pagePath',
+                    'stringFilter' => array(
+                        'matchType' => 'EXACT',
+                        'value' => $path,
+                        'caseSensitive' => false,
+                    ),
+                ),
+            ),
+            'orderBys' => array(array(
+                'metric' => array('metricName' => 'sessions'),
+                'desc' => true,
+            )),
+            'limit' => 12,
+        ));
+        if (!is_wp_error($sources)) {
+            foreach ((array)($sources['rows'] ?? array()) as $row) {
+                $label = sanitize_text_field((string)($row['dimensionValues'][0]['value'] ?? ''));
+                if ($label === '') continue;
+                $out['sources'][] = array(
+                    'label' => $label,
+                    'count' => absint($row['metricValues'][0]['value'] ?? 0),
+                    'detail' => number_format_i18n(absint($row['metricValues'][1]['value'] ?? 0)) . ' usuarios',
+                );
+            }
         }
         return $out;
     }
@@ -282,12 +328,35 @@ final class SEO_Dependiente_Statistics {
     }
 
     private static function date_range($days) {
-        $end = current_time('timestamp');
+        if (function_exists('seo_google_reporting_dates')) {
+            $dates = (array) seo_google_reporting_dates($days);
+            if (!empty($dates['startDate']) && !empty($dates['endDate'])) {
+                return array(
+                    'startDate' => sanitize_text_field((string)$dates['startDate']),
+                    'endDate' => sanitize_text_field((string)$dates['endDate']),
+                );
+            }
+        }
+
+        $end = current_time('timestamp') - DAY_IN_SECONDS;
         $start = $end - (max(1, absint($days)) - 1) * DAY_IN_SECONDS;
         return array(
             'startDate' => wp_date('Y-m-d', $start),
             'endDate' => wp_date('Y-m-d', $end),
         );
+    }
+
+    private static function ensure_google_reporting() {
+        if (function_exists('seo_google_analytics_run_report') && function_exists('seo_google_search_console_query')) {
+            return;
+        }
+        if (!defined('SEO_SYSTEM_PATH')) {
+            return;
+        }
+        $file = rtrim(SEO_SYSTEM_PATH, '/\\') . '/includes/import-export/suppliers/google-search.php';
+        if (is_readable($file)) {
+            require_once $file;
+        }
     }
 
     private static function metric($label, $value, $state = '') {
