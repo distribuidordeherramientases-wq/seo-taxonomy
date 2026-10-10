@@ -61,13 +61,14 @@
             const item = currentSuggestions.find(function (candidate) {
                 return String(candidate.slug || '') === selected;
             }) || {};
+            const choiceName = item.name || (button.querySelector('.dependiente-v3__choice-name') ? button.querySelector('.dependiente-v3__choice-name').textContent : '');
             recordLearningEvidence({
                 search_id: currentSearchUuid || originSearchUuid,
                 origin_search_id: originSearchUuid || currentSearchUuid,
                 event: 'category_choice',
                 category_id: Number(item.id || item.term_id || 0),
                 category_slug: selected,
-                category_name: String(item.name || button.querySelector('.dependiente-v3__choice-name')?.textContent || ''),
+                category_name: String(choiceName || ''),
                 position: Number(item.rank || 0)
             });
 
@@ -260,7 +261,7 @@
                     (item.excerpt ? '<p>' + esc(item.excerpt) + '</p>' : '') +
                     '<div class="dependiente-v3__product-foot"><span class="dependiente-v3__price">' + price + '</span>' +
                     '<span class="dependiente-v3__stock ' + (item.in_stock ? 'is-in' : 'is-out') + '">' + (item.in_stock ? 'En stock' : 'Sin stock') + '</span></div>' +
-                    '<a class="dependiente-v3__product-link" href="' + esc(item.url) + '">Ver producto</a>' +
+                    '<a class="dependiente-v3__product-link" href="' + esc(item.url) + '"' + learningAttrs + '>Ver producto</a>' +
                     '</div></article>';
             }).join('');
         }
