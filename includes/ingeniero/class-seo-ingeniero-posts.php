@@ -23,6 +23,7 @@ final class SEO_Ingeniero_Posts {
     const META_SOURCE_IDS = '_seo_ingeniero_source_ids';
     const META_CONFIDENCE = '_seo_ingeniero_confidence';
     const META_FRESHNESS = '_seo_ingeniero_freshness';
+    const META_LESSON_TYPE = '_seo_ingeniero_lesson_type';
 
     public static function init() {
         add_action('transition_post_status', array(__CLASS__, 'transition_post_status'), 20, 3);
@@ -186,7 +187,9 @@ final class SEO_Ingeniero_Posts {
         );
         update_post_meta($post_id,self::META_KNOWLEDGE_SNAPSHOT,self::knowledge_snapshot($dossier));
         update_post_meta($post_id,self::META_CONTENT_ROLE,'ingeniero_qa_specialized');
-        update_post_meta($post_id,self::META_SOURCE_LAYER,sanitize_key((string)($dossier['primary_layer'] ?? 'l1_technical')));
+        $primary_layer = sanitize_key((string)($dossier['primary_layer'] ?? 'l1_technical'));
+        update_post_meta($post_id,self::META_SOURCE_LAYER,$primary_layer);
+        update_post_meta($post_id,self::META_LESSON_TYPE,SEO_Ingeniero::lesson_type_from_layer($primary_layer));
         update_post_meta($post_id,self::META_CONTENT_TYPE,sanitize_key((string)($dossier['content_type'] ?? 'technical')));
         update_post_meta($post_id,self::META_CATEGORY_ID,$term_id);
         update_post_meta($post_id,self::META_RELATED_PRODUCTS,array_values(array_unique(array_filter(array_map('absint',(array)($dossier['product_ids'] ?? array()))))));
