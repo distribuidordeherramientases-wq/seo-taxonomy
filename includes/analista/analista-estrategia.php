@@ -708,7 +708,9 @@ if (!function_exists('seo_analista_strategy_summary')) {
             'seguimiento' => 0,
         );
         foreach ($plan as $row) {
-            $bucket = (string) ($row['work_bucket'] ?? 'SIN_ACCION');
+            $bucket = function_exists('seo_analista_task_bucket')
+                ? seo_analista_task_bucket((array) $row)
+                : (string) ($row['work_bucket'] ?? 'SIN_ACCION');
             if ($bucket === 'HACER_AHORA') $out['hacer_ahora']++;
             elseif ($bucket === 'HACER_DESPUES') $out['hacer_despues']++;
             elseif ($bucket === 'INVESTIGAR') $out['investigar']++;
