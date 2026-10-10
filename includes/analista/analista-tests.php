@@ -1,6 +1,6 @@
 <?php
 /**
- * Pruebas deterministas de contrato para Analista 3.8.1/3.8.2.
+ * Pruebas deterministas de contrato para Analista 3.8.1/3.8.2/3.8.3.
  *
  * No hacen llamadas externas ni modifican contenido. Se ejecutan solo cuando
  * la pantalla Fuentes/diagnóstico las solicita.
@@ -253,6 +253,227 @@ if (!function_exists('seo_analista_382_self_tests')) {
         foreach ($tests as $test) if (!empty($test['passed'])) $passed++;
         return array(
             'version'=>'3.8.2',
+            'total'=>count($tests),
+            'passed'=>$passed,
+            'failed'=>count($tests) - $passed,
+            'tests'=>$tests,
+        );
+    }
+}
+
+
+if (!function_exists('seo_analista_383_self_tests')) {
+    function seo_analista_383_self_tests() {
+        $base = seo_analista_382_self_tests();
+        $tests = (array) ($base['tests'] ?? array());
+
+        // T01 · Cámaras no puede estar en HACER AHORA si la acción final es solo observar.
+        $camera = array(
+            'priority'=>72,'work_bucket'=>'HACER_AHORA','confidence'=>78,
+            'topic'=>'Cámaras de inspección de tuberías',
+            'query'=>'cámaras de inspección de tuberías',
+            'entity'=>array(
+                'type'=>'category','id'=>0,'title'=>'Cámaras de inspección de tuberías',
+                'url'=>home_url('/categoria-producto/camaras-inspeccion-tuberias/')
+            ),
+            'target'=>array(
+                'title'=>'Cámaras de inspección de tuberías',
+                'url'=>home_url('/categoria-producto/camaras-inspeccion-tuberias/')
+            ),
+            'metrics'=>array(
+                'impressions'=>33,'clicks'=>1,'ctr'=>0.0303,'position'=>37.8,
+                'queries'=>3,'previous_impressions'=>24,'impressions_delta'=>9
+            ),
+            'objective'=>array('primary'=>'traffic','primary_label'=>'VISITAS','authority'=>55,'traffic'=>70,'sales'=>45),
+            'issues'=>array(),
+            'sources'=>array('Search Console','WordPress'),
+        );
+        $camera_result = seo_analista_validate_and_finalize_task($camera, 28);
+        $tests[] = seo_analista_381_test_row(
+            'ANA383-T01',
+            (string) ($camera_result['work_bucket'] ?? '') !== 'HACER_AHORA'
+                && (string) ($camera_result['action_type'] ?? '') === 'VIGILAR'
+                && empty($camera_result['task_decision']['execution_ready']),
+            'Cámaras no permanece en HACER AHORA cuando Qué hacer equivale a observar/mantener línea base.'
+        );
+
+        // T02 · Toda tarea HACER AHORA tiene una única acción estructurada y ejecutable.
+        $executable = array(
+            'priority'=>84,'work_bucket'=>'HACER_AHORA','confidence'=>86,
+            'topic'=>'Llaves dinamométricas prueba contrato 383',
+            'query'=>'llaves dinamométricas prueba contrato 383',
+            'entity'=>array(
+                'type'=>'category','id'=>0,'title'=>'Llaves dinamométricas prueba contrato 383',
+                'url'=>home_url('/categoria-producto/llaves-dinamometricas-prueba-contrato-383/')
+            ),
+            'target'=>array(
+                'title'=>'Llaves dinamométricas prueba contrato 383',
+                'url'=>home_url('/categoria-producto/llaves-dinamometricas-prueba-contrato-383/')
+            ),
+            'metrics'=>array(
+                'impressions'=>80,'clicks'=>5,'ctr'=>0.0625,'position'=>14.5,
+                'queries'=>7,'previous_impressions'=>60,'impressions_delta'=>20
+            ),
+            'objective'=>array('primary'=>'traffic','primary_label'=>'VISITAS','authority'=>60,'traffic'=>82,'sales'=>55),
+            'issues'=>array('Cobertura textual baja'),
+            'sources'=>array('Search Console','WordPress'),
+        );
+        $executable_result = seo_analista_validate_and_finalize_task($executable, 28);
+        $primary = (array) ($executable_result['primary_action'] ?? array());
+        $consistency = seo_analista_plan_consistency_report(array($executable_result));
+        $tests[] = seo_analista_381_test_row(
+            'ANA383-T02',
+            (string) ($executable_result['work_bucket'] ?? '') === 'HACER_AHORA'
+                && !empty($primary['executable'])
+                && !empty($primary['verb'])
+                && !empty($primary['object'])
+                && !empty($primary['destination'])
+                && !empty($primary['owner'])
+                && count((array) ($executable_result['recommended_changes'] ?? array())) === 1
+                && !empty($consistency['ok']),
+            'HACER AHORA exige verbo, objeto, destino, responsable y una sola acción primaria ejecutable.'
+        );
+
+        // T03 · Estado de señal y prioridad de trabajo son conceptos independientes.
+        $tests[] = seo_analista_381_test_row(
+            'ANA383-T03',
+            isset($executable_result['task_decision']['signal_state']['label'])
+                && isset($executable_result['task_decision']['work_bucket'])
+                && isset($executable_result['task_decision']['intervention_type'])
+                && isset($executable_result['task_decision']['blocker']['label'])
+                && (string) ($executable_result['task_decision']['work_bucket'] ?? '') === (string) ($executable_result['work_bucket'] ?? ''),
+            'La decisión separa Estado de la señal, Prioridad de trabajo, Tipo de intervención y Bloqueo.'
+        );
+
+        // T04 · Contadores, contrato y tarjeta usan el mismo bucket final.
+        $unknown = array(
+            'priority'=>79,'work_bucket'=>'HACER_AHORA','confidence'=>76,
+            'topic'=>'Entidad prueba qxz 887766',
+            'query'=>'qxz 887766 pieza inexistente',
+            'entity'=>array(),'target'=>array(),
+            'metrics'=>array('impressions'=>35,'clicks'=>1,'position'=>29,'queries'=>2),
+            'objective'=>array('primary'=>'traffic','authority'=>50,'traffic'=>74,'sales'=>40),
+            'sources'=>array('Search Console'),
+        );
+        $unknown_result = seo_analista_validate_and_finalize_task($unknown, 28);
+        $plan = array($camera_result, $executable_result, $unknown_result);
+        $summary = function_exists('seo_analista_strategy_summary') ? seo_analista_strategy_summary($plan) : array();
+        $contracts = array_map('seo_analista_task_contract', $plan);
+        $contract_buckets_match = true;
+        foreach ($plan as $idx => $plan_row) {
+            if ((string) ($plan_row['work_bucket'] ?? '') !== (string) ($contracts[$idx]['final_bucket'] ?? '')) {
+                $contract_buckets_match = false;
+                break;
+            }
+        }
+        $counted = absint($summary['hacer_ahora'] ?? 0)
+            + absint($summary['hacer_despues'] ?? 0)
+            + absint($summary['investigar'] ?? 0)
+            + absint($summary['vigilar'] ?? 0)
+            + absint($summary['esperar_datos'] ?? 0)
+            + absint($summary['sin_accion'] ?? 0);
+        $tests[] = seo_analista_381_test_row(
+            'ANA383-T04',
+            absint($summary['total'] ?? 0) === count($plan)
+                && $counted === count($plan)
+                && $contract_buckets_match
+                && !empty(seo_analista_plan_consistency_report($plan)['ok']),
+            'El total, contadores y contratos coinciden con las tarjetas después de la reclasificación.'
+        );
+
+        // T05 · Resolver un bloqueo conserva un ID de trazabilidad estable.
+        $trace_base = array(
+            'priority'=>76,'work_bucket'=>'HACER_AHORA','confidence'=>74,
+            'topic'=>'Familia trazabilidad qxz 554433',
+            'query'=>'familia trazabilidad qxz 554433',
+            'metrics'=>array('impressions'=>42,'clicks'=>2,'position'=>24,'queries'=>2),
+            'objective'=>array('primary'=>'traffic','authority'=>50,'traffic'=>72,'sales'=>42),
+            'sources'=>array('Search Console'),
+        );
+        $blocked_trace = seo_analista_validate_and_finalize_task(array_merge($trace_base, array(
+            'entity'=>array(),'target'=>array()
+        )), 28);
+        $resolved_trace = seo_analista_validate_and_finalize_task(array_merge($trace_base, array(
+            'entity'=>array(
+                'type'=>'category','id'=>0,'title'=>'Familia trazabilidad qxz 554433',
+                'url'=>home_url('/categoria-producto/familia-trazabilidad-qxz-554433/')
+            ),
+            'target'=>array(
+                'title'=>'Familia trazabilidad qxz 554433',
+                'url'=>home_url('/categoria-producto/familia-trazabilidad-qxz-554433/')
+            ),
+            'issues'=>array('Cobertura textual baja')
+        )), 28);
+        $tests[] = seo_analista_381_test_row(
+            'ANA383-T05',
+            (string) ($blocked_trace['task_id'] ?? '') !== ''
+                && (string) ($blocked_trace['task_id'] ?? '') === (string) ($resolved_trace['task_id'] ?? '')
+                && count(array_unique(array(
+                    (string) ($blocked_trace['trace_id'] ?? ''),
+                    (string) ($resolved_trace['trace_id'] ?? '')
+                ))) === 1,
+            'Al resolver un bloqueo la tarea conserva identidad/trazabilidad y no nace como una tarea distinta.'
+        );
+
+        // T06 · Casos de regresión: evidencia, URL, modelo, ejecutada y ejecutable.
+        $low_evidence = seo_analista_validate_and_finalize_task(array(
+            'priority'=>85,'work_bucket'=>'HACER_AHORA','confidence'=>80,
+            'topic'=>'Caso evidencia mínima','query'=>'caso evidencia mínima',
+            'entity'=>array('type'=>'category','id'=>0,'title'=>'Caso evidencia mínima','url'=>home_url('/categoria-producto/caso-evidencia-minima/')),
+            'target'=>array('url'=>home_url('/categoria-producto/caso-evidencia-minima/')),
+            'metrics'=>array('impressions'=>1,'clicks'=>0,'position'=>12,'queries'=>1),
+            'objective'=>array('primary'=>'traffic','authority'=>55,'traffic'=>80,'sales'=>45),
+            'sources'=>array('Search Console')
+        ), 28);
+
+        $bad_url = seo_analista_validate_and_finalize_task(array(
+            'priority'=>80,'work_bucket'=>'HACER_AHORA','confidence'=>80,
+            'topic'=>'Destino ausente qxz 221100','query'=>'destino ausente qxz 221100',
+            'entity'=>array(),'target'=>array(),
+            'metrics'=>array('impressions'=>30,'clicks'=>1,'position'=>26,'queries'=>2),
+            'objective'=>array('primary'=>'traffic','authority'=>50,'traffic'=>75,'sales'=>40),
+            'sources'=>array('Search Console')
+        ), 28);
+
+        $model_conflict = seo_analista_validate_and_finalize_task(array(
+            'priority'=>82,'work_bucket'=>'HACER_AHORA','confidence'=>80,
+            'topic'=>'Bosch GBH 18V-18 X','query'=>'GBH 18V-20 Professional',
+            'entity'=>array('type'=>'product','id'=>0,'title'=>'Bosch GBH 18V-18 X','url'=>home_url('/producto/bosch-gbh-18v-18-x/')),
+            'target'=>array('url'=>home_url('/producto/bosch-gbh-18v-18-x/')),
+            'metrics'=>array('impressions'=>45,'clicks'=>2,'position'=>14,'queries'=>2),
+            'objective'=>array('primary'=>'traffic','authority'=>60,'traffic'=>72,'sales'=>50),
+            'sources'=>array('Search Console','WordPress')
+        ), 28);
+
+        $executed = seo_analista_apply_history_state(
+            $executable_result,
+            array('status'=>'executed','action_executed'=>(string) ($executable_result['action_type'] ?? ''))
+        );
+
+        $model_safe = (
+            (string) ($model_conflict['match_type'] ?? '') === 'conflict'
+            && (string) ($model_conflict['work_bucket'] ?? '') === 'INVESTIGAR'
+        ) || (
+            !empty($model_conflict['auto_resolution']['resolved'])
+            && in_array((string) ($model_conflict['match_type'] ?? ''), array('exact','partial'), true)
+            && (string) ($model_conflict['target_url'] ?? '') !== home_url('/producto/bosch-gbh-18v-18-x/')
+        );
+
+        $tests[] = seo_analista_381_test_row(
+            'ANA383-T06',
+            (string) ($low_evidence['work_bucket'] ?? '') === 'ESPERAR_DATOS'
+                && (string) ($bad_url['work_bucket'] ?? '') === 'INVESTIGAR'
+                && $model_safe
+                && (string) ($executed['work_bucket'] ?? '') === 'SIN_ACCION'
+                && (string) ($executable_result['work_bucket'] ?? '') === 'HACER_AHORA'
+                && !empty($executable_result['task_decision']['execution_ready']),
+            'Regresión conjunta: evidencia insuficiente, URL no validada, modelo conflictivo, tarea ya realizada y oportunidad ejecutable.'
+        );
+
+        $passed = 0;
+        foreach ($tests as $test) if (!empty($test['passed'])) $passed++;
+        return array(
+            'version'=>'3.8.3',
             'total'=>count($tests),
             'passed'=>$passed,
             'failed'=>count($tests) - $passed,

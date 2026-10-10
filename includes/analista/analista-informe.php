@@ -481,6 +481,9 @@ if (!function_exists('seo_analista_render_directive_details')) {
         $commercial = (array) ($row['commercial_readiness'] ?? array());
         $priority_breakdown = (array) ($row['priority_breakdown'] ?? array());
         $gate = (array) ($row['execution_gate'] ?? array());
+        $decision = (array) ($row['task_decision'] ?? array());
+        $signal_state = (array) ($decision['signal_state'] ?? $row['signal_state'] ?? array());
+        $primary_action = (array) ($decision['primary_action'] ?? $row['primary_action'] ?? array());
         $steps = (array) ($row['investigation_steps'] ?? array());
         $auto_resolution = (array) ($row['auto_resolution'] ?? array());
         $dependencies = array_values(array_filter((array) ($row['dependencies'] ?? array())));
@@ -491,12 +494,15 @@ if (!function_exists('seo_analista_render_directive_details')) {
         if (!empty($auto_resolution['resolved'])) {
             echo '<li><strong>Resolución automática:</strong> ' . esc_html((string) ($auto_resolution['method'] ?? 'taxonomía local')) . ' · score ' . esc_html(number_format_i18n((float) ($auto_resolution['score'] ?? 0), 2)) . ' · ' . esc_html((string) ($auto_resolution['reason'] ?? '')) . '</li>';
         }
-        if (!empty($gate['state'])) {
-            echo '<li><strong>Gate de ejecución:</strong> ' . esc_html((string) $gate['state']) . ' · bloqueo ' . esc_html((string) ($gate['blocker_type'] ?? 'none')) . ' · bucket actual ' . esc_html(str_replace('_', ' ', (string) ($row['work_bucket'] ?? ''))) . ' · al desbloquear ' . esc_html(str_replace('_', ' ', (string) ($row['bucket_if_unblocked'] ?? $gate['bucket_if_unblocked'] ?? ''))) . '</li>';
-        }
-        if ($match_type !== '') echo '<li><strong>Match:</strong> ' . esc_html(strtoupper($match_type)) . ' · ' . esc_html((string) $match_confidence) . '/100 · <strong>Intención:</strong> ' . esc_html((string) ($row['query_intent'] ?? 'unknown')) . ' / ajuste ' . esc_html(strtoupper((string) ($row['intent_fit'] ?? 'unknown'))) . (!empty($row['match_reason']) ? ' · ' . esc_html((string) $row['match_reason']) : '') . '</li>';
+        echo '<li><strong>Estado de la señal:</strong> ' . esc_html((string) ($signal_state['label'] ?? 'Sin clasificar')) . (!empty($signal_state['detail']) ? ' · ' . esc_html((string) $signal_state['detail']) : '') . '</li>';
+        echo '<li><strong>Prioridad de trabajo:</strong> ' . esc_html(str_replace('_', ' ', (string) ($decision['work_bucket'] ?? $row['work_bucket'] ?? ''))) . '</li>';
+        echo '<li><strong>Tipo de intervención:</strong> ' . esc_html((string) ($decision['intervention_label'] ?? $row['action_label'] ?? '')) . '</li>';
+        echo '<li><strong>Bloqueo:</strong> ' . esc_html((string) ($decision['blocker']['label'] ?? 'Sin bloqueo')) . ' · gate ' . esc_html((string) ($gate['state'] ?? 'READY')) . '</li>';
+        if ($match_type !== '') echo '<li><strong>Match de entidad:</strong> ' . esc_html(strtoupper($match_type)) . ' · ' . esc_html((string) $match_confidence) . '/100 · <strong>Intención:</strong> ' . esc_html((string) ($row['query_intent'] ?? 'unknown')) . ' / ajuste ' . esc_html(strtoupper((string) ($row['intent_fit'] ?? 'unknown'))) . (!empty($row['match_reason']) ? ' · ' . esc_html((string) $row['match_reason']) : '') . '</li>';
+        if ($priority_breakdown) echo '<li><strong>Score de oportunidad:</strong> ' . esc_html((string) absint($priority_breakdown['final_score'] ?? $row['priority_score'] ?? 0)) . '/100</li>';
         if ($confidence_level !== '') echo '<li><strong>Confianza:</strong> ' . esc_html(strtoupper($confidence_level)) . ' · ' . esc_html((string) absint($row['confidence'] ?? 0)) . '/100</li>';
-        echo '<li><strong>Evidencia GSC/SEO:</strong> ' . esc_html(number_format_i18n(absint($evidence['impressions'] ?? 0))) . ' impresiones · ' . esc_html(number_format_i18n(absint($evidence['clicks'] ?? 0))) . ' clics · ' . esc_html(number_format_i18n(absint($evidence['queries'] ?? 0))) . ' consultas · delta ' . esc_html(number_format_i18n((float) ($evidence['absolute_delta'] ?? 0), 0)) . '</li>';
+        echo '<li><strong>Volumen de evidencia:</strong> ' . esc_html(number_format_i18n(absint($evidence['impressions'] ?? 0))) . ' impresiones · ' . esc_html(number_format_i18n(absint($evidence['clicks'] ?? 0))) . ' clics · ' . esc_html(number_format_i18n(absint($evidence['queries'] ?? 0))) . ' consultas · delta ' . esc_html(number_format_i18n((float) ($evidence['absolute_delta'] ?? 0), 0)) . '</li>';
+        echo '<li><strong>Línea base:</strong> ' . esc_html(number_format_i18n((float) ($row['baseline']['impressions'] ?? $row['metrics']['impressions'] ?? 0), 0)) . ' impresiones · ' . esc_html(number_format_i18n((float) ($row['baseline']['clicks'] ?? $row['metrics']['clicks'] ?? 0), 0)) . ' clics · posición ' . esc_html(number_format_i18n((float) ($row['baseline']['position'] ?? $row['metrics']['position'] ?? 0), 1)) . ' · periodo ' . esc_html((string) ($row['period']['label'] ?? '28 días')) . '</li>';
         if (!empty($evidence['sources'])) echo '<li><strong>Fuentes:</strong> ' . esc_html(implode(' · ', array_map('strval', (array) $evidence['sources']))) . '</li>';
         if (!empty($commercial['label'])) echo '<li><strong>Preparación comercial:</strong> ' . esc_html((string) $commercial['label']) . '</li>';
         $ga4 = (array) ($commercial['ga4_signals'] ?? array());
@@ -509,7 +515,7 @@ if (!function_exists('seo_analista_render_directive_details')) {
             if ($ga4_parts) echo '<li><strong>Señales GA4 (separadas de GSC):</strong> ' . esc_html(implode(' · ', $ga4_parts)) . '</li>';
         }
         if (!empty($row['recommended_owner'])) echo '<li><strong>Responsable recomendado:</strong> ' . esc_html((string) $row['recommended_owner']) . '</li>';
-        if ($priority_breakdown) echo '<li><strong>Prioridad:</strong> ' . esc_html((string) absint($priority_breakdown['final_score'] ?? $row['priority_score'] ?? 0)) . '/100 · score estable; los gates modifican ejecutabilidad/confianza, no inflan la puntuación.</li>';
+
         echo '</ul></div>';
 
         if ($steps) {
@@ -517,6 +523,7 @@ if (!function_exists('seo_analista_render_directive_details')) {
             foreach ($steps as $step) {
                 echo '<li><strong>' . esc_html((string) ($step['code'] ?? 'CHECK')) . '</strong> · ' . esc_html((string) ($step['check'] ?? ''));
                 if (!empty($step['current'])) echo '<br><small><strong>Ahora:</strong> ' . esc_html((string) $step['current']) . '</small>';
+                if (!empty($step['source'])) echo '<br><small><strong>Fuente para verificar:</strong> ' . esc_html((string) $step['source']) . '</small>';
                 if (!empty($step['unlock'])) echo '<br><small><strong>Desbloquea cuando:</strong> ' . esc_html((string) $step['unlock']) . '</small>';
                 if (!empty($step['owner'])) echo '<br><small><strong>Responsable:</strong> ' . esc_html((string) $step['owner']) . '</small>';
                 echo '</li>';
@@ -537,17 +544,18 @@ if (!function_exists('seo_analista_render_directive_details')) {
             foreach (array_slice($issues, 0, 8) as $issue) echo '<li>' . esc_html((string) $issue) . '</li>';
             echo '</ul></div>';
         }
-        if ($changes) {
-            echo '<div class="seo-analista-directive-block"><strong>Qué hacer</strong><ol>';
-            foreach (array_slice($changes, 0, 10) as $change) echo '<li>' . esc_html((string) $change) . '</li>';
-            echo '</ol></div>';
+        $primary_instruction = trim((string) ($primary_action['instruction'] ?? ($changes[0] ?? '')));
+        if ($primary_instruction !== '') {
+            echo '<div class="seo-analista-directive-block seo-analista-primary-action"><strong>Qué hacer</strong><p>' . esc_html($primary_instruction) . '</p>';
+            echo '<p><small><strong>Acción ejecutable:</strong> ' . (!empty($primary_action['executable']) ? 'Sí' : 'No') . ' · <strong>Responsable:</strong> ' . esc_html((string) ($primary_action['owner'] ?? $row['recommended_owner'] ?? '')) . '</small></p>';
+            echo '</div>';
         }
         if ($keywords) {
             echo '<div class="seo-analista-directive-block"><strong>Consultas / términos a cubrir</strong><p>' . esc_html(implode(' · ', array_slice($keywords, 0, 10))) . '</p></div>';
         }
         $measurement = array_values(array_filter((array) ($row['measurement'] ?? array())));
         if ($measurement) {
-            echo '<div class="seo-analista-directive-block"><strong>Cómo medir si funcionó</strong><ul>';
+            echo '<div class="seo-analista-directive-block"><strong>Indicador de seguimiento</strong><ul>';
             foreach (array_slice($measurement, 0, 6) as $item) echo '<li>' . esc_html((string) $item) . '</li>';
             echo '</ul></div>';
         }
@@ -574,14 +582,20 @@ if (!function_exists('seo_analista_render_directive_rows')) {
         foreach (array_slice($rows, 0, max(1, absint($limit))) as $index => $row) {
             $catalog = (array) ($row['catalog'] ?? array());
             $entity = (array) ($row['entity'] ?? array());
+            $decision = (array) ($row['task_decision'] ?? array());
+            $signal_state = (array) ($decision['signal_state'] ?? $row['signal_state'] ?? array());
+            $blocker = (array) ($decision['blocker'] ?? array());
+            $primary_action = (array) ($decision['primary_action'] ?? $row['primary_action'] ?? array());
             echo '<article class="seo-analista-plan-row"><div class="seo-analista-plan-priority"><small>#' . esc_html($index + 1) . '</small>' . wp_kses_post(seo_analista_score_badge($row['priority'] ?? 0)) . '</div><div class="seo-analista-plan-body">';
-            echo '<div class="seo-analista-plan-head"><strong>' . esc_html((string) ($row['topic'] ?? '')) . '</strong><span>' . esc_html((string) ($row['action_label'] ?? '')) . '</span>';
-            if (!empty($row['work_bucket'])) echo '<em>' . esc_html(str_replace('_', ' ', (string) $row['work_bucket'])) . '</em>';
+            echo '<div class="seo-analista-plan-head"><strong>' . esc_html((string) ($row['topic'] ?? '')) . '</strong>';
+            echo '<span>Tipo de intervención: ' . esc_html((string) ($decision['intervention_label'] ?? $row['action_label'] ?? '')) . '</span>';
+            echo '<em>Estado de la señal: ' . esc_html((string) ($signal_state['label'] ?? 'Sin clasificar')) . '</em>';
+            echo '<em>Prioridad de trabajo: ' . esc_html(str_replace('_', ' ', (string) ($decision['work_bucket'] ?? $row['work_bucket'] ?? ''))) . '</em>';
+            echo '<em>Bloqueo: ' . esc_html((string) ($blocker['label'] ?? 'Sin bloqueo')) . '</em>';
             if (!empty($row['objective']['primary_label'])) echo '<em>Objetivo: ' . esc_html((string) $row['objective']['primary_label']) . '</em>';
-            if (!empty($row['intervention']['label'])) echo '<em>Intervención: ' . esc_html((string) $row['intervention']['label']) . '</em>';
-            if (!empty($entity['type_label'])) echo '<em>' . esc_html((string) $entity['type_label']) . '</em>';
+            if (!empty($entity['type_label'])) echo '<em>Entidad: ' . esc_html((string) $entity['type_label']) . '</em>';
             echo '</div>';
-            echo '<p>' . esc_html((string) ($row['reason'] ?? '')) . '</p>';
+            if (!empty($row['reason'])) echo '<p><strong>Motivo de la señal:</strong> ' . esc_html((string) $row['reason']) . '</p>';
             $meta = array();
             if (!empty($row['source'])) $meta[] = 'Fuentes: ' . (string) $row['source'];
             if (!empty($catalog['category'])) $meta[] = 'Categoría: ' . (string) $catalog['category'];
@@ -617,6 +631,7 @@ if (!function_exists('seo_analista_render_directive_rows')) {
                     ? 'Posición mejora ' . number_format_i18n(abs($gain), 1)
                     : 'Posición empeora ' . number_format_i18n(abs($gain), 1);
             }
+            if (!empty($row['intervention']['label'])) $meta[] = 'Perfil de posición: ' . (string) $row['intervention']['label'];
             if (!empty($row['catalog_strategy']['label'])) $meta[] = 'Surtido: ' . (string) $row['catalog_strategy']['label'];
             if (!empty($row['family_demand']['label'])) $meta[] = (string) $row['family_demand']['label'];
             if (!empty($row['objective'])) {
@@ -722,7 +737,9 @@ if (!function_exists('seo_analista_render_plan')) {
         );
         $bucketed = array();
         foreach ($plan as $row) {
-            $bucket = (string) ($row['work_bucket'] ?? 'HACER_DESPUES');
+            $bucket = function_exists('seo_analista_task_bucket')
+                ? seo_analista_task_bucket((array) $row)
+                : (string) ($row['work_bucket'] ?? 'HACER_DESPUES');
             if (!isset($groups[$bucket])) $bucket = 'HACER_DESPUES';
             $bucketed[$bucket][] = $row;
         }

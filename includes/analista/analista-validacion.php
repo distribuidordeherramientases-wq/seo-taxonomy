@@ -921,6 +921,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                     'code'=>'CHECK_MODEL_ENTITY',
                     'check'=>'Comparar los identificadores de la consulta con modelo/MPN/SKU de la entidad atribuida y buscar el producto exacto en el catálogo.',
                     'current'=>'Consulta: ' . $query . ' · entidad: ' . ($entity_label !== '' ? $entity_label : 'sin entidad') . ' · match ' . $match_type . ' ' . $match_confidence . '/100.',
+                    'source'=>'Catálogo WooCommerce + SKU/MPN/atributos del producto + Search Console.',
                     'unlock'=>'Sin conflicto de modelo y match exacto/parcial con la URL correcta.',
                     'owner'=>'SEO/taxonomía',
                 );
@@ -929,6 +930,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                     'code'=>'RESOLVE_TARGET_URL',
                     'check'=>'Buscar primero categoría product_cat equivalente; después producto/hub/página local ya existente. No crear URL desde Analista.',
                     'current'=>'Consulta: ' . $query . ' · no hay URL local/canónica validada.',
+                    'source'=>'Taxonomía product_cat + índice local de entidades de WordPress.',
                     'unlock'=>'URL local existente resuelta y validada contra la consulta.',
                     'owner'=>'SEO/taxonomía',
                 );
@@ -937,6 +939,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                     'code'=>'CONFIRM_ENTITY_MATCH',
                     'check'=>'Revisar título, slug, categoría, intención y términos específicos compartidos entre la consulta y la entidad actual.',
                     'current'=>'Consulta: ' . $query . ' · entidad: ' . ($entity_label !== '' ? $entity_label : 'sin entidad') . ' · match ' . $match_type . ' ' . $match_confidence . '/100.',
+                    'source'=>'Search Console + título/slug/taxonomía/entidad local de WordPress.',
                     'unlock'=>'Match exacto o parcial por encima del umbral configurado y sin conflicto de modelo.',
                     'owner'=>'SEO/taxonomía',
                 );
@@ -946,6 +949,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                     'code'=>'REVIEW_REJECTED_LOCAL_CANDIDATE',
                     'check'=>'Revisar manualmente si existe una entidad local que el resolver automático rechazó por baja afinidad o riesgo de modelo.',
                     'current'=>(string) ($auto_resolution['reason'] ?? 'No hubo candidato seguro.'),
+                    'source'=>'Taxonomía product_cat + índice local de Analista.',
                     'unlock'=>'Candidato local confirmado con evidencia suficiente o descarte explícito de la señal.',
                     'owner'=>'SEO/taxonomía',
                 );
@@ -956,6 +960,7 @@ if (!function_exists('seo_analista_investigation_steps')) {
                 'code'=>'WAIT_FOR_EVIDENCE',
                 'check'=>'Mantener la línea base y volver a medir la misma consulta/URL sin cambiar contenido solo por la posición actual.',
                 'current'=>absint($evidence['impressions'] ?? 0) . ' impresiones · ' . absint($evidence['clicks'] ?? 0) . ' clics.',
+                'source'=>'Google Search Console + línea base persistida del Plan de acción.',
                 'unlock'=>'Alcanzar ' . absint($settings['reliable_impressions'] ?? 20) . ' impresiones o disponer de un defecto crítico independiente.',
                 'owner'=>'SEO/taxonomía',
             );
@@ -971,12 +976,24 @@ if (!function_exists('seo_analista_investigation_steps')) {
                 'margen_comision'=>'Confirmar margen o comisión disponible.',
                 'ga4'=>'Comprobar señales GA4 de la URL/categoría sin mezclarlas con GSC.',
             );
+            $sources = array(
+                'surtido'=>'WooCommerce: categoría y productos publicados.',
+                'stock'=>'WooCommerce: estado de stock del producto.',
+                'stock_categoria'=>'WooCommerce: muestra de productos de la categoría.',
+                'disponibilidad'=>'WooCommerce: is_purchasable / disponibilidad.',
+                'precio_final'=>'WooCommerce: precio actual del producto.',
+                'precio_categoria'=>'WooCommerce: rango de precios de la muestra de categoría.',
+                'proveedor'=>'Metadato de proveedor del producto (_seo_proveedor).',
+                'margen_comision'=>'Precio de venta + coste/proveedor (_seo_precio_proveedor o coste disponible).',
+                'ga4'=>'Google Analytics 4 para la URL/categoría.',
+            );
             foreach ((array) ($gate['missing'] ?? array()) as $field) {
                 $field = sanitize_key((string) $field);
                 $steps[] = array(
                     'code'=>'CHECK_COMMERCIAL_' . strtoupper($field),
                     'check'=>(string) ($labels[$field] ?? ('Validar el dato comercial ' . $field . '.')),
                     'current'=>'Dato no verificado en el Plan de acción.',
+                    'source'=>(string) ($sources[$field] ?? 'Catálogo/proveedores.'),
                     'unlock'=>'El campo ' . $field . ' queda validado y deja de figurar como dependencia.',
                     'owner'=>'Catálogo/proveedores',
                 );
@@ -1007,11 +1024,392 @@ if (!function_exists('seo_analista_action_gate_summary')) {
             elseif ($blocker === 'evidence') $out['blocked_evidence']++;
             elseif ($blocker === 'commercial') $out['blocked_commercial']++;
             else $out['ready']++;
-            if ((int) ($row['priority_score'] ?? 0) >= 72 && (string) ($row['work_bucket'] ?? '') !== 'HACER_AHORA') {
+            $final_bucket = function_exists('seo_analista_task_bucket')
+                ? seo_analista_task_bucket((array) $row)
+                : (string) ($row['work_bucket'] ?? '');
+            if ((int) ($row['priority_score'] ?? 0) >= 72 && $final_bucket !== 'HACER_AHORA') {
                 $out['high_value_blocked']++;
             }
         }
         return $out;
+    }
+}
+
+
+if (!function_exists('seo_analista_signal_state')) {
+    function seo_analista_signal_state(array $row, array $evidence = array()) {
+        if (!empty($evidence['small_sample'])) {
+            return array(
+                'code'=>'LOW_SAMPLE',
+                'label'=>'Muestra insuficiente',
+                'detail'=>'La señal existe, pero el volumen todavía no permite convertirla por sí solo en una instrucción.'
+            );
+        }
+
+        $growth = (array) ($row['growth_quality'] ?? array());
+        $signal = (float) ($growth['signal'] ?? 0);
+        $movement = (array) ($row['position_movement'] ?? array());
+        $gain = (float) ($movement['gain'] ?? 0);
+
+        if ($signal >= 25.0) {
+            return array('code'=>'ACCELERATING','label'=>'Aceleración','detail'=>'La demanda/visibilidad crece frente al periodo anterior.');
+        }
+        if ($signal <= -25.0) {
+            return array('code'=>'DECLINING','label'=>'Descenso','detail'=>'La señal pierde fuerza frente al periodo anterior.');
+        }
+        if ($gain >= 2.0) {
+            return array('code'=>'POSITION_IMPROVING','label'=>'Mejora de posición','detail'=>'La posición media mejora frente al periodo anterior.');
+        }
+        if ($gain <= -2.0) {
+            return array('code'=>'POSITION_DECLINING','label'=>'Pérdida de posición','detail'=>'La posición media empeora frente al periodo anterior.');
+        }
+        return array('code'=>'STABLE','label'=>'Señal estable','detail'=>'No hay aceleración o deterioro suficiente para cambiar por sí solos la prioridad de trabajo.');
+    }
+}
+
+if (!function_exists('seo_analista_action_execution_profile')) {
+    function seo_analista_action_execution_profile(array $action, array $row, array $validation, array $gate) {
+        $type = sanitize_key((string) ($action['type'] ?? ''));
+        $owner = trim((string) ($action['owner'] ?? ''));
+        $destination = trim((string) ($action['destination'] ?? $action['target_url'] ?? ($validation['target']['url'] ?? '')));
+        $query = trim((string) ($row['query'] ?? seo_analista_primary_query($row)));
+
+        $map = array(
+            'REVISAR_TECNICO'=>array('verb'=>'Corregir','object'=>'la incidencia técnica/canónica detectada'),
+            'REVISAR_META'=>array('verb'=>'Ajustar','object'=>'el title/meta efectivo de la entidad'),
+            'REVISAR_ENLAZADO'=>array('verb'=>'Añadir','object'=>'enlaces internos relevantes hacia la entidad'),
+            'MEJORAR_COBERTURA'=>array('verb'=>'Ampliar','object'=>'la cobertura de la entidad para la consulta'),
+            'MEJORAR_FICHA'=>array('verb'=>'Corregir','object'=>'los defectos concretos de la ficha'),
+            'ACTUALIZAR_CONTENIDO'=>array('verb'=>'Actualizar','object'=>'el contenido existente relacionado'),
+            'CREAR_CONTENIDO'=>array('verb'=>'Crear','object'=>'un contenido nuevo'),
+            'REVISAR_OFERTA_PRECIO'=>array('verb'=>'Validar','object'=>'los datos comerciales bloqueantes'),
+            'INVESTIGAR_SURTIDO'=>array('verb'=>'Comprobar','object'=>'el surtido y sus variantes vendibles'),
+            'INVESTIGAR_COBERTURA'=>array('verb'=>'Resolver','object'=>'la entidad o URL que debe atender la consulta'),
+            'CORREGIR_ASOCIACION'=>array('verb'=>'Resolver','object'=>'el conflicto de asociación/modelo'),
+            'ESPERAR_DATOS'=>array('verb'=>'Esperar','object'=>'un volumen de evidencia suficiente'),
+            'VIGILAR'=>array('verb'=>'Observar','object'=>'la evolución de la misma señal'),
+        );
+        $parts = (array) ($map[$type] ?? array('verb'=>'','object'=>''));
+        $verb = (string) ($action['verb'] ?? $parts['verb']);
+        $object = (string) ($action['object'] ?? $parts['object']);
+
+        $non_executable = array(
+            'VIGILAR',
+            'ESPERAR_DATOS',
+            'INVESTIGAR_COBERTURA',
+            'CORREGIR_ASOCIACION',
+            'REVISAR_OFERTA_PRECIO',
+            'INVESTIGAR_SURTIDO',
+            'CREAR_CONTENIDO',
+        );
+        $executable = !in_array($type, $non_executable, true)
+            && !empty($validation['target']['resolved'])
+            && (string) ($gate['state'] ?? 'READY') === 'READY'
+            && $owner !== ''
+            && $destination !== '';
+
+        $detail = trim((string) ($action['detail'] ?? ''));
+        if ($executable) {
+            $instruction = trim($verb . ' ' . $object)
+                . ($destination !== '' ? ' en ' . $destination : '')
+                . ($query !== '' ? ' para responder a «' . $query . '»' : '')
+                . '.';
+            if ($detail !== '') $instruction .= ' Motivo concreto: ' . $detail;
+        } else {
+            $instruction = $detail !== ''
+                ? $detail
+                : trim($verb . ' ' . $object . ($destination !== '' ? ' en ' . $destination : '') . '.');
+        }
+
+        return array_merge($action, array(
+            'verb'=>$verb,
+            'object'=>$object,
+            'destination'=>$destination,
+            'instruction'=>$instruction,
+            'executable'=>$executable,
+        ));
+    }
+}
+
+if (!function_exists('seo_analista_measurement_for_primary_action')) {
+    function seo_analista_measurement_for_primary_action(array $action, array $row) {
+        $type = sanitize_key((string) ($action['type'] ?? ''));
+        $query = (string) ($row['query'] ?? '');
+        $url = (string) ($action['destination'] ?? $row['target_url'] ?? '');
+        $period = absint($row['period']['days'] ?? 28);
+        $period = $period > 0 ? $period : 28;
+
+        if (in_array($type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','REVISAR_OFERTA_PRECIO','INVESTIGAR_SURTIDO'), true)) {
+            return array(
+                'Éxito inmediato: resolver la dependencia indicada y volver a ejecutar el Plan de acción sin duplicar la tarea.',
+                'No atribuir mejora SEO a la comprobación; solo cambia la ejecutabilidad de la oportunidad.'
+            );
+        }
+        if ($type === 'ESPERAR_DATOS' || $type === 'VIGILAR') {
+            return array(
+                'Comparar en ' . $period . ' días impresiones, clics y posición de la misma consulta' . ($url !== '' ? ' y URL' : '') . '.',
+                'No hay intervención causal que evaluar: se mide evolución natural de la señal.'
+            );
+        }
+
+        $metric = in_array($type, array('REVISAR_META'), true)
+            ? 'CTR, clics e impresiones'
+            : 'impresiones, clics y posición';
+        return array(
+            'Comparar ' . $metric . ' de la misma consulta' . ($query !== '' ? ' «' . $query . '»' : '') . ($url !== '' ? ' sobre ' . $url : '') . ' contra la línea base a 28/60/90 días.',
+            'Interpretar cualquier cambio como asociación temporal; el Plan de acción no promete causalidad automática.'
+        );
+    }
+}
+
+if (!function_exists('seo_analista_reconcile_task_decision')) {
+    function seo_analista_reconcile_task_decision(array $row, array $atomic, array $validation, array $evidence, array $gate) {
+        $normalized = array();
+        foreach ($atomic as $action) {
+            if (!is_array($action)) continue;
+            $normalized[] = seo_analista_action_execution_profile($action, $row, $validation, $gate);
+        }
+        if (!$normalized) {
+            $normalized[] = seo_analista_action_execution_profile(
+                array(
+                    'type'=>'VIGILAR',
+                    'detail'=>'No hay una acción atómica suficientemente demostrada; mantener la línea base y observar la misma señal.',
+                    'owner'=>'SEO/taxonomía'
+                ),
+                $row,
+                $validation,
+                $gate
+            );
+        }
+
+        $primary = $normalized[0];
+        if ((string) ($gate['state'] ?? 'READY') === 'READY') {
+            foreach ($normalized as $candidate) {
+                if (!empty($candidate['executable'])) {
+                    $primary = $candidate;
+                    break;
+                }
+            }
+        }
+
+        $bucket = (string) ($gate['bucket'] ?? $row['work_bucket'] ?? 'VIGILAR');
+        $primary_type = (string) ($primary['type'] ?? '');
+        if ($bucket === 'HACER_AHORA' && empty($primary['executable'])) {
+            if (in_array($primary_type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','INVESTIGAR_SURTIDO'), true)
+                || (string) ($gate['blocker_type'] ?? '') === 'entity') {
+                $bucket = 'INVESTIGAR';
+            } elseif ($primary_type === 'ESPERAR_DATOS' || (string) ($gate['blocker_type'] ?? '') === 'evidence') {
+                $bucket = 'ESPERAR_DATOS';
+            } elseif ((string) ($gate['blocker_type'] ?? '') === 'commercial' || $primary_type === 'CREAR_CONTENIDO') {
+                $bucket = 'HACER_DESPUES';
+            } else {
+                $bucket = 'VIGILAR';
+            }
+        }
+
+        // R05: una instrucción de observación/espera/investigación conserva
+        // su bucket semántico aunque el score previo fuera alto. En cambio una
+        // tarea válida de segunda prioridad no se degrada solo por no ser
+        // ejecutable inmediatamente.
+        if ((string) ($gate['state'] ?? 'READY') === 'READY') {
+            if ($primary_type === 'VIGILAR') {
+                $bucket = 'VIGILAR';
+            } elseif ($primary_type === 'ESPERAR_DATOS') {
+                $bucket = 'ESPERAR_DATOS';
+            } elseif (in_array($primary_type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','INVESTIGAR_SURTIDO'), true)) {
+                $bucket = 'INVESTIGAR';
+            }
+        }
+
+        $signal = seo_analista_signal_state($row, $evidence);
+        $blocker_type = (string) ($gate['blocker_type'] ?? 'none');
+        $blocker_labels = array(
+            'none'=>'Sin bloqueo',
+            'entity'=>'Entidad / destino',
+            'evidence'=>'Evidencia insuficiente',
+            'commercial'=>'Dependencia comercial',
+        );
+        $blocker_label = (string) ($blocker_labels[$blocker_type] ?? strtoupper($blocker_type));
+        $intervention_type = (string) ($primary['type'] ?? 'VIGILAR');
+        $intervention_meta = function_exists('seo_analista_action_meta')
+            ? seo_analista_action_meta($intervention_type)
+            : array('label'=>$intervention_type);
+
+        return array(
+            'version'=>'3.8.3',
+            'signal_state'=>$signal,
+            'work_bucket'=>$bucket,
+            'intervention_type'=>$intervention_type,
+            'intervention_label'=>(string) ($intervention_meta['label'] ?? $intervention_type),
+            'blocker'=>array(
+                'type'=>$blocker_type,
+                'label'=>$blocker_label,
+                'state'=>(string) ($gate['state'] ?? 'READY'),
+                'unlock_condition'=>(string) ($gate['unlock_condition'] ?? ''),
+            ),
+            'primary_action'=>$primary,
+            'actions'=>$normalized,
+            'execution_ready'=>!empty($primary['executable']) && $bucket === 'HACER_AHORA',
+            'owner'=>(string) ($primary['owner'] ?? ''),
+            'target_url'=>(string) ($primary['destination'] ?? $validation['target']['url'] ?? ''),
+            'decision_reason'=>!empty($primary['executable'])
+                ? 'La acción tiene verbo, objeto, destino, responsable y no existe un gate bloqueante.'
+                : 'La tarea no tiene todavía una acción ejecutable compatible con HACER AHORA.',
+        );
+    }
+}
+
+if (!function_exists('seo_analista_apply_history_state')) {
+    function seo_analista_apply_history_state(array $row, array $history) {
+        $status = sanitize_key((string) ($history['status'] ?? ''));
+        if (!in_array($status, array('queued','in_progress','executed','dismissed'), true)) return $row;
+
+        $row['status'] = $status;
+        $row['action_executed'] = sanitize_text_field((string) ($history['action_executed'] ?? ''));
+        if (in_array($status, array('queued','in_progress','executed','dismissed'), true)) {
+            $row['work_bucket'] = 'SIN_ACCION';
+            $message = $status === 'executed'
+                ? 'No repetir la acción: ya fue ejecutada. Conservar la trazabilidad y medir contra la línea base antes de proponer otra intervención.'
+                : 'No duplicar la acción: la tarea ya está gestionada en el flujo de trabajo.';
+            if (!empty($row['primary_action']) && is_array($row['primary_action'])) {
+                $row['primary_action']['executable'] = false;
+                $row['primary_action']['instruction'] = $message;
+            }
+            if (!empty($row['execution_gate']) && is_array($row['execution_gate'])) {
+                $row['execution_gate']['bucket'] = 'SIN_ACCION';
+                $row['execution_gate']['final_bucket'] = 'SIN_ACCION';
+                $row['execution_gate']['state'] = $status === 'executed' ? 'TASK_EXECUTED' : 'TASK_MANAGED';
+            }
+            $row['recommended_changes'] = array($message);
+            if (!empty($row['task_decision']) && is_array($row['task_decision'])) {
+                $row['task_decision']['work_bucket'] = 'SIN_ACCION';
+                $row['task_decision']['execution_ready'] = false;
+                $row['task_decision']['decision_reason'] = $status === 'executed'
+                    ? 'La tarea ya fue ejecutada; conservar la trazabilidad y medir antes de proponer otra intervención.'
+                    : 'La tarea ya está gestionada en el flujo de trabajo; no duplicar la ejecución.';
+                $row['task_decision']['primary_action'] = (array) ($row['primary_action'] ?? array());
+            }
+        }
+        return $row;
+    }
+}
+
+
+if (!function_exists('seo_analista_task_bucket')) {
+    function seo_analista_task_bucket(array $row) {
+        $decision = (array) ($row['task_decision'] ?? array());
+        $bucket = (string) ($decision['work_bucket'] ?? $row['work_bucket'] ?? 'SIN_ACCION');
+        $allowed = array('HACER_AHORA','HACER_DESPUES','INVESTIGAR','VIGILAR','ESPERAR_DATOS','SIN_ACCION');
+        return in_array($bucket, $allowed, true) ? $bucket : 'SIN_ACCION';
+    }
+}
+
+if (!function_exists('seo_analista_plan_consistency_report')) {
+    function seo_analista_plan_consistency_report(array $plan) {
+        $counts = array(
+            'HACER_AHORA'=>0,
+            'HACER_DESPUES'=>0,
+            'INVESTIGAR'=>0,
+            'VIGILAR'=>0,
+            'ESPERAR_DATOS'=>0,
+            'SIN_ACCION'=>0,
+        );
+        $issues = array();
+
+        foreach ($plan as $index => $row) {
+            if (!is_array($row)) continue;
+            $bucket = (string) ($row['work_bucket'] ?? 'SIN_ACCION');
+            if (!isset($counts[$bucket])) $bucket = 'SIN_ACCION';
+            $counts[$bucket]++;
+
+            $decision = (array) ($row['task_decision'] ?? array());
+            $decision_bucket = (string) ($decision['work_bucket'] ?? $bucket);
+            $primary = (array) ($decision['primary_action'] ?? $row['primary_action'] ?? array());
+            $task_id = (string) ($row['task_id'] ?? ('row_' . $index));
+
+            if ($decision_bucket !== $bucket) {
+                $issues[] = array(
+                    'task_id'=>$task_id,
+                    'code'=>'BUCKET_MISMATCH',
+                    'detail'=>'work_bucket y task_decision.work_bucket no coinciden.',
+                );
+            }
+            $gate_bucket = (string) ($row['execution_gate']['final_bucket'] ?? $row['execution_gate']['bucket'] ?? $bucket);
+            if ($gate_bucket !== $bucket) {
+                $issues[] = array(
+                    'task_id'=>$task_id,
+                    'code'=>'GATE_BUCKET_MISMATCH',
+                    'detail'=>'execution_gate y decisión final no coinciden en el bucket.',
+                );
+            }
+
+            $decision_intervention = (string) ($decision['intervention_type'] ?? '');
+            $row_intervention = (string) ($row['action_type'] ?? $row['action'] ?? '');
+            if ($decision_intervention !== '' && $row_intervention !== '' && $decision_intervention !== $row_intervention) {
+                $issues[] = array(
+                    'task_id'=>$task_id,
+                    'code'=>'INTERVENTION_MISMATCH',
+                    'detail'=>'action_type y task_decision.intervention_type no coinciden.',
+                );
+            }
+
+            if ($bucket === 'HACER_AHORA') {
+                $required = array(
+                    'target_resolved'=>!empty($row['target_resolved']),
+                    'executable'=>!empty($primary['executable']),
+                    'verb'=>trim((string) ($primary['verb'] ?? '')) !== '',
+                    'object'=>trim((string) ($primary['object'] ?? '')) !== '',
+                    'destination'=>trim((string) ($primary['destination'] ?? '')) !== '',
+                    'owner'=>trim((string) ($primary['owner'] ?? $row['recommended_owner'] ?? '')) !== '',
+                    'instruction'=>trim((string) ($primary['instruction'] ?? '')) !== '',
+                );
+                foreach ($required as $field => $ok) {
+                    if (!$ok) {
+                        $issues[] = array(
+                            'task_id'=>$task_id,
+                            'code'=>'HACER_AHORA_' . strtoupper($field),
+                            'detail'=>'HACER AHORA carece de ' . $field . '.',
+                        );
+                    }
+                }
+                if (empty($decision['execution_ready'])) {
+                    $issues[] = array(
+                        'task_id'=>$task_id,
+                        'code'=>'HACER_AHORA_NOT_READY',
+                        'detail'=>'HACER AHORA no está autorizado por la decisión única.',
+                    );
+                }
+                if ((string) ($decision['blocker']['type'] ?? 'none') !== 'none') {
+                    $issues[] = array(
+                        'task_id'=>$task_id,
+                        'code'=>'HACER_AHORA_BLOCKED',
+                        'detail'=>'HACER AHORA conserva un bloqueo activo.',
+                    );
+                }
+                if (count((array) ($row['recommended_changes'] ?? array())) !== 1) {
+                    $issues[] = array(
+                        'task_id'=>$task_id,
+                        'code'=>'HACER_AHORA_MULTI_ACTION',
+                        'detail'=>'HACER AHORA debe exponer una única acción primaria.',
+                    );
+                }
+            }
+
+            if ($bucket === 'INVESTIGAR' && empty($row['investigation_steps'])) {
+                $issues[] = array(
+                    'task_id'=>$task_id,
+                    'code'=>'INVESTIGAR_SIN_COMPROBACION',
+                    'detail'=>'INVESTIGAR no incluye una comprobación concreta.',
+                );
+            }
+        }
+
+        return array(
+            'ok'=>empty($issues),
+            'total'=>count($plan),
+            'counts'=>$counts,
+            'issues'=>$issues,
+        );
     }
 }
 
@@ -1067,35 +1465,35 @@ if (!function_exists('seo_analista_atomic_actions')) {
         if (strpos($issue_text, '404') !== false || strpos($issue_text, 'no indexable') !== false || strpos($issue_text, 'canonical') !== false) {
             $actions[] = array(
                 'type'=>'REVISAR_TECNICO',
-                'detail'=>'Comprobar la incidencia técnica detectada en ' . ($target_url !== '' ? $target_url : 'la URL objetivo') . ': ' . implode('; ', $issues) . '.',
+                'detail'=>'Corregir la incidencia técnica/canónica detectada en ' . ($target_url !== '' ? $target_url : 'la URL objetivo') . ': ' . implode('; ', $issues) . '.',
                 'owner'=>'Técnico'
             );
         }
         if (strpos($issue_text, 'seo title') !== false || strpos($issue_text, 'meta description') !== false || strpos($issue_text, 'ctr bajo') !== false) {
             $actions[] = array(
                 'type'=>'REVISAR_META',
-                'detail'=>'Revisar title/meta efectivos de ' . ($target_url !== '' ? $target_url : 'la URL objetivo') . ' para la consulta «' . $query . '». Incidencia observada: ' . implode('; ', $issues) . '.',
+                'detail'=>'Ajustar el title/meta efectivo de ' . ($target_url !== '' ? $target_url : 'la URL objetivo') . ' para la consulta «' . $query . '». Incidencia observada: ' . implode('; ', $issues) . '.',
                 'owner'=>'Editora'
             );
         }
         if (strpos($issue_text, 'enlazado interno') !== false) {
             $actions[] = array(
                 'type'=>'REVISAR_ENLAZADO',
-                'detail'=>'Comprobar cuántos enlaces internos relevantes recibe ' . ($target_url !== '' ? $target_url : 'la entidad') . ' y añadirlos solo desde categorías, hubs o posts semánticamente relacionados con «' . $query . '».',
+                'detail'=>'Añadir enlaces internos relevantes hacia ' . ($target_url !== '' ? $target_url : 'la entidad') . ' desde categorías, hubs o posts semánticamente relacionados con «' . $query . '».',
                 'owner'=>'SEO/taxonomía'
             );
         }
         if (strpos($issue_text, 'cobertura textual') !== false || strpos($issue_text, 'excerpt') !== false || strpos($issue_text, 'vocabulary') !== false) {
             $actions[] = array(
                 'type'=>'MEJORAR_COBERTURA',
-                'detail'=>'Corregir únicamente estos huecos en ' . ($target_url !== '' ? $target_url : 'la entidad validada') . ': ' . implode('; ', $issues) . '. La ampliación debe responder a «' . $query . '» sin incorporar temas ajenos.',
+                'detail'=>'Ampliar la cobertura de ' . ($target_url !== '' ? $target_url : 'la entidad validada') . ' para «' . $query . '» corrigiendo estos huecos: ' . implode('; ', $issues) . '. No incorporar temas ajenos a la intención validada.',
                 'owner'=>'Editora'
             );
         }
         if ((strpos($issue_text, 'descripcion corta') !== false || sanitize_key((string) ($row['entity']['type'] ?? '')) === 'product') && $issues) {
             $actions[] = array(
                 'type'=>'MEJORAR_FICHA',
-                'detail'=>'Corregir en la ficha validada los defectos concretos: ' . implode('; ', $issues) . '. Consulta asociada: «' . $query . '».',
+                'detail'=>'Corregir en ' . ($target_url !== '' ? $target_url : 'la ficha validada') . ' estos defectos concretos: ' . implode('; ', $issues) . '. Consulta asociada: «' . $query . '».',
                 'owner'=>'Editora'
             );
         }
@@ -1113,12 +1511,18 @@ if (!function_exists('seo_analista_atomic_actions')) {
             $existing_coverage = (array) ($coverage['existing_entity'] ?? array());
             if (!empty($existing_coverage['available']) || !empty($coverage['posts'])) {
                 $titles = array();
+                $coverage_target_url = '';
                 foreach ((array) ($coverage['posts'] ?? array()) as $post) {
                     if (!empty($post['title'])) $titles[] = (string) $post['title'];
+                    if ($coverage_target_url === '' && !empty($post['url'])) $coverage_target_url = (string) $post['url'];
+                }
+                if ($coverage_target_url === '') {
+                    $coverage_target_url = (string) ($existing_coverage['url'] ?? $target_url);
                 }
                 $actions[] = array(
                     'type'=>'ACTUALIZAR_CONTENIDO',
-                    'detail'=>'Ya existe cobertura relacionada' . ($titles ? ': ' . implode(' · ', array_slice($titles, 0, 3)) : '') . '. Revisar actualización o enlazado antes de crear otra URL.',
+                    'target_url'=>$coverage_target_url,
+                    'detail'=>'Actualizar ' . ($titles ? '«' . (string) reset($titles) . '»' : 'el contenido existente') . ' para cubrir «' . $query . '» y enlazarlo con la entidad canónica cuando proceda.',
                     'owner'=>'Editora'
                 );
             } else {
@@ -1230,14 +1634,10 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $commercial = seo_analista_commercial_readiness($row);
         $coverage = seo_analista_editorial_coverage($row);
 
-        /*
-         * 3.8.2: el score de oportunidad no cambia porque falte una dependencia.
-         * Matching, muestra y comercialidad actúan como gates/confianza. Así una
-         * tarea puede desbloquearse sin "fabricar" una subida de puntuación.
-         */
         $priority = max(0, min(99, (int) ($row['priority'] ?? 0)));
         $confidence_adjustments = array();
         $confidence = max(0, min(100, (int) ($row['confidence'] ?? 0)));
+
         if (!empty($evidence['priority_penalty'])) {
             $confidence_adjustments['evidence'] = -absint($evidence['priority_penalty']);
             $confidence -= absint($evidence['priority_penalty']);
@@ -1259,12 +1659,17 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $gate_row = $row;
         $gate_row['confidence'] = $confidence;
         $gate = seo_analista_execution_gate($gate_row, $validation, $evidence, $commercial);
-        $bucket = (string) ($gate['bucket'] ?? $pre_validation_bucket);
         $steps = seo_analista_investigation_steps($row, $validation, $evidence, $commercial, $gate, $auto_resolution);
 
         $atomic = seo_analista_atomic_actions($row, $validation, $evidence, $commercial, $coverage, $gate, $steps);
-        $action_type = (string) ($atomic[0]['type'] ?? 'VIGILAR');
-        $owner = (string) ($atomic[0]['owner'] ?? 'SEO/taxonomía');
+        $decision = seo_analista_reconcile_task_decision($row, $atomic, $validation, $evidence, $gate);
+        $primary_action = (array) ($decision['primary_action'] ?? array());
+        $bucket = (string) ($decision['work_bucket'] ?? 'VIGILAR');
+        $gate['pre_reconciliation_bucket'] = (string) ($gate['bucket'] ?? $pre_validation_bucket);
+        $gate['bucket'] = $bucket;
+        $gate['final_bucket'] = $bucket;
+        $action_type = (string) ($decision['intervention_type'] ?? $primary_action['type'] ?? 'VIGILAR');
+        $owner = (string) ($decision['owner'] ?? $primary_action['owner'] ?? 'SEO/taxonomía');
 
         $dependencies = array();
         foreach ($steps as $step) {
@@ -1274,16 +1679,6 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         if (!empty($coverage['available']) && strpos((string) ($row['action'] ?? ''), 'CREAR_') === 0) {
             $dependencies[] = 'Revisar la cobertura editorial existente antes de abrir una nueva URL.';
         }
-
-        $entity = (array) ($row['entity'] ?? array());
-        $task_seed = implode('|', array(
-            sanitize_key((string) ($entity['type'] ?? 'unknown')),
-            absint($entity['id'] ?? 0),
-            (string) ($validation['target']['url'] ?? ''),
-            $query,
-            $action_type,
-        ));
-        $task_id = 'ana381_' . substr(hash('sha256', $task_seed), 0, 20);
 
         $period = array(
             'days'=>absint($days),
@@ -1301,11 +1696,33 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
             'absolute_delta'=>(float) ($evidence['absolute_delta'] ?? 0),
         );
 
+        /*
+         * 3.8.3: la identidad de seguimiento se basa en consulta + tema, no
+         * en el bucket, acción o URL final. Así resolver un bloqueo no crea
+         * otra tarea distinta y se conserva la trazabilidad.
+         */
+        $trace_seed = seo_analista_normalize_text($query) . '|' . seo_analista_normalize_text((string) ($row['topic'] ?? ''));
+        if ($trace_seed === '|') {
+            $trace_seed = sanitize_key((string) ($row['entity']['type'] ?? 'unknown')) . '|' . absint($row['entity']['id'] ?? 0);
+        }
+        $task_id = 'ana383_' . substr(hash('sha256', $trace_seed), 0, 20);
+
+        // Compatibilidad con el ID usado por 3.8.1/3.8.2 para recuperar estado.
+        $entity = (array) ($row['entity'] ?? array());
+        $legacy_seed = implode('|', array(
+            sanitize_key((string) ($entity['type'] ?? 'unknown')),
+            absint($entity['id'] ?? 0),
+            (string) ($validation['target']['url'] ?? ''),
+            $query,
+            $action_type,
+        ));
+        $legacy_task_id = 'ana381_' . substr(hash('sha256', $legacy_seed), 0, 20);
+
         $row['priority'] = $priority;
         $row['priority_score'] = $priority;
         $row['work_bucket'] = $bucket;
         $row['pre_validation_bucket'] = $pre_validation_bucket;
-        $row['bucket_if_unblocked'] = (string) ($gate['bucket_if_unblocked'] ?? $pre_validation_bucket);
+        $row['bucket_if_unblocked'] = (string) ($gate['bucket_if_unblocked'] ?? $bucket);
         $row['confidence'] = $confidence;
         $row['confidence_level'] = $confidence_level;
         $row['query'] = $query;
@@ -1324,22 +1741,17 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $row['blocker_type'] = (string) ($gate['blocker_type'] ?? 'none');
         $row['unlock_condition'] = (string) ($gate['unlock_condition'] ?? '');
         $row['investigation_steps'] = $steps;
+        $row['task_decision'] = $decision;
+        $row['signal_state'] = (array) ($decision['signal_state'] ?? array());
+        $row['primary_action'] = $primary_action;
         $row['action_type'] = $action_type;
-        $row['action_details'] = $atomic;
+        $row['action_details'] = (array) ($decision['actions'] ?? $atomic);
         $row['recommended_owner'] = $owner;
         $row['owner'] = $owner;
         $row['dependencies'] = array_values(array_unique($dependencies));
-        $row['status'] = 'proposed';
-        $row['action_executed'] = '';
-        if (function_exists('seo_analista_task_history')) {
-            $existing_tracking = seo_analista_task_history($task_id);
-            $existing_status = sanitize_key((string) ($existing_tracking['status'] ?? ''));
-            if (in_array($existing_status, array('proposed','queued','in_progress','executed','dismissed'), true)) {
-                $row['status'] = $existing_status;
-            }
-            $row['action_executed'] = sanitize_text_field((string) ($existing_tracking['action_executed'] ?? ''));
-        }
         $row['task_id'] = $task_id;
+        $row['trace_id'] = $task_id;
+        $row['legacy_task_id'] = $legacy_task_id;
         $row['period'] = $period;
         $row['baseline'] = $baseline;
         $row['verification_date'] = gmdate('Y-m-d', strtotime('+28 days'));
@@ -1355,20 +1767,45 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
         $strategy_breakdown['validation_adjustments_applied_to_priority'] = false;
         $strategy_breakdown['final_score'] = $priority;
         $strategy_breakdown['confidence_after_validation'] = $confidence;
-        $strategy_breakdown['rule'] = 'El score de oportunidad permanece estable. Matching, evidencia y comercialidad condicionan confianza y bucket mediante execution gates.';
+        $strategy_breakdown['rule'] = 'El score de oportunidad permanece estable; la fuente única task_decision decide bucket, acción ejecutable, intervención y bloqueo.';
         $row['priority_breakdown'] = $strategy_breakdown;
 
         $row['legacy_action'] = (string) ($row['action'] ?? '');
         $row['action'] = $action_type;
         if (function_exists('seo_analista_action_meta')) {
             $meta = seo_analista_action_meta($action_type);
-            $row['action_label'] = (string) ($meta['label'] ?? $action_type);
+            $row['action_label'] = (string) ($decision['intervention_label'] ?? $meta['label'] ?? $action_type);
             $row['channel'] = (string) ($meta['channel'] ?? ($row['channel'] ?? 'seo'));
+        } else {
+            $row['action_label'] = (string) ($decision['intervention_label'] ?? $action_type);
         }
-        $row['recommended_changes'] = array_values(array_unique(array_map(
-            static function($action){ return (string) ($action['detail'] ?? ''); },
-            $atomic
-        )));
+
+        $instruction = trim((string) ($primary_action['instruction'] ?? $primary_action['detail'] ?? ''));
+        $row['recommended_changes'] = $instruction !== '' ? array($instruction) : array();
+        $row['measurement'] = seo_analista_measurement_for_primary_action($primary_action, $row);
+
+        $row['status'] = 'proposed';
+        $row['action_executed'] = '';
+        $existing_tracking = array();
+        if (function_exists('seo_analista_task_history')) {
+            $existing_tracking = seo_analista_task_history($task_id);
+            if (!$existing_tracking && $legacy_task_id !== $task_id) {
+                $existing_tracking = seo_analista_task_history($legacy_task_id);
+                if ($existing_tracking) $row['migrated_from_task_id'] = $legacy_task_id;
+            }
+        }
+        if ($existing_tracking) {
+            $row = seo_analista_apply_history_state($row, $existing_tracking);
+        }
+
+        // La decisión final es la única fuente de verdad para contador, tarjeta y JSON.
+        if (!empty($row['task_decision']) && is_array($row['task_decision'])) {
+            $row['task_decision']['work_bucket'] = (string) ($row['work_bucket'] ?? 'VIGILAR');
+            $row['task_decision']['primary_action'] = (array) ($row['primary_action'] ?? array());
+            $row['task_decision']['execution_ready'] = !empty($row['primary_action']['executable'])
+                && (string) ($row['work_bucket'] ?? '') === 'HACER_AHORA'
+                && (string) ($row['status'] ?? 'proposed') === 'proposed';
+        }
 
         return $row;
     }
@@ -1379,6 +1816,8 @@ if (!function_exists('seo_analista_task_contract')) {
         $entity = (array) ($row['entity'] ?? array());
         return array(
             'task_id'=>(string) ($row['task_id'] ?? ''),
+            'trace_id'=>(string) ($row['trace_id'] ?? $row['task_id'] ?? ''),
+            'legacy_task_id'=>(string) ($row['legacy_task_id'] ?? ''),
             'entity_type'=>(string) ($entity['type'] ?? ''),
             'entity_id'=>absint($entity['id'] ?? 0),
             'target_url'=>(string) ($row['target_url'] ?? ''),
@@ -1396,8 +1835,11 @@ if (!function_exists('seo_analista_task_contract')) {
             'priority_score'=>absint($row['priority_score'] ?? $row['priority'] ?? 0),
             'priority_breakdown'=>(array) ($row['priority_breakdown'] ?? array()),
             'pre_validation_bucket'=>(string) ($row['pre_validation_bucket'] ?? ''),
-            'final_bucket'=>(string) ($row['work_bucket'] ?? ''),
+            'final_bucket'=>function_exists('seo_analista_task_bucket') ? seo_analista_task_bucket($row) : (string) ($row['work_bucket'] ?? ''),
             'bucket_if_unblocked'=>(string) ($row['bucket_if_unblocked'] ?? ''),
+            'task_decision'=>(array) ($row['task_decision'] ?? array()),
+            'signal_state'=>(array) ($row['signal_state'] ?? array()),
+            'primary_action'=>(array) ($row['primary_action'] ?? array()),
             'execution_gate'=>(array) ($row['execution_gate'] ?? array()),
             'blocker_type'=>(string) ($row['blocker_type'] ?? 'none'),
             'unlock_condition'=>(string) ($row['unlock_condition'] ?? ''),
@@ -1414,6 +1856,7 @@ if (!function_exists('seo_analista_task_contract')) {
             'status'=>(string) ($row['status'] ?? 'proposed'),
             'action_executed'=>(string) ($row['action_executed'] ?? ''),
             'baseline'=>(array) ($row['baseline'] ?? array()),
+            'measurement'=>(array) ($row['measurement'] ?? array()),
             'verification_date'=>(string) ($row['verification_date'] ?? ''),
             'review_dates'=>(array) ($row['review_dates'] ?? array()),
         );
@@ -1431,6 +1874,12 @@ if (!function_exists('seo_analista_persist_task_baselines')) {
             $id = (string) ($task['task_id'] ?? '');
             if ($id === '') continue;
             $existing = (array) ($history[$id] ?? array());
+            $legacy_id = sanitize_key((string) ($task['legacy_task_id'] ?? ''));
+            if (!$existing && $legacy_id !== '' && $legacy_id !== $id && !empty($history[$legacy_id]) && is_array($history[$legacy_id])) {
+                $existing = (array) $history[$legacy_id];
+                $existing['migrated_from_task_id'] = $legacy_id;
+                unset($history[$legacy_id]);
+            }
             if (empty($existing['first_seen'])) {
                 $existing['first_seen'] = $now;
                 $existing['baseline'] = (array) ($task['baseline'] ?? array());

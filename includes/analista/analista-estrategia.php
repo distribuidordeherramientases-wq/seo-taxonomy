@@ -661,7 +661,19 @@ if (!function_exists('seo_analista_prioritize_portfolio')) {
         foreach ($out as &$row) {
             if (($row['work_bucket'] ?? '') !== 'HACER_AHORA') continue;
             $now++;
-            if ($now > max(1, min(10, absint($now_limit)))) $row['work_bucket'] = 'HACER_DESPUES';
+            if ($now > max(1, min(10, absint($now_limit)))) {
+                $row['work_bucket'] = 'HACER_DESPUES';
+                if (!empty($row['task_decision']) && is_array($row['task_decision'])) {
+                    $row['task_decision']['work_bucket'] = 'HACER_DESPUES';
+                    $row['task_decision']['execution_ready'] = false;
+                    $row['task_decision']['decision_reason'] = 'Acción ejecutable, pero queda en HACER DESPUÉS por el límite máximo de diez tareas HACER AHORA.';
+                }
+                if (!empty($row['execution_gate']) && is_array($row['execution_gate'])) {
+                    $row['execution_gate']['bucket'] = 'HACER_DESPUES';
+                    $row['execution_gate']['final_bucket'] = 'HACER_DESPUES';
+                    $row['execution_gate']['quota_limited'] = true;
+                }
+            }
         }
         unset($row);
 
@@ -701,7 +713,9 @@ if (!function_exists('seo_analista_strategy_summary')) {
             'seguimiento' => 0,
         );
         foreach ($plan as $row) {
-            $bucket = (string) ($row['work_bucket'] ?? 'SIN_ACCION');
+            $bucket = function_exists('seo_analista_task_bucket')
+                ? seo_analista_task_bucket((array) $row)
+                : (string) ($row['work_bucket'] ?? 'SIN_ACCION');
             if ($bucket === 'HACER_AHORA') $out['hacer_ahora']++;
             elseif ($bucket === 'HACER_DESPUES') $out['hacer_despues']++;
             elseif ($bucket === 'INVESTIGAR') $out['investigar']++;
