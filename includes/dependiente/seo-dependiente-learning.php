@@ -62,7 +62,6 @@ final class SEO_Dependiente_Learning {
 
         // Ejemplo: "apañar un grifo" -> "reparar un grifo".
         if (empty($previous['detected_intent']) && !empty($current['detected_intent']) && $same_object) {
-            if ($unknown && $vocabulary) {
             foreach (array_slice($unknown, 0, 3) as $term) {
                 $candidate = self::upsert_candidate(array(
                     'expression'           => $term,
