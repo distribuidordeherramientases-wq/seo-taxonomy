@@ -661,7 +661,14 @@ if (!function_exists('seo_analista_prioritize_portfolio')) {
         foreach ($out as &$row) {
             if (($row['work_bucket'] ?? '') !== 'HACER_AHORA') continue;
             $now++;
-            if ($now > max(1, min(10, absint($now_limit)))) $row['work_bucket'] = 'HACER_DESPUES';
+            if ($now > max(1, min(10, absint($now_limit)))) {
+                $row['work_bucket'] = 'HACER_DESPUES';
+                if (!empty($row['task_decision']) && is_array($row['task_decision'])) {
+                    $row['task_decision']['work_bucket'] = 'HACER_DESPUES';
+                    $row['task_decision']['execution_ready'] = false;
+                    $row['task_decision']['decision_reason'] = 'Acción ejecutable, pero queda en HACER DESPUÉS por el límite máximo de diez tareas HACER AHORA.';
+                }
+            }
         }
         unset($row);
 
