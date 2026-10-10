@@ -1271,6 +1271,84 @@ if (!function_exists('seo_analista_apply_history_state')) {
     }
 }
 
+
+if (!function_exists('seo_analista_plan_consistency_report')) {
+    function seo_analista_plan_consistency_report(array $plan) {
+        $counts = array(
+            'HACER_AHORA'=>0,
+            'HACER_DESPUES'=>0,
+            'INVESTIGAR'=>0,
+            'VIGILAR'=>0,
+            'ESPERAR_DATOS'=>0,
+            'SIN_ACCION'=>0,
+        );
+        $issues = array();
+
+        foreach ($plan as $index => $row) {
+            if (!is_array($row)) continue;
+            $bucket = (string) ($row['work_bucket'] ?? 'SIN_ACCION');
+            if (!isset($counts[$bucket])) $bucket = 'SIN_ACCION';
+            $counts[$bucket]++;
+
+            $decision = (array) ($row['task_decision'] ?? array());
+            $decision_bucket = (string) ($decision['work_bucket'] ?? $bucket);
+            $primary = (array) ($decision['primary_action'] ?? $row['primary_action'] ?? array());
+            $task_id = (string) ($row['task_id'] ?? ('row_' . $index));
+
+            if ($decision_bucket !== $bucket) {
+                $issues[] = array(
+                    'task_id'=>$task_id,
+                    'code'=>'BUCKET_MISMATCH',
+                    'detail'=>'work_bucket y task_decision.work_bucket no coinciden.',
+                );
+            }
+
+            if ($bucket === 'HACER_AHORA') {
+                $required = array(
+                    'target_resolved'=>!empty($row['target_resolved']),
+                    'executable'=>!empty($primary['executable']),
+                    'verb'=>trim((string) ($primary['verb'] ?? '')) !== '',
+                    'object'=>trim((string) ($primary['object'] ?? '')) !== '',
+                    'destination'=>trim((string) ($primary['destination'] ?? '')) !== '',
+                    'owner'=>trim((string) ($primary['owner'] ?? $row['recommended_owner'] ?? '')) !== '',
+                    'instruction'=>trim((string) ($primary['instruction'] ?? '')) !== '',
+                );
+                foreach ($required as $field => $ok) {
+                    if (!$ok) {
+                        $issues[] = array(
+                            'task_id'=>$task_id,
+                            'code'=>'HACER_AHORA_' . strtoupper($field),
+                            'detail'=>'HACER AHORA carece de ' . $field . '.',
+                        );
+                    }
+                }
+                if (empty($decision['execution_ready'])) {
+                    $issues[] = array(
+                        'task_id'=>$task_id,
+                        'code'=>'HACER_AHORA_NOT_READY',
+                        'detail'=>'HACER AHORA no está autorizado por la decisión única.',
+                    );
+                }
+            }
+
+            if ($bucket === 'INVESTIGAR' && empty($row['investigation_steps'])) {
+                $issues[] = array(
+                    'task_id'=>$task_id,
+                    'code'=>'INVESTIGAR_SIN_COMPROBACION',
+                    'detail'=>'INVESTIGAR no incluye una comprobación concreta.',
+                );
+            }
+        }
+
+        return array(
+            'ok'=>empty($issues),
+            'total'=>count($plan),
+            'counts'=>$counts,
+            'issues'=>$issues,
+        );
+    }
+}
+
 if (!function_exists('seo_analista_atomic_actions')) {
     function seo_analista_atomic_actions(array $row, array $validation, array $evidence, array $commercial, array $coverage, array $gate = array(), array $steps = array()) {
         $actions = array();
