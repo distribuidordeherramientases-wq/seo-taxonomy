@@ -574,14 +574,20 @@ if (!function_exists('seo_analista_render_directive_rows')) {
         foreach (array_slice($rows, 0, max(1, absint($limit))) as $index => $row) {
             $catalog = (array) ($row['catalog'] ?? array());
             $entity = (array) ($row['entity'] ?? array());
+            $decision = (array) ($row['task_decision'] ?? array());
+            $signal_state = (array) ($decision['signal_state'] ?? $row['signal_state'] ?? array());
+            $blocker = (array) ($decision['blocker'] ?? array());
+            $primary_action = (array) ($decision['primary_action'] ?? $row['primary_action'] ?? array());
             echo '<article class="seo-analista-plan-row"><div class="seo-analista-plan-priority"><small>#' . esc_html($index + 1) . '</small>' . wp_kses_post(seo_analista_score_badge($row['priority'] ?? 0)) . '</div><div class="seo-analista-plan-body">';
-            echo '<div class="seo-analista-plan-head"><strong>' . esc_html((string) ($row['topic'] ?? '')) . '</strong><span>' . esc_html((string) ($row['action_label'] ?? '')) . '</span>';
-            if (!empty($row['work_bucket'])) echo '<em>' . esc_html(str_replace('_', ' ', (string) $row['work_bucket'])) . '</em>';
+            echo '<div class="seo-analista-plan-head"><strong>' . esc_html((string) ($row['topic'] ?? '')) . '</strong>';
+            echo '<span>Tipo de intervención: ' . esc_html((string) ($decision['intervention_label'] ?? $row['action_label'] ?? '')) . '</span>';
+            echo '<em>Estado de la señal: ' . esc_html((string) ($signal_state['label'] ?? 'Sin clasificar')) . '</em>';
+            echo '<em>Prioridad de trabajo: ' . esc_html(str_replace('_', ' ', (string) ($decision['work_bucket'] ?? $row['work_bucket'] ?? ''))) . '</em>';
+            echo '<em>Bloqueo: ' . esc_html((string) ($blocker['label'] ?? 'Sin bloqueo')) . '</em>';
             if (!empty($row['objective']['primary_label'])) echo '<em>Objetivo: ' . esc_html((string) $row['objective']['primary_label']) . '</em>';
-            if (!empty($row['intervention']['label'])) echo '<em>Intervención: ' . esc_html((string) $row['intervention']['label']) . '</em>';
-            if (!empty($entity['type_label'])) echo '<em>' . esc_html((string) $entity['type_label']) . '</em>';
+            if (!empty($entity['type_label'])) echo '<em>Entidad: ' . esc_html((string) $entity['type_label']) . '</em>';
             echo '</div>';
-            echo '<p>' . esc_html((string) ($row['reason'] ?? '')) . '</p>';
+            if (!empty($row['reason'])) echo '<p><strong>Motivo de la señal:</strong> ' . esc_html((string) $row['reason']) . '</p>';
             $meta = array();
             if (!empty($row['source'])) $meta[] = 'Fuentes: ' . (string) $row['source'];
             if (!empty($catalog['category'])) $meta[] = 'Categoría: ' . (string) $catalog['category'];
@@ -617,6 +623,7 @@ if (!function_exists('seo_analista_render_directive_rows')) {
                     ? 'Posición mejora ' . number_format_i18n(abs($gain), 1)
                     : 'Posición empeora ' . number_format_i18n(abs($gain), 1);
             }
+            if (!empty($row['intervention']['label'])) $meta[] = 'Perfil de posición: ' . (string) $row['intervention']['label'];
             if (!empty($row['catalog_strategy']['label'])) $meta[] = 'Surtido: ' . (string) $row['catalog_strategy']['label'];
             if (!empty($row['family_demand']['label'])) $meta[] = (string) $row['family_demand']['label'];
             if (!empty($row['objective'])) {
