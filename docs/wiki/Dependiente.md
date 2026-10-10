@@ -15,6 +15,31 @@ Las tablas que Solucionador observa para este flujo son:
 
 Una pregunta puede existir desde hace tiempo y recibir posteriormente un nuevo run o una nueva respuesta.
 
+
+## Informe de errores de la Actualización continua
+
+La **Lección continua · Actualización** exporta un JSON reconstruido desde las tablas reales de preguntas y ejecuciones de Academia. Desde la versión de informe 1.0.3 / schema 2, el documento no se limita a los contadores `passed/failed`: añade `learning_diagnostics`.
+
+El bloque contiene:
+
+- resumen de fallos reales por módulo;
+- separación entre **fallos de aprendizaje** y **errores técnicos**;
+- agrupación por `diagnostic_type`, `source_type` y `question_type`;
+- pregunta concreta que no se superó;
+- verdad esperada (`expected`);
+- evaluación y score;
+- primeros resultados realmente devueltos por Dependiente;
+- diagnóstico semántico/de búsqueda;
+- fuente y entidad asociada;
+- contexto actual de categoría o producto;
+- `training_review`, que indica qué conviene revisar.
+
+`training_review` es deliberadamente una **hipótesis de revisión**, no una causa demostrada. El informe distingue por tanto entre el hecho real —la comprobación falló— y la interpretación posterior sobre qué parte de la formación puede necesitar mejora.
+
+En **M1 · Mapa y jerarquía**, las categorías actuales se consideran material formativo de referencia. El informe incluye nombre, jerarquía, número de productos, presencia/longitud de descripción y un extracto de la descripción, pero no propone reescribir automáticamente la categoría. Si esa descripción ya enseña correctamente el concepto, la siguiente revisión debe centrarse en rutas, Vocabulary y contexto de Hub secundario → Hub primario → Cluster.
+
+El informe se calcula al descargarlo y no vuelve a ejecutar preguntas. Por ello también puede analizar un run que ya estaba en curso antes de instalar esta mejora.
+
 ## Relación con Solucionador
 
 Solucionador consume únicamente el conocimiento que Dependiente ya ha validado en el momento de la ejecución.
