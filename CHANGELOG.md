@@ -2,6 +2,10 @@
 
 ## [2.3.10] - 2026-10-06
 
+- El informe de la **Actualización continua de Academia** pasa a schema 2 y exporta los fallos reales de cada módulo con pregunta, respuesta esperada, resultados devueltos, diagnóstico, fuente formativa y contexto de la entidad.
+- Añadido `learning_diagnostics` para separar fallos de aprendizaje de errores técnicos y agrupar por módulo, diagnóstico, tipo de fuente y tipo de pregunta; en M1 las categorías se tratan como referencia formativa protegida y las sugerencias de revisión se marcan como hipótesis, no como causa demostrada.
+- El diagnóstico se reconstruye desde las ejecuciones ya persistidas, por lo que puede analizar el run en curso sin repetir la formación.
+
 - Auditor 0.11.0 añade una **cola editorial priorizada** por auditoría: P1 CORREGIR_AHORA, P2 ESPERAR_ENRIQUECIMIENTO, P3 MIGRAR_A_SOLUCIONADOR, P4 REVISAR y P5 INFORMATIVO.
 - Cada tarea de Auditor incluye `task_id`, estado, dependencia, evidencia, recomendación e impacto esperado; las contradicciones de identidad que necesitan proveedor quedan bloqueadas en `NEEDS_SOURCE_VERIFICATION` y las métricas de tráfico quedan pendientes de Analista.
 
