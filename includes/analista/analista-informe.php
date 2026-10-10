@@ -737,7 +737,9 @@ if (!function_exists('seo_analista_render_plan')) {
         );
         $bucketed = array();
         foreach ($plan as $row) {
-            $bucket = (string) ($row['work_bucket'] ?? 'HACER_DESPUES');
+            $bucket = function_exists('seo_analista_task_bucket')
+                ? seo_analista_task_bucket((array) $row)
+                : (string) ($row['work_bucket'] ?? 'HACER_DESPUES');
             if (!isset($groups[$bucket])) $bucket = 'HACER_DESPUES';
             $bucketed[$bucket][] = $row;
         }
