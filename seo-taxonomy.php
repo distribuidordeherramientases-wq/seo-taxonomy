@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: SEO Taxonomy
- * Plugin URI: https://distribuidordeherramientas.es/
- * Description: Plataforma SEO y comercial para WooCommerce: taxonomía semántica, catálogo, proveedores, Google Shopping, auditoría, automatización, aprendizaje y asistencia inteligente.
+ * Plugin Name: TaxoCommerce SEO - Catalog, Trends, Content & Feeds
+ * Plugin URI: https://focazul.wordpress.com/taxocommerce-seo-catalog-trends-content-feeds/
+ * Description: Modular SEO, catalog, content and commercial management platform for WordPress and WooCommerce.
  * Version: 2.3.10
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -15,9 +15,9 @@
 defined('ABSPATH') || exit;
 
 /**
- * SEO TAXONOMY
+ * TAXOCOMMERCE SEO
  *
- * Plataforma de gestión SEO, semántica y comercial para WooCommerce.
+ * Plataforma modular de gestión SEO, catálogo, contenidos y actividad comercial para WordPress y WooCommerce.
  *
  * Incluye:
  * - Arquitectura Cluster → Hub → Categoría → Producto.
