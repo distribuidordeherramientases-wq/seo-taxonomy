@@ -84,7 +84,7 @@ final class SEO_Editorial_Opportunities {
             $entity_type = sanitize_key((string)($task['entity_type']??''));
             $entity_id = absint($task['entity_id']??0);
             $intent = sanitize_key((string)($task['query_intent']??''));
-            $class = self::classify($action,$entity_type,$intent,$target !== '');
+            $class = self::classify($action,$entity_type,$intent,$target !== '' || ($entity_id > 0 && in_array($entity_type,array('post','page','landing'),true)));
             if ($class['kind'] === '') continue;
             $topic = sanitize_text_field((string)($task['query']??''));
             if ($topic === '') continue;
