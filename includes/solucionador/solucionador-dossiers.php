@@ -737,10 +737,13 @@ final class SEO_Solucionador_Dossiers {
 
         foreach (array_chunk($ids,400) as $chunk) {
             $ph = implode(',',array_fill(0,count($chunk),'%d'));
-            $sql = "SELECT id,object_type,object_id,question,answer,created_at,updated_at
-                    FROM {$table}
-                    WHERE active=1 AND id IN ({$ph})";
-            $prepared = $wpdb->prepare($sql,$chunk);
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla canonica interna y placeholders %d generados desde IDs validados.
+            $prepared = $wpdb->prepare(
+                "SELECT id,object_type,object_id,question,answer,created_at,updated_at
+                 FROM {$table}
+                 WHERE active=1 AND id IN ({$ph})",
+                $chunk
+            );
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- IDs enteros enlazados con prepare().
             foreach ((array)$wpdb->get_results($prepared,ARRAY_A) as $row) {
                 $id = absint($row['id'] ?? 0);
