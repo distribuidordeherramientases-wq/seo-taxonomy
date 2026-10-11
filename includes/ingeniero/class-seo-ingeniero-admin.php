@@ -359,7 +359,7 @@ final class SEO_Ingeniero_Admin {
             SEO_Ingeniero_Process::kick_editorial_refresh();
         }
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'research';
-        if (!in_array($tab, array('research', 'editorial', 'data', 'tests'), true)) {
+        if (!in_array($tab, array('research', 'editorial', 'posts', 'landings', 'data', 'tests'), true)) {
             $tab = 'research';
         }
 
@@ -367,12 +367,17 @@ final class SEO_Ingeniero_Admin {
         echo '<h1>Ingeniero <small style="font-weight:400;color:#646970">v' . esc_html(SEO_INGENIERO_VERSION) . '</small></h1>';
         echo '<p><strong>Servicio de investigación externa y editorial.</strong> Investiga por categoría y clasifica cada fuente/evidencia como <strong>L1 técnica</strong>, <strong>L2 práctica</strong> o <strong>L3 actualidad</strong>, conservando trazabilidad para su uso editorial posterior.</p>';
         echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Ingeniero">';
-        foreach (array('research'=>'Investigación', 'editorial'=>'Editorial', 'data'=>'Datos y fuentes', 'tests'=>'Pruebas') as $key=>$label) {
+        foreach (array('research'=>'Investigación', 'editorial'=>'Editorial', 'posts'=>'Posts', 'landings'=>'Landings', 'data'=>'Datos y fuentes', 'tests'=>'Pruebas') as $key=>$label) {
             echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' . esc_url(self::page_url($key)) . '">' . esc_html($label) . '</a>';
         }
         echo '</nav>';
 
-        if ('editorial' === $tab) {
+        if ('landings' === $tab && class_exists('SEO_Editorial_Landings')) {
+            SEO_Editorial_Landings::render_tab('ingeniero');
+        } elseif ('posts' === $tab) {
+            SEO_Editorial_Opportunities::render_post_context('ingeniero');
+            self::render_editorial_tab();
+        } elseif ('editorial' === $tab) {
             self::render_editorial_tab();
         } elseif ('data' === $tab) {
             self::render_data_tab();
