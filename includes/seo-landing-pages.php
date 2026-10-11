@@ -16,7 +16,7 @@ if (is_readable($seo_landing_google_adapter)) {
 }
 
 if (!defined('SEO_LANDING_SCHEMA_VERSION')) {
-    define('SEO_LANDING_SCHEMA_VERSION', 1);
+    define('SEO_LANDING_SCHEMA_VERSION', 2);
 }
 
 /**
@@ -68,6 +68,7 @@ function seo_landing_maybe_install()
         differentiation_reason text NULL,
         page_id bigint(20) unsigned NOT NULL DEFAULT 0,
         external_key varchar(191) NOT NULL DEFAULT '',
+        proposal_json longtext NULL,
         created_at datetime NOT NULL,
         updated_at datetime NOT NULL,
         PRIMARY KEY  (id),
@@ -122,6 +123,8 @@ function seo_landing_statuses()
         'created'               => 'Creada',
         'published'             => 'Publicada',
         'paused'                => 'Pausada',
+        'needs_update'          => 'Necesita revisión',
+        'rejected'              => 'Rechazada',
     );
 }
 

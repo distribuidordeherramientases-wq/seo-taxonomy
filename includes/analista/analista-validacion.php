@@ -792,11 +792,14 @@ if (!function_exists('seo_analista_editorial_coverage')) {
         }
 
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-        $query_args = array_merge(array($relations, $wpdb->posts), $category_ids);
+        // Los identificadores proceden exclusivamente de wpdb; %i no es compatible con el WordPress minimo soportado.
+        $relations_table = esc_sql($relations);
+        $posts_table = esc_sql($wpdb->posts);
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas internas sanitizadas, categorias solo mediante placeholders %d.
         $sql = $wpdb->prepare(
             "SELECT DISTINCT r.source_id
-             FROM %i r
-             INNER JOIN %i p ON p.ID = r.source_id
+             FROM {$relations_table} r
+             INNER JOIN {$posts_table} p ON p.ID = r.source_id
              WHERE r.source_type = 'post'
                AND r.target_type = 'product_cat'
                AND r.relation_type = 'post_to_category'
@@ -804,7 +807,7 @@ if (!function_exists('seo_analista_editorial_coverage')) {
                AND p.post_type = 'post'
                AND p.post_status = 'publish'
              LIMIT 20",
-            $query_args
+            $category_ids
         );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query is fully prepared above and cached per request by category key.
         $post_ids = $wpdb->get_col($sql);

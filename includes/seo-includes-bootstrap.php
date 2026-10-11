@@ -159,6 +159,13 @@ require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-coverage.
 // Ingeniero: servicio técnico/editorial independiente de Dependiente.
 require_once SEO_SYSTEM_PATH . 'includes/ingeniero/ingeniero-bootstrap.php';
 
+// Unified, snapshot-driven editorial proposal bridge. Both services share the landing inventory.
+require_once SEO_SYSTEM_PATH . 'includes/seo-landing-pages.php';
+require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-opportunities.php';
+require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-landings.php';
+SEO_Editorial_Opportunities::init();
+SEO_Editorial_Landings::init();
+
 /*
 |--------------------------------------------------------------------------
 | ADMINISTRACIÓN Y MENÚS

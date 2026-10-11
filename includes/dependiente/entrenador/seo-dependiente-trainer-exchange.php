@@ -430,6 +430,7 @@ final class SEO_Dependiente_Trainer_Exchange {
         if (!$out) {
             exit;
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Cabecera BOM de una respuesta CSV en php://output; WP_Filesystem no maneja este stream.
         fwrite($out, "\xEF\xBB\xBF");
 
         $header = array(
@@ -484,6 +485,7 @@ final class SEO_Dependiente_Trainer_Exchange {
             ), ';', '"', '');
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre del stream HTTP php://output tras generar CSV con fputcsv().
         fclose($out);
         exit;
     }
@@ -497,7 +499,9 @@ final class SEO_Dependiente_Trainer_Exchange {
 
         $header = fgetcsv($fh, 0, ';', '"', '');
         if (!is_array($header)) {
-            fclose($fh);
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre del recurso temporal CSV leído mediante fgetcsv(), no escritura a disco.
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre del recurso temporal CSV leído mediante fgetcsv().
+        fclose($fh);
             return new WP_Error('trainer_exchange_header', 'El CSV no contiene una cabecera válida.');
         }
         if (isset($header[0])) {
