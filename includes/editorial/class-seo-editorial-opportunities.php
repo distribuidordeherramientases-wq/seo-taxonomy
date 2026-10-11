@@ -205,7 +205,7 @@ final class SEO_Editorial_Opportunities {
     }
 
     public static function records($kind = '') {
-        $rows = array_merge(self::analyst_rows(), self::auditor_rows());
+        $rows = array_merge(self::analyst_rows(), self::auditor_rows(), self::landing_inventory_rows());
         if ($kind !== '') $rows = array_values(array_filter($rows, static function($row) use ($kind) {
             return $row['kind'] === $kind;
         }));
@@ -253,48 +253,46 @@ final class SEO_Editorial_Opportunities {
     public static function sync($reason = 'periodic') {
         if (!class_exists('SEO_Editorial_Landings')) return;
         if (get_transient('seo_editorial_opportunities_sync_lock')) return;
-        set_transient('seo_editorial_opportunities_sync_lock', 1, 8 * MINUTE_IN_SECONDS);
-        $result = array('landings'=>0,'post_signals'=>0,'no_knowledge'=>0,'errors'=>0,'last_run'=>current_time('mysql'));
+        set_transient('seo_editorial_opportunities_sync_lock',1,8*MINUTE_IN_SECONDS);
+        $result=array('landings'=>0,'post_signals'=>0,'no_knowledge'=>0,'errors'=>0,'improve_existing'=>0,'investigate'=>0,'last_run'=>current_time('mysql'));
         try {
-            foreach (array_slice(self::records('landing'), 0, 60) as $signal) {
-                // A recommendation to improve an existing landing must not create a new URL.
-                if ($signal['source'] !== 'Analista' || $signal['action'] !== 'ESTUDIAR_LANDING') continue;
+            $rows=array_slice(self::records('landing'),0,100);
+            foreach ($rows as $signal) {
+                if (($signal['mode']??'')==='improve_existing') {
+                    $result['improve_existing']++;
+                    continue; // Existing URL: never create a competitor.
+                }
                 foreach (array('solucionador','ingeniero') as $service) {
-                    $res = SEO_Editorial_Landings::absorb_signal($signal, $service);
+                    $res=SEO_Editorial_Landings::absorb_signal($signal,$service);
                     if (is_wp_error($res)) $result['errors']++;
-                    elseif ($res === 'no_knowledge') $result['no_knowledge']++;
+                    elseif ($res==='no_knowledge') $result['no_knowledge']++;
                     elseif ($res) $result['landings']++;
                 }
             }
-            foreach (array_slice(self::records('post'), 0, 60) as $signal) {
-                if ($signal['source'] !== 'Analista') continue;
-                foreach ((array) ($signal['category_ids'] ?? array()) as $id) {
-                    $result['post_signals']++;
-                    if (class_exists('SEO_Solucionador_Engine') && class_exists('SEO_Solucionador_Dossiers') &&
-                        SEO_Solucionador_Dossiers::get_by_category($id)) {
-                        SEO_Solucionador_Engine::prepare_category_topic($id);
-                    }
-                    if (class_exists('SEO_Ingeniero') && SEO_Ingeniero::editorial_knowledge($id)) {
-                        SEO_Ingeniero::refresh_editorial_category($id, false);
-                    }
+            // Post proposals use their existing service-specific dossier workflows.
+            // No recursive automatic scans or external providers in this bridge.
+            foreach (array_slice(self::records('post'),0,100) as $signal) {
+                if (($signal['mode']??'')==='improve_existing') {
+                    $result['improve_existing']++;
+                    continue;
                 }
+                $result['post_signals']++;
             }
-            $health = self::source_health();
-            $pending = SEO_Editorial_Landings::count_pending();
-            $unresolved = count(self::records('landing')) + count(self::records('post'));
-            $result['source_health'] = $health;
-            $result['unresolved_signals'] = $unresolved;
-            $result['pending_landing_proposals'] = $pending;
-            $result['coverage_status'] = (!$health['analista']['fresh'] || !$health['auditor']['fresh'])
+            $health=self::source_health();
+            $pending=SEO_Editorial_Landings::count_pending();
+            $result['source_health']=$health;
+            $result['unresolved_signals']=count(self::records());
+            $result['pending_landing_proposals']=$pending;
+            $result['coverage_status']=(!$health['analista']['fresh'] || !$health['auditor']['fresh'])
                 ? 'needs_fresh_diagnostics'
-                : (($unresolved || $pending) ? 'open_gaps' : 'no_open_gaps_in_snapshots');
-            update_option(self::STATE_OPTION, $result, false);
+                : (($result['unresolved_signals'] || $pending)?'open_gaps':'no_open_gaps_in_snapshots');
+            update_option(self::STATE_OPTION,$result,false);
         } finally {
             delete_transient('seo_editorial_opportunities_sync_lock');
         }
     }
 
-    public static function state() {
+        public static function state() {
         return (array) get_option(self::STATE_OPTION, array());
     }
 
