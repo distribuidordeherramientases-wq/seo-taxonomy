@@ -119,7 +119,7 @@ $category_description = (string) $wpdb->get_var(
 );
 
 if (trim(wp_strip_all_tags($category_description)) === '') {
-    $category_description = (string) term_description($term->term_id, 'product_cat');
+    $category_description = (string) term_description($term->term_id);
 }
 
 $category_description_plain = trim(wp_strip_all_tags($category_description));
