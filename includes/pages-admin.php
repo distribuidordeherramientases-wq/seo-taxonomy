@@ -914,27 +914,28 @@ function seo_page_admin_callback() {
     seo_page_editor_process_create($notices);
 
     $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'estructura';
-    if (in_array($tab, array('landing-report','errores'), true)) {
-        $view = $tab === 'errores' ? 'health' : 'landings';
-        $url = class_exists('SEO_Solucionador_Admin')
-            ? SEO_Solucionador_Admin::diagnostics_url('pages', $view)
-            : add_query_arg(array('page'=>'seo-solucionador','tab'=>'diagnostics','diag_scope'=>'pages','diag_view'=>$view), admin_url('admin.php'));
-        wp_safe_redirect($url);
-        exit;
-    }
-    if (!in_array($tab, array('estructura', 'landings', 'corporativas'), true)) {
+    if ($tab === 'errores') $tab = 'landing-report';
+    if (!in_array($tab, array('estructura', 'landings', 'corporativas', 'landing-report'), true)) {
         $tab = 'estructura';
     }
 
     $focus_page_id = isset($_GET['edit_page']) ? absint($_GET['edit_page']) : 0;
     $base_url = admin_url('admin.php?page=seo-page-admin');
+    if ($tab === 'landing-report') {
+        require_once __DIR__ . '/seo-landing-pages.php';
+        echo '<div class="wrap"><h1>Informe de Proyectos</h1>';
+        echo '<p><a href="' . esc_url(add_query_arg('tab', 'landings', $base_url)) . '">Volver a Proyectos</a></p>';
+        seo_landing_render_admin_tab(array('page'=>'seo-page-admin', 'tab'=>'landing-report'));
+        echo '</div>';
+        return;
+    }
     $tree = seo_page_editor_get_structure_tree();
     $category_paths = seo_page_editor_get_category_paths($tree);
     $all_categories = seo_page_editor_get_all_product_categories();
 
     if ($tab === 'landings') {
         $pages = seo_page_editor_get_pages_by_roles(array('landing'));
-        $title = 'Landing pages';
+        $title = 'Proyectos';
         $description = 'Páginas comerciales/editoriales conectadas directamente con una o varias categorías WooCommerce mediante landing_to_category.';
     } elseif ($tab === 'corporativas') {
         $pages = seo_page_editor_get_pages_by_roles(array('corporate_page'));
@@ -948,15 +949,16 @@ function seo_page_admin_callback() {
 
     ?>
     <div class="wrap">
-        <h1>Editor de páginas SEO</h1>
+        <h1><?php echo $tab === 'landings' ? 'Proyectos' : 'Editor de páginas SEO'; ?></h1>
         <p><?php echo esc_html($description); ?></p>
 
         <nav class="nav-tab-wrapper" style="margin-bottom:18px;">
             <a class="nav-tab <?php echo $tab === 'estructura' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'estructura', $base_url)); ?>">Estructura SEO</a>
-            <a class="nav-tab <?php echo $tab === 'landings' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landings', $base_url)); ?>">Landings</a>
+            <a class="nav-tab <?php echo $tab === 'landings' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landings', $base_url)); ?>">Proyectos</a>
             <a class="nav-tab <?php echo $tab === 'corporativas' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'corporativas', $base_url)); ?>">Corporativas</a>
+            <a class="nav-tab <?php echo $tab === 'landing-report' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(add_query_arg('tab', 'landing-report', $base_url)); ?>">Informe de Proyectos</a>
         </nav>
-        <p class="description">Rendimiento, oportunidades de landings y errores se consultan únicamente en <a href="<?php echo esc_url(class_exists('SEO_Solucionador_Admin') ? SEO_Solucionador_Admin::diagnostics_url('pages','landings') : admin_url('admin.php?page=seo-solucionador&tab=diagnostics&diag_scope=pages&diag_view=landings')); ?>">Solucionador → Diagnóstico editorial</a>.</p>
+
 
         <?php foreach ($notices as $notice) { seo_page_editor_render_notice($notice); } ?>
 
@@ -1149,3 +1151,13 @@ function seo_page_admin_callback() {
     </script>
     <?php
 }
+
+add_action('admin_init', function () {
+    if (!current_user_can('manage_options')) return;
+    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    $scope = isset($_GET['diag_scope']) ? sanitize_key(wp_unslash($_GET['diag_scope'])) : '';
+    if ($page === 'seo-solucionador' && $scope === 'pages') {
+        wp_safe_redirect(admin_url('admin.php?page=seo-page-admin&tab=landing-report'));
+        exit;
+    }
+});
