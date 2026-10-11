@@ -1,6 +1,7 @@
 <?php
 /**
  * Solucionador - interfaz administrativa.
+ * Cargado desde solucionador-bootstrap.php; debe estar disponible antes del registro de hooks.
  */
 
 defined('ABSPATH') || exit;
