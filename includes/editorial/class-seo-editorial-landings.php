@@ -122,16 +122,15 @@ final class SEO_Editorial_Landings {
     public static function absorb_signal(array $signal, $service) {
         $service = sanitize_key((string) $service);
         if (!in_array($service, array('solucionador','ingeniero'), true)) return new WP_Error('landing_service', 'Servicio no válido.');
-        if (($signal['source'] ?? '') !== 'Analista' || ($signal['kind'] ?? '') !== 'landing' ||
-            ($signal['action'] ?? '') !== 'ESTUDIAR_LANDING') return false;
+        if (($signal['kind'] ?? '') !== 'landing' || ($signal['mode'] ?? '') === 'improve_existing') return false;
 
         $intent = sanitize_text_field((string) ($signal['intent'] ?? ''));
         $normalized = self::normalize_intent($intent);
         if (strlen($normalized) < 8) return false;
         $categories = self::valid_categories((array) ($signal['category_ids'] ?? array()));
-        if (!$categories) return 'no_knowledge';
         $material = self::source_material($service, $categories);
-        if (empty($material['count'])) return 'no_knowledge';
+        // An opportunity without related knowledge is still actionable research,
+        // but can never be approved until evidence and categories are added.
 
         seo_landing_maybe_install();
         global $wpdb;
@@ -145,11 +144,14 @@ final class SEO_Editorial_Landings {
         $proposal['intent_key'] = $external_key;
         $proposal['analyst_task_ids'] = array_values(array_unique(array_merge(
             (array) ($proposal['analyst_task_ids'] ?? array()),
-            array(sanitize_text_field((string) ($signal['key'] ?? '')))
+            strpos((string)($signal['key']??''),'analista:')===0 ? array(sanitize_text_field((string)$signal['key'])) : array()
         )));
         $proposal['auditor_task_ids'] = array_values(array_unique(array_merge(
             (array) ($proposal['auditor_task_ids'] ?? array()),
-            array_map(static function($row) { return sanitize_text_field((string) $row['key']); }, $audit)
+            array_merge(
+                strpos((string)($signal['key']??''),'auditor:')===0 ? array(sanitize_text_field((string)$signal['key'])) : array(),
+                array_map(static function($row) { return sanitize_text_field((string) $row['key']); }, $audit)
+            )
         )));
         $proposal['diagnostics'] = array(
             'analista'=>array('topic'=>$intent,'action'=>$signal['action'],'priority'=>$signal['priority'] ?? 0,'observed_at'=>$signal['observed_at'] ?? ''),
@@ -158,6 +160,12 @@ final class SEO_Editorial_Landings {
             }, $audit),
         );
         $proposal['category_ids'] = self::valid_categories(array_merge((array) ($proposal['category_ids'] ?? array()), $categories));
+        $proposal['opportunity_sources'][sanitize_text_field((string)($signal['key']??$signal['source']))] = array(
+            'source'=>sanitize_text_field((string)($signal['source']??'')),
+            'action'=>sanitize_text_field((string)($signal['action']??'')),
+            'reason'=>sanitize_textarea_field((string)($signal['reason']??'')),
+            'updated_at'=>current_time('mysql')
+        );
         $proposal['services'][$service] = $material;
         $changed = !empty($previous) && (string) ($previous['source_hash'] ?? '') !== $material['source_hash'];
         if (!isset($proposal['draft_text'])) {
@@ -191,7 +199,7 @@ final class SEO_Editorial_Landings {
             'intent'=>$intent,
             'landing_type'=>'need',
             'status'=>'candidate',
-            'source'=>count($audit) ? 'Analista + Auditor' : 'Analista',
+            'source'=>sanitize_text_field((string)($signal['source']??'Diagnóstico editorial')),
             'requirements_json'=>wp_json_encode($requirements),
             'scores_json'=>wp_json_encode(array()),
             'total_score'=>0,
@@ -406,6 +414,7 @@ final class SEO_Editorial_Landings {
         echo '<p class="description">«Sin huecos en las últimas capturas» no garantiza cobertura perfecta: requiere Analista y Auditor recientes y validación de los contenidos. Tras la siguiente auditoría se vuelven a evaluar las necesidades.</p>';
         if (!empty($_GET['landing_error'])) echo '<div class="notice notice-error"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['landing_error']))) . '</p></div>';
         if (!empty($_GET['landing_notice'])) echo '<div class="notice notice-success"><p>' . esc_html(sanitize_key(wp_unslash($_GET['landing_notice']))) . '</p></div>';
+        echo '<p class="description">Las propuestas sin material o categorías se conservan para investigación; no pueden aprobarse. Los cambios humanos se respetan al resincronizar.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="seo_editorial_landings_sync"><input type="hidden" name="service" value="' . esc_attr($service) . '">';
         wp_nonce_field('seo_editorial_landings_sync');
