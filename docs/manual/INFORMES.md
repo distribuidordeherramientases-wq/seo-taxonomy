@@ -184,6 +184,49 @@ La medición se vincula a la intervención concreta y siempre conserva la línea
 
 Las pruebas T01–T06 verifican: Cámaras sin acción ejecutable, contrato de HACER AHORA, separación de etiquetas, coherencia de contadores/JSON, trazabilidad al resolver bloqueos y regresiones de evidencia/URL/modelo/tarea ejecutada/oportunidad ejecutable.
 
+### Propietario de intención y anti-canibalización · Analista 3.9.0
+
+Analista 3.9.0 modifica la lógica del **Plan de acción**, no añade un nuevo formulario ni un nuevo botón. Los controles de Periodo, Comparación y generación del Plan siguen siendo los mismos; cambia la forma en la que Analista decide el destino de cada oportunidad.
+
+Antes de proponer trabajo editorial, Analista revisa la cobertura local en:
+
+- categoría de producto;
+- hub secundario;
+- hub primario;
+- cluster;
+- landing;
+- post;
+- página editorial.
+
+Las páginas corporativas y funcionales no se consideran destino editorial.
+
+El Plan de acción puede devolver ahora estas decisiones editoriales:
+
+- **MEJORAR_CATEGORIA / IMPULSAR_CATEGORIA**: la intención debe concentrarse en una categoría ya existente.
+- **MEJORAR_HUB / IMPULSAR_HUB**: la oportunidad pertenece a un hub ya existente.
+- **MEJORAR_CLUSTER / IMPULSAR_CLUSTER**: la cobertura amplia corresponde al cluster existente.
+- **MEJORAR_LANDING / POTENCIAR_LANDING**: existe una landing que debe absorber la demanda.
+- **MEJORAR_POST / IMPULSAR_POST**: existe un post apropiado y no conviene abrir otra URL.
+- **CREAR_POST**: no existe cobertura suficiente y la intención es informativa y concreta.
+- **CREAR_LANDING**: no existe propietario local suficiente y la demanda cruza varias familias/categorías, por lo que se propone una landing transversal.
+- **INVESTIGAR_COBERTURA**: la demanda es comercial/transaccional, pero no está demostrado si falta categoría, surtido o landing; no se propone una URL hasta resolverlo.
+
+Cada tarea incorpora `coverage_decision`, que deja trazado si la recomendación parte de una entidad **existente** o de un posible hueco **nuevo**.
+
+#### Regla anti-canibalización
+
+Antes de recomendar una URL nueva, Analista intenta localizar un propietario existente suficientemente afín. Para demanda comercial se prioriza, de forma orientativa:
+
+**Categoría → Hub secundario → Hub primario → Cluster → Landing → Post**.
+
+Si una entidad existente puede absorber la intención, el Plan de acción debe proponer mejorar/impulsar esa entidad en lugar de repartir autoridad entre URLs paralelas.
+
+Una propuesta `CREAR_POST` o `CREAR_LANDING` queda como propuesta editorial y no como publicación automática. Debe validarse que ninguna URL existente pueda absorber la intención sin canibalización.
+
+#### Controles de interfaz
+
+Analista 3.9.0 **no incorpora botones, casillas, selectores ni campos nuevos**. La novedad se refleja en las etiquetas, acciones y explicación de las tarjetas del Plan de acción y en el JSON exportado. Por tanto, no cambia el procedimiento de uso: generar el Plan de acción, revisar la decisión, la entidad/URL y el bloqueo antes de ejecutar trabajo editorial.
+
 ### Informe competitivo profundo
 
 Dentro de **Analista → Comparación**, después de guardar competidores y palabras vigiladas, aparece el bloque **Informe competitivo profundo**.
