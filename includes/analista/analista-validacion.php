@@ -1628,14 +1628,22 @@ if (!function_exists('seo_analista_hydrate_entity_from_target')) {
             if ($post_id > 0) {
                 $post_type = get_post_type($post_id);
                 $type = $post_type === 'product' ? 'product' : ($post_type === 'page' ? 'page' : ($post_type === 'post' ? 'post' : ''));
+                $role = '';
+                if ($post_type === 'page' && function_exists('seo_analista_page_role_map')) {
+                    $role_map = seo_analista_page_role_map();
+                    $role = sanitize_key((string) ($role_map[$post_id] ?? ''));
+                    if (in_array($role,array('cluster','hub_primary','hub_secondary','landing'),true)) $type = $role;
+                    if ('corporate_page' === $role) return $row;
+                }
                 if ($type !== '') {
                     $row['entity'] = array(
                         'type'=>$type,
-                        'type_label'=>ucfirst($type),
+                        'type_label'=>function_exists('seo_analista_entity_label') ? seo_analista_entity_label($type) : ucfirst($type),
                         'id'=>$post_id,
                         'title'=>(string) get_the_title($post_id),
                         'url'=>(string) get_permalink($post_id),
                         'edit_url'=>(string) get_edit_post_link($post_id, ''),
+                        'role'=>$role,
                     );
                 }
             }
