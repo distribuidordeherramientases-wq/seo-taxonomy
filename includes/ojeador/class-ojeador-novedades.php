@@ -211,6 +211,7 @@ final class SEO_Ojeador_Novedades {
     private static function type_for($coverage,$affinity,$market){
         if(($coverage['status']??'')==='absent')return $affinity>=14?'new_category':'strategic_expansion';
         if(($coverage['status']??'')==='partial')return 'catalog_gap';
+        if(absint($coverage['count']??0)===0)return 'catalog_gap';
         return $market>=12?'trending_product':'catalog_gap';
     }
     private static function type_label($t){$m=array('new_category'=>'Nueva categoría/familia','catalog_gap'=>'Hueco en catálogo','trending_product'=>'Producto/tecnología en tendencia','strategic_expansion'=>'Expansión estratégica');return $m[$t]??$t;}
@@ -269,10 +270,22 @@ final class SEO_Ojeador_Novedades {
                 if(absint($summary['api_queries'])>=$query_budget)break;
                 $title=$cand['title'];if(self::norm($title)===self::norm($seed['hub_primary_name']))continue;
                 $report['candidates']++;$summary['opportunities_seen']++;$coverage=self::coverage($title);
+
+                // Search/Shopping pueden gastar hasta dos peticiones si SerpApi
+                // falla y entra ScraperAPI. Reservamos ese máximo antes de cada
+                // validación para respetar el presupuesto duro del radar.
+                if(absint($summary['api_queries'])+2>$query_budget)break;
+
                 $st=array();$shopping=SEO_Ojeador_Shopping::search_google_shopping($title,array(),$st);$summary['api_queries']+=absint($st['api_queries']??0);
                 $market=is_wp_error($shopping)?array('count'=>0,'merchants'=>0,'max_reviews'=>0,'sources'=>array()):self::shopping_metrics((array)$shopping);
-                $qt=trim($title.' '.$seed['hub_primary_name'].' profesional');$wt=array();$web=SEO_Ojeador_Shopping::search_google_web($qt,array('num'=>10),$wt);$summary['api_queries']+=absint($wt['api_queries']??0);
-                $search=is_wp_error($web)?array('count'=>0,'sources'=>array()):self::search_metrics((array)$web);
+
+                $qt=trim($title.' '.$seed['hub_primary_name'].' profesional');
+                $wt=array();$search=array('count'=>0,'sources'=>array());
+                if(absint($summary['api_queries'])+2<=$query_budget){
+                    $web=SEO_Ojeador_Shopping::search_google_web($qt,array('num'=>10),$wt);
+                    $summary['api_queries']+=absint($wt['api_queries']??0);
+                    if(!is_wp_error($web))$search=self::search_metrics((array)$web);
+                }
                 $ts=self::trend_score($cand['value'],$cand['label']);$ms=self::market_score($market);$as=self::affinity_score($title,$seed,$search);$gs=self::gap_score($coverage);$score=min(100,$ts+$ms+$as+$gs);$type=self::type_for($coverage,$as,$ms);
                 $sources=array();if(!empty($cand['url']))$sources[]=array('type'=>'google_trends','title'=>$title.' · Google Trends','url'=>$cand['url'],'signal'=>$cand['label']);
                 $sources=array_merge($sources,$market['sources'],$search['sources']);
@@ -344,7 +357,7 @@ final class SEO_Ojeador_Novedades {
                     <div class="seo-ojeador-filter-grid">
                         <label><strong>Territorio</strong><select name="hub_primary_id"><option value="0">Siguiente Hub primario (rotación)</option><?php foreach($seeds as $s):?><option value="<?php echo esc_attr((string)$s['hub_primary_id']); ?>"><?php echo esc_html($s['cluster_name'].' → '.$s['hub_primary_name']); ?></option><?php endforeach;?></select></label>
                         <label><strong>Hubs por ejecución</strong><select name="seed_limit"><?php foreach(array(1,2,3) as $n):?><option value="<?php echo esc_attr((string)$n); ?>"><?php echo esc_html((string)$n); ?></option><?php endforeach;?></select></label>
-                        <label><strong>Candidatos por Hub</strong><select name="candidate_limit"><?php foreach(array(2,3,5) as $n):?><option value="<?php echo esc_attr((string)$n); ?>" <?php selected($n,3); ?>><?php echo esc_html((string)$n); ?></option><?php endforeach;?></select></label>
+                        <label><strong>Candidatos por Hub</strong><select name="candidate_limit"><?php foreach(array(2,3,5) as $n):?><option value="<?php echo esc_attr((string)$n); ?>" <?php selected($n,2); ?>><?php echo esc_html((string)$n); ?></option><?php endforeach;?></select></label>
                     </div>
                     <p style="margin-bottom:0"><button class="button button-primary">Buscar novedades</button> <span class="seo-ojeador-muted">Presupuesto: aprox. 1 Trends + 2 validaciones por candidato, con tope duro de 8 peticiones por ejecución.</span></p>
                 </form>
