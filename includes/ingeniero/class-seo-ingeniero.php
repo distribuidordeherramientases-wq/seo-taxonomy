@@ -170,7 +170,10 @@ final class SEO_Ingeniero {
             );
         }
 
-        usort($rows, static function($a, $b) {
+        $demand=class_exists('SEO_Editorial_Opportunities') ? SEO_Editorial_Opportunities::category_demand_priorities() : array();
+        usort($rows, static function($a, $b) use ($demand) {
+            $signal_cmp=absint($demand[absint($b['term_id']??0)]??0)<=>absint($demand[absint($a['term_id']??0)]??0);
+            if ($signal_cmp!==0) return $signal_cmp;
             $count_cmp = absint($b['count'] ?? 0) <=> absint($a['count'] ?? 0);
             if (0 !== $count_cmp) return $count_cmp;
             return strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
