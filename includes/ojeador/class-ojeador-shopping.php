@@ -631,6 +631,59 @@ final class SEO_Ojeador_Shopping {
     }
 
     /**
+     * Google Shopping genérico para descubrimiento de mercado.
+     *
+     * @return array|WP_Error
+     */
+    public static function search_google_shopping($query, $options = array(), &$trace = null) {
+        $query = trim((string) $query);
+        if ($query === '') {
+            return new WP_Error('google_provider_query_empty', 'Consulta Google Shopping vacía.');
+        }
+        $options = is_array($options) ? $options : array();
+        $args = array(
+            'engine'=>'google_shopping',
+            'q'=>$query,
+            'google_domain'=>'google.es',
+            'gl'=>'es',
+            'hl'=>'es',
+            'device'=>'desktop',
+        );
+        if (!empty($options['page'])) {
+            $args['page'] = max(1, absint($options['page']));
+        }
+        return self::provider_chain_request('shopping', $args, $trace);
+    }
+
+    /**
+     * Google Trends relacionado para descubrimiento abierto.
+     *
+     * Trends se consulta con SerpApi; ScraperAPI sigue siendo fallback de
+     * Search/Shopping y no se usa como sustituto ficticio de Trends.
+     *
+     * @return array|WP_Error
+     */
+    public static function search_google_trends_related($query, $data_type = 'RELATED_QUERIES', &$trace = null) {
+        $query = trim((string) $query);
+        if ($query === '') {
+            return new WP_Error('google_trends_query_empty', 'Consulta Google Trends vacía.');
+        }
+        $data_type = strtoupper(sanitize_text_field((string) $data_type));
+        if (!in_array($data_type, array('RELATED_QUERIES','RELATED_TOPICS'), true)) {
+            $data_type = 'RELATED_QUERIES';
+        }
+        $args = array(
+            'engine'=>'google_trends',
+            'q'=>$query,
+            'data_type'=>$data_type,
+            'date'=>'today 12-m',
+            'geo'=>'ES',
+            'hl'=>'es',
+        );
+        return self::provider_chain_request('trends', $args, $trace);
+    }
+
+    /**
      * Búsqueda web de Google compartida con Ingeniero.
      *
      * @return array|WP_Error
