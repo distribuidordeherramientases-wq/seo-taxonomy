@@ -9398,7 +9398,7 @@ function seo_import_posts_csv() {
         }
 
         $status = sanitize_key( $row['estado'] ?? '' );
-        if ( '' !== $status && ! in_array( $status, seo_ie_page_allowed_statuses(), true ) ) {
+        if ( '' !== $status && ! in_array( $status, array_merge( seo_ie_page_allowed_statuses(), [ 'trash' ] ), true ) ) {
             seo_ie_add_log_warning( $log, sprintf( 'Fila %d: estado «%s» no válido; se conservará el actual o se usará draft.', $item['line'], $status ) );
             $status = '';
         }
@@ -9406,6 +9406,11 @@ function seo_import_posts_csv() {
         if ( $creating && 'future' === $status && ( ! array_key_exists( 'fecha', $row ) || ! seo_ie_is_valid_page_datetime( $row['fecha'] ) ) ) {
             seo_ie_add_log_warning( $log, sprintf( 'Fila %d: una entrada future necesita fecha válida; se creará como draft.', $item['line'] ) );
             $status = 'draft';
+        }
+
+        if ( 'trash' === $status && ( ! $is_existing || 'draft' !== get_post_status( $existing_id ) ) ) {
+            $mark_invalid( $index, 'Trash exige un post existente que siga en draft.' );
+            continue;
         }
 
         $author_id = $import_author_date ? seo_ie_resolve_page_author( $row ) : 0;
@@ -9466,6 +9471,36 @@ function seo_import_posts_csv() {
             } else {
                 $log['actualizados']++;
             }
+            $log['correctos']++;
+            continue;
+        }
+
+        if ( 'trash' === $status ) {
+            // Se usa la API de WordPress; no se borran posts publicados ni se hacen borrados definitivos.
+            if ( defined( 'EMPTY_TRASH_DAYS' ) && 0 === (int) EMPTY_TRASH_DAYS ) {
+                $log['errores']++;
+                seo_ie_add_log_detail( $log, sprintf( 'Fila %d: papelera deshabilitada; no se elimina el post %d.', $item['line'], $existing_id ) );
+                continue;
+            }
+            $topic_id = absint( get_post_meta( $existing_id, '_seo_solucionador_topic_id', true ) );
+            $category_id = absint( get_post_meta( $existing_id, '_seo_solucionador_dossier_category_id', true ) );
+            $trashed = wp_trash_post( $existing_id );
+            if ( ! $trashed || is_wp_error( $trashed ) ) {
+                $log['errores']++;
+                seo_ie_add_log_detail( $log, sprintf( 'Fila %d: error al enviar %d a papelera.', $item['line'], $existing_id ) );
+                continue;
+            }
+            if ( $topic_id && $category_id && class_exists( 'SEO_Solucionador_Dossiers' ) ) {
+                SEO_Solucionador_Dossiers::mark_rejected( $category_id );
+            }
+            if ( $topic_id && class_exists( 'SEO_Solucionador_DB' ) ) {
+                SEO_Solucionador_DB::update_topic( $topic_id, [
+                    'status'=>'dismissed', 'workflow_state'=>'rejected',
+                    'recommended_action'=>'NO_ACTION', 'draft_post_id'=>null,
+                ] );
+                SEO_Solucionador_DB::record_workflow( $topic_id, 'rejected', 'Descartado desde CSV: no regenerar el dossier actual.', 'NO_ACTION' );
+            }
+            $log['actualizados']++;
             $log['correctos']++;
             continue;
         }
