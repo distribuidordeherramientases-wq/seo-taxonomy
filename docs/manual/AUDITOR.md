@@ -36,11 +36,30 @@ Revisa contenido de categorías, Vocabulary, relaciones y la cadena Cluster → 
 
 ## Posts
 
-Revisa entradas publicadas, slugs, duplicación y Vocabulary.
+Revisa entradas publicadas, slugs, duplicación y Vocabulary, pero antes construye un mapa editorial ligero con páginas estructurales, landings y categorías. De este modo no recomienda enriquecer un post que en realidad compite con un cluster, hub, categoría o landing ya existente.
+
+Auditor no propone crear posts nuevos. Cuando detecta solapamiento, identifica el posible propietario de la intención y recomienda revisar, diferenciar o consolidar.
 
 ## Páginas y landings
 
-Revisa páginas publicadas, incluidas landings y su estructura editorial.
+La auditoría editorial excluye páginas funcionales y corporativas. Estas páginas pueden tener comprobaciones técnicas en otras capas, pero no generan tareas editoriales por longitud, Vocabulary o deriva semántica.
+
+Las páginas de contenido se clasifican por función:
+
+- **Canónicas estructurales**: cluster, hub primario y hub secundario. Deben concentrar la intención jerárquica amplia que les corresponde.
+- **Landings**: deben resolver necesidades amplias o transversales que agrupen varias familias/categorías sin duplicar la taxonomía estructural.
+- **Páginas editoriales no clasificadas**: se señalan para definir su función antes de crear o enriquecer contenido.
+
+El especialista editorial compara posts, landings, clusters/hubs y categorías para detectar:
+
+- canibalización exacta por identidad/título/slug;
+- solapamientos semánticos apoyados por categorías y Vocabulary;
+- landings demasiado próximas a una sola categoría;
+- landings que duplican un cluster/hub;
+- landings con cobertura muy solapada, candidatas a fusión;
+- landings con varios grupos estructurales independientes, candidatas a división.
+
+Las propuestas de unir o dividir landings son señales para revisión humana. Auditor no crea, divide, fusiona, publica ni redirige URLs.
 
 ## FAQs
 
@@ -131,8 +150,15 @@ Este auditor está separado del Auditor de contenidos.
 - **Academia**: detalle del aprendizaje.
 - **Cadena**: estado de la cadena del Estudiante y sus dependencias.
 
+## Separación Auditor / Analista
+
+Auditor revisa y protege el universo existente: detecta defectos, redundancia, canibalización, necesidad de consolidar, reclasificar o mejorar una entidad ya publicada. **No propone nuevas URLs.**
+
+Analista es quien detecta demanda, huecos u oportunidades nuevas. Antes de proponer una nueva entidad debe consultar la cobertura existente para decidir si la oportunidad corresponde a mejorar una categoría, cluster/hub, landing o post ya existente.
+
 ## Qué no hace Auditor
 
+- no propone crear posts, landings, páginas o categorías nuevas;
 - no publica;
 - no modifica contenido editorial;
 - no reescribe categorías;
