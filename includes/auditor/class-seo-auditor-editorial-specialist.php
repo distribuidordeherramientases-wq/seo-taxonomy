@@ -49,7 +49,11 @@ final class SEO_Auditor_Editorial_Specialist {
 
         $findings = array();
         if ('posts' === $scope) {
-            $findings = self::audit_posts((array) $map['posts'], (array) $map['pages']);
+            $findings = self::audit_posts(
+                (array) $map['posts'],
+                (array) $map['pages'],
+                (array) $map['categories']
+            );
         } elseif ('pages' === $scope) {
             $findings = self::audit_pages(
                 (array) $map['pages'],
@@ -335,7 +339,7 @@ final class SEO_Auditor_Editorial_Specialist {
         return $map;
     }
 
-    private static function audit_posts($posts, $pages) {
+    private static function audit_posts($posts, $pages, $categories) {
         $findings = array();
         $canonical = array_values(array_filter($pages, static function($page) {
             return 'canonical' === (string) ($page['kind'] ?? '');
@@ -381,6 +385,26 @@ final class SEO_Auditor_Editorial_Specialist {
                         'exact_slug'=>!empty($exact['exact_slug']),
                     ),
                     'Definir un unico propietario de la intencion. Mantener la landing si cubre una necesidad transversal y convertir el post en apoyo informativo concreto; si ambos resuelven lo mismo, consolidar contenido y aplicar borrador + 301 al duplicado.'
+                );
+                continue;
+            }
+
+            $category = self::best_category_overlap($post, $categories);
+            if ($category && (float) ($category['title_similarity'] ?? 0) >= 0.95) {
+                $findings[] = self::finding(
+                    'editorial_post_category_cannibalization',
+                    'medium',
+                    'post',
+                    absint($post['id'] ?? 0),
+                    (string) ($post['title'] ?? ''),
+                    'Post demasiado proximo a una categoria comercial',
+                    array(
+                        'post'=>self::brief($post),
+                        'category'=>self::brief($category['entity']),
+                        'title_similarity'=>$category['title_similarity'],
+                        'linked_to_category'=>$category['linked'],
+                    ),
+                    'La categoria debe concentrar la intencion comercial de su familia. Mantener el post solo si responde una pregunta, problema, comparacion o guia claramente distinta; si replica la categoria, consolidar antes de enriquecer.'
                 );
                 continue;
             }
