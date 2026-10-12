@@ -29,6 +29,7 @@
 - [[Manual de uso|Manual-de-uso]]
 - [[Servicios|Servicios]]
 - [[Arquitectura y conceptos|Arquitectura-y-conceptos]]
+- [[Flujo de datos|Flujo-de-datos]]
 - [[Procesos y workers|Procesos-y-workers]]
 
 **Versión documentada:** 2.3.7
