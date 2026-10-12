@@ -5,7 +5,45 @@ Ruta: **SEO Taxonomy → Herramientas → Ojeador**
 Barra: **Detener**, **Continuar / actualizar mercado** [API/Proceso], **Exportar JSON análisis**.
 
 ## Pestañas
-**Análisis y recomendaciones**, **Posición de precio**, **Comparador de productos**, **Operación y consultas**.
+**Análisis y recomendaciones**, **Novedades**, **Posición de precio**, **Comparador de productos**, **Operación y consultas**.
+
+## Novedades
+
+La pestaña **Novedades** amplía Ojeador con un radar de mercado que no parte de las categorías WooCommerce actuales.
+
+### Frontera de exploración
+- **Clusters**: fijan el perímetro comercial máximo.
+- **Hubs primarios**: son las semillas de búsqueda.
+- Hubs secundarios y categorías existentes se usan para contrastar cobertura, pero no bloquean el descubrimiento de familias nuevas.
+
+### Fuentes
+1. **Google Trends (SerpApi)**: consulta *Related Queries* en crecimiento y, si no hay resultados, *Related Topics*.
+2. **Google Shopping (SerpApi → ScraperAPI)**: comprueba que el término tiene oferta comercial real y conserva ejemplos de productos/comercios como fuente.
+3. **Google Search (SerpApi → ScraperAPI)**: valida contexto y aporta fuentes adicionales.
+
+Cada oportunidad conserva enlaces de origen y la evidencia usada para puntuarla. ScraperAPI es fallback de Search/Shopping; Trends requiere SerpApi.
+
+### Clasificación de oportunidades
+- **Nueva categoría/familia**: no se encuentra una categoría equivalente.
+- **Hueco en catálogo**: existe una categoría próxima, pero la familia parece cubrirse parcialmente.
+- **Producto/tecnología en tendencia**: la categoría ya existe y la señal apunta a una variante o producto emergente.
+- **Expansión estratégica**: oportunidad más adyacente que requiere revisión humana.
+
+### Score
+El score máximo es 100 y se muestra desglosado:
+- Tendencia: 35.
+- Mercado: 30.
+- Afinidad con Cluster/Hub primario: 25.
+- Hueco de catálogo: 10.
+
+El score es una ayuda de priorización, no una orden de alta. **Ojeador no crea categorías ni productos automáticamente.**
+
+### Uso
+**Buscar novedades** ejecuta un lote acotado y con un tope duro de 8 peticiones de proveedor. Por defecto rota por los Hubs primarios para no repetir siempre el mismo territorio. Se puede seleccionar un Hub concreto, cambiar el número de semillas y candidatos y filtrar después por estado, tipo o score.
+
+Estados humanos: **Detectada**, **Investigar**, **Vigilar**, **Descartada**.
+
+**Exportar JSON Novedades** descarga semillas, último run, puntuaciones, cobertura, evidencia y fuentes.
 
 ## Posición de precio
 **Exportar JSON precios**. Filtros Producto, Proveedor, Categoría, Estado de precio, Impresiones mínimas, Orden y Filas; **Aplicar filtros** / **Limpiar productos**.
