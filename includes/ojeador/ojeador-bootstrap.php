@@ -7,13 +7,13 @@
  *
  * @package SEOSystem
  * @subpackage Ojeador
- * @version 0.9.1
+ * @version 0.10.0
  */
 
 defined('ABSPATH') || exit;
 
 if (!defined('SEO_OJEADOR_VERSION')) {
-    define('SEO_OJEADOR_VERSION', '0.9.1');
+    define('SEO_OJEADOR_VERSION', '0.10.0');
 }
 if (!defined('SEO_OJEADOR_PATH')) {
     define('SEO_OJEADOR_PATH', __DIR__ . '/');
@@ -26,9 +26,12 @@ require_once SEO_OJEADOR_PATH . 'class-ojeador-worker.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-process.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-analysis.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-stars.php';
+require_once SEO_OJEADOR_PATH . 'class-ojeador-novedades.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-admin.php';
 
 SEO_Ojeador_DB::maybe_install();
+SEO_Ojeador_Novedades::maybe_install();
+SEO_Ojeador_Novedades::init();
 SEO_Ojeador_Worker::init();
 SEO_Ojeador_Process::init();
 SEO_Ojeador_Admin::init();
