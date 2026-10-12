@@ -43,7 +43,7 @@ final class SEO_Ojeador_Admin {
             'title' => 'Ojeador',
             'icon' => 'dashicons-chart-line',
             'page' => self::PAGE,
-            'desc' => 'Consulta categorías en Google Shopping y conserva todo el mercado devuelto por la API.',
+            'desc' => 'Compara el mercado conocido y descubre nuevas categorías, subfamilias y tecnologías.',
         );
         return $tools;
     }
@@ -183,8 +183,7 @@ final class SEO_Ojeador_Admin {
                 <p style="margin:0 0 5px;"><strong style="font-size:12px;text-transform:uppercase;color:#646970;">Servicios compartidos de búsqueda Google</strong></p>
                 <h2 style="margin:0 0 7px;">SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero</h2>
                 <p style="margin:0;max-width:980px;">
-                    Estas dos conexiones se configuran una sola vez. <strong>Ojeador</strong> las utiliza para Google Shopping e
-                    <strong>Ingeniero</strong> para Google Search. El orden automático es SerpApi primero y ScraperAPI como respaldo.
+                    Estas dos conexiones se configuran una sola vez. <strong>Ojeador</strong> usa Google Shopping y Search, y SerpApi también para Google Trends en Novedades; <strong>Ingeniero</strong> usa Google Search. El orden automático es SerpApi primero y ScraperAPI como respaldo para Search/Shopping.
                 </p>
             </div>
 
