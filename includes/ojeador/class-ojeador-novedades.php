@@ -58,7 +58,7 @@ final class SEO_Ojeador_Novedades {
             first_seen_at datetime NOT NULL,
             last_seen_at datetime NOT NULL,
             updated_at datetime NOT NULL,
-            PRIMARY KEY (id),
+            PRIMARY KEY  (id),
             UNIQUE KEY opportunity_key (opportunity_key),
             KEY score (score),
             KEY status (status),
@@ -298,12 +298,12 @@ final class SEO_Ojeador_Novedades {
 
     public static function handle_scan(){
         self::guard('seo_ojeador_novedades_scan');
-        $r=self::scan(absint($_POST['seed_limit']??1),absint($_POST['candidate_limit']??3),absint($_POST['hub_primary_id']??0));
+        $r=self::scan(absint(wp_unslash($_POST['seed_limit']??1)),absint(wp_unslash($_POST['candidate_limit']??3)),absint(wp_unslash($_POST['hub_primary_id']??0)));
         if(is_wp_error($r))self::redirect(array('ojeador_error'=>rawurlencode($r->get_error_message())));
         self::redirect(array('ojeador_notice'=>'novedades_scanned','novedades_saved'=>absint($r['opportunities_saved']??0),'novedades_queries'=>absint($r['api_queries']??0)));
     }
     public static function handle_status(){
-        self::guard('seo_ojeador_novedades_status');global $wpdb;$id=absint($_POST['opportunity_id']??0);$status=sanitize_key((string)($_POST['opportunity_status']??'detected'));
+        self::guard('seo_ojeador_novedades_status');global $wpdb;$id=absint(wp_unslash($_POST['opportunity_id']??0));$status=sanitize_key((string)wp_unslash($_POST['opportunity_status']??'detected'));
         if(!in_array($status,array('detected','investigate','watch','dismissed'),true))$status='detected';
         if($id)$wpdb->update(self::table(),array('status'=>$status,'updated_at'=>gmdate('Y-m-d H:i:s')),array('id'=>$id));
         self::redirect(array('ojeador_notice'=>'novedades_status'));
@@ -333,7 +333,7 @@ final class SEO_Ojeador_Novedades {
 
     public static function render($d){
         $rows=(array)($d['rows']??array());$stats=(array)($d['stats']??array());$seeds=(array)($d['seeds']??array());$last=(array)($d['last_run']??array());
-        $fs=sanitize_key((string)($_GET['nstatus']??''));$ft=sanitize_key((string)($_GET['ntype']??''));$fm=absint($_GET['nscore']??0);$fq=sanitize_text_field(wp_unslash($_GET['nq']??''));
+        $fs=sanitize_key((string)wp_unslash($_GET['nstatus']??''));$ft=sanitize_key((string)wp_unslash($_GET['ntype']??''));$fm=absint(wp_unslash($_GET['nscore']??0));$fq=sanitize_text_field(wp_unslash($_GET['nq']??''));
         ?>
         <section style="margin-top:18px">
             <div class="seo-ojeador-box">
