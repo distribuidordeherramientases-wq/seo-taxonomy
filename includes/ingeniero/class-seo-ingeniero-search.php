@@ -125,7 +125,11 @@ final class SEO_Ingeniero_SerpApi_Provider implements SEO_Ingeniero_Search_Provi
         }
 
         $rows = array();
-        foreach ((array) ($body['organic_results'] ?? array()) as $row) {
+        // Google News uses news_results instead of organic_results.
+        $items = sanitize_key((string)($context['lesson']??'')) === SEO_Ingeniero::LESSON_CURRENT
+            ? (array)($body['news_results'] ?? $body['organic_results'] ?? array())
+            : (array)($body['organic_results'] ?? array());
+        foreach ($items as $row) {
             if (!is_array($row)) continue;
             $url = esc_url_raw((string) ($row['link'] ?? $row['url'] ?? ''));
             if ($url === '') continue;
