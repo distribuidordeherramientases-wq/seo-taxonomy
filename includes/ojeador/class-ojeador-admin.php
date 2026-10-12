@@ -810,7 +810,7 @@ final class SEO_Ojeador_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['ojeador_tab'] ?? 'analysis'));
-        if (!in_array($tab, array('analysis','stars','products','operation'), true)) {
+        if (!in_array($tab, array('analysis','novedades','stars','products','operation'), true)) {
             $tab = 'analysis';
         }
 
@@ -824,6 +824,7 @@ final class SEO_Ojeador_Admin {
         $error = isset($_GET['ojeador_error']) ? sanitize_text_field(rawurldecode((string) $_GET['ojeador_error'])) : '';
 
         $analysis = array();
+        $novedades = array();
         $stars = array();
         $comparison = array();
         $category_options = array();
@@ -835,6 +836,14 @@ final class SEO_Ojeador_Admin {
 
         if ($tab === 'analysis') {
             $analysis = SEO_Ojeador_Analysis::dashboard(100);
+        } elseif ($tab === 'novedades') {
+            $novedades = SEO_Ojeador_Novedades::dashboard(array(
+                'status' => sanitize_key((string) ($_GET['nstatus'] ?? '')),
+                'type' => sanitize_key((string) ($_GET['ntype'] ?? '')),
+                'min_score' => absint($_GET['nscore'] ?? 0),
+                'q' => sanitize_text_field(wp_unslash($_GET['nq'] ?? '')),
+                'limit' => 500,
+            ));
         } elseif ($tab === 'stars') {
             $stars = SEO_Ojeador_Stars::dashboard(array(
                 'q' => sanitize_text_field(wp_unslash($_GET['sq'] ?? '')),
@@ -885,7 +894,7 @@ final class SEO_Ojeador_Admin {
             <div class="seo-ojeador-head">
                 <div>
                     <h1 style="margin-bottom:0">Ojeador <small style="font-size:14px;color:#646970">v<?php echo esc_html(SEO_OJEADOR_VERSION); ?></small></h1>
-                    <p class="seo-ojeador-sub">Google Shopping por categorías, análisis accionable, posición de precio y comparación de mercado. Las recomendaciones sirven para decidir qué revisar; no ejecutan cambios automáticos.</p>
+                    <p class="seo-ojeador-sub">Google Shopping por categorías, radar de novedades, análisis accionable, posición de precio y comparación de mercado. Las recomendaciones sirven para decidir qué revisar; no ejecutan cambios automáticos.</p>
                 </div>
                 <div class="seo-ojeador-actions">
                     <?php if (SEO_Ojeador_Worker::is_pending()) : ?>
@@ -911,11 +920,14 @@ final class SEO_Ojeador_Admin {
             <?php endif; ?>
             <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías aptas.</p></div><?php endif; ?>
             <?php if ($notice === 'scan_stopped') : ?><div class="notice notice-info inline"><p>Proceso detenido.</p></div><?php endif; ?>
+            <?php if ($notice === 'novedades_scanned') : ?><div class="notice notice-success inline"><p>Radar de Novedades completado: <?php echo esc_html(number_format_i18n(absint($_GET['novedades_saved'] ?? 0))); ?> oportunidades guardadas con <?php echo esc_html(number_format_i18n(absint($_GET['novedades_queries'] ?? 0))); ?> peticiones de proveedor.</p></div><?php endif; ?>
+            <?php if ($notice === 'novedades_status') : ?><div class="notice notice-success inline"><p>Estado de la oportunidad actualizado.</p></div><?php endif; ?>
             <?php if ($error !== '') : ?><div class="notice notice-error inline"><p><?php echo esc_html($error); ?></p></div><?php endif; ?>
             <?php if (is_wp_error($ready)) : ?><div class="notice notice-warning inline"><p><strong>Google Shopping:</strong> <?php echo esc_html($ready->get_error_message()); ?></p></div><?php endif; ?>
 
             <nav class="nav-tab-wrapper">
                 <a class="nav-tab <?php echo $tab === 'analysis' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=analysis')); ?>">Análisis y recomendaciones</a>
+                <a class="nav-tab <?php echo $tab === 'novedades' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=novedades')); ?>">Novedades</a>
                 <a class="nav-tab <?php echo $tab === 'stars' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=stars')); ?>">Posición de precio</a>
                 <a class="nav-tab <?php echo $tab === 'products' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=products')); ?>">Comparador de productos</a>
                 <a class="nav-tab <?php echo $tab === 'operation' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=operation')); ?>">Operación y consultas</a>
@@ -923,6 +935,8 @@ final class SEO_Ojeador_Admin {
 
             <?php if ($tab === 'analysis') : ?>
                 <?php self::render_analysis($analysis); ?>
+            <?php elseif ($tab === 'novedades') : ?>
+                <?php SEO_Ojeador_Novedades::render($novedades); ?>
             <?php elseif ($tab === 'stars') : ?>
                 <?php self::render_stars($stars); ?>
             <?php elseif ($tab === 'products') : ?>
