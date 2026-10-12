@@ -137,7 +137,7 @@ final class SEO_Ojeador_Novedades {
             $r=self::overlap($candidate,$c['name']);
             if($r>$ratio){$ratio=$r;$best=$c;}
         }
-        if($best&&$ratio>=0.58)return array('status'=>'partial','term_id'=>$best['id'],'name'=>$best['name'],'ratio'=>round($ratio,3),'count'=>$best['count']);
+        if($best&&$ratio>=0.48)return array('status'=>'partial','term_id'=>$best['id'],'name'=>$best['name'],'ratio'=>round($ratio,3),'count'=>$best['count']);
         return array('status'=>'absent','term_id'=>0,'name'=>'','ratio'=>round($ratio,3),'count'=>0);
     }
 
@@ -254,8 +254,9 @@ final class SEO_Ojeador_Novedades {
         $seed_limit=max(1,min(3,absint($seed_limit)));$candidate_limit=max(1,min(5,absint($candidate_limit)));
         $seeds=self::choose_seeds($seed_limit,absint($hub_id));
         if(!$seeds)return new WP_Error('ojeador_novedades_seeds','No hay Clusters/Hubs primarios disponibles para explorar.');
-        $started=microtime(true);$summary=array('started_at_utc'=>gmdate('c'),'seeds'=>array(),'opportunities_seen'=>0,'opportunities_saved'=>0,'api_queries'=>0,'errors'=>array());
+        $started=microtime(true);$query_budget=8;$summary=array('started_at_utc'=>gmdate('c'),'query_budget'=>$query_budget,'seeds'=>array(),'opportunities_seen'=>0,'opportunities_saved'=>0,'api_queries'=>0,'errors'=>array());
         foreach($seeds as $seed){
+            if(absint($summary['api_queries'])>=$query_budget)break;
             $report=array('cluster_name'=>$seed['cluster_name'],'hub_primary_name'=>$seed['hub_primary_name'],'candidates'=>0,'saved'=>0,'errors'=>array());
             $trace=array();$trends=SEO_Ojeador_Shopping::search_google_trends_related($seed['hub_primary_name'],'RELATED_QUERIES',$trace);$summary['api_queries']+=absint($trace['api_queries']??0);
             if(is_wp_error($trends)){$report['errors'][]=$trends->get_error_message();$summary['errors'][]=$seed['hub_primary_name'].': '.$trends->get_error_message();$summary['seeds'][]=$report;continue;}
@@ -265,6 +266,7 @@ final class SEO_Ojeador_Novedades {
                 if(!is_wp_error($topics))$candidates=self::trend_candidates((array)$topics,$candidate_limit);else $report['errors'][]=$topics->get_error_message();
             }
             foreach($candidates as $cand){
+                if(absint($summary['api_queries'])>=$query_budget)break;
                 $title=$cand['title'];if(self::norm($title)===self::norm($seed['hub_primary_name']))continue;
                 $report['candidates']++;$summary['opportunities_seen']++;$coverage=self::coverage($title);
                 $st=array();$shopping=SEO_Ojeador_Shopping::search_google_shopping($title,array(),$st);$summary['api_queries']+=absint($st['api_queries']??0);
@@ -344,7 +346,7 @@ final class SEO_Ojeador_Novedades {
                         <label><strong>Hubs por ejecución</strong><select name="seed_limit"><?php foreach(array(1,2,3) as $n):?><option value="<?php echo esc_attr((string)$n); ?>"><?php echo esc_html((string)$n); ?></option><?php endforeach;?></select></label>
                         <label><strong>Candidatos por Hub</strong><select name="candidate_limit"><?php foreach(array(2,3,5) as $n):?><option value="<?php echo esc_attr((string)$n); ?>" <?php selected($n,3); ?>><?php echo esc_html((string)$n); ?></option><?php endforeach;?></select></label>
                     </div>
-                    <p style="margin-bottom:0"><button class="button button-primary">Buscar novedades</button> <span class="seo-ojeador-muted">Presupuesto: aprox. 1 Trends + 2 validaciones por candidato.</span></p>
+                    <p style="margin-bottom:0"><button class="button button-primary">Buscar novedades</button> <span class="seo-ojeador-muted">Presupuesto: aprox. 1 Trends + 2 validaciones por candidato, con tope duro de 8 peticiones por ejecución.</span></p>
                 </form>
                 <?php if($last):?><p class="seo-ojeador-run"><strong>Último radar:</strong> <?php echo esc_html(number_format_i18n(absint($last['opportunities_saved']??0))); ?> oportunidades · <?php echo esc_html(number_format_i18n(absint($last['api_queries']??0))); ?> peticiones · <?php echo esc_html((string)($last['completed_at_utc']??'')); ?> UTC</p><?php endif;?>
             </div>
