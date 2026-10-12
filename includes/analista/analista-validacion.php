@@ -1202,7 +1202,9 @@ if (!function_exists('seo_analista_reconcile_task_decision')) {
         $bucket = (string) ($gate['bucket'] ?? $row['work_bucket'] ?? 'VIGILAR');
         $primary_type = (string) ($primary['type'] ?? '');
         if ($bucket === 'HACER_AHORA' && empty($primary['executable'])) {
-            if (in_array($primary_type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','INVESTIGAR_SURTIDO'), true)
+            if (in_array($primary_type,array('CREAR_CONTENIDO','CREAR_POST','CREAR_LANDING'),true)) {
+                $bucket = 'HACER_DESPUES';
+            } elseif (in_array($primary_type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','INVESTIGAR_SURTIDO'), true)
                 || (string) ($gate['blocker_type'] ?? '') === 'entity') {
                 $bucket = 'INVESTIGAR';
             } elseif ($primary_type === 'ESPERAR_DATOS' || (string) ($gate['blocker_type'] ?? '') === 'evidence') {
@@ -1439,6 +1441,18 @@ if (!function_exists('seo_analista_atomic_actions')) {
         }
 
         if (($gate['blocker_type'] ?? '') === 'entity') {
+            $proposed_action = (string) ($row['action'] ?? '');
+            if (in_array($proposed_action,array('CREAR_POST','CREAR_LANDING'),true)
+                && (string) ($row['coverage_decision']['status'] ?? '') === 'new') {
+                $actions[] = array(
+                    'type'=>$proposed_action,
+                    'detail'=>'No existe un propietario local suficientemente fuerte para «' . $query . '». La propuesta nace después de revisar categorías, clusters, hubs, landings y posts; requiere validación editorial antes de crear la URL.',
+                    'owner'=>'Editora',
+                    'checklist'=>$steps,
+                    'unlock_condition'=>'Confirmar que ninguna URL existente puede absorber la intención sin canibalización.',
+                );
+                return $actions;
+            }
             $type = ($gate['state'] ?? '') === 'BLOCKED_ENTITY_CONFLICT' ? 'CORREGIR_ASOCIACION' : 'INVESTIGAR_COBERTURA';
             $actions[] = array(
                 'type'=>$type,
