@@ -1085,6 +1085,8 @@ if (!function_exists('seo_analista_action_execution_profile')) {
             'MEJORAR_FICHA'=>array('verb'=>'Corregir','object'=>'los defectos concretos de la ficha'),
             'ACTUALIZAR_CONTENIDO'=>array('verb'=>'Actualizar','object'=>'el contenido existente relacionado'),
             'CREAR_CONTENIDO'=>array('verb'=>'Crear','object'=>'un contenido nuevo'),
+            'CREAR_POST'=>array('verb'=>'Proponer','object'=>'un post nuevo y específico'),
+            'CREAR_LANDING'=>array('verb'=>'Proponer','object'=>'una landing transversal nueva'),
             'REVISAR_OFERTA_PRECIO'=>array('verb'=>'Validar','object'=>'los datos comerciales bloqueantes'),
             'INVESTIGAR_SURTIDO'=>array('verb'=>'Comprobar','object'=>'el surtido y sus variantes vendibles'),
             'INVESTIGAR_COBERTURA'=>array('verb'=>'Resolver','object'=>'la entidad o URL que debe atender la consulta'),
@@ -1104,6 +1106,8 @@ if (!function_exists('seo_analista_action_execution_profile')) {
             'REVISAR_OFERTA_PRECIO',
             'INVESTIGAR_SURTIDO',
             'CREAR_CONTENIDO',
+            'CREAR_POST',
+            'CREAR_LANDING',
         );
         $executable = !in_array($type, $non_executable, true)
             && !empty($validation['target']['resolved'])
@@ -1203,7 +1207,8 @@ if (!function_exists('seo_analista_reconcile_task_decision')) {
                 $bucket = 'INVESTIGAR';
             } elseif ($primary_type === 'ESPERAR_DATOS' || (string) ($gate['blocker_type'] ?? '') === 'evidence') {
                 $bucket = 'ESPERAR_DATOS';
-            } elseif ((string) ($gate['blocker_type'] ?? '') === 'commercial' || $primary_type === 'CREAR_CONTENIDO') {
+            } elseif ((string) ($gate['blocker_type'] ?? '') === 'commercial'
+                || in_array($primary_type,array('CREAR_CONTENIDO','CREAR_POST','CREAR_LANDING'),true)) {
                 $bucket = 'HACER_DESPUES';
             } else {
                 $bucket = 'VIGILAR';
@@ -1221,6 +1226,8 @@ if (!function_exists('seo_analista_reconcile_task_decision')) {
                 $bucket = 'ESPERAR_DATOS';
             } elseif (in_array($primary_type, array('INVESTIGAR_COBERTURA','CORREGIR_ASOCIACION','INVESTIGAR_SURTIDO'), true)) {
                 $bucket = 'INVESTIGAR';
+            } elseif (in_array($primary_type,array('CREAR_CONTENIDO','CREAR_POST','CREAR_LANDING'),true)) {
+                $bucket = 'HACER_DESPUES';
             }
         }
 
@@ -1529,9 +1536,13 @@ if (!function_exists('seo_analista_atomic_actions')) {
                     'owner'=>'Editora'
                 );
             } else {
+                $create_type = in_array($legacy_action,array('CREAR_POST','CREAR_LANDING'),true)
+                    ? $legacy_action
+                    : 'CREAR_CONTENIDO';
+                $kind_label = 'CREAR_LANDING' === $create_type ? 'landing transversal' : ('CREAR_POST' === $create_type ? 'post específico' : 'contenido nuevo');
                 $actions[] = array(
-                    'type'=>'CREAR_CONTENIDO',
-                    'detail'=>'No se ha encontrado cobertura equivalente para «' . $query . '». Crear contenido solo tras confirmar que la URL objetivo no puede absorber la intención y con revisión editorial.',
+                    'type'=>$create_type,
+                    'detail'=>'No se ha encontrado cobertura equivalente para «' . $query . '». Proponer ' . $kind_label . ' solo tras confirmar que cluster, hubs, categorías, landings y posts existentes no pueden absorber la intención.',
                     'owner'=>'Editora'
                 );
             }
@@ -1631,6 +1642,33 @@ if (!function_exists('seo_analista_validate_and_finalize_task')) {
             $row = $resolved_row;
             $row['query'] = $query;
             $validation = seo_analista_validate_query_entity($query, $row);
+        }
+
+        /*
+         * 3.9.0: toda señal pasa por una decisión explícita EXISTENTE vs NUEVO.
+         * Si hay propietario local, se mejora esa entidad; si no lo hay,
+         * Analista distingue post, landing o investigación de cobertura.
+         */
+        $entity_after_resolution = (array) ($row['entity'] ?? array());
+        if (!empty($entity_after_resolution['type']) && (!empty($entity_after_resolution['id']) || !empty($entity_after_resolution['url']))) {
+            $entity_type = sanitize_key((string) ($entity_after_resolution['type'] ?? ''));
+            $row['coverage_decision'] = array(
+                'status'=>'existing',
+                'entity_type'=>$entity_type,
+                'entity_id'=>absint($entity_after_resolution['id'] ?? 0),
+                'target_url'=>(string) ($entity_after_resolution['url'] ?? ($row['target']['url'] ?? '')),
+                'reason'=>'Existe una entidad local validada; reforzarla antes de abrir otra URL.',
+            );
+            if (function_exists('seo_analista_entity_action')) {
+                $row['action'] = seo_analista_entity_action($entity_type, !empty($row['issues']));
+            }
+        } elseif (function_exists('seo_analista_new_destination_decision')) {
+            $destination = seo_analista_new_destination_decision($query);
+            $row['coverage_decision'] = array_merge(array('status'=>'new'), (array) $destination);
+            $row['action'] = (string) ($destination['action'] ?? 'INVESTIGAR_COBERTURA');
+            if (!empty($destination['reason'])) {
+                $row['reason'] = trim((string) ($row['reason'] ?? '') . ' ' . (string) $destination['reason']);
+            }
         }
 
         $evidence = seo_analista_evidence_profile($row);
@@ -1848,6 +1886,7 @@ if (!function_exists('seo_analista_task_contract')) {
             'unlock_condition'=>(string) ($row['unlock_condition'] ?? ''),
             'investigation_steps'=>(array) ($row['investigation_steps'] ?? array()),
             'auto_resolution'=>(array) ($row['auto_resolution'] ?? array()),
+            'coverage_decision'=>(array) ($row['coverage_decision'] ?? array()),
             'confidence_level'=>(string) ($row['confidence_level'] ?? 'low'),
             'confidence'=>absint($row['confidence'] ?? 0),
             'objective'=>(array) ($row['objective'] ?? array()),
