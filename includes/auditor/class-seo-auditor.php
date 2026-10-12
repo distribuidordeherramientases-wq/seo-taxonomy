@@ -4103,6 +4103,7 @@ final class SEO_Auditor {
             'category_description_alignment_weak','category_excerpt_alignment_weak',
             'category_without_secondary_hub','editorial_vocab_title_drift',
             'editorial_post_structural_overlap','editorial_post_landing_overlap',
+            'editorial_post_category_cannibalization',
             'editorial_landing_structural_overlap','editorial_landing_category_cannibalization',
             'editorial_landing_scope_narrow','editorial_landing_split_candidate',
             'editorial_landing_merge_candidate','editorial_page_role_unclassified',
