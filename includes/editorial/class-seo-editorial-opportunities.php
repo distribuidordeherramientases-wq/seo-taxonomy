@@ -95,6 +95,10 @@ final class SEO_Editorial_Opportunities {
                 'action'=>$action,'topic'=>$topic,'intent'=>$topic,
                 'entity_type'=>$entity_type,'entity_id'=>$entity_id,'category_ids'=>$cats,
                 'priority'=>absint($task['priority_score']??0),'bucket'=>$bucket,
+                'clicks'=>max(0,(float)($task['clicks']??0)),
+                'impressions'=>max(0,(float)($task['impressions']??0)),
+                'position'=>max(0,(float)($task['position']??0)),
+                'query_intent'=>$intent,
                 'target_url'=>$target,
                 'reason'=>sanitize_text_field((string)($decision['decision_reason']??$task['unlock_condition']??'')),
                 'observed_at'=>sanitize_text_field((string)($entry['last_seen']??'')),
@@ -204,13 +208,90 @@ final class SEO_Editorial_Opportunities {
         return array();
     }
 
-    public static function records($kind = '') {
+    /**
+     * Small organic signals are actionable. Priority is separate from
+     * confidence: one click or first impressions can open research, but never
+     * automatically pass an editorial approval gate.
+     */
+    public static function demand_score(array $signal) {
+        $base=max(0,min(100,absint($signal['priority']??0)));
+        $clicks=max(0,(float)($signal['clicks']??0));
+        $impressions=max(0,(float)($signal['impressions']??0));
+        $position=max(0,(float)($signal['position']??0));
+        $bonus=0;
+        $reasons=array();
+        if ($clicks>=1) {
+            $bonus+=28;
+            $reasons[]='Primeros clics orgánicos';
+        }
+        if ($impressions>=1) {
+            $bonus+=12;
+            $reasons[]='Google ya muestra esta búsqueda';
+        }
+        if ($position>0 && $position<=10) {
+            $bonus+=20;
+            $reasons[]='Posición 1–10';
+        } elseif ($position<=20 && $position>10) {
+            $bonus+=16;
+            $reasons[]='Posición 11–20';
+        } elseif ($position<=50 && $position>20) {
+            $bonus+=13;
+            $reasons[]='Posición 21–50';
+        } elseif ($position<=100 && $position>50) {
+            $bonus+=7;
+            $reasons[]='Visibilidad emergente 51–100';
+        }
+        $demand=min(100,max($base,$bonus+min(28,round(log(1+$impressions)*5))+min(12,round(log(1+$clicks)*7))));
+        return array(
+            'score'=>(int)$demand,
+            'confidence'=>sanitize_key((string)($signal['confidence']??'unknown')),
+            'reasons'=>$reasons ? $reasons : array('Investigar necesidad sin volumen suficiente'),
+        );
+    }
+
+    /** Priorities only for demonstrated product_cat, not inferred from words. */
+    public static function category_demand_priorities() {
+        $score=array();
+        foreach (self::records() as $signal) {
+            if (($signal['source']??'')==='Auditor') continue;
+            foreach (array_map('absint',(array)($signal['category_ids']??array())) as $id) {
+                if (!$id) continue;
+                $score[$id]=max($score[$id]??0,self::demand_score($signal)['score']);
+            }
+        }
+        return $score;
+    }
+
+    /** Radar seeds include public-demand signals even before a category exists. */
+    public static function research_seeds($limit = 7) {
+        $seeds=array();
+        foreach (self::records() as $signal) {
+            if (($signal['source']??'')!=='Analista' || ($signal['mode']??'')==='improve_existing') continue;
+            $topic=sanitize_text_field((string)($signal['topic']??''));
+            if (strlen($topic)<9 || strlen($topic)>110) continue;
+            $normalized=sanitize_title(remove_accents($topic));
+            if (!$normalized || isset($seeds[$normalized])) continue;
+            $seeds[$normalized]=array(
+                'query'=>$topic,
+                'source'=>'Analista',
+                'priority'=>self::demand_score($signal)['score'],
+                'category_ids'=>array_map('absint',(array)($signal['category_ids']??array())),
+                'signal_id'=>sanitize_text_field((string)($signal['key']??'')),
+            );
+        }
+        uasort($seeds,static function($a,$b){return $b['priority']<=>$a['priority'];});
+        return array_slice(array_values($seeds),0,max(1,min(15,absint($limit))));
+    }
+
+        public static function records($kind = '') {
         $rows = array_merge(self::analyst_rows(), self::auditor_rows(), self::landing_inventory_rows());
         if ($kind !== '') $rows = array_values(array_filter($rows, static function($row) use ($kind) {
             return $row['kind'] === $kind;
         }));
         usort($rows, static function($a, $b) {
-            return (int) ($b['priority'] ?? 0) <=> (int) ($a['priority'] ?? 0);
+            $left=self::demand_score($a)['score'];
+            $right=self::demand_score($b)['score'];
+            return $right <=> $left ?: (int)($b['priority']??0) <=>(int)($a['priority']??0);
         });
         return $rows;
     }
@@ -301,14 +382,14 @@ final class SEO_Editorial_Opportunities {
         $health = self::source_health();
         echo '<div class="postbox" style="padding:14px;margin:16px 0">';
         echo '<h3>Prioridades de posts de Analista y Auditor</h3>';
-        echo '<p class="description">Son señales diagnósticas para orientar los dossiers de ' . esc_html(ucfirst($service)) . '. No sustituyen el conocimiento de origen ni crean posts sin aprobación.</p>';
+        echo '<p class="description">La prioridad responde a microseñales de Search Console (desde 1 impresión o clic). Confianza y aprobación siguen separadas. ' . esc_html(ucfirst($service)) . ' solo utiliza sus propias fuentes.</p>';
         if (empty($rows)) {
             echo '<p>No hay oportunidades explícitas de posts en los últimos diagnósticos guardados.</p>';
         } else {
             echo '<table class="widefat striped"><thead><tr><th>Origen</th><th>Necesidad</th><th>Acción</th><th>Estado / prioridad</th></tr></thead><tbody>';
             foreach ($rows as $row) {
                 echo '<tr><td>' . esc_html($row['source']) . '</td><td>' . esc_html($row['topic']) . '</td><td>' .
-                    esc_html($row['action']) . '</td><td>' . esc_html($row['bucket']) . ' · ' . esc_html((string) $row['priority']) . '</td></tr>';
+                    esc_html($row['action']) . '</td><td>' . esc_html($row['bucket']) . ' · ' . esc_html((string) $row['priority']) . '</td><td>' . esc_html(implode('; ',self::demand_score($row)['reasons'])) . '</td></tr>';
             }
             echo '</tbody></table>';
         }
