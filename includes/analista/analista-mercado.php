@@ -201,13 +201,22 @@ if (!function_exists('seo_analista_trend_work_row')) {
                 array_unshift($changes, 'Aprovechar el movimiento de «' . $query . '» ampliando su cobertura en esta URL existente.');
                 $reason = $source . ' detecta movimiento y Analista ha localizado una URL propia con afinidad suficiente. Es preferible reforzarla antes de crear otra.';
             } else {
-                $action = in_array($intent, array('informativa','navegacion'), true) ? 'CREAR_CONTENIDO' : 'REVISAR_COBERTURA';
-                $reason = $source . ' detecta movimiento en «' . $query . '», pero no hay una URL propia con afinidad suficiente. Hay que resolver el destino antes de repartir autoridad.';
+                $destination = function_exists('seo_analista_new_destination_decision')
+                    ? seo_analista_new_destination_decision($query)
+                    : array('action'=>'REVISAR_COBERTURA','kind'=>'investigate','related_categories'=>array());
+                $action = (string) ($destination['action'] ?? 'REVISAR_COBERTURA');
+                $reason = $source . ' detecta movimiento en «' . $query . '», pero no hay una URL propia con afinidad suficiente. '
+                    . (string) ($destination['reason'] ?? 'Hay que resolver el destino antes de repartir autoridad.');
                 $changes = array(
-                    'Validar la intención y decidir si debe resolverse con post, página, categoría o ampliación de una familia existente.',
-                    'Comprobar productos y Vocabulary relacionados antes de crear una URL nueva.',
-                    'Si se crea contenido, enlazarlo desde la rama estructural y hacia la conversión adecuada.',
+                    'Revisar de nuevo clusters, hubs, categorías, landings y posts antes de abrir una URL nueva.',
+                    'Comprobar productos y Vocabulary relacionados para evitar duplicar una intención ya cubierta.',
+                    'Si se propone una URL nueva, enlazarla desde la rama estructural y hacia la conversión adecuada.',
                 );
+                if (!empty($destination['related_categories'])) {
+                    $changes[] = 'Categorías relacionadas detectadas: ' . implode(' · ', array_map(static function($item){
+                        return (string) ($item['title'] ?? '');
+                    }, array_slice((array) $destination['related_categories'],0,4))) . '.';
+                }
             }
         }
 
