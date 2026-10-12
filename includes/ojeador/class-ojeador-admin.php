@@ -837,9 +837,9 @@ final class SEO_Ojeador_Admin {
             $analysis = SEO_Ojeador_Analysis::dashboard(100);
         } elseif ($tab === 'novedades') {
             $novedades = SEO_Ojeador_Novedades::dashboard(array(
-                'status' => sanitize_key((string) ($_GET['nstatus'] ?? '')),
-                'type' => sanitize_key((string) ($_GET['ntype'] ?? '')),
-                'min_score' => absint($_GET['nscore'] ?? 0),
+                'status' => sanitize_key((string) wp_unslash($_GET['nstatus'] ?? '')),
+                'type' => sanitize_key((string) wp_unslash($_GET['ntype'] ?? '')),
+                'min_score' => absint(wp_unslash($_GET['nscore'] ?? 0)),
                 'q' => sanitize_text_field(wp_unslash($_GET['nq'] ?? '')),
                 'limit' => 500,
             ));
