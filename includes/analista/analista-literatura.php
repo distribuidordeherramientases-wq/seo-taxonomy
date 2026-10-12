@@ -487,13 +487,13 @@ if (!function_exists('seo_analista_content_issue_profile')) {
             $issue_score += 2;
         }
 
-        if (in_array($type, array('post','page','product','cluster','hub_primary','hub_secondary','category'), true) && $vocabulary_count < 1) {
+        if (in_array($type, array('post','page','landing','product','cluster','hub_primary','hub_secondary','category'), true) && $vocabulary_count < 1) {
             $issues[] = 'Sin Vocabulary asociado.';
             $changes[] = 'Asignar Vocabulary principal y variantes para fijar el campo semántico que debe cubrir la entidad.';
             $issue_score += 9;
         }
 
-        if (in_array($type, array('post','page','cluster','hub_primary','hub_secondary'), true) && $internal_links < 2) {
+        if (in_array($type, array('post','page','landing','cluster','hub_primary','hub_secondary'), true) && $internal_links < 2) {
             $issues[] = 'Enlazado interno escaso.';
             $changes[] = 'Añadir enlaces contextuales hacia categorías, hubs o productos directamente relacionados.';
             $issue_score += 8;
@@ -544,6 +544,7 @@ if (!function_exists('seo_analista_entity_action')) {
             'cluster' => $has_issues ? 'MEJORAR_CLUSTER' : 'IMPULSAR_CLUSTER',
             'hub_primary' => $has_issues ? 'MEJORAR_HUB' : 'IMPULSAR_HUB',
             'hub_secondary' => $has_issues ? 'MEJORAR_HUB' : 'IMPULSAR_HUB',
+            'landing' => $has_issues ? 'MEJORAR_LANDING' : 'POTENCIAR_LANDING',
         );
         return $map[$type] ?? ($has_issues ? 'MEJORAR_PAGINA' : 'IMPULSAR_PAGINA');
     }
@@ -553,7 +554,7 @@ if (!function_exists('seo_analista_entity_label')) {
     function seo_analista_entity_label($type) {
         $labels = array(
             'post' => 'Post', 'page' => 'Página', 'product' => 'Producto', 'category' => 'Categoría',
-            'cluster' => 'Cluster', 'hub_primary' => 'Hub primario', 'hub_secondary' => 'Hub secundario',
+            'landing' => 'Landing', 'cluster' => 'Cluster', 'hub_primary' => 'Hub primario', 'hub_secondary' => 'Hub secundario',
         );
         return $labels[$type] ?? ucfirst((string) $type);
     }
@@ -698,7 +699,11 @@ if (!function_exists('seo_analista_content_work')) {
             $id = absint($post['ID'] ?? 0);
             if (!$id || isset($functional_ids[$id])) continue;
             $post_type = (string) ($post['post_type'] ?? 'page');
-            $type = isset($role_map[$id]) ? $role_map[$id] : $post_type;
+            $page_role = (string) ($page_role_map[$id] ?? '');
+            if ($post_type === 'page' && $page_role === 'corporate_page') continue;
+            $type = isset($role_map[$id])
+                ? $role_map[$id]
+                : ($post_type === 'page' && $page_role === 'landing' ? 'landing' : $post_type);
             $url = (string) get_permalink($id);
             if ($url === '') continue;
             $path = seo_analista_path_key($url);
@@ -830,7 +835,7 @@ if (!function_exists('seo_analista_literature_work')) {
         $rows = array();
         foreach (seo_analista_content_work($days, 220) as $row) {
             $type = (string) ($row['entity']['type'] ?? '');
-            if (in_array($type, array('post','page','product'), true)) $rows[] = $row;
+            if (in_array($type, array('post','page','landing','product'), true)) $rows[] = $row;
         }
         return array_slice($rows, 0, max(10, min(150, absint($limit))));
     }
@@ -921,8 +926,60 @@ if (!function_exists('seo_analista_target_allowed_for_topic')) {
         // que una marca compartida convierta otro SKU en el target elegido.
         if ($type === 'product' && $score < 0.62) return false;
         if (in_array($type, array('category','cluster','hub_primary','hub_secondary'), true) && $score < 0.40) return false;
+        if ($type === 'landing' && $score < 0.44) return false;
         if (in_array($type, array('post','page'), true) && $score < 0.46) return false;
         return true;
+    }
+}
+
+if (!function_exists('seo_analista_new_destination_decision')) {
+    function seo_analista_new_destination_decision($topic) {
+        $topic = seo_analista_clean_query($topic);
+        if ($topic === '') return array('action'=>'INVESTIGAR_COBERTURA','kind'=>'investigate','related_categories'=>array());
+
+        $related = array();
+        if (taxonomy_exists('product_cat')) {
+            $terms = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false));
+            if (!is_wp_error($terms)) {
+                foreach ((array) $terms as $term) {
+                    $score = seo_analista_text_similarity($topic, (string) ($term->name ?? ''));
+                    if ($score < 0.28) continue;
+                    $url = get_term_link($term, 'product_cat');
+                    $related[] = array(
+                        'id'=>absint($term->term_id ?? 0),
+                        'title'=>(string) ($term->name ?? ''),
+                        'url'=>is_wp_error($url) ? '' : (string) $url,
+                        'score'=>round($score,3),
+                    );
+                }
+            }
+        }
+        usort($related, static function($a,$b){ return (float) ($b['score'] ?? 0) <=> (float) ($a['score'] ?? 0); });
+        $related = array_slice($related,0,8);
+        $intent = seo_analista_intent($topic);
+
+        if (count($related) >= 2) {
+            return array(
+                'action'=>'CREAR_LANDING',
+                'kind'=>'landing',
+                'related_categories'=>$related,
+                'reason'=>'No hay propietario local claro y la demanda cruza varias familias: candidata a landing transversal, no a duplicar cluster/hub/categoría.',
+            );
+        }
+        if (!in_array($intent,array('comercial','transaccional'),true)) {
+            return array(
+                'action'=>'CREAR_POST',
+                'kind'=>'post',
+                'related_categories'=>$related,
+                'reason'=>'No hay cobertura local suficiente y la intención es informativa: candidata a post específico.',
+            );
+        }
+        return array(
+            'action'=>'INVESTIGAR_COBERTURA',
+            'kind'=>'investigate',
+            'related_categories'=>$related,
+            'reason'=>'Demanda comercial sin propietario claro: resolver si falta categoría, surtido o landing antes de crear una URL.',
+        );
     }
 }
 
@@ -950,7 +1007,11 @@ if (!function_exists('seo_analista_find_best_local_target')) {
                 $score = max($score, seo_analista_text_similarity($topic, $keyword) * 0.94);
             }
             $type = (string) ($entity['type'] ?? '');
-            if ($type === 'category') $score += 0.08;
+            if ($type === 'category') $score += 0.12;
+            elseif ($type === 'hub_secondary') $score += 0.10;
+            elseif ($type === 'hub_primary') $score += 0.08;
+            elseif ($type === 'cluster') $score += 0.06;
+            elseif ($type === 'landing') $score += 0.05;
             elseif ($type === 'product') $score -= 0.05;
             $score = min(1.0, max(0.0, $score));
 

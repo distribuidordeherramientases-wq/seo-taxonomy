@@ -11,6 +11,9 @@ defined('ABSPATH') || exit;
  * - El log interno resume qué hacen los clientes dentro de Dependiente.
  */
 final class SEO_Dependiente_Statistics {
+    const EXPORT_SCHEMA = 'seo_dependiente_statistics_export';
+    const EXPORT_VERSION = 1;
+
     public static function allowed_periods() {
         return array(7, 30, 90);
     }
@@ -21,7 +24,7 @@ final class SEO_Dependiente_Statistics {
     }
 
     public static function render_tab() {
-        $days = self::normalize_days($_GET['days'] ?? 28);
+        $days = self::normalize_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 30);
         $report = self::collect($days);
         $ga4 = (array) ($report['ga4'] ?? array());
         $gsc = (array) ($report['gsc'] ?? array());
@@ -38,6 +41,12 @@ final class SEO_Dependiente_Statistics {
             echo '<a class="button ' . ($period === $days ? 'button-primary' : '') . '" href="' . esc_url($url) . '">' . esc_html($period) . ' días</a> ';
         }
         echo '</div>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:flex;gap:8px;align-items:center;margin:0;">';
+        echo '<input type="hidden" name="action" value="seo_dependiente_statistics_export">';
+        echo '<input type="hidden" name="days" value="' . esc_attr($days) . '">';
+        wp_nonce_field('seo_dependiente_statistics_export', 'seo_dependiente_statistics_nonce');
+        echo '<button type="submit" class="button">Exportar JSON</button>';
+        echo '</form>';
         echo '<div><strong>Página:</strong> <a href="' . esc_url((string) ($report['url'] ?? '')) . '" target="_blank" rel="noopener">' . esc_html((string) ($report['url'] ?? '')) . '</a></div>';
         echo '</div>';
 
@@ -106,6 +115,62 @@ final class SEO_Dependiente_Statistics {
         self::render_products_table((array) ($internal['offered_products'] ?? array()));
         echo '<p class="description">Productos que Dependiente ha mostrado con mayor frecuencia en las consultas del periodo. Sirve para detectar qué parte del catálogo está absorbiendo la demanda.</p>';
         echo '</section>';
+    }
+
+    public static function export_payload($days = 30) {
+        $days = self::normalize_days($days);
+        $statistics = self::collect($days);
+        $diagnostic = array();
+
+        if (class_exists('SEO_Dependiente_Insights')) {
+            $diagnostic = (array) SEO_Dependiente_Insights::snapshot($days, 200);
+        }
+
+        return array(
+            'schema' => array(
+                'name' => self::EXPORT_SCHEMA,
+                'version' => self::EXPORT_VERSION,
+            ),
+            'generated_at' => current_time('c'),
+            'site' => array(
+                'home_url' => home_url('/'),
+                'environment' => function_exists('wp_get_environment_type') ? wp_get_environment_type() : '',
+                'dependiente_version' => defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
+            ),
+            'period' => array(
+                'days' => $days,
+            ),
+            'statistics' => $statistics,
+            'diagnostic' => $diagnostic,
+            'notes' => array(
+                'ga4' => 'Usuarios, sesiones, vistas y procedencia de la página pública de Dependiente.',
+                'search_console' => 'Impresiones, clics, CTR, posición y consultas orgánicas de la URL de Dependiente.',
+                'internal' => 'Uso real del asistente: consultas, resultados, productos ofrecidos y señales internas.',
+                'privacy' => 'No se exportan credenciales Google, cookies, direcciones IP ni hashes de sesión.',
+            ),
+        );
+    }
+
+    public static function export_json() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('No tienes permisos para exportar estas estadísticas.', 'seo-taxonomy'));
+        }
+
+        check_admin_referer('seo_dependiente_statistics_export', 'seo_dependiente_statistics_nonce');
+
+        $days = self::normalize_days(isset($_POST['days']) ? absint(wp_unslash($_POST['days'])) : 30);
+        $payload = self::export_payload($days);
+        $filename = 'dependiente-estadisticas-' . gmdate('Y-m-d-His') . '-' . $days . 'd.json';
+
+        nocache_headers();
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . sanitize_file_name($filename) . '"');
+
+        echo wp_json_encode(
+            $payload,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+        exit;
     }
 
     public static function collect($days = 30) {
@@ -424,3 +489,5 @@ final class SEO_Dependiente_Statistics {
         return number_format_i18n(max(0, (float) $ratio) * 100, 1) . '%';
     }
 }
+
+add_action('admin_post_seo_dependiente_statistics_export', array('SEO_Dependiente_Statistics', 'export_json'));

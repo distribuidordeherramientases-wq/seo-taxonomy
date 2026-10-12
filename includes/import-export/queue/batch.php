@@ -2385,10 +2385,64 @@ function seo_ie_batch_admin_action() {
         $status = seo_ie_batch_status();
         $status['enabled'] = false;
         $status['status']  = 'paused';
-        $status['message'] = 'La cola esta pausada. El archivo de productos ya iniciado continuara hasta terminar; no se iniciara otro archivo.';
+        $entity = sanitize_key( (string) ( $status['entity'] ?? '' ) );
+        $status['message'] = 'product' === $entity
+            ? 'La cola esta pausada. El archivo de productos ya iniciado continuara hasta terminar; no se iniciara otro archivo.'
+            : 'La cola esta pausada. No se iniciara otro archivo hasta que se reanude manualmente.';
         seo_ie_batch_store_status( $status );
         seo_ie_batch_unschedule( absint( $status['user_id'] ?? get_current_user_id() ) );
-        $notice['seo_ie_batch_message'] = 'Cola pausada despues del archivo actual.';
+        $notice['seo_ie_batch_message'] = 'Cola pausada.';
+    } elseif ( 'return_processing_to_pending' === $action ) {
+        $status = seo_ie_batch_status();
+        $processing_files = seo_ie_batch_files( $paths['processing'] );
+
+        if ( empty( $processing_files ) ) {
+            $notice['seo_ie_batch_error'] = 'No hay ningun archivo en processing que devolver a pending.';
+        } elseif ( 1 < count( $processing_files ) ) {
+            $notice['seo_ie_batch_error'] = 'Hay mas de un archivo en processing. No se hara ningun movimiento automatico.';
+        } else {
+            $source = $processing_files[0];
+            $detected = seo_ie_batch_detect_entity( $source );
+
+            if ( is_wp_error( $detected ) ) {
+                $notice['seo_ie_batch_error'] = $detected->get_error_message();
+            } elseif ( 'product' === sanitize_key( (string) ( $detected['entity'] ?? '' ) ) ) {
+                $notice['seo_ie_batch_error'] = 'Los productos deben detenerse con "Detener importacion actual".';
+            } else {
+                $status_name = sanitize_key( (string) ( $status['status'] ?? '' ) );
+                $updated_at  = ! empty( $status['updated_at'] ) ? strtotime( (string) $status['updated_at'] ) : 0;
+                $stale       = $updated_at > 0 && ( time() - $updated_at ) >= 10 * MINUTE_IN_SECONDS;
+
+                if ( 'paused' !== $status_name && ! $stale ) {
+                    $notice['seo_ie_batch_error'] = 'La importacion aun no esta marcada como pausada ni lleva 10 minutos sin actividad. Pausa la cola antes de devolver el archivo.';
+                } else {
+                    $user_id = absint( $status['user_id'] ?? get_current_user_id() );
+
+                    // Cancela reintentos pendientes y libera un lock huérfano de la cola.
+                    seo_ie_batch_unschedule( $user_id );
+                    delete_transient( 'seo_ie_batch_queue_lock' );
+
+                    $target = seo_ie_batch_unique_path( $paths['pending'], basename( $source ) );
+                    if ( ! seo_ie_batch_move_file( $source, $target ) ) {
+                        $notice['seo_ie_batch_error'] = 'No se pudo devolver el archivo de processing a pending.';
+                    } else {
+                        seo_ie_batch_store_status(
+                            [
+                                'enabled'       => false,
+                                'status'        => 'paused',
+                                'user_id'       => $user_id,
+                                'current_file'  => '',
+                                'last_file'     => basename( $target ),
+                                'entity'        => sanitize_key( (string) ( $detected['entity'] ?? '' ) ),
+                                'message'       => 'Archivo devuelto manualmente a pending. Los cambios ya aplicados, si los hubiera, no se han deshecho.',
+                                'history_event' => true,
+                            ]
+                        );
+                        $notice['seo_ie_batch_message'] = 'El archivo se ha liberado de processing y ha vuelto a pending.';
+                    }
+                }
+            }
+        }
     } elseif ( 'stop_current_product' === $action ) {
         $status  = seo_ie_batch_status();
         $user_id = absint( $status['user_id'] ?? get_current_user_id() );
@@ -2695,9 +2749,11 @@ function seo_ie_batch_render_page() {
                     <?php if ( ! empty( $active_product ) ) : ?>
                         <button type="submit" name="seo_ie_batch_action" value="stop_current_product" class="button" style="border-color:#b32d2e;color:#b32d2e;" onclick="return window.confirm('Se detendra el archivo actual de forma segura. Los cambios ya aplicados se conservan y el CSV volvera a pending. ¿Continuar?');">Detener importacion actual</button>
                         <button type="submit" name="seo_ie_batch_action" value="step_product" class="button">Procesar siguiente bloque adaptativo</button>
+                    <?php elseif ( ! empty( $files['processing'] ) ) : ?>
+                        <button type="submit" name="seo_ie_batch_action" value="return_processing_to_pending" class="button" style="border-color:#b32d2e;color:#b32d2e;" onclick="return window.confirm('El archivo saldra de processing y volvera a pending. Esto NO deshace filas que ya se hubieran importado. ¿Continuar?');">Devolver archivo a pendientes</button>
                     <?php endif; ?>
                 </form>
-                <p class="description">Sin simulacion. Los errores aislados de una fila se registran y el CSV continua; solo un fallo repetido de infraestructura puede detener el worker. El log del archivo en <code>processing</code> se actualiza tras cada lote. "Detener importacion actual" termina de forma segura la fila en curso y devuelve el CSV a <code>pending</code>.</p>
+                <p class="description">Sin simulacion. Los errores aislados de una fila se registran y el CSV continua; solo un fallo repetido de infraestructura puede detener el worker. El log del archivo en <code>processing</code> se actualiza tras cada lote. Para productos, "Detener importacion actual" termina de forma segura la fila en curso. Para entradas, paginas, categorias, FAQs y redirects bloqueados, "Devolver archivo a pendientes" libera el CSV de <code>processing</code> y lo devuelve a <code>pending</code>. Ninguna de las dos acciones deshace cambios ya aplicados.</p>
             </div>
         </div>
 

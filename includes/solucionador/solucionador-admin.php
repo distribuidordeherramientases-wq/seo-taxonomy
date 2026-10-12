@@ -1,6 +1,7 @@
 <?php
 /**
  * Solucionador - interfaz administrativa.
+ * Cargado desde solucionador-bootstrap.php; debe estar disponible antes del registro de hooks.
  */
 
 defined('ABSPATH') || exit;
@@ -477,6 +478,8 @@ final class SEO_Solucionador_Admin {
     private static function tabs($current) {
         $tabs = array(
             'summary' => 'Resumen',
+            'posts' => 'Posts',
+            'landings' => 'Landings',
             'diagnostics' => 'Diagnóstico editorial',
             'google' => 'Visitas Google',
         );
@@ -527,7 +530,7 @@ final class SEO_Solucionador_Admin {
         }
 
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'summary';
-        if (!in_array($tab, array('summary','diagnostics','google'), true)) $tab = 'summary';
+        if (!in_array($tab, array('summary','posts','landings','diagnostics','google'), true)) $tab = 'summary';
 
         echo '<div class="wrap seo-solucionador"><h1>Solucionador</h1>';
         echo '<p>Organiza dos fuentes editoriales independientes —FAQ humana y conocimiento real de Dependiente— por product_cat y las entrega a Editora. Nunca publica automáticamente.</p>';
@@ -557,7 +560,9 @@ final class SEO_Solucionador_Admin {
         }
 
         self::tabs($tab);
-        if ($tab === 'diagnostics') self::render_diagnostics_simple();
+        if ($tab === 'landings' && class_exists('SEO_Editorial_Landings')) SEO_Editorial_Landings::render_tab('solucionador');
+        elseif ($tab === 'posts') { SEO_Editorial_Opportunities::render_post_context('solucionador'); self::render_diagnostics_simple(); }
+        elseif ($tab === 'diagnostics') self::render_diagnostics_simple();
         elseif ($tab === 'google') self::render_google_simple();
         else self::render_summary_simple();
 

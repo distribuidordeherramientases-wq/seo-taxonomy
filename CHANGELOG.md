@@ -2,6 +2,10 @@
 
 ## [2.3.10] - 2026-10-06
 
+- Ojeador 0.10.0 añade la pestaña **Novedades**, un radar externo que usa **Clusters + Hubs primarios** como frontera comercial para descubrir categorías, subfamilias y tecnologías que todavía no están representadas en el catálogo.
+- El radar usa **Google Trends** para señales crecientes y valida cada candidato con **Google Shopping + Google Search** mediante la conexión compartida SerpApi → ScraperAPI; conserva fuentes, cobertura, score explicable y estado humano sin crear categorías/productos automáticamente.
+- Novedades distingue **Nueva categoría/familia**, **Hueco en catálogo**, **Producto/tecnología en tendencia** y **Expansión estratégica**, con exportación JSON auditable.
+
 - Dependiente V3 registra las **elecciones explícitas del cliente** como evidencia supervisada: `category_choice` para categorías sugeridas y `click` para productos, conservando consulta, posición y recorrido mediante `search_uuid`.
 - La evidencia se guarda aunque todos los términos de la consulta ya sean conocidos; sirve para aprender rutas/ranking y no activa reglas semánticas automáticamente.
 

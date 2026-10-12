@@ -72,6 +72,34 @@ La tercera corrección del Plan de acción elimina contradicciones entre señal,
 - Una tarea ya ejecutada pasa a SIN ACCIÓN y deja de proponer de nuevo la intervención.
 - El JSON incorpora el contrato completo y un informe de consistencia del plan.
 
+## Analista 3.9.0 · propietario de intención y anti-canibalización
+
+Analista mantiene su función principal de inteligencia de demanda y mercado, pero antes de proponer una intervención editorial debe resolver si la intención ya tiene propietario local.
+
+Orden de decisión:
+
+1. detectar la señal externa o de rendimiento;
+2. buscar cobertura en categoría, cluster, hub primario, hub secundario, landing, post y página editorial;
+3. si existe una entidad suficientemente próxima, proponer **mejorar/impulsar esa entidad**;
+4. si no existe cobertura suficiente, clasificar el hueco:
+   - **CREAR_POST** para una intención informativa concreta;
+   - **CREAR_LANDING** cuando la demanda sea transversal y cruce varias familias;
+   - **INVESTIGAR_COBERTURA** cuando la demanda sea comercial pero todavía no esté claro si falta categoría, surtido o landing;
+5. antes de publicar cualquier URL nueva, volver a revisar la cobertura para evitar canibalización.
+
+Prioridad de propiedad para demanda comercial: categoría → hub secundario → hub primario → cluster → landing → post.
+
+Para demanda informativa, un post o landing puede ser el destino correcto, pero una coincidencia fuerte con una entidad estructural existente bloquea la creación de una URL paralela.
+
+Las páginas corporativas y funcionales no participan como destino editorial de estas decisiones.
+
+Auditor y Analista quedan así separados:
+
+- **Auditor**: análisis interno de calidad, arquitectura, Vocabulary, división/fusión, redundancia y canibalización de lo existente.
+- **Analista**: señales externas y de rendimiento, oportunidades y decisión entre mejorar lo existente o proponer una entidad nueva sin repartir autoridad.
+
+Analista sigue siendo diagnóstico/derivación: no publica automáticamente posts, landings o categorías.
+
 ## Informe competitivo profundo
 
 Analista puede generar, bajo demanda, un **informe competitivo profundo** a partir de los dominios configurados en la vista Comparación.
