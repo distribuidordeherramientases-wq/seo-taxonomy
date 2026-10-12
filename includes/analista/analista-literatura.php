@@ -487,13 +487,13 @@ if (!function_exists('seo_analista_content_issue_profile')) {
             $issue_score += 2;
         }
 
-        if (in_array($type, array('post','page','product','cluster','hub_primary','hub_secondary','category'), true) && $vocabulary_count < 1) {
+        if (in_array($type, array('post','page','landing','product','cluster','hub_primary','hub_secondary','category'), true) && $vocabulary_count < 1) {
             $issues[] = 'Sin Vocabulary asociado.';
             $changes[] = 'Asignar Vocabulary principal y variantes para fijar el campo semántico que debe cubrir la entidad.';
             $issue_score += 9;
         }
 
-        if (in_array($type, array('post','page','cluster','hub_primary','hub_secondary'), true) && $internal_links < 2) {
+        if (in_array($type, array('post','page','landing','cluster','hub_primary','hub_secondary'), true) && $internal_links < 2) {
             $issues[] = 'Enlazado interno escaso.';
             $changes[] = 'Añadir enlaces contextuales hacia categorías, hubs o productos directamente relacionados.';
             $issue_score += 8;
