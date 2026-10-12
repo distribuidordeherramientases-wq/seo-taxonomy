@@ -21,5 +21,7 @@ require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-posts.php';
 require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-tests.php';
 require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-exchange.php';
 require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-admin.php';
+require_once SEO_INGENIERO_PATH . 'class-seo-ingeniero-radar.php';
+SEO_Ingeniero_Radar::init();
 
 SEO_Ingeniero::init();
