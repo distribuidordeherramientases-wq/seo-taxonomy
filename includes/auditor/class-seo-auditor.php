@@ -314,11 +314,11 @@ final class SEO_Auditor {
             ),
             'posts' => array(
                 'label' => 'Posts',
-                'description' => 'Contenido editorial de entradas, slugs, duplicados y Vocabulary. Solo carga posts publicados.',
+                'description' => 'Audita posts en contexto de clusters, hubs, categorias y landings. Detecta solapamiento/canibalizacion antes de recomendar mejoras y no propone URLs nuevas.',
             ),
             'pages' => array(
                 'label' => 'Paginas y landings',
-                'description' => 'Paginas publicadas, incluidas landings y estructura editorial. Solo carga paginas.',
+                'description' => 'Excluye paginas funcionales/corporativas del analisis editorial; distingue estructura canonica y landings, y detecta canibalizacion, fusion o division de landings.',
             ),
             'faqs' => array(
                 'label' => 'FAQs',
@@ -470,9 +470,36 @@ final class SEO_Auditor {
             $post_type = 'posts' === $scope ? 'post' : 'page';
             $editorial = self::collect_editorial_scope($post_type);
             $vocabulary = self::load_object_vocabulary_for_types(array($post_type));
-            self::audit_editorial($editorial, $vocabulary);
-            $extra['quality'] = self::build_editorial_quality($editorial, $vocabulary, $post_type);
-            $inventory_summary = array($scope => count($editorial));
+
+            // El especialista editorial carga un mapa global ligero antes de evaluar
+            // la calidad local. Asi Auditor conoce cluster/hubs/categorias/landings/posts
+            // y evita recomendar mejoras sobre una URL que deberia consolidarse.
+            $editorial_specialist = class_exists('SEO_Auditor_Editorial_Specialist')
+                ? SEO_Auditor_Editorial_Specialist::analyze_scope($scope, $editorial)
+                : array('auditable_rows'=>$editorial,'findings'=>array(),'summary'=>array());
+
+            $auditable_editorial = (array) ($editorial_specialist['auditable_rows'] ?? $editorial);
+            foreach ((array) ($editorial_specialist['findings'] ?? array()) as $specialist_finding) {
+                self::finding(
+                    (string) ($specialist_finding['code'] ?? 'editorial_review'),
+                    (string) ($specialist_finding['severity'] ?? 'low'),
+                    (string) ($specialist_finding['entity_type'] ?? $post_type),
+                    $specialist_finding['entity_id'] ?? 0,
+                    (string) ($specialist_finding['title'] ?? ''),
+                    (string) ($specialist_finding['headline'] ?? ''),
+                    (array) ($specialist_finding['evidence'] ?? array()),
+                    (string) ($specialist_finding['recommendation'] ?? '')
+                );
+            }
+
+            self::audit_editorial($auditable_editorial, $vocabulary);
+            $extra['quality'] = self::build_editorial_quality($auditable_editorial, $vocabulary, $post_type);
+            $extra['editorial_specialist'] = (array) ($editorial_specialist['summary'] ?? array());
+            $inventory_summary = array(
+                $scope => count($auditable_editorial),
+                'published_scope_total' => count($editorial),
+                'excluded_from_editorial' => max(0, count($editorial) - count($auditable_editorial)),
+            );
         } elseif ('faqs' === $scope) {
             $inventory = self::collect_faq_scope();
             $vocabulary = self::load_object_vocabulary_for_types(array('product','product_cat'));
@@ -1730,9 +1757,18 @@ final class SEO_Auditor {
 
     private static function audit_editorial($editorial, $object_vocabulary) {
         $duplicates = array();
+        $page_roles = self::quality_page_roles();
         foreach ($editorial as $row) {
             $id = absint($row['ID'] ?? 0);
             $type = sanitize_key((string)($row['post_type'] ?? ''));
+
+            // Paginas funcionales y corporativas no son contenido editorial SEO.
+            // Pueden tener validaciones tecnicas propias, pero no deben generar
+            // tareas de longitud, Vocabulary o deriva semantica para Editora.
+            if ('page' === $type) {
+                $mode = self::quality_editorial_mode($row, $page_roles);
+                if (in_array($mode, array('functional','corporate'), true)) continue;
+            }
             $title = trim((string)($row['post_title'] ?? ''));
             $slug = trim((string)($row['post_name'] ?? ''));
             $content = trim(wp_strip_all_tags(strip_shortcodes((string)($row['post_content'] ?? ''))));
@@ -4031,6 +4067,9 @@ final class SEO_Auditor {
         $fix_now = array(
             'product_missing_title','product_missing_slug','product_without_category',
             'editorial_missing_title','editorial_missing_slug','duplicate_editorial_title',
+            'editorial_post_canonical_cannibalization','editorial_canonical_post_cannibalization',
+            'editorial_post_landing_cannibalization','editorial_landing_post_cannibalization',
+            'editorial_landing_canonical_cannibalization','editorial_landing_duplicate',
             'source_duplicate_identifier','source_duplicate_sku','source_duplicate_product_candidate',
             'source_owner_identity_ambiguous','relation_missing_source','relation_missing_target',
             'duplicate_relation','attribute_orphan_product_systemic','attribute_empty_rows_systemic',
@@ -4063,6 +4102,10 @@ final class SEO_Auditor {
             'category_product_vocabulary_drift','category_single_product','category_split_candidate',
             'category_description_alignment_weak','category_excerpt_alignment_weak',
             'category_without_secondary_hub','editorial_vocab_title_drift',
+            'editorial_post_structural_overlap','editorial_post_landing_overlap',
+            'editorial_landing_structural_overlap','editorial_landing_category_cannibalization',
+            'editorial_landing_scope_narrow','editorial_landing_split_candidate',
+            'editorial_landing_merge_candidate','editorial_page_role_unclassified',
             'duplicate_faq_same_owner','faq_owner_semantic_drift',
             'architecture_over_sized','architecture_under_sized',
             'category_multiple_secondary_hubs','secondary_multiple_primary_hubs',
