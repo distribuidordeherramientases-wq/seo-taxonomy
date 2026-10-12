@@ -835,7 +835,7 @@ if (!function_exists('seo_analista_literature_work')) {
         $rows = array();
         foreach (seo_analista_content_work($days, 220) as $row) {
             $type = (string) ($row['entity']['type'] ?? '');
-            if (in_array($type, array('post','page','product'), true)) $rows[] = $row;
+            if (in_array($type, array('post','page','landing','product'), true)) $rows[] = $row;
         }
         return array_slice($rows, 0, max(10, min(150, absint($limit))));
     }
