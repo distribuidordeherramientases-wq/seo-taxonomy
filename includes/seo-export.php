@@ -93,7 +93,7 @@ foreach ( array_unique( $seo_ie_candidates ) as $seo_ie_candidate ) {
 
 if ( '' === $seo_ie_bootstrap ) {
     seo_ie_bridge_installation_error(
-        'No se encuentra import-export/bootstrap.php. Copia la carpeta import-export dentro de wp-content/plugins/seo-taxonomy/includes/. El resto del sitio sigue disponible.'
+        'No se encuentra import-export/bootstrap.php. Copia la carpeta import-export dentro de includes/ del plugin. El resto del sitio sigue disponible.'
     );
     return;
 }
