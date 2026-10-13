@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Conexiones BBDD de entornos PRO / STAGING.
+ * TaxoCommerce SEO - Conexiones BBDD de entornos PRO / STAGING.
  *
  * Guarda las conexiones MySQL de PRO y STAGING usadas por el Clonador.
  * PRO se trata siempre como origen y puede usar credenciales de solo lectura.
