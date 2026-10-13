@@ -1,6 +1,6 @@
 # Marketing
 
-Ruta: **SEO Taxonomy → Herramientas → Marketing**
+Ruta: **TaxoCommerce SEO → Herramientas → Marketing**
 
 ## Pestañas
 **Marketing**, **Campañas**, **Informes**, **Identidad / Cabecera**, **Redes sociales**, **Sitemaps**, **Estilo visual**.
