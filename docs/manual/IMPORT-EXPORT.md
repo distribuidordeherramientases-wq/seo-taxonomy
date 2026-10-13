@@ -1,6 +1,6 @@
 # Import / Export
 
-Ruta: **SEO Taxonomy → Herramientas → Import / Export**
+Ruta: **TaxoCommerce SEO → Herramientas → Import / Export**
 
 ## Pestañas
 **Importación individual**, **Importación por lotes**, **Clonador PRO → STAGING**, **Catálogo semántico**, **Inventarios comerciales**, **Importar proveedor**, **Importar Amazon**, **Conexiones con proveedores**, **Catálogo de proveedores**, **Sincronización V2**.
