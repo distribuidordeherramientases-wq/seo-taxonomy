@@ -35,7 +35,7 @@ function seo_data_table_page(): void
 
     echo '<div class="wrap">';
     echo '<h1>SEO Data Table</h1>';
-    echo '<p>Explorador y sistema de exportación de todas las tablas internas de SEO Taxonomy. Las tablas se detectan automáticamente, incluidas las que se añadan en futuras versiones.</p>';
+    echo '<p>Explorador y sistema de exportación de todas las tablas internas de TaxoCommerce SEO. Las tablas se detectan automáticamente, incluidas las que se añadan en futuras versiones.</p>';
 
     seo_data_render_styles();
 
@@ -161,7 +161,7 @@ function seo_data_table_description(string $table_name): string
         'media_usos'            => 'Relación entre imágenes, adjuntos y entidades que las utilizan.',
     ];
 
-    return $descriptions[$key] ?? 'Tabla interna detectada automáticamente por SEO Taxonomy.';
+    return $descriptions[$key] ?? 'Tabla interna detectada automáticamente por TaxoCommerce SEO.';
 }
 
 /**
@@ -181,7 +181,7 @@ function seo_data_render_overview(array $tables): void
     seo_data_summary_card('Tablas detectadas', count($tables), 'Inventario dinámico');
     seo_data_summary_card('Filas aproximadas', number_format_i18n($total_rows), 'Todas las tablas SEO');
     seo_data_summary_card('Tamaño total', size_format($total_bytes, 2), 'Datos e índices');
-    seo_data_summary_card('Versión BBDD', (string) get_option('seo_system_db_version', 'No registrada'), 'SEO Taxonomy');
+    seo_data_summary_card('Versión BBDD', (string) get_option('seo_system_db_version', 'No registrada'), 'TaxoCommerce SEO');
     echo '</div>';
 
     echo '<div class="seo-data-panel">';
@@ -1055,7 +1055,7 @@ function seo_data_export_all(): void
     }
 
     $manifest = [
-        'plugin'           => 'SEO Taxonomy',
+        'plugin'           => 'TaxoCommerce SEO',
         'plugin_version'   => defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '',
         'database_version' => (string) get_option('seo_system_db_version', ''),
         'site_url'         => home_url('/'),
@@ -1163,7 +1163,7 @@ function seo_data_write_table_sql(string $table_name, $handle): void
         return;
     }
 
-    seo_data_stream_write($handle, "-- SEO Taxonomy export\n");
+    seo_data_stream_write($handle, "-- TaxoCommerce SEO export\n");
     seo_data_stream_write($handle, '-- Table: ' . $table_name . "\n");
     seo_data_stream_write($handle, '-- Generated UTC: ' . gmdate('c') . "\n\n");
     seo_data_stream_write($handle, "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n");
