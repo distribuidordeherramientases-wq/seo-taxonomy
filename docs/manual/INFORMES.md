@@ -1,6 +1,6 @@
 # Informes
 
-Ruta: **SEO Taxonomy → Informes**
+Ruta: **TaxoCommerce SEO → Informes**
 
 ## Pestañas
 
