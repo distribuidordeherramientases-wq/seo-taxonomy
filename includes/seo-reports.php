@@ -429,13 +429,13 @@ function seo_reports_general_ajax_partial() {
 /** Descarga JSON: calcula únicamente el informe solicitado. */
 function seo_reports_general_json_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'taxocommerce-seo'));
     }
 
     $report_key = isset($_GET['report']) ? sanitize_key(wp_unslash($_GET['report'])) : '';
     $definitions = seo_reports_general_definitions();
     if (!isset($definitions[$report_key])) {
-        wp_die(esc_html__('Informe no reconocido.', 'seo-taxonomy'));
+        wp_die(esc_html__('Informe no reconocido.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_reports_general_json_' . $report_key);
@@ -450,7 +450,7 @@ function seo_reports_general_json_handler() {
         JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
     );
     if (false === $json) {
-        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'taxocommerce-seo'));
     }
 
     nocache_headers();
@@ -1963,7 +1963,7 @@ function seo_product_category_pre_delete_term($term_id, $taxonomy) {
          */
         wp_die(
             esc_html($context->get_error_message()),
-            esc_html__('Borrado de categoría bloqueado', 'seo-taxonomy'),
+            esc_html__('Borrado de categoría bloqueado', 'taxocommerce-seo'),
             array('response' => 409, 'back_link' => true)
         );
     }
@@ -3704,7 +3704,7 @@ EXPORT CSV SEO TABLES
             $export_nonce === '' ||
             !wp_verify_nonce($export_nonce, 'seo_export_csv_' . $table_key)
         ) {
-            wp_die(esc_html__('Nonce inválido.', 'seo-taxonomy'));
+            wp_die(esc_html__('Nonce inválido.', 'taxocommerce-seo'));
         }
     
         global $wpdb;
