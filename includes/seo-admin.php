@@ -39,6 +39,12 @@ if (!defined('SEO_FACTURAS_VERSION')) {
  * seo-admin.php registra el callback seo_server_status(), por lo que debe
  * estar declarado antes de que WordPress intente ejecutar esa pagina.
  */
+// Cargar una sola vez el piloto; no registra workers ni modifica tablas.
+$seo_mercado_file = __DIR__ . '/seo-mercado.php';
+if (is_readable($seo_mercado_file)) {
+    require_once $seo_mercado_file;
+}
+
 if (!function_exists('seo_server_status')) {
     $seo_server_status_file = __DIR__ . '/system-check/seo-system-server-status.php';
     if (is_readable($seo_server_status_file)) {
@@ -132,6 +138,11 @@ add_submenu_page(
         'seo-content',
         'seo_content_page'
     );
+
+    // Mercado conserva rutas y procesos antiguos: sólo añade una vista de lectura.
+    if (class_exists('SEO_Mercado_Admin')) {
+        SEO_Mercado_Admin::register_page();
+    }
 
     // Etiquetas / vocabulario semántico de producto
     add_submenu_page(

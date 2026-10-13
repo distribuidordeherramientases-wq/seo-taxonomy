@@ -986,7 +986,7 @@ function seo_reports_page() {
     echo '<a class="nav-tab ' . ($active_tab === 'informes' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=informes') . '">Informes</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'dashboard' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=dashboard') . '">Panel</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'anomalias' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=anomalias') . '">Anomalías</a>';
-    echo '<a class="nav-tab ' . ($active_tab === 'analista' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=analista') . '">Analista</a>';
+    // Analista sigue operativo mediante Mercado; no duplicar acceso en Informes.
     echo '</h2>';
 
     // Ejecución de acciones según la pestaña escogida.
