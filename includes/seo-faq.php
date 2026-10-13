@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System
+ * TaxoCommerce SEO
  *
  * Archivo: seo-faq.php
  * Descripción: Administración manual, auditoría y limpieza reversible de FAQs, huérfanas y duplicadas para Hubs SEO, categorías y productos.
@@ -1395,7 +1395,7 @@ function seo_faq_page()
     ?>
     <div class="wrap seo-faq-admin">
 
-        <h1>SEO System - FAQs</h1>
+        <h1>TaxoCommerce SEO - FAQs</h1>
 
 
 
