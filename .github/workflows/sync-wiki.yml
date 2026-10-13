@@ -29,6 +29,9 @@ jobs:
         run: |
           cp docs/MANUAL-USUARIO.md wiki/Manual-de-usuario.md
           cp docs/CONEXIONES-CREDENCIALES.md wiki/Conexiones-y-credenciales.md
+          cp docs/wiki/Servicios.md wiki/Servicios.md
+          cp docs/wiki/Flujo-de-datos.md wiki/Flujo-de-datos.md
+          cp docs/wiki/Servicios-y-tablas.md wiki/Servicios-y-tablas.md
 
           python3 - <<'PY'
           from pathlib import Path
@@ -133,6 +136,7 @@ jobs:
             - [[Comparador|Comparador]]
             - [[Ojeador|Ojeador]]
           - [[Comentarista|Comentarista]]
+          - [[Servicios y tablas|Servicios-y-tablas]]
           - [[Conexiones y credenciales|Conexiones-y-credenciales]]
           <!-- SEO-TAXONOMY-SIDEBAR-MANUAL:END -->"""
 
