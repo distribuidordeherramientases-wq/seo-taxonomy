@@ -1,4 +1,4 @@
-# SEO System - Social Network
+# TaxoCommerce SEO - Social Network
 
 El subsistema de redes sociales vive completamente en este directorio:
 
