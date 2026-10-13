@@ -2209,14 +2209,14 @@ if (!function_exists('seo_tags_vocab_export_dictionary')) {
         }
 
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para exportar el vocabulario.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para exportar el vocabulario.', 'taxocommerce-seo'));
         }
 
         check_admin_referer('seo_tags_vocab_export_dictionary');
 
         $format = sanitize_key(wp_unslash($_GET['seo_vocab_export']));
         if (!in_array($format, ['csv', 'json'], true)) {
-            wp_die(esc_html__('Formato de exportación no válido.', 'seo-taxonomy'));
+            wp_die(esc_html__('Formato de exportación no válido.', 'taxocommerce-seo'));
         }
 
         $rows = seo_tags_vocab_get_dictionary_rows();
@@ -2245,7 +2245,7 @@ if (!function_exists('seo_tags_vocab_export_dictionary')) {
 
         $output = fopen('php://output', 'w');
         if ($output === false) {
-            wp_die(esc_html__('No se pudo generar el CSV.', 'seo-taxonomy'));
+            wp_die(esc_html__('No se pudo generar el CSV.', 'taxocommerce-seo'));
         }
 
         // BOM UTF-8 para que Excel abra correctamente acentos y eñes.
@@ -4685,7 +4685,7 @@ if (!function_exists('seo_assignment_render')) {
 if (!function_exists('seo_tags_vocabulary_admin_page')) {
     function seo_tags_vocabulary_admin_page() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para acceder a esta herramienta.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder a esta herramienta.', 'taxocommerce-seo'));
         }
 
         $domain = sanitize_key($_GET['domain'] ?? 'labels');
