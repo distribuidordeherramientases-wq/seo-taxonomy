@@ -1,6 +1,6 @@
 # Ojeador
 
-Ruta: **SEO Taxonomy → Herramientas → Ojeador**
+Ruta: **TaxoCommerce SEO → Herramientas → Ojeador**
 
 Barra: **Detener**, **Continuar / actualizar mercado** [API/Proceso], **Exportar JSON análisis**.
 
@@ -58,7 +58,7 @@ Buscador de categoría/consulta, tabla de estado y log.
 
 La pestaña mantiene sólo la configuración operativa propia de Ojeador: **Actualizar cada**, **Categorías por paso**, **Reutilizar consulta durante** y **Mantener el mercado actualizado automáticamente**.
 
-Las credenciales de **SerpApi** y **ScraperAPI**, el límite local de SerpApi y el botón **Probar cadena SerpApi → ScraperAPI** se gestionan de forma central en **SEO Taxonomy → Herramientas → Conexiones con proveedores**, dentro del bloque **SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero**.
+Las credenciales de **SerpApi** y **ScraperAPI**, el límite local de SerpApi y el botón **Probar cadena SerpApi → ScraperAPI** se gestionan de forma central en **TaxoCommerce SEO → Herramientas → Conexiones con proveedores**, dentro del bloque **SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero**.
 
 ## Proveedores Google
 
