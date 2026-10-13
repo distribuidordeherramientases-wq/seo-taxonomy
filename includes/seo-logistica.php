@@ -261,7 +261,7 @@ if (!function_exists('seo_logistica_page')) {
     function seo_logistica_page() {
         $capability = class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options';
         if (!current_user_can($capability)) {
-            wp_die(esc_html__('No tienes permisos para acceder a esta pagina.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder a esta pagina.', 'taxocommerce-seo'));
         }
 
         echo '<div class="wrap seo-logistica-wrap">';
