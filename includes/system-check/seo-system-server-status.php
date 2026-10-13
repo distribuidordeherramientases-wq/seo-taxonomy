@@ -23,7 +23,7 @@ add_action('rest_api_init', 'seo_server_status_register_external_monitor_route')
  */
 function seo_server_status() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
     }
 
     $active_tab = seo_server_status_get_active_tab();
