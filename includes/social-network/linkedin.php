@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - proveedor LinkedIn Pages para Social Network.
+ * TaxoCommerce SEO - proveedor LinkedIn Pages para Social Network.
  *
  * Publica mediante LinkedIn Posts API y permite autorizar una aplicacion
  * mediante OAuth 2.0. El token y el client secret se guardan cifrados.
