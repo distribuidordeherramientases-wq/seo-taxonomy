@@ -809,7 +809,7 @@ final class SEO_Ojeador_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['ojeador_tab'] ?? 'analysis'));
-        if (!in_array($tab, array('analysis','novedades','stars','products','operation'), true)) {
+        if (!in_array($tab, array('analysis','novedades','stars','products','operation','merchant'), true)) {
             $tab = 'analysis';
         }
 
@@ -843,6 +843,8 @@ final class SEO_Ojeador_Admin {
                 'q' => sanitize_text_field(wp_unslash($_GET['nq'] ?? '')),
                 'limit' => 500,
             ));
+        } elseif ($tab === 'merchant') {
+            // Only local snapshots are rendered; no API call on page load.
         } elseif ($tab === 'stars') {
             $stars = SEO_Ojeador_Stars::dashboard(array(
                 'q' => sanitize_text_field(wp_unslash($_GET['sq'] ?? '')),
@@ -930,9 +932,12 @@ final class SEO_Ojeador_Admin {
                 <a class="nav-tab <?php echo $tab === 'stars' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=stars')); ?>">Posición de precio</a>
                 <a class="nav-tab <?php echo $tab === 'products' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=products')); ?>">Comparador de productos</a>
                 <a class="nav-tab <?php echo $tab === 'operation' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=operation')); ?>">Operación y consultas</a>
+                <a class="nav-tab <?php echo $tab === 'merchant' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=merchant')); ?>">Merchant · Comparación gratuita</a>
             </nav>
 
-            <?php if ($tab === 'analysis') : ?>
+            <?php if ($tab === 'merchant') : ?>
+                <?php SEO_Ojeador_Merchant::render(); ?>
+            <?php elseif ($tab === 'analysis') : ?>
                 <?php self::render_analysis($analysis); ?>
             <?php elseif ($tab === 'novedades') : ?>
                 <?php SEO_Ojeador_Novedades::render($novedades); ?>
