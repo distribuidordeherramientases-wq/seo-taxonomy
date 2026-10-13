@@ -147,6 +147,41 @@ final class SEO_Dependiente_V3_Frontend {
         return $groups;
     }
 
+    private static function assistant_image_url() {
+        $relative_file = '2026/09/dependiente.webp';
+        $ids = get_posts(array(
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+            'meta_key'       => '_wp_attached_file',
+            'meta_value'     => $relative_file,
+            'no_found_rows'  => true,
+        ));
+
+        if (!empty($ids)) {
+            $url = wp_get_attachment_image_url((int) $ids[0], 'large');
+            if (!$url) {
+                $url = wp_get_attachment_url((int) $ids[0]);
+            }
+            if ($url) {
+                return (string) $url;
+            }
+        }
+
+        $uploads = wp_upload_dir();
+        if (empty($uploads['error']) && !empty($uploads['baseurl'])) {
+            $candidate = trailingslashit($uploads['baseurl']) . $relative_file;
+            if ($candidate) {
+                return (string) $candidate;
+            }
+        }
+
+        return defined('SEO_DEPENDIENTE_URL')
+            ? SEO_DEPENDIENTE_URL . 'assets/images/dependiente-necesito-herramienta.webp'
+            : '';
+    }
+
     public static function render($atts = array()) {
         if (!class_exists('WooCommerce')) {
             return '<div class="woocommerce-info">Dependiente necesita WooCommerce activo.</div>';
@@ -159,9 +194,7 @@ final class SEO_Dependiente_V3_Frontend {
 
         $input_id = wp_unique_id('dependiente-v3-query-');
         $navigation_groups = self::navigation_groups(3);
-        $assistant_image = defined('SEO_DEPENDIENTE_URL')
-            ? SEO_DEPENDIENTE_URL . 'assets/images/dependiente-necesito-herramienta.webp'
-            : '';
+        $assistant_image = self::assistant_image_url();
         ob_start();
         ?>
         <section class="dependiente-v3" data-dep3-root>
@@ -223,7 +256,7 @@ final class SEO_Dependiente_V3_Frontend {
             <div class="dependiente-v3__workspace" data-dep3-workspace hidden>
                 <aside class="dependiente-v3__debug" data-dep3-debug hidden>
                     <div class="dependiente-v3__panel-head">
-                        <span>STAGING</span>
+                        <span>Filtro de productos</span>
                         <h2>Recorrido de la búsqueda</h2>
                     </div>
                     <div data-dep3-debug-content></div>
@@ -261,7 +294,7 @@ final class SEO_Dependiente_V3_Frontend {
 
     public static function enqueue_assets() {
         // Sufijo propio para invalidar caches sin cambiar la version global del plugin.
-        $asset_version = SEO_DEPENDIENTE_VERSION . '-choice-learning-20261010';
+        $asset_version = SEO_DEPENDIENTE_VERSION . '-choice-learning-20261013';
         wp_enqueue_style(
             'seo-dependiente-v3',
             SEO_DEPENDIENTE_V3_URL . 'assets/css/dependiente-v3.css',
