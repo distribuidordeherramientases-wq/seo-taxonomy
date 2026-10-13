@@ -1,5 +1,5 @@
 <?php
-/** Internal SEO Taxonomy module. */
+/** Internal TaxoCommerce SEO module. */
 if (!defined('ABSPATH')) exit;
 
 // Vista jerárquica de Taxonomía. Se mantiene separada de seo-reports.php.
