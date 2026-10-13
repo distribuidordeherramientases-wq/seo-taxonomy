@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - GitHub Actions Python Runner para catalogos de proveedores.
+ * TaxoCommerce SEO - GitHub Actions Python Runner para catalogos de proveedores.
  *
  * WordPress dispara un workflow_dispatch de GitHub Actions. El workflow
  * ejecuta el scraper Python y devuelve progreso y el CSV estandar a un
