@@ -107,7 +107,7 @@ jobs:
 
           # Añade una navegación operativa gestionada sin borrar el índice histórico.
           sidebar = wiki / "_Sidebar.md"
-          existing = sidebar.read_text(encoding="utf-8") if sidebar.exists() else "### SEO Taxonomy\n"
+          existing = sidebar.read_text(encoding="utf-8") if sidebar.exists() else "### TaxoCommerce SEO\n"
           s0 = "<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:START -->"
           s1 = "<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:END -->"
           managed = """<!-- SEO-TAXONOMY-SIDEBAR-MANUAL:START -->
