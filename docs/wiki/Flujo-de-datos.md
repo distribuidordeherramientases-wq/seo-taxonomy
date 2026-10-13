@@ -62,7 +62,7 @@ flowchart LR
     end
 
     subgraph EXTERNA["5 · Inteligencia externa"]
-        OJEADOR["Ojeador<br/>Compara categorías, mercado y oportunidades"]
+        OJEADOR["Ojeador<br/>Merchant primero, mercado y oportunidades"]
         NUEVAS["Nuevas categorías potenciales"]
         INGENIERO["Ingeniero<br/>Documentación técnica, foros, noticias y novedades"]
 
@@ -169,16 +169,16 @@ La salida no se publica automáticamente: pasa por **propuesta / revisión / dra
 
 ### 5. Ojeador
 
-**Ojeador** aporta inteligencia de mercado:
+**Ojeador** aporta inteligencia comercial de mercado:
 
-- compara categorías y productos;
-- observa oferta externa;
-- detecta oportunidades comerciales;
-- detecta categorías potenciales que aún no existen en el catálogo.
+- compara categorías y productos propios con información externa;
+- da prioridad a **Google Merchant Reports API** para benchmarks y productos populares cuando la cuenta tenga permisos;
+- conserva el histórico de ofertas individuales de Google Shopping como fuente distinta del benchmark agregado de Merchant;
+- identifica oportunidades comerciales y familias de productos que podrían faltar en el catálogo.
 
-Las categorías nuevas detectadas vuelven al flujo como **candidatas**, no como altas automáticas.
+La antigua pestaña **Novedades de Ojeador** está retirada: no se ejecutan sus búsquedas Trends/Shopping/Search. La investigación de **novedades técnicas y sectoriales** pertenece a Ingeniero. El modo tradicional de Shopping en Ojeador requiere activación expresa y no debe activarse automáticamente por ausencia de datos Merchant.
 
-Ojeador alimenta la base común y las decisiones posteriores de Auditor/Solucionador.
+Las categorías nuevas detectadas vuelven al flujo como **candidatas**, no como altas automáticas. Ojeador alimenta la base común y las decisiones posteriores de Auditor/Solucionador.
 
 ### 6. Ingeniero
 
@@ -286,7 +286,7 @@ Esta tabla expresa el mismo diagrama de forma explícita. Si existe ambigüedad 
 1. **No crear motores paralelos si un servicio existente ya tiene esa responsabilidad.**
 2. **Auditor analiza; Solucionador propone.**
 3. **Ingeniero investiga; no publica.**
-4. **Ojeador observa el mercado; no crea categorías automáticamente.**
+4. **Ojeador observa el mercado, prioriza Merchant y conserva Shopping histórico; no crea categorías automáticamente ni ejecuta un radar de Novedades.**
 5. **Analista prioriza mediante datos de rendimiento; no sustituye a Ingeniero ni a Solucionador.**
 6. **Dependiente aprende del catálogo y del uso real, pero no rastrea Internet por sí mismo.**
 7. **La publicación siempre genera nuevas señales que deben volver al sistema.**

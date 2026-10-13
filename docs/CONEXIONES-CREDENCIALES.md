@@ -265,14 +265,27 @@ Debe registrarse como Redirect URI en la aplicación de X.
 
 ---
 
-## SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero
+## Google Merchant Center · informes de mercado en Ojeador
+
+Ruta: **SEO Taxonomy → Herramientas → Ojeador → Merchant · Comparación gratuita**.
+
+Esta integración **no comparte automáticamente la autorización OAuth de Search Console**. Requiere:
+- **ID de Merchant Center**: número de cuenta Merchant, por ejemplo `123456789` (ejemplo ficticio).
+- **Cuenta de servicio de Google**: el JSON configurado en las conexiones de Google Search/Analytics; debe recibir acceso a la cuenta Merchant y solicitar por separado el alcance `https://www.googleapis.com/auth/content`.
+- **Merchant Reports API** disponible y permisos para sus informes de competitividad de precios y productos populares. Algunos informes requieren elegibilidad adicional.
+
+Los botones **Consultar siguiente lote Merchant** realizan consultas manuales, paginadas y de solo lectura. **No consumen créditos SerpApi/ScraperAPI**, pero se rigen por las cuotas y permisos de Google.
+
+En **Fuente de mercado**, el modo predeterminado **Merchant solamente** bloquea las búsquedas Shopping de pago ejecutadas por Ojeador. El modo **Shopping tradicional** se habilita únicamente mediante elección expresa del administrador. Ambos modos conservan los históricos anteriores.
+
+## SerpApi + ScraperAPI · conexión compartida para Ojeador (modo tradicional) e Ingeniero
 
 Ruta: **SEO Taxonomy → Herramientas → Conexiones con proveedores**.
 
-Las dos conexiones se configuran una sola vez y son compartidas por **Ojeador** e **Ingeniero**. Ojeador las usa para Google Shopping; Ingeniero para Google Search.
+Estas credenciales siguen almacenadas de forma central. **Ingeniero** las utiliza para investigación externa. **Ojeador** solo las emplea para nuevos escaneos Shopping cuando un administrador ha elegido expresamente el modo tradicional; la pestaña Ojeador → Novedades está retirada y no consume esos proveedores.
 
 ### SerpApi API key
-Proveedor primario para Google Shopping y Google Search.
+Proveedor primario para Google Shopping y Google Search cuando la operación correspondiente esté habilitada.
 
 **Ejemplo ficticio:** `serpapi_EXAMPLE_NOT_REAL_123456`
 
@@ -285,24 +298,21 @@ Proveedor secundario/fallback para Google Shopping y Google Search.
 
 También puede definirse mediante `SEO_OJEADOR_SCRAPERAPI_KEY` en `wp-config.php`.
 
-Orden operativo:
+Orden operativo del modo tradicional y las búsquedas de Ingeniero:
 
 1. SerpApi.
-2. Si falta conexión, se alcanza la cuota o la petición falla, ScraperAPI.
-3. Si el primer proveedor responde correctamente aunque devuelva 0 resultados, no se ejecuta el segundo.
+2. Si falta conexión, se alcanza cuota o falla la petición, ScraperAPI.
+3. Si SerpApi responde correctamente con 0 resultados, no se activa el segundo proveedor.
 
-En la interfaz las dos credenciales aparecen como conexiones separadas, una debajo de la otra. El botón **Probar cadena SerpApi → ScraperAPI** comprueba el mismo orden de fallback sin exponer ninguna clave.
-
-Ojeador usa el endpoint estructurado de Google Shopping de ScraperAPI. Ingeniero usa el endpoint estructurado de Google Search. Las respuestas se normalizan antes de llegar a cada servicio.
-
-Si un campo de API key se deja vacío, se conserva la credencial ya almacenada.
+Las credenciales se muestran en campos separados. **Probar cadena SerpApi → ScraperAPI** ejecuta una comprobación real de proveedores y **puede consumir una consulta**; no debe utilizarse innecesariamente. Un campo de API key vacío conserva la clave guardada cuando la interfaz lo indica.
 
 ### Límite mensual local SerpApi
-Protección compartida de la cadena Google. Si se alcanza y ScraperAPI está configurado, Ojeador e Ingeniero pueden continuar por el proveedor secundario.
+Es una protección compartida para las búsquedas de pago. Si se alcanza y existe conexión ScraperAPI, los servicios que tengan habilitadas esas búsquedas podrían usar el proveedor de respaldo. **Merchant-only no activa ningún fallback de pago por falta de datos Merchant**.
 
-Los ajustes **Actualizar cada**, **Categorías por paso**, **Reutilizar consulta durante** y **Mantener el mercado actualizado automáticamente** permanecen en Ojeador porque son parámetros de operación del servicio, no credenciales de proveedor.
+Los ajustes **Actualizar cada**, **Categorías por paso**, **Reutilizar consulta durante** y **Mantener el mercado actualizado automáticamente** pertenecen a la operación tradicional de Ojeador. No determinan la sincronización manual de Merchant.
 
-Ingeniero mantiene además su propio límite local de búsquedas lógicas, independiente de la cuota concreta de cada proveedor.
+Ingeniero mantiene su propio límite local de búsquedas lógicas, independiente de la cuota concreta de cada proveedor.
+
 
 ---
 
