@@ -1,6 +1,6 @@
 # Conexiones y credenciales
 
-Este documento explica los campos de conexión visibles en SEO Taxonomy y muestra ejemplos de formato.
+Este documento explica los campos de conexión visibles en TaxoCommerce SEO y muestra ejemplos de formato.
 
 > **Todos los valores de esta página son ficticios. No funcionan y no deben copiarse como credenciales reales.**
 
@@ -19,7 +19,7 @@ Cuando un campo contiene una clave, token, contraseña o secreto:
 ## Cloudflare
 
 ### Activar Cloudflare para diagnósticos
-Permite que SEO Taxonomy utilice la conexión para diagnósticos.
+Permite que TaxoCommerce SEO utilice la conexión para diagnósticos.
 
 Desactivarlo no implica necesariamente borrar la credencial almacenada.
 
@@ -211,7 +211,7 @@ Opcional para pruebas o cuando el token se obtiene fuera del plugin.
 **Ejemplo ficticio:** `linkedin_token_EXAMPLE_NOT_REAL`
 
 ### Callback URL
-Registrar en la aplicación exactamente la URL mostrada por SEO Taxonomy.
+Registrar en la aplicación exactamente la URL mostrada por TaxoCommerce SEO.
 
 **Ejemplo ilustrativo:**
 `https://www.ejemplo.es/wp-json/seo-system/v1/linkedin/callback`
@@ -267,7 +267,7 @@ Debe registrarse como Redirect URI en la aplicación de X.
 
 ## SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero
 
-Ruta: **SEO Taxonomy → Herramientas → Conexiones con proveedores**.
+Ruta: **TaxoCommerce SEO → Herramientas → Conexiones con proveedores**.
 
 Las dos conexiones se configuran una sola vez y son compartidas por **Ojeador** e **Ingeniero**. Ojeador las usa para Google Shopping; Ingeniero para Google Search.
 
