@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - auditor externo por tipo de recurso.
+ * TaxoCommerce SEO - auditor externo por tipo de recurso.
  *
  * Separa cuatro inventarios: paginas WordPress, posts, productos e imagenes activas.
  * Cada pestaña dispone de su propio escaneo y de un test de carga seguro.
