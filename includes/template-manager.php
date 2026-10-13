@@ -62,7 +62,7 @@ function seo_tm_redirect($tab, $message, $type = 'success') {
             '<p>%s</p><p><a class="button button-primary" href="%s">%s</a></p>',
             esc_html($message),
             esc_url($url),
-            esc_html__('Volver al gestor de plantillas', 'seo-taxonomy')
+            esc_html__('Volver al gestor de plantillas', 'taxocommerce-seo')
         )
     );
 }
