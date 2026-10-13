@@ -197,7 +197,7 @@ if ($seo_import_export_hook) {
     add_action('load-' . $seo_import_export_hook, static function () {
         global $title;
         if (!is_string($title) || '' === trim($title)) {
-            $title = 'Importar / Exportar SEO System';
+            $title = 'Importar / Exportar TaxoCommerce SEO';
         }
     });
 }
