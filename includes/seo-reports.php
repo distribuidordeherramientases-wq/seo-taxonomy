@@ -1,5 +1,5 @@
 <?php
-/** Internal SEO Taxonomy module. */
+/** Internal TaxoCommerce SEO module. */
 if (!defined('ABSPATH')) exit;
 
 // Informe editorial: oportunidades de posts a partir de las conexiones Google ya existentes.
@@ -1301,7 +1301,7 @@ function seo_reports_category_vocabulary_map($category_ids = array()) {
 /**
  * Informe de estructura completa de categorías.
  *
- * La interfaz se muestra desde SEO Taxonomy > Categorías > Informe categorías.
+ * La interfaz se muestra desde TaxoCommerce SEO > Categorías > Informe categorías.
  * Se mantiene en este módulo para reutilizar los helpers de informes existentes.
  */
 function seo_render_total_structure_report() {
@@ -2010,7 +2010,7 @@ function seo_product_category_deleted_term($term_id, $tt_id, $deleted_term, $obj
 add_action('delete_product_cat', 'seo_product_category_deleted_term', 10, 4);
 
 /**
- * API canónica para los borrados iniciados desde SEO Taxonomy.
+ * API canónica para los borrados iniciados desde TaxoCommerce SEO.
  */
 function seo_delete_product_category_with_hub_redirect($term_id, $source_module = 'seo_taxonomy') {
     $term_id = absint($term_id);
