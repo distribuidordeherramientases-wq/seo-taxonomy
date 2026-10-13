@@ -264,7 +264,9 @@ La línea pública actual utiliza versiones del tipo:
 2.4.0.1
 ```
 
-Mientras se mantenga este esquema, todos los documentos de una misma publicación deben usar exactamente el mismo identificador.
+La release base es `2.4.0`. Los siguientes hitos/ciclos de corrección de esta línea utilizarán `2.4.0.*` (por ejemplo, `2.4.0.1`, `2.4.0.2`, etc.).
+
+Mientras se mantenga este esquema, todos los documentos y milestones de una misma publicación deben usar exactamente el mismo identificador.
 
 No se debe actualizar `Stable tag` o la versión del plugin de forma aislada.
 
