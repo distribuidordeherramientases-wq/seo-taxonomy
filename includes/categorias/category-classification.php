@@ -1,5 +1,5 @@
 <?php
-/** Internal SEO Taxonomy module. */
+/** Internal TaxoCommerce SEO module. */
 if (!defined('ABSPATH')) exit;
 
 /**
@@ -372,7 +372,7 @@ if (!function_exists('seo_category_vocabulary_validate_groups')) {
 if (!function_exists('seo_category_vocabulary_assert_data_layer')) {
     function seo_category_vocabulary_assert_data_layer($table_key = 'object_vocabulary') {
         if (!class_exists('SEO_Data_Layer') || !class_exists('SEO_Data_Operation')) {
-            throw new RuntimeException('El Data Layer de SEO Taxonomy no está disponible.');
+            throw new RuntimeException('El Data Layer de TaxoCommerce SEO no está disponible.');
         }
         return SEO_Data_Layer::table($table_key);
     }
