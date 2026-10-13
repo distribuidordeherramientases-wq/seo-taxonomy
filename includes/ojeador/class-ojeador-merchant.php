@@ -170,7 +170,7 @@ final class SEO_Ojeador_Merchant {
             'key'=>$key,'title'=>$title,'brand'=>$brand,
             'category'=>sanitize_text_field((string)($row['categoryL1']??'')),
             'subcategory'=>sanitize_text_field((string)($row['categoryL2']??'')),
-            'report_date'=>sanitize_text_field((string)($row['reportDate']??'')),
+            'report_date'=>is_array($row['reportDate']??null) ? sprintf('%04d-%02d-%02d',absint($row['reportDate']['year']??0),absint($row['reportDate']['month']??0),absint($row['reportDate']['day']??0)) : sanitize_text_field((string)($row['reportDate']??'')),
             'rank'=>absint($row['rank']??0),
             'previous_rank'=>absint($row['previousRank']??0),
             'relative_demand'=>sanitize_key((string)($row['relativeDemand']??'')),
@@ -201,11 +201,13 @@ final class SEO_Ojeador_Merchant {
                 if (!$row)continue;
                 $key=$view==='prices'?$row['offer_id']:$row['key'];
                 $rows[$key]=$row;$received++;
+                if (count($rows)>20000)break;
             }
             $section['rows']=$rows;
             $section['page_token']=sanitize_text_field((string)($answer['nextPageToken']??''));
             $section['total_received']=absint($section['total_received']??0)+count((array)($answer['results']??array()));
-            $section['complete']=$section['page_token']==='';
+            $section['complete']=$section['page_token']==='' || count($rows)>=20000;
+            if ($section['complete'])$section['page_token']='';
             $section['updated_at']=gmdate('c');
             $section['country']='ES';
             $state[$view]=$section;
