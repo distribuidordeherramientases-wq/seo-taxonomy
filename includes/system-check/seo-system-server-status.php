@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Server Status
+ * TaxoCommerce SEO - Server Status
  *
  * Panel de diagnóstico de solo lectura para servidor, PHP, MySQL,
  * WordPress, seguridad, WooCommerce y logs.
@@ -1219,7 +1219,7 @@ function seo_server_status_security_http_get($url, $limit = 262144, $timeout = 8
             'Cache-Control' => 'no-cache',
             'Pragma' => 'no-cache',
         ),
-        'user-agent' => 'SEO-System-Security-Audit/1.0; ' . home_url('/'),
+        'user-agent' => 'TaxoCommerce-SEO-Security-Audit/1.0; ' . home_url('/'),
     ));
 }
 
@@ -2061,7 +2061,7 @@ function seo_server_status_collect_snapshot($deep = false) {
     $checks[] = seo_server_status_make_check('SRV-WP-OBJECT-CACHE', 'Rendimiento', 'Caché de objetos externa', seo_server_status_yes_no($object_cache), $object_cache ? 'ok' : 'info', 'Es una mejora opcional, no un requisito funcional.');
 
     $wc_active = class_exists('WooCommerce');
-    $checks[] = seo_server_status_make_check('SRV-WC-ACTIVE', 'WooCommerce', 'WooCommerce activo', seo_server_status_yes_no($wc_active), $wc_active ? 'ok' : 'important', 'SEO System espera WooCommerce en esta instalación.');
+    $checks[] = seo_server_status_make_check('SRV-WC-ACTIVE', 'WooCommerce', 'WooCommerce activo', seo_server_status_yes_no($wc_active), $wc_active ? 'ok' : 'important', 'TaxoCommerce SEO espera WooCommerce en esta instalación.');
     $pending = seo_server_status_get_action_scheduler_count('pending');
     $failed = seo_server_status_get_action_scheduler_count('failed');
     $pending_status = $pending > 5000 ? 'important' : ($pending > 1000 ? 'warning' : 'ok');
@@ -3194,14 +3194,14 @@ function seo_server_status_render_performance_tab() {
 function seo_server_status_render_logs_tab() {
 
     echo '<h2>Logs</h2>';
-    echo '<p>Cuando el hosting lo permite, SEO System puede mostrar el <code>error_log</code> de PHP. El archivo no necesita ser publico por HTTP para poder leerse desde WordPress.</p>';
+    echo '<p>Cuando el hosting lo permite, TaxoCommerce SEO puede mostrar el <code>error_log</code> de PHP. El archivo no necesita ser publico por HTTP para poder leerse desde WordPress.</p>';
 
     $php_log = seo_server_status_get_php_error_log_info();
     $show_php_log = isset($_GET['seo_show_php_log']) && sanitize_key(wp_unslash($_GET['seo_show_php_log'])) === '1';
 
     echo '<div class="seo-status-card">';
     echo '<h2>Log PHP / sistema</h2>';
-    echo '<p class="seo-muted">Este es el destino configurado por PHP para errores del servidor. SEO System no lo configura ni lo modifica automaticamente: cada hosting puede usar una ruta, permisos o incluso syslog distintos. Si el archivo es legible por el mismo proceso PHP que ejecuta WordPress, puede mostrarse aqui aunque este fuera del directorio publico.</p>';
+    echo '<p class="seo-muted">Este es el destino configurado por PHP para errores del servidor. TaxoCommerce SEO no lo configura ni lo modifica automaticamente: cada hosting puede usar una ruta, permisos o incluso syslog distintos. Si el archivo es legible por el mismo proceso PHP que ejecuta WordPress, puede mostrarse aqui aunque este fuera del directorio publico.</p>';
 
     seo_server_status_open_table();
 
@@ -3238,14 +3238,14 @@ function seo_server_status_render_logs_tab() {
             'Legible desde WordPress',
             seo_server_status_yes_no($php_log['readable']),
             $php_log['readable'] ? 'ok' : 'info',
-            $php_log['readable'] ? 'SEO System puede mostrar sus ultimas lineas a un administrador.' : 'El hosting puede registrar errores sin permitir que WordPress lea el archivo.'
+            $php_log['readable'] ? 'TaxoCommerce SEO puede mostrar sus ultimas lineas a un administrador.' : 'El hosting puede registrar errores sin permitir que WordPress lea el archivo.'
         );
 
         seo_server_status_row(
             'Escribible por PHP',
             seo_server_status_yes_no($php_log['writable']),
             $php_log['writable'] ? 'ok' : 'info',
-            'Se informa para diagnostico. SEO System no vacia ni modifica el log PHP del hosting.'
+            'Se informa para diagnostico. TaxoCommerce SEO no vacia ni modifica el log PHP del hosting.'
         );
     }
 
@@ -3255,7 +3255,7 @@ function seo_server_status_render_logs_tab() {
     echo '<summary style="cursor:pointer;font-weight:600;">Como activar o cambiar el log PHP / sistema</summary>';
     echo '<p>Es opcional y no requiere <code>WP_DEBUG=true</code>. Para capturar errores fatales en produccion basta con mantener <code>log_errors</code> activo y apuntar <code>error_log</code> a una ruta privada y escribible fuera del document root.</p>';
     echo '<pre class="seo-log-box" style="max-height:none;">' . esc_html("@ini_set('log_errors', '1');\n@ini_set('error_log', '/RUTA/PRIVADA/FUERA/DEL/DOCUMENT_ROOT/wp-private-error.log');") . '</pre>';
-    echo '<p class="seo-muted">Estas lineas deben ir en <code>wp-config.php</code> antes de cargar <code>wp-settings.php</code>. La ruta exacta depende del hosting; SEO System no debe inventarla ni forzarla durante la instalacion.</p>';
+    echo '<p class="seo-muted">Estas lineas deben ir en <code>wp-config.php</code> antes de cargar <code>wp-settings.php</code>. La ruta exacta depende del hosting; TaxoCommerce SEO no debe inventarla ni forzarla durante la instalacion.</p>';
     echo '</details>';
 
     if (!$php_log['log_errors'] || !$php_log['configured']) {
@@ -3263,18 +3263,18 @@ function seo_server_status_render_logs_tab() {
         echo '<strong>El log PHP es opcional, pero recomendable para diagnosticar errores fatales.</strong> ';
         echo 'No requiere activar <code>WP_DEBUG</code>. Si el cliente quiere usarlo, debe configurarlo en <code>wp-config.php</code> antes de cargar <code>wp-settings.php</code>, usando una ruta privada y escribible fuera del document root.';
         echo '<pre class="seo-log-box" style="max-height:none;margin-top:10px;">' . esc_html("@ini_set('log_errors', '1');\n@ini_set('error_log', '/RUTA/PRIVADA/FUERA/DEL/DOCUMENT_ROOT/wp-private-error.log');") . '</pre>';
-        echo '<p class="seo-muted">La ruta exacta depende del hosting. SEO System no la inventa ni la fuerza durante la instalacion.</p>';
+        echo '<p class="seo-muted">La ruta exacta depende del hosting. TaxoCommerce SEO no la inventa ni la fuerza durante la instalacion.</p>';
         echo '</div>';
     } elseif ($php_log['type'] === 'file' && $php_log['private_known'] && !$php_log['private']) {
         echo '<div class="notice notice-warning"><p><strong>Recomendacion:</strong> el error_log de PHP esta dentro del directorio publico. Muevelo a una ruta privada del hosting y vuelve a ejecutar Seguridad.</p></div>';
     } elseif ($php_log['type'] === 'file' && !$php_log['private_known']) {
-        echo '<div class="seo-status-note"><strong>Privacidad de la ruta no concluyente:</strong> SEO System no puede determinar si el destino queda dentro o fuera del document root. El cliente debe confirmarlo en el panel del hosting.</div>';
+        echo '<div class="seo-status-note"><strong>Privacidad de la ruta no concluyente:</strong> TaxoCommerce SEO no puede determinar si el destino queda dentro o fuera del document root. El cliente debe confirmarlo en el panel del hosting.</div>';
     } elseif ($php_log['type'] === 'file' && !$php_log['exists']) {
         echo '<div class="seo-status-note"><strong>Log PHP configurado pero aun sin archivo:</strong> esto puede ser normal si no se ha producido ningun error desde que se cambio la ruta. PHP suele crear el archivo al escribir la primera entrada.</div>';
     } elseif ($php_log['type'] === 'file' && !$php_log['readable']) {
-        echo '<div class="seo-status-note"><strong>Log PHP activo pero no legible desde WordPress:</strong> SEO System no intentara cambiar permisos. El cliente debe consultarlo desde el panel del hosting o pedir acceso al proveedor.</div>';
+        echo '<div class="seo-status-note"><strong>Log PHP activo pero no legible desde WordPress:</strong> TaxoCommerce SEO no intentara cambiar permisos. El cliente debe consultarlo desde el panel del hosting o pedir acceso al proveedor.</div>';
     } elseif ($php_log['type'] === 'syslog' || $php_log['type'] === 'stream') {
-        echo '<div class="seo-status-note"><strong>Destino gestionado por el sistema:</strong> PHP no esta escribiendo en un archivo local convencional accesible desde WordPress. SEO System lo deja en modo informativo.</div>';
+        echo '<div class="seo-status-note"><strong>Destino gestionado por el sistema:</strong> PHP no esta escribiendo en un archivo local convencional accesible desde WordPress. TaxoCommerce SEO lo deja en modo informativo.</div>';
     }
 
     if ($php_log['type'] === 'file' && $php_log['exists'] && $php_log['readable']) {
@@ -3331,7 +3331,7 @@ function seo_server_status_get_php_error_log_info() {
 
     if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $raw_target)) {
         $info['type'] = 'stream';
-        $info['target_help'] = 'PHP usa un stream o destino especial. SEO System no intenta abrirlo como archivo local.';
+        $info['target_help'] = 'PHP usa un stream o destino especial. TaxoCommerce SEO no intenta abrirlo como archivo local.';
         return $info;
     }
 
@@ -3347,7 +3347,7 @@ function seo_server_status_get_php_error_log_info() {
     $info['type'] = 'file';
     $info['path'] = $path;
     $info['display_target'] = esc_html($path);
-    $info['target_help'] = 'Ruta local configurada por PHP. SEO System solo la inspecciona; no la cambia.';
+    $info['target_help'] = 'Ruta local configurada por PHP. TaxoCommerce SEO solo la inspecciona; no la cambia.';
     $info['exists'] = is_file($path);
     $info['readable'] = $info['exists'] && is_readable($path);
 
