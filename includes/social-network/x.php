@@ -440,7 +440,7 @@ function seo_social_x_sync_publication($publication, $config)
 function seo_social_x_oauth_start()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para conectar X.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para conectar X.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_social_x_oauth_start');
 
