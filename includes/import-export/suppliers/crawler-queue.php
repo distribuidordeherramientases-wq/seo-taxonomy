@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Cola respetuosa de descubrimiento web de proveedores.
+ * TaxoCommerce SEO - Cola respetuosa de descubrimiento web de proveedores.
  *
  * Descubre catalogos publicos de proveedores a baja frecuencia y guarda los
  * datos normalizados en una zona temporal de descubrimiento. Periodicamente crea
