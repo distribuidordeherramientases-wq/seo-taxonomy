@@ -1,10 +1,10 @@
 <?php
 /**
- * SEO Taxonomy
+ * TaxoCommerce SEO
  *
  * Archivo: seo-admin.php
  * Descripción: Registra el menú principal y los submenús del panel de administración
- * del plugin SEO Taxonomy. Centraliza la navegación hacia los distintos módulos.
+ * del plugin TaxoCommerce SEO. Centraliza la navegación hacia los distintos módulos.
  *
  * @package     SEOSystem
  * @subpackage  Admin
@@ -49,7 +49,7 @@ if (!function_exists('seo_server_status')) {
 /*
  * Editor de posts.
  * Se desactiva su submenu nativo bajo Entradas porque este modulo se integra
- * dentro de SEO Taxonomy.
+ * dentro de TaxoCommerce SEO.
  */
 add_filter('seo_post_editor_register_submenu', '__return_false');
 
@@ -102,8 +102,8 @@ add_action('admin_menu', function () {
 
 // Menú principal
 add_menu_page(
-    'SEO Taxonomy',
-    'SEO Taxonomy',
+    'TaxoCommerce SEO',
+    'TaxoCommerce SEO',
     'manage_options',
     'seo-system',
     'seo_home_page',
@@ -223,7 +223,7 @@ add_submenu_page(null,'Plugin Validation','Plugin Validation','manage_options','
 });
 
 // Limpieza tardía del menú administrativo.
-// Search debe existir únicamente como tarjeta dentro de SEO Taxonomy > Herramientas.
+// Search debe existir únicamente como tarjeta dentro de TaxoCommerce SEO > Herramientas.
 // seo-search.php registra la página oculta con el slug canónico `seo-search`.
 add_action('admin_menu', function () {
     // WordPress crea una entrada duplicada para la página principal.
@@ -241,7 +241,7 @@ add_action('admin_menu', function () {
     remove_submenu_page('options-general.php', 'seo-search-settings');
 }, 999);
 
-// Al abrir Search desde su tarjeta, mantener SEO Taxonomy como menú padre y
+// Al abrir Search desde su tarjeta, mantener TaxoCommerce SEO como menú padre y
 // Herramientas como sección activa en la navegación lateral.
 add_filter('parent_file', function ($parent_file) {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
@@ -465,7 +465,7 @@ function seo_content_page() {
     $items = apply_filters('seo_content_items', $items);
 ?>
 <div class="wrap seo-content">
-    <h1>SEO Taxonomy - Contenidos</h1>
+    <h1>TaxoCommerce SEO - Contenidos</h1>
     <p>Accesos directos a la edición habitual del catálogo y del contenido editorial.</p>
 
     <div class="seo-tools-grid">
@@ -489,9 +489,9 @@ function seo_tools_page() {
 ?>
 <div class="wrap seo-tools">
 
-    <h1>SEO Taxonomy - Tools</h1>
+    <h1>TaxoCommerce SEO - Tools</h1>
 
-    <p>Herramientas avanzadas del plugin SEO Taxonomy.</p>
+    <p>Herramientas avanzadas del plugin TaxoCommerce SEO.</p>
 
     <div class="seo-tools-grid">
 
@@ -635,7 +635,7 @@ function seo_tools_page() {
 
 
 /**
- * Identidad visual del menú principal de SEO Taxonomy.
+ * Identidad visual del menú principal de TaxoCommerce SEO.
  *
  * Se carga en todo el administrador para que el plugin pueda localizarse
  * visualmente sin necesidad de leer cada entrada del menú lateral.
@@ -851,11 +851,11 @@ function seo_home_page() {
 
     <div class="notice notice-info" style="padding:25px;margin:20px 0;border-left:5px solid #2271b1;">
 
-        <h1 style="margin-top:0;">🚀 Bienvenido a SEO Taxonomy</h1>
+        <h1 style="margin-top:0;">🚀 Bienvenido a TaxoCommerce SEO</h1>
 
         <p style="font-size:15px;line-height:1.8;max-width:1100px;">
 
-            <strong>SEO Taxonomy</strong> es una plataforma integral para administrar el SEO de WordPress desde un único panel de control.
+            <strong>TaxoCommerce SEO</strong> es una plataforma integral para administrar el SEO de WordPress desde un único panel de control.
 
             Permite gestionar el SEO de <strong>productos, categorías, páginas, posts e imágenes</strong>, generar contenido automáticamente,
             crear plantillas SEO, analizar informes y utilizar herramientas avanzadas para automatizar tareas de optimización.
@@ -875,7 +875,7 @@ function seo_home_page() {
     <h2>📚 Definición del plugin</h2>
 
     <p>
-        SEO Taxonomy organiza la arquitectura SEO del sitio, las páginas estratégicas,
+        TaxoCommerce SEO organiza la arquitectura SEO del sitio, las páginas estratégicas,
         las categorías de producto y sus relaciones. También permite revisar la
         calidad del contenido, detectar errores y aplicar mejoras SEO asistidas por IA.
     </p>
