@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Ojeador.
+ * TaxoCommerce SEO - Ojeador.
  *
  * Category-first market intelligence using structured Google Shopping results.
  * No merchant HTML scrapers and no internal cut on results returned per query.
