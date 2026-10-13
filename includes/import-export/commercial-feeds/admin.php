@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Administracion de catalogos comerciales.
+ * TaxoCommerce SEO - Administracion de catalogos comerciales.
  *
  * @package SEOSystem
  * @subpackage ImportExport\CommercialFeeds
