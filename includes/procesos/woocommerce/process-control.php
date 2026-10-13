@@ -2,7 +2,7 @@
 /**
  * Control de intensidad de procesos WooCommerce.
  *
- * Se integra como tercera pestaña de SEO Taxonomy > Procesos.
+ * Se integra como tercera pestaña de TaxoCommerce SEO > Procesos.
  * El objetivo es reducir trabajo de mantenimiento que no necesita inmediatez
  * sin interferir por defecto con pagos, pedidos, webhooks o correos.
  */
