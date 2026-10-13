@@ -421,7 +421,7 @@ if (!function_exists('dht_shared_product_compare_data')) {
 
         /*
          * El comparador usa como fuente principal la clasificación y los
-         * atributos canónicos de SEO Taxonomy. Los atributos nativos de
+         * atributos canónicos de TaxoCommerce SEO. Los atributos nativos de
          * WooCommerce quedan como fallback para no perder información legacy.
          */
         $attributes = array();
@@ -465,7 +465,7 @@ if (!function_exists('dht_shared_product_compare_data')) {
                 : ucwords($raw_label);
         };
 
-        /* Atributos técnicos canónicos de SEO Taxonomy. */
+        /* Atributos técnicos canónicos de TaxoCommerce SEO. */
         if (function_exists('seo_attributes_get_product_rows')) {
             $canonical_groups = array();
 
