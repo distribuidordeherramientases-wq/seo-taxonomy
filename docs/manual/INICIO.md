@@ -1,6 +1,6 @@
 # Inicio
 
-Ruta: **SEO Taxonomy → Inicio**
+Ruta: **TaxoCommerce SEO → Inicio**
 
 La pantalla Inicio es el punto de entrada al plugin. No modifica datos por sí misma: presenta el objetivo del sistema, un flujo de trabajo recomendado y accesos directos.
 
