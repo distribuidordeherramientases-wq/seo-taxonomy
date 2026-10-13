@@ -678,6 +678,69 @@ if (!function_exists('seo_process_supervisor_import_pending')) {
     }
 }
 
+
+if (!function_exists('seo_process_supervisor_import_queue_pending')) {
+    /**
+     * Detecta trabajo pendiente de la cola multientidad (posts, páginas,
+     * categorías, FAQs, redirects, catálogos y productos aún no arrancados).
+     *
+     * La cola sólo se considera gestionable cuando fue iniciada explícitamente
+     * (enabled=true). Así, subir CSV por File Server no arranca trabajo por sí
+     * solo; una vez iniciada, el Gestor de workers encadena todos los ficheros.
+     *
+     * @return array|null
+     */
+    function seo_process_supervisor_import_queue_pending() {
+        if (
+            !function_exists('seo_ie_batch_status')
+            || !function_exists('seo_ie_batch_paths')
+            || !function_exists('seo_ie_batch_files')
+            || !function_exists('seo_ie_batch_queue_worker')
+        ) {
+            return null;
+        }
+
+        $status = (array) seo_ie_batch_status();
+        if (empty($status['enabled'])) {
+            return null;
+        }
+
+        $state = sanitize_key((string) ($status['status'] ?? ''));
+        if (in_array($state, array('paused', 'stopped', 'stopping', 'failed', 'cancelled', 'completed'), true)) {
+            return null;
+        }
+
+        $user_id = absint($status['user_id'] ?? 0);
+        if ($user_id < 1 || !user_can($user_id, 'manage_options')) {
+            return null;
+        }
+
+        // Un producto ya activo conserva su controlador adaptativo específico.
+        if (function_exists('seo_ie_product_import_get_active')) {
+            $active = seo_ie_product_import_get_active($user_id);
+            if (!empty($active['token'])) {
+                return null;
+            }
+        }
+
+        $paths = seo_ie_batch_paths();
+        $processing = count((array) seo_ie_batch_files($paths['processing'] ?? ''));
+        $pending = count((array) seo_ie_batch_files($paths['pending'] ?? ''));
+
+        if ($processing < 1 && $pending < 1) {
+            return null;
+        }
+
+        return array(
+            'user_id' => $user_id,
+            'status' => $status,
+            'processing' => $processing,
+            'pending' => $pending,
+            'total' => $processing + $pending,
+        );
+    }
+}
+
 if (!function_exists('seo_process_supervisor_academy_pending')) {
     function seo_process_supervisor_academy_pending() {
         if (!class_exists('SEO_Dependiente_Entrenador')) {
@@ -736,11 +799,15 @@ if (!function_exists('seo_process_supervisor_has_pending_work')) {
         $pending = false;
 
         $settings = seo_process_supervisor_settings();
-        if (!empty($settings['import_export']) && function_exists('seo_ie_product_import_run_manager_slice')) {
-            foreach (seo_process_supervisor_import_users() as $user_id) {
-                if (seo_process_supervisor_import_pending($user_id)) {
-                    $pending = true;
-                    break;
+        if (!empty($settings['import_export'])) {
+            if (seo_process_supervisor_import_queue_pending()) {
+                $pending = true;
+            } elseif (function_exists('seo_ie_product_import_run_manager_slice')) {
+                foreach (seo_process_supervisor_import_users() as $user_id) {
+                    if (seo_process_supervisor_import_pending($user_id)) {
+                        $pending = true;
+                        break;
+                    }
                 }
             }
         }
@@ -934,19 +1001,26 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
         try {
             do_action('seo_process_supervisor_periodic_pulse', $source, $max_runtime);
             $targets = array();
-            if (!empty($settings['import_export']) && function_exists('seo_ie_product_import_run_manager_slice')) {
-                foreach (seo_process_supervisor_import_users() as $user_id) {
-                    $pending = seo_process_supervisor_import_pending($user_id);
-                    if ($pending) {
-                        $due = absint($pending['state']['direct_worker_not_before'] ?? 0);
-                        if ($due && $due > time()) {
-                            seo_process_supervisor_managed_update('import-export-' . absint($user_id), array(
-                                'name' => 'Import / Export', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
-                                'last_result' => 'waiting', 'last_error' => '',
-                                'detail' => 'En espera de la pausa adaptativa; el gestor lo retomará automáticamente.'
-                            ));
-                        } else {
-                            $targets[] = array('type' => 'import', 'data' => $pending);
+            if (!empty($settings['import_export'])) {
+                $queue_pending = seo_process_supervisor_import_queue_pending();
+                if ($queue_pending) {
+                    $targets[] = array('type' => 'import_queue', 'data' => $queue_pending);
+                }
+
+                if (function_exists('seo_ie_product_import_run_manager_slice')) {
+                    foreach (seo_process_supervisor_import_users() as $user_id) {
+                        $pending = seo_process_supervisor_import_pending($user_id);
+                        if ($pending) {
+                            $due = absint($pending['state']['direct_worker_not_before'] ?? 0);
+                            if ($due && $due > time()) {
+                                seo_process_supervisor_managed_update('import-export-' . absint($user_id), array(
+                                    'name' => 'Import / Export', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                                    'last_result' => 'waiting', 'last_error' => '',
+                                    'detail' => 'En espera de la pausa adaptativa; el gestor lo retomará automáticamente.'
+                                ));
+                            } else {
+                                $targets[] = array('type' => 'import', 'data' => $pending);
+                            }
                         }
                     }
                 }
@@ -1050,7 +1124,71 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                 $left = max(1, $total - $index);
                 $budget = max(5, min(55, (int) floor($remaining / $left)));
 
-                if ('import' === $target['type']) {
+                if ('import_queue' === $target['type']) {
+                    $user_id = absint($target['data']['user_id'] ?? 0);
+                    $key = 'import-export';
+
+                    seo_process_supervisor_managed_update($key, array(
+                        'name' => 'Import / Export',
+                        'pending' => 1,
+                        'healthy' => 1,
+                        'last_checked' => time(),
+                        'last_attempt_at' => time(),
+                        'last_result' => 'running',
+                        'last_error' => '',
+                        'detail' => sprintf(
+                            'El gestor procesa la cola general: %d en processing y %d pendientes.',
+                            absint($target['data']['processing'] ?? 0),
+                            absint($target['data']['pending'] ?? 0)
+                        ),
+                    ));
+                    seo_process_supervisor_log(
+                        'info',
+                        'batch_queue_window_started',
+                        'Import / Export procesa el siguiente CSV de la cola general.',
+                        'Import / Export',
+                        array(
+                            'user_id' => $user_id,
+                            'processing' => absint($target['data']['processing'] ?? 0),
+                            'pending' => absint($target['data']['pending'] ?? 0),
+                        )
+                    );
+
+                    // Evita acumular acciones heredadas vencidas. El Gestor es el
+                    // motor principal; Action Scheduler/WP-Cron quedan de respaldo.
+                    if (function_exists('seo_ie_batch_unschedule')) {
+                        seo_ie_batch_unschedule($user_id);
+                    }
+
+                    $before = absint($target['data']['total'] ?? 0);
+                    seo_ie_batch_queue_worker($user_id);
+                    $fresh = seo_process_supervisor_import_queue_pending();
+                    $after = $fresh ? absint($fresh['total'] ?? 0) : 0;
+                    $progressed = $after < $before || null === $fresh;
+
+                    seo_process_supervisor_managed_update($key, array(
+                        'pending' => $fresh ? 1 : 0,
+                        'healthy' => 1,
+                        'last_checked' => time(),
+                        'last_result' => $progressed ? 'processed' : 'waiting',
+                        'last_error' => '',
+                        'detail' => $fresh
+                            ? sprintf(
+                                'Archivo procesado; quedan %d en processing y %d pendientes. Continuará en el siguiente ciclo.',
+                                absint($fresh['processing'] ?? 0),
+                                absint($fresh['pending'] ?? 0)
+                            )
+                            : 'Cola general terminada o pausada.',
+                    ));
+
+                    if ($progressed) {
+                        $state = seo_process_supervisor_state();
+                        seo_process_supervisor_save_state(array(
+                            'launch_count' => absint($state['launch_count'] ?? 0) + 1,
+                            'last_launch_at' => time(),
+                        ));
+                    }
+                } elseif ('import' === $target['type']) {
                     $user_id = absint($target['data']['user_id']);
                     $token = sanitize_key($target['data']['token']);
                     $key = 'import-export-' . $user_id;
@@ -1155,10 +1293,31 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
 
 if (!function_exists('seo_process_supervisor_check_import_export')) {
     function seo_process_supervisor_check_import_export($settings) {
-        if (empty($settings['import_export']) || !function_exists('seo_ie_product_import_get_active')) {
+        if (empty($settings['import_export'])) {
             return;
         }
+
         $found = false;
+        $queue_pending = seo_process_supervisor_import_queue_pending();
+        if ($queue_pending) {
+            $found = true;
+            seo_process_supervisor_managed_update('import-export', array(
+                'name' => 'Import / Export',
+                'pending' => 1,
+                'healthy' => 1,
+                'last_checked' => time(),
+                'detail' => sprintf(
+                    'Cola general detectada: %d en processing y %d pendientes. El Gestor la encadenará automáticamente.',
+                    absint($queue_pending['processing'] ?? 0),
+                    absint($queue_pending['pending'] ?? 0)
+                ),
+                'last_error' => '',
+            ));
+        }
+
+        if (!function_exists('seo_ie_product_import_get_active')) {
+            return;
+        }
         foreach (seo_process_supervisor_import_users() as $user_id) {
             $active = seo_ie_product_import_get_active($user_id);
             if (empty($active['token'])) {
