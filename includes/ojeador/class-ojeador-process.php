@@ -1,6 +1,6 @@
 <?php
 /**
- * Ojeador integration with SEO Taxonomy > Procesos.
+ * Ojeador integration with TaxoCommerce SEO > Procesos.
  *
  * @package SEOSystem
  * @subpackage Ojeador
