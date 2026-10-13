@@ -31,3 +31,7 @@ La sección **SEO Taxonomy → Mercado** ofrece tres vistas de lectura: **Dónde
 - **Ojeador:** modo de fuente, configuración identificativa y cobertura de snapshots Merchant persistidos; enlaza a Merchant, recomendaciones y posición de precios. Un benchmark Merchant agregado no es una oferta individual.
 
 **Compatibilidad:** los slugs `seo-reports`, `seo-ingeniero` y `seo-ojeador`, sus formularios, tablas, acciones y flujos editoriales se conservan sin modificación. La fase piloto no convierte todavía los tres motores en una cola editorial común. Las decisiones sobre migración funcional y retirada del sistema antiguo requieren una validación posterior.
+
+### Navegación simplificada
+
+**Mercado es la única entrada visual directa** para los tres especialistas. Se retiran las tarjetas de Ingeniero en Contenidos, de Ojeador en Herramientas (incluido su fallback) y la pestaña Analista en Informes. Los informes de Analista, los trabajos de Ingeniero y los informes de Ojeador siguen siendo accesibles mediante los botones de detalle de Mercado y mantienen sus slugs históricos, datos, APIs, cron y acciones. Cuando se abre uno de estos detalles, el submenú activo de WordPress permanece en **Mercado**. Esta decisión no elimina ninguna función de investigación ni cambia los flujos editoriales actuales.

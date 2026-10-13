@@ -15,8 +15,8 @@ final class SEO_Ojeador_Admin {
 
     public static function init() {
         add_action('admin_menu', array(__CLASS__, 'register_page'), 90);
-        add_filter('seo_tools_cards', array(__CLASS__, 'register_tool_card'));
-        add_action('admin_footer', array(__CLASS__, 'tools_fallback_card'), 99);
+        // Acceso visible centralizado en Mercado; se conserva la ruta completa de Ojeador.
+        // No inyectar una tarjeta alternativa en Herramientas.
         add_action('admin_post_seo_ojeador_settings_save', array(__CLASS__, 'save_settings'));
         add_action('admin_post_seo_ojeador_test_provider_chain', array(__CLASS__, 'test_provider_chain'));
         add_action('admin_post_seo_ojeador_start', array(__CLASS__, 'start'));
