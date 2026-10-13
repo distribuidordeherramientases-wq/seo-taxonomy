@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Taxonomy - Supervisor propio de procesos.
+ * TaxoCommerce SEO - Supervisor propio de procesos.
  *
  * Gestor periódico de procesos propios. Ejecuta ventanas limitadas de
  * Import/Export, Inventarios comerciales, Importación proveedores, Academia, Lingüista, Clasificador y Clonador directamente, sin Action Scheduler ni el worker de
@@ -1659,7 +1659,7 @@ if (!function_exists('seo_process_supervisor_cron_schedules')) {
         $interval = max(60, absint($settings['interval_seconds'] ?? 60));
         $schedules['seo_process_manager_interval'] = array(
             'interval' => $interval,
-            'display'  => sprintf('Gestor SEO Taxonomy cada %d segundos', $interval),
+            'display'  => sprintf('Gestor TaxoCommerce SEO cada %d segundos', $interval),
         );
         return $schedules;
     }
