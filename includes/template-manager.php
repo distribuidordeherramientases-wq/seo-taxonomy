@@ -1,5 +1,5 @@
 <?php
-/** Internal SEO Taxonomy module. */
+/** Internal TaxoCommerce SEO module. */
 if (!defined('ABSPATH')) exit;
 
 /* =========================================================
@@ -1095,7 +1095,7 @@ function seo_tm_handle_replace_file() {
 
     seo_tm_redirect(
         'archivos',
-        'Por seguridad, SEO Taxonomy no permite sobrescribir archivos PHP del plugin desde el navegador. Publica la plantilla mediante una actualización del plugin.',
+        'Por seguridad, TaxoCommerce SEO no permite sobrescribir archivos PHP del plugin desde el navegador. Publica la plantilla mediante una actualización del plugin.',
         'warning'
     );
 }
@@ -1170,7 +1170,7 @@ function seo_tm_handle_replace_variant_file() {
 
     seo_tm_redirect(
         'archivos',
-        'Por seguridad, SEO Taxonomy no permite crear o sobrescribir variantes PHP desde el navegador. Publica las variantes mediante una actualización del plugin.',
+        'Por seguridad, TaxoCommerce SEO no permite crear o sobrescribir variantes PHP desde el navegador. Publica las variantes mediante una actualización del plugin.',
         'warning'
     );
 }
