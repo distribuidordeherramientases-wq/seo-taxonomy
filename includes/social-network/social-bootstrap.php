@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - bootstrap del subsistema de redes sociales.
+ * TaxoCommerce SEO - bootstrap del subsistema de redes sociales.
  */
 
 defined('ABSPATH') || exit;

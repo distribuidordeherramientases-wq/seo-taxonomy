@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Analisis para posicionamiento y busqueda con IA.
+ * TaxoCommerce SEO - Analisis para posicionamiento y busqueda con IA.
  *
  * Convierte senales reales de Search Console y, cuando existe, GA4 en una
  * cola de trabajo para decidir que URLs revisar primero. No intenta replicar

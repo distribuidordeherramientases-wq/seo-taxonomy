@@ -1,6 +1,6 @@
 <?php
 /**
- * Contexto normalizado para el Clasificador de SEO Taxonomy.
+ * Contexto normalizado para el Clasificador de TaxoCommerce SEO.
  *
  * Reúne señales locales, catálogo de proveedor y contexto externo ya cacheado.
  * No modifica etiquetas ni atributos.

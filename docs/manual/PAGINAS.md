@@ -1,6 +1,6 @@
 # Páginas
 
-Ruta: **SEO Taxonomy → Páginas**
+Ruta: **TaxoCommerce SEO → Páginas**
 
 ## Pestañas
 

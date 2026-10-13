@@ -1,6 +1,6 @@
 <?php
 /**
- * Carga del núcleo transaccional de SEO Taxonomy.
+ * Carga del núcleo transaccional de TaxoCommerce SEO.
  */
 
 defined('ABSPATH') || exit;

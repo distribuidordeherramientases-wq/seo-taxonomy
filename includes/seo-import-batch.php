@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Puente seguro de compatibilidad de la cola multientidad.
+ * TaxoCommerce SEO — Puente seguro de compatibilidad de la cola multientidad.
  *
  * Conserva la ruta historica includes/seo-import-batch.php. La implementacion
  * vive en includes/import-export/queue/batch.php. Si el paquete esta incompleto,
@@ -33,4 +33,4 @@ foreach ( array_unique( $seo_ie_batch_candidates ) as $seo_ie_batch_file ) {
     }
 }
 
-error_log( '[SEO System Import/Export] No se encuentra import-export/queue/batch.php.' );
+error_log( '[TaxoCommerce SEO Import/Export] No se encuentra import-export/queue/batch.php.' );

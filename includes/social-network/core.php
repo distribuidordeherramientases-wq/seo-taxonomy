@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Social Network.
+ * TaxoCommerce SEO - Social Network.
  *
  * Capa comun para conexiones, plantillas, publicaciones, seguimiento de visitas
  * e informes de redes sociales. Los proveedores viven en archivos separados.
@@ -1431,7 +1431,7 @@ function seo_social_network_admin_url($subtab = 'templates', $args = array())
 function seo_social_network_handle_save_connection()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para configurar redes sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para configurar redes sociales.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_social_network_save_connection');
@@ -1498,7 +1498,7 @@ add_action('admin_post_seo_social_network_save_connection', 'seo_social_network_
 function seo_social_network_handle_disconnect()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para configurar redes sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para configurar redes sociales.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_social_network_disconnect');
@@ -1524,7 +1524,7 @@ add_action('admin_post_seo_social_network_disconnect', 'seo_social_network_handl
 function seo_social_network_handle_save_templates()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para modificar plantillas sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para modificar plantillas sociales.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_social_network_save_templates');
@@ -1566,7 +1566,7 @@ add_action('admin_post_seo_social_network_save_templates', 'seo_social_network_h
 function seo_social_network_handle_save_automation()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para modificar la automatizacion social.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para modificar la automatizacion social.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_social_network_save_automation');
@@ -1681,7 +1681,7 @@ function seo_social_network_scheduler_send_csv($filename, $headers, $rows)
 
     $out = seo_social_network_csv_stream_open('php://output', 'w');
     if (false === $out) {
-        wp_die(esc_html__('No se pudo generar el archivo CSV.', 'seo-taxonomy'));
+        wp_die(esc_html__('No se pudo generar el archivo CSV.', 'taxocommerce-seo'));
     }
 
     // BOM UTF-8 para que Excel conserve acentos sin preguntar por la codificacion.
@@ -1834,7 +1834,7 @@ function seo_social_network_scheduler_exportable_history_rows()
 function seo_social_network_handle_scheduler_export()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar la programacion social.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para exportar la programacion social.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_social_network_scheduler_export');
 
@@ -2129,7 +2129,7 @@ function seo_social_network_scheduler_parse_import_file($path)
 function seo_social_network_handle_scheduler_import_preview()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para importar programaciones sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para importar programaciones sociales.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_social_network_scheduler_import');
 
@@ -2185,7 +2185,7 @@ add_action('admin_post_seo_social_network_scheduler_import_preview', 'seo_social
 function seo_social_network_handle_scheduler_import_confirm()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para importar programaciones sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para importar programaciones sociales.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_social_network_scheduler_import_confirm');
 
@@ -2256,7 +2256,7 @@ add_action('admin_post_seo_social_network_scheduler_import_confirm', 'seo_social
 function seo_social_network_handle_scheduler_action()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para programar publicaciones sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para programar publicaciones sociales.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_social_network_scheduler');
@@ -2358,7 +2358,7 @@ add_action('admin_post_seo_social_network_scheduler_action', 'seo_social_network
 function seo_social_network_handle_save_publication_settings()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para modificar las publicaciones sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para modificar las publicaciones sociales.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_social_network_save_publication_settings');
@@ -2398,7 +2398,7 @@ add_action('admin_post_seo_social_network_save_publication_settings', 'seo_socia
 function seo_social_network_handle_publish_now()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para publicar en redes sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para publicar en redes sociales.', 'taxocommerce-seo'));
     }
 
     $content_id = isset($_POST['content_id']) ? absint($_POST['content_id']) : 0;
@@ -2432,7 +2432,7 @@ add_action('admin_post_seo_social_network_publish_now', 'seo_social_network_hand
 function seo_social_network_handle_save_content_template()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para modificar plantillas sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para modificar plantillas sociales.', 'taxocommerce-seo'));
     }
 
     $content_id = isset($_POST['content_id']) ? absint($_POST['content_id']) : 0;
@@ -2461,7 +2461,7 @@ add_action('admin_post_seo_social_network_save_content_template', 'seo_social_ne
 function seo_social_network_handle_sync_reports()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para actualizar informes sociales.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para actualizar informes sociales.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_social_network_sync_reports');

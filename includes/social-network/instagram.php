@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - proveedor Instagram Professional para Social Network.
+ * TaxoCommerce SEO - proveedor Instagram Professional para Social Network.
  *
  * Reutiliza por defecto la conexion de Facebook Pages ya existente. La cuenta
  * de Instagram debe ser Professional (Business o Creator) y estar vinculada a

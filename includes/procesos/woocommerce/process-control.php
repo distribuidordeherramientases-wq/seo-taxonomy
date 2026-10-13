@@ -2,7 +2,7 @@
 /**
  * Control de intensidad de procesos WooCommerce.
  *
- * Se integra como tercera pestaña de SEO Taxonomy > Procesos.
+ * Se integra como tercera pestaña de TaxoCommerce SEO > Procesos.
  * El objetivo es reducir trabajo de mantenimiento que no necesita inmediatez
  * sin interferir por defecto con pagos, pedidos, webhooks o correos.
  */
@@ -226,7 +226,7 @@ if (!function_exists('seo_wc_process_control_apply_sessions_policy')) {
 if (!function_exists('seo_wc_process_control_save')) {
     function seo_wc_process_control_save() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_wc_process_control_save');
 
@@ -269,7 +269,7 @@ add_action('admin_post_seo_wc_process_control_save', 'seo_wc_process_control_sav
 if (!function_exists('seo_wc_process_control_reset')) {
     function seo_wc_process_control_reset() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_wc_process_control_reset');
         delete_option(SEO_WC_PROCESS_CONTROL_OPTION);
@@ -393,7 +393,7 @@ if (!function_exists('seo_wc_process_control_level_label')) {
 if (!function_exists('seo_wc_process_control_render_page')) {
     function seo_wc_process_control_render_page() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
         }
 
         $settings = seo_wc_process_control_settings();

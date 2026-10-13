@@ -1,4 +1,4 @@
-# Manual de usuario de SEO Taxonomy
+# Manual de usuario de TaxoCommerce SEO
 
 > Base documental: interfaz actual de la rama staging. Revisión: 26/09/2026.
 
@@ -19,7 +19,7 @@ Los campos de claves, tokens, usuarios y secretos se explican con ejemplos ficti
 
 ## Menú principal
 
-SEO Taxonomy muestra estas entradas principales:
+TaxoCommerce SEO muestra estas entradas principales:
 
 1. Inicio
 2. Contenidos

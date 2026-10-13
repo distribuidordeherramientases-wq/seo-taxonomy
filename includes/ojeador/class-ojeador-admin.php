@@ -15,8 +15,8 @@ final class SEO_Ojeador_Admin {
 
     public static function init() {
         add_action('admin_menu', array(__CLASS__, 'register_page'), 90);
-        add_filter('seo_tools_cards', array(__CLASS__, 'register_tool_card'));
-        add_action('admin_footer', array(__CLASS__, 'tools_fallback_card'), 99);
+        // Acceso visible centralizado en Mercado; se conserva la ruta completa de Ojeador.
+        // No inyectar una tarjeta alternativa en Herramientas.
         add_action('admin_post_seo_ojeador_settings_save', array(__CLASS__, 'save_settings'));
         add_action('admin_post_seo_ojeador_test_provider_chain', array(__CLASS__, 'test_provider_chain'));
         add_action('admin_post_seo_ojeador_start', array(__CLASS__, 'start'));
@@ -73,7 +73,7 @@ final class SEO_Ojeador_Admin {
 
     private static function guard($action) {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer($action);
     }
@@ -183,7 +183,7 @@ final class SEO_Ojeador_Admin {
                 <p style="margin:0 0 5px;"><strong style="font-size:12px;text-transform:uppercase;color:#646970;">Servicios compartidos de búsqueda Google</strong></p>
                 <h2 style="margin:0 0 7px;">SerpApi + ScraperAPI · conexión compartida para Ojeador e Ingeniero</h2>
                 <p style="margin:0;max-width:980px;">
-                    Estas dos conexiones se configuran una sola vez. <strong>Ojeador</strong> usa Google Shopping y Search, y SerpApi también para Google Trends en Novedades; <strong>Ingeniero</strong> usa Google Search. El orden automático es SerpApi primero y ScraperAPI como respaldo para Search/Shopping.
+                    Estas conexiones permanecen disponibles para investigación externa de Ingeniero. Ojeador utiliza prioritariamente Merchant; sus consultas tradicionales de Shopping solo están disponibles cuando un administrador selecciona ese modo. El radar Novedades de Ojeador está retirado.
                 </p>
             </div>
 
@@ -809,7 +809,7 @@ final class SEO_Ojeador_Admin {
         }
 
         $tab = sanitize_key((string) ($_GET['ojeador_tab'] ?? 'analysis'));
-        if (!in_array($tab, array('analysis','novedades','stars','products','operation','merchant'), true)) {
+        if (!in_array($tab, array('analysis','stars','products','operation','merchant'), true)) {
             $tab = 'analysis';
         }
 
@@ -823,7 +823,6 @@ final class SEO_Ojeador_Admin {
         $error = isset($_GET['ojeador_error']) ? sanitize_text_field(rawurldecode((string) $_GET['ojeador_error'])) : '';
 
         $analysis = array();
-        $novedades = array();
         $stars = array();
         $comparison = array();
         $category_options = array();
@@ -835,14 +834,6 @@ final class SEO_Ojeador_Admin {
 
         if ($tab === 'analysis') {
             $analysis = SEO_Ojeador_Analysis::dashboard(100);
-        } elseif ($tab === 'novedades') {
-            $novedades = SEO_Ojeador_Novedades::dashboard(array(
-                'status' => sanitize_key((string) wp_unslash($_GET['nstatus'] ?? '')),
-                'type' => sanitize_key((string) wp_unslash($_GET['ntype'] ?? '')),
-                'min_score' => absint(wp_unslash($_GET['nscore'] ?? 0)),
-                'q' => sanitize_text_field(wp_unslash($_GET['nq'] ?? '')),
-                'limit' => 500,
-            ));
         } elseif ($tab === 'merchant') {
             // Only local snapshots are rendered; no API call on page load.
         } elseif ($tab === 'stars') {
@@ -895,7 +886,7 @@ final class SEO_Ojeador_Admin {
             <div class="seo-ojeador-head">
                 <div>
                     <h1 style="margin-bottom:0">Ojeador <small style="font-size:14px;color:#646970">v<?php echo esc_html(SEO_OJEADOR_VERSION); ?></small></h1>
-                    <p class="seo-ojeador-sub">Google Shopping por categorías, radar de novedades, análisis accionable, posición de precio y comparación de mercado. Las recomendaciones sirven para decidir qué revisar; no ejecutan cambios automáticos.</p>
+                    <p class="seo-ojeador-sub">Análisis de oportunidades comerciales, comparación de precios y referencias de Google Merchant. El histórico Shopping se conserva. Las recomendaciones sirven para decidir qué revisar; no ejecutan cambios automáticos.</p>
                 </div>
                 <div class="seo-ojeador-actions">
                     <?php if (SEO_Ojeador_Worker::is_pending()) : ?>
@@ -921,14 +912,11 @@ final class SEO_Ojeador_Admin {
             <?php endif; ?>
             <?php if ($notice === 'scan_started') : ?><div class="notice notice-success inline"><p>Ojeador está consultando categorías aptas.</p></div><?php endif; ?>
             <?php if ($notice === 'scan_stopped') : ?><div class="notice notice-info inline"><p>Proceso detenido.</p></div><?php endif; ?>
-            <?php if ($notice === 'novedades_scanned') : ?><div class="notice notice-success inline"><p>Radar de Novedades completado: <?php echo esc_html(number_format_i18n(absint($_GET['novedades_saved'] ?? 0))); ?> oportunidades guardadas con <?php echo esc_html(number_format_i18n(absint($_GET['novedades_queries'] ?? 0))); ?> peticiones de proveedor.</p></div><?php endif; ?>
-            <?php if ($notice === 'novedades_status') : ?><div class="notice notice-success inline"><p>Estado de la oportunidad actualizado.</p></div><?php endif; ?>
             <?php if ($error !== '') : ?><div class="notice notice-error inline"><p><?php echo esc_html($error); ?></p></div><?php endif; ?>
             <?php if (is_wp_error($ready)) : ?><div class="notice notice-warning inline"><p><strong>Google Shopping:</strong> <?php echo esc_html($ready->get_error_message()); ?></p></div><?php endif; ?>
 
             <nav class="nav-tab-wrapper">
                 <a class="nav-tab <?php echo $tab === 'analysis' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=analysis')); ?>">Análisis y recomendaciones</a>
-                <a class="nav-tab <?php echo $tab === 'novedades' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=novedades')); ?>">Novedades</a>
                 <a class="nav-tab <?php echo $tab === 'stars' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=stars')); ?>">Posición de precio</a>
                 <a class="nav-tab <?php echo $tab === 'products' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=products')); ?>">Comparador de productos</a>
                 <a class="nav-tab <?php echo $tab === 'operation' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE . '&ojeador_tab=operation')); ?>">Operación y consultas</a>
@@ -939,8 +927,6 @@ final class SEO_Ojeador_Admin {
                 <?php SEO_Ojeador_Merchant::render(); ?>
             <?php elseif ($tab === 'analysis') : ?>
                 <?php self::render_analysis($analysis); ?>
-            <?php elseif ($tab === 'novedades') : ?>
-                <?php SEO_Ojeador_Novedades::render($novedades); ?>
             <?php elseif ($tab === 'stars') : ?>
                 <?php self::render_stars($stars); ?>
             <?php elseif ($tab === 'products') : ?>

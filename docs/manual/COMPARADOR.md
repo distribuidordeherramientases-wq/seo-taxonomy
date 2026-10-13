@@ -2,7 +2,7 @@
 
 ## Propósito
 
-**Comparador** es el servicio de inteligencia comparativa de producto de SEO Taxonomy.
+**Comparador** es el servicio de inteligencia comparativa de producto de TaxoCommerce SEO.
 
 Su unidad de trabajo principal es la **categoría o familia comparable**. Cruza el catálogo propio de WooCommerce con el mercado ya observado por **Ojeador**, normaliza los ejes de comparación, conserva trazabilidad y genera un perfil persistente que pasa a la **evaluación editorial propia de Comparador**.
 

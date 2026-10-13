@@ -18,7 +18,7 @@ jobs:
       - name: Build clean plugin tree
         run: |
           rm -rf build
-          mkdir -p build/seo-taxonomy
+          mkdir -p build/taxocommerce-seo
           rsync -a \
             --exclude='.git/' \
             --exclude='.*' \
@@ -28,16 +28,16 @@ jobs:
             --exclude='CONTRIBUTING.md' \
             --exclude='README.md' \
             --exclude='SUPPLIER-SYNC-V2.md' \
-            ./ build/seo-taxonomy/
+            ./ build/taxocommerce-seo/
 
       - name: Create ZIP
         working-directory: build
-        run: zip -qr seo-taxonomy.zip seo-taxonomy
+        run: zip -qr taxocommerce-seo.zip taxocommerce-seo
 
       - name: Upload WordPress.org package
         uses: actions/upload-artifact@v4
         with:
-          name: seo-taxonomy-wordpress-org-${{ github.sha }}
-          path: build/seo-taxonomy.zip
+          name: taxocommerce-seo-wordpress-org-${{ github.sha }}
+          path: build/taxocommerce-seo.zip
           if-no-files-found: error
           retention-days: 14

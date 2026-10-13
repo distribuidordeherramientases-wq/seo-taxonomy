@@ -59,7 +59,7 @@ final class SEO_Dependiente_V3_Lesson9_Admin {
 
     public static function render() {
         if (!self::can_manage()) {
-            wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
         }
         $status = SEO_Dependiente_V3_Lesson9::status();
         $preview = SEO_Dependiente_V3_Lesson9::preview(12);

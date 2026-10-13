@@ -1,5 +1,5 @@
 <?php
-/** Internal SEO Taxonomy module. */
+/** Internal TaxoCommerce SEO module. */
 if (!defined('ABSPATH')) exit;
 
 /*************************************************
@@ -77,7 +77,7 @@ function seo_menu_manager_page() {
                                 '%d elemento añadido al menú SEO.',
                                 '%d elementos añadidos al menú SEO.',
                                 (int) $result,
-                                'seo-taxonomy'
+                                'taxocommerce-seo'
                             ),
                             (int) $result
                         )
@@ -2332,7 +2332,7 @@ function seo_menu_get_dependiente_target($create_if_missing = false) {
 
     return new WP_Error(
         'dependiente_page_not_found',
-        'No se ha encontrado la página pública Dependiente. Abre primero SEO Taxonomy > Dependiente para que el módulo la cree.'
+        'No se ha encontrado la página pública Dependiente. Abre primero TaxoCommerce SEO > Dependiente para que el módulo la cree.'
     );
 }
 

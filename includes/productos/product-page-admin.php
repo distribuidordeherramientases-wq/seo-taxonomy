@@ -1,6 +1,6 @@
 <?php
 /**
- * Pestaña Products del SEO System.
+ * Pestaña Products del TaxoCommerce SEO.
  *
  * La página ya no guarda productos directamente. Nuevo y Editar delegan en
  * product-service.php; Inventario y Recategorizar mantienen sus módulos.

@@ -985,7 +985,7 @@ final class SEO_Auditor_Category_Rebalance {
 
     private static function guard($nonce) {
         $cap = class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options';
-        if (!current_user_can($cap)) wp_die(esc_html__('No tienes permisos para ejecutar esta accion.', 'seo-taxonomy'));
+        if (!current_user_can($cap)) wp_die(esc_html__('No tienes permisos para ejecutar esta accion.', 'taxocommerce-seo'));
         check_admin_referer($nonce);
     }
 

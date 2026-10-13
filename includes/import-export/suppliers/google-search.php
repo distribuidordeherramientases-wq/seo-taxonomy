@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Google Search / Analytics.
+ * TaxoCommerce SEO - Google Search / Analytics.
  *
  * Configuracion dinamica por instalacion para GA4, Search Console y Analytics.
  * No contiene IDs, dominios ni credenciales de un cliente concreto.
@@ -302,7 +302,7 @@ if ( ! function_exists( 'seo_google_search_test_connection' ) ) {
 if ( ! function_exists( 'seo_google_search_save_settings' ) ) {
     function seo_google_search_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-taxonomy' ) );
+            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'taxocommerce-seo' ) );
         }
         check_admin_referer( 'seo_google_search_save', 'seo_google_search_nonce' );
 
@@ -376,7 +376,7 @@ if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
             return;
         }
         ?>
-        <!-- SEO System: Google Analytics 4 -->
+        <!-- TaxoCommerce SEO: Google Analytics 4 -->
         <script>
         if (!/(?:^|;\s*)seo_skip_analytics=1(?:;|$)/.test(document.cookie)) {
             window.dataLayer = window.dataLayer || [];

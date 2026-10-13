@@ -360,7 +360,7 @@ foreach ($product->get_attributes() as $attribute) {
     }
 }
 
-/* Atributos técnicos canónicos almacenados por SEO System. */
+/* Atributos técnicos canónicos almacenados por TaxoCommerce SEO. */
 $seo_attribute_rows = function_exists('seo_attributes_get_product_rows')
     ? seo_attributes_get_product_rows($product_id)
     : array();

@@ -1,6 +1,6 @@
 # Categorías
 
-Ruta: **SEO Taxonomy → Categorías**
+Ruta: **TaxoCommerce SEO → Categorías**
 
 ## Pestañas
 
@@ -72,7 +72,7 @@ Tabla:
 
 ## Equilibrar categorías desde Auditor
 
-Ruta: **SEO Taxonomy → Contenidos → Auditor → Equilibrar categorías**.
+Ruta: **TaxoCommerce SEO → Contenidos → Auditor → Equilibrar categorías**.
 
 La vista separa dos niveles:
 

@@ -1,6 +1,6 @@
 # Entradas
 
-Ruta: **SEO Taxonomy → Entradas**
+Ruta: **TaxoCommerce SEO → Entradas**
 
 ## Pestañas
 

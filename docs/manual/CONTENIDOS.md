@@ -1,6 +1,6 @@
 # Contenidos
 
-Ruta: **SEO Taxonomy → Contenidos**
+Ruta: **TaxoCommerce SEO → Contenidos**
 
 La pantalla **Contenidos** agrupa los editores que se utilizan con más frecuencia para mantener el catálogo y el contenido editorial. Su objetivo es reducir el número de entradas visibles en el menú principal sin modificar la lógica ni las rutas internas de cada módulo.
 
@@ -14,7 +14,6 @@ La pantalla **Contenidos** agrupa los editores que se utilizan con más frecuenc
 | Entradas | Edición y gestión de posts, guías, comparativas y contenido editorial | **Abrir** [Consulta] |
 | Imágenes | Inventario, anomalías, optimización y asignación de imágenes | **Abrir** [Consulta] |
 | Solucionador | Diagnóstico y decisión editorial de Dependiente/Academia y señales comunes; prioriza actuaciones y prepara briefs | **Abrir** [Consulta] |
-| Ingeniero | Investigación técnica por categoría, dossiers editoriales, briefs y borradores especializados | **Abrir** [Consulta] |
 | Auditor | Calidad, coherencia y arquitectura de productos, categorías, páginas, entradas, FAQs e índice | **Abrir** [Consulta] |
 | FAQs | Gestión de preguntas frecuentes, cobertura, calidad e interacción | **Abrir** [Consulta] |
 
@@ -52,17 +51,17 @@ Las pantallas internas conservan sus slugs administrativos históricos:
 - FAQs: `seo-faq`
 - Ingeniero: `seo-ingeniero`
 
-Esto permite mantener enlaces internos, formularios y redirecciones existentes. Cuando se abre cualquiera de estas pantallas, WordPress mantiene **Contenidos** como sección activa del menú de SEO Taxonomy.
+Esto permite mantener enlaces internos, formularios y redirecciones existentes. Cuando se abren las pantallas editoriales, WordPress mantiene **Contenidos** activo. **Ingeniero** ahora se abre desde **Mercado → Cómo mejoramos** y mantiene su ruta antigua.
 
 ## FAQs
 
-La tarjeta **FAQs** abre **SEO Taxonomy → Contenidos → FAQs**.
+La tarjeta **FAQs** abre **TaxoCommerce SEO → Contenidos → FAQs**.
 
 El manual operativo completo está en [FAQs](FAQS.md) e incluye pestañas, filtros jerárquicos, búsqueda, selección múltiple, campos Pregunta/Respuesta/Orden/Activa, creación, edición, activación, borrado, informe, duplicados y huérfanas.
 
 ## Auditor de contenidos
 
-La tarjeta **Auditor** abre **SEO Taxonomy → Contenidos → Auditor**.
+La tarjeta **Auditor** abre **TaxoCommerce SEO → Contenidos → Auditor**.
 
 El manual operativo completo está en [Auditor](AUDITOR.md) e incluye cada bloque de auditoría, botones Auditar/Repetir/Ver último/JSON, métricas, prioridades y la separación respecto a Auditor Academia y Plugin Validation.
 

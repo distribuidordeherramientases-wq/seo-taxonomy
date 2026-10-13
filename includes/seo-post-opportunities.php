@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Oportunidades editoriales para posts.
+ * TaxoCommerce SEO - Oportunidades editoriales para posts.
  *
  * Reutiliza exclusivamente datos y conexiones ya existentes en el plugin:
  * - Google Intelligence / Search Console (datos sincronizados localmente).

@@ -1,6 +1,6 @@
 # Facturas y presupuestos
 
-Ruta: **SEO Taxonomy → Herramientas → Facturas y presupuestos**
+Ruta: **TaxoCommerce SEO → Herramientas → Facturas y presupuestos**
 
 Esta pantalla centraliza el sistema documental del ecommerce. WooCommerce sigue siendo la fuente de verdad de carrito, pedido, impuestos, transporte, estados y pago; el módulo documental toma esos importes y genera los PDF correspondientes.
 

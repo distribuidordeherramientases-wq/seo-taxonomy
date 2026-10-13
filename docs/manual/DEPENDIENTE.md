@@ -1,6 +1,6 @@
 # Dependiente
 
-Ruta: **SEO Taxonomy → Dependiente**
+Ruta: **TaxoCommerce SEO → Dependiente**
 
 ## Pestañas
 
@@ -161,7 +161,7 @@ También muestra Modo de formación, Progreso, Informe completo y tabla Módulo 
 
 ## Ingeniero
 
-Ingeniero es ahora un servicio independiente dentro de **SEO Taxonomy → Contenidos → Ingeniero**. Dependiente no contiene su interfaz operativa.
+Ingeniero es ahora un servicio independiente dentro de **TaxoCommerce SEO → Contenidos → Ingeniero**. Dependiente no contiene su interfaz operativa.
 
 Consulta el manual completo en **Ingeniero**, donde se documentan Investigación, Editorial, Datos y fuentes, Pruebas, todos sus campos, botones, filtros y estados.
 
@@ -176,7 +176,7 @@ Consulta el manual completo en **Ingeniero**, donde se documentan Investigación
 
 Dentro de Dependiente sólo permanece **Auditor Academia**, dedicado al aprendizaje, Entrenador, runs, reglas y snapshots.
 
-Las auditorías de Productos, Categorías, Posts, Páginas/Landings y FAQs se gestionan en **SEO Taxonomy → Contenidos → Auditor**. Los chequeos técnicos de motor/índice pertenecen a **Herramientas → Plugin Validation**.
+Las auditorías de Productos, Categorías, Posts, Páginas/Landings y FAQs se gestionan en **TaxoCommerce SEO → Contenidos → Auditor**. Los chequeos técnicos de motor/índice pertenecen a **Herramientas → Plugin Validation**.
 
 Consulta el manual completo de **Auditor** para cada botón, salida JSON y alcance.
 

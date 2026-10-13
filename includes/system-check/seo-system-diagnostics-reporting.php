@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Diagnostic Reporting
+ * TaxoCommerce SEO - Diagnostic Reporting
  *
  * Diagnóstico, correo resumido y exportación completa en PDF/JSON.
  * El correo prioriza incidencias; las descargas reúnen el estado técnico,
@@ -239,8 +239,8 @@ function seo_system_diagnostics_add_privacy_policy_content() {
         return;
     }
 
-    $text = '<p>SEO System puede enviar informes técnicos al fabricante únicamente cuando un administrador activa expresamente esta función. El informe puede incluir un identificador aleatorio de instalación, el dominio si se autoriza, versiones técnicas, estado agregado del servidor y descripciones de incidencias funcionales, comerciales o SEO. No se envían pedidos, clientes, usuarios, contraseñas, cookies, contenidos completos de tablas ni contenidos completos de logs. El destinatario configurado por esta versión es <code>' . esc_html(seo_system_diagnostics_recipient()) . '</code>. Una vez aceptado el envío automático, cada ejecución completada del diagnóstico puede enviar un resumen de incidencias; la función puede desactivarse desde el propio panel de diagnóstico.</p>';
-    wp_add_privacy_policy_content('SEO System', wp_kses_post($text));
+    $text = '<p>TaxoCommerce SEO puede enviar informes técnicos al fabricante únicamente cuando un administrador activa expresamente esta función. El informe puede incluir un identificador aleatorio de instalación, el dominio si se autoriza, versiones técnicas, estado agregado del servidor y descripciones de incidencias funcionales, comerciales o SEO. No se envían pedidos, clientes, usuarios, contraseñas, cookies, contenidos completos de tablas ni contenidos completos de logs. El destinatario configurado por esta versión es <code>' . esc_html(seo_system_diagnostics_recipient()) . '</code>. Una vez aceptado el envío automático, cada ejecución completada del diagnóstico puede enviar un resumen de incidencias; la función puede desactivarse desde el propio panel de diagnóstico.</p>';
+    wp_add_privacy_policy_content('TaxoCommerce SEO', wp_kses_post($text));
 }
 
 function seo_system_diagnostics_detect_version_change() {
@@ -731,7 +731,7 @@ function seo_system_diagnostics_build_subject($payload) {
     $overall = $payload['summary']['overall'] ?? 'info';
     $site = $payload['context']['site_domain'] ?: substr($payload['context']['installation_id'], 0, 8);
     $count = (int) ($payload['summary']['total_incidents'] ?? 0);
-    return '[SEO System][' . ($labels[$overall] ?? 'INFO') . '] ' . $site . ' · ' . $count . ' incidencias · v' . $payload['context']['plugin_version'];
+    return '[TaxoCommerce SEO][' . ($labels[$overall] ?? 'INFO') . '] ' . $site . ' · ' . $count . ' incidencias · v' . $payload['context']['plugin_version'];
 }
 
 function seo_system_diagnostics_build_email_body($payload) {
@@ -749,7 +749,7 @@ function seo_system_diagnostics_build_email_body($payload) {
     }
     $lines[] = '';
     $lines[] = 'ENTORNO';
-    $lines[] = '- SEO System: ' . $context['plugin_version'];
+    $lines[] = '- TaxoCommerce SEO: ' . $context['plugin_version'];
     $lines[] = '- Módulo de informes: ' . $context['reporting_version'];
     $lines[] = '- WordPress: ' . $context['wordpress_version'];
     $lines[] = '- WooCommerce: ' . ($context['woocommerce_version'] !== '' ? $context['woocommerce_version'] : 'no detectado');
@@ -1088,7 +1088,7 @@ function seo_system_diagnostics_collect_sitemap_snapshot() {
             'limit_response_size' => 180000,
             'headers'             => array(
                 'Accept'     => 'application/xml,text/xml,*/*;q=0.2',
-                'User-Agent' => 'SEO-System-Sitemap-Check/' . SEO_SYSTEM_DIAGNOSTICS_REPORTING_VERSION,
+                'User-Agent' => 'TaxoCommerce-SEO-Sitemap-Check/' . SEO_SYSTEM_DIAGNOSTICS_REPORTING_VERSION,
             ),
         ));
         if (is_wp_error($response)) {
@@ -1951,7 +1951,7 @@ function seo_system_diagnostics_render_report_page() {
     );
 
     echo '<div class="wrap seo-system-quality-report">';
-    echo '<h1>Informe completo SEO System</h1>';
+    echo '<h1>Informe completo TaxoCommerce SEO</h1>';
     echo '<p>Auditoría técnica, funcional, comercial, SEO y semántica preparada para revisión interna, un analista externo o una IA.</p>';
 
     if ('updated_sent' === $message) {
@@ -2019,7 +2019,7 @@ function seo_system_diagnostics_render_report_page() {
 
 function seo_system_diagnostics_handle_refresh_report() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para actualizar este informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para actualizar este informe.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_system_diagnostics_refresh_report');
 
@@ -2039,7 +2039,7 @@ function seo_system_diagnostics_handle_refresh_report() {
                 array('error' => $exception->getMessage())
             );
         } else {
-            error_log('[SEO System] Error al actualizar informe: ' . $exception->getMessage());
+            error_log('[TaxoCommerce SEO] Error al actualizar informe: ' . $exception->getMessage());
         }
         $message = 'refresh_error';
     }
@@ -2067,7 +2067,7 @@ function seo_system_diagnostics_send_json_download($payload, $filename_prefix) {
 
 function seo_system_diagnostics_handle_download_server_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_system_diagnostics_download_server_json');
     $profile = isset($_GET['profile']) ? sanitize_key(wp_unslash($_GET['profile'])) : 'ai';
@@ -2079,7 +2079,7 @@ function seo_system_diagnostics_handle_download_server_json() {
 
 function seo_system_diagnostics_handle_download_validation_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_system_diagnostics_download_validation_json');
     $profile = isset($_GET['profile']) ? sanitize_key(wp_unslash($_GET['profile'])) : 'ai';
@@ -2091,7 +2091,7 @@ function seo_system_diagnostics_handle_download_validation_json() {
 
 function seo_system_diagnostics_handle_download_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_system_diagnostics_download_json');
 
@@ -2104,7 +2104,7 @@ function seo_system_diagnostics_handle_download_json() {
 
 function seo_system_diagnostics_handle_download_pdf() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_system_diagnostics_download_pdf');
 
@@ -2235,7 +2235,7 @@ function seo_system_diagnostics_pdf_new_page(&$doc, $section = '') {
     $doc['pages'][] = array();
     $doc['y'] = 48;
     seo_system_diagnostics_pdf_rect($doc, 0, 0, $doc['width'], 54, '#123B5D');
-    seo_system_diagnostics_pdf_text($doc, $doc['margin'], 17, 'SEO System - Informe completo', 15, true, '#FFFFFF');
+    seo_system_diagnostics_pdf_text($doc, $doc['margin'], 17, 'TaxoCommerce SEO - Informe completo', 15, true, '#FFFFFF');
     if ($section !== '') {
         seo_system_diagnostics_pdf_text($doc, $doc['width'] - $doc['margin'] - 170, 20, $section, 9, false, '#DCEAF4');
     }
@@ -2561,8 +2561,8 @@ function seo_system_diagnostics_pdf_compile($pages, $payload) {
 
     $info_id = $object_id++;
     $context = (array) ($payload['context'] ?? array());
-    $title = 'Informe completo SEO System - ' . (string) ($context['site_domain'] ?? 'SEO System');
-    $objects[$info_id] = '<< /Title (' . seo_system_diagnostics_pdf_escape($title) . ') /Author (SEO System) /Subject (Auditoria tecnica, funcional, comercial, SEO y semantica) /Creator (SEO System Diagnostics) /CreationDate (D:' . gmdate('YmdHis') . 'Z) >>';
+    $title = 'Informe completo TaxoCommerce SEO - ' . (string) ($context['site_domain'] ?? 'TaxoCommerce SEO');
+    $objects[$info_id] = '<< /Title (' . seo_system_diagnostics_pdf_escape($title) . ') /Author (TaxoCommerce SEO) /Subject (Auditoria tecnica, funcional, comercial, SEO y semantica) /Creator (TaxoCommerce SEO Diagnostics) /CreationDate (D:' . gmdate('YmdHis') . 'Z) >>';
 
     ksort($objects, SORT_NUMERIC);
     $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";

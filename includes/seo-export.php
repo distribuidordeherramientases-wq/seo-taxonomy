@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Puente seguro de compatibilidad de Import/Export.
+ * TaxoCommerce SEO — Puente seguro de compatibilidad de Import/Export.
  *
  * Responsabilidad:
  * Mantener la ruta historica includes/seo-export.php usada por el bootstrap
@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) || exit;
  * @return void
  */
 function seo_ie_bridge_installation_error( $message ) {
-    error_log( '[SEO System Import/Export] ' . $message );
+    error_log( '[TaxoCommerce SEO Import/Export] ' . $message );
 
     if ( function_exists( 'add_action' ) ) {
         add_action(
@@ -41,7 +41,7 @@ function seo_ie_bridge_installation_error( $message ) {
                     return;
                 }
 
-                echo '<div class="notice notice-error"><p><strong>SEO System - Importar/Exportar:</strong> '
+                echo '<div class="notice notice-error"><p><strong>TaxoCommerce SEO - Importar/Exportar:</strong> '
                     . esc_html( $message )
                     . '</p></div>';
             }
@@ -93,7 +93,7 @@ foreach ( array_unique( $seo_ie_candidates ) as $seo_ie_candidate ) {
 
 if ( '' === $seo_ie_bootstrap ) {
     seo_ie_bridge_installation_error(
-        'No se encuentra import-export/bootstrap.php. Copia la carpeta import-export dentro de wp-content/plugins/seo-taxonomy/includes/. El resto del sitio sigue disponible.'
+        'No se encuentra import-export/bootstrap.php. Copia la carpeta import-export dentro de includes/ del plugin. El resto del sitio sigue disponible.'
     );
     return;
 }

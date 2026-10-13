@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.4.0] - 2026-10-13
+
+Primera release de la línea **TaxoCommerce SEO 2.4.x**.
+
+### Identidad pública y WordPress.org
+
+- El nombre público pasa a ser **TaxoCommerce SEO - Catalog, Trends, Content & Feeds**.
+- La versión global del plugin pasa de 2.3.10 a **2.4.0**.
+- Se prepara el permalink público solicitado a WordPress.org: **taxocommerce-seo**.
+- El dominio de traducción público pasa a **taxocommerce-seo**.
+- Se actualizan README, readme público, Wiki, manuales y textos visibles del panel.
+- Se conservan por compatibilidad las constantes, tablas, opciones, metadatos, nombres de clases, funciones y slugs operativos internos históricos cuando cambiarlos pudiera romper instalaciones existentes.
+
+### Consolidación funcional
+
+- La release consolida el trabajo ya integrado en staging desde 2.3.10, incluyendo la evolución de Dependiente, Ingeniero, Auditor, Ojeador, Analista, importaciones y el Gestor de workers.
+- Dependiente incorpora estadísticas separadas de GA4, Search Console y uso interno, con exportación JSON para análisis.
+- Ingeniero consolida investigación L1 técnica, L2 práctica y L3 actualidad con trazabilidad y propuestas editoriales diferenciadas.
+- Import / Export queda integrado con el Gestor central para encadenar la cola general sin depender exclusivamente de Action Scheduler/WP-Cron.
+- Se mantienen compatibilidad de datos y continuidad de las instalaciones procedentes de la serie 2.3.x.
+
+
 ## [2.3.10] - 2026-10-06
 
 - Ojeador 0.10.0 añade la pestaña **Novedades**, un radar externo que usa **Clusters + Hubs primarios** como frontera comercial para descubrir categorías, subfamilias y tecnologías que todavía no están representadas en el catálogo.
@@ -114,7 +136,7 @@ Release estable que consolida el ciclo de parches **2.3.8.x** desplegado entre e
 
 - Ampliado el **Comparador de Dependiente** de 4 a 6 productos.
 - Añadida exportación de comparativas a **PDF A4 apaisado** reutilizando Dompdf.
-- El comparador utiliza clasificación canónica y atributos técnicos de SEO Taxonomy, mostrando diferencias relevantes y manteniendo fallback de WooCommerce cuando aporta datos adicionales.
+- El comparador utiliza clasificación canónica y atributos técnicos de TaxoCommerce SEO, mostrando diferencias relevantes y manteniendo fallback de WooCommerce cuando aporta datos adicionales.
 - Corregidas las imágenes del carrito para admitir imágenes externas activas de proveedores y variaciones.
 - Recuperados **Presupuesto** y **Proforma borrador** en la plantilla de carrito DHT.
 - Restablecido el **Sistema documental** como interruptor maestro para Presupuesto/Proforma/Factura después de validar el flujo correcto.
@@ -544,7 +566,7 @@ Release correspondiente al **Milestone 2.3.3**, centrada en SEO técnico y datos
 - Solo los terminos realmente retirados se desactivan.
 
 ## 2.2.6 - Hotfix filtro SUBTIPO en Etiquetas
-- Corrige el error crítico al abrir SEO Taxonomy → Etiquetas después de cargar SUBTIPO.
+- Corrige el error crítico al abrir TaxoCommerce SEO → Etiquetas después de cargar SUBTIPO.
 - El selector de filtros inicializa ahora el grupo `subtipo` igual que ROL, APLICACIÓN y PLATAFORMA.
 - No modifica datos, vocabulario ni asignaciones existentes.
 
@@ -567,7 +589,7 @@ Release correspondiente al **Milestone 2.3.3**, centrada en SEO técnico y datos
 
 ## 2.2.3 - Etiquetas / vocabulary control view
 
-- Añade la pestaña visible **SEO Taxonomy > Etiquetas**.
+- Añade la pestaña visible **TaxoCommerce SEO > Etiquetas**.
 - Vista de producto en solo lectura con Ámbito/ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y etiquetas SEO legacy en la misma fila.
 - Filtros por producto/SKU/ID, TIPO, ROL, APLICACIÓN, PLATAFORMA y cobertura de facetas.
 - Añade explorador del vocabulario canónico por grupo, con términos, productos, asignaciones, confianza y fuentes.
@@ -594,7 +616,7 @@ Release correspondiente al **Milestone 2.3.3**, centrada en SEO técnico y datos
 
 # CHANGELOG
 
-Todos los cambios relevantes de **SEO Taxonomy** se documentan en este
+Todos los cambios relevantes de **TaxoCommerce SEO** se documentan en este
 archivo.
 
 El proyecto utiliza versionado **SemVer (MAJOR.MINOR.PATCH)**.
@@ -719,7 +741,7 @@ las operaciones críticas.
 
 ## Primera versión
 
-Primera versión funcional de **SEO Taxonomy**.
+Primera versión funcional de **TaxoCommerce SEO**.
 
 Incluye la infraestructura inicial del proyecto y las primeras
 herramientas para gestionar relaciones SEO, páginas estructurales y

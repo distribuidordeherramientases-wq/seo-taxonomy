@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Motor de catalogos comerciales.
+ * TaxoCommerce SEO - Motor de catalogos comerciales.
  *
  * Mantiene un registro canonico de producto y genera feeds publicos por lotes
  * para evitar cargar 14k+ productos en una sola peticion PHP.

@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Bootstrap del subsistema Import/Export.
+ * TaxoCommerce SEO — Bootstrap del subsistema Import/Export.
  *
  * Responsabilidad:
  * Cargar una sola vez el registro, el motor compatible, proveedores y cola.
@@ -40,7 +40,7 @@ foreach ( $seo_ie_required_files as $seo_ie_required_file ) {
             basename( $seo_ie_required_file )
         );
 
-        error_log( '[SEO System Import/Export] ' . $seo_ie_message );
+        error_log( '[TaxoCommerce SEO Import/Export] ' . $seo_ie_message );
 
         if ( function_exists( 'add_action' ) ) {
             add_action(
@@ -50,7 +50,7 @@ foreach ( $seo_ie_required_files as $seo_ie_required_file ) {
                         return;
                     }
 
-                    echo '<div class="notice notice-error"><p><strong>SEO System - Importar/Exportar:</strong> '
+                    echo '<div class="notice notice-error"><p><strong>TaxoCommerce SEO - Importar/Exportar:</strong> '
                         . esc_html( $seo_ie_message )
                         . '</p></div>';
                 }

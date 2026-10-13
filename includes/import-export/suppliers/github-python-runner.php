@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - GitHub Actions Python Runner para catalogos de proveedores.
+ * TaxoCommerce SEO - GitHub Actions Python Runner para catalogos de proveedores.
  *
  * WordPress dispara un workflow_dispatch de GitHub Actions. El workflow
  * ejecuta el scraper Python y devuelve progreso y el CSV estandar a un
@@ -145,7 +145,7 @@ if ( ! function_exists( 'seo_github_python_runner_test_connection' ) ) {
 if ( ! function_exists( 'seo_github_python_runner_save_settings' ) ) {
     function seo_github_python_runner_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'seo-taxonomy' ) );
+            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'taxocommerce-seo' ) );
         }
         check_admin_referer( 'seo_github_python_runner_save', 'seo_github_python_runner_nonce' );
 
@@ -387,7 +387,7 @@ if ( ! function_exists( 'seo_github_python_runner_start_prepared' ) ) {
 if ( ! function_exists( 'seo_github_python_runner_handle_launch' ) ) {
     function seo_github_python_runner_handle_launch() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'seo-taxonomy' ) );
+            wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'taxocommerce-seo' ) );
         }
         check_admin_referer( 'seo_github_python_runner_launch', 'seo_github_python_runner_launch_nonce' );
 

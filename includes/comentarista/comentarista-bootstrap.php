@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Comentarista.
+ * TaxoCommerce SEO - Comentarista.
  *
  * Gestion manual de opiniones, comentarios y contenidos externos asociados
  * a productos WooCommerce. El modulo no realiza scraping ni llamadas remotas.

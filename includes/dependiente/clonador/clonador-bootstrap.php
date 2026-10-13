@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Bootstrap del Clonador PRO -> STAGING.
+ * TaxoCommerce SEO - Bootstrap del Clonador PRO -> STAGING.
  *
  * @package SEOSystem
  * @subpackage Clonador
@@ -27,7 +27,7 @@ foreach ( $seo_clonador_required as $seo_clonador_file ) {
         continue;
     }
 
-    error_log( '[SEO System Clonador] Instalacion incompleta: ' . basename( $seo_clonador_file ) );
+    error_log( '[TaxoCommerce SEO Clonador] Instalacion incompleta: ' . basename( $seo_clonador_file ) );
 
     add_action(
         'admin_notices',
@@ -36,7 +36,7 @@ foreach ( $seo_clonador_required as $seo_clonador_file ) {
                 return;
             }
 
-            echo '<div class="notice notice-error"><p><strong>SEO System - Clonador:</strong> Instalacion incompleta: falta '
+            echo '<div class="notice notice-error"><p><strong>TaxoCommerce SEO - Clonador:</strong> Instalacion incompleta: falta '
                 . esc_html( basename( $seo_clonador_file ) )
                 . '.</p></div>';
         }

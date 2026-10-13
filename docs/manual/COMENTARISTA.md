@@ -1,6 +1,6 @@
 # Comentarista
 
-Ruta: **SEO Taxonomy → Herramientas → Comentarista**
+Ruta: **TaxoCommerce SEO → Herramientas → Comentarista**
 
 ## Pestañas
 **Registros**, **Cobertura**, **Importar / Exportar**, **JSON**.

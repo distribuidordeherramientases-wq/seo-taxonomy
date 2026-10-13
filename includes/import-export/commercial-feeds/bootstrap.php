@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Bootstrap de catalogos comerciales.
+ * TaxoCommerce SEO - Bootstrap de catalogos comerciales.
  *
  * Genera fuentes publicas de inventario para plataformas comerciales que
  * consumen feeds programados por URL. No envia credenciales ni usa APIs
@@ -29,7 +29,7 @@ $seo_ie_cf_required = [
 
 foreach ( $seo_ie_cf_required as $seo_ie_cf_file ) {
     if ( ! is_readable( $seo_ie_cf_file ) ) {
-        error_log( '[SEO System Commercial Feeds] Falta el archivo: ' . $seo_ie_cf_file );
+        error_log( '[TaxoCommerce SEO Commercial Feeds] Falta el archivo: ' . $seo_ie_cf_file );
         return;
     }
 }

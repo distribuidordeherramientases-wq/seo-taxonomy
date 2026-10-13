@@ -99,7 +99,7 @@ final class SEO_Auditor {
         self::guard_action('seo_auditor_run_scope');
         $scope = self::normalize_scope(isset($_POST['scope']) ? wp_unslash($_POST['scope']) : '');
         if (!$scope) {
-            wp_die(esc_html__('Ambito de auditoria no valido.', 'seo-taxonomy'));
+            wp_die(esc_html__('Ambito de auditoria no valido.', 'taxocommerce-seo'));
         }
 
         @set_time_limit(300);
@@ -153,7 +153,7 @@ final class SEO_Auditor {
 
     private static function stream_json_report($report, $filename_prefix) {
         if (!$report || !is_array($report)) {
-            wp_die(esc_html__('No existe una auditoria guardada para exportar.', 'seo-taxonomy'));
+            wp_die(esc_html__('No existe una auditoria guardada para exportar.', 'taxocommerce-seo'));
         }
         nocache_headers();
         header('Content-Type: application/json; charset=utf-8');
@@ -171,11 +171,11 @@ final class SEO_Auditor {
     }
 
     /**
-     * Auditor de datos/contenidos. Se muestra desde SEO Taxonomy -> Contenidos.
+     * Auditor de datos/contenidos. Se muestra desde TaxoCommerce SEO -> Contenidos.
      */
     public static function render_content_page() {
         if (!current_user_can(self::capability())) {
-            wp_die(esc_html__('No tienes permisos para acceder al Auditor de contenidos.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder al Auditor de contenidos.', 'taxocommerce-seo'));
         }
 
         $scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
@@ -210,7 +210,7 @@ final class SEO_Auditor {
      */
     public static function render_academy_page() {
         if (!current_user_can(self::capability())) {
-            wp_die(esc_html__('No tienes permisos para acceder al Auditor de Academia.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder al Auditor de Academia.', 'taxocommerce-seo'));
         }
 
         $academy_report = self::last_academy_report();
@@ -4441,6 +4441,6 @@ final class SEO_Auditor {
     private static function table_exists($table) {global $wpdb;return (string)$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like((string)$table)))===(string)$table;}
     private static function severity_label($s) {$m=array('critical'=>'CRITICO','high'=>'ALTA','medium'=>'REVISAR','low'=>'OBSERVAR','info'=>'INFO');return $m[$s]??strtoupper((string)$s);}
     private static function capability() {return class_exists('WooCommerce')?'manage_woocommerce':'manage_options';}
-    private static function guard_action($nonce_action) {if(!current_user_can(self::capability()))wp_die(esc_html__('No tienes permisos para ejecutar esta accion.','seo-taxonomy'));check_admin_referer($nonce_action);}
+    private static function guard_action($nonce_action) {if(!current_user_can(self::capability()))wp_die(esc_html__('No tienes permisos para ejecutar esta accion.','taxocommerce-seo'));check_admin_referer($nonce_action);}
     private static function append_history($report) {$h=(array)get_option(self::HISTORY_OPTION,array());$s=(array)($report['summary']??array());$h[]=array('generated_at'=>(string)($report['generated_at']??''),'dependiente_version'=>(string)($report['dependiente_version']??''),'findings'=>absint($s['findings']??0),'critical'=>absint($s['critical']??0),'high'=>absint($s['high']??0),'medium'=>absint($s['medium']??0),'low'=>absint($s['low']??0));$h=array_slice($h,-20);update_option(self::HISTORY_OPTION,$h,false);}
 }

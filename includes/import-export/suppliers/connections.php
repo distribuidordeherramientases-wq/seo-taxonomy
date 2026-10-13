@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Conexiones con proveedores API.
+ * TaxoCommerce SEO - Conexiones con proveedores API.
  *
  * Gestiona credenciales y pruebas de conexion de proveedores remotos.
  * No importa productos ni crea tablas de catalogo virtual.
@@ -122,7 +122,7 @@ if ( ! function_exists( 'seo_proveedores_api_connections' ) ) {
 if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
     function seo_proveedores_render_conexiones() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de proveedores.', 'seo-taxonomy' ) );
+            wp_die( esc_html__( 'No tienes permisos para gestionar conexiones de proveedores.', 'taxocommerce-seo' ) );
         }
 
         $connections = seo_proveedores_api_connections();
@@ -393,7 +393,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px;">';
             echo '<input type="hidden" name="action" value="seo_cloudflare_save">';
             wp_nonce_field( 'seo_cloudflare_save', 'seo_cloudflare_nonce' );
-            echo '<label style="grid-column:1/-1;"><input type="checkbox" name="enabled" value="1" ' . checked( $cf_enabled, true, false ) . '> <strong>Activar Cloudflare para los diagnosticos de SEO System</strong><br><span class="description">Si se desactiva, la credencial puede conservarse pero Seguridad no debera usar la API.</span></label>';
+            echo '<label style="grid-column:1/-1;"><input type="checkbox" name="enabled" value="1" ' . checked( $cf_enabled, true, false ) . '> <strong>Activar Cloudflare para los diagnosticos de TaxoCommerce SEO</strong><br><span class="description">Si se desactiva, la credencial puede conservarse pero Seguridad no debera usar la API.</span></label>';
             echo '<label><strong>Zona / dominio</strong><br><input type="text" name="zone_name" value="' . esc_attr( (string) ( $cf['zone_name'] ?? '' ) ) . '" placeholder="ejemplo.com" class="regular-text" autocomplete="off" style="width:100%;"><br><span class="description">Usa la zona de Cloudflare, normalmente el dominio raiz sin www.</span></label>';
 
             if ( 'constant' === $cf_token_source ) {
@@ -454,7 +454,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<button class="button" type="submit" name="seo_google_search_test_connection" value="1">Probar Search Console / Analytics</button>';
             echo '</form>';
             echo '<p class="description" style="margin-top:12px;">Los informes de landings podran reutilizar <code>seo_google_search_console_query()</code> y <code>seo_google_analytics_run_report()</code> sin conocer ni exponer las credenciales.</p>';
-            echo '<p class="description" style="margin-top:6px;"><strong>WooCommerce / GA4:</strong> con la medicion frontend activa, SEO System envia <code>view_item</code>, <code>add_to_cart</code>, <code>remove_from_cart</code>, <code>view_cart</code>, <code>begin_checkout</code>, <code>add_shipping_info</code>, <code>add_payment_info</code> y <code>purchase</code>. Los eventos automaticos <code>form_start</code>/<code>form_submit</code> no se consideran ventas.</p>';
+            echo '<p class="description" style="margin-top:6px;"><strong>WooCommerce / GA4:</strong> con la medicion frontend activa, TaxoCommerce SEO envia <code>view_item</code>, <code>add_to_cart</code>, <code>remove_from_cart</code>, <code>view_cart</code>, <code>begin_checkout</code>, <code>add_shipping_info</code>, <code>add_payment_info</code> y <code>purchase</code>. Los eventos automaticos <code>form_start</code>/<code>form_submit</code> no se consideran ventas.</p>';
             echo '</div>';
         }
 
@@ -469,7 +469,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
 
             echo '<div style="border:1px solid #dcdcde;border-radius:6px;padding:18px;margin-top:18px;background:#fff;">';
             echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">';
-            echo '<div><h3 style="margin:0 0 6px;">Pinterest Merchant / Sitio web</h3><p style="margin:0;max-width:900px;">Verificacion de dominio para Pinterest sin instalar plugins. SEO System inserta solo la meta de verificacion en <code>&lt;head&gt;</code>; no activa Pinterest Tag, cookies ni seguimiento.</p></div>';
+            echo '<div><h3 style="margin:0 0 6px;">Pinterest Merchant / Sitio web</h3><p style="margin:0;max-width:900px;">Verificacion de dominio para Pinterest sin instalar plugins. TaxoCommerce SEO inserta solo la meta de verificacion en <code>&lt;head&gt;</code>; no activa Pinterest Tag, cookies ni seguimiento.</p></div>';
             echo '<span style="display:inline-block;padding:5px 9px;border-radius:12px;background:' . esc_attr( $pinterest_badge_bg ) . ';">' . esc_html( $pinterest_badge ) . '</span>';
             echo '</div>';
 

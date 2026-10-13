@@ -55,7 +55,7 @@ El brief editorial puede incluir:
 Centralizacion de interfaz
 --------------------------
 El analisis editorial visible se concentra en:
-SEO Taxonomy -> Contenidos -> Solucionador -> Diagnostico editorial
+TaxoCommerce SEO -> Contenidos -> Solucionador -> Diagnostico editorial
 
 Entradas, Paginas y Categorias quedan como lugares de edicion/ejecucion y
 fuentes de datos. Los informes historicos reutilizan sus motores existentes

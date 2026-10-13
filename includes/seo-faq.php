@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System
+ * TaxoCommerce SEO
  *
  * Archivo: seo-faq.php
  * Descripción: Administración manual, auditoría y limpieza reversible de FAQs, huérfanas y duplicadas para Hubs SEO, categorías y productos.
@@ -1395,7 +1395,7 @@ function seo_faq_page()
     ?>
     <div class="wrap seo-faq-admin">
 
-        <h1>SEO System - FAQs</h1>
+        <h1>TaxoCommerce SEO - FAQs</h1>
 
 
 
@@ -4806,7 +4806,7 @@ function seo_faq_show_notice()
                             'Se ha creado %d fila de FAQ.',
                             'Se han creado %d filas de FAQ.',
                             $total,
-                            'seo-taxonomy'
+                            'taxocommerce-seo'
                         ),
                         $total
                     )
@@ -4833,7 +4833,7 @@ function seo_faq_show_notice()
                             'Se ha eliminado %d copia duplicada de FAQ.',
                             'Se han eliminado %d copias duplicadas de FAQ.',
                             $total,
-                            'seo-taxonomy'
+                            'taxocommerce-seo'
                         ),
                         $total
                     ) . $operation_text
@@ -4875,7 +4875,7 @@ function seo_faq_show_notice()
                             'Se ha eliminado %d FAQ huérfana.',
                             'Se han eliminado %d FAQs huérfanas.',
                             $total,
-                            'seo-taxonomy'
+                            'taxocommerce-seo'
                         ),
                         $total
                     ) . $operation_text

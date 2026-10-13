@@ -1,6 +1,6 @@
-# Flujo de datos del ecosistema SEO Taxonomy
+# Flujo de datos del ecosistema TaxoCommerce SEO
 
-Esta página es la **referencia canónica** del movimiento de información dentro de SEO Taxonomy.
+Esta página es la **referencia canónica** del movimiento de información dentro de TaxoCommerce SEO.
 
 Su objetivo es doble:
 
@@ -12,262 +12,225 @@ Su objetivo es doble:
 ## Diagrama principal
 
 ```mermaid
-flowchart LR
+flowchart TD
+    A[Proveedor / CSV / Amazon / alta manual] --> B[Import / Export]
+    B --> WC[Productos WooCommerce]
+    MAN[Edición manual] --> CONT[Contenidos]
 
-    subgraph ENTRADA["1 · Entrada de datos internos"]
-        MANUAL["Carga manual<br/>(uno a uno)"]
-        CSV["Importador CSV<br/>Importación masiva"]
-        EDICION["Edición e importación<br/>de contenidos"]
-
-        PRODUCTOS["Productos"]
-        CATEGORIAS["Categorías"]
-        PAGINAS["Páginas"]
-        CLUSTER["Cluster"]
-        HUB1["Hub primario"]
-        HUB2["Hub secundario"]
-        IMAGENES["Imágenes"]
-
-        MANUAL --> EDICION
-        CSV --> EDICION
-
-        EDICION --> PRODUCTOS
-        EDICION --> CATEGORIAS
-        EDICION --> PAGINAS
-        EDICION --> CLUSTER
-        EDICION --> HUB1
-        EDICION --> HUB2
-        EDICION --> IMAGENES
+    subgraph CAN["1 · Catálogo y conocimiento canónico"]
+        CAT[Productos · categorías · atributos]
+        SEO[Arquitectura SEO<br/>clusters · hubs · landings]
+        VOC[Vocabulary<br/>rol · tipo · aplicación · plataforma · subtipo]
+        CNT[Contenido<br/>páginas · entradas · FAQ]
+        REL[Relaciones<br/>contenido ↔ categoría ↔ producto]
+        CAT --> REL
+        SEO --> REL
+        VOC --> REL
+        CNT --> REL
     end
 
-    subgraph APRENDIZAJE["2 · Aprendizaje interno"]
-        ACADEMIA["Academia<br/>Procesa, entrena y estructura conocimiento"]
-        DEPENDIENTE["Dependiente<br/>Aprende del catálogo, FAQs y consultas"]
-        ACADEMIA <--> DEPENDIENTE
+    WC --> CAT
+    CONT --> CAT
+    CONT --> SEO
+    CONT --> VOC
+    CONT --> CNT
+
+    subgraph AP["2 · Aprendizaje y atención"]
+        IDX[Índice de Dependiente]
+        ACA[Academia]
+        DEP[Dependiente]
+        INT[Intérprete / Lingüista]
+        HABLA[Aprende cómo habla el cliente]
+        QUERY[Consulta real del cliente]
+        RES[Resultados o petición de aclaración]
+        IDX --> ACA
+        ACA --> DEP
+        DEP --> INT
+        INT --> HABLA
+        HABLA --> QUERY
+        QUERY --> INT
+        INT --> DEP
+        DEP --> RES
     end
 
-    subgraph NUCLEO["3 · Núcleo común"]
-        BASE["Base común de conocimiento<br/>Catálogo + aprendizaje + señales internas"]
+    REL --> IDX
+    VOC --> IDX
+    CNT --> ACA
+    FAQ[Preguntas FAQ / preguntas naturales] --> ACA
+    NOV[Novedades del catálogo] --> ACA
+
+    subgraph SEM["3 · Investigación y clasificación"]
+        ING[Ingeniero]
+        KTECH[Conocimiento L1 técnico · L2 práctico · L3 actualidad]
+        CLA[Clasificador]
+        PROP[Propuestas de etiquetas / atributos]
+        REV{Revisión humana}
+        APPLY[Aceptar y aplicar]
+        PEND[Revisar / descartar]
+        ING --> KTECH
+        KTECH --> CLA
+        CLA --> PROP
+        PROP --> REV
+        REV -->|Aceptar| APPLY
+        REV -->|Pendiente / rechazar| PEND
     end
 
-    subgraph EDITORIAL["4 · Auditoría y propuesta editorial"]
-        AUDITOR["Auditor<br/>Analiza y extrae señales relevantes"]
-        SOLUCIONADOR["Solucionador<br/>Propone nuevos posts, entradas y páginas"]
-        PROPUESTAS["Propuestas editoriales"]
-        BORRADORES["Borradores / nuevos contenidos WordPress"]
+    CAT --> CLA
+    VOC --> CLA
+    APPLY --> VOC
+    APPLY --> CAT
 
-        AUDITOR --> SOLUCIONADOR
-        AUDITOR --> PROPUESTAS
-        PROPUESTAS --> SOLUCIONADOR
-        SOLUCIONADOR --> BORRADORES
+    subgraph MERCADO["4 · Mercado y comparación"]
+        MKT[Google Merchant / Shopping / mercado]
+        OJ[Ojeador]
+        SNAP[Snapshot de mercado]
+        CMP[Comparador]
+        CPROP[Propuesta comparativa]
+        MKT --> OJ
+        OJ --> SNAP
+        SNAP --> CMP
+        CMP --> CPROP
     end
 
-    subgraph EXTERNA["5 · Inteligencia externa"]
-        OJEADOR["Ojeador<br/>Compara categorías, mercado y oportunidades"]
-        NUEVAS["Nuevas categorías potenciales"]
-        INGENIERO["Ingeniero<br/>Documentación técnica, foros, noticias y novedades"]
+    CPROP --> CONT
 
-        OJEADOR --> NUEVAS
+    subgraph MED["5 · Rendimiento y demanda"]
+        EXT[Search Console · Analytics · Bing · Trends · competencia]
+        ANA[Analista]
+        EXT --> ANA
     end
 
-    subgraph MEDICION["6 · Analista y Google"]
-        GOOGLE["Google / tráfico / búsquedas / rendimiento"]
-        ANALISTA["Analista<br/>Search Console + Analytics + señales de rendimiento"]
+    ANA --> CMP
+    ANA --> ING
+    ANA --> DEP
 
-        GOOGLE --> ANALISTA
+    subgraph CTRL["6 · Auditoría y mejora"]
+        AUD[Auditor]
+        GAPS[Gaps y mejoras]
+        SOL[Solucionador]
+        EDIT[Propuesta / mejora editorial]
+        AUD --> GAPS
+        GAPS -->|Gap editorial explícito| SOL
+        SOL --> EDIT
     end
 
-    EDICION --> ACADEMIA
-    EDICION --> DEPENDIENTE
+    REL --> AUD
+    IDX --> AUD
+    ACA --> AUD
+    KTECH --> AUD
+    SNAP --> AUD
+    ANA --> AUD
+    EDIT --> CONT
+    GAPS -->|Dato de catálogo| CONT
 
-    ACADEMIA --> BASE
-    DEPENDIENTE --> BASE
-
-    BASE --> AUDITOR
-
-    OJEADOR --> BASE
-    NUEVAS --> BASE
-    INGENIERO --> BASE
-    INGENIERO --> AUDITOR
-
-    ANALISTA --> DEPENDIENTE
-    ANALISTA --> INGENIERO
-    ANALISTA --> BASE
-    ANALISTA --> AUDITOR
-
-    BORRADORES --> PUBLICADO["Contenido publicado / catálogo actualizado"]
-    PUBLICADO --> GOOGLE
-    PUBLICADO --> EDICION
+    REL --> ACT[Actualizar conocimiento]
+    ACT --> ACA
 ```
 
 ## Lectura funcional
 
-### 1. Entrada de datos internos
+### 1. Catálogo y conocimiento canónico
 
-El sistema recibe información mediante:
+El **catálogo canónico no es una única tabla**. Es el conjunto de datos aceptados que describen:
 
-- edición manual, uno a uno;
-- importaciones masivas mediante CSV.
+- productos, categorías y atributos;
+- arquitectura SEO: clusters, hubs y landings;
+- Vocabulary: rol, tipo, aplicación, plataforma y subtipo;
+- contenido: páginas, entradas y FAQ;
+- relaciones entre contenido, categorías y productos.
 
-Los objetos principales que entran al sistema son:
+Import / Export y la edición manual pueden alimentar estos bloques. Los servicios derivados no deben convertir automáticamente una señal en dato canónico.
 
-- productos;
-- categorías;
-- páginas;
-- páginas de **cluster**;
-- páginas de **hub primario**;
-- páginas de **hub secundario**;
-- imágenes.
+### 2. Academia, Dependiente e Intérprete
 
-Estas entidades constituyen la base del catálogo y de la arquitectura SEO.
+- **Academia** procesa catálogo, contenido, preguntas y actualizaciones.
+- **Dependiente** usa índice, semántica y conocimiento aprendido para resolver necesidades.
+- **Intérprete / Lingüista** aprende cómo formula sus necesidades el cliente y convierte lenguaje natural a estructura semántica.
 
-### 2. Academia y Dependiente
+El aprendizaje se apoya en la verdad canónica, pero sus índices y señales derivadas no sustituyen al catálogo ni al Vocabulary.
 
-La información interna alimenta dos piezas de aprendizaje:
+### 3. Ingeniero y Clasificador
 
-- **Academia** procesa y estructura conocimiento;
-- **Dependiente** aprende del catálogo, FAQs, vocabulario y consultas reales de usuarios.
+**Ingeniero** aporta conocimiento externo por capas:
 
-Academia y Dependiente pueden intercambiar señales y conocimiento supervisado.
+- L1: documentación técnica, fabricantes, manuales, fichas, organismos y normativa;
+- L2: foros, comunidades, problemas reales, comparaciones y experiencia práctica;
+- L3: noticias, lanzamientos, novedades sectoriales y cambios tecnológicos.
 
-Ambos alimentan la **base común de conocimiento**.
+**Clasificador** puede utilizar catálogo y conocimiento de Ingeniero para proponer etiquetas, atributos o valores. La propuesta no es canónica hasta completar la secuencia:
 
-### 3. Base común de conocimiento
+**Propuesta → Revisión humana → Aceptar y aplicar → Vocabulary/atributos canónicos.**
 
-La base común representa el punto lógico donde confluyen:
+Si la propuesta queda pendiente o se rechaza, no debe modificar la verdad canónica.
 
-- catálogo;
-- taxonomía;
-- aprendizaje interno;
-- señales de uso;
-- conocimiento externo;
-- información de rendimiento.
+### 4. Ojeador y Comparador
 
-No implica necesariamente una única tabla física. Es un **concepto arquitectónico común**.
+**Ojeador** observa el mercado. Prioriza Merchant cuando está disponible y conserva snapshots de Shopping/mercado por categoría y producto.
 
-### 4. Auditor → Solucionador → contenido
+**Comparador** consume:
 
-**Auditor** analiza la información acumulada y detecta:
+- catálogo propio;
+- snapshots persistidos de Ojeador;
+- señales de rendimiento ya calculadas por Analista.
 
-- carencias;
-- incoherencias;
-- oportunidades;
-- cobertura insuficiente;
-- necesidades de mejora.
+Su salida es una propuesta/comparativa editorial. Los precios, ofertas o resultados externos siguen siendo evidencia de mercado y no catálogo propio.
 
-Auditor entrega señales a **Solucionador**.
+### 5. Analista
 
-**Solucionador** transforma esas señales en decisiones editoriales, por ejemplo:
+**Analista** interpreta señales externas de rendimiento y demanda:
 
-- crear un post;
-- crear una página;
-- mejorar contenido existente;
-- consolidar información;
-- esperar más conocimiento;
-- descartar una propuesta.
+- Search Console;
+- Analytics;
+- Bing;
+- tendencias;
+- competencia y otras señales persistidas.
 
-La salida no se publica automáticamente: pasa por **propuesta / revisión / draft**.
+Analista prioriza trabajo y aporta contexto a Dependiente, Ingeniero, Comparador y Auditor. No sustituye a esos servicios ni publica cambios por sí mismo.
 
-### 5. Ojeador
+### 6. Auditor y Solucionador
 
-**Ojeador** aporta inteligencia de mercado:
+**Auditor** analiza la calidad y coherencia interna y puede contextualizar hallazgos con snapshots ya persistidos de Analista, Ojeador, Dependiente, Comparador, Ingeniero y proveedores.
 
-- compara categorías y productos;
-- observa oferta externa;
-- detecta oportunidades comerciales;
-- detecta categorías potenciales que aún no existen en el catálogo.
-
-Las categorías nuevas detectadas vuelven al flujo como **candidatas**, no como altas automáticas.
-
-Ojeador alimenta la base común y las decisiones posteriores de Auditor/Solucionador.
-
-### 6. Ingeniero
-
-**Ingeniero** aporta conocimiento externo sobre categorías y productos:
-
-- documentación técnica;
-- fabricantes;
-- manuales;
-- normativa;
-- foros y experiencia práctica;
-- noticias;
-- novedades y tendencias.
-
-Su conocimiento se clasifica y entra en el flujo común para enriquecer la base, Auditor y las futuras propuestas editoriales.
-
-### 7. Analista
-
-**Analista** interpreta señales externas de rendimiento:
-
-- Google Search Console;
-- Google Analytics;
-- tráfico;
-- consultas;
-- clics;
-- posicionamiento;
-- comportamiento;
-- tendencias detectadas.
-
-Analista alimenta principalmente:
-
-- **Dependiente**, para entender demanda real y mejorar respuestas;
-- **Ingeniero**, para decidir qué investigar;
-- **Auditor/Base común**, como señal de prioridad y rendimiento.
-
-### 8. Bucle de mejora continua
-
-Cuando una propuesta se convierte en contenido y se publica:
-
-1. pasa a formar parte del catálogo/contenido de la tienda;
-2. empieza a generar impresiones, visitas, clics y consultas;
-3. Google y Analytics generan nuevas señales;
-4. Analista interpreta esas señales;
-5. Dependiente e Ingeniero reciben nuevos criterios de aprendizaje/investigación;
-6. Auditor vuelve a evaluar la situación;
-7. Solucionador puede proponer nuevas acciones.
-
-Por tanto, el sistema es un **ciclo continuo**, no una cadena lineal.
-
----
+**Solucionador** recibe gaps editoriales explícitos y los convierte en propuestas o mejoras de contenido. La publicación sigue requiriendo el flujo editorial correspondiente.
 
 ## Relaciones canónicas para agentes automáticos
 
-Esta tabla expresa el mismo diagrama de forma explícita. Si existe ambigüedad visual, debe prevalecer esta tabla.
-
 | Origen | Destino | Tipo de información |
 |---|---|---|
-| Carga manual | Edición e importación | Datos internos |
-| Importador CSV | Edición e importación | Datos internos masivos |
-| Edición e importación | Productos | Catálogo |
-| Edición e importación | Categorías | Taxonomía |
-| Edición e importación | Páginas | Contenido |
-| Edición e importación | Cluster | Arquitectura SEO |
-| Edición e importación | Hub primario | Arquitectura SEO |
-| Edición e importación | Hub secundario | Arquitectura SEO |
-| Edición e importación | Imágenes | Medios |
-| Edición e importación | Academia | Material de aprendizaje |
-| Edición e importación | Dependiente | Catálogo y contenido |
+| Proveedor / CSV / alta manual | Import / Export | Datos de entrada |
+| Import / Export | Productos WooCommerce | Catálogo |
+| Edición manual | Contenidos | Contenido y catálogo |
+| Productos WooCommerce | Productos/categorías/atributos | Catálogo canónico |
+| Contenidos | Arquitectura SEO | Estructura aceptada |
+| Contenidos | Vocabulary | Asignaciones manuales aceptadas |
+| Contenidos | Contenido | Páginas, entradas y FAQ |
+| Catálogo/arquitectura/Vocabulary/contenido | Relaciones | Enlaces estructurales |
+| Relaciones | Índice de Dependiente | Fuente canónica para indexación |
+| Vocabulary | Índice de Dependiente | Semántica |
+| Contenido / FAQ / novedades | Academia | Material de aprendizaje |
 | Academia | Dependiente | Conocimiento entrenado |
-| Dependiente | Academia | Señales / aprendizaje supervisado |
-| Academia | Base común | Conocimiento estructurado |
-| Dependiente | Base común | Consultas, señales y conocimiento interno |
-| Base común | Auditor | Corpus a auditar |
-| Auditor | Solucionador | Hallazgos y necesidades |
-| Auditor | Propuestas editoriales | Señales convertibles en acciones |
-| Propuestas editoriales | Solucionador | Candidatos editoriales |
-| Solucionador | Borradores WordPress | Nuevos contenidos / mejoras |
-| Ojeador | Base común | Mercado y comparación |
-| Ojeador | Nuevas categorías potenciales | Oportunidades fuera del catálogo |
-| Nuevas categorías potenciales | Base común | Candidatos de ampliación |
-| Ingeniero | Base común | Conocimiento externo |
-| Ingeniero | Auditor | Evidencias externas |
-| Google / Analytics / Search Console | Analista | Rendimiento y demanda |
-| Analista | Dependiente | Señales de demanda y uso |
-| Analista | Ingeniero | Prioridades, tendencias y temas a investigar |
-| Analista | Base común | Señales de rendimiento |
-| Analista | Auditor | Prioridades de revisión |
-| Borradores WordPress | Contenido publicado | Revisión y publicación |
-| Contenido publicado | Google / Analytics / Search Console | Nuevas señales |
-| Contenido publicado | Edición e importación | Retroalimentación del catálogo |
+| Dependiente | Intérprete | Consulta y contexto |
+| Intérprete | Dependiente | Interpretación semántica |
+| Ingeniero | Conocimiento L1/L2/L3 | Evidencia externa |
+| Catálogo + Vocabulary + conocimiento Ingeniero | Clasificador | Señales de clasificación |
+| Clasificador | Propuestas de etiquetas/atributos | Propuesta no canónica |
+| Revisión humana | Aceptar y aplicar | Decisión |
+| Aceptar y aplicar | Vocabulary / atributos | Cambio canónico |
+| Google Merchant / Shopping / mercado | Ojeador | Mercado externo |
+| Ojeador | Snapshot de mercado | Evidencia persistida |
+| Snapshot de mercado | Comparador | Productos/ofertas externos |
+| Analista | Comparador | Rendimiento/prioridad |
+| Comparador | Contenidos | Propuesta comparativa |
+| Search Console / Analytics / Bing / Trends / competencia | Analista | Rendimiento y demanda |
+| Analista | Dependiente | Señales de demanda |
+| Analista | Ingeniero | Prioridades de investigación |
+| Analista | Auditor | Contexto de prioridad |
+| Relaciones / índice / Academia / Ingeniero / Ojeador / Analista | Auditor | Corpus y contexto de auditoría |
+| Auditor | Gaps y mejoras | Hallazgos |
+| Gap editorial explícito | Solucionador | Necesidad editorial |
+| Solucionador | Contenidos | Propuesta o mejora |
+| Gap de dato de catálogo | Contenidos | Corrección estructural/manual |
+| Catálogo actualizado | Academia | Actualización del conocimiento |
 
 ## Responsabilidades
 
@@ -275,21 +238,30 @@ Esta tabla expresa el mismo diagrama de forma explícita. Si existe ambigüedad 
 |---|---|
 | Academia | Aprender y estructurar conocimiento interno |
 | Dependiente | Comprender consultas y responder con catálogo/conocimiento interno |
-| Auditor | Detectar problemas, carencias y señales de mejora |
-| Solucionador | Convertir señales en propuestas editoriales |
-| Ojeador | Observar mercado, competencia y oportunidades de catálogo |
+| Intérprete / Lingüista | Comprender lenguaje natural y convertirlo a semántica utilizable |
 | Ingeniero | Investigar conocimiento externo técnico, práctico y actual |
-| Analista | Interpretar comportamiento, demanda y rendimiento externo |
+| Clasificador | Proponer semántica/atributos y aplicar solo tras revisión humana |
+| Ojeador | Observar mercado, Merchant/Shopping y oportunidades externas |
+| Comparador | Convertir catálogo + mercado + rendimiento en perfiles y propuestas comparativas |
+| Analista | Interpretar comportamiento, demanda, rendimiento y competencia |
+| Auditor | Detectar problemas, carencias, incoherencias y prioridades internas |
+| Solucionador | Convertir gaps editoriales explícitos en propuestas de contenido |
 
 ## Reglas de arquitectura
 
 1. **No crear motores paralelos si un servicio existente ya tiene esa responsabilidad.**
-2. **Auditor analiza; Solucionador propone.**
-3. **Ingeniero investiga; no publica.**
-4. **Ojeador observa el mercado; no crea categorías automáticamente.**
-5. **Analista prioriza mediante datos de rendimiento; no sustituye a Ingeniero ni a Solucionador.**
-6. **Dependiente aprende del catálogo y del uso real, pero no rastrea Internet por sí mismo.**
-7. **La publicación siempre genera nuevas señales que deben volver al sistema.**
+2. **Dato observado o propuesta no equivale a dato canónico.**
+3. **Clasificador propone; la revisión humana acepta/aplica.**
+4. **Ingeniero investiga; no publica ni modifica catálogo por sí solo.**
+5. **Ojeador observa mercado; Comparador construye comparativas.**
+6. **Analista prioriza mediante rendimiento y demanda; no sustituye a Auditor, Ingeniero, Ojeador, Comparador ni Solucionador.**
+7. **Auditor analiza; Solucionador propone actuaciones editoriales.**
+8. **Dependiente aprende del catálogo y del uso real, pero no rastrea Internet por sí mismo.**
+9. **La publicación y los cambios canónicos generan nuevas señales que deben volver al sistema.**
+
+## Persistencia
+
+El inventario de tablas y su relación con los servicios se mantiene en **[[Servicios y tablas|Servicios-y-tablas]]**. Esa página distingue datos canónicos, persistencia derivada, workflow y runtime regenerable.
 
 ## Formato para humanos y máquinas
 

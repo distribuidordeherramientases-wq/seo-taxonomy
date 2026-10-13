@@ -1,4 +1,4 @@
-# Documentación de SEO Taxonomy
+# Documentación de TaxoCommerce SEO
 
 Esta carpeta contiene la documentación funcional y el manual de usuario del plugin.
 

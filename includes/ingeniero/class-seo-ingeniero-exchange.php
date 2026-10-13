@@ -56,7 +56,7 @@ final class SEO_Ingeniero_Exchange {
 
     private static function guard($action) {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para importar o exportar conocimiento de Ingeniero.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para importar o exportar conocimiento de Ingeniero.', 'taxocommerce-seo'));
         }
         check_admin_referer($action);
     }
@@ -527,7 +527,7 @@ final class SEO_Ingeniero_Exchange {
             'schema'=>array(
                 'name'=>self::SCHEMA_NAME,
                 'version'=>self::SCHEMA_VERSION,
-                'source'=>'SEO Taxonomy · Ingeniero',
+                'source'=>'TaxoCommerce SEO · Ingeniero',
                 'policy'=>'Knowledge is a synthesis. Sources are retained for attribution and verification.',
             ),
             'generated_at_gmt'=>gmdate('Y-m-d H:i:s'),

@@ -25,8 +25,8 @@ jobs:
 
       - name: Build WordPress.org package tree
         run: |
-          rm -rf build/seo-taxonomy
-          mkdir -p build/seo-taxonomy
+          rm -rf build/taxocommerce-seo
+          mkdir -p build/taxocommerce-seo
           rsync -a \
             --exclude='.git/' \
             --exclude='.*' \
@@ -36,11 +36,11 @@ jobs:
             --exclude='CONTRIBUTING.md' \
             --exclude='README.md' \
             --exclude='SUPPLIER-SYNC-V2.md' \
-            ./ build/seo-taxonomy/
+            ./ build/taxocommerce-seo/
 
       - name: Run WordPress Plugin Check
         uses: wordpress/plugin-check-action@v1
         with:
-          build-dir: './build/seo-taxonomy'
-          slug: seo-taxonomy
+          build-dir: './build/taxocommerce-seo'
+          slug: taxocommerce-seo
           wp-version: latest

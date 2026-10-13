@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Puente estable del importador de proveedores.
+ * TaxoCommerce SEO — Puente estable del importador de proveedores.
  *
  * Mantiene la ruta publica includes/seo-import-suppliers.php, pero ya no
  * depende del antiguo suppliers/importer.php. El motor canonico vive en
@@ -42,5 +42,5 @@ foreach ( array_unique( $seo_ie_supplier_candidates ) as $seo_ie_supplier_file )
     }
 }
 
-error_log( '[SEO System Import/Export] El motor de proveedores no esta disponible o no expone sus renderizadores.' );
+error_log( '[TaxoCommerce SEO Import/Export] El motor de proveedores no esta disponible o no expone sus renderizadores.' );
 unset( $seo_ie_supplier_candidates, $seo_ie_supplier_file );

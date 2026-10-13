@@ -58,13 +58,13 @@ if (!class_exists('SEO_Solucionador_Admin', false) && is_readable($seo_soluciona
 if (class_exists('SEO_Solucionador_Admin', false)) {
     SEO_Solucionador_Admin::init();
 } else {
-    error_log('[SEO Taxonomy] Solucionador admin unavailable: ' . $seo_solucionador_admin_file);
+    error_log('[TaxoCommerce SEO] Solucionador admin unavailable: ' . $seo_solucionador_admin_file);
     add_action('admin_notices', static function () {
         if (!current_user_can('manage_options')) {
             return;
         }
         echo '<div class="notice notice-error"><p>' .
-            esc_html__('Solucionador: no se pudo cargar el panel administrativo. Compruebe que el despliegue ha finalizado y recargue el archivo solucionador-admin.php.', 'seo-taxonomy') .
+            esc_html__('Solucionador: no se pudo cargar el panel administrativo. Compruebe que el despliegue ha finalizado y recargue el archivo solucionador-admin.php.', 'taxocommerce-seo') .
             '</p></div>';
     });
 }

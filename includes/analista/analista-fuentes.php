@@ -160,7 +160,7 @@ if (!function_exists('seo_analista_ga4_snapshot')) {
             $out['errors']['latest_date'] = $latest->get_error_message();
         }
 
-        // Embudo ecommerce medido con los eventos que ya envía SEO Taxonomy.
+        // Embudo ecommerce medido con los eventos que ya envía TaxoCommerce SEO.
         $events_report = seo_google_analytics_run_report(array(
             'dateRanges' => $date_ranges,
             'dimensions' => array(array('name'=>'eventName')),

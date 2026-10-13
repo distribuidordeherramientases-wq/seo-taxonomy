@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * SEO System - Clean Database
+ * TaxoCommerce SEO - Clean Database
  *
  * Herramienta de integridad y mantenimiento de base de datos.
  *
@@ -257,14 +257,14 @@ function seo_clean_db_maybe_export_sql() {
     }
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar la base de datos.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para exportar la base de datos.', 'taxocommerce-seo'));
     }
 
     $type = sanitize_key(wp_unslash($_GET['seo_clean_db_export']));
     check_admin_referer('seo_clean_db_export_' . $type, 'seo_clean_db_export_nonce');
 
     if (!in_array($type, array('full', 'seo'), true)) {
-        wp_die(esc_html__('Tipo de exportación no válido.', 'seo-taxonomy'));
+        wp_die(esc_html__('Tipo de exportación no válido.', 'taxocommerce-seo'));
     }
 
     seo_clean_db_stream_sql_export($type);
@@ -290,7 +290,7 @@ function seo_clean_db_stream_sql_export($type) {
     header('Pragma: no-cache');
     header('Expires: 0');
 
-    echo "-- SEO System database export\n";
+    echo "-- TaxoCommerce SEO database export\n";
     echo "-- Type: " . esc_html($type) . "\n";
     echo "-- Site: " . esc_url(home_url()) . "\n";
     echo "-- Generated: " . esc_html(gmdate('Y-m-d H:i:s')) . " UTC\n\n";
@@ -2393,7 +2393,7 @@ function seo_clean_db_render_database_cleanup_tab() {
     echo '<p>Limpiezas manuales de residuos técnicos habituales de WordPress y WooCommerce.</p>';
     echo '<div class="seo-clean-warning-box"><strong>Recomendación:</strong> antes de ejecutar acciones destructivas, descarga un backup SQL. No es obligatorio, pero está a un clic para evitar sustos.</div>';
     echo '<p><a class="button button-primary" href="' . esc_url(seo_clean_db_export_url('full')) . '">Descargar backup SQL completo</a> ';
-    echo '<a class="button" href="' . esc_url(seo_clean_db_export_url('seo')) . '">Descargar solo tablas SEO System</a></p>';
+    echo '<a class="button" href="' . esc_url(seo_clean_db_export_url('seo')) . '">Descargar solo tablas TaxoCommerce SEO</a></p>';
 
     echo '<div class="seo-clean-grid">';
     foreach ($stats as $key => $value) {
@@ -2493,10 +2493,10 @@ function seo_clean_db_render_export_tab() {
     echo '</div>';
 
     echo '<div class="seo-clean-card">';
-    echo '<h2>Backup solo SEO System</h2>';
+    echo '<h2>Backup solo TaxoCommerce SEO</h2>';
     echo '<p>Incluye únicamente tablas internas cuyo nombre empieza por <code>' . esc_html($GLOBALS['wpdb']->prefix . 'seo_') . '</code>.</p>';
     echo '<p>Tablas detectadas: <strong>' . esc_html(number_format_i18n(count($seo_tables))) . '</strong></p>';
-    echo '<p><a class="button" href="' . esc_url(seo_clean_db_export_url('seo')) . '">Descargar solo tablas SEO System</a></p>';
+    echo '<p><a class="button" href="' . esc_url(seo_clean_db_export_url('seo')) . '">Descargar solo tablas TaxoCommerce SEO</a></p>';
     echo '</div>';
 
     if (!empty($seo_tables)) {

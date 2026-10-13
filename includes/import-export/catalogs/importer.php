@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Importador seguro de catálogos canónicos.
+ * TaxoCommerce SEO — Importador seguro de catálogos canónicos.
  *
  * Permite dar de alta, mediante un único CSV plano, el vocabulario que debe
  * existir ANTES de importar productos enriquecidos. No modifica ni elimina
@@ -15,7 +15,7 @@
  * - product_tag: etiqueta WooCommerce product_tag.
  *
  * El formato es compatible con el CSV "catálogos obligatorios" exportado por
- * SEO System. Para altas nuevas los IDs pueden quedar vacíos; las dependencias
+ * TaxoCommerce SEO. Para altas nuevas los IDs pueden quedar vacíos; las dependencias
  * se resuelven por slug y el orden de las filas no importa.
  *
  * @package SEOSystem
@@ -864,7 +864,7 @@ function seo_ie_import_required_catalogs_csv() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para importar vocabulario y atributos.', 'seo-taxonomy' ) );
+        wp_die( esc_html__( 'No tienes permisos para importar vocabulario y atributos.', 'taxocommerce-seo' ) );
     }
 
     check_admin_referer( 'seo_import_required_catalogs_csv', 'seo_import_required_catalogs_nonce' );
@@ -876,18 +876,18 @@ function seo_ie_import_required_catalogs_csv() {
         || ( ! $internal_batch && ! is_uploaded_file( $_FILES['required_catalogs_csv']['tmp_name'] ) )
         || ( $internal_batch && ! is_file( $_FILES['required_catalogs_csv']['tmp_name'] ) )
     ) {
-        wp_die( esc_html__( 'No se ha recibido un CSV de catálogos válido.', 'seo-taxonomy' ) );
+        wp_die( esc_html__( 'No se ha recibido un CSV de catálogos válido.', 'taxocommerce-seo' ) );
     }
 
     $handle = seo_ie_catalog_csv_stream_open( $_FILES['required_catalogs_csv']['tmp_name'], 'r' );
     if ( false === $handle ) {
-        wp_die( esc_html__( 'No se pudo abrir el CSV de catálogos.', 'seo-taxonomy' ) );
+        wp_die( esc_html__( 'No se pudo abrir el CSV de catálogos.', 'taxocommerce-seo' ) );
     }
 
     $header = seo_ie_read_csv_row( $handle );
     if ( false === $header ) {
         seo_ie_catalog_csv_stream_close( $handle );
-        wp_die( esc_html__( 'El CSV de catálogos está vacío.', 'seo-taxonomy' ) );
+        wp_die( esc_html__( 'El CSV de catálogos está vacío.', 'taxocommerce-seo' ) );
     }
 
     $header = array_map(
@@ -901,7 +901,7 @@ function seo_ie_import_required_catalogs_csv() {
 
     if ( ! in_array( 'tipo_registro', $header, true ) && ! in_array( 'tabla', $header, true ) ) {
         seo_ie_catalog_csv_stream_close( $handle );
-        wp_die( esc_html__( 'El CSV debe contener la columna tipo_registro (o tabla). Usa como plantilla el export de catálogos obligatorios.', 'seo-taxonomy' ) );
+        wp_die( esc_html__( 'El CSV debe contener la columna tipo_registro (o tabla). Usa como plantilla el export de catálogos obligatorios.', 'taxocommerce-seo' ) );
     }
 
     $dry_run = ! empty( $_POST['required_catalogs_dry_run'] );

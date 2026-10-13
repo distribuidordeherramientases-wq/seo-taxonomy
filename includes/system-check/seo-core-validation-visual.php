@@ -164,7 +164,7 @@ function seo_core_visual_dispatch($origin = 'manual_visual', $force = false) {
                 'Authorization'        => 'Bearer ' . $settings['token'],
                 'Accept'               => 'application/vnd.github+json',
                 'X-GitHub-Api-Version' => '2022-11-28',
-                'User-Agent'           => 'SEO-System-Visual-Validation',
+                'User-Agent'           => 'TaxoCommerce-SEO-Visual-Validation',
                 'Content-Type'         => 'application/json; charset=utf-8',
             ),
             'body' => wp_json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -236,7 +236,7 @@ add_action('seo_core_system_test_completed', 'seo_core_visual_auto_dispatch_afte
 
 function seo_core_visual_admin_run() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para ejecutar este chequeo.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para ejecutar este chequeo.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_core_visual_run', 'seo_core_visual_nonce');
 
@@ -588,7 +588,7 @@ function seo_core_visual_render_controls() {
     $button_attributes = seo_core_visual_is_configured() ? array() : array('disabled' => 'disabled');
     submit_button('Ejecutar chequeo responsive ahora', 'secondary', 'submit', false, $button_attributes);
     if (!seo_core_visual_is_configured()) {
-        echo '<p class="description">Configura primero la conexion GitHub Actions que ya utiliza SEO System. El workflow visual debe existir en el mismo repositorio.</p>';
+        echo '<p class="description">Configura primero la conexion GitHub Actions que ya utiliza TaxoCommerce SEO. El workflow visual debe existir en el mismo repositorio.</p>';
     } else {
         echo '<p class="description">Se prueban hasta 7 URLs representativas en movil, tablet y escritorio. Las capturas completas quedan como artefacto del workflow.</p>';
     }

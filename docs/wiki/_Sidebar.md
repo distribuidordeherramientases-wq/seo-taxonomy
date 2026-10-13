@@ -1,4 +1,4 @@
-### SEO Taxonomy
+### TaxoCommerce SEO
 
 - [[Inicio|Home]]
 - [[Manual de uso|Manual-de-uso]]
@@ -13,6 +13,7 @@
 - [[Servicios|Servicios]]
   - [[Clonador|Clonador]]
   - [[Ojeador|Ojeador]]
+  - [[Comparador|Comparador]]
   - [[Dependiente|Dependiente]]
   - [[Ingeniero|Ingeniero]]
   - [[Clasificador|Clasificador]]
@@ -23,4 +24,5 @@
   - [[Solucionador|Solucionador]]
 - [[Arquitectura y conceptos|Arquitectura-y-conceptos]]
 - [[Flujo de datos|Flujo-de-datos]]
+- [[Servicios y tablas|Servicios-y-tablas]]
 - [[Procesos y workers|Procesos-y-workers]]

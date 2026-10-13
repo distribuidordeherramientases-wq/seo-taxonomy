@@ -1,6 +1,6 @@
-# SEO Taxonomy
+# TaxoCommerce SEO
 
-**SEO Taxonomy** es un plugin para WordPress y WooCommerce orientado a la gestión centralizada de la arquitectura SEO de un sitio web.
+**TaxoCommerce SEO** es un plugin para WordPress y WooCommerce orientado a la gestión centralizada de la arquitectura SEO de un sitio web.
 
 Permite organizar páginas estratégicas, productos, categorías, imágenes y sus relaciones, además de incorporar herramientas de análisis, automatización y mejora de contenidos asistida por IA.
 
@@ -8,7 +8,7 @@ Permite organizar páginas estratégicas, productos, categorías, imágenes y su
 
 ## 🚀 Objetivo del plugin
 
-SEO Taxonomy busca centralizar en un único entorno la gestión SEO de sitios WordPress con catálogos de productos.
+TaxoCommerce SEO busca centralizar en un único entorno la gestión SEO de sitios WordPress con catálogos de productos.
 
 El plugin permite trabajar tanto sobre los elementos individuales del sitio como sobre la relación existente entre ellos:
 
@@ -27,7 +27,7 @@ El plugin permite trabajar tanto sobre los elementos individuales del sitio como
 
 ## 🧭 Arquitectura SEO
 
-Una de las funciones principales de SEO Taxonomy es organizar la estructura del sitio mediante relaciones entre páginas, categorías y productos.
+Una de las funciones principales de TaxoCommerce SEO es organizar la estructura del sitio mediante relaciones entre páginas, categorías y productos.
 
 Flujo recomendado:
 
@@ -58,7 +58,7 @@ Mejoras asistidas por IA
 
 Publicar una página en WordPress no significa que forme automáticamente parte de la arquitectura SEO.
 
-Su plantilla, función y relaciones deben configurarse expresamente dentro de SEO Taxonomy.
+Su plantilla, función y relaciones deben configurarse expresamente dentro de TaxoCommerce SEO.
 
 ---
 
@@ -132,7 +132,7 @@ Permite definir relaciones entre páginas, categorías y otros elementos para co
 
 # 🛠️ Herramientas
 
-SEO Taxonomy incluye además diferentes herramientas avanzadas.
+TaxoCommerce SEO incluye además diferentes herramientas avanzadas.
 
 ## Templates
 
@@ -186,7 +186,7 @@ Gestión de preguntas frecuentes.
 
 ## Estado del servidor
 
-Panel de diagnóstico para comprobar el estado del servidor y ejecutar pruebas relacionadas con las funciones utilizadas por SEO Taxonomy.
+Panel de diagnóstico para comprobar el estado del servidor y ejecutar pruebas relacionadas con las funciones utilizadas por TaxoCommerce SEO.
 
 ---
 
@@ -200,7 +200,7 @@ Permite detectar problemas y comprobar el funcionamiento de diferentes component
 
 ## Menu Manager
 
-Sistema de gestión de menús y herramientas disponibles dentro de SEO Taxonomy.
+Sistema de gestión de menús y herramientas disponibles dentro de TaxoCommerce SEO.
 
 ---
 
@@ -269,7 +269,7 @@ Utilizar las herramientas de inteligencia artificial como apoyo para mejorar el 
 
 # 🤖 Inteligencia Artificial
 
-SEO Taxonomy incorpora funciones de asistencia mediante IA en diferentes procesos relacionados con el contenido y la optimización SEO.
+TaxoCommerce SEO incorpora funciones de asistencia mediante IA en diferentes procesos relacionados con el contenido y la optimización SEO.
 
 La IA se utiliza como herramienta de apoyo.
 
@@ -279,12 +279,12 @@ Las modificaciones propuestas deben revisarse antes de aplicarse definitivamente
 
 # 🧩 Estructura del plugin
 
-La estructura concreta puede evolucionar durante el desarrollo, pero el repositorio contiene el código completo necesario para el funcionamiento de SEO Taxonomy.
+La estructura concreta puede evolucionar durante el desarrollo, pero el repositorio contiene el código completo necesario para el funcionamiento de TaxoCommerce SEO.
 
 Ejemplo:
 
 ```text
-seo-taxonomy/
+taxocommerce-seo/
 │
 ├── admin/
 ├── assets/
@@ -308,18 +308,18 @@ seo-taxonomy/
 3. Subir la carpeta del plugin a:
 
 ```text
-/wp-content/plugins/seo-taxonomy/
+/wp-content/plugins/taxocommerce-seo/
 ```
 
 4. Acceder al panel de administración de WordPress.
 5. Ir a **Plugins**.
-6. Activar **SEO Taxonomy**.
+6. Activar **TaxoCommerce SEO**.
 
 ---
 
 # 🔄 Desarrollo
 
-El desarrollo de SEO Taxonomy se gestiona mediante GitHub.
+El desarrollo de TaxoCommerce SEO se gestiona mediante GitHub.
 
 GitHub se utiliza para:
 
@@ -352,7 +352,7 @@ Cada Issue puede utilizarse para documentar:
 
 # 🧪 Estado del proyecto
 
-SEO Taxonomy se encuentra actualmente en desarrollo activo.
+TaxoCommerce SEO se encuentra actualmente en desarrollo activo.
 
 La arquitectura, funcionalidades y estructura interna pueden evolucionar a medida que se incorporan nuevas herramientas y se prepara el plugin para su distribución.
 
@@ -397,10 +397,10 @@ Antes de publicar nuevas versiones debe comprobarse que el código no contiene i
 
 # 📄 Licencia
 
-SEO Taxonomy se distribuye bajo licencia **MIT**, de acuerdo con el archivo [LICENSE](LICENSE).
+TaxoCommerce SEO se distribuye bajo licencia **MIT**, de acuerdo con el archivo [LICENSE](LICENSE).
 
 ---
 
-## SEO Taxonomy
+## TaxoCommerce SEO
 
 **Arquitectura SEO, catálogo, contenidos y herramientas de optimización para WordPress y WooCommerce desde un único sistema.**

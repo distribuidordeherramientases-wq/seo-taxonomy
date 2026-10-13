@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - proveedor LinkedIn Pages para Social Network.
+ * TaxoCommerce SEO - proveedor LinkedIn Pages para Social Network.
  *
  * Publica mediante LinkedIn Posts API y permite autorizar una aplicacion
  * mediante OAuth 2.0. El token y el client secret se guardan cifrados.
@@ -484,7 +484,7 @@ function seo_social_linkedin_discover_organizations($token, $config)
 function seo_social_linkedin_oauth_start()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para conectar LinkedIn.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para conectar LinkedIn.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_social_linkedin_oauth_start');
 

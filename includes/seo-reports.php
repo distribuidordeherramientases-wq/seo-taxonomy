@@ -1,5 +1,5 @@
 <?php
-/** Internal SEO Taxonomy module. */
+/** Internal TaxoCommerce SEO module. */
 if (!defined('ABSPATH')) exit;
 
 // Informe editorial: oportunidades de posts a partir de las conexiones Google ya existentes.
@@ -429,13 +429,13 @@ function seo_reports_general_ajax_partial() {
 /** Descarga JSON: calcula únicamente el informe solicitado. */
 function seo_reports_general_json_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para exportar este informe.', 'taxocommerce-seo'));
     }
 
     $report_key = isset($_GET['report']) ? sanitize_key(wp_unslash($_GET['report'])) : '';
     $definitions = seo_reports_general_definitions();
     if (!isset($definitions[$report_key])) {
-        wp_die(esc_html__('Informe no reconocido.', 'seo-taxonomy'));
+        wp_die(esc_html__('Informe no reconocido.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_reports_general_json_' . $report_key);
@@ -450,7 +450,7 @@ function seo_reports_general_json_handler() {
         JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
     );
     if (false === $json) {
-        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'seo-taxonomy'));
+        wp_die(esc_html__('No se ha podido generar el JSON del informe.', 'taxocommerce-seo'));
     }
 
     nocache_headers();
@@ -986,7 +986,7 @@ function seo_reports_page() {
     echo '<a class="nav-tab ' . ($active_tab === 'informes' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=informes') . '">Informes</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'dashboard' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=dashboard') . '">Panel</a>';
     echo '<a class="nav-tab ' . ($active_tab === 'anomalias' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=anomalias') . '">Anomalías</a>';
-    echo '<a class="nav-tab ' . ($active_tab === 'analista' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&tab=analista') . '">Analista</a>';
+    // Analista sigue operativo mediante Mercado; no duplicar acceso en Informes.
     echo '</h2>';
 
     // Ejecución de acciones según la pestaña escogida.
@@ -1301,7 +1301,7 @@ function seo_reports_category_vocabulary_map($category_ids = array()) {
 /**
  * Informe de estructura completa de categorías.
  *
- * La interfaz se muestra desde SEO Taxonomy > Categorías > Informe categorías.
+ * La interfaz se muestra desde TaxoCommerce SEO > Categorías > Informe categorías.
  * Se mantiene en este módulo para reutilizar los helpers de informes existentes.
  */
 function seo_render_total_structure_report() {
@@ -1963,7 +1963,7 @@ function seo_product_category_pre_delete_term($term_id, $taxonomy) {
          */
         wp_die(
             esc_html($context->get_error_message()),
-            esc_html__('Borrado de categoría bloqueado', 'seo-taxonomy'),
+            esc_html__('Borrado de categoría bloqueado', 'taxocommerce-seo'),
             array('response' => 409, 'back_link' => true)
         );
     }
@@ -2010,7 +2010,7 @@ function seo_product_category_deleted_term($term_id, $tt_id, $deleted_term, $obj
 add_action('delete_product_cat', 'seo_product_category_deleted_term', 10, 4);
 
 /**
- * API canónica para los borrados iniciados desde SEO Taxonomy.
+ * API canónica para los borrados iniciados desde TaxoCommerce SEO.
  */
 function seo_delete_product_category_with_hub_redirect($term_id, $source_module = 'seo_taxonomy') {
     $term_id = absint($term_id);
@@ -3704,7 +3704,7 @@ EXPORT CSV SEO TABLES
             $export_nonce === '' ||
             !wp_verify_nonce($export_nonce, 'seo_export_csv_' . $table_key)
         ) {
-            wp_die(esc_html__('Nonce inválido.', 'seo-taxonomy'));
+            wp_die(esc_html__('Nonce inválido.', 'taxocommerce-seo'));
         }
     
         global $wpdb;

@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta oficial SATKIT para el importador de proveedores de SEO System.
+ * Receta oficial SATKIT para el importador de proveedores de TaxoCommerce SEO.
  *
  * Conserva el mapeo visual historico utilizado con SATKIT. El usuario revisa
  * la relacion entre las columnas del archivo y la plantilla comun; despues

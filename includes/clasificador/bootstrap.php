@@ -1,6 +1,6 @@
 <?php
 /**
- * Bootstrap del Clasificador de SEO Taxonomy.
+ * Bootstrap del Clasificador de TaxoCommerce SEO.
  */
 
 defined('ABSPATH') || exit;
