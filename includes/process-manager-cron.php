@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * SEO Taxonomy - entrada CLI del gestor periodico de procesos.
+ * TaxoCommerce SEO - entrada CLI del gestor periodico de procesos.
  *
  * Ejecutar desde el cron real del hosting, idealmente cada minuto.
  */
