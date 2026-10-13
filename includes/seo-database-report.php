@@ -20,7 +20,7 @@ add_action('admin_post_seo_data_export_operation_json', 'seo_data_export_operati
 function seo_data_table_page(): void
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta herramienta.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta herramienta.', 'taxocommerce-seo'));
     }
 
     global $wpdb;
