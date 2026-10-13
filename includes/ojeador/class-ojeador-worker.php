@@ -29,6 +29,9 @@ final class SEO_Ojeador_Worker {
     }
 
     public static function start_run($source = 'manual') {
+        if (class_exists('SEO_Ojeador_Merchant') && SEO_Ojeador_Merchant::is_merchant_only()) {
+            return new WP_Error('ojeador_merchant_only','Modo Merchant: no se realizan consultas pagadas Shopping. Las instantáneas existentes permanecen disponibles.');
+        }
         $ready = SEO_Ojeador_Shopping::readiness();
         if (is_wp_error($ready)) {
             return $ready;
@@ -70,6 +73,7 @@ final class SEO_Ojeador_Worker {
     }
 
     private static function maybe_auto_start() {
+        if (class_exists('SEO_Ojeador_Merchant') && SEO_Ojeador_Merchant::is_merchant_only())return;
         if (self::is_pending()) {
             return;
         }
@@ -91,6 +95,10 @@ final class SEO_Ojeador_Worker {
     }
 
     public static function process_batch($source = 'worker') {
+        if (class_exists('SEO_Ojeador_Merchant') && SEO_Ojeador_Merchant::is_merchant_only()) {
+            if (self::is_pending()) self::stop_run();
+            return true;
+        }
         if (get_transient(self::LOCK)) {
             return false;
         }

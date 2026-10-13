@@ -252,6 +252,7 @@ final class SEO_Ojeador_Novedades {
     }
 
     public static function scan($seed_limit=1,$candidate_limit=3,$hub_id=0){
+        if (class_exists('SEO_Ojeador_Merchant') && SEO_Ojeador_Merchant::is_merchant_only())return new WP_Error('ojeador_merchant_only','Radar Ojeador en modo Merchant sin búsquedas de pago. Consulte Productos populares Merchant.');
         $seed_limit=max(1,min(3,absint($seed_limit)));$candidate_limit=max(1,min(5,absint($candidate_limit)));
         $seeds=self::choose_seeds($seed_limit,absint($hub_id));
         if(!$seeds)return new WP_Error('ojeador_novedades_seeds','No hay Clusters/Hubs primarios disponibles para explorar.');
