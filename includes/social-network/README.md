@@ -11,7 +11,7 @@ El subsistema de redes sociales vive completamente en este directorio:
 
 El proveedor usa LinkedIn Posts API (`/rest/posts`) con la cabecera de version `YYYYMM` y OAuth 2.0.
 
-Configuracion desde **SEO Taxonomy > Marketing > Redes sociales > Conexiones**:
+Configuracion desde **TaxoCommerce SEO > Marketing > Redes sociales > Conexiones**:
 
 1. Crea/usa una aplicacion en LinkedIn Developer Portal asociada a la empresa adecuada.
 2. Solicita/activa los productos que concedan `r_organization_admin` y `w_organization_social`.
