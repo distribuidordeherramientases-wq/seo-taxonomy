@@ -2,13 +2,14 @@
 
 Ruta: **SEO Taxonomy → Informes**
 
+**Analista** conserva su informe completo, pero se accede desde **SEO Taxonomy → Mercado → Dónde estamos**; ya no aparece como pestaña directa de Informes. El enlace `seo-reports&tab=analista` sigue vigente.
+
 ## Pestañas
 
 - Informes
 - Panel
 - Contenido
 - Anomalías
-- Analista
 
 ## Informes
 
