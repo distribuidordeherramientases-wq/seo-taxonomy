@@ -2108,7 +2108,7 @@ function seo_google_render_settings() {
             submit_button('Probar conexión', 'secondary', 'submit', false);
             echo '</form>';
 
-            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'Se eliminará la autorización de Google almacenada en SEO System. ¿Continuar?\');">';
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'Se eliminará la autorización de Google almacenada en TaxoCommerce SEO. ¿Continuar?\');">';
             echo '<input type="hidden" name="action" value="seo_google_disconnect">';
             wp_nonce_field('seo_google_disconnect', 'seo_google_disconnect_nonce');
             submit_button('Desconectar', 'delete', 'submit', false);
@@ -2138,7 +2138,7 @@ function seo_google_render_settings() {
     echo '<details style="margin-top:18px;border-top:1px solid #dcdcde;padding-top:14px;">';
     echo '<summary style="cursor:pointer;font-weight:700;">Problemas frecuentes y solución</summary>';
     echo '<div style="line-height:1.65;margin-top:12px;">';
-    echo '<p><strong>Error 400: redirect_uri_mismatch</strong><br>La URI enviada por SEO System no coincide exactamente con Google Cloud. Copia la URI mostrada arriba y regístrala, carácter por carácter, en “URIs de redireccionamiento autorizados”.</p>';
+    echo '<p><strong>Error 400: redirect_uri_mismatch</strong><br>La URI enviada por TaxoCommerce SEO no coincide exactamente con Google Cloud. Copia la URI mostrada arriba y regístrala, carácter por carácter, en “URIs de redireccionamiento autorizados”.</p>';
     echo '<p><strong>Error 403: access_denied / solo testers</strong><br>La aplicación está en modo Pruebas y la cuenta no figura como usuario de prueba. Añádela en Google Auth Platform → Público/Audiencia → Usuarios de prueba, o publica la aplicación si corresponde.</p>';
     echo '<p><strong>Forbidden al volver desde Google</strong><br>La versión actual usa <code>wp-admin/admin-post.php</code> como callback dedicado. Si el hosting sigue bloqueándolo, revisa ModSecurity o el firewall y permite la acción <code>seo_google_oauth_callback</code>.</p>';
     echo '<p><strong>Credenciales guardadas; falta autorizar Google</strong><br>Las claves existen, pero todavía no hay tokens. Pulsa “Conectar con Google”.</p>';
@@ -2149,7 +2149,7 @@ function seo_google_render_settings() {
     echo '<div style="background:#f6f7f7;border-left:4px solid #2271b1;padding:12px;margin-top:16px;">';
     echo '<strong>Permiso solicitado</strong><br>';
     echo '<code style="word-break:break-all;">' . esc_html(SEO_GOOGLE_SCOPE_SEARCH_CONSOLE) . '</code>';
-    echo '<p style="margin-bottom:0;">Es un permiso de solo lectura. SEO System no podrá añadir ni eliminar propiedades o sitemaps.</p>';
+    echo '<p style="margin-bottom:0;">Es un permiso de solo lectura. TaxoCommerce SEO no podrá añadir ni eliminar propiedades o sitemaps.</p>';
     echo '</div>';
 
     echo '<p style="margin-top:16px;"><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Abrir credenciales de Google Cloud</a></p>';
