@@ -23,7 +23,8 @@ Esta pantalla es un lanzador. El botón **Abrir** de cada tarjeta solo navega al
 | Plugin Validation | Validación interna del plugin |
 | Menu Manager | Generación y sincronización del menú SEO |
 | Facturas y presupuestos | Documentos PDF conectados a WooCommerce |
-| Ojeador | Mercado por categorías en Google Shopping |
+
+> **Ojeador** ya no tiene tarjeta directa aquí: se accede desde **SEO Taxonomy → Mercado → Hacia dónde vamos**, manteniendo la pantalla y el slug histórico `seo-ojeador`.
 
 > **FAQs** ya no se lanza desde Herramientas. Su acceso visible está en **SEO Taxonomy → Contenidos → FAQs**; la pantalla y el slug `seo-faq` se mantienen.
 
