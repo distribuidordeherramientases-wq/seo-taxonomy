@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Programador Social.
+ * TaxoCommerce SEO - Programador Social.
  *
  * MVP seguro para programar publicaciones futuras de entradas y landings en
  * los proveedores sociales ya conectados. No modifica la frecuencia SEO propia
