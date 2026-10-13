@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Google Python Runner para catalogos de proveedores.
+ * TaxoCommerce SEO - Google Python Runner para catalogos de proveedores.
  *
  * WordPress inicia un Cloud Run Job y el proceso Python devuelve progreso y,
  * al terminar, un CSV estandar al mismo importador comun de proveedores.
