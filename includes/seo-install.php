@@ -1,6 +1,6 @@
 <?php
 /**
- * Activation bridge for SEO Taxonomy.
+ * Activation bridge for TaxoCommerce SEO.
  *
  * WordPress does not look for an install.php file automatically. The main
  * plugin file loads this bridge, and this bridge registers the activation
