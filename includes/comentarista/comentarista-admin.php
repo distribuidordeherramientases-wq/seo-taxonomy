@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
 
 function seo_comentarista_register_admin_page()
 {
-    // Página oculta: el acceso visible se ofrece desde SEO Taxonomy → Contenidos.
+    // Página oculta: el acceso visible se ofrece desde TaxoCommerce SEO → Contenidos.
     add_submenu_page(
         null,
         'Comentarista',
