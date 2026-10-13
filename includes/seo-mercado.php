@@ -20,6 +20,43 @@ final class SEO_Mercado_Admin {
             self::PAGE,
             array(__CLASS__, 'render')
         );
+
+        // Mercado es el único lanzador visible de los tres especialistas.
+        // Los endpoints, formularios y rutas de las pantallas originales se conservan.
+        add_filter('seo_content_items', array(__CLASS__, 'filter_content_cards'), 999);
+        add_filter('seo_tools_items', array(__CLASS__, 'filter_tools_cards'), 999);
+        add_filter('parent_file', array(__CLASS__, 'parent_file'), 99);
+        add_filter('submenu_file', array(__CLASS__, 'submenu_file'), 99);
+    }
+
+    public static function filter_content_cards($items) {
+        if (!is_array($items)) return $items;
+        return array_values(array_filter($items, static function($item) {
+            return !is_array($item) || sanitize_key((string)($item['page'] ?? '')) !== 'seo-ingeniero';
+        }));
+    }
+
+    public static function filter_tools_cards($items) {
+        if (!is_array($items)) return $items;
+        return array_values(array_filter($items, static function($item) {
+            return !is_array($item) || sanitize_key((string)($item['page'] ?? '')) !== 'seo-ojeador';
+        }));
+    }
+
+    private static function is_specialist_page() {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if (in_array($page, array('seo-ingeniero','seo-ojeador'), true)) return true;
+        return $page === 'seo-reports'
+            && isset($_GET['tab'])
+            && sanitize_key(wp_unslash($_GET['tab'])) === 'analista';
+    }
+
+    public static function parent_file($parent_file) {
+        return self::is_specialist_page() ? 'seo-system' : $parent_file;
+    }
+
+    public static function submenu_file($submenu_file) {
+        return self::is_specialist_page() ? self::PAGE : $submenu_file;
     }
 
     private static function url($args) {
