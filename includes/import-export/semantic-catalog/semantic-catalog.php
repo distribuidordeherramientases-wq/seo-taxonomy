@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Portable semantic catalog transfer.
+ * TaxoCommerce SEO - Portable semantic catalog transfer.
  *
  * Moves catalog truth (masters + assignments) between installations using
  * portable keys. Source numeric IDs are exported for audit only and are never
