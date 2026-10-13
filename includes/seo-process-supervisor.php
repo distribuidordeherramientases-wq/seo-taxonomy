@@ -1700,7 +1700,7 @@ add_action('init', 'seo_process_supervisor_schedule_backup', 100);
 if (!function_exists('seo_process_supervisor_save_settings_action')) {
     function seo_process_supervisor_save_settings_action() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_process_supervisor_save_settings');
         $raw = isset($_POST['supervisor']) && is_array($_POST['supervisor']) ? wp_unslash($_POST['supervisor']) : array();
@@ -1721,7 +1721,7 @@ add_action('admin_post_seo_process_supervisor_save_settings', 'seo_process_super
 if (!function_exists('seo_process_supervisor_control_action')) {
     function seo_process_supervisor_control_action() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_process_supervisor_control');
         $command = sanitize_key(wp_unslash($_POST['command'] ?? ''));
