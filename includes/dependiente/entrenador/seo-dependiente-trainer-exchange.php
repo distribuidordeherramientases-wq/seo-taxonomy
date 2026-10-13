@@ -402,12 +402,12 @@ final class SEO_Dependiente_Trainer_Exchange {
 
     public static function export_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para exportar las preguntas del Entrenador.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para exportar las preguntas del Entrenador.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_dependiente_trainer_questions_export');
 
         if (class_exists('SEO_Dependiente_Entrenador') && !SEO_Dependiente_Entrenador::ensure_ready()) {
-            wp_die(esc_html__('Academia no está disponible.', 'seo-taxonomy'));
+            wp_die(esc_html__('Academia no está disponible.', 'taxocommerce-seo'));
         }
 
         $rows = self::export_rows();
@@ -703,7 +703,7 @@ final class SEO_Dependiente_Trainer_Exchange {
 
     public static function import_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para importar preguntas del Entrenador.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para importar preguntas del Entrenador.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_dependiente_trainer_questions_import', 'seo_dependiente_trainer_questions_nonce');
 
