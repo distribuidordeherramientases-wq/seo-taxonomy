@@ -1,6 +1,6 @@
 # Herramientas
 
-Ruta: **SEO Taxonomy → Herramientas**
+Ruta: **TaxoCommerce SEO → Herramientas**
 
 Esta pantalla es un lanzador. El botón **Abrir** de cada tarjeta solo navega al módulo y no ejecuta cambios.
 
@@ -25,7 +25,7 @@ Esta pantalla es un lanzador. El botón **Abrir** de cada tarjeta solo navega al
 | Facturas y presupuestos | Documentos PDF conectados a WooCommerce |
 | Ojeador | Mercado por categorías en Google Shopping |
 
-> **FAQs** ya no se lanza desde Herramientas. Su acceso visible está en **SEO Taxonomy → Contenidos → FAQs**; la pantalla y el slug `seo-faq` se mantienen.
+> **FAQs** ya no se lanza desde Herramientas. Su acceso visible está en **TaxoCommerce SEO → Contenidos → FAQs**; la pantalla y el slug `seo-faq` se mantienen.
 
 ## Taxonomy
 
@@ -121,7 +121,7 @@ Pestañas: **Resumen**, **PHP**, **MySQL**, **WordPress**, **Seguridad**, **Serv
 
 **Ejecutar chequeo completo** [Proceso] guarda un snapshot. **Rotar secreto** [Modifica] exige actualizar la variable SEO_MONITOR_SECRET en GitHub. El resto de tarjetas son diagnósticas.
 
-### MySQL · Auditoría SQL SEO Taxonomy
+### MySQL · Auditoría SQL TaxoCommerce SEO
 
 La pestaña MySQL incorpora una auditoría de solo lectura que muestra:
 
@@ -224,4 +224,4 @@ Para añadir elementos hay paneles de Páginas, Entradas, Categorías y Enlaces 
 
 - **Comentarista**: gestiona evidencias externas, comentarios, vídeos, publicaciones sociales y enlaces asociados a productos.
 
-> **Solucionador** se encuentra en **SEO Taxonomy → Contenidos**, junto con Productos, Categorías, Páginas, Entradas, Imágenes y Auditor.
+> **Solucionador** se encuentra en **TaxoCommerce SEO → Contenidos**, junto con Productos, Categorías, Páginas, Entradas, Imágenes y Auditor.
