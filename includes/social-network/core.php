@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Social Network.
+ * TaxoCommerce SEO - Social Network.
  *
  * Capa comun para conexiones, plantillas, publicaciones, seguimiento de visitas
  * e informes de redes sociales. Los proveedores viven en archivos separados.
