@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - proveedor X para Social Network.
+ * TaxoCommerce SEO - proveedor X para Social Network.
  *
  * Usa X API v2 con OAuth 2.0 Authorization Code + PKCE. Los tokens se guardan
  * cifrados y, si existe refresh token, se renuevan automaticamente.
