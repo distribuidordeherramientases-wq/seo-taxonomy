@@ -508,7 +508,7 @@ function seo_mail_handle_replace_template() {
     check_admin_referer('seo_mail_replace_template', 'seo_mail_replace_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'taxocommerce-seo'));
     }
 
     seo_mail_redirect(
@@ -525,7 +525,7 @@ function seo_mail_handle_upload_new_template() {
     check_admin_referer('seo_mail_upload_new_template', 'seo_mail_new_template_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'taxocommerce-seo'));
     }
 
     seo_mail_redirect(
@@ -596,7 +596,7 @@ function seo_mail_handle_copy_woocommerce_template() {
     check_admin_referer('seo_mail_copy_default', 'seo_mail_copy_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'taxocommerce-seo'));
     }
 
     seo_mail_redirect(
