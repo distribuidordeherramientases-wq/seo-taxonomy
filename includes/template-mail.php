@@ -512,7 +512,7 @@ function seo_mail_handle_replace_template() {
     }
 
     seo_mail_redirect(
-        'Por seguridad, SEO Taxonomy no permite sobrescribir archivos PHP del plugin desde el navegador. Publica la plantilla mediante una actualización del plugin.',
+        'Por seguridad, TaxoCommerce SEO no permite sobrescribir archivos PHP del plugin desde el navegador. Publica la plantilla mediante una actualización del plugin.',
         'warning'
     );
 }
