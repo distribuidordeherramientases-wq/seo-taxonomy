@@ -266,7 +266,7 @@ if (!function_exists('seo_solucionador_posts_ie_export_row')) {
 if (!function_exists('seo_solucionador_posts_ie_export_handler')) {
     function seo_solucionador_posts_ie_export_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para exportar estos posts.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para exportar estos posts.', 'taxocommerce-seo'));
         }
 
         check_admin_referer('seo_solucionador_posts_ie_export');
@@ -278,7 +278,7 @@ if (!function_exists('seo_solucionador_posts_ie_export_handler')) {
 
         $out = fopen('php://output', 'w');
         if (!$out) {
-            wp_die(esc_html__('No se pudo generar el CSV.', 'seo-taxonomy'));
+            wp_die(esc_html__('No se pudo generar el CSV.', 'taxocommerce-seo'));
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- php://output is an explicit response stream, not an arbitrary filesystem path.
@@ -633,7 +633,7 @@ if (!function_exists('seo_solucionador_posts_ie_apply_row')) {
 if (!function_exists('seo_solucionador_posts_ie_import_handler')) {
     function seo_solucionador_posts_ie_import_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para importar estos posts.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para importar estos posts.', 'taxocommerce-seo'));
         }
 
         check_admin_referer('seo_solucionador_posts_ie_import', 'seo_solucionador_posts_ie_nonce');
