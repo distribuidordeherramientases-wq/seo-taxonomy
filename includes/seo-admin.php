@@ -133,6 +133,12 @@ add_submenu_page(
         'seo_content_page'
     );
 
+    // Piloto paralelo de Mercado: mantiene intactas todas las rutas antiguas.
+    $seo_mercado_file = __DIR__ . '/seo-mercado.php';
+    if (is_readable($seo_mercado_file)) {
+        require_once $seo_mercado_file;
+    }
+
     // Etiquetas / vocabulario semántico de producto
     add_submenu_page(
         'seo-system',
