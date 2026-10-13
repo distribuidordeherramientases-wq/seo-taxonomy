@@ -5,7 +5,7 @@
  *
  * Este archivo puede cargarse como módulo desde otro plugin. Registra
  * su pantalla como herramienta interna oculta; el acceso visible se ofrece
- * desde SEO Taxonomy > Herramientas.
+ * desde TaxoCommerce SEO > Herramientas.
  */
 
 if (!defined('ABSPATH')) {
