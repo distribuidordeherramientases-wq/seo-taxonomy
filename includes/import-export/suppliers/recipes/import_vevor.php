@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta oficial VEVOR para SEO System.
+ * Receta oficial VEVOR para TaxoCommerce SEO.
  *
  * V1.5.0
  * - PHP solo normaliza el CSV; NO comprueba F/M por HTTP.
