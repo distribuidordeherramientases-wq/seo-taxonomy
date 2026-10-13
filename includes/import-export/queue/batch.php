@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Cola secuencial multientidad.
+ * TaxoCommerce SEO — Cola secuencial multientidad.
  *
  * Responsabilidad:
  * Administrar CSV pendientes, en proceso, importados y fallidos; detectar su
@@ -824,7 +824,7 @@ function seo_ie_batch_detect_entity( $path, $filename = '' ) {
 
     return new WP_Error(
         'seo_batch_unknown_schema',
-        'No se pudo identificar el destino por la cabecera. Usa un CSV exportado por SEO System o un prefijo products_, categories_, pages_, posts_, faqs_ o redirects_.'
+        'No se pudo identificar el destino por la cabecera. Usa un CSV exportado por TaxoCommerce SEO o un prefijo products_, categories_, pages_, posts_, faqs_ o redirects_.'
     );
 }
 
@@ -2664,7 +2664,7 @@ function seo_ie_batch_render_page() {
     <div style="max-width:1300px;">
         <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 035</small></h2>
         <p>
-            Cola secuencial para CSV de WordPress y SEO System. El destino se detecta por la cabecera:
+            Cola secuencial para CSV de WordPress y TaxoCommerce SEO. El destino se detecta por la cabecera:
             productos, categorias, paginas, entradas (posts), FAQs o redirects. El catalogo bruto de proveedores se importa desde su pestana independiente.
         </p>
 
