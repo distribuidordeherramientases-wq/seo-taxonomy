@@ -1,6 +1,6 @@
 # Imágenes
 
-Ruta: **SEO Taxonomy → Imágenes**
+Ruta: **TaxoCommerce SEO → Imágenes**
 
 ## Pestañas
 
