@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Integracion Social de Marketing / Campanas.
+ * TaxoCommerce SEO - Integracion Social de Marketing / Campanas.
  *
  * Marketing es la fuente de verdad: esta capa solo consume campanas habilitadas
  * y sus productos, genera el mensaje por red y programa las ofertas a una hora
