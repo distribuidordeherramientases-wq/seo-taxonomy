@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Adaptador Google para Landing Pages.
+ * TaxoCommerce SEO - Adaptador Google para Landing Pages.
  *
  * Une fuentes existentes sin duplicar conexiones:
  * - Search Console: Google Intelligence (OAuth + datos locales sincronizados).
