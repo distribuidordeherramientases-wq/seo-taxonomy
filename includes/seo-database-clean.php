@@ -257,14 +257,14 @@ function seo_clean_db_maybe_export_sql() {
     }
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar la base de datos.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para exportar la base de datos.', 'taxocommerce-seo'));
     }
 
     $type = sanitize_key(wp_unslash($_GET['seo_clean_db_export']));
     check_admin_referer('seo_clean_db_export_' . $type, 'seo_clean_db_export_nonce');
 
     if (!in_array($type, array('full', 'seo'), true)) {
-        wp_die(esc_html__('Tipo de exportación no válido.', 'seo-taxonomy'));
+        wp_die(esc_html__('Tipo de exportación no válido.', 'taxocommerce-seo'));
     }
 
     seo_clean_db_stream_sql_export($type);
