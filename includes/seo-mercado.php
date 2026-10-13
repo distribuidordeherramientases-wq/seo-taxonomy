@@ -240,4 +240,3 @@ final class SEO_Mercado_Admin {
     }
 }
 
-add_action('admin_menu', array('SEO_Mercado_Admin', 'register_page'), 20);
