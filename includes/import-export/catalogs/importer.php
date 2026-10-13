@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Importador seguro de catálogos canónicos.
+ * TaxoCommerce SEO — Importador seguro de catálogos canónicos.
  *
  * Permite dar de alta, mediante un único CSV plano, el vocabulario que debe
  * existir ANTES de importar productos enriquecidos. No modifica ni elimina
@@ -15,7 +15,7 @@
  * - product_tag: etiqueta WooCommerce product_tag.
  *
  * El formato es compatible con el CSV "catálogos obligatorios" exportado por
- * SEO System. Para altas nuevas los IDs pueden quedar vacíos; las dependencias
+ * TaxoCommerce SEO. Para altas nuevas los IDs pueden quedar vacíos; las dependencias
  * se resuelven por slug y el orden de las filas no importa.
  *
  * @package SEOSystem
