@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Integracion Cloudflare.
+ * TaxoCommerce SEO - Integracion Cloudflare.
  *
  * Gestiona una conexion Cloudflare de solo lectura para que otros modulos
  * (especialmente Estado del servidor > Seguridad) puedan reutilizarla.
@@ -196,7 +196,7 @@ if ( ! function_exists( 'seo_cloudflare_api_request' ) ) {
                 'headers'     => [
                     'Authorization' => 'Bearer ' . $token,
                     'Accept'        => 'application/json',
-                    'User-Agent'    => 'SEO-System-Cloudflare/' . ( defined( 'SEO_SYSTEM_VERSION' ) ? SEO_SYSTEM_VERSION : '1.0' ),
+                    'User-Agent'    => 'TaxoCommerce-SEO-Cloudflare/' . ( defined( 'SEO_SYSTEM_VERSION' ) ? SEO_SYSTEM_VERSION : '1.0' ),
                 ],
             ]
         );
