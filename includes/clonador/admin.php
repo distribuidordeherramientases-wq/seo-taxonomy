@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Interfaz del Clonador PRO -> STAGING.
+ * TaxoCommerce SEO - Interfaz del Clonador PRO -> STAGING.
  *
  * @package SEOSystem
  * @subpackage Clonador
