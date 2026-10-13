@@ -1,6 +1,6 @@
 <?php
 /**
- * Database updater for SEO Taxonomy.
+ * Database updater for TaxoCommerce SEO.
  *
  * Historical migrations are executed first. The current idempotent installer
  * then reconciles the complete target schema so a missing migration file can
@@ -36,7 +36,7 @@ final class SEO_System_Updater
             self::register_success(SEO_SYSTEM_DB_VERSION);
         } catch (Throwable $exception) {
             self::register_failure(SEO_SYSTEM_DB_VERSION, $exception->getMessage());
-            error_log('[SEO Taxonomy] Upgrade error: ' . $exception->getMessage());
+            error_log('[TaxoCommerce SEO] Upgrade error: ' . $exception->getMessage());
         }
     }
 
