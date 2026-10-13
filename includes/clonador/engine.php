@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Clonador portable PRO -> STAGING.
+ * TaxoCommerce SEO - Clonador portable PRO -> STAGING.
  *
  * Clona de forma destructiva el perimetro gestionado desde PRO hacia STAGING.
  * PRO is always source; STAGING is always destination. Source numeric IDs may
