@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta oficial AUDIOLEDCAR para SEO System.
+ * Receta oficial AUDIOLEDCAR para TaxoCommerce SEO.
  *
  * Version 1.1.0 - flujo Python externo con CSV artifact e importacion manual.
  *
