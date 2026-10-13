@@ -513,7 +513,7 @@ if (!function_exists('seo_images_anomaly_broken_media_index')) {
 if (!function_exists('seo_images_handle_assign_one')) {
     function seo_images_handle_assign_one() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para asignar imágenes.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para asignar imágenes.', 'taxocommerce-seo'));
         }
 
         $scope_type    = isset($_POST['scope_type']) ? sanitize_key(wp_unslash($_POST['scope_type'])) : '';
@@ -549,7 +549,7 @@ add_action('admin_post_seo_images_assign_one', 'seo_images_handle_assign_one');
 if (!function_exists('seo_images_handle_manual_upload')) {
     function seo_images_handle_manual_upload() {
         if (!current_user_can('manage_options') || !current_user_can('upload_files')) {
-            wp_die(esc_html__('No tienes permisos para subir y asignar imágenes.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para subir y asignar imágenes.', 'taxocommerce-seo'));
         }
 
         $scope_type    = isset($_POST['scope_type']) ? sanitize_key(wp_unslash($_POST['scope_type'])) : '';
@@ -668,7 +668,7 @@ add_action('admin_post_seo_images_manual_upload', 'seo_images_handle_manual_uplo
 if (!function_exists('seo_images_handle_auto_assign')) {
     function seo_images_handle_auto_assign() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para asignar imágenes.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para asignar imágenes.', 'taxocommerce-seo'));
         }
 
         $scope_type = isset($_POST['scope_type']) ? sanitize_key(wp_unslash($_POST['scope_type'])) : '';
@@ -735,7 +735,7 @@ add_action('admin_post_seo_images_auto_assign', 'seo_images_handle_auto_assign')
 if (!function_exists('seo_images_handle_delete_unlinked_external')) {
     function seo_images_handle_delete_unlinked_external() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para eliminar imágenes externas.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para eliminar imágenes externas.', 'taxocommerce-seo'));
         }
 
         check_admin_referer('seo_images_delete_unlinked_external');
@@ -773,7 +773,7 @@ add_action('admin_post_seo_images_delete_unlinked_external', 'seo_images_handle_
 if (!function_exists('seo_images_handle_delete_broken_media_refs')) {
     function seo_images_handle_delete_broken_media_refs() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para limpiar referencias de Media.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para limpiar referencias de Media.', 'taxocommerce-seo'));
         }
 
         check_admin_referer('seo_images_delete_broken_media_refs');
@@ -834,7 +834,7 @@ add_action('admin_post_seo_images_delete_broken_media_refs', 'seo_images_handle_
 if (!function_exists('seo_images_handle_delete_unused_local')) {
     function seo_images_handle_delete_unused_local() {
         if (!current_user_can('delete_posts') || !current_user_can('upload_files')) {
-            wp_die(esc_html__('No tienes permisos para eliminar imágenes.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para eliminar imágenes.', 'taxocommerce-seo'));
         }
 
         check_admin_referer('seo_images_delete_unused_local');
