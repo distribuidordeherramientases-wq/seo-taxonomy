@@ -243,7 +243,7 @@ function seo_comentarista_coverage_badge($count)
 function seo_comentarista_coverage_admin_page()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
     }
 
     $segments = seo_comentarista_coverage_segments();
