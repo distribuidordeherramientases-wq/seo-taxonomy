@@ -1,10 +1,10 @@
 <?php
 /**
- * SEO System — Motor comun de importacion de proveedores.
+ * TaxoCommerce SEO — Motor comun de importacion de proveedores.
  *
  * Responsabilidad:
  * Descubrir recetas instaladas, conservar los archivos originales, transformar
- * feeds externos al CSV normalizado de SEO System y administrar el catalogo
+ * feeds externos al CSV normalizado de TaxoCommerce SEO y administrar el catalogo
  * intermedio de proveedores.
  *
  * Las recetas no escriben directamente en WooCommerce. Solo normalizan datos;
