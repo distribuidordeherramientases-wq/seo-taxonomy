@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Creatividades sociales automáticas para campañas.
+ * TaxoCommerce SEO - Creatividades sociales automáticas para campañas.
  *
  * Genera imágenes simples, ligeras y cacheables para publicaciones sociales
  * de campañas. Expone tamaños adaptados para Facebook, Instagram, LinkedIn,
@@ -444,7 +444,7 @@ function seo_social_campaign_image_load_candidate($candidate)
                 'timeout'             => 15,
                 'redirection'         => 3,
                 'limit_response_size' => 10 * MB_IN_BYTES,
-                'user-agent'          => 'SEO-System-Social/' . (defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '1.0'),
+                'user-agent'          => 'TaxoCommerce-SEO-Social/' . (defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '1.0'),
             )
         );
         if (is_wp_error($response)) {
