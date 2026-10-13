@@ -32,7 +32,7 @@ jobs:
 
       - name: Create ZIP
         working-directory: build
-        run: zip -qr taxocommerce-seo.zip seo-taxonomy
+        run: zip -qr taxocommerce-seo.zip taxocommerce-seo
 
       - name: Upload WordPress.org package
         uses: actions/upload-artifact@v4
