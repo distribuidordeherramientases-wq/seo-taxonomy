@@ -27,13 +27,10 @@ require_once SEO_OJEADOR_PATH . 'class-ojeador-worker.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-process.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-analysis.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-stars.php';
-require_once SEO_OJEADOR_PATH . 'class-ojeador-novedades.php';
 require_once SEO_OJEADOR_PATH . 'class-ojeador-admin.php';
 
 SEO_Ojeador_Merchant::init();
 SEO_Ojeador_DB::maybe_install();
-SEO_Ojeador_Novedades::maybe_install();
-SEO_Ojeador_Novedades::init();
 SEO_Ojeador_Worker::init();
 SEO_Ojeador_Process::init();
 SEO_Ojeador_Admin::init();
