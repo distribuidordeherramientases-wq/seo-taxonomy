@@ -1,6 +1,6 @@
 # Productos
 
-Ruta: **SEO Taxonomy → Productos**
+Ruta: **TaxoCommerce SEO → Productos**
 
 ## Pestañas
 
