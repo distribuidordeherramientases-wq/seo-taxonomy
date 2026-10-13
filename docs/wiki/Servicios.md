@@ -21,3 +21,13 @@ Principio común: distinguir entre **observar**, **proponer**, **validar**, **ap
 La relación entre servicios está documentada en [[Flujo de datos|Flujo-de-datos]].
 
 El inventario de persistencia está documentado en [[Servicios y tablas|Servicios-y-tablas]], donde se identifica qué tablas son canónicas, derivadas, de workflow o de runtime y qué servicio las utiliza.
+
+## Piloto Mercado (2.4.0, en paralelo)
+
+La sección **SEO Taxonomy → Mercado** ofrece tres vistas de lectura: **Dónde estamos (Analista)**, **Cómo mejoramos (Ingeniero)** y **Hacia dónde vamos (Ojeador)**. Son un punto de entrada simplificado que consulta únicamente opciones y snapshots ya guardados. No inicia APIs, workers, nuevas propuestas, sincronizaciones ni borradores al abrirse.
+
+- **Analista:** muestra contadores de tareas y hasta cinco prioridades de su histórico, y enlaza a Informes → Analista y Google Intelligence.
+- **Ingeniero:** estado de investigación y avance editorial guardados; enlaza a las pantallas completas de Investigación, Editorial y Landings.
+- **Ojeador:** modo de fuente, configuración identificativa y cobertura de snapshots Merchant persistidos; enlaza a Merchant, recomendaciones y posición de precios. Un benchmark Merchant agregado no es una oferta individual.
+
+**Compatibilidad:** los slugs `seo-reports`, `seo-ingeniero` y `seo-ojeador`, sus formularios, tablas, acciones y flujos editoriales se conservan sin modificación. La fase piloto no convierte todavía los tres motores en una cola editorial común. Las decisiones sobre migración funcional y retirada del sistema antiguo requieren una validación posterior.
