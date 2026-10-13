@@ -400,7 +400,7 @@ if (!function_exists('seo_processes_health_runner_control')) {
 if (!function_exists('seo_processes_save_controls')) {
     function seo_processes_save_controls() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_processes_save_controls');
 
@@ -1502,7 +1502,7 @@ add_action('wp_ajax_seo_processes_worker_control', 'seo_processes_worker_control
 if (!function_exists('seo_processes_page')) {
     function seo_processes_page() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
         }
 
         $tab = sanitize_key(wp_unslash($_GET['tab'] ?? 'processes'));
