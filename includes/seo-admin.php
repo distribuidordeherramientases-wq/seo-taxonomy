@@ -351,7 +351,7 @@ add_action('admin_init', function () {
  */
 function seo_provider_connections_page() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar conexiones.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar conexiones.', 'taxocommerce-seo'));
     }
 
     echo '<div class="wrap seo-provider-connections">';
@@ -412,7 +412,7 @@ function seo_provider_connections_page() {
  */
 function seo_content_page() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar contenidos.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar contenidos.', 'taxocommerce-seo'));
     }
 
     $items = [
