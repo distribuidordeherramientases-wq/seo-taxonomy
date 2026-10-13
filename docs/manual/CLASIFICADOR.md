@@ -1,6 +1,6 @@
 # Clasificador
 
-Ruta: **SEO Taxonomy → Semántica → Clasificador**
+Ruta: **TaxoCommerce SEO → Semántica → Clasificador**
 
 El **Clasificador** es el servicio que analiza productos del catálogo y propone cómo completar o corregir su clasificación semántica y, cuando procede, sus atributos técnicos. No es el maestro de etiquetas: los términos canónicos se gestionan en **Etiquetas** y **Atributos**; el Clasificador utiliza esos maestros para decidir qué valores encajan con cada producto.
 
@@ -266,7 +266,7 @@ Los jobs:
 - pueden ser atendidos por Action Scheduler y WP-Cron;
 - permiten **Pausar**, **Reanudar** y **Cancelar**.
 
-El estado global puede revisarse también en **SEO Taxonomy → Procesos**, donde Clasificador aparece como proceso manual gestionado después de arrancarlo.
+El estado global puede revisarse también en **TaxoCommerce SEO → Procesos**, donde Clasificador aparece como proceso manual gestionado después de arrancarlo.
 
 ## Aplicar propuestas seguras
 
