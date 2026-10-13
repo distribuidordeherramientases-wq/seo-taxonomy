@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Canales de catalogos comerciales.
+ * TaxoCommerce SEO - Canales de catalogos comerciales.
  *
  * Los canales comparten el mismo registro canonico de producto y solo cambian
  * el formato de serializacion. El registro es extensible mediante el filtro
