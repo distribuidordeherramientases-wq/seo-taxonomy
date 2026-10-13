@@ -1,6 +1,6 @@
 <?php
 /**
- * Complete installer for SEO Taxonomy.
+ * Complete installer for TaxoCommerce SEO.
  *
  * Responsibilities:
  * - Create the current schema required by a clean installation.
@@ -87,7 +87,7 @@ final class SEO_System_Installer
                 false
             );
 
-            error_log('[SEO Taxonomy] Installation error: ' . $exception->getMessage());
+            error_log('[TaxoCommerce SEO] Installation error: ' . $exception->getMessage());
             throw $exception;
         }
     }
@@ -778,7 +778,7 @@ final class SEO_System_Installer
 
         if ($missing) {
             throw new RuntimeException(
-                'Required SEO Taxonomy tables were not created: ' . esc_html(implode(', ', $missing))
+                'Required TaxoCommerce SEO tables were not created: ' . esc_html(implode(', ', $missing))
             );
         }
     }
