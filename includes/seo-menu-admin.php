@@ -77,7 +77,7 @@ function seo_menu_manager_page() {
                                 '%d elemento añadido al menú SEO.',
                                 '%d elementos añadidos al menú SEO.',
                                 (int) $result,
-                                'seo-taxonomy'
+                                'taxocommerce-seo'
                             ),
                             (int) $result
                         )
