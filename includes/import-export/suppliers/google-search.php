@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Google Search / Analytics.
+ * TaxoCommerce SEO - Google Search / Analytics.
  *
  * Configuracion dinamica por instalacion para GA4, Search Console y Analytics.
  * No contiene IDs, dominios ni credenciales de un cliente concreto.
@@ -376,7 +376,7 @@ if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
             return;
         }
         ?>
-        <!-- SEO System: Google Analytics 4 -->
+        <!-- TaxoCommerce SEO: Google Analytics 4 -->
         <script>
         if (!/(?:^|;\s*)seo_skip_analytics=1(?:;|$)/.test(document.cookie)) {
             window.dataLayer = window.dataLayer || [];
