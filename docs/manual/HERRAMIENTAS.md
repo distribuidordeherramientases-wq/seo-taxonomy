@@ -95,7 +95,7 @@ Pestañas: **Errores en datos**, **Limpieza BBDD**, **Exportar BBDD**.
 
 Errores en datos revisa relaciones SEO, nodos sin objeto activo, duplicados, múltiples ámbitos, jerarquía de categorías y restablecimiento manual. El restablecimiento pide ID del objeto y Rol SEO; **Restablecer objeto SEO** modifica el registro.
 
-Limpieza BBDD lista acción, encontrados y riesgo. Exportar BBDD ofrece **Backup completo de WordPress** y **Backup solo SEO System**.
+Limpieza BBDD lista acción, encontrados y riesgo. Exportar BBDD ofrece **Backup completo de WordPress** y **Backup solo TaxoCommerce SEO**.
 
 ## Procesos
 
