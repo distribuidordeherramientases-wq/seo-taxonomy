@@ -42,28 +42,28 @@ function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $
     seo_taxonomy_require_file_api();
 
     if (empty($file['tmp_name']) || empty($file['name'])) {
-        return new WP_Error('seo_upload_missing', __('No se ha recibido un archivo válido.', 'seo-taxonomy'));
+        return new WP_Error('seo_upload_missing', __('No se ha recibido un archivo válido.', 'taxocommerce-seo'));
     }
 
     $error = isset($file['error']) ? absint($file['error']) : UPLOAD_ERR_OK;
     if (UPLOAD_ERR_OK !== $error) {
         /* translators: %d: código numérico de error de subida PHP. */
         /* translators: %d: código numérico de error de subida PHP. */
-        return new WP_Error('seo_upload_error', sprintf(__('La subida devolvió el código de error %d.', 'seo-taxonomy'), $error));
+        return new WP_Error('seo_upload_error', sprintf(__('La subida devolvió el código de error %d.', 'taxocommerce-seo'), $error));
     }
 
     $destination_dir = wp_normalize_path((string) $destination_dir);
     if (!seo_taxonomy_upload_destination_is_allowed($destination_dir)) {
-        return new WP_Error('seo_upload_destination', __('El destino de la subida debe estar dentro del directorio uploads de WordPress.', 'seo-taxonomy'));
+        return new WP_Error('seo_upload_destination', __('El destino de la subida debe estar dentro del directorio uploads de WordPress.', 'taxocommerce-seo'));
     }
 
     if (!is_dir($destination_dir) && !wp_mkdir_p($destination_dir)) {
-        return new WP_Error('seo_upload_mkdir', __('No se pudo crear el directorio de destino.', 'seo-taxonomy'));
+        return new WP_Error('seo_upload_mkdir', __('No se pudo crear el directorio de destino.', 'taxocommerce-seo'));
     }
 
     $safe_name = sanitize_file_name($preferred_name !== '' ? $preferred_name : (string) $file['name']);
     if ($safe_name === '') {
-        return new WP_Error('seo_upload_filename', __('El nombre del archivo no es válido.', 'seo-taxonomy'));
+        return new WP_Error('seo_upload_filename', __('El nombre del archivo no es válido.', 'taxocommerce-seo'));
     }
 
     $check = wp_check_filetype_and_ext((string) $file['tmp_name'], $safe_name, $allowed_mimes);
@@ -89,7 +89,7 @@ function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $
     );
 
     if (!$type_check_ok && !$csv_type_fallback) {
-        return new WP_Error('seo_upload_type', __('El tipo de archivo no está permitido.', 'seo-taxonomy'));
+        return new WP_Error('seo_upload_type', __('El tipo de archivo no está permitido.', 'taxocommerce-seo'));
     }
 
     if ($csv_type_fallback) {
@@ -123,7 +123,7 @@ function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $
     if (!is_array($handled) || !empty($handled['error']) || empty($handled['file'])) {
         return new WP_Error(
             'seo_upload_handle',
-            !empty($handled['error']) ? sanitize_text_field((string) $handled['error']) : __('WordPress no pudo procesar la subida.', 'seo-taxonomy')
+            !empty($handled['error']) ? sanitize_text_field((string) $handled['error']) : __('WordPress no pudo procesar la subida.', 'taxocommerce-seo')
         );
     }
 
@@ -134,12 +134,12 @@ function seo_taxonomy_store_uploaded_file(array $file, $destination_dir, array $
     global $wp_filesystem;
     if (!WP_Filesystem() || !is_object($wp_filesystem)) {
         wp_delete_file($temporary_path);
-        return new WP_Error('seo_upload_filesystem', __('No se pudo inicializar el sistema de archivos de WordPress.', 'seo-taxonomy'));
+        return new WP_Error('seo_upload_filesystem', __('No se pudo inicializar el sistema de archivos de WordPress.', 'taxocommerce-seo'));
     }
 
     if (!$wp_filesystem->move($temporary_path, $final_path, true)) {
         wp_delete_file($temporary_path);
-        return new WP_Error('seo_upload_move', __('No se pudo mover el archivo al directorio de destino.', 'seo-taxonomy'));
+        return new WP_Error('seo_upload_move', __('No se pudo mover el archivo al directorio de destino.', 'taxocommerce-seo'));
     }
 
     $uploads = wp_upload_dir(null, false);
