@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Taxonomy - Monitor central de procesos en segundo plano.
+ * TaxoCommerce SEO - Monitor central de procesos en segundo plano.
  *
  * Reune en una sola pantalla el estado observable de los workers que pueden
  * ejercer carga sostenida sobre WordPress o sobre el servidor publico:
