@@ -1,6 +1,6 @@
 # Marketing
 
-Ruta administrativa: **SEO Taxonomy → Herramientas → Marketing**
+Ruta administrativa: **TaxoCommerce SEO → Herramientas → Marketing**
 
 Marketing agrupa la gestión comercial del sitio. Las pestañas disponibles dependen de los módulos activos. Actualmente incluye, entre otras funciones, **Campañas**, **Redes sociales / Programador** y opciones de estilo visual.
 
@@ -10,7 +10,7 @@ Esta página documenta especialmente el flujo de **Campañas**, ampliado en la v
 
 ## Campañas
 
-Ruta: **SEO Taxonomy → Herramientas → Marketing → Campañas**
+Ruta: **TaxoCommerce SEO → Herramientas → Marketing → Campañas**
 
 La pantalla clasifica las campañas en:
 
