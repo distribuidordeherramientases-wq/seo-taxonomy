@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Gestor de Landing Pages.
+ * TaxoCommerce SEO - Gestor de Landing Pages.
  *
  * Inventaria landings existentes, mantiene candidatas, muestra huecos de
  * cobertura y registra visitas. Las fuentes externas (Search Console, Trends,
