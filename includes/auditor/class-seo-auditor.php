@@ -171,7 +171,7 @@ final class SEO_Auditor {
     }
 
     /**
-     * Auditor de datos/contenidos. Se muestra desde SEO Taxonomy -> Contenidos.
+     * Auditor de datos/contenidos. Se muestra desde TaxoCommerce SEO -> Contenidos.
      */
     public static function render_content_page() {
         if (!current_user_can(self::capability())) {
