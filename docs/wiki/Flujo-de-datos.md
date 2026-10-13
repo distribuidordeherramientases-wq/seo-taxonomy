@@ -1,6 +1,6 @@
-# Flujo de datos del ecosistema SEO Taxonomy
+# Flujo de datos del ecosistema TaxoCommerce SEO
 
-Esta página es la **referencia canónica** del movimiento de información dentro de SEO Taxonomy.
+Esta página es la **referencia canónica** del movimiento de información dentro de TaxoCommerce SEO.
 
 Su objetivo es doble:
 

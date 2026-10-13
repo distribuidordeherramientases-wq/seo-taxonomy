@@ -1,6 +1,6 @@
 # Auditor
 
-Ruta de contenido: **SEO Taxonomy → Contenidos → Auditor**
+Ruta de contenido: **TaxoCommerce SEO → Contenidos → Auditor**
 
 El diagnóstico de Auditor es de solo lectura respecto al contenido: detecta incidencias, calidad y prioridades y no redacta ni corrige automáticamente productos, categorías, posts, páginas o FAQs. La excepción son las acciones explícitas y confirmadas del módulo de reequilibrio de categorías, que solo se ejecutan después de guardar/aprobar una propuesta.
 
@@ -178,7 +178,7 @@ La tabla de hallazgos es una vista de diagnóstico. Cuando el volumen es grande 
 
 ## Auditor de Academia
 
-Ruta: **SEO Taxonomy → Dependiente → Auditor Academia**
+Ruta: **TaxoCommerce SEO → Dependiente → Auditor Academia**
 
 Este auditor está separado del Auditor de contenidos.
 

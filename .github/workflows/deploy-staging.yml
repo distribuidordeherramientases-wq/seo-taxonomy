@@ -15,7 +15,7 @@ jobs:
       - name: Checkout staging
         uses: actions/checkout@v4
 
-      - name: Deploy SEO Taxonomy to STAGING
+      - name: Deploy TaxoCommerce SEO to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}

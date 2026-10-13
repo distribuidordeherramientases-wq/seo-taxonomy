@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta web BRICO DEPOT para SEO System.
+ * Receta web BRICO DEPOT para TaxoCommerce SEO.
  * Genera su propio CSV estandar interno mediante crawler-queue.php.
  * Version 0.1.0.
  */

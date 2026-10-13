@@ -1,6 +1,6 @@
-# Contexto común del proyecto SEO Taxonomy
+# Contexto común del proyecto TaxoCommerce SEO
 
-Este documento define la base común de información para cualquier conversación, especialista o agente que trabaje sobre **SEO Taxonomy** y **distribuidordeherramientas.es**.
+Este documento define la base común de información para cualquier conversación, especialista o agente que trabaje sobre **TaxoCommerce SEO** y **distribuidordeherramientas.es**.
 
 Su función no es sustituir al código ni a la Wiki, sino indicar qué fuentes deben consultarse y qué reglas deben respetarse para evitar respuestas basadas en información antigua o supuestos.
 
@@ -23,7 +23,7 @@ Si existe contradicción entre una conversación antigua y el código actual, pr
 
 ## 2. Estado base actual
 
-- Producto: **SEO Taxonomy**
+- Producto: **TaxoCommerce SEO**
 - Tipo: plugin para **WordPress + WooCommerce**
 - Versión actual documentada: **2.3.7**
 - Objetivo: plataforma de gestión SEO, semántica y comercial para catálogos WooCommerce.
@@ -142,7 +142,7 @@ La información interna o confidencial debe mantenerse fuera del repositorio pú
 
 ## 9. Regla para nuevas conversaciones
 
-Cuando una conversación trate sobre SEO Taxonomy y el dato pueda haber cambiado:
+Cuando una conversación trate sobre TaxoCommerce SEO y el dato pueda haber cambiado:
 
 **consultar GitHub antes de responder**.
 

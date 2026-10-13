@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Taxonomy - Marketing / Campañas.
+ * TaxoCommerce SEO - Marketing / Campañas.
  *
  * V1.3: gestion completa de campanas, productos y precios, con edicion,
  * vaciado/eliminacion segura e importacion/exportacion portable completa.

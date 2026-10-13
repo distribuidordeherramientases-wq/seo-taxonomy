@@ -8,7 +8,7 @@
  *   seo_object_vocabulary -> seo_vocabulary.
  * - no se heredan etiquetas automáticamente desde categorías.
  * - no se crean términos nuevos desde el editor de página: el diccionario se
- *   gobierna desde SEO Taxonomy > Etiquetas.
+ *   gobierna desde TaxoCommerce SEO > Etiquetas.
  *
  * Version: 2026-09-07
  * Build: 2
@@ -379,7 +379,7 @@ if (!function_exists('seo_page_vocab_render_fields')) {
         }
 
         echo '</div>';
-        echo '<p style="margin:10px 0 0;font-size:12px;color:#646970;">Los términos nuevos se crean y gobiernan desde <a href="' . esc_url(admin_url('admin.php?page=seo-tags-vocabulary')) . '">SEO Taxonomy → Etiquetas</a>; aquí solo se asignan términos existentes.</p>';
+        echo '<p style="margin:10px 0 0;font-size:12px;color:#646970;">Los términos nuevos se crean y gobiernan desde <a href="' . esc_url(admin_url('admin.php?page=seo-tags-vocabulary')) . '">TaxoCommerce SEO → Etiquetas</a>; aquí solo se asignan términos existentes.</p>';
         echo '</div>';
     }
 }

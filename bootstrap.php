@@ -1,6 +1,6 @@
 <?php
 /**
- * Bootstrap de SEO Taxonomy.
+ * Bootstrap de TaxoCommerce SEO.
  *
  * Carga las dependencias y registra el arranque de los componentes.
  */

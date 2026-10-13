@@ -317,7 +317,7 @@ if (!function_exists('seo_reports_anomalies_json_build_document')) {
 if (!function_exists('seo_reports_anomalies_content_json_export_handler')) {
     function seo_reports_anomalies_content_json_export_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para exportar contenidos de anomalías.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para exportar contenidos de anomalías.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_reports_anomalies_content_json_export');
 
@@ -647,7 +647,7 @@ if (!function_exists('seo_reports_anomalies_json_apply_item')) {
 if (!function_exists('seo_reports_anomalies_content_json_import_handler')) {
     function seo_reports_anomalies_content_json_import_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para importar contenidos de anomalías.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para importar contenidos de anomalías.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_reports_anomalies_content_json_import');
 

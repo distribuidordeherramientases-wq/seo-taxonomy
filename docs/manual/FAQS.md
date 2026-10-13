@@ -1,6 +1,6 @@
 # FAQs
 
-Ruta: **SEO Taxonomy → Contenidos → FAQs**
+Ruta: **TaxoCommerce SEO → Contenidos → FAQs**
 
 La pantalla administra preguntas frecuentes asociadas a hubs SEO, categorías y productos, además de su informe de cobertura, calidad e interacción.
 

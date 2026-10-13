@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Portable semantic catalog transfer.
+ * TaxoCommerce SEO - Portable semantic catalog transfer.
  *
  * Moves catalog truth (masters + assignments) between installations using
  * portable keys. Source numeric IDs are exported for audit only and are never
@@ -76,7 +76,7 @@ final class SEO_Semantic_Catalog_Transfer {
 
     public static function render_tab() {
         if (!current_user_can(self::capability())) {
-            wp_die(esc_html__('No tienes permisos para acceder a esta pagina.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder a esta pagina.', 'taxocommerce-seo'));
         }
         $notice = self::pull_notice();
         $last = get_option(self::LAST_IMPORT_OPTION, array());

@@ -1,6 +1,6 @@
 <?php
 /**
- * Runtime comun para recetas web de proveedores de SEO System.
+ * Runtime comun para recetas web de proveedores de TaxoCommerce SEO.
  *
  * Centraliza la normalizacion, clasificacion y parseo compartidos por las
  * recetas web. Las recetas conservan unicamente su configuracion especifica.

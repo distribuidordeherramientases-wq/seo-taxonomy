@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta web LEROY MERLIN para SEO System.
+ * Receta web LEROY MERLIN para TaxoCommerce SEO.
  * Genera su propio CSV estandar interno mediante crawler-queue.php.
  * Version 0.1.0.
  */

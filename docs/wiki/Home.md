@@ -1,6 +1,6 @@
-# SEO Taxonomy
+# TaxoCommerce SEO
 
-**SEO Taxonomy** es una plataforma de gestión SEO, semántica y comercial para WooCommerce. Esta Wiki es el manual oficial del producto.
+**TaxoCommerce SEO** es una plataforma de gestión SEO, semántica y comercial para WooCommerce. Esta Wiki es el manual oficial del producto.
 
 ## Qué cubre el plugin
 
@@ -32,4 +32,4 @@
 - [[Flujo de datos|Flujo-de-datos]]
 - [[Procesos y workers|Procesos-y-workers]]
 
-**Versión documentada:** 2.3.7
+**Versión documentada:** 2.4.0

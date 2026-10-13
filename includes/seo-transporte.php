@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Taxonomy - Gestor propio de costes de transporte.
+ * TaxoCommerce SEO - Gestor propio de costes de transporte.
  *
  * WooCommerce conserva carrito, checkout, pedido e impuestos. Este modulo
  * reemplaza exclusivamente las tarifas de envio por reglas definidas aqui.
@@ -55,7 +55,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 public function __construct($settings = array()) {
                     $this->id                 = 'seo_transporte_bridge';
                     $this->method_title       = 'SEO Transporte (interno)';
-                    $this->method_description = 'Metodo tecnico interno. Las tarifas se gestionan desde SEO Taxonomy > Logistica > Transporte.';
+                    $this->method_description = 'Metodo tecnico interno. Las tarifas se gestionan desde TaxoCommerce SEO > Logistica > Transporte.';
                     $this->title              = 'Transporte';
                     $this->supports           = array();
                     $this->enabled            = !empty($settings['enabled']) ? 'yes' : 'no';
@@ -272,7 +272,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
         public static function export_settings() {
             if (!current_user_can(self::capability())) {
-                wp_die(esc_html__('No tienes permisos para exportar la configuración de transporte.', 'seo-taxonomy'));
+                wp_die(esc_html__('No tienes permisos para exportar la configuración de transporte.', 'taxocommerce-seo'));
             }
             check_admin_referer('seo_transporte_export');
 
@@ -299,7 +299,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
         public static function import_settings() {
             if (!current_user_can(self::capability())) {
-                wp_die(esc_html__('No tienes permisos para importar la configuración de transporte.', 'seo-taxonomy'));
+                wp_die(esc_html__('No tienes permisos para importar la configuración de transporte.', 'taxocommerce-seo'));
             }
             check_admin_referer('seo_transporte_import');
 
@@ -382,7 +382,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
         public static function save_settings() {
             if (!current_user_can(self::capability())) {
-                wp_die(esc_html__('No tienes permisos para modificar el transporte.', 'seo-taxonomy'));
+                wp_die(esc_html__('No tienes permisos para modificar el transporte.', 'taxocommerce-seo'));
             }
             check_admin_referer('seo_transporte_save');
 
@@ -480,7 +480,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
         public static function render_page() {
             if (!current_user_can(self::capability())) {
-                wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
+                wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
             }
 
             $settings = self::settings();

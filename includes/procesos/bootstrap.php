@@ -3,7 +3,7 @@
  * Bootstrap del subsistema de Procesos.
  *
  * Centraliza el registro de pestanas y la carga de los modulos que amplian
- * SEO Taxonomy > Procesos.
+ * TaxoCommerce SEO > Procesos.
  *
  * @package SEOSystem
  * @subpackage Processes

@@ -5,7 +5,7 @@ Tags: seo, woocommerce, taxonomy, catalog, automation
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.10
+Stable tag: 2.4.0
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -41,7 +41,7 @@ TaxoCommerce SEO is actively developed and uses staging to validate changes befo
 == Installation ==
 
 1. Download the plugin package.
-2. Upload the `seo-taxonomy` folder to `/wp-content/plugins/` or install the ZIP file from WordPress.
+2. Upload the `taxocommerce-seo` folder to `/wp-content/plugins/` or install the ZIP file from WordPress.
 3. Activate **TaxoCommerce SEO** from **Plugins**.
 4. Open **TaxoCommerce SEO** in the WordPress administration area.
 5. Review the modules you intend to use and configure external connections only when required.
@@ -51,7 +51,7 @@ For significant changes, validation in a staging environment is recommended befo
 
 == Frequently Asked Questions ==
 
-= Does SEO Taxonomy require WooCommerce? =
+= Does TaxoCommerce SEO require WooCommerce? =
 
 The primary target is WordPress with WooCommerce. Many catalog, product, campaign, pricing, and supplier features depend on WooCommerce. Some general tools can work without it, but the distribution is intended for WooCommerce sites.
 
@@ -157,7 +157,7 @@ Privacy: https://docs.github.com/site-policy/privacy-policies/github-general-pri
 
 = Cloudflare API =
 
-The connections module can query a Cloudflare zone when the administrator configures an API token. SEO Taxonomy does not automatically load Cloudflare Web Analytics.
+The connections module can query a Cloudflare zone when the administrator configures an API token. TaxoCommerce SEO does not automatically load Cloudflare Web Analytics.
 
 Data sent: API token, zone identifier, and request parameters required to verify the connection.
 
@@ -179,7 +179,7 @@ These connections are optional unless a specific function expressly depends on t
 
 == Screenshots ==
 
-1. Main SEO Taxonomy dashboard.
+1. Main TaxoCommerce SEO dashboard.
 2. Product and catalog management.
 3. Category and taxonomy architecture.
 4. Reports and auditing.
@@ -189,6 +189,15 @@ These connections are optional unless a specific function expressly depends on t
 8. Process manager and workers.
 
 == Changelog ==
+
+= 2.4.0 - 2026-10-13 =
+
+* Renamed the public plugin identity to TaxoCommerce SEO - Catalog, Trends, Content & Feeds and prepared the WordPress.org slug taxocommerce-seo.
+* Aligns the plugin header, public readme, documentation and administration branding with TaxoCommerce SEO.
+* Moves the public translation text domain to taxocommerce-seo while preserving existing internal data keys, database structures and operational slugs for backward compatibility.
+* Consolidates the current staging cycle into the first TaxoCommerce SEO 2.4.x release line.
+* Includes the latest improvements to Dependiente, Ingeniero, Auditor, Ojeador, analytics/reporting, imports and the central process manager already integrated in staging.
+
 
 = 2.3.9 - 2026-09-30 =
 
@@ -247,6 +256,11 @@ The full technical history is maintained in `CHANGELOG.md`.
 
 == Upgrade Notice ==
 
+= 2.4.0 =
+
+First release under the TaxoCommerce SEO name. Existing catalog data, plugin options and internal identifiers are preserved; review external connections and long-running workers after updating.
+
+
 = 2.3.9 =
 
 Consolidates the 2.3.8.x patches into stable version 2.3.9. Includes improvements to Dependent/Academy, Engineer and Classifier, Auditor, Marketing, categories, comparison tools, commercial documents, and VAT-inclusive pricing. Catalog, cart/checkout, and automated processes should be validated after updating.
@@ -257,4 +271,4 @@ Extends Marketing > Campaigns with editing, complete product/price imports, clea
 
 == License ==
 
-SEO Taxonomy is distributed under the MIT license. See the included `LICENSE` file.
+TaxoCommerce SEO is distributed under the MIT license. See the included `LICENSE` file.

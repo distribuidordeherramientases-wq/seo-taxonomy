@@ -1,6 +1,6 @@
 <?php
 /**
- * Vocabulary canonico para contenido editorial gestionado por SEO Taxonomy.
+ * Vocabulary canonico para contenido editorial gestionado por TaxoCommerce SEO.
  *
  * Los posts usan wp_seo_object_vocabulary como unica fuente semantica.
  * Las taxonomias nativas de WordPress (post_tag) quedan fuera de esta capa.
@@ -446,7 +446,7 @@ if (!function_exists('seo_content_vocab_render_fields')) {
         }
 
         echo '</div>';
-        echo '<p style="margin:10px 0 0;font-size:12px;color:#646970;">Los terminos nuevos se crean desde <a href="' . esc_url(admin_url('admin.php?page=seo-tags-vocabulary')) . '">SEO Taxonomy - Etiquetas</a>; aqui solo se asignan terminos existentes.</p>';
+        echo '<p style="margin:10px 0 0;font-size:12px;color:#646970;">Los terminos nuevos se crean desde <a href="' . esc_url(admin_url('admin.php?page=seo-tags-vocabulary')) . '">TaxoCommerce SEO - Etiquetas</a>; aqui solo se asignan terminos existentes.</p>';
         echo '</div>';
     }
 }

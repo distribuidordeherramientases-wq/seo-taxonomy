@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - proveedor Facebook Pages para Social Network.
+ * TaxoCommerce SEO - proveedor Facebook Pages para Social Network.
  */
 
 defined('ABSPATH') || exit;
@@ -136,7 +136,7 @@ function seo_social_facebook_test_connection($config)
             array(
                 'timeout'     => 15,
                 'redirection' => 3,
-                'user-agent'  => 'SEO-System-Social/' . (defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '1.0'),
+                'user-agent'  => 'TaxoCommerce-SEO-Social/' . (defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '1.0'),
             )
         )
     );

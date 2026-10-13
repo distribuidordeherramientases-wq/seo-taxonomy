@@ -43,7 +43,7 @@ final class SEO_Dependiente_Plugin {
         // Nunca crea un proceso nuevo por si mismo.
         add_action('seo_dependiente_background_index', array($this, 'run_background_index'));
 
-        // Integracion con el Gestor de procesos de SEO Taxonomy. El supervisor
+        // Integracion con el Gestor de procesos de TaxoCommerce SEO. El supervisor
         // solo recibe un target mientras exista una reindexacion ya iniciada.
         add_filter('seo_process_supervisor_has_pending_work', array(__CLASS__, 'supervisor_has_pending_reindex'), 10, 1);
         add_filter('seo_process_supervisor_manager_targets', array(__CLASS__, 'supervisor_add_reindex_target'), 10, 3);
@@ -382,7 +382,7 @@ final class SEO_Dependiente_Plugin {
         $ids = array_slice($ids, 0, $compare_max);
 
         if (count($ids) < 2) {
-            wp_die(esc_html__('Selecciona al menos dos productos para comparar.', 'seo-taxonomy'), '', array('response' => 400));
+            wp_die(esc_html__('Selecciona al menos dos productos para comparar.', 'taxocommerce-seo'), '', array('response' => 400));
         }
 
         $comparison = SEO_Dependiente_API::comparison_data($ids);
@@ -398,7 +398,7 @@ final class SEO_Dependiente_Plugin {
         }
 
         if (!class_exists('SEO_Facturas_PDF')) {
-            wp_die(esc_html__('El motor PDF no está disponible.', 'seo-taxonomy'), '', array('response' => 500));
+            wp_die(esc_html__('El motor PDF no está disponible.', 'taxocommerce-seo'), '', array('response' => 500));
         }
 
         $html = self::comparison_pdf_html($comparison);
@@ -482,7 +482,7 @@ final class SEO_Dependiente_Plugin {
             'timeout'             => 6,
             'redirection'         => 2,
             'limit_response_size' => 2 * MB_IN_BYTES,
-            'user-agent'          => 'SEO Taxonomy Comparativa PDF/' . (defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '1.0'),
+            'user-agent'          => 'TaxoCommerce SEO Comparativa PDF/' . (defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '1.0'),
         ));
         if (is_wp_error($response)) {
             return '';

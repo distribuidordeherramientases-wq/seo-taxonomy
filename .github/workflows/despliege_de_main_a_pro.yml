@@ -12,7 +12,7 @@ jobs:
         with:
           ref: main
 
-      - name: Subir SEO Taxonomy a producción por FTPS
+      - name: Subir TaxoCommerce SEO a producción por FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}

@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - lector ligero de Excel XLS BIFF8/OLE.
+ * TaxoCommerce SEO - lector ligero de Excel XLS BIFF8/OLE.
  *
  * Lector autocontenido para tarifas antiguas .xls. No requiere Composer,
  * PhpSpreadsheet, exec, LibreOffice ni extensiones externas de Excel.

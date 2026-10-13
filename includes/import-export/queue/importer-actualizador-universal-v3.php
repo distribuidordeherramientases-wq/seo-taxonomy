@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Puente de compatibilidad del importador universal V3.
+ * TaxoCommerce SEO — Puente de compatibilidad del importador universal V3.
  *
  * La implementacion canonica del importador de proveedores vive en
  * includes/import-export/suppliers/engine.php. Se conserva esta ruta para no

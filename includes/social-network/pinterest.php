@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - proveedor Pinterest para Social Network.
+ * TaxoCommerce SEO - proveedor Pinterest para Social Network.
  *
  * Publica Pins organicos con imagen destacada y enlace mediante Pinterest API v5.
  * La autorizacion usa OAuth 2.0 Authorization Code. Los secretos y tokens se
@@ -515,7 +515,7 @@ function seo_social_pinterest_publish($payload)
 function seo_social_pinterest_oauth_start()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para conectar Pinterest.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para conectar Pinterest.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_social_pinterest_oauth_start');
 
@@ -764,7 +764,7 @@ function seo_social_pinterest_merchant_settings()
 function seo_social_pinterest_save_merchant_connection()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para configurar Pinterest.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para configurar Pinterest.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_social_pinterest_merchant_save', 'seo_social_pinterest_merchant_nonce');
@@ -829,7 +829,7 @@ function seo_social_pinterest_domain_verify_head()
         return;
     }
 
-    echo "\n<!-- SEO System: Pinterest domain verification -->\n";
+    echo "\n<!-- TaxoCommerce SEO: Pinterest domain verification -->\n";
     echo '<meta name="p:domain_verify" content="' . esc_attr($merchant['domain_verify_code']) . '">' . "\n";
 }
 add_action('wp_head', 'seo_social_pinterest_domain_verify_head', 5);
@@ -861,7 +861,7 @@ function seo_social_pinterest_test_merchant_connection()
             'redirection' => 5,
             'headers'     => array(
                 'Cache-Control' => 'no-cache',
-                'User-Agent'    => 'SEO-System-Pinterest-Verify/1.0',
+                'User-Agent'    => 'TaxoCommerce-SEO-Pinterest-Verify/1.0',
             ),
         )
     );

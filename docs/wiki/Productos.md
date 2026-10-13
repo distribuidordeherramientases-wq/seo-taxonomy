@@ -13,7 +13,7 @@ El menú **Productos** concentra las operaciones de administración del catálog
 7. **Errores**
 
 ### Nuevo producto
-Crea productos desde el entorno de SEO Taxonomy manteniendo integración con WooCommerce y la capa semántica.
+Crea productos desde el entorno de TaxoCommerce SEO manteniendo integración con WooCommerce y la capa semántica.
 
 ### Editar producto
 Mantenimiento individual de datos comerciales, editoriales y semánticos.

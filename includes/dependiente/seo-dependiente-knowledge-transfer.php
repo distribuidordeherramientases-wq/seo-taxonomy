@@ -25,7 +25,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
 
     public static function render_tab() {
         if (!current_user_can(self::capability())) {
-            wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
         }
 
         if (class_exists('SEO_Dependiente_Semantics')) {

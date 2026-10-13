@@ -1,4 +1,4 @@
-### SEO Taxonomy
+### TaxoCommerce SEO
 
 - [[Inicio|Home]]
 - [[Manual de uso|Manual-de-uso]]

@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 $seo_clonador_process_file = __DIR__ . '/process.php';
 
 if ( ! is_readable( $seo_clonador_process_file ) ) {
-    error_log( '[SEO System Clonador] Falta includes/procesos/clonador/process.php.' );
+    error_log( '[TaxoCommerce SEO Clonador] Falta includes/procesos/clonador/process.php.' );
 
     add_action(
         'admin_notices',
@@ -24,7 +24,7 @@ if ( ! is_readable( $seo_clonador_process_file ) ) {
                 return;
             }
 
-            echo '<div class="notice notice-error"><p><strong>SEO System - Clonador:</strong> '
+            echo '<div class="notice notice-error"><p><strong>TaxoCommerce SEO - Clonador:</strong> '
                 . 'No se pudo cargar la integracion con el Gestor de procesos porque falta process.php.'
                 . '</p></div>';
         }
@@ -36,7 +36,7 @@ if ( ! is_readable( $seo_clonador_process_file ) ) {
 require_once $seo_clonador_process_file;
 
 if ( ! class_exists( 'SEO_Clonador_Process', false ) ) {
-    error_log( '[SEO System Clonador] process.php fue cargado pero SEO_Clonador_Process no existe.' );
+    error_log( '[TaxoCommerce SEO Clonador] process.php fue cargado pero SEO_Clonador_Process no existe.' );
 
     add_action(
         'admin_notices',
@@ -45,7 +45,7 @@ if ( ! class_exists( 'SEO_Clonador_Process', false ) ) {
                 return;
             }
 
-            echo '<div class="notice notice-error"><p><strong>SEO System - Clonador:</strong> '
+            echo '<div class="notice notice-error"><p><strong>TaxoCommerce SEO - Clonador:</strong> '
                 . 'La clase SEO_Clonador_Process no esta disponible. Revisa process.php.'
                 . '</p></div>';
         }

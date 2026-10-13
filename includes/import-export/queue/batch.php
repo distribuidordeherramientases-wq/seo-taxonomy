@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Cola secuencial multientidad.
+ * TaxoCommerce SEO — Cola secuencial multientidad.
  *
  * Responsabilidad:
  * Administrar CSV pendientes, en proceso, importados y fallidos; detectar su
@@ -603,7 +603,7 @@ function seo_ie_batch_guard_manual_import( $entity ) {
         wp_die(
             esc_html__(
                 'Hay una importacion por lotes en curso. Espera a que termine o deten la cola antes de iniciar una importacion individual.',
-                'seo-taxonomy'
+                'taxocommerce-seo'
             )
         );
     }
@@ -824,7 +824,7 @@ function seo_ie_batch_detect_entity( $path, $filename = '' ) {
 
     return new WP_Error(
         'seo_batch_unknown_schema',
-        'No se pudo identificar el destino por la cabecera. Usa un CSV exportado por SEO System o un prefijo products_, categories_, pages_, posts_, faqs_ o redirects_.'
+        'No se pudo identificar el destino por la cabecera. Usa un CSV exportado por TaxoCommerce SEO o un prefijo products_, categories_, pages_, posts_, faqs_ o redirects_.'
     );
 }
 
@@ -2049,7 +2049,7 @@ function seo_ie_batch_handle_file_download() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para descargar archivos de la cola.', 'seo-taxonomy' ) );
+        wp_die( esc_html__( 'No tienes permisos para descargar archivos de la cola.', 'taxocommerce-seo' ) );
     }
 
     $bucket   = sanitize_key( $_GET['seo_ie_batch_bucket'] ?? '' );
@@ -2057,7 +2057,7 @@ function seo_ie_batch_handle_file_download() {
     $action   = 'seo_ie_batch_file_' . $operation . '_' . $bucket . '_' . $filename;
 
     if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['seo_ie_batch_file_nonce'] ?? '' ) ), $action ) ) {
-        wp_die( esc_html__( 'El enlace de descarga ha caducado.', 'seo-taxonomy' ) );
+        wp_die( esc_html__( 'El enlace de descarga ha caducado.', 'taxocommerce-seo' ) );
     }
 
     $path = seo_ie_batch_resolve_managed_file( $bucket, $filename, true );
@@ -2068,7 +2068,7 @@ function seo_ie_batch_handle_file_download() {
     if ( 'download_log' === $operation ) {
         $path .= '.log.json';
         if ( ! is_file( $path ) ) {
-            wp_die( esc_html__( 'Este archivo no tiene un log disponible.', 'seo-taxonomy' ) );
+            wp_die( esc_html__( 'Este archivo no tiene un log disponible.', 'taxocommerce-seo' ) );
         }
     }
 
@@ -2228,7 +2228,7 @@ function seo_ie_batch_admin_action() {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para gestionar la importacion por lotes.', 'seo-taxonomy' ) );
+        wp_die( esc_html__( 'No tienes permisos para gestionar la importacion por lotes.', 'taxocommerce-seo' ) );
     }
 
     check_admin_referer( 'seo_ie_batch_admin', 'seo_ie_batch_nonce' );
@@ -2664,7 +2664,7 @@ function seo_ie_batch_render_page() {
     <div style="max-width:1300px;">
         <h2>Importacion por lotes <small style="font-size:13px;font-weight:400;color:#646970;">Build 035</small></h2>
         <p>
-            Cola secuencial para CSV de WordPress y SEO System. El destino se detecta por la cabecera:
+            Cola secuencial para CSV de WordPress y TaxoCommerce SEO. El destino se detecta por la cabecera:
             productos, categorias, paginas, entradas (posts), FAQs o redirects. El catalogo bruto de proveedores se importa desde su pestana independiente.
         </p>
 

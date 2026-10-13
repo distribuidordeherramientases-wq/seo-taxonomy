@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Registro central de entidades importables/exportables.
+ * TaxoCommerce SEO — Registro central de entidades importables/exportables.
  *
  * Responsabilidad:
  * Publicar un catalogo comun de entidades y sus capacidades. Durante el Build

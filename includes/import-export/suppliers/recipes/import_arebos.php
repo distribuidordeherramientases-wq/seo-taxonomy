@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta oficial AREBOS para SEO System.
+ * Receta oficial AREBOS para TaxoCommerce SEO.
  *
  * Version 1.0.0 - flujo Python externo + importacion asistida.
  *

@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Taxonomy - Supervisor propio de procesos.
+ * TaxoCommerce SEO - Supervisor propio de procesos.
  *
  * Gestor periódico de procesos propios. Ejecuta ventanas limitadas de
  * Import/Export, Inventarios comerciales, Importación proveedores, Academia, Lingüista, Clasificador y Clonador directamente, sin Action Scheduler ni el worker de
@@ -1659,7 +1659,7 @@ if (!function_exists('seo_process_supervisor_cron_schedules')) {
         $interval = max(60, absint($settings['interval_seconds'] ?? 60));
         $schedules['seo_process_manager_interval'] = array(
             'interval' => $interval,
-            'display'  => sprintf('Gestor SEO Taxonomy cada %d segundos', $interval),
+            'display'  => sprintf('Gestor TaxoCommerce SEO cada %d segundos', $interval),
         );
         return $schedules;
     }
@@ -1700,7 +1700,7 @@ add_action('init', 'seo_process_supervisor_schedule_backup', 100);
 if (!function_exists('seo_process_supervisor_save_settings_action')) {
     function seo_process_supervisor_save_settings_action() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_process_supervisor_save_settings');
         $raw = isset($_POST['supervisor']) && is_array($_POST['supervisor']) ? wp_unslash($_POST['supervisor']) : array();
@@ -1721,7 +1721,7 @@ add_action('admin_post_seo_process_supervisor_save_settings', 'seo_process_super
 if (!function_exists('seo_process_supervisor_control_action')) {
     function seo_process_supervisor_control_action() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_process_supervisor_control');
         $command = sanitize_key(wp_unslash($_POST['command'] ?? ''));

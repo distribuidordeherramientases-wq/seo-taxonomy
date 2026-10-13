@@ -1,6 +1,6 @@
 <?php
 /**
- * Bootstrap del modulo Dependiente de SEO Taxonomy.
+ * Bootstrap del modulo Dependiente de TaxoCommerce SEO.
  */
 defined('ABSPATH') || exit;
 

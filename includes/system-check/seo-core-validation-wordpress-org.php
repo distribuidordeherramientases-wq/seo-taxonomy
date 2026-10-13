@@ -391,9 +391,12 @@ function seo_core_wporg_static_findings() {
             }
             if (
                 preg_match('/\b(?:__|_e|esc_html__|esc_html_e|esc_attr__|esc_attr_e|_x|_n)\s*\(/', $line)
-                && strpos($line, "'seo-system'") !== false
+                && (
+                    strpos($line, "'seo-system'") !== false
+                    || strpos($line, "'seo-taxonomy'") !== false
+                )
             ) {
-                seo_core_wporg_add_hit($groups['i18n'], 'wrong_text_domain', $relative, $line_no, 'Text domain legado seo-system; debe coincidir con el slug.');
+                seo_core_wporg_add_hit($groups['i18n'], 'wrong_text_domain', $relative, $line_no, 'Text domain legado; debe coincidir con taxocommerce-seo.');
             }
             if (
                 preg_match('/\b(?:__|_e|esc_html__|esc_html_e|esc_attr__|esc_attr_e)\s*\([^,;]+\)\s*;?/', $line)

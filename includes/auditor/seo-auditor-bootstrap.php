@@ -1,9 +1,9 @@
 <?php
 /**
- * Auditor de SEO Taxonomy.
+ * Auditor de TaxoCommerce SEO.
  *
  * El motor es compartido, pero la interfaz separa dos responsabilidades:
- * - datos/contenidos desde SEO Taxonomy -> Contenidos -> Auditor;
+ * - datos/contenidos desde TaxoCommerce SEO -> Contenidos -> Auditor;
  * - Academia/Estudiante desde Dependiente -> Auditor Academia.
  * Nunca modifica contenido ni conocimiento.
  */

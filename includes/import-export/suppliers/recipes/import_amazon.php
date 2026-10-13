@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta Amazon Creators API para el importador de proveedores de SEO System.
+ * Receta Amazon Creators API para el importador de proveedores de TaxoCommerce SEO.
  *
  * Fase exploratoria: no importa en base de datos. Se registra como receta nativa
  * dentro de seo_proveedores_import_recipes para aparecer junto a SATKIT y VEVOR.

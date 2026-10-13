@@ -1,6 +1,6 @@
 <?php
 /**
- * Fachada y registro seguro del Data Layer de SEO Taxonomy.
+ * Fachada y registro seguro del Data Layer de TaxoCommerce SEO.
  */
 
 defined('ABSPATH') || exit;

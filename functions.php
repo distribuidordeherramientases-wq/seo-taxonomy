@@ -773,7 +773,7 @@ function seo_system_private_log_bootstrap() {
             seo_system_private_log_set_permissions($log_file, 0600);
 
             $line = sprintf(
-                "[%s] [INFO] SEO System: log diario inicializado (%s).%s",
+                "[%s] [INFO] TaxoCommerce SEO: log diario inicializado (%s).%s",
                 current_time('mysql'),
                 $current_day['date'],
                 PHP_EOL
@@ -833,7 +833,7 @@ function seo_system_private_log_redact($value, $key = '') {
 }
 
 /**
- * Logger propio de SEO System.
+ * Logger propio de TaxoCommerce SEO.
  *
  * Ejemplo:
  * seo_system_private_log('error', 'Fallo al actualizar', array('id' => 123));

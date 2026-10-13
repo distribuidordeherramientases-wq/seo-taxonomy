@@ -1,6 +1,6 @@
 # Etiquetas y vocabulario
 
-Ruta: **SEO Taxonomy → Etiquetas**
+Ruta: **TaxoCommerce SEO → Etiquetas**
 
 La pantalla concentra la semántica canónica y los atributos técnicos.
 

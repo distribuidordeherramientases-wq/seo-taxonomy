@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Semantic and Editorial Health Tests
+ * TaxoCommerce SEO - Semantic and Editorial Health Tests
  *
  * Auditoria de solo lectura para alinear productos, categorias y FAQs.
  * No modifica entradas, terminos, atributos, etiquetas, FAQs ni relaciones.

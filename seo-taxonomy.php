@@ -3,13 +3,13 @@
  * Plugin Name: TaxoCommerce SEO - Catalog, Trends, Content & Feeds
  * Plugin URI: https://focazul.wordpress.com/taxocommerce-seo-catalog-trends-content-feeds/
  * Description: Modular SEO, catalog, content and commercial management platform for WordPress and WooCommerce.
- * Version: 2.3.10
+ * Version: 2.4.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Pérez
  * License: MIT
  * License URI: https://opensource.org/license/mit/
- * Text Domain: seo-taxonomy
+ * Text Domain: taxocommerce-seo
  */
 
 defined('ABSPATH') || exit;
@@ -34,7 +34,7 @@ defined('ABSPATH') || exit;
 /**
  * VERSIONES
  */
-define('SEO_SYSTEM_VERSION', '2.3.10');
+define('SEO_SYSTEM_VERSION', '2.4.0');
 define('SEO_SYSTEM_DB_VERSION', '2.3.9');
 
 /**

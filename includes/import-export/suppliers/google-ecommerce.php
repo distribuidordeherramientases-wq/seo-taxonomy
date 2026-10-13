@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Google Analytics 4 ecommerce for WooCommerce.
+ * TaxoCommerce SEO - Google Analytics 4 ecommerce for WooCommerce.
  *
  * Envia los eventos recomendados de comercio electronico de GA4 usando la
  * misma Measurement ID ya configurada en Google Search / Analytics.
@@ -585,7 +585,7 @@ if ( ! function_exists( 'seo_google_ecommerce_frontend_events' ) ) {
         $ajax_url = admin_url( 'admin-ajax.php' );
         $nonce = wp_create_nonce( 'seo_google_ecommerce_pop' );
         ?>
-        <!-- SEO System: GA4 ecommerce v<?php echo esc_html( SEO_GOOGLE_ECOMMERCE_VERSION ); ?> -->
+        <!-- TaxoCommerce SEO: GA4 ecommerce v<?php echo esc_html( SEO_GOOGLE_ECOMMERCE_VERSION ); ?> -->
         <script>
         (function(){
             'use strict';

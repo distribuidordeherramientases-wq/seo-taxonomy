@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Calendario visual de publicaciones sociales.
+ * TaxoCommerce SEO - Calendario visual de publicaciones sociales.
  *
  * Lee la misma agenda del Programador (entradas/landings + campañas) y la
  * presenta por mes. No crea otra tabla ni duplica programaciones.

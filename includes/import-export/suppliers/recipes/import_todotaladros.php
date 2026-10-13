@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta oficial TodoTaladros para el importador de proveedores de SEO System.
+ * Receta oficial TodoTaladros para el importador de proveedores de TaxoCommerce SEO.
  *
  * Filosofia SATKIT:
  * - La receta solo declara el proveedor y activa el mapeo visual.

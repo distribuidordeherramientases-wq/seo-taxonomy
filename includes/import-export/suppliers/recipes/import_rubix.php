@@ -1,6 +1,6 @@
 <?php
 /**
- * Receta oficial RUBIX para el importador de proveedores de SEO System.
+ * Receta oficial RUBIX para el importador de proveedores de TaxoCommerce SEO.
  *
  * Flujo:
  * - La receta de importacion solo declara RUBIX para el mapeo/CSV comun.

@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
 
 function seo_comentarista_register_admin_page()
 {
-    // Página oculta: el acceso visible se ofrece desde SEO Taxonomy → Contenidos.
+    // Página oculta: el acceso visible se ofrece desde TaxoCommerce SEO → Contenidos.
     add_submenu_page(
         null,
         'Comentarista',
@@ -205,7 +205,7 @@ function seo_comentarista_admin_tabs($current = 'records')
 function seo_comentarista_admin_page()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
     }
 
     $install = seo_comentarista_maybe_install_schema();

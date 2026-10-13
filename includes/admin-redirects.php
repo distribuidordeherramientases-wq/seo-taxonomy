@@ -644,7 +644,7 @@ if (!function_exists('seo_redirects_admin_issue_badge')) {
 if (!function_exists('seo_redirects_admin_send_json_download')) {
     function seo_redirects_admin_send_json_download($filename, $payload) {
         if (headers_sent()) {
-            wp_die(esc_html__('No se puede iniciar la descarga porque ya se enviaron cabeceras.', 'seo-taxonomy'));
+            wp_die(esc_html__('No se puede iniciar la descarga porque ya se enviaron cabeceras.', 'taxocommerce-seo'));
         }
 
         nocache_headers();
@@ -657,7 +657,7 @@ if (!function_exists('seo_redirects_admin_send_json_download')) {
         );
 
         if (!is_string($json)) {
-            wp_die(esc_html__('No se pudo generar el JSON de redirecciones.', 'seo-taxonomy'));
+            wp_die(esc_html__('No se pudo generar el JSON de redirecciones.', 'taxocommerce-seo'));
         }
 
         echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- descarga JSON controlada.
@@ -926,7 +926,7 @@ if (!function_exists('seo_redirects_admin_import_json_file')) {
 
 function seo_menu_manager_redirects_page() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar redirecciones.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar redirecciones.', 'taxocommerce-seo'));
     }
 
     global $wpdb;
@@ -1023,20 +1023,20 @@ function seo_menu_manager_redirects_page() {
                 $message = trim($origin_error . ' ' . $target_error);
                 $message_class = 'error';
             } elseif ($origin_url === '' || $target_url === '') {
-                $message = __('Por favor, rellena tanto la URL de origen como la de destino.', 'seo-taxonomy');
+                $message = __('Por favor, rellena tanto la URL de origen como la de destino.', 'taxocommerce-seo');
                 $message_class = 'error';
             } elseif (seo_redirects_admin_effective_path($origin_url) === seo_redirects_admin_effective_path($target_url)) {
-                $message = __('No se puede crear una redirección hacia la misma URL.', 'seo-taxonomy');
+                $message = __('No se puede crear una redirección hacia la misma URL.', 'taxocommerce-seo');
                 $message_class = 'error';
             } elseif (($duplicate = seo_redirects_admin_find_duplicate_origin($existing_rows, $origin_url)) !== null) {
                 $message = sprintf(
                     /* translators: %d: ID de la redirección existente. */
-                    __('Ya existe una redirección con el mismo origen efectivo (ID %d). Edítala en lugar de crear otra.', 'seo-taxonomy'),
+                    __('Ya existe una redirección con el mismo origen efectivo (ID %d). Edítala en lugar de crear otra.', 'taxocommerce-seo'),
                     (int) $duplicate->id
                 );
                 $message_class = 'error';
             } elseif (seo_redirects_admin_would_create_cycle($existing_rows, $origin_url, $target_url)) {
-                $message = __('La nueva regla crearía un ciclo de redirección. No se ha guardado.', 'seo-taxonomy');
+                $message = __('La nueva regla crearía un ciclo de redirección. No se ha guardado.', 'taxocommerce-seo');
                 $message_class = 'error';
             } else {
                 $inserted = $wpdb->insert(
@@ -1052,10 +1052,10 @@ function seo_menu_manager_redirects_page() {
                 );
 
                 if ($inserted === false) {
-                    $message = __('Error al insertar la redirección.', 'seo-taxonomy');
+                    $message = __('Error al insertar la redirección.', 'taxocommerce-seo');
                     $message_class = 'error';
                 } else {
-                    $message = __('Redirección añadida correctamente.', 'seo-taxonomy');
+                    $message = __('Redirección añadida correctamente.', 'taxocommerce-seo');
                     $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
                 }
             }
@@ -1086,20 +1086,20 @@ function seo_menu_manager_redirects_page() {
                     $message = trim($origin_error . ' ' . $target_error);
                     $message_class = 'error';
                 } elseif ($origin_url === '' || $target_url === '') {
-                    $message = __('Origen y destino son obligatorios.', 'seo-taxonomy');
+                    $message = __('Origen y destino son obligatorios.', 'taxocommerce-seo');
                     $message_class = 'error';
                 } elseif (seo_redirects_admin_effective_path($origin_url) === seo_redirects_admin_effective_path($target_url)) {
-                    $message = __('No se puede redirigir una URL hacia sí misma.', 'seo-taxonomy');
+                    $message = __('No se puede redirigir una URL hacia sí misma.', 'taxocommerce-seo');
                     $message_class = 'error';
                 } elseif (($duplicate = seo_redirects_admin_find_duplicate_origin($existing_rows, $origin_url, $id_to_update)) !== null) {
                     $message = sprintf(
                         /* translators: %d: ID de la redirección en conflicto. */
-                        __('El origen entra en conflicto con la redirección ID %d.', 'seo-taxonomy'),
+                        __('El origen entra en conflicto con la redirección ID %d.', 'taxocommerce-seo'),
                         (int) $duplicate->id
                     );
                     $message_class = 'error';
                 } elseif (seo_redirects_admin_would_create_cycle($existing_rows, $origin_url, $target_url, $id_to_update)) {
-                    $message = __('El cambio crearía un ciclo de redirección. No se ha guardado.', 'seo-taxonomy');
+                    $message = __('El cambio crearía un ciclo de redirección. No se ha guardado.', 'taxocommerce-seo');
                     $message_class = 'error';
                 } else {
                     $updated = $wpdb->update(
@@ -1115,10 +1115,10 @@ function seo_menu_manager_redirects_page() {
                     );
 
                     if ($updated === false) {
-                        $message = __('Error al actualizar la redirección.', 'seo-taxonomy');
+                        $message = __('Error al actualizar la redirección.', 'taxocommerce-seo');
                         $message_class = 'error';
                     } else {
-                        $message = __('Redirección actualizada correctamente.', 'seo-taxonomy');
+                        $message = __('Redirección actualizada correctamente.', 'taxocommerce-seo');
                         $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
                     }
                 }
@@ -1134,7 +1134,7 @@ function seo_menu_manager_redirects_page() {
 
         if (check_admin_referer('seo_delete_redirect_nonce_' . $id_to_delete)) {
             $wpdb->delete($table_redirects, array('id' => $id_to_delete), array('%d'));
-            $message = __('Redirección eliminada correctamente.', 'seo-taxonomy');
+            $message = __('Redirección eliminada correctamente.', 'taxocommerce-seo');
             $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
         }
     }

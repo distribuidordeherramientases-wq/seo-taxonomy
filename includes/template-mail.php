@@ -508,11 +508,11 @@ function seo_mail_handle_replace_template() {
     check_admin_referer('seo_mail_replace_template', 'seo_mail_replace_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'taxocommerce-seo'));
     }
 
     seo_mail_redirect(
-        'Por seguridad, SEO Taxonomy no permite sobrescribir archivos PHP del plugin desde el navegador. Publica la plantilla mediante una actualización del plugin.',
+        'Por seguridad, TaxoCommerce SEO no permite sobrescribir archivos PHP del plugin desde el navegador. Publica la plantilla mediante una actualización del plugin.',
         'warning'
     );
 }
@@ -525,7 +525,7 @@ function seo_mail_handle_upload_new_template() {
     check_admin_referer('seo_mail_upload_new_template', 'seo_mail_new_template_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'taxocommerce-seo'));
     }
 
     seo_mail_redirect(
@@ -596,7 +596,7 @@ function seo_mail_handle_copy_woocommerce_template() {
     check_admin_referer('seo_mail_copy_default', 'seo_mail_copy_nonce');
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para gestionar plantillas.', 'taxocommerce-seo'));
     }
 
     seo_mail_redirect(

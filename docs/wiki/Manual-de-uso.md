@@ -1,6 +1,6 @@
 # Manual de uso
 
-El manual sigue la navegación real del panel **SEO Taxonomy**.
+El manual sigue la navegación real del panel **TaxoCommerce SEO**.
 
 | Menú | Finalidad |
 |---|---|

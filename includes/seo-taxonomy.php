@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO Taxonomy - Vista jerárquica
+ * TaxoCommerce SEO - Vista jerárquica
  *
  * Archivo: seo-taxonomy.php
  * Descripción: Contiene la visualización jerárquica de la taxonomía SEO

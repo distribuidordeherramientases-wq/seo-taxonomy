@@ -421,7 +421,7 @@ if (!function_exists('dht_shared_product_compare_data')) {
 
         /*
          * El comparador usa como fuente principal la clasificación y los
-         * atributos canónicos de SEO Taxonomy. Los atributos nativos de
+         * atributos canónicos de TaxoCommerce SEO. Los atributos nativos de
          * WooCommerce quedan como fallback para no perder información legacy.
          */
         $attributes = array();
@@ -465,7 +465,7 @@ if (!function_exists('dht_shared_product_compare_data')) {
                 : ucwords($raw_label);
         };
 
-        /* Atributos técnicos canónicos de SEO Taxonomy. */
+        /* Atributos técnicos canónicos de TaxoCommerce SEO. */
         if (function_exists('seo_attributes_get_product_rows')) {
             $canonical_groups = array();
 
@@ -1256,7 +1256,7 @@ if (!function_exists('dht_shared_render_product_card')) {
         echo '<a href="' . esc_url($permalink) . '" class="dh-product-link">';
 
         if ($card_product->is_on_sale()) {
-            echo '<span class="onsale">' . esc_html__('Oferta', 'seo-taxonomy') . '</span>';
+            echo '<span class="onsale">' . esc_html__('Oferta', 'taxocommerce-seo') . '</span>';
         }
 
         echo '<div class="dh-product-image">';
@@ -1810,7 +1810,7 @@ if (!function_exists('dht_template_render_context_posts')) {
         $link_label = 'ingeniero' === $variant ? 'Leer información técnica' : 'Leer guía';
         $count_label = sprintf(
             /* translators: %d: número de artículos editoriales relacionados. */
-            _n('%d artículo', '%d artículos', count($valid), 'seo-taxonomy'),
+            _n('%d artículo', '%d artículos', count($valid), 'taxocommerce-seo'),
             count($valid)
         );
         ?>
@@ -2021,13 +2021,13 @@ if (!function_exists('dht_template_render_external_comments')) {
                 'Ver %d comentario externo',
                 'Ver %d comentarios externos',
                 $comment_count,
-                'seo-taxonomy'
+                'taxocommerce-seo'
             ),
             $comment_count
         );
         $count_label = sprintf(
             /* translators: %d: número de comentarios externos disponibles. */
-            _n('%d comentario externo', '%d comentarios externos', $comment_count, 'seo-taxonomy'),
+            _n('%d comentario externo', '%d comentarios externos', $comment_count, 'taxocommerce-seo'),
             $comment_count
         );
         ?>

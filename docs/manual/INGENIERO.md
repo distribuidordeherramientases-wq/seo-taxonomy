@@ -1,6 +1,6 @@
 # Ingeniero
 
-Ruta: **SEO Taxonomy → Contenidos → Ingeniero**
+Ruta: **TaxoCommerce SEO → Contenidos → Ingeniero**
 
 Ingeniero investiga conocimiento externo por `product_cat`, conserva las fuentes y clasifica cada evidencia desde la recopilación en tres capas: **L1 técnica**, **L2 práctica/comunidad** y **L3 actualidad sectorial**. En 0.5.0 las tres capas pueden generar propuestas editoriales por tema. No publica automáticamente.
 

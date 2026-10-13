@@ -601,7 +601,7 @@ function seo_system_mysql_audit_snapshot_checks() {
         'SRV-DB-TMP-DISK','Base de datos','Temporales escritos a disco',
         $tmp===null?'N/D':number_format_i18n($tmp,1).'%',
         seo_system_mysql_audit_percent_status($tmp,25,50,75),
-        'Métrica global desde el arranque; no se atribuye automáticamente a SEO Taxonomy.'
+        'Métrica global desde el arranque; no se atribuye automáticamente a TaxoCommerce SEO.'
     );
 
     $conn = $derived['max_connections_percent'] ?? null;
@@ -614,7 +614,7 @@ function seo_system_mysql_audit_snapshot_checks() {
 
     $problem = absint($summary['problem_plans'] ?? 0);
     $checks[] = seo_server_status_make_check(
-        'SRV-DB-SEO-EXPLAIN','Base de datos','Planes SQL SEO Taxonomy a revisar',
+        'SRV-DB-SEO-EXPLAIN','Base de datos','Planes SQL TaxoCommerce SEO a revisar',
         (string)$problem,
         $problem>=3?'important':($problem>0?'warning':'ok'),
         absint($summary['plans'] ?? 0) . ' consultas representativas analizadas con EXPLAIN.'
@@ -623,7 +623,7 @@ function seo_system_mysql_audit_snapshot_checks() {
     $duplicates = absint($summary['duplicate_indexes'] ?? 0);
     $candidates = absint($summary['lookup_without_index'] ?? 0);
     $checks[] = seo_server_status_make_check(
-        'SRV-DB-SEO-INDEXES','Base de datos','Índices de tablas SEO Taxonomy',
+        'SRV-DB-SEO-INDEXES','Base de datos','Índices de tablas TaxoCommerce SEO',
         $candidates.' candidatos · '.$duplicates.' duplicados',
         $duplicates>0?'warning':'info',
         'Los candidatos son heurísticos y no se crean índices automáticamente.'
@@ -642,7 +642,7 @@ function seo_system_mysql_audit_render() {
     $summary = (array)$audit['summary'];
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Auditoría SQL de SEO Taxonomy</h2>';
+    echo '<h2>Auditoría SQL de TaxoCommerce SEO</h2>';
     echo '<p>Solo lectura: revisa señales MySQL, tablas propias, índices y planes <code>EXPLAIN</code>. No crea ni elimina índices.</p>';
 
     echo '<div class="seo-mysql-query-kpis">';

@@ -1,6 +1,6 @@
 <?php
 /**
- * Servicio unitario de productos para SEO System.
+ * Servicio unitario de productos para TaxoCommerce SEO.
  *
  * Centraliza INSERT/UPDATE de un solo producto para que el alta manual y la
  * edicion utilicen las mismas tablas de vocabulario, atributos, proveedor e

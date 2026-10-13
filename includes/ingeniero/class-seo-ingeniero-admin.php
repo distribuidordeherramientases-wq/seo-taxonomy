@@ -72,7 +72,7 @@ final class SEO_Ingeniero_Admin {
     }
 
     private static function guard($action) {
-        if (!current_user_can('manage_options')) wp_die(esc_html__('No tienes permisos para usar Ingeniero.', 'seo-taxonomy'));
+        if (!current_user_can('manage_options')) wp_die(esc_html__('No tienes permisos para usar Ingeniero.', 'taxocommerce-seo'));
         check_admin_referer($action);
     }
 
@@ -351,7 +351,7 @@ final class SEO_Ingeniero_Admin {
 
     public static function render() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para usar Ingeniero.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para usar Ingeniero.', 'taxocommerce-seo'));
         }
 
         SEO_Ingeniero_DB::maybe_install();

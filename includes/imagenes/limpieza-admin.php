@@ -183,7 +183,7 @@ if (!function_exists('seo_images_render_media_cleanup_tab')) {
 
         <div class="seo-images-cleanup-section seo-images-cleanup-danger">
             <h2>3. Liberar espacio</h2>
-            <p>La eliminación es irreversible. Cada attachment se elimina mediante <code>wp_delete_attachment($attachment_id, true)</code>. Después se limpian galerías de WooCommerce, thumbnails de términos e índices internos de SEO Taxonomy.</p>
+            <p>La eliminación es irreversible. Cada attachment se elimina mediante <code>wp_delete_attachment($attachment_id, true)</code>. Después se limpian galerías de WooCommerce, thumbnails de términos e índices internos de TaxoCommerce SEO.</p>
 
             <div class="seo-images-grid">
                 <div class="seo-images-card seo-images-kpi"><strong id="seo-clean-del-pending"><?php echo esc_html(number_format_i18n($delete_stats['pending'])); ?></strong><span>Pendientes de borrar</span></div>

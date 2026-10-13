@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System - Versionado temporal para sincronizacion entre entornos.
+ * TaxoCommerce SEO - Versionado temporal para sincronizacion entre entornos.
  *
  * Evita que una importacion sobreescriba una entidad existente cuando el CSV
  * contiene una version mas antigua. Cuando el CSV aporta una fecha valida,

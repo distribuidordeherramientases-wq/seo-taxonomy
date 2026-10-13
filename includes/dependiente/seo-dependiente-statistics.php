@@ -153,7 +153,7 @@ final class SEO_Dependiente_Statistics {
 
     public static function export_json() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para exportar estas estadísticas.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para exportar estas estadísticas.', 'taxocommerce-seo'));
         }
 
         check_admin_referer('seo_dependiente_statistics_export', 'seo_dependiente_statistics_nonce');

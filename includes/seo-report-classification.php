@@ -1,5 +1,5 @@
 <?php
-/** Internal SEO Taxonomy module. */
+/** Internal TaxoCommerce SEO module. */
 if (!defined('ABSPATH')) exit;
 
 function seo_report_classification() {

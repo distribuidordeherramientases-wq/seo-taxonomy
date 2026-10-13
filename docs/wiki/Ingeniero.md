@@ -1,8 +1,8 @@
 # Ingeniero
 
-Ingeniero es el servicio de **investigación técnica y proceso editorial especializado por categoría** de SEO Taxonomy.
+Ingeniero es el servicio de **investigación técnica y proceso editorial especializado por categoría** de TaxoCommerce SEO.
 
-Ruta administrativa: **SEO Taxonomy → Contenidos → Ingeniero**.
+Ruta administrativa: **TaxoCommerce SEO → Contenidos → Ingeniero**.
 
 Desde la versión interna 0.3.0 se ejecuta como servicio independiente de Dependiente. En 0.3.3 la capa editorial se simplifica para que **todo knowledge active de una categoría llegue a Editora**, sin un segundo filtro por masa o familia:
 

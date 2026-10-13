@@ -1,6 +1,6 @@
 # Ojeador
 
-Ruta: **SEO Taxonomy → Herramientas → Ojeador**.
+Ruta: **TaxoCommerce SEO → Herramientas → Ojeador**.
 
 Ojeador analiza oportunidades comerciales, precios y cobertura del catálogo. **Merchant es la fuente prioritaria en modo predeterminado**; los datos antiguos de Google Shopping se conservan como histórico para auditoría y comparación. No crea productos ni categorías automáticamente.
 
@@ -100,7 +100,7 @@ En modo Merchant-only no se reanudan automáticamente los escaneos de pago. Los 
 
 ## Conexiones compartidas de Google
 
-Ruta: **SEO Taxonomy → Herramientas → Conexiones con proveedores**.
+Ruta: **TaxoCommerce SEO → Herramientas → Conexiones con proveedores**.
 
 Las credenciales SerpApi y ScraperAPI se conservan para otros procesos autorizados y para el modo tradicional de Ojeador. La cadena antigua era **SerpApi primero y ScraperAPI como respaldo** si había error o cuota agotada; una respuesta válida sin resultados no activaba respaldo.
 

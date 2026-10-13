@@ -1,6 +1,6 @@
 # Conexiones y credenciales
 
-Este documento explica los campos de conexión visibles en SEO Taxonomy y muestra ejemplos de formato.
+Este documento explica los campos de conexión visibles en TaxoCommerce SEO y muestra ejemplos de formato.
 
 > **Todos los valores de esta página son ficticios. No funcionan y no deben copiarse como credenciales reales.**
 
@@ -19,7 +19,7 @@ Cuando un campo contiene una clave, token, contraseña o secreto:
 ## Cloudflare
 
 ### Activar Cloudflare para diagnósticos
-Permite que SEO Taxonomy utilice la conexión para diagnósticos.
+Permite que TaxoCommerce SEO utilice la conexión para diagnósticos.
 
 Desactivarlo no implica necesariamente borrar la credencial almacenada.
 
@@ -211,7 +211,7 @@ Opcional para pruebas o cuando el token se obtiene fuera del plugin.
 **Ejemplo ficticio:** `linkedin_token_EXAMPLE_NOT_REAL`
 
 ### Callback URL
-Registrar en la aplicación exactamente la URL mostrada por SEO Taxonomy.
+Registrar en la aplicación exactamente la URL mostrada por TaxoCommerce SEO.
 
 **Ejemplo ilustrativo:**
 `https://www.ejemplo.es/wp-json/seo-system/v1/linkedin/callback`
@@ -267,7 +267,7 @@ Debe registrarse como Redirect URI en la aplicación de X.
 
 ## Google Merchant Center · informes de mercado en Ojeador
 
-Ruta: **SEO Taxonomy → Herramientas → Ojeador → Merchant · Comparación gratuita**.
+Ruta: **TaxoCommerce SEO → Herramientas → Ojeador → Merchant · Comparación gratuita**.
 
 Esta integración **no comparte automáticamente la autorización OAuth de Search Console**. Requiere:
 - **ID de Merchant Center**: número de cuenta Merchant, por ejemplo `123456789` (ejemplo ficticio).
@@ -280,7 +280,7 @@ En **Fuente de mercado**, el modo predeterminado **Merchant solamente** bloquea 
 
 ## SerpApi + ScraperAPI · conexión compartida para Ojeador (modo tradicional) e Ingeniero
 
-Ruta: **SEO Taxonomy → Herramientas → Conexiones con proveedores**.
+Ruta: **TaxoCommerce SEO → Herramientas → Conexiones con proveedores**.
 
 Estas credenciales siguen almacenadas de forma central. **Ingeniero** las utiliza para investigación externa. **Ojeador** solo las emplea para nuevos escaneos Shopping cuando un administrador ha elegido expresamente el modo tradicional; la pestaña Ojeador → Novedades está retirada y no consume esos proveedores.
 

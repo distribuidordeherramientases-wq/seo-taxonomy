@@ -1,5 +1,5 @@
 <?php
-/** Internal SEO Taxonomy module. */
+/** Internal TaxoCommerce SEO module. */
 if (!defined('ABSPATH')) exit;
 
 // Vista jerárquica de Taxonomía. Se mantiene separada de seo-reports.php.
@@ -16,7 +16,7 @@ if (is_readable($seo_taxonomy_view_file)) {
 function seo_taxonomy_page() {
 
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos suficientes para acceder a esta página.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos suficientes para acceder a esta página.', 'taxocommerce-seo'));
     }
 
     $action_type = isset($_POST['action_type'])

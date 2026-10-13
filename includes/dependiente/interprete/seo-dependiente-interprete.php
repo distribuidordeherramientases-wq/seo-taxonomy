@@ -135,7 +135,7 @@ final class SEO_Dependiente_Interprete {
 
     public static function render_tab() {
         if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
-            wp_die(esc_html__('No tienes permisos para acceder al Intérprete.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para acceder al Intérprete.', 'taxocommerce-seo'));
         }
 
         $query = isset($_GET['interpreter_q'])

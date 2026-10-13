@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Launcher CLI del supervisor de procesos SEO Taxonomy.
+ * Launcher CLI del supervisor de procesos TaxoCommerce SEO.
  *
  * No es un endpoint web. Carga WordPress y mantiene el supervisor vivo fuera
  * de WP-Cron y Action Scheduler.

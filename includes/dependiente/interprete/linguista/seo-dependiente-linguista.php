@@ -553,7 +553,7 @@ final class SEO_Dependiente_Linguista {
 
     public static function handle_admin_export() {
         if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
-            wp_die(esc_html__('No tienes permisos para exportar la formación Lingüista.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para exportar la formación Lingüista.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_dependiente_linguista_export');
 
@@ -571,7 +571,7 @@ final class SEO_Dependiente_Linguista {
         }
 
         if (is_wp_error($payload)) {
-            wp_die(esc_html($payload->get_error_message()), esc_html__('Exportación Lingüista', 'seo-taxonomy'), array('response' => 400));
+            wp_die(esc_html($payload->get_error_message()), esc_html__('Exportación Lingüista', 'taxocommerce-seo'), array('response' => 400));
         }
 
         nocache_headers();
@@ -583,7 +583,7 @@ final class SEO_Dependiente_Linguista {
 
     public static function handle_admin_control() {
         if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
-            wp_die(esc_html__('No tienes permisos para controlar Lingüista.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para controlar Lingüista.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_dependiente_linguista_control');
 

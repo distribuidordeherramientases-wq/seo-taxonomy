@@ -1,6 +1,6 @@
 # Versiones y publicación
 
-Este documento define el flujo de trabajo para preparar versiones de SEO Taxonomy, mantener el historial de cambios y publicar actualizaciones de forma controlada.
+Este documento define el flujo de trabajo para preparar versiones de TaxoCommerce SEO, mantener el historial de cambios y publicar actualizaciones de forma controlada.
 
 ## 1. Principio general
 
@@ -257,14 +257,16 @@ Sí deben aparecer:
 
 ## 9. Convención de versión
 
-El proyecto utiliza actualmente versiones del tipo:
+La línea pública actual utiliza versiones del tipo:
 
 ```text
-2.3.7
-2.3.8.1
+2.4.0
+2.4.0.1
 ```
 
-Mientras se mantenga este esquema, todos los documentos de una misma publicación deben usar exactamente el mismo identificador.
+La release base es `2.4.0`. Los siguientes hitos/ciclos de corrección de esta línea utilizarán `2.4.0.*` (por ejemplo, `2.4.0.1`, `2.4.0.2`, etc.).
+
+Mientras se mantenga este esquema, todos los documentos y milestones de una misma publicación deben usar exactamente el mismo identificador.
 
 No se debe actualizar `Stable tag` o la versión del plugin de forma aislada.
 

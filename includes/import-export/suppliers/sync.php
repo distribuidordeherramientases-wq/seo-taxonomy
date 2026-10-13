@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO System — Sincronizacion integrada de catalogos de proveedores.
+ * TaxoCommerce SEO — Sincronizacion integrada de catalogos de proveedores.
  *
  * Separa la decision comercial (estado_seleccion) de la situacion tecnica
  * detectada en cada nueva importacion (estado_sincronizacion). El CSV siempre
