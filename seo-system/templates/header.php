@@ -24,7 +24,10 @@ wp_deregister_style('dht-template-styles');
 
 $site_name    = get_bloginfo('name');
 $site_tagline = get_bloginfo('description');
-$logo_url     = 'https://www.distribuidordeherramientas.es/wp-content/uploads/2026/01/Logo2.webp';
+$logo_candidate = function_exists('dht_shared_site_logo_candidate') ? dht_shared_site_logo_candidate() : null;
+$logo_url       = is_array($logo_candidate) && !empty($logo_candidate['url'])
+    ? esc_url_raw((string) $logo_candidate['url'])
+    : '';
 
 $shop_url   = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/tienda/');
 $cart_url   = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/carrito/');
@@ -523,13 +526,17 @@ echo $dht_css_inline; ?>
     <div class="header-top">
         <div class="brand">
             <a class="logo" href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr($site_name); ?>">
-                <img
-                    src="<?php echo esc_url($logo_url); ?>"
-                    alt="<?php echo esc_attr($site_name); ?>"
-                    width="250"
-                    height="94"
-                    decoding="async"
-                >
+                <?php if ($logo_url !== '') : ?>
+                    <img
+                        src="<?php echo esc_url($logo_url); ?>"
+                        alt="<?php echo esc_attr($site_name); ?>"
+                        width="250"
+                        height="94"
+                        decoding="async"
+                    >
+                <?php else : ?>
+                    <span class="site-logo-text"><?php echo esc_html($site_name); ?></span>
+                <?php endif; ?>
             </a>
 
             <?php if ($site_tagline !== '') : ?>
