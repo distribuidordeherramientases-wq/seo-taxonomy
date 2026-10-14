@@ -35,3 +35,11 @@ La sección **SEO Taxonomy → Mercado** ofrece tres vistas de lectura: **Dónde
 ### Navegación simplificada
 
 **Mercado es la única entrada visual directa** para los tres especialistas. Se retiran las tarjetas de Ingeniero en Contenidos, de Ojeador en Herramientas (incluido su fallback) y la pestaña Analista en Informes. Los informes de Analista, los trabajos de Ingeniero y los informes de Ojeador siguen siendo accesibles mediante los botones de detalle de Mercado y mantienen sus slugs históricos, datos, APIs, cron y acciones. Cuando se abre uno de estos detalles, el submenú activo de WordPress permanece en **Mercado**. Esta decisión no elimina ninguna función de investigación ni cambia los flujos editoriales actuales.
+
+## Piloto Editor: revisión de contenidos y CSV
+
+**TaxoCommerce SEO → Contenidos → Editor** ofrece una bandeja superior de borradores WordPress reales: posts de Solucionador, Ingeniero y Comparador, noticias/entradas manuales y páginas landing reconocidas por su rol. Permite filtrar por tipo y fuente, leer un extracto, editar en las pantallas existentes, publicar individualmente/en lote con confirmación y validaciones o enviar a la papelera (sin borrado definitivo).
+
+También ofrece **CSV UTF-8** para análisis y corrección externa: exportación completa o por lotes de 100, importación de borradores existentes o nuevos, previsualización obligatoria, verificación de ID/hash/relaciones y confirmación. **La importación no publica ni descarta** y no modifica posts ya publicados.
+
+**Alcance controlado:** esta fase sólo reúne borradores ya creados por los flujos heredados o importados; aún no conecta automáticamente las propuestas en tablas de Solucionador, Ingeniero y Comparador para crear borradores sin usar sus aprobaciones originales. No elimina datos ni procesos. Se documenta cada botón y campo en [manual/editor](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/docs/manual/EDITOR.md).
