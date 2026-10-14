@@ -252,7 +252,8 @@ if (!function_exists('seo_product_sizes_page')) {
         $notice_type = 'success';
         $defaults = seo_product_sizes_default_settings();
 
-        if ('POST' === strtoupper($_SERVER['REQUEST_METHOD']) && isset($_POST['seo_product_sizes_action'])) {
+        $request_method = isset($_SERVER['REQUEST_METHOD']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'])) : '';
+        if ('POST' === strtoupper($request_method) && isset($_POST['seo_product_sizes_action'])) {
             check_admin_referer('seo_product_sizes_settings', 'seo_product_sizes_nonce');
             $action = sanitize_key(wp_unslash($_POST['seo_product_sizes_action']));
 
