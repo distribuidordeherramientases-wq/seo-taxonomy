@@ -511,8 +511,8 @@ final class SEO_Ingeniero_Admin {
     private static function render_editorial_tab() {
         self::render_notices();
 
-        $status = sanitize_key((string) ($_GET['editorial_status'] ?? ''));
-        $action = strtoupper(sanitize_key((string) ($_GET['editorial_action'] ?? '')));
+        $status = isset($_GET['editorial_status']) ? sanitize_key(wp_unslash($_GET['editorial_status'])) : '';
+        $action = isset($_GET['editorial_action']) ? strtoupper(sanitize_key(wp_unslash($_GET['editorial_action']))) : '';
         $page = max(1, absint($_GET['paged'] ?? 1));
         $list = SEO_Ingeniero_DB::editorial_rows(array(
             'status'=>$status,
@@ -931,7 +931,7 @@ final class SEO_Ingeniero_Admin {
         $term = get_term($term_id, 'product_cat');
         if (!$term || is_wp_error($term)) return;
 
-        $requested_layer = sanitize_key((string) ($_GET['info_layer'] ?? 'all'));
+        $requested_layer = isset($_GET['info_layer']) ? sanitize_key(wp_unslash($_GET['info_layer'])) : 'all';
         $allowed_layers = array(
             'all'=>'Todas',
             SEO_Ingeniero::LESSON_TECHNICAL=>'L1 · Técnica',
