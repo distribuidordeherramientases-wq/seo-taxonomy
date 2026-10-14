@@ -87,6 +87,7 @@ final class SEO_Editor_Admin {
         $ids = array_slice($ids,0,SEO_Editor_Core::PAGE_SIZE);
         if (!$ids) self::redirect(array('editor_error'=>'No hay borradores seleccionados o aptos para esta acción.'));
         $ok = 0; $fail = array();
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Revision fingerprints are sanitized individually before hash comparison below.
         $revisions = isset($_POST['revision']) && is_array($_POST['revision'])
             ? (array)wp_unslash($_POST['revision']) : array();
         foreach ($ids as $id) {
