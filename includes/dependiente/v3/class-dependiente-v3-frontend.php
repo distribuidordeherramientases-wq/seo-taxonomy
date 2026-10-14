@@ -307,7 +307,10 @@ final class SEO_Dependiente_V3_Frontend {
             SEO_DEPENDIENTE_V3_URL . 'assets/js/dependiente-v3.js',
             array(),
             $asset_version,
-            true
+            array(
+                'in_footer' => true,
+                'strategy'  => 'defer',
+            )
         );
         wp_localize_script('seo-dependiente-v3', 'SEO_DEPENDIENTE_V3', array(
             'endpoint' => esc_url_raw(rest_url('seo-taxonomy/v3/search')),
