@@ -393,9 +393,11 @@ if (!function_exists('seo_product_vocab_editor_save')) {
             return;
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Existing vocabulary selections are normalized to absint IDs per semantic group below.
         $posted = isset($_POST['seo_product_vocab']) && is_array($_POST['seo_product_vocab'])
             ? wp_unslash($_POST['seo_product_vocab'])
             : [];
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- New labels are split and normalized by the vocabulary creation path below.
         $new_terms = isset($_POST['seo_product_vocab_new']) && is_array($_POST['seo_product_vocab_new'])
             ? wp_unslash($_POST['seo_product_vocab_new'])
             : [];
