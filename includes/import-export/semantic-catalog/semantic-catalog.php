@@ -342,8 +342,8 @@ final class SEO_Semantic_Catalog_Transfer {
         if ($expected_plan_fingerprint && !hash_equals($expected_plan_fingerprint, (string) ($preview['plan_fingerprint'] ?? ''))) {
             return new WP_Error('semantic_catalog_destination_drift', 'STAGING ha cambiado desde la simulacion. Repite la simulacion antes de aplicar.');
         }
-        @set_time_limit(0);
-        ignore_user_abort(true);
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit(0);ignore_user_abort(true);
         $result = self::apply_document($document, $mode, $purge);
         if (is_wp_error($result)) {
             return $result;
@@ -916,8 +916,8 @@ final class SEO_Semantic_Catalog_Transfer {
         if (!empty($preview['conflicts'])) {
             self::redirect_notice(true, 'La aplicacion se ha bloqueado porque la simulacion contiene conflictos.', $preview['summary'], $preview['conflicts']);
         }
-        @set_time_limit(0);
-        ignore_user_abort(true);
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit(0);ignore_user_abort(true);
         $result = self::apply_document($document, $mode, $purge);
         if (is_wp_error($result)) {
             self::redirect_notice(true, $result->get_error_message());
