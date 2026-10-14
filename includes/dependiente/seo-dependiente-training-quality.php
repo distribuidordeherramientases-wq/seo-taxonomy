@@ -21,11 +21,11 @@ final class SEO_Dependiente_Training_Quality {
             return;
         }
 
-        $view = sanitize_key((string) ($_GET['learning_view'] ?? 'summary'));
+        $view = isset($_GET['learning_view']) ? sanitize_key(wp_unslash($_GET['learning_view'])) : 'summary';
         if (!in_array($view, array('summary', 'evolution', 'quality', 'failures'), true)) {
             $view = 'summary';
         }
-        $lesson_key = sanitize_key((string) ($_GET['learning_lesson'] ?? ''));
+        $lesson_key = isset($_GET['learning_lesson']) ? sanitize_key(wp_unslash($_GET['learning_lesson'])) : '';
         $data = self::build_report($lesson_key);
         $base = add_query_arg(array('page' => 'seo-dependiente', 'tab' => 'learning'), admin_url('admin.php'));
 
