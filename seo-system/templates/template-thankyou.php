@@ -19,7 +19,8 @@ $order = ($order_id && function_exists('wc_get_order')) ? wc_get_order($order_id
 $gcr_payload = array();
 
 if ($order && is_a($order, 'WC_Order')) {
-    $merchant_id = (int) apply_filters('seo_gcr_merchant_id', 5704025079, $order);
+    $merchant_id = absint(get_option('seo_ojeador_merchant_account_v1', 0));
+    $merchant_id = absint(apply_filters('seo_gcr_merchant_id', $merchant_id, $order));
     $order_number = trim((string) $order->get_order_number());
     $customer_email = sanitize_email((string) $order->get_billing_email());
     $delivery_country = strtoupper(trim((string) $order->get_shipping_country()));
