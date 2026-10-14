@@ -448,6 +448,7 @@ if ( ! function_exists( 'seo_clonador_db_save_handler' ) ) {
         if ( ! empty( $_POST['clear_password'] ) ) {
             $settings['password_cipher'] = '';
         } else {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Database passwords must be preserved exactly; non-empty values are encrypted immediately and never rendered back.
             $password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : '';
             if ( '' !== $password ) {
                 $encrypted = seo_clonador_db_encrypt( $password );
