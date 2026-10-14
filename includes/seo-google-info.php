@@ -4,6 +4,28 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!function_exists('seo_google_add_inline_script')) {
+    function seo_google_add_inline_script($script) {
+        $script = (string) $script;
+        if ('' === trim($script)) {
+            return;
+        }
+
+        $handle = 'taxocommerce-google-admin';
+        if (!wp_script_is($handle, 'registered')) {
+            wp_register_script(
+                $handle,
+                false,
+                array(),
+                defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+                true
+            );
+        }
+        wp_enqueue_script($handle);
+        wp_add_inline_script($handle, $script);
+    }
+}
+
 /**
  * Google Intelligence: OAuth, almacenamiento y sincronización de Search Console.
  *
@@ -2217,7 +2239,7 @@ function seo_google_render_sync_status() {
         'nonce'   => wp_create_nonce('seo_google_sync'),
     );
 
-    echo '<script>';
+    ob_start();
     echo 'window.seoGoogleSyncConfig=' . wp_json_encode($config) . ';';
     echo <<<'JS'
 (function(){
@@ -2317,7 +2339,8 @@ function seo_google_render_sync_status() {
     });
 })();
 JS;
-    echo '</script>';
+    $seo_google_sync_script = (string) ob_get_clean();
+    seo_google_add_inline_script($seo_google_sync_script);
 
     echo '</div>';
 
@@ -2497,7 +2520,7 @@ function seo_google_render_summary_charts(array $daily_rows) {
     echo '<p class="description" style="margin:14px 0 0;"><span data-period-count></span> · La posición sigue ponderada por impresiones, igual que en las tarjetas superiores.</p>';
     echo '</section>';
 
-    echo '<script>';
+    ob_start();
     echo '(function(){';
     echo 'const root=document.getElementById(' . wp_json_encode($chart_id) . ');';
     echo 'const raw=' . wp_json_encode($payload) . ';';
@@ -2768,7 +2791,8 @@ root.querySelectorAll('[data-granularity]').forEach(function(button) {
 render();
 JS;
     echo '})();';
-    echo '</script>';
+    $seo_google_chart_script = (string) ob_get_clean();
+    seo_google_add_inline_script($seo_google_chart_script);
 }
 
 /**
