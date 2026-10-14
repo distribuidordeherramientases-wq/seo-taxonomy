@@ -6817,17 +6817,42 @@ function seo_marketing_scan_callback(WP_REST_Request $request)
     return new WP_Error('seo_scan_event', 'Evento no soportado.', array('status' => 400));
 }
 
+function seo_marketing_scan_rest_permission(WP_REST_Request $request)
+{
+    $scan_uuid = sanitize_text_field((string) $request->get_param('scan_id'));
+
+    if ($scan_uuid === '' && WP_REST_Server::CREATABLE === $request->get_method()) {
+        $payload = json_decode((string) $request->get_body(), true);
+        if (is_array($payload) && isset($payload['scan_id'])) {
+            $scan_uuid = sanitize_text_field((string) $payload['scan_id']);
+        }
+    }
+
+    if ($scan_uuid === '') {
+        return new WP_Error('seo_scan_permission_scan_id', 'Falta scan_id.', array('status' => 400));
+    }
+
+    $verified = seo_marketing_scan_verify_request($request, $scan_uuid);
+    return is_wp_error($verified) ? $verified : true;
+}
+
 function seo_marketing_scan_register_rest_routes()
 {
     register_rest_route('seo-system/v1', '/sitemap-scan/batch', array(
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'seo_marketing_scan_batch_endpoint',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'seo_marketing_scan_rest_permission',
+        'args' => array(
+            'scan_id' => array(
+                'required' => true,
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
     ));
     register_rest_route('seo-system/v1', '/sitemap-scan/results', array(
         'methods' => WP_REST_Server::CREATABLE,
         'callback' => 'seo_marketing_scan_callback',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'seo_marketing_scan_rest_permission',
     ));
 }
 add_action('rest_api_init', 'seo_marketing_scan_register_rest_routes');
