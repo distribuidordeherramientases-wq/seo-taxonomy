@@ -91,7 +91,7 @@ final class SEO_Ojeador_Admin {
             return $default;
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura.
-        return wp_unslash($_GET[$key]);
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.\n        return wp_unslash($_GET[$key]);
     }
 
     private static function redirect($args = array()) {
