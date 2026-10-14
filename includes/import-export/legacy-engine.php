@@ -1274,17 +1274,22 @@ function seo_import_categories_csv() {
         'seo_import_categories_nonce'
     );
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated below before the file is opened.
+    $categories_file = isset( $_FILES['categories_csv'] ) && is_array( $_FILES['categories_csv'] )
+        ? $_FILES['categories_csv']
+        : array();
+
     if (
-        empty( $_FILES['categories_csv']['tmp_name'] )
+        empty( $categories_file['tmp_name'] )
         || (
             ! ( function_exists( 'seo_ie_batch_is_internal' ) && seo_ie_batch_is_internal( 'category' ) )
-            && ! is_uploaded_file( $_FILES['categories_csv']['tmp_name'] )
+            && ! is_uploaded_file( $categories_file['tmp_name'] )
         )
     ) {
         wp_die( esc_html__( 'No se ha recibido un CSV de categorías válido.', 'taxocommerce-seo' ) );
     }
 
-    $handle = seo_ie_stream_open( $_FILES['categories_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $categories_file['tmp_name'], 'r' );
 
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de categorías.', 'taxocommerce-seo' ) );
@@ -1306,7 +1311,7 @@ function seo_import_categories_csv() {
 
     $log = [
         'operacion'  => 'Importación de categorías',
-        'archivo'    => sanitize_file_name( $_FILES['categories_csv']['name'] ),
+        'archivo'    => sanitize_file_name( (string) ( $categories_file['name'] ?? 'categories.csv' ) ),
         'procesados' => 0,
         'correctos'  => 0,
         'errores'    => 0,
@@ -7363,11 +7368,16 @@ function seo_import_pages_csv() {
         'seo_import_pages_nonce'
     );
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated below before the file is opened.
+    $pages_file = isset( $_FILES['pages_csv'] ) && is_array( $_FILES['pages_csv'] )
+        ? $_FILES['pages_csv']
+        : array();
+
     if (
-        empty( $_FILES['pages_csv']['tmp_name'] )
+        empty( $pages_file['tmp_name'] )
         || (
             ! ( function_exists( 'seo_ie_batch_is_internal' ) && seo_ie_batch_is_internal( 'page' ) )
-            && ! is_uploaded_file( $_FILES['pages_csv']['tmp_name'] )
+            && ! is_uploaded_file( $pages_file['tmp_name'] )
         )
     ) {
         wp_die(
@@ -7410,7 +7420,7 @@ function seo_import_pages_csv() {
         );
     }
 
-    $handle = seo_ie_stream_open( $_FILES['pages_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $pages_file['tmp_name'], 'r' );
 
     if ( false === $handle ) {
         wp_die(
@@ -7493,7 +7503,7 @@ function seo_import_pages_csv() {
         'operacion'    => $dry_run
             ? 'Simulación de importación de páginas'
             : 'Importación de páginas',
-        'archivo'      => sanitize_file_name( $_FILES['pages_csv']['name'] ),
+        'archivo'      => sanitize_file_name( (string) ( $pages_file['name'] ?? 'pages.csv' ) ),
         'procesados'   => 0,
         'correctos'    => 0,
         'creados'      => 0,
@@ -9275,11 +9285,16 @@ function seo_import_posts_csv() {
 
     check_admin_referer( 'seo_import_posts_csv', 'seo_import_posts_nonce' );
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated below before the file is opened.
+    $posts_file = isset( $_FILES['posts_csv'] ) && is_array( $_FILES['posts_csv'] )
+        ? $_FILES['posts_csv']
+        : array();
+
     if (
-        empty( $_FILES['posts_csv']['tmp_name'] )
+        empty( $posts_file['tmp_name'] )
         || (
             ! ( function_exists( 'seo_ie_batch_is_internal' ) && seo_ie_batch_is_internal( 'post' ) )
-            && ! is_uploaded_file( $_FILES['posts_csv']['tmp_name'] )
+            && ! is_uploaded_file( $posts_file['tmp_name'] )
         )
     ) {
         wp_die( esc_html__( 'No se ha recibido un CSV de entradas válido.', 'taxocommerce-seo' ) );
@@ -9307,7 +9322,7 @@ function seo_import_posts_csv() {
         wp_die( esc_html__( 'Selecciona al menos un bloque de datos para importar.', 'taxocommerce-seo' ) );
     }
 
-    $handle = seo_ie_stream_open( $_FILES['posts_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $posts_file['tmp_name'], 'r' );
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de entradas.', 'taxocommerce-seo' ) );
     }
@@ -9357,7 +9372,7 @@ function seo_import_posts_csv() {
 
     $log = [
         'operacion'    => $dry_run ? 'Simulación de importación de entradas' : 'Importación de entradas',
-        'archivo'      => sanitize_file_name( $_FILES['posts_csv']['name'] ),
+        'archivo'      => sanitize_file_name( (string) ( $posts_file['name'] ?? 'posts.csv' ) ),
         'procesados'   => 0,
         'correctos'    => 0,
         'creados'      => 0,
@@ -10114,17 +10129,22 @@ function seo_import_faqs_csv() {
         'seo_import_faqs_nonce'
     );
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated below before the file is opened.
+    $faqs_file = isset( $_FILES['faqs_csv'] ) && is_array( $_FILES['faqs_csv'] )
+        ? $_FILES['faqs_csv']
+        : array();
+
     if (
-        empty( $_FILES['faqs_csv']['tmp_name'] )
+        empty( $faqs_file['tmp_name'] )
         || (
             ! ( function_exists( 'seo_ie_batch_is_internal' ) && seo_ie_batch_is_internal( 'faq' ) )
-            && ! is_uploaded_file( $_FILES['faqs_csv']['tmp_name'] )
+            && ! is_uploaded_file( $faqs_file['tmp_name'] )
         )
     ) {
         wp_die( esc_html__( 'No se ha recibido un CSV de FAQs válido.', 'taxocommerce-seo' ) );
     }
 
-    $handle = seo_ie_stream_open( $_FILES['faqs_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $faqs_file['tmp_name'], 'r' );
 
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de FAQs.', 'taxocommerce-seo' ) );
@@ -10168,7 +10188,7 @@ function seo_import_faqs_csv() {
 
     $log = [
         'operacion'  => 'Importación de FAQs',
-        'archivo'    => sanitize_file_name( $_FILES['faqs_csv']['name'] ),
+        'archivo'    => sanitize_file_name( (string) ( $faqs_file['name'] ?? 'faqs.csv' ) ),
         'procesados' => 0,
         'correctos'  => 0,
         'creados'    => 0,
@@ -10540,11 +10560,16 @@ function seo_import_redirects_csv() {
 
     check_admin_referer( 'seo_import_redirects_csv', 'seo_import_redirects_nonce' );
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated below before the file is opened.
+    $redirects_file = isset( $_FILES['redirects_csv'] ) && is_array( $_FILES['redirects_csv'] )
+        ? $_FILES['redirects_csv']
+        : array();
+
     if (
-        empty( $_FILES['redirects_csv']['tmp_name'] )
+        empty( $redirects_file['tmp_name'] )
         || (
             ! ( function_exists( 'seo_ie_batch_is_internal' ) && seo_ie_batch_is_internal( 'redirect' ) )
-            && ! is_uploaded_file( $_FILES['redirects_csv']['tmp_name'] )
+            && ! is_uploaded_file( $redirects_file['tmp_name'] )
         )
     ) {
         wp_die( esc_html__( 'No se ha recibido un CSV de redirects valido.', 'taxocommerce-seo' ) );
@@ -10554,7 +10579,7 @@ function seo_import_redirects_csv() {
         wp_die( esc_html__( 'No existe la tabla wp_seo_redirects.', 'taxocommerce-seo' ) );
     }
 
-    $handle = seo_ie_stream_open( $_FILES['redirects_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_stream_open( $redirects_file['tmp_name'], 'r' );
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de redirects.', 'taxocommerce-seo' ) );
     }
@@ -10597,7 +10622,7 @@ function seo_import_redirects_csv() {
     $table = seo_ie_redirects_table_name();
     $log   = [
         'operacion'    => 'Importacion de redirects',
-        'archivo'      => sanitize_file_name( $_FILES['redirects_csv']['name'] ),
+        'archivo'      => sanitize_file_name( (string) ( $redirects_file['name'] ?? 'redirects.csv' ) ),
         'procesados'   => 0,
         'correctos'    => 0,
         'creados'      => 0,
