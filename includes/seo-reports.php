@@ -395,7 +395,7 @@ function seo_reports_general_ajax_partial() {
         $html = ob_get_clean();
     } catch (Throwable $e) {
         ob_end_clean();
-        wp_send_json_error(array('message' => 'Error al generar ' . $definitions[$report_key]['label'] . ': ' . $e->getMessage()), 500);
+        wp_send_json_error(array('message' => 'Error al generar ' . sanitize_text_field((string) $definitions[$report_key]['label']) . ': ' . sanitize_text_field($e->getMessage())), 500);
     }
 
     wp_send_json_success(array(
