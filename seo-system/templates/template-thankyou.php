@@ -19,7 +19,8 @@ $order = ($order_id && function_exists('wc_get_order')) ? wc_get_order($order_id
 $gcr_payload = array();
 
 if ($order && is_a($order, 'WC_Order')) {
-    $merchant_id = (int) apply_filters('seo_gcr_merchant_id', 5704025079, $order);
+    $merchant_id = absint(get_option('seo_ojeador_merchant_account_v1', 0));
+    $merchant_id = absint(apply_filters('seo_gcr_merchant_id', $merchant_id, $order));
     $order_number = trim((string) $order->get_order_number());
     $customer_email = sanitize_email((string) $order->get_billing_email());
     $delivery_country = strtoupper(trim((string) $order->get_shipping_country()));
@@ -151,6 +152,24 @@ if ($order && is_a($order, 'WC_Order')) {
     }
 }
 
+if (!empty($gcr_payload)) {
+    $gcr_handle = 'taxocommerce-google-customer-reviews';
+    $gcr_src = 'https://apis.google.com/js/platform.js?onload=renderOptIn';
+
+    wp_register_script($gcr_handle, $gcr_src, array(), SEO_SYSTEM_VERSION, true);
+    wp_enqueue_script($gcr_handle);
+
+    $gcr_inline = "window.___gcfg = { lang: 'es' };\n"
+        . "window.renderOptIn = function () {\n"
+        . "    if (!window.gapi) { return; }\n"
+        . "    window.gapi.load('surveyoptin', function () {\n"
+        . "        window.gapi.surveyoptin.render(" . wp_json_encode($gcr_payload) . ");\n"
+        . "    });\n"
+        . "};";
+
+    wp_add_inline_script($gcr_handle, $gcr_inline, 'before');
+}
+
 dht_template_render_header();
 ?>
 <main class="dht-page dht-status-page">
@@ -178,24 +197,5 @@ dht_template_render_header();
         </div>
     </section>
 </main>
-
-<?php if (!empty($gcr_payload)) : ?>
-    <!-- Google Customer Reviews: opt-in de encuesta en la confirmacion del pedido. -->
-    <script>
-        window.___gcfg = { lang: 'es' };
-    </script>
-    <script src="https://apis.google.com/js/platform.js?onload=renderOptIn" async defer></script>
-    <script>
-        window.renderOptIn = function () {
-            if (!window.gapi) {
-                return;
-            }
-
-            window.gapi.load('surveyoptin', function () {
-                window.gapi.surveyoptin.render(<?php echo wp_json_encode($gcr_payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>);
-            });
-        };
-    </script>
-<?php endif; ?>
 
 <?php dht_template_render_footer(); ?>

@@ -66,7 +66,7 @@ final class SEO_Ingeniero_Admin {
         if ('seo-dependiente' !== $page || 'engineer' !== $tab) return;
 
         $extra = array();
-        if (!empty($_GET['term_id'])) $extra['term_id'] = absint($_GET['term_id']);
+        if (!empty($_GET['term_id'])) $extra['term_id'] = absint(wp_unslash($_GET['term_id']));
         wp_safe_redirect(self::page_url('research', $extra));
         exit;
     }
@@ -104,14 +104,14 @@ final class SEO_Ingeniero_Admin {
 
     public static function handle_prepare() {
         self::guard('seo_ingeniero_prepare');
-        $limit = max(1, min(100, absint($_POST['limit'] ?? 20)));
+        $limit = max(1, min(100, absint(wp_unslash($_POST['limit'] ?? 20))));
         $state = SEO_Ingeniero::prepare_lesson($limit, true);
         self::redirect(array('ingeniero_notice'=>'prepared','prepared'=>count((array) ($state['queue'] ?? array()))));
     }
 
     public static function handle_control() {
         self::guard('seo_ingeniero_control');
-        $command = sanitize_key((string) ($_POST['command'] ?? ''));
+        $command = sanitize_key((string) wp_unslash($_POST['command'] ?? ''));
         if ('start' === $command) {
             $result = SEO_Ingeniero::start();
             if (is_wp_error($result)) self::redirect(array('ingeniero_error'=>rawurlencode($result->get_error_message())));
@@ -126,7 +126,7 @@ final class SEO_Ingeniero_Admin {
 
     public static function handle_research_category() {
         self::guard('seo_ingeniero_research_category');
-        $term_id = absint($_POST['term_id'] ?? 0);
+        $term_id = absint(wp_unslash($_POST['term_id'] ?? 0));
         $result = SEO_Ingeniero::reinvestigate_category($term_id);
         if (is_wp_error($result)) self::redirect(array('term_id'=>$term_id,'ingeniero_error'=>rawurlencode($result->get_error_message())));
         self::redirect(array('term_id'=>$term_id,'ingeniero_notice'=>'researched'));
@@ -134,9 +134,9 @@ final class SEO_Ingeniero_Admin {
 
     public static function handle_review() {
         self::guard('seo_ingeniero_review');
-        $id = absint($_POST['knowledge_id'] ?? 0);
-        $term_id = absint($_POST['term_id'] ?? 0);
-        $decision = sanitize_key((string) ($_POST['decision'] ?? 'review'));
+        $id = absint(wp_unslash($_POST['knowledge_id'] ?? 0));
+        $term_id = absint(wp_unslash($_POST['term_id'] ?? 0));
+        $decision = sanitize_key((string) wp_unslash($_POST['decision'] ?? 'review'));
         $status = 'approve' === $decision ? 'active' : ('reject' === $decision ? 'rejected' : 'review');
         $result = SEO_Ingeniero_DB::review_knowledge($id, $status);
         if (is_wp_error($result)) self::redirect(array('term_id'=>$term_id,'ingeniero_error'=>rawurlencode($result->get_error_message())));
@@ -148,7 +148,7 @@ final class SEO_Ingeniero_Admin {
 
     public static function handle_approve_category() {
         self::guard('seo_ingeniero_approve_category');
-        $term_id = absint($_POST['term_id'] ?? 0);
+        $term_id = absint(wp_unslash($_POST['term_id'] ?? 0));
         if (!$term_id) {
             self::redirect(array('ingeniero_error'=>rawurlencode('La categoría no es válida.')));
         }
@@ -189,7 +189,7 @@ final class SEO_Ingeniero_Admin {
 
     public static function handle_export() {
         self::guard('seo_ingeniero_export');
-        $term_id = absint($_POST['term_id'] ?? 0);
+        $term_id = absint(wp_unslash($_POST['term_id'] ?? 0));
         $payload = SEO_Ingeniero_DB::export_payload($term_id);
         nocache_headers();
         header('Content-Type: application/json; charset=utf-8');
@@ -200,7 +200,7 @@ final class SEO_Ingeniero_Admin {
 
     public static function handle_settings() {
         self::guard('seo_ingeniero_settings');
-        SEO_Ingeniero_SerpApi_Provider::save_settings(wp_unslash($_POST['ingeniero'] ?? array()));
+        SEO_Ingeniero_SerpApi_Provider::save_settings(map_deep(wp_unslash($_POST['ingeniero'] ?? array()), 'sanitize_text_field'));
         self::redirect(array('ingeniero_notice'=>'settings'));
     }
 
@@ -211,10 +211,10 @@ final class SEO_Ingeniero_Admin {
         SEO_Ingeniero_DB::maybe_install();
         $table = esc_sql(SEO_Ingeniero_DB::table('editorial'));
 
-        $after_id = absint($_REQUEST['after_id'] ?? 0);
-        $created = absint($_REQUEST['created'] ?? 0);
-        $skipped = absint($_REQUEST['skipped'] ?? 0);
-        $errors = absint($_REQUEST['errors'] ?? 0);
+        $after_id = absint(wp_unslash($_REQUEST['after_id'] ?? 0));
+        $created = absint(wp_unslash($_REQUEST['created'] ?? 0));
+        $skipped = absint(wp_unslash($_REQUEST['skipped'] ?? 0));
+        $errors = absint(wp_unslash($_REQUEST['errors'] ?? 0));
         $batch_size = 50;
 
         $rows = (array) $wpdb->get_results(
@@ -1006,9 +1006,9 @@ final class SEO_Ingeniero_Admin {
 
     private static function render_notices() {
         if (!empty($_GET['ingeniero_error'])) {
-            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html(rawurldecode((string) $_GET['ingeniero_error'])) . '</p></div>';
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html(sanitize_text_field(rawurldecode((string) wp_unslash($_GET['ingeniero_error'])))) . '</p></div>';
         }
-        $notice = sanitize_key((string) ($_GET['ingeniero_notice'] ?? ''));
+        $notice = sanitize_key((string) wp_unslash($_GET['ingeniero_notice'] ?? ''));
         $messages = array(
             'prepared'=>'Lección preparada.',
             'started'=>'Investigación iniciada/continuada.',
@@ -1030,31 +1030,31 @@ final class SEO_Ingeniero_Admin {
         if ($notice && isset($messages[$notice])) {
             $suffix = '';
             if ('exchange_imported' === $notice) {
-                $suffix = ' Categorías: ' . absint($_GET['ingeniero_import_categories'] ?? 0)
-                    . ' · Fuentes: ' . absint($_GET['ingeniero_import_sources'] ?? 0)
-                    . ' · Conocimientos: ' . absint($_GET['ingeniero_import_knowledge'] ?? 0)
-                    . ' · Omitidos: ' . absint($_GET['ingeniero_import_skipped'] ?? 0)
-                    . ' · Errores: ' . absint($_GET['ingeniero_import_errors'] ?? 0) . '.';
+                $suffix = ' Categorías: ' . absint(wp_unslash($_GET['ingeniero_import_categories'] ?? 0))
+                    . ' · Fuentes: ' . absint(wp_unslash($_GET['ingeniero_import_sources'] ?? 0))
+                    . ' · Conocimientos: ' . absint(wp_unslash($_GET['ingeniero_import_knowledge'] ?? 0))
+                    . ' · Omitidos: ' . absint(wp_unslash($_GET['ingeniero_import_skipped'] ?? 0))
+                    . ' · Errores: ' . absint(wp_unslash($_GET['ingeniero_import_errors'] ?? 0)) . '.';
             } elseif ('category_approved' === $notice) {
-                $suffix = ' Conocimientos aprobados: ' . absint($_GET['ingeniero_approved_knowledge'] ?? 0) . '.';
+                $suffix = ' Conocimientos aprobados: ' . absint(wp_unslash($_GET['ingeniero_approved_knowledge'] ?? 0)) . '.';
             } elseif ('all_approved' === $notice) {
-                $suffix = ' Categorías: ' . absint($_GET['ingeniero_approved_categories'] ?? 0)
-                    . ' · Conocimientos aprobados: ' . absint($_GET['ingeniero_approved_knowledge'] ?? 0) . '.';
+                $suffix = ' Categorías: ' . absint(wp_unslash($_GET['ingeniero_approved_categories'] ?? 0))
+                    . ' · Conocimientos aprobados: ' . absint(wp_unslash($_GET['ingeniero_approved_knowledge'] ?? 0)) . '.';
             } elseif ('editorial_refreshed' === $notice) {
-                $suffix = ' Procesadas: ' . absint($_GET['editorial_processed'] ?? 0)
-                    . ' · Errores: ' . absint($_GET['editorial_errors'] ?? 0) . '.';
+                $suffix = ' Procesadas: ' . absint(wp_unslash($_GET['editorial_processed'] ?? 0))
+                    . ' · Errores: ' . absint(wp_unslash($_GET['editorial_errors'] ?? 0)) . '.';
             } elseif ('editorial_draft' === $notice) {
-                $suffix = ' Post #' . absint($_GET['post_id'] ?? 0) . '.';
+                $suffix = ' Post #' . absint(wp_unslash($_GET['post_id'] ?? 0)) . '.';
             } elseif ('editorial_all_accepted' === $notice) {
-                $suffix = ' Borradores creados: ' . absint($_GET['editorial_created'] ?? 0)
-                    . ' · Omitidos: ' . absint($_GET['editorial_skipped'] ?? 0)
-                    . ' · Errores: ' . absint($_GET['editorial_errors'] ?? 0) . '.';
+                $suffix = ' Borradores creados: ' . absint(wp_unslash($_GET['editorial_created'] ?? 0))
+                    . ' · Omitidos: ' . absint(wp_unslash($_GET['editorial_skipped'] ?? 0))
+                    . ' · Errores: ' . absint(wp_unslash($_GET['editorial_errors'] ?? 0)) . '.';
             }
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$notice] . $suffix) . '</p></div>';
         }
 
         if (!empty($_GET['ingeniero_exchange_error'])) {
-            echo '<div class="notice notice-error is-dismissible"><p><strong>Importar / Exportar conocimiento:</strong> ' . esc_html(rawurldecode((string) $_GET['ingeniero_exchange_error'])) . '</p></div>';
+            echo '<div class="notice notice-error is-dismissible"><p><strong>Importar / Exportar conocimiento:</strong> ' . esc_html(sanitize_text_field(rawurldecode((string) wp_unslash($_GET['ingeniero_exchange_error'])))) . '</p></div>';
         }
     }
 }

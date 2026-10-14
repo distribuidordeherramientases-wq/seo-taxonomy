@@ -11,7 +11,10 @@ $site_name    = get_bloginfo('name');
 $shop_url     = dht_template_shop_url();
 $contact_url  = dht_template_contact_url();
 $privacy_url  = get_privacy_policy_url();
-$logo_url     = 'https://www.distribuidordeherramientas.es/wp-content/uploads/2026/01/Logo2.webp';
+$logo_candidate = function_exists('dht_shared_site_logo_candidate') ? dht_shared_site_logo_candidate() : null;
+$logo_url       = is_array($logo_candidate) && !empty($logo_candidate['url'])
+    ? esc_url_raw((string) $logo_candidate['url'])
+    : '';
 $phone_label  = '+34 640 87 45 40';
 $phone_href   = 'tel:+34640874540';
 $email        = 'servicioacliente@distribuidordeherramientas.es';
@@ -52,14 +55,18 @@ $service_links = array(
     <div class="footer-container">
         <section class="footer-brand" aria-label="Información de Distribuidor de Herramientas">
             <a class="footer-logo" href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr($site_name); ?>">
-                <img
-                    src="<?php echo esc_url($logo_url); ?>"
-                    alt="<?php echo esc_attr($site_name); ?>"
-                    width="170"
-                    height="85"
-                    loading="lazy"
-                    decoding="async"
-                >
+                <?php if ($logo_url !== '') : ?>
+                    <img
+                        src="<?php echo esc_url($logo_url); ?>"
+                        alt="<?php echo esc_attr($site_name); ?>"
+                        width="170"
+                        height="85"
+                        loading="lazy"
+                        decoding="async"
+                    >
+                <?php else : ?>
+                    <span class="footer-logo-text"><?php echo esc_html($site_name); ?></span>
+                <?php endif; ?>
             </a>
 
             <strong><?php echo esc_html($site_name); ?></strong>

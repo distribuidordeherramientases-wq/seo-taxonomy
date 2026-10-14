@@ -104,6 +104,13 @@ final class SEO_Editor_Exchange {
         exit;
     }
 
+    private static function close_csv_handle($handle) {
+        if (is_resource($handle)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- fgetcsv() requires a stream resource; WP_Filesystem has no streaming CSV equivalent.
+            fclose($handle);
+        }
+    }
+
     private static function parse_upload($upload) {
         if (!is_array($upload) || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
             return new WP_Error('editor_upload', 'No se ha recibido un CSV válido.');
@@ -126,14 +133,14 @@ final class SEO_Editor_Exchange {
         $delimiter = substr_count($first, ';') >= substr_count($first, ',') ? ';' : ',';
         $headers = fgetcsv($handle, 0, $delimiter, '"', '');
         if (!is_array($headers)) {
-            fclose($handle);
+            self::close_csv_handle($handle);
             return new WP_Error('editor_headers', 'Falta la cabecera del CSV.');
         }
         $headers = array_map(static function($h) {
             return sanitize_key(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string)$h)));
         }, $headers);
         if ($headers !== self::COLUMNS) {
-            fclose($handle);
+            self::close_csv_handle($handle);
             return new WP_Error('editor_headers', 'Cabeceras incorrectas. Descarga el CSV de Editor para utilizar la estructura válida.');
         }
         $rows = array();
@@ -142,7 +149,7 @@ final class SEO_Editor_Exchange {
         while (($cells = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
             if ($cells === array(null)) continue;
             if (count($cells) !== count(self::COLUMNS)) {
-                fclose($handle);
+                self::close_csv_handle($handle);
                 return new WP_Error('editor_columns', 'Una fila contiene un número incorrecto de columnas.');
             }
             if (!array_filter($cells, static function($v) {return trim((string)$v) !== ''; })) continue;
@@ -150,7 +157,7 @@ final class SEO_Editor_Exchange {
             $id = absint($row['id'] ?? 0);
             if ($id) {
                 if (isset($seen[$id])) {
-                    fclose($handle);
+                    self::close_csv_handle($handle);
                     return new WP_Error('editor_duplicate_id', 'El CSV contiene el mismo ID más de una vez: ' . $id);
                 }
                 $seen[$id] = true;
@@ -158,19 +165,19 @@ final class SEO_Editor_Exchange {
             if (!$id) {
                 $key = sanitize_key((string)($row['tipo'] ?? '')) . ':' . sanitize_title((string)($row['titulo'] ?? ''));
                 if (isset($seen_new_titles[$key])) {
-                    fclose($handle);
+                    self::close_csv_handle($handle);
                     return new WP_Error('editor_new_duplicate', 'Dos propuestas externas nuevas comparten tipo y título.');
                 }
                 $seen_new_titles[$key] = true;
             }
             $rows[] = $row;
             if (count($rows) > self::MAX_ROWS) {
-                fclose($handle);
+                self::close_csv_handle($handle);
                 return new WP_Error('editor_rows_limit', 'Máximo 100 filas por importación. Divide el CSV en tandas.');
             }
         }
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre del recurso CSV.
-        fclose($handle);
+        self::close_csv_handle($handle);
         return $rows;
     }
 

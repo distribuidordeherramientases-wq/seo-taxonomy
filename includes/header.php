@@ -10,133 +10,29 @@ defined('ABSPATH') || exit;
 require_once __DIR__ . '/template-helpers.php';
 
 /*
- * La hoja se inserta inline de forma deliberada.
- * El servidor genera correctamente la URL/version del CSS, pero en el front
- * el navegador no esta aplicando ese recurso externo. Al imprimir el mismo
- * archivo dentro del <head> evitamos 404/MIME/proxy/CDN sin duplicar logica.
+ * Hoja base y ajustes de cabecera mediante la API de estilos de WordPress.
+ * La URL se resuelve desde la constante del plugin para que sea portable.
  */
-$dht_css_path    = __DIR__ . '/styles-template.css';
-$dht_css_inline  = is_readable($dht_css_path) ? file_get_contents($dht_css_path) : '';
-
-/* Evita que quede encolada otra copia externa con el mismo handle. */
-wp_dequeue_style('dht-template-styles');
-wp_deregister_style('dht-template-styles');
-
-$site_name    = get_bloginfo('name');
-$site_tagline = get_bloginfo('description');
-$search_placeholder = (string) apply_filters(
-    'dht_search_placeholder',
-    get_option('dht_search_placeholder', sprintf('Buscar en %s...', $site_name))
-);
-
-/*
- * Identidad visual dinamica.
- * Usa el logotipo configurado en Apariencia > Personalizar > Identidad del sitio.
- */
-$custom_logo_id = (int) get_theme_mod('custom_logo');
-$logo_alt       = $site_name;
-if ($custom_logo_id > 0) {
-    $attachment_alt = trim((string) get_post_meta($custom_logo_id, '_wp_attachment_image_alt', true));
-    if ($attachment_alt !== '') {
-        $logo_alt = $attachment_alt;
-    }
-}
-
-/* Blog: usa la pagina de entradas configurada en WordPress. */
-$blog_page_id = (int) get_option('page_for_posts');
-$blog_url     = $blog_page_id > 0 ? get_permalink($blog_page_id) : '';
-
-/* Carrito: solo se muestra cuando WooCommerce proporciona una URL valida. */
-$cart_url   = function_exists('wc_get_cart_url') ? wc_get_cart_url() : '';
-$cart_count = 0;
-if (function_exists('WC') && WC() && WC()->cart) {
-    $cart_count = (int) WC()->cart->get_cart_contents_count();
-}
-
-/*
- * WhatsApp dinamico por instalacion.
- * Valores esperados en wp_options:
- * - dht_whatsapp_number  (ej. 34600111222)
- * - dht_whatsapp_message (texto opcional)
- *
- * Los filtros permiten que otro modulo del plugin suministre los valores sin
- * acoplar esta plantilla a una pantalla de ajustes concreta.
- */
-$whatsapp_number = (string) apply_filters(
-    'dht_whatsapp_number',
-    get_option('dht_whatsapp_number', '')
-);
-$whatsapp_number = preg_replace('/\D+/', '', $whatsapp_number);
-
-$whatsapp_message = (string) apply_filters(
-    'dht_whatsapp_message',
-    get_option(
-        'dht_whatsapp_message',
-        sprintf('Hola, necesito informacion sobre un producto de %s.', $site_name)
-    )
-);
-
-$whatsapp_url = $whatsapp_number !== ''
-    ? 'https://wa.me/' . $whatsapp_number . '?text=' . rawurlencode($whatsapp_message)
+$dht_template_style_url = defined('SEO_SYSTEM_URL')
+    ? SEO_SYSTEM_URL . 'seo-system/templates/styles-template.css'
     : '';
+$dht_template_style_ver = defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null;
 
-/*
- * Meta description dinamica como fallback si no la gestiona un plugin SEO.
- * Prioridad: extracto de la pagina/entrada > descripcion corta del sitio.
- */
-$meta_description = '';
-if (is_singular()) {
-    $queried_id = get_queried_object_id();
-    if ($queried_id > 0) {
-        $meta_description = trim((string) get_post_field('post_excerpt', $queried_id));
-        if ($meta_description === '') {
-            $raw_content      = (string) get_post_field('post_content', $queried_id);
-            $meta_description = wp_trim_words(
-                wp_strip_all_tags(strip_shortcodes($raw_content)),
-                30,
-                ''
-            );
-        }
-    }
-}
+wp_register_style(
+    'dht-template-styles',
+    $dht_template_style_url !== '' ? $dht_template_style_url : false,
+    array(),
+    $dht_template_style_ver
+);
+wp_enqueue_style('dht-template-styles');
 
-if ($meta_description === '' && is_front_page()) {
-    $meta_description = $site_tagline;
-}
-
-$meta_description = trim((string) apply_filters('dht_meta_description', $meta_description));
-$seo_plugin_active = defined('WPSEO_VERSION')
-    || defined('RANK_MATH_VERSION')
-    || defined('SEOPRESS_VERSION')
-    || defined('AIOSEO_VERSION');
-?>
-<!doctype html>
-<html <?php language_attributes(); ?>>
-<head>
-    <meta charset="<?php bloginfo('charset'); ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <?php if (!$seo_plugin_active && $meta_description !== '') : ?>
-        <meta name="description" content="<?php echo esc_attr($meta_description); ?>">
-    <?php endif; ?>
-    <?php wp_head(); ?>
-
-    <?php if ($dht_css_inline !== '') : ?>
-        <style id="dht-template-styles-inline">
-<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted local CSS file from this plugin; HTML escaping would corrupt CSS.
-echo $dht_css_inline; ?>
-        </style>
-    <?php endif; ?>
-
-    <!-- Proteccion frente a valores visuales globales corruptos/inadecuados. -->
-    <style id="dht-runtime-safe-vars">
-        html:root {
+$dht_header_inline_css = <<<'CSS'
+html:root {
             --dht-bg: #f7f8fa !important;
             --dht-bg-light: #fafbfc !important;
         }
-    </style>
 
-    <style id="dht-header-actions-css">
-        .dht-header-actions {
+.dht-header-actions {
             display: flex;
             align-items: center;
             justify-content: flex-end;
@@ -282,7 +178,107 @@ echo $dht_css_inline; ?>
                 min-height: 39px;
             }
         }
-    </style>
+CSS;
+wp_add_inline_style('dht-template-styles', $dht_header_inline_css);
+unset($dht_header_inline_css, $dht_template_style_url, $dht_template_style_ver);
+
+$site_name    = get_bloginfo('name');
+$site_tagline = get_bloginfo('description');
+$search_placeholder = (string) apply_filters(
+    'dht_search_placeholder',
+    get_option('dht_search_placeholder', sprintf('Buscar en %s...', $site_name))
+);
+
+/*
+ * Identidad visual dinamica.
+ * Usa el logotipo configurado en Apariencia > Personalizar > Identidad del sitio.
+ */
+$custom_logo_id = (int) get_theme_mod('custom_logo');
+$logo_alt       = $site_name;
+if ($custom_logo_id > 0) {
+    $attachment_alt = trim((string) get_post_meta($custom_logo_id, '_wp_attachment_image_alt', true));
+    if ($attachment_alt !== '') {
+        $logo_alt = $attachment_alt;
+    }
+}
+
+/* Blog: usa la pagina de entradas configurada en WordPress. */
+$blog_page_id = (int) get_option('page_for_posts');
+$blog_url     = $blog_page_id > 0 ? get_permalink($blog_page_id) : '';
+
+/* Carrito: solo se muestra cuando WooCommerce proporciona una URL valida. */
+$cart_url   = function_exists('wc_get_cart_url') ? wc_get_cart_url() : '';
+$cart_count = 0;
+if (function_exists('WC') && WC() && WC()->cart) {
+    $cart_count = (int) WC()->cart->get_cart_contents_count();
+}
+
+/*
+ * WhatsApp dinamico por instalacion.
+ * Valores esperados en wp_options:
+ * - dht_whatsapp_number  (ej. 34600111222)
+ * - dht_whatsapp_message (texto opcional)
+ *
+ * Los filtros permiten que otro modulo del plugin suministre los valores sin
+ * acoplar esta plantilla a una pantalla de ajustes concreta.
+ */
+$whatsapp_number = (string) apply_filters(
+    'dht_whatsapp_number',
+    get_option('dht_whatsapp_number', '')
+);
+$whatsapp_number = preg_replace('/\D+/', '', $whatsapp_number);
+
+$whatsapp_message = (string) apply_filters(
+    'dht_whatsapp_message',
+    get_option(
+        'dht_whatsapp_message',
+        sprintf('Hola, necesito informacion sobre un producto de %s.', $site_name)
+    )
+);
+
+$whatsapp_url = $whatsapp_number !== ''
+    ? 'https://wa.me/' . $whatsapp_number . '?text=' . rawurlencode($whatsapp_message)
+    : '';
+
+/*
+ * Meta description dinamica como fallback si no la gestiona un plugin SEO.
+ * Prioridad: extracto de la pagina/entrada > descripcion corta del sitio.
+ */
+$meta_description = '';
+if (is_singular()) {
+    $queried_id = get_queried_object_id();
+    if ($queried_id > 0) {
+        $meta_description = trim((string) get_post_field('post_excerpt', $queried_id));
+        if ($meta_description === '') {
+            $raw_content      = (string) get_post_field('post_content', $queried_id);
+            $meta_description = wp_trim_words(
+                wp_strip_all_tags(strip_shortcodes($raw_content)),
+                30,
+                ''
+            );
+        }
+    }
+}
+
+if ($meta_description === '' && is_front_page()) {
+    $meta_description = $site_tagline;
+}
+
+$meta_description = trim((string) apply_filters('dht_meta_description', $meta_description));
+$seo_plugin_active = defined('WPSEO_VERSION')
+    || defined('RANK_MATH_VERSION')
+    || defined('SEOPRESS_VERSION')
+    || defined('AIOSEO_VERSION');
+?>
+<!doctype html>
+<html <?php language_attributes(); ?>>
+<head>
+    <meta charset="<?php bloginfo('charset'); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php if (!$seo_plugin_active && $meta_description !== '') : ?>
+        <meta name="description" content="<?php echo esc_attr($meta_description); ?>">
+    <?php endif; ?>
+    <?php wp_head(); ?>
 </head>
 <body <?php body_class('dht-template-body'); ?>>
 <?php wp_body_open(); ?>

@@ -109,8 +109,8 @@ final class SEO_Dependiente_Plugin {
     }
 
     public function register_shortcode() {
-        add_shortcode('dependiente_productos', array($this, 'render_shortcode'));
-        add_shortcode('dependiente', array($this, 'render_shortcode'));
+        add_shortcode('taxocommerce_dependiente_productos', array($this, 'render_shortcode'));
+        add_shortcode('taxocommerce_dependiente', array($this, 'render_shortcode'));
     }
 
     public function template_include($template) {
@@ -1189,15 +1189,30 @@ final class SEO_Dependiente_Plugin {
 
         $existing = get_page_by_path('dependiente', OBJECT, 'page');
         if ($existing instanceof WP_Post) {
-            if (!has_shortcode((string) $existing->post_content, 'dependiente_productos') && !has_shortcode((string) $existing->post_content, 'dependiente')) {
+            $content = (string) $existing->post_content;
+            $migrated_content = str_replace(
+                array('[dependiente_productos]', '[dependiente]'),
+                array('[taxocommerce_dependiente_productos]', '[taxocommerce_dependiente]'),
+                $content
+            );
+
+            if (
+                !has_shortcode($migrated_content, 'taxocommerce_dependiente_productos')
+                && !has_shortcode($migrated_content, 'taxocommerce_dependiente')
+            ) {
+                $migrated_content = rtrim($migrated_content) . "\n\n[taxocommerce_dependiente_productos]";
+            }
+
+            if ($migrated_content !== $content) {
                 $updated = wp_update_post(array(
                     'ID'           => $existing->ID,
-                    'post_content' => rtrim((string) $existing->post_content) . "\n\n[dependiente_productos]",
+                    'post_content' => $migrated_content,
                 ), true);
                 if (!is_wp_error($updated)) {
                     update_option('seo_dependiente_shortcode_appended_page_id', $existing->ID, false);
                 }
             }
+
             update_option('seo_dependiente_page_id', $existing->ID, false);
             return $existing->ID;
         }
@@ -1207,7 +1222,7 @@ final class SEO_Dependiente_Plugin {
             'post_status'  => 'publish',
             'post_title'   => 'Dependiente',
             'post_name'    => 'dependiente',
-            'post_content' => '[dependiente_productos]',
+            'post_content' => '[taxocommerce_dependiente_productos]',
         ), true);
 
         if (is_wp_error($page_id)) {

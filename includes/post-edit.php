@@ -10,6 +10,31 @@
 
 defined('ABSPATH') || exit;
 
+if (!function_exists('seo_post_editor_enqueue_assets')) {
+    function seo_post_editor_enqueue_assets() {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if (!in_array($page, array('seo-post-editor', 'seo-content'), true)) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'seo-post-editor',
+            SEO_SYSTEM_URL . 'includes/assets/post-edit.css',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+        );
+        wp_enqueue_script(
+            'seo-post-editor',
+            SEO_SYSTEM_URL . 'includes/assets/post-edit.js',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+            true
+        );
+    }
+}
+add_action('admin_enqueue_scripts', 'seo_post_editor_enqueue_assets');
+
+
 // Carga opcional del modulo de informes si vive junto a este editor.
 // require_once evita dobles cargas si el bootstrap principal ya lo incluye.
 $seo_post_reports_file = __DIR__ . '/seo-post-reports.php';
@@ -142,7 +167,8 @@ if (!function_exists('seo_post_editor_redirect_url_from_request')) {
     function seo_post_editor_redirect_url_from_request($extra = array()) {
         $page = isset($_POST['return_page']) ? sanitize_key(wp_unslash($_POST['return_page'])) : 'seo-post-editor';
         $tab  = isset($_POST['return_tab']) ? sanitize_key(wp_unslash($_POST['return_tab'])) : '';
-        $base = isset($_POST['return_base']) && wp_unslash($_POST['return_base']) === 'edit.php' ? 'edit.php' : 'admin.php';
+        $return_base = isset($_POST['return_base']) ? sanitize_key(wp_unslash($_POST['return_base'])) : '';
+        $base = 'edit.php' === $return_base ? 'edit.php' : 'admin.php';
 
         if ($page === '') {
             $page = 'seo-post-editor';
@@ -632,8 +658,8 @@ if (!function_exists('seo_post_editor_handle_save')) {
         $title   = isset($_POST['post_title']) ? sanitize_text_field(wp_unslash($_POST['post_title'])) : '';
         $slug    = isset($_POST['post_name']) ? sanitize_title(wp_unslash($_POST['post_name'])) : '';
         $status  = isset($_POST['post_status']) ? sanitize_key(wp_unslash($_POST['post_status'])) : 'draft';
-        $excerpt = isset($_POST['post_excerpt']) ? seo_post_editor_sanitize_content($_POST['post_excerpt']) : '';
-        $content = isset($_POST['post_content']) ? seo_post_editor_sanitize_content($_POST['post_content']) : '';
+        $excerpt = isset($_POST['post_excerpt']) ? seo_post_editor_sanitize_content(wp_unslash($_POST['post_excerpt'])) : '';
+        $content = isset($_POST['post_content']) ? seo_post_editor_sanitize_content(wp_unslash($_POST['post_content'])) : '';
         $content_role = isset($_POST['seo_public_content_role'])
             ? sanitize_key(wp_unslash($_POST['seo_public_content_role']))
             : '';
@@ -661,9 +687,9 @@ if (!function_exists('seo_post_editor_handle_save')) {
         }
 
         $product_cat_ids = isset($_POST['product_cat_ids'])
-            ? (array) wp_unslash($_POST['product_cat_ids'])
+            ? array_map('absint', (array) wp_unslash($_POST['product_cat_ids']))
             : array();
-        $product_cat_ids = array_values(array_unique(array_filter(array_map('absint', $product_cat_ids))));
+        $product_cat_ids = array_values(array_unique(array_filter($product_cat_ids)));
         $valid_product_cat_ids = seo_post_editor_validate_product_cat_ids($product_cat_ids);
 
         if (count($product_cat_ids) !== count($valid_product_cat_ids)) {
@@ -880,42 +906,6 @@ if (!function_exists('seo_post_editor_render_prepend_payload')) {
         echo '<textarea id="' . esc_attr($payload_id) . '" style="display:none" aria-hidden="true">' . esc_textarea((string) $html) . '</textarea>';
         echo '<button type="button" class="button button-primary" onclick="return seoPostEditorPrependPayload(' . esc_attr(wp_json_encode($payload_id)) . ');">' . esc_html($label) . '</button>';
 
-        static $script_printed = false;
-        if ($script_printed) return;
-        $script_printed = true;
-        ?>
-        <script>
-        function seoPostEditorPrependPayload(payloadId) {
-            var source = document.getElementById(payloadId);
-            if (!source) return false;
-            var addition = source.value || '';
-            if (!addition) return false;
-
-            var editorId = 'seo_post_editor_content';
-            var textarea = document.getElementById(editorId);
-            var current = '';
-
-            if (window.tinymce && tinymce.get(editorId) && !tinymce.get(editorId).isHidden()) {
-                var editor = tinymce.get(editorId);
-                current = editor.getContent() || '';
-                editor.setContent(addition + (current ? '\n\n' + current : ''));
-                editor.save();
-            } else if (textarea) {
-                current = textarea.value || '';
-                textarea.value = addition + (current ? '\n\n' + current : '');
-                textarea.dispatchEvent(new Event('input', {bubbles:true}));
-                textarea.dispatchEvent(new Event('change', {bubbles:true}));
-            }
-
-            var form = textarea ? textarea.closest('form') : null;
-            if (form) {
-                form.dataset.seoEditorialPendingInsert = '1';
-            }
-
-            return false;
-        }
-        </script>
-        <?php
     }
 }
 
@@ -1148,61 +1138,6 @@ if (!function_exists('seo_page_edit_posts')) {
                 </form>
             <?php endif; ?>
 
-            <script>
-            (function () {
-                var search = document.getElementById('seo-post-product-cat-search');
-                var list = document.getElementById('seo-post-product-cat-list');
-                var allButton = document.getElementById('seo-post-product-cat-all');
-                var noneButton = document.getElementById('seo-post-product-cat-none');
-                if (!search || !list) return;
-
-                function normalize(value) {
-                    value = (value || '').toLowerCase();
-                    if (value.normalize) {
-                        value = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                    }
-                    return value;
-                }
-
-                function visibleItems() {
-                    return Array.prototype.filter.call(list.querySelectorAll('.seo-post-product-cat-item'), function (item) {
-                        return item.style.display !== 'none';
-                    });
-                }
-
-                search.addEventListener('input', function () {
-                    var needle = normalize(search.value);
-                    Array.prototype.forEach.call(list.querySelectorAll('.seo-post-product-cat-item'), function (item) {
-                        var haystack = normalize(item.getAttribute('data-search'));
-                        item.style.display = !needle || haystack.indexOf(needle) !== -1 ? 'block' : 'none';
-                    });
-                });
-
-                if (allButton) {
-                    allButton.addEventListener('click', function () {
-                        visibleItems().forEach(function (item) {
-                            var checkbox = item.querySelector('input[type="checkbox"]');
-                            if (checkbox) checkbox.checked = true;
-                        });
-                    });
-                }
-
-                if (noneButton) {
-                    noneButton.addEventListener('click', function () {
-                        visibleItems().forEach(function (item) {
-                            var checkbox = item.querySelector('input[type="checkbox"]');
-                            if (checkbox) checkbox.checked = false;
-                        });
-                    });
-                }
-            })();
-            </script>
-
-            <style>
-                @media (max-width: 900px) {
-                    .seo-post-editor-layout { grid-template-columns:1fr !important; }
-                }
-            </style>
             <?php
             echo '</div>';
             return;
@@ -1219,7 +1154,7 @@ if (!function_exists('seo_page_edit_posts')) {
         $paged  = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
         $score_days = 28;
-        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
+        $score_order = isset($_GET['score_order']) && 'asc' === strtolower(sanitize_key((string) wp_unslash($_GET['score_order']))) ? 'asc' : 'desc';
         $reports_available = !$service_only
             && function_exists('seo_post_reports_get_summary')
             && function_exists('seo_post_reports_admin_url');

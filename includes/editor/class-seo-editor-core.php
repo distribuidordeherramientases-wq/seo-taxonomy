@@ -75,8 +75,8 @@ final class SEO_Editor_Core {
     public static function drafts($filter = array()) {
         // Límites fijos: no leer toda wp_posts ni escanear productos.
         $ids = array_merge(
-            (array)get_posts(array('post_type'=>'post','post_status'=>'draft','posts_per_page'=>self::MAX_POSTS,'fields'=>'ids','orderby'=>'modified','order'=>'DESC','suppress_filters'=>true)),
-            (array)get_posts(array('post_type'=>'page','post_status'=>'draft','posts_per_page'=>self::MAX_LANDINGS,'fields'=>'ids','orderby'=>'modified','order'=>'DESC','suppress_filters'=>true))
+            (array)get_posts(array('post_type'=>'post','post_status'=>'draft','posts_per_page'=>self::MAX_POSTS,'fields'=>'ids','orderby'=>'modified','order'=>'DESC','suppress_filters'=>false)),
+            (array)get_posts(array('post_type'=>'page','post_status'=>'draft','posts_per_page'=>self::MAX_LANDINGS,'fields'=>'ids','orderby'=>'modified','order'=>'DESC','suppress_filters'=>false))
         );
         $rows = array();
         $kind_filter = sanitize_key((string)($filter['tipo'] ?? ''));

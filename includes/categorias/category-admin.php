@@ -3436,200 +3436,27 @@ Cinco o seis FAQs.
 
 
 
-<script type="text/javascript">
-var seoDatosRelaciones = <?php echo json_encode($mapeo_completo); ?>;
-var seoRelacionesCategorias = <?php echo json_encode($relaciones_categorias); ?>;
-var seoUrlsPrecalculadas = <?php echo json_encode($urls_precalculadas); ?>;
+<?php
+wp_enqueue_script(
+    'seo-category-admin',
+    SEO_SYSTEM_URL . 'includes/categorias/assets/category-admin.js',
+    array('jquery'),
+    defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+    true
+);
+wp_localize_script(
+    'seo-category-admin',
+    'seoCategoryAdminData',
+    array(
+        'relations'   => array_values((array) $mapeo_completo),
+        'categories'  => array_values((array) $relaciones_categorias),
+        'urls'        => (array) $urls_precalculadas,
+        'ajaxUrl'     => admin_url('admin-ajax.php'),
+        'deleteNonce' => wp_create_nonce('seo_category_delete'),
+    )
+);
+?>
 
-var seoUrlsDestinoPorFila = {};
-
-
-
-
-
-function seoFiltrarCascada(termId, nivelModificado) {
-    var clusterSel  = jQuery('#cluster_' + termId);
-    var hubPSel     = jQuery('#hub_p_' + termId);
-    var hubSSel     = jQuery('#hub_s_' + termId);
-    var catDestSel  = jQuery('#cat_dest_' + termId);
-    var previewDiv  = jQuery('#url_preview_' + termId);
-    
-    var btnRelOnly  = jQuery('#btn_rel_only_' + termId);
-    var btnBorrar   = jQuery('#btn_redirect_' + termId);
-
-    if (nivelModificado === 1) {
-        var clusterId = clusterSel.val();
-        hubPSel.html('<option value="">-- Seleccionar Hub Primario --</option>').attr('disabled', 'disabled');
-        hubSSel.html('<option value="">-- Esperando Hub P. --</option>').attr('disabled', 'disabled');
-        catDestSel.html('<option value="">-- Esperando Hub S. --</option>').attr('disabled', 'disabled');
-
-        if (clusterId !== "") {
-            var primarios = seoDatosRelaciones.filter(function(r) {
-                return r.source_id === clusterId && r.target_type === 'hub_primary';
-            });
-            if (primarios.length > 0) {
-                primarios.forEach(function(item) {
-                    hubPSel.append('<option value="' + item.target_id + '">' + item.target_title + '</option>');
-                });
-                hubPSel.removeAttr('disabled');
-            } else {
-                hubPSel.html('<option value="">Sin Hubs Primarios</option>');
-            }
-        }
-    }
-
-    if (nivelModificado === 2) {
-        var hubPId = hubPSel.val();
-        hubSSel.html('<option value="">-- Seleccionar Hub Secundario --</option>').attr('disabled', 'disabled');
-        catDestSel.html('<option value="">-- Esperando Hub S. --</option>').attr('disabled', 'disabled');
-
-        if (hubPId !== "") {
-            var secundarios = seoDatosRelaciones.filter(function(r) {
-                return r.source_id === hubPId && (r.target_type === 'hub_secondary' || r.target_type === 'hub_secundario');
-            });
-            if (secundarios.length > 0) {
-                secundarios.forEach(function(item) {
-                    hubSSel.append('<option value="' + item.target_id + '">' + item.target_title + '</option>');
-                });
-                hubSSel.removeAttr('disabled');
-            } else {
-                hubSSel.html('<option value="">Sin Hubs Secundarios</option>');
-            }
-        }
-    }
-
-    if (nivelModificado === 3) {
-        var hubSId = hubSSel.val();
-        catDestSel.html('<option value="">-- Seleccionar Categoría Destino --</option>').attr('disabled', 'disabled');
-
-        if (hubSId !== "") {
-            var categoriasFiltradas = seoRelacionesCategorias.filter(function(c) {
-                return c.hub_secundario_id === hubSId;
-            });
-
-            if (categoriasFiltradas.length > 0) {
-                categoriasFiltradas.forEach(function(item) {
-                    if (parseInt(item.cat_term_id) !== parseInt(termId)) {
-                        catDestSel.append('<option value="' + item.cat_term_id + '">' + item.cat_nombre + '</option>');
-                    }
-                });
-                catDestSel.removeAttr('disabled');
-            } else {
-                catDestSel.html('<option value="">Sin Categorías vinculadas</option>');
-            }
-        }
-    }
-
-    var finalUrl = "";
-    if (catDestSel.val() && catDestSel.val() !== "") {
-        finalUrl = seoUrlsPrecalculadas['cat_' + catDestSel.val()] || "";
-    } else if (hubSSel.val() && hubSSel.val() !== "") {
-        finalUrl = seoUrlsPrecalculadas['post_' + hubSSel.val()] || "";
-    } else if (hubPSel.val() && hubPSel.val() !== "") {
-        finalUrl = seoUrlsPrecalculadas['post_' + hubPSel.val()] || "";
-    } else if (clusterSel.val() && clusterSel.val() !== "") {
-        finalUrl = seoUrlsPrecalculadas['post_' + clusterSel.val()] || "";
-    }
-
-    seoUrlsDestinoPorFila[termId] = finalUrl;
-
-    if (finalUrl !== "") {
-        previewDiv.html('<strong style="color:#006505;">' + finalUrl + '</strong>');
-        
-        btnRelOnly.removeAttr('disabled').css({
-            'background': '#e2f0fd',
-            'border-color': '#2271b1',
-            'color': '#2271b1',
-            'cursor': 'pointer'
-        });
-        /* El borrado no depende de la cascada: el servidor resuelve el Hub secundario canónico. */
-    } else {
-        previewDiv.html('<i>Ningún destino seleccionado</i>');
-        btnRelOnly.attr('disabled', 'disabled').css({
-            'background': '#f6f7f7',
-            'border-color': '#dcdcde',
-            'color': '#a7aaad',
-            'cursor': 'not-allowed'
-        });
-        /* El borrado sigue disponible; si no existe un Hub secundario único, el servidor lo bloqueará. */
-    }
-}
-
-function seoProcesarAccionV2(termId, urlOrigen) {
-
-    var btnBorrar = jQuery('#btn_redirect_' + termId);
-    var fila      = jQuery('#cat_row_' + termId);
-
-    btnBorrar.attr('disabled', 'disabled').css('background', '#f0f0f1');
-
-    jQuery.ajax({
-        url: ajaxurl,
-        type: 'POST',
-
-        data: {
-            action: 'seo_borrar_y_redirigir_categoria',
-            term_id: termId,
-            nonce: '<?php echo esc_js(wp_create_nonce('seo_category_delete')); ?>'
-        },
-
-        success: function(response) {
-
-            if (!response || !response.success) {
-
-                alert(
-                    'RESPUESTA RECIBIDA: ' +
-                    JSON.stringify(response)
-                );
-
-                btnBorrar.removeAttr('disabled').css({
-                    'background': '#bae0ba',
-                    'border-color': '#00a32a',
-                    'color': '#006505',
-                    'cursor': 'pointer'
-                });
-
-                return;
-            }
-
-            fila.css({
-                'background': '#ffdede',
-                'border-color': '#cc0000',
-                'opacity': '0.3',
-                'transform': 'scale(0.96)'
-            });
-
-            setTimeout(function() {
-
-                fila.slideUp(300, function() {
-                    jQuery(this).remove();
-                });
-
-            }, 300);
-        },
-
-        error: function(xhr, textStatus, errorThrown) {
-
-            alert(
-                "Error AJAX\n" +
-                "Estado: " + textStatus + "\n" +
-                "HTTP: " + xhr.status + "\n" +
-                "Error: " + errorThrown + "\n" +
-                "Respuesta: " + xhr.responseText
-            );
-
-            btnBorrar.removeAttr('disabled').css({
-                'background': '#bae0ba',
-                'border-color': '#00a32a',
-                'color': '#006505',
-                'cursor': 'pointer'
-            });
-        }
-    });
-}
-
-
-
-</script>
 
 
 <?php

@@ -1,0 +1,107 @@
+.seo-core-test-panel{background:#fff;border:1px solid #ccd0d4;border-top:none;padding:20px;max-width:1320px;}
+        .seo-core-test-tabs{margin-top:15px;}
+        .seo-core-test-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0;}
+        .seo-core-test-card{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:16px;margin:0 0 18px;}
+        .seo-core-test-card h2{margin-top:0;font-size:18px;}
+        .seo-core-test-kpi{font-size:28px;font-weight:700;line-height:1.2;}
+        .seo-core-test-table{width:100%;border-collapse:collapse;margin-top:15px;}
+        .seo-core-test-table th,.seo-core-test-table td{border-bottom:1px solid #e5e5e5;padding:10px;text-align:left;vertical-align:top;}
+        .seo-core-test-table th{background:#f6f7f7;font-weight:600;}
+        .seo-core-test-badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;}
+        .seo-core-test-ok{background:#d1e7dd;color:#0f5132;}
+        .seo-core-test-warning{background:#fff3cd;color:#664d03;}
+        .seo-core-test-ko{background:#f8d7da;color:#842029;}
+        .seo-core-test-info{background:#cff4fc;color:#055160;}
+        .seo-core-test-muted{color:#646970;}
+        .seo-core-test-note{border-left:4px solid #72aee6;background:#f0f6fc;padding:12px 14px;margin:16px 0;}
+        .seo-core-test-report{width:100%;min-height:300px;font-family:Consolas,Monaco,monospace;font-size:13px;white-space:pre;}
+        .seo-core-test-section{margin:0 0 28px;}
+        .seo-core-test-section h2{border-bottom:1px solid #dcdcde;padding-bottom:8px;margin-top:8px;}
+        .seo-core-test-details{border:1px solid #dcdcde;border-radius:6px;background:#fff;margin:14px 0;}
+        .seo-core-test-details>summary{cursor:pointer;padding:12px 14px;font-weight:600;background:#f6f7f7;}
+        .seo-core-test-details-content{padding:0 14px 14px;overflow:auto;}
+        .seo-core-test-code{font-family:Consolas,Monaco,monospace;font-size:12px;}
+        .seo-core-test-path{word-break:break-word;}
+        .seo-core-test-search{width:100%;max-width:520px;margin:10px 0 4px;}
+        .seo-core-test-empty{padding:12px 0;color:#646970;}
+        .seo-core-test-table-wrap{overflow:auto;max-height:620px;}
+        .seo-core-health-strip{display:grid;grid-template-columns:minmax(190px,1.35fr) repeat(4,minmax(115px,.75fr));gap:10px;margin:0 0 20px;}
+        .seo-core-health-box{border:1px solid #dcdcde;border-left-width:5px;border-radius:7px;padding:12px 14px;background:#fff;min-width:0;}
+        .seo-core-health-box strong{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#50575e;margin-bottom:4px;}
+        .seo-core-health-box .seo-core-health-value{font-size:22px;font-weight:750;line-height:1.15;}
+        .seo-core-health-critical{border-left-color:#d63638;background:#fff5f5;}
+        .seo-core-health-important{border-left-color:#d97706;background:#fff8ed;}
+        .seo-core-health-warning{border-left-color:#dba617;background:#fffbea;}
+        .seo-core-health-ok{border-left-color:#00a32a;background:#f3fbf5;}
+        .seo-core-health-info{border-left-color:#2271b1;background:#f0f6fc;}
+        .seo-core-priority-list{display:grid;gap:8px;margin:14px 0 22px;}
+        .seo-core-priority-item{display:grid;grid-template-columns:110px minmax(180px,1fr) 2fr;gap:12px;align-items:start;border:1px solid #dcdcde;border-radius:6px;padding:10px 12px;background:#fff;}
+        .seo-core-priority-item code{word-break:break-word;}
+        .seo-core-module-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0 24px;}
+        .seo-core-module-card{border:1px solid #dcdcde;border-radius:7px;padding:14px;background:#fff;}
+        .seo-core-module-card h3{margin:0 0 8px;font-size:15px;}
+        .seo-core-module-score{font-size:24px;font-weight:750;}
+        .seo-core-diagnostics-consent{border:1px solid #c3c4c7;border-left:5px solid #2271b1;background:#f6f7f7;border-radius:7px;padding:16px 18px;margin:16px 0 20px;max-width:920px;}
+        .seo-core-diagnostics-consent h2{margin:0 0 8px;font-size:18px;}
+        .seo-core-diagnostics-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;}
+        .seo-core-diagnostics-privacy{margin:10px 0 0;color:#50575e;}
+        .seo-core-diagnostics-notice{max-width:920px;margin:12px 0;}
+        .seo-core-run-meta{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin:12px 0 18px;padding:12px;background:#fff;border:1px solid #dcdcde;border-left:4px solid #2271b1;border-radius:4px;}
+        .seo-core-run-meta.is-stale{border-left-color:#dba617;}
+        .seo-core-run-meta.is-very-stale{border-left-color:#d63638;}
+        .seo-core-run-meta-item{min-width:145px;padding:2px 10px 2px 0;}
+        .seo-core-run-meta-item strong{display:block;margin-bottom:3px;}
+        .seo-core-run-meta-main{min-width:230px;}
+        .seo-core-remediation-details{margin-top:8px;}
+        .seo-core-remediation-details>summary{cursor:pointer;color:#2271b1;font-weight:600;}
+        .seo-core-remediation-body{border-left:3px solid #72aee6;padding:8px 12px;margin-top:8px;background:#f6f7f7;}
+        .seo-core-remediation-body ol{margin:8px 0 8px 20px;}
+        .seo-core-debug-json{max-height:360px;overflow:auto;background:#1d2327;color:#f0f0f1;padding:12px;border-radius:4px;white-space:pre-wrap;word-break:break-word;}
+        .seo-core-settings-form{max-width:1050px;}
+        .seo-core-remediation-center{margin-top:28px;max-width:1100px;}
+        .seo-core-remediation-card{border:1px solid #dcdcde;border-radius:7px;padding:14px 16px;margin:12px 0;background:#fff;}
+        .seo-core-remediation-card header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+        .seo-core-scope-note{border:1px solid #9ec5e5;border-left:5px solid #2271b1;background:#f0f6fc;border-radius:7px;padding:14px 16px;margin:0 0 20px;}
+        .seo-core-scope-note strong{display:block;margin-bottom:4px;}
+        .seo-core-nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:18px 0;}
+        .seo-core-nav-card{display:block;text-decoration:none;background:#fff;border:1px solid #dcdcde;border-radius:7px;padding:14px 16px;color:#1d2327;}
+        .seo-core-nav-card:hover{border-color:#2271b1;box-shadow:0 2px 8px rgba(0,0,0,.06);color:#135e96;}
+        .seo-core-nav-card strong{display:block;font-size:15px;margin-bottom:5px;}
+        .seo-core-nav-card span{display:block;color:#646970;line-height:1.45;}
+        .seo-core-diagnostics-compact{border:1px solid #dcdcde;border-radius:7px;background:#fff;margin:14px 0 0;}
+        .seo-core-diagnostics-compact>summary{cursor:pointer;padding:11px 13px;font-weight:600;}
+        .seo-core-diagnostics-compact-body{padding:0 13px 13px;}
+        .seo-core-inline-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;}
+        .seo-core-inline-actions form{margin:0;}
+        .seo-core-advanced-bundle{border-top:1px solid #dcdcde;padding-top:18px;margin-top:24px;}
+        .seo-core-advanced-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:12px;}
+        .seo-core-advanced-heading h3{margin:0 0 4px;font-size:18px;}
+        .seo-core-advanced-heading p{margin:0;color:#646970;}
+        .seo-core-advanced-heading>div:last-child{text-align:right;white-space:nowrap;}
+        .seo-core-advanced-heading>div:last-child strong{display:block;font-size:22px;}
+        .seo-core-advanced-heading>div:last-child span{color:#646970;}
+        .seo-core-advanced-group>summary span{display:block;}
+        .seo-core-advanced-group>summary small{display:block;margin-top:4px;color:#646970;font-weight:400;}
+        .seo-core-nav-card.is-primary{border-color:#2271b1;border-left-width:5px;background:#f0f6fc;}
+        .seo-core-summary-report{margin-top:22px;}
+        .seo-core-summary-global{display:grid;grid-template-columns:minmax(220px,1.4fr) repeat(6,minmax(115px,.75fr));gap:10px;margin:16px 0 24px;}
+        .seo-core-summary-tab-grid{display:grid;grid-template-columns:repeat(3,minmax(240px,1fr));gap:14px;margin:12px 0 24px;}
+        .seo-core-summary-tab-card{display:block;text-decoration:none;color:#1d2327;border:1px solid #dcdcde;border-left:5px solid #2271b1;border-radius:8px;padding:14px 16px;background:#fff;}
+        .seo-core-summary-tab-card:hover,.seo-core-module-link:hover{border-color:#2271b1;box-shadow:0 2px 8px rgba(0,0,0,.06);color:#1d2327;}
+        .seo-core-summary-tab-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;font-size:15px;}
+        .seo-core-summary-tab-head span{font-size:24px;font-weight:750;white-space:nowrap;}
+        .seo-core-summary-tab-state{margin:6px 0 12px;font-weight:700;}
+        .seo-core-summary-tab-metrics{display:grid;grid-template-columns:repeat(2,minmax(100px,1fr));gap:7px 12px;color:#50575e;}
+        .seo-core-summary-tab-metrics span{display:block;}
+        .seo-core-summary-tab-metrics b{color:#1d2327;}
+        .seo-core-summary-tab-foot{border-top:1px solid #f0f0f1;margin-top:12px;padding-top:9px;color:#646970;font-size:12px;}
+        .seo-core-summary-tab-critical{border-left-color:#d63638;background:#fff5f5;}
+        .seo-core-summary-tab-important{border-left-color:#d97706;background:#fff8ed;}
+        .seo-core-summary-tab-warning{border-left-color:#dba617;background:#fffbea;}
+        .seo-core-summary-tab-ok{border-left-color:#00a32a;background:#f3fbf5;}
+        .seo-core-summary-tab-info,.seo-core-summary-tab-not_evaluable{border-left-color:#2271b1;background:#f0f6fc;}
+        .seo-core-module-link{display:block;text-decoration:none;color:#1d2327;}
+        .seo-core-module-state{font-weight:700;margin:4px 0 8px;}
+        @media(max-width:1100px){.seo-core-summary-global{grid-template-columns:repeat(3,minmax(140px,1fr));}.seo-core-summary-global .seo-core-health-box:first-child{grid-column:1/-1}.seo-core-summary-tab-grid{grid-template-columns:1fr;}}
+        @media(max-width:900px){.seo-core-health-strip{grid-template-columns:repeat(2,minmax(140px,1fr));}.seo-core-health-box:first-child{grid-column:1/-1}.seo-core-priority-item{grid-template-columns:1fr;gap:5px;}.seo-core-run-meta-item{min-width:calc(50% - 10px);}.seo-core-summary-global{grid-template-columns:repeat(2,minmax(130px,1fr));}}
+        @media(max-width:600px){.seo-core-summary-global{grid-template-columns:1fr 1fr;}.seo-core-summary-tab-metrics{grid-template-columns:1fr;}}

@@ -490,6 +490,13 @@ final class SEO_Dependiente_Trainer_Exchange {
         exit;
     }
 
+    private static function close_csv_handle($handle) {
+        if (is_resource($handle)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- fgetcsv() requires a stream resource; WP_Filesystem has no streaming CSV equivalent.
+            fclose($handle);
+        }
+    }
+
     private static function read_csv($path) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv necesita stream sobre el temporal validado.
         $fh = fopen((string) $path, 'r');
@@ -501,7 +508,7 @@ final class SEO_Dependiente_Trainer_Exchange {
         if (!is_array($header)) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre del recurso temporal CSV leído mediante fgetcsv(), no escritura a disco.
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre del recurso temporal CSV leído mediante fgetcsv().
-        fclose($fh);
+        self::close_csv_handle($fh);
             return new WP_Error('trainer_exchange_header', 'El CSV no contiene una cabecera válida.');
         }
         if (isset($header[0])) {
@@ -511,7 +518,7 @@ final class SEO_Dependiente_Trainer_Exchange {
 
         foreach (array('question_hash','lesson_key','question') as $required) {
             if (!in_array($required, $header, true)) {
-                fclose($fh);
+                self::close_csv_handle($fh);
                 return new WP_Error('trainer_exchange_columns', 'El CSV debe contener question_hash, lesson_key y question.');
             }
         }
@@ -528,13 +535,13 @@ final class SEO_Dependiente_Trainer_Exchange {
             $values = array_pad($values, count($header), '');
             $row = array_combine($header, array_slice($values, 0, count($header)));
             if (!is_array($row)) {
-                fclose($fh);
+                self::close_csv_handle($fh);
                 return new WP_Error('trainer_exchange_row', sprintf('No se pudo interpretar la fila %d.', $line));
             }
             $row['_line'] = $line;
             $rows[] = $row;
         }
-        fclose($fh);
+        self::close_csv_handle($fh);
         return $rows;
     }
 

@@ -813,7 +813,7 @@ function seo_marketing_style_admin_url($args = array())
 function seo_marketing_style_handle_save()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para modificar el estilo visual.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para modificar el estilo visual.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_marketing_style_save');
@@ -850,7 +850,7 @@ add_action('admin_post_seo_marketing_style_save', 'seo_marketing_style_handle_sa
 function seo_marketing_style_handle_reset()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para restaurar el estilo visual.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para restaurar el estilo visual.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_marketing_style_reset');
@@ -883,7 +883,7 @@ add_action('admin_post_seo_marketing_style_reset', 'seo_marketing_style_handle_r
 function seo_marketing_style_handle_import()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para importar estilos.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para importar estilos.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_marketing_style_import');
@@ -928,7 +928,7 @@ add_action('admin_post_seo_marketing_style_import', 'seo_marketing_style_handle_
 function seo_marketing_style_handle_export()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar estilos.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para exportar estilos.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_marketing_style_export');
@@ -1376,7 +1376,7 @@ function seo_marketing_identity_validate_image_id($attachment_id)
 function seo_marketing_identity_handle_save()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para modificar la identidad del sitio.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para modificar la identidad del sitio.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_marketing_identity_save');
@@ -2295,7 +2295,7 @@ function seo_marketing_get_recommended_category_ids($source_type, $source_id, $l
 function seo_marketing_handle_save_category_relations()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para modificar estas asociaciones.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para modificar estas asociaciones.', 'taxocommerce-seo'));
     }
 
     $source_type = isset($_POST['source_type'])
@@ -2473,7 +2473,7 @@ add_action(
 function seo_marketing_handle_auto_assign_all_category_relations()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para modificar estas asociaciones.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para modificar estas asociaciones.', 'taxocommerce-seo'));
     }
 
     check_admin_referer('seo_marketing_auto_assign_all_category_relations');
@@ -6036,7 +6036,7 @@ function seo_marketing_scan_sync_inventory()
 function seo_marketing_scan_handle_inventory_sync()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para actualizar el inventario.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para actualizar el inventario.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_marketing_scan_inventory_sync');
 
@@ -6249,7 +6249,7 @@ function seo_marketing_scan_expire_stale_runs()
 function seo_marketing_scan_handle_start()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para iniciar el escaneo.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para iniciar el escaneo.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_marketing_scan_start');
     seo_marketing_scan_ensure_tables();
@@ -6400,7 +6400,7 @@ add_action('admin_post_seo_marketing_scan_start', 'seo_marketing_scan_handle_sta
 function seo_marketing_scan_handle_cancel()
 {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para detener el escaneo.', 'seo-taxonomy'));
+        wp_die(esc_html__('No tienes permisos para detener el escaneo.', 'taxocommerce-seo'));
     }
     check_admin_referer('seo_marketing_scan_cancel');
     seo_marketing_scan_ensure_tables();
@@ -6817,17 +6817,42 @@ function seo_marketing_scan_callback(WP_REST_Request $request)
     return new WP_Error('seo_scan_event', 'Evento no soportado.', array('status' => 400));
 }
 
+function seo_marketing_scan_rest_permission(WP_REST_Request $request)
+{
+    $scan_uuid = sanitize_text_field((string) $request->get_param('scan_id'));
+
+    if ($scan_uuid === '' && WP_REST_Server::CREATABLE === $request->get_method()) {
+        $payload = json_decode((string) $request->get_body(), true);
+        if (is_array($payload) && isset($payload['scan_id'])) {
+            $scan_uuid = sanitize_text_field((string) $payload['scan_id']);
+        }
+    }
+
+    if ($scan_uuid === '') {
+        return new WP_Error('seo_scan_permission_scan_id', 'Falta scan_id.', array('status' => 400));
+    }
+
+    $verified = seo_marketing_scan_verify_request($request, $scan_uuid);
+    return is_wp_error($verified) ? $verified : true;
+}
+
 function seo_marketing_scan_register_rest_routes()
 {
     register_rest_route('seo-system/v1', '/sitemap-scan/batch', array(
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'seo_marketing_scan_batch_endpoint',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'seo_marketing_scan_rest_permission',
+        'args' => array(
+            'scan_id' => array(
+                'required' => true,
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
     ));
     register_rest_route('seo-system/v1', '/sitemap-scan/results', array(
         'methods' => WP_REST_Server::CREATABLE,
         'callback' => 'seo_marketing_scan_callback',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'seo_marketing_scan_rest_permission',
     ));
 }
 add_action('rest_api_init', 'seo_marketing_scan_register_rest_routes');

@@ -84,6 +84,24 @@ Data sent: configured URL/site, property or project identifiers, search/trend qu
 Terms: https://policies.google.com/terms
 Privacy: https://policies.google.com/privacy
 
+= Google Customer Reviews =
+
+Used on the WooCommerce order-received page when the administrator has configured a Google Merchant Center account in the plugin. That configured Merchant account ID enables the Customer Reviews opt-in on the confirmation page.
+
+Data sent: configured Merchant Center account ID, order identifier, customer email address, delivery country, estimated delivery date and, when available, product GTINs. The data is sent from the confirmation page only after a valid WooCommerce order has been received and only when a valid Merchant Center account ID is configured.
+
+Terms: https://policies.google.com/terms
+Privacy: https://policies.google.com/privacy
+
+= Google Merchant API =
+
+Used by market-monitoring modules to read Merchant Center reporting data when the administrator connects a Google Merchant account.
+
+Data sent: OAuth access token, Merchant Center account identifier and the fixed report query required to retrieve price-competitiveness or best-seller information. Store-visitor personal data is not sent.
+
+Terms: https://policies.google.com/terms
+Privacy: https://policies.google.com/privacy
+
 = Meta Graph API (Facebook and Instagram) =
 
 Used to connect pages/accounts and publish content when the administrator enables these integrations.
@@ -137,6 +155,15 @@ Data sent: API key, search terms, category/market, and language required for the
 
 Terms and Privacy: https://serpapi.com/legal
 
+= ScraperAPI =
+
+Used as an optional structured-search fallback by market-monitoring modules when the administrator configures a ScraperAPI key.
+
+Data sent: API key and the search/category terms needed for the configured Google Shopping or search request. Personal data from store visitors is not sent.
+
+Terms: https://www.scraperapi.com/terms/
+Privacy: https://www.scraperapi.com/privacy/
+
 = Amazon APIs =
 
 Amazon importers/integrations can request tokens and query products when the administrator configures the required credentials.
@@ -173,9 +200,30 @@ Privacy: https://www.tiktok.com/legal/privacy-policy
 
 = Supplier and external content sources =
 
-Supplier, image, classification, and technical-research modules can download feeds, public pages, images, or documentation from external URLs configured by the administrator or associated with products/suppliers. Requests can include the requested URL and technical HTTP headers. Personal data from store visitors is not sent. The administrator is responsible for having authorization to use each source and for reviewing its terms and privacy policy.
+Supplier, image, classification, and technical-research modules can download feeds, public pages, images, or documentation from external URLs configured by the administrator or associated with products/suppliers. Requests can include the requested URL, public product/category identifiers and technical HTTP headers. Personal data from store visitors is not sent. These connections run only when the administrator starts/configures the corresponding supplier or research module.
 
-These connections are optional unless a specific function expressly depends on them. Credentials are stored in the WordPress installation and must not be distributed with the plugin.
+The distribution currently contains optional recipes/connectors for the following public catalog sources. Each source remains subject to the source site's own terms, privacy policy and robots/access rules:
+
+* BAUHAUS Spain (www.bauhaus.es): public product/category discovery for an administrator-started supplier import.
+  Terms: https://www.bauhaus.es/l/legal/terms-and-conditions
+  Privacy: https://www.bauhaus.es/l/legal/privacy-policy
+* Brico Depot Spain (www.bricodepot.es): public product/category discovery for an administrator-started supplier import.
+  Terms: https://www.bricodepot.es/aviso-legal-y-condiciones-de-uso-y-condiciones-generales-de-compra
+  Privacy: https://www.bricodepot.es/politica-de-privacidad
+* Leroy Merlin Spain (www.leroymerlin.es): public product/category discovery for an administrator-started supplier import.
+  Terms: https://www.leroymerlin.es/aviso-legal.html
+  Privacy: https://www.leroymerlin.es/politica-de-privacidad
+* Camelion (camelion.com): public catalog/feed discovery when its supplier recipe is explicitly run.
+  Terms: https://camelion.com/terms_conditions/
+  Privacy: https://camelion.com/privacy-policy/
+* TotHerramienta (totherramienta.com): optional public catalog/UCP-MCP discovery when its supplier recipe is explicitly run. The connector can also use the public Shopify UCP agent-profile specification required to negotiate capabilities.
+  Site and legal information: https://totherramienta.com/
+  Shopify terms: https://www.shopify.com/legal/terms
+  Shopify privacy: https://www.shopify.com/legal/privacy
+* Voltia Works (voltiaworks.com): public product/category discovery when the administrator explicitly runs this supplier recipe.
+  Site, legal notice, privacy policy and general sales conditions: https://voltiaworks.com/
+
+The administrator is responsible for having authorization to use each source and for reviewing the applicable terms and privacy policy before enabling an importer. These connections are optional unless a specific function expressly depends on them. Credentials are stored in the WordPress installation and must not be distributed with the plugin.
 
 == Screenshots ==
 
@@ -263,7 +311,7 @@ First release under the TaxoCommerce SEO name. Existing catalog data, plugin opt
 
 = 2.3.9 =
 
-Consolidates the 2.3.8.x patches into stable version 2.3.9. Includes improvements to Dependent/Academy, Engineer and Classifier, Auditor, Marketing, categories, comparison tools, commercial documents, and VAT-inclusive pricing. Catalog, cart/checkout, and automated processes should be validated after updating.
+Consolidates the 2.3.8.x patch cycle into 2.3.9, including improvements to Dependent/Academy, Engineer, Auditor, Marketing, categories and pricing. Validate catalog, cart/checkout and automated processes after updating.
 
 = 2.3.8.1 =
 

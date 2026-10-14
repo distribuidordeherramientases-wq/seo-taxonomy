@@ -1,0 +1,125 @@
+.seo-home,
+.seo-content,
+.seo-tools{
+    box-sizing:border-box;
+}
+
+.seo-tools-grid{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    align-items:stretch;
+    gap:20px;
+    width:100%;
+    max-width:1600px;
+    margin-top:30px;
+}
+
+.seo-tools-grid > *{
+    min-width:0;
+}
+
+.seo-tool-card-link{
+    display:flex;
+    height:100%;
+    color:inherit;
+    text-decoration:none;
+}
+
+.seo-tool-card-link:hover,
+.seo-tool-card-link:focus{
+    color:inherit;
+    text-decoration:none;
+}
+
+.seo-tool-card-link:focus{
+    outline:2px solid #2271b1;
+    outline-offset:3px;
+    box-shadow:none;
+}
+
+.seo-tool-card{
+    display:flex;
+    flex-direction:column;
+    width:100%;
+    min-height:250px;
+    box-sizing:border-box;
+    background:#fff;
+    border:1px solid #dcdcde;
+    border-radius:8px;
+    padding:25px;
+    text-align:center;
+    box-shadow:0 1px 3px rgba(0,0,0,.08);
+    cursor:pointer;
+    transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+
+.seo-tool-card:hover{
+    transform:translateY(-2px);
+    border-color:#2271b1;
+    box-shadow:0 4px 12px rgba(0,0,0,.12);
+}
+
+.seo-tool-card .dashicons{
+    flex:0 0 auto;
+    width:42px;
+    height:42px;
+    margin:0 auto 15px;
+    color:#2271b1;
+    font-size:42px;
+    line-height:1;
+}
+
+.seo-tool-card h2{
+    margin:10px 0;
+    font-size:18px;
+    line-height:1.3;
+}
+
+.seo-tool-card p{
+    flex:1 1 auto;
+    min-height:48px;
+    margin:0 0 15px;
+    color:#646970;
+    line-height:1.55;
+}
+
+.seo-tool-card .button{
+    align-self:center;
+    margin-top:auto;
+    pointer-events:none;
+}
+
+.seo-plugin-definition{
+    box-sizing:border-box;
+    max-width:1600px;
+    margin:25px 0 30px;
+    padding:25px;
+    background:#fff;
+    border:1px solid #dcdcde;
+    border-left:5px solid #2271b1;
+    border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+
+.seo-plugin-definition h2{
+    margin-top:0;
+}
+
+.seo-plugin-definition p{
+    max-width:1200px;
+    font-size:15px;
+    line-height:1.8;
+}
+
+@media screen and (max-width:782px){
+    .seo-tools-grid{
+        grid-template-columns:1fr;
+        gap:14px;
+        margin-top:20px;
+    }
+
+    .seo-tool-card{
+        min-height:0;
+        padding:20px;
+    }
+}
