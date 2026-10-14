@@ -97,6 +97,7 @@ final class SEO_Auditor {
 
     public static function handle_run_scope() {
         self::guard_action('seo_auditor_run_scope');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard_action() above.
         $scope = self::normalize_scope(isset($_POST['scope']) ? sanitize_key(wp_unslash($_POST['scope'])) : '');
         if (!$scope) {
             wp_die(esc_html__('Ambito de auditoria no valido.', 'taxocommerce-seo'));
@@ -118,6 +119,7 @@ final class SEO_Auditor {
 
     public static function handle_export_scope() {
         self::guard_action('seo_auditor_export_scope');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard_action() above.
         $scope = self::normalize_scope(isset($_POST['scope']) ? sanitize_key(wp_unslash($_POST['scope'])) : '');
         $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         self::stream_json_report(
