@@ -177,9 +177,10 @@ final class SEO_Ojeador_Admin {
         $notice = isset($_GET['ojeador_google_notice'])
             ? sanitize_key((string) wp_unslash($_GET['ojeador_google_notice']))
             : '';
-        $error = isset($_GET['ojeador_google_error'])
-            ? sanitize_text_field(rawurldecode((string) wp_unslash($_GET['ojeador_google_error'])))
+        $error_encoded = isset($_GET['ojeador_google_error'])
+            ? sanitize_text_field(wp_unslash($_GET['ojeador_google_error']))
             : '';
+        $error = '' !== $error_encoded ? sanitize_text_field(rawurldecode($error_encoded)) : '';
         $tested_provider = isset($_GET['ojeador_google_provider'])
             ? sanitize_key((string) wp_unslash($_GET['ojeador_google_provider']))
             : '';
