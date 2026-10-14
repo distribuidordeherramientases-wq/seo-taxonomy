@@ -8,6 +8,24 @@
 
 defined('ABSPATH') || exit;
 
+if (!function_exists('seo_category_reports_enqueue_assets')) {
+    function seo_category_reports_enqueue_assets() {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if ('category-seo-admin' !== $page) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'taxocommerce-seo-category-reports',
+            SEO_SYSTEM_URL . 'includes/assets/seo-category-reports.css',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+        );
+    }
+}
+add_action('admin_enqueue_scripts', 'seo_category_reports_enqueue_assets');
+
+
 if (!function_exists('seo_category_reports_days')) {
     function seo_category_reports_days($value) {
         $value = absint($value);
@@ -1365,44 +1383,7 @@ if (!function_exists('seo_category_reports_page')) {
         }
 
         $term_id = isset($_GET['report_category_id']) ? absint($_GET['report_category_id']) : 0;
-
-        echo '<style>
-        .seo-category-report-intro,.seo-category-report-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;margin:0 0 18px}
-        .seo-category-report-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px}
-        .seo-category-report-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-        .seo-category-report-source-row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px}
-        .seo-category-report-summary{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-left:4px solid #dba617;background:#fff8e5;padding:10px 12px;margin:0 0 18px}
-        .seo-category-report-summary.is-ok{border-left-color:#00a32a;background:#edfaef}.seo-category-report-summary span{color:#50575e}
-        .seo-category-report-badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;background:#f0f0f1}
-        .seo-category-report-badge.is-ok{background:#edfaef;color:#1e4620}.seo-category-report-badge.is-pending{background:#fff8e5;color:#6d4f00}
-        .seo-category-report-period{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin:0 0 18px}
-        .seo-category-report-period select{min-width:120px}
-        .seo-category-report-title h3{margin:0 0 4px;font-size:16px}.seo-category-report-title p{margin:0 0 14px;color:#646970}
-        .seo-category-report-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:12px 0 18px}
-        .seo-category-report-metric{border:1px solid #dcdcde;border-radius:7px;padding:13px;background:#fbfbfc;min-width:0}
-        .seo-category-report-metric-label,.seo-category-report-metric-detail{display:block;color:#646970;font-size:12px}
-        .seo-category-report-metric strong{display:block;font-size:23px;line-height:1.2;margin:4px 0;overflow-wrap:anywhere}
-        .seo-category-report-bars{height:180px;display:flex;align-items:flex-end;gap:3px;border-left:1px solid #dcdcde;border-bottom:1px solid #dcdcde;padding:8px 8px 22px;overflow-x:auto}
-        .seo-category-report-bar-col{height:100%;min-width:18px;flex:1;display:flex;align-items:flex-end;position:relative}.seo-category-report-bar{width:100%;min-height:2px;background:#2271b1;border-radius:2px 2px 0 0}
-        .seo-category-report-bar-col span{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:9px;color:#646970;white-space:nowrap}
-        .seo-category-report-filter{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:18px 0;display:grid;grid-template-columns:2fr 1fr auto;gap:12px;align-items:end}
-        .seo-category-report-filter label{display:block;font-weight:600;margin-bottom:5px}.seo-category-report-filter input,.seo-category-report-filter select{width:100%}.seo-category-report-filter-actions{display:flex;gap:6px}
-        .seo-category-report-catalog-status{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#f6f7f7;border:1px solid #dcdcde;border-radius:8px;padding:10px 12px;margin:0 0 12px}
-        .seo-category-report-table-wrap{overflow:auto}.seo-category-report-table th,.seo-category-report-table td{vertical-align:middle}
-        .seo-category-report-score{display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:#f0f0f1;color:#50575e}
-        .seo-category-report-score.is-medium{background:#fff8e5;color:#996800}.seo-category-report-score.is-high{background:#edfaef;color:#008a20}
-        .seo-category-overview{margin:18px 0}.seo-category-overview-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 12px}.seo-category-overview-heading h3{margin:0 0 5px;font-size:18px}.seo-category-overview-heading p{margin:0;color:#646970;max-width:900px}.seo-category-overview-period{display:inline-block;background:#f0f0f1;border-radius:999px;padding:6px 10px;font-weight:600;white-space:nowrap}
-        .seo-category-overview-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:0 0 12px}.seo-category-overview-kpis .seo-category-report-metric{background:#fff;margin:0}.seo-category-overview-kpis .seo-category-report-metric strong{font-size:21px}
-        .seo-category-overview-grid-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:12px;margin-bottom:12px}.seo-category-overview-panel{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;min-width:0}.seo-category-overview-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.seo-category-overview-panel-head h4{margin:0 0 4px;font-size:15px}.seo-category-overview-panel-head p{margin:0;color:#646970}.seo-category-overview-panel-head>strong{font-size:22px;white-space:nowrap}.seo-category-overview-empty{padding:28px 18px;text-align:center;background:#f6f7f7;border:1px dashed #c3c4c7;border-radius:7px;color:#646970}
-        .seo-category-overview-line-wrap{overflow-x:auto}.seo-category-overview-line{display:block;width:100%;min-width:620px;height:auto}.seo-category-overview-grid{stroke:#e2e4e7;stroke-width:1}.seo-category-overview-axis{fill:#646970;font-size:10px}.seo-category-overview-polyline{fill:none;stroke:#2271b1;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.seo-category-overview-dot{fill:#2271b1}
-        .seo-category-success-stack{display:flex;height:16px;overflow:hidden;border-radius:999px;background:#f0f0f1;margin:8px 0 16px}.seo-category-success-stack span{display:block;height:100%}.seo-category-success-stack .is-high,.seo-category-success-dot.is-high{background:#00a32a}.seo-category-success-stack .is-medium,.seo-category-success-dot.is-medium{background:#dba617}.seo-category-success-stack .is-low,.seo-category-success-dot.is-low{background:#d63638}.seo-category-success-stack .is-none,.seo-category-success-dot.is-none{background:#a7aaad}.seo-category-success-legend{display:grid;gap:8px}.seo-category-success-legend>div{display:grid;grid-template-columns:10px 1fr auto auto;align-items:center;gap:8px}.seo-category-success-legend strong{font-size:14px}.seo-category-success-legend small{color:#646970;min-width:45px;text-align:right}.seo-category-success-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-        .seo-category-overview-top-panel{margin-bottom:0}.seo-category-top-list{display:grid;gap:10px}.seo-category-top-row{display:grid;grid-template-columns:minmax(210px,1.2fr) minmax(180px,2fr) auto;gap:12px;align-items:center}.seo-category-top-title{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}.seo-category-top-title a{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.seo-category-top-title .seo-category-report-score{font-size:11px;min-width:50px;padding:3px 6px;flex:0 0 auto}.seo-category-top-track{height:12px;background:#f0f0f1;border-radius:999px;overflow:hidden}.seo-category-top-track span{display:block;height:100%;background:#2271b1;border-radius:999px}.seo-category-top-row>strong{white-space:nowrap;font-size:12px}
-        @media(max-width:1200px){.seo-category-overview-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.seo-category-overview-grid-layout{grid-template-columns:1fr}}
-        @media(max-width:1000px){.seo-category-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-category-top-row{grid-template-columns:minmax(180px,1.2fr) minmax(150px,2fr) auto}}
-        @media(max-width:700px){.seo-category-report-filter,.seo-category-report-metrics,.seo-category-overview-kpis{grid-template-columns:1fr}.seo-category-report-metric strong{font-size:20px}.seo-category-overview-heading{display:block}.seo-category-overview-period{margin-top:10px}.seo-category-top-row{grid-template-columns:1fr;gap:6px}.seo-category-top-title{align-items:flex-start}.seo-category-top-row>strong{justify-self:end}.seo-category-overview-panel{padding:13px}}
-        </style>';
-
-        if ($term_id > 0) {
+if ($term_id > 0) {
             echo '<p><a class="button" href="' . esc_url(seo_category_reports_admin_url(0, seo_category_reports_days($_GET['days'] ?? 28), [], $page_slug)) . '">&larr; Volver a categorias</a></p>';
             seo_category_reports_render_category($term_id, $page_slug);
         } else {

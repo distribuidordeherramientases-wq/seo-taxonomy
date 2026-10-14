@@ -83,6 +83,40 @@ function seo_search_get_option($key, $default = null) {
     return array_key_exists($key, $options) ? $options[$key] : $default;
 }
 
+/**
+ * Compatibilidad de contenido tras el rebranding.
+ *
+ * No registra nombres de shortcode sin prefijo. Solo transforma markup legado
+ * antes de que WordPress ejecute do_shortcode(), evitando romper páginas ya
+ * guardadas con versiones anteriores del plugin.
+ */
+function seo_search_migrate_legacy_shortcode_markup($content) {
+    if (!is_string($content) || $content === '') {
+        return $content;
+    }
+
+    return str_replace(
+        array(
+            '[seo_search',
+            '[/seo_search]',
+            '[advanced_search',
+            '[/advanced_search]',
+            '[seo_search_filters',
+            '[/seo_search_filters]',
+        ),
+        array(
+            '[taxocommerce_search',
+            '[/taxocommerce_search]',
+            '[taxocommerce_advanced_search',
+            '[/taxocommerce_advanced_search]',
+            '[taxocommerce_advanced_search',
+            '[/taxocommerce_advanced_search]',
+        ),
+        $content
+    );
+}
+add_filter('the_content', 'seo_search_migrate_legacy_shortcode_markup', 8);
+add_filter('widget_text_content', 'seo_search_migrate_legacy_shortcode_markup', 8);
 
 
 /* =========================================================
@@ -1191,7 +1225,7 @@ function seo_search_enqueue_front_assets() {
 
 /**
  * El predictivo del encabezado debe estar disponible en cualquier pagina del
- * catalogo, incluso cuando no se renderiza el shortcode [seo_search].
+ * catalogo, incluso cuando no se renderiza el shortcode [taxocommerce_search].
  * Solo se cargan los activos; no se ejecuta ninguna busqueda hasta que el
  * usuario escribe el minimo de caracteres configurado.
  */
@@ -1446,7 +1480,7 @@ function seo_search_frontend_css() {
 ";
 }
 
-add_shortcode('seo_search', function ($atts) {
+add_shortcode('taxocommerce_search', function ($atts) {
     if (!class_exists('WooCommerce')) {
         return '<p>' . esc_html__('SEO Search necesita WooCommerce para funcionar.', 'taxocommerce-seo') . '</p>';
     }
@@ -1457,7 +1491,7 @@ add_shortcode('seo_search', function ($atts) {
         'placeholder' => __('Buscar productos, referencias, categorías…', 'taxocommerce-seo'),
         'button_text' => '🔍',
         'class'       => '',
-    ), $atts, 'seo_search');
+    ), $atts, 'taxocommerce_search');
 
     $current = seo_search_native_keyword();
     $id = wp_unique_id('seo-search-');
@@ -1635,7 +1669,7 @@ function seo_search_render_light_related_categories() {
     return ob_get_clean();
 }
 
-function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode_name = 'advanced_search') {
+function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode_name = 'taxocommerce_advanced_search') {
     if (!class_exists('WooCommerce') || !seo_search_vocabulary_tables_ready()) {
         return '';
     }
@@ -1699,14 +1733,10 @@ function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode
     return ob_get_clean();
 }
 
-add_shortcode('advanced_search', function ($atts) {
-    return seo_search_render_advanced_search_shortcode($atts, 'advanced_search');
+add_shortcode('taxocommerce_advanced_search', function ($atts) {
+    return seo_search_render_advanced_search_shortcode($atts, 'taxocommerce_advanced_search');
 });
 
-// Alias conservado para no romper plantillas que ya usen el nombre anterior.
-add_shortcode('seo_search_filters', function ($atts) {
-    return seo_search_render_advanced_search_shortcode($atts, 'seo_search_filters');
-});
 
 add_action('woocommerce_product_query', function ($query) {
     if (is_admin()) {
@@ -1834,7 +1864,7 @@ add_action('admin_menu', function () {
 }, 99);
 
 function seo_search_snippet_info() {
-    echo '<div class="notice notice-info inline"><p><strong>' . esc_html__('Shortcodes:', 'taxocommerce-seo') . '</strong> <code>[seo_search]</code> ' . esc_html__('para búsqueda normal', 'taxocommerce-seo') . ' · <code>[advanced_search]</code> ' . esc_html__('para filtros semánticos avanzados.', 'taxocommerce-seo') . '</p></div>';
+    echo '<div class="notice notice-info inline"><p><strong>' . esc_html__('Shortcodes:', 'taxocommerce-seo') . '</strong> <code>[taxocommerce_search]</code> ' . esc_html__('para búsqueda normal', 'taxocommerce-seo') . ' · <code>[taxocommerce_advanced_search]</code> ' . esc_html__('para filtros semánticos avanzados.', 'taxocommerce-seo') . '</p></div>';
 }
 
 function seo_search_admin_checkbox($name, $label, $description = '') {
@@ -1906,7 +1936,7 @@ function seo_search_settings_page() {
                             <th><?php esc_html_e('Búsqueda avanzada', 'taxocommerce-seo'); ?></th>
                             <td>
                                 <?php seo_search_admin_checkbox('filter_vocabulary', __('Activar filtros semánticos canónicos', 'taxocommerce-seo'), __('Usa exclusivamente el vocabulario TIPO, ROL, APLICACIÓN, PLATAFORMA y SUBTIPO.', 'taxocommerce-seo')); ?>
-                                <p class="description"><?php esc_html_e('Esta función pertenece a SEO Search. WooCommerce solo aporta el catálogo de productos; no se registra ninguna pantalla dentro de su menú.', 'seo-taxonomy'); ?></p>
+                                <p class="description"><?php esc_html_e('Esta función pertenece a SEO Search. WooCommerce solo aporta el catálogo de productos; no se registra ninguna pantalla dentro de su menú.', 'taxocommerce-seo'); ?></p>
                             </td>
                         </tr>
                         <tr>
@@ -1929,7 +1959,7 @@ function seo_search_settings_page() {
                         <tr>
                             <th><?php esc_html_e('Shortcode', 'taxocommerce-seo'); ?></th>
                             <td>
-                                <code>[advanced_search]</code>
+                                <code>[taxocommerce_advanced_search]</code>
                                 <p class="description"><?php esc_html_e('Inserta la barra de filtros avanzados en la tienda, una página o una plantilla. Por defecto envía los filtros a la página de tienda de WooCommerce.', 'taxocommerce-seo'); ?></p>
                             </td>
                         </tr>
@@ -1960,11 +1990,11 @@ function seo_search_settings_page() {
             <?php if ('general' === $tab) : ?>
                 <hr>
                 <h2><?php esc_html_e('Vista previa', 'taxocommerce-seo'); ?></h2>
-                <?php echo do_shortcode('[seo_search]'); ?>
+                <?php echo do_shortcode('[taxocommerce_search]'); ?>
             <?php elseif ('advanced' === $tab) : ?>
                 <hr>
                 <h2><?php esc_html_e('Vista previa de filtros avanzados', 'taxocommerce-seo'); ?></h2>
-                <?php echo do_shortcode('[advanced_search]'); ?>
+                <?php echo do_shortcode('[taxocommerce_advanced_search]'); ?>
             <?php endif; ?>
         <?php endif; ?>
     </div>

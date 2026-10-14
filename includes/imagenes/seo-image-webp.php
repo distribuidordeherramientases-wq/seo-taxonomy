@@ -1200,7 +1200,7 @@ if (!function_exists('seo_images_webp_maybe_redirect_legacy_request')) {
             $target .= '?' . $query;
         }
 
-        wp_redirect($target, 301, 'SEO Images WebP');
+        wp_safe_redirect($target, 301, 'SEO Images WebP');
         exit;
     }
 }

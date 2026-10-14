@@ -165,7 +165,7 @@ final class SEO_Auditor_Editorial_Specialist {
 
         $relations = $wpdb->prefix . 'seo_relations';
         if (self::table_exists($relations)) {
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
+            // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $relations is an internal prefixed table name validated by self::table_exists(); query contains no external values.
             $rel_rows = (array) $wpdb->get_results(
                 "SELECT source_type,source_id,target_type,target_id,relation_type
                  FROM " . $relations . "
@@ -174,6 +174,7 @@ final class SEO_Auditor_Editorial_Specialist {
                  ORDER BY source_type,source_id,target_type,target_id",
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
             foreach ($rel_rows as $rel) {
                 $st = sanitize_key((string) ($rel['source_type'] ?? ''));
@@ -261,7 +262,7 @@ final class SEO_Auditor_Editorial_Specialist {
         $nodes = $wpdb->prefix . 'seo_nodes';
         if (!self::table_exists($nodes)) return array();
 
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $nodes is an internal prefixed table name validated by self::table_exists(); query contains no external values.
         $rows = (array) $wpdb->get_results(
             "SELECT object_id,seo_role
              FROM " . $nodes . "
@@ -271,6 +272,7 @@ final class SEO_Auditor_Editorial_Specialist {
              ORDER BY object_id",
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
         $out = array();
         foreach ($rows as $row) {
             $id = absint($row['object_id'] ?? 0);
@@ -315,7 +317,7 @@ final class SEO_Auditor_Editorial_Specialist {
         $v = $wpdb->prefix . 'seo_vocabulary';
         if (!self::table_exists($ov) || !self::table_exists($v)) return array();
 
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas validadas; consulta fija sin entrada de usuario.
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ov/$v are internal prefixed table names validated by self::table_exists(); query contains no external values.
         $rows = (array) $wpdb->get_results(
             "SELECT ov.object_type,ov.object_id,v.semantic_group,v.slug,v.label
              FROM " . $ov . " ov
@@ -324,6 +326,7 @@ final class SEO_Auditor_Editorial_Specialist {
              ORDER BY ov.object_type,ov.object_id,v.semantic_group,v.id",
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         $map = array();
         foreach ($rows as $row) {

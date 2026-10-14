@@ -242,11 +242,17 @@ function interceptar_redireccion_antes_de_wordpress() {
         );
 
         header("Pragma: no-cache");
-        wp_redirect(
-            $redireccion->target_url,
-            301
-        );
 
+        $target_url  = esc_url_raw((string) $redireccion->target_url);
+        $target_host = strtolower((string) wp_parse_url($target_url, PHP_URL_HOST));
+        $home_host   = strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST));
+
+        // Las redirecciones SEO gestionadas por el plugin son internas.
+        if ('' === $target_url || '' === $target_host || '' === $home_host || $target_host !== $home_host) {
+            return;
+        }
+
+        wp_safe_redirect($target_url, 301);
         exit;
     }
 }

@@ -4,6 +4,28 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!function_exists('seo_google_add_inline_script')) {
+    function seo_google_add_inline_script($script) {
+        $script = (string) $script;
+        if ('' === trim($script)) {
+            return;
+        }
+
+        $handle = 'taxocommerce-google-admin';
+        if (!wp_script_is($handle, 'registered')) {
+            wp_register_script(
+                $handle,
+                false,
+                array(),
+                defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+                true
+            );
+        }
+        wp_enqueue_script($handle);
+        wp_add_inline_script($handle, $script);
+    }
+}
+
 /**
  * Google Intelligence: OAuth, almacenamiento y sincronización de Search Console.
  *
@@ -215,17 +237,14 @@ function seo_google_save_settings_handler() {
         $settings['client_secret'] = $client_secret;
     }
 
-    $settings['property_id'] = isset($_POST['property_id'])
-        ? esc_url_raw(wp_unslash($_POST['property_id']))
+    $raw_property = isset($_POST['property_id'])
+        ? sanitize_text_field(wp_unslash($_POST['property_id']))
         : '';
 
     // Las propiedades de dominio usan el prefijo sc-domain: y no son URLs.
-    if (isset($_POST['property_id'])) {
-        $raw_property = trim((string) wp_unslash($_POST['property_id']));
-        if (0 === strpos($raw_property, 'sc-domain:')) {
-            $settings['property_id'] = sanitize_text_field($raw_property);
-        }
-    }
+    $settings['property_id'] = 0 === strpos($raw_property, 'sc-domain:')
+        ? $raw_property
+        : esc_url_raw($raw_property);
 
     $frequency = isset($_POST['sync_frequency'])
         ? sanitize_key(wp_unslash($_POST['sync_frequency']))
@@ -279,6 +298,8 @@ function seo_google_connect_handler() {
         'https://accounts.google.com/o/oauth2/v2/auth'
     );
 
+    // Redirección externa intencionada al endpoint OAuth fijo de Google.
+    // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- accounts.google.com is the fixed Google OAuth authorization host assembled above.
     wp_redirect(esc_url_raw($authorization_url));
     exit;
 }
@@ -1170,7 +1191,6 @@ function seo_google_ajax_begin() {
         nocache_headers();
     }
 
-    @ini_set('display_errors', '0');
     ob_start();
     register_shutdown_function('seo_google_ajax_shutdown');
 }
@@ -1206,10 +1226,17 @@ function seo_google_ajax_shutdown() {
     $GLOBALS['seo_google_ajax_active'] = false;
     seo_google_ajax_clean_buffers();
 
-    error_log(
-        '[SEO Google Intelligence] Error fatal AJAX: '
-        . $error['message'] . ' en ' . $error['file'] . ':' . $error['line']
-    );
+    if (function_exists('seo_system_private_log')) {
+        seo_system_private_log(
+            'critical',
+            'Google Intelligence: error fatal AJAX',
+            array(
+                'message' => (string) $error['message'],
+                'file'    => (string) $error['file'],
+                'line'    => absint($error['line']),
+            )
+        );
+    }
 
     if (!headers_sent()) {
         status_header(500);
@@ -1426,7 +1453,7 @@ function seo_google_sync_day_handler() {
         @set_time_limit(120);
     }
 
-    $run_id = isset($_POST['run_id']) ? absint($_POST['run_id']) : 0;
+    $run_id = isset($_POST['run_id']) ? absint(wp_unslash($_POST['run_id'])) : 0;
 
     if (!$run_id) {
         seo_google_ajax_error(array('message' => 'Falta el identificador de la sincronización.'), 400);
@@ -2217,7 +2244,7 @@ function seo_google_render_sync_status() {
         'nonce'   => wp_create_nonce('seo_google_sync'),
     );
 
-    echo '<script>';
+    ob_start();
     echo 'window.seoGoogleSyncConfig=' . wp_json_encode($config) . ';';
     echo <<<'JS'
 (function(){
@@ -2317,7 +2344,8 @@ function seo_google_render_sync_status() {
     });
 })();
 JS;
-    echo '</script>';
+    $seo_google_sync_script = (string) ob_get_clean();
+    seo_google_add_inline_script($seo_google_sync_script);
 
     echo '</div>';
 
@@ -2497,7 +2525,7 @@ function seo_google_render_summary_charts(array $daily_rows) {
     echo '<p class="description" style="margin:14px 0 0;"><span data-period-count></span> · La posición sigue ponderada por impresiones, igual que en las tarjetas superiores.</p>';
     echo '</section>';
 
-    echo '<script>';
+    ob_start();
     echo '(function(){';
     echo 'const root=document.getElementById(' . wp_json_encode($chart_id) . ');';
     echo 'const raw=' . wp_json_encode($payload) . ';';
@@ -2768,7 +2796,8 @@ root.querySelectorAll('[data-granularity]').forEach(function(button) {
 render();
 JS;
     echo '})();';
-    echo '</script>';
+    $seo_google_chart_script = (string) ob_get_clean();
+    seo_google_add_inline_script($seo_google_chart_script);
 }
 
 /**

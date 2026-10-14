@@ -123,18 +123,17 @@ if (!function_exists('seo_images_render_media_cleanup_tab')) {
         );
         $phase_label = $phase_labels[$state['phase']] ?? (string) $state['phase'];
         ?>
-        <style>
-            .seo-images-cleanup-section{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;margin:18px 0;max-width:1400px}
-            .seo-images-cleanup-section h2{margin-top:0}
-            .seo-images-cleanup-progress{height:18px;background:#f0f0f1;border-radius:999px;overflow:hidden;max-width:900px;margin:10px 0}
-            .seo-images-cleanup-progress span{display:block;height:100%;background:#2271b1;min-width:0;transition:width .2s ease}
-            .seo-images-cleanup-safe,.seo-images-cleanup-review{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
-            .seo-images-cleanup-safe{background:#dff3e3;color:#166534}.seo-images-cleanup-review{background:#fff3cd;color:#7a4b00}
-            .seo-images-cleanup-danger{border-left:4px solid #d63638;padding-left:14px}
-            .seo-images-cleanup-log{background:#101517;color:#d7e0e5;padding:12px;min-height:90px;max-height:300px;overflow:auto;white-space:pre-wrap}
-            .seo-images-cleanup-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
-            .seo-images-cleanup-table td{vertical-align:top}
-        </style>
+        <?php
+wp_enqueue_style(
+    'taxocommerce-image-cleanup-admin',
+    SEO_SYSTEM_URL . 'includes/assets/image-cleanup-admin.css',
+    array(),
+    SEO_SYSTEM_VERSION
+);
+if (did_action('admin_print_styles')) {
+    wp_print_styles('taxocommerce-image-cleanup-admin');
+}
+?>
 
         <div class="seo-images-cleanup-section">
             <h2>Fuentes externas</h2>

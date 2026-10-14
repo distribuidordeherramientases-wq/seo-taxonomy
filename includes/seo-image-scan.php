@@ -1609,9 +1609,15 @@ if (!function_exists('seo_images_scan_render_tab')) {
         $missing = seo_images_scan_config_errors($config);
         $coverage = $summary['total_pages'] > 0 ? round(100 * $summary['checked_pages'] / $summary['total_pages'], 1) : 0;
 
-        echo '<style>
-        .seo-imgscan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:16px 0}.seo-imgscan-kpi{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:14px}.seo-imgscan-kpi strong{display:block;font-size:25px;line-height:1.1}.seo-imgscan-card{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:16px;margin:14px 0}.seo-imgscan-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.seo-imgscan-stop{border-color:#d63638!important;color:#b32d2e!important}.seo-imgscan-stop:disabled{border-color:#c3c4c7!important;color:#a7aaad!important}.seo-imgscan-badge{display:inline-block;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:700}.seo-imgscan-badge.ok{background:#edfaef;color:#006b1b}.seo-imgscan-badge.warning{background:#fff8e5;color:#7a4d00}.seo-imgscan-badge.error,.seo-imgscan-badge.page_error,.seo-imgscan-badge.partial{background:#fcf0f1;color:#b32d2e}.seo-imgscan-badge.pending{background:#f0f0f1;color:#50575e}.seo-imgscan-progress{height:12px;background:#f0f0f1;border-radius:6px;overflow:hidden}.seo-imgscan-progress span{display:block;height:100%;background:#2271b1}.seo-imgscan-filters{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.seo-imgscan-url{word-break:break-all}.seo-imgscan-error-row{background:#fff7f7}.seo-imgscan-warning-row{background:#fffdf5}@media(max-width:782px){.seo-imgscan-table th:nth-child(3),.seo-imgscan-table td:nth-child(3),.seo-imgscan-table th:nth-child(4),.seo-imgscan-table td:nth-child(4){display:none}}
-        </style>';
+        wp_enqueue_style(
+            'taxocommerce-image-scan',
+            SEO_SYSTEM_URL . 'includes/assets/seo-image-scan.css',
+            array(),
+            SEO_SYSTEM_VERSION
+        );
+        if (did_action('admin_print_styles')) {
+            wp_print_styles('taxocommerce-image-scan');
+        }
 
         echo '<section class="seo-imgscan-card"><h2 style="margin-top:0">Auditoría externa de carga de imágenes</h2>';
         echo '<p>El proceso recorre automáticamente todas las páginas pendientes. Al terminar un lote, WordPress recibe sus métricas y lanza el siguiente sin intervención manual. El regulador aumenta o reduce páginas e imágenes según duración, latencia p95 y presión HTTP.</p>';
@@ -1646,7 +1652,16 @@ if (!function_exists('seo_images_scan_render_tab')) {
         }
         echo '</section>';
         if ($active || $process_enabled) {
-            echo '<script>window.setTimeout(function(){ if (!document.hidden) { window.location.reload(); } }, 15000);</script>';
+            wp_enqueue_script(
+                'taxocommerce-image-scan',
+                SEO_SYSTEM_URL . 'includes/assets/seo-image-scan.js',
+                array(),
+                SEO_SYSTEM_VERSION,
+                true
+            );
+            if (did_action('admin_print_footer_scripts')) {
+                wp_print_scripts('taxocommerce-image-scan');
+            }
         }
 
         echo '<div class="seo-imgscan-grid">';

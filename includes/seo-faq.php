@@ -10,6 +10,24 @@
 
 defined('ABSPATH') || exit;
 
+if (!function_exists('seo_faq_enqueue_admin_report_assets')) {
+    function seo_faq_enqueue_admin_report_assets() {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if ('seo-faq' !== $page) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'taxocommerce-seo-faq-report',
+            SEO_SYSTEM_URL . 'includes/assets/seo-faq-report.css',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+        );
+    }
+}
+add_action('admin_enqueue_scripts', 'seo_faq_enqueue_admin_report_assets');
+
+
 
 /**
  * Nombre de la tabla de FAQs.
@@ -394,225 +412,21 @@ function seo_faq_render_frontend_tracking_bridge()
         'token'       => seo_faq_tracking_token($context['object_type'], $context['object_id']),
         'faqs'        => $context['faqs'],
     ];
-    ?>
-    <script id="seo-faq-telemetry">
-    (function () {
-        'use strict';
+    wp_enqueue_script(
+        'taxocommerce-seo-faq-telemetry',
+        SEO_SYSTEM_URL . 'includes/assets/seo-faq-telemetry.js',
+        array(),
+        defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+        true
+    );
+    wp_localize_script(
+        'taxocommerce-seo-faq-telemetry',
+        'seoFaqTelemetryConfig',
+        $payload
+    );
 
-        var cfg = <?php echo wp_json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-        if (!cfg || !cfg.faqs || !cfg.faqs.length) return;
-
-        var sentRender = false;
-        var sentView = false;
-        var sentError = false;
-        var firstOpen = true;
-        var opened = new Set();
-        var renderedIds = new Set();
-        var observer = null;
-        var mutationObserver = null;
-        var stopTimer = null;
-
-        function normalize(value) {
-            return String(value || '')
-                .toLowerCase()
-                .replace(/[\u2018\u2019\u201c\u201d]/g, '"')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-
-        cfg.faqs = cfg.faqs.map(function (faq) {
-            faq.normalized = normalize(faq.question);
-            return faq;
-        });
-
-        function send(event, extra) {
-            var data = new URLSearchParams();
-            data.set('action', 'seo_faq_track');
-            data.set('event', event);
-            data.set('object_type', cfg.objectType);
-            data.set('object_id', cfg.objectId);
-            data.set('token', cfg.token);
-
-            Object.keys(extra || {}).forEach(function (key) {
-                data.set(key, extra[key]);
-            });
-
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon(cfg.ajaxUrl, data);
-                return;
-            }
-
-            fetch(cfg.ajaxUrl, {
-                method: 'POST',
-                credentials: 'same-origin',
-                keepalive: true,
-                headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
-                body: data.toString()
-            }).catch(function () {});
-        }
-
-        function explicitNode(faq) {
-            return document.querySelector('[data-seo-faq-id="' + faq.id + '"]');
-        }
-
-        function questionNode(faq) {
-            var explicit = explicitNode(faq);
-            if (explicit) return explicit;
-
-            var selectors = [
-                'details summary',
-                'button',
-                '[role="button"]',
-                '.faq-question',
-                '.accordion-title',
-                '.accordion-header',
-                '.elementor-tab-title',
-                '.vc_tta-panel-title',
-                'dt',
-                'h2', 'h3', 'h4', 'h5'
-            ];
-            var nodes = document.querySelectorAll(selectors.join(','));
-
-            for (var i = 0; i < nodes.length; i++) {
-                var text = normalize(nodes[i].innerText || nodes[i].textContent);
-                if (!text) continue;
-                if (text === faq.normalized || text.indexOf(faq.normalized) === 0) {
-                    return nodes[i];
-                }
-            }
-
-            var fallback = document.querySelectorAll('div,span,p,a,strong');
-            for (var j = 0; j < fallback.length; j++) {
-                if (fallback[j].children && fallback[j].children.length > 4) continue;
-                var fallbackText = normalize(fallback[j].innerText || fallback[j].textContent);
-                if (fallbackText === faq.normalized) return fallback[j];
-            }
-            return null;
-        }
-
-        function markView(node) {
-            if (sentView || !node) return;
-
-            if (!('IntersectionObserver' in window)) {
-                sentView = true;
-                send('view');
-                return;
-            }
-
-            if (!observer) {
-                observer = new IntersectionObserver(function (entries) {
-                    entries.forEach(function (entry) {
-                        if (!sentView && entry.isIntersecting) {
-                            sentView = true;
-                            send('view');
-                            observer.disconnect();
-                        }
-                    });
-                }, {threshold: 0.1});
-            }
-
-            observer.observe(node);
-        }
-
-        function recordOpen(faq) {
-            if (!faq || opened.has(faq.id)) return;
-            if (!sentView) {
-                sentView = true;
-                send('view');
-                if (observer) observer.disconnect();
-            }
-            opened.add(faq.id);
-            send('open', {
-                faq_id: faq.id,
-                first_open: firstOpen ? 1 : 0
-            });
-            firstOpen = false;
-        }
-
-        function attachFaqNode(node, faq) {
-            if (!node || node.dataset.seoFaqTracked === '1') return;
-            node.dataset.seoFaqTracked = '1';
-            node.dataset.seoFaqId = String(faq.id);
-            node.addEventListener('click', function () { recordOpen(faq); }, true);
-        }
-
-        document.addEventListener('click', function (event) {
-            var node = event.target;
-            for (var depth = 0; node && depth < 7; depth++, node = node.parentElement) {
-                var explicitId = node.dataset && node.dataset.seoFaqId ? parseInt(node.dataset.seoFaqId, 10) : 0;
-                var text = normalize(node.innerText || node.textContent);
-                var faq = cfg.faqs.find(function (item) {
-                    if (explicitId && item.id === explicitId) return true;
-                    return text && (text === item.normalized || (text.indexOf(item.normalized) === 0 && text.length <= item.normalized.length + 80));
-                });
-                if (faq) {
-                    recordOpen(faq);
-                    break;
-                }
-            }
-        }, true);
-
-        function scan() {
-            var found = [];
-            var bodyText = normalize(document.body ? document.body.innerText : '');
-            var newIds = [];
-
-            cfg.faqs.forEach(function (faq) {
-                var appears = bodyText.indexOf(faq.normalized) !== -1;
-                if (appears && !renderedIds.has(faq.id)) {
-                    renderedIds.add(faq.id);
-                    newIds.push(faq.id);
-                }
-
-                var node = questionNode(faq);
-                if (node) {
-                    found.push({faq: faq, node: node});
-                    attachFaqNode(node, faq);
-                }
-            });
-
-            if (newIds.length) {
-                send('render', {
-                    faq_ids: newIds.join(','),
-                    count_block: sentRender ? 0 : 1
-                });
-                sentRender = true;
-            }
-
-            if (found.length) markView(found[0].node);
-            return renderedIds.size === cfg.faqs.length;
-        }
-
-        function start() {
-            scan();
-
-            mutationObserver = new MutationObserver(function () { scan(); });
-            mutationObserver.observe(document.documentElement, {childList: true, subtree: true});
-
-            stopTimer = setTimeout(function () {
-                scan();
-                if (mutationObserver) mutationObserver.disconnect();
-                mutationObserver = null;
-                if (renderedIds.size < cfg.faqs.length && !sentError) {
-                    sentError = true;
-                    send('render_error', {
-                        missing_count: cfg.faqs.length - renderedIds.size,
-                        error_type: renderedIds.size > 0 ? 'partial' : 'missing'
-                    });
-                }
-            }, 5000);
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', start, {once: true});
-        } else {
-            start();
-        }
-    }());
-    </script>
-    <?php
 }
-add_action('wp_footer', 'seo_faq_render_frontend_tracking_bridge', 100);
+add_action('wp_enqueue_scripts', 'seo_faq_render_frontend_tracking_bridge', 50);
 
 /**
  * Exporta el informe completo de KPIs y filas de rendimiento en JSON.
@@ -4722,54 +4536,7 @@ function seo_faq_report_format_cell($value)
  */
 function seo_faq_report_render_styles()
 {
-    echo '<style>
-        .seo-faq-report-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0;}
-        .seo-faq-report-card{background:#fff;border:1px solid #dcdcde;border-left:4px solid #2271b1;padding:14px;}
-        .seo-faq-report-card strong{display:block;font-size:24px;line-height:1.2;margin-bottom:6px;}
-        .seo-faq-report-card span{display:block;font-weight:600;}
-        .seo-faq-report-card small{display:block;color:#646970;margin-top:4px;}
-        .seo-faq-report-table{margin:12px 0 28px;}
-        .seo-faq-report-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:12px 0 28px;}
-        .seo-faq-report-column{background:#fff;border:1px solid #dcdcde;padding:14px;}
-        .seo-faq-report-column ol{margin-left:20px;}
-        .seo-faq-report-ok{color:#008a20;font-weight:700;}
-        .seo-faq-report-warning{color:#b32d2e;font-weight:700;}
-        .seo-faq-duplicate-summary{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:#f0f6fc;border-left:4px solid #2271b1;padding:12px 14px;margin:12px 0;}
-        .seo-faq-duplicate-summary strong{font-size:16px;}
-        .seo-faq-duplicate-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px;}
-        .seo-faq-duplicate-toolbar form{margin:0;}
-        .seo-faq-duplicate-group{background:#fff;border:1px solid #dcdcde;border-radius:6px;margin:0 0 18px;overflow:hidden;}
-        .seo-faq-duplicate-group-head{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:14px;background:#f6f7f7;border-bottom:1px solid #dcdcde;}
-        .seo-faq-duplicate-group-head h4{font-size:15px;margin:0 0 4px;}
-        .seo-faq-duplicate-group-head p{margin:3px 0;color:#50575e;}
-        .seo-faq-duplicate-table{margin:0;border:0;}
-        .seo-faq-duplicate-table thead th{background:#f0f0f1;color:#1d2327;position:static;height:auto;line-height:1.4;}
-        .seo-faq-duplicate-table td,.seo-faq-duplicate-table th{vertical-align:top;}
-        .seo-faq-duplicate-keeper td{background:#edfaef;}
-        .seo-faq-keep-badge,.seo-faq-delete-badge{display:inline-block;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;}
-        .seo-faq-keep-badge{background:#d1e7dd;color:#0f5132;}
-        .seo-faq-delete-badge{background:#fff3cd;color:#664d03;}
-        .seo-faq-orphan-summary{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:#fff8e5;border-left:4px solid #dba617;padding:12px 14px;margin:12px 0;}
-        .seo-faq-orphan-summary strong{font-size:16px;}
-        .seo-faq-orphan-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px;}
-        .seo-faq-orphan-toolbar form{margin:0;}
-        .seo-faq-orphan-group{background:#fff;border:1px solid #dcdcde;border-radius:6px;margin:0 0 18px;overflow:hidden;}
-        .seo-faq-orphan-group-head{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:14px;background:#f6f7f7;border-bottom:1px solid #dcdcde;}
-        .seo-faq-orphan-group-head h4{font-size:15px;margin:0 0 4px;}
-        .seo-faq-orphan-group-head p{margin:0;color:#646970;}
-        .seo-faq-orphan-table{margin:0;border:0;}
-        .seo-faq-orphan-table thead th{background:#f0f0f1;color:#1d2327;position:static;height:auto;line-height:1.4;}
-        .seo-faq-orphan-table td,.seo-faq-orphan-table th{vertical-align:top;}
-        .seo-faq-report-head{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;margin-top:18px;}
-        .seo-faq-report-head h2{margin-top:0;}
-        .seo-faq-report-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:260px;margin:0;}
-        .seo-faq-performance-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:#fff;border:1px solid #dcdcde;padding:14px;margin:12px 0 18px;}
-        .seo-faq-performance-filters label{display:flex;flex-direction:column;gap:4px;font-weight:600;}
-        .seo-faq-performance-filters input[type=number]{width:110px;}
-        .seo-faq-table-scroll{overflow-x:auto;}
-        .seo-faq-report-table td{vertical-align:top;}
-        @media (max-width:782px){.seo-faq-report-head{flex-direction:column;}.seo-faq-performance-filters{align-items:stretch;}.seo-faq-duplicate-group-head,.seo-faq-orphan-group-head{align-items:flex-start;flex-direction:column;}.seo-faq-duplicate-table,.seo-faq-orphan-table{display:block;overflow-x:auto;}}
-    </style>';
+    // Styles are loaded via admin_enqueue_scripts.
 }
 
 

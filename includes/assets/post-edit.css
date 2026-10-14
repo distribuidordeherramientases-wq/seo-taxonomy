@@ -1,0 +1,5 @@
+@media (max-width: 900px) {
+    .seo-post-editor-layout {
+        grid-template-columns: 1fr !important;
+    }
+}

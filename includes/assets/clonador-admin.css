@@ -1,0 +1,64 @@
+.seo-clonador-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:18px 0}
+            .seo-clonador-card{background:#fff;border:1px solid #c3c4c7;border-radius:6px;padding:18px}
+            .seo-clonador-warning{border-left:5px solid #d63638;background:#fff7f7;padding:14px 16px;margin:18px 0}
+            .seo-clonador-manual{border-left:5px solid #2271b1;background:#eef6ff;padding:14px 16px;margin:18px 0;font-size:14px}
+            .seo-clonador-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0;padding:14px;background:#fff;border:1px solid #dcdcde;border-radius:8px}
+            .seo-clonador-actions .button{min-height:38px;font-weight:700}
+            #seo-clonador-start{font-size:15px;padding-left:18px;padding-right:18px}
+            #seo-clonador-stop{border-color:#d63638;color:#b32d2e}
+            #seo-clonador-stop:not(:disabled):hover{background:#fff1f1;border-color:#b32d2e;color:#8a2424}
+            .seo-clonador-status{font-weight:700;flex-basis:100%;padding-top:4px}
+            .seo-clonador-speed{display:flex;align-items:center;gap:7px;padding:5px 8px;border:1px solid #c3c4c7;border-radius:6px;background:#f6f7f7}
+            .seo-clonador-speed strong{min-width:125px;text-align:center}
+            .seo-clonador-speed .button{min-height:30px;line-height:28px;padding:0 10px}
+            .seo-clonador-worker{margin:12px 0;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1;font-size:12px;color:#50575e}
+            .seo-clonador-plan{display:none;max-height:520px;overflow:auto;background:#1d2327;color:#f0f0f1;padding:14px;border-radius:5px;white-space:pre-wrap;font:12px/1.45 monospace}
+            .seo-clonador-summary table,.seo-clonador-final-table{border-collapse:collapse;width:100%;max-width:1100px}
+            .seo-clonador-summary th,.seo-clonador-summary td,.seo-clonador-final-table th,.seo-clonador-final-table td{border-bottom:1px solid #dcdcde;padding:7px 8px;text-align:left}
+            .seo-clonador-live{display:none;margin:20px 0;border:2px solid #2271b1;border-radius:8px;background:#fff;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+            .seo-clonador-live.is-running{display:block;border-color:#2271b1;background:#f6f9fc}
+            .seo-clonador-live.is-paused{display:block;border-color:#dba617;background:#fff9e8}
+            .seo-clonador-live.is-success{display:block;border-color:#00a32a;background:#f0f8f1}
+            .seo-clonador-live.is-failed{display:block;border-color:#d63638;background:#fff5f5}
+            .seo-clonador-live-title{font-size:30px;line-height:1.15;font-weight:800;margin:0 0 8px;color:#1d2327}
+            .seo-clonador-live.is-paused .seo-clonador-live-title{color:#8a6116}
+            .seo-clonador-live.is-success .seo-clonador-live-title{color:#006b1b}
+            .seo-clonador-live.is-failed .seo-clonador-live-title{color:#a00}
+            .seo-clonador-live-phase{font-size:21px;font-weight:700;margin:8px 0}
+            .seo-clonador-progress{height:18px;background:#dcdcde;border-radius:999px;overflow:hidden;margin:14px 0 6px}
+            .seo-clonador-progress>span{display:block;height:100%;background:#2271b1;width:0;transition:width .25s ease}
+            .seo-clonador-live.is-paused .seo-clonador-progress>span{background:#dba617}
+            .seo-clonador-live.is-success .seo-clonador-progress>span{background:#00a32a}
+            .seo-clonador-live.is-failed .seo-clonador-progress>span{background:#d63638}
+            .seo-clonador-live-meta{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;margin:8px 0 14px}
+            .seo-clonador-table-block{margin-top:14px}
+            .seo-clonador-table-block strong{display:block;font-size:14px;margin-bottom:6px}
+            .seo-clonador-table-tags{display:flex;gap:6px;flex-wrap:wrap}
+            .seo-clonador-table-tag{display:inline-block;padding:4px 8px;border:1px solid #c3c4c7;border-radius:4px;background:#fff;font:12px/1.35 monospace}
+            .seo-clonador-table-tag.current{border-color:#2271b1;background:#eef6ff;font-weight:700}
+            .seo-clonador-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:16px 0}
+            .seo-clonador-kpi{background:#fff;border:1px solid #c3c4c7;border-radius:6px;padding:12px}
+            .seo-clonador-kpi.ok{border-left:5px solid #00a32a}
+            .seo-clonador-kpi.bad{border-left:5px solid #d63638}
+            .seo-clonador-kpi-label{font-size:12px;color:#50575e;margin-bottom:4px}
+            .seo-clonador-kpi-value{font-size:20px;font-weight:800}
+            .seo-clonador-error{font-size:15px;font-weight:600;color:#a00;margin-top:10px;word-break:break-word}
+            .seo-clonador-pending{max-height:155px;overflow:auto;padding-right:4px}
+            .seo-clonador-preflight{margin:18px 0;border:2px solid #dba617;border-radius:8px;background:#fffaf0;overflow:hidden}
+            .seo-clonador-preflight[open]{box-shadow:0 1px 3px rgba(0,0,0,.06)}
+            .seo-clonador-preflight>summary{cursor:pointer;list-style:none;padding:14px 16px;font-size:15px;font-weight:800;color:#5f4300;background:#fff3cd;display:flex;align-items:center;gap:10px}
+            .seo-clonador-preflight>summary::-webkit-details-marker{display:none}
+            .seo-clonador-preflight>summary:before{content:'▶';font-size:11px;transition:transform .15s ease}
+            .seo-clonador-preflight[open]>summary:before{transform:rotate(90deg)}
+            .seo-clonador-preflight-body{padding:15px 16px 16px;background:#fff}
+            .seo-clonador-preflight-intro{margin:0 0 12px;font-weight:700}
+            .seo-clonador-preflight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:12px 0}
+            .seo-clonador-preflight-item{border:1px solid #dcdcde;border-radius:6px;padding:11px 12px;background:#f6f7f7}
+            .seo-clonador-preflight-item strong{display:block;margin-bottom:5px}
+            .seo-clonador-badge{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800;line-height:1.4;margin-left:5px;vertical-align:1px}
+            .seo-clonador-badge.on{background:#dff4e4;color:#005c16;border:1px solid #86c995}
+            .seo-clonador-badge.off{background:#fde8e7;color:#8a2424;border:1px solid #e4a5a2}
+            .seo-clonador-badge.info{background:#e5f1fb;color:#135e96;border:1px solid #9ec7e6}
+            .seo-clonador-preflight-path{margin:12px 0;padding:10px 12px;border-left:4px solid #2271b1;background:#eef6ff}
+            .seo-clonador-preflight-lock{margin:12px 0 0;padding:11px 12px;border-left:4px solid #d63638;background:#fff2f2;font-weight:700;color:#7a2020}
+            .seo-clonador-run-warning{margin:12px 0 0;padding:10px 12px;border:1px solid #dba617;border-radius:6px;background:#fff3cd;color:#5f4300;font-weight:800}

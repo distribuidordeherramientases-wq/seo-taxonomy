@@ -578,31 +578,29 @@ if (!class_exists('SEO_Transporte_Costes')) {
                     <?php submit_button('Guardar transporte'); ?>
                 </form>
             </div>
-            <style>
-                .seo-transporte-wrap .nav-tab-wrapper{margin-bottom:16px}.seo-transport-intro{max-width:1100px;font-size:14px}.seo-transport-transfer{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;flex-wrap:wrap}.seo-transport-transfer>div:first-child{max-width:720px}.seo-transport-transfer__actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.seo-transport-transfer__actions form{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0}.seo-transport-panel{background:#fff;border:1px solid #dcdcde;border-radius:4px;padding:18px 20px;margin:18px 0;max-width:1180px}.seo-transport-panel h2{margin-top:0}.seo-transport-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:10px 18px}.seo-transport-toggle{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #e2e4e7;border-radius:4px}.seo-transport-toggle input{margin-top:3px}.seo-transport-toggle small{display:block;color:#646970;margin-top:3px}.seo-transport-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px 14px}.seo-transport-grid--identity{grid-template-columns:120px 2fr 1fr}.seo-transport-grid--general{grid-template-columns:1fr 1fr;margin-top:16px}.seo-transport-grid label>span{display:block;font-weight:600;margin-bottom:4px}.seo-transport-grid input,.seo-transport-grid select{width:100%}.seo-transport-rule{border:1px solid #c3c4c7;border-left:4px solid #4f73c9;border-radius:4px;padding:16px;margin:14px 0;background:#fcfcfc}.seo-transport-rule-head,.seo-transport-title-row{display:flex;justify-content:space-between;gap:16px;align-items:center}.seo-transport-rule h3{margin:18px 0 8px;font-size:14px}.seo-transport-title-row p{margin:4px 0 0}.seo-transport-help p{max-width:1050px}.seo-transport-remove{cursor:pointer}@media(max-width:900px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr 1fr}}@media(max-width:600px){.seo-transport-settings-grid,.seo-transport-grid,.seo-transport-grid--identity,.seo-transport-grid--general{grid-template-columns:1fr}}
-            </style>
-            <script>
-            (function(){
-                var wrap=document.getElementById('seo-transport-rules');
-                var add=document.getElementById('seo-transport-add-rule');
-                var tpl=document.getElementById('seo-transport-rule-template');
-                if(!wrap||!add||!tpl){return;}
-                function bindRemove(root){
-                    (root||document).querySelectorAll('.seo-transport-remove').forEach(function(btn){
-                        if(btn.dataset.bound){return;} btn.dataset.bound='1';
-                        btn.addEventListener('click',function(){var rule=btn.closest('.seo-transport-rule');if(rule){rule.remove();}});
-                    });
-                }
-                bindRemove(document);
-                add.addEventListener('click',function(){
-                    var index=Date.now();
-                    var html=tpl.innerHTML.replace(/__INDEX__/g,String(index));
-                    var box=document.createElement('div'); box.innerHTML=html;
-                    while(box.firstElementChild){wrap.appendChild(box.firstElementChild);}
-                    bindRemove(wrap);
-                });
-            }());
-            </script>
+            <?php
+wp_enqueue_style(
+    'taxocommerce-transporte',
+    SEO_SYSTEM_URL . 'includes/assets/seo-transporte.css',
+    array(),
+    SEO_SYSTEM_VERSION
+);
+if (did_action('admin_print_styles')) {
+    wp_print_styles('taxocommerce-transporte');
+}
+?>
+            <?php
+wp_enqueue_script(
+    'taxocommerce-transporte',
+    SEO_SYSTEM_URL . 'includes/assets/seo-transporte.js',
+    array(),
+    SEO_SYSTEM_VERSION,
+    true
+);
+if (did_action('admin_print_footer_scripts')) {
+    wp_print_scripts('taxocommerce-transporte');
+}
+?>
             <?php
         }
 

@@ -659,62 +659,21 @@ function seo_tools_page() {
  * Se carga en todo el administrador para que el plugin pueda localizarse
  * visualmente sin necesidad de leer cada entrada del menú lateral.
  */
-add_action('admin_head', function () {
+add_action('admin_enqueue_scripts', function () {
 ?>
-<style id="seo-taxonomy-admin-menu-identity">
-
-/* Icono principal siempre reconocible. */
-#adminmenu #toplevel_page_seo-system > a .wp-menu-image::before{
-    color:#35d0ba !important;
-    text-shadow:0 0 10px rgba(53,208,186,.35);
-}
-
-/* Pequeño indicador visual junto al nombre del plugin. */
-#adminmenu #toplevel_page_seo-system > a .wp-menu-name::after{
-    content:"";
-    display:inline-block;
-    width:7px;
-    height:7px;
-    margin-left:8px;
-    vertical-align:middle;
-    background:#35d0ba;
-    border-radius:50%;
-    box-shadow:0 0 0 3px rgba(53,208,186,.14);
-}
-
-/* Refuerzo visual al pasar el ratón. */
-#adminmenu #toplevel_page_seo-system:hover > a,
-#adminmenu #toplevel_page_seo-system > a:focus{
-    color:#fff !important;
-    background:#174f4b !important;
-}
-
-/* Estado activo del plugin. */
-#adminmenu #toplevel_page_seo-system.wp-has-current-submenu > a.wp-has-current-submenu,
-#adminmenu #toplevel_page_seo-system.current > a.current{
-    color:#fff !important;
-    background:#126e65 !important;
-}
-
-/* Mantiene el icono destacado también cuando el menú está activo. */
-#adminmenu #toplevel_page_seo-system.wp-has-current-submenu > a .wp-menu-image::before,
-#adminmenu #toplevel_page_seo-system.current > a .wp-menu-image::before{
-    color:#bffaf1 !important;
-}
-
-@media (prefers-reduced-motion: no-preference){
-    #adminmenu #toplevel_page_seo-system > a .wp-menu-image::before,
-    #adminmenu #toplevel_page_seo-system > a .wp-menu-name::after{
-        transition:color .15s ease, background-color .15s ease, box-shadow .15s ease;
-    }
-}
-
-</style>
+<?php
+wp_enqueue_style(
+    'taxocommerce-seo-admin-menu',
+    SEO_SYSTEM_URL . 'includes/assets/seo-admin-menu.css',
+    array(),
+    SEO_SYSTEM_VERSION
+);
+?>
 <?php
 });
 
 
-add_action('admin_head', function () {
+add_action('admin_enqueue_scripts', function () {
 
     /*
      * No se comprueba $screen->id porque WordPress construye ese ID a partir
@@ -729,135 +688,14 @@ add_action('admin_head', function () {
         return;
     }
 ?>
-<style id="seo-taxonomy-admin-cards">
-
-.seo-home,
-.seo-content,
-.seo-tools{
-    box-sizing:border-box;
-}
-
-.seo-tools-grid{
-    display:grid !important;
-    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-    align-items:stretch;
-    gap:20px;
-    width:100%;
-    max-width:1600px;
-    margin-top:30px;
-}
-
-.seo-tools-grid > *{
-    min-width:0;
-}
-
-.seo-tool-card-link{
-    display:flex;
-    height:100%;
-    color:inherit;
-    text-decoration:none;
-}
-
-.seo-tool-card-link:hover,
-.seo-tool-card-link:focus{
-    color:inherit;
-    text-decoration:none;
-}
-
-.seo-tool-card-link:focus{
-    outline:2px solid #2271b1;
-    outline-offset:3px;
-    box-shadow:none;
-}
-
-.seo-tool-card{
-    display:flex;
-    flex-direction:column;
-    width:100%;
-    min-height:250px;
-    box-sizing:border-box;
-    background:#fff;
-    border:1px solid #dcdcde;
-    border-radius:8px;
-    padding:25px;
-    text-align:center;
-    box-shadow:0 1px 3px rgba(0,0,0,.08);
-    cursor:pointer;
-    transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
-}
-
-.seo-tool-card:hover{
-    transform:translateY(-2px);
-    border-color:#2271b1;
-    box-shadow:0 4px 12px rgba(0,0,0,.12);
-}
-
-.seo-tool-card .dashicons{
-    flex:0 0 auto;
-    width:42px;
-    height:42px;
-    margin:0 auto 15px;
-    color:#2271b1;
-    font-size:42px;
-    line-height:1;
-}
-
-.seo-tool-card h2{
-    margin:10px 0;
-    font-size:18px;
-    line-height:1.3;
-}
-
-.seo-tool-card p{
-    flex:1 1 auto;
-    min-height:48px;
-    margin:0 0 15px;
-    color:#646970;
-    line-height:1.55;
-}
-
-.seo-tool-card .button{
-    align-self:center;
-    margin-top:auto;
-    pointer-events:none;
-}
-
-.seo-plugin-definition{
-    box-sizing:border-box;
-    max-width:1600px;
-    margin:25px 0 30px;
-    padding:25px;
-    background:#fff;
-    border:1px solid #dcdcde;
-    border-left:5px solid #2271b1;
-    border-radius:8px;
-    box-shadow:0 1px 3px rgba(0,0,0,.08);
-}
-
-.seo-plugin-definition h2{
-    margin-top:0;
-}
-
-.seo-plugin-definition p{
-    max-width:1200px;
-    font-size:15px;
-    line-height:1.8;
-}
-
-@media screen and (max-width:782px){
-    .seo-tools-grid{
-        grid-template-columns:1fr;
-        gap:14px;
-        margin-top:20px;
-    }
-
-    .seo-tool-card{
-        min-height:0;
-        padding:20px;
-    }
-}
-
-</style>
+<?php
+wp_enqueue_style(
+    'taxocommerce-seo-admin-cards',
+    SEO_SYSTEM_URL . 'includes/assets/seo-admin-cards.css',
+    array(),
+    SEO_SYSTEM_VERSION
+);
+?>
 <?php
 });
 

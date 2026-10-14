@@ -11,6 +11,20 @@ defined('ABSPATH') || exit;
 final class SEO_Mercado_Admin {
     const PAGE = 'seo-mercado';
 
+    public static function enqueue_assets() {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if (self::PAGE !== $page) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'taxocommerce-seo-mercado',
+            SEO_SYSTEM_URL . 'includes/assets/seo-mercado.css',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+        );
+    }
+
     public static function register_page() {
         add_submenu_page(
             'seo-system',
@@ -20,6 +34,7 @@ final class SEO_Mercado_Admin {
             self::PAGE,
             array(__CLASS__, 'render')
         );
+        add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue_assets'));
 
         // Mercado es el único lanzador visible de los tres especialistas.
         // Los endpoints, formularios y rutas de las pantallas originales se conservan.
@@ -76,7 +91,7 @@ final class SEO_Mercado_Admin {
 
     public static function render() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para consultar Mercado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para consultar Mercado.', 'taxocommerce-seo'));
         }
 
         $views = array(
@@ -88,22 +103,7 @@ final class SEO_Mercado_Admin {
         if (!isset($views[$view])) $view = 'donde_estamos';
         ?>
         <div class="wrap seo-mercado">
-            <style>
-                .seo-mercado .seo-mercado-intro{max-width:880px;line-height:1.55}
-                .seo-mercado .seo-mercado-panel{background:#fff;border:1px solid #dcdcde;border-radius:8px;margin-top:18px;padding:20px}
-                .seo-mercado .seo-mercado-panel h2{margin-top:0}
-                .seo-mercado .seo-mercado-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin:18px 0}
-                .seo-mercado .seo-mercado-metric{border:1px solid #dcdcde;border-radius:6px;padding:14px;min-width:0}
-                .seo-mercado .seo-mercado-metric span,.seo-mercado .seo-mercado-metric small{display:block;color:#50575e}
-                .seo-mercado .seo-mercado-metric strong{display:block;font-size:24px;line-height:1.3;margin:4px 0;overflow-wrap:anywhere}
-                .seo-mercado .seo-mercado-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
-                .seo-mercado .seo-mercado-table{overflow-x:auto;margin-top:18px}
-                .seo-mercado .seo-mercado-note{color:#50575e;font-size:13px}
-                .seo-mercado .nav-tab-wrapper{display:flex;gap:4px;flex-wrap:wrap}
-                .seo-mercado .seo-mercado-status{margin:12px 0;padding:10px 14px;border-left:4px solid #72aee6;background:#f0f6fc}
-                @media(max-width:782px){.seo-mercado .seo-mercado-panel{padding:14px}.seo-mercado .seo-mercado-metrics{grid-template-columns:repeat(auto-fit,minmax(135px,1fr))}}
-            </style>
-            <h1>Mercado</h1>
+<h1>Mercado</h1>
             <p class="seo-mercado-intro">Una visión sencilla de la tienda: <strong>dónde estamos</strong> según Google,
                 <strong>cómo mejoramos</strong> con conocimiento técnico y <strong>hacia dónde vamos</strong> según el mercado.</p>
             <div class="seo-mercado-status">
