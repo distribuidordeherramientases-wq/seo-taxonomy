@@ -3781,8 +3781,8 @@ final class SEO_Clonador_Engine {
     public static function ajax_preview() {
         $auth = self::authorize();
         if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
-        @set_time_limit(0);
-        $pair = self::open_pair();
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit(0);$pair = self::open_pair();
         if (is_wp_error($pair)) wp_send_json_error(array('message'=>$pair->get_error_message()), 500);
         list($pro, $stg) = $pair;
         $pro_prefix = seo_clonador_db_prefix('pro');
