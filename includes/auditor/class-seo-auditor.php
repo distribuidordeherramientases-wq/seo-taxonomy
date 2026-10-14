@@ -49,8 +49,8 @@ final class SEO_Auditor {
     }
 
     public static function enqueue($hook) {
-        $page = sanitize_key((string) ($_GET['page'] ?? ''));
-        $tab = sanitize_key((string) ($_GET['tab'] ?? ''));
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
         $is_content_auditor = 'seo-content-auditor' === $page;
         $is_academy_auditor = false !== strpos((string) $hook, 'seo-dependiente') && 'auditor' === $tab;
 
@@ -180,8 +180,8 @@ final class SEO_Auditor {
 
         $scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
 
-        if ('scope' === sanitize_key((string) ($_GET['audited'] ?? ''))) {
-            $done_scope = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
+        if ('scope' === (isset($_GET['audited']) ? sanitize_key(wp_unslash($_GET['audited'])) : '')) {
+            $done_scope = self::normalize_scope(isset($_GET['audit_scope']) ? wp_unslash($_GET['audit_scope']) : '');
             $labels = self::scope_definitions();
             if ($done_scope && isset($labels[$done_scope])) {
                 echo '<div class="notice notice-success is-dismissible"><p>Auditoria de <strong>' . esc_html($labels[$done_scope]['label']) . '</strong> completada de forma independiente.</p></div>';
@@ -195,7 +195,7 @@ final class SEO_Auditor {
 
         self::render_content_audit_actions(array(), $scoped_reports);
 
-        $scope_view = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
+        $scope_view = self::normalize_scope(isset($_GET['audit_scope']) ? wp_unslash($_GET['audit_scope']) : '');
         if ($scope_view && !empty($scoped_reports[$scope_view])) {
             self::render_scope_report((array) $scoped_reports[$scope_view]);
         } elseif (!$scoped_reports) {
@@ -214,12 +214,12 @@ final class SEO_Auditor {
         }
 
         $academy_report = self::last_academy_report();
-        $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
+        $view = isset($_GET['audit_view']) ? sanitize_key(wp_unslash($_GET['audit_view'])) : 'summary';
         if (!in_array($view, array('summary','academia','chain'), true)) {
             $view = 'summary';
         }
 
-        if ('academy' === sanitize_key((string) ($_GET['audited'] ?? ''))) {
+        if ('academy' === (isset($_GET['audited']) ? sanitize_key(wp_unslash($_GET['audited'])) : '')) {
             echo '<div class="notice notice-success is-dismissible"><p>Auditoria de Academia / Estudiante completada. No se ha recorrido el catalogo ni se ha modificado conocimiento.</p></div>';
         }
 
