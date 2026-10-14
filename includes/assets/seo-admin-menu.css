@@ -1,0 +1,45 @@
+/* Icono principal siempre reconocible. */
+#adminmenu #toplevel_page_seo-system > a .wp-menu-image::before{
+    color:#35d0ba !important;
+    text-shadow:0 0 10px rgba(53,208,186,.35);
+}
+
+/* Pequeño indicador visual junto al nombre del plugin. */
+#adminmenu #toplevel_page_seo-system > a .wp-menu-name::after{
+    content:"";
+    display:inline-block;
+    width:7px;
+    height:7px;
+    margin-left:8px;
+    vertical-align:middle;
+    background:#35d0ba;
+    border-radius:50%;
+    box-shadow:0 0 0 3px rgba(53,208,186,.14);
+}
+
+/* Refuerzo visual al pasar el ratón. */
+#adminmenu #toplevel_page_seo-system:hover > a,
+#adminmenu #toplevel_page_seo-system > a:focus{
+    color:#fff !important;
+    background:#174f4b !important;
+}
+
+/* Estado activo del plugin. */
+#adminmenu #toplevel_page_seo-system.wp-has-current-submenu > a.wp-has-current-submenu,
+#adminmenu #toplevel_page_seo-system.current > a.current{
+    color:#fff !important;
+    background:#126e65 !important;
+}
+
+/* Mantiene el icono destacado también cuando el menú está activo. */
+#adminmenu #toplevel_page_seo-system.wp-has-current-submenu > a .wp-menu-image::before,
+#adminmenu #toplevel_page_seo-system.current > a .wp-menu-image::before{
+    color:#bffaf1 !important;
+}
+
+@media (prefers-reduced-motion: no-preference){
+    #adminmenu #toplevel_page_seo-system > a .wp-menu-image::before,
+    #adminmenu #toplevel_page_seo-system > a .wp-menu-name::after{
+        transition:color .15s ease, background-color .15s ease, box-shadow .15s ease;
+    }
+}
