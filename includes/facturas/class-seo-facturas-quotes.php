@@ -220,11 +220,23 @@ final class SEO_Facturas_Quotes {
         if ('post' !== $request_method) {
             return;
         }
-        if (empty($_POST['seo_facturas_quote_download'])) {
+        $download_requested = isset($_POST['seo_facturas_quote_download'])
+            ? sanitize_text_field(wp_unslash($_POST['seo_facturas_quote_download']))
+            : '';
+        if ('1' !== $download_requested) {
             return;
         }
 
-        $kind = sanitize_key(wp_unslash($_POST['seo_facturas_cart_document_kind'] ?? 'quote'));
+        $nonce = isset($_POST['seo_facturas_quote_nonce'])
+            ? sanitize_text_field(wp_unslash($_POST['seo_facturas_quote_nonce']))
+            : '';
+        if (!$nonce || !wp_verify_nonce($nonce, 'seo_facturas_quote_download')) {
+            self::fail('La solicitud ha caducado. Recarga el carrito y vuelve a intentarlo.');
+        }
+
+        $kind = isset($_POST['seo_facturas_cart_document_kind'])
+            ? sanitize_key(wp_unslash($_POST['seo_facturas_cart_document_kind']))
+            : 'quote';
         if (!in_array($kind, array('quote', 'proforma_draft'), true)) {
             $kind = 'quote';
         }
@@ -235,11 +247,6 @@ final class SEO_Facturas_Quotes {
         }
         if ('proforma_draft' === $kind && !self::is_proforma_draft_available()) {
             self::fail('La descarga de proformas de borrador no esta disponible.');
-        }
-
-        $nonce = isset($_POST['seo_facturas_quote_nonce']) ? sanitize_text_field(wp_unslash($_POST['seo_facturas_quote_nonce'])) : '';
-        if (!$nonce || !wp_verify_nonce($nonce, 'seo_facturas_quote_download')) {
-            self::fail('La solicitud ha caducado. Recarga el carrito y vuelve a intentarlo.');
         }
 
         if (!is_user_logged_in() && !SEO_Facturas_Settings::get('quote_guest_allowed', 1)) {
