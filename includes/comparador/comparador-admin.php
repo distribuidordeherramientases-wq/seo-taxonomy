@@ -81,6 +81,7 @@ final class SEO_Comparador_Admin {
     public static function handle_settings() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
         check_admin_referer('seo_comparador_settings');
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Comparator settings are normalized field by field by SEO_Comparador_Engine::save_settings().
         SEO_Comparador_Engine::save_settings(isset($_POST['settings']) ? (array) wp_unslash($_POST['settings']) : array());
         self::notice('Configuración de Comparador guardada.');
         self::redirect('settings');
@@ -103,6 +104,7 @@ final class SEO_Comparador_Admin {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
         $profile_id=isset($_POST['profile_id']) ? absint(wp_unslash($_POST['profile_id'])) : 0;
         check_admin_referer('seo_comparador_axes_' . $profile_id);
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Axis rows are normalized and coverage-validated by SEO_Comparador_Engine::save_axes().
         $result=SEO_Comparador_Engine::save_axes($profile_id,isset($_POST['axes']) ? (array) wp_unslash($_POST['axes']) : array());
         if (is_wp_error($result)) {
             self::notice($result->get_error_message(),'error');
