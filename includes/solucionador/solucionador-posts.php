@@ -610,7 +610,7 @@ final class SEO_Solucionador_Posts {
         ));
         $selected_lookup = array_fill_keys($selected_keys,true);
         $detected_at = (string) get_post_meta($post_id,self::META_PENDING_DETECTED_AT,true);
-        $update_state = sanitize_key((string)($_GET['sol_update'] ?? ''));
+        $update_state = isset($_GET['sol_update']) ? sanitize_key(wp_unslash($_GET['sol_update'])) : '';
 
         echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px;">';
         if ($update_state === 'rescanned') {
