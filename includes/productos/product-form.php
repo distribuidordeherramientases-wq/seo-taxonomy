@@ -143,23 +143,17 @@ if (!function_exists('seo_render_product_form')) {
         $role_label = $selected_role > 0 ? ($role_labels[$selected_role] ?? '') : '';
         ?>
 
-        <style>
-            .seo-product-form{max-width:1180px}
-            .seo-product-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;margin:0 0 18px}
-            .seo-product-card h2{margin:0 0 15px;font-size:16px}
-            .seo-product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
-            .seo-product-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}
-            .seo-product-field label{display:block;font-weight:600;margin:0 0 5px}
-            .seo-product-field input[type=text],.seo-product-field input[type=number],.seo-product-field input[type=url],.seo-product-field select,.seo-product-field textarea{width:100%;max-width:none}
-            .seo-product-field textarea{min-height:110px}
-            .seo-product-field small{display:block;color:#646970;margin-top:4px}
-            .seo-product-full{grid-column:1/-1}
-            .seo-product-required{color:#b32d2e}
-            .seo-product-media-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-            .seo-product-media-preview img{width:70px;height:70px;object-fit:cover;border:1px solid #dcdcde;border-radius:4px;background:#fff}
-            .seo-product-radio-row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px}
-            @media(max-width:900px){.seo-product-grid,.seo-product-grid-3{grid-template-columns:1fr}}
-        </style>
+        <?php
+wp_enqueue_style(
+    'taxocommerce-product-form-admin',
+    SEO_SYSTEM_URL . 'includes/assets/product-form-admin.css',
+    array(),
+    SEO_SYSTEM_VERSION
+);
+if (did_action('admin_print_styles')) {
+    wp_print_styles('taxocommerce-product-form-admin');
+}
+?>
 
         <form id="<?php echo esc_attr($form_id); ?>" class="seo-product-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <input type="hidden" name="action" value="seo_save_single_product">
