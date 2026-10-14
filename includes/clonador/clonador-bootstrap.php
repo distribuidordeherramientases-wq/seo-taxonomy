@@ -27,7 +27,9 @@ foreach ( $seo_clonador_required as $seo_clonador_file ) {
         continue;
     }
 
-    error_log( '[TaxoCommerce SEO Clonador] Instalacion incompleta: ' . basename( $seo_clonador_file ) );
+    if (function_exists('seo_system_private_log')) {
+        seo_system_private_log('error',  '[TaxoCommerce SEO Clonador] Instalacion incompleta: ' . basename( $seo_clonador_file ) );
+    }
 
     add_action(
         'admin_notices',
