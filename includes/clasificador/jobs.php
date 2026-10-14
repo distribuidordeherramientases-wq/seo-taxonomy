@@ -1404,7 +1404,7 @@ if (!function_exists('seo_classifier_ajax_job_control')) {
             isset($_POST['job_id']) ? absint(wp_unslash($_POST['job_id'])) : 0,
             isset($_POST['job_action']) ? sanitize_key(wp_unslash($_POST['job_action'])) : ''
         );
-        if (is_wp_error($result)) wp_send_json_error(['message'=>$result->get_error_message()], 400);
+        if (is_wp_error($result)) wp_send_json_error(['message'=>sanitize_text_field($result->get_error_message())], 400);
         wp_send_json_success(seo_classifier_job_status_payload((int)$result['id']));
     }
     add_action('wp_ajax_seo_classifier_job_control', 'seo_classifier_ajax_job_control');
