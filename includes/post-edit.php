@@ -10,6 +10,31 @@
 
 defined('ABSPATH') || exit;
 
+if (!function_exists('seo_post_editor_enqueue_assets')) {
+    function seo_post_editor_enqueue_assets() {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if (!in_array($page, array('seo-post-editor', 'seo-content'), true)) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'seo-post-editor',
+            SEO_SYSTEM_URL . 'includes/assets/post-edit.css',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+        );
+        wp_enqueue_script(
+            'seo-post-editor',
+            SEO_SYSTEM_URL . 'includes/assets/post-edit.js',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+            true
+        );
+    }
+}
+add_action('admin_enqueue_scripts', 'seo_post_editor_enqueue_assets');
+
+
 // Carga opcional del modulo de informes si vive junto a este editor.
 // require_once evita dobles cargas si el bootstrap principal ya lo incluye.
 $seo_post_reports_file = __DIR__ . '/seo-post-reports.php';
@@ -880,42 +905,6 @@ if (!function_exists('seo_post_editor_render_prepend_payload')) {
         echo '<textarea id="' . esc_attr($payload_id) . '" style="display:none" aria-hidden="true">' . esc_textarea((string) $html) . '</textarea>';
         echo '<button type="button" class="button button-primary" onclick="return seoPostEditorPrependPayload(' . esc_attr(wp_json_encode($payload_id)) . ');">' . esc_html($label) . '</button>';
 
-        static $script_printed = false;
-        if ($script_printed) return;
-        $script_printed = true;
-        ?>
-        <script>
-        function seoPostEditorPrependPayload(payloadId) {
-            var source = document.getElementById(payloadId);
-            if (!source) return false;
-            var addition = source.value || '';
-            if (!addition) return false;
-
-            var editorId = 'seo_post_editor_content';
-            var textarea = document.getElementById(editorId);
-            var current = '';
-
-            if (window.tinymce && tinymce.get(editorId) && !tinymce.get(editorId).isHidden()) {
-                var editor = tinymce.get(editorId);
-                current = editor.getContent() || '';
-                editor.setContent(addition + (current ? '\n\n' + current : ''));
-                editor.save();
-            } else if (textarea) {
-                current = textarea.value || '';
-                textarea.value = addition + (current ? '\n\n' + current : '');
-                textarea.dispatchEvent(new Event('input', {bubbles:true}));
-                textarea.dispatchEvent(new Event('change', {bubbles:true}));
-            }
-
-            var form = textarea ? textarea.closest('form') : null;
-            if (form) {
-                form.dataset.seoEditorialPendingInsert = '1';
-            }
-
-            return false;
-        }
-        </script>
-        <?php
     }
 }
 
@@ -1148,61 +1137,6 @@ if (!function_exists('seo_page_edit_posts')) {
                 </form>
             <?php endif; ?>
 
-            <script>
-            (function () {
-                var search = document.getElementById('seo-post-product-cat-search');
-                var list = document.getElementById('seo-post-product-cat-list');
-                var allButton = document.getElementById('seo-post-product-cat-all');
-                var noneButton = document.getElementById('seo-post-product-cat-none');
-                if (!search || !list) return;
-
-                function normalize(value) {
-                    value = (value || '').toLowerCase();
-                    if (value.normalize) {
-                        value = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                    }
-                    return value;
-                }
-
-                function visibleItems() {
-                    return Array.prototype.filter.call(list.querySelectorAll('.seo-post-product-cat-item'), function (item) {
-                        return item.style.display !== 'none';
-                    });
-                }
-
-                search.addEventListener('input', function () {
-                    var needle = normalize(search.value);
-                    Array.prototype.forEach.call(list.querySelectorAll('.seo-post-product-cat-item'), function (item) {
-                        var haystack = normalize(item.getAttribute('data-search'));
-                        item.style.display = !needle || haystack.indexOf(needle) !== -1 ? 'block' : 'none';
-                    });
-                });
-
-                if (allButton) {
-                    allButton.addEventListener('click', function () {
-                        visibleItems().forEach(function (item) {
-                            var checkbox = item.querySelector('input[type="checkbox"]');
-                            if (checkbox) checkbox.checked = true;
-                        });
-                    });
-                }
-
-                if (noneButton) {
-                    noneButton.addEventListener('click', function () {
-                        visibleItems().forEach(function (item) {
-                            var checkbox = item.querySelector('input[type="checkbox"]');
-                            if (checkbox) checkbox.checked = false;
-                        });
-                    });
-                }
-            })();
-            </script>
-
-            <style>
-                @media (max-width: 900px) {
-                    .seo-post-editor-layout { grid-template-columns:1fr !important; }
-                }
-            </style>
             <?php
             echo '</div>';
             return;
