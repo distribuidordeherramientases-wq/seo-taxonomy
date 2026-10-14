@@ -260,7 +260,7 @@ final class SEO_Ingeniero_Exchange {
             self::redirect(array('ingeniero_exchange_error'=>rawurlencode('El archivo supera el límite de 10 MB.')));
         }
 
-        $mode = sanitize_key((string) ($_POST['import_mode'] ?? 'add_only'));
+        $mode = isset($_POST['import_mode']) ? sanitize_key(wp_unslash($_POST['import_mode'])) : 'add_only';
         if (!in_array($mode, array('add_only','update_review'), true)) $mode = 'add_only';
         $strict_category = !empty($_POST['strict_category']);
 
