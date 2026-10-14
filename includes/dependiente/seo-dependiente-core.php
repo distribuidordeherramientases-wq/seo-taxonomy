@@ -109,8 +109,14 @@ final class SEO_Dependiente_Plugin {
     }
 
     public function register_shortcode() {
-        add_shortcode('dependiente_productos', array($this, 'render_shortcode'));
-        add_shortcode('dependiente', array($this, 'render_shortcode'));
+        add_shortcode('taxocommerce_dependiente_productos', array($this, 'render_shortcode'));
+        add_shortcode('taxocommerce_dependiente', array($this, 'render_shortcode'));
+
+        // Compatibilidad con contenido existente anterior al rebranding.
+        $legacy_shortcodes = array('dependiente_productos', 'dependiente');
+        foreach ($legacy_shortcodes as $legacy_shortcode) {
+            add_shortcode($legacy_shortcode, array($this, 'render_shortcode'));
+        }
     }
 
     public function template_include($template) {
