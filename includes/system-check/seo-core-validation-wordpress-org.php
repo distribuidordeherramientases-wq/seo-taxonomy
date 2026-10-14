@@ -619,11 +619,26 @@ function seo_core_wporg_static_findings() {
             }
 
             if (preg_match_all('/https?:\/\/([a-z0-9.-]+)/i', $line, $urls)) {
+                $reference_hosts = array(
+                    'schema.org',
+                    'www.sitemaps.org',
+                    'schemas.openxmlformats.org',
+                    'developers.google.com',
+                    'console.cloud.google.com',
+                    'shopify.dev',
+                    'www.ejemplo.com',
+                    'example.com',
+                    'www.example.com',
+                );
+                $comment_only = preg_match('/^\s*(?:\/\/|#|\*)/', $line);
+
                 foreach ((array) $urls[1] as $host) {
                     $host = strtolower((string) $host);
                     if (
-                        $host === ''
+                        $comment_only
+                        || $host === ''
                         || $host === $own_host
+                        || in_array($host, $reference_hosts, true)
                         || preg_match('/(?:^|\.)wordpress\.org$/', $host)
                         || preg_match('/(?:^|\.)w\.org$/', $host)
                         || preg_match('/(?:^|\.)opensource\.org$/', $host)
