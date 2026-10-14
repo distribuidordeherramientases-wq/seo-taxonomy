@@ -4427,7 +4427,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             check_admin_referer( 'seo_import_products_csv', 'seo_import_products_nonce' );
         }
 
-        $token  = sanitize_key( $_POST['seo_import_token'] ?? '' );
+        $token  = isset( $_POST['seo_import_token'] ) ? sanitize_key( wp_unslash( $_POST['seo_import_token'] ) ) : '';
         $state  = get_transient( seo_ie_product_import_state_key( $user_id, $token ) );
         $result = get_transient( seo_ie_product_import_result_key( $user_id, $token ) );
 
@@ -7388,7 +7388,7 @@ function seo_import_pages_csv() {
         );
     }
 
-    $mode = sanitize_key( $_POST['page_import_mode'] ?? 'create_update' );
+    $mode = isset( $_POST['page_import_mode'] ) ? sanitize_key( wp_unslash( $_POST['page_import_mode'] ) ) : 'create_update';
 
     if ( ! in_array( $mode, [ 'create_update', 'create_only', 'update_only' ], true ) ) {
         $mode = 'create_update';
@@ -9300,7 +9300,7 @@ function seo_import_posts_csv() {
         wp_die( esc_html__( 'No se ha recibido un CSV de entradas válido.', 'taxocommerce-seo' ) );
     }
 
-    $mode = sanitize_key( $_POST['post_import_mode'] ?? 'create_update' );
+    $mode = isset( $_POST['post_import_mode'] ) ? sanitize_key( wp_unslash( $_POST['post_import_mode'] ) ) : 'create_update';
     if ( ! in_array( $mode, [ 'create_update', 'create_only', 'update_only' ], true ) ) {
         $mode = 'create_update';
     }
