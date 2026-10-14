@@ -7823,7 +7823,7 @@ final class SEO_Dependiente_Entrenador {
         if (!isset($_GET[$key])) {
             return $default;
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación GET de solo lectura.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw read-only filter is returned so each caller can apply its type-specific sanitizer.
         return wp_unslash($_GET[$key]);
     }
 
@@ -7843,7 +7843,7 @@ final class SEO_Dependiente_Entrenador {
         if (!isset($_POST[$key])) {
             return $default;
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Todos los callers verifican el nonce mediante guard_ajax().
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- guard_ajax() verifies the nonce; each caller applies its type-specific sanitizer.
         return wp_unslash($_POST[$key]);
     }
 
