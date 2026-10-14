@@ -76,7 +76,7 @@ final class SEO_Mercado_Admin {
 
     public static function render() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para consultar Mercado.', 'seo-taxonomy'));
+            wp_die(esc_html__('No tienes permisos para consultar Mercado.', 'taxocommerce-seo'));
         }
 
         $views = array(
