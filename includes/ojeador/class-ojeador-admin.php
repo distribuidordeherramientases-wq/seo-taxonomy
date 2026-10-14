@@ -52,7 +52,7 @@ final class SEO_Ojeador_Admin {
         if (self::$tools_filter_used || !current_user_can('manage_options')) {
             return;
         }
-        if (sanitize_key((string) ($_GET['page'] ?? '')) !== 'seo-tools') {
+        if (sanitize_key((string) wp_unslash($_GET['page'] ?? '')) !== 'seo-tools') {
             return;
         }
         $url = admin_url('admin.php?page=' . self::PAGE);
@@ -99,7 +99,7 @@ final class SEO_Ojeador_Admin {
 
     public static function save_settings() {
         self::guard('seo_ojeador_settings_save');
-        $raw = isset($_POST['ojeador']) && is_array($_POST['ojeador']) ? wp_unslash($_POST['ojeador']) : array();
+        $raw = isset($_POST['ojeador']) && is_array($_POST['ojeador']) ? map_deep(wp_unslash($_POST['ojeador']), 'sanitize_text_field') : array();
         $scope = isset($_POST['ojeador_scope']) ? sanitize_key((string) wp_unslash($_POST['ojeador_scope'])) : 'operation';
 
         // El checkbox sólo pertenece al formulario operativo de Ojeador. El
@@ -808,7 +808,7 @@ if (did_action('admin_print_styles')) {
             return;
         }
 
-        $tab = sanitize_key((string) ($_GET['ojeador_tab'] ?? 'analysis'));
+        $tab = sanitize_key((string) wp_unslash($_GET['ojeador_tab'] ?? 'analysis'));
         if (!in_array($tab, array('analysis','stars','products','operation','merchant'), true)) {
             $tab = 'analysis';
         }
@@ -819,8 +819,8 @@ if (did_action('admin_print_styles')) {
         $ready = SEO_Ojeador_Shopping::readiness();
         $run = SEO_Ojeador_DB::active_run();
         if (!$run) $run = SEO_Ojeador_DB::latest_run();
-        $notice = sanitize_key((string) ($_GET['ojeador_notice'] ?? ''));
-        $error = isset($_GET['ojeador_error']) ? sanitize_text_field(rawurldecode((string) $_GET['ojeador_error'])) : '';
+        $notice = sanitize_key((string) wp_unslash($_GET['ojeador_notice'] ?? ''));
+        $error = isset($_GET['ojeador_error']) ? sanitize_text_field(rawurldecode((string) wp_unslash($_GET['ojeador_error']))) : '';
 
         $analysis = array();
         $stars = array();
