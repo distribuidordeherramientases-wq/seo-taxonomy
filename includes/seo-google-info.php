@@ -237,17 +237,14 @@ function seo_google_save_settings_handler() {
         $settings['client_secret'] = $client_secret;
     }
 
-    $settings['property_id'] = isset($_POST['property_id'])
-        ? esc_url_raw(wp_unslash($_POST['property_id']))
+    $raw_property = isset($_POST['property_id'])
+        ? sanitize_text_field(wp_unslash($_POST['property_id']))
         : '';
 
     // Las propiedades de dominio usan el prefijo sc-domain: y no son URLs.
-    if (isset($_POST['property_id'])) {
-        $raw_property = trim((string) wp_unslash($_POST['property_id']));
-        if (0 === strpos($raw_property, 'sc-domain:')) {
-            $settings['property_id'] = sanitize_text_field($raw_property);
-        }
-    }
+    $settings['property_id'] = 0 === strpos($raw_property, 'sc-domain:')
+        ? $raw_property
+        : esc_url_raw($raw_property);
 
     $frequency = isset($_POST['sync_frequency'])
         ? sanitize_key(wp_unslash($_POST['sync_frequency']))
@@ -301,6 +298,8 @@ function seo_google_connect_handler() {
         'https://accounts.google.com/o/oauth2/v2/auth'
     );
 
+    // Redirección externa intencionada al endpoint OAuth fijo de Google.
+    // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- accounts.google.com is the fixed Google OAuth authorization host assembled above.
     wp_redirect(esc_url_raw($authorization_url));
     exit;
 }
@@ -1192,7 +1191,6 @@ function seo_google_ajax_begin() {
         nocache_headers();
     }
 
-    @ini_set('display_errors', '0');
     ob_start();
     register_shutdown_function('seo_google_ajax_shutdown');
 }
@@ -1228,10 +1226,17 @@ function seo_google_ajax_shutdown() {
     $GLOBALS['seo_google_ajax_active'] = false;
     seo_google_ajax_clean_buffers();
 
-    error_log(
-        '[SEO Google Intelligence] Error fatal AJAX: '
-        . $error['message'] . ' en ' . $error['file'] . ':' . $error['line']
-    );
+    if (function_exists('seo_system_private_log')) {
+        seo_system_private_log(
+            'critical',
+            'Google Intelligence: error fatal AJAX',
+            array(
+                'message' => (string) $error['message'],
+                'file'    => (string) $error['file'],
+                'line'    => absint($error['line']),
+            )
+        );
+    }
 
     if (!headers_sent()) {
         status_header(500);
