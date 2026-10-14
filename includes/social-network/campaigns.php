@@ -489,7 +489,9 @@ function seo_social_campaign_run_scheduled($campaign_id, $product_id, $provider)
     seo_social_campaign_clear_schedule($campaign_id, $product_id, $provider);
     $result = seo_social_campaign_publish_product($campaign_id, $product_id, $provider);
     if (is_wp_error($result)) {
-        error_log('[SEO Social Campaign] Publicacion fallida: ' . $result->get_error_message());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Social Campaign] Publicacion fallida: ' . $result->get_error_message());
+        }
     }
 }
 add_action('seo_social_campaign_publish_scheduled', 'seo_social_campaign_run_scheduled', 10, 3);
