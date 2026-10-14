@@ -36,7 +36,9 @@ final class SEO_System_Updater
             self::register_success(SEO_SYSTEM_DB_VERSION);
         } catch (Throwable $exception) {
             self::register_failure(SEO_SYSTEM_DB_VERSION, $exception->getMessage());
-            error_log('[TaxoCommerce SEO] Upgrade error: ' . $exception->getMessage());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[TaxoCommerce SEO] Upgrade error: ' . $exception->getMessage());
+            }
         }
     }
 
