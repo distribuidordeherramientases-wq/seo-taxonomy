@@ -3,6 +3,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!function_exists('seo_redirects_admin_enqueue_assets')) {
+    function seo_redirects_admin_enqueue_assets() {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if ('seo-menu-redirects' !== $page) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'taxocommerce-admin-redirects',
+            SEO_SYSTEM_URL . 'includes/assets/admin-redirects.css',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+        );
+    }
+}
+add_action('admin_enqueue_scripts', 'seo_redirects_admin_enqueue_assets');
+
 /**
  * Vista y lógica de administración para el motor de redirecciones SEO.
  *
@@ -1271,174 +1288,7 @@ function seo_menu_manager_redirects_page() {
     <div class="wrap seo-rd-wrap">
         <h1 class="wp-heading-inline">Gestor de Redirecciones SEO</h1>
         <hr class="wp-header-end">
-
-        <style>
-            .seo-rd-kpis {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-                gap: 10px;
-                margin: 18px 0;
-            }
-            .seo-rd-kpi {
-                background: #fff;
-                border: 1px solid #dcdcde;
-                border-radius: 4px;
-                padding: 14px;
-                min-height: 74px;
-                box-sizing: border-box;
-            }
-            .seo-rd-kpi strong {
-                display: block;
-                font-size: 24px;
-                line-height: 1.1;
-                margin-bottom: 5px;
-            }
-            .seo-rd-kpi span {
-                color: #646970;
-                font-size: 12px;
-            }
-            .seo-rd-kpi.is-warning {
-                border-left: 4px solid #dba617;
-            }
-            .seo-rd-kpi.is-error {
-                border-left: 4px solid #d63638;
-            }
-            .seo-rd-kpi.is-ok {
-                border-left: 4px solid #00a32a;
-            }
-            .seo-rd-grid {
-                display: grid;
-                grid-template-columns: minmax(260px, 30%) 1fr;
-                gap: 16px;
-                align-items: start;
-                margin-top: 16px;
-            }
-            .seo-rd-card {
-                background: #fff;
-                border: 1px solid #dcdcde;
-                padding: 16px;
-            }
-            .seo-rd-card h2 {
-                margin-top: 0;
-            }
-            .seo-rd-review {
-                margin: 12px 0 18px;
-                background: #fff;
-                border: 1px solid #dcdcde;
-            }
-            .seo-rd-review h2 {
-                padding: 12px 14px;
-                margin: 0;
-                border-bottom: 1px solid #dcdcde;
-            }
-            .seo-rd-review-item {
-                padding: 10px 14px;
-                border-bottom: 1px solid #f0f0f1;
-                display: grid;
-                grid-template-columns: 70px 1fr 90px;
-                gap: 10px;
-                align-items: start;
-            }
-            .seo-rd-review-item:last-child {
-                border-bottom: 0;
-            }
-            .seo-rd-review-item code {
-                word-break: break-word;
-            }
-            .seo-rd-badge {
-                display: inline-block;
-                padding: 2px 7px;
-                border-radius: 12px;
-                font-size: 11px;
-                font-weight: 600;
-                white-space: nowrap;
-            }
-            .seo-rd-badge-ok {
-                background: #edfaef;
-                color: #006b1b;
-            }
-            .seo-rd-badge-warning {
-                background: #fff8e5;
-                color: #7a4d00;
-            }
-            .seo-rd-badge-error {
-                background: #fcf0f1;
-                color: #b32d2e;
-            }
-            .seo-rd-badge-info {
-                background: #f0f6fc;
-                color: #135e96;
-            }
-            .seo-rd-diag {
-                margin-top: 5px;
-                font-size: 11px;
-                line-height: 1.35;
-            }
-            .seo-rd-diag div {
-                margin-bottom: 3px;
-            }
-            .seo-rd-filters {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 6px;
-                margin: 0 0 12px;
-            }
-            .seo-rd-filters a {
-                text-decoration: none;
-            }
-            .seo-rd-search {
-                display: flex;
-                gap: 6px;
-                margin-bottom: 12px;
-            }
-            .seo-rd-table code {
-                display: block;
-                white-space: normal;
-                word-break: break-word;
-                font-size: 11px;
-                line-height: 1.35;
-            }
-            .seo-rd-table .column-id {
-                width: 60px;
-            }
-            .seo-rd-table .column-type {
-                width: 58px;
-                text-align: center;
-            }
-            .seo-rd-table .column-hits {
-                width: 70px;
-                text-align: center;
-            }
-            .seo-rd-table .column-last {
-                width: 120px;
-            }
-            .seo-rd-table .column-status {
-                width: 145px;
-            }
-            .seo-rd-table .column-actions {
-                width: 150px;
-                text-align: right;
-            }
-            .seo-rd-row-error {
-                background: #fff7f7;
-            }
-            .seo-rd-row-warning {
-                background: #fffdf5;
-            }
-            .seo-rd-actions {
-                display: flex;
-                gap: 6px;
-                justify-content: flex-end;
-                flex-wrap: wrap;
-            }
-            @media (max-width: 1100px) {
-                .seo-rd-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-        </style>
-
-        <?php if (!empty($message)): ?>
+<?php if (!empty($message)): ?>
             <div class="<?php echo esc_attr($message_class); ?> notice is-dismissible">
                 <p><strong><?php echo esc_html($message); ?></strong></p>
             </div>
