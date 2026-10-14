@@ -494,7 +494,8 @@ if (!function_exists('seo_classifier_google_schema_admin_post_import')) {
             $referer = admin_url('admin.php?page=seo-tags-vocabulary&domain=google_schema');
         }
 
-        $file = $_FILES['seo_google_schema_file'] ?? null;
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated before the schema file is parsed.
+        $file = isset($_FILES['seo_google_schema_file']) && is_array($_FILES['seo_google_schema_file']) ? $_FILES['seo_google_schema_file'] : null;
         if (!is_array($file) || empty($file['tmp_name'])) {
             set_transient(seo_classifier_google_schema_import_report_key(), [
                 'processed' => 0,
