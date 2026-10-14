@@ -52,7 +52,7 @@ final class SEO_Ojeador_Admin {
         if (self::$tools_filter_used || !current_user_can('manage_options')) {
             return;
         }
-        if (sanitize_key((string) wp_unslash($_GET['page'] ?? '')) !== 'seo-tools') {
+        if (sanitize_key((string) self::query_arg('page', '')) !== 'seo-tools') {
             return;
         }
         $url = admin_url('admin.php?page=' . self::PAGE);
@@ -78,6 +78,22 @@ final class SEO_Ojeador_Admin {
         check_admin_referer($action);
     }
 
+    /**
+     * Lee filtros/avisos GET de solo lectura. No cambian estado y no requieren nonce.
+     */
+    private static function query_arg($key, $default = '') {
+        $key = sanitize_key((string) $key);
+        if ('' === $key) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura.
+        if (!isset($_GET[$key])) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura.
+        return wp_unslash($_GET[$key]);
+    }
+
     private static function redirect($args = array()) {
         wp_safe_redirect(add_query_arg(array_merge(array('page'=>self::PAGE), $args), admin_url('admin.php')));
         exit;
@@ -92,15 +108,12 @@ final class SEO_Ojeador_Admin {
         exit;
     }
 
-    private static function return_to_provider_connections() {
-        return isset($_POST['ojeador_return'])
-            && sanitize_key((string) wp_unslash($_POST['ojeador_return'])) === 'provider_connections';
-    }
-
     public static function save_settings() {
         self::guard('seo_ojeador_settings_save');
         $raw = isset($_POST['ojeador']) && is_array($_POST['ojeador']) ? map_deep(wp_unslash($_POST['ojeador']), 'sanitize_text_field') : array();
         $scope = isset($_POST['ojeador_scope']) ? sanitize_key((string) wp_unslash($_POST['ojeador_scope'])) : 'operation';
+        $return_to_provider_connections = isset($_POST['ojeador_return'])
+            && 'provider_connections' === sanitize_key((string) wp_unslash($_POST['ojeador_return']));
 
         // El checkbox sólo pertenece al formulario operativo de Ojeador. El
         // formulario central de proveedores no debe desactivar auto_enabled.
@@ -110,7 +123,7 @@ final class SEO_Ojeador_Admin {
 
         SEO_Ojeador_Shopping::save_settings($raw);
 
-        if (self::return_to_provider_connections()) {
+        if ($return_to_provider_connections) {
             self::redirect_provider_connections(array('ojeador_google_notice'=>'settings_saved'));
         }
 
@@ -119,9 +132,11 @@ final class SEO_Ojeador_Admin {
 
     public static function test_provider_chain() {
         self::guard('seo_ojeador_test_provider_chain');
+        $return_to_provider_connections = isset($_POST['ojeador_return'])
+            && 'provider_connections' === sanitize_key((string) wp_unslash($_POST['ojeador_return']));
         $result = SEO_Ojeador_Shopping::test_connection_chain();
 
-        if (self::return_to_provider_connections()) {
+        if ($return_to_provider_connections) {
             if (is_wp_error($result)) {
                 self::redirect_provider_connections(array(
                     'ojeador_google_error'=>rawurlencode($result->get_error_message()),
@@ -808,7 +823,7 @@ if (did_action('admin_print_styles')) {
             return;
         }
 
-        $tab = sanitize_key((string) wp_unslash($_GET['ojeador_tab'] ?? 'analysis'));
+        $tab = sanitize_key((string) self::query_arg('ojeador_tab', 'analysis'));
         if (!in_array($tab, array('analysis','stars','products','operation','merchant'), true)) {
             $tab = 'analysis';
         }
@@ -819,8 +834,8 @@ if (did_action('admin_print_styles')) {
         $ready = SEO_Ojeador_Shopping::readiness();
         $run = SEO_Ojeador_DB::active_run();
         if (!$run) $run = SEO_Ojeador_DB::latest_run();
-        $notice = sanitize_key((string) wp_unslash($_GET['ojeador_notice'] ?? ''));
-        $error = isset($_GET['ojeador_error']) ? sanitize_text_field(rawurldecode((string) wp_unslash($_GET['ojeador_error']))) : '';
+        $notice = sanitize_key((string) self::query_arg('ojeador_notice', ''));
+        $error = '' !== (string) self::query_arg('ojeador_error', '') ? sanitize_text_field(rawurldecode((string) self::query_arg('ojeador_error', ''))) : '';
 
         $analysis = array();
         $stars = array();
@@ -838,34 +853,34 @@ if (did_action('admin_print_styles')) {
             // Only local snapshots are rendered; no API call on page load.
         } elseif ($tab === 'stars') {
             $stars = SEO_Ojeador_Stars::dashboard(array(
-                'q' => sanitize_text_field(wp_unslash($_GET['sq'] ?? '')),
-                'provider' => sanitize_text_field(wp_unslash($_GET['sprovider'] ?? '')),
-                'term_id' => absint($_GET['scat'] ?? 0),
-                'class' => sanitize_key((string) ($_GET['sclass'] ?? '')),
-                'min_impressions' => isset($_GET['sminimp']) ? sanitize_text_field(wp_unslash($_GET['sminimp'])) : '',
-                'sort' => sanitize_key((string) ($_GET['ssort'] ?? 'price_status')),
-                'page' => absint($_GET['spage'] ?? 1),
-                'per_page' => absint($_GET['sper'] ?? 100),
-                'refresh' => !empty($_GET['stars_refresh']) ? 1 : 0,
+                'q' => sanitize_text_field(self::query_arg('sq', '')),
+                'provider' => sanitize_text_field(self::query_arg('sprovider', '')),
+                'term_id' => absint(self::query_arg('scat', 0)),
+                'class' => sanitize_key((string) self::query_arg('sclass', '')),
+                'min_impressions' => '' !== (string) self::query_arg('sminimp', '') ? sanitize_text_field(self::query_arg('sminimp', '')) : '',
+                'sort' => sanitize_key((string) self::query_arg('ssort', 'price_status')),
+                'page' => absint(self::query_arg('spage', 1)),
+                'per_page' => absint(self::query_arg('sper', 100)),
+                'refresh' => !empty(self::query_arg('stars_refresh', '')) ? 1 : 0,
             ));
         } elseif ($tab === 'products') {
             $comparison = SEO_Ojeador_Analysis::comparison_products(array(
-                'term_id' => absint($_GET['pcat'] ?? 0),
-                'q' => sanitize_text_field(wp_unslash($_GET['pq'] ?? '')),
-                'merchant' => sanitize_text_field(wp_unslash($_GET['pmerchant'] ?? '')),
-                'min_price' => isset($_GET['pmin']) ? sanitize_text_field(wp_unslash($_GET['pmin'])) : '',
-                'max_price' => isset($_GET['pmax']) ? sanitize_text_field(wp_unslash($_GET['pmax'])) : '',
-                'min_rating' => isset($_GET['prating']) ? sanitize_text_field(wp_unslash($_GET['prating'])) : '',
-                'min_reviews' => isset($_GET['previews']) ? sanitize_text_field(wp_unslash($_GET['previews'])) : '',
-                'discounted' => !empty($_GET['pdiscount']) ? 1 : 0,
-                'sort' => sanitize_key((string) ($_GET['psort'] ?? 'position')),
-                'page' => absint($_GET['ppage'] ?? 1),
-                'per_page' => absint($_GET['pper'] ?? 100),
+                'term_id' => absint(self::query_arg('pcat', 0)),
+                'q' => sanitize_text_field(self::query_arg('pq', '')),
+                'merchant' => sanitize_text_field(self::query_arg('pmerchant', '')),
+                'min_price' => '' !== (string) self::query_arg('pmin', '') ? sanitize_text_field(self::query_arg('pmin', '')) : '',
+                'max_price' => '' !== (string) self::query_arg('pmax', '') ? sanitize_text_field(self::query_arg('pmax', '')) : '',
+                'min_rating' => '' !== (string) self::query_arg('prating', '') ? sanitize_text_field(self::query_arg('prating', '')) : '',
+                'min_reviews' => '' !== (string) self::query_arg('previews', '') ? sanitize_text_field(self::query_arg('previews', '')) : '',
+                'discounted' => !empty(self::query_arg('pdiscount', '')) ? 1 : 0,
+                'sort' => sanitize_key((string) self::query_arg('psort', 'position')),
+                'page' => absint(self::query_arg('ppage', 1)),
+                'per_page' => absint(self::query_arg('pper', 100)),
             ));
             $category_options = SEO_Ojeador_Analysis::comparison_category_options();
         } else {
             $summary = SEO_Ojeador_DB::category_summary();
-            $search = sanitize_text_field(wp_unslash($_GET['s'] ?? ''));
+            $search = sanitize_text_field(self::query_arg('s', ''));
             $rows = SEO_Ojeador_DB::list_market_categories(array('limit'=>1000, 'search'=>$search));
             $logs = SEO_Ojeador_DB::list_query_logs(100);
             $latest_log = SEO_Ojeador_DB::latest_query_log();
@@ -892,7 +907,7 @@ if (did_action('admin_print_styles')) {
 
             <?php if ($notice === 'settings_saved') : ?><div class="notice notice-success inline"><p>Configuración guardada.</p></div><?php endif; ?>
             <?php if ($notice === 'connection_ok') : ?>
-                <?php $tested_provider = sanitize_key((string) ($_GET['ojeador_provider'] ?? '')); ?>
+                <?php $tested_provider = sanitize_key((string) self::query_arg('ojeador_provider', '')); ?>
                 <div class="notice notice-success inline"><p><strong>Cadena de conexión operativa.</strong>
                     <?php if ($tested_provider === 'scraperapi') : ?>
                         SerpApi no estaba disponible y ScraperAPI respondió correctamente como fallback.
