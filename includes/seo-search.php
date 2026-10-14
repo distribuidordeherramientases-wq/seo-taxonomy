@@ -406,7 +406,7 @@ function seo_search_current_request_array($key) {
         return array();
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros GET de solo lectura.
-    return (array) wp_unslash($_GET[$key]);
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw request value is intentionally returned; each caller applies the sanitizer required by its expected type.\n    return (array) wp_unslash($_GET[$key]);
 }
 
 function seo_search_get_active_filters() {
