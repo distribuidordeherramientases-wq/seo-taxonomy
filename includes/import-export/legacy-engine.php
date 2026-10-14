@@ -2673,6 +2673,7 @@ function seo_export_products_csv() {
 
     $relations_table = $wpdb->prefix . 'seo_relations';
     $allowed_statuses = [ 'publish', 'draft', 'pending', 'private' ];
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The complete array is normalized immediately by seo_ie_sanitize_text_array().
     $selected_statuses = seo_ie_sanitize_text_array(
         wp_unslash( $_POST['export_statuses'] ?? $_POST['seo_export_product_statuses'] ?? [] )
     );
@@ -2685,6 +2686,7 @@ function seo_export_products_csv() {
     $selected_cluster   = absint( $_POST['export_cluster'] ?? 0 );
     $selected_primary   = absint( $_POST['export_hub_primary'] ?? 0 );
     $selected_secondary = absint( $_POST['export_hub_secondary'] ?? 0 );
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The complete array is normalized immediately by seo_ie_sanitize_absint_array().
     $selected_categories = seo_ie_sanitize_absint_array(
         wp_unslash( $_POST['export_categories'] ?? $_POST['seo_export_product_categories'] ?? [] )
     );
