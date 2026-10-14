@@ -26,10 +26,12 @@ return static function () {
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
         );
         if ($exists !== $table) {
-            return new WP_Error(
-                'seo_migration_238_missing_table',
-                'No se puede ejecutar la migración 2.3.8: falta la tabla ' . $table . '.'
-            );
+            /*
+             * 2.3.8 is a repair migration for data that only exists on upgraded
+             * installations. A clean install has nothing to repair yet, so the
+             * absence of legacy/canonical tables must not block activation.
+             */
+            return true;
         }
     }
 
