@@ -714,8 +714,8 @@ if (!function_exists('seo_render_category_info_related')) {
         $items   = array_values($dataset['items']);
 
         $query  = isset($_GET['category_related_q']) ? sanitize_text_field(wp_unslash($_GET['category_related_q'])) : '';
-        $filter = isset($_GET['category_related_filter']) ? sanitize_key($_GET['category_related_filter']) : 'all';
-        $sort   = isset($_GET['category_related_sort']) ? sanitize_key($_GET['category_related_sort']) : 'load_desc';
+        $filter = isset($_GET['category_related_filter']) ? sanitize_key(wp_unslash($_GET['category_related_filter'])) : 'all';
+        $sort   = isset($_GET['category_related_sort']) ? sanitize_key(wp_unslash($_GET['category_related_sort'])) : 'load_desc';
 
         $allowed_filters = array('all', 'high_load', 'multi_path', 'no_hierarchy', 'no_labels', 'no_faq', 'no_posts', 'no_landings', 'no_products');
         if (!in_array($filter, $allowed_filters, true)) {
