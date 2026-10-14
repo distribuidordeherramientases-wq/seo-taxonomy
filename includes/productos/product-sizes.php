@@ -261,10 +261,10 @@ if (!function_exists('seo_product_sizes_page')) {
                 update_option('seo_product_sizes_settings', $defaults, false);
                 $notice = 'Limites restablecidos a los valores iniciales.';
             } elseif ('save' === $action) {
-                $weight_light = isset($_POST['weight_light_max']) ? seo_product_sizes_parse_decimal(wp_unslash($_POST['weight_light_max'])) : 0;
-                $weight_medium = isset($_POST['weight_medium_max']) ? seo_product_sizes_parse_decimal(wp_unslash($_POST['weight_medium_max'])) : 0;
-                $size_small = isset($_POST['size_small_max']) ? seo_product_sizes_parse_decimal(wp_unslash($_POST['size_small_max'])) : 0;
-                $size_medium = isset($_POST['size_medium_max']) ? seo_product_sizes_parse_decimal(wp_unslash($_POST['size_medium_max'])) : 0;
+                $weight_light = isset($_POST['weight_light_max']) ? seo_product_sizes_parse_decimal(sanitize_text_field(wp_unslash($_POST['weight_light_max']))) : 0;
+                $weight_medium = isset($_POST['weight_medium_max']) ? seo_product_sizes_parse_decimal(sanitize_text_field(wp_unslash($_POST['weight_medium_max']))) : 0;
+                $size_small = isset($_POST['size_small_max']) ? seo_product_sizes_parse_decimal(sanitize_text_field(wp_unslash($_POST['size_small_max']))) : 0;
+                $size_medium = isset($_POST['size_medium_max']) ? seo_product_sizes_parse_decimal(sanitize_text_field(wp_unslash($_POST['size_medium_max']))) : 0;
 
                 if ($weight_light <= 0 || $weight_medium <= $weight_light || $size_small <= 0 || $size_medium <= $size_small) {
                     $notice = 'No se han guardado los limites. El maximo de Mediano debe ser mayor que el de Ligero y el maximo de Mediano debe ser mayor que el de Pequeno.';
