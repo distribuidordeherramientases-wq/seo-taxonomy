@@ -603,6 +603,7 @@ function seo_landing_handle_save_candidate()
         $requirements[$key] = !empty($_POST['requirements'][$key]) ? 1 : 0;
     }
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Score map is normalized and range-validated by seo_landing_sanitize_scores().
     $scores = seo_landing_sanitize_scores(isset($_POST['scores']) ? (array) wp_unslash($_POST['scores']) : array());
     $requirements_pass = seo_landing_requirements_pass($requirements);
     $status = sanitize_key(wp_unslash($_POST['status'] ?? 'candidate'));
