@@ -871,15 +871,20 @@ function seo_ie_import_required_catalogs_csv() {
 
     $internal_batch = function_exists( 'seo_ie_batch_is_internal' ) && seo_ie_batch_is_internal( 'catalog' );
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated before the file is opened.
+    $catalog_file = isset( $_FILES['required_catalogs_csv'] ) && is_array( $_FILES['required_catalogs_csv'] )
+        ? $_FILES['required_catalogs_csv']
+        : array();
+
     if (
-        empty( $_FILES['required_catalogs_csv']['tmp_name'] )
-        || ( ! $internal_batch && ! is_uploaded_file( $_FILES['required_catalogs_csv']['tmp_name'] ) )
-        || ( $internal_batch && ! is_file( $_FILES['required_catalogs_csv']['tmp_name'] ) )
+        empty( $catalog_file['tmp_name'] )
+        || ( ! $internal_batch && ! is_uploaded_file( $catalog_file['tmp_name'] ) )
+        || ( $internal_batch && ! is_file( $catalog_file['tmp_name'] ) )
     ) {
         wp_die( esc_html__( 'No se ha recibido un CSV de catálogos válido.', 'taxocommerce-seo' ) );
     }
 
-    $handle = seo_ie_catalog_csv_stream_open( $_FILES['required_catalogs_csv']['tmp_name'], 'r' );
+    $handle = seo_ie_catalog_csv_stream_open( $catalog_file['tmp_name'], 'r' );
     if ( false === $handle ) {
         wp_die( esc_html__( 'No se pudo abrir el CSV de catálogos.', 'taxocommerce-seo' ) );
     }
@@ -907,7 +912,7 @@ function seo_ie_import_required_catalogs_csv() {
     $dry_run = ! empty( $_POST['required_catalogs_dry_run'] );
     $log = [
         'operacion'      => $dry_run ? 'Simulación de altas de vocabulario y atributos' : 'Altas de vocabulario y atributos',
-        'archivo'        => sanitize_file_name( $_FILES['required_catalogs_csv']['name'] ),
+        'archivo'        => sanitize_file_name( (string) ( $catalog_file['name'] ?? '' ) ),
         'procesados'     => 0,
         'correctos'      => 0,
         'creados'        => 0,
