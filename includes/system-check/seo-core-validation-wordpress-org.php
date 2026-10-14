@@ -397,12 +397,16 @@ function seo_core_wporg_static_findings() {
             }
             if (
                 preg_match('/WP_PLUGIN_DIR\s*\.\s*["\'][^"\']*seo-taxonomy/i', $line)
-                || preg_match('/["\']\/seo-taxonomy\//i', $line)
+                || preg_match('/\/wp-content\/plugins\/seo-taxonomy\//i', $line)
             ) {
-                seo_core_wporg_add_hit($groups['paths'], 'hardcoded_plugin_path', $relative, $line_no, 'Ruta del plugin hardcodeada.');
+                seo_core_wporg_add_hit($groups['paths'], 'hardcoded_plugin_path', $relative, $line_no, 'Ruta física del plugin hardcodeada.');
             }
-            if (stripos($line, 'wp-load.php') !== false && stripos($relative, 'system-check/') === false) {
-                seo_core_wporg_add_hit($groups['paths'], 'wp_load_path', $relative, $line_no, 'Referencia manual a wp-load.php; revisar APIs de WordPress y rutas dinámicas.');
+            if (
+                preg_match('/(?:require|require_once|include|include_once)\s*\(?\s*["\'][^"\']*wp-load\.php/i', $line)
+                || preg_match('/dirname\s*\([^)]*\).*wp-load\.php/i', $line)
+                || preg_match('/\.\.\/.*wp-load\.php/i', $line)
+            ) {
+                seo_core_wporg_add_hit($groups['paths'], 'wp_load_path', $relative, $line_no, 'Carga manual no portable de wp-load.php; revisar APIs de WordPress.');
             }
             if (preg_match('/add_shortcode\s*\(\s*["\']([^"\']+)["\']/i', $line, $match)) {
                 $tag = strtolower((string) $match[1]);
