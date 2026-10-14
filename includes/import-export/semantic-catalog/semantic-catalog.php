@@ -863,8 +863,8 @@ final class SEO_Semantic_Catalog_Transfer {
             wp_die('Permisos insuficientes.');
         }
         check_admin_referer('seo_semantic_catalog_import');
-        $intent = sanitize_key((string) ($_POST['semantic_catalog_intent'] ?? 'preview'));
-        $mode = sanitize_key((string) ($_POST['import_mode'] ?? 'mirror'));
+        $intent = isset($_POST['semantic_catalog_intent']) ? sanitize_key(wp_unslash($_POST['semantic_catalog_intent'])) : 'preview';
+        $mode = isset($_POST['import_mode']) ? sanitize_key(wp_unslash($_POST['import_mode'])) : 'mirror';
         if (!in_array($mode, array('merge', 'mirror'), true)) {
             $mode = 'mirror';
         }
