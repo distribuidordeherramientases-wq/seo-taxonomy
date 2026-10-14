@@ -311,7 +311,7 @@ First release under the TaxoCommerce SEO name. Existing catalog data, plugin opt
 
 = 2.3.9 =
 
-Consolidates the 2.3.8.x patches into stable version 2.3.9. Includes improvements to Dependent/Academy, Engineer and Classifier, Auditor, Marketing, categories, comparison tools, commercial documents, and VAT-inclusive pricing. Catalog, cart/checkout, and automated processes should be validated after updating.
+Consolidates the 2.3.8.x patch cycle into 2.3.9, including improvements to Dependent/Academy, Engineer, Auditor, Marketing, categories and pricing. Validate catalog, cart/checkout and automated processes after updating.
 
 = 2.3.8.1 =
 
