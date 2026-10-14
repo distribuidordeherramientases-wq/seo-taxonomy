@@ -298,17 +298,15 @@ function seo_render_growth_executive_report() {
     $counts=seo_growth_exec_summary_counts($rows);
     $trend_count=function_exists('seo_google_trends_get_signals')?count(seo_google_trends_get_signals(5000)):0;
 
-    echo '<?php
-wp_enqueue_style(
-    'taxocommerce-growth-executive',
-    SEO_SYSTEM_URL . 'includes/assets/seo-growth-executive.css',
-    array(),
-    SEO_SYSTEM_VERSION
-);
-if (did_action('admin_print_styles')) {
-    wp_print_styles('taxocommerce-growth-executive');
-}
-?>';
+    wp_enqueue_style(
+        'taxocommerce-growth-executive',
+        SEO_SYSTEM_URL . 'includes/assets/seo-growth-executive.css',
+        array(),
+        SEO_SYSTEM_VERSION
+    );
+    if (did_action('admin_print_styles')) {
+        wp_print_styles('taxocommerce-growth-executive');
+    }
 
     echo '<div class="seo-growth-card"><div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap"><div><h2 style="margin:0 0 5px">Qué potenciar</h2><p style="margin:0;max-width:820px">Panel ejecutivo para decidir <strong>qué proveedor buscar, dónde ampliar surtido y cuándo ampliar la estructura</strong>. Resume catálogo + Search Console + Google Trends; las pantallas de Google quedan como evidencia técnica.</p><p class="seo-growth-meta">V'.esc_html(SEO_GROWTH_EXECUTIVE_VERSION).' · Horizonte Search Console: '.absint($days).' días · Señales Trends almacenadas: '.esc_html(number_format_i18n($trend_count)).'</p></div><form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="growth_executive"><label><strong>Horizonte</strong> <select name="growth_exec_days">';
     foreach(array(28,60,90) as $d) echo '<option value="'.esc_attr((string) $d).'" '.selected($days,$d,false).'>'.esc_html((string) $d).' días</option>';
