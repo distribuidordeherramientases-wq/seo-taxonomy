@@ -110,6 +110,7 @@ final class SEO_Ojeador_Admin {
 
     public static function save_settings() {
         self::guard('seo_ojeador_settings_save');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         $raw = isset($_POST['ojeador']) && is_array($_POST['ojeador']) ? map_deep(wp_unslash($_POST['ojeador']), 'sanitize_text_field') : array();
         $scope = isset($_POST['ojeador_scope']) ? sanitize_key((string) wp_unslash($_POST['ojeador_scope'])) : 'operation';
         $return_to_provider_connections = isset($_POST['ojeador_return'])
@@ -122,6 +123,7 @@ final class SEO_Ojeador_Admin {
         }
 
         SEO_Ojeador_Shopping::save_settings($raw);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if ($return_to_provider_connections) {
             self::redirect_provider_connections(array('ojeador_google_notice'=>'settings_saved'));
@@ -132,9 +134,11 @@ final class SEO_Ojeador_Admin {
 
     public static function test_provider_chain() {
         self::guard('seo_ojeador_test_provider_chain');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         $return_to_provider_connections = isset($_POST['ojeador_return'])
             && 'provider_connections' === sanitize_key((string) wp_unslash($_POST['ojeador_return']));
         $result = SEO_Ojeador_Shopping::test_connection_chain();
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if ($return_to_provider_connections) {
             if (is_wp_error($result)) {
