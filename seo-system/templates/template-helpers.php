@@ -1415,7 +1415,9 @@ if (!function_exists('dht_template_products_for_category_ids')) {
                 }
                 $products[] = $product;
             } catch (Throwable $e) {
-                error_log('[DHT template] producto relacionado no disponible ID ' . absint($product_post->ID) . ': ' . $e->getMessage());
+                if (function_exists('seo_system_private_log')) {
+                    seo_system_private_log('error', '[DHT template] producto relacionado no disponible ID ' . absint($product_post->ID) . ': ' . $e->getMessage());
+                }
             }
         }
 
@@ -3121,7 +3123,9 @@ if (!function_exists('dht_template_category_catalog_state')) {
                         $products[] = $product;
                     }
                 } catch (Throwable $e) {
-                    error_log('[DHT category facets] wc_get_product ID ' . absint($product_post->ID) . ': ' . $e->getMessage());
+                    if (function_exists('seo_system_private_log')) {
+                        seo_system_private_log('error', '[DHT category facets] wc_get_product ID ' . absint($product_post->ID) . ': ' . $e->getMessage());
+                    }
                 }
             }
             wp_reset_postdata();
