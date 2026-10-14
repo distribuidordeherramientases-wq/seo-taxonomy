@@ -359,7 +359,7 @@ if (!function_exists('seo_analista_ajax_partial_report')) {
         check_ajax_referer('seo_analista_partial_report', 'nonce');
 
         $report = isset($_POST['report']) ? sanitize_key(wp_unslash($_POST['report'])) : '';
-        $days = isset($_POST['days']) ? seo_analista_days(wp_unslash($_POST['days'])) : 28;
+        $days = isset($_POST['days']) ? seo_analista_days(absint(wp_unslash($_POST['days']))) : 28;
         $reports = seo_analista_lazy_reports();
 
         if (!isset($reports[$report])) {
