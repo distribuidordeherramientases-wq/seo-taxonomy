@@ -5892,6 +5892,20 @@ function seo_ie_normalize_content_status( $status ) {
 }
 
 /**
+ * Comprueba que WordPress disponga de papelera real.
+ *
+ * Con EMPTY_TRASH_DAYS=0, wp_trash_post() puede derivar en borrado definitivo.
+ * El importador lo bloquea para que un CSV nunca fuerce una eliminación.
+ *
+ * @return bool
+ */
+function seo_ie_trash_is_available() {
+
+    return ! defined( 'EMPTY_TRASH_DAYS' )
+        || 0 < intval( EMPTY_TRASH_DAYS );
+}
+
+/**
  * Valida una fecha MySQL y comprueba que el calendario sea real.
  *
  * @since 2.1.0
@@ -8121,6 +8135,18 @@ function seo_import_pages_csv() {
 
         $trash_requested = $import_core && 'trash' === $status;
 
+        if ( $trash_requested && ! seo_ie_trash_is_available() ) {
+            $log['errores']++;
+            seo_ie_add_log_detail(
+                $log,
+                sprintf(
+                    'Fila %d: WordPress tiene la papelera desactivada (EMPTY_TRASH_DAYS=0); se bloquea la operación para evitar un borrado definitivo.',
+                    $item['line']
+                )
+            );
+            continue;
+        }
+
         if ( $trash_requested && $creating ) {
             $log['omitidos']++;
             seo_ie_add_log_warning(
@@ -9533,6 +9559,18 @@ function seo_import_posts_csv() {
         }
 
         $trash_requested = $import_core && 'trash' === $status;
+
+        if ( $trash_requested && ! seo_ie_trash_is_available() ) {
+            $log['errores']++;
+            seo_ie_add_log_detail(
+                $log,
+                sprintf(
+                    'Fila %d: WordPress tiene la papelera desactivada (EMPTY_TRASH_DAYS=0); se bloquea la operación para evitar un borrado definitivo.',
+                    $item['line']
+                )
+            );
+            continue;
+        }
 
         if ( $trash_requested && $creating ) {
             $log['omitidos']++;
