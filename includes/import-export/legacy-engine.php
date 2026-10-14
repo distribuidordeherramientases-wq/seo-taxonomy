@@ -2311,7 +2311,7 @@ function seo_ie_product_v2_locate( $row ) {
                 $slug_ids = get_posts(
                     [
                         'post_type'              => 'product',
-                        'post_status'            => 'any',
+                        'post_status'            => seo_ie_page_allowed_statuses(),
                         'name'                   => $slug,
                         'posts_per_page'         => 2,
                         'fields'                 => 'ids',
@@ -5846,7 +5846,8 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 /**
  * Devuelve los estados de página admitidos en importación y exportación.
  *
- * Se excluyen estados internos como auto-draft, inherit y trash.
+ * Se excluyen estados internos como auto-draft e inherit. Trash se admite
+ * expresamente para permitir gestión masiva reversible de la papelera.
  *
  * @since 2.1.0
  *
@@ -6023,7 +6024,7 @@ function seo_ie_find_page_ids_by_slug( $slug ) {
                 get_posts(
                     [
                         'post_type'              => 'page',
-                        'post_status'            => 'any',
+                        'post_status'            => seo_ie_page_allowed_statuses(),
                         'name'                   => $slug,
                         'posts_per_page'         => 3,
                         'orderby'                => 'ID',
