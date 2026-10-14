@@ -86,9 +86,9 @@ Privacy: https://policies.google.com/privacy
 
 = Google Customer Reviews =
 
-Used on the WooCommerce order-received page when the store administrator enables/configures the Google Customer Reviews integration.
+Used on the WooCommerce order-received page when the administrator has configured a Google Merchant Center account in the plugin. That configured Merchant account ID enables the Customer Reviews opt-in on the confirmation page.
 
-Data sent: order identifier, customer email address, delivery country, estimated delivery date and, when available, product GTINs. The data is sent from the confirmation page only after a valid WooCommerce order has been received and only when the integration has the required merchant configuration.
+Data sent: configured Merchant Center account ID, order identifier, customer email address, delivery country, estimated delivery date and, when available, product GTINs. The data is sent from the confirmation page only after a valid WooCommerce order has been received and only when a valid Merchant Center account ID is configured.
 
 Terms: https://policies.google.com/terms
 Privacy: https://policies.google.com/privacy
