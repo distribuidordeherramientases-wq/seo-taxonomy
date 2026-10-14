@@ -101,14 +101,14 @@ if (!function_exists('seo_images_admin_pull_error')) {
 
 if (!function_exists('seo_images_admin_notice')) {
     function seo_images_admin_notice() {
-        $message = isset($_GET['image_msg']) ? sanitize_key(wp_unslash($_GET['image_msg'])) : '';
+        $message = sanitize_key((string) seo_images_inventory_query_arg('image_msg', ''));
         if ($message === '') {
             return;
         }
 
-        $count     = isset($_GET['count']) ? absint($_GET['count']) : 0;
-        $remaining = isset($_GET['remaining']) ? absint($_GET['remaining']) : 0;
-        $failed    = isset($_GET['failed']) ? absint($_GET['failed']) : 0;
+        $count     = absint(seo_images_inventory_query_arg('count', 0));
+        $remaining = absint(seo_images_inventory_query_arg('remaining', 0));
+        $failed    = absint(seo_images_inventory_query_arg('failed', 0));
         $bulk_type = $count > 0 ? ($failed > 0 ? 'warning' : 'success') : ($failed > 0 ? 'error' : 'info');
 
         $messages = array(
@@ -517,7 +517,7 @@ if (!function_exists('seo_images_handle_assign_one')) {
         }
 
         $scope_type    = isset($_POST['scope_type']) ? sanitize_key(wp_unslash($_POST['scope_type'])) : '';
-        $object_id     = isset($_POST['object_id']) ? absint($_POST['object_id']) : 0;
+        $object_id     = isset($_POST['object_id']) ? absint(wp_unslash($_POST['object_id'])) : 0;
         $candidate_key = isset($_POST['candidate_key']) ? sanitize_text_field(wp_unslash($_POST['candidate_key'])) : '';
 
         check_admin_referer('seo_images_assign_' . $scope_type . '_' . $object_id);
@@ -553,7 +553,7 @@ if (!function_exists('seo_images_handle_manual_upload')) {
         }
 
         $scope_type    = isset($_POST['scope_type']) ? sanitize_key(wp_unslash($_POST['scope_type'])) : '';
-        $object_id     = isset($_POST['object_id']) ? absint($_POST['object_id']) : 0;
+        $object_id     = isset($_POST['object_id']) ? absint(wp_unslash($_POST['object_id'])) : 0;
         $candidate_key = isset($_POST['candidate_key']) ? sanitize_text_field(wp_unslash($_POST['candidate_key'])) : '';
 
         check_admin_referer('seo_images_manual_upload_' . $scope_type . '_' . $object_id . '_' . $candidate_key);
@@ -567,13 +567,15 @@ if (!function_exists('seo_images_handle_manual_upload')) {
             seo_images_admin_redirect('assignment', 'no_candidate', array('scope' => $scope_type));
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload metadata is validated below after nonce/capability checks.
         if (empty($_FILES['manual_image']) || !is_array($_FILES['manual_image'])) {
             $error = new WP_Error('seo_images_manual_file_missing', 'Selecciona primero el archivo de imagen que has descargado.');
             seo_images_admin_store_error($error);
             seo_images_admin_redirect('assignment', 'assign_error', array('scope' => $scope_type));
         }
 
-        $upload_error = isset($_FILES['manual_image']['error']) ? (int) $_FILES['manual_image']['error'] : UPLOAD_ERR_NO_FILE;
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP upload error code is normalized to integer.
+        $upload_error = isset($_FILES['manual_image']['error']) ? absint($_FILES['manual_image']['error']) : UPLOAD_ERR_NO_FILE;
         if ($upload_error !== UPLOAD_ERR_OK) {
             $messages = array(
                 UPLOAD_ERR_INI_SIZE   => 'La imagen supera el tamaño máximo permitido por el servidor.',
@@ -841,7 +843,9 @@ if (!function_exists('seo_images_handle_delete_unused_local')) {
 
         check_admin_referer('seo_images_delete_unused_local');
 
-        $ids = isset($_POST['attachment_ids']) ? (array) wp_unslash($_POST['attachment_ids']) : array();
+        $ids = isset($_POST['attachment_ids'])
+            ? array_map('absint', (array) wp_unslash($_POST['attachment_ids']))
+            : array();
         $ids = array_values(array_unique(array_filter(array_map('absint', $ids))));
 
         if (empty($ids)) {
@@ -895,7 +899,7 @@ if (!function_exists('seo_images_render_inventory_tab')) {
     function seo_images_render_inventory_tab() {
         $summary = seo_images_inventory_summary();
         $supplier_rows = seo_images_inventory_supplier_rows();
-        $media_page = isset($_GET['media_page']) ? max(1, absint($_GET['media_page'])) : 1;
+        $media_page = max(1, absint(seo_images_inventory_query_arg('media_page', 1)));
         list($local_rows, $local_total, $local_pages) = seo_images_inventory_local_rows($media_page, 100);
         ?>
         <div class="seo-images-grid">
@@ -993,16 +997,16 @@ if (!function_exists('seo_images_render_inventory_tab')) {
 
 if (!function_exists('seo_images_render_anomalies_tab')) {
     function seo_images_render_anomalies_tab() {
-        $threshold = isset($_GET['min_images']) ? max(1, min(50, absint($_GET['min_images']))) : 7;
-        $supplier  = isset($_GET['supplier']) ? sanitize_text_field(wp_unslash($_GET['supplier'])) : '';
+        $threshold = max(1, min(50, absint(seo_images_inventory_query_arg('min_images', 7))));
+        $supplier  = sanitize_text_field((string) seo_images_inventory_query_arg('supplier', ''));
         $low_rows       = seo_images_anomaly_low_image_products($threshold, $supplier, 200);
         $unlinked       = seo_images_anomaly_unlinked_external(100);
         $unlinked_total = seo_images_anomaly_unlinked_external_count();
         $no_images      = seo_images_anomaly_products_without_images(100);
         $broken_total    = seo_images_anomaly_broken_media_index_count();
         $broken          = seo_images_anomaly_broken_media_index(100);
-        $scan_page = isset($_GET['scan_page']) ? max(1, absint($_GET['scan_page'])) : 1;
-        $do_scan   = !empty($_GET['scan_local']);
+        $scan_page = max(1, absint(seo_images_inventory_query_arg('scan_page', 1)));
+        $do_scan   = !empty(seo_images_inventory_query_arg('scan_local', ''));
         ?>
         <section class="seo-images-card">
             <h2>Productos con pocas imágenes externas</h2>
@@ -1117,7 +1121,7 @@ if (!function_exists('seo_images_render_anomalies_tab')) {
 if (!function_exists('seo_images_render_assignment_tab')) {
     function seo_images_render_assignment_tab() {
         $labels = seo_images_assignment_scope_labels();
-        $scope  = isset($_GET['scope']) ? sanitize_key(wp_unslash($_GET['scope'])) : 'product_cat';
+        $scope  = sanitize_key((string) seo_images_inventory_query_arg('scope', 'product_cat'));
         if (!isset($labels[$scope])) {
             $scope = 'product_cat';
         }
@@ -1216,7 +1220,7 @@ if (!function_exists('seo_pictures_admin_page')) {
             return;
         }
 
-        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'inventory';
+        $tab = sanitize_key((string) seo_images_inventory_query_arg('tab', 'inventory'));
         $aliases = array(
             'inventario'             => 'inventory',
             'anomalias'              => 'anomalies',
