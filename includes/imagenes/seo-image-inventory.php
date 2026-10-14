@@ -650,7 +650,9 @@ if (!function_exists('seo_images_handle_manual_upload')) {
                 'estado'         => 'disponible',
             ));
             if (is_wp_error($stored)) {
-                error_log('[SEO Images] La subida manual se creó, pero no se pudo guardar en el índice: ' . $stored->get_error_message());
+                if (function_exists('seo_system_private_log')) {
+                    seo_system_private_log('error', '[SEO Images] La subida manual se creó, pero no se pudo guardar en el índice: ' . $stored->get_error_message());
+                }
             }
         }
 
