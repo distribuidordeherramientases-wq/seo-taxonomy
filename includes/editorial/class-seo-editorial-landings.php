@@ -365,7 +365,7 @@ final class SEO_Editorial_Landings {
         }
         $requirements = array();
         foreach (seo_landing_requirement_labels() as $key=>$label) {
-            $value = isset($_POST['requirements'][$key]) ? (string) wp_unslash($_POST['requirements'][$key]) : '-1';
+            $value = isset($_POST['requirements'][$key]) ? sanitize_key(wp_unslash($_POST['requirements'][$key])) : '-1';
             $requirements[$key] = seo_landing_requirement_value($value);
         }
         $proposal['category_ids'] = $valid_categories;
