@@ -292,44 +292,17 @@ if (!function_exists('seo_product_sizes_page')) {
         $settings_json = wp_json_encode($settings, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         $edit_base_json = wp_json_encode(admin_url('post.php?action=edit&post='), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         ?>
-        <style>
-            .seo-sizes-shell{max-width:1500px}
-            .seo-sizes-lead{max-width:1000px;color:#50575e;font-size:14px;margin:0 0 18px}
-            .seo-sizes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:18px 0}
-            .seo-sizes-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;box-shadow:0 1px 1px rgba(0,0,0,.04)}
-            .seo-sizes-card h2,.seo-sizes-card h3{margin-top:0}
-            .seo-sizes-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-            .seo-sizes-field label{display:block;font-weight:600;margin-bottom:5px}
-            .seo-sizes-field input{width:100%}
-            .seo-sizes-field small{display:block;color:#646970;margin-top:4px;line-height:1.35}
-            .seo-sizes-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:18px 0}
-            .seo-sizes-kpi{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px}
-            .seo-sizes-kpi .seo-kpi-label{color:#646970;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
-            .seo-sizes-kpi .seo-kpi-value{font-size:25px;font-weight:700;line-height:1.2;margin-top:4px}
-            .seo-sizes-chart-row{display:grid;grid-template-columns:110px 1fr 105px;align-items:center;gap:10px;margin:14px 0}
-            .seo-sizes-chart-label{font-weight:600}
-            .seo-sizes-track{height:24px;background:#f0f0f1;border-radius:999px;overflow:hidden;position:relative}
-            .seo-sizes-fill{height:100%;width:0;transition:width .2s ease;border-radius:999px;background:linear-gradient(90deg,#2271b1,#72aee6)}
-            .seo-sizes-chart-value{text-align:right;font-variant-numeric:tabular-nums}
-            .seo-sizes-missing{margin-top:12px;color:#646970}
-            .seo-sizes-profile{padding:14px 16px;border-left:4px solid #2271b1;background:#f6f7f7;margin:16px 0}
-            .seo-sizes-matrix{width:100%;border-collapse:collapse}
-            .seo-sizes-matrix th,.seo-sizes-matrix td{border:1px solid #dcdcde;padding:9px;text-align:center}
-            .seo-sizes-matrix th{background:#f6f7f7}
-            .seo-sizes-table-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
-            .seo-sizes-table-tools input[type=search]{min-width:280px}
-            .seo-sizes-table-wrap{overflow:auto;max-height:650px;border:1px solid #dcdcde}
-            .seo-sizes-table{width:100%;border-collapse:collapse;background:#fff;min-width:1050px}
-            .seo-sizes-table th{position:sticky;top:0;background:#f6f7f7;z-index:1}
-            .seo-sizes-table th,.seo-sizes-table td{border-bottom:1px solid #dcdcde;padding:9px 10px;text-align:left;vertical-align:top}
-            .seo-sizes-table td.num,.seo-sizes-table th.num{text-align:right;font-variant-numeric:tabular-nums}
-            .seo-sizes-tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#f0f0f1;font-size:12px;font-weight:600}
-            .seo-sizes-pagination{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px}
-            .seo-sizes-muted{color:#646970}
-            .seo-sizes-boundary-warning{display:none;margin:10px 0 0;color:#b32d2e;font-weight:600}
-            @media (max-width:1050px){.seo-sizes-grid{grid-template-columns:1fr}.seo-sizes-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-            @media (max-width:700px){.seo-sizes-controls{grid-template-columns:1fr}.seo-sizes-kpis{grid-template-columns:1fr}.seo-sizes-chart-row{grid-template-columns:90px 1fr}.seo-sizes-chart-value{grid-column:2;text-align:left}.seo-sizes-table-tools>*{width:100%}.seo-sizes-table-tools input[type=search]{min-width:0}}
-        </style>
+        <?php
+wp_enqueue_style(
+    'taxocommerce-product-sizes',
+    SEO_SYSTEM_URL . 'includes/assets/product-sizes-admin.css',
+    array(),
+    SEO_SYSTEM_VERSION
+);
+if (did_action('admin_print_styles')) {
+    wp_print_styles('taxocommerce-product-sizes');
+}
+?>
 
         <div class="seo-sizes-shell">
             <p class="seo-sizes-lead">
