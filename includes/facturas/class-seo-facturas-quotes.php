@@ -216,7 +216,8 @@ final class SEO_Facturas_Quotes {
     }
 
     public static function handle_download() {
-        if ('POST' !== strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'))) {
+        $request_method = isset($_SERVER['REQUEST_METHOD']) ? sanitize_key(wp_unslash($_SERVER['REQUEST_METHOD'])) : 'get';
+        if ('post' !== $request_method) {
             return;
         }
         if (empty($_POST['seo_facturas_quote_download'])) {
