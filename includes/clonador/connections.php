@@ -528,11 +528,11 @@ if ( ! function_exists( 'seo_clonador_db_render_connections' ) ) {
         echo '<span style="display:inline-block;padding:5px 9px;border-radius:12px;background:#fff8e5;">PRO → STAGING</span>';
         echo '</div>';
 
-        if ( isset( $_GET['env_db_saved'] ) && isset( $allowed[ sanitize_key( $_GET['env_db_saved'] ) ] ) ) {
-            echo '<div class="notice notice-success inline" style="margin:14px 0 0;"><p>Conexión de ' . esc_html( $allowed[ sanitize_key( $_GET['env_db_saved'] ) ] ) . ' guardada.</p></div>';
+        if ( isset( $_GET['env_db_saved'] ) && isset( $allowed[ sanitize_key( wp_unslash( $_GET['env_db_saved'] ) ) ] ) ) {
+            echo '<div class="notice notice-success inline" style="margin:14px 0 0;"><p>Conexión de ' . esc_html( $allowed[ sanitize_key( wp_unslash( $_GET['env_db_saved'] ) ) ] ) . ' guardada.</p></div>';
         }
         if ( isset( $_GET['env_db_status'], $_GET['env_db_message'] ) ) {
-            $status  = 'ok' === sanitize_key( $_GET['env_db_status'] ) ? 'success' : 'error';
+            $status  = 'ok' === sanitize_key( wp_unslash( $_GET['env_db_status'] ) ) ? 'success' : 'error';
             $message = sanitize_text_field( (string) wp_unslash( $_GET['env_db_message'] ) );
             echo '<div class="notice notice-' . esc_attr( $status ) . ' inline" style="margin:14px 0 0;"><p>' . esc_html( $message ) . '</p></div>';
         }
