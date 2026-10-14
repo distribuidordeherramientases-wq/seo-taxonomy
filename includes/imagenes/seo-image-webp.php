@@ -1375,8 +1375,8 @@ if (!function_exists('seo_images_webp_ajax_batch')) {
             wp_raise_memory_limit('image');
         }
         if (function_exists('set_time_limit')) {
-            @set_time_limit(90);
-        }
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+            @set_time_limit(90);}
         @ignore_user_abort(true);
 
         $after_id = isset($_POST['after_id']) ? absint($_POST['after_id']) : 0;
