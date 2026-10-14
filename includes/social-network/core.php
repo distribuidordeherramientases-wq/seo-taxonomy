@@ -837,7 +837,9 @@ function seo_social_network_schedule_on_publish($new_status, $old_status, $post)
             : seo_social_network_schedule_editorial_publication($post->ID, $provider_key, $candidate);
 
         if (is_wp_error($result)) {
-            error_log('[SEO Social] No se pudo programar automaticamente: ' . $result->get_error_message());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[SEO Social] No se pudo programar automaticamente: ' . $result->get_error_message());
+            }
         }
     }
 }
@@ -856,7 +858,9 @@ function seo_social_network_publish_scheduled($content_id, $provider)
 
     $result = seo_social_network_publish_content($content_id, $provider);
     if (is_wp_error($result)) {
-        error_log('[SEO Social] Auto-publicacion fallida: ' . $result->get_error_message());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Social] Auto-publicacion fallida: ' . $result->get_error_message());
+        }
     }
 }
 add_action('seo_social_network_publish_scheduled', 'seo_social_network_publish_scheduled', 10, 2);
@@ -1398,7 +1402,9 @@ function seo_social_network_publish_manual_scheduled($content_id, $provider)
     seo_social_network_clear_scheduled_publication($content_id, $provider);
     $result = seo_social_network_publish_content($content_id, $provider);
     if (is_wp_error($result)) {
-        error_log('[SEO Social] Publicacion programada fallida: ' . $result->get_error_message());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Social] Publicacion programada fallida: ' . $result->get_error_message());
+        }
     }
 }
 add_action('seo_social_network_publish_manual_scheduled', 'seo_social_network_publish_manual_scheduled', 10, 2);
