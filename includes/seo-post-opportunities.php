@@ -23,6 +23,26 @@ if (!defined('SEO_POST_OPPORTUNITIES_SCHEMA_VERSION')) {
 add_action('admin_post_seo_post_opportunities_export', 'seo_post_opportunities_export_handler');
 add_action('wp_ajax_seo_post_opportunities_post_detail', 'seo_post_opportunities_post_detail_handler');
 
+function seo_post_opportunities_add_inline_script($script) {
+    $script = (string) $script;
+    if ('' === trim($script)) {
+        return;
+    }
+
+    $handle = 'seo-post-opportunities-admin';
+    if (!wp_script_is($handle, 'registered')) {
+        wp_register_script(
+            $handle,
+            false,
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : SEO_POST_OPPORTUNITIES_VERSION,
+            true
+        );
+    }
+    wp_enqueue_script($handle);
+    wp_add_inline_script($handle, $script);
+}
+
 function seo_post_opportunities_normalize($text)
 {
     if (function_exists('seo_google_trends_normalize')) {
@@ -1779,7 +1799,7 @@ function seo_post_opportunities_render_performance(array $posts, $days)
     echo '<div style="display:flex;justify-content:space-between;gap:10px;align-items:start;"><div><h3 data-detail-title style="margin:0 0 5px;">Detalle del post</h3><p data-detail-summary class="description" style="margin:0;"></p></div><button type="button" class="button" data-detail-close>Cerrar</button></div>';
     echo '<div data-detail-chart style="min-height:250px;margin-top:12px;"></div><div data-detail-queries style="margin-top:14px;"></div></div>';
 
-    echo '<script>';
+    ob_start();
     echo '(function(){';
     echo 'const root=document.getElementById(' . wp_json_encode($chart_id) . ');';
     echo 'const overall=' . wp_json_encode(array_values($daily)) . ';';
@@ -1842,7 +1862,8 @@ root.querySelector('[data-detail-close]')?.addEventListener('click',()=>panel.st
 root._seoLoadPostDetail=loadDetail;
 })();
 JS;
-    echo '</script>';
+    $performance_script = (string) ob_get_clean();
+    seo_post_opportunities_add_inline_script($performance_script);
     echo '</section>';
 }
 
@@ -2031,7 +2052,9 @@ function seo_post_opportunities_render_page($route = array())
     }
 
     echo '</tbody></table></div>';
-    echo '<script>(function(){document.querySelectorAll("[data-open-post-performance]").forEach(function(b){b.addEventListener("click",function(){var root=document.querySelector("[id^=seo-post-performance-]");if(root&&root._seoLoadPostDetail){root._seoLoadPostDetail(b.getAttribute("data-open-post-performance"));}});});})();</script>';
+    seo_post_opportunities_add_inline_script(
+        '(function(){document.querySelectorAll("[data-open-post-performance]").forEach(function(b){b.addEventListener("click",function(){var root=document.querySelector("[id^=seo-post-performance-]");if(root&&root._seoLoadPostDetail){root._seoLoadPostDetail(b.getAttribute("data-open-post-performance"));}});});})();'
+    );
     echo '<p><small>Regla de seguridad editorial: un post publicado nunca se marca para borrado automático. Si dos URLs publicadas se solapan, el informe usa <strong>Revisar consolidación</strong> para que primero se compare rendimiento y después se decida URL principal/301.</small></p>';
 }
 
