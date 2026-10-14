@@ -3319,7 +3319,7 @@ final class SEO_Auditor {
         echo '</div>';
 
         $rows = (array)($quality['rows']??array());
-        $band_filter = sanitize_key((string)($_GET['quality_band']??''));
+        $band_filter = isset($_GET['quality_band']) ? sanitize_key(wp_unslash($_GET['quality_band'])) : '';
         if ($band_filter && in_array($band_filter,array('fuerte','correcta','mejorable','debil','no_aplica'),true)) {
             $rows = array_values(array_filter($rows,static function($row)use($band_filter){
                 return (string)($row['band']??'') === $band_filter;
@@ -3556,7 +3556,7 @@ final class SEO_Auditor {
     }
 
     private static function render_findings($report) {
-        $severity=sanitize_key((string)($_GET['severity']??''));$scope=sanitize_key((string)($_GET['scope']??''));$rows=array();
+        $severity=isset($_GET['severity']) ? sanitize_key(wp_unslash($_GET['severity'])) : '';$scope=isset($_GET['scope']) ? sanitize_key(wp_unslash($_GET['scope'])) : '';$rows=array();
         foreach((array)($report['findings']??array()) as $f){if($severity&&($f['severity']??'')!==$severity)continue;if($scope&&($f['scope']??'')!==$scope)continue;$rows[]=$f;}
         echo '<h3>Hallazgos</h3><p class="description">Cada fila contiene evidencia y una recomendacion de revision; no es una orden de cambio.</p>';
         self::render_finding_table($rows);
