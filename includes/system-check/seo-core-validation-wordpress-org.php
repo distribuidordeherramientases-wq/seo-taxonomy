@@ -503,13 +503,14 @@ function seo_core_wporg_static_findings() {
             }
 
             if (
-                preg_match('/\b(?:echo|print)\s+.*\$[A-Za-z_]/i', $line)
+                !$phpcs_ignored
+                && preg_match('/\b(?:echo|print)\s+.*\$[A-Za-z_]/i', $line)
                 && !preg_match('/\b(?:esc_html|esc_attr|esc_url|esc_js|wp_kses|wp_kses_post|wp_json_encode|selected|checked|disabled)\s*\(/i', $line)
             ) {
                 seo_core_wporg_add_hit($groups['output_escaping'], 'output_not_escaped', $relative, $line_no, 'Salida dinamica sin una funcion de escape reconocible; revisar OutputNotEscaped.');
             }
 
-            if (preg_match('/\b(?:wp_die|wp_send_json_error|wp_send_json_success)\s*\(\s*\$[A-Za-z_]/i', $line)) {
+            if (!$phpcs_ignored && preg_match('/\b(?:wp_die|wp_send_json_error|wp_send_json_success)\s*\(\s*\$[A-Za-z_]/i', $line)) {
                 seo_core_wporg_add_hit($groups['output_escaping'], 'dynamic_error_output', $relative, $line_no, 'Mensaje dinamico enviado directamente a una salida de error; revisar el escape segun contexto.');
             }
 
@@ -536,7 +537,8 @@ function seo_core_wporg_static_findings() {
             }
 
             if (
-                preg_match('/\$_(?:GET|POST|REQUEST|COOKIE)\s*\[/i', $line)
+                !$phpcs_ignored
+                && preg_match('/\$_(?:GET|POST|REQUEST|COOKIE)\s*\[/i', $line)
                 && preg_match('/\b(?:sanitize_text_field|sanitize_textarea_field|sanitize_key|sanitize_title|esc_url_raw)\s*\(/i', $line)
                 && stripos($line, 'wp_unslash(') === false
             ) {
@@ -550,7 +552,8 @@ function seo_core_wporg_static_findings() {
             }
 
             if (
-                preg_match('/(?:->getMessage\(\)|->get_error_message\(\))/i', $line)
+                !$phpcs_ignored
+                && preg_match('/(?:->getMessage\(\)|->get_error_message\(\))/i', $line)
                 && preg_match('/\b(?:echo|print|wp_die|wp_send_json_error|wp_send_json_success)\b/i', $line)
                 && !preg_match('/\b(?:esc_html|esc_attr|wp_kses|wp_kses_post|sanitize_text_field)\s*\(/i', $line)
             ) {
