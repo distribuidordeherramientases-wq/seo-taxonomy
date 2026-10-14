@@ -387,6 +387,7 @@ function seo_core_wporg_static_findings() {
                 !$phpcs_ignored
                 && preg_match('/\$_(?:GET|POST|REQUEST|COOKIE|SERVER|SESSION)\s*\[/i', $line)
                 && !preg_match('/(?:sanitize_[a-z_]+|absint|intval|floatval|wp_unslash|esc_url_raw|wp_kses|filter_input)\s*\(/i', $line)
+                && !preg_match('/\b(?:isset|empty)\s*\(/i', $line)
             ) {
                 seo_core_wporg_add_hit($groups['input'], 'raw_superglobal', $relative, $line_no, 'Entrada externa sin sanitización evidente en la misma expresión.');
             }
@@ -447,14 +448,27 @@ function seo_core_wporg_static_findings() {
                 }
             }
             if (!$phpcs_ignored && preg_match('/\b(?:fwrite|file_put_contents|rename|copy)\s*\(/i', $line)) {
-                seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_write', $relative, $line_no, 'Escritura de fichero: confirmar que el destino usa uploads/database y no carpetas del plugin/core.');
+                $filesystem_context = implode("\n", array_slice($lines, max(0, $index - 6), 13));
+                if (
+                    stripos($filesystem_context, 'wp_upload_dir(') === false
+                    && stripos($filesystem_context, 'wp_tempnam(') === false
+                    && stripos($filesystem_context, 'get_temp_dir(') === false
+                ) {
+                    seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_write', $relative, $line_no, 'Escritura de fichero: confirmar que el destino usa uploads/database y no carpetas del plugin/core.');
+                }
             }
 
             
             // Familias que tambien aparecen en WordPress Plugin Check.
             if (preg_match('/\$wpdb->(?:query|get_results|get_var|get_col|get_row)\s*\(/i', $line)) {
-                $sql_window = implode("\n", array_slice($lines, $index, 16));
-                if (stripos($sql_window, '->prepare(') === false && stripos($sql_window, 'prepare(') === false) {
+                $sql_window = implode("\n", array_slice($lines, max(0, $index - 8), 24));
+                $has_prepare = stripos($sql_window, '->prepare(') !== false || stripos($sql_window, 'prepare(') !== false;
+                $looks_static = preg_match(
+                    '/\$wpdb->(?:query|get_results|get_var|get_col|get_row)\s*\(\s*[\'"][^$]*[\'"]\s*\)/is',
+                    $sql_window
+                );
+
+                if (!$has_prepare && !$looks_static) {
                     seo_core_wporg_add_hit($groups['prepared_sql'], 'wpdb_query_not_prepared', $relative, $line_no, 'Consulta $wpdb sin prepare() detectable; revisar PreparedSQL.NotPrepared.');
                 }
                 if (preg_match('/\bLIKE\s+[\'"][^\'"]*%[^\'"]*[\'"]/i', $sql_window)) {
@@ -564,7 +578,14 @@ function seo_core_wporg_static_findings() {
             }
 
             if (!$phpcs_ignored && preg_match('/\b(?:fclose|fwrite|fopen|unlink|rename|chmod|is_writable|readfile|rmdir|fread)\s*\(/i', $line)) {
-                seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_direct_api', $relative, $line_no, 'Operacion directa de filesystem; revisar WP_Filesystem.');
+                $filesystem_context = implode("\n", array_slice($lines, max(0, $index - 6), 13));
+                if (
+                    stripos($filesystem_context, 'wp_upload_dir(') === false
+                    && stripos($filesystem_context, 'wp_tempnam(') === false
+                    && stripos($filesystem_context, 'get_temp_dir(') === false
+                ) {
+                    seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_direct_api', $relative, $line_no, 'Operacion directa de filesystem; revisar WP_Filesystem.');
+                }
             }
 
 if (preg_match_all('/https?:\/\/([a-z0-9.-]+)/i', $line, $urls)) {
