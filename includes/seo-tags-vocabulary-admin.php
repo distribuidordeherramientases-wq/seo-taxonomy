@@ -9,6 +9,31 @@
 
 defined('ABSPATH') || exit;
 
+if (!function_exists('seo_tags_vocab_query_arg')) {
+    /**
+     * Lee filtros y avisos GET de solo lectura.
+     *
+     * @param string $key Clave de query.
+     * @param mixed  $default Valor por defecto.
+     * @return mixed
+     */
+    function seo_tags_vocab_query_arg($key, $default = '') {
+        $key = sanitize_key((string) $key);
+        if ($key === '') {
+            return $default;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura; no cambian estado.
+        if (!isset($_GET[$key])) {
+            return $default;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura; no cambian estado.
+        return wp_unslash($_GET[$key]);
+    }
+}
+
+
 if (!function_exists('seo_tags_vocab_table_exists')) {
     function seo_tags_vocab_table_exists($table) {
         if (function_exists('seo_catalog_table_exists')) {
@@ -595,15 +620,15 @@ if (!function_exists('seo_tags_vocab_render_products')) {
             return;
         }
 
-        $search = sanitize_text_field(wp_unslash($_GET['s'] ?? ''));
-        $type_search = sanitize_text_field(wp_unslash($_GET['tipo'] ?? ''));
-        $role_id = absint($_GET['rol_id'] ?? 0);
-        $application_id = absint($_GET['aplicacion_id'] ?? 0);
-        $platform_id = absint($_GET['plataforma_id'] ?? 0);
-        $subtype_id = absint($_GET['subtipo_id'] ?? 0);
-        $term_id = absint($_GET['term_id'] ?? 0);
-        $category_id = absint($_GET['category_id'] ?? 0);
-        $coverage = sanitize_key($_GET['coverage'] ?? 'all');
+        $search = sanitize_text_field(seo_tags_vocab_query_arg('s', ''));
+        $type_search = sanitize_text_field(seo_tags_vocab_query_arg('tipo', ''));
+        $role_id = absint(seo_tags_vocab_query_arg('rol_id', 0));
+        $application_id = absint(seo_tags_vocab_query_arg('aplicacion_id', 0));
+        $platform_id = absint(seo_tags_vocab_query_arg('plataforma_id', 0));
+        $subtype_id = absint(seo_tags_vocab_query_arg('subtipo_id', 0));
+        $term_id = absint(seo_tags_vocab_query_arg('term_id', 0));
+        $category_id = absint(seo_tags_vocab_query_arg('category_id', 0));
+        $coverage = sanitize_key(seo_tags_vocab_query_arg('coverage', 'all'));
         $allowed_coverage = [
             'all', 'with_any', 'without_any', 'with_wc_tags', 'without_wc_tags',
             'with_role', 'without_role', 'with_type', 'without_type',
@@ -615,11 +640,11 @@ if (!function_exists('seo_tags_vocab_render_products')) {
             $coverage = 'all';
         }
 
-        $per_page = absint($_GET['per_page'] ?? 50);
+        $per_page = absint(seo_tags_vocab_query_arg('per_page', 50));
         if (!in_array($per_page, [25, 50, 100, 200], true)) {
             $per_page = 50;
         }
-        $page_number = max(1, absint($_GET['paged'] ?? 1));
+        $page_number = max(1, absint(seo_tags_vocab_query_arg('paged', 1)));
         $offset = ($page_number - 1) * $per_page;
 
         $where = ["p.post_type = 'product'", "p.post_status = 'publish'"];
@@ -1392,7 +1417,11 @@ if (!function_exists('seo_tags_vocab_manager_redirect')) {
 
 if (!function_exists('seo_tags_vocab_handle_manager_action')) {
     function seo_tags_vocab_handle_manager_action() {
-        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || empty($_POST['seo_vocab_manager_action'])) {
+        if (strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'] ?? ''))) !== 'POST') {
+            return;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Only routes the request; mutations occur after check_admin_referer().
+        if (empty($_POST['seo_vocab_manager_action'])) {
             return;
         }
         if (!current_user_can('manage_options')) {
@@ -1483,7 +1512,7 @@ if (!function_exists('seo_tags_vocab_handle_manager_action')) {
             seo_tags_vocab_manager_redirect('created', $group, $status_filter);
         }
 
-        $term_id = absint($_POST['term_id'] ?? 0);
+        $term_id = absint(wp_unslash($_POST['term_id'] ?? 0));
         $term = $term_id > 0 ? $wpdb->get_row($wpdb->prepare(
             "SELECT id, semantic_group, slug, label, active FROM {$vocabulary} WHERE id = %d LIMIT 1",
             $term_id
@@ -1603,7 +1632,7 @@ if (!function_exists('seo_tags_vocab_handle_manager_action')) {
 
 if (!function_exists('seo_tags_vocab_render_manager_notice')) {
     function seo_tags_vocab_render_manager_notice() {
-        $code = sanitize_key($_GET['seo_vocab_notice'] ?? '');
+        $code = sanitize_key(seo_tags_vocab_query_arg('seo_vocab_notice', ''));
         if ($code === '') {
             return;
         }
@@ -1645,17 +1674,17 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
         }
 
         $allowed_groups = seo_tags_vocab_allowed_groups();
-        $group = sanitize_key($_GET['group'] ?? 'aplicacion');
+        $group = sanitize_key(seo_tags_vocab_query_arg('group', 'aplicacion'));
         if (!in_array($group, $allowed_groups, true)) {
             $group = 'aplicacion';
         }
-        $status = sanitize_key($_GET['status'] ?? 'all');
+        $status = sanitize_key(seo_tags_vocab_query_arg('status', 'all'));
         if (!in_array($status, ['all', 'active', 'inactive'], true)) {
             $status = 'all';
         }
-        $search = sanitize_text_field(wp_unslash($_GET['vs'] ?? ''));
+        $search = sanitize_text_field(seo_tags_vocab_query_arg('vs', ''));
         $per_page = 100;
-        $page_number = max(1, absint($_GET['paged'] ?? 1));
+        $page_number = max(1, absint(seo_tags_vocab_query_arg('paged', 1)));
         $offset = ($page_number - 1) * $per_page;
         $roles = seo_tags_vocab_get_active_roles();
 
@@ -2293,12 +2322,12 @@ if (!function_exists('seo_tags_vocab_render_dictionary')) {
             return;
         }
 
-        $group_filter = sanitize_key($_GET['dictionary_group'] ?? 'all');
+        $group_filter = sanitize_key(seo_tags_vocab_query_arg('dictionary_group', 'all'));
         $allowed_groups = ['all', 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo'];
         if (!in_array($group_filter, $allowed_groups, true)) {
             $group_filter = 'all';
         }
-        $search = sanitize_text_field(wp_unslash($_GET['dictionary_s'] ?? ''));
+        $search = sanitize_text_field(seo_tags_vocab_query_arg('dictionary_s', ''));
 
         $filtered = array_values(array_filter($rows, static function ($row) use ($group_filter, $search) {
             if ($group_filter !== 'all' && ($row['grupo'] ?? '') !== $group_filter) {
@@ -2457,7 +2486,7 @@ if (!function_exists('seo_semantic_attributes_handle_action')) {
             switch ($action) {
                 case 'save_definition':
                     $result = seo_attributes_save_definition([
-                        'id'          => absint($_POST['definition_id'] ?? 0),
+                        'id'          => absint(wp_unslash($_POST['definition_id'] ?? 0)),
                         'slug'        => sanitize_text_field(wp_unslash($_POST['definition_slug'] ?? '')),
                         'nombre'      => sanitize_text_field(wp_unslash($_POST['definition_name'] ?? '')),
                         'grupo'       => sanitize_text_field(wp_unslash($_POST['definition_group'] ?? '')),
@@ -2468,7 +2497,7 @@ if (!function_exists('seo_semantic_attributes_handle_action')) {
                         'filtrable'   => !empty($_POST['definition_filterable']),
                         'visible'     => !empty($_POST['definition_visible']),
                         'seo'         => !empty($_POST['definition_seo']),
-                        'orden'       => (int) ($_POST['definition_order'] ?? 0),
+                        'orden'       => absint(wp_unslash($_POST['definition_order'] ?? 0)),
                         'activo'      => !empty($_POST['definition_active']),
                     ]);
                     return ['success', 'Definición guardada. Operación #' . (int) ($result['operation_id'] ?? 0) . '.'];
@@ -2480,23 +2509,23 @@ if (!function_exists('seo_semantic_attributes_handle_action')) {
 
                 case 'save_term':
                     $result = seo_attributes_save_term([
-                        'id'          => absint($_POST['term_id'] ?? 0),
-                        'atributo_id' => absint($_POST['attribute_id'] ?? 0),
+                        'id'          => absint(wp_unslash($_POST['term_id'] ?? 0)),
+                        'atributo_id' => absint(wp_unslash($_POST['attribute_id'] ?? 0)),
                         'slug'        => sanitize_text_field(wp_unslash($_POST['term_slug'] ?? '')),
                         'nombre'      => sanitize_text_field(wp_unslash($_POST['term_name'] ?? '')),
-                        'orden'       => (int) ($_POST['term_order'] ?? 0),
+                        'orden'       => absint(wp_unslash($_POST['term_order'] ?? 0)),
                         'activo'      => !empty($_POST['term_active']),
                     ]);
                     return ['success', 'Término guardado. Operación #' . (int) ($result['operation_id'] ?? 0) . '.'];
 
                 case 'delete_term':
-                    $result = seo_attributes_delete_term(absint($_POST['term_id'] ?? 0), 'semantic_attributes_admin');
+                    $result = seo_attributes_delete_term(absint(wp_unslash($_POST['term_id'] ?? 0)), 'semantic_attributes_admin');
                     return ['success', 'Término eliminado: ' . (int) ($result['deleted'] ?? 0) . ' filas.'];
 
                 case 'add_alias':
                     $result = seo_attributes_add_alias(
-                        absint($_POST['attribute_id'] ?? 0),
-                        absint($_POST['term_id'] ?? 0),
+                        absint(wp_unslash($_POST['attribute_id'] ?? 0)),
+                        absint(wp_unslash($_POST['term_id'] ?? 0)),
                         sanitize_text_field(wp_unslash($_POST['alias_value'] ?? '')),
                         'semantic_attributes_admin'
                     );
@@ -2526,7 +2555,7 @@ if (!function_exists('seo_semantic_attributes_render_definitions')) {
     function seo_semantic_attributes_render_definitions() {
         global $wpdb;
         $tables = seo_attributes_tables();
-        $edit_id = absint($_GET['edit_attribute'] ?? 0);
+        $edit_id = absint(seo_tags_vocab_query_arg('edit_attribute', 0));
         $editing = $edit_id > 0
             ? $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$tables['definitions']}` WHERE id=%d LIMIT 1", $edit_id), ARRAY_A)
             : null;
@@ -2598,11 +2627,11 @@ if (!function_exists('seo_semantic_attributes_render_terms')) {
             "SELECT * FROM `{$tables['definitions']}` WHERE tipo='termino' ORDER BY activo DESC,orden ASC,nombre ASC",
             ARRAY_A
         );
-        $attribute_id = absint($_GET['attribute_id'] ?? 0);
+        $attribute_id = absint(seo_tags_vocab_query_arg('attribute_id', 0));
         if ($attribute_id < 1 && !empty($definitions)) $attribute_id = (int) $definitions[0]['id'];
         $valid_ids = array_map(static fn($r) => (int) $r['id'], (array) $definitions);
         if ($attribute_id > 0 && !in_array($attribute_id, $valid_ids, true)) $attribute_id = $valid_ids ? $valid_ids[0] : 0;
-        $edit_term_id = absint($_GET['edit_term'] ?? 0);
+        $edit_term_id = absint(seo_tags_vocab_query_arg('edit_term', 0));
         $editing = $edit_term_id > 0
             ? $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$tables['terms']}` WHERE id=%d AND atributo_id=%d LIMIT 1", $edit_term_id, $attribute_id), ARRAY_A)
             : null;
@@ -2710,13 +2739,13 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
             }
         }
 
-        $search = sanitize_text_field(wp_unslash($_GET['attr_s'] ?? ''));
-        $category_id = absint($_GET['attr_category_id'] ?? 0);
-        $coverage = sanitize_key($_GET['attr_coverage'] ?? 'without');
+        $search = sanitize_text_field(seo_tags_vocab_query_arg('attr_s', ''));
+        $category_id = absint(seo_tags_vocab_query_arg('attr_category_id', 0));
+        $coverage = sanitize_key(seo_tags_vocab_query_arg('attr_coverage', 'without'));
         if (!in_array($coverage, ['all', 'with', 'without'], true)) {
             $coverage = 'without';
         }
-        $per_page = absint($_GET['attr_per_page'] ?? 50);
+        $per_page = absint(seo_tags_vocab_query_arg('attr_per_page', 50));
         if (!in_array($per_page, [25, 50, 100, 200], true)) {
             $per_page = 50;
         }
@@ -3601,22 +3630,22 @@ if (!function_exists('seo_assignment_render_summary')) {
 
 if (!function_exists('seo_assignment_current_filters')) {
     function seo_assignment_current_filters($section) {
-        $coverage = sanitize_key($_GET['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any'));
-        $priority = sanitize_key($_GET['assignment_priority'] ?? 'all');
+        $coverage = sanitize_key(seo_tags_vocab_query_arg('assignment_coverage', ($section === 'product_attributes' ? 'without' : 'missing_any')));
+        $priority = sanitize_key(seo_tags_vocab_query_arg('assignment_priority', 'all'));
         if ($section === 'product_labels') {
             $allowed_coverage = ['missing_any','without_any','without_type','without_role','without_application','without_subtype','without_platform'];
             if (!in_array($coverage,$allowed_coverage,true)) $coverage='missing_any';
             if (!in_array($priority,['all','p1','p2','p3','p4','p5'],true)) $priority='all';
         }
         return [
-            'search' => sanitize_text_field(wp_unslash($_GET['assignment_s'] ?? '')),
-            'category_id' => absint($_GET['assignment_category_id'] ?? 0),
+            'search' => sanitize_text_field(seo_tags_vocab_query_arg('assignment_s', '')),
+            'category_id' => absint(seo_tags_vocab_query_arg('assignment_category_id', 0)),
             'coverage' => $coverage,
             'priority' => $priority,
-            'per_page' => in_array(absint($_GET['assignment_per_page'] ?? 25), [25,50,100], true) ? absint($_GET['assignment_per_page'] ?? 25) : 25,
-            'page' => max(1,absint($_GET['assignment_paged'] ?? 1)),
+            'per_page' => in_array(absint(seo_tags_vocab_query_arg('assignment_per_page', 25)), [25,50,100], true) ? absint(seo_tags_vocab_query_arg('assignment_per_page', 25)) : 25,
+            'page' => max(1,absint(seo_tags_vocab_query_arg('assignment_paged', 1))),
             // No se consulta ningún inventario hasta que el usuario pulsa Filtrar.
-            'submitted' => !empty($_GET['assignment_filter']),
+            'submitted' => !empty(seo_tags_vocab_query_arg('assignment_filter', '')),
         ];
     }
 }
@@ -3634,7 +3663,7 @@ if (!function_exists('seo_assignment_redirect')) {
 
 if (!function_exists('seo_assignment_filters_from_request')) {
     function seo_assignment_filters_from_request($source = null) {
-        $source = is_array($source) ? $source : $_POST;
+        $source = is_array($source) ? $source : array();
         return [
             'search'=>sanitize_text_field(wp_unslash($source['assignment_s'] ?? '')),
             'category_id'=>absint($source['assignment_category_id'] ?? 0),
@@ -3668,9 +3697,9 @@ if (!function_exists('seo_assignment_job_redirect')) {
 
 if (!function_exists('seo_assignment_notice')) {
     function seo_assignment_notice() {
-        $code = sanitize_key($_GET['assignment_notice'] ?? '');
+        $code = sanitize_key(seo_tags_vocab_query_arg('assignment_notice', ''));
         if ($code === '') return;
-        $detail = rawurldecode((string) ($_GET['assignment_detail'] ?? ''));
+        $detail = rawurldecode((string) seo_tags_vocab_query_arg('assignment_detail', ''));
         $map = [
             'saved'=>['success','Asignación confirmada y actualizada en el inventario oficial.'],
             'new_label_created'=>['success','Nueva etiqueta creada en el inventario y asignada al producto.'],
@@ -3693,9 +3722,9 @@ if (!function_exists('seo_assignment_mass_apply')) {
     function seo_assignment_mass_apply($section) {
         $filters = [
             'search' => sanitize_text_field(wp_unslash($_POST['assignment_s'] ?? '')),
-            'category_id' => absint($_POST['assignment_category_id'] ?? 0),
-            'coverage' => sanitize_key($_POST['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any')),
-            'priority' => sanitize_key($_POST['assignment_priority'] ?? 'all'),
+            'category_id' => absint(wp_unslash($_POST['assignment_category_id'] ?? 0)),
+            'coverage' => sanitize_key(wp_unslash($_POST['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any'))),
+            'priority' => sanitize_key(wp_unslash($_POST['assignment_priority'] ?? 'all')),
         ];
         $max = 500;
         $saved = 0; $errors = 0; $total = 0;
@@ -3777,7 +3806,9 @@ if (!function_exists('seo_assignment_apply_product_label_matrix')) {
         $payload = [];
         foreach (['tipo','aplicacion','plataforma','subtipo'] as $group) {
             $field = 'assignment_group_' . $group;
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON is strictly validated by seo_assignment_parse_group_json().
             if (!array_key_exists($field, $_POST)) continue;
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON is strictly validated by seo_assignment_parse_group_json().
             $payload[$group] = seo_assignment_parse_group_json(wp_unslash($_POST[$field]), $group);
         }
         if (!$payload) throw new InvalidArgumentException('No hay celdas de etiquetas para confirmar.');
@@ -3877,14 +3908,16 @@ if (!function_exists('seo_assignment_render_product_group_cell')) {
 if (!function_exists('seo_assignment_handle_request')) {
     function seo_assignment_handle_request() {
         if (!current_user_can('manage_options')) return;
-        if (!empty($_GET['seo_assignment_export'])) {
+        if (!empty(seo_tags_vocab_query_arg('seo_assignment_export', ''))) {
             check_admin_referer('seo_assignment_export');
             $payload=seo_assignment_export_payload();
             nocache_headers(); header('Content-Type: application/json; charset=utf-8');
             header('Content-Disposition: attachment; filename="seo-asignacion-'.esc_attr(current_time('Ymd-His')).'.json"');
             echo wp_json_encode($payload,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit;
         }
-        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || empty($_POST['seo_assignment_action'])) return;
+        if (strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'] ?? ''))) !== 'POST') return;
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Only checks whether this request belongs to this handler; all state changes occur after check_admin_referer().
+        if (empty($_POST['seo_assignment_action'])) return;
         check_admin_referer('seo_assignment_admin','seo_assignment_nonce');
         $action=sanitize_key(wp_unslash($_POST['seo_assignment_action']));
         $section=sanitize_key(wp_unslash($_POST['assignment_section'] ?? 'product_labels'));
@@ -3893,7 +3926,7 @@ if (!function_exists('seo_assignment_handle_request')) {
             if ($action==='accept_engineer_vocab_candidate') {
                 if ($section !== 'engineer_vocab') throw new InvalidArgumentException('La aceptación de Ingeniero está disponible en Ingeniero → vocabulario.');
                 if (!function_exists('seo_classifier_engineer_vocab_accept_candidate')) throw new RuntimeException('No está disponible la aceptación de vocabulario de Ingeniero.');
-                $term_id = absint($_POST['engineer_term_id'] ?? 0);
+                $term_id = absint(wp_unslash($_POST['engineer_term_id'] ?? 0));
                 $kind = sanitize_key(wp_unslash($_POST['engineer_candidate_kind'] ?? ''));
                 $key = sanitize_text_field(wp_unslash($_POST['engineer_candidate_key'] ?? ''));
                 if ($term_id < 1 || $kind === '' || $key === '') throw new InvalidArgumentException('La propuesta no es válida.');
@@ -3918,7 +3951,7 @@ if (!function_exists('seo_assignment_handle_request')) {
             if ($action==='analyze_engineer_vocab') {
                 if ($section !== 'engineer_vocab') throw new InvalidArgumentException('El análisis de Ingeniero está disponible en Ingeniero → vocabulario.');
                 if (!function_exists('seo_classifier_engineer_vocab_report')) throw new RuntimeException('No está disponible el analizador de vocabulario de Ingeniero.');
-                $term_id = absint($_POST['engineer_term_id'] ?? 0);
+                $term_id = absint(wp_unslash($_POST['engineer_term_id'] ?? 0));
                 if ($term_id < 1) throw new InvalidArgumentException('Selecciona una categoría con conocimiento activo de Ingeniero.');
                 $report = seo_classifier_engineer_vocab_report($term_id);
                 if (is_wp_error($report)) throw new RuntimeException($report->get_error_message());
@@ -3936,7 +3969,7 @@ if (!function_exists('seo_assignment_handle_request')) {
             if ($action==='start_classifier_job') {
                 if ($section !== 'product_labels') throw new InvalidArgumentException('Los jobs adaptativos están disponibles en Etiquetas de productos.');
                 if (!function_exists('seo_classifier_job_create')) throw new RuntimeException('No está disponible la cola del Clasificador.');
-                $filters = seo_assignment_filters_from_request($_POST);
+                $filters = seo_assignment_filters_from_request(map_deep(wp_unslash($_POST), 'sanitize_text_field'));
                 $mode = sanitize_key(wp_unslash($_POST['classifier_mode'] ?? 'fast'));
                 $job_id = seo_classifier_job_create([
                     'job_type'=>'classify',
@@ -3951,7 +3984,7 @@ if (!function_exists('seo_assignment_handle_request')) {
             if ($action==='start_apply_job') {
                 if ($section !== 'product_labels') throw new InvalidArgumentException('La aplicación en cola está disponible en Etiquetas de productos.');
                 if (!function_exists('seo_classifier_job_create')) throw new RuntimeException('No está disponible la cola del Clasificador.');
-                $filters = seo_assignment_filters_from_request($_POST);
+                $filters = seo_assignment_filters_from_request(map_deep(wp_unslash($_POST), 'sanitize_text_field'));
                 $job_id = seo_classifier_job_create([
                     'job_type'=>'apply','mode'=>'fast','filters'=>$filters,'created_by'=>get_current_user_id(),
                 ]);
@@ -3960,10 +3993,10 @@ if (!function_exists('seo_assignment_handle_request')) {
             }
             if ($action==='accept_new_label') {
                 if ($section !== 'product_labels') throw new InvalidArgumentException('Las nuevas etiquetas de Clasificador solo se aceptan desde Etiquetas de productos.');
-                $object_id=absint($_POST['object_id'] ?? 0);
+                $object_id=absint(wp_unslash($_POST['object_id'] ?? 0));
                 $group=sanitize_key(wp_unslash($_POST['semantic_group'] ?? ''));
                 $label=sanitize_text_field(wp_unslash($_POST['proposed_label'] ?? ''));
-                $role_id=absint($_POST['new_role_id'] ?? 0);
+                $role_id=absint(wp_unslash($_POST['new_role_id'] ?? 0));
                 $result=seo_assignment_create_and_assign_new_product_label($object_id,$group,$label,$role_id);
                 if (function_exists('seo_classifier_bump_profiles_generation')) seo_classifier_bump_profiles_generation();
                 if (function_exists('seo_classifier_proposal_invalidate_product')) seo_classifier_proposal_invalidate_product($object_id, [$group]);
@@ -3971,10 +4004,11 @@ if (!function_exists('seo_assignment_handle_request')) {
                 seo_assignment_redirect($section,!empty($result['created'])?'new_label_created':'new_label_reused',strtoupper($group).': '.$label);
             }
             if ($action==='confirm') {
-                $object_id=absint($_POST['object_id'] ?? 0);
+                $object_id=absint(wp_unslash($_POST['object_id'] ?? 0));
                 if ($section==='product_labels' && !empty($_POST['assignment_group_matrix'])) {
                     seo_assignment_apply_product_label_matrix($object_id);
                 } else {
+                    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Structured JSON is validated by the section-specific assignment parser.
                     $raw=wp_unslash($_POST['assignment_json'] ?? '');
                     if ($section==='product_labels') seo_assignment_apply_product_labels_json($object_id,$raw);
                     elseif ($section==='product_attributes') seo_assignment_apply_attributes_json($object_id,$raw);
@@ -3989,7 +4023,7 @@ if (!function_exists('seo_assignment_handle_request')) {
                 // Compatibilidad con formularios antiguos: en productos nunca hacemos ya
                 // una escritura masiva síncrona; la convertimos en job adaptativo.
                 if ($section === 'product_labels' && function_exists('seo_classifier_job_create')) {
-                    $filters = seo_assignment_filters_from_request($_POST);
+                    $filters = seo_assignment_filters_from_request(map_deep(wp_unslash($_POST), 'sanitize_text_field'));
                     $job_id = seo_classifier_job_create(['job_type'=>'apply','mode'=>'fast','filters'=>$filters,'created_by'=>get_current_user_id()]);
                     if (is_wp_error($job_id)) throw new RuntimeException($job_id->get_error_message());
                     seo_assignment_job_redirect($section,$filters,$job_id,'apply_job_started','Job #'.absint($job_id).'.');
@@ -4164,7 +4198,7 @@ if (!function_exists('seo_assignment_render_proposal_diagnostics')) {
 if (!function_exists('seo_assignment_render_classifier_job')) {
     function seo_assignment_render_classifier_job() {
         if (!function_exists('seo_classifier_job_status_payload')) return;
-        $job_id = absint($_GET['classifier_job'] ?? 0);
+        $job_id = absint(seo_tags_vocab_query_arg('classifier_job', 0));
         $job = $job_id > 0 && function_exists('seo_classifier_job_get') ? seo_classifier_job_get($job_id) : null;
         if (!$job && function_exists('seo_classifier_job_latest')) {
             $latest = seo_classifier_job_latest(get_current_user_id());
@@ -4656,7 +4690,7 @@ if (!function_exists('seo_assignment_render_engineer_vocab')) {
 
 if (!function_exists('seo_assignment_render')) {
     function seo_assignment_render() {
-        $section=sanitize_key($_GET['assignment_section'] ?? 'product_labels'); if(!array_key_exists($section,seo_assignment_sections()))$section='product_labels';
+        $section=sanitize_key(seo_tags_vocab_query_arg('assignment_section', 'product_labels')); if(!array_key_exists($section,seo_assignment_sections()))$section='product_labels';
         echo '<div class="seo-semantic-domain-title"><h2 style="margin:0">Clasificador</h2><span class="seo-tags-mode">Asignación asistida</span></div>';
         echo '<p class="seo-tags-intro">Clasifica etiquetas semánticas y detecta huecos o anomalías del catálogo. Propone valores canónicos, permite revisar cada fila y ejecutar análisis rápidos o profundos. Los maestros siguen gestionándose en Etiquetas y Atributos.</p>';
         seo_assignment_notice(); seo_assignment_render_summary();
@@ -4688,16 +4722,16 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
             wp_die(esc_html__('No tienes permisos para acceder a esta herramienta.', 'taxocommerce-seo'));
         }
 
-        $domain = sanitize_key($_GET['domain'] ?? 'labels');
+        $domain = sanitize_key(seo_tags_vocab_query_arg('domain', 'labels'));
         if (!in_array($domain, ['labels', 'attributes', 'assignment', 'google_schema'], true)) {
             $domain = 'labels';
         }
 
-        $section = sanitize_key($_GET['section'] ?? 'vocabulary');
+        $section = sanitize_key(seo_tags_vocab_query_arg('section', 'vocabulary'));
         if (!in_array($section, ['products', 'vocabulary', 'dictionary', 'control'], true)) {
             $section = 'vocabulary';
         }
-        $attribute_section = sanitize_key($_GET['attribute_section'] ?? 'definitions');
+        $attribute_section = sanitize_key(seo_tags_vocab_query_arg('attribute_section', 'definitions'));
         if (!in_array($attribute_section, ['products', 'definitions', 'terms', 'control'], true)) {
             $attribute_section = 'definitions';
         }
@@ -4773,7 +4807,7 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
                 ]);
             } else {
                 seo_semantic_attributes_render_products_inventory();
-                echo '<details class="seo-tags-panel" style="margin-top:18px" ' . ((isset($_GET['search_attributes']) || isset($_GET['propose_attributes']) || isset($_POST['save_attributes'])) ? 'open' : '') . '>';
+                echo '<details class="seo-tags-panel" style="margin-top:18px" ' . ((seo_tags_vocab_query_arg('search_attributes', '') !== '' || seo_tags_vocab_query_arg('propose_attributes', '') !== '' || isset($_POST['save_attributes'])) ? 'open' : '') . '>';
                 echo '<summary style="cursor:pointer;font-weight:700">Explorador manual de atributos existente</summary>';
                 echo '<p class="seo-tags-help">Se conserva la herramienta anterior de exploración/propuesta para no perder funcionalidad. El inventario superior es la nueva vista de cobertura.</p>';
                 search_product_attributes([

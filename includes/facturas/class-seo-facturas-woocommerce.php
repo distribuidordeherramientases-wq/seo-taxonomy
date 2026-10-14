@@ -143,6 +143,8 @@ final class SEO_Facturas_WooCommerce {
             return;
         }
 
-        error_log('[seo-facturas] ' . $error->get_error_message());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[seo-facturas] ' . $error->get_error_message());
+        }
     }
 }

@@ -40,7 +40,9 @@ foreach ( $seo_ie_required_files as $seo_ie_required_file ) {
             basename( $seo_ie_required_file )
         );
 
-        error_log( '[TaxoCommerce SEO Import/Export] ' . $seo_ie_message );
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error',  '[TaxoCommerce SEO Import/Export] ' . $seo_ie_message );
+        }
 
         if ( function_exists( 'add_action' ) ) {
             add_action(

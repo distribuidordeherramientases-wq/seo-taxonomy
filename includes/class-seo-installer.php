@@ -87,7 +87,9 @@ final class SEO_System_Installer
                 false
             );
 
-            error_log('[TaxoCommerce SEO] Installation error: ' . $exception->getMessage());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[TaxoCommerce SEO] Installation error: ' . $exception->getMessage());
+            }
             throw $exception;
         }
     }

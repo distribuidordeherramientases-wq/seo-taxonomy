@@ -566,8 +566,8 @@ if (!function_exists('seo_images_optimizer_ajax_batch')) {
             wp_raise_memory_limit('image');
         }
         if (function_exists('set_time_limit')) {
-            @set_time_limit(60);
-        }
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+            @set_time_limit(60);}
         @ignore_user_abort(true);
 
         $offset = isset($_POST['offset']) ? absint($_POST['offset']) : 0;

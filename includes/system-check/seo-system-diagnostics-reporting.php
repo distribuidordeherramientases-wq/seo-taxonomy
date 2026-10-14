@@ -2039,7 +2039,9 @@ function seo_system_diagnostics_handle_refresh_report() {
                 array('error' => $exception->getMessage())
             );
         } else {
-            error_log('[TaxoCommerce SEO] Error al actualizar informe: ' . $exception->getMessage());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[TaxoCommerce SEO] Error al actualizar informe: ' . $exception->getMessage());
+            }
         }
         $message = 'refresh_error';
     }

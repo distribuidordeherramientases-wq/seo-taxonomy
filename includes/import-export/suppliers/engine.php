@@ -844,6 +844,29 @@ function seo_proveedores_importacion_transient_key() {
     return 'seo_proveedores_import_' . get_current_user_id();
 }
 
+/**
+ * Devuelve un valor de la query string para filtros/avisos de solo lectura.
+ * Estas lecturas no ejecutan cambios de estado y por ello no requieren nonce.
+ *
+ * @param string $key     Clave de query.
+ * @param mixed  $default Valor por defecto.
+ * @return mixed
+ */
+function seo_proveedores_query_arg( $key, $default = '' ) {
+    $key = sanitize_key( (string) $key );
+    if ( '' === $key ) {
+        return $default;
+    }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura; no modifican estado.
+    if ( ! isset( $_GET[ $key ] ) ) {
+        return $default;
+    }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura; no modifican estado.
+    return wp_unslash( $_GET[ $key ] );
+}
+
 
 /**
  * Descarta solo el estado de pantalla al abandonar la importacion.
@@ -854,12 +877,12 @@ function seo_proveedores_descartar_importacion_al_salir() {
         return;
     }
 
-    if ( isset( $_POST['seo_proveedores_analizar'] ) || isset( $_POST['seo_proveedores_importar'] ) ) {
+    if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) ) {
         return;
     }
 
-    $page = sanitize_key( $_GET['page'] ?? '' );
-    $tab  = sanitize_key( $_GET['seo_ie_tab'] ?? '' );
+    $page = sanitize_key( seo_proveedores_query_arg( 'page', '' ) );
+    $tab  = sanitize_key( seo_proveedores_query_arg( 'seo_ie_tab', '' ) );
 
     if ( 'seo-import-export' === $page && 'importar-proveedor' === $tab ) {
         return;
@@ -1377,6 +1400,7 @@ function seo_proveedores_analizar_archivo() {
         wp_die( 'Selecciona una receta de importacion valida.' );
     }
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated by seo_taxonomy_store_uploaded_file().
     $uploaded_file = isset( $_FILES['proveedores_archivo'] ) && is_array( $_FILES['proveedores_archivo'] )
         ? $_FILES['proveedores_archivo']
         : [];
@@ -1715,8 +1739,8 @@ function seo_proveedores_importar_catalogo() {
     $prepared_state['v2_catalog_complete'] = ! empty( $_POST['catalogo_completo'] );
     $prepared_state['v2_auto_apply'] = ! empty( $_POST['aplicar_actualizaciones_automaticamente'] );
     $prepared_state['v2_auto_bajas'] = ! empty( $_POST['aplicar_bajas_automaticamente'] );
-    $prepared_state['v2_image_mode'] = in_array( sanitize_key( $_POST['modo_imagenes_v2'] ?? 'external' ), [ 'external', 'local' ], true )
-        ? sanitize_key( $_POST['modo_imagenes_v2'] ?? 'external' )
+    $prepared_state['v2_image_mode'] = in_array( sanitize_key( wp_unslash( $_POST['modo_imagenes_v2'] ?? 'external' ) ), [ 'external', 'local' ], true )
+        ? sanitize_key( wp_unslash( $_POST['modo_imagenes_v2'] ?? 'external' ) )
         : 'external';
     $prepared_state['v2_force_image_mode'] = ! empty( $_POST['forzar_modo_imagenes_v2'] );
 
@@ -1946,8 +1970,8 @@ function seo_proveedores_render_importador() {
         <h2><?php echo esc_html__( 'Importar catalogo de proveedor', 'taxocommerce-seo' ); ?></h2>
         <p><code>Modulo de proveedores Build 032</code></p>
 
-        <?php if ( ! empty( $_GET['seo_prov_github_started'] ) ) : ?>
-            <?php $seo_remote_run_id = sanitize_text_field( wp_unslash( $_GET['seo_remote_run_id'] ?? '' ) ); ?>
+        <?php if ( ! empty( seo_proveedores_query_arg( 'seo_prov_github_started', '' ) ) ) : ?>
+            <?php $seo_remote_run_id = sanitize_text_field( seo_proveedores_query_arg( 'seo_remote_run_id', '' ) ); ?>
             <div class="notice notice-success inline">
                 <p><strong>VEVOR enviado a GitHub/Python.</strong> El CSV preparado se enriquecera fuera de WordPress y volvera automaticamente al importador comun. Puedes cerrar esta pagina.<?php echo '' !== $seo_remote_run_id ? ' ID remoto: ' . esc_html( $seo_remote_run_id ) . '.' : ''; ?></p>
             </div>
@@ -2683,9 +2707,9 @@ function seo_proveedores_exportar_productos_csv() {
     }
 
     $provider  = sanitize_text_field( wp_unslash( $_POST['supplier_export_provider'] ?? '' ) );
-    $selection = sanitize_key( $_POST['supplier_export_selection'] ?? '' );
-    $situation = sanitize_key( $_POST['supplier_export_situation'] ?? '' );
-    $linkage   = sanitize_key( $_POST['supplier_export_linkage'] ?? 'all' );
+    $selection = sanitize_key( wp_unslash( $_POST['supplier_export_selection'] ?? '' ) );
+    $situation = sanitize_key( wp_unslash( $_POST['supplier_export_situation'] ?? '' ) );
+    $linkage   = sanitize_key( wp_unslash( $_POST['supplier_export_linkage'] ?? 'all' ) );
 
     $where  = [ '1=1' ];
     $params = [];
@@ -5251,8 +5275,8 @@ function seo_proveedores_actualizar_estado_catalogo() {
 
     check_admin_referer( 'seo_prov_actualizar_estado', 'seo_prov_estado_nonce' );
 
-    $id     = absint( $_POST['producto_proveedor_id'] ?? 0 );
-    $estado = sanitize_key( $_POST['estado_seleccion'] ?? '' );
+    $id     = absint( wp_unslash( $_POST['producto_proveedor_id'] ?? 0 ) );
+    $estado = sanitize_key( wp_unslash( $_POST['estado_seleccion'] ?? '' ) );
 
     if ( ! $id || ! isset( seo_proveedores_estados_catalogo()[ $estado ] ) ) {
         wp_die( 'Estado o producto no válido.' );
@@ -5282,11 +5306,11 @@ function seo_proveedores_actualizar_estado_catalogo() {
          * comercial y nunca vuelve a ejecutar una actualización de WooCommerce.
          */
         $comision_descuento = seo_proveedores_normalizar_comision(
-            $_POST['comision_descuento'] ?? 20,
+            sanitize_text_field( wp_unslash( $_POST['comision_descuento'] ?? '20' ) ),
             20
         );
         $comision_original = seo_proveedores_normalizar_comision(
-            $_POST['comision_original'] ?? 45,
+            sanitize_text_field( wp_unslash( $_POST['comision_original'] ?? '45' ) ),
             45
         );
         $imagenes_externas = seo_proveedores_resolver_modo_imagenes_externas(
@@ -5366,7 +5390,7 @@ function seo_proveedores_actualizar_estado_masivo() {
     );
 
     $estados = seo_proveedores_estados_catalogo();
-    $estado  = sanitize_key( $_POST['estado_masivo'] ?? '' );
+    $estado  = sanitize_key( wp_unslash( $_POST['estado_masivo'] ?? '' ) );
 
     if ( ! isset( $estados[ $estado ] ) ) {
         wp_die( 'El estado seleccionado no es válido.' );
@@ -5377,27 +5401,29 @@ function seo_proveedores_actualizar_estado_masivo() {
     $table = seo_proveedores_tabla_productos();
 
     $proveedor          = sanitize_text_field( wp_unslash( $_POST['f_proveedor'] ?? '' ) );
-    $estado_filtro      = sanitize_key( $_POST['f_estado'] ?? '' );
+    $estado_filtro      = sanitize_key( wp_unslash( $_POST['f_estado'] ?? '' ) );
     $buscar             = sanitize_text_field( wp_unslash( $_POST['f_buscar'] ?? '' ) );
     $categoria          = sanitize_text_field( wp_unslash( $_POST['f_categoria'] ?? '' ) );
     $categoria_sugerida = sanitize_text_field( wp_unslash( $_POST['f_categoria_sugerida'] ?? '' ) );
     $sku                 = sanitize_text_field( wp_unslash( $_POST['f_sku'] ?? '' ) );
 
-    $precio_min = isset( $_POST['f_precio_min'] ) && '' !== (string) $_POST['f_precio_min']
-        ? (float) str_replace( ',', '.', wp_unslash( $_POST['f_precio_min'] ) )
-        : null;
+    $precio_min_raw = isset( $_POST['f_precio_min'] )
+        ? sanitize_text_field( wp_unslash( $_POST['f_precio_min'] ) )
+        : '';
+    $precio_max_raw = isset( $_POST['f_precio_max'] )
+        ? sanitize_text_field( wp_unslash( $_POST['f_precio_max'] ) )
+        : '';
 
-    $precio_max = isset( $_POST['f_precio_max'] ) && '' !== (string) $_POST['f_precio_max']
-        ? (float) str_replace( ',', '.', wp_unslash( $_POST['f_precio_max'] ) )
-        : null;
+    $precio_min = '' !== $precio_min_raw ? (float) str_replace( ',', '.', $precio_min_raw ) : null;
+    $precio_max = '' !== $precio_max_raw ? (float) str_replace( ',', '.', $precio_max_raw ) : null;
 
     $comision_descuento = seo_proveedores_normalizar_comision(
-        $_POST['comision_descuento'] ?? 20,
+        sanitize_text_field( wp_unslash( $_POST['comision_descuento'] ?? '20' ) ),
         20
     );
 
     $comision_original = seo_proveedores_normalizar_comision(
-        $_POST['comision_original'] ?? 45,
+        sanitize_text_field( wp_unslash( $_POST['comision_original'] ?? '45' ) ),
         45
     );
 
@@ -5571,6 +5597,7 @@ function seo_proveedores_actualizar_estado_masivo() {
         try {
         /* Catálogos grandes pueden necesitar más tiempo que una petición normal. */
         if ( function_exists( 'set_time_limit' ) ) {
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Explicit admin bulk operation may exceed the host's default execution time.
             @set_time_limit( 0 );
         }
 
@@ -5786,19 +5813,19 @@ function seo_proveedores_render_catalogo() {
     /*
      * Configuración de precios.
      */
-    $comision_descuento = isset( $_GET['comision_descuento'] )
+    $comision_descuento = '' !== (string) seo_proveedores_query_arg( 'comision_descuento', '' )
         ? (float) str_replace(
             ',',
             '.',
-            sanitize_text_field( wp_unslash( $_GET['comision_descuento'] ) )
+            sanitize_text_field( seo_proveedores_query_arg( 'comision_descuento', '' ) )
         )
         : 20.00;
 
-    $comision_original = isset( $_GET['comision_original'] )
+    $comision_original = '' !== (string) seo_proveedores_query_arg( 'comision_original', '' )
         ? (float) str_replace(
             ',',
             '.',
-            sanitize_text_field( wp_unslash( $_GET['comision_original'] ) )
+            sanitize_text_field( seo_proveedores_query_arg( 'comision_original', '' ) )
         )
         : 45.00;
 
@@ -5810,7 +5837,7 @@ function seo_proveedores_render_catalogo() {
      * Por ahora conserva la selección en la URL/formulario. La lógica de alta
      * puede reutilizar este valor para desviar las imágenes a la tabla externa.
      */
-    $no_importar_imagenes = ! empty( $_GET['no_importar_imagenes'] );
+    $no_importar_imagenes = ! empty( seo_proveedores_query_arg( 'no_importar_imagenes', '' ) );
 
     if ( $comision_original < $comision_descuento ) {
         $comision_original = $comision_descuento;
@@ -5878,10 +5905,10 @@ function seo_proveedores_render_catalogo() {
         'ultima_importacion',
     ];
 
-    $requested_columns = isset( $_GET['cols'] )
+    $requested_columns = is_array( seo_proveedores_query_arg( 'cols', array() ) )
         ? array_map(
             'sanitize_key',
-            (array) wp_unslash( $_GET['cols'] )
+            (array) seo_proveedores_query_arg( 'cols', array() )
         )
         : $defaults;
 
@@ -5900,44 +5927,41 @@ function seo_proveedores_render_catalogo() {
      * Filtros del catálogo.
      */
     $proveedor = sanitize_text_field(
-        wp_unslash( $_GET['f_proveedor'] ?? '' )
+        seo_proveedores_query_arg( 'f_proveedor', '' )
     );
 
     $estado = sanitize_key(
-        $_GET['f_estado'] ?? ''
+        seo_proveedores_query_arg( 'f_estado', '' )
     );
 
     $situacion = sanitize_key(
-        $_GET['f_situacion'] ?? ''
+        seo_proveedores_query_arg( 'f_situacion', '' )
     );
 
     $cambio = sanitize_key(
-        $_GET['f_cambio'] ?? ''
+        seo_proveedores_query_arg( 'f_cambio', '' )
     );
 
     $buscar = sanitize_text_field(
-        wp_unslash( $_GET['f_buscar'] ?? '' )
+        seo_proveedores_query_arg( 'f_buscar', '' )
     );
 
     $categoria = sanitize_text_field(
-        wp_unslash( $_GET['f_categoria'] ?? '' )
+        seo_proveedores_query_arg( 'f_categoria', '' )
     );
 
     $categoria_sugerida = sanitize_text_field(
-        wp_unslash( $_GET['f_categoria_sugerida'] ?? '' )
+        seo_proveedores_query_arg( 'f_categoria_sugerida', '' )
     );
 
     $sku = sanitize_text_field(
-        wp_unslash( $_GET['f_sku'] ?? '' )
+        seo_proveedores_query_arg( 'f_sku', '' )
     );
 
-    $precio_min = isset( $_GET['f_precio_min'] ) && '' !== (string) $_GET['f_precio_min']
-        ? (float) str_replace( ',', '.', wp_unslash( $_GET['f_precio_min'] ) )
-        : null;
-
-    $precio_max = isset( $_GET['f_precio_max'] ) && '' !== (string) $_GET['f_precio_max']
-        ? (float) str_replace( ',', '.', wp_unslash( $_GET['f_precio_max'] ) )
-        : null;
+    $precio_min_raw = sanitize_text_field( seo_proveedores_query_arg( 'f_precio_min', '' ) );
+    $precio_max_raw = sanitize_text_field( seo_proveedores_query_arg( 'f_precio_max', '' ) );
+    $precio_min = '' !== $precio_min_raw ? (float) str_replace( ',', '.', $precio_min_raw ) : null;
+    $precio_max = '' !== $precio_max_raw ? (float) str_replace( ',', '.', $precio_max_raw ) : null;
 
     $where  = [ '1=1' ];
     $params = [];
@@ -6041,7 +6065,7 @@ function seo_proveedores_render_catalogo() {
     $sortable = $database_columns;
 
     $orderby = sanitize_key(
-        $_GET['orderby'] ?? 'ultima_importacion'
+        seo_proveedores_query_arg( 'orderby', 'ultima_importacion' )
     );
 
     if ( ! in_array( $orderby, $sortable, true ) ) {
@@ -6049,13 +6073,13 @@ function seo_proveedores_render_catalogo() {
     }
 
     $order = strtoupper(
-        sanitize_text_field( $_GET['order'] ?? 'DESC' )
+        sanitize_text_field( seo_proveedores_query_arg( 'order', 'DESC' ) )
     );
 
     $order = 'ASC' === $order ? 'ASC' : 'DESC';
 
     $per_page = absint(
-        $_GET['per_page'] ?? 50
+        seo_proveedores_query_arg( 'per_page', 50 )
     );
 
     if ( ! in_array( $per_page, [ 25, 50, 100, 200 ], true ) ) {
@@ -6064,7 +6088,7 @@ function seo_proveedores_render_catalogo() {
 
     $page_num = max(
         1,
-        absint( $_GET['paged'] ?? 1 )
+        absint( seo_proveedores_query_arg( 'paged', 1 ) )
     );
 
     $offset    = ( $page_num - 1 ) * $per_page;
@@ -6316,11 +6340,11 @@ function seo_proveedores_render_catalogo() {
             </p>
         </div>
 
-        <?php if ( isset( $_GET['seo_single_result'] ) ) : ?>
+        <?php if ( '' !== (string) seo_proveedores_query_arg( 'seo_single_result', '' ) ) : ?>
             <?php
-            $single_product_id = absint( $_GET['seo_single_id'] ?? 0 );
-            $single_category_id = absint( $_GET['seo_single_category_id'] ?? 0 );
-            $single_source = sanitize_key( $_GET['seo_single_category_source'] ?? '' );
+            $single_product_id = absint( seo_proveedores_query_arg( 'seo_single_id', 0 ) );
+            $single_category_id = absint( seo_proveedores_query_arg( 'seo_single_category_id', 0 ) );
+            $single_source = sanitize_key( seo_proveedores_query_arg( 'seo_single_category_source', '' ) );
             $single_category = $single_category_id
                 ? get_term( $single_category_id, 'product_cat' )
                 : null;
@@ -6345,10 +6369,10 @@ function seo_proveedores_render_catalogo() {
             </div>
         <?php endif; ?>
 
-        <?php if ( isset( $_GET['seo_bulk_updated'] ) ) : ?>
+        <?php if ( '' !== (string) seo_proveedores_query_arg( 'seo_bulk_updated', '' ) ) : ?>
             <?php
-            $bulk_updated = absint( $_GET['seo_bulk_updated'] );
-            $bulk_estado  = sanitize_key( $_GET['seo_bulk_estado'] ?? '' );
+            $bulk_updated = absint( seo_proveedores_query_arg( 'seo_bulk_updated', '' ) );
+            $bulk_estado  = sanitize_key( seo_proveedores_query_arg( 'seo_bulk_estado', '' ) );
             $bulk_label   = seo_proveedores_estados_catalogo()[ $bulk_estado ] ?? $bulk_estado;
             ?>
 
@@ -6360,39 +6384,39 @@ function seo_proveedores_render_catalogo() {
 
                     <?php if ( in_array( $bulk_estado, [ 'aceptado', 'actualizar' ], true ) ) : ?>
                         Creados como borrador:
-                        <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_created'] ?? 0 ) ) ); ?></strong>.
+                        <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_created', 0 ) ) ) ); ?></strong>.
 
                         Actualizados o ya existentes:
-                        <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_existing'] ?? 0 ) ) ); ?></strong>.
+                        <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_existing', 0 ) ) ) ); ?></strong>.
 
                         Con categoría propuesta:
-                        <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_category_suggested'] ?? 0 ) ) ); ?></strong>.
+                        <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_category_suggested', 0 ) ) ) ); ?></strong>.
 
                         En categoría de respaldo:
-                        <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_category_fallback'] ?? 0 ) ) ); ?></strong>.
+                        <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_category_fallback', 0 ) ) ) ); ?></strong>.
 
                         Errores:
-                        <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_errors'] ?? 0 ) ) ); ?></strong>.
+                        <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_errors', 0 ) ) ) ); ?></strong>.
 
                         <?php if ( 'actualizar' === $bulk_estado ) : ?>
                             Imágenes externas sincronizadas en:
-                            <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_external_products'] ?? 0 ) ) ); ?></strong>
-                            productos / <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_external_urls'] ?? 0 ) ) ); ?></strong> URLs.
+                            <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_external_products', 0 ) ) ) ); ?></strong>
+                            productos / <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_external_urls', 0 ) ) ) ); ?></strong> URLs.
                             Sin URLs nuevas en proveedor:
-                            <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_external_empty'] ?? 0 ) ) ); ?></strong>.
+                            <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_external_empty', 0 ) ) ) ); ?></strong>.
                             Errores de sincronización externa:
-                            <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_bulk_external_errors'] ?? 0 ) ) ); ?></strong>.
+                            <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_external_errors', 0 ) ) ) ); ?></strong>.
                         <?php endif; ?>
                     <?php endif; ?>
                 </p>
             </div>
         <?php endif; ?>
 
-        <?php if ( isset( $_GET['seo_sync_action_result'] ) ) : ?>
+        <?php if ( '' !== (string) seo_proveedores_query_arg( 'seo_sync_action_result', '' ) ) : ?>
             <?php
-            $sync_result = sanitize_key( $_GET['seo_sync_action_result'] );
-            $sync_id = absint( $_GET['seo_sync_action_id'] ?? 0 );
-            $sync_msg = sanitize_text_field( rawurldecode( (string) ( $_GET['seo_sync_action_msg'] ?? '' ) ) );
+            $sync_result = sanitize_key( seo_proveedores_query_arg( 'seo_sync_action_result', '' ) );
+            $sync_id = absint( seo_proveedores_query_arg( 'seo_sync_action_id', 0 ) );
+            $sync_msg = sanitize_text_field( rawurldecode( (string) ( seo_proveedores_query_arg( 'seo_sync_action_msg', '' ) ) ) );
             ?>
             <div class="notice <?php echo 'error' === $sync_result ? 'notice-error' : 'notice-success'; ?> inline">
                 <p>
@@ -6402,12 +6426,12 @@ function seo_proveedores_render_catalogo() {
             </div>
         <?php endif; ?>
 
-        <?php if ( isset( $_GET['seo_sync_bulk_action'] ) ) : ?>
+        <?php if ( '' !== (string) seo_proveedores_query_arg( 'seo_sync_bulk_action', '' ) ) : ?>
             <div class="notice notice-success inline">
                 <p>
-                    Accion <strong><?php echo esc_html( sanitize_key( $_GET['seo_sync_bulk_action'] ) ); ?></strong>:
-                    <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_sync_bulk_processed'] ?? 0 ) ) ); ?></strong> procesados.
-                    Errores: <strong><?php echo esc_html( number_format_i18n( absint( $_GET['seo_sync_bulk_errors'] ?? 0 ) ) ); ?></strong>.
+                    Accion <strong><?php echo esc_html( sanitize_key( seo_proveedores_query_arg( 'seo_sync_bulk_action', '' ) ) ); ?></strong>:
+                    <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_sync_bulk_processed', 0 ) ) ) ); ?></strong> procesados.
+                    Errores: <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_sync_bulk_errors', 0 ) ) ) ); ?></strong>.
                 </p>
             </div>
         <?php endif; ?>

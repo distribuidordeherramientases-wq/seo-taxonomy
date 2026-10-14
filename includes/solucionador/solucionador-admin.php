@@ -42,12 +42,12 @@ final class SEO_Solucionador_Admin {
     }
 
     public static function parent_file($parent_file) {
-        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        $page = sanitize_key((string) self::query_arg('page', ''));
         return $page === 'seo-solucionador' ? 'seo-system' : $parent_file;
     }
 
     public static function submenu_file($submenu_file) {
-        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        $page = sanitize_key((string) self::query_arg('page', ''));
         return $page === 'seo-solucionador' ? 'seo-content' : $submenu_file;
     }
 
@@ -74,6 +74,22 @@ final class SEO_Solucionador_Admin {
         exit;
     }
 
+    /**
+     * Lee filtros y avisos GET de solo lectura.
+     */
+    private static function query_arg($key, $default = '') {
+        $key = sanitize_key((string) $key);
+        if ('' === $key) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+        if (!isset($_GET[$key])) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+        return wp_unslash($_GET[$key]);
+    }
+
     public static function handle_scan() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos para ejecutar Solucionador.');
         check_admin_referer('seo_solucionador_scan');
@@ -96,7 +112,7 @@ final class SEO_Solucionador_Admin {
 
         if ($proposal_action === 'save_item_states') {
             $raw_states = isset($_POST['item_states']) && is_array($_POST['item_states'])
-                ? wp_unslash($_POST['item_states'])
+                ? map_deep(wp_unslash($_POST['item_states']), 'sanitize_text_field')
                 : array();
             $states = array();
             foreach ($raw_states as $key=>$state) {
@@ -529,31 +545,31 @@ final class SEO_Solucionador_Admin {
             SEO_Solucionador_Engine::kick_automatic_refresh();
         }
 
-        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'summary';
+        $tab = sanitize_key((string) self::query_arg('tab', 'summary'));
         if (!in_array($tab, array('summary','posts','landings','diagnostics','google'), true)) $tab = 'summary';
 
         echo '<div class="wrap seo-solucionador"><h1>Solucionador</h1>';
         echo '<p>Organiza dos fuentes editoriales independientes —FAQ humana y conocimiento real de Dependiente— por product_cat y las entrega a Editora. Nunca publica automáticamente.</p>';
 
-        if (!empty($_GET['sol_msg']) && $_GET['sol_msg'] === 'draft_created') {
-            $post_id = absint($_GET['post_id'] ?? 0);
+        if ('draft_created' === sanitize_key((string) self::query_arg('sol_msg', ''))) {
+            $post_id = absint(self::query_arg('post_id', 0));
             echo '<div class="notice notice-success is-dismissible"><p>Post convertido en borrador.';
             if ($post_id) {
                 echo ' <a href="' . esc_url(SEO_Solucionador_Posts::edit_url($post_id)) . '"><strong>Abrir borrador #' . esc_html($post_id) . '</strong></a>';
             }
             echo '</p></div>';
         }
-        if (!empty($_GET['sol_msg']) && $_GET['sol_msg'] === 'bulk_done') {
-            $created = absint($_GET['created'] ?? 0);
-            $skipped = absint($_GET['skipped'] ?? 0);
-            $errors = absint($_GET['errors'] ?? 0);
+        if ('bulk_done' === sanitize_key((string) self::query_arg('sol_msg', ''))) {
+            $created = absint(self::query_arg('created', 0));
+            $skipped = absint(self::query_arg('skipped', 0));
+            $errors = absint(self::query_arg('errors', 0));
             $class = $errors > 0 ? 'notice notice-warning is-dismissible' : 'notice notice-success is-dismissible';
             echo '<div class="' . esc_attr($class) . '"><p><strong>Aceptar todo completado.</strong> '
                 . esc_html(number_format_i18n($created)) . ' borradores creados, '
                 . esc_html(number_format_i18n($skipped)) . ' omitidos y '
                 . esc_html(number_format_i18n($errors)) . ' errores.</p></div>';
         }
-        if (!empty($_GET['sol_error'])) {
+        if (!empty(self::query_arg('sol_error', ''))) {
             $msg = get_transient('seo_solucionador_notice_' . get_current_user_id());
             delete_transient('seo_solucionador_notice_' . get_current_user_id());
             echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($msg ?: 'No se pudo completar la acción.') . '</p></div>';
@@ -912,7 +928,7 @@ final class SEO_Solucionador_Admin {
         global $wpdb;
         $table = SEO_Solucionador_DB::dossiers_table();
 
-        $detail_category = isset($_GET['sol_category']) ? absint(wp_unslash($_GET['sol_category'])) : 0;
+        $detail_category = absint(self::query_arg('sol_category', 0));
         if ($detail_category) {
             self::render_dossier_proposal_simple($detail_category);
             return;
@@ -923,7 +939,7 @@ final class SEO_Solucionador_Admin {
         }
 
         $per_page = 50;
-        $page = max(1, absint($_GET['sol_page'] ?? 1));
+        $page = max(1, absint(self::query_arg('sol_page', 1)));
         $total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE (rejected_source_hash='' OR rejected_source_hash<>source_hash)"));
         $pages = max(1, (int) ceil($total / $per_page));
         if ($page > $pages) $page = $pages;
@@ -1600,10 +1616,10 @@ final class SEO_Solucionador_Admin {
             ARRAY_A
         );
 
-        $category_filter = isset($_GET['sol_category']) ? absint(wp_unslash($_GET['sol_category'])) : 0;
-        $action_filter = isset($_GET['sol_action']) ? strtoupper(sanitize_text_field(wp_unslash($_GET['sol_action']))) : '';
-        $coverage_filter = isset($_GET['sol_coverage']) ? sanitize_key(wp_unslash($_GET['sol_coverage'])) : '';
-        $state_filter = isset($_GET['sol_state']) ? sanitize_key(wp_unslash($_GET['sol_state'])) : '';
+        $category_filter = absint(self::query_arg('sol_category', 0));
+        $action_filter = strtoupper(sanitize_text_field((string) self::query_arg('sol_action', '')));
+        $coverage_filter = sanitize_key((string) self::query_arg('sol_coverage', ''));
+        $state_filter = sanitize_key((string) self::query_arg('sol_state', ''));
 
         $categories = array();
         foreach ($rows as $row) {
@@ -1627,7 +1643,7 @@ final class SEO_Solucionador_Admin {
             ? (array) $wpdb->get_col("SELECT DISTINCT source_type FROM {$evidence_table} ORDER BY source_type ASC")
             : array();
 
-        $detail_id = absint($_GET['topic_id'] ?? $_GET['brief_topic_id'] ?? 0);
+        $detail_id = absint(self::query_arg('topic_id', self::query_arg('brief_topic_id', 0)));
         if ($detail_id) {
             $detail = SEO_Solucionador_DB::get_topic($detail_id);
             if ($detail) self::render_opportunity_detail($detail);
@@ -1717,8 +1733,8 @@ final class SEO_Solucionador_Admin {
             return;
         }
 
-        $entity_filter = sanitize_key(wp_unslash($_GET['coverage_entity'] ?? ''));
-        $category_filter = absint($_GET['coverage_category'] ?? 0);
+        $entity_filter = sanitize_key((string) self::query_arg('coverage_entity', ''));
+        $category_filter = absint(self::query_arg('coverage_category', 0));
         $where = array('1=1');
         $params = array();
         if ($entity_filter !== '') { $where[]='entity_type=%s'; $params[]=$entity_filter; }

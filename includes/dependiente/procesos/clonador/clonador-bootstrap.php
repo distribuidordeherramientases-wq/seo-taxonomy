@@ -15,7 +15,9 @@ defined( 'ABSPATH' ) || exit;
 $seo_clonador_process_file = __DIR__ . '/process.php';
 
 if ( ! is_readable( $seo_clonador_process_file ) ) {
-    error_log( '[TaxoCommerce SEO Clonador] Falta includes/procesos/clonador/process.php.' );
+    if (function_exists('seo_system_private_log')) {
+        seo_system_private_log('error',  '[TaxoCommerce SEO Clonador] Falta includes/procesos/clonador/process.php.' );
+    }
 
     add_action(
         'admin_notices',
@@ -36,7 +38,9 @@ if ( ! is_readable( $seo_clonador_process_file ) ) {
 require_once $seo_clonador_process_file;
 
 if ( ! class_exists( 'SEO_Clonador_Process', false ) ) {
-    error_log( '[TaxoCommerce SEO Clonador] process.php fue cargado pero SEO_Clonador_Process no existe.' );
+    if (function_exists('seo_system_private_log')) {
+        seo_system_private_log('error',  '[TaxoCommerce SEO Clonador] process.php fue cargado pero SEO_Clonador_Process no existe.' );
+    }
 
     add_action(
         'admin_notices',

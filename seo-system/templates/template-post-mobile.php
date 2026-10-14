@@ -604,7 +604,9 @@ if (did_action('wp_head')) {
                             try {
                                 dht_shared_render_product_grid($related_products, 'dht-post-product-grid', 3, false);
                             } catch (Throwable $e) {
-                                error_log('[DHT post] render productos relacionados: ' . $e->getMessage());
+                                if (function_exists('seo_system_private_log')) {
+                                    seo_system_private_log('error', '[DHT post] render productos relacionados: ' . $e->getMessage());
+                                }
                             }
                         }
                         ?>

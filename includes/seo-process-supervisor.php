@@ -900,8 +900,8 @@ if (!function_exists('seo_process_supervisor_request_pulse_shutdown')) {
     function seo_process_supervisor_request_pulse_shutdown() {
         ignore_user_abort(true);
         if (function_exists('set_time_limit')) {
-            @set_time_limit(90);
-        }
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+            @set_time_limit(90);}
 
         // En PHP-FPM cerramos primero la respuesta del visitante/administrador.
         if (function_exists('fastcgi_finish_request')) {
@@ -1625,8 +1625,8 @@ if (!function_exists('seo_process_supervisor_direct_http')) {
         }
         ignore_user_abort(true);
         if (function_exists('set_time_limit')) {
-            @set_time_limit(0);
-        }
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+            @set_time_limit(0);}
         status_header(202);
         nocache_headers();
         header('Content-Type: text/plain; charset=utf-8');

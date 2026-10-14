@@ -244,9 +244,7 @@ function seo_search_vocabulary_tables_ready() {
 
 function seo_search_get_active_vocabulary_filters() {
     $result = array();
-    $raw = isset($_GET['filter_vocab']) && is_array($_GET['filter_vocab'])
-        ? wp_unslash($_GET['filter_vocab'])
-        : array();
+    $raw = seo_search_current_request_array('filter_vocab');
 
     foreach (seo_search_advanced_filter_groups() as $group => $label) {
         $value = isset($raw[$group]) ? $raw[$group] : array();
@@ -401,9 +399,19 @@ function seo_search_current_request_value($key, $default = '') {
     return sanitize_text_field(wp_unslash($_GET[$key]));
 }
 
+function seo_search_current_request_array($key) {
+    $key = sanitize_key((string) $key);
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros GET de solo lectura.
+    if ('' === $key || !isset($_GET[$key]) || !is_array($_GET[$key])) {
+        return array();
+    }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros GET de solo lectura.
+    return (array) wp_unslash($_GET[$key]);
+}
+
 function seo_search_get_active_filters() {
     $attributes = array();
-    $raw_attrs = isset($_GET['filter_attr']) && is_array($_GET['filter_attr']) ? wp_unslash($_GET['filter_attr']) : array();
+    $raw_attrs = seo_search_current_request_array('filter_attr');
 
     foreach ($raw_attrs as $taxonomy => $values) {
         $taxonomy = sanitize_key($taxonomy);
@@ -422,8 +430,8 @@ function seo_search_get_active_filters() {
         'tag'       => sanitize_title((string) seo_search_current_request_value('filter_tag', '')),
         'brand'     => sanitize_title((string) seo_search_current_request_value('filter_brand', '')),
         'attributes'=> $attributes,
-        'min_price' => isset($_GET['filter_min_price']) && !is_array($_GET['filter_min_price']) ? (function_exists('wc_format_decimal') ? wc_format_decimal(wp_unslash($_GET['filter_min_price'])) : sanitize_text_field(wp_unslash($_GET['filter_min_price']))) : '',
-        'max_price' => isset($_GET['filter_max_price']) && !is_array($_GET['filter_max_price']) ? (function_exists('wc_format_decimal') ? wc_format_decimal(wp_unslash($_GET['filter_max_price'])) : sanitize_text_field(wp_unslash($_GET['filter_max_price']))) : '',
+        'min_price' => function_exists('wc_format_decimal') ? wc_format_decimal(seo_search_current_request_value('filter_min_price', '')) : seo_search_current_request_value('filter_min_price', ''),
+        'max_price' => function_exists('wc_format_decimal') ? wc_format_decimal(seo_search_current_request_value('filter_max_price', '')) : seo_search_current_request_value('filter_max_price', ''),
         'stock'     => in_array(seo_search_current_request_value('filter_stock', ''), array('instock', 'outofstock', 'onbackorder'), true) ? seo_search_current_request_value('filter_stock', '') : '',
         'vocabulary'=> seo_search_get_active_vocabulary_filters(),
         'orderby'   => in_array(seo_search_current_request_value('orderby', 'relevance'), array('relevance', 'date', 'price_asc', 'price_desc', 'title', 'popularity'), true) ? seo_search_current_request_value('orderby', 'relevance') : 'relevance',
@@ -1013,7 +1021,9 @@ function seo_search_log_query($keyword, $results_count) {
     seo_search_maybe_install_log_table();
 
     global $wpdb;
-    $cookie_seed = isset($_COOKIE[LOGGED_IN_COOKIE]) ? wp_unslash($_COOKIE[LOGGED_IN_COOKIE]) : wp_get_session_token();
+    $cookie_seed = isset($_COOKIE[LOGGED_IN_COOKIE])
+        ? sanitize_text_field(wp_unslash($_COOKIE[LOGGED_IN_COOKIE]))
+        : wp_get_session_token();
     $session_hash = hash('sha256', wp_salt('nonce') . '|' . $cookie_seed . '|' . seo_search_normalize_text($keyword));
 
     $wpdb->insert(
@@ -1531,8 +1541,9 @@ add_shortcode('taxocommerce_search', function ($atts) {
  * Esta version no lanza una segunda busqueda ni consulta Dependiente en frontend.
  */
 function seo_search_native_keyword() {
-    if (isset($_GET['s']) && !is_array($_GET['s'])) {
-        $value = trim((string) sanitize_text_field(wp_unslash($_GET['s'])));
+    $request_search = seo_search_current_request_value('s', '');
+    if ('' !== $request_search) {
+        $value = trim((string) $request_search);
         if ('' !== $value) {
             return $value;
         }
@@ -1776,6 +1787,7 @@ add_action('woocommerce_product_query', function ($query) {
 
 function seo_search_preserve_query_fields($exclude = array()) {
     $exclude = array_merge($exclude, array('seo_search'));
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Se preservan filtros GET de solo lectura en campos hidden.
     foreach ($_GET as $key => $value) {
         $key = sanitize_key($key);
         if (in_array($key, $exclude, true)) {
@@ -1795,6 +1807,7 @@ function seo_search_preserve_query_fields($exclude = array()) {
             printf('<input type="hidden" name="%s" value="%s">', esc_attr($key), esc_attr(sanitize_text_field(wp_unslash($value))));
         }
     }
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 }
 
 /* =========================================================
@@ -1814,7 +1827,9 @@ add_action('init', function () {
         return;
     }
 
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Compatibilidad de una URL GET antigua; no modifica datos.
     if (empty($_GET['seo_search']) || !isset($_GET['q']) || is_array($_GET['q'])) {
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         return;
     }
 
