@@ -3780,10 +3780,10 @@ final class SEO_Clonador_Engine {
 
     public static function ajax_preview() {
         $auth = self::authorize();
-        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>sanitize_text_field($auth->get_error_message())), 403);
         // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
         @set_time_limit(0);$pair = self::open_pair();
-        if (is_wp_error($pair)) wp_send_json_error(array('message'=>$pair->get_error_message()), 500);
+        if (is_wp_error($pair)) wp_send_json_error(array('message'=>sanitize_text_field($pair->get_error_message())), 500);
         list($pro, $stg) = $pair;
         $pro_prefix = seo_clonador_db_prefix('pro');
         $stg_prefix = seo_clonador_db_prefix('staging');
@@ -3791,7 +3791,7 @@ final class SEO_Clonador_Engine {
         $stg_tables = self::all_required_tables($stg_prefix);
         try {
             $analysis = self::analyze($pro, $stg, $pro_tables, $stg_tables);
-            if (is_wp_error($analysis)) wp_send_json_error(array('message'=>$analysis->get_error_message()), 500);
+            if (is_wp_error($analysis)) wp_send_json_error(array('message'=>sanitize_text_field($analysis->get_error_message())), 500);
             set_transient(self::preview_key(), array(
                 'source_marker' => (string) $analysis['source_marker'],
                 'target_marker' => (string) $analysis['target_marker'],
@@ -3847,7 +3847,7 @@ final class SEO_Clonador_Engine {
 
     public static function ajax_apply() {
         $auth = self::authorize();
-        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>sanitize_text_field($auth->get_error_message())), 403);
         if ('1' !== (string) ($_POST['confirm'] ?? '')) {
             wp_send_json_error(array('message'=>'Falta la confirmacion explicita de la clonacion.'), 400);
         }
@@ -3858,7 +3858,7 @@ final class SEO_Clonador_Engine {
         // se ejecuta fuera del navegador mediante el worker del subsistema
         // includes/procesos.
         $pair = self::open_pair();
-        if (is_wp_error($pair)) wp_send_json_error(array('message'=>$pair->get_error_message()), 500);
+        if (is_wp_error($pair)) wp_send_json_error(array('message'=>sanitize_text_field($pair->get_error_message())), 500);
         list($pro, $stg) = $pair;
         $pro_prefix = seo_clonador_db_prefix('pro');
         $stg_prefix = seo_clonador_db_prefix('staging');
@@ -3866,7 +3866,7 @@ final class SEO_Clonador_Engine {
         $stg_tables = self::all_required_tables($stg_prefix);
         try {
             $analysis = self::analyze($pro, $stg, $pro_tables, $stg_tables);
-            if (is_wp_error($analysis)) wp_send_json_error(array('message'=>$analysis->get_error_message()), 500);
+            if (is_wp_error($analysis)) wp_send_json_error(array('message'=>sanitize_text_field($analysis->get_error_message())), 500);
             if (!empty($analysis['conflicts'])) {
                 delete_transient(self::preview_key());
                 wp_send_json_error(array('message'=>'La prevalidacion contiene conflictos. No se ha escrito nada.','conflicts'=>array_slice($analysis['conflicts'],0,20)), 409);
@@ -3885,7 +3885,7 @@ final class SEO_Clonador_Engine {
             $saved['identity'] = (array) $analysis['identity'];
             $speed = max(1, min(5, absint($_POST['speed'] ?? 3)));
             $started = SEO_Clonador_Process::start_new($saved, $speed);
-            if (is_wp_error($started)) wp_send_json_error(array('message'=>$started->get_error_message()), 500);
+            if (is_wp_error($started)) wp_send_json_error(array('message'=>sanitize_text_field($started->get_error_message())), 500);
             delete_transient(self::preview_key());
             wp_send_json_success(array(
                 'message' => 'Clonacion INICIADA por el usuario. El worker solo gestionara los lotes y fases.',
@@ -3900,7 +3900,7 @@ final class SEO_Clonador_Engine {
 
     public static function ajax_status() {
         $auth = self::authorize();
-        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>sanitize_text_field($auth->get_error_message())), 403);
         if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','public_state'))) {
             wp_send_json_error(array('message'=>'No esta disponible el estado del worker del Clonador.'), 500);
         }
@@ -3909,7 +3909,7 @@ final class SEO_Clonador_Engine {
 
     public static function ajax_stop() {
         $auth = self::authorize();
-        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>sanitize_text_field($auth->get_error_message())), 403);
         if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','stop'))) {
             wp_send_json_error(array('message'=>'No esta disponible el control de parada del Clonador.'), 500);
         }
@@ -3921,23 +3921,23 @@ final class SEO_Clonador_Engine {
 
     public static function ajax_resume() {
         $auth = self::authorize();
-        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>sanitize_text_field($auth->get_error_message())), 403);
         if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','resume'))) {
             wp_send_json_error(array('message'=>'No esta disponible la reanudacion del Clonador.'), 500);
         }
         $job = SEO_Clonador_Process::resume();
-        if (is_wp_error($job)) wp_send_json_error(array('message'=>$job->get_error_message()), 409);
+        if (is_wp_error($job)) wp_send_json_error(array('message'=>sanitize_text_field($job->get_error_message())), 409);
         wp_send_json_success(array('message'=>'Clonacion REANUDADA por el usuario.', 'job'=>$job));
     }
 
     public static function ajax_reverify() {
         $auth = self::authorize();
-        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>sanitize_text_field($auth->get_error_message())), 403);
         if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','reverify'))) {
             wp_send_json_error(array('message'=>'No esta disponible la reverificacion del Clonador.'), 500);
         }
         $job = SEO_Clonador_Process::reverify();
-        if (is_wp_error($job)) wp_send_json_error(array('message'=>$job->get_error_message()), 409);
+        if (is_wp_error($job)) wp_send_json_error(array('message'=>sanitize_text_field($job->get_error_message())), 409);
         wp_send_json_success(array(
             'message'=>'Reverificacion completada sin repetir la copia.',
             'job'=>$job,
@@ -3946,7 +3946,7 @@ final class SEO_Clonador_Engine {
 
     public static function ajax_speed() {
         $auth = self::authorize();
-        if (is_wp_error($auth)) wp_send_json_error(array('message'=>$auth->get_error_message()), 403);
+        if (is_wp_error($auth)) wp_send_json_error(array('message'=>sanitize_text_field($auth->get_error_message())), 403);
         if (!class_exists('SEO_Clonador_Process') || !is_callable(array('SEO_Clonador_Process','set_speed'))) {
             wp_send_json_error(array('message'=>'No esta disponible el control de velocidad del Clonador.'), 500);
         }
