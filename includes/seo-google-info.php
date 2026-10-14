@@ -1450,8 +1450,8 @@ function seo_google_sync_day_handler() {
     }
 
     if (function_exists('set_time_limit')) {
-        @set_time_limit(120);
-    }
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit(120);}
 
     $run_id = isset($_POST['run_id']) ? absint(wp_unslash($_POST['run_id'])) : 0;
 
