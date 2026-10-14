@@ -2239,7 +2239,8 @@ function seo_ie_batch_admin_action() {
     if ( ! empty( $errors ) ) {
         $notice['seo_ie_batch_error'] = implode( ' ', $errors );
     } elseif ( 'upload' === $action || 'upload_start' === $action ) {
-        $files    = $_FILES['seo_ie_batch_files'] ?? [];
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw multi-upload metadata is validated per file for error, filename, path and managed destination.
+        $files    = isset($_FILES['seo_ie_batch_files']) && is_array($_FILES['seo_ie_batch_files']) ? $_FILES['seo_ie_batch_files'] : [];
         $names    = (array) ( $files['name'] ?? [] );
         $tmp      = (array) ( $files['tmp_name'] ?? [] );
         $statuses = (array) ( $files['error'] ?? [] );
