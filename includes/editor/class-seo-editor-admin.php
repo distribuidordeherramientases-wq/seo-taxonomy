@@ -270,7 +270,7 @@ final class SEO_Editor_Admin {
         <?php
     }
 
-    private static function render_exchange($token = '') {
+    private static function render_exchange($token = '', $draft_count = 0) {
         ?>
         <section class="seo-editor-panel">
             <h2>Importar y exportar CSV</h2>
@@ -282,7 +282,15 @@ final class SEO_Editor_Admin {
                     <h3>Exportar borradores</h3>
                     <p>Formato CSV UTF-8 con separador punto y coma. Hasta 250 posts y 125 landings recientes por exportación.</p>
                     <a class="button" href="<?php echo esc_url(wp_nonce_url(
-                        admin_url('admin-post.php?action=seo_editor_export_csv'),'seo_editor_export_csv')); ?>">Descargar CSV</a>
+                        admin_url('admin-post.php?action=seo_editor_export_csv'),'seo_editor_export_csv')); ?>">Descargar todo (análisis)</a>
+                    <p class="description">Para editar y reimportar, utiliza tandas de 100 filas:</p>
+                    <p class="seo-editor-csv-batches">
+                        <?php for ($i=1;$i<=min(4,(int)ceil($draft_count / SEO_Editor_Exchange::MAX_ROWS));$i++) : ?>
+                            <a class="button button-small" href="<?php echo esc_url(wp_nonce_url(
+                                add_query_arg(array('action'=>'seo_editor_export_csv','lote'=>$i),admin_url('admin-post.php')),
+                                'seo_editor_export_csv')); ?>">Lote <?php echo absint($i); ?></a>
+                        <?php endfor; ?>
+                    </p>
                 </div>
                 <div>
                     <h3>Importar CSV</h3>
@@ -414,7 +422,7 @@ final class SEO_Editor_Admin {
                     Se muestran <?php echo esc_html(SEO_Editor_Core::PAGE_SIZE); ?> por página.</p>
                 <?php self::render_rows($rows,$filters,self::safe_page($_GET)); ?>
             </section>
-            <?php self::render_exchange($preview); ?>
+            <?php self::render_exchange($preview, count($all)); ?>
         </div>
         <?php
     }
