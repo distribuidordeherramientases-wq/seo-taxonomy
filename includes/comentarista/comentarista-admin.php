@@ -118,16 +118,16 @@ function seo_comentarista_admin_handle_action()
         'source_title'        => sanitize_text_field(wp_unslash($_POST['source_title'] ?? '')),
         'author_name'         => sanitize_text_field(wp_unslash($_POST['author_name'] ?? '')),
         'author_url'          => esc_url_raw(wp_unslash($_POST['author_url'] ?? '')),
-        'source_published_at' => seo_comentarista_admin_parse_datetime(wp_unslash($_POST['source_published_at'] ?? '')),
-        'captured_at'         => seo_comentarista_admin_parse_datetime(wp_unslash($_POST['captured_at'] ?? '')) ?: current_time('mysql'),
+        'source_published_at' => seo_comentarista_admin_parse_datetime(sanitize_text_field(wp_unslash($_POST['source_published_at'] ?? ''))),
+        'captured_at'         => seo_comentarista_admin_parse_datetime(sanitize_text_field(wp_unslash($_POST['captured_at'] ?? ''))) ?: current_time('mysql'),
         'source_content'      => wp_kses_post(wp_unslash($_POST['source_content'] ?? '')),
         'editorial_summary'   => wp_kses_post(wp_unslash($_POST['editorial_summary'] ?? '')),
-        'rating_value'        => isset($_POST['rating_value']) ? trim((string) wp_unslash($_POST['rating_value'])) : '',
-        'rating_scale'        => isset($_POST['rating_scale']) ? trim((string) wp_unslash($_POST['rating_scale'])) : '',
+        'rating_value'        => isset($_POST['rating_value']) ? sanitize_text_field(wp_unslash($_POST['rating_value'])) : '',
+        'rating_scale'        => isset($_POST['rating_scale']) ? sanitize_text_field(wp_unslash($_POST['rating_scale'])) : '',
         'embed_url'           => esc_url_raw(wp_unslash($_POST['embed_url'] ?? '')),
         'thumbnail_url'       => esc_url_raw(wp_unslash($_POST['thumbnail_url'] ?? '')),
         'status'              => sanitize_key(wp_unslash($_POST['status'] ?? 'published')),
-        'display_order'       => intval($_POST['display_order'] ?? 0),
+        'display_order'       => isset($_POST['display_order']) ? absint(wp_unslash($_POST['display_order'])) : 0,
     );
 
     $data = seo_comentarista_enrich_source_data($data);
