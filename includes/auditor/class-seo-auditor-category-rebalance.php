@@ -370,6 +370,7 @@ final class SEO_Auditor_Category_Rebalance {
 
     public static function handle_save() {
         self::guard('seo_auditor_rebalance_save');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         $kind = isset($_POST['kind']) ? sanitize_key(wp_unslash($_POST['kind'])) : '';
         $source_id = isset($_POST['source_id']) ? absint(wp_unslash($_POST['source_id'])) : 0;
         $decision = isset($_POST['decision']) ? sanitize_key(wp_unslash($_POST['decision'])) : '';
@@ -420,11 +421,13 @@ final class SEO_Auditor_Category_Rebalance {
 
         $state['decisions'][$source_id] = $row;
         update_option(self::OPTION, $state, false);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect('ok', 'Propuesta guardada. No se ha modificado el catalogo.');
     }
 
     public static function handle_apply() {
         self::guard('seo_auditor_rebalance_apply');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         $source_id = isset($_POST['source_id']) ? absint(wp_unslash($_POST['source_id'])) : 0;
         $state = self::state();
         $decision = (array) ($state['decisions'][$source_id] ?? array());
@@ -440,11 +443,13 @@ final class SEO_Auditor_Category_Rebalance {
             $state['decisions'][$source_id]['result'] = $result;
             update_option(self::OPTION, $state, false);
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect('ok', (string) ($result['message'] ?? 'Operacion aplicada.'));
     }
 
     public static function handle_apply_all() {
         self::guard('seo_auditor_rebalance_apply_all');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         $kind = isset($_POST['kind']) ? sanitize_key(wp_unslash($_POST['kind'])) : '';
         if (!in_array($kind, array('split','merge'), true)) self::redirect('error', 'Tipo de operacion no valido.');
 
@@ -464,6 +469,7 @@ final class SEO_Auditor_Category_Rebalance {
             $state['decisions'][$source_id]['result'] = $result;
         }
         update_option(self::OPTION, $state, false);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $message = sprintf('Aplicadas: %d. No aplicadas: %d.', $ok, $failed);
         if ($messages) $message .= ' ' . implode(' | ', array_slice($messages, 0, 3));
         self::redirect($failed ? 'warning' : 'ok', $message);
