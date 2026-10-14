@@ -1483,7 +1483,7 @@ if (!function_exists('seo_processes_worker_control')) {
         }
 
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()), 500);
+            wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 500);
         }
 
         // Damos unas décimas al proceso desacoplado para reclamar el despacho.
