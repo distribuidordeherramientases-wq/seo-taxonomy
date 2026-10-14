@@ -107,7 +107,7 @@ if (!function_exists('seo_page_edit_products')) {
 
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $category_id = isset($_GET['cat']) ? absint($_GET['cat']) : 0;
-        $status = isset($_GET['status']) ? sanitize_key($_GET['status']) : '';
+        $status = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '';
         $provider = isset($_GET['provider']) ? sanitize_text_field(wp_unslash($_GET['provider'])) : '';
         $paged = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
