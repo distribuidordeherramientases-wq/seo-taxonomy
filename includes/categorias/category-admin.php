@@ -1,6 +1,21 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+if (!function_exists('seo_category_admin_query_arg')) {
+    function seo_category_admin_query_arg($key, $default = '') {
+        $key = sanitize_key((string) $key);
+        if ('' === $key) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y navegación GET de solo lectura.
+        if (!isset($_GET[$key])) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y navegación GET de solo lectura.
+        return wp_unslash($_GET[$key]);
+    }
+}
+
 
 
 // =========================================================================
@@ -13,9 +28,11 @@ function seo_solo_desvincular_relacion_callback() {
         wp_send_json_error(['message' =>'No tienes permisos suficientes.']);
     }
 
-    $term_id     = isset($_POST['term_id']) ? intval($_POST['term_id']) : 0;
-    $url_origen  = isset($_POST['url_origen']) ? esc_url_raw($_POST['url_origen']) : '';
-    $url_destino = isset($_POST['url_destino']) ? esc_url_raw($_POST['url_destino']) : '';
+    check_ajax_referer('seo_category_delete', 'nonce');
+
+    $term_id     = isset($_POST['term_id']) ? absint(wp_unslash($_POST['term_id'])) : 0;
+    $url_origen  = isset($_POST['url_origen']) ? esc_url_raw(wp_unslash($_POST['url_origen'])) : '';
+    $url_destino = isset($_POST['url_destino']) ? esc_url_raw(wp_unslash($_POST['url_destino'])) : '';
 
     if (!$term_id || empty($url_origen) || empty($url_destino)) {
         wp_send_json_error(['message' => 'Faltan datos requeridos para procesar la acción.']);
@@ -887,7 +904,7 @@ if (!function_exists('seo_category_inventory_render')) {
         global $wpdb;
 
         $per_page = 50;
-        $current_page = isset($_GET['inventory_page']) ? max(1, absint($_GET['inventory_page'])) : 1;
+        $current_page = max(1, absint(seo_category_admin_query_arg('inventory_page', 1)));
         $offset = ($current_page - 1) * $per_page;
 
         $inventory_sort = isset($_GET['inventory_sort'])
@@ -1897,11 +1914,11 @@ if (!function_exists('seo_category_catalog_table_render')) {
         $catalog_sort = isset($_GET['catalog_sort'])
             ? sanitize_key(wp_unslash($_GET['catalog_sort']))
             : 'products_desc';
-        $per_page = isset($_GET['catalog_per_page']) ? absint($_GET['catalog_per_page']) : 50;
+        $per_page = absint(seo_category_admin_query_arg('catalog_per_page', 50));
         if (!in_array($per_page, [25, 50, 100], true)) {
             $per_page = 50;
         }
-        $current_page = isset($_GET['catalog_page']) ? max(1, absint($_GET['catalog_page'])) : 1;
+        $current_page = max(1, absint(seo_category_admin_query_arg('catalog_page', 1)));
 
         if (!in_array($catalog_state, ['all', 'with_products', 'empty'], true)) {
             $catalog_state = 'all';
@@ -2396,11 +2413,11 @@ function seo_category_admin_callback($requested_term_id = 0) {
 $page_slug  = isset($_GET['page'])
     ? sanitize_key($_GET['page'])
     : 'category-seo-admin';
-$active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'categorias';
+$active_tab = sanitize_key((string) seo_category_admin_query_arg('tab', 'categorias'));
 $requested_term_id = absint($requested_term_id);
 
-if (!$requested_term_id && isset($_GET['edit_category_id'])) {
-    $requested_term_id = absint($_GET['edit_category_id']);
+if (!$requested_term_id && '' !== (string) seo_category_admin_query_arg('edit_category_id', '')) {
+    $requested_term_id = absint(seo_category_admin_query_arg('edit_category_id', 0));
 }
 
 $single_category_mode = $requested_term_id > 0;
@@ -2546,10 +2563,18 @@ if ($active_tab === 'reasignar_categorias') {
             return;
         }
 
-        $cat_names        = $_POST['cat_name'] ?? [];
-        $cat_excerpts     = $_POST['cat_excerpt'] ?? [];
-        $cat_descriptions = $_POST['cat_description'] ?? [];
-        $cat_tags         = $_POST['cat_tags'] ?? [];
+        $cat_names = isset($_POST['cat_name']) && is_array($_POST['cat_name'])
+            ? array_map('sanitize_text_field', wp_unslash($_POST['cat_name']))
+            : [];
+        $cat_excerpts = isset($_POST['cat_excerpt']) && is_array($_POST['cat_excerpt'])
+            ? array_map('wp_kses_post', wp_unslash($_POST['cat_excerpt']))
+            : [];
+        $cat_descriptions = isset($_POST['cat_description']) && is_array($_POST['cat_description'])
+            ? array_map('wp_kses_post', wp_unslash($_POST['cat_description']))
+            : [];
+        $cat_tags = isset($_POST['cat_tags']) && is_array($_POST['cat_tags'])
+            ? array_map('sanitize_textarea_field', wp_unslash($_POST['cat_tags']))
+            : [];
         $save_errors      = [];
         $saved_count      = 0;
 
@@ -2744,11 +2769,11 @@ Cinco o seis FAQs.
     // ============================================
     if (isset($_POST['action']) && $_POST['action'] === 'create_seo_category') {
     
-        $nombre       = sanitize_text_field($_POST['new_cat_name'] ?? '');
-        $excerpt      = wp_kses_post($_POST['new_cat_excerpt'] ?? '');
-        $descripcion  = wp_kses_post($_POST['new_cat_description'] ?? '');
-        $tags         = sanitize_textarea_field($_POST['new_cat_tags'] ?? '');
-        $ambito       = sanitize_text_field($_POST['new_cat_ambito'] ?? '');
+        $nombre       = sanitize_text_field(wp_unslash($_POST['new_cat_name'] ?? ''));
+        $excerpt      = wp_kses_post(wp_unslash($_POST['new_cat_excerpt'] ?? ''));
+        $descripcion  = wp_kses_post(wp_unslash($_POST['new_cat_description'] ?? ''));
+        $tags         = sanitize_textarea_field(wp_unslash($_POST['new_cat_tags'] ?? ''));
+        $ambito       = sanitize_text_field(wp_unslash($_POST['new_cat_ambito'] ?? ''));
 
         if (!empty($nombre)) {
     
@@ -3186,8 +3211,8 @@ Cinco o seis FAQs.
                     <!-- Edición y redirección de slug -->
                         <!-- Redirect tras modificar -->
                         <?php if (
-                            isset($_GET['seo_slug_updated']) &&
-                            absint($_GET['seo_slug_updated']) === 1
+                            '' !== (string) seo_category_admin_query_arg('seo_slug_updated', '') &&
+                            absint(seo_category_admin_query_arg('seo_slug_updated', 0)) === 1
                         ): ?>
                         
                             <div class="notice notice-success is-dismissible">
@@ -3465,7 +3490,7 @@ wp_localize_script(
 // ======================================================
 
     if (
-        $_SERVER['REQUEST_METHOD'] === 'POST' &&
+        isset($_SERVER['REQUEST_METHOD']) && 'POST' === strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD']))) &&
         isset($_POST['seo_update_category_slug'])
     ) {
         /*
