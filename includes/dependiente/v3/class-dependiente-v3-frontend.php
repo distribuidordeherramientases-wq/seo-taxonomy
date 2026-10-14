@@ -14,8 +14,14 @@ final class SEO_Dependiente_V3_Frontend {
     }
 
     public static function register_shortcodes() {
-        add_shortcode('dependiente_productos', array(__CLASS__, 'render'));
-        add_shortcode('dependiente', array(__CLASS__, 'render'));
+        add_shortcode('taxocommerce_dependiente_productos', array(__CLASS__, 'render'));
+        add_shortcode('taxocommerce_dependiente', array(__CLASS__, 'render'));
+
+        // Compatibilidad con contenido existente anterior al rebranding.
+        $legacy_shortcodes = array('dependiente_productos', 'dependiente');
+        foreach ($legacy_shortcodes as $legacy_shortcode) {
+            add_shortcode($legacy_shortcode, array(__CLASS__, 'render'));
+        }
     }
 
     private static function navigation_groups($limit = 3) {
