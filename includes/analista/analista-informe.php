@@ -818,7 +818,7 @@ if (!function_exists('seo_analista_render_report')) {
     function seo_analista_render_report() {
         if (!current_user_can('manage_options')) return;
 
-        $days = isset($_GET['analista_days']) ? seo_analista_days(wp_unslash($_GET['analista_days'])) : 28;
+        $days = isset($_GET['analista_days']) ? seo_analista_days(absint(wp_unslash($_GET['analista_days']))) : 28;
 
         echo '<div class="seo-analista-wrap">';
 
