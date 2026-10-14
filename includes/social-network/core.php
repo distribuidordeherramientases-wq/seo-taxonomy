@@ -2305,8 +2305,8 @@ function seo_social_network_handle_scheduler_action()
     }
 
     $content_id = !empty($_POST['schedule_content_id'])
-        ? absint($_POST['schedule_content_id'])
-        : (!empty($_POST['publish_content_id']) ? absint($_POST['publish_content_id']) : 0);
+        ? absint(wp_unslash($_POST['schedule_content_id']))
+        : (!empty($_POST['publish_content_id']) ? absint(wp_unslash($_POST['publish_content_id'])) : 0);
     $mode = !empty($_POST['publish_content_id']) ? 'now' : 'schedule';
     $providers_by_content = isset($_POST['providers']) && is_array($_POST['providers'])
         ? map_deep(wp_unslash($_POST['providers']), 'sanitize_key')
@@ -2435,7 +2435,7 @@ function seo_social_network_handle_publish_now()
         wp_die(esc_html__('No tienes permisos para publicar en redes sociales.', 'taxocommerce-seo'));
     }
 
-    $content_id = isset($_POST['content_id']) ? absint($_POST['content_id']) : 0;
+    $content_id = isset($_POST['content_id']) ? absint(wp_unslash($_POST['content_id'])) : 0;
     $provider = isset($_POST['provider']) ? sanitize_key(wp_unslash($_POST['provider'])) : '';
     check_admin_referer('seo_social_network_publish_' . $content_id . '_' . $provider);
 
@@ -2469,7 +2469,7 @@ function seo_social_network_handle_save_content_template()
         wp_die(esc_html__('No tienes permisos para modificar plantillas sociales.', 'taxocommerce-seo'));
     }
 
-    $content_id = isset($_POST['content_id']) ? absint($_POST['content_id']) : 0;
+    $content_id = isset($_POST['content_id']) ? absint(wp_unslash($_POST['content_id'])) : 0;
     $provider = isset($_POST['provider']) ? sanitize_key(wp_unslash($_POST['provider'])) : '';
     check_admin_referer('seo_social_network_template_' . $content_id . '_' . $provider);
 
