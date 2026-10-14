@@ -1267,11 +1267,11 @@ function seo_marketing_campaigns_handle_save()
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
     $name = isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '';
     $edition_label = isset($_POST['edition_label']) ? sanitize_text_field(wp_unslash($_POST['edition_label'])) : '';
-    $campaign_type = isset($_POST['campaign_type']) ? seo_marketing_campaigns_normalize_type(wp_unslash($_POST['campaign_type'])) : 'calendar';
+    $campaign_type = isset($_POST['campaign_type']) ? seo_marketing_campaigns_normalize_type(sanitize_key(wp_unslash($_POST['campaign_type']))) : 'calendar';
     $recurrence = isset($_POST['recurrence']) ? sanitize_key(wp_unslash($_POST['recurrence'])) : 'none';
-    $social_creative_template = isset($_POST['social_creative_template']) ? seo_marketing_campaigns_normalize_social_creative_template(wp_unslash($_POST['social_creative_template'])) : 'design_1';
-    $start_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['start_at']) ? wp_unslash($_POST['start_at']) : '');
-    $end_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['end_at']) ? wp_unslash($_POST['end_at']) : '');
+    $social_creative_template = isset($_POST['social_creative_template']) ? seo_marketing_campaigns_normalize_social_creative_template(sanitize_key(wp_unslash($_POST['social_creative_template']))) : 'design_1';
+    $start_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['start_at']) ? sanitize_text_field(wp_unslash($_POST['start_at'])) : '');
+    $end_at = seo_marketing_campaigns_parse_local_datetime(isset($_POST['end_at']) ? sanitize_text_field(wp_unslash($_POST['end_at'])) : '');
     $is_enabled = !empty($_POST['is_enabled']) ? 1 : 0;
 
     if (!in_array($recurrence, array('none', 'annual', 'manual'), true)) {
@@ -1385,7 +1385,7 @@ function seo_marketing_campaigns_handle_add_products()
     }
 
     $selected = isset($_POST['selected_products']) ? array_map('absint', (array) wp_unslash($_POST['selected_products'])) : array();
-    $prices = isset($_POST['campaign_price']) ? (array) wp_unslash($_POST['campaign_price']) : array();
+    $prices = isset($_POST['campaign_price']) ? map_deep((array) wp_unslash($_POST['campaign_price']), 'sanitize_text_field') : array();
 
     if (empty($selected)) {
         seo_marketing_campaigns_redirect_notice('Selecciona al menos un producto.', 'warning', array('campaign_id' => $campaign_id));
@@ -1470,7 +1470,7 @@ function seo_marketing_campaigns_handle_update_products()
         seo_marketing_campaigns_redirect_notice('La campaña no existe.', 'error');
     }
 
-    $prices = isset($_POST['campaign_price']) ? (array) wp_unslash($_POST['campaign_price']) : array();
+    $prices = isset($_POST['campaign_price']) ? map_deep((array) wp_unslash($_POST['campaign_price']), 'sanitize_text_field') : array();
     $remove = isset($_POST['remove_product']) ? array_map('absint', (array) wp_unslash($_POST['remove_product'])) : array();
     $remove_map = array_fill_keys($remove, true);
     $rows = $wpdb->get_results(
@@ -2109,7 +2109,10 @@ function seo_marketing_campaigns_handle_import()
 
     seo_marketing_campaigns_maybe_install_tables();
 
-    $file = isset($_FILES['campaign_import_file']) ? $_FILES['campaign_import_file'] : array();
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated before reading the file.
+    $file = isset($_FILES['campaign_import_file']) && is_array($_FILES['campaign_import_file'])
+        ? $_FILES['campaign_import_file']
+        : array();
     if (empty($file['tmp_name']) || !isset($file['error']) || (int) $file['error'] !== UPLOAD_ERR_OK) {
         seo_marketing_campaigns_redirect_notice('No se pudo recibir el archivo de importacion.', 'error');
     }
