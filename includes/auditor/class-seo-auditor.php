@@ -97,7 +97,7 @@ final class SEO_Auditor {
 
     public static function handle_run_scope() {
         self::guard_action('seo_auditor_run_scope');
-        $scope = self::normalize_scope(isset($_POST['scope']) ? wp_unslash($_POST['scope']) : '');
+        $scope = self::normalize_scope(isset($_POST['scope']) ? sanitize_key(wp_unslash($_POST['scope'])) : '');
         if (!$scope) {
             wp_die(esc_html__('Ambito de auditoria no valido.', 'taxocommerce-seo'));
         }
@@ -118,7 +118,7 @@ final class SEO_Auditor {
 
     public static function handle_export_scope() {
         self::guard_action('seo_auditor_export_scope');
-        $scope = self::normalize_scope(isset($_POST['scope']) ? wp_unslash($_POST['scope']) : '');
+        $scope = self::normalize_scope(isset($_POST['scope']) ? sanitize_key(wp_unslash($_POST['scope'])) : '');
         $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         self::stream_json_report(
             $scope && !empty($reports[$scope]) ? (array) $reports[$scope] : array(),
@@ -181,7 +181,7 @@ final class SEO_Auditor {
         $scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
 
         if ('scope' === (isset($_GET['audited']) ? sanitize_key(wp_unslash($_GET['audited'])) : '')) {
-            $done_scope = self::normalize_scope(isset($_GET['audit_scope']) ? wp_unslash($_GET['audit_scope']) : '');
+            $done_scope = self::normalize_scope(isset($_GET['audit_scope']) ? sanitize_key(wp_unslash($_GET['audit_scope'])) : '');
             $labels = self::scope_definitions();
             if ($done_scope && isset($labels[$done_scope])) {
                 echo '<div class="notice notice-success is-dismissible"><p>Auditoria de <strong>' . esc_html($labels[$done_scope]['label']) . '</strong> completada de forma independiente.</p></div>';
@@ -195,7 +195,7 @@ final class SEO_Auditor {
 
         self::render_content_audit_actions(array(), $scoped_reports);
 
-        $scope_view = self::normalize_scope(isset($_GET['audit_scope']) ? wp_unslash($_GET['audit_scope']) : '');
+        $scope_view = self::normalize_scope(isset($_GET['audit_scope']) ? sanitize_key(wp_unslash($_GET['audit_scope'])) : '');
         if ($scope_view && !empty($scoped_reports[$scope_view])) {
             self::render_scope_report((array) $scoped_reports[$scope_view]);
         } elseif (!$scoped_reports) {
