@@ -13,6 +13,12 @@ Primera release de la línea **TaxoCommerce SEO 2.4.x**.
 - Se actualizan README, readme público, Wiki, manuales y textos visibles del panel.
 - Se conservan por compatibilidad las constantes, tablas, opciones, metadatos, nombres de clases, funciones y slugs operativos internos históricos cuando cambiarlos pudiera romper instalaciones existentes.
 
+### Import / Export
+
+- Páginas y entradas pueden exportarse incluyendo **Papelera (`trash`)** y reimportarse para enviar contenido existente a la papelera mediante el flujo nativo de WordPress.
+- La importación acepta `trash`, `papelera` y `basura`; la exportación escribe siempre el valor canónico `trash`.
+- Un CSV con estado de papelera no crea contenido nuevo ni realiza borrado definitivo; la simulación informa de la acción y un objeto en papelera puede restaurarse al importar otro estado válido.
+
 ### Consolidación funcional
 
 - La release consolida el trabajo ya integrado en staging desde 2.3.10, incluyendo la evolución de Dependiente, Ingeniero, Auditor, Ojeador, Analista, importaciones y el Gestor de workers.
