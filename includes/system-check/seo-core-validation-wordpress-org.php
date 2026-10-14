@@ -360,6 +360,9 @@ function seo_core_wporg_static_findings() {
         foreach ($lines as $index => $line) {
             $line_no = $index + 1;
             $trimmed = trim((string) $line);
+            $previous_line = $index > 0 ? (string) $lines[$index - 1] : '';
+            $phpcs_ignored = stripos($line, 'phpcs:ignore') !== false
+                || stripos($previous_line, 'phpcs:ignore') !== false;
 
             if ($trimmed === '') {
                 continue;
@@ -381,7 +384,8 @@ function seo_core_wporg_static_findings() {
                 seo_core_wporg_add_hit($groups['sql'], 'mysqli_direct', $relative, $line_no, 'Acceso mysqli directo; revisar prepare/abstracción WordPress.');
             }
             if (
-                preg_match('/\$_(?:GET|POST|REQUEST|COOKIE|SERVER|SESSION)\s*\[/i', $line)
+                !$phpcs_ignored
+                && preg_match('/\$_(?:GET|POST|REQUEST|COOKIE|SERVER|SESSION)\s*\[/i', $line)
                 && !preg_match('/(?:sanitize_[a-z_]+|absint|intval|floatval|wp_unslash|esc_url_raw|wp_kses|filter_input)\s*\(/i', $line)
             ) {
                 seo_core_wporg_add_hit($groups['input'], 'raw_superglobal', $relative, $line_no, 'Entrada externa sin sanitización evidente en la misma expresión.');
@@ -433,9 +437,16 @@ function seo_core_wporg_static_findings() {
                 seo_core_wporg_add_hit($groups['i18n'], 'missing_text_domain', $relative, $line_no, 'Gettext sin text domain literal detectable.');
             }
             if (strpos($line, 'wp_json_encode') !== false && strpos($line, 'JSON_UNESCAPED_SLASHES') !== false) {
-                seo_core_wporg_add_hit($groups['json'], 'json_unescaped_slashes', $relative, $line_no, 'JSON_UNESCAPED_SLASHES puede ser inseguro dentro de <script>; revisar contexto.');
+                $json_context = implode("\n", array_slice($lines, max(0, $index - 4), 9));
+                if (
+                    stripos($json_context, '<script') !== false
+                    || stripos($json_context, 'wp_add_inline_script') !== false
+                    || preg_match('/\b(?:echo|print)\b.*wp_json_encode/i', $json_context)
+                ) {
+                    seo_core_wporg_add_hit($groups['json'], 'json_unescaped_slashes', $relative, $line_no, 'JSON_UNESCAPED_SLASHES en contexto HTML/JS; revisar escape seguro.');
+                }
             }
-            if (preg_match('/\b(?:fwrite|file_put_contents|rename|copy)\s*\(/i', $line)) {
+            if (!$phpcs_ignored && preg_match('/\b(?:fwrite|file_put_contents|rename|copy)\s*\(/i', $line)) {
                 seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_write', $relative, $line_no, 'Escritura de fichero: confirmar que el destino usa uploads/database y no carpetas del plugin/core.');
             }
 
@@ -486,11 +497,11 @@ function seo_core_wporg_static_findings() {
                 seo_core_wporg_add_hit($groups['deprecated'], 'term_description_param2', $relative, $line_no, 'term_description() usa un segundo parametro obsoleto.');
             }
 
-            if (preg_match('/\bcurl_[a-z0-9_]+\s*\(/i', $line)) {
+            if (!$phpcs_ignored && preg_match('/\bcurl_[a-z0-9_]+\s*\(/i', $line)) {
                 seo_core_wporg_add_hit($groups['http_api'], 'curl_direct', $relative, $line_no, 'cURL directo detectado; revisar la HTTP API de WordPress.');
             }
 
-            if (preg_match('/\bdate\s*\(/i', $line) && !preg_match('/\b(?:gmdate|wp_date)\s*\(/i', $line)) {
+            if (!$phpcs_ignored && preg_match('/\bdate\s*\(/i', $line) && !preg_match('/\b(?:gmdate|wp_date)\s*\(/i', $line)) {
                 seo_core_wporg_add_hit($groups['datetime'], 'date_direct', $relative, $line_no, 'date() directo detectado; revisar wp_date()/gmdate().');
             }
 
@@ -552,7 +563,7 @@ function seo_core_wporg_static_findings() {
                 );
             }
 
-            if (preg_match('/\b(?:fclose|fwrite|fopen|unlink|rename|chmod|is_writable|readfile|rmdir|fread)\s*\(/i', $line)) {
+            if (!$phpcs_ignored && preg_match('/\b(?:fclose|fwrite|fopen|unlink|rename|chmod|is_writable|readfile|rmdir|fread)\s*\(/i', $line)) {
                 seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_direct_api', $relative, $line_no, 'Operacion directa de filesystem; revisar WP_Filesystem.');
             }
 
