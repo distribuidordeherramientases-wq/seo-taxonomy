@@ -8,6 +8,30 @@
 
 defined('ABSPATH') || exit;
 
+/**
+ * Lee parámetros GET de navegación, avisos y referencias firmadas.
+ *
+ * @param string $key
+ * @param mixed  $default
+ * @return mixed
+ */
+function seo_social_network_query_arg($key, $default = '')
+{
+    $key = sanitize_key((string) $key);
+    if ('' === $key) {
+        return $default;
+    }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación, avisos y referencias firmadas de solo lectura.
+    if (!isset($_GET[$key])) {
+        return $default;
+    }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación, avisos y referencias firmadas de solo lectura.
+    return wp_unslash($_GET[$key]);
+}
+
+
 if (!defined('SEO_SOCIAL_NETWORK_DB_VERSION')) {
     define('SEO_SOCIAL_NETWORK_DB_VERSION', 2);
 }
@@ -449,11 +473,12 @@ function seo_social_network_build_tracking_url($content_id, $provider, $publicat
  */
 function seo_social_network_capture_visit()
 {
-    if (is_admin() || empty($_GET['seo_social_ref'])) {
+    $tracking_ref = seo_social_network_query_arg('seo_social_ref', '');
+    if (is_admin() || '' === (string) $tracking_ref) {
         return;
     }
 
-    $raw = sanitize_text_field(wp_unslash($_GET['seo_social_ref']));
+    $raw = sanitize_text_field((string) $tracking_ref);
     if (!preg_match('/^(\d+)\.([a-f0-9]{16})$/', $raw, $matches)) {
         return;
     }
@@ -1453,6 +1478,7 @@ function seo_social_network_handle_save_connection()
     $current = isset($settings['providers'][$provider_key]) && is_array($settings['providers'][$provider_key])
         ? $settings['providers'][$provider_key]
         : array();
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; each provider applies its dedicated sanitize_connection_callback, including secrets/tokens.
     $posted = isset($_POST['connection']) && is_array($_POST['connection'])
         ? wp_unslash($_POST['connection'])
         : array();
@@ -1536,7 +1562,7 @@ function seo_social_network_handle_save_templates()
     check_admin_referer('seo_social_network_save_templates');
     $settings = seo_social_network_get_settings();
     $templates = isset($_POST['templates']) && is_array($_POST['templates'])
-        ? wp_unslash($_POST['templates'])
+        ? map_deep(wp_unslash($_POST['templates']), 'sanitize_textarea_field')
         : array();
 
     foreach (seo_social_network_get_providers() as $provider_key => $provider) {
@@ -1579,14 +1605,14 @@ function seo_social_network_handle_save_automation()
     $settings = seo_social_network_get_settings();
 
     $auto = isset($_POST['auto_publish']) && is_array($_POST['auto_publish'])
-        ? wp_unslash($_POST['auto_publish'])
+        ? map_deep(wp_unslash($_POST['auto_publish']), 'sanitize_key')
         : array();
     foreach (seo_social_network_supported_post_types() as $post_type) {
         $settings['auto_publish'][$post_type] = !empty($auto[$post_type]) ? 1 : 0;
     }
 
     $targets = isset($_POST['auto_publish_providers']) && is_array($_POST['auto_publish_providers'])
-        ? wp_unslash($_POST['auto_publish_providers'])
+        ? map_deep(wp_unslash($_POST['auto_publish_providers']), 'sanitize_key')
         : array();
     foreach (seo_social_network_get_providers() as $provider_key => $provider) {
         $settings['auto_publish_providers'][$provider_key] = !empty($targets[$provider_key]) ? 1 : 0;
@@ -2283,7 +2309,7 @@ function seo_social_network_handle_scheduler_action()
         : (!empty($_POST['publish_content_id']) ? absint($_POST['publish_content_id']) : 0);
     $mode = !empty($_POST['publish_content_id']) ? 'now' : 'schedule';
     $providers_by_content = isset($_POST['providers']) && is_array($_POST['providers'])
-        ? wp_unslash($_POST['providers'])
+        ? map_deep(wp_unslash($_POST['providers']), 'sanitize_key')
         : array();
     $providers = isset($providers_by_content[$content_id]) && is_array($providers_by_content[$content_id])
         ? array_values(array_unique(array_map('sanitize_key', $providers_by_content[$content_id])))
@@ -2319,7 +2345,9 @@ function seo_social_network_handle_scheduler_action()
 
     $post = get_post($content_id);
     $is_news = $post && function_exists('seo_social_network_is_news_content') && seo_social_network_is_news_content($post);
-    $dates = isset($_POST['schedule_at']) && is_array($_POST['schedule_at']) ? wp_unslash($_POST['schedule_at']) : array();
+    $dates = isset($_POST['schedule_at']) && is_array($_POST['schedule_at'])
+        ? map_deep(wp_unslash($_POST['schedule_at']), 'sanitize_text_field')
+        : array();
     $raw_date = isset($dates[$content_id]) ? sanitize_text_field($dates[$content_id]) : '';
 
     $dt = $raw_date !== '' ? DateTimeImmutable::createFromFormat('!Y-m-d', $raw_date, wp_timezone()) : false;
@@ -2338,7 +2366,7 @@ function seo_social_network_handle_scheduler_action()
     }
 
     $priority_by_content = isset($_POST['priority']) && is_array($_POST['priority'])
-        ? wp_unslash($_POST['priority'])
+        ? map_deep(wp_unslash($_POST['priority']), 'sanitize_key')
         : array();
     $is_priority = $is_news && !empty($priority_by_content[$content_id]);
 
@@ -2371,14 +2399,14 @@ function seo_social_network_handle_save_publication_settings()
     $settings = seo_social_network_get_settings();
 
     $auto = isset($_POST['auto_publish']) && is_array($_POST['auto_publish'])
-        ? wp_unslash($_POST['auto_publish'])
+        ? map_deep(wp_unslash($_POST['auto_publish']), 'sanitize_key')
         : array();
     foreach (seo_social_network_supported_post_types() as $post_type) {
         $settings['auto_publish'][$post_type] = !empty($auto[$post_type]) ? 1 : 0;
     }
 
     $templates = isset($_POST['templates']) && is_array($_POST['templates'])
-        ? wp_unslash($_POST['templates'])
+        ? map_deep(wp_unslash($_POST['templates']), 'sanitize_textarea_field')
         : array();
 
     foreach (seo_social_network_get_providers() as $provider_key => $provider) {
@@ -2541,7 +2569,7 @@ add_action('admin_post_seo_social_network_sync_reports', 'seo_social_network_han
  */
 function seo_social_network_render_notice()
 {
-    $message = isset($_GET['social_msg']) ? sanitize_key(wp_unslash($_GET['social_msg'])) : '';
+    $message = sanitize_key((string) seo_social_network_query_arg('social_msg', ''));
     if ($message === '') {
         return;
     }
@@ -2602,9 +2630,9 @@ function seo_social_network_render_notice()
     }
 
     if (in_array($message, array('scheduler_imported', 'scheduler_import_partial'), true)) {
-        $created = isset($_GET['created']) ? absint($_GET['created']) : 0;
-        $reprogrammed = isset($_GET['reprogrammed']) ? absint($_GET['reprogrammed']) : 0;
-        $failed = isset($_GET['failed']) ? absint($_GET['failed']) : 0;
+        $created = absint(seo_social_network_query_arg('created', 0));
+        $reprogrammed = absint(seo_social_network_query_arg('reprogrammed', 0));
+        $failed = absint(seo_social_network_query_arg('failed', 0));
         $text .= ' Nuevas: ' . $created . '. Reprogramadas: ' . $reprogrammed . '. Fallidas: ' . $failed . '.';
     }
 
@@ -2641,8 +2669,8 @@ function seo_social_network_render_notice()
     }
 
     if ('reports_synced' === $message) {
-        $updated = isset($_GET['sync_updated']) ? absint($_GET['sync_updated']) : 0;
-        $failed = isset($_GET['sync_failed']) ? absint($_GET['sync_failed']) : 0;
+        $updated = absint(seo_social_network_query_arg('sync_updated', 0));
+        $failed = absint(seo_social_network_query_arg('sync_failed', 0));
         $text .= ' Actualizadas: ' . $updated . '. Fallidas: ' . $failed . '.';
     }
 
@@ -2661,7 +2689,7 @@ function seo_social_network_render_admin_tab()
     seo_social_network_maybe_install_tables();
 
     $allowed = array('templates', 'automation', 'scheduler', 'calendar', 'connections', 'reports', 'publications');
-    $subtab = isset($_GET['social_subtab']) ? sanitize_key(wp_unslash($_GET['social_subtab'])) : 'templates';
+    $subtab = sanitize_key((string) seo_social_network_query_arg('social_subtab', 'templates'));
     if (!in_array($subtab, $allowed, true)) {
         $subtab = 'templates';
     }
@@ -2775,8 +2803,8 @@ function seo_social_network_render_connections()
  */
 function seo_social_network_publications_query()
 {
-    $type = isset($_GET['social_type']) ? sanitize_key(wp_unslash($_GET['social_type'])) : '';
-    $search = isset($_GET['social_search']) ? sanitize_text_field(wp_unslash($_GET['social_search'])) : '';
+    $type = sanitize_key((string) seo_social_network_query_arg('social_type', ''));
+    $search = sanitize_text_field((string) seo_social_network_query_arg('social_search', ''));
     $supported = seo_social_network_supported_post_types();
     $post_types = in_array($type, $supported, true) ? array($type) : $supported;
 
@@ -2900,7 +2928,7 @@ function seo_social_network_render_scheduler()
     echo '<button class="button" type="submit" name="export_kind" value="history">Exportar historial</button>';
     echo '</form></div></div>';
 
-    $import_token = isset($_GET['import_key']) ? sanitize_key(wp_unslash($_GET['import_key'])) : '';
+    $import_token = sanitize_key((string) seo_social_network_query_arg('import_key', ''));
     $import_preview = false;
     if ($import_token !== '') {
         $import_preview = get_transient('seo_social_scheduler_import_' . get_current_user_id() . '_' . $import_token);
@@ -2962,9 +2990,9 @@ function seo_social_network_render_scheduler()
     echo '<form method="get" class="seo-social-filterbar" style="margin-top:18px">';
     echo '<input type="hidden" name="page" value="seo-menu-marketing"><input type="hidden" name="tab" value="social"><input type="hidden" name="social_subtab" value="scheduler">';
     echo '<div class="seo-social-field"><label>Tipo</label><select name="social_type"><option value="">Entradas + Páginas/Landings</option>';
-    $current_type = isset($_GET['social_type']) ? sanitize_key(wp_unslash($_GET['social_type'])) : '';
+    $current_type = sanitize_key((string) seo_social_network_query_arg('social_type', ''));
     echo '<option value="post" ' . selected($current_type, 'post', false) . '>Entradas</option><option value="page" ' . selected($current_type, 'page', false) . '>Páginas / Landings</option></select></div>';
-    $search = isset($_GET['social_search']) ? sanitize_text_field(wp_unslash($_GET['social_search'])) : '';
+    $search = sanitize_text_field((string) seo_social_network_query_arg('social_search', ''));
     echo '<div class="seo-social-field is-search"><label>Buscar contenido</label><input type="text" name="social_search" value="' . esc_attr($search) . '" placeholder="Título del contenido..."></div>';
     echo '<button class="button" type="submit">Filtrar</button>';
     echo '</form>';
