@@ -907,9 +907,7 @@ if (!function_exists('seo_category_inventory_render')) {
         $current_page = max(1, absint(seo_category_admin_query_arg('inventory_page', 1)));
         $offset = ($current_page - 1) * $per_page;
 
-        $inventory_sort = isset($_GET['inventory_sort'])
-            ? sanitize_key(wp_unslash($_GET['inventory_sort']))
-            : 'name_asc';
+        $inventory_sort = sanitize_key((string) seo_category_admin_query_arg('inventory_sort', 'name_asc'));
 
         $allowed_inventory_sorts = [
             'name_asc',
@@ -1494,15 +1492,9 @@ if (!function_exists('seo_category_catalog_export_json')) {
         $posts_table         = $wpdb->posts;
         $postmeta_table      = $wpdb->postmeta;
 
-        $catalog_q = isset($_GET['catalog_q'])
-            ? sanitize_text_field(wp_unslash($_GET['catalog_q']))
-            : '';
-        $catalog_state = isset($_GET['catalog_state'])
-            ? sanitize_key(wp_unslash($_GET['catalog_state']))
-            : 'all';
-        $catalog_sort = isset($_GET['catalog_sort'])
-            ? sanitize_key(wp_unslash($_GET['catalog_sort']))
-            : 'products_desc';
+        $catalog_q = sanitize_text_field((string) seo_category_admin_query_arg('catalog_q', ''));
+        $catalog_state = sanitize_key((string) seo_category_admin_query_arg('catalog_state', 'all'));
+        $catalog_sort = sanitize_key((string) seo_category_admin_query_arg('catalog_sort', 'products_desc'));
 
         if (!in_array($catalog_state, ['all', 'with_products', 'empty'], true)) {
             $catalog_state = 'all';
@@ -1905,15 +1897,9 @@ if (!function_exists('seo_category_catalog_table_render')) {
         $posts_table         = $wpdb->posts;
         $postmeta_table      = $wpdb->postmeta;
 
-        $catalog_q = isset($_GET['catalog_q'])
-            ? sanitize_text_field(wp_unslash($_GET['catalog_q']))
-            : '';
-        $catalog_state = isset($_GET['catalog_state'])
-            ? sanitize_key(wp_unslash($_GET['catalog_state']))
-            : 'all';
-        $catalog_sort = isset($_GET['catalog_sort'])
-            ? sanitize_key(wp_unslash($_GET['catalog_sort']))
-            : 'products_desc';
+        $catalog_q = sanitize_text_field((string) seo_category_admin_query_arg('catalog_q', ''));
+        $catalog_state = sanitize_key((string) seo_category_admin_query_arg('catalog_state', 'all'));
+        $catalog_sort = sanitize_key((string) seo_category_admin_query_arg('catalog_sort', 'products_desc'));
         $per_page = absint(seo_category_admin_query_arg('catalog_per_page', 50));
         if (!in_array($per_page, [25, 50, 100], true)) {
             $per_page = 50;
@@ -2551,7 +2537,7 @@ if ($active_tab === 'reasignar_categorias') {
     $tabla_relations = $wpdb->prefix . 'seo_relations';
 
     // Guardado estándar mediante la API modular.
-    if (isset($_POST['action']) && $_POST['action'] === 'update_seo_categories') {
+    if (isset($_POST['action']) && 'update_seo_categories' === sanitize_key(wp_unslash($_POST['action']))) {
         if (
             empty($_POST['seo_category_editor_nonce']) ||
             !wp_verify_nonce(
@@ -2767,7 +2753,7 @@ Cinco o seis FAQs.
     // ============================================
     // CREAR NUEVA CATEGORÍA SEO
     // ============================================
-    if (isset($_POST['action']) && $_POST['action'] === 'create_seo_category') {
+    if (isset($_POST['action']) && 'create_seo_category' === sanitize_key(wp_unslash($_POST['action']))) {
     
         $nombre       = sanitize_text_field(wp_unslash($_POST['new_cat_name'] ?? ''));
         $excerpt      = wp_kses_post(wp_unslash($_POST['new_cat_excerpt'] ?? ''));
@@ -2778,7 +2764,7 @@ Cinco o seis FAQs.
         if (!empty($nombre)) {
     
             $parent_id = isset($_POST['new_cat_parent'])
-                ? absint($_POST['new_cat_parent'])
+                ? absint(wp_unslash($_POST['new_cat_parent']))
                 : 0;
             
             $nueva_cat = wp_insert_term(
@@ -3515,7 +3501,7 @@ wp_localize_script(
             wp_die('No tienes permisos para modificar categorías de producto.');
         }
     
-        $term_id = absint($_POST['seo_update_category_slug']);
+        $term_id = absint(wp_unslash($_POST['seo_update_category_slug']));
         $taxonomy = 'product_cat';
     
         if ($term_id <= 0) {
