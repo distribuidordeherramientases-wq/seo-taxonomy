@@ -354,8 +354,20 @@ final class SEO_Dependiente_V3_Frontend {
         if ($page_id && 'trash' !== get_post_status($page_id)) return $page_id;
         $existing = get_page_by_path('dependiente', OBJECT, 'page');
         if ($existing instanceof WP_Post) {
-            if (!has_shortcode((string) $existing->post_content, 'taxocommerce_dependiente_productos') && !has_shortcode((string) $existing->post_content, 'taxocommerce_dependiente')) {
-                wp_update_post(array('ID' => $existing->ID, 'post_content' => rtrim((string) $existing->post_content) . "\n\n[taxocommerce_dependiente_productos]"));
+            $content = (string) $existing->post_content;
+            $migrated_content = str_replace(
+                array('[dependiente_productos]', '[dependiente]'),
+                array('[taxocommerce_dependiente_productos]', '[taxocommerce_dependiente]'),
+                $content
+            );
+            if (
+                !has_shortcode($migrated_content, 'taxocommerce_dependiente_productos')
+                && !has_shortcode($migrated_content, 'taxocommerce_dependiente')
+            ) {
+                $migrated_content = rtrim($migrated_content) . "\n\n[taxocommerce_dependiente_productos]";
+            }
+            if ($migrated_content !== $content) {
+                wp_update_post(array('ID' => $existing->ID, 'post_content' => $migrated_content));
             }
             update_option('seo_dependiente_page_id', absint($existing->ID), false);
             return absint($existing->ID);
