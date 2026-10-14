@@ -99,6 +99,7 @@ final class SEO_Auditor_Editorial_Specialist {
     private static function collect_map() {
         global $wpdb;
 
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $wpdb->posts is a trusted WordPress core table identifier; the query contains no external values.
         $rows = (array) $wpdb->get_results(
             "SELECT ID,post_type,post_title,post_name
              FROM " . $wpdb->posts . "
@@ -106,6 +107,7 @@ final class SEO_Auditor_Editorial_Specialist {
              ORDER BY ID ASC",
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         $roles = self::page_roles();
         $posts = array();
