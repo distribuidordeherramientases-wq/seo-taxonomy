@@ -247,7 +247,7 @@ final class SEO_Dependiente_Admin {
             echo '<div class="notice notice-error"><p>No está disponible el módulo de diagnóstico.</p></div>';
             return;
         }
-        $days = SEO_Dependiente_Insights::normalize_days(isset($_GET['days']) ? wp_unslash($_GET['days']) : 7);
+        $days = SEO_Dependiente_Insights::normalize_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 7);
         $snapshot = SEO_Dependiente_Insights::snapshot($days, 80);
         $summary = (array) ($snapshot['summary'] ?? array());
 
@@ -379,7 +379,7 @@ final class SEO_Dependiente_Admin {
             wp_die('No está disponible el módulo de diagnóstico.');
         }
 
-        $days = SEO_Dependiente_Insights::normalize_days(isset($_GET['days']) ? wp_unslash($_GET['days']) : 7);
+        $days = SEO_Dependiente_Insights::normalize_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 7);
         $snapshot = SEO_Dependiente_Insights::snapshot($days, 120);
         $json = wp_json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if (false === $json) {
