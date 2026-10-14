@@ -2323,8 +2323,10 @@ final class SEO_Dependiente_Entrenador {
         }
 
         $filename = 'dependiente-academia-curso-completo-' . current_time('Ymd-His') . '.json';
-        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
-        @set_time_limit(0);@ini_set('zlib.output_compression', '0');
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running export operation.
+        @set_time_limit(0);
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Disable output compression to avoid corrupting the streamed JSON export.
+        @ini_set('zlib.output_compression', '0');
         while (ob_get_level()) {
             @ob_end_clean();
         }
