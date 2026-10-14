@@ -629,6 +629,8 @@ function seo_core_wporg_static_findings() {
                     'www.ejemplo.com',
                     'example.com',
                     'www.example.com',
+                    'competidor.es',
+                    'www.distribuidordeherramientas.es',
                 );
                 $comment_only = preg_match('/^\s*(?:\/\/|#|\*)/', $line);
 
