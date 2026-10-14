@@ -835,7 +835,9 @@ function seo_marketing_style_handle_save()
             $args['operation_id'] = $operation_id;
         }
     } catch (Throwable $exception) {
-        error_log('[SEO Marketing] Error al guardar el estilo: ' . $exception->getMessage());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Marketing] Error al guardar el estilo: ' . $exception->getMessage());
+        }
         $args = array('style_msg' => 'error');
     }
 
@@ -868,7 +870,9 @@ function seo_marketing_style_handle_reset()
             $args['operation_id'] = $operation_id;
         }
     } catch (Throwable $exception) {
-        error_log('[SEO Marketing] Error al restaurar el estilo: ' . $exception->getMessage());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Marketing] Error al restaurar el estilo: ' . $exception->getMessage());
+        }
         $args = array('style_msg' => 'error');
     }
 
@@ -913,7 +917,9 @@ function seo_marketing_style_handle_import()
             $args['operation_id'] = $operation_id;
         }
     } catch (Throwable $exception) {
-        error_log('[SEO Marketing] Error al importar el estilo: ' . $exception->getMessage());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Marketing] Error al importar el estilo: ' . $exception->getMessage());
+        }
         $args = array('style_msg' => 'error');
     }
 
@@ -5463,7 +5469,9 @@ function seo_marketing_create_sitemaps()
             ),
         );
     } catch (Throwable $exception) {
-        error_log('[SEO Marketing] Error al generar sitemaps: ' . $exception->getMessage());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Marketing] Error al generar sitemaps: ' . $exception->getMessage());
+        }
 
         return array(
             'type'    => 'error',
@@ -5613,7 +5621,9 @@ function seo_marketing_regenerate_sitemaps_silent()
         $message = is_array($result) && isset($result['message'])
             ? wp_strip_all_tags($result['message'])
             : 'Resultado desconocido.';
-        error_log('[SEO Marketing] Regeneración automática de sitemaps: ' . $message);
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Marketing] Regeneración automática de sitemaps: ' . $message);
+        }
     }
 }
 add_action('seo_marketing_regenerate_sitemaps_event', 'seo_marketing_regenerate_sitemaps_silent');
