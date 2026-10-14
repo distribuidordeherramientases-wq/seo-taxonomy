@@ -2404,7 +2404,7 @@ function seo_marketing_campaigns_render_notice()
         return;
     }
 
-    $message = sanitize_text_field(wp_unslash(rawurldecode((string) $_GET['campaign_notice'])));
+    $message = sanitize_text_field(rawurldecode((string) wp_unslash($_GET['campaign_notice'])));
     $type = isset($_GET['campaign_notice_type']) ? sanitize_key(wp_unslash($_GET['campaign_notice_type'])) : 'success';
     if (!in_array($type, array('success', 'warning', 'error', 'info'), true)) {
         $type = 'info';
