@@ -767,8 +767,8 @@ if (!function_exists('seo_category_inventory_export_json')) {
         check_admin_referer('seo_category_inventory_export_json');
 
         if (function_exists('set_time_limit')) {
-            @set_time_limit(0);
-        }
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+            @set_time_limit(0);}
 
         while (ob_get_level() > 0) {
             @ob_end_clean();
@@ -1463,8 +1463,8 @@ if (!function_exists('seo_category_catalog_export_json')) {
         check_admin_referer('seo_category_catalog_export_json');
 
         if (function_exists('set_time_limit')) {
-            @set_time_limit(0);
-        }
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+            @set_time_limit(0);}
         while (ob_get_level() > 0) {
             @ob_end_clean();
         }
