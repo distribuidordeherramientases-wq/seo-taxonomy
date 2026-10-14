@@ -231,6 +231,7 @@ if (!function_exists('seo_wc_process_control_save')) {
         check_admin_referer('seo_wc_process_control_save');
 
         $previous = seo_wc_process_control_settings();
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Structured controls are normalized field by field by seo_wc_process_control_sanitize().
         $raw = isset($_POST['wc_control']) && is_array($_POST['wc_control']) ? wp_unslash($_POST['wc_control']) : array();
         $settings = seo_wc_process_control_sanitize($raw);
         update_option(SEO_WC_PROCESS_CONTROL_OPTION, $settings, false);
