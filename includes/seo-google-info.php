@@ -1426,7 +1426,7 @@ function seo_google_sync_day_handler() {
         @set_time_limit(120);
     }
 
-    $run_id = isset($_POST['run_id']) ? absint($_POST['run_id']) : 0;
+    $run_id = isset($_POST['run_id']) ? absint(wp_unslash($_POST['run_id'])) : 0;
 
     if (!$run_id) {
         seo_google_ajax_error(array('message' => 'Falta el identificador de la sincronización.'), 400);
