@@ -357,12 +357,27 @@ function seo_core_wporg_static_findings() {
             seo_core_wporg_add_hit($groups['direct_access'], 'missing_abspath_guard', $relative, 1, 'No se detecta guardia ABSPATH al inicio del archivo.');
         }
 
+        $phpcs_sql_disabled = false;
+
         foreach ($lines as $index => $line) {
             $line_no = $index + 1;
             $trimmed = trim((string) $line);
             $previous_line = $index > 0 ? (string) $lines[$index - 1] : '';
+
+            if (
+                stripos($line, 'phpcs:disable') !== false
+                && (
+                    stripos($line, 'WordPress.DB.PreparedSQL.NotPrepared') !== false
+                    || stripos($line, 'PluginCheck.Security.DirectDB.UnescapedDBParameter') !== false
+                    || trim(str_ireplace(array('//', '#', '/*', '*/', '*'), '', $line)) === 'phpcs:disable'
+                )
+            ) {
+                $phpcs_sql_disabled = true;
+            }
+
             $phpcs_ignored = stripos($line, 'phpcs:ignore') !== false
                 || stripos($previous_line, 'phpcs:ignore') !== false;
+            $phpcs_sql_ignored = $phpcs_ignored || $phpcs_sql_disabled;
 
             if ($trimmed === '') {
                 continue;
@@ -460,7 +475,7 @@ function seo_core_wporg_static_findings() {
 
             
             // Familias que tambien aparecen en WordPress Plugin Check.
-            if (preg_match('/\$wpdb->(?:query|get_results|get_var|get_col|get_row)\s*\(/i', $line)) {
+            if (!$phpcs_sql_ignored && preg_match('/\$wpdb->(?:query|get_results|get_var|get_col|get_row)\s*\(/i', $line)) {
                 $sql_window = implode("\n", array_slice($lines, max(0, $index - 8), 24));
                 $has_prepare = stripos($sql_window, '->prepare(') !== false || stripos($sql_window, 'prepare(') !== false;
                 $looks_static = preg_match(
@@ -480,7 +495,8 @@ function seo_core_wporg_static_findings() {
             }
 
             if (
-                preg_match('/(?:\$wpdb->(?:query|get_results|get_var|get_col|get_row)|\$wpdb->prepare)\s*\(/i', $line)
+                !$phpcs_sql_ignored
+                && preg_match('/(?:\$wpdb->(?:query|get_results|get_var|get_col|get_row)|\$wpdb->prepare)\s*\(/i', $line)
                 && preg_match('/\.\s*\$[A-Za-z_]/i', $line)
             ) {
                 seo_core_wporg_add_hit($groups['db_parameters'], 'sql_dynamic_parameter', $relative, $line_no, 'Se detecta concatenacion de variable en una expresion SQL; revisar preparacion/identificadores.');
@@ -588,7 +604,18 @@ function seo_core_wporg_static_findings() {
                 }
             }
 
-if (preg_match_all('/https?:\/\/([a-z0-9.-]+)/i', $line, $urls)) {
+            if (
+                stripos($line, 'phpcs:enable') !== false
+                && (
+                    stripos($line, 'WordPress.DB.PreparedSQL.NotPrepared') !== false
+                    || stripos($line, 'PluginCheck.Security.DirectDB.UnescapedDBParameter') !== false
+                    || trim(str_ireplace(array('//', '#', '/*', '*/', '*'), '', $line)) === 'phpcs:enable'
+                )
+            ) {
+                $phpcs_sql_disabled = false;
+            }
+
+            if (preg_match_all('/https?:\/\/([a-z0-9.-]+)/i', $line, $urls)) {
                 foreach ((array) $urls[1] as $host) {
                     $host = strtolower((string) $host);
                     if (
