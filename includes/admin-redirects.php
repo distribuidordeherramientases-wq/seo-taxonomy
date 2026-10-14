@@ -1004,8 +1004,12 @@ function seo_menu_manager_redirects_page() {
             check_admin_referer('seo_redirects_import_nonce');
 
             $preserve_activity = !empty($_POST['preserve_activity']);
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated by seo_redirects_admin_import_json_file() before reading the temporary file.
+            $redirects_file = isset($_FILES['redirects_json']) && is_array($_FILES['redirects_json'])
+                ? $_FILES['redirects_json']
+                : array();
             $import_result = seo_redirects_admin_import_json_file(
-                $_FILES['redirects_json'] ?? array(),
+                $redirects_file,
                 $table_redirects,
                 $wpdb,
                 $preserve_activity
