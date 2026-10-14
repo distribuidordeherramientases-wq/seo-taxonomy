@@ -2669,7 +2669,7 @@ function seo_export_products_csv() {
     $relations_table = $wpdb->prefix . 'seo_relations';
     $allowed_statuses = [ 'publish', 'draft', 'pending', 'private' ];
     $selected_statuses = seo_ie_sanitize_text_array(
-        $_POST['export_statuses'] ?? $_POST['seo_export_product_statuses'] ?? []
+        wp_unslash( $_POST['export_statuses'] ?? $_POST['seo_export_product_statuses'] ?? [] )
     );
     $selected_statuses = array_values( array_intersect( $selected_statuses, $allowed_statuses ) );
 
@@ -2681,7 +2681,7 @@ function seo_export_products_csv() {
     $selected_primary   = absint( $_POST['export_hub_primary'] ?? 0 );
     $selected_secondary = absint( $_POST['export_hub_secondary'] ?? 0 );
     $selected_categories = seo_ie_sanitize_absint_array(
-        $_POST['export_categories'] ?? $_POST['seo_export_product_categories'] ?? []
+        wp_unslash( $_POST['export_categories'] ?? $_POST['seo_export_product_categories'] ?? [] )
     );
 
     $relation_rows = $wpdb->get_results(
@@ -3141,7 +3141,7 @@ function seo_export_products_csv() {
  */
 function seo_ie_product_import_is_ajax() {
     return wp_doing_ajax()
-        && 'seo_ie_product_import' === sanitize_key( $_REQUEST['action'] ?? '' );
+        && 'seo_ie_product_import' === sanitize_key( wp_unslash( $_REQUEST['action'] ?? '' ) );
 }
 
 /**
@@ -4711,6 +4711,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             wp_die( esc_html( $message ) );
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated by seo_taxonomy_store_uploaded_file().
         $products_file = isset( $_FILES['products_csv'] ) && is_array( $_FILES['products_csv'] )
             ? $_FILES['products_csv']
             : array();
@@ -4814,7 +4815,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
 
         $state = [
             'path'     => $path,
-            'filename' => sanitize_file_name( $_FILES['products_csv']['name'] ),
+            'filename' => sanitize_file_name( (string) ( $products_file['name'] ?? 'products.csv' ) ),
             'header'   => $header,
             'offset'   => ftell( $handle ),
             'line'     => 1,
@@ -4828,7 +4829,7 @@ function seo_import_products_csv( $background_user_id = 0, $background_token = '
             'transactions' => [],
             'log'          => [
                 'operacion'    => $options['dry_run'] ? 'Simulación de importación de productos V2' : 'Importación de productos V2',
-                'archivo'      => sanitize_file_name( $_FILES['products_csv']['name'] ),
+                'archivo'      => sanitize_file_name( (string) ( $products_file['name'] ?? 'products.csv' ) ),
                 'procesados'   => 0,
                 'correctos'    => 0,
                 'creados'      => 0,
@@ -10827,6 +10828,7 @@ function seo_ie_sanitize_absint_array( $value ) {
  */
 function seo_ie_render_product_export_filters() {
 
+    // phpcs:disable WordPress.Security.NonceVerification.Missing -- Solo se repinta el estado del formulario; la exportación real valida nonce en su handler.
     global $wpdb;
 
     $relations_table = $wpdb->prefix . 'seo_relations';
@@ -10838,23 +10840,23 @@ function seo_ie_render_product_export_filters() {
      * method="post".
      */
     $selected_cluster = isset( $_POST['export_cluster'] )
-        ? absint( $_POST['export_cluster'] )
+        ? absint( wp_unslash( $_POST['export_cluster'] ) )
         : 0;
 
     $selected_primary = isset( $_POST['export_hub_primary'] )
-        ? absint( $_POST['export_hub_primary'] )
+        ? absint( wp_unslash( $_POST['export_hub_primary'] ) )
         : 0;
 
     $selected_secondary = isset( $_POST['export_hub_secondary'] )
-        ? absint( $_POST['export_hub_secondary'] )
+        ? absint( wp_unslash( $_POST['export_hub_secondary'] ) )
         : 0;
 
     $selected_categories = isset( $_POST['export_categories'] )
-        ? array_map( 'absint', (array) $_POST['export_categories'] )
+        ? array_map( 'absint', (array) wp_unslash( $_POST['export_categories'] ) )
         : [];
 
     $selected_statuses = isset( $_POST['export_statuses'] )
-        ? array_map( 'sanitize_key', (array) $_POST['export_statuses'] )
+        ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['export_statuses'] ) )
         : [];
 
     /*
@@ -11364,7 +11366,8 @@ function seo_import_export_page() {
     }
 
     $allowed_tabs = [ 'wordpress', 'import-batch', 'clonador', 'catalogo-semantico', 'inventarios-comerciales', 'importar-proveedor', 'importar-amazon', 'conexiones-proveedores', 'catalogo-proveedores', 'sincronizacion-proveedores' ];
-    $tab = sanitize_key( $_GET['seo_ie_tab'] ?? 'wordpress' );
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Pestaña de navegación GET de solo lectura.
+    $tab = sanitize_key( wp_unslash( $_GET['seo_ie_tab'] ?? 'wordpress' ) );
     if ( ! in_array( $tab, $allowed_tabs, true ) ) {
         $tab = 'wordpress';
     }
