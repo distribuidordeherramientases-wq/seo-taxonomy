@@ -970,8 +970,6 @@ function seo_process_reasignacion() {
         $rel_id     = isset($_POST['rel_id']) ? absint(wp_unslash($_POST['rel_id'])) : 0;
         $new_hub_id = isset($_POST['new_hub_id']) ? absint(wp_unslash($_POST['new_hub_id'])) : 0;
 
-        error_log("DEBUG: Rel ID: $rel_id, Nuevo Hub: $new_hub_id");
-
         if ($rel_id > 0 && $new_hub_id > 0) {
             // Ejecución directa sin complicaciones
             $result = $wpdb->update(
@@ -982,9 +980,16 @@ function seo_process_reasignacion() {
                 array('%d')
             );
 
-            error_log("RESULTADO UPDATE: " . ($result === false ? 'Error DB' : "$result filas afectadas"));
-        } else {
-            error_log("DEBUG: Datos inválidos. RelID: $rel_id, HubID: $new_hub_id");
+            if (false === $result && function_exists('seo_system_private_log')) {
+                seo_system_private_log(
+                    'error',
+                    'No se pudo reasignar la categoría a un nuevo hub.',
+                    array(
+                        'relation_id' => $rel_id,
+                        'hub_id'      => $new_hub_id,
+                    )
+                );
+            }
         }
         
         // Forzamos redirección para limpiar
@@ -1025,8 +1030,6 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
     $nodes_table = $wpdb->prefix . 'seo_nodes';
     $rel_table   = $wpdb->prefix . 'seo_relations';
 
-    error_log("========== SEO DELETE EXECUTION ==========");
-    error_log("TARGET ID: " . $id);
 
     /**********************
      1. NODES
@@ -1039,8 +1042,6 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql1 es el resultado directo de $wpdb->prepare(); los identificadores proceden de $wpdb->prefix.
     $res1 = $wpdb->query($sql1);
 
-    error_log("SQL1: $sql1");
-    error_log("ROWS DELETED NODES: " . $res1);
 
     /**********************
      2. RELATIONS SOURCE
@@ -1053,8 +1054,6 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql2 es el resultado directo de $wpdb->prepare(); los identificadores proceden de $wpdb->prefix.
     $res2 = $wpdb->query($sql2);
 
-    error_log("SQL2: $sql2");
-    error_log("ROWS DELETED SOURCE: " . $res2);
 
     /**********************
      3. RELATIONS TARGET
@@ -1067,8 +1066,6 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql3 es el resultado directo de $wpdb->prepare(); los identificadores proceden de $wpdb->prefix.
     $res3 = $wpdb->query($sql3);
 
-    error_log("SQL3: $sql3");
-    error_log("ROWS DELETED TARGET: " . $res3);
 
     /**********************
      4. FORCE CLEANUP
@@ -1082,10 +1079,7 @@ if ($seo_core_delete_action === 'delete' && current_user_can('manage_options')) 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql4 es el resultado directo de $wpdb->prepare(); los identificadores proceden de $wpdb->prefix.
     $res4 = $wpdb->query($sql4);
 
-    error_log("SQL4: $sql4");
-    error_log("ROWS DELETED FORCE: " . $res4);
 
-    error_log("========== DELETE END ==========");
 
     return;
 }
