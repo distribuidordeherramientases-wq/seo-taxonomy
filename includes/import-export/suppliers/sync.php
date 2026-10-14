@@ -971,8 +971,8 @@ function seo_supplier_sync_handle_bulk_action() {
     $requested_external = ! empty( $_POST['no_importar_imagenes'] );
 
     if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( 0 );
-    }
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit( 0 );}
 
     $processed = 0;
     $errors    = 0;
