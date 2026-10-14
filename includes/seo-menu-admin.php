@@ -1059,224 +1059,17 @@ function seo_menu_render_wordpress_menu_editor($menu_id) {
 
     ?>
 
-    <style>
-        .seo-menu-editor {
-            display:grid;
-            grid-template-columns:minmax(260px, 330px) minmax(420px, 720px);
-            gap:18px;
-            align-items:start;
-            max-width:1080px;
-            margin:22px 0 26px;
-        }
-
-        .seo-menu-editor h2 {
-            margin-top:0;
-        }
-
-        .seo-menu-editor__intro {
-            grid-column:1 / -1;
-            margin:0;
-            color:#50575e;
-        }
-
-        .seo-menu-metabox {
-            margin:0 0 10px;
-            border:1px solid #c3c4c7;
-            background:#fff;
-            box-shadow:0 1px 1px rgba(0,0,0,.04);
-        }
-
-        .seo-menu-metabox__title {
-            display:flex;
-            width:100%;
-            align-items:center;
-            justify-content:space-between;
-            gap:10px;
-            padding:11px 12px;
-            border:0;
-            background:#fff;
-            color:#1d2327;
-            font-size:13px;
-            font-weight:600;
-            text-align:left;
-            cursor:pointer;
-        }
-
-        .seo-menu-metabox__title:hover {
-            background:#f6f7f7;
-        }
-
-        .seo-menu-metabox__title .dashicons {
-            transition:transform .15s ease;
-        }
-
-        .seo-menu-metabox.is-open .seo-menu-metabox__title .dashicons {
-            transform:rotate(180deg);
-        }
-
-        .seo-menu-metabox__content {
-            display:none;
-            padding:10px 12px 12px;
-            border-top:1px solid #dcdcde;
-        }
-
-        .seo-menu-metabox.is-open .seo-menu-metabox__content {
-            display:block;
-        }
-
-        .seo-menu-tabs {
-            display:flex;
-            gap:12px;
-            margin:0 0 8px;
-            padding:0;
-            border-bottom:1px solid #dcdcde;
-        }
-
-        .seo-menu-tabs button {
-            margin:0 0 -1px;
-            padding:6px 2px 7px;
-            border:0;
-            border-bottom:2px solid transparent;
-            background:transparent;
-            color:#2271b1;
-            cursor:pointer;
-            font-size:12px;
-        }
-
-        .seo-menu-tabs button.is-active {
-            border-bottom-color:#2271b1;
-            color:#1d2327;
-            font-weight:600;
-        }
-
-        .seo-menu-tab-panel {
-            display:none;
-        }
-
-        .seo-menu-tab-panel.is-active {
-            display:block;
-        }
-
-        .seo-menu-checklist {
-            max-height:210px;
-            overflow:auto;
-            margin:0;
-            padding:7px 8px;
-            border:1px solid #dcdcde;
-            background:#fff;
-        }
-
-        .seo-menu-checklist li {
-            margin:0 0 7px;
-        }
-
-        .seo-menu-checklist li:last-child {
-            margin-bottom:0;
-        }
-
-        .seo-menu-live-search {
-            width:100%;
-            margin:0 0 8px;
-        }
-
-        .seo-menu-metabox__actions {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:10px;
-            margin-top:10px;
-        }
-
-        .seo-menu-custom-field {
-            margin:0 0 12px;
-        }
-
-        .seo-menu-custom-field label {
-            display:block;
-            margin:0 0 4px;
-        }
-
-        .seo-menu-custom-field input {
-            width:100%;
-        }
-
-        .seo-menu-structure {
-            padding:12px;
-            border:1px solid #c3c4c7;
-            background:#fff;
-        }
-
-        .seo-menu-generated-summary {
-            margin:0 0 12px;
-            padding:12px;
-            border-left:4px solid #2271b1;
-            background:#f6f7f7;
-        }
-
-        .seo-menu-generated-summary p {
-            margin:5px 0 0;
-            color:#50575e;
-        }
-
-        .seo-menu-manual-list {
-            margin:0;
-        }
-
-        .seo-menu-manual-item {
-            margin:0 0 10px;
-        }
-
-        .seo-menu-manual-item__bar {
-            display:flex;
-            width:100%;
-            align-items:center;
-            justify-content:space-between;
-            gap:12px;
-            padding:10px 12px;
-            border:1px solid #c3c4c7;
-            background:#f6f7f7;
-            text-align:left;
-            cursor:pointer;
-        }
-
-        .seo-menu-manual-item__title {
-            font-weight:600;
-            color:#1d2327;
-        }
-
-        .seo-menu-manual-item__type {
-            margin-left:auto;
-            color:#646970;
-            font-size:12px;
-            white-space:nowrap;
-        }
-
-        .seo-menu-manual-item__settings {
-            display:none;
-            padding:12px;
-            border:1px solid #c3c4c7;
-            border-top:0;
-            background:#fff;
-        }
-
-        .seo-menu-manual-item.is-open .seo-menu-manual-item__settings {
-            display:block;
-        }
-
-        .seo-menu-manual-item__settings p {
-            margin:0 0 9px;
-        }
-
-        .seo-menu-native-link {
-            margin:12px 0 0;
-        }
-
-        @media (max-width: 900px) {
-            .seo-menu-editor {
-                grid-template-columns:1fr;
-            }
-        }
-    </style>
+    <?php
+wp_enqueue_style(
+    'taxocommerce-menu-admin',
+    SEO_SYSTEM_URL . 'includes/assets/seo-menu-admin.css',
+    array(),
+    SEO_SYSTEM_VERSION
+);
+if (did_action('admin_print_styles')) {
+    wp_print_styles('taxocommerce-menu-admin');
+}
+?>
 
     <div class="seo-menu-editor">
 
@@ -1426,75 +1219,18 @@ function seo_menu_render_wordpress_menu_editor($menu_id) {
         </div>
     </div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.seo-menu-metabox__title').forEach(function (button) {
-            button.addEventListener('click', function () {
-                var box = button.closest('.seo-menu-metabox');
-                var open = box.classList.toggle('is-open');
-                button.setAttribute('aria-expanded', open ? 'true' : 'false');
-            });
-        });
-
-        document.querySelectorAll('.seo-menu-metabox').forEach(function (box) {
-            box.querySelectorAll('.seo-menu-tabs button').forEach(function (tabButton) {
-                tabButton.addEventListener('click', function () {
-                    var tab = tabButton.getAttribute('data-tab');
-
-                    box.querySelectorAll('.seo-menu-tabs button').forEach(function (button) {
-                        button.classList.toggle('is-active', button === tabButton);
-                    });
-
-                    box.querySelectorAll('.seo-menu-tab-panel').forEach(function (panel) {
-                        panel.classList.toggle(
-                            'is-active',
-                            panel.getAttribute('data-panel') === tab
-                        );
-                    });
-                });
-            });
-
-            var search = box.querySelector('.seo-menu-live-search');
-
-            if (search) {
-                search.addEventListener('input', function () {
-                    var query = search.value.toLowerCase().trim();
-
-                    box.querySelectorAll('.seo-menu-search-list li').forEach(function (row) {
-                        var label = (row.getAttribute('data-label') || '').toLowerCase();
-                        row.style.display = label.indexOf(query) !== -1 ? '' : 'none';
-                    });
-                });
-            }
-
-            var selectAll = box.querySelector('.seo-menu-select-all');
-
-            if (selectAll) {
-                selectAll.addEventListener('change', function () {
-                    var activePanel = box.querySelector('.seo-menu-tab-panel.is-active');
-
-                    if (!activePanel) {
-                        return;
-                    }
-
-                    activePanel.querySelectorAll('input[type="checkbox"][name="seo_object_ids[]"]').forEach(function (checkbox) {
-                        if (checkbox.closest('li').style.display !== 'none') {
-                            checkbox.checked = selectAll.checked;
-                        }
-                    });
-                });
-            }
-        });
-
-        document.querySelectorAll('.seo-menu-manual-item__bar').forEach(function (button) {
-            button.addEventListener('click', function () {
-                var item = button.closest('.seo-menu-manual-item');
-                var open = item.classList.toggle('is-open');
-                button.setAttribute('aria-expanded', open ? 'true' : 'false');
-            });
-        });
-    });
-    </script>
+    <?php
+wp_enqueue_script(
+    'taxocommerce-menu-admin',
+    SEO_SYSTEM_URL . 'includes/assets/seo-menu-admin.js',
+    array(),
+    SEO_SYSTEM_VERSION,
+    true
+);
+if (did_action('admin_print_footer_scripts')) {
+    wp_print_scripts('taxocommerce-menu-admin');
+}
+?>
 
     <?php
 }
@@ -2142,53 +1878,7 @@ function seo_menu_render_solutions_index() {
 
     </section>
 
-    <style>
-        .seo-solutions-index {
-            max-width:1200px;
-            margin:0 auto;
-            padding:32px 20px 56px;
-        }
-
-        .seo-solutions-index__header {
-            margin-bottom:28px;
-        }
-
-        .seo-solutions-index__header h1 {
-            margin-bottom:10px;
-        }
-
-        .seo-solutions-index__grid {
-            display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-            gap:22px;
-        }
-
-        .seo-solutions-card {
-            padding:22px;
-            border:1px solid #e5e5e5;
-            border-radius:8px;
-            background:#fff;
-        }
-
-        .seo-solutions-card__title {
-            font-size:1.2rem;
-            line-height:1.3;
-            margin:0 0 10px;
-        }
-
-        .seo-solutions-card__title a {
-            text-decoration:none;
-        }
-
-        .seo-solutions-card__excerpt {
-            margin:0 0 16px;
-        }
-
-        .seo-solutions-card__link {
-            font-weight:600;
-            text-decoration:none;
-        }
-    </style>
+    
 
     <?php
 
