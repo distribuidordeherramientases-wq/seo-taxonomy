@@ -1073,7 +1073,7 @@ if (!function_exists('seo_category_reports_render_category')) {
         $force = false;
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Refresh is explicitly protected by the nonce verified inside this block.
-        if (isset($_GET['refresh']) && '1' === (string) wp_unslash($_GET['refresh'])) {
+        if (isset($_GET['refresh']) && 1 === absint(wp_unslash($_GET['refresh']))) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce value itself.
             $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
             $force = wp_verify_nonce($nonce, 'seo_category_report_refresh_' . $term_id);
@@ -1202,7 +1202,7 @@ if (!function_exists('seo_category_reports_render_selector')) {
 
         $force_catalog = false;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Refresh is explicitly protected by the nonce verified inside this block.
-        if (isset($_GET['refresh_catalog']) && '1' === (string) wp_unslash($_GET['refresh_catalog'])) {
+        if (isset($_GET['refresh_catalog']) && 1 === absint(wp_unslash($_GET['refresh_catalog']))) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce value itself.
             $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
             $force_catalog = wp_verify_nonce($nonce, 'seo_category_reports_refresh_catalog_' . $days);
