@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  */
 
 if (!defined('SEO_CORE_WPORG_VALIDATION_VERSION')) {
-    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.3.0');
+    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.4.0');
 }
 
 function seo_core_wporg_filesystem() {
@@ -38,6 +38,18 @@ function seo_core_wporg_relative_path($path, $root = '') {
     $root = $root !== '' ? trailingslashit(wp_normalize_path($root)) : seo_core_wporg_scan_root();
     $path = wp_normalize_path((string) $path);
     return strpos($path, $root) === 0 ? ltrim(substr($path, strlen($root)), '/') : $path;
+}
+
+/**
+ * Indica si el archivo pertenece a una dependencia de terceros.
+ *
+ * Las librerías empaquetadas (Composer/vendor) no están obligadas a seguir
+ * los patrones específicos de WordPress para ABSPATH, WP_Filesystem, HTTP API,
+ * enqueue o i18n. Se validan como dependencia, pero no como código propio.
+ */
+function seo_core_wporg_is_third_party_file($relative) {
+    $relative = '/' . ltrim(wp_normalize_path((string) $relative), '/');
+    return strpos($relative, '/vendor/') !== false;
 }
 
 function seo_core_wporg_all_files() {
@@ -324,6 +336,15 @@ function seo_core_wporg_static_findings() {
         }
 
         $lines = seo_core_wporg_file_lines($file['path']);
+        $third_party = seo_core_wporg_is_third_party_file($relative);
+
+        // No aplicar WordPress Coding Standards al código vendor de terceros.
+        // El paquete se sigue inventariando y validando, pero estos hallazgos
+        // deben representar únicamente código mantenido por TaxoCommerce SEO.
+        if ($third_party) {
+            continue;
+        }
+
         $first_chunk = implode("\n", array_slice($lines, 0, 60));
 
         if (
@@ -385,7 +406,7 @@ function seo_core_wporg_static_findings() {
             }
             if (preg_match('/add_shortcode\s*\(\s*["\']([^"\']+)["\']/i', $line, $match)) {
                 $tag = strtolower((string) $match[1]);
-                if (!preg_match('/^(?:seo_|seota_|dht_)/', $tag)) {
+                if (!preg_match('/^(?:taxocommerce_|seo_|seota_|dht_)/', $tag)) {
                     seo_core_wporg_add_hit($groups['prefixes'], 'unprefixed_shortcode', $relative, $line_no, 'Shortcode sin prefijo distintivo: ' . $tag);
                 }
             }
@@ -400,6 +421,8 @@ function seo_core_wporg_static_findings() {
             }
             if (
                 preg_match('/\b(?:__|_e|esc_html__|esc_html_e|esc_attr__|esc_attr_e)\s*\([^,;]+\)\s*;?/', $line)
+                && strpos($line, "'taxocommerce-seo'") === false
+                && strpos($line, '"taxocommerce-seo"') === false
                 && strpos($line, "'seo-taxonomy'") === false
                 && strpos($line, '"seo-taxonomy"') === false
             ) {
@@ -449,8 +472,8 @@ function seo_core_wporg_static_findings() {
                 preg_match('/\b(?:__|_e|_n|_x|esc_html__|esc_attr__|esc_html_e|esc_attr_e)\s*\(/i', $line)
                 && preg_match('/%[0-9$+\-.\']*[sdif]/i', $line)
             ) {
-                $previous = implode("\n", array_slice($lines, max(0, $index - 3), min(3, $index)));
-                if (stripos($previous, 'translators:') === false) {
+                $translator_context = implode("\n", array_slice($lines, max(0, $index - 3), min(4, $index + 1)));
+                if (stripos($translator_context, 'translators:') === false) {
                     seo_core_wporg_add_hit($groups['translator_comments'], 'missing_translators_comment', $relative, $line_no, 'Placeholder traducible sin comentario translators: detectable.');
                 }
             }
