@@ -2042,7 +2042,7 @@ function seo_ie_batch_file_action_url( $operation, $bucket, $filename ) {
  * @return void
  */
 function seo_ie_batch_handle_file_download() {
-    $operation = sanitize_key( $_GET['seo_ie_batch_file_action'] ?? '' );
+    $operation = isset( $_GET['seo_ie_batch_file_action'] ) ? sanitize_key( wp_unslash( $_GET['seo_ie_batch_file_action'] ) ) : '';
 
     if ( ! in_array( $operation, [ 'download', 'download_log' ], true ) ) {
         return;
@@ -2052,7 +2052,7 @@ function seo_ie_batch_handle_file_download() {
         wp_die( esc_html__( 'No tienes permisos para descargar archivos de la cola.', 'taxocommerce-seo' ) );
     }
 
-    $bucket   = sanitize_key( $_GET['seo_ie_batch_bucket'] ?? '' );
+    $bucket   = isset( $_GET['seo_ie_batch_bucket'] ) ? sanitize_key( wp_unslash( $_GET['seo_ie_batch_bucket'] ) ) : '';
     $filename = sanitize_file_name( wp_unslash( $_GET['seo_ie_batch_file'] ?? '' ) );
     $action   = 'seo_ie_batch_file_' . $operation . '_' . $bucket . '_' . $filename;
 
@@ -2513,7 +2513,7 @@ function seo_ie_batch_admin_action() {
             }
         }
     } elseif ( 'delete_file' === $action ) {
-        $bucket   = sanitize_key( $_POST['seo_ie_batch_bucket'] ?? '' );
+        $bucket   = isset( $_POST['seo_ie_batch_bucket'] ) ? sanitize_key( wp_unslash( $_POST['seo_ie_batch_bucket'] ) ) : '';
         $filename = sanitize_file_name( wp_unslash( $_POST['seo_ie_batch_file'] ?? '' ) );
         $deleted  = seo_ie_batch_delete_managed_file( $bucket, $filename );
 
