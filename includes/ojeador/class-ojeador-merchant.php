@@ -230,7 +230,8 @@ final class SEO_Ojeador_Merchant {
     public static function handle_baseline() {
         if (!current_user_can('manage_options'))wp_die('No autorizado.');
         check_admin_referer('seo_ojeador_merchant_baseline');
-        $file=(array)($_FILES['baseline_file']??array());
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated for upload status, size and JSON schema before use.
+        $file=isset($_FILES['baseline_file'])&&is_array($_FILES['baseline_file'])?(array)$_FILES['baseline_file']:array();
         $tmp=(string)($file['tmp_name']??'');
         if (($file['error']??-1)!==UPLOAD_ERR_OK||!is_uploaded_file($tmp)
             ||absint($file['size']??0)>2*1024*1024)self::redirect(array('merchant_error'=>'Archivo inválido o superior a 2 MB.'));
