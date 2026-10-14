@@ -867,27 +867,24 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     echo '</div>';
     echo '</form>';
 
-    /* JavaScript Inyectado */
+    /* JavaScript de filtro cargado mediante la API de scripts de WordPress. */
     static $js_inyectado = false;
     if (!$js_inyectado) {
-        ?>
-        <script>
-        function filtrarCategoriasHubSecundario(input, hubId) {
-            var filtro = input.value.toLowerCase();
-            var contenedor = document.getElementById('container-disponibles-' + hubId);
-            var items = contenedor.getElementsByClassName('cat-item');
-
-            for (var i = 0; i < items.length; i++) {
-                var textoItem = items[i].textContent || items[i].innerText;
-                if (textoItem.toLowerCase().indexOf(filtro) > -1) {
-                    items[i].style.display = "block";
-                } else {
-                    items[i].style.display = "none";
-                }
-            }
+        $handle = 'taxocommerce-category-hub-filter';
+        if (!wp_script_is($handle, 'registered')) {
+            wp_register_script(
+                $handle,
+                false,
+                array(),
+                defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+                true
+            );
         }
-        </script>
-        <?php
+        wp_enqueue_script($handle);
+        wp_add_inline_script(
+            $handle,
+            'window.filtrarCategoriasHubSecundario=function(input,hubId){var filtro=String(input.value||"").toLowerCase();var contenedor=document.getElementById("container-disponibles-"+hubId);if(!contenedor){return;}var items=contenedor.getElementsByClassName("cat-item");for(var i=0;i<items.length;i++){var textoItem=items[i].textContent||items[i].innerText||"";items[i].style.display=textoItem.toLowerCase().indexOf(filtro)>-1?"block":"none";}};'
+        );
         $js_inyectado = true;
     }
 }
