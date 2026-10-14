@@ -454,7 +454,7 @@ final class SEO_Dependiente_Admin {
 
         $result = SEO_Dependiente_Plugin::start_reindex();
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()), 500);
+            wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 500);
         }
         wp_send_json_success($result);
     }
@@ -474,7 +474,7 @@ final class SEO_Dependiente_Admin {
         check_ajax_referer('seo_dependiente_admin', 'nonce');
         $result = SEO_Dependiente_Plugin::stop_reindex(true, 'manual_clear');
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()), 409);
+            wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 409);
         }
         delete_option('seo_dependiente_last_full_index');
         wp_send_json_success(array(
@@ -499,7 +499,7 @@ final class SEO_Dependiente_Admin {
 
         $result = SEO_Dependiente_Reset::reset();
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()), 500);
+            wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 500);
         }
         wp_send_json_success($result);
     }
