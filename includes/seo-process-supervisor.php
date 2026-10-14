@@ -340,6 +340,7 @@ if (!function_exists('seo_process_supervisor_dispatch_valid')) {
 
 if (!function_exists('seo_process_supervisor_claim_dispatch')) {
     function seo_process_supervisor_claim_dispatch($dispatch_id, $dispatch_at, $signature, $backend) {
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         if (!seo_process_supervisor_dispatch_valid($dispatch_id, $dispatch_at, $signature)) {
             return false;
         }
@@ -1615,8 +1616,9 @@ if (!function_exists('seo_process_supervisor_run_loop')) {
 
 if (!function_exists('seo_process_supervisor_direct_http')) {
     function seo_process_supervisor_direct_http() {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- This internal endpoint authenticates requests with a signed dispatch token, timestamp, and signature instead of a WordPress nonce.
         $dispatch_id = sanitize_key(wp_unslash($_POST['dispatch_id'] ?? ''));
-        $dispatch_at = absint($_POST['dispatch_at'] ?? 0);
+        $dispatch_at = isset($_POST['dispatch_at']) ? absint(wp_unslash($_POST['dispatch_at'])) : 0;
         $signature = sanitize_text_field(wp_unslash($_POST['signature'] ?? ''));
         if (!seo_process_supervisor_dispatch_valid($dispatch_id, $dispatch_at, $signature)) {
             status_header(403);
