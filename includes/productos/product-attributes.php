@@ -1536,11 +1536,11 @@ function search_product_attributes($options = []) {
     
     //Agrega nuevos atributos
     $new_master_attribute = isset($_GET['new_master_attribute'])
-        ? sanitize_text_field($_GET['new_master_attribute'])
+        ? sanitize_text_field(wp_unslash($_GET['new_master_attribute']))
         : '';
     //Borra los valores cone se atributo para ese articulo
     $delete_master_attribute = isset($_GET['delete_master_attribute'])
-        ? sanitize_text_field($_GET['delete_master_attribute'])
+        ? sanitize_text_field(wp_unslash($_GET['delete_master_attribute']))
         : '';
     //Borra todos los valores cone se atributo
     $delete_global_attribute = isset($_GET['delete_global_attribute'])
@@ -1902,16 +1902,16 @@ if (!empty($new_master_attribute)) {
 
     <form method="GET" style="margin-bottom:30px;padding:20px;background:#f6f7f7;border:1px solid #c3c4c7;border-radius:6px;">
 
-        <input type="hidden" name="page" value="<?php echo esc_attr(sanitize_key($_GET['page'] ?? 'seo-taxonomy')); ?>">
-        <input type="hidden" name="tab" value="<?php echo esc_attr(sanitize_key($_GET['tab'] ?? 'semantic')); ?>">
+        <input type="hidden" name="page" value="<?php echo esc_attr(sanitize_key(isset($_GET['page']) ? wp_unslash($_GET['page']) : 'seo-taxonomy')); ?>">
+        <input type="hidden" name="tab" value="<?php echo esc_attr(sanitize_key(isset($_GET['tab']) ? wp_unslash($_GET['tab']) : 'semantic')); ?>">
         <?php if (!empty($_GET['semantic_tab'])) : ?>
-            <input type="hidden" name="semantic_tab" value="<?php echo esc_attr(sanitize_key($_GET['semantic_tab'])); ?>">
+            <input type="hidden" name="semantic_tab" value="<?php echo esc_attr(sanitize_key(wp_unslash($_GET['semantic_tab']))); ?>">
         <?php endif; ?>
         <?php if (!empty($_GET['domain'])) : ?>
-            <input type="hidden" name="domain" value="<?php echo esc_attr(sanitize_key($_GET['domain'])); ?>">
+            <input type="hidden" name="domain" value="<?php echo esc_attr(sanitize_key(wp_unslash($_GET['domain']))); ?>">
         <?php endif; ?>
         <?php if (!empty($_GET['attribute_section'])) : ?>
-            <input type="hidden" name="attribute_section" value="<?php echo esc_attr(sanitize_key($_GET['attribute_section'])); ?>">
+            <input type="hidden" name="attribute_section" value="<?php echo esc_attr(sanitize_key(wp_unslash($_GET['attribute_section']))); ?>">
         <?php endif; ?>
 
         <select name="cluster" onchange="this.form.submit()">
