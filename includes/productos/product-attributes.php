@@ -1548,7 +1548,7 @@ function search_product_attributes($options = []) {
         : '';
 
     $delete_global_action = isset($_GET['delete_global_action'])
-        && '1' === (string) $_GET['delete_global_action'];
+        && '1' === (string) wp_unslash($_GET['delete_global_action']);
 
     // Acciones del panel semántico. Todas las acciones destructivas nuevas
     // usan POST + nonce y terminan en operaciones rollbackable del Data Layer.
@@ -1821,8 +1821,11 @@ if (!empty($new_master_attribute)) {
         $saved_rows = 0;
         $save_errors = [];
         $save_warnings = [];
+        $posted_attrs = is_array($_POST['attrs'])
+            ? map_deep(wp_unslash($_POST['attrs']), 'sanitize_text_field')
+            : [];
 
-        foreach ($_POST['attrs'] as $product_id => $list) {
+        foreach ($posted_attrs as $product_id => $list) {
 
             $product_id = intval($product_id);
             if ($product_id < 1 || !is_array($list)) {
