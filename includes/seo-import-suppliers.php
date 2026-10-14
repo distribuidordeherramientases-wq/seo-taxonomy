@@ -42,5 +42,7 @@ foreach ( array_unique( $seo_ie_supplier_candidates ) as $seo_ie_supplier_file )
     }
 }
 
-error_log( '[TaxoCommerce SEO Import/Export] El motor de proveedores no esta disponible o no expone sus renderizadores.' );
+if (function_exists('seo_system_private_log')) {
+    seo_system_private_log('error',  '[TaxoCommerce SEO Import/Export] El motor de proveedores no esta disponible o no expone sus renderizadores.' );
+}
 unset( $seo_ie_supplier_candidates, $seo_ie_supplier_file );
