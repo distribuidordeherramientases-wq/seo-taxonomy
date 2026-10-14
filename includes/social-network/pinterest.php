@@ -686,6 +686,33 @@ function seo_social_pinterest_oauth_callback(WP_REST_Request $request)
 }
 
 /**
+ * Valida el estado OAuth antes de ejecutar el callback público.
+ *
+ * @param WP_REST_Request $request
+ * @return true|WP_Error
+ */
+function seo_social_pinterest_oauth_permission(WP_REST_Request $request)
+{
+    $state = sanitize_text_field((string) $request->get_param('state'));
+    if ('' === $state) {
+        return new WP_Error('taxocommerce_oauth_state_missing', 'Estado OAuth ausente.', array('status' => 403));
+    }
+
+    $state_key = 'seo_pi_state_' . substr(hash('sha256', $state), 0, 32);
+    $state_data = get_transient($state_key);
+    if (!is_array($state_data) || empty($state_data['user_id'])) {
+        return new WP_Error('taxocommerce_oauth_state_invalid', 'Estado OAuth inválido o caducado.', array('status' => 403));
+    }
+
+    $user = get_user_by('id', absint($state_data['user_id']));
+    if (!$user || !user_can($user, 'manage_options')) {
+        return new WP_Error('taxocommerce_oauth_user_forbidden', 'El usuario que inició OAuth ya no tiene permisos.', array('status' => 403));
+    }
+
+    return true;
+}
+
+/**
  * Registra el callback OAuth de Pinterest.
  */
 function seo_social_pinterest_register_rest_route()
@@ -696,7 +723,7 @@ function seo_social_pinterest_register_rest_route()
         array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'seo_social_pinterest_oauth_callback',
-            'permission_callback' => '__return_true',
+            'permission_callback' => 'seo_social_pinterest_oauth_permission',
         )
     );
 }
