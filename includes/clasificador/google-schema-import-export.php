@@ -210,7 +210,7 @@ if (!function_exists('seo_classifier_google_schema_admin_post_export')) {
         }
         check_admin_referer('seo_classifier_google_schema_export');
 
-        $format = sanitize_key((string)($_GET['format'] ?? 'csv'));
+        $format = isset($_GET['format']) ? sanitize_key(wp_unslash($_GET['format'])) : 'csv';
         if (!in_array($format, ['csv', 'json'], true)) {
             $format = 'csv';
         }
