@@ -5860,7 +5860,34 @@ function seo_ie_page_allowed_statuses() {
         'draft',
         'pending',
         'private',
+        'trash',
     ];
+}
+
+/**
+ * Normaliza estados de contenido recibidos por CSV.
+ *
+ * WordPress usa internamente "trash". Para facilitar la edición manual del
+ * archivo también se aceptan "papelera" y "basura", pero las exportaciones
+ * siempre escriben el valor canónico "trash".
+ *
+ * @param mixed $status Estado recibido.
+ * @return string Estado normalizado.
+ */
+function seo_ie_normalize_content_status( $status ) {
+
+    $status = sanitize_key(
+        remove_accents(
+            seo_ie_csv_to_utf8( trim( (string) $status ) )
+        )
+    );
+
+    $aliases = [
+        'papelera' => 'trash',
+        'basura'   => 'trash',
+    ];
+
+    return $aliases[ $status ] ?? $status;
 }
 
 /**
@@ -7193,7 +7220,7 @@ function seo_export_pages_csv() {
             'advertencias' => 0,
             'detalles'     => [
                 'Se exportaron contenido, jerarquía, rol SEO, relación comercial con product_cat, imagen y metadatos de página.',
-                'No se exportaron bloqueos de edición, datos de papelera ni contraseñas de acceso a páginas.',
+                'Las páginas en papelera se exportan con estado trash; no se exportan los metadatos internos de papelera (_wp_trash_meta_*), bloqueos de edición ni contraseñas de acceso.',
             ],
         ]
     );
@@ -8056,7 +8083,7 @@ function seo_import_pages_csv() {
             }
         }
 
-        $status = sanitize_key( $row['estado'] ?? '' );
+        $status = seo_ie_normalize_content_status( $row['estado'] ?? '' );
 
         if (
             '' !== $status
@@ -8089,6 +8116,101 @@ function seo_import_pages_csv() {
                 )
             );
             $status = 'draft';
+        }
+
+        $trash_requested = $import_core && 'trash' === $status;
+
+        if ( $trash_requested && $creating ) {
+            $log['omitidos']++;
+            seo_ie_add_log_warning(
+                $log,
+                sprintf(
+                    'Fila %d: estado trash/papelera solo se aplica a páginas existentes; no se creará una página nueva en papelera.',
+                    $item['line']
+                )
+            );
+            continue;
+        }
+
+        if ( $trash_requested ) {
+            if ( $dry_run ) {
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, página %d: se enviaría a la papelera (trash).',
+                        $item['line'],
+                        $page_id
+                    )
+                );
+                $log['actualizados']++;
+                $log['correctos']++;
+                continue;
+            }
+
+            if ( 'trash' === get_post_status( $page_id ) ) {
+                $trashed = get_post( $page_id );
+            } else {
+                $trashed = wp_trash_post( $page_id );
+            }
+
+            if ( ! ( $trashed instanceof WP_Post ) ) {
+                $log['errores']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, página %d: WordPress no pudo enviarla a la papelera.',
+                        $item['line'],
+                        $page_id
+                    )
+                );
+                continue;
+            }
+
+            seo_ie_add_log_detail(
+                $log,
+                sprintf(
+                    'Fila %d, página %d: enviada a la papelera (trash).',
+                    $item['line'],
+                    $page_id
+                )
+            );
+            $log['actualizados']++;
+            $log['correctos']++;
+            continue;
+        }
+
+        if (
+            ! $creating
+            && $import_core
+            && '' !== $status
+            && 'trash' !== $status
+            && 'trash' === get_post_status( $page_id )
+        ) {
+            if ( $dry_run ) {
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, página %d: se restauraría desde la papelera antes de aplicar estado %s.',
+                        $item['line'],
+                        $page_id,
+                        $status
+                    )
+                );
+            } else {
+                $untrashed = wp_untrash_post( $page_id );
+                if ( ! ( $untrashed instanceof WP_Post ) ) {
+                    $log['errores']++;
+                    seo_ie_add_log_detail(
+                        $log,
+                        sprintf(
+                            'Fila %d, página %d: WordPress no pudo restaurarla desde la papelera.',
+                            $item['line'],
+                            $page_id
+                        )
+                    );
+                    continue;
+                }
+            }
         }
 
         $author_id = $import_author_date
@@ -8528,7 +8650,7 @@ function seo_import_pages_csv() {
     } else {
         seo_ie_add_log_detail(
             $log,
-            'La importación no elimina páginas ni revisiones existentes.'
+            'El estado trash/papelera envía páginas existentes a la papelera; la importación nunca realiza borrado definitivo ni elimina revisiones.'
         );
     }
 
@@ -9016,7 +9138,7 @@ function seo_export_posts_csv() {
             'advertencias' => 0,
             'detalles'     => [
                 'Se exportaron contenido, categorías editoriales, relación comercial con product_cat, etiquetas, formato, autor, fechas, imagen y metadatos.',
-                'No se exportaron revisiones, bloqueos de edición ni datos de papelera.',
+                'Las entradas en papelera se exportan con estado trash; no se exportan los metadatos internos de papelera (_wp_trash_meta_*) ni bloqueos de edición.',
             ],
         ]
     );
@@ -9094,7 +9216,8 @@ function seo_export_posts_csv() {
 
 /**
  * Importa entradas desde el CSV generado por SEO System.
- * Puede crear, actualizar o simular. Nunca elimina entradas.
+ * Puede crear, actualizar, enviar a papelera o simular. Nunca borra
+ * definitivamente entradas mediante CSV.
  *
  * @return void|array
  */
@@ -9397,7 +9520,7 @@ function seo_import_posts_csv() {
             continue;
         }
 
-        $status = sanitize_key( $row['estado'] ?? '' );
+        $status = seo_ie_normalize_content_status( $row['estado'] ?? '' );
         if ( '' !== $status && ! in_array( $status, seo_ie_page_allowed_statuses(), true ) ) {
             seo_ie_add_log_warning( $log, sprintf( 'Fila %d: estado «%s» no válido; se conservará el actual o se usará draft.', $item['line'], $status ) );
             $status = '';
@@ -9406,6 +9529,101 @@ function seo_import_posts_csv() {
         if ( $creating && 'future' === $status && ( ! array_key_exists( 'fecha', $row ) || ! seo_ie_is_valid_page_datetime( $row['fecha'] ) ) ) {
             seo_ie_add_log_warning( $log, sprintf( 'Fila %d: una entrada future necesita fecha válida; se creará como draft.', $item['line'] ) );
             $status = 'draft';
+        }
+
+        $trash_requested = $import_core && 'trash' === $status;
+
+        if ( $trash_requested && $creating ) {
+            $log['omitidos']++;
+            seo_ie_add_log_warning(
+                $log,
+                sprintf(
+                    'Fila %d: estado trash/papelera solo se aplica a entradas existentes; no se creará una entrada nueva en papelera.',
+                    $item['line']
+                )
+            );
+            continue;
+        }
+
+        if ( $trash_requested ) {
+            if ( $dry_run ) {
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, entrada %d: se enviaría a la papelera (trash).',
+                        $item['line'],
+                        $post_id
+                    )
+                );
+                $log['actualizados']++;
+                $log['correctos']++;
+                continue;
+            }
+
+            if ( 'trash' === get_post_status( $post_id ) ) {
+                $trashed = get_post( $post_id );
+            } else {
+                $trashed = wp_trash_post( $post_id );
+            }
+
+            if ( ! ( $trashed instanceof WP_Post ) ) {
+                $log['errores']++;
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, entrada %d: WordPress no pudo enviarla a la papelera.',
+                        $item['line'],
+                        $post_id
+                    )
+                );
+                continue;
+            }
+
+            seo_ie_add_log_detail(
+                $log,
+                sprintf(
+                    'Fila %d, entrada %d: enviada a la papelera (trash).',
+                    $item['line'],
+                    $post_id
+                )
+            );
+            $log['actualizados']++;
+            $log['correctos']++;
+            continue;
+        }
+
+        if (
+            ! $creating
+            && $import_core
+            && '' !== $status
+            && 'trash' !== $status
+            && 'trash' === get_post_status( $post_id )
+        ) {
+            if ( $dry_run ) {
+                seo_ie_add_log_detail(
+                    $log,
+                    sprintf(
+                        'Fila %d, entrada %d: se restauraría desde la papelera antes de aplicar estado %s.',
+                        $item['line'],
+                        $post_id,
+                        $status
+                    )
+                );
+            } else {
+                $untrashed = wp_untrash_post( $post_id );
+                if ( ! ( $untrashed instanceof WP_Post ) ) {
+                    $log['errores']++;
+                    seo_ie_add_log_detail(
+                        $log,
+                        sprintf(
+                            'Fila %d, entrada %d: WordPress no pudo restaurarla desde la papelera.',
+                            $item['line'],
+                            $post_id
+                        )
+                    );
+                    continue;
+                }
+            }
         }
 
         $author_id = $import_author_date ? seo_ie_resolve_page_author( $row ) : 0;
@@ -9661,7 +9879,7 @@ function seo_import_posts_csv() {
     if ( $dry_run ) {
         seo_ie_add_log_detail( $log, 'Simulación completada: no se ha escrito ningún dato en WordPress.' );
     } else {
-        seo_ie_add_log_detail( $log, 'La importación no elimina entradas ni revisiones existentes.' );
+        seo_ie_add_log_detail( $log, 'El estado trash/papelera envía entradas existentes a la papelera; la importación nunca realiza borrado definitivo ni elimina revisiones.' );
     }
 
     seo_ie_store_log( $log );
@@ -11788,6 +12006,7 @@ function seo_import_export_page() {
                             <label style="display:block;margin-bottom:4px;"><input type="checkbox" name="export_page_statuses[]" value="draft" checked> Borradores</label>
                             <label style="display:block;margin-bottom:4px;"><input type="checkbox" name="export_page_statuses[]" value="pending" checked> Pendientes</label>
                             <label style="display:block;margin-bottom:4px;"><input type="checkbox" name="export_page_statuses[]" value="private" checked> Privadas</label>
+                            <label style="display:block;margin-bottom:4px;"><input type="checkbox" name="export_page_statuses[]" value="trash" checked> Papelera (trash)</label>
                         </fieldset>
                         <button type="submit" name="seo_export_pages" value="1" class="button button-primary">Exportar páginas</button>
                     </form>
@@ -11795,7 +12014,7 @@ function seo_import_export_page() {
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Importar páginas</h2>
-                    <p>Crea o actualiza el contenido en WordPress y, opcionalmente, sincroniza seo_role y la relación comercial landing → product_cat en SEO Relations. Una product_cat inexistente no detiene la importación: la página queda sin relación comercial y se registra ERROR RELACIÓN.</p>
+                    <p>Crea o actualiza el contenido en WordPress y, opcionalmente, sincroniza seo_role y la relación comercial landing → product_cat en SEO Relations. El estado <code>trash</code> envía páginas existentes a la papelera; también se aceptan <code>papelera</code> y <code>basura</code> como alias. Una product_cat inexistente no detiene la importación: la página queda sin relación comercial y se registra ERROR RELACIÓN.</p>
                     <form method="post" enctype="multipart/form-data">
                         <?php wp_nonce_field( 'seo_import_pages_csv', 'seo_import_pages_nonce' ); ?>
                         <input type="file" name="pages_csv" accept=".csv,text/csv" required>
@@ -11834,6 +12053,7 @@ function seo_import_export_page() {
                             <label style="display:block;margin-bottom:4px;"><input type="checkbox" name="export_post_statuses[]" value="draft" checked> Borradores</label>
                             <label style="display:block;margin-bottom:4px;"><input type="checkbox" name="export_post_statuses[]" value="pending" checked> Pendientes</label>
                             <label style="display:block;margin-bottom:4px;"><input type="checkbox" name="export_post_statuses[]" value="private" checked> Privadas</label>
+                            <label style="display:block;margin-bottom:4px;"><input type="checkbox" name="export_post_statuses[]" value="trash" checked> Papelera (trash)</label>
                         </fieldset>
                         <button type="submit" name="seo_export_posts" value="1" class="button button-primary">Exportar entradas</button>
                     </form>
@@ -11841,7 +12061,7 @@ function seo_import_export_page() {
 
                 <div class="card" style="max-width:none;padding:20px;">
                     <h2>Importar entradas (posts)</h2>
-                    <p>Crea o actualiza el contenido en WordPress. Las categorías editoriales siguen siendo independientes de la relación comercial post → product_cat, que se guarda en SEO Relations. Una product_cat inexistente no detiene la importación: el post queda sin relación comercial y se registra ERROR RELACIÓN.</p>
+                    <p>Crea o actualiza el contenido en WordPress. El estado <code>trash</code> envía entradas existentes a la papelera; también se aceptan <code>papelera</code> y <code>basura</code> como alias. Las categorías editoriales siguen siendo independientes de la relación comercial post → product_cat, que se guarda en SEO Relations. Una product_cat inexistente no detiene la importación: el post queda sin relación comercial y se registra ERROR RELACIÓN.</p>
                     <form method="post" enctype="multipart/form-data">
                         <?php wp_nonce_field( 'seo_import_posts_csv', 'seo_import_posts_nonce' ); ?>
                         <input type="file" name="posts_csv" accept=".csv,text/csv" required>
