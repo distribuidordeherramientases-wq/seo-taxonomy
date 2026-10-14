@@ -113,7 +113,7 @@ final class SEO_Editor_Core {
         $errors = array();
         if (mb_strlen(trim($title)) < 15) $errors[] = 'Título insuficiente.';
         if (mb_strlen($text) < 300) $errors[] = 'Contenido demasiado breve para publicación directa.';
-        if (preg_match('/borrador editorial de ingeniero|dossier interno para editora|debe revisarse, contrastarse|material de trabajo para la editora|no publicar literalmente|pendiente de completar|lorem ipsum|\[por completar\]/iu', $text)) {
+        if (preg_match('/borrador editorial de ingeniero|dossier interno para editora|debe revisarse, contrastarse|material de trabajo para la editora|importante: editar no significa limpiar este borrador|lo que sigue son fuentes y material de trabajo|no publiques consultas de catálogo|no publicar literalmente|pendiente de completar|lorem ipsum|\[por completar\]/iu', $text)) {
             $errors[] = 'Contiene instrucciones internas, material sin finalizar o marcadores de posición.';
         }
         $cats = self::category_ids($post);
@@ -174,13 +174,16 @@ final class SEO_Editor_Core {
         $section = sanitize_key((string)($row['seccion'] ?? 'guia'));
         $cats = self::validate_categories((string)($row['categoria_ids'] ?? ''));
         if (is_wp_error($cats)) return $cats;
-        if (!in_array($section, array('guia','comparativa','noticia'), true)) return new WP_Error('editor_section', 'Sección editorial no reconocida.');
+        if (!in_array($section, array('guia','comparativa','noticia','landing'), true)) return new WP_Error('editor_section', 'Sección editorial no reconocida.');
+        if ($kind === 'post' && $section === 'landing') return new WP_Error('editor_post_section', 'Los posts no utilizan la sección landing.');
+        if ($kind === 'landing' && $section !== 'landing') return new WP_Error('editor_landing_section', 'Las landings deben marcarse como sección landing.');
         if ($kind === 'post' && $section !== 'noticia' && count($cats) < 1) return new WP_Error('editor_cat_required', 'El nuevo post debe indicar product_cat.');
         if ($kind === 'landing' && count($cats) < 2) return new WP_Error('editor_landing_cats', 'La nueva landing necesita al menos dos product_cat.');
         if (!in_array($kind, array('post','landing'),true)) return new WP_Error('editor_kind', 'Tipo de contenido no válido.');
         $wp_category = array();
         if ($kind === 'post') {
             $term = get_category_by_slug($section === 'noticia' ? 'noticias' : 'guias');
+            if (!$term && $section !== 'noticia') $term = get_category_by_slug('guias-y-comparativas');
             if (!$term) return new WP_Error('editor_wp_category', 'Falta la categoría editorial WordPress requerida: ' . ($section === 'noticia' ? 'Noticias' : 'Guías') . '.');
             $wp_category = array(absint($term->term_id));
         }
@@ -208,12 +211,13 @@ final class SEO_Editor_Core {
             }
             $relations = $cats ? seo_post_editor_replace_product_cat_relations($id, $cats) : true;
             if (!is_wp_error($relations) && $section === 'comparativa') {
+                if (!term_exists('comparativas', 'post_tag')) wp_insert_term('comparativas', 'post_tag', array('slug'=>'comparativas'));
                 wp_set_post_terms($id, array('comparativas'), 'post_tag', true);
             }
         }
-        if (is_wp_error($relations)) {
+        if (is_wp_error($relations) || $relations === false) {
             wp_delete_post($id, true);
-            return $relations;
+            return is_wp_error($relations) ? $relations : new WP_Error('editor_relation_failed', 'No se pudieron enlazar las categorías.');
         }
         update_post_meta($id, '_seo_editor_external_imported', 1);
         update_post_meta($id, '_seo_editor_external_kind', $kind);
