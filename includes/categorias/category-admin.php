@@ -2397,7 +2397,7 @@ function seo_category_admin_callback($requested_term_id = 0) {
 
 
 $page_slug  = isset($_GET['page'])
-    ? sanitize_key($_GET['page'])
+    ? sanitize_key(wp_unslash($_GET['page']))
     : 'category-seo-admin';
 $active_tab = sanitize_key((string) seo_category_admin_query_arg('tab', 'categorias'));
 $requested_term_id = absint($requested_term_id);
