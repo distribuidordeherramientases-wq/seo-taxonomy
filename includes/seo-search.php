@@ -1897,7 +1897,7 @@ function seo_search_settings_page() {
     }
 
     $options = seo_search_get_options();
-    $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'general';
+    $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'general';
     $tabs = array(
         'general' => __('General', 'taxocommerce-seo'),
         'fields' => __('Campos de búsqueda', 'taxocommerce-seo'),
