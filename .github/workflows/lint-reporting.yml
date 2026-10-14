@@ -15,6 +15,8 @@ on:
       - 'includes/seo-report-contents.php'
       - 'includes/seo-reports.php'
       - 'includes/seo-landing-pages.php'
+      - 'includes/editor/**'
+      - 'includes/seo-admin.php'
       - 'includes/post-edit.php'
       - 'includes/pages-admin.php'
       - 'includes/solucionador/**'
@@ -43,6 +45,8 @@ jobs:
           php -l includes/seo-report-contents.php
           php -l includes/seo-reports.php
           php -l includes/seo-landing-pages.php
+          find includes/editor -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l includes/seo-admin.php
           php -l includes/post-edit.php
           php -l includes/pages-admin.php
           php -l includes/categorias/category-admin.php
