@@ -8133,7 +8133,18 @@ function seo_import_pages_csv() {
             $status = 'draft';
         }
 
-        $trash_requested = $import_core && 'trash' === $status;
+        if ( 'trash' === $status && ! $import_core ) {
+            seo_ie_add_log_warning(
+                $log,
+                sprintf(
+                    'Fila %d: estado trash/papelera ignorado porque el bloque de datos básicos (estado) no está seleccionado.',
+                    $item['line']
+                )
+            );
+            $status = '';
+        }
+
+        $trash_requested = 'trash' === $status;
 
         if ( $trash_requested && ! seo_ie_trash_is_available() ) {
             $log['errores']++;
@@ -9558,7 +9569,18 @@ function seo_import_posts_csv() {
             $status = 'draft';
         }
 
-        $trash_requested = $import_core && 'trash' === $status;
+        if ( 'trash' === $status && ! $import_core ) {
+            seo_ie_add_log_warning(
+                $log,
+                sprintf(
+                    'Fila %d: estado trash/papelera ignorado porque el bloque de datos básicos (estado) no está seleccionado.',
+                    $item['line']
+                )
+            );
+            $status = '';
+        }
+
+        $trash_requested = 'trash' === $status;
 
         if ( $trash_requested && ! seo_ie_trash_is_available() ) {
             $log['errores']++;
