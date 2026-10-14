@@ -75,14 +75,10 @@ final class SEO_Editor_Admin {
         if ($single_publish) { $decision='publish'; $ids=array($single_publish); }
         elseif ($single_trash) { $decision='trash'; $ids=array($single_trash); }
         elseif ($decision === 'publish_visible') {
-            $filters = self::filters_from_request($_POST);
-            $page = self::safe_page($_POST);
-            $offset = ($page - 1) * SEO_Editor_Core::PAGE_SIZE;
-            $visible = array_slice(SEO_Editor_Core::drafts($filters), $offset, SEO_Editor_Core::PAGE_SIZE);
-            $ids = array();
-            foreach ($visible as $row) {
-                if (!SEO_Editor_Core::readiness($row)) $ids[] = absint($row->ID);
-            }
+            // Solo filas realmente vistas: nunca volver a calcular una página
+            // cuyo orden haya podido cambiar desde que el usuario la revisó.
+            $ids = array_values(array_unique(array_filter(array_map('absint',
+                (array)wp_unslash($_POST['visible_ids'] ?? array())))));
             $decision = 'publish';
         }
         if (!in_array($decision,array('publish','trash'),true)) {
@@ -91,7 +87,16 @@ final class SEO_Editor_Admin {
         $ids = array_slice($ids,0,SEO_Editor_Core::PAGE_SIZE);
         if (!$ids) self::redirect(array('editor_error'=>'No hay borradores seleccionados o aptos para esta acción.'));
         $ok = 0; $fail = array();
+        $revisions = isset($_POST['revision']) && is_array($_POST['revision'])
+            ? (array)wp_unslash($_POST['revision']) : array();
         foreach ($ids as $id) {
+            $post = get_post($id);
+            $expected = isset($revisions[$id]) ? sanitize_text_field((string)$revisions[$id]) : '';
+            $current = SEO_Editor_Core::fingerprint($post);
+            if ($expected === '' || $current === '' || !hash_equals($current, $expected)) {
+                $fail[]='#'.$id.': el borrador ha cambiado; recarga Editor.';
+                continue;
+            }
             $result = SEO_Editor_Core::apply_decision($id, $decision);
             if (is_wp_error($result)) $fail[]='#'.$id.': '.$result->get_error_message();
             else $ok++;
@@ -204,7 +209,11 @@ final class SEO_Editor_Admin {
                         $preview = trim(wp_strip_all_tags(strip_shortcodes((string)$post->post_content)));
                         ?>
                         <tr>
-                            <td><input class="seo-editor-select" type="checkbox" name="selected_ids[]" value="<?php echo absint($post->ID); ?>" aria-label="Seleccionar borrador <?php echo absint($post->ID); ?>"></td>
+                            <td>
+                                <input type="hidden" name="revision[<?php echo absint($post->ID); ?>]"
+                                    value="<?php echo esc_attr(SEO_Editor_Core::fingerprint($post)); ?>">
+                                <input type="hidden" name="visible_ids[]" value="<?php echo absint($post->ID); ?>">
+                                <input class="seo-editor-select" type="checkbox" name="selected_ids[]" value="<?php echo absint($post->ID); ?>" aria-label="Seleccionar borrador <?php echo absint($post->ID); ?>"></td>
                             <td><strong>#<?php echo absint($post->ID); ?></strong><br>
                                 <small><?php echo esc_html($type === 'landing'?'Landing':ucfirst(SEO_Editor_Exchange::section($post))); ?></small>
                             </td>
