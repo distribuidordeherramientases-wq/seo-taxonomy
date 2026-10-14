@@ -9,6 +9,24 @@
 
 defined('ABSPATH') || exit;
 
+if (!function_exists('seo_product_reports_enqueue_assets')) {
+    function seo_product_reports_enqueue_assets() {
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        if ('product-page-admin' !== $page) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'taxocommerce-seo-product-reports',
+            SEO_SYSTEM_URL . 'includes/assets/seo-product-reports.css',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+        );
+    }
+}
+add_action('admin_enqueue_scripts', 'seo_product_reports_enqueue_assets');
+
+
 if (!function_exists('seo_product_reports_days')) {
     function seo_product_reports_days($value) {
         $value = absint($value);
@@ -1274,40 +1292,7 @@ if (!function_exists('seo_product_reports_page')) {
         }
 
         $product_id = isset($_GET['product_id']) ? absint($_GET['product_id']) : 0;
-
-        echo '<style>
-        .seo-product-report-intro,.seo-product-report-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;margin:0 0 18px}
-        .seo-product-report-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px}
-        .seo-product-report-actions{display:flex;gap:8px;flex-wrap:wrap}
-        .seo-product-report-source-row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px}
-        .seo-product-report-summary{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-left:4px solid #dba617;background:#fff8e5;padding:10px 12px;margin:0 0 18px}
-        .seo-product-report-summary.is-ok{border-left-color:#00a32a;background:#edfaef}.seo-product-report-summary span{color:#50575e}
-        .seo-product-report-badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;background:#f0f0f1}
-        .seo-product-report-badge.is-ok{background:#edfaef;color:#1e4620}
-        .seo-product-report-badge.is-pending{background:#fff8e5;color:#6d4f00}
-        .seo-product-report-period{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin:0 0 18px}
-        .seo-product-report-period select{min-width:120px}
-        .seo-product-report-title h3{margin:0 0 4px;font-size:16px}.seo-product-report-title p{margin:0 0 14px;color:#646970}
-        .seo-product-report-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0 18px}
-        .seo-product-report-metric{border:1px solid #dcdcde;border-radius:7px;padding:13px;background:#fbfbfc;min-width:0}
-        .seo-product-report-metric-label,.seo-product-report-metric-detail{display:block;color:#646970;font-size:12px}
-        .seo-product-report-metric strong{display:block;font-size:23px;line-height:1.2;margin:4px 0;overflow-wrap:anywhere}
-        .seo-product-report-bars{height:180px;display:flex;align-items:flex-end;gap:3px;border-left:1px solid #dcdcde;border-bottom:1px solid #dcdcde;padding:8px 8px 22px;overflow-x:auto}
-        .seo-product-report-bar-col{height:100%;min-width:18px;flex:1;display:flex;align-items:flex-end;position:relative}
-        .seo-product-report-bar{width:100%;min-height:2px;background:#2271b1;border-radius:2px 2px 0 0}
-        .seo-product-report-bar-col span{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:9px;color:#646970;white-space:nowrap}
-        .seo-product-report-filter{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:18px 0;display:grid;grid-template-columns:2fr 1.2fr 1.2fr 0.8fr auto;gap:12px;align-items:end}
-        .seo-product-report-catalog-status{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin:0 0 18px}
-        .seo-product-report-table-wrap{overflow:auto}.seo-product-report-table{min-width:1180px}.seo-product-report-table th small{font-weight:400;color:#646970}
-        .seo-product-report-score{display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:999px;font-weight:700;background:#f0f0f1;color:#50575e}
-        .seo-product-report-score.is-medium{background:#fff8e5;color:#996800}.seo-product-report-score.is-high{background:#edfaef;color:#008a20}
-        .seo-product-report-filter label{display:block;font-weight:600;margin-bottom:5px}.seo-product-report-filter input,.seo-product-report-filter select{width:100%}
-        .seo-product-report-filter-actions{display:flex;gap:6px}
-        @media(max-width:900px){.seo-product-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-product-report-filter{grid-template-columns:1fr 1fr}}
-        @media(max-width:600px){.seo-product-report-metrics,.seo-product-report-filter{grid-template-columns:1fr}.seo-product-report-metric strong{font-size:20px}}
-        </style>';
-
-        if ($product_id > 0) {
+if ($product_id > 0) {
             echo '<p><a class="button" href="' . esc_url(seo_product_reports_admin_url()) . '">← Volver a productos</a></p>';
             seo_product_reports_render_product($product_id);
         } else {
