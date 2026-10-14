@@ -1982,7 +1982,9 @@ function seo_faq_process_action($current_tab, $object_type)
                 false
             );
         } catch (Throwable $exception) {
-            error_log('[SEO FAQ] No se pudo eliminar la FAQ: ' . $exception->getMessage());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[SEO FAQ] No se pudo eliminar la FAQ: ' . $exception->getMessage());
+            }
             seo_faq_redirect($current_tab, $filters, $object_id, 'error', 0);
         }
 
@@ -2655,7 +2657,9 @@ function seo_faq_process_report_action()
                 'seo_faq_validate_duplicate_delete_row'
             );
         } catch (Throwable $exception) {
-            error_log('[SEO FAQ] Limpieza de duplicadas fallida: ' . $exception->getMessage());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[SEO FAQ] Limpieza de duplicadas fallida: ' . $exception->getMessage());
+            }
             seo_faq_report_redirect('duplicate_error');
         }
 
@@ -2764,7 +2768,9 @@ function seo_faq_process_report_action()
             true
         );
     } catch (Throwable $exception) {
-        error_log('[SEO FAQ] Limpieza de huérfanas fallida: ' . $exception->getMessage());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO FAQ] Limpieza de huérfanas fallida: ' . $exception->getMessage());
+        }
         seo_faq_report_redirect('orphan_error');
     }
 
