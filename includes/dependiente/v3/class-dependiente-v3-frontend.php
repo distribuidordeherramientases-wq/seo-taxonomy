@@ -16,12 +16,6 @@ final class SEO_Dependiente_V3_Frontend {
     public static function register_shortcodes() {
         add_shortcode('taxocommerce_dependiente_productos', array(__CLASS__, 'render'));
         add_shortcode('taxocommerce_dependiente', array(__CLASS__, 'render'));
-
-        // Compatibilidad con contenido existente anterior al rebranding.
-        $legacy_shortcodes = array('dependiente_productos', 'dependiente');
-        foreach ($legacy_shortcodes as $legacy_shortcode) {
-            add_shortcode($legacy_shortcode, array(__CLASS__, 'render'));
-        }
     }
 
     private static function navigation_groups($limit = 3) {
@@ -360,15 +354,15 @@ final class SEO_Dependiente_V3_Frontend {
         if ($page_id && 'trash' !== get_post_status($page_id)) return $page_id;
         $existing = get_page_by_path('dependiente', OBJECT, 'page');
         if ($existing instanceof WP_Post) {
-            if (!has_shortcode((string) $existing->post_content, 'dependiente_productos') && !has_shortcode((string) $existing->post_content, 'dependiente')) {
-                wp_update_post(array('ID' => $existing->ID, 'post_content' => rtrim((string) $existing->post_content) . "\n\n[dependiente_productos]"));
+            if (!has_shortcode((string) $existing->post_content, 'taxocommerce_dependiente_productos') && !has_shortcode((string) $existing->post_content, 'taxocommerce_dependiente')) {
+                wp_update_post(array('ID' => $existing->ID, 'post_content' => rtrim((string) $existing->post_content) . "\n\n[taxocommerce_dependiente_productos]"));
             }
             update_option('seo_dependiente_page_id', absint($existing->ID), false);
             return absint($existing->ID);
         }
         $created = wp_insert_post(array(
             'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Dependiente',
-            'post_name' => 'dependiente', 'post_content' => '[dependiente_productos]',
+            'post_name' => 'dependiente', 'post_content' => '[taxocommerce_dependiente_productos]',
         ), true);
         if (is_wp_error($created)) return 0;
         update_option('seo_dependiente_page_id', absint($created), false);
