@@ -936,7 +936,7 @@ function seo_reports_page() {
     
     if (!current_user_can('manage_options')) return;
     
-    $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'informes';
+    $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'informes';
 
     if ($active_tab === 'content') {
         $target = class_exists('SEO_Solucionador_Admin')
@@ -3676,7 +3676,7 @@ EXPORT CSV SEO TABLES
             wp_die('Tabla no indicada.');
         }
     
-        $table_key = sanitize_key($_GET['table']);
+        $table_key = sanitize_key(wp_unslash($_GET['table']));
     
         $export_nonce = isset($_GET['_wpnonce'])
             ? sanitize_text_field(wp_unslash($_GET['_wpnonce']))
