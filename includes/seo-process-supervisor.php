@@ -1705,6 +1705,7 @@ if (!function_exists('seo_process_supervisor_save_settings_action')) {
             wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_process_supervisor_save_settings');
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Structured supervisor settings are normalized field by field by seo_process_supervisor_sanitize_settings().
         $raw = isset($_POST['supervisor']) && is_array($_POST['supervisor']) ? wp_unslash($_POST['supervisor']) : array();
         foreach (array('enabled', 'import_export', 'commercial_feeds', 'supplier_imports', 'academy', 'linguista', 'classifier', 'clonador', 'backup_watchdog', 'log_cycles') as $checkbox) {
             $raw[$checkbox] = empty($raw[$checkbox]) ? 0 : 1;
