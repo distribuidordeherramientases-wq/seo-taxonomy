@@ -2651,7 +2651,7 @@ function seo_ie_batch_render_page() {
     $files    = (array) ( $snapshot['files'] ?? [] );
     $running  = seo_ie_batch_is_running() || ! empty( $status['enabled'] );
 
-    $preview_bucket = sanitize_key( $_GET['seo_ie_batch_preview_bucket'] ?? '' );
+    $preview_bucket = isset( $_GET['seo_ie_batch_preview_bucket'] ) ? sanitize_key( wp_unslash( $_GET['seo_ie_batch_preview_bucket'] ) ) : '';
     $preview_file   = sanitize_file_name( wp_unslash( $_GET['seo_ie_batch_preview_file'] ?? '' ) );
     $preview_path   = '';
     $preview        = null;
