@@ -1424,10 +1424,10 @@ if (isset($_POST['clear_category_keywords'])) {
 
         <form method="POST" style="margin-bottom:20px;padding:15px;background:#f6f7f7;border:1px solid #ddd;border-radius:6px;">
             <?php wp_nonce_field('seo_category_classification_action','seo_category_classification_nonce'); ?>
-            <input type="hidden" name="page" value="<?php echo esc_attr(sanitize_key($_GET['page'] ?? 'seo-taxonomy')); ?>">
-            <input type="hidden" name="tab" value="<?php echo esc_attr(sanitize_key($_GET['tab'] ?? 'semantic')); ?>">
+            <input type="hidden" name="page" value="<?php echo esc_attr(sanitize_key(isset($_GET['page']) ? wp_unslash($_GET['page']) : 'seo-taxonomy')); ?>">
+            <input type="hidden" name="tab" value="<?php echo esc_attr(sanitize_key(isset($_GET['tab']) ? wp_unslash($_GET['tab']) : 'semantic')); ?>">
             <?php if (!empty($_GET['semantic_tab'])) : ?>
-                <input type="hidden" name="semantic_tab" value="<?php echo esc_attr(sanitize_key($_GET['semantic_tab'])); ?>">
+                <input type="hidden" name="semantic_tab" value="<?php echo esc_attr(sanitize_key(wp_unslash($_GET['semantic_tab']))); ?>">
             <?php endif; ?>
 
             <select name="cluster" onchange="this.form.submit()">
