@@ -1417,7 +1417,11 @@ if (!function_exists('seo_tags_vocab_manager_redirect')) {
 
 if (!function_exists('seo_tags_vocab_handle_manager_action')) {
     function seo_tags_vocab_handle_manager_action() {
-        if (strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'] ?? ''))) !== 'POST' || empty($_POST['seo_vocab_manager_action'])) {
+        if (strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'] ?? ''))) !== 'POST') {
+            return;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Only routes the request; mutations occur after check_admin_referer().
+        if (empty($_POST['seo_vocab_manager_action'])) {
             return;
         }
         if (!current_user_can('manage_options')) {
@@ -3718,9 +3722,9 @@ if (!function_exists('seo_assignment_mass_apply')) {
     function seo_assignment_mass_apply($section) {
         $filters = [
             'search' => sanitize_text_field(wp_unslash($_POST['assignment_s'] ?? '')),
-            'category_id' => absint($_POST['assignment_category_id'] ?? 0),
-            'coverage' => sanitize_key($_POST['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any')),
-            'priority' => sanitize_key($_POST['assignment_priority'] ?? 'all'),
+            'category_id' => absint(wp_unslash($_POST['assignment_category_id'] ?? 0)),
+            'coverage' => sanitize_key(wp_unslash($_POST['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any'))),
+            'priority' => sanitize_key(wp_unslash($_POST['assignment_priority'] ?? 'all')),
         ];
         $max = 500;
         $saved = 0; $errors = 0; $total = 0;
@@ -3904,14 +3908,16 @@ if (!function_exists('seo_assignment_render_product_group_cell')) {
 if (!function_exists('seo_assignment_handle_request')) {
     function seo_assignment_handle_request() {
         if (!current_user_can('manage_options')) return;
-        if (!empty($_GET['seo_assignment_export'])) {
+        if (!empty(seo_tags_vocab_query_arg('seo_assignment_export', ''))) {
             check_admin_referer('seo_assignment_export');
             $payload=seo_assignment_export_payload();
             nocache_headers(); header('Content-Type: application/json; charset=utf-8');
             header('Content-Disposition: attachment; filename="seo-asignacion-'.esc_attr(current_time('Ymd-His')).'.json"');
             echo wp_json_encode($payload,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit;
         }
-        if (strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'] ?? ''))) !== 'POST' || empty($_POST['seo_assignment_action'])) return;
+        if (strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'] ?? ''))) !== 'POST') return;
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Only checks whether this request belongs to this handler; all state changes occur after check_admin_referer().
+        if (empty($_POST['seo_assignment_action'])) return;
         check_admin_referer('seo_assignment_admin','seo_assignment_nonce');
         $action=sanitize_key(wp_unslash($_POST['seo_assignment_action']));
         $section=sanitize_key(wp_unslash($_POST['assignment_section'] ?? 'product_labels'));
@@ -3920,7 +3926,7 @@ if (!function_exists('seo_assignment_handle_request')) {
             if ($action==='accept_engineer_vocab_candidate') {
                 if ($section !== 'engineer_vocab') throw new InvalidArgumentException('La aceptación de Ingeniero está disponible en Ingeniero → vocabulario.');
                 if (!function_exists('seo_classifier_engineer_vocab_accept_candidate')) throw new RuntimeException('No está disponible la aceptación de vocabulario de Ingeniero.');
-                $term_id = absint($_POST['engineer_term_id'] ?? 0);
+                $term_id = absint(wp_unslash($_POST['engineer_term_id'] ?? 0));
                 $kind = sanitize_key(wp_unslash($_POST['engineer_candidate_kind'] ?? ''));
                 $key = sanitize_text_field(wp_unslash($_POST['engineer_candidate_key'] ?? ''));
                 if ($term_id < 1 || $kind === '' || $key === '') throw new InvalidArgumentException('La propuesta no es válida.');
@@ -3945,7 +3951,7 @@ if (!function_exists('seo_assignment_handle_request')) {
             if ($action==='analyze_engineer_vocab') {
                 if ($section !== 'engineer_vocab') throw new InvalidArgumentException('El análisis de Ingeniero está disponible en Ingeniero → vocabulario.');
                 if (!function_exists('seo_classifier_engineer_vocab_report')) throw new RuntimeException('No está disponible el analizador de vocabulario de Ingeniero.');
-                $term_id = absint($_POST['engineer_term_id'] ?? 0);
+                $term_id = absint(wp_unslash($_POST['engineer_term_id'] ?? 0));
                 if ($term_id < 1) throw new InvalidArgumentException('Selecciona una categoría con conocimiento activo de Ingeniero.');
                 $report = seo_classifier_engineer_vocab_report($term_id);
                 if (is_wp_error($report)) throw new RuntimeException($report->get_error_message());
@@ -3978,7 +3984,7 @@ if (!function_exists('seo_assignment_handle_request')) {
             if ($action==='start_apply_job') {
                 if ($section !== 'product_labels') throw new InvalidArgumentException('La aplicación en cola está disponible en Etiquetas de productos.');
                 if (!function_exists('seo_classifier_job_create')) throw new RuntimeException('No está disponible la cola del Clasificador.');
-                $filters = seo_assignment_filters_from_request($_POST);
+                $filters = seo_assignment_filters_from_request(map_deep(wp_unslash($_POST), 'sanitize_text_field'));
                 $job_id = seo_classifier_job_create([
                     'job_type'=>'apply','mode'=>'fast','filters'=>$filters,'created_by'=>get_current_user_id(),
                 ]);
@@ -3987,10 +3993,10 @@ if (!function_exists('seo_assignment_handle_request')) {
             }
             if ($action==='accept_new_label') {
                 if ($section !== 'product_labels') throw new InvalidArgumentException('Las nuevas etiquetas de Clasificador solo se aceptan desde Etiquetas de productos.');
-                $object_id=absint($_POST['object_id'] ?? 0);
+                $object_id=absint(wp_unslash($_POST['object_id'] ?? 0));
                 $group=sanitize_key(wp_unslash($_POST['semantic_group'] ?? ''));
                 $label=sanitize_text_field(wp_unslash($_POST['proposed_label'] ?? ''));
-                $role_id=absint($_POST['new_role_id'] ?? 0);
+                $role_id=absint(wp_unslash($_POST['new_role_id'] ?? 0));
                 $result=seo_assignment_create_and_assign_new_product_label($object_id,$group,$label,$role_id);
                 if (function_exists('seo_classifier_bump_profiles_generation')) seo_classifier_bump_profiles_generation();
                 if (function_exists('seo_classifier_proposal_invalidate_product')) seo_classifier_proposal_invalidate_product($object_id, [$group]);
@@ -3998,7 +4004,7 @@ if (!function_exists('seo_assignment_handle_request')) {
                 seo_assignment_redirect($section,!empty($result['created'])?'new_label_created':'new_label_reused',strtoupper($group).': '.$label);
             }
             if ($action==='confirm') {
-                $object_id=absint($_POST['object_id'] ?? 0);
+                $object_id=absint(wp_unslash($_POST['object_id'] ?? 0));
                 if ($section==='product_labels' && !empty($_POST['assignment_group_matrix'])) {
                     seo_assignment_apply_product_label_matrix($object_id);
                 } else {
@@ -4017,7 +4023,7 @@ if (!function_exists('seo_assignment_handle_request')) {
                 // Compatibilidad con formularios antiguos: en productos nunca hacemos ya
                 // una escritura masiva síncrona; la convertimos en job adaptativo.
                 if ($section === 'product_labels' && function_exists('seo_classifier_job_create')) {
-                    $filters = seo_assignment_filters_from_request($_POST);
+                    $filters = seo_assignment_filters_from_request(map_deep(wp_unslash($_POST), 'sanitize_text_field'));
                     $job_id = seo_classifier_job_create(['job_type'=>'apply','mode'=>'fast','filters'=>$filters,'created_by'=>get_current_user_id()]);
                     if (is_wp_error($job_id)) throw new RuntimeException($job_id->get_error_message());
                     seo_assignment_job_redirect($section,$filters,$job_id,'apply_job_started','Job #'.absint($job_id).'.');
