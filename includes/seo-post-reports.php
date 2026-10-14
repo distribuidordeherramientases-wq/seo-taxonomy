@@ -731,10 +731,10 @@ if (!function_exists('seo_post_reports_render_daily_chart')) {
 if (!function_exists('seo_post_reports_render_post')) {
     function seo_post_reports_render_post($post_id) {
         $post_id = absint($post_id);
-        $days = seo_post_reports_days($_GET['days'] ?? 28);
+        $days = seo_post_reports_days(isset($_GET['days']) ? wp_unslash($_GET['days']) : 28);
         $force = false;
 
-        if (isset($_GET['refresh']) && '1' === (string) $_GET['refresh']) {
+        if (isset($_GET['refresh']) && '1' === (string) wp_unslash($_GET['refresh'])) {
             $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
             $force = wp_verify_nonce($nonce, 'seo_post_report_refresh_' . $post_id);
         }
@@ -880,8 +880,8 @@ if (!function_exists('seo_post_reports_render_selector')) {
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $category_filter = isset($_GET['product_cat']) ? sanitize_text_field(wp_unslash($_GET['product_cat'])) : '';
         $status = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '';
-        $days = seo_post_reports_days($_GET['days'] ?? 28);
-        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
+        $days = seo_post_reports_days(isset($_GET['days']) ? wp_unslash($_GET['days']) : 28);
+        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) wp_unslash($_GET['score_order'])) ? 'asc' : 'desc';
         $paged = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
 
@@ -894,7 +894,7 @@ if (!function_exists('seo_post_reports_render_selector')) {
         }
 
         $force_snapshot = false;
-        if (isset($_GET['refresh_catalog']) && '1' === (string) $_GET['refresh_catalog']) {
+        if (isset($_GET['refresh_catalog']) && '1' === (string) wp_unslash($_GET['refresh_catalog'])) {
             $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
             $force_snapshot = wp_verify_nonce($nonce, 'seo_post_reports_refresh_catalog_' . $days);
         }
