@@ -175,7 +175,9 @@ final class SEO_Semantic_Catalog_Transfer {
     }
 
     private static function requested_scopes() {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- This helper is called only after seo_semantic_catalog_export verifies its nonce.
         $raw = isset($_POST['scope']) && is_array($_POST['scope']) ? wp_unslash($_POST['scope']) : array();
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $out = array();
         foreach ($raw as $value) {
             $value = sanitize_key($value);
@@ -863,6 +865,7 @@ final class SEO_Semantic_Catalog_Transfer {
             wp_die('Permisos insuficientes.');
         }
         check_admin_referer('seo_semantic_catalog_import');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified immediately above for this import request.
         $intent = isset($_POST['semantic_catalog_intent']) ? sanitize_key(wp_unslash($_POST['semantic_catalog_intent'])) : 'preview';
         $mode = isset($_POST['import_mode']) ? sanitize_key(wp_unslash($_POST['import_mode'])) : 'mirror';
         if (!in_array($mode, array('merge', 'mirror'), true)) {
@@ -870,6 +873,7 @@ final class SEO_Semantic_Catalog_Transfer {
         }
         $purge = ('mirror' === $mode && !empty($_POST['purge_extra_masters']));
         $loaded = self::load_uploaded_document();
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         if (is_wp_error($loaded)) {
             self::redirect_notice(true, $loaded->get_error_message());
         }
@@ -937,10 +941,13 @@ final class SEO_Semantic_Catalog_Transfer {
     }
 
     private static function load_uploaded_document() {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Caller import_package() verifies the import nonce before invoking this upload parser.
         if (empty($_FILES['semantic_catalog_file']) || !is_array($_FILES['semantic_catalog_file'])) {
             return new WP_Error('semantic_catalog_no_file', 'No se ha recibido ningun archivo.');
         }
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated field by field before the temporary file is read.
         $file = $_FILES['semantic_catalog_file'];
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $error = absint($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if (UPLOAD_ERR_OK !== $error) {
             return new WP_Error('semantic_catalog_upload', 'La subida ha fallado (codigo ' . $error . ').');
