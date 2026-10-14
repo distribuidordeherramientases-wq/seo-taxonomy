@@ -1095,7 +1095,8 @@ add_action('rest_api_init', 'seo_health_scan_register_rest');
 if (!function_exists('seo_health_scan_notice')) {
     function seo_health_scan_notice() {
         $msg = isset($_GET['health_msg']) ? sanitize_key(wp_unslash($_GET['health_msg'])) : '';
-        $detail = isset($_GET['health_detail']) ? sanitize_text_field(rawurldecode(wp_unslash($_GET['health_detail']))) : '';
+        $detail_encoded = isset($_GET['health_detail']) ? sanitize_text_field(wp_unslash($_GET['health_detail'])) : '';
+        $detail = '' !== $detail_encoded ? sanitize_text_field(rawurldecode($detail_encoded)) : '';
         if ($msg === '') {
             return;
         }
