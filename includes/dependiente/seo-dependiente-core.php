@@ -376,6 +376,7 @@ final class SEO_Dependiente_Plugin {
     public function download_compare_pdf() {
         check_admin_referer('seo_dependiente_compare_pdf', 'nonce');
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every submitted product ID is normalized with absint immediately below.
         $ids = isset($_POST['ids']) ? (array) wp_unslash($_POST['ids']) : array();
         $ids = array_values(array_unique(array_filter(array_map('absint', $ids))));
         $compare_max = function_exists('seo_comparador_store_compare_max') ? seo_comparador_store_compare_max() : 6;
