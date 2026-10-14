@@ -1906,7 +1906,7 @@ function seo_search_settings_page() {
                             <th><?php esc_html_e('Búsqueda avanzada', 'taxocommerce-seo'); ?></th>
                             <td>
                                 <?php seo_search_admin_checkbox('filter_vocabulary', __('Activar filtros semánticos canónicos', 'taxocommerce-seo'), __('Usa exclusivamente el vocabulario TIPO, ROL, APLICACIÓN, PLATAFORMA y SUBTIPO.', 'taxocommerce-seo')); ?>
-                                <p class="description"><?php esc_html_e('Esta función pertenece a SEO Search. WooCommerce solo aporta el catálogo de productos; no se registra ninguna pantalla dentro de su menú.', 'seo-taxonomy'); ?></p>
+                                <p class="description"><?php esc_html_e('Esta función pertenece a SEO Search. WooCommerce solo aporta el catálogo de productos; no se registra ninguna pantalla dentro de su menú.', 'taxocommerce-seo'); ?></p>
                             </td>
                         </tr>
                         <tr>
