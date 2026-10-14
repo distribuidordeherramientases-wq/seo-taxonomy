@@ -188,7 +188,7 @@ Amazon importers/integrations can request tokens and query products when the adm
 
 Data sent: application credentials, marketplace, and product search terms/identifiers required for the query.
 
-Depending on the configured marketplace/integration, hosts can include `api.amazon.co.uk`, `www.amazon.es`, and Amazon creator/product API endpoints.
+Depending on the configured marketplace/integration, hosts can include `api.amazon.co.uk`, `www.amazon.es`, and the Creators API base host `creatorsapi.amazon`.
 
 Conditions of Use: https://www.amazon.com/gp/help/customer/display.html?nodeId=508088
 Privacy Notice: https://www.amazon.com/gp/help/customer/display.html?nodeId=GX7NJQ4ZB8MHFRNJ
