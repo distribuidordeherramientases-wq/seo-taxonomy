@@ -546,13 +546,17 @@ function seo_supplier_recipe_amazon_render_explorer() {
     }
     echo '</div>';
 
+    $posted_keywords = isset($_POST['keywords']) ? sanitize_text_field(wp_unslash($_POST['keywords'])) : '';
+    $posted_search_index = isset($_POST['preview_search_index']) ? sanitize_text_field(wp_unslash($_POST['preview_search_index'])) : (string) $s['search_index'];
+    $posted_item_page = isset($_POST['item_page']) ? max(1, min(10, absint(wp_unslash($_POST['item_page'])))) : 1;
+
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;margin:18px 0;border-radius:6px;">';
     echo '<h2 style="margin-top:0;">Explorar Amazon</h2>';
     echo '<form method="post" style="display:grid;grid-template-columns:2fr 1fr 100px auto;gap:10px;align-items:end;">';
     wp_nonce_field( 'seo_amazon_recipe_action', 'seo_amazon_action_nonce' );
-    echo '<label><strong>Busqueda</strong><br><input id="seo-amz-keywords" name="keywords" type="text" value="' . esc_attr( $_POST['keywords'] ?? '' ) . '" placeholder="Ej.: cintas transportadoras industriales" style="width:100%;"></label>';
-    echo '<label><strong>Search Index</strong><br><input name="preview_search_index" type="text" value="' . esc_attr( $_POST['preview_search_index'] ?? $s['search_index'] ) . '" style="width:100%;"></label>';
-    echo '<label><strong>Pagina</strong><br><input name="item_page" type="number" min="1" max="10" value="' . esc_attr( $_POST['item_page'] ?? 1 ) . '" style="width:100%;"></label>';
+    echo '<label><strong>Busqueda</strong><br><input id="seo-amz-keywords" name="keywords" type="text" value="' . esc_attr( $posted_keywords ) . '" placeholder="Ej.: cintas transportadoras industriales" style="width:100%;"></label>';
+    echo '<label><strong>Search Index</strong><br><input name="preview_search_index" type="text" value="' . esc_attr( $posted_search_index ) . '" style="width:100%;"></label>';
+    echo '<label><strong>Pagina</strong><br><input name="item_page" type="number" min="1" max="10" value="' . esc_attr( (string) $posted_item_page ) . '" style="width:100%;"></label>';
     echo '<button class="button button-primary" type="submit" name="seo_amazon_preview_search" value="1">Explorar</button>';
     echo '</form>';
 
