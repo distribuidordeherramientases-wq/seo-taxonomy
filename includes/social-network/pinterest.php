@@ -796,10 +796,11 @@ function seo_social_pinterest_save_merchant_connection()
 
     check_admin_referer('seo_social_pinterest_merchant_save', 'seo_social_pinterest_merchant_nonce');
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Full Pinterest meta markup is accepted intentionally and reduced to a strict verification token by seo_social_pinterest_extract_domain_verify().
     $raw_code = isset($_POST['domain_verify_code']) ? wp_unslash($_POST['domain_verify_code']) : '';
     $code = seo_social_pinterest_extract_domain_verify($raw_code);
     $enabled = empty($_POST['domain_verify_enabled']) ? 0 : 1;
-    $feed_url = isset($_POST['catalog_feed_url']) ? esc_url_raw(trim((string) wp_unslash($_POST['catalog_feed_url']))) : '';
+    $feed_url = isset($_POST['catalog_feed_url']) ? esc_url_raw(wp_unslash($_POST['catalog_feed_url'])) : '';
 
     if ($enabled && $code === '') {
         wp_safe_redirect(add_query_arg(
