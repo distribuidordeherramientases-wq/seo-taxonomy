@@ -1699,7 +1699,13 @@ function seo_search_render_advanced_search_shortcode($atts = array(), $shortcode
     return ob_get_clean();
 }
 
-add_shortcode('advanced_search', function ($atts) {
+add_shortcode('taxocommerce_advanced_search', function ($atts) {
+    return seo_search_render_advanced_search_shortcode($atts, 'taxocommerce_advanced_search');
+});
+
+// Compatibilidad con contenido existente anterior al rebranding.
+$seo_search_legacy_advanced_shortcode = 'advanced_search';
+add_shortcode($seo_search_legacy_advanced_shortcode, function ($atts) {
     return seo_search_render_advanced_search_shortcode($atts, 'advanced_search');
 });
 
