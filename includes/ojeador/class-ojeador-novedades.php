@@ -312,14 +312,18 @@ final class SEO_Ojeador_Novedades {
 
     public static function handle_scan(){
         self::guard('seo_ojeador_novedades_scan');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         $r=self::scan(absint(wp_unslash($_POST['seed_limit']??1)),absint(wp_unslash($_POST['candidate_limit']??3)),absint(wp_unslash($_POST['hub_primary_id']??0)));
         if(is_wp_error($r))self::redirect(array('ojeador_error'=>rawurlencode($r->get_error_message())));
         self::redirect(array('ojeador_notice'=>'novedades_scanned','novedades_saved'=>absint($r['opportunities_saved']??0),'novedades_queries'=>absint($r['api_queries']??0)));
     }
     public static function handle_status(){
-        self::guard('seo_ojeador_novedades_status');global $wpdb;$id=absint(wp_unslash($_POST['opportunity_id']??0));$status=sanitize_key((string)wp_unslash($_POST['opportunity_status']??'detected'));
+        self::guard('seo_ojeador_novedades_status');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
+        global $wpdb;$id=absint(wp_unslash($_POST['opportunity_id']??0));$status=sanitize_key((string)wp_unslash($_POST['opportunity_status']??'detected'));
         if(!in_array($status,array('detected','investigate','watch','dismissed'),true))$status='detected';
         if($id)$wpdb->update(self::table(),array('status'=>$status,'updated_at'=>gmdate('Y-m-d H:i:s')),array('id'=>$id));
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect(array('ojeador_notice'=>'novedades_status'));
     }
     public static function handle_export(){
