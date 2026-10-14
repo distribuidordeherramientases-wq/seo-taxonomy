@@ -83,6 +83,40 @@ function seo_search_get_option($key, $default = null) {
     return array_key_exists($key, $options) ? $options[$key] : $default;
 }
 
+/**
+ * Compatibilidad de contenido tras el rebranding.
+ *
+ * No registra nombres de shortcode sin prefijo. Solo transforma markup legado
+ * antes de que WordPress ejecute do_shortcode(), evitando romper páginas ya
+ * guardadas con versiones anteriores del plugin.
+ */
+function seo_search_migrate_legacy_shortcode_markup($content) {
+    if (!is_string($content) || $content === '') {
+        return $content;
+    }
+
+    return str_replace(
+        array(
+            '[seo_search',
+            '[/seo_search]',
+            '[advanced_search',
+            '[/advanced_search]',
+            '[seo_search_filters',
+            '[/seo_search_filters]',
+        ),
+        array(
+            '[taxocommerce_search',
+            '[/taxocommerce_search]',
+            '[taxocommerce_advanced_search',
+            '[/taxocommerce_advanced_search]',
+            '[taxocommerce_advanced_search',
+            '[/taxocommerce_advanced_search]',
+        ),
+        $content
+    );
+}
+add_filter('the_content', 'seo_search_migrate_legacy_shortcode_markup', 8);
+add_filter('widget_text_content', 'seo_search_migrate_legacy_shortcode_markup', 8);
 
 
 /* =========================================================
@@ -1191,7 +1225,7 @@ function seo_search_enqueue_front_assets() {
 
 /**
  * El predictivo del encabezado debe estar disponible en cualquier pagina del
- * catalogo, incluso cuando no se renderiza el shortcode [taxocommerce_advanced_search].
+ * catalogo, incluso cuando no se renderiza el shortcode [taxocommerce_search].
  * Solo se cargan los activos; no se ejecuta ninguna busqueda hasta que el
  * usuario escribe el minimo de caracteres configurado.
  */
@@ -1457,7 +1491,7 @@ add_shortcode('taxocommerce_search', function ($atts) {
         'placeholder' => __('Buscar productos, referencias, categorías…', 'taxocommerce-seo'),
         'button_text' => '🔍',
         'class'       => '',
-    ), $atts, 'seo_search');
+    ), $atts, 'taxocommerce_search');
 
     $current = seo_search_native_keyword();
     $id = wp_unique_id('seo-search-');
