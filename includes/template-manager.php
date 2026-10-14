@@ -71,7 +71,7 @@ function seo_tm_render_notice() {
     if (empty($_GET['seo_tm_notice'])) return;
 
     $message = sanitize_text_field(wp_unslash($_GET['seo_tm_notice']));
-    $type    = isset($_GET['seo_tm_notice_type']) ? sanitize_key($_GET['seo_tm_notice_type']) : 'success';
+    $type    = isset($_GET['seo_tm_notice_type']) ? sanitize_key(wp_unslash($_GET['seo_tm_notice_type'])) : 'success';
 
     $allowed = ['success', 'warning', 'error', 'info'];
     if (!in_array($type, $allowed, true)) {
