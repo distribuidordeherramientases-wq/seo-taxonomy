@@ -19,6 +19,7 @@ Primera release de la línea **TaxoCommerce SEO 2.4.x**.
 - La importación acepta `trash`, `papelera` y `basura`; la exportación escribe siempre el valor canónico `trash`.
 - Un CSV con estado de papelera no crea contenido nuevo ni realiza borrado definitivo; la simulación informa de la acción y un objeto en papelera puede restaurarse al importar otro estado válido.
 - La receta VEVOR 1.6.0 simplifica las importaciones manuales: conserva la imagen principal externa del feed e importa directamente al catálogo intermedio, sin pasar por GitHub/Python ni por el Gestor de workers cuando no se necesita enriquecimiento F1-F12/M1-M12.
+- Los callbacks GitHub/Python y Google/Python validan la estructura del CSV estándar antes del `sideload` seguro y habilitan el fallback MIME solo después de esa validación, evitando rechazos de CSV válidos introducidos por el endurecimiento de subidas para WordPress.org.
 
 ### Consolidación funcional
 
