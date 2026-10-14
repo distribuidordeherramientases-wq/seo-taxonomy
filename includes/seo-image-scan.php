@@ -1609,17 +1609,15 @@ if (!function_exists('seo_images_scan_render_tab')) {
         $missing = seo_images_scan_config_errors($config);
         $coverage = $summary['total_pages'] > 0 ? round(100 * $summary['checked_pages'] / $summary['total_pages'], 1) : 0;
 
-        echo '<?php
-wp_enqueue_style(
-    'taxocommerce-image-scan',
-    SEO_SYSTEM_URL . 'includes/assets/seo-image-scan.css',
-    array(),
-    SEO_SYSTEM_VERSION
-);
-if (did_action('admin_print_styles')) {
-    wp_print_styles('taxocommerce-image-scan');
-}
-?>';
+        wp_enqueue_style(
+            'taxocommerce-image-scan',
+            SEO_SYSTEM_URL . 'includes/assets/seo-image-scan.css',
+            array(),
+            SEO_SYSTEM_VERSION
+        );
+        if (did_action('admin_print_styles')) {
+            wp_print_styles('taxocommerce-image-scan');
+        }
 
         echo '<section class="seo-imgscan-card"><h2 style="margin-top:0">Auditoría externa de carga de imágenes</h2>';
         echo '<p>El proceso recorre automáticamente todas las páginas pendientes. Al terminar un lote, WordPress recibe sus métricas y lanza el siguiente sin intervención manual. El regulador aumenta o reduce páginas e imágenes según duración, latencia p95 y presión HTTP.</p>';
@@ -1654,18 +1652,16 @@ if (did_action('admin_print_styles')) {
         }
         echo '</section>';
         if ($active || $process_enabled) {
-            echo '<?php
-wp_enqueue_script(
-    'taxocommerce-image-scan',
-    SEO_SYSTEM_URL . 'includes/assets/seo-image-scan.js',
-    array(),
-    SEO_SYSTEM_VERSION,
-    true
-);
-if (did_action('admin_print_footer_scripts')) {
-    wp_print_scripts('taxocommerce-image-scan');
-}
-?>';
+            wp_enqueue_script(
+                'taxocommerce-image-scan',
+                SEO_SYSTEM_URL . 'includes/assets/seo-image-scan.js',
+                array(),
+                SEO_SYSTEM_VERSION,
+                true
+            );
+            if (did_action('admin_print_footer_scripts')) {
+                wp_print_scripts('taxocommerce-image-scan');
+            }
         }
 
         echo '<div class="seo-imgscan-grid">';
