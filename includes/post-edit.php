@@ -167,7 +167,8 @@ if (!function_exists('seo_post_editor_redirect_url_from_request')) {
     function seo_post_editor_redirect_url_from_request($extra = array()) {
         $page = isset($_POST['return_page']) ? sanitize_key(wp_unslash($_POST['return_page'])) : 'seo-post-editor';
         $tab  = isset($_POST['return_tab']) ? sanitize_key(wp_unslash($_POST['return_tab'])) : '';
-        $base = isset($_POST['return_base']) && wp_unslash($_POST['return_base']) === 'edit.php' ? 'edit.php' : 'admin.php';
+        $return_base = isset($_POST['return_base']) ? sanitize_key(wp_unslash($_POST['return_base'])) : '';
+        $base = 'edit.php' === $return_base ? 'edit.php' : 'admin.php';
 
         if ($page === '') {
             $page = 'seo-post-editor';
@@ -657,8 +658,8 @@ if (!function_exists('seo_post_editor_handle_save')) {
         $title   = isset($_POST['post_title']) ? sanitize_text_field(wp_unslash($_POST['post_title'])) : '';
         $slug    = isset($_POST['post_name']) ? sanitize_title(wp_unslash($_POST['post_name'])) : '';
         $status  = isset($_POST['post_status']) ? sanitize_key(wp_unslash($_POST['post_status'])) : 'draft';
-        $excerpt = isset($_POST['post_excerpt']) ? seo_post_editor_sanitize_content($_POST['post_excerpt']) : '';
-        $content = isset($_POST['post_content']) ? seo_post_editor_sanitize_content($_POST['post_content']) : '';
+        $excerpt = isset($_POST['post_excerpt']) ? seo_post_editor_sanitize_content(wp_unslash($_POST['post_excerpt'])) : '';
+        $content = isset($_POST['post_content']) ? seo_post_editor_sanitize_content(wp_unslash($_POST['post_content'])) : '';
         $content_role = isset($_POST['seo_public_content_role'])
             ? sanitize_key(wp_unslash($_POST['seo_public_content_role']))
             : '';
@@ -686,9 +687,9 @@ if (!function_exists('seo_post_editor_handle_save')) {
         }
 
         $product_cat_ids = isset($_POST['product_cat_ids'])
-            ? (array) wp_unslash($_POST['product_cat_ids'])
+            ? array_map('absint', (array) wp_unslash($_POST['product_cat_ids']))
             : array();
-        $product_cat_ids = array_values(array_unique(array_filter(array_map('absint', $product_cat_ids))));
+        $product_cat_ids = array_values(array_unique(array_filter($product_cat_ids)));
         $valid_product_cat_ids = seo_post_editor_validate_product_cat_ids($product_cat_ids);
 
         if (count($product_cat_ids) !== count($valid_product_cat_ids)) {
@@ -1153,7 +1154,7 @@ if (!function_exists('seo_page_edit_posts')) {
         $paged  = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
         $score_days = 28;
-        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
+        $score_order = isset($_GET['score_order']) && 'asc' === strtolower(sanitize_key((string) wp_unslash($_GET['score_order']))) ? 'asc' : 'desc';
         $reports_available = !$service_only
             && function_exists('seo_post_reports_get_summary')
             && function_exists('seo_post_reports_admin_url');
