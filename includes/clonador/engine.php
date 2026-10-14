@@ -3848,7 +3848,7 @@ final class SEO_Clonador_Engine {
     public static function ajax_apply() {
         $auth = self::authorize();
         if (is_wp_error($auth)) wp_send_json_error(array('message'=>sanitize_text_field($auth->get_error_message())), 403);
-        if ('1' !== (string) ($_POST['confirm'] ?? '')) {
+        if ('1' !== (string) ( isset($_POST['confirm']) ? wp_unslash($_POST['confirm']) : '' )) {
             wp_send_json_error(array('message'=>'Falta la confirmacion explicita de la clonacion.'), 400);
         }
         $saved = get_transient(self::preview_key());
