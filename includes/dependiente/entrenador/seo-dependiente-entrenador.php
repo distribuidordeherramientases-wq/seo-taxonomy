@@ -208,7 +208,7 @@ final class SEO_Dependiente_Entrenador {
         if (false === strpos((string) $hook, 'seo-dependiente')) {
             return;
         }
-        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash((string) $_GET['tab'])) : 'settings';
+        $tab = sanitize_key((string) self::query_arg('tab', 'settings'));
         if ('trainer' !== $tab) {
             return;
         }
@@ -362,7 +362,7 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
         }
 
-        $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
+        $lesson_key = sanitize_key((string) self::ajax_post_arg('lesson_key', ''));
         $definition = self::lesson_definition($lesson_key);
         if (!$definition) {
             wp_send_json_error(array('message' => 'Lección no reconocida.'), 400);
@@ -524,16 +524,16 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'El motor V3 del Dependiente no está disponible.'), 500);
         }
 
-        $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
+        $lesson_key = sanitize_key((string) self::ajax_post_arg('lesson_key', ''));
         if ('v2_l10_consolidation_debt' === $lesson_key && !self::interpreter_l9_completed()) {
             wp_send_json_error(array(
                 'message' => 'L10 requiere que el Intérprete haya completado su L9. Finaliza primero L9 del Lingüista/Intérprete y después continúa con L10.'
             ), 409);
         }
-        $module_no = max(1, absint($_POST['module_no'] ?? 0));
+        $module_no = max(1, absint(self::ajax_post_arg('module_no', 0)));
         $speed = self::auto_speed_config();
-        $batch_size = self::sanitize_batch_size($_POST['batch_size'] ?? $speed['initial_batch']);
-        $batch_uuid = self::sanitize_uuid($_POST['batch_uuid'] ?? '');
+        $batch_size = self::sanitize_batch_size(self::ajax_post_arg('batch_size', $speed['initial_batch']));
+        $batch_uuid = self::sanitize_uuid(self::ajax_post_arg('batch_uuid', ''));
         if (!$batch_uuid) {
             $batch_uuid = wp_generate_uuid4();
         }
@@ -630,7 +630,7 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
         }
 
-        $mode = sanitize_key((string) wp_unslash($_POST['mode'] ?? 'manual'));
+        $mode = sanitize_key((string) self::ajax_post_arg('mode', 'manual'));
         if ('stop' === $mode) {
             $result = self::process_control_stop();
             if (is_wp_error($result)) {
@@ -1925,7 +1925,9 @@ final class SEO_Dependiente_Entrenador {
         $items = array();
 
         try {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce/capability checked by guard_ajax(); upload metadata is validated below.
             if (!empty($_FILES['lab_file']) && is_array($_FILES['lab_file']) && UPLOAD_ERR_NO_FILE !== absint($_FILES['lab_file']['error'] ?? UPLOAD_ERR_NO_FILE)) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated field-by-field immediately below.
                 $file = $_FILES['lab_file'];
                 $error = absint($file['error'] ?? UPLOAD_ERR_NO_FILE);
                 if (UPLOAD_ERR_OK !== $error) {
@@ -1947,7 +1949,7 @@ final class SEO_Dependiente_Entrenador {
                 $source = 'upload_' . $ext;
                 $items = self::parse_lab_file($tmp, $ext, $default_mode);
             } else {
-                $text = trim((string) wp_unslash($_POST['questions_text'] ?? ''));
+                $text = trim((string) self::ajax_post_arg('questions_text', ''));
                 if ('' === $text) {
                     throw new RuntimeException('Pega al menos una pregunta o selecciona un archivo TXT, CSV o JSON.');
                 }
@@ -2003,13 +2005,13 @@ final class SEO_Dependiente_Entrenador {
             wp_send_json_error(array('message' => 'El conocimiento se está reiniciando. Espera a que termine.'), 423);
         }
 
-        $batch_key = self::sanitize_lab_batch_key($_POST['batch_key'] ?? '');
+        $batch_key = self::sanitize_lab_batch_key(self::ajax_post_arg('batch_key', ''));
         if (!$batch_key || !self::lab_batch_exists($batch_key)) {
             wp_send_json_error(array('message' => 'Lote de Laboratorio no encontrado.'), 404);
         }
         $speed = self::auto_speed_config();
-        $batch_size = self::sanitize_batch_size($_POST['batch_size'] ?? $speed['initial_batch']);
-        $batch_uuid = self::sanitize_uuid($_POST['batch_uuid'] ?? '');
+        $batch_size = self::sanitize_batch_size(self::ajax_post_arg('batch_size', $speed['initial_batch']));
+        $batch_uuid = self::sanitize_uuid(self::ajax_post_arg('batch_uuid', ''));
         if (!$batch_uuid) {
             $batch_uuid = wp_generate_uuid4();
         }
@@ -2033,7 +2035,7 @@ final class SEO_Dependiente_Entrenador {
         if (!self::ensure_ready()) {
             wp_send_json_error(array('message' => 'Academia no disponible.'), 500);
         }
-        $batch_key = self::sanitize_lab_batch_key($_POST['batch_key'] ?? '');
+        $batch_key = self::sanitize_lab_batch_key(self::ajax_post_arg('batch_key', ''));
         if (!$batch_key || !self::lab_batch_exists($batch_key)) {
             wp_send_json_error(array('message' => 'Lote de preguntas no encontrado.'), 404);
         }
@@ -2091,7 +2093,7 @@ final class SEO_Dependiente_Entrenador {
 
     public static function ajax_lab_report() {
         self::guard_ajax();
-        $batch_key = self::sanitize_lab_batch_key($_POST['batch_key'] ?? '');
+        $batch_key = self::sanitize_lab_batch_key(self::ajax_post_arg('batch_key', ''));
         if (!$batch_key || !self::lab_batch_exists($batch_key)) {
             wp_send_json_error(array('message' => 'Lote de preguntas no encontrado.'), 404);
         }
@@ -2190,7 +2192,7 @@ final class SEO_Dependiente_Entrenador {
 
     public static function ajax_lab_export() {
         self::guard_ajax();
-        $batch_key = self::sanitize_lab_batch_key($_POST['batch_key'] ?? '');
+        $batch_key = self::sanitize_lab_batch_key(self::ajax_post_arg('batch_key', ''));
         if (!$batch_key || !self::lab_batch_exists($batch_key)) {
             wp_send_json_error(array('message' => 'Lote de Laboratorio no encontrado.'), 404);
         }
@@ -2277,7 +2279,7 @@ final class SEO_Dependiente_Entrenador {
 
     public static function ajax_export_lesson() {
         self::guard_ajax();
-        $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
+        $lesson_key = sanitize_key((string) self::ajax_post_arg('lesson_key', ''));
         $document = self::build_lesson_export_document($lesson_key);
         if (!$document) {
             wp_send_json_error(array('message' => 'Lección no encontrada.'), 404);
@@ -2291,7 +2293,7 @@ final class SEO_Dependiente_Entrenador {
 
     public static function ajax_export_progress() {
         self::guard_ajax();
-        $lesson_key = sanitize_key((string) wp_unslash($_POST['lesson_key'] ?? ''));
+        $lesson_key = sanitize_key((string) self::ajax_post_arg('lesson_key', ''));
         $document = self::build_progress_export_document($lesson_key);
         if (!$document) {
             wp_send_json_error(array('message' => 'Lección no encontrada.'), 404);
@@ -7807,6 +7809,42 @@ final class SEO_Dependiente_Entrenador {
         if (!current_user_can(self::capability())) {
             wp_send_json_error(array('message' => 'No tienes permisos para usar la Academia.'), 403);
         }
+    }
+
+    /**
+     * Filtros GET de solo lectura de la pantalla de Academia.
+     */
+    private static function query_arg($key, $default = '') {
+        $key = sanitize_key((string) $key);
+        if ('' === $key) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación GET de solo lectura.
+        if (!isset($_GET[$key])) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación GET de solo lectura.
+        return wp_unslash($_GET[$key]);
+    }
+
+    /**
+     * Lee una entrada AJAX después de guard_ajax().
+     *
+     * @param string $key
+     * @param mixed  $default
+     * @return mixed
+     */
+    private static function ajax_post_arg($key, $default = '') {
+        $key = sanitize_key((string) $key);
+        if ('' === $key) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Todos los callers verifican el nonce mediante guard_ajax().
+        if (!isset($_POST[$key])) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Todos los callers verifican el nonce mediante guard_ajax().
+        return wp_unslash($_POST[$key]);
     }
 
     private static function capability() {
