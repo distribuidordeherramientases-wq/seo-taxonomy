@@ -82,7 +82,7 @@ $schema = array(
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="<?php echo esc_attr($description); ?>">
     <?php wp_head(); ?>
-    <script type="application/ld+json" id="seo-dependiente-schema"><?php echo wp_json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
+    <script type="application/ld+json" id="seo-dependiente-schema"><?php echo wp_json_encode($schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 </head>
 <body <?php body_class('seo-dependiente-app-body'); ?>>
 <?php wp_body_open(); ?>
