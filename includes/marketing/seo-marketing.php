@@ -818,6 +818,7 @@ function seo_marketing_style_handle_save()
 
     check_admin_referer('seo_marketing_style_save');
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Structured style array is normalized and validated by seo_marketing_style_persist().
     $posted = isset($_POST['settings']) && is_array($_POST['settings'])
         ? wp_unslash($_POST['settings'])
         : array();
@@ -892,6 +893,7 @@ function seo_marketing_style_handle_import()
 
     check_admin_referer('seo_marketing_style_import');
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON is decoded and validated before persistence.
     $raw = isset($_POST['style_json']) ? trim((string) wp_unslash($_POST['style_json'])) : '';
     $decoded = $raw !== '' ? json_decode($raw, true) : null;
 
@@ -1341,6 +1343,27 @@ function seo_marketing_identity_admin_url($args = array())
 }
 
 /**
+ * Lee filtros y avisos GET de solo lectura.
+ *
+ * @param string $key
+ * @param mixed  $default
+ * @return mixed
+ */
+function seo_marketing_query_arg($key, $default = '')
+{
+    $key = sanitize_key((string) $key);
+    if ('' === $key) {
+        return $default;
+    }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+    if (!isset($_GET[$key])) {
+        return $default;
+    }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+    return wp_unslash($_GET[$key]);
+}
+
+/**
  * Carga la biblioteca multimedia solo en la pestaña de identidad.
  * Permite subir una imagen nueva o elegir una existente en Medios.
  */
@@ -1350,8 +1373,8 @@ function seo_marketing_identity_enqueue_media()
         return;
     }
 
-    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
-    $tab  = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+    $page = sanitize_key((string) seo_marketing_query_arg('page', ''));
+    $tab  = sanitize_key((string) seo_marketing_query_arg('tab', ''));
 
     if ('seo-menu-marketing' === $page && 'identity' === $tab) {
         wp_enqueue_media();
@@ -1405,10 +1428,10 @@ function seo_marketing_identity_handle_save()
     $home_description = is_string($home_description) ? $home_description : '';
 
     $logo_id = isset($_POST['logo_id'])
-        ? seo_marketing_identity_validate_image_id($_POST['logo_id'])
+        ? seo_marketing_identity_validate_image_id(absint(wp_unslash($_POST['logo_id'])))
         : 0;
     $site_icon_id = isset($_POST['site_icon_id'])
-        ? seo_marketing_identity_validate_image_id($_POST['site_icon_id'])
+        ? seo_marketing_identity_validate_image_id(absint(wp_unslash($_POST['site_icon_id'])))
         : 0;
 
     update_option('blogname', $site_title);
@@ -2359,7 +2382,7 @@ function seo_marketing_handle_save_category_relations()
         }
     } else {
         $posted_ids = isset($_POST['category_ids'])
-            ? (array) wp_unslash($_POST['category_ids'])
+            ? array_map('absint', (array) wp_unslash($_POST['category_ids']))
             : array();
         $category_ids = array_values(
             array_unique(
@@ -3212,12 +3235,12 @@ function seo_marketing_render_style_tab()
  */
 function seo_marketing_render_style_notice()
 {
-    $message = isset($_GET['style_msg']) ? sanitize_key(wp_unslash($_GET['style_msg'])) : '';
+    $message = sanitize_key((string) seo_marketing_query_arg('style_msg', ''));
     if ($message === '') {
         return;
     }
 
-    $operation_id = isset($_GET['operation_id']) ? absint($_GET['operation_id']) : 0;
+    $operation_id = absint(seo_marketing_query_arg('operation_id', 0));
     $messages = array(
         'saved'        => array('success', 'Estilo visual guardado y publicado.'),
         'reset'        => array('success', 'Valores visuales predeterminados restaurados.'),
@@ -6998,7 +7021,7 @@ function seo_marketing_scan_bucket_label($bucket)
 
 function seo_marketing_scan_render_notice()
 {
-    $message = isset($_GET['scan_msg']) ? sanitize_key(wp_unslash($_GET['scan_msg'])) : '';
+    $message = sanitize_key((string) seo_marketing_query_arg('scan_msg', ''));
     if ($message === '') return;
 
     $class = 'notice notice-success is-dismissible';
@@ -7006,15 +7029,15 @@ function seo_marketing_scan_render_notice()
     if ($message === 'inventory_synced') {
         $text = sprintf(
             'Inventario actualizado desde el sitemap actual: %s URLs activas. %s URLs han salido del sitemap.',
-            number_format_i18n(absint($_GET['total'] ?? 0)),
-            number_format_i18n(absint($_GET['removed'] ?? 0))
+            number_format_i18n(absint(seo_marketing_query_arg('total', 0))),
+            number_format_i18n(absint(seo_marketing_query_arg('removed', 0)))
         );
     } elseif ($message === 'queued') {
-        $mode = sanitize_key((string) ($_GET['mode'] ?? 'full'));
+        $mode = sanitize_key((string) seo_marketing_query_arg('mode', 'full'));
         $text = sprintf(
             '%s enviado a GitHub: %s URLs encoladas localmente. El worker las pedirá poco a poco.',
             $mode === 'load_test' ? 'Test de carga' : 'Escaneo completo',
-            number_format_i18n(absint($_GET['batch'] ?? 0))
+            number_format_i18n(absint(seo_marketing_query_arg('batch', 0)))
         );
     } elseif ($message === 'busy') {
         $class = 'notice notice-warning';
@@ -7035,7 +7058,7 @@ function seo_marketing_scan_render_notice()
         $text = 'La conexión GitHub Python Runner está incompleta.';
     } elseif ($message === 'inventory_error') {
         $class = 'notice notice-error';
-        $text = 'No se pudo actualizar el inventario. ' . sanitize_text_field(rawurldecode((string) ($_GET['detail'] ?? '')));
+        $text = 'No se pudo actualizar el inventario. ' . sanitize_text_field(rawurldecode((string) seo_marketing_query_arg('detail', '')));
     } elseif ($message === 'github_error') {
         $class = 'notice notice-error';
         $text = 'GitHub no pudo aceptar el workflow.';
@@ -7094,13 +7117,13 @@ function seo_marketing_scan_render_inventory_table($stats)
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
-    $filter = isset($_GET['inventory_filter']) ? sanitize_key(wp_unslash($_GET['inventory_filter'])) : 'issues';
+    $filter = sanitize_key((string) seo_marketing_query_arg('inventory_filter', 'issues'));
     $allowed = array('all','ok','issues','pending','3xx','seo_warning','seo_error','404','403','4xx','5xx','network','removed');
     if (!in_array($filter, $allowed, true)) {
         $filter = 'all';
     }
-    $search = isset($_GET['inventory_s']) ? sanitize_text_field(wp_unslash($_GET['inventory_s'])) : '';
-    $page = max(1, isset($_GET['inventory_page']) ? absint($_GET['inventory_page']) : 1);
+    $search = sanitize_text_field((string) seo_marketing_query_arg('inventory_s', ''));
+    $page = max(1, absint(seo_marketing_query_arg('inventory_page', 1)));
     $per_page = 100;
     $where = seo_marketing_scan_inventory_filter_sql($filter);
     $params = array();
