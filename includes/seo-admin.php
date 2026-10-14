@@ -70,6 +70,14 @@ if (!function_exists('seo_page_edit_posts')) {
     }
 }
 
+// Bandeja editorial central (piloto): motores originales y datos inalterados.
+foreach (array('class-seo-editor-core.php','class-seo-editor-exchange.php','class-seo-editor-admin.php') as $seo_editor_module) {
+    $seo_editor_path = __DIR__ . '/editor/' . $seo_editor_module;
+    if (is_readable($seo_editor_path)) {
+        require_once $seo_editor_path;
+    }
+}
+
 if (!function_exists('seo_post_admin_callback')) {
     function seo_post_admin_callback() {
         if (!function_exists('seo_page_edit_posts')) {
