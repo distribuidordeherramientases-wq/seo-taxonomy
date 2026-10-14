@@ -2405,7 +2405,7 @@ function seo_social_network_handle_publish_now()
     $provider = isset($_POST['provider']) ? sanitize_key(wp_unslash($_POST['provider'])) : '';
     check_admin_referer('seo_social_network_publish_' . $content_id . '_' . $provider);
 
-    $template = isset($_POST['message_template']) ? trim((string) wp_unslash($_POST['message_template'])) : '';
+    $template = isset($_POST['message_template']) ? sanitize_textarea_field(wp_unslash($_POST['message_template'])) : '';
     $save_custom = !empty($_POST['save_custom_template']);
     if ($save_custom) {
         seo_social_network_save_custom_template($content_id, $provider, $template);
@@ -2439,7 +2439,7 @@ function seo_social_network_handle_save_content_template()
     $provider = isset($_POST['provider']) ? sanitize_key(wp_unslash($_POST['provider'])) : '';
     check_admin_referer('seo_social_network_template_' . $content_id . '_' . $provider);
 
-    $template = isset($_POST['message_template']) ? trim((string) wp_unslash($_POST['message_template'])) : '';
+    $template = isset($_POST['message_template']) ? sanitize_textarea_field(wp_unslash($_POST['message_template'])) : '';
     seo_social_network_save_custom_template($content_id, $provider, $template);
 
     wp_safe_redirect(
