@@ -33,4 +33,6 @@ foreach ( array_unique( $seo_ie_batch_candidates ) as $seo_ie_batch_file ) {
     }
 }
 
-error_log( '[TaxoCommerce SEO Import/Export] No se encuentra import-export/queue/batch.php.' );
+if (function_exists('seo_system_private_log')) {
+    seo_system_private_log('error',  '[TaxoCommerce SEO Import/Export] No se encuentra import-export/queue/batch.php.' );
+}

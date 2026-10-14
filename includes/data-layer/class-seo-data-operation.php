@@ -468,12 +468,13 @@ final class SEO_Data_Operation
             && strpos((string) $this->args['type'], 'data_layer_self_test_') === 0
         );
 
-        if (!$is_controlled_self_test) {
-            error_log(
-                sprintf(
-                    '[SEO Data Layer] Operación %s fallida: %s',
-                    $this->uuid,
-                    $exception->getMessage()
+        if (!$is_controlled_self_test && function_exists('seo_system_private_log')) {
+            seo_system_private_log(
+                'error',
+                'Data Layer: operación fallida',
+                array(
+                    'uuid'  => (string) $this->uuid,
+                    'error' => (string) $exception->getMessage(),
                 )
             );
         }

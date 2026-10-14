@@ -610,7 +610,9 @@ function seo_images_get_or_import( $provider, $source_url, $object_id = 0, $usag
         );
 
         if ( is_wp_error( $stored ) ) {
-            error_log( '[SEO Images] No se pudo actualizar el índice al reutilizar contenido: ' . $stored->get_error_message() );
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error',  '[SEO Images] No se pudo actualizar el índice al reutilizar contenido: ' . $stored->get_error_message() );
+            }
         }
 
         if ( $object_id ) {
@@ -732,7 +734,9 @@ function seo_images_get_or_import( $provider, $source_url, $object_id = 0, $usag
     );
 
     if ( is_wp_error( $stored ) ) {
-        error_log( '[SEO Images] El attachment se creó, pero no se pudo guardar en el índice: ' . $stored->get_error_message() );
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error',  '[SEO Images] El attachment se creó, pero no se pudo guardar en el índice: ' . $stored->get_error_message() );
+        }
     }
 
     if ( $object_id ) {
@@ -1815,7 +1819,9 @@ if (!function_exists('seo_images_assign_attachment_to_object')) {
 
             $usage_result = seo_images_register_usage($attachment_id, $object_id, 'featured', 'product_cat');
             if (is_wp_error($usage_result)) {
-                error_log('[SEO Images] La categoría recibió la imagen, pero no se pudo registrar el uso: ' . $usage_result->get_error_message());
+                if (function_exists('seo_system_private_log')) {
+                    seo_system_private_log('error', '[SEO Images] La categoría recibió la imagen, pero no se pudo registrar el uso: ' . $usage_result->get_error_message());
+                }
             }
             return true;
         }
@@ -1840,7 +1846,9 @@ if (!function_exists('seo_images_assign_attachment_to_object')) {
         $usage_result = seo_images_register_usage($attachment_id, $object_id, 'featured', $scope_type);
         if (is_wp_error($usage_result)) {
             $object_label = $scope_type === 'post' ? 'El post' : 'La página';
-            error_log('[SEO Images] ' . $object_label . ' recibió la imagen, pero no se pudo registrar el uso: ' . $usage_result->get_error_message());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[SEO Images] ' . $object_label . ' recibió la imagen, pero no se pudo registrar el uso: ' . $usage_result->get_error_message());
+            }
         }
         return true;
     }

@@ -29,7 +29,9 @@ $seo_ie_cf_required = [
 
 foreach ( $seo_ie_cf_required as $seo_ie_cf_file ) {
     if ( ! is_readable( $seo_ie_cf_file ) ) {
-        error_log( '[TaxoCommerce SEO Commercial Feeds] Falta el archivo: ' . $seo_ie_cf_file );
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error',  '[TaxoCommerce SEO Commercial Feeds] Falta el archivo: ' . $seo_ie_cf_file );
+        }
         return;
     }
 }

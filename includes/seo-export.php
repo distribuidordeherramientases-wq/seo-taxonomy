@@ -31,7 +31,9 @@ defined( 'ABSPATH' ) || exit;
  * @return void
  */
 function seo_ie_bridge_installation_error( $message ) {
-    error_log( '[TaxoCommerce SEO Import/Export] ' . $message );
+    if (function_exists('seo_system_private_log')) {
+        seo_system_private_log('error',  '[TaxoCommerce SEO Import/Export] ' . $message );
+    }
 
     if ( function_exists( 'add_action' ) ) {
         add_action(

@@ -305,6 +305,22 @@ function seo_google_connect_handler() {
 }
 
 /**
+ * Lee filtros y avisos GET de solo lectura del módulo Google.
+ */
+function seo_google_query_arg($key, $default = '') {
+    $key = sanitize_key((string) $key);
+    if ('' === $key) {
+        return $default;
+    }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+    if (!isset($_GET[$key])) {
+        return $default;
+    }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+    return wp_unslash($_GET[$key]);
+}
+
+/**
  * Recibe el callback OAuth y cambia el código por tokens.
  */
 function seo_google_oauth_callback_handler() {
@@ -312,7 +328,9 @@ function seo_google_oauth_callback_handler() {
         wp_die(esc_html__('No tienes permisos para completar esta conexión.', 'taxocommerce-seo'));
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth callback uses the one-time state token below.
     if (isset($_GET['error'])) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth callback parameter.
         $oauth_error = sanitize_key(wp_unslash($_GET['error']));
 
         wp_safe_redirect(
@@ -324,6 +342,7 @@ function seo_google_oauth_callback_handler() {
         exit;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth state is compared with the one-time transient immediately below.
     $received_state = isset($_GET['state'])
         ? sanitize_text_field(wp_unslash($_GET['state']))
         : '';
@@ -341,6 +360,7 @@ function seo_google_oauth_callback_handler() {
         exit;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth authorization code is accepted only after state validation.
     $code = isset($_GET['code'])
         ? sanitize_text_field(wp_unslash($_GET['code']))
         : '';
@@ -1450,8 +1470,8 @@ function seo_google_sync_day_handler() {
     }
 
     if (function_exists('set_time_limit')) {
-        @set_time_limit(120);
-    }
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit(120);}
 
     $run_id = isset($_POST['run_id']) ? absint(wp_unslash($_POST['run_id'])) : 0;
 
@@ -1921,7 +1941,7 @@ function seo_google_intelligence_page() {
 
     if (in_array($view, $executive_views, true)) {
         if (function_exists('seo_google_opportunity_render')) {
-            $days = isset($_GET['opportunity_days']) ? absint($_GET['opportunity_days']) : 60;
+            $days = absint(seo_google_query_arg('opportunity_days', 60));
             $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
             seo_google_opportunity_render($view, $days);
         } else {
@@ -1960,8 +1980,8 @@ function seo_google_intelligence_page() {
  * Avisos de acciones.
  */
 function seo_google_render_notices() {
-    $notice = isset($_GET['google_notice']) ? sanitize_key(wp_unslash($_GET['google_notice'])) : '';
-    $error  = isset($_GET['google_error']) ? sanitize_key(wp_unslash($_GET['google_error'])) : '';
+    $notice = sanitize_key((string) seo_google_query_arg('google_notice', ''));
+    $error  = sanitize_key((string) seo_google_query_arg('google_error', ''));
 
     $notice_messages = array(
         'settings_saved' => 'Configuración guardada.',
@@ -1985,8 +2005,8 @@ function seo_google_render_notices() {
     if (isset($notice_messages[$notice])) {
         $message = $notice_messages[$notice];
 
-        if ('test_ok' === $notice && isset($_GET['properties'])) {
-            $message .= ' Propiedades accesibles: ' . absint($_GET['properties']) . '.';
+        if ('test_ok' === $notice && '' !== (string) seo_google_query_arg('properties', '')) {
+            $message .= ' Propiedades accesibles: ' . absint(seo_google_query_arg('properties', 0)) . '.';
         }
 
         echo '<div class="notice notice-success inline"><p>' . esc_html($message) . '</p></div>';
@@ -3142,10 +3162,10 @@ function seo_google_render_signals() {
     }
 
     $settings        = seo_google_get_settings();
-    $days            = isset($_GET['signal_days']) ? absint($_GET['signal_days']) : 28;
+    $days            = absint(seo_google_query_arg('signal_days', 28));
     $days            = in_array($days, array(7, 14, 28, 60, 90), true) ? $days : 28;
-    $min_impressions = isset($_GET['signal_min']) ? max(0, (float) $_GET['signal_min']) : 5;
-    $search          = isset($_GET['signal_search']) ? sanitize_text_field(wp_unslash($_GET['signal_search'])) : '';
+    $min_impressions = max(0, (float) sanitize_text_field((string) seo_google_query_arg('signal_min', '5')));
+    $search          = sanitize_text_field((string) seo_google_query_arg('signal_search', ''));
     $period          = seo_google_get_analysis_period($settings['property_id'], $days);
 
     if (!$period) {
@@ -3345,9 +3365,9 @@ function seo_google_render_changes() {
     }
 
     $settings = seo_google_get_settings();
-    $days = isset($_GET['change_days']) ? absint($_GET['change_days']) : 28;
+    $days = absint(seo_google_query_arg('change_days', 28));
     $days = in_array($days, array(7, 14, 28), true) ? $days : 28;
-    $min  = isset($_GET['change_min']) ? max(0, (float) $_GET['change_min']) : 3;
+    $min  = max(0, (float) sanitize_text_field((string) seo_google_query_arg('change_min', '3')));
     $period = seo_google_get_analysis_period($settings['property_id'], $days);
 
     if (!$period) {
@@ -4230,7 +4250,7 @@ function seo_google_export_csv_handler() {
     }
 
     $filters = seo_google_get_lab_filters($settings['property_id'], $_GET);
-    $filters['limit'] = min(10000, max(10, isset($_GET['lab_export_limit']) ? absint($_GET['lab_export_limit']) : 5000));
+    $filters['limit'] = min(10000, max(10, absint(seo_google_query_arg('lab_export_limit', 5000))));
     $rows = seo_google_get_lab_rows($settings['property_id'], $filters);
 
     nocache_headers();
@@ -4265,7 +4285,7 @@ function seo_google_export_decisions_json_handler() {
 
     check_admin_referer('seo_google_export_decisions_json');
 
-    $days = isset($_GET['days']) ? absint($_GET['days']) : 60;
+    $days = absint(seo_google_query_arg('days', 60));
     $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
 
     if (!function_exists('seo_google_opportunity_export_payload')) {

@@ -1968,14 +1968,18 @@ function seo_product_category_deleted_term($term_id, $tt_id, $deleted_term, $obj
     $context = seo_product_category_delete_context_store($term_id);
 
     if (!is_array($context)) {
-        error_log('[SEO Category Delete] No existe contexto previo para product_cat #' . $term_id . '.');
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Category Delete] No existe contexto previo para product_cat #' . $term_id . '.');
+        }
         return;
     }
 
     try {
         seo_product_category_write_hub_redirect($context);
     } catch (Throwable $e) {
-        error_log('[SEO Category Delete] Redirect category #' . $term_id . ': ' . $e->getMessage());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Category Delete] Redirect category #' . $term_id . ': ' . $e->getMessage());
+        }
     }
 
     try {
@@ -1986,7 +1990,9 @@ function seo_product_category_deleted_term($term_id, $tt_id, $deleted_term, $obj
             (string) ($context['source_module'] ?? 'wordpress')
         );
     } catch (Throwable $e) {
-        error_log('[SEO Category Delete] Data Layer cleanup category #' . $term_id . ': ' . $e->getMessage());
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Category Delete] Data Layer cleanup category #' . $term_id . ': ' . $e->getMessage());
+        }
     }
 }
 add_action('delete_product_cat', 'seo_product_category_deleted_term', 10, 4);
@@ -2556,7 +2562,9 @@ function seo_delete_empty_product_categories_handler() {
 
         if (is_wp_error($result)) {
             $skipped++;
-            error_log('[SEO Reports] Categoría #' . $term_id . ' no eliminada: ' . $result->get_error_message());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[SEO Reports] Categoría #' . $term_id . ' no eliminada: ' . $result->get_error_message());
+            }
             continue;
         }
 

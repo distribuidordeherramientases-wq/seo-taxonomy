@@ -10,9 +10,25 @@
 
 defined('ABSPATH') || exit;
 
+if (!function_exists('seo_post_editor_query_arg')) {
+    function seo_post_editor_query_arg($key, $default = '') {
+        $key = sanitize_key((string) $key);
+        if ('' === $key) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación/filtros GET de solo lectura.
+        if (!isset($_GET[$key])) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación/filtros GET de solo lectura.
+        return wp_unslash($_GET[$key]);
+    }
+}
+
+
 if (!function_exists('seo_post_editor_enqueue_assets')) {
     function seo_post_editor_enqueue_assets() {
-        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        $page = sanitize_key((string) seo_post_editor_query_arg('page', ''));
         if (!in_array($page, array('seo-post-editor', 'seo-content'), true)) {
             return;
         }
@@ -129,8 +145,8 @@ if (!function_exists('seo_post_editor_relations_table_exists')) {
 
 if (!function_exists('seo_post_editor_route_context')) {
     function seo_post_editor_route_context() {
-        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : 'seo-post-editor';
-        $tab  = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+        $page = sanitize_key((string) seo_post_editor_query_arg('page', 'seo-post-editor'));
+        $tab  = sanitize_key((string) seo_post_editor_query_arg('tab', ''));
 
         if ($page === '') {
             $page = 'seo-post-editor';
@@ -165,9 +181,11 @@ if (!function_exists('seo_post_editor_admin_url')) {
 
 if (!function_exists('seo_post_editor_redirect_url_from_request')) {
     function seo_post_editor_redirect_url_from_request($extra = array()) {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Solo reconstruye la URL interna de retorno; los handlers mutantes verifican nonce antes de llamarla.
         $page = isset($_POST['return_page']) ? sanitize_key(wp_unslash($_POST['return_page'])) : 'seo-post-editor';
         $tab  = isset($_POST['return_tab']) ? sanitize_key(wp_unslash($_POST['return_tab'])) : '';
         $return_base = isset($_POST['return_base']) ? sanitize_key(wp_unslash($_POST['return_base'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $base = 'edit.php' === $return_base ? 'edit.php' : 'admin.php';
 
         if ($page === '') {
@@ -658,7 +676,9 @@ if (!function_exists('seo_post_editor_handle_save')) {
         $title   = isset($_POST['post_title']) ? sanitize_text_field(wp_unslash($_POST['post_title'])) : '';
         $slug    = isset($_POST['post_name']) ? sanitize_title(wp_unslash($_POST['post_name'])) : '';
         $status  = isset($_POST['post_status']) ? sanitize_key(wp_unslash($_POST['post_status'])) : 'draft';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by seo_post_editor_sanitize_content().
         $excerpt = isset($_POST['post_excerpt']) ? seo_post_editor_sanitize_content(wp_unslash($_POST['post_excerpt'])) : '';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by seo_post_editor_sanitize_content().
         $content = isset($_POST['post_content']) ? seo_post_editor_sanitize_content(wp_unslash($_POST['post_content'])) : '';
         $content_role = isset($_POST['seo_public_content_role'])
             ? sanitize_key(wp_unslash($_POST['seo_public_content_role']))
@@ -832,7 +852,7 @@ add_action('admin_menu', 'seo_post_editor_register_admin_page');
 
 if (!function_exists('seo_post_editor_current_section')) {
     function seo_post_editor_current_section() {
-        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+        $tab = sanitize_key((string) seo_post_editor_query_arg('tab', ''));
 
         // Acepta temporalmente el slug antiguo para no romper enlaces guardados.
         if (in_array($tab, array('opportunities', 'post_opportunities'), true)) {
@@ -919,9 +939,9 @@ if (!function_exists('seo_page_edit_posts')) {
 
         $context = seo_post_editor_route_context();
         $active_section = seo_post_editor_current_section();
-        $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
-        $new_post = !empty($_GET['new_post']);
-        $message = isset($_GET['seo_post_msg']) ? sanitize_key(wp_unslash($_GET['seo_post_msg'])) : '';
+        $post_id = absint(seo_post_editor_query_arg('post_id', 0));
+        $new_post = !empty(seo_post_editor_query_arg('new_post', ''));
+        $message = sanitize_key((string) seo_post_editor_query_arg('seo_post_msg', ''));
 
         if (in_array($active_section, array('opportunities','errors'), true)) {
             $view = $active_section === 'errors' ? 'health' : 'opportunities';
@@ -1146,15 +1166,15 @@ if (!function_exists('seo_page_edit_posts')) {
         $solucionador_only = ($active_section === 'solucionador');
         $ingeniero_only = ($active_section === 'ingeniero');
         $service_only = $solucionador_only || $ingeniero_only;
-        $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
-        $category_filter = isset($_GET['product_cat']) ? sanitize_text_field(wp_unslash($_GET['product_cat'])) : '';
+        $search = sanitize_text_field((string) seo_post_editor_query_arg('q', ''));
+        $category_filter = sanitize_text_field((string) seo_post_editor_query_arg('product_cat', ''));
         $status = $service_only
             ? 'draft'
-            : (isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '');
-        $paged  = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
+            : (sanitize_key((string) seo_post_editor_query_arg('status', '')));
+        $paged  = max(1, absint(seo_post_editor_query_arg('paged', 1)));
         $per_page = 40;
         $score_days = 28;
-        $score_order = isset($_GET['score_order']) && 'asc' === strtolower(sanitize_key((string) wp_unslash($_GET['score_order']))) ? 'asc' : 'desc';
+        $score_order = 'asc' === strtolower(sanitize_key((string) seo_post_editor_query_arg('score_order', 'desc'))) ? 'asc' : 'desc';
         $reports_available = !$service_only
             && function_exists('seo_post_reports_get_summary')
             && function_exists('seo_post_reports_admin_url');

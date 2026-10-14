@@ -8,6 +8,22 @@
 
 defined('ABSPATH') || exit;
 
+/**
+ * Lee filtros y avisos GET de solo lectura del explorador de datos.
+ */
+function seo_data_query_arg($key, $default = '') {
+    $key = sanitize_key((string) $key);
+    if ('' === $key) {
+        return $default;
+    }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación/filtros GET de solo lectura.
+    if (!isset($_GET[$key])) {
+        return $default;
+    }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación/filtros GET de solo lectura.
+    return wp_unslash($_GET[$key]);
+}
+
 add_action('admin_post_seo_data_export_table_csv', 'seo_data_export_table_csv');
 add_action('admin_post_seo_data_export_table_sql', 'seo_data_export_table_sql');
 add_action('admin_post_seo_data_export_all', 'seo_data_export_all');
@@ -25,7 +41,7 @@ function seo_data_table_page(): void
 
     global $wpdb;
 
-    $section = sanitize_key($_GET['section'] ?? 'overview');
+    $section = sanitize_key((string) seo_data_query_arg('section', 'overview'));
     if (!in_array($section, ['overview', 'explorer', 'export', 'operations'], true)) {
         $section = 'overview';
     }
@@ -230,7 +246,7 @@ function seo_data_render_explorer(array $tables): void
         return;
     }
 
-    $requested_table = sanitize_text_field($_GET['table'] ?? '');
+    $requested_table = sanitize_text_field((string) seo_data_query_arg('table', ''));
     $table_name = isset($tables[$requested_table]) ? $requested_table : array_key_first($tables);
 
     $columns = seo_data_get_columns($table_name);
@@ -242,30 +258,30 @@ function seo_data_render_explorer(array $tables): void
     $column_names = array_column($columns, 'Field');
     $default_orderby = in_array('id', $column_names, true) ? 'id' : $column_names[0];
 
-    $orderby = sanitize_key($_GET['orderby'] ?? $default_orderby);
+    $orderby = sanitize_key((string) seo_data_query_arg('orderby', $default_orderby));
     if (!in_array($orderby, $column_names, true)) {
         $orderby = $default_orderby;
     }
 
-    $order = strtoupper(sanitize_text_field($_GET['order'] ?? 'DESC'));
+    $order = strtoupper(sanitize_text_field((string) seo_data_query_arg('order', 'DESC')));
     if (!in_array($order, ['ASC', 'DESC'], true)) {
         $order = 'DESC';
     }
 
-    $search = sanitize_text_field($_GET['s'] ?? '');
-    $filter_column = sanitize_key($_GET['filter_column'] ?? '');
-    $filter_value = sanitize_text_field($_GET['filter_value'] ?? '');
+    $search = sanitize_text_field((string) seo_data_query_arg('s', ''));
+    $filter_column = sanitize_key((string) seo_data_query_arg('filter_column', ''));
+    $filter_value = sanitize_text_field((string) seo_data_query_arg('filter_value', ''));
 
     if (!in_array($filter_column, $column_names, true)) {
         $filter_column = '';
     }
 
-    $per_page = absint($_GET['per_page'] ?? 100);
+    $per_page = absint(seo_data_query_arg('per_page', 100));
     if (!in_array($per_page, [25, 50, 100, 250, 500], true)) {
         $per_page = 100;
     }
 
-    $page_number = max(1, absint($_GET['paged'] ?? 1));
+    $page_number = max(1, absint(seo_data_query_arg('paged', 1)));
     $offset = ($page_number - 1) * $per_page;
 
     $where_parts = [];
@@ -585,7 +601,7 @@ function seo_data_export_table_csv(): void
 {
     seo_data_assert_export_access();
 
-    $table_name = sanitize_text_field($_GET['table'] ?? '');
+    $table_name = sanitize_text_field((string) seo_data_query_arg('table', ''));
     check_admin_referer('seo_data_export_table_csv_' . $table_name);
 
     if (!seo_data_is_registered_table($table_name)) {
@@ -617,7 +633,7 @@ function seo_data_export_table_sql(): void
 {
     seo_data_assert_export_access();
 
-    $table_name = sanitize_text_field($_GET['table'] ?? '');
+    $table_name = sanitize_text_field((string) seo_data_query_arg('table', ''));
     check_admin_referer('seo_data_export_table_sql_' . $table_name);
 
     if (!seo_data_is_registered_table($table_name)) {
@@ -657,20 +673,20 @@ function seo_data_render_operations_center(): void
         return;
     }
 
-    $notice = sanitize_key($_GET['operation_notice'] ?? '');
+    $notice = sanitize_key((string) seo_data_query_arg('operation_notice', ''));
     if ($notice === 'rolled_back') {
         echo '<div class="notice notice-success is-dismissible"><p>La operación se ha revertido correctamente.</p></div>';
     } elseif ($notice === 'rollback_failed') {
-        $message = sanitize_text_field(wp_unslash($_GET['operation_message'] ?? 'No se pudo completar el rollback.'));
+        $message = sanitize_text_field((string) seo_data_query_arg('operation_message', 'No se pudo completar el rollback.'));
         echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($message) . '</p></div>';
     }
 
-    $status = sanitize_key($_GET['status'] ?? '');
-    $module = sanitize_key($_GET['module'] ?? '');
-    $risk = sanitize_key($_GET['risk'] ?? '');
-    $search = sanitize_text_field($_GET['s'] ?? '');
-    $operation_id = absint($_GET['operation_id'] ?? 0);
-    $paged = max(1, absint($_GET['paged'] ?? 1));
+    $status = sanitize_key((string) seo_data_query_arg('status', ''));
+    $module = sanitize_key((string) seo_data_query_arg('module', ''));
+    $risk = sanitize_key((string) seo_data_query_arg('risk', ''));
+    $search = sanitize_text_field((string) seo_data_query_arg('s', ''));
+    $operation_id = absint(seo_data_query_arg('operation_id', 0));
+    $paged = max(1, absint(seo_data_query_arg('paged', 1)));
     $per_page = 50;
     $offset = ($paged - 1) * $per_page;
 
@@ -896,7 +912,8 @@ function seo_data_handle_rollback_operation(): void
     if (!current_user_can('manage_options')) {
         wp_die('No tienes permisos para revertir operaciones.');
     }
-    $operation_id = absint($_POST['operation_id'] ?? 0);
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- ID is needed to build the nonce action verified on the next line.
+    $operation_id = absint(wp_unslash($_POST['operation_id'] ?? 0));
     check_admin_referer('seo_data_rollback_operation_' . $operation_id);
     $redirect = add_query_arg(['page' => 'seo-data-table', 'section' => 'operations', 'operation_id' => $operation_id], admin_url('admin.php'));
     try {
@@ -921,7 +938,8 @@ function seo_data_export_operation_json(): void
         wp_die('No tienes permisos para exportar operaciones.');
     }
     global $wpdb;
-    $operation_id = absint($_GET['operation_id'] ?? 0);
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Operation ID is required to construct the nonce action verified immediately below.
+    $operation_id = absint(wp_unslash($_GET['operation_id'] ?? 0));
     check_admin_referer('seo_data_export_operation_json_' . $operation_id);
     $operation = $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$wpdb->prefix}seo_operations` WHERE id = %d", $operation_id), ARRAY_A);
     if (!$operation) {
@@ -1025,7 +1043,8 @@ function seo_data_export_all(): void
 {
     seo_data_assert_export_access();
 
-    $format = sanitize_key($_GET['format'] ?? 'both');
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Format is required to construct the nonce action verified below.
+    $format = sanitize_key(wp_unslash($_GET['format'] ?? 'both'));
     if (!in_array($format, ['csv', 'sql', 'both'], true)) {
         $format = 'both';
     }

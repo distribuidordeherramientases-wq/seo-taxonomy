@@ -414,7 +414,9 @@ $json = array(
         try {
             $category_choice_criteria = (array) dht_template_category_choice_criteria($grid_products, 6);
         } catch (Throwable $e) {
-            error_log('[DHT category] choice_criteria: ' . $e->getMessage());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[DHT category] choice_criteria: ' . $e->getMessage());
+            }
         }
     }
 
@@ -485,7 +487,9 @@ $json = array(
                             try {
                                 dht_shared_render_product_grid($grid_products, 'dht-category-product-grid', 3, true);
                             } catch (Throwable $e) {
-                                error_log('[DHT category] render_product_grid: ' . $e->getMessage());
+                                if (function_exists('seo_system_private_log')) {
+                                    seo_system_private_log('error', '[DHT category] render_product_grid: ' . $e->getMessage());
+                                }
                             }
                         }
                         ?>
@@ -571,7 +575,9 @@ $json = array(
         try {
             $related_categories = (array) dht_template_related_product_categories($term, 6);
         } catch (Throwable $e) {
-            error_log('[DHT category] related_product_categories: ' . $e->getMessage());
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log('error', '[DHT category] related_product_categories: ' . $e->getMessage());
+            }
             $related_categories = array();
         }
     }
