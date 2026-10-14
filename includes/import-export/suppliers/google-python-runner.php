@@ -615,6 +615,33 @@ if ( ! function_exists( 'seo_google_python_runner_callback' ) ) {
             return new WP_Error( 'seo_python_callback_extension', 'Solo se admite el CSV estandar de proveedores.', [ 'status' => 400 ] );
         }
 
+        /*
+         * El callback recibe un CSV generado por un runner autenticado, pero
+         * antes de permitir el fallback MIME del helper de subidas validamos
+         * su estructura y los campos obligatorios del formato estandar.
+         * Esto mantiene el endurecimiento WordPress.org sin rechazar CSV
+         * validos que fileinfo pueda clasificar como text/plain o text/html.
+         */
+        if ( ! function_exists( 'seo_proveedores_analizar_csv' ) || ! function_exists( 'seo_proveedores_campos_importacion' ) ) {
+            return new WP_Error( 'seo_python_callback_validator', 'El validador del CSV estandar de proveedores no esta disponible.', [ 'status' => 500 ] );
+        }
+
+        $callback_analysis = seo_proveedores_analizar_csv( (string) $file['tmp_name'] );
+        if ( is_wp_error( $callback_analysis ) ) {
+            return new WP_Error( 'seo_python_callback_csv', $callback_analysis->get_error_message(), [ 'status' => 400 ] );
+        }
+
+        $callback_header = (array) ( $callback_analysis['header'] ?? [] );
+        foreach ( (array) seo_proveedores_campos_importacion() as $field_key => $definition ) {
+            if ( ! empty( $definition['required'] ) && ! in_array( $field_key, $callback_header, true ) ) {
+                return new WP_Error(
+                    'seo_python_callback_csv',
+                    'El CSV recibido no contiene el campo obligatorio: ' . sanitize_key( (string) $field_key ),
+                    [ 'status' => 400 ]
+                );
+            }
+        }
+
         $recipe_id = sanitize_key( (string) ( $run['recipe_id'] ?? '' ) );
         $recipe = function_exists( 'seo_proveedores_obtener_receta' ) ? seo_proveedores_obtener_receta( $recipe_id ) : null;
         if ( ! is_array( $recipe ) ) {
@@ -631,6 +658,7 @@ if ( ! function_exists( 'seo_google_python_runner_callback' ) ) {
             $storage['dir'],
             [ 'csv' => 'text/csv', 'txt' => 'text/plain' ],
             $source_name,
+            true,
             true
         );
         if ( is_wp_error( $stored ) ) {
