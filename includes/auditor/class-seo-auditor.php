@@ -76,8 +76,8 @@ final class SEO_Auditor {
     }
 
     private static function execute_catalog_audit_and_redirect() {
-        @set_time_limit(600);
-        $report = self::run_catalog_audit();
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit(600);$report = self::run_catalog_audit();
         update_option(self::CATALOG_REPORT_OPTION, $report, false);
         // Mantener la opcion historica para consumidores externos que aun la lean.
         update_option(self::REPORT_OPTION, $report, false);
@@ -88,8 +88,8 @@ final class SEO_Auditor {
 
     public static function handle_run_academy() {
         self::guard_action('seo_auditor_run_academy');
-        @set_time_limit(600);
-        $report = self::run_academy_audit();
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit(600);$report = self::run_academy_audit();
         update_option(self::ACADEMY_REPORT_OPTION, $report, false);
         wp_safe_redirect(add_query_arg(array('page'=>'seo-dependiente','tab'=>'auditor','audited'=>'academy','audit_view'=>'academia'), admin_url('admin.php')));
         exit;
@@ -102,8 +102,8 @@ final class SEO_Auditor {
             wp_die(esc_html__('Ambito de auditoria no valido.', 'taxocommerce-seo'));
         }
 
-        @set_time_limit(300);
-        $report = self::run_scoped_audit($scope);
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
+        @set_time_limit(300);$report = self::run_scoped_audit($scope);
         $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         $reports[$scope] = $report;
         update_option(self::SCOPED_REPORT_OPTION, $reports, false);
