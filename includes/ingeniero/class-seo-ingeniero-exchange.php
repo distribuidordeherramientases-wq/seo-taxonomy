@@ -245,10 +245,12 @@ final class SEO_Ingeniero_Exchange {
     public static function handle_import() {
         self::guard('seo_ingeniero_exchange_import');
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         if (empty($_FILES['ingeniero_file']) || !is_array($_FILES['ingeniero_file'])) {
             self::redirect(array('ingeniero_exchange_error'=>rawurlencode('No se ha recibido ningún archivo.')));
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated field by field below.
         $file = $_FILES['ingeniero_file'];
         if (!empty($file['error'])) {
             self::redirect(array('ingeniero_exchange_error'=>rawurlencode('Error de subida: ' . absint($file['error']))));
@@ -263,6 +265,7 @@ final class SEO_Ingeniero_Exchange {
         $mode = isset($_POST['import_mode']) ? sanitize_key(wp_unslash($_POST['import_mode'])) : 'add_only';
         if (!in_array($mode, array('add_only','update_review'), true)) $mode = 'add_only';
         $strict_category = !empty($_POST['strict_category']);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         $name = sanitize_file_name((string) ($file['name'] ?? ''));
         $ext = strtolower((string) pathinfo($name, PATHINFO_EXTENSION));
