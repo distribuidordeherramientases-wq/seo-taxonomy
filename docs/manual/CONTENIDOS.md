@@ -8,6 +8,7 @@ La pantalla **Contenidos** agrupa los editores que se utilizan con más frecuenc
 
 | Tarjeta | Qué abre | Acción |
 |---|---|---|
+| Editor | Bandeja central de borradores de posts y landings, revisión individual/masiva e importación/exportación CSV | **Abrir** [Consulta; decisiones manuales dentro] |
 | Productos | Gestión de productos, inventario, edición y recategorización | **Abrir** [Consulta] |
 | Categorías | Categorías, contenido SEO, relaciones e inventarios | **Abrir** [Consulta] |
 | Páginas | Hubs, landings, páginas corporativas y estructura editorial | **Abrir** [Consulta] |
@@ -18,6 +19,8 @@ La pantalla **Contenidos** agrupa los editores que se utilizan con más frecuenc
 | FAQs | Gestión de preguntas frecuentes, cobertura, calidad e interacción | **Abrir** [Consulta] |
 
 El botón **Abrir** solo navega al editor correspondiente.
+
+**Editor** reúne los borradores WP que ya generan los motores y los que se importen desde CSV. Mantiene los botones originales por compatibilidad durante el piloto; todavía no crea automáticamente borradores desde todos los expedientes. Manual completo: [Editor](EDITOR.md).
 
 ## Procesos editoriales coordinados
 
