@@ -982,7 +982,7 @@ if (!function_exists('seo_images_scan_handle_stop')) {
         seo_images_scan_store_process_state($state);
         seo_images_scan_unschedule_continue();
 
-        $run_id = isset($_POST['run_id']) ? absint($_POST['run_id']) : 0;
+        $run_id = isset($_POST['run_id']) ? absint(wp_unslash($_POST['run_id'])) : 0;
         $run = null;
         if ($run_id > 0) {
             $run = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tables['runs']} WHERE id=%d", $run_id), ARRAY_A);
@@ -1496,12 +1496,12 @@ add_action('rest_api_init', 'seo_images_scan_register_rest_routes');
 
 if (!function_exists('seo_images_scan_admin_notice')) {
     function seo_images_scan_admin_notice() {
-        $message = isset($_GET['scan_msg']) ? sanitize_key(wp_unslash($_GET['scan_msg'])) : '';
+        $message = sanitize_key((string) seo_images_scan_query_arg('scan_msg', ''));
         if ($message === '') {
             return;
         }
-        $count = isset($_GET['count']) ? absint($_GET['count']) : 0;
-        $detail = isset($_GET['detail']) ? sanitize_text_field(rawurldecode((string) $_GET['detail'])) : '';
+        $count = absint(seo_images_scan_query_arg('count', 0));
+        $detail = sanitize_text_field(rawurldecode((string) seo_images_scan_query_arg('detail', '')));
         $map = array(
             'started' => array('success', sprintf('Escaneo automático iniciado. Primer lote: hasta %d páginas.', $count)),
             'active' => array('warning', 'Ya hay un proceso automático de imágenes activo. Puedes detenerlo con el botón Parar proceso.'),
@@ -1693,9 +1693,9 @@ if (!function_exists('seo_images_scan_render_tab')) {
             echo '</section>';
         }
 
-        $filter = isset($_GET['scan_filter']) ? sanitize_key(wp_unslash($_GET['scan_filter'])) : 'all';
-        $search = isset($_GET['scan_s']) ? sanitize_text_field(wp_unslash($_GET['scan_s'])) : '';
-        $page_no = isset($_GET['scan_paged']) ? max(1, absint($_GET['scan_paged'])) : 1;
+        $filter = sanitize_key((string) seo_images_scan_query_arg('scan_filter', 'all'));
+        $search = sanitize_text_field((string) seo_images_scan_query_arg('scan_s', ''));
+        $page_no = max(1, absint(seo_images_scan_query_arg('scan_paged', 1)));
         $per_page = 50;
         $where = array('s.active_in_sitemap=1');
         $params = array();
@@ -1760,9 +1760,9 @@ if (!function_exists('seo_images_scan_render_tab')) {
         }
         echo '</section>';
 
-        $issue_filter = isset($_GET['issue_filter']) ? sanitize_key(wp_unslash($_GET['issue_filter'])) : 'broken';
-        $issue_search = isset($_GET['issue_s']) ? sanitize_text_field(wp_unslash($_GET['issue_s'])) : '';
-        $issue_page = isset($_GET['issue_paged']) ? max(1, absint($_GET['issue_paged'])) : 1;
+        $issue_filter = sanitize_key((string) seo_images_scan_query_arg('issue_filter', 'broken'));
+        $issue_search = sanitize_text_field((string) seo_images_scan_query_arg('issue_s', ''));
+        $issue_page = max(1, absint(seo_images_scan_query_arg('issue_paged', 1)));
         $issue_per_page = 100;
         $issue_where = array('i.active_on_page=1', 's.active_in_sitemap=1');
         if ($issue_filter === 'broken') {
@@ -1817,7 +1817,7 @@ if (!function_exists('seo_images_scan_render_tab')) {
         }
         echo '</section>';
 
-        $detail_id = isset($_GET['image_page']) ? absint($_GET['image_page']) : 0;
+        $detail_id = absint(seo_images_scan_query_arg('image_page', 0));
         if ($detail_id > 0) {
             $detail = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tables['pages']} WHERE id=%d", $detail_id), ARRAY_A);
             if ($detail) {
