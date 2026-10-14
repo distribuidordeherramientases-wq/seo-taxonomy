@@ -1446,7 +1446,7 @@ function seo_search_frontend_css() {
 ";
 }
 
-add_shortcode('seo_search', function ($atts) {
+add_shortcode('taxocommerce_search', function ($atts) {
     if (!class_exists('WooCommerce')) {
         return '<p>' . esc_html__('SEO Search necesita WooCommerce para funcionar.', 'taxocommerce-seo') . '</p>';
     }
@@ -1830,7 +1830,7 @@ add_action('admin_menu', function () {
 }, 99);
 
 function seo_search_snippet_info() {
-    echo '<div class="notice notice-info inline"><p><strong>' . esc_html__('Shortcodes:', 'taxocommerce-seo') . '</strong> <code>[taxocommerce_advanced_search]</code> ' . esc_html__('para búsqueda normal', 'taxocommerce-seo') . ' · <code>[taxocommerce_advanced_search]</code> ' . esc_html__('para filtros semánticos avanzados.', 'taxocommerce-seo') . '</p></div>';
+    echo '<div class="notice notice-info inline"><p><strong>' . esc_html__('Shortcodes:', 'taxocommerce-seo') . '</strong> <code>[taxocommerce_search]</code> ' . esc_html__('para búsqueda normal', 'taxocommerce-seo') . ' · <code>[taxocommerce_advanced_search]</code> ' . esc_html__('para filtros semánticos avanzados.', 'taxocommerce-seo') . '</p></div>';
 }
 
 function seo_search_admin_checkbox($name, $label, $description = '') {
@@ -1956,7 +1956,7 @@ function seo_search_settings_page() {
             <?php if ('general' === $tab) : ?>
                 <hr>
                 <h2><?php esc_html_e('Vista previa', 'taxocommerce-seo'); ?></h2>
-                <?php echo do_shortcode('[taxocommerce_advanced_search]'); ?>
+                <?php echo do_shortcode('[taxocommerce_search]'); ?>
             <?php elseif ('advanced' === $tab) : ?>
                 <hr>
                 <h2><?php esc_html_e('Vista previa de filtros avanzados', 'taxocommerce-seo'); ?></h2>
