@@ -408,6 +408,7 @@ if (!function_exists('seo_processes_save_controls')) {
             delete_option('seo_processes_control_settings');
             $message = 'restored';
         } else {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Structured controls are normalized field by field by seo_processes_sanitize_controls().
             $raw = isset($_POST['controls']) && is_array($_POST['controls']) ? wp_unslash($_POST['controls']) : array();
             update_option('seo_processes_control_settings', seo_processes_sanitize_controls($raw), false);
             $message = 'saved';
