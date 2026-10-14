@@ -163,13 +163,16 @@ final class SEO_Data_Rollback
                 ['id' => $operation_id]
             );
 
-            error_log(
-                sprintf(
-                    '[SEO Data Layer] Rollback de operación %d fallido: %s',
-                    $operation_id,
-                    $exception->getMessage()
-                )
-            );
+            if (function_exists('seo_system_private_log')) {
+                seo_system_private_log(
+                    'error',
+                    'Data Layer: rollback fallido',
+                    array(
+                        'operation_id' => absint($operation_id),
+                        'error'        => (string) $exception->getMessage(),
+                    )
+                );
+            }
 
             throw $exception;
         }
