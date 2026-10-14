@@ -535,35 +535,30 @@ function search_category_anomaly() {
 
 
 if ($cluster > 0 || $hub_primario > 0 || $hub_secundario > 0 || $cat > 0) {
-    
-    echo "<script>
-
-    var cluster = " . intval($cluster) . ";
-    var hubPrimario = " . intval($hub_primario) . ";
-    var hubSecundario = " . intval($hub_secundario) . ";
-    var cat = " . intval($cat) . ";
-
-    if (cluster > 0) {
-        var el = document.querySelector('select[name=cluster]');
-        if (el) el.value = cluster;
+    $handle = 'taxocommerce-category-anomaly-filters';
+    if (!wp_script_is($handle, 'registered')) {
+        wp_register_script(
+            $handle,
+            false,
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+            true
+        );
     }
 
-    if (hubPrimario > 0) {
-        var el = document.querySelector('select[name=hub_primario]');
-        if (el) el.value = hubPrimario;
-    }
-
-    if (hubSecundario > 0) {
-        var el = document.querySelector('select[name=hub_secundario]');
-        if (el) el.value = hubSecundario;
-    }
-
-    if (cat > 0) {
-        var el = document.querySelector('select[name=cat]');
-        if (el) el.value = cat;
-    }
-
-    </script>";
+    wp_enqueue_script($handle);
+    wp_add_inline_script(
+        $handle,
+        'document.addEventListener("DOMContentLoaded",function(){'
+        . 'var values=' . wp_json_encode(array(
+            'cluster' => absint($cluster),
+            'hub_primario' => absint($hub_primario),
+            'hub_secundario' => absint($hub_secundario),
+            'cat' => absint($cat),
+        )) . ';'
+        . 'Object.keys(values).forEach(function(name){var value=parseInt(values[name],10)||0;if(value<1){return;}var el=document.querySelector("select[name="+name+"]");if(el){el.value=String(value);}});'
+        . '});'
+    );
 }
 
 
@@ -579,11 +574,11 @@ if (!$run_anomalies) {
 // =========================
 // PESOS DE CATEGORÍA
 // =========================
-$w_title      = floatval($_GET['w_title'] ?? 20);
-$w_tags       = floatval($_GET['w_tags'] ?? 20);
-$w_attrs      = floatval($_GET['w_attrs'] ?? 20);
-$w_hierarchy  = floatval($_GET['w_hierarchy'] ?? 20);
-$w_group      = floatval($_GET['w_group'] ?? 20);
+$w_title      = isset($_GET['w_title']) ? (float) sanitize_text_field(wp_unslash($_GET['w_title'])) : 20.0;
+$w_tags       = isset($_GET['w_tags']) ? (float) sanitize_text_field(wp_unslash($_GET['w_tags'])) : 20.0;
+$w_attrs      = isset($_GET['w_attrs']) ? (float) sanitize_text_field(wp_unslash($_GET['w_attrs'])) : 20.0;
+$w_hierarchy  = isset($_GET['w_hierarchy']) ? (float) sanitize_text_field(wp_unslash($_GET['w_hierarchy'])) : 20.0;
+$w_group      = isset($_GET['w_group']) ? (float) sanitize_text_field(wp_unslash($_GET['w_group'])) : 20.0;
 
 $total_w = $w_title + $w_tags + $w_attrs + $w_hierarchy + $w_group;
 
