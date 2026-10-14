@@ -65,7 +65,9 @@ final class SEO_Editor_Exchange {
 
         nocache_headers();
         header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="editor-' . gmdate('Ymd-His') . '.csv"');
+                $batch = isset($_GET['lote']) ? absint($_GET['lote']) : 0;
+        if ($batch > 4) wp_die('Lote CSV inválido.');
+        header('Content-Disposition: attachment; filename="editor-' . ($batch ? 'lote-'.$batch.'-' : 'todo-') . gmdate('Ymd-His') . '.csv"');
         header('X-Content-Type-Options: nosniff');
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Streaming CSV requiere un recurso nativo.
         $out = fopen('php://output','w');
@@ -73,7 +75,9 @@ final class SEO_Editor_Exchange {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- BOM Excel UTF-8.
         fwrite($out, "\xEF\xBB\xBF");
         fputcsv($out, self::COLUMNS, ';', '"', '');
-        foreach (SEO_Editor_Core::drafts() as $post) {
+        $items = SEO_Editor_Core::drafts();
+        if ($batch) $items = array_slice($items, ($batch - 1) * self::MAX_ROWS, self::MAX_ROWS);
+        foreach ($items as $post) {
             $row = self::row($post);
             $cells = array();
             foreach (self::COLUMNS as $column) $cells[] = self::csv_safe($row[$column] ?? '');
@@ -134,6 +138,7 @@ final class SEO_Editor_Exchange {
         }
         $rows = array();
         $seen = array();
+        $seen_new_titles = array();
         while (($cells = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
             if ($cells === array(null)) continue;
             if (count($cells) !== count(self::COLUMNS)) {
@@ -149,6 +154,14 @@ final class SEO_Editor_Exchange {
                     return new WP_Error('editor_duplicate_id', 'El CSV contiene el mismo ID más de una vez: ' . $id);
                 }
                 $seen[$id] = true;
+            }
+            if (!$id) {
+                $key = sanitize_key((string)($row['tipo'] ?? '')) . ':' . sanitize_title((string)($row['titulo'] ?? ''));
+                if (isset($seen_new_titles[$key])) {
+                    fclose($handle);
+                    return new WP_Error('editor_new_duplicate', 'Dos propuestas externas nuevas comparten tipo y título.');
+                }
+                $seen_new_titles[$key] = true;
             }
             $rows[] = $row;
             if (count($rows) > self::MAX_ROWS) {
