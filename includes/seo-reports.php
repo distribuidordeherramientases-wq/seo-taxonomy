@@ -46,6 +46,49 @@ add_action('admin_post_seo_recount_product_categories', 'seo_recount_product_cat
 add_action('wp_ajax_seo_reports_general_partial', 'seo_reports_general_ajax_partial');
 add_action('admin_post_seo_reports_general_json', 'seo_reports_general_json_handler');
 
+if (!function_exists('seo_reports_add_inline_script')) {
+    function seo_reports_add_inline_script($script) {
+        $script = (string) $script;
+        if ('' === trim($script)) {
+            return;
+        }
+
+        $handle = 'taxocommerce-seo-reports-inline';
+        if (!wp_script_is($handle, 'registered')) {
+            wp_register_script(
+                $handle,
+                false,
+                array(),
+                defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+                true
+            );
+        }
+        wp_enqueue_script($handle);
+        wp_add_inline_script($handle, $script);
+    }
+}
+
+if (!function_exists('seo_reports_add_inline_style')) {
+    function seo_reports_add_inline_style($css) {
+        $css = (string) $css;
+        if ('' === trim($css)) {
+            return;
+        }
+
+        $handle = 'taxocommerce-seo-reports-inline';
+        if (!wp_style_is($handle, 'registered')) {
+            wp_register_style(
+                $handle,
+                false,
+                array(),
+                defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+            );
+        }
+        wp_enqueue_style($handle);
+        wp_add_inline_style($handle, $css);
+    }
+}
+
 /**
  * Catálogo de informes de la portada Informes > Informes.
  *
@@ -103,6 +146,28 @@ function seo_reports_render_general_shell() {
     $nonce    = wp_create_nonce('seo_reports_general_partial');
     $ajax_url = admin_url('admin-ajax.php');
 
+    wp_enqueue_style(
+        'taxocommerce-seo-reports',
+        SEO_SYSTEM_URL . 'includes/assets/seo-reports.css',
+        array(),
+        defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+    );
+    wp_enqueue_script(
+        'taxocommerce-seo-reports-lazy',
+        SEO_SYSTEM_URL . 'includes/assets/seo-reports-lazy.js',
+        array('jquery'),
+        defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+        true
+    );
+    wp_localize_script(
+        'taxocommerce-seo-reports-lazy',
+        'seoReportsLazy',
+        array(
+            'ajaxUrl' => $ajax_url,
+            'nonce'   => $nonce,
+        )
+    );
+
     echo '<div class="seo-reports-lazy-intro">';
     echo '<strong>Informes bajo demanda</strong>';
     echo '<p>Esta pantalla ya no ejecuta consultas pesadas al abrirse. Genera únicamente el informe que necesites o descarga su JSON.</p>';
@@ -127,92 +192,6 @@ function seo_reports_render_general_shell() {
         echo '</section>';
     }
     echo '</div>';
-
-    echo '<style>
-    .seo-reports-lazy-intro{background:#fff;border:1px solid #dcdcde;border-left:4px solid #2271b1;border-radius:8px;padding:15px 18px;margin:16px 0}.seo-reports-lazy-intro p{margin:5px 0 0;color:#646970}
-    .seo-reports-lazy-list{display:flex;flex-direction:column;gap:14px;margin:16px 0 24px}.seo-reports-lazy-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px}.seo-reports-lazy-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}.seo-reports-lazy-card-head h3{margin:0 0 5px;font-size:16px}.seo-reports-lazy-card-head p{margin:0;color:#646970;max-width:900px}.seo-reports-lazy-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.seo-reports-lazy-status{min-height:0;margin-top:0;color:#50575e}.seo-reports-lazy-status.is-visible{min-height:28px;margin-top:12px}.seo-reports-lazy-status .spinner{float:none;margin:0 7px 0 0;vertical-align:middle}.seo-reports-lazy-result{margin-top:14px;border-top:1px solid #f0f0f1;padding-top:2px}.seo-reports-lazy-card.is-running{border-color:#2271b1;box-shadow:0 0 0 1px #2271b1}
-    @media(max-width:782px){.seo-reports-lazy-actions{width:100%}.seo-reports-lazy-actions .button{flex:1 1 auto;text-align:center}}
-    </style>';
-
-    ?>
-    <script>
-    jQuery(function($) {
-        var ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
-        var nonce = <?php echo wp_json_encode($nonce); ?>;
-        var running = false;
-
-        function safeText(value) {
-            return $('<div>').text(value || '').html();
-        }
-
-        $('.seo-reports-lazy-card').each(function() {
-            var card = $(this);
-            var createButton = card.find('.seo-reports-create');
-            var closeButton = card.find('.seo-reports-close');
-            var status = card.find('.seo-reports-lazy-status');
-            var result = card.find('.seo-reports-lazy-result');
-
-            createButton.on('click', function() {
-                if (running) {
-                    return;
-                }
-
-                var report = card.data('seo-report');
-                var label = card.find('h3').first().text();
-                running = true;
-
-                $('.seo-reports-create').prop('disabled', true);
-                card.addClass('is-running');
-                result.hide().empty();
-                closeButton.hide();
-                status.addClass('is-visible').html('<span class="spinner is-active"></span><strong>Generando ' + safeText(label) + '…</strong>');
-
-                $.ajax({
-                    url: ajaxUrl,
-                    method: 'POST',
-                    dataType: 'json',
-                    timeout: 240000,
-                    data: {
-                        action: 'seo_reports_general_partial',
-                        nonce: nonce,
-                        report: report
-                    }
-                }).done(function(response) {
-                    if (response && response.success) {
-                        var seconds = response.data && response.data.seconds ? response.data.seconds : 0;
-                        status.html('<strong>' + safeText(label) + ' generado.</strong> ' + seconds + ' s');
-                        result.html(response.data.html || '').show();
-                        closeButton.show();
-                        createButton.text('Actualizar informe');
-                    } else {
-                        var message = response && response.data && response.data.message ? response.data.message : 'No se pudo generar el informe.';
-                        status.html('<div class="notice notice-error inline"><p>' + safeText(message) + '</p></div>');
-                    }
-                }).fail(function(xhr, textStatus) {
-                    var message = 'Error AJAX al generar el informe.';
-                    if (textStatus === 'timeout') {
-                        message = 'El informe superó 240 segundos. Conviene dividir este bloque o revisar la consulta que lo genera.';
-                    } else if (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
-                        message = xhr.responseJSON.data.message;
-                    }
-                    status.html('<div class="notice notice-error inline"><p>' + safeText(message) + '</p></div>');
-                }).always(function() {
-                    running = false;
-                    $('.seo-reports-create').prop('disabled', false);
-                    card.removeClass('is-running');
-                });
-            });
-
-            closeButton.on('click', function() {
-                result.empty().hide();
-                status.removeClass('is-visible').empty();
-                closeButton.hide();
-                createButton.text('Crear informe');
-            });
-        });
-    });
-    </script>
-    <?php
 }
 
 /** Ejecuta y captura un único informe visual. */
@@ -767,7 +746,7 @@ function seo_reports_render_post_performance_summary() {
         echo '<p class="description" style="margin-top:18px;">Todavía no hay una serie diaria de posts disponible para este periodo.</p>';
     }
 
-    echo '<script>';
+    ob_start();
     echo '(function(){';
     echo 'const root=document.getElementById(' . wp_json_encode($chart_id) . ');';
     echo 'const rows=' . wp_json_encode(array_values($daily)) . ';';
@@ -816,7 +795,8 @@ root.querySelectorAll('[data-report-post-metric]').forEach(btn=>btn.addEventList
 }));
 })();
 JS;
-    echo '</script>';
+    $post_performance_script = (string) ob_get_clean();
+    seo_reports_add_inline_script($post_performance_script);
     echo '</section>';
 }
 
@@ -946,7 +926,9 @@ function seo_reports_render_landing_pages_summary() {
     echo '</div>';
 
     echo '</div>';
-    echo '<style>@media(max-width:1050px){#' . esc_attr($section_id) . ' .seo-reports-landings-grid{grid-template-columns:1fr !important;}}</style>';
+    seo_reports_add_inline_style(
+        '@media(max-width:1050px){#' . sanitize_html_class($section_id) . ' .seo-reports-landings-grid{grid-template-columns:1fr !important;}}'
+    );
     echo '</section>';
 }
 
@@ -3530,18 +3512,9 @@ function seo_render_anomalies_report() {
 
             echo '</form>';
 
-            echo '<script>';
-            echo 'document.addEventListener("DOMContentLoaded",function(){';
-            echo 'var b=document.getElementById("seo-toggle-empty-categories");';
-            echo 'if(!b){return;}';
-            echo 'b.addEventListener("click",function(){';
-            echo 'var boxes=Array.prototype.slice.call(document.querySelectorAll("#seo-empty-categories-form .seo-empty-category-checkbox:not(:disabled)"));';
-            echo 'var allChecked=boxes.length>0&&boxes.every(function(box){return box.checked;});';
-            echo 'boxes.forEach(function(box){box.checked=!allChecked;});';
-            echo 'b.textContent=allChecked?"Seleccionar todas las eliminables":"Deseleccionar todas";';
-            echo '});';
-            echo '});';
-            echo '</script>';
+            seo_reports_add_inline_script(
+                'document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("seo-toggle-empty-categories");if(!b){return;}b.addEventListener("click",function(){var boxes=Array.prototype.slice.call(document.querySelectorAll("#seo-empty-categories-form .seo-empty-category-checkbox:not(:disabled)"));var allChecked=boxes.length>0&&boxes.every(function(box){return box.checked;});boxes.forEach(function(box){box.checked=!allChecked;});b.textContent=allChecked?"Seleccionar todas las eliminables":"Deseleccionar todas";});});'
+            );
         }
 
 
