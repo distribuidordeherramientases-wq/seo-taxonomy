@@ -643,6 +643,7 @@ if (!function_exists('seo_solucionador_posts_ie_import_handler')) {
             seo_solucionador_posts_ie_redirect();
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated for extension and readable temporary path before parsing.
         $file = $_FILES['seo_solucionador_posts_csv'];
         $name = sanitize_file_name((string) ($file['name'] ?? ''));
         if (strtolower((string) pathinfo($name, PATHINFO_EXTENSION)) !== 'csv') {
