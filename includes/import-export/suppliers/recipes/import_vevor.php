@@ -2,17 +2,16 @@
 /**
  * Receta oficial VEVOR para TaxoCommerce SEO.
  *
- * V1.5.0
- * - PHP solo normaliza el CSV; NO comprueba F/M por HTTP.
+ * V1.6.0
+ * - PHP normaliza el CSV y lo entrega directamente al importador comun.
  * - Conserva la imagen principal del feed en `imagenes`.
- * - Marca el CSV preparado para enriquecimiento externo por GitHub/Python.
- * - GitHub/Python devuelve el mismo CSV con F1..F12 y M1..M12 validas.
- * - El importador comun escribe despues wp_seo_supplier_images.
- * - No borra attachments ni archivos de la Biblioteca de Medios.
+ * - No necesita GitHub/Python ni enriquecimiento F1..F12/M1..M12 para el flujo manual.
+ * - Las imagenes externas siguen alojadas por VEVOR; no crea attachments.
+ * - No borra archivos de la Biblioteca de Medios.
  *
  * @package SEOSystem
  * @subpackage SupplierImports
- * @version 1.5.0
+ * @version 1.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -76,8 +75,8 @@ if ( ! function_exists( 'seo_supplier_recipe_vevor_transform' ) ) {
     /**
      * Convierte una fila original VEVOR al CSV estandar.
      *
-     * La imagen se conserva sin comprobar aqui. El enriquecimiento F/M se
-     * realiza despues sobre el CSV preparado por github-python-runner.php.
+     * La imagen principal se conserva como URL externa. Este flujo manual no
+     * necesita enriquecimiento F/M ni una segunda fase en GitHub/Python.
      *
      * @param array $row Fila original.
      * @param array $state Estado del archivo.
@@ -115,15 +114,11 @@ add_filter(
 
         $recipes['vevor'] = [
             'id'          => 'vevor',
-            'label'       => 'VEVOR Espana - galeria externa Python',
+            'label'       => 'VEVOR - imagen principal externa',
             'provider'    => 'VEVOR',
-            'version'     => '1.5.0',
+            'version'     => '1.6.0',
             'mode'        => 'transform',
-            'description' => 'Normaliza el CSV VEVOR y, si se seleccionan imagenes externas, envia el CSV preparado a GitHub/Python para validar F1-F12 y M1-M12 antes de sincronizar. No borra Media.',
-
-            /* El importer.php v1.5 intercepta el CSV preparado por esta receta. */
-            'prepared_processor'               => 'github_python',
-            'prepared_processor_external_only' => true,
+            'description' => 'Normaliza el CSV VEVOR, conserva la imagen principal como externa y lo importa directamente al catalogo intermedio. No necesita GitHub/Python ni borra Media.',
 
             'required_headers' => [
                 'Name',
@@ -163,7 +158,7 @@ add_filter(
                 [
                     'source'    => 'URL to image',
                     'target'    => 'imagenes',
-                    'operation' => 'Conservar la principal. GitHub/Python agregara solamente F1-F12/M1-M12 que existan realmente.',
+                    'operation' => 'Conservar la imagen principal del feed como imagen externa, sin enriquecer F1-F12/M1-M12.',
                 ],
                 [
                     'source'    => 'Sales',
