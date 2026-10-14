@@ -1387,7 +1387,7 @@ if (!function_exists('seo_classifier_ajax_job_status')) {
     function seo_classifier_ajax_job_status() {
         if (!current_user_can('manage_options')) wp_send_json_error(['message'=>'Sin permisos.'], 403);
         check_ajax_referer('seo_classifier_jobs', 'nonce');
-        $job_id = absint($_POST['job_id'] ?? 0);
+        $job_id = isset($_POST['job_id']) ? absint(wp_unslash($_POST['job_id'])) : 0;
         seo_classifier_job_maybe_watchdog($job_id);
         $payload = seo_classifier_job_status_payload($job_id);
         if (!$payload) wp_send_json_error(['message'=>'Trabajo no encontrado.'], 404);
@@ -1400,7 +1400,10 @@ if (!function_exists('seo_classifier_ajax_job_control')) {
     function seo_classifier_ajax_job_control() {
         if (!current_user_can('manage_options')) wp_send_json_error(['message'=>'Sin permisos.'], 403);
         check_ajax_referer('seo_classifier_jobs', 'nonce');
-        $result = seo_classifier_job_control(absint($_POST['job_id'] ?? 0), sanitize_key((string)($_POST['job_action'] ?? '')));
+        $result = seo_classifier_job_control(
+            isset($_POST['job_id']) ? absint(wp_unslash($_POST['job_id'])) : 0,
+            isset($_POST['job_action']) ? sanitize_key(wp_unslash($_POST['job_action'])) : ''
+        );
         if (is_wp_error($result)) wp_send_json_error(['message'=>$result->get_error_message()], 400);
         wp_send_json_success(seo_classifier_job_status_payload((int)$result['id']));
     }
