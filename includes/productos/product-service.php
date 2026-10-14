@@ -898,7 +898,7 @@ if (!function_exists('seo_product_admin_save_single')) {
             : [];
 
         $result = seo_product_save_single($raw);
-        $return_tab = sanitize_key($_POST['return_tab'] ?? 'editar');
+        $return_tab = isset($_POST['return_tab']) ? sanitize_key(wp_unslash($_POST['return_tab'])) : 'editar';
         if (!in_array($return_tab, ['nuevo', 'editar'], true)) {
             $return_tab = 'editar';
         }
