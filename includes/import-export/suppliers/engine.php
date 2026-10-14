@@ -1739,8 +1739,8 @@ function seo_proveedores_importar_catalogo() {
     $prepared_state['v2_catalog_complete'] = ! empty( $_POST['catalogo_completo'] );
     $prepared_state['v2_auto_apply'] = ! empty( $_POST['aplicar_actualizaciones_automaticamente'] );
     $prepared_state['v2_auto_bajas'] = ! empty( $_POST['aplicar_bajas_automaticamente'] );
-    $prepared_state['v2_image_mode'] = in_array( sanitize_key( $_POST['modo_imagenes_v2'] ?? 'external' ), [ 'external', 'local' ], true )
-        ? sanitize_key( $_POST['modo_imagenes_v2'] ?? 'external' )
+    $prepared_state['v2_image_mode'] = in_array( sanitize_key( wp_unslash( $_POST['modo_imagenes_v2'] ?? 'external' ) ), [ 'external', 'local' ], true )
+        ? sanitize_key( wp_unslash( $_POST['modo_imagenes_v2'] ?? 'external' ) )
         : 'external';
     $prepared_state['v2_force_image_mode'] = ! empty( $_POST['forzar_modo_imagenes_v2'] );
 
@@ -2707,9 +2707,9 @@ function seo_proveedores_exportar_productos_csv() {
     }
 
     $provider  = sanitize_text_field( wp_unslash( $_POST['supplier_export_provider'] ?? '' ) );
-    $selection = sanitize_key( $_POST['supplier_export_selection'] ?? '' );
-    $situation = sanitize_key( $_POST['supplier_export_situation'] ?? '' );
-    $linkage   = sanitize_key( $_POST['supplier_export_linkage'] ?? 'all' );
+    $selection = sanitize_key( wp_unslash( $_POST['supplier_export_selection'] ?? '' ) );
+    $situation = sanitize_key( wp_unslash( $_POST['supplier_export_situation'] ?? '' ) );
+    $linkage   = sanitize_key( wp_unslash( $_POST['supplier_export_linkage'] ?? 'all' ) );
 
     $where  = [ '1=1' ];
     $params = [];
@@ -5275,8 +5275,8 @@ function seo_proveedores_actualizar_estado_catalogo() {
 
     check_admin_referer( 'seo_prov_actualizar_estado', 'seo_prov_estado_nonce' );
 
-    $id     = absint( $_POST['producto_proveedor_id'] ?? 0 );
-    $estado = sanitize_key( $_POST['estado_seleccion'] ?? '' );
+    $id     = absint( wp_unslash( $_POST['producto_proveedor_id'] ?? 0 ) );
+    $estado = sanitize_key( wp_unslash( $_POST['estado_seleccion'] ?? '' ) );
 
     if ( ! $id || ! isset( seo_proveedores_estados_catalogo()[ $estado ] ) ) {
         wp_die( 'Estado o producto no válido.' );
@@ -5418,12 +5418,12 @@ function seo_proveedores_actualizar_estado_masivo() {
     $precio_max = '' !== $precio_max_raw ? (float) str_replace( ',', '.', $precio_max_raw ) : null;
 
     $comision_descuento = seo_proveedores_normalizar_comision(
-        $_POST['comision_descuento'] ?? 20,
+        sanitize_text_field( wp_unslash( $_POST['comision_descuento'] ?? '20' ) ),
         20
     );
 
     $comision_original = seo_proveedores_normalizar_comision(
-        $_POST['comision_original'] ?? 45,
+        sanitize_text_field( wp_unslash( $_POST['comision_original'] ?? '45' ) ),
         45
     );
 
