@@ -278,12 +278,15 @@ if (!function_exists('seo_redirects_admin_semantic_similarity')) {
 
 if (!function_exists('seo_redirects_admin_existing_rows')) {
     function seo_redirects_admin_existing_rows($table_redirects, $wpdb) {
-        $query = $wpdb->prepare(
-            'SELECT id, origin_url, target_url, status_code, hits, last_hit FROM %i ORDER BY id DESC',
-            $table_redirects
-        );
-
-        return $wpdb->get_results($query);
+        // Compatible con WP 5.8: %i solo existe desde WP 6.2.
+        // El identificador se valida contra la unica tabla interna permitida.
+        $expected_table = $wpdb->prefix . 'seo_redirects';
+        if ((string) $table_redirects !== $expected_table || !preg_match('/^[A-Za-z0-9_]+$/', $expected_table)) {
+            return array();
+        }
+        $safe_table = esc_sql($expected_table);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna validada, sin entrada externa ni valores variables.
+        return $wpdb->get_results("SELECT id, origin_url, target_url, status_code, hits, last_hit FROM `{$safe_table}` ORDER BY id DESC");
     }
 }
 

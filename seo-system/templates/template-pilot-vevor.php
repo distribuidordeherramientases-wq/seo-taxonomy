@@ -10,7 +10,7 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-pilot-market.php';
 
-$market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : '';
+$market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : strtoupper((string) ($GLOBALS['dht_pilot_market'] ?? ''));
 $markets = array(
     'US' => array(
         'lang' => 'en-US', 'country' => 'United States', 'support' => 'https://www.vevor.com/pages/contact-us',
@@ -201,7 +201,7 @@ if ($is_category) {
         (int) $term->term_id
     ));
     if (trim(wp_strip_all_tags($category_description)) === '') {
-        $category_description = (string) term_description($term->term_id, 'product_cat');
+        $category_description = (string) term_description($term->term_id);
     }
 
     $thumb_id = absint(get_term_meta($term->term_id, 'thumbnail_id', true));
