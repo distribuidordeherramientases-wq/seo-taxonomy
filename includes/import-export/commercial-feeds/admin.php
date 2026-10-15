@@ -44,8 +44,16 @@ function seo_ie_cf_admin_save_settings() {
         $enabled = [ 'google' ];
     }
 
-    $country = strtoupper( substr( preg_replace( '/[^A-Za-z]/', '', (string) ( isset( $_POST['country'] ) ? wp_unslash( $_POST['country'] ) : 'ES' ) ), 0, 2 ) );
-    $language = strtolower( substr( preg_replace( '/[^A-Za-z]/', '', (string) ( isset( $_POST['language'] ) ? wp_unslash( $_POST['language'] ) : 'es' ) ), 0, 2 ) );
+    // Validar entrada escalar antes de transformar los codigos ISO:
+    // arrays enviados por POST no deben convertirse a la cadena "Array".
+    $country_input = isset( $_POST['country'] ) && is_scalar( $_POST['country'] )
+        ? sanitize_text_field( wp_unslash( (string) $_POST['country'] ) )
+        : 'ES';
+    $language_input = isset( $_POST['language'] ) && is_scalar( $_POST['language'] )
+        ? sanitize_text_field( wp_unslash( (string) $_POST['language'] ) )
+        : 'es';
+    $country  = strtoupper( substr( preg_replace( '/[^A-Za-z]/', '', $country_input ), 0, 2 ) );
+    $language = strtolower( substr( preg_replace( '/[^A-Za-z]/', '', $language_input ), 0, 2 ) );
 
     $settings = [
         'enabled_channels'            => $enabled,
