@@ -532,8 +532,14 @@ final class SEO_Clonador_Engine {
             "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon_evidence']}` e LEFT JOIN `{$tables['term_taxonomy']}` tt ON tt.term_id=e.source_id AND tt.taxonomy='product_tag' WHERE e.source_type='product_tag' AND e.source_id>0 AND tt.term_taxonomy_id IS NULL");if(is_wp_error($r))return$r;
         $r=$check('evidence_product_orphans','Evidencias de producto contienen origen inexistente',
             "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon_evidence']}` e LEFT JOIN `{$tables['posts']}` p ON p.ID=e.source_id AND p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft') WHERE e.source_type='product' AND e.source_id>0 AND p.ID IS NULL");if(is_wp_error($r))return$r;
+        // L8 crea variantes ortograficas a partir de una entrada original del lexico.
+        // source_id apunta a seo_interprete_lexicon.id, no a wp_posts ni a un ID opaco.
+        $r=$check('evidence_l8_lexicon_orphans','Evidencias L8 de Linguista contienen entrada lexico origen inexistente',
+            "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon_evidence']}` e
+             LEFT JOIN `{$tables['seo_interprete_lexicon']}` l ON l.id=e.source_id
+             WHERE e.source_type='linguista_l8_generated' AND e.source_id>0 AND l.id IS NULL");if(is_wp_error($r))return$r;
         $r=$check('evidence_unknown_sources','Evidencias del Interprete usan source_type que el Clonador no sabe remapear',
-            "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon_evidence']}` WHERE source_id>0 AND source_type NOT IN ('vocabulary','vocabulary_slug','vocabulary_alias','product_cat','product_tag','product','search_synonym','dependiente_noise','dependiente_residual')");if(is_wp_error($r))return$r;
+            "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon_evidence']}` WHERE source_id>0 AND source_type NOT IN ('vocabulary','vocabulary_slug','vocabulary_alias','product_cat','product_tag','product','search_synonym','dependiente_noise','dependiente_residual','linguista_l8_generated')");if(is_wp_error($r))return$r;
         $r=$check('l9_product_orphans','Memoria L9 contiene productos inexistentes',
             "SELECT COUNT(*) c FROM `{$tables['seo_dependiente_l9_signals']}` l LEFT JOIN `{$tables['posts']}` p ON p.ID=l.product_id AND p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft') WHERE p.ID IS NULL");if(is_wp_error($r))return$r;
         $r=$check('l9_vocab_orphans','Memoria L9 contiene Vocabulary inexistente',
@@ -563,20 +569,42 @@ final class SEO_Clonador_Engine {
                 ' sin termino existente: se omitiran solo del espejo STAGING, sin modificar PRO.';
         }
 
+        $unknown_source_types = array();
         if (!empty($checks['evidence_unknown_sources'])) {
-            $known = "'vocabulary','vocabulary_slug','vocabulary_alias','product_cat','product_tag','product','search_synonym','dependiente_noise','dependiente_residual'";
+            // Mismo contrato de tipos que el SELECT de preflight y el worker.
+            $known = "'vocabulary','vocabulary_slug','vocabulary_alias','product_cat','product_tag','product','search_synonym','dependiente_noise','dependiente_residual','linguista_l8_generated'";
             $types = self::rows($pro,
-                "SELECT source_type, COUNT(*) total FROM `{$tables['seo_interprete_lexicon_evidence']}`
+                "SELECT source_type, COUNT(*) total, MIN(source_id) sample_source_id, MIN(lesson_key) sample_lesson_key
+                 FROM `{$tables['seo_interprete_lexicon_evidence']}`
                  WHERE source_id>0 AND source_type NOT IN ({$known})
-                 GROUP BY source_type ORDER BY total DESC LIMIT 15");
+                 GROUP BY source_type ORDER BY total DESC, source_type ASC LIMIT 15");
             if (is_wp_error($types)) return $types;
             $labels = array();
             foreach ($types as $row) {
-                $labels[] = sanitize_key((string)($row['source_type'] ?? '')) . ': ' . absint($row['total'] ?? 0);
+                $type = sanitize_key((string)($row['source_type'] ?? ''));
+                $total = absint($row['total'] ?? 0);
+                $unknown_source_types[] = array(
+                    'source_type'=>$type,
+                    'rows'=>$total,
+                    'sample_source_id'=>absint($row['sample_source_id'] ?? 0),
+                    'sample_lesson_key'=>sanitize_key((string)($row['sample_lesson_key'] ?? '')),
+                );
+                $labels[] = $type . ': ' . $total;
             }
-            if ($labels) $warnings[] = 'Tipos de evidencia aun no soportados por Clonador: ' . implode(', ', $labels) . '. No se omiten automaticamente.';
+            if ($labels) {
+                $message = implode(', ', $labels);
+                $warnings[] = 'Tipos de evidencia aun no soportados por Clonador: ' . $message . '. No se omiten automaticamente.';
+                $label = 'Evidencias del Interprete usan source_type que el Clonador no sabe remapear: ';
+                foreach ($conflicts as &$conflict) {
+                    if (strpos($conflict,$label) === 0) {
+                        $conflict .= ' Tipos detectados: ' . $message . '.';
+                        break;
+                    }
+                }
+                unset($conflict);
+            }
         }
-        return array('conflicts'=>$conflicts,'warnings'=>$warnings,'checks'=>$checks);
+        return array('conflicts'=>$conflicts,'warnings'=>$warnings,'checks'=>$checks,'unknown_source_types'=>$unknown_source_types);
     }
 
     private static function post_type_sql($mysqli, $alias = '') {
@@ -3370,12 +3398,13 @@ final class SEO_Clonador_Engine {
         if(count($rows)<$limit){$state['phase']='interprete_evidence';$state['cursor']=array('id'=>0);}return true;
     }
 
-    private static function worker_evidence_source_id($source_type,$source_id,$post_map,$term_map,$category_map,$vocab_map){
+    private static function worker_evidence_source_id($source_type,$source_id,$post_map,$term_map,$category_map,$vocab_map,$lexicon_map){
         $source_type=sanitize_key((string)$source_type);$source_id=absint($source_id);if(!$source_id)return 0;
         if(in_array($source_type,array('vocabulary','vocabulary_slug','vocabulary_alias'),true))return self::worker_required_map_id($vocab_map,$source_id,'Vocabulary de evidencia');
         if('product_cat'===$source_type)return self::worker_required_map_id($category_map,$source_id,'Categoria de evidencia');
         if('product_tag'===$source_type)return self::worker_required_map_id($term_map,$source_id,'Etiqueta de evidencia');
         if('product'===$source_type)return self::worker_required_map_id($post_map,$source_id,'Producto de evidencia');
+        if('linguista_l8_generated'===$source_type)return self::worker_required_map_id($lexicon_map,$source_id,'Entrada del lexico origen L8');
         if(in_array($source_type,array('search_synonym','dependiente_noise','dependiente_residual'),true))return $source_id;
         return new WP_Error('clonador_evidence_source','Tipo de evidencia no portable: '.$source_type.' #'.$source_id.'. Actualiza el Clonador antes de copiar este origen.');
     }
@@ -3386,7 +3415,7 @@ final class SEO_Clonador_Engine {
         $sqlcols=implode(',',array_map(array(__CLASS__,'ident'),array_merge(array('id'),$columns)));
         $rows=self::rows($pro,"SELECT {$sqlcols} FROM `{$pro_tables['seo_interprete_lexicon_evidence']}` WHERE id>{$cursor} ORDER BY id LIMIT {$limit}");if(is_wp_error($rows))return$rows;
         $lexmap=self::worker_map_get($stg,$stg_tables['options'],'lexicon');if(is_wp_error($lexmap))return$lexmap;$pmap=self::worker_map_get($stg,$stg_tables['options'],'post');if(is_wp_error($pmap))return$pmap;$tmap=self::worker_map_get($stg,$stg_tables['options'],'term');if(is_wp_error($tmap))return$tmap;$cmap=self::worker_map_get($stg,$stg_tables['options'],'category');if(is_wp_error($cmap))return$cmap;$vmap=self::worker_map_get($stg,$stg_tables['options'],'vocab');if(is_wp_error($vmap))return$vmap;
-        $insert=array();$skipped=0;foreach($rows as $row){$cursor=absint($row['id']);$lex=self::worker_required_map_id($lexmap,$row['lexicon_id']??0,'Entrada lexica de evidencia');if(is_wp_error($lex))return$lex;$source=self::worker_evidence_source_id($row['source_type']??'', $row['source_id']??0, $pmap,$tmap,$cmap,$vmap);if(is_wp_error($source)){if(in_array(sanitize_key((string)($row['source_type']??'')),array('product_cat','product_tag'),true)){$skipped++;continue;}return$source;}$row['lexicon_id']=$lex;$row['source_id']=$source;unset($row['id']);$insert[]=$row;}
+        $insert=array();$skipped=0;foreach($rows as $row){$cursor=absint($row['id']);$lex=self::worker_required_map_id($lexmap,$row['lexicon_id']??0,'Entrada lexica de evidencia');if(is_wp_error($lex))return$lex;$source=self::worker_evidence_source_id($row['source_type']??'', $row['source_id']??0, $pmap,$tmap,$cmap,$vmap,$lexmap);if(is_wp_error($source)){if(in_array(sanitize_key((string)($row['source_type']??'')),array('product_cat','product_tag'),true)){$skipped++;continue;}return$source;}$row['lexicon_id']=$lex;$row['source_id']=$source;unset($row['id']);$insert[]=$row;}
         foreach(array_chunk($insert,120) as $chunk){$r=self::insert_rows($stg,$stg_tables['seo_interprete_lexicon_evidence'],$columns,$chunk,false);if(is_wp_error($r))return$r;}
         self::worker_stat_add($state,'seo_interprete_lexicon_evidence',count($insert));self::worker_stat_add($state,'seo_interprete_evidence_orphan_terms_skipped',$skipped);$state['cursor']=array('id'=>$cursor);$state['message']='Evidencias del Interprete clonadas: '.absint($state['stats']['seo_interprete_lexicon_evidence']??0).'.';
         if(count($rows)<$limit){if(!empty($state['stats']['seo_interprete_evidence_orphan_terms_skipped']))self::worker_warning($state,absint($state['stats']['seo_interprete_evidence_orphan_terms_skipped']).' evidencias con categoria/etiqueta inexistente omitidas del espejo; PRO intacto.');$state['phase']='trainer_lessons';$state['cursor']=array('id'=>0);}return true;
