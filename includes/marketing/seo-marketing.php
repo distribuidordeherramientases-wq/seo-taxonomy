@@ -2664,14 +2664,17 @@ function seo_marketing_render_relations_notice()
     $bulk_updated = isset($_GET['marketing_bulk_updated'])
         ? absint(wp_unslash($_GET['marketing_bulk_updated']))
         : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice counter.
     $bulk_unchanged = isset($_GET['marketing_bulk_unchanged'])
-        ? absint($_GET['marketing_bulk_unchanged'])
+        ? absint(wp_unslash($_GET['marketing_bulk_unchanged']))
         : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice counter.
     $bulk_skipped = isset($_GET['marketing_bulk_skipped'])
-        ? absint($_GET['marketing_bulk_skipped'])
+        ? absint(wp_unslash($_GET['marketing_bulk_skipped']))
         : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice counter.
     $bulk_relations = isset($_GET['marketing_bulk_relations'])
-        ? absint($_GET['marketing_bulk_relations'])
+        ? absint(wp_unslash($_GET['marketing_bulk_relations']))
         : 0;
 
     $messages = array(
