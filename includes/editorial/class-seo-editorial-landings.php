@@ -363,9 +363,12 @@ final class SEO_Editorial_Landings {
         if (count(array_unique(array_filter($category_ids))) !== count($valid_categories) || $title === '') {
             self::redirect($service,array('landing_error'=>'Título vacío o categorías inexistentes.','candidate_id'=>$id));
         }
+        $posted_requirements = isset($_POST['requirements']) && is_array($_POST['requirements'])
+            ? map_deep(wp_unslash($_POST['requirements']), 'sanitize_key')
+            : array();
         $requirements = array();
         foreach (seo_landing_requirement_labels() as $key=>$label) {
-            $value = isset($_POST['requirements'][$key]) ? sanitize_key(wp_unslash($_POST['requirements'][$key])) : '-1';
+            $value = isset($posted_requirements[$key]) ? $posted_requirements[$key] : '-1';
             $requirements[$key] = seo_landing_requirement_value($value);
         }
         $proposal['category_ids'] = $valid_categories;
