@@ -401,10 +401,12 @@ function seo_landing_route_defaults($route = array())
 
 function seo_landing_route_from_request()
 {
+    // phpcs:disable WordPress.Security.NonceVerification.Missing -- Callers verify their action nonce before resolving the return route.
     $page = isset($_POST['return_page']) ? sanitize_key(wp_unslash($_POST['return_page'])) : 'seo-page-admin';
     $tab = isset($_POST['return_tab']) ? sanitize_key(wp_unslash($_POST['return_tab'])) : 'landing-report';
     $scope = isset($_POST['return_diag_scope']) ? sanitize_key(wp_unslash($_POST['return_diag_scope'])) : '';
     $view = isset($_POST['return_diag_view']) ? sanitize_key(wp_unslash($_POST['return_diag_view'])) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Missing
     return seo_landing_route_defaults(array('page'=>$page,'tab'=>$tab,'diag_scope'=>$scope,'diag_view'=>$view));
 }
 
