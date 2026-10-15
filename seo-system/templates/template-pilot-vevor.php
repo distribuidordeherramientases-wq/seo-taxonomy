@@ -282,7 +282,7 @@ if ($is_category) {
             'posts_per_page' => 24, 'no_found_rows' => true, 'fields' => 'ids',
             'tax_query' => array(array(
                 'taxonomy' => 'product_cat', 'field' => 'term_id',
-                'terms' => $category_ids, 'include_children' => false,
+                'terms' => $category_ids, 'include_children' => true,
             )),
         ));
         $featured_ids = array_map('absint', (array) $featured_query->posts);
@@ -294,11 +294,24 @@ if ($is_category) {
         }
         $item_terms = get_the_terms($featured_id, 'product_cat');
         $belongs = false;
+        $market_terms = array();
         foreach (is_array($item_terms) ? $item_terms : array() as $item_term) {
-            if (in_array((int) $item_term->term_id, $category_ids, true)) {
-                $belongs = true;
-                break;
+            $term_market = dht_pilot_country_for_term($item_term);
+            if ($term_market !== '') {
+                $market_terms[$term_market] = true;
             }
+            $term_lineage = array_merge(
+                array((int) $item_term->term_id),
+                get_ancestors($item_term->term_id, 'product_cat', 'taxonomy')
+            );
+            if (array_intersect($term_lineage, $category_ids)) {
+                $belongs = true;
+            }
+        }
+        // Una pagina internacional no debe mostrar productos ambiguamente
+        // asignados a varios mercados.
+        if (count($market_terms) !== 1 || !isset($market_terms[$market])) {
+            $belongs = false;
         }
         if (!$belongs || $affiliate_url($item) === '') {
             continue;
