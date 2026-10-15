@@ -438,6 +438,44 @@ foreach ($product_specifications as &$product_specification) {
 }
 unset($product_specification);
 
+/* US-English display labels for common canonical specifications. */
+$us_specification_labels = array(
+    'peso'        => 'Weight',
+    'dimensiones' => 'Dimensions',
+    'marca'       => 'Brand',
+    'fabricante'  => 'Manufacturer',
+    'modelo'      => 'Model',
+    'potencia'    => 'Power',
+    'voltaje'     => 'Voltage',
+    'capacidad'   => 'Capacity',
+    'par'         => 'Torque',
+    'precision'   => 'Precision',
+    'alcance'     => 'Range',
+    'material'    => 'Material',
+    'color'       => 'Color',
+    'bateria'     => 'Battery',
+    'tipo'        => 'Type',
+    'longitud'    => 'Length',
+    'anchura'     => 'Width',
+    'ancho'       => 'Width',
+    'altura'      => 'Height',
+    'alto'        => 'Height',
+    'velocidad'   => 'Speed',
+    'frecuencia'  => 'Frequency',
+    'temperatura' => 'Temperature',
+    'presion'     => 'Pressure',
+    'caudal'      => 'Flow rate',
+    'aplicacion'  => 'Application',
+    'uso'         => 'Use',
+);
+foreach ($product_specifications as &$us_product_specification) {
+    $us_label_key = sanitize_title(remove_accents((string) ($us_product_specification['label'] ?? '')));
+    if (isset($us_specification_labels[$us_label_key])) {
+        $us_product_specification['label'] = $us_specification_labels[$us_label_key];
+    }
+}
+unset($us_product_specification);
+
 /*
  * Resumen de decisión para el primer pliegue.
  * Se priorizan datos técnicos útiles para comparar; marca/modelo/color quedan
