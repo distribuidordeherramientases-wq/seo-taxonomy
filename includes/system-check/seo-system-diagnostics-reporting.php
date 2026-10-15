@@ -1727,6 +1727,7 @@ function seo_system_diagnostics_render_export_panel($context = 'auto') {
 
     echo '<div class="notice notice-info seo-system-diagnostics-export-panel" style="padding:18px 20px;margin-top:18px;border-left-width:4px;">';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics result notice.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics report notice.
     $message = isset($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
     echo '<style>
         .seo-diag-export-head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between}
