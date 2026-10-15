@@ -279,20 +279,7 @@ function seo_comentarista_coverage_admin_page()
 
         <p>Inventario de cobertura de contenido externo para productos publicados. Solo cuentan los registros de Comentarista con estado <strong>Publicado</strong>.</p>
 
-        <style>
-            .seo-comentarista-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px;margin:18px 0 22px;max-width:1200px}
-            .seo-comentarista-kpi{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:16px 18px;box-sizing:border-box}
-            .seo-comentarista-kpi strong{display:block;font-size:25px;line-height:1.15;margin-bottom:5px}
-            .seo-comentarista-kpi span{color:#50575e}
-            .seo-comentarista-kpi--alert{border-left:4px solid #b32d2e}
-            .seo-comentarista-kpi--good{border-left:4px solid #00a32a}
-            .seo-comentarista-segments{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
-            .seo-comentarista-segments .button.current{background:#2271b1;border-color:#2271b1;color:#fff}
-            .seo-comentarista-coverage-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 18px}
-            .seo-comentarista-coverage-filters input[type=search]{min-width:280px}
-            .seo-comentarista-coverage-badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-            .seo-comentarista-platform-count{white-space:nowrap}
-        </style>
+        
 
         <div class="seo-comentarista-kpis">
             <div class="seo-comentarista-kpi"><strong><?php echo esc_html(number_format_i18n($stats['products'])); ?></strong><span>Productos publicados</span></div>
