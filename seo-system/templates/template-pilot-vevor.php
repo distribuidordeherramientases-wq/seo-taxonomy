@@ -99,7 +99,7 @@ $affiliate_url = static function ($item) {
         $required_host = isset($host_by_market[$market_for_url]) ? $host_by_market[$market_for_url] : '';
         if ($required_host === '' || !in_array($host, array($required_host, 'www.' . $required_host), true)) {
             continue;
-        }  }
+        }
         // Mismo etiquetado de afiliacion usado por el bloque VEVOR del plugin.
         return add_query_arg(array(
             'utm_source' => 'inhouse',
