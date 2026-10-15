@@ -65,15 +65,21 @@ if (!is_wp_error($dht_current_url) && $dht_current_url) {
     $GLOBALS['dht_frontend_hreflang_url'] = esc_url_raw((string) $dht_current_url);
 }
 $is_category = function_exists('is_product_category') && is_product_category();
+$is_landing = is_singular('page');
+$landing_page = $is_landing ? get_queried_object() : null;
 $term = $is_category ? get_queried_object() : null;
-$product = !$is_category && function_exists('wc_get_product') ? wc_get_product(get_queried_object_id()) : null;
+$product = !$is_category && !$is_landing && function_exists('wc_get_product') ? wc_get_product(get_queried_object_id()) : null;
 
 if ($is_category && !($term instanceof WP_Term)) {
     return;
 }
-if (!$is_category && !($product instanceof WC_Product)) {
+if ($is_landing && !($landing_page instanceof WP_Post)) {
     return;
 }
+if (!$is_category && !$is_landing && !($product instanceof WC_Product)) {
+    return;
+}
+$landing_labels = array('US' => 'Project guide', 'DE' => 'Ratgeber', 'NL' => 'Keuzegids');
 
 $affiliate_url = static function ($item) {
     if (!($item instanceof WC_Product)) {
@@ -122,8 +128,27 @@ $product_images = static function ($item) {
     return $url ? array($url) : array();
 };
 
-$primary_category = $term;
-if (!$is_category) {
+$landing_categories = array();
+if ($is_landing) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'seo_relations';
+    $linked_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT target_id FROM {$table}
+          WHERE source_type = 'landing' AND source_id = %d
+          AND target_type = 'product_cat' AND relation_type = 'landing_to_category'
+          ORDER BY target_id ASC",
+        (int) $landing_page->ID
+    ));
+    foreach ((array) $linked_ids as $linked_id) {
+        $linked_term = get_term(absint($linked_id), 'product_cat');
+        if ($linked_term instanceof WP_Term && dht_pilot_country_for_term($linked_term) === $market) {
+            $landing_categories[(int) $linked_term->term_id] = $linked_term;
+        }
+    }
+    $landing_categories = array_values($landing_categories);
+}
+$primary_category = $is_landing ? ($landing_categories[0] ?? null) : $term;
+if (!$is_category && !$is_landing) {
     $terms = get_the_terms($product->get_id(), 'product_cat');
     if (is_array($terms)) {
         $depth = -1;
@@ -149,9 +174,9 @@ if ($primary_category instanceof WP_Term) {
         get_ancestors($primary_category->term_id, 'product_cat', 'taxonomy')
     );
     $country_roots = array(
-        'US' => array('us', 'usa', 'eua', 'eeuu', 'estados-unidos', 'united-states'),
-        'DE' => array('de', 'alemania', 'deutschland', 'germany'),
-        'NL' => array('nl', 'holanda', 'paises-bajos', 'nederland', 'netherlands'),
+        'US' => array('us', 'usa', 'eua', 'eeuu', 'estados-unidos', 'united-states', 'vevor-us'),
+        'DE' => array('de', 'alemania', 'deutschland', 'germany', 'vevor-de'),
+        'NL' => array('nl', 'holanda', 'paises-bajos', 'nederland', 'netherlands', 'vevor-nl'),
     );
     $root = null;
     foreach ($lineage as $ancestor_id) {
@@ -235,6 +260,49 @@ if ($is_category) {
             }
         }
         if (count($category_items) >= 12) {
+            break;
+        }
+    }
+} elseif ($is_landing) {
+    $category_excerpt = (string) $landing_page->post_excerpt;
+    $category_description = (string) $landing_page->post_content;
+    $category_ids = array_map(static function ($item) { return (int) $item->term_id; }, $landing_categories);
+    $featured_raw = (string) get_post_meta($landing_page->ID, 'dht_pilot_featured_products', true);
+    $featured_ids = array_filter(array_unique(array_map('absint', preg_split('/[,|\s]+/', $featured_raw))));
+
+    if (!$featured_ids && $category_ids) {
+        $featured_query = new WP_Query(array(
+            'post_type' => 'product', 'post_status' => 'publish',
+            'posts_per_page' => 24, 'no_found_rows' => true, 'fields' => 'ids',
+            'tax_query' => array(array(
+                'taxonomy' => 'product_cat', 'field' => 'term_id',
+                'terms' => $category_ids, 'include_children' => false,
+            )),
+        ));
+        $featured_ids = array_map('absint', (array) $featured_query->posts);
+    }
+    foreach ($featured_ids as $featured_id) {
+        $item = wc_get_product($featured_id);
+        if (!($item instanceof WC_Product) || get_post_status($featured_id) !== 'publish' || !$item->is_visible()) {
+            continue;
+        }
+        $item_terms = get_the_terms($featured_id, 'product_cat');
+        $belongs = false;
+        foreach (is_array($item_terms) ? $item_terms : array() as $item_term) {
+            if (in_array((int) $item_term->term_id, $category_ids, true)) {
+                $belongs = true;
+                break;
+            }
+        }
+        if (!$belongs || $affiliate_url($item) === '') {
+            continue;
+        }
+        $category_items[] = $item;
+        if ($hero_image === '') {
+            $item_images = $product_images($item);
+            $hero_image = !empty($item_images[0]) ? (string) $item_images[0] : '';
+        }
+        if (count($category_items) >= 9) {
             break;
         }
     }
@@ -357,16 +425,16 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 
     <section class="dht-pilot-hero" aria-labelledby="dht-pilot-title">
         <div>
-            <span class="dht-pilot-kicker"><?php echo esc_html($is_category ? $t['overview'] : $t['product']); ?></span>
-            <h1 id="dht-pilot-title"><?php echo esc_html($is_category ? $term->name : $product->get_name()); ?></h1>
+            <span class="dht-pilot-kicker"><?php echo esc_html($is_landing ? $landing_labels[$market] : ($is_category ? $t['overview'] : $t['product'])); ?></span>
+            <h1 id="dht-pilot-title"><?php echo esc_html($is_landing ? get_the_title($landing_page->ID) : ($is_category ? $term->name : $product->get_name())); ?></h1>
             <div class="dht-pilot-rich">
-                <?php if ($is_category && $category_excerpt !== '') : ?>
+                <?php if (($is_category || $is_landing) && $category_excerpt !== '') : ?>
                     <?php echo wp_kses_post(wpautop($category_excerpt)); ?>
-                <?php elseif (!$is_category && $product->get_short_description() !== '') : ?>
+                <?php elseif (!$is_category && !$is_landing && $product->get_short_description() !== '') : ?>
                     <?php echo wp_kses_post(wpautop($product->get_short_description())); ?>
                 <?php endif; ?>
             </div>
-            <?php if (!$is_category) :
+            <?php if (!$is_category && !$is_landing) :
                 $link = $affiliate_url($product);
                 if ($link !== '') : ?>
                     <a class="dht-pilot-button" href="<?php echo esc_url($link); ?>" target="_blank" rel="sponsored noopener noreferrer"><?php echo esc_html($t['buy']); ?> &rarr;</a>
@@ -375,18 +443,36 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
         </div>
         <div class="dht-pilot-media">
             <?php if ($hero_image !== '') : ?>
-                <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr($is_category ? $term->name : $product->get_name()); ?>" decoding="async" fetchpriority="high">
+                <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr($is_landing ? get_the_title($landing_page->ID) : ($is_category ? $term->name : $product->get_name())); ?>" decoding="async" fetchpriority="high">
             <?php else : ?>
                 <span class="dht-pilot-placeholder"><?php echo esc_html($site_title); ?></span>
             <?php endif; ?>
         </div>
     </section>
 
-    <?php if ($is_category) : ?>
+    <?php if ($is_category || $is_landing) : ?>
         <?php if (trim(wp_strip_all_tags($category_description)) !== '') : ?>
         <section class="dht-pilot-section" aria-labelledby="dht-pilot-description">
-            <h2 id="dht-pilot-description"><?php echo esc_html($t['overview']); ?></h2>
+            <h2 id="dht-pilot-description"><?php echo esc_html($is_landing ? $landing_labels[$market] : $t['overview']); ?></h2>
             <div class="dht-pilot-rich"><?php echo wp_kses_post(wpautop($category_description)); ?></div>
+        </section>
+        <?php endif; ?>
+
+        <?php if ($is_landing && $landing_categories) : ?>
+        <section class="dht-pilot-section" aria-labelledby="dht-pilot-landing-categories">
+            <h2 id="dht-pilot-landing-categories"><?php echo esc_html($t['browse']); ?></h2>
+            <div class="dht-pilot-grid">
+                <?php foreach ($landing_categories as $related_term) :
+                    $related_url = get_term_link($related_term);
+                    if (is_wp_error($related_url)) { continue; } ?>
+                <article class="dht-pilot-card">
+                    <div class="dht-pilot-card-body">
+                        <h3><?php echo esc_html($related_term->name); ?></h3>
+                        <a class="dht-pilot-button" href="<?php echo esc_url($related_url); ?>"><?php echo esc_html($t['categories']); ?> &rarr;</a>
+                    </div>
+                </article>
+                <?php endforeach; ?>
+            </div>
         </section>
         <?php endif; ?>
 
