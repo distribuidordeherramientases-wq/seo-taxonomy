@@ -207,6 +207,12 @@ if ($primary_category instanceof WP_Term) {
     }
 }
 
+if ($is_landing && $landing_categories) {
+    // El menu de la landing debe mostrar sus propias categorias relacionadas,
+    // no otras ramas internacionales potencialmente vacias.
+    $navigation = $landing_categories;
+}
+
 $category_items = array();
 $category_excerpt = '';
 $category_description = '';
@@ -316,6 +322,15 @@ $editorial_email = 'servicioacliente@distribuidordeherramientas.es';
 $main_url = $navigation ? get_term_link($navigation[0]) : ($primary_category instanceof WP_Term ? get_term_link($primary_category) : home_url('/'));
 if (is_wp_error($main_url)) {
     $main_url = home_url('/');
+}
+if ($is_landing && $primary_category instanceof WP_Term && $primary_category->parent) {
+    $parent_term = get_term((int) $primary_category->parent, 'product_cat');
+    if ($parent_term instanceof WP_Term && dht_pilot_country_for_term($parent_term) === $market) {
+        $country_home = get_term_link($parent_term);
+        if (!is_wp_error($country_home)) {
+            $main_url = $country_home;
+        }
+    }
 }
 ?>
 <!doctype html>
