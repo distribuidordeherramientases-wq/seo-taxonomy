@@ -119,6 +119,7 @@ function seo_clean_db_page() {
  */
 function seo_clean_db_get_active_tab() {
     $allowed_tabs = array('data_errors', 'database_cleanup', 'export');
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup tab selector.
     $tab = isset($_GET['seo_clean_db_tab']) ? sanitize_key(wp_unslash($_GET['seo_clean_db_tab'])) : 'data_errors';
     return in_array($tab, $allowed_tabs, true) ? $tab : 'data_errors';
 }
@@ -471,6 +472,7 @@ function seo_clean_db_handle_unlock_bulk_accept_lock() {
         );
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before invoking this helper.
     $posted_token = isset($_POST['bulk_accept_lock_token'])
         ? sanitize_text_field(wp_unslash($_POST['bulk_accept_lock_token']))
         : '';
@@ -1090,7 +1092,8 @@ function seo_clean_db_handle_rollback_action() {
         return array('type' => 'error', 'message' => 'La capa de rollback no está disponible.');
     }
 
-    $operation_id = isset($_POST['operation_id']) ? absint($_POST['operation_id']) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before invoking this helper.
+    $operation_id = isset($_POST['operation_id']) ? absint(wp_unslash($_POST['operation_id'])) : 0;
 
     if ($operation_id <= 0) {
         return array('type' => 'error', 'message' => 'Operación de rollback no válida.');
