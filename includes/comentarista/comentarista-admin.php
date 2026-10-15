@@ -48,6 +48,7 @@ add_filter('seo_content_items', 'seo_comentarista_register_tools_card');
 
 function seo_comentarista_admin_assets()
 {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
     if (empty($_GET['page']) || sanitize_key(wp_unslash($_GET['page'])) !== 'seo-comentarista') {
         return;
     }
@@ -118,16 +119,16 @@ function seo_comentarista_admin_handle_action()
         'source_title'        => sanitize_text_field(wp_unslash($_POST['source_title'] ?? '')),
         'author_name'         => sanitize_text_field(wp_unslash($_POST['author_name'] ?? '')),
         'author_url'          => esc_url_raw(wp_unslash($_POST['author_url'] ?? '')),
-        'source_published_at' => seo_comentarista_admin_parse_datetime(wp_unslash($_POST['source_published_at'] ?? '')),
-        'captured_at'         => seo_comentarista_admin_parse_datetime(wp_unslash($_POST['captured_at'] ?? '')) ?: current_time('mysql'),
+        'source_published_at' => seo_comentarista_admin_parse_datetime(sanitize_text_field(wp_unslash($_POST['source_published_at'] ?? ''))),
+        'captured_at'         => seo_comentarista_admin_parse_datetime(sanitize_text_field(wp_unslash($_POST['captured_at'] ?? ''))) ?: current_time('mysql'),
         'source_content'      => wp_kses_post(wp_unslash($_POST['source_content'] ?? '')),
         'editorial_summary'   => wp_kses_post(wp_unslash($_POST['editorial_summary'] ?? '')),
-        'rating_value'        => isset($_POST['rating_value']) ? trim((string) wp_unslash($_POST['rating_value'])) : '',
-        'rating_scale'        => isset($_POST['rating_scale']) ? trim((string) wp_unslash($_POST['rating_scale'])) : '',
+        'rating_value'        => isset($_POST['rating_value']) ? sanitize_text_field(wp_unslash($_POST['rating_value'])) : '',
+        'rating_scale'        => isset($_POST['rating_scale']) ? sanitize_text_field(wp_unslash($_POST['rating_scale'])) : '',
         'embed_url'           => esc_url_raw(wp_unslash($_POST['embed_url'] ?? '')),
         'thumbnail_url'       => esc_url_raw(wp_unslash($_POST['thumbnail_url'] ?? '')),
         'status'              => sanitize_key(wp_unslash($_POST['status'] ?? 'published')),
-        'display_order'       => intval($_POST['display_order'] ?? 0),
+        'display_order'       => isset($_POST['display_order']) ? absint(wp_unslash($_POST['display_order'])) : 0,
     );
 
     $data = seo_comentarista_enrich_source_data($data);
@@ -214,6 +215,7 @@ function seo_comentarista_admin_page()
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Comentarista view selector.
     $view = sanitize_key(wp_unslash($_GET['view'] ?? 'records'));
     if ($view === 'coverage' && function_exists('seo_comentarista_coverage_admin_page')) {
         seo_comentarista_coverage_admin_page();
@@ -229,12 +231,14 @@ function seo_comentarista_admin_page()
     }
 
     $notice = seo_comentarista_admin_handle_action();
-    $edit_id = absint($_GET['edit'] ?? 0);
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected record ID.
+    $edit_id = isset($_GET['edit']) ? absint(wp_unslash($_GET['edit'])) : 0;
     $edit = $edit_id ? seo_comentarista_get($edit_id) : null;
 
     $defaults = array(
         'id'                  => 0,
-        'product_id'          => absint($_GET['product_id'] ?? 0),
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only preselected product ID.
+        'product_id'          => isset($_GET['product_id']) ? absint(wp_unslash($_GET['product_id'])) : 0,
         'content_type'        => 'comment',
         'source_platform'     => 'web',
         'source_name'         => '',

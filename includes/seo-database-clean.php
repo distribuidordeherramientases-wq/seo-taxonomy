@@ -119,6 +119,7 @@ function seo_clean_db_page() {
  */
 function seo_clean_db_get_active_tab() {
     $allowed_tabs = array('data_errors', 'database_cleanup', 'export');
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup tab selector.
     $tab = isset($_GET['seo_clean_db_tab']) ? sanitize_key(wp_unslash($_GET['seo_clean_db_tab'])) : 'data_errors';
     return in_array($tab, $allowed_tabs, true) ? $tab : 'data_errors';
 }
@@ -471,6 +472,7 @@ function seo_clean_db_handle_unlock_bulk_accept_lock() {
         );
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before invoking this helper.
     $posted_token = isset($_POST['bulk_accept_lock_token'])
         ? sanitize_text_field(wp_unslash($_POST['bulk_accept_lock_token']))
         : '';
@@ -1090,7 +1092,8 @@ function seo_clean_db_handle_rollback_action() {
         return array('type' => 'error', 'message' => 'La capa de rollback no está disponible.');
     }
 
-    $operation_id = isset($_POST['operation_id']) ? absint($_POST['operation_id']) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before invoking this helper.
+    $operation_id = isset($_POST['operation_id']) ? absint(wp_unslash($_POST['operation_id'])) : 0;
 
     if ($operation_id <= 0) {
         return array('type' => 'error', 'message' => 'Operación de rollback no válida.');
@@ -1689,8 +1692,10 @@ function seo_clean_db_handle_data_error_action($action) {
             return array('type' => $fixed === false ? 'error' : 'success', 'message' => $fixed === false ? 'No se pudo reparar la jerarquía de categorías.' : 'Categorías movidas a la raíz: <strong>' . (int) $fixed . '</strong>.');
 
         case 'reset_registered_object':
-            $object_id = isset($_POST['object_id']) ? absint($_POST['object_id']) : 0;
+            // phpcs:disable WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before dispatching this action.
+            $object_id = isset($_POST['object_id']) ? absint(wp_unslash($_POST['object_id'])) : 0;
             $seo_role = isset($_POST['seo_role']) ? sanitize_key(wp_unslash($_POST['seo_role'])) : '';
+            // phpcs:enable WordPress.Security.NonceVerification.Missing
 
             if ($object_id <= 0 || !in_array($seo_role, $config['node_roles'], true)) {
                 return array('type' => 'error', 'message' => 'Debes indicar un ID y un rol SEO válidos.');

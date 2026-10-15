@@ -395,7 +395,7 @@ function seo_reports_general_ajax_partial() {
         $html = ob_get_clean();
     } catch (Throwable $e) {
         ob_end_clean();
-        wp_send_json_error(array('message' => 'Error al generar ' . $definitions[$report_key]['label'] . ': ' . $e->getMessage()), 500);
+        wp_send_json_error(array('message' => 'Error al generar ' . sanitize_text_field((string) $definitions[$report_key]['label']) . ': ' . sanitize_text_field($e->getMessage())), 500);
     }
 
     wp_send_json_success(array(
@@ -936,7 +936,8 @@ function seo_reports_page() {
     
     if (!current_user_can('manage_options')) return;
     
-    $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'informes';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reports tab selector.
+    $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'informes';
 
     if ($active_tab === 'content') {
         $target = class_exists('SEO_Solucionador_Admin')
@@ -2169,13 +2170,15 @@ function seo_render_faq_orphan_anomalies_report() {
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice counter.
     if (isset($_GET['faq_category_orphans_deleted'])) {
-        $deleted = absint($_GET['faq_category_orphans_deleted']);
+        $deleted = absint(wp_unslash($_GET['faq_category_orphans_deleted']));
         echo '<div class="notice notice-success inline"><p>FAQs de categorías desaparecidas eliminadas: <strong>' . esc_html(number_format_i18n($deleted)) . '</strong>.</p></div>';
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice counter.
     if (isset($_GET['faq_product_orphans_deleted'])) {
-        $deleted = absint($_GET['faq_product_orphans_deleted']);
+        $deleted = absint(wp_unslash($_GET['faq_product_orphans_deleted']));
         echo '<div class="notice notice-success inline"><p>FAQs de productos desaparecidos eliminadas: <strong>' . esc_html(number_format_i18n($deleted)) . '</strong>.</p></div>';
     }
 
@@ -2516,6 +2519,7 @@ function seo_delete_empty_product_categories_handler() {
         'seo_empty_categories_nonce'
     );
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every category ID is normalized with absint immediately below.
     $category_ids = isset($_POST['category_ids'])
         ? (array) wp_unslash($_POST['category_ids'])
         : array();
@@ -3283,8 +3287,9 @@ function seo_render_anomalies_report() {
 
         echo '</div>';
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only recount notice.
         if (isset($_GET['product_categories_recounted'])) {
-            $recounted_categories = absint($_GET['product_categories_recounted']);
+            $recounted_categories = absint(wp_unslash($_GET['product_categories_recounted']));
 
             echo '<div class="notice notice-success inline"><p>';
             echo '<strong>Contadores recalculados.</strong> Se han procesado <strong>' . esc_html(number_format_i18n($recounted_categories)) . '</strong> categorías de producto. ';
@@ -3292,19 +3297,24 @@ function seo_render_anomalies_report() {
             echo '</p></div>';
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice.
         if (isset($_GET['empty_categories_deleted'])) {
-            $deleted_empty = absint($_GET['empty_categories_deleted']);
+            $deleted_empty = absint(wp_unslash($_GET['empty_categories_deleted']));
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             $skipped_empty = isset($_GET['empty_categories_skipped'])
-                ? absint($_GET['empty_categories_skipped'])
+                ? absint(wp_unslash($_GET['empty_categories_skipped']))
                 : 0;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             $relations_empty = isset($_GET['empty_relations_deleted'])
-                ? absint($_GET['empty_relations_deleted'])
+                ? absint(wp_unslash($_GET['empty_relations_deleted']))
                 : 0;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             $nodes_empty = isset($_GET['empty_nodes_deleted'])
-                ? absint($_GET['empty_nodes_deleted'])
+                ? absint(wp_unslash($_GET['empty_nodes_deleted']))
                 : 0;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             $faqs_empty = isset($_GET['empty_category_faqs_deleted'])
-                ? absint($_GET['empty_category_faqs_deleted'])
+                ? absint(wp_unslash($_GET['empty_category_faqs_deleted']))
                 : 0;
 
             echo '<div class="notice notice-success inline"><p>';
@@ -3676,7 +3686,7 @@ EXPORT CSV SEO TABLES
             wp_die('Tabla no indicada.');
         }
     
-        $table_key = sanitize_key($_GET['table']);
+        $table_key = sanitize_key(wp_unslash($_GET['table']));
     
         $export_nonce = isset($_GET['_wpnonce'])
             ? sanitize_text_field(wp_unslash($_GET['_wpnonce']))

@@ -278,7 +278,12 @@ if (!function_exists('seo_redirects_admin_semantic_similarity')) {
 
 if (!function_exists('seo_redirects_admin_existing_rows')) {
     function seo_redirects_admin_existing_rows($table_redirects, $wpdb) {
-        return $wpdb->get_results("SELECT id, origin_url, target_url, status_code, hits, last_hit FROM {$table_redirects} ORDER BY id DESC");
+        $query = $wpdb->prepare(
+            'SELECT id, origin_url, target_url, status_code, hits, last_hit FROM %i ORDER BY id DESC',
+            $table_redirects
+        );
+
+        return $wpdb->get_results($query);
     }
 }
 
@@ -954,11 +959,15 @@ function seo_menu_manager_redirects_page() {
 
     $existing_rows = seo_redirects_admin_existing_rows($table_redirects, $wpdb);
 
+    $request_action = isset($_POST['action_seo_redirect'])
+        ? sanitize_key(wp_unslash($_POST['action_seo_redirect']))
+        : '';
+
     // =========================
     // EXPORTACIONES JSON
     // =========================
-    if (isset($_POST['action_seo_redirect'])) {
-        $early_action = sanitize_key(wp_unslash($_POST['action_seo_redirect']));
+    if ($request_action !== '') {
+        $early_action = $request_action;
 
         if (in_array($early_action, array('export_backup_json', 'export_analysis_json'), true)) {
             check_admin_referer('seo_redirects_export_nonce');
@@ -985,8 +994,8 @@ function seo_menu_manager_redirects_page() {
     // =========================
     // ACCIONES POST
     // =========================
-    if (isset($_POST['action_seo_redirect'])) {
-        $action = sanitize_key(wp_unslash($_POST['action_seo_redirect']));
+    if ($request_action !== '') {
+        $action = $request_action;
 
         // =========================
         // IMPORT JSON (solo añade orígenes que no existen)
@@ -995,8 +1004,12 @@ function seo_menu_manager_redirects_page() {
             check_admin_referer('seo_redirects_import_nonce');
 
             $preserve_activity = !empty($_POST['preserve_activity']);
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated by seo_redirects_admin_import_json_file() before reading the temporary file.
+            $redirects_file = isset($_FILES['redirects_json']) && is_array($_FILES['redirects_json'])
+                ? $_FILES['redirects_json']
+                : array();
             $import_result = seo_redirects_admin_import_json_file(
-                $_FILES['redirects_json'] ?? array(),
+                $redirects_file,
                 $table_redirects,
                 $wpdb,
                 $preserve_activity
@@ -1028,9 +1041,11 @@ function seo_menu_manager_redirects_page() {
             $origin_error = '';
             $target_error = '';
 
-            $origin_url = seo_redirects_admin_normalize_origin($_POST['origin_url'] ?? '', $origin_error);
-            $target_url = seo_redirects_admin_normalize_target($_POST['target_url'] ?? '', $target_error);
-            $status_code = (int) ($_POST['status_code'] ?? 301);
+            $origin_value = isset($_POST['origin_url']) ? sanitize_text_field(wp_unslash($_POST['origin_url'])) : '';
+            $target_value = isset($_POST['target_url']) ? sanitize_text_field(wp_unslash($_POST['target_url'])) : '';
+            $status_code = isset($_POST['status_code']) ? absint($_POST['status_code']) : 301;
+            $origin_url = seo_redirects_admin_normalize_origin($origin_value, $origin_error);
+            $target_url = seo_redirects_admin_normalize_target($target_value, $target_error);
 
             if (!in_array($status_code, array(301, 302), true)) {
                 $status_code = 301;
@@ -1091,9 +1106,11 @@ function seo_menu_manager_redirects_page() {
                 $origin_error = '';
                 $target_error = '';
 
-                $origin_url = seo_redirects_admin_normalize_origin($_POST['origin_url'] ?? '', $origin_error);
-                $target_url = seo_redirects_admin_normalize_target($_POST['target_url'] ?? '', $target_error);
-                $status_code = (int) ($_POST['status_code'] ?? 301);
+                $origin_value = isset($_POST['origin_url']) ? sanitize_text_field(wp_unslash($_POST['origin_url'])) : '';
+                $target_value = isset($_POST['target_url']) ? sanitize_text_field(wp_unslash($_POST['target_url'])) : '';
+                $status_code = isset($_POST['status_code']) ? absint($_POST['status_code']) : 301;
+                $origin_url = seo_redirects_admin_normalize_origin($origin_value, $origin_error);
+                $target_url = seo_redirects_admin_normalize_target($target_value, $target_error);
 
                 if (!in_array($status_code, array(301, 302), true)) {
                     $status_code = 301;

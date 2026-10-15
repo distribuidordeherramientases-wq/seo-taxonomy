@@ -1882,7 +1882,7 @@ function seo_post_opportunities_render_page($route = array())
 
     $days = isset($_GET['post_days']) ? absint($_GET['post_days']) : 60;
     $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
-    $action = isset($_GET['post_action']) ? sanitize_key($_GET['post_action']) : 'all';
+    $action = isset($_GET['post_action']) ? sanitize_key(wp_unslash($_GET['post_action'])) : 'all';
     $limit = isset($_GET['post_limit']) ? absint($_GET['post_limit']) : 50;
     $limit = in_array($limit, array(20, 50, 100, 200), true) ? $limit : 50;
 
@@ -2182,10 +2182,10 @@ function seo_post_opportunities_export_handler()
     }
     check_admin_referer('seo_post_opportunities_export');
 
-    $format = isset($_GET['format']) ? sanitize_key($_GET['format']) : 'csv';
+    $format = isset($_GET['format']) ? sanitize_key(wp_unslash($_GET['format'])) : 'csv';
     $days = isset($_GET['days']) ? absint($_GET['days']) : 60;
     $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
-    $action = isset($_GET['post_action']) ? sanitize_key($_GET['post_action']) : 'all';
+    $action = isset($_GET['post_action']) ? sanitize_key(wp_unslash($_GET['post_action'])) : 'all';
 
     $report = seo_post_opportunities_build_report($days);
     $report['recommendations'] = seo_post_opportunities_filter_rows($report['recommendations'], $action);

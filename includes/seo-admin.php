@@ -263,6 +263,9 @@ add_action('admin_menu', function () {
 // Al abrir Search desde su tarjeta, mantener TaxoCommerce SEO como menú padre y
 // Herramientas como sección activa en la navegación lateral.
 add_filter('parent_file', function ($parent_file) {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
     if (in_array($page, [
@@ -319,6 +322,7 @@ add_action('admin_init', function () {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
     if ('seo-import-export' === $page) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only legacy tab selector used only for redirect routing.
         $tab = isset($_GET['seo_ie_tab']) ? sanitize_key(wp_unslash($_GET['seo_ie_tab'])) : '';
         if ('conexiones-proveedores' === $tab) {
             $args = ['page' => 'seo-provider-connections'];
@@ -329,6 +333,7 @@ add_action('admin_init', function () {
                 'github_python_saved', 'github_python_error',
             ];
             foreach ($forward as $key) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect notice parameters.
                 if (isset($_GET[$key]) && is_scalar($_GET[$key])) {
                     $args[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
                 }
@@ -339,11 +344,14 @@ add_action('admin_init', function () {
     }
 
     if ('seo-reports' === $page) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reports tab selector used only for redirect routing.
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Google subview selector used only for redirect routing.
         $view = isset($_GET['google_view']) ? sanitize_key(wp_unslash($_GET['google_view'])) : '';
         if ('google_intelligence' === $tab && in_array($view, ['sources', 'settings', 'sync'], true)) {
             $args = ['page' => 'seo-provider-connections'];
             foreach (['google_notice', 'google_error', 'properties'] as $key) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect notice parameters.
                 if (isset($_GET[$key]) && is_scalar($_GET[$key])) {
                     $args[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
                 }
@@ -680,6 +688,7 @@ add_action('admin_enqueue_scripts', function () {
      * del título del menú y puede no coincidir con "seo-system_page_*".
      * El parámetro page contiene directamente el slug registrado.
      */
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin asset routing selector.
     $page = isset($_GET['page'])
         ? sanitize_key(wp_unslash($_GET['page']))
         : '';

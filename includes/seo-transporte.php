@@ -386,6 +386,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
             }
             check_admin_referer('seo_transporte_save');
 
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Transport settings are normalized field by field by sanitize_settings_payload().
             $raw = isset($_POST['seo_transporte']) && is_array($_POST['seo_transporte'])
                 ? wp_unslash($_POST['seo_transporte'])
                 : array();

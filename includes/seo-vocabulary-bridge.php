@@ -101,6 +101,7 @@ if (!function_exists('seo_catalog_get_product_roles')) {
 
         // 1) Fuente canónica: TIPO -> mapa -> ROL.
         if (seo_catalog_table_exists($type_role_table)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table identifiers; optional ID clause is generated with $wpdb->prepare() from absint-normalized product IDs.
             $rows = $wpdb->get_results(
                 "SELECT ot.object_id, rv.slug
                  FROM {$object_table} ot
@@ -131,6 +132,7 @@ if (!function_exists('seo_catalog_get_product_roles')) {
         }
 
         // 2) Fallback: ROL materializado, solo para productos aún no resueltos.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table identifiers; optional ID clause is generated with $wpdb->prepare() from absint-normalized product IDs.
         $rows = $wpdb->get_results(
             "SELECT ro.object_id, rv.slug
              FROM {$object_table} ro

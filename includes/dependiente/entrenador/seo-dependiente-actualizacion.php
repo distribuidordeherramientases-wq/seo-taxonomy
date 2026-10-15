@@ -241,8 +241,8 @@ final class SEO_Dependiente_Actualizacion {
 
         $queued = SEO_Dependiente_Entrenador::update_queue_worker('Actualización de conocimiento encolada.');
         if (is_wp_error($queued)) {
-            self::mark_error($queued->get_error_message());
-            wp_send_json_error(array('message' => $queued->get_error_message()), 500);
+            self::mark_error(sanitize_text_field($queued->get_error_message()));
+            wp_send_json_error(array('message' => sanitize_text_field($queued->get_error_message())), 500);
         }
         wp_send_json_success(self::payload());
     }

@@ -237,6 +237,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
             self::redirect_with_notice(true, 'No se ha recibido ningún archivo de conocimiento.');
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated for error, size and uploaded temporary path before JSON parsing.
         $file = $_FILES['knowledge_file'];
         $error = absint($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if (UPLOAD_ERR_OK !== $error) {

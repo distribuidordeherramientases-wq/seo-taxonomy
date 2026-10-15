@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
  */
 
 if (!defined('SEO_CORE_WPORG_VALIDATION_VERSION')) {
-    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.3.0');
+    define('SEO_CORE_WPORG_VALIDATION_VERSION', '1.4.0');
 }
 
 function seo_core_wporg_filesystem() {
@@ -38,6 +38,18 @@ function seo_core_wporg_relative_path($path, $root = '') {
     $root = $root !== '' ? trailingslashit(wp_normalize_path($root)) : seo_core_wporg_scan_root();
     $path = wp_normalize_path((string) $path);
     return strpos($path, $root) === 0 ? ltrim(substr($path, strlen($root)), '/') : $path;
+}
+
+/**
+ * Indica si el archivo pertenece a una dependencia de terceros.
+ *
+ * Las librerías empaquetadas (Composer/vendor) no están obligadas a seguir
+ * los patrones específicos de WordPress para ABSPATH, WP_Filesystem, HTTP API,
+ * enqueue o i18n. Se validan como dependencia, pero no como código propio.
+ */
+function seo_core_wporg_is_third_party_file($relative) {
+    $relative = '/' . ltrim(wp_normalize_path((string) $relative), '/');
+    return strpos($relative, '/vendor/') !== false;
 }
 
 function seo_core_wporg_all_files() {
@@ -324,6 +336,15 @@ function seo_core_wporg_static_findings() {
         }
 
         $lines = seo_core_wporg_file_lines($file['path']);
+        $third_party = seo_core_wporg_is_third_party_file($relative);
+
+        // No aplicar WordPress Coding Standards al código vendor de terceros.
+        // El paquete se sigue inventariando y validando, pero estos hallazgos
+        // deben representar únicamente código mantenido por TaxoCommerce SEO.
+        if ($third_party) {
+            continue;
+        }
+
         $first_chunk = implode("\n", array_slice($lines, 0, 60));
 
         if (
@@ -336,9 +357,27 @@ function seo_core_wporg_static_findings() {
             seo_core_wporg_add_hit($groups['direct_access'], 'missing_abspath_guard', $relative, 1, 'No se detecta guardia ABSPATH al inicio del archivo.');
         }
 
+        $phpcs_sql_disabled = false;
+
         foreach ($lines as $index => $line) {
             $line_no = $index + 1;
             $trimmed = trim((string) $line);
+            $previous_line = $index > 0 ? (string) $lines[$index - 1] : '';
+
+            if (
+                stripos($line, 'phpcs:disable') !== false
+                && (
+                    stripos($line, 'WordPress.DB.PreparedSQL.NotPrepared') !== false
+                    || stripos($line, 'PluginCheck.Security.DirectDB.UnescapedDBParameter') !== false
+                    || trim(str_ireplace(array('//', '#', '/*', '*/', '*'), '', $line)) === 'phpcs:disable'
+                )
+            ) {
+                $phpcs_sql_disabled = true;
+            }
+
+            $phpcs_ignored = stripos($line, 'phpcs:ignore') !== false
+                || stripos($previous_line, 'phpcs:ignore') !== false;
+            $phpcs_sql_ignored = $phpcs_ignored || $phpcs_sql_disabled;
 
             if ($trimmed === '') {
                 continue;
@@ -360,8 +399,10 @@ function seo_core_wporg_static_findings() {
                 seo_core_wporg_add_hit($groups['sql'], 'mysqli_direct', $relative, $line_no, 'Acceso mysqli directo; revisar prepare/abstracción WordPress.');
             }
             if (
-                preg_match('/\$_(?:GET|POST|REQUEST|COOKIE|SERVER|SESSION)\s*\[/i', $line)
+                !$phpcs_ignored
+                && preg_match('/\$_(?:GET|POST|REQUEST|COOKIE|SERVER|SESSION)\s*\[/i', $line)
                 && !preg_match('/(?:sanitize_[a-z_]+|absint|intval|floatval|wp_unslash|esc_url_raw|wp_kses|filter_input)\s*\(/i', $line)
+                && !preg_match('/\b(?:isset|empty)\s*\(/i', $line)
             ) {
                 seo_core_wporg_add_hit($groups['input'], 'raw_superglobal', $relative, $line_no, 'Entrada externa sin sanitización evidente en la misma expresión.');
             }
@@ -376,16 +417,20 @@ function seo_core_wporg_static_findings() {
             }
             if (
                 preg_match('/WP_PLUGIN_DIR\s*\.\s*["\'][^"\']*seo-taxonomy/i', $line)
-                || preg_match('/["\']\/seo-taxonomy\//i', $line)
+                || preg_match('/\/wp-content\/plugins\/seo-taxonomy\//i', $line)
             ) {
-                seo_core_wporg_add_hit($groups['paths'], 'hardcoded_plugin_path', $relative, $line_no, 'Ruta del plugin hardcodeada.');
+                seo_core_wporg_add_hit($groups['paths'], 'hardcoded_plugin_path', $relative, $line_no, 'Ruta física del plugin hardcodeada.');
             }
-            if (stripos($line, 'wp-load.php') !== false && stripos($relative, 'system-check/') === false) {
-                seo_core_wporg_add_hit($groups['paths'], 'wp_load_path', $relative, $line_no, 'Referencia manual a wp-load.php; revisar APIs de WordPress y rutas dinámicas.');
+            if (
+                preg_match('/(?:require|require_once|include|include_once)\s*\(?\s*["\'][^"\']*wp-load\.php/i', $line)
+                || preg_match('/dirname\s*\([^)]*\).*wp-load\.php/i', $line)
+                || preg_match('/\.\.\/.*wp-load\.php/i', $line)
+            ) {
+                seo_core_wporg_add_hit($groups['paths'], 'wp_load_path', $relative, $line_no, 'Carga manual no portable de wp-load.php; revisar APIs de WordPress.');
             }
             if (preg_match('/add_shortcode\s*\(\s*["\']([^"\']+)["\']/i', $line, $match)) {
                 $tag = strtolower((string) $match[1]);
-                if (!preg_match('/^(?:seo_|seota_|dht_)/', $tag)) {
+                if (!preg_match('/^(?:taxocommerce_|seo_|seota_|dht_)/', $tag)) {
                     seo_core_wporg_add_hit($groups['prefixes'], 'unprefixed_shortcode', $relative, $line_no, 'Shortcode sin prefijo distintivo: ' . $tag);
                 }
             }
@@ -400,23 +445,45 @@ function seo_core_wporg_static_findings() {
             }
             if (
                 preg_match('/\b(?:__|_e|esc_html__|esc_html_e|esc_attr__|esc_attr_e)\s*\([^,;]+\)\s*;?/', $line)
+                && strpos($line, "'taxocommerce-seo'") === false
+                && strpos($line, '"taxocommerce-seo"') === false
                 && strpos($line, "'seo-taxonomy'") === false
                 && strpos($line, '"seo-taxonomy"') === false
             ) {
                 seo_core_wporg_add_hit($groups['i18n'], 'missing_text_domain', $relative, $line_no, 'Gettext sin text domain literal detectable.');
             }
             if (strpos($line, 'wp_json_encode') !== false && strpos($line, 'JSON_UNESCAPED_SLASHES') !== false) {
-                seo_core_wporg_add_hit($groups['json'], 'json_unescaped_slashes', $relative, $line_no, 'JSON_UNESCAPED_SLASHES puede ser inseguro dentro de <script>; revisar contexto.');
+                $json_context = implode("\n", array_slice($lines, max(0, $index - 4), 9));
+                if (
+                    stripos($json_context, '<script') !== false
+                    || stripos($json_context, 'wp_add_inline_script') !== false
+                    || preg_match('/\b(?:echo|print)\b.*wp_json_encode/i', $json_context)
+                ) {
+                    seo_core_wporg_add_hit($groups['json'], 'json_unescaped_slashes', $relative, $line_no, 'JSON_UNESCAPED_SLASHES en contexto HTML/JS; revisar escape seguro.');
+                }
             }
-            if (preg_match('/\b(?:fwrite|file_put_contents|rename|copy)\s*\(/i', $line)) {
-                seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_write', $relative, $line_no, 'Escritura de fichero: confirmar que el destino usa uploads/database y no carpetas del plugin/core.');
+            if (!$phpcs_ignored && preg_match('/\b(?:fwrite|file_put_contents|rename|copy)\s*\(/i', $line)) {
+                $filesystem_context = implode("\n", array_slice($lines, max(0, $index - 6), 13));
+                if (
+                    stripos($filesystem_context, 'wp_upload_dir(') === false
+                    && stripos($filesystem_context, 'wp_tempnam(') === false
+                    && stripos($filesystem_context, 'get_temp_dir(') === false
+                ) {
+                    seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_write', $relative, $line_no, 'Escritura de fichero: confirmar que el destino usa uploads/database y no carpetas del plugin/core.');
+                }
             }
 
             
             // Familias que tambien aparecen en WordPress Plugin Check.
-            if (preg_match('/\$wpdb->(?:query|get_results|get_var|get_col|get_row)\s*\(/i', $line)) {
-                $sql_window = implode("\n", array_slice($lines, $index, 16));
-                if (stripos($sql_window, '->prepare(') === false && stripos($sql_window, 'prepare(') === false) {
+            if (!$phpcs_sql_ignored && preg_match('/\$wpdb->(?:query|get_results|get_var|get_col|get_row)\s*\(/i', $line)) {
+                $sql_window = implode("\n", array_slice($lines, max(0, $index - 8), 24));
+                $has_prepare = stripos($sql_window, '->prepare(') !== false || stripos($sql_window, 'prepare(') !== false;
+                $looks_static = preg_match(
+                    '/\$wpdb->(?:query|get_results|get_var|get_col|get_row)\s*\(\s*[\'"][^$]*[\'"]\s*\)/is',
+                    $sql_window
+                );
+
+                if (!$has_prepare && !$looks_static) {
                     seo_core_wporg_add_hit($groups['prepared_sql'], 'wpdb_query_not_prepared', $relative, $line_no, 'Consulta $wpdb sin prepare() detectable; revisar PreparedSQL.NotPrepared.');
                 }
                 if (preg_match('/\bLIKE\s+[\'"][^\'"]*%[^\'"]*[\'"]/i', $sql_window)) {
@@ -428,20 +495,22 @@ function seo_core_wporg_static_findings() {
             }
 
             if (
-                preg_match('/(?:\$wpdb->(?:query|get_results|get_var|get_col|get_row)|\$wpdb->prepare)\s*\(/i', $line)
+                !$phpcs_sql_ignored
+                && preg_match('/(?:\$wpdb->(?:query|get_results|get_var|get_col|get_row)|\$wpdb->prepare)\s*\(/i', $line)
                 && preg_match('/\.\s*\$[A-Za-z_]/i', $line)
             ) {
                 seo_core_wporg_add_hit($groups['db_parameters'], 'sql_dynamic_parameter', $relative, $line_no, 'Se detecta concatenacion de variable en una expresion SQL; revisar preparacion/identificadores.');
             }
 
             if (
-                preg_match('/\b(?:echo|print)\s+.*\$[A-Za-z_]/i', $line)
+                !$phpcs_ignored
+                && preg_match('/\b(?:echo|print)\s+.*\$[A-Za-z_]/i', $line)
                 && !preg_match('/\b(?:esc_html|esc_attr|esc_url|esc_js|wp_kses|wp_kses_post|wp_json_encode|selected|checked|disabled)\s*\(/i', $line)
             ) {
                 seo_core_wporg_add_hit($groups['output_escaping'], 'output_not_escaped', $relative, $line_no, 'Salida dinamica sin una funcion de escape reconocible; revisar OutputNotEscaped.');
             }
 
-            if (preg_match('/\b(?:wp_die|wp_send_json_error|wp_send_json_success)\s*\(\s*\$[A-Za-z_]/i', $line)) {
+            if (!$phpcs_ignored && preg_match('/\b(?:wp_die|wp_send_json_error|wp_send_json_success)\s*\(\s*\$[A-Za-z_]/i', $line)) {
                 seo_core_wporg_add_hit($groups['output_escaping'], 'dynamic_error_output', $relative, $line_no, 'Mensaje dinamico enviado directamente a una salida de error; revisar el escape segun contexto.');
             }
 
@@ -449,8 +518,8 @@ function seo_core_wporg_static_findings() {
                 preg_match('/\b(?:__|_e|_n|_x|esc_html__|esc_attr__|esc_html_e|esc_attr_e)\s*\(/i', $line)
                 && preg_match('/%[0-9$+\-.\']*[sdif]/i', $line)
             ) {
-                $previous = implode("\n", array_slice($lines, max(0, $index - 3), min(3, $index)));
-                if (stripos($previous, 'translators:') === false) {
+                $translator_context = implode("\n", array_slice($lines, max(0, $index - 3), min(4, $index + 1)));
+                if (stripos($translator_context, 'translators:') === false) {
                     seo_core_wporg_add_hit($groups['translator_comments'], 'missing_translators_comment', $relative, $line_no, 'Placeholder traducible sin comentario translators: detectable.');
                 }
             }
@@ -459,16 +528,17 @@ function seo_core_wporg_static_findings() {
                 seo_core_wporg_add_hit($groups['deprecated'], 'term_description_param2', $relative, $line_no, 'term_description() usa un segundo parametro obsoleto.');
             }
 
-            if (preg_match('/\bcurl_[a-z0-9_]+\s*\(/i', $line)) {
+            if (!$phpcs_ignored && preg_match('/\bcurl_[a-z0-9_]+\s*\(/i', $line)) {
                 seo_core_wporg_add_hit($groups['http_api'], 'curl_direct', $relative, $line_no, 'cURL directo detectado; revisar la HTTP API de WordPress.');
             }
 
-            if (preg_match('/\bdate\s*\(/i', $line) && !preg_match('/\b(?:gmdate|wp_date)\s*\(/i', $line)) {
+            if (!$phpcs_ignored && preg_match('/\bdate\s*\(/i', $line) && !preg_match('/\b(?:gmdate|wp_date)\s*\(/i', $line)) {
                 seo_core_wporg_add_hit($groups['datetime'], 'date_direct', $relative, $line_no, 'date() directo detectado; revisar wp_date()/gmdate().');
             }
 
             if (
-                preg_match('/\$_(?:GET|POST|REQUEST|COOKIE)\s*\[/i', $line)
+                !$phpcs_ignored
+                && preg_match('/\$_(?:GET|POST|REQUEST|COOKIE)\s*\[/i', $line)
                 && preg_match('/\b(?:sanitize_text_field|sanitize_textarea_field|sanitize_key|sanitize_title|esc_url_raw)\s*\(/i', $line)
                 && stripos($line, 'wp_unslash(') === false
             ) {
@@ -482,7 +552,8 @@ function seo_core_wporg_static_findings() {
             }
 
             if (
-                preg_match('/(?:->getMessage\(\)|->get_error_message\(\))/i', $line)
+                !$phpcs_ignored
+                && preg_match('/(?:->getMessage\(\)|->get_error_message\(\))/i', $line)
                 && preg_match('/\b(?:echo|print|wp_die|wp_send_json_error|wp_send_json_success)\b/i', $line)
                 && !preg_match('/\b(?:esc_html|esc_attr|wp_kses|wp_kses_post|sanitize_text_field)\s*\(/i', $line)
             ) {
@@ -525,16 +596,51 @@ function seo_core_wporg_static_findings() {
                 );
             }
 
-            if (preg_match('/\b(?:fclose|fwrite|fopen|unlink|rename|chmod|is_writable|readfile|rmdir|fread)\s*\(/i', $line)) {
-                seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_direct_api', $relative, $line_no, 'Operacion directa de filesystem; revisar WP_Filesystem.');
+            if (!$phpcs_ignored && preg_match('/\b(?:fclose|fwrite|fopen|unlink|rename|chmod|is_writable|readfile|rmdir|fread)\s*\(/i', $line)) {
+                $filesystem_context = implode("\n", array_slice($lines, max(0, $index - 6), 13));
+                if (
+                    stripos($filesystem_context, 'wp_upload_dir(') === false
+                    && stripos($filesystem_context, 'wp_tempnam(') === false
+                    && stripos($filesystem_context, 'get_temp_dir(') === false
+                ) {
+                    seo_core_wporg_add_hit($groups['filesystem'], 'filesystem_direct_api', $relative, $line_no, 'Operacion directa de filesystem; revisar WP_Filesystem.');
+                }
             }
 
-if (preg_match_all('/https?:\/\/([a-z0-9.-]+)/i', $line, $urls)) {
+            if (
+                stripos($line, 'phpcs:enable') !== false
+                && (
+                    stripos($line, 'WordPress.DB.PreparedSQL.NotPrepared') !== false
+                    || stripos($line, 'PluginCheck.Security.DirectDB.UnescapedDBParameter') !== false
+                    || trim(str_ireplace(array('//', '#', '/*', '*/', '*'), '', $line)) === 'phpcs:enable'
+                )
+            ) {
+                $phpcs_sql_disabled = false;
+            }
+
+            if (preg_match_all('/https?:\/\/([a-z0-9.-]+)/i', $line, $urls)) {
+                $reference_hosts = array(
+                    'schema.org',
+                    'www.sitemaps.org',
+                    'schemas.openxmlformats.org',
+                    'developers.google.com',
+                    'console.cloud.google.com',
+                    'shopify.dev',
+                    'www.ejemplo.com',
+                    'example.com',
+                    'www.example.com',
+                    'competidor.es',
+                    'www.distribuidordeherramientas.es',
+                );
+                $comment_only = preg_match('/^\s*(?:\/\/|#|\*)/', $line);
+
                 foreach ((array) $urls[1] as $host) {
                     $host = strtolower((string) $host);
                     if (
-                        $host === ''
+                        $comment_only
+                        || $host === ''
                         || $host === $own_host
+                        || in_array($host, $reference_hosts, true)
                         || preg_match('/(?:^|\.)wordpress\.org$/', $host)
                         || preg_match('/(?:^|\.)w\.org$/', $host)
                         || preg_match('/(?:^|\.)opensource\.org$/', $host)

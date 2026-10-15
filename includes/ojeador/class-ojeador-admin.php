@@ -91,6 +91,7 @@ final class SEO_Ojeador_Admin {
             return $default;
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
         return wp_unslash($_GET[$key]);
     }
 
@@ -110,6 +111,7 @@ final class SEO_Ojeador_Admin {
 
     public static function save_settings() {
         self::guard('seo_ojeador_settings_save');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         $raw = isset($_POST['ojeador']) && is_array($_POST['ojeador']) ? map_deep(wp_unslash($_POST['ojeador']), 'sanitize_text_field') : array();
         $scope = isset($_POST['ojeador_scope']) ? sanitize_key((string) wp_unslash($_POST['ojeador_scope'])) : 'operation';
         $return_to_provider_connections = isset($_POST['ojeador_return'])
@@ -122,6 +124,7 @@ final class SEO_Ojeador_Admin {
         }
 
         SEO_Ojeador_Shopping::save_settings($raw);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if ($return_to_provider_connections) {
             self::redirect_provider_connections(array('ojeador_google_notice'=>'settings_saved'));
@@ -132,9 +135,11 @@ final class SEO_Ojeador_Admin {
 
     public static function test_provider_chain() {
         self::guard('seo_ojeador_test_provider_chain');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         $return_to_provider_connections = isset($_POST['ojeador_return'])
             && 'provider_connections' === sanitize_key((string) wp_unslash($_POST['ojeador_return']));
         $result = SEO_Ojeador_Shopping::test_connection_chain();
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if ($return_to_provider_connections) {
             if (is_wp_error($result)) {
@@ -173,9 +178,10 @@ final class SEO_Ojeador_Admin {
         $notice = isset($_GET['ojeador_google_notice'])
             ? sanitize_key((string) wp_unslash($_GET['ojeador_google_notice']))
             : '';
-        $error = isset($_GET['ojeador_google_error'])
-            ? sanitize_text_field(rawurldecode((string) wp_unslash($_GET['ojeador_google_error'])))
+        $error_encoded = isset($_GET['ojeador_google_error'])
+            ? sanitize_text_field(wp_unslash($_GET['ojeador_google_error']))
             : '';
+        $error = '' !== $error_encoded ? sanitize_text_field(rawurldecode($error_encoded)) : '';
         $tested_provider = isset($_GET['ojeador_google_provider'])
             ? sanitize_key((string) wp_unslash($_GET['ojeador_google_provider']))
             : '';
