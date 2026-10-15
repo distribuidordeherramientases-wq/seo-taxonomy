@@ -21,7 +21,7 @@ require_once __DIR__ . '/template-pilot-market.php';
 $current_category = get_queried_object();
 $dht_pilot_market = dht_pilot_market_for_term($current_category);
 if ($dht_pilot_market !== '') {
-    require __DIR__ . '/template-pilot-vevor.php';
+    require __DIR__ . '/template-category-' . strtolower($dht_pilot_market) . '.php';
     return;
 }
 
