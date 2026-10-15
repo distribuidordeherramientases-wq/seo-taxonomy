@@ -1838,13 +1838,20 @@ if (!function_exists('dht_template_render_context_posts')) {
 
         $variant = in_array($variant, array('dependiente', 'ingeniero'), true) ? $variant : 'dependiente';
         $context = in_array($context, array('product', 'category'), true) ? $context : 'product';
-        $kicker = 'ingeniero' === $variant ? 'Contenido técnico editorial' : 'Contenido editorial';
-        $link_label = 'ingeniero' === $variant ? 'Leer información técnica' : 'Leer guía';
-        $count_label = sprintf(
-            /* translators: %d: número de artículos editoriales relacionados. */
-            _n('%d artículo', '%d artículos', count($valid), 'taxocommerce-seo'),
-            count($valid)
-        );
+        $us_english = dht_template_is_us_english();
+        $kicker = 'ingeniero' === $variant
+            ? ($us_english ? 'Technical editorial content' : 'Contenido técnico editorial')
+            : ($us_english ? 'Editorial content' : 'Contenido editorial');
+        $link_label = 'ingeniero' === $variant
+            ? ($us_english ? 'Read technical information' : 'Leer información técnica')
+            : ($us_english ? 'Read guide' : 'Leer guía');
+        $count_label = $us_english
+            ? sprintf(count($valid) === 1 ? '%d article' : '%d articles', count($valid))
+            : sprintf(
+                /* translators: %d: número de artículos editoriales relacionados. */
+                _n('%d artículo', '%d artículos', count($valid), 'taxocommerce-seo'),
+                count($valid)
+            );
         ?>
         <section class="dht-context-posts dht-context-posts--<?php echo esc_attr($variant); ?> dht-context-posts--<?php echo esc_attr($context); ?>">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
@@ -2047,33 +2054,45 @@ if (!function_exists('dht_template_render_external_comments')) {
         }
 
         $comment_count = count($valid);
-        $summary_label = sprintf(
-            /* translators: %d: número de comentarios externos disponibles. */
-            _n(
-                'Ver %d comentario externo',
-                'Ver %d comentarios externos',
-                $comment_count,
-                'taxocommerce-seo'
-            ),
-            $comment_count
-        );
-        $count_label = sprintf(
-            /* translators: %d: número de comentarios externos disponibles. */
-            _n('%d comentario externo', '%d comentarios externos', $comment_count, 'taxocommerce-seo'),
-            $comment_count
-        );
+        $us_english = dht_template_is_us_english();
+        if ($us_english) {
+            $summary_label = sprintf(
+                $comment_count === 1 ? 'View %d external comment' : 'View %d external comments',
+                $comment_count
+            );
+            $count_label = sprintf(
+                $comment_count === 1 ? '%d external comment' : '%d external comments',
+                $comment_count
+            );
+        } else {
+            $summary_label = sprintf(
+                /* translators: %d: número de comentarios externos disponibles. */
+                _n(
+                    'Ver %d comentario externo',
+                    'Ver %d comentarios externos',
+                    $comment_count,
+                    'taxocommerce-seo'
+                ),
+                $comment_count
+            );
+            $count_label = sprintf(
+                /* translators: %d: número de comentarios externos disponibles. */
+                _n('%d comentario externo', '%d comentarios externos', $comment_count, 'taxocommerce-seo'),
+                $comment_count
+            );
+        }
         ?>
         <section class="dht-external-comments dht-external-comments--<?php echo esc_attr($context); ?> seo-comentarista">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
             <header class="dht-external-comments__header">
                 <div class="dht-external-comments__heading">
-                    <span class="dht-context-posts__kicker">Experiencias externas</span>
+                    <span class="dht-context-posts__kicker"><?php echo esc_html($us_english ? 'External experiences' : 'Experiencias externas'); ?></span>
                     <h2><?php echo esc_html($title); ?></h2>
                 </div>
                 <?php if ('category' === $context) : ?>
                     <span class="dht-external-comments__count"><?php echo esc_html($count_label); ?></span>
                 <?php endif; ?>
-                <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
+                <p><?php echo esc_html($us_english ? 'Opinions and experiences published by external sources. They are not customer reviews from Distribuidor de Herramientas and are not part of our store rating.' : 'Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.'); ?></p>
             </header>
 
             <?php if ('category' === $context) : ?>
@@ -2111,9 +2130,9 @@ if (!function_exists('dht_template_render_external_comments')) {
                         <?php endif; ?>
 
                         <div class="dht-external-comment__meta">
-                            <strong>Comentario externo</strong>
+                            <strong><?php echo esc_html($us_english ? 'External comment' : 'Comentario externo'); ?></strong>
                             <?php if ($external_comment_rating !== '') : ?>
-                                <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                                <span><?php echo esc_html($us_english ? 'Source rating:' : 'Valoración en la fuente:'); ?> <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
                             <?php endif; ?>
                         </div>
 
@@ -2121,7 +2140,7 @@ if (!function_exists('dht_template_render_external_comments')) {
 
                         <?php if ($external_comment_meta !== '') : ?>
                             <p class="dht-external-comment__source">
-                                <strong>Fuente:</strong>
+                                <strong><?php echo esc_html($us_english ? 'Source:' : 'Fuente:'); ?></strong>
                                 <?php echo wp_kses($external_comment_meta, array(
                                     'strong' => array(),
                                     'a' => array(
@@ -2226,7 +2245,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Guías para elegir',
+            dht_template_label('Guías para elegir', 'Buying guides'),
             'dependiente',
             'category'
         );
@@ -2238,7 +2257,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         );
         dht_template_render_context_posts(
             $ingeniero_posts,
-            'Información especializada',
+            dht_template_label('Información especializada', 'Specialized information'),
             'ingeniero',
             'category'
         );
@@ -2250,7 +2269,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         $external_comments = dht_template_category_external_comments($term_id, 6, 2);
         dht_template_render_external_comments(
             $external_comments,
-            'Comentarios externos sobre productos de esta categoría',
+            dht_template_label('Comentarios externos sobre productos de esta categoría', 'External comments about products in this category'),
             'category'
         );
     }
