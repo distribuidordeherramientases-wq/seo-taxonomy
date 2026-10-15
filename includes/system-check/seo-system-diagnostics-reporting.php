@@ -889,6 +889,7 @@ function seo_system_diagnostics_maybe_render_export_panel() {
 
     // Informes SEO ya tiene sus propias vistas y controles. El resumen global
     // pertenece a los chequeos de sistema y no debe duplicarse sobre este informe.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reporting screen selector.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     if ($page === 'seo-reports') {
         return;
@@ -903,7 +904,9 @@ function seo_system_diagnostics_maybe_render_export_panel() {
 
 function seo_system_diagnostics_get_return_url() {
     $fallback = seo_system_diagnostics_report_admin_url();
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Return URL does not change state and is constrained by wp_validate_redirect().
     if (!empty($_REQUEST['redirect_to']) && is_scalar($_REQUEST['redirect_to'])) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same read-only return URL validated against an admin fallback below.
         $requested = esc_url_raw(wp_unslash($_REQUEST['redirect_to']));
         return wp_validate_redirect($requested, $fallback);
     }
@@ -1632,6 +1635,7 @@ function seo_system_diagnostics_export_scope_for_context($context = 'auto') {
         return 'server';
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics scope selector.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     if (in_array($page, array('seo_server_status', 'seo-system-status'), true)) {
         return 'server';
@@ -1722,6 +1726,7 @@ function seo_system_diagnostics_render_export_panel($context = 'auto') {
     ), admin_url('admin-post.php')), 'seo_system_diagnostics_download_validation_json');
 
     echo '<div class="notice notice-info seo-system-diagnostics-export-panel" style="padding:18px 20px;margin-top:18px;border-left-width:4px;">';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics result notice.
     $message = isset($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
     echo '<style>
         .seo-diag-export-head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between}
