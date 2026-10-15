@@ -507,6 +507,7 @@ final class SEO_Clonador_Engine {
      */
     private static function learning_reference_audit($pro, $tables) {
         $conflicts = array();
+        $warnings = array();
         $checks = array();
         $check = static function($key, $label, $sql) use ($pro, &$conflicts, &$checks) {
             $count = self::scalar($pro, $sql, 'c');
@@ -532,7 +533,7 @@ final class SEO_Clonador_Engine {
         $r=$check('evidence_product_orphans','Evidencias de producto contienen origen inexistente',
             "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon_evidence']}` e LEFT JOIN `{$tables['posts']}` p ON p.ID=e.source_id AND p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft') WHERE e.source_type='product' AND e.source_id>0 AND p.ID IS NULL");if(is_wp_error($r))return$r;
         $r=$check('evidence_unknown_sources','Evidencias del Interprete usan source_type que el Clonador no sabe remapear',
-            "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon_evidence']}` WHERE source_id>0 AND source_type NOT IN ('vocabulary','vocabulary_slug','vocabulary_alias','product_cat','product_tag','product','search_synonym')");if(is_wp_error($r))return$r;
+            "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon_evidence']}` WHERE source_id>0 AND source_type NOT IN ('vocabulary','vocabulary_slug','vocabulary_alias','product_cat','product_tag','product','search_synonym','dependiente_noise','dependiente_residual')");if(is_wp_error($r))return$r;
         $r=$check('l9_product_orphans','Memoria L9 contiene productos inexistentes',
             "SELECT COUNT(*) c FROM `{$tables['seo_dependiente_l9_signals']}` l LEFT JOIN `{$tables['posts']}` p ON p.ID=l.product_id AND p.post_type='product' AND p.post_status NOT IN ('trash','auto-draft') WHERE p.ID IS NULL");if(is_wp_error($r))return$r;
         $r=$check('l9_vocab_orphans','Memoria L9 contiene Vocabulary inexistente',
@@ -543,11 +544,39 @@ final class SEO_Clonador_Engine {
         $r=$check('ingeniero_knowledge_category_orphans','Conocimiento de Ingeniero contiene categorias inexistentes',
             "SELECT COUNT(*) c FROM `{$tables['seo_ingeniero_knowledge']}` k LEFT JOIN `{$tables['term_taxonomy']}` tt ON tt.term_id=k.term_id AND tt.taxonomy='product_cat' WHERE k.term_id>0 AND tt.term_taxonomy_id IS NULL");if(is_wp_error($r))return$r;
 
-        if (!empty($checks['evidence_tag_orphans'])) {
-            $message = 'Evidencias de etiqueta contienen origen inexistente: ' . absint($checks['evidence_tag_orphans']) . ' filas.';
-            $conflicts = array_values(array_filter($conflicts, static function($item) use ($message) { return $item !== $message; }));
+        // L9 del Linguista guarda procedencias opacas de deuda de Dependiente.
+        // Sus source_id no son term_id ni post_id y se conservan literalmente.
+        // En cambio, product_cat/product_tag retirados de PRO carecen de destino
+        // portable: se omiten con aviso y se descuentan de la verificacion.
+        foreach (array(
+            'evidence_category_orphans' => 'Evidencias de categoria contienen origen inexistente',
+            'evidence_tag_orphans' => 'Evidencias de etiqueta contienen origen inexistente',
+        ) as $key=>$label) {
+            $count = absint($checks[$key] ?? 0);
+            if (!$count) continue;
+            $message = $label . ': ' . $count . ' filas.';
+            $conflicts = array_values(array_filter($conflicts, static function($item) use ($message) {
+                return $item !== $message;
+            }));
+            $warnings[] = 'PRO conserva ' . $count . ' evidencias ' .
+                ($key === 'evidence_category_orphans' ? 'product_cat' : 'product_tag') .
+                ' sin termino existente: se omitiran solo del espejo STAGING, sin modificar PRO.';
         }
-        return array('conflicts'=>$conflicts,'checks'=>$checks);
+
+        if (!empty($checks['evidence_unknown_sources'])) {
+            $known = "'vocabulary','vocabulary_slug','vocabulary_alias','product_cat','product_tag','product','search_synonym','dependiente_noise','dependiente_residual'";
+            $types = self::rows($pro,
+                "SELECT source_type, COUNT(*) total FROM `{$tables['seo_interprete_lexicon_evidence']}`
+                 WHERE source_id>0 AND source_type NOT IN ({$known})
+                 GROUP BY source_type ORDER BY total DESC LIMIT 15");
+            if (is_wp_error($types)) return $types;
+            $labels = array();
+            foreach ($types as $row) {
+                $labels[] = sanitize_key((string)($row['source_type'] ?? '')) . ': ' . absint($row['total'] ?? 0);
+            }
+            if ($labels) $warnings[] = 'Tipos de evidencia aun no soportados por Clonador: ' . implode(', ', $labels) . '. No se omiten automaticamente.';
+        }
+        return array('conflicts'=>$conflicts,'warnings'=>$warnings,'checks'=>$checks);
     }
 
     private static function post_type_sql($mysqli, $alias = '') {
@@ -1194,9 +1223,7 @@ final class SEO_Clonador_Engine {
         $learning_refs = self::learning_reference_audit($pro, $pro_tables);
         if (is_wp_error($learning_refs)) return $learning_refs;
         $conflicts = array_merge($conflicts, (array) ($learning_refs['conflicts'] ?? array()));
-        if (!empty($learning_refs['checks']['evidence_tag_orphans'])) {
-            $warnings[] = 'Se omitiran ' . absint($learning_refs['checks']['evidence_tag_orphans']) . ' evidencias product_tag cuyo termino ya no existe en PRO. No contienen conocimiento resoluble.';
-        }
+        $warnings = array_merge($warnings, (array) ($learning_refs['warnings'] ?? array()));
         $orphan_product_attribute_rows = absint($source_integrity['orphan_product_attribute_rows'] ?? 0);
         if (isset($actions['custom_tables']['sql_product_atributos'])) {
             $actions['custom_tables']['sql_product_atributos']['create_from_pro'] = max(0, absint($actions['custom_tables']['sql_product_atributos']['source']) - $orphan_product_attribute_rows);
