@@ -4308,6 +4308,7 @@ function seo_faq_report_render_editorial_quality($editorial)
     echo '<h4>Categorias prioritarias para mejorar FAQs</h4>';
     echo '<p>Se muestran las categorias con mas FAQs clase C o menor puntuacion media.</p>';
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report filter.
     $quality_filter = isset($_GET['quality_filter']) ? sanitize_key(wp_unslash($_GET['quality_filter'])) : 'all';
     echo '<form method="get" style="margin-bottom:15px;">';
     echo '<input type="hidden" name="page" value="seo-faq">';
@@ -4556,6 +4557,7 @@ function seo_faq_report_render_styles()
  */
 function seo_faq_show_notice()
 {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice code.
     $message = isset($_GET['faq_msg'])
         ? sanitize_key(wp_unslash($_GET['faq_msg']))
         : '';
@@ -4564,12 +4566,14 @@ function seo_faq_show_notice()
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice count.
     $total = isset($_GET['faq_total'])
-        ? absint($_GET['faq_total'])
+        ? absint(wp_unslash($_GET['faq_total']))
         : 0;
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only operation reference shown in the admin notice.
     $operation_id = isset($_GET['faq_operation'])
-        ? absint($_GET['faq_operation'])
+        ? absint(wp_unslash($_GET['faq_operation']))
         : 0;
 
     if ($message === 'created_multiple') {
