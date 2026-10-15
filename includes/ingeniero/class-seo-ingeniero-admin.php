@@ -152,6 +152,7 @@ final class SEO_Ingeniero_Admin {
         self::guard('seo_ingeniero_review');
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
         $id = absint(wp_unslash($_POST['knowledge_id'] ?? 0));
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
         $term_id = absint(wp_unslash($_POST['term_id'] ?? 0));
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
         $decision = sanitize_key((string) wp_unslash($_POST['decision'] ?? 'review'));
@@ -166,6 +167,7 @@ final class SEO_Ingeniero_Admin {
 
     public static function handle_approve_category() {
         self::guard('seo_ingeniero_approve_category');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
         $term_id = absint(wp_unslash($_POST['term_id'] ?? 0));
         if (!$term_id) {
             self::redirect(array('ingeniero_error'=>rawurlencode('La categoría no es válida.')));
@@ -207,6 +209,7 @@ final class SEO_Ingeniero_Admin {
 
     public static function handle_export() {
         self::guard('seo_ingeniero_export');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
         $term_id = absint(wp_unslash($_POST['term_id'] ?? 0));
         $payload = SEO_Ingeniero_DB::export_payload($term_id);
         nocache_headers();
@@ -383,6 +386,7 @@ final class SEO_Ingeniero_Admin {
         if (class_exists('SEO_Ingeniero_Process')) {
             SEO_Ingeniero_Process::kick_editorial_refresh();
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Ingeniero tab selector.
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'research';
         if (!in_array($tab, array('research', 'editorial', 'posts', 'landings', 'radar', 'data', 'tests'), true)) {
             $tab = 'research';
@@ -430,7 +434,8 @@ final class SEO_Ingeniero_Admin {
         $table_candidates = array_slice($all_candidates, 0, 100);
         $usage = SEO_Ingeniero_SerpApi_Provider::usage_month();
         $settings = SEO_Ingeniero_SerpApi_Provider::settings();
-        $detail_term_id = absint($_GET['term_id'] ?? 0);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected category ID.
+        $detail_term_id = isset($_GET['term_id']) ? absint(wp_unslash($_GET['term_id'])) : 0;
 
         self::render_notices();
 
