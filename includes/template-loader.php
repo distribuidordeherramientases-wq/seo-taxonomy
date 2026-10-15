@@ -226,6 +226,48 @@ function seo_pilot_vevor_request_market() {
         return count($markets) === 1 ? (string) key($markets) : '';
     }
 
+    // Las landings afiliadas se identifican por rol SEO, slug y categorias.
+    // La procedencia o idioma del visitante no intervienen.
+    if (is_singular('page')) {
+        $id = absint(get_queried_object_id());
+        $slug = (string) get_post_field('post_name', $id);
+        if (!preg_match('/^vevor-(us|de|nl)-[a-z0-9-]+$/', $slug, $parts)) {
+            return '';
+        }
+        $expected = strtoupper($parts[1]);
+        $metadata_market = strtoupper(trim((string) get_post_meta($id, 'dht_pilot_market', true)));
+        if ($metadata_market !== '' && $metadata_market !== $expected) {
+            return '';
+        }
+        global $wpdb;
+        $nodes = $wpdb->prefix . 'seo_nodes';
+        $relations = $wpdb->prefix . 'seo_relations';
+        $role = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$nodes} WHERE object_type = 'page'
+              AND object_id = %d AND seo_role = 'landing' AND status = 1 LIMIT 1",
+            $id
+        ));
+        if (!$role) {
+            return '';
+        }
+        $category_ids = array_values(array_unique(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
+            "SELECT target_id FROM {$relations}
+              WHERE source_type = 'landing' AND source_id = %d
+              AND target_type = 'product_cat' AND relation_type = 'landing_to_category'",
+            $id
+        )))));
+        if (count($category_ids) < 2) {
+            return '';
+        }
+        foreach ($category_ids as $category_id) {
+            $term = get_term($category_id, 'product_cat');
+            if (!($term instanceof WP_Term) || dht_pilot_market_for_term($term) !== $expected) {
+                return '';
+            }
+        }
+        return $expected;
+    }
+
     return '';
 }
 
@@ -236,7 +278,7 @@ function seo_template_loader($template) {
     $base_path = SEO_SYSTEM_PATH . 'seo-system/templates/';
     // Solo el catalogo piloto VEVOR cambia a pagina afiliada internacional.
     // No depende del pais ni del idioma del visitante.
-    if (is_tax('product_cat') || is_singular('product')) {
+    if (is_tax('product_cat') || is_singular('product') || is_singular('page')) {
         $pilot_market = seo_pilot_vevor_request_market();
         $pilot_file = $base_path . 'template-pilot-vevor.php';
         if (in_array($pilot_market, array('US', 'DE', 'NL'), true) && is_readable($pilot_file)) {
