@@ -3300,17 +3300,21 @@ function seo_render_anomalies_report() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice.
         if (isset($_GET['empty_categories_deleted'])) {
             $deleted_empty = absint(wp_unslash($_GET['empty_categories_deleted']));
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             $skipped_empty = isset($_GET['empty_categories_skipped'])
-                ? absint($_GET['empty_categories_skipped'])
+                ? absint(wp_unslash($_GET['empty_categories_skipped']))
                 : 0;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             $relations_empty = isset($_GET['empty_relations_deleted'])
-                ? absint($_GET['empty_relations_deleted'])
+                ? absint(wp_unslash($_GET['empty_relations_deleted']))
                 : 0;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             $nodes_empty = isset($_GET['empty_nodes_deleted'])
-                ? absint($_GET['empty_nodes_deleted'])
+                ? absint(wp_unslash($_GET['empty_nodes_deleted']))
                 : 0;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             $faqs_empty = isset($_GET['empty_category_faqs_deleted'])
-                ? absint($_GET['empty_category_faqs_deleted'])
+                ? absint(wp_unslash($_GET['empty_category_faqs_deleted']))
                 : 0;
 
             echo '<div class="notice notice-success inline"><p>';
