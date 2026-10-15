@@ -48,6 +48,7 @@ add_filter('seo_content_items', 'seo_comentarista_register_tools_card');
 
 function seo_comentarista_admin_assets()
 {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
     if (empty($_GET['page']) || sanitize_key(wp_unslash($_GET['page'])) !== 'seo-comentarista') {
         return;
     }
@@ -214,6 +215,7 @@ function seo_comentarista_admin_page()
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Comentarista view selector.
     $view = sanitize_key(wp_unslash($_GET['view'] ?? 'records'));
     if ($view === 'coverage' && function_exists('seo_comentarista_coverage_admin_page')) {
         seo_comentarista_coverage_admin_page();
@@ -229,12 +231,14 @@ function seo_comentarista_admin_page()
     }
 
     $notice = seo_comentarista_admin_handle_action();
-    $edit_id = absint($_GET['edit'] ?? 0);
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected record ID.
+    $edit_id = isset($_GET['edit']) ? absint(wp_unslash($_GET['edit'])) : 0;
     $edit = $edit_id ? seo_comentarista_get($edit_id) : null;
 
     $defaults = array(
         'id'                  => 0,
-        'product_id'          => absint($_GET['product_id'] ?? 0),
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only preselected product ID.
+        'product_id'          => isset($_GET['product_id']) ? absint(wp_unslash($_GET['product_id'])) : 0,
         'content_type'        => 'comment',
         'source_platform'     => 'web',
         'source_name'         => '',
