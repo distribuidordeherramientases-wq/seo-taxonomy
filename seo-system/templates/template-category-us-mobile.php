@@ -1,20 +1,14 @@
 <?php
 /*
- * Plantilla de categorías WooCommerce
- * Sistema visual común DHT
+ * US WooCommerce category template
+ * Shared DHT visual system
  */
 
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-helpers.php';
 
-$GLOBALS['dht_frontend_language_tag'] = 'en-US';
-$dht_us_locale_switched = false;
-if (function_exists('switch_to_locale') && get_locale() !== 'en_US') {
-    $dht_us_locale_switched = (bool) switch_to_locale('en_US');
-}
-
-$amazon_category_template = __DIR__ . '/template-amazon-category.php';
+$amazon_category_template = __DIR__ . '/template-amazon-category-us.php';
 if (is_readable($amazon_category_template)) {
     require_once $amazon_category_template;
 }
@@ -46,9 +40,6 @@ if (
     dht_template_render_header();
     echo '<main class="dht-page dht-status-page"><section class="dht-section"><div class="dht-content dht-status-card"><h1>Category unavailable</h1></div></section></main>';
     dht_template_render_footer();
-    if ($dht_us_locale_switched && function_exists('restore_previous_locale')) {
-        restore_previous_locale();
-    }
     return;
 }
 
@@ -60,11 +51,6 @@ if (
  * Las combinaciones de filtros son navegación de usuario, no landings SEO.
  * Se mantienen rastreables pero fuera del índice para evitar URLs facetadas.
  */
-$dht_us_category_url = get_term_link($term);
-if (!is_wp_error($dht_us_category_url) && $dht_us_category_url) {
-    $GLOBALS['dht_frontend_hreflang_url'] = (string) $dht_us_category_url;
-}
-
 if (function_exists('dht_template_category_has_filter_query') && dht_template_category_has_filter_query()) {
     add_filter('wp_robots', static function ($robots) {
         $robots['noindex'] = true;
@@ -363,8 +349,8 @@ $json = array(
                         </div>
                     <?php endif; ?>
 
-                    <div class="dht-category-hero-meta" aria-label="Category overview">
-                        <span><strong><?php echo esc_html(number_format((int) $term->count, 0, '.', ',')); ?></strong> products</span>
+                    <div class="dht-category-hero-meta" aria-label="Category summary">
+                        <span><strong><?php echo esc_html(number_format_i18n((int) $term->count)); ?></strong> products</span>
                         <span>Comparison available</span>
                     </div>
 
@@ -541,7 +527,7 @@ $json = array(
                     <details class="dht-category-knowledge-card">
                         <summary>
                             <span>Shopping Assistant questions and answers</span>
-                            <small><?php echo esc_html(number_format((int) count($category_faqs), 0, '.', ',')); ?> questions</small>
+                            <small><?php echo esc_html(number_format_i18n(count($category_faqs))); ?> questions</small>
                             <span class="dht-category-knowledge-card__icon" aria-hidden="true"></span>
                         </summary>
                         <div class="dht-category-knowledge-card__body dht-category-dependiente-qa">
@@ -640,7 +626,7 @@ $json = array(
                     </h2>
 
                     <p class="dht-section-subtitle">
-                        Explore related categories connected directly to <?php echo esc_html($term->name); ?>.
+                        Broaden your search with categories directly related to <?php echo esc_html($term->name); ?>.
                     </p>
 
                 </header>
@@ -711,7 +697,9 @@ $json = array(
                                     <span class="dht-category-card-meta">
                                         <?php
                                         echo esc_html(
-                                            number_format((int) $related_category->count, 0, '.', ',')
+                                            number_format_i18n(
+                                                $related_category->count
+                                            )
                                         );
                                         ?>
                                         products
@@ -757,7 +745,7 @@ $json = array(
                     $faq_form_object_type = 2;
                     $faq_form_object_id   = $term->term_id;
                     $faq_form_ambito      = '';
-                    $faq_form_template = __DIR__ . '/faq-form.php';
+                    $faq_form_template = __DIR__ . '/faq-form-us.php';
                     if(file_exists($faq_form_template)){
                         include $faq_form_template;
                     }
@@ -788,16 +776,11 @@ $json = array(
     <?php
     $dht_vevor_category_term = $term;
     $dht_vevor_category_keywords = $keywords;
-    include __DIR__ . '/template-vevor-affiliate.php';
+    include __DIR__ . '/template-vevor-affiliate-us.php';
     unset($dht_vevor_category_term, $dht_vevor_category_keywords);
     ?>
 
 
 </main>
 
-<?php
-dht_template_render_footer();
-if ($dht_us_locale_switched && function_exists('restore_previous_locale')) {
-    restore_previous_locale();
-}
-?>
+<?php dht_template_render_footer(); ?>
