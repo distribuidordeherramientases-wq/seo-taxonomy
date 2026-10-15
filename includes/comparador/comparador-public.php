@@ -72,9 +72,11 @@ final class SEO_Comparador_Public {
     private static function render($payload,$context) {
         if (!$payload) return;
         $context=sanitize_key((string)$context);
+        $is_us = function_exists('dht_template_is_us_english') && dht_template_is_us_english();
+
         echo '<section class="dht-comparador-extract dht-comparador-extract-' . esc_attr($context) . '">';
         echo '<div class="dht-container"><div class="dht-comparador-extract__card">';
-        echo '<span class="dht-kicker">Comparativa</span>';
+        echo '<span class="dht-kicker">' . esc_html($is_us ? 'Comparison' : 'Comparativa') . '</span>';
         echo '<h2>' . esc_html((string)$payload['title']) . '</h2>';
         if (!empty($payload['excerpt'])) echo '<p>' . esc_html((string)$payload['excerpt']) . '</p>';
         if (!empty($payload['axes'])) {
@@ -82,7 +84,7 @@ final class SEO_Comparador_Public {
             foreach ($payload['axes'] as $axis) echo '<li>' . esc_html($axis) . '</li>';
             echo '</ul>';
         }
-        echo '<p><a class="button dht-comparador-extract__link" href="' . esc_url((string)$payload['url']) . '">Ver comparativa completa</a></p>';
+        echo '<p><a class="button dht-comparador-extract__link" href="' . esc_url((string)$payload['url']) . '">' . esc_html($is_us ? 'View full comparison' : 'Ver comparativa completa') . '</a></p>';
         echo '</div></div></section>';
     }
 
