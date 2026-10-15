@@ -270,7 +270,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<div class="notice notice-success inline"><p>Configuracion de Cloudflare guardada. Usa "Probar conexion" para verificar el token y la zona.</p></div>';
         }
         if ( isset( $_GET['cloudflare_error'] ) ) {
-            $cloudflare_error = sanitize_key( $_GET['cloudflare_error'] );
+            $cloudflare_error = sanitize_key( wp_unslash( $_GET['cloudflare_error'] ) );
             $cloudflare_message = 'No se pudo guardar la configuracion de Cloudflare.';
             if ( 'zone' === $cloudflare_error ) {
                 $cloudflare_message = 'Indica un dominio/zona valido de Cloudflare.';
@@ -292,7 +292,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<div class="notice notice-success inline"><p>Configuracion de Pinterest Merchant guardada.</p></div>';
         }
         if ( isset( $_GET['pinterest_merchant_error'] ) ) {
-            $pinterest_error = sanitize_key( $_GET['pinterest_merchant_error'] );
+            $pinterest_error = sanitize_key( wp_unslash( $_GET['pinterest_merchant_error'] ) );
             $pinterest_message = 'No se pudo guardar la configuracion de Pinterest.';
             if ( 'verification_code' === $pinterest_error ) {
                 $pinterest_message = 'El codigo de verificacion de Pinterest no es valido. Puedes pegar el codigo o la etiqueta meta completa que te da Pinterest.';
@@ -304,7 +304,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<div class="notice notice-success inline"><p>Configuracion de Google Python Runner guardada.</p></div>';
         }
         if ( isset( $_GET['google_python_error'] ) ) {
-            $python_error = sanitize_key( $_GET['google_python_error'] );
+            $python_error = sanitize_key( wp_unslash( $_GET['google_python_error'] ) );
             $python_message = 'No se pudo guardar Google Python Runner.';
             if ( 'credentials' === $python_error ) {
                 $python_message = 'El JSON de la cuenta de servicio de Google no es valido.';
@@ -317,7 +317,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<div class="notice notice-success inline"><p>Configuracion de GitHub Actions Python Runner guardada.</p></div>';
         }
         if ( isset( $_GET['github_python_error'] ) ) {
-            $github_error = sanitize_key( $_GET['github_python_error'] );
+            $github_error = sanitize_key( wp_unslash( $_GET['github_python_error'] ) );
             $github_message = 'No se pudo guardar GitHub Actions Python Runner.';
             if ( 'fields' === $github_error ) {
                 $github_message = 'Usuario/organizacion, repositorio, workflow y rama son obligatorios.';
@@ -325,7 +325,7 @@ if ( ! function_exists( 'seo_proveedores_render_conexiones' ) ) {
             echo '<div class="notice notice-error inline"><p>' . esc_html( $github_message ) . '</p></div>';
         }
         if ( isset( $_GET['google_search_error'] ) ) {
-            $google_error = sanitize_key( $_GET['google_search_error'] );
+            $google_error = sanitize_key( wp_unslash( $_GET['google_search_error'] ) );
             $google_error_message = 'No se pudo guardar la configuracion de Google.';
             if ( 'measurement_id' === $google_error ) {
                 $google_error_message = 'El Measurement ID debe tener el formato G-XXXXXXXXXX.';

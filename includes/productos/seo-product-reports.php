@@ -11,6 +11,7 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_product_reports_enqueue_assets')) {
     function seo_product_reports_enqueue_assets() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
         if ('product-page-admin' !== $page) {
             return;
@@ -928,10 +929,10 @@ if (!function_exists('seo_product_reports_render_daily_chart')) {
 if (!function_exists('seo_product_reports_render_product')) {
     function seo_product_reports_render_product($product_id) {
         $product_id = absint($product_id);
-        $days = seo_product_reports_days($_GET['days'] ?? 28);
+        $days = seo_product_reports_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 28);
         $force = false;
 
-        if (isset($_GET['refresh']) && '1' === (string) $_GET['refresh']) {
+        if (isset($_GET['refresh']) && 1 === absint(wp_unslash($_GET['refresh']))) {
             $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
             $force = wp_verify_nonce($nonce, 'seo_product_report_refresh_' . $product_id);
         }
@@ -1060,13 +1061,13 @@ if (!function_exists('seo_product_reports_render_selector')) {
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $category_id = isset($_GET['cat']) ? absint($_GET['cat']) : 0;
         $provider = isset($_GET['provider']) ? sanitize_text_field(wp_unslash($_GET['provider'])) : '';
-        $days = seo_product_reports_days($_GET['days'] ?? 28);
-        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
+        $days = seo_product_reports_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 28);
+        $score_order = isset($_GET['score_order']) && 'asc' === sanitize_key(wp_unslash($_GET['score_order'])) ? 'asc' : 'desc';
         $paged = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
 
         $force_snapshot = false;
-        if (isset($_GET['refresh_catalog']) && '1' === (string) $_GET['refresh_catalog']) {
+        if (isset($_GET['refresh_catalog']) && 1 === absint(wp_unslash($_GET['refresh_catalog']))) {
             $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
             $force_snapshot = wp_verify_nonce($nonce, 'seo_product_reports_refresh_catalog_' . $days);
         }
@@ -1291,7 +1292,8 @@ if (!function_exists('seo_product_reports_page')) {
             return;
         }
 
-        $product_id = isset($_GET['product_id']) ? absint($_GET['product_id']) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected product ID.
+        $product_id = isset($_GET['product_id']) ? absint(wp_unslash($_GET['product_id'])) : 0;
 if ($product_id > 0) {
             echo '<p><a class="button" href="' . esc_url(seo_product_reports_admin_url()) . '">← Volver a productos</a></p>';
             seo_product_reports_render_product($product_id);

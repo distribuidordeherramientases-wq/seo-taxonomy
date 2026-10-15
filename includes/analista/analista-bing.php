@@ -323,7 +323,7 @@ if (!function_exists('seo_analista_bing_save_settings_handler')) {
         $old = seo_analista_bing_get_settings();
         $site_url = isset($_POST['bing_site_url']) ? esc_url_raw((string) wp_unslash($_POST['bing_site_url'])) : home_url('/');
         if ($site_url === '') $site_url = home_url('/');
-        $api_key = isset($_POST['bing_api_key']) ? trim((string) wp_unslash($_POST['bing_api_key'])) : '';
+        $api_key = isset($_POST['bing_api_key']) ? sanitize_text_field(wp_unslash($_POST['bing_api_key'])) : '';
         if ($api_key === '') $api_key = (string) ($old['api_key'] ?? '');
         if (!empty($_POST['bing_clear_api_key'])) $api_key = '';
 

@@ -39,7 +39,7 @@ final class SEO_Dependiente_V3_Lesson9_Admin {
         self::verify_ajax();
         $status = SEO_Dependiente_V3_Lesson9::prepare_batch(SEO_Dependiente_V3_Lesson9::BATCH_SIZE);
         if (is_wp_error($status)) {
-            wp_send_json_error(array('message' => $status->get_error_message()), 400);
+            wp_send_json_error(array('message' => sanitize_text_field($status->get_error_message())), 400);
         }
         wp_send_json_success(array('status' => $status));
     }

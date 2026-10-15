@@ -81,6 +81,8 @@ Used to query Search Console and Analytics, obtain Google Trends signals, and, w
 
 Data sent: configured URL/site, property or project identifiers, search/trend queries, technical request parameters, and OAuth or service-account credentials when required. Data is sent only when saving/testing the connection or running the corresponding module.
 
+Endpoint hosts used by these modules can include `accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`, `analyticsdata.googleapis.com`, `run.googleapis.com`, `trends.google.com`, and `www.googletagmanager.com`.
+
 Terms: https://policies.google.com/terms
 Privacy: https://policies.google.com/privacy
 
@@ -89,6 +91,8 @@ Privacy: https://policies.google.com/privacy
 Used on the WooCommerce order-received page when the administrator has configured a Google Merchant Center account in the plugin. That configured Merchant account ID enables the Customer Reviews opt-in on the confirmation page.
 
 Data sent: configured Merchant Center account ID, order identifier, customer email address, delivery country, estimated delivery date and, when available, product GTINs. The data is sent from the confirmation page only after a valid WooCommerce order has been received and only when a valid Merchant Center account ID is configured.
+
+The confirmation integration can load Google resources from `apis.google.com`.
 
 Terms: https://policies.google.com/terms
 Privacy: https://policies.google.com/privacy
@@ -99,6 +103,8 @@ Used by market-monitoring modules to read Merchant Center reporting data when th
 
 Data sent: OAuth access token, Merchant Center account identifier and the fixed report query required to retrieve price-competitiveness or best-seller information. Store-visitor personal data is not sent.
 
+Endpoint/namespace hosts used by this integration include `merchantapi.googleapis.com` and `base.google.com`.
+
 Terms: https://policies.google.com/terms
 Privacy: https://policies.google.com/privacy
 
@@ -107,6 +113,8 @@ Privacy: https://policies.google.com/privacy
 Used to connect pages/accounts and publish content when the administrator enables these integrations.
 
 Data sent: page/account identifiers, OAuth tokens, publication text, links, and images/media URLs selected by the administrator.
+
+API host: `graph.facebook.com`.
 
 Terms: https://www.facebook.com/terms.php
 Privacy: https://www.facebook.com/privacy/policy/
@@ -117,6 +125,8 @@ Used to connect an organization and publish content to LinkedIn when the adminis
 
 Data sent: organization identifier, OAuth credentials, publication text, and selected media/link references.
 
+API host: `api.linkedin.com`.
+
 Terms: https://www.linkedin.com/legal/user-agreement
 Privacy: https://www.linkedin.com/legal/privacy-policy
 
@@ -125,6 +135,8 @@ Privacy: https://www.linkedin.com/legal/privacy-policy
 Used to connect an account/board and create Pins when the administrator enables the integration.
 
 Data sent: account/board identifiers, OAuth credentials, title/description, links, and images associated with the Pin.
+
+API and authorization hosts can include `api.pinterest.com` and `www.pinterest.com`.
 
 Terms: https://policy.pinterest.com/terms-of-service
 Privacy: https://policy.pinterest.com/privacy-policy
@@ -135,6 +147,8 @@ Used to connect an account, publish content, and query publication metrics when 
 
 Data sent: OAuth credentials, account/publication identifier, and content selected by the administrator.
 
+API host: `api.x.com`.
+
 Terms: https://x.com/en/tos
 Privacy: https://x.com/en/privacy
 
@@ -143,6 +157,8 @@ Privacy: https://x.com/en/privacy
 Used to query Bing Webmaster metrics when the administrator configures the connection.
 
 Data sent: site URL, query parameters, and credentials/API key configured by the administrator.
+
+API host used by the legacy Bing Webmaster connector: `ssl.bing.com`.
 
 Terms: https://www.microsoft.com/servicesagreement
 Privacy: https://privacy.microsoft.com/privacystatement
@@ -161,6 +177,8 @@ Used as an optional structured-search fallback by market-monitoring modules when
 
 Data sent: API key and the search/category terms needed for the configured Google Shopping or search request. Personal data from store visitors is not sent.
 
+API host: `api.scraperapi.com`.
+
 Terms: https://www.scraperapi.com/terms/
 Privacy: https://www.scraperapi.com/privacy/
 
@@ -169,6 +187,8 @@ Privacy: https://www.scraperapi.com/privacy/
 Amazon importers/integrations can request tokens and query products when the administrator configures the required credentials.
 
 Data sent: application credentials, marketplace, and product search terms/identifiers required for the query.
+
+Depending on the configured marketplace/integration, hosts can include `api.amazon.co.uk`, `www.amazon.es`, and the Creators API base host `creatorsapi.amazon`.
 
 Conditions of Use: https://www.amazon.com/gp/help/customer/display.html?nodeId=508088
 Privacy Notice: https://www.amazon.com/gp/help/customer/display.html?nodeId=GX7NJQ4ZB8MHFRNJ
@@ -179,6 +199,8 @@ Optional diagnostic, visual-checking, and automation processes can launch workfl
 
 Data sent: owner/repository/workflow, process parameters, callback URL when applicable, and the token configured by the administrator.
 
+API host: `api.github.com`.
+
 Terms: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 Privacy: https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement
 
@@ -187,6 +209,8 @@ Privacy: https://docs.github.com/site-policy/privacy-policies/github-general-pri
 The connections module can query a Cloudflare zone when the administrator configures an API token. TaxoCommerce SEO does not automatically load Cloudflare Web Analytics.
 
 Data sent: API token, zone identifier, and request parameters required to verify the connection.
+
+API host: `api.cloudflare.com`.
 
 Terms: https://www.cloudflare.com/website-terms/
 Privacy: https://www.cloudflare.com/privacypolicy/
@@ -197,6 +221,10 @@ The reviews/content module can display a TikTok player only when imported or con
 
 Terms: https://www.tiktok.com/legal/terms-of-service
 Privacy: https://www.tiktok.com/legal/privacy-policy
+
+= Public media and contact links =
+
+Administrator-configured content can contain links or references for YouTube (`www.youtube.com`), Instagram (`www.instagram.com`), and WhatsApp (`wa.me`). These are not contacted by the plugin unless the administrator or visitor uses the corresponding feature/link.
 
 = Supplier and external content sources =
 

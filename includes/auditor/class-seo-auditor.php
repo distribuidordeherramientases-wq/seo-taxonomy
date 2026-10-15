@@ -49,8 +49,8 @@ final class SEO_Auditor {
     }
 
     public static function enqueue($hook) {
-        $page = sanitize_key((string) ($_GET['page'] ?? ''));
-        $tab = sanitize_key((string) ($_GET['tab'] ?? ''));
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
         $is_content_auditor = 'seo-content-auditor' === $page;
         $is_academy_auditor = false !== strpos((string) $hook, 'seo-dependiente') && 'auditor' === $tab;
 
@@ -97,7 +97,8 @@ final class SEO_Auditor {
 
     public static function handle_run_scope() {
         self::guard_action('seo_auditor_run_scope');
-        $scope = self::normalize_scope(isset($_POST['scope']) ? wp_unslash($_POST['scope']) : '');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard_action() above.
+        $scope = self::normalize_scope(isset($_POST['scope']) ? sanitize_key(wp_unslash($_POST['scope'])) : '');
         if (!$scope) {
             wp_die(esc_html__('Ambito de auditoria no valido.', 'taxocommerce-seo'));
         }
@@ -118,7 +119,8 @@ final class SEO_Auditor {
 
     public static function handle_export_scope() {
         self::guard_action('seo_auditor_export_scope');
-        $scope = self::normalize_scope(isset($_POST['scope']) ? wp_unslash($_POST['scope']) : '');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard_action() above.
+        $scope = self::normalize_scope(isset($_POST['scope']) ? sanitize_key(wp_unslash($_POST['scope'])) : '');
         $reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
         self::stream_json_report(
             $scope && !empty($reports[$scope]) ? (array) $reports[$scope] : array(),
@@ -180,8 +182,8 @@ final class SEO_Auditor {
 
         $scoped_reports = (array) get_option(self::SCOPED_REPORT_OPTION, array());
 
-        if ('scope' === sanitize_key((string) ($_GET['audited'] ?? ''))) {
-            $done_scope = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
+        if ('scope' === (isset($_GET['audited']) ? sanitize_key(wp_unslash($_GET['audited'])) : '')) {
+            $done_scope = self::normalize_scope(isset($_GET['audit_scope']) ? sanitize_key(wp_unslash($_GET['audit_scope'])) : '');
             $labels = self::scope_definitions();
             if ($done_scope && isset($labels[$done_scope])) {
                 echo '<div class="notice notice-success is-dismissible"><p>Auditoria de <strong>' . esc_html($labels[$done_scope]['label']) . '</strong> completada de forma independiente.</p></div>';
@@ -195,7 +197,7 @@ final class SEO_Auditor {
 
         self::render_content_audit_actions(array(), $scoped_reports);
 
-        $scope_view = self::normalize_scope((string) ($_GET['audit_scope'] ?? ''));
+        $scope_view = self::normalize_scope(isset($_GET['audit_scope']) ? sanitize_key(wp_unslash($_GET['audit_scope'])) : '');
         if ($scope_view && !empty($scoped_reports[$scope_view])) {
             self::render_scope_report((array) $scoped_reports[$scope_view]);
         } elseif (!$scoped_reports) {
@@ -214,12 +216,12 @@ final class SEO_Auditor {
         }
 
         $academy_report = self::last_academy_report();
-        $view = sanitize_key((string) ($_GET['audit_view'] ?? 'summary'));
+        $view = isset($_GET['audit_view']) ? sanitize_key(wp_unslash($_GET['audit_view'])) : 'summary';
         if (!in_array($view, array('summary','academia','chain'), true)) {
             $view = 'summary';
         }
 
-        if ('academy' === sanitize_key((string) ($_GET['audited'] ?? ''))) {
+        if ('academy' === (isset($_GET['audited']) ? sanitize_key(wp_unslash($_GET['audited'])) : '')) {
             echo '<div class="notice notice-success is-dismissible"><p>Auditoria de Academia / Estudiante completada. No se ha recorrido el catalogo ni se ha modificado conocimiento.</p></div>';
         }
 
@@ -3319,7 +3321,7 @@ final class SEO_Auditor {
         echo '</div>';
 
         $rows = (array)($quality['rows']??array());
-        $band_filter = sanitize_key((string)($_GET['quality_band']??''));
+        $band_filter = isset($_GET['quality_band']) ? sanitize_key(wp_unslash($_GET['quality_band'])) : '';
         if ($band_filter && in_array($band_filter,array('fuerte','correcta','mejorable','debil','no_aplica'),true)) {
             $rows = array_values(array_filter($rows,static function($row)use($band_filter){
                 return (string)($row['band']??'') === $band_filter;
@@ -3556,7 +3558,7 @@ final class SEO_Auditor {
     }
 
     private static function render_findings($report) {
-        $severity=sanitize_key((string)($_GET['severity']??''));$scope=sanitize_key((string)($_GET['scope']??''));$rows=array();
+        $severity=isset($_GET['severity']) ? sanitize_key(wp_unslash($_GET['severity'])) : '';$scope=isset($_GET['scope']) ? sanitize_key(wp_unslash($_GET['scope'])) : '';$rows=array();
         foreach((array)($report['findings']??array()) as $f){if($severity&&($f['severity']??'')!==$severity)continue;if($scope&&($f['scope']??'')!==$scope)continue;$rows[]=$f;}
         echo '<h3>Hallazgos</h3><p class="description">Cada fila contiene evidencia y una recomendacion de revision; no es una orden de cambio.</p>';
         self::render_finding_table($rows);

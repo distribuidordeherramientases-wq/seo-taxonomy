@@ -466,11 +466,13 @@ final class SEO_Comparador_IO {
     }
 
     private static function read_uploaded_json($field) {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- The only caller is handle_import_editorial(), which verifies the profile-specific nonce before parsing the upload.
         if (empty($_FILES[$field]) || !is_array($_FILES[$field])) {
             return new WP_Error('comparador_import_file', 'No se ha recibido ningún archivo JSON.');
         }
 
         $file = $_FILES[$field]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Se valida cada campo antes de usarlo.
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $error = isset($file['error']) ? absint($file['error']) : UPLOAD_ERR_NO_FILE;
         if ($error !== UPLOAD_ERR_OK) {
             return new WP_Error('comparador_import_upload', 'Error de subida del JSON: código ' . $error . '.');
@@ -583,6 +585,7 @@ final class SEO_Comparador_IO {
 
     public static function handle_import_editorial() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- profile_id is required to build the nonce action and is normalized before verification.
         $profile_id = isset($_POST['profile_id']) ? absint(wp_unslash($_POST['profile_id'])) : 0;
         check_admin_referer('seo_comparador_import_editorial_' . $profile_id);
 

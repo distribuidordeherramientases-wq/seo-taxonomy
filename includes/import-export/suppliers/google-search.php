@@ -313,6 +313,7 @@ if ( ! function_exists( 'seo_google_search_save_settings' ) ) {
             exit;
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Service-account JSON must preserve PEM newlines; it is decoded and structurally validated before storage.
         $service_raw = trim( (string) wp_unslash( $_POST['service_account_json'] ?? '' ) );
         $service_json = (string) ( $current['service_account_json'] ?? '' );
         if ( '' !== $service_raw ) {
@@ -328,7 +329,7 @@ if ( ! function_exists( 'seo_google_search_save_settings' ) ) {
             'tracking_enabled'        => empty( $_POST['tracking_enabled'] ) ? 0 : 1,
             'measurement_id'          => $measurement_id,
             'analytics_property_id'   => preg_replace( '/\D+/', '', sanitize_text_field( wp_unslash( $_POST['analytics_property_id'] ?? '' ) ) ),
-            'search_console_site_url' => esc_url_raw( trim( (string) wp_unslash( $_POST['search_console_site_url'] ?? '' ) ) ),
+            'search_console_site_url' => esc_url_raw( wp_unslash( $_POST['search_console_site_url'] ?? '' ) ),
             'service_account_json'    => $service_json,
         ];
 

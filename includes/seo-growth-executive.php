@@ -284,13 +284,15 @@ function seo_growth_exec_summary_counts($rows) {
 
 function seo_render_growth_executive_report() {
     if (function_exists('seo_google_opportunity_render')) {
-        $days = isset($_GET['growth_exec_days']) ? absint($_GET['growth_exec_days']) : 60;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reporting period selector.
+        $days = isset($_GET['growth_exec_days']) ? absint(wp_unslash($_GET['growth_exec_days'])) : 60;
         $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
         seo_google_opportunity_render('actions', $days);
         return;
     }
 
-    $days=isset($_GET['growth_exec_days'])?absint($_GET['growth_exec_days']):60;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reporting period selector.
+    $days=isset($_GET['growth_exec_days'])?absint(wp_unslash($_GET['growth_exec_days'])):60;
     $days=in_array($days,array(28,60,90),true)?$days:60;
     $payload=seo_growth_exec_build_rows($days,60);
     $rows=$payload['rows'];

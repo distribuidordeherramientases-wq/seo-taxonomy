@@ -893,12 +893,14 @@ if (!function_exists('seo_product_admin_save_single')) {
 
         check_admin_referer('seo_save_single_product', 'seo_product_nonce');
 
+        // Field-level validation and sanitization are applied by seo_product_save_single().
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Preserve the structured payload while removing WordPress request slashes.
         $raw = isset($_POST['seo_product']) && is_array($_POST['seo_product'])
-            ? $_POST['seo_product']
+            ? wp_unslash($_POST['seo_product'])
             : [];
 
         $result = seo_product_save_single($raw);
-        $return_tab = sanitize_key($_POST['return_tab'] ?? 'editar');
+        $return_tab = isset($_POST['return_tab']) ? sanitize_key(wp_unslash($_POST['return_tab'])) : 'editar';
         if (!in_array($return_tab, ['nuevo', 'editar'], true)) {
             $return_tab = 'editar';
         }

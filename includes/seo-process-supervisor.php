@@ -340,6 +340,7 @@ if (!function_exists('seo_process_supervisor_dispatch_valid')) {
 
 if (!function_exists('seo_process_supervisor_claim_dispatch')) {
     function seo_process_supervisor_claim_dispatch($dispatch_id, $dispatch_at, $signature, $backend) {
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         if (!seo_process_supervisor_dispatch_valid($dispatch_id, $dispatch_at, $signature)) {
             return false;
         }
@@ -357,11 +358,13 @@ if (!function_exists('seo_process_supervisor_spawn_cli')) {
     function seo_process_supervisor_spawn_cli($dispatch_id, $dispatch_at, $signature) {
         $php = seo_process_supervisor_find_php_cli();
         $worker = SEO_SYSTEM_PATH . 'includes/process-supervisor-worker.php';
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- WordPress bootstrap path is derived dynamically from ABSPATH for the detached CLI worker.
         $wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
         if (!$php) {
             return new WP_Error('supervisor_cli_missing', 'PHP CLI no está disponible para el supervisor.');
         }
         if (!is_readable($worker) || !is_readable($wp_load)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Diagnostic text refers to the dynamically derived WordPress bootstrap file.
             return new WP_Error('supervisor_cli_files', 'No se encuentra el launcher del supervisor o wp-load.php.');
         }
         $output = array();
@@ -1615,8 +1618,9 @@ if (!function_exists('seo_process_supervisor_run_loop')) {
 
 if (!function_exists('seo_process_supervisor_direct_http')) {
     function seo_process_supervisor_direct_http() {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- This internal endpoint authenticates requests with a signed dispatch token, timestamp, and signature instead of a WordPress nonce.
         $dispatch_id = sanitize_key(wp_unslash($_POST['dispatch_id'] ?? ''));
-        $dispatch_at = absint($_POST['dispatch_at'] ?? 0);
+        $dispatch_at = isset($_POST['dispatch_at']) ? absint(wp_unslash($_POST['dispatch_at'])) : 0;
         $signature = sanitize_text_field(wp_unslash($_POST['signature'] ?? ''));
         if (!seo_process_supervisor_dispatch_valid($dispatch_id, $dispatch_at, $signature)) {
             status_header(403);
@@ -1703,6 +1707,7 @@ if (!function_exists('seo_process_supervisor_save_settings_action')) {
             wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
         }
         check_admin_referer('seo_process_supervisor_save_settings');
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Structured supervisor settings are normalized field by field by seo_process_supervisor_sanitize_settings().
         $raw = isset($_POST['supervisor']) && is_array($_POST['supervisor']) ? wp_unslash($_POST['supervisor']) : array();
         foreach (array('enabled', 'import_export', 'commercial_feeds', 'supplier_imports', 'academy', 'linguista', 'classifier', 'clonador', 'backup_watchdog', 'log_cycles') as $checkbox) {
             $raw[$checkbox] = empty($raw[$checkbox]) ? 0 : 1;
@@ -1978,6 +1983,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             <?php
             $cron_php = '/opt/alt/php' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '/usr/bin/php';
             $cron_file = SEO_SYSTEM_PATH . 'includes/process-manager-cron.php';
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Display-only cron command uses the bootstrap path derived dynamically from ABSPATH.
             $cron_wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
             $cron_command = seo_process_supervisor_shell_arg_for_display($cron_php) . ' '
                 . seo_process_supervisor_shell_arg_for_display($cron_file) . ' '

@@ -531,7 +531,7 @@ if ( ! function_exists( 'seo_cloudflare_save_settings' ) ) {
         check_admin_referer( 'seo_cloudflare_save', 'seo_cloudflare_nonce' );
 
         $current   = seo_cloudflare_settings();
-        $zone_name = seo_cloudflare_normalize_zone_name( wp_unslash( $_POST['zone_name'] ?? '' ) );
+        $zone_name = seo_cloudflare_normalize_zone_name( sanitize_text_field( wp_unslash( $_POST['zone_name'] ?? '' ) ) );
         if ( '' === $zone_name ) {
             wp_safe_redirect( add_query_arg( [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'conexiones-proveedores', 'cloudflare_error' => 'zone' ], admin_url( 'admin.php' ) ) );
             exit;
@@ -545,7 +545,7 @@ if ( ! function_exists( 'seo_cloudflare_save_settings' ) ) {
         }
 
         if ( ! $constant_token ) {
-            $token_raw = preg_replace( '/\s+/', '', (string) wp_unslash( $_POST['api_token'] ?? '' ) );
+            $token_raw = preg_replace( '/\s+/', '', sanitize_text_field( wp_unslash( $_POST['api_token'] ?? '' ) ) );
             if ( '' !== $token_raw ) {
                 if ( strlen( $token_raw ) > 4096 ) {
                     wp_safe_redirect( add_query_arg( [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'conexiones-proveedores', 'cloudflare_error' => 'token' ], admin_url( 'admin.php' ) ) );

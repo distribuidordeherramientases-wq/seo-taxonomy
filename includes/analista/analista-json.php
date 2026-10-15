@@ -249,7 +249,7 @@ if (!function_exists('seo_analista_export_json_handler')) {
         }
         check_admin_referer('seo_analista_export_json', 'seo_analista_nonce');
 
-        $days = isset($_GET['analista_days']) ? seo_analista_days(wp_unslash($_GET['analista_days'])) : 28;
+        $days = isset($_GET['analista_days']) ? seo_analista_days(absint(wp_unslash($_GET['analista_days']))) : 28;
         $payload = seo_analista_build_json_export($days);
         $json = wp_json_encode(
             $payload,
