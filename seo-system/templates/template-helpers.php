@@ -6,6 +6,36 @@
 defined('ABSPATH') || exit;
 
 /* ==========================================================
+   FRONTEND MARKET / LANGUAGE HELPERS
+   Spain remains the default. International templates set the
+   language tag before rendering shared components.
+========================================================== */
+if (!function_exists('dht_template_language_tag')) {
+    function dht_template_language_tag()
+    {
+        $tag = isset($GLOBALS['dht_frontend_language_tag'])
+            ? trim((string) $GLOBALS['dht_frontend_language_tag'])
+            : 'es-ES';
+
+        return $tag !== '' ? $tag : 'es-ES';
+    }
+}
+
+if (!function_exists('dht_template_is_us_english')) {
+    function dht_template_is_us_english()
+    {
+        return 'en-US' === dht_template_language_tag();
+    }
+}
+
+if (!function_exists('dht_template_label')) {
+    function dht_template_label($spanish, $us_english)
+    {
+        return dht_template_is_us_english() ? (string) $us_english : (string) $spanish;
+    }
+}
+
+/* ==========================================================
    CANONICAL DHT
    WordPress conserva ID, slug y permalink. DHT controla la
    politica canonical para producto y product_cat.
