@@ -2617,39 +2617,48 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
         $url = dht_template_dependiente_page_url();
         $service_url = dht_template_service_page_url();
         $shop_url = dht_template_shop_url();
+        $us_english = dht_template_is_us_english();
 
         if ('guide' === $variant) {
-            $kicker = 'De la guía al catálogo';
-            $title = 'Convierte esta información en una búsqueda concreta';
-            $body = 'Escribe el producto, la necesidad, el uso, la marca o la referencia que quieres localizar. Dependiente relaciona la consulta con el catálogo y compara opciones.';
+            $kicker = $us_english ? 'From the guide to the catalog' : 'De la guía al catálogo';
+            $title = $us_english ? 'Turn this information into a specific search' : 'Convierte esta información en una búsqueda concreta';
+            $body = $us_english
+                ? 'Enter the product, need, use, brand or reference you want to find. The Shopping Assistant connects your query with the catalog and compares options.'
+                : 'Escribe el producto, la necesidad, el uso, la marca o la referencia que quieres localizar. Dependiente relaciona la consulta con el catálogo y compara opciones.';
         } elseif ('compact' === $variant) {
-            $kicker = 'Tu Dependiente del catálogo';
-            $title = '¿Quieres localizar una opción concreta?';
-            $body = 'Escribe lo que buscas y continúa en Dependiente.';
+            $kicker = $us_english ? 'Your catalog Shopping Assistant' : 'Tu Dependiente del catálogo';
+            $title = $us_english ? 'Looking for a specific option?' : '¿Quieres localizar una opción concreta?';
+            $body = $us_english
+                ? 'Enter what you are looking for and continue with the Shopping Assistant.'
+                : 'Escribe lo que buscas y continúa en Dependiente.';
         } elseif ('product' === $variant) {
-            $kicker = 'Comprueba antes de comprar';
-            $title = '¿Este producto encaja con lo que necesitas?';
-            $body = 'Pregunta por uso, compatibilidad, medidas o características. Dependiente parte del producto que estás viendo y te ayuda a contrastarlo con tu necesidad.';
+            $kicker = $us_english ? 'Check before you buy' : 'Comprueba antes de comprar';
+            $title = $us_english ? 'Is this product right for your needs?' : '¿Este producto encaja con lo que necesitas?';
+            $body = $us_english
+                ? 'Ask about use, compatibility, dimensions or features. The Shopping Assistant starts from the product you are viewing and helps you compare it with your needs.'
+                : 'Pregunta por uso, compatibilidad, medidas o características. Dependiente parte del producto que estás viendo y te ayuda a contrastarlo con tu necesidad.';
         } else {
-            $kicker = 'Busca con Dependiente';
+            $kicker = $us_english ? 'Search with the Shopping Assistant' : 'Busca con Dependiente';
             $title = $context !== ''
-                ? '¿Qué necesitas dentro de ' . $context . '?'
-                : '¿No tienes claro qué producto necesitas?';
-            $body = 'Empieza por un producto, una necesidad, una aplicación, una marca o una referencia. Dependiente relaciona la consulta con el catálogo para ayudarte a localizar opciones.';
+                ? ($us_english ? 'What do you need within ' . $context . '?' : '¿Qué necesitas dentro de ' . $context . '?')
+                : ($us_english ? 'Not sure which product you need?' : '¿No tienes claro qué producto necesitas?');
+            $body = $us_english
+                ? 'Start with a product, need, application, brand or reference. The Shopping Assistant connects your query with the catalog to help you find options.'
+                : 'Empieza por un producto, una necesidad, una aplicación, una marca o una referencia. Dependiente relaciona la consulta con el catálogo para ayudarte a localizar opciones.';
         }
 
         if ('product' === $variant && $context !== '') {
-            $placeholder = 'Ej.: ¿Me sirve para el trabajo que necesito?';
-            $input_value = 'Sobre "' . $context . '": ';
+            $placeholder = $us_english ? 'Example: Is this suitable for my project?' : 'Ej.: ¿Me sirve para el trabajo que necesito?';
+            $input_value = ($us_english ? 'About "' : 'Sobre "') . $context . '": ';
         } else {
             $placeholder = $context !== ''
-                ? 'Producto, uso o necesidad en ' . $context . '...'
-                : 'Producto, necesidad, uso o referencia...';
+                ? ($us_english ? 'Product, use or need in ' . $context . '...' : 'Producto, uso o necesidad en ' . $context . '...')
+                : ($us_english ? 'Product, need, use or reference...' : 'Producto, necesidad, uso o referencia...');
             $input_value = '';
         }
         $input_id = wp_unique_id('dht-dependiente-query-');
         ?>
-        <aside class="dht-assistant-cta dht-assistant-cta--<?php echo esc_attr($variant); ?>" aria-label="Buscar con Dependiente">
+        <aside class="dht-assistant-cta dht-assistant-cta--<?php echo esc_attr($variant); ?>" aria-label="<?php echo esc_attr($us_english ? 'Search with the Shopping Assistant' : 'Buscar con Dependiente'); ?>">
             <div class="dht-assistant-cta__copy">
                 <span class="dht-assistant-cta__kicker"><?php echo esc_html($kicker); ?></span>
                 <strong class="dht-assistant-cta__title"><?php echo esc_html($title); ?></strong>
@@ -2658,19 +2667,19 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
 
             <div class="dht-assistant-cta__action">
                 <form class="dht-assistant-cta__form" action="<?php echo esc_url($url); ?>" method="get">
-                    <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>">Describe lo que buscas</label>
+                    <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo esc_html($us_english ? 'Describe what you are looking for' : 'Describe lo que buscas'); ?></label>
                     <input id="<?php echo esc_attr($input_id); ?>" type="search" name="dep_q" value="<?php echo esc_attr($input_value); ?>" placeholder="<?php echo esc_attr($placeholder); ?>" autocomplete="off">
-                    <button type="submit">Preguntar al Dependiente</button>
+                    <button type="submit"><?php echo esc_html($us_english ? 'Ask the Shopping Assistant' : 'Preguntar al Dependiente'); ?></button>
                 </form>
                 <div class="dht-assistant-cta__links">
                     <?php if ('product' === $variant) : ?>
-                        <?php $whatsapp_url = 'https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $context . '.'); ?>
-                        <span>¿Prefieres una persona?</span>
-                        <a href="<?php echo esc_url($whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
+                        <?php $whatsapp_url = 'https://wa.me/34640874540?text=' . rawurlencode(($us_english ? 'Hello, I need help with ' : 'Hola, necesito ayuda con ') . $context . '.'); ?>
+                        <span><?php echo esc_html($us_english ? 'Prefer to talk to a person?' : '¿Prefieres una persona?'); ?></span>
+                        <a href="<?php echo esc_url($whatsapp_url); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($us_english ? 'Chat on WhatsApp' : 'Hablar por WhatsApp'); ?></a>
                     <?php else : ?>
-                        <a href="<?php echo esc_url($shop_url); ?>">Ver catálogo</a>
+                        <a href="<?php echo esc_url($shop_url); ?>"><?php echo esc_html($us_english ? 'View catalog' : 'Ver catálogo'); ?></a>
                         <span aria-hidden="true">·</span>
-                        <a href="<?php echo esc_url($service_url); ?>">Nuestro acompañamiento</a>
+                        <a href="<?php echo esc_url($service_url); ?>"><?php echo esc_html($us_english ? 'Our support' : 'Nuestro acompañamiento'); ?></a>
                     <?php endif; ?>
                 </div>
             </div>
