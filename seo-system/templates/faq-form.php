@@ -22,6 +22,8 @@ $faq_form_object_id = isset($faq_form_object_id)
 $faq_form_ambito = isset($faq_form_ambito)
     ? sanitize_key($faq_form_ambito)
     : '';
+
+$dht_us_market = function_exists('dht_template_is_us_market') && dht_template_is_us_market();
 ?>
 
 <section class="taxonomy-faq-form">
@@ -33,11 +35,11 @@ $faq_form_ambito = isset($faq_form_ambito)
             <header class="taxonomy-section-header">
 
                 <h2>
-                    ¿Tienes alguna pregunta?
+                    <?php echo esc_html($dht_us_market ? 'Have a question?' : '¿Tienes alguna pregunta?'); ?>
                 </h2>
 
                 <p>
-                    Envíanos tu consulta y nuestro equipo intentará ayudarte.
+                    <?php echo esc_html($dht_us_market ? 'Send us your question and our team will try to help.' : 'Envíanos tu consulta y nuestro equipo intentará ayudarte.'); ?>
                 </p>
 
             </header>
@@ -81,7 +83,7 @@ $faq_form_ambito = isset($faq_form_ambito)
                 <div class="seo-faq-form-field">
 
                     <label for="seo-faq-name">
-                        Nombre
+                        <?php echo esc_html($dht_us_market ? 'Name' : 'Nombre'); ?>
                     </label>
 
                     <input
@@ -97,7 +99,7 @@ $faq_form_ambito = isset($faq_form_ambito)
                 <div class="seo-faq-form-field">
 
                     <label for="seo-faq-email">
-                        Correo electrónico
+                        <?php echo esc_html($dht_us_market ? 'Email' : 'Correo electrónico'); ?>
                     </label>
 
                     <input
@@ -113,7 +115,7 @@ $faq_form_ambito = isset($faq_form_ambito)
                 <div class="seo-faq-form-field">
 
                     <label for="seo-faq-question">
-                        Pregunta
+                        <?php echo esc_html($dht_us_market ? 'Question' : 'Pregunta'); ?>
                     </label>
 
                     <textarea
@@ -136,7 +138,7 @@ $faq_form_ambito = isset($faq_form_ambito)
                             required
                         >
 
-                        He leído y acepto la política de privacidad.
+                        <?php echo esc_html($dht_us_market ? 'I have read and accept the Privacy Policy.' : 'He leído y acepto la política de privacidad.'); ?>
 
                     </label>
 
@@ -146,7 +148,7 @@ $faq_form_ambito = isset($faq_form_ambito)
                     type="submit"
                     class="seo-faq-form-button"
                 >
-                    Enviar pregunta
+                    <?php echo esc_html($dht_us_market ? 'Send question' : 'Enviar pregunta'); ?>
                 </button>
 
                 <div
