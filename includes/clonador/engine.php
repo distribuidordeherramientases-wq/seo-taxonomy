@@ -1229,6 +1229,15 @@ final class SEO_Clonador_Engine {
             $actions['custom_tables']['sql_product_atributos']['create_from_pro'] = max(0, absint($actions['custom_tables']['sql_product_atributos']['source']) - $orphan_product_attribute_rows);
             $actions['custom_tables']['sql_product_atributos']['omitted_orphans'] = $orphan_product_attribute_rows;
         }
+        // El espejo de evidencias omite exclusivamente terminos product_cat/product_tag
+        // que ya no existen en PRO. Reflejar la misma cifra en el plan.
+        $orphan_evidence_terms = absint($learning_refs['checks']['evidence_category_orphans'] ?? 0)
+            + absint($learning_refs['checks']['evidence_tag_orphans'] ?? 0);
+        if (isset($actions['custom_tables']['seo_interprete_lexicon_evidence'])) {
+            $actions['custom_tables']['seo_interprete_lexicon_evidence']['create_from_pro'] = max(0,
+                absint($actions['custom_tables']['seo_interprete_lexicon_evidence']['source']) - $orphan_evidence_terms);
+            $actions['custom_tables']['seo_interprete_lexicon_evidence']['omitted_orphans'] = $orphan_evidence_terms;
+        }
         $orphan_seo_nodes_rows = absint($source_integrity['orphan_seo_nodes_rows'] ?? 0);
         if (isset($actions['custom_tables']['seo_nodes'])) {
             $actions['custom_tables']['seo_nodes']['create_from_pro'] = max(0, absint($actions['custom_tables']['seo_nodes']['source']) - $orphan_seo_nodes_rows);
@@ -2062,8 +2071,8 @@ final class SEO_Clonador_Engine {
             } elseif ('seo_interprete_lexicon_evidence' === $key) {
                 $source_count = self::scalar($pro,
                     "SELECT COUNT(*) c FROM `{$pro_tables['seo_interprete_lexicon_evidence']}` e
-                     LEFT JOIN `{$pro_tables['term_taxonomy']}` tt ON e.source_type='product_tag' AND tt.term_id=e.source_id AND tt.taxonomy='product_tag'
-                     WHERE NOT (e.source_type='product_tag' AND e.source_id>0 AND tt.term_taxonomy_id IS NULL)", 'c');
+                     LEFT JOIN `{$pro_tables['term_taxonomy']}` tt ON e.source_type IN ('product_cat','product_tag') AND tt.term_id=e.source_id AND tt.taxonomy=e.source_type
+                     WHERE NOT (e.source_type IN ('product_cat','product_tag') AND e.source_id>0 AND tt.term_taxonomy_id IS NULL)", 'c');
                 $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
             } elseif ('seo_nodes' === $key) {
                 $source_count = self::scalar($pro,
