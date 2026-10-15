@@ -806,6 +806,7 @@ function seo_system_diagnostics_current_reporting_url($args = array()) {
     $base = admin_url($pagenow ? $pagenow : 'admin.php');
     $preserve = array();
     foreach (array('page', 'tab', 'section', 'view', 'seo_core_test_tab') as $key) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reporting navigation state preserved in generated URLs.
         if (isset($_GET[$key]) && is_scalar($_GET[$key])) {
             $preserve[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
         }
@@ -831,6 +832,7 @@ function seo_system_diagnostics_is_reporting_screen() {
         return false;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics screen selector.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     $known = (array) apply_filters(
         'seo_system_diagnostics_reporting_screen_slugs',
@@ -863,7 +865,9 @@ function seo_system_diagnostics_is_reporting_screen() {
 }
 
 function seo_system_diagnostics_is_core_validation_screen() {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only validation screen selector.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence only selects the read-only validation view.
     if (isset($_GET['seo_core_test_tab'])) {
         return true;
     }
@@ -873,6 +877,7 @@ function seo_system_diagnostics_is_core_validation_screen() {
 }
 
 function seo_system_diagnostics_core_active_tab() {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only validation tab selector.
     $tab = isset($_GET['seo_core_test_tab']) ? sanitize_key(wp_unslash($_GET['seo_core_test_tab'])) : 'summary';
     return $tab !== '' ? $tab : 'summary';
 }
