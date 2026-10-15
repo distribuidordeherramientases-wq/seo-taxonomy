@@ -193,11 +193,58 @@ function seo_template_get_registered_template($template_key) {
     ));
 }
 
+/**
+ * Piloto VEVOR: la categoria del catalogo determina el mercado, nunca la IP.
+ * Los productos heredan unicamente un mercado no ambiguo de product_cat.
+ */
+function seo_pilot_vevor_request_market() {
+    $helper = SEO_SYSTEM_PATH . 'seo-system/templates/template-pilot-market.php';
+    if (!is_readable($helper)) {
+        return '';
+    }
+    require_once $helper;
+    if (!function_exists('dht_pilot_market_for_term')) {
+        return '';
+    }
+
+    if (is_tax('product_cat')) {
+        return dht_pilot_market_for_term(get_queried_object());
+    }
+
+    if (is_singular('product')) {
+        $terms = get_the_terms(get_queried_object_id(), 'product_cat');
+        if (!is_array($terms) || is_wp_error($terms)) {
+            return '';
+        }
+        $markets = array();
+        foreach ($terms as $term) {
+            $market = dht_pilot_market_for_term($term);
+            if ($market !== '') {
+                $markets[$market] = true;
+            }
+        }
+        return count($markets) === 1 ? (string) key($markets) : '';
+    }
+
+    return '';
+}
+
 function seo_template_loader($template) {
 
     global $wpdb;
 
     $base_path = SEO_SYSTEM_PATH . 'seo-system/templates/';
+    // Solo el catalogo piloto VEVOR cambia a pagina afiliada internacional.
+    // No depende del pais ni del idioma del visitante.
+    if (is_tax('product_cat') || is_singular('product')) {
+        $pilot_market = seo_pilot_vevor_request_market();
+        $pilot_file = $base_path . 'template-pilot-vevor.php';
+        if (in_array($pilot_market, array('US', 'DE', 'NL'), true) && is_readable($pilot_file)) {
+            $GLOBALS['dht_pilot_market'] = $pilot_market;
+            return $pilot_file;
+        }
+    }
+
 
     /* =====================================================
        1. FRONT PAGE ESTATICA
