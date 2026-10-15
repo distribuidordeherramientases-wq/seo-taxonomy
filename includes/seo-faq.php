@@ -12,6 +12,7 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_faq_enqueue_admin_report_assets')) {
     function seo_faq_enqueue_admin_report_assets() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
         if ('seo-faq' !== $page) {
             return;
@@ -1157,6 +1158,7 @@ function seo_faq_page()
         ],
     ];
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only FAQ tab selector.
     $current_tab = isset($_GET['tab'])
         ? sanitize_key(wp_unslash($_GET['tab']))
         : 'hubs';
@@ -1187,6 +1189,7 @@ function seo_faq_page()
         seo_faq_process_bulk_create($current_tab, $object_type);
         seo_faq_process_action($current_tab, $object_type);
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter map is normalized field by field by seo_faq_read_classification_filters().
         $filters   = seo_faq_read_classification_filters($_GET);
         $hierarchy = seo_faq_get_classification_hierarchy($filters);
         $filters   = $hierarchy['filters'];
@@ -1197,12 +1200,14 @@ function seo_faq_page()
             $hierarchy
         );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected object ID.
         $object_id = isset($_GET['object_id'])
-            ? absint($_GET['object_id'])
+            ? absint(wp_unslash($_GET['object_id']))
             : 0;
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected FAQ ID.
         $edit_id = isset($_GET['edit_faq'])
-            ? absint($_GET['edit_faq'])
+            ? absint(wp_unslash($_GET['edit_faq']))
             : 0;
     }
 
