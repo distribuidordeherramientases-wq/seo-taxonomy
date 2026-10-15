@@ -1251,6 +1251,12 @@ final class SEO_Clonador_Engine {
                 absint($actions['custom_tables']['seo_interprete_lexicon_evidence']['source']) - $orphan_evidence_terms);
             $actions['custom_tables']['seo_interprete_lexicon_evidence']['omitted_orphans'] = $orphan_evidence_terms;
         }
+        $orphan_object_vocab_rows = absint($source_integrity['orphan_object_vocab_rows'] ?? 0);
+        if (isset($actions['custom_tables']['seo_object_vocabulary'])) {
+            $actions['custom_tables']['seo_object_vocabulary']['create_from_pro'] = max(0,
+                absint($actions['custom_tables']['seo_object_vocabulary']['source']) - $orphan_object_vocab_rows);
+            $actions['custom_tables']['seo_object_vocabulary']['omitted_orphans'] = $orphan_object_vocab_rows;
+        }
         $orphan_seo_nodes_rows = absint($source_integrity['orphan_seo_nodes_rows'] ?? 0);
         if (isset($actions['custom_tables']['seo_nodes'])) {
             $actions['custom_tables']['seo_nodes']['create_from_pro'] = max(0, absint($actions['custom_tables']['seo_nodes']['source']) - $orphan_seo_nodes_rows);
@@ -2086,6 +2092,19 @@ final class SEO_Clonador_Engine {
                     "SELECT COUNT(*) c FROM `{$pro_tables['seo_interprete_lexicon_evidence']}` e
                      LEFT JOIN `{$pro_tables['term_taxonomy']}` tt ON e.source_type IN ('product_cat','product_tag') AND tt.term_id=e.source_id AND tt.taxonomy=e.source_type
                      WHERE NOT (e.source_type IN ('product_cat','product_tag') AND e.source_id>0 AND tt.term_taxonomy_id IS NULL)", 'c');
+                $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
+            } elseif ('seo_object_vocabulary' === $key) {
+                // Igual que el worker: sólo las asignaciones con propietario y maestro válidos.
+                $source_count = self::scalar($pro,
+                    "SELECT COUNT(*) c FROM `{$pro_tables['seo_object_vocabulary']}` ov
+                     JOIN `{$pro_tables['seo_vocabulary']}` v ON v.id=ov.vocabulary_id
+                     LEFT JOIN `{$pro_tables['posts']}` p ON p.ID=ov.object_id
+                       AND p.post_status NOT IN ('trash','auto-draft') AND p.post_type=ov.object_type
+                     LEFT JOIN `{$pro_tables['term_taxonomy']}` tt
+                       ON ov.object_type='product_cat' AND tt.term_id=ov.object_id AND tt.taxonomy='product_cat'
+                     WHERE ov.object_type IN ('product','product_cat','page','post')
+                       AND ((ov.object_type='product_cat' AND tt.term_taxonomy_id IS NOT NULL)
+                       OR (ov.object_type<>'product_cat' AND p.ID IS NOT NULL))", 'c');
                 $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
             } elseif ('seo_nodes' === $key) {
                 $source_count = self::scalar($pro,
