@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_post_reports_enqueue_assets')) {
     function seo_post_reports_enqueue_assets() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
         if ('seo-post-editor' !== $page) {
             return;
@@ -1072,8 +1073,11 @@ if (!function_exists('seo_post_reports_page')) {
             return;
         }
 
-        $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
-        $target = seo_post_reports_admin_url($post_id, isset($_GET['days']) ? absint($_GET['days']) : 28);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected post ID.
+        $post_id = isset($_GET['post_id']) ? absint(wp_unslash($_GET['post_id'])) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report period.
+        $days = isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 28;
+        $target = seo_post_reports_admin_url($post_id, $days);
         wp_safe_redirect($target);
         exit;
 
