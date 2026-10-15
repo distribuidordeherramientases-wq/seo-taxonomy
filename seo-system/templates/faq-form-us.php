@@ -81,7 +81,7 @@ $faq_form_ambito = isset($faq_form_ambito)
                 <div class="seo-faq-form-field">
 
                     <label for="seo-faq-name">
-                        Nombre
+                        Name
                     </label>
 
                     <input
@@ -97,7 +97,7 @@ $faq_form_ambito = isset($faq_form_ambito)
                 <div class="seo-faq-form-field">
 
                     <label for="seo-faq-email">
-                        Correo electrónico
+                        Email address
                     </label>
 
                     <input
@@ -113,7 +113,7 @@ $faq_form_ambito = isset($faq_form_ambito)
                 <div class="seo-faq-form-field">
 
                     <label for="seo-faq-question">
-                        Pregunta
+                        Question
                     </label>
 
                     <textarea
