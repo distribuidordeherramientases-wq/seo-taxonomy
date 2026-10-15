@@ -16,7 +16,7 @@ if (!function_exists('dht_pilot_market_for_term')) {
         );
         $patterns = array(
             'US' => '/^(?:us|usa|eua|eeuu|estados-unidos|united-states|en-us)(?:-|$)/',
-            'DE' => '/^(?:de|deu|deutschland|alemania|germany|de-de)(?:-|$)/',
+            'DE' => '/^(?:(?:de|deu)(?:$)|(?:deutschland|alemania|germany|de-de)(?:-|$))/',
             'NL' => '/^(?:nl|nld|nederland|netherlands|holanda|paises-bajos|nl-nl)(?:-|$)/',
         );
         foreach ($ids as $id) {
