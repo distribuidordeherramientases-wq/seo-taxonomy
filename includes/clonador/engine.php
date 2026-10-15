@@ -2162,11 +2162,22 @@ final class SEO_Clonador_Engine {
      * excepcion y ROLLBACK de toda la clonacion.
      */
     private static function verify_clone_counts($pro, $stg, $pro_tables, $stg_tables) {
+        // PRO puede mezclar utf8mb4_unicode_ci y utf8mb4_unicode_520_ci.
+        // Las uniones por columnas textuales de distinta tabla requieren
+        // comparacion con collation explicita, sin alterar las tablas.
         $checks = array();
         $errors = array();
         $add = static function($key, $source, $target, $label = '') use (&$checks, &$errors) {
-            if (is_wp_error($source)) return $source;
-            if (is_wp_error($target)) return $target;
+            if (is_wp_error($source)) {
+                return new WP_Error('clonador_verify_pro_sql',
+                    'Consulta PRO de verificacion [' . $key . ']: ' . $source->get_error_message(),
+                    array('check'=>$key, 'database'=>'pro', 'source_code'=>$source->get_error_code()));
+            }
+            if (is_wp_error($target)) {
+                return new WP_Error('clonador_verify_staging_sql',
+                    'Consulta STAGING de verificacion [' . $key . ']: ' . $target->get_error_message(),
+                    array('check'=>$key, 'database'=>'staging', 'source_code'=>$target->get_error_code()));
+            }
             $source = absint($source);
             $target = absint($target);
             $ok = ($source === $target);
@@ -2241,7 +2252,8 @@ final class SEO_Clonador_Engine {
             } elseif ('seo_interprete_lexicon_evidence' === $key) {
                 $source_count = self::scalar($pro,
                     "SELECT COUNT(*) c FROM `{$pro_tables['seo_interprete_lexicon_evidence']}` e
-                     LEFT JOIN `{$pro_tables['term_taxonomy']}` tt ON e.source_type IN ('product_cat','product_tag') AND tt.term_id=e.source_id AND tt.taxonomy=e.source_type
+                     LEFT JOIN `{$pro_tables['term_taxonomy']}` tt ON e.source_type IN ('product_cat','product_tag') AND tt.term_id=e.source_id
+                       AND tt.taxonomy COLLATE utf8mb4_unicode_ci = e.source_type COLLATE utf8mb4_unicode_ci
                      WHERE NOT (e.source_type IN ('product_cat','product_tag') AND e.source_id>0 AND tt.term_taxonomy_id IS NULL)", 'c');
                 $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
             } elseif ('seo_object_vocabulary' === $key) {
@@ -2250,7 +2262,8 @@ final class SEO_Clonador_Engine {
                     "SELECT COUNT(*) c FROM `{$pro_tables['seo_object_vocabulary']}` ov
                      JOIN `{$pro_tables['seo_vocabulary']}` v ON v.id=ov.vocabulary_id
                      LEFT JOIN `{$pro_tables['posts']}` p ON p.ID=ov.object_id
-                       AND p.post_status NOT IN ('trash','auto-draft') AND p.post_type=ov.object_type
+                       AND p.post_status NOT IN ('trash','auto-draft')
+                       AND p.post_type COLLATE utf8mb4_unicode_ci = ov.object_type COLLATE utf8mb4_unicode_ci
                      LEFT JOIN `{$pro_tables['term_taxonomy']}` tt
                        ON ov.object_type='product_cat' AND tt.term_id=ov.object_id AND tt.taxonomy='product_cat'
                      WHERE ov.object_type IN ('product','product_cat','page','post')
