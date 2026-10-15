@@ -147,6 +147,18 @@ function seo_faq_frontend_tracking_context()
     global $wpdb;
 
     $table = seo_faq_table_name();
+    // En instalaciones limpias la tabla de FAQs puede no existir hasta
+    // completar la activacion/migracion. Evitar errores SQL en frontend.
+    // Se cachea solo durante esta peticion para detectar altas posteriores.
+    static $faq_table_exists = null;
+    if (null === $faq_table_exists) {
+        $faq_table_exists = (string) $wpdb->get_var(
+            $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
+        ) === $table;
+    }
+    if (!$faq_table_exists) {
+        return null;
+    }
     $object_type = 0;
     $object_id   = 0;
 
