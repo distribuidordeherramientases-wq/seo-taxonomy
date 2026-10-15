@@ -3311,7 +3311,7 @@ final class SEO_Clonador_Engine {
         if('product_cat'===$source_type)return self::worker_required_map_id($category_map,$source_id,'Categoria de evidencia');
         if('product_tag'===$source_type)return self::worker_required_map_id($term_map,$source_id,'Etiqueta de evidencia');
         if('product'===$source_type)return self::worker_required_map_id($post_map,$source_id,'Producto de evidencia');
-        if('search_synonym'===$source_type)return $source_id;
+        if(in_array($source_type,array('search_synonym','dependiente_noise','dependiente_residual'),true))return $source_id;
         return new WP_Error('clonador_evidence_source','Tipo de evidencia no portable: '.$source_type.' #'.$source_id.'. Actualiza el Clonador antes de copiar este origen.');
     }
 
@@ -3321,10 +3321,10 @@ final class SEO_Clonador_Engine {
         $sqlcols=implode(',',array_map(array(__CLASS__,'ident'),array_merge(array('id'),$columns)));
         $rows=self::rows($pro,"SELECT {$sqlcols} FROM `{$pro_tables['seo_interprete_lexicon_evidence']}` WHERE id>{$cursor} ORDER BY id LIMIT {$limit}");if(is_wp_error($rows))return$rows;
         $lexmap=self::worker_map_get($stg,$stg_tables['options'],'lexicon');if(is_wp_error($lexmap))return$lexmap;$pmap=self::worker_map_get($stg,$stg_tables['options'],'post');if(is_wp_error($pmap))return$pmap;$tmap=self::worker_map_get($stg,$stg_tables['options'],'term');if(is_wp_error($tmap))return$tmap;$cmap=self::worker_map_get($stg,$stg_tables['options'],'category');if(is_wp_error($cmap))return$cmap;$vmap=self::worker_map_get($stg,$stg_tables['options'],'vocab');if(is_wp_error($vmap))return$vmap;
-        $insert=array();$skipped=0;foreach($rows as $row){$cursor=absint($row['id']);$lex=self::worker_required_map_id($lexmap,$row['lexicon_id']??0,'Entrada lexica de evidencia');if(is_wp_error($lex))return$lex;$source=self::worker_evidence_source_id($row['source_type']??'', $row['source_id']??0, $pmap,$tmap,$cmap,$vmap);if(is_wp_error($source)){if('product_tag'===sanitize_key((string)($row['source_type']??''))){$skipped++;continue;}return$source;}$row['lexicon_id']=$lex;$row['source_id']=$source;unset($row['id']);$insert[]=$row;}
+        $insert=array();$skipped=0;foreach($rows as $row){$cursor=absint($row['id']);$lex=self::worker_required_map_id($lexmap,$row['lexicon_id']??0,'Entrada lexica de evidencia');if(is_wp_error($lex))return$lex;$source=self::worker_evidence_source_id($row['source_type']??'', $row['source_id']??0, $pmap,$tmap,$cmap,$vmap);if(is_wp_error($source)){if(in_array(sanitize_key((string)($row['source_type']??'')),array('product_cat','product_tag'),true)){$skipped++;continue;}return$source;}$row['lexicon_id']=$lex;$row['source_id']=$source;unset($row['id']);$insert[]=$row;}
         foreach(array_chunk($insert,120) as $chunk){$r=self::insert_rows($stg,$stg_tables['seo_interprete_lexicon_evidence'],$columns,$chunk,false);if(is_wp_error($r))return$r;}
-        self::worker_stat_add($state,'seo_interprete_lexicon_evidence',count($insert));self::worker_stat_add($state,'seo_interprete_evidence_orphan_tags_skipped',$skipped);$state['cursor']=array('id'=>$cursor);$state['message']='Evidencias del Interprete clonadas: '.absint($state['stats']['seo_interprete_lexicon_evidence']??0).'.';
-        if(count($rows)<$limit){$state['phase']='trainer_lessons';$state['cursor']=array('id'=>0);}return true;
+        self::worker_stat_add($state,'seo_interprete_lexicon_evidence',count($insert));self::worker_stat_add($state,'seo_interprete_evidence_orphan_terms_skipped',$skipped);$state['cursor']=array('id'=>$cursor);$state['message']='Evidencias del Interprete clonadas: '.absint($state['stats']['seo_interprete_lexicon_evidence']??0).'.';
+        if(count($rows)<$limit){if(!empty($state['stats']['seo_interprete_evidence_orphan_terms_skipped']))self::worker_warning($state,absint($state['stats']['seo_interprete_evidence_orphan_terms_skipped']).' evidencias con categoria/etiqueta inexistente omitidas del espejo; PRO intacto.');$state['phase']='trainer_lessons';$state['cursor']=array('id'=>0);}return true;
     }
 
     private static function worker_batch_trainer_lessons($pro,$stg,$pro_tables,$stg_tables,&$state){
