@@ -2126,8 +2126,9 @@ final class SEO_Clonador_Engine {
                 $audit = self::source_integrity_audit($pro,$pro_tables);
                 if (is_wp_error($audit)) return $audit;
                 if (!empty($audit['conflicts'])) return new WP_Error('clonador_source_integrity','PRO contiene relaciones u otras referencias no resolubles; abortada la verificacion.');
-                $source_count = max(0,self::count_table($pro,$pro_tables[$key],self::managed_custom_where($pro,$key))
-                    - absint($audit['orphan_relation_rows'] ?? 0));
+                $total_source_relations = self::count_table($pro,$pro_tables[$key],self::managed_custom_where($pro,$key));
+                if (is_wp_error($total_source_relations)) return $total_source_relations;
+                $source_count = max(0,absint($total_source_relations) - absint($audit['orphan_relation_rows'] ?? 0));
                 $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
             } elseif ('seo_nodes' === $key) {
                 $source_count = self::scalar($pro,
