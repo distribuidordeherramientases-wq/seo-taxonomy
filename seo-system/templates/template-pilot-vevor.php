@@ -8,6 +8,28 @@
  */
 defined('ABSPATH') || exit;
 
+if (!function_exists('dht_pilot_country_for_term')) {
+    function dht_pilot_country_for_term($term) {
+        if (!($term instanceof WP_Term) || 'product_cat' !== $term->taxonomy) {
+            return '';
+        }
+        $ids = array_merge(array((int) $term->term_id), get_ancestors($term->term_id, 'product_cat', 'taxonomy'));
+        $patterns = array(
+            'US' => '/^(?:us|usa|eua|eeuu|estados-unidos|united-states|en-us)(?:-|$)/',
+            'DE' => '/^(?:de|deu|deutschland|alemania|germany|de-de)(?:-|$)/',
+            'NL' => '/^(?:nl|nld|nederland|netherlands|holanda|paises-bajos|nl-nl)(?:-|$)/',
+        );
+        foreach ($ids as $id) {
+            $candidate = get_term((int) $id, 'product_cat');
+            if (!($candidate instanceof WP_Term)) { continue; }
+            foreach ($patterns as $country => $pattern) {
+                if (preg_match($pattern, (string) $candidate->slug)) { return $country; }
+            }
+        }
+        return '';
+    }
+}
+
 $market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : '';
 $markets = array(
     'US' => array(
