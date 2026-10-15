@@ -256,7 +256,7 @@ function seo_pilot_vevor_request_market() {
               AND target_type = 'product_cat' AND relation_type = 'landing_to_category'",
             $id
         )))));
-        if (count($category_ids) < 2) {
+        if (count($category_ids) < 1) {
             return '';
         }
         foreach ($category_ids as $category_id) {
