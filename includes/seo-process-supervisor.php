@@ -358,11 +358,13 @@ if (!function_exists('seo_process_supervisor_spawn_cli')) {
     function seo_process_supervisor_spawn_cli($dispatch_id, $dispatch_at, $signature) {
         $php = seo_process_supervisor_find_php_cli();
         $worker = SEO_SYSTEM_PATH . 'includes/process-supervisor-worker.php';
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- WordPress bootstrap path is derived dynamically from ABSPATH for the detached CLI worker.
         $wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
         if (!$php) {
             return new WP_Error('supervisor_cli_missing', 'PHP CLI no está disponible para el supervisor.');
         }
         if (!is_readable($worker) || !is_readable($wp_load)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Diagnostic text refers to the dynamically derived WordPress bootstrap file.
             return new WP_Error('supervisor_cli_files', 'No se encuentra el launcher del supervisor o wp-load.php.');
         }
         $output = array();
@@ -1981,6 +1983,7 @@ if (!function_exists('seo_process_supervisor_render_page')) {
             <?php
             $cron_php = '/opt/alt/php' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '/usr/bin/php';
             $cron_file = SEO_SYSTEM_PATH . 'includes/process-manager-cron.php';
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Display-only cron command uses the bootstrap path derived dynamically from ABSPATH.
             $cron_wp_load = trailingslashit(ABSPATH) . 'wp-load.php';
             $cron_command = seo_process_supervisor_shell_arg_for_display($cron_php) . ' '
                 . seo_process_supervisor_shell_arg_for_display($cron_file) . ' '
