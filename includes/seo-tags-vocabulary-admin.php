@@ -1195,7 +1195,8 @@ if (!function_exists('seo_tags_vocab_render_products')) {
         echo '</tbody></table></div>';
 
         if ($total_pages > 1) {
-            $query = $_GET;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination state.
+            $query = map_deep(wp_unslash($_GET), 'sanitize_text_field');
             unset($query['paged']);
             echo '<div class="seo-tags-pagination">';
             $window_start = max(1, $page_number - 3);
@@ -1898,7 +1899,8 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
         echo '</tbody></table></div>';
 
         if ($total_pages > 1) {
-            $query = $_GET;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination state.
+            $query = map_deep(wp_unslash($_GET), 'sanitize_text_field');
             unset($query['paged']);
             echo '<div class="seo-tags-pagination">';
             $window_start = max(1, $page_number - 3);
@@ -2749,7 +2751,7 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
         if (!in_array($per_page, [25, 50, 100, 200], true)) {
             $per_page = 50;
         }
-        $page_number = max(1, absint($_GET['attr_paged'] ?? 1));
+        $page_number = max(1, absint(seo_tags_vocab_query_arg('attr_paged', 1)));
 
         $published_total = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type='product' AND p.post_status='publish'"
