@@ -937,7 +937,8 @@ final class SEO_Clonador_Engine {
         $post_ids = array_fill_keys($post_list,true);
         $product_ids = array_fill_keys($product_list,true);
         $cat_ids = array_fill_keys($cat_list,true);
-        $invalid_relations=0; $samples=array();
+        $invalid_relations=0; $invalid_relation_types=0; $samples=array();
+        $known_relation_endpoints = array('product_cat','category','product','post','page','cluster','hub_primary','hub_secondary','hub_secundario','landing','landing_page');
         $endpoint_ok = static function($type,$id) use ($page_ids,$post_ids,$product_ids,$cat_ids) {
             $type=sanitize_key((string)$type); $id=absint($id);
             if (!$id) return false;
@@ -950,11 +951,19 @@ final class SEO_Clonador_Engine {
         foreach ($relations as $row) {
             if (!$endpoint_ok($row['source_type'],$row['source_id']) || !$endpoint_ok($row['target_type'],$row['target_id'])) {
                 $invalid_relations++;
+                if (!in_array(sanitize_key((string)$row['source_type']),$known_relation_endpoints,true)
+                    || !in_array(sanitize_key((string)$row['target_type']),$known_relation_endpoints,true)) {
+                    $invalid_relation_types++;
+                }
                 if (count($samples)<20) $samples[]=$row;
             }
         }
-        if ($invalid_relations) {
-            $conflicts[]='PRO contiene seo_relations que no pueden remapearse: ' . $invalid_relations . ' fila(s).';
+        if ($invalid_relation_types) {
+            $conflicts[]='PRO contiene seo_relations con tipos de extremo no reconocidos: ' . $invalid_relation_types . ' fila(s).';
+        }
+        $orphan_relations = max(0,$invalid_relations-$invalid_relation_types);
+        if ($orphan_relations) {
+            $warnings[]='PRO contiene '.absint($orphan_relations).' relaciones SEO con objeto/categoria ya inexistente: se omitiran en STAGING sin modificar PRO.';
         }
 
         $prefix=substr($tables['posts'],0,-strlen('posts'));
@@ -973,6 +982,7 @@ final class SEO_Clonador_Engine {
             'conflicts'=>array_values(array_unique($conflicts)),
             'warnings'=>array_values(array_unique($warnings)),
             'relation_invalid_samples'=>$samples,
+            'orphan_relation_rows'=>isset($orphan_relations) ? absint($orphan_relations) : 0,
             'orphan_product_attribute_rows'=>isset($orphan_product_attrs) ? absint($orphan_product_attrs) : 0,
             'orphan_seo_nodes_rows'=>isset($orphan_seo_nodes) ? absint($orphan_seo_nodes) : 0,
             'orphan_object_vocab_rows'=>isset($orphan_object_vocab) ? absint($orphan_object_vocab) : 0,
@@ -1256,6 +1266,12 @@ final class SEO_Clonador_Engine {
             $actions['custom_tables']['seo_object_vocabulary']['create_from_pro'] = max(0,
                 absint($actions['custom_tables']['seo_object_vocabulary']['source']) - $orphan_object_vocab_rows);
             $actions['custom_tables']['seo_object_vocabulary']['omitted_orphans'] = $orphan_object_vocab_rows;
+        }
+        $orphan_relation_rows = absint($source_integrity['orphan_relation_rows'] ?? 0);
+        if (isset($actions['custom_tables']['seo_relations'])) {
+            $actions['custom_tables']['seo_relations']['create_from_pro'] = max(0,
+                absint($actions['custom_tables']['seo_relations']['source']) - $orphan_relation_rows);
+            $actions['custom_tables']['seo_relations']['omitted_orphans'] = $orphan_relation_rows;
         }
         $orphan_seo_nodes_rows = absint($source_integrity['orphan_seo_nodes_rows'] ?? 0);
         if (isset($actions['custom_tables']['seo_nodes'])) {
@@ -2105,6 +2121,13 @@ final class SEO_Clonador_Engine {
                      WHERE ov.object_type IN ('product','product_cat','page','post')
                        AND ((ov.object_type='product_cat' AND tt.term_taxonomy_id IS NOT NULL)
                        OR (ov.object_type<>'product_cat' AND p.ID IS NOT NULL))", 'c');
+                $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
+            } elseif ('seo_relations' === $key) {
+                $audit = self::source_integrity_audit($pro,$pro_tables);
+                if (is_wp_error($audit)) return $audit;
+                if (!empty($audit['conflicts'])) return new WP_Error('clonador_source_integrity','PRO contiene relaciones u otras referencias no resolubles; abortada la verificacion.');
+                $source_count = max(0,self::count_table($pro,$pro_tables[$key],self::managed_custom_where($pro,$key))
+                    - absint($audit['orphan_relation_rows'] ?? 0));
                 $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
             } elseif ('seo_nodes' === $key) {
                 $source_count = self::scalar($pro,
