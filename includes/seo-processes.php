@@ -886,10 +886,14 @@ if (!function_exists('seo_processes_classifier_current_job')) {
         if (!function_exists('seo_classifier_jobs_tables') || !function_exists('seo_classifier_job_get')) return null;
         global $wpdb;
         $tables = seo_classifier_jobs_tables();
-        $table = $tables['jobs'] ?? '';
-        if (!$table) return null;
-        $id = (int)$wpdb->get_var("SELECT id FROM {$table} WHERE status IN ('pending','running','paused') ORDER BY id DESC LIMIT 1");
-        if ($id < 1) $id = (int)$wpdb->get_var("SELECT id FROM {$table} ORDER BY id DESC LIMIT 1");
+        $table = (string) ($tables['jobs'] ?? '');
+        $expected_table = $wpdb->prefix . 'seo_classifier_jobs';
+        if ($table !== $expected_table || !preg_match('/^[A-Za-z0-9_]+$/', $table)) return null;
+        $safe_table = esc_sql($table);
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identificador propio, validado contra la unica tabla permitida; no hay valores externos.
+        $id = (int)$wpdb->get_var("SELECT id FROM `{$safe_table}` WHERE status IN ('pending','running','paused') ORDER BY id DESC LIMIT 1");
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identificador interno fijo, validado antes de esta consulta.
+        if ($id < 1) $id = (int)$wpdb->get_var("SELECT id FROM `{$safe_table}` ORDER BY id DESC LIMIT 1");
         return $id > 0 ? seo_classifier_job_get($id) : null;
     }
 }
@@ -991,14 +995,19 @@ if (!function_exists('seo_processes_health_metrics')) {
         }
 
         global $wpdb;
-        $table = seo_health_scan_tables()['items'];
+        $table = (string) (seo_health_scan_tables()['items'] ?? '');
+        $expected_table = $wpdb->prefix . 'seo_health_items';
+        if ($table !== $expected_table || !preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            return $metrics;
+        }
         if (function_exists('seo_health_scan_table_exists') && !seo_health_scan_table_exists($table)) {
             return $metrics;
         }
+        $safe_table = esc_sql($table);
 
         $rows = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT response_ms FROM {$table} WHERE last_scan_id=%d AND response_ms>0 ORDER BY response_ms ASC",
+                "SELECT response_ms FROM `{$safe_table}` WHERE last_scan_id=%d AND response_ms>0 ORDER BY response_ms ASC",
                 absint($run['id'])
             )
         );
@@ -1015,7 +1024,7 @@ if (!function_exists('seo_processes_health_metrics')) {
                 "SELECT COUNT(*) processed,
                     SUM(final_status=429 OR http_status=429) status_429,
                     SUM((final_status BETWEEN 500 AND 599) OR (http_status BETWEEN 500 AND 599)) status_5xx
-                 FROM {$table} WHERE last_scan_id=%d",
+                 FROM `{$safe_table}` WHERE last_scan_id=%d",
                 absint($run['id'])
             ),
             ARRAY_A

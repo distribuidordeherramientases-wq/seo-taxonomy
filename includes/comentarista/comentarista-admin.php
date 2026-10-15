@@ -59,6 +59,19 @@ function seo_comentarista_admin_assets()
     if (wp_style_is('woocommerce_admin_styles', 'registered')) {
         wp_enqueue_style('woocommerce_admin_styles');
     }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin view selector.
+    $view = isset($_GET['view']) && is_string($_GET['view'])
+        ? sanitize_key(wp_unslash($_GET['view']))
+        : 'records';
+    if ('coverage' === $view) {
+        wp_enqueue_style(
+            'taxocommerce-comentarista-coverage',
+            plugins_url('assets/comentarista-coverage.css', __FILE__),
+            array(),
+            SEO_SYSTEM_VERSION
+        );
+    }
 }
 add_action('admin_enqueue_scripts', 'seo_comentarista_admin_assets');
 

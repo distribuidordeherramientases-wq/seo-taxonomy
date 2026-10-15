@@ -321,16 +321,35 @@ if (!function_exists('seo_analista_bing_save_settings_handler')) {
         check_admin_referer('seo_analista_save_bing_settings', 'seo_analista_bing_nonce');
 
         $old = seo_analista_bing_get_settings();
-        $site_url = isset($_POST['bing_site_url']) ? esc_url_raw((string) wp_unslash($_POST['bing_site_url'])) : home_url('/');
-        if ($site_url === '') $site_url = home_url('/');
-        $api_key = isset($_POST['bing_api_key']) ? sanitize_text_field(wp_unslash($_POST['bing_api_key'])) : '';
-        if ($api_key === '') $api_key = (string) ($old['api_key'] ?? '');
-        if (!empty($_POST['bing_clear_api_key'])) $api_key = '';
+
+        // Form fields are expected to be strings; reject array-shaped POST values.
+        $site_url = isset($_POST['bing_site_url']) && is_string($_POST['bing_site_url'])
+            ? esc_url_raw(wp_unslash($_POST['bing_site_url']))
+            : home_url('/');
+        if ($site_url === '') {
+            $site_url = home_url('/');
+        }
+
+        $api_key = isset($_POST['bing_api_key']) && is_string($_POST['bing_api_key'])
+            ? sanitize_text_field(wp_unslash($_POST['bing_api_key']))
+            : '';
+        if ($api_key === '') {
+            $api_key = (string) ($old['api_key'] ?? '');
+        }
+
+        $clear_api_key = isset($_POST['bing_clear_api_key']) && is_string($_POST['bing_clear_api_key'])
+            && '1' === sanitize_text_field(wp_unslash($_POST['bing_clear_api_key']));
+        if ($clear_api_key) {
+            $api_key = '';
+        }
+
+        $enabled = isset($_POST['bing_enabled']) && is_string($_POST['bing_enabled'])
+            && '1' === sanitize_text_field(wp_unslash($_POST['bing_enabled']));
 
         update_option(SEO_ANALISTA_BING_OPTION, array(
-            'enabled' => !empty($_POST['bing_enabled']),
+            'enabled'  => $enabled,
             'site_url' => $site_url,
-            'api_key' => sanitize_text_field($api_key),
+            'api_key'  => sanitize_text_field($api_key),
         ), false);
 
         wp_safe_redirect(add_query_arg(array(
