@@ -502,6 +502,78 @@ final class SEO_Clonador_Engine {
 
 
     /**
+     * Las reglas persistidas de Academia pueden referenciar term_id dentro de
+     * rule_key y metadata. Ninguno de esos enlaces reside en las columnas
+     * source/context/target_vocabulary_id que valida el preflight ordinario.
+     * Estos identificadores son SIEMPRE product_cat, no term_taxonomy_id.
+     */
+    private static function academy_rule_category_references($rule_key, $metadata) {
+        $references = array();
+        if (preg_match('/^academy-.*-category-([0-9]+)$/', (string)$rule_key, $match)) {
+            $id = absint($match[1]);
+            if ($id) $references[$id] = $id;
+        }
+        $decoded = json_decode((string)$metadata, true);
+        if (is_array($decoded) && isset($decoded['academy']) && is_array($decoded['academy'])) {
+            $academy = $decoded['academy'];
+            if (sanitize_key((string)($academy['source_type'] ?? '')) === 'category') {
+                $id = absint($academy['source_id'] ?? 0);
+                if ($id) $references[$id] = $id;
+            }
+        }
+        return array_values($references);
+    }
+
+    /** IDs product_cat existentes, obtenidos desde el ORIGEN o el DESTINO. */
+    private static function academy_category_id_set($db, $tables) {
+        $rows = self::rows($db,
+            "SELECT DISTINCT term_id FROM `{$tables['term_taxonomy']}` WHERE taxonomy='product_cat'");
+        if (is_wp_error($rows)) return $rows;
+        $ids = array();
+        foreach ($rows as $row) {
+            $id = absint($row['term_id'] ?? 0);
+            if ($id) $ids[$id] = true;
+        }
+        return $ids;
+    }
+
+    /**
+     * Un fallo de categoria en Academia sin destino portable se detecta ANTES
+     * de vaciar STAGING. Solo se omiten en el espejo reglas que ya referencian
+     * categorias inexistentes en PRO; su original permanece intacto.
+     */
+    private static function academy_rule_category_audit($pro, $tables) {
+        $known = self::academy_category_id_set($pro, $tables);
+        if (is_wp_error($known)) return $known;
+        $rules = self::rows($pro,
+            "SELECT id,rule_key,metadata FROM `{$tables['seo_dependiente_semantics']}`
+             WHERE rule_key LIKE 'academy-%' OR metadata LIKE '%\"academy\"%'
+             ORDER BY id");
+        if (is_wp_error($rules)) return $rules;
+        $omitted = 0;
+        $samples = array();
+        foreach ($rules as $rule) {
+            $refs = self::academy_rule_category_references(
+                $rule['rule_key'] ?? '', $rule['metadata'] ?? ''
+            );
+            $missing = array();
+            foreach ($refs as $id) {
+                if (!isset($known[$id])) $missing[] = $id;
+            }
+            if (!$missing) continue;
+            $omitted++;
+            if (count($samples) < 15) {
+                $samples[] = array(
+                    'rule_id' => absint($rule['id'] ?? 0),
+                    'rule_key' => (string)($rule['rule_key'] ?? ''),
+                    'missing_category_ids' => $missing,
+                );
+            }
+        }
+        return array('orphan_rows'=>$omitted,'samples'=>$samples);
+    }
+
+    /**
      * Preflight de referencias internas del cerebro. Se ejecuta antes de tocar
      * STAGING para garantizar que cada ID que luego se remapea existe en PRO.
      */
@@ -520,6 +592,16 @@ final class SEO_Clonador_Engine {
 
         $r=$check('semantic_vocab_orphans','Semantica de Dependiente contiene referencias a Vocabulary inexistente',
             "SELECT COUNT(*) c FROM `{$tables['seo_dependiente_semantics']}` s LEFT JOIN `{$tables['seo_vocabulary']}` v1 ON v1.id=s.source_vocabulary_id LEFT JOIN `{$tables['seo_vocabulary']}` v2 ON v2.id=s.context_vocabulary_id LEFT JOIN `{$tables['seo_vocabulary']}` v3 ON v3.id=s.target_vocabulary_id WHERE (COALESCE(s.source_vocabulary_id,0)>0 AND v1.id IS NULL) OR (COALESCE(s.context_vocabulary_id,0)>0 AND v2.id IS NULL) OR (COALESCE(s.target_vocabulary_id,0)>0 AND v3.id IS NULL)");if(is_wp_error($r))return$r;
+        $academy_categories = self::academy_rule_category_audit($pro, $tables);
+        if (is_wp_error($academy_categories)) return $academy_categories;
+        $academy_orphans = absint($academy_categories['orphan_rows'] ?? 0);
+        $checks['academy_rule_category_orphans'] = $academy_orphans;
+        if ($academy_orphans) {
+            $warnings[] = 'PRO conserva ' . $academy_orphans .
+                ' reglas semanticas de Academia que apuntan a product_cat ya inexistentes. '
+                . 'Se omitiran SOLO en el espejo STAGING; PRO queda intacto. '
+                . 'Comprueba las muestras del JSON de simulacion.';
+        }
         $r=$check('lexicon_vocab_orphans','Lexico del Interprete contiene referencias a Vocabulary inexistente',
             "SELECT COUNT(*) c FROM `{$tables['seo_interprete_lexicon']}` l LEFT JOIN `{$tables['seo_vocabulary']}` v ON v.id=l.vocabulary_id WHERE COALESCE(l.vocabulary_id,0)>0 AND v.id IS NULL");if(is_wp_error($r))return$r;
         $r=$check('evidence_lexicon_orphans','Evidencias del Interprete contienen lexicon_id inexistente',
@@ -604,7 +686,13 @@ final class SEO_Clonador_Engine {
                 unset($conflict);
             }
         }
-        return array('conflicts'=>$conflicts,'warnings'=>$warnings,'checks'=>$checks,'unknown_source_types'=>$unknown_source_types);
+        return array(
+            'conflicts'=>$conflicts,
+            'warnings'=>$warnings,
+            'checks'=>$checks,
+            'unknown_source_types'=>$unknown_source_types,
+            'academy_rule_category_orphan_samples'=>(array)($academy_categories['samples'] ?? array()),
+        );
     }
 
     private static function post_type_sql($mysqli, $alias = '') {
@@ -1275,6 +1363,14 @@ final class SEO_Clonador_Engine {
         if (is_wp_error($learning_refs)) return $learning_refs;
         $conflicts = array_merge($conflicts, (array) ($learning_refs['conflicts'] ?? array()));
         $warnings = array_merge($warnings, (array) ($learning_refs['warnings'] ?? array()));
+        // Al igual que el worker, el plan solo promete las reglas Academia
+        // con referencias a categorias existentes en PRO.
+        $academy_orphan_rows = absint($learning_refs['checks']['academy_rule_category_orphans'] ?? 0);
+        if (isset($actions['custom_tables']['seo_dependiente_semantics'])) {
+            $actions['custom_tables']['seo_dependiente_semantics']['create_from_pro'] = max(0,
+                absint($actions['custom_tables']['seo_dependiente_semantics']['source']) - $academy_orphan_rows);
+            $actions['custom_tables']['seo_dependiente_semantics']['omitted_orphans'] = $academy_orphan_rows;
+        }
         $orphan_product_attribute_rows = absint($source_integrity['orphan_product_attribute_rows'] ?? 0);
         if (isset($actions['custom_tables']['sql_product_atributos'])) {
             $actions['custom_tables']['sql_product_atributos']['create_from_pro'] = max(0, absint($actions['custom_tables']['sql_product_atributos']['source']) - $orphan_product_attribute_rows);
@@ -2131,6 +2227,17 @@ final class SEO_Clonador_Engine {
                      LEFT JOIN `{$pro_tables['sql_atributos_terminos']}` t ON t.id=pa.termino_id
                      WHERE COALESCE(pa.termino_id,0)=0 OR t.id IS NOT NULL", 'c');
                 $target_count = self::count_table($stg,$stg_tables[$key],self::managed_custom_where($stg,$key));
+            } elseif ('seo_dependiente_semantics' === $key) {
+                $academy_audit = self::academy_rule_category_audit($pro, $pro_tables);
+                if (is_wp_error($academy_audit)) return $academy_audit;
+                $all_semantics = self::count_table(
+                    $pro, $pro_tables['seo_dependiente_semantics']
+                );
+                if (is_wp_error($all_semantics)) return $all_semantics;
+                $source_count = max(0,
+                    absint($all_semantics) - absint($academy_audit['orphan_rows'] ?? 0));
+                $target_count = self::count_table(
+                    $stg, $stg_tables[$key], self::managed_custom_where($stg,$key));
             } elseif ('seo_interprete_lexicon_evidence' === $key) {
                 $source_count = self::scalar($pro,
                     "SELECT COUNT(*) c FROM `{$pro_tables['seo_interprete_lexicon_evidence']}` e
@@ -3368,9 +3475,48 @@ final class SEO_Clonador_Engine {
         $rows=self::rows($pro,"SELECT {$sqlcols} FROM `{$pro_tables['seo_dependiente_semantics']}` WHERE id>{$cursor} ORDER BY id LIMIT {$limit}");if(is_wp_error($rows))return$rows;
         $vmap=self::worker_map_get($stg,$stg_tables['options'],'vocab');if(is_wp_error($vmap))return$vmap;
         $cmap=self::worker_map_get($stg,$stg_tables['options'],'category');if(is_wp_error($cmap))return$cmap;
-        $insert=array();
+        $pro_categories = self::academy_category_id_set($pro, $pro_tables);
+        if (is_wp_error($pro_categories)) return $pro_categories;
+        $stg_categories = self::academy_category_id_set($stg, $stg_tables);
+        if (is_wp_error($stg_categories)) return $stg_categories;
+
+        // Los IDs de terminos se conservan de PRO. Reparar una entrada del mapa
+        // solo si el termino SI existe realmente en STAGING como product_cat.
+        $map_repaired = 0;
+        foreach ($stg_categories as $term_id=>$valid) {
+            if (isset($pro_categories[$term_id]) && empty($cmap[$term_id])) {
+                $cmap[$term_id] = $term_id;
+                $map_repaired++;
+            }
+        }
+        if ($map_repaired) {
+            $saved = self::worker_map_set($stg,$stg_tables['options'],'category',$cmap);
+            if (is_wp_error($saved)) return $saved;
+            self::worker_stat_add($state,'academy_category_map_repaired',$map_repaired);
+        }
+        $insert=array();$orphan_skipped=0;
         foreach($rows as $row){
             $cursor=absint($row['id']);
+            $category_ids = self::academy_rule_category_references(
+                $row['rule_key'] ?? '', $row['metadata'] ?? '');
+            $missing_in_pro = array();
+            foreach ($category_ids as $category_id) {
+                if (!isset($pro_categories[$category_id])) $missing_in_pro[] = $category_id;
+            }
+            if ($missing_in_pro) {
+                // Esta regla carece de un producto/categoria real que la pueda
+                // activar en el destino. No se inventan destinos ni se toca PRO.
+                $orphan_skipped++;
+                continue;
+            }
+            foreach ($category_ids as $category_id) {
+                if (empty($cmap[$category_id])) {
+                    return new WP_Error('clonador_academy_category_missing',
+                        'La categoria product_cat PRO #' . $category_id .
+                        ' existe, pero no esta disponible en STAGING tras copiar taxonomias. '
+                        . 'No se omitira una regla valida.');
+                }
+            }
             foreach(array('source_vocabulary_id','context_vocabulary_id','target_vocabulary_id') as $field){
                 $sid=absint($row[$field]??0);if(!$sid){$row[$field]=null;continue;}
                 $mapped=self::worker_required_map_id($vmap,$sid,'Vocabulary semantico');if(is_wp_error($mapped))return$mapped;$row[$field]=$mapped;
@@ -3379,8 +3525,21 @@ final class SEO_Clonador_Engine {
             $row['rule_key']=$identity['rule_key'];$row['metadata']=$identity['metadata'];unset($row['id']);$insert[]=$row;
         }
         foreach(array_chunk($insert,100) as $chunk){$r=self::insert_rows($stg,$stg_tables['seo_dependiente_semantics'],$columns,$chunk,false);if(is_wp_error($r))return$r;}
-        self::worker_stat_add($state,'seo_dependiente_semantics',count($insert));$state['cursor']=array('id'=>$cursor);$state['message']='Reglas semanticas clonadas: '.absint($state['stats']['seo_dependiente_semantics']??0).'.';
-        if(count($rows)<$limit){$state['phase']='interprete_lexicon';$state['cursor']=array('id'=>0);}return true;
+        self::worker_stat_add($state,'seo_dependiente_semantics',count($insert));
+        self::worker_stat_add($state,'seo_dependiente_semantics_orphan_categories_skipped',$orphan_skipped);
+        $state['cursor']=array('id'=>$cursor);
+        $state['message']='Reglas semanticas clonadas: '.absint($state['stats']['seo_dependiente_semantics']??0).'.';
+        if(count($rows)<$limit){
+            $omitted = absint($state['stats']['seo_dependiente_semantics_orphan_categories_skipped'] ?? 0);
+            if ($omitted) {
+                self::worker_warning($state,
+                    'Se omitieron ' . $omitted . ' reglas Academia con categorias eliminadas en PRO; '
+                    . 'solo del espejo STAGING, sin modificar PRO.');
+            }
+            $state['phase']='interprete_lexicon';
+            $state['cursor']=array('id'=>0);
+        }
+        return true;
     }
 
     private static function worker_batch_interprete_lexicon($pro,$stg,$pro_tables,$stg_tables,&$state){
