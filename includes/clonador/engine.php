@@ -877,7 +877,19 @@ final class SEO_Clonador_Engine {
              LEFT JOIN `{$tables['term_taxonomy']}` tt ON ov.object_type='product_cat' AND tt.term_id=ov.object_id AND tt.taxonomy='product_cat'
              WHERE ov.object_type IN ('product','product_cat','page','post')
                AND (v.id IS NULL OR (ov.object_type='product_cat' AND tt.term_taxonomy_id IS NULL) OR (ov.object_type<>'product_cat' AND p.ID IS NULL))", 'c');
-        $r=$check_count('PRO contiene seo_object_vocabulary con objeto/vocabulario no resoluble',$count); if(is_wp_error($r))return$r;
+        // Cuando el propietario fue borrado o enviado a la papelera no hay
+        // objeto portable. El worker ya omite estos residuos sin tocar PRO.
+        // Un vocabulary_id inexistente, en cambio, sigue siendo un conflicto.
+        $missing_vocab = self::scalar($pro,
+            "SELECT COUNT(*) c FROM `{$tables['seo_object_vocabulary']}` ov
+             LEFT JOIN `{$tables['seo_vocabulary']}` v ON v.id=ov.vocabulary_id
+             WHERE ov.object_type IN ('product','product_cat','page','post') AND v.id IS NULL", 'c');
+        if (is_wp_error($missing_vocab)) return $missing_vocab;
+        $r=$check_count('PRO contiene asignaciones a Vocabulary maestro inexistente',$missing_vocab); if(is_wp_error($r))return$r;
+        $orphan_object_vocab = max(0,absint($count)-absint($missing_vocab));
+        if ($orphan_object_vocab) {
+            $warnings[]='PRO tiene '.absint($orphan_object_vocab).' asignaciones semanticas cuyo objeto propietario desaparecio: se omitiran en STAGING sin borrar datos de PRO.';
+        }
 
         // Los seo_nodes cuyo objeto ya no existe son residuos historicos de PRO.
         // Se omiten al reconstruir el perimetro activo y quedan auditados como warning.
@@ -963,6 +975,7 @@ final class SEO_Clonador_Engine {
             'relation_invalid_samples'=>$samples,
             'orphan_product_attribute_rows'=>isset($orphan_product_attrs) ? absint($orphan_product_attrs) : 0,
             'orphan_seo_nodes_rows'=>isset($orphan_seo_nodes) ? absint($orphan_seo_nodes) : 0,
+            'orphan_object_vocab_rows'=>isset($orphan_object_vocab) ? absint($orphan_object_vocab) : 0,
         );
     }
 
