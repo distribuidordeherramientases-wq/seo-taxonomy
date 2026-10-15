@@ -591,16 +591,19 @@ function seo_landing_handle_save_candidate()
 
     global $wpdb;
     $table = seo_landing_candidates_table();
-    $id = absint($_POST['candidate_id'] ?? 0);
+    $id = isset($_POST['candidate_id']) ? absint(wp_unslash($_POST['candidate_id'])) : 0;
     $title = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
     if ($title === '') {
         wp_safe_redirect(seo_landing_route_url(seo_landing_route_from_request(), array('landing_msg'=>'missing_title')));
         exit;
     }
 
+    $posted_requirements = isset($_POST['requirements']) && is_array($_POST['requirements'])
+        ? array_map('absint', wp_unslash($_POST['requirements']))
+        : array();
     $requirements = array();
     foreach (seo_landing_requirement_labels() as $key => $label) {
-        $requirements[$key] = !empty($_POST['requirements'][$key]) ? 1 : 0;
+        $requirements[$key] = !empty($posted_requirements[$key]) ? 1 : 0;
     }
 
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Score map is normalized and range-validated by seo_landing_sanitize_scores().
