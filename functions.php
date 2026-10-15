@@ -2,14 +2,48 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /* =========================================================
-   SEO BASE: IDIOMA + ESPAÑA
+   SEO BASE: IDIOMA / MERCADO
+   - España sigue siendo el valor por defecto.
+   - Las plantillas internacionales pueden definir:
+     $GLOBALS['dht_frontend_language_tag']
+     $GLOBALS['dht_frontend_hreflang_url']
 ========================================================= */
+if (!function_exists('dht_frontend_language_tag')) {
+    function dht_frontend_language_tag()
+    {
+        $tag = isset($GLOBALS['dht_frontend_language_tag'])
+            ? trim((string) $GLOBALS['dht_frontend_language_tag'])
+            : 'es-ES';
+
+        return preg_match('/^[a-z]{2,3}(?:-[A-Z0-9]{2,8})*$/', $tag)
+            ? $tag
+            : 'es-ES';
+    }
+}
+
+if (!function_exists('dht_frontend_hreflang_url')) {
+    function dht_frontend_hreflang_url()
+    {
+        if (!empty($GLOBALS['dht_frontend_hreflang_url'])) {
+            $url = esc_url_raw((string) $GLOBALS['dht_frontend_hreflang_url']);
+            if ($url !== '') {
+                return $url;
+            }
+        }
+
+        return home_url('/');
+    }
+}
+
 add_filter('language_attributes', function($output) {
-    return 'lang="es-ES" ' . (string) $output;
-});
+    $output = (string) $output;
+    $output = preg_replace('/\\blang=(["\']).*?\\1\\s*/i', '', $output);
+
+    return 'lang="' . esc_attr(dht_frontend_language_tag()) . '" ' . trim($output);
+}, PHP_INT_MAX);
 
 add_action('wp_head', function () {
-    echo '<link rel="alternate" hreflang="es-ES" href="' . esc_url(home_url('/')) . '" />' . "\n";
+    echo '<link rel="alternate" hreflang="' . esc_attr(dht_frontend_language_tag()) . '" href="' . esc_url(dht_frontend_hreflang_url()) . '" />' . "\n";
 }, 1);
 
 
