@@ -87,6 +87,7 @@ final class SEO_Solucionador_Admin {
             return $default;
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
         return wp_unslash($_GET[$key]);
     }
 
@@ -103,7 +104,7 @@ final class SEO_Solucionador_Admin {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos para gestionar Solucionador.');
 
         $category_id = absint($_POST['category_id'] ?? 0);
-        $proposal_action = sanitize_key((string) ($_POST['proposal_action'] ?? ''));
+        $proposal_action = isset($_POST['proposal_action']) ? sanitize_key(wp_unslash($_POST['proposal_action'])) : '';
         if (!$category_id) {
             set_transient('seo_solucionador_notice_' . get_current_user_id(), 'La propuesta no tiene categoría.', 90);
             self::redirect(array('sol_error'=>'missing_category'));
@@ -345,7 +346,7 @@ final class SEO_Solucionador_Admin {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos para gestionar Solucionador.');
 
         $post_id = absint($_POST['post_id'] ?? 0);
-        $post_action = sanitize_key((string) ($_POST['post_action'] ?? ''));
+        $post_action = isset($_POST['post_action']) ? sanitize_key(wp_unslash($_POST['post_action'])) : '';
         if (!$post_id) {
             set_transient('seo_solucionador_notice_' . get_current_user_id(), 'No se ha indicado el post.', 90);
             self::redirect(array('sol_error'=>'missing_post'));
@@ -360,7 +361,7 @@ final class SEO_Solucionador_Admin {
             self::redirect(array('sol_error'=>'invalid_post'));
         }
 
-        $return_to = sanitize_key((string) ($_POST['return_to'] ?? ''));
+        $return_to = isset($_POST['return_to']) ? sanitize_key(wp_unslash($_POST['return_to'])) : '';
         $return_editor = static function($post_id, $state = '') {
             $url = SEO_Solucionador_Posts::edit_url($post_id);
             if ($state !== '') $url = add_query_arg('sol_update', sanitize_key((string)$state), $url);
@@ -392,7 +393,7 @@ final class SEO_Solucionador_Admin {
             }
 
             $pending_keys = SEO_Solucionador_Posts::pending_item_keys($post_id);
-            $selection_mode = sanitize_key((string)($_POST['selection_mode'] ?? ''));
+            $selection_mode = isset($_POST['selection_mode']) ? sanitize_key(wp_unslash($_POST['selection_mode'])) : '';
             $reviewed_keys = $selection_mode === 'discard_unselected'
                 ? array_values(array_diff($pending_keys, $selected_keys))
                 : array();
@@ -447,7 +448,7 @@ final class SEO_Solucionador_Admin {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos para gestionar Solucionador.');
         $id = absint($_POST['topic_id'] ?? 0);
         check_admin_referer('seo_solucionador_topic_' . $id);
-        $action = sanitize_key((string) ($_POST['topic_action'] ?? ''));
+        $action = isset($_POST['topic_action']) ? sanitize_key(wp_unslash($_POST['topic_action'])) : '';
         $reason = sanitize_textarea_field(wp_unslash($_POST['workflow_reason'] ?? ''));
         if (!$id) self::redirect(array('sol_error'=>'missing_topic'));
 

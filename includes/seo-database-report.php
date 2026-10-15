@@ -21,6 +21,7 @@ function seo_data_query_arg($key, $default = '') {
         return $default;
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación/filtros GET de solo lectura.
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
     return wp_unslash($_GET[$key]);
 }
 

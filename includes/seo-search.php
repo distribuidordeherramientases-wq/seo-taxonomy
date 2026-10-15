@@ -406,6 +406,7 @@ function seo_search_current_request_array($key) {
         return array();
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros GET de solo lectura.
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw request value is intentionally returned; each caller applies the sanitizer required by its expected type.
     return (array) wp_unslash($_GET[$key]);
 }
 
@@ -1897,7 +1898,7 @@ function seo_search_settings_page() {
     }
 
     $options = seo_search_get_options();
-    $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'general';
+    $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'general';
     $tabs = array(
         'general' => __('General', 'taxocommerce-seo'),
         'fields' => __('Campos de búsqueda', 'taxocommerce-seo'),

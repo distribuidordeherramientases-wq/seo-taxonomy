@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_post_reports_enqueue_assets')) {
     function seo_post_reports_enqueue_assets() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
         if ('seo-post-editor' !== $page) {
             return;
@@ -731,10 +732,10 @@ if (!function_exists('seo_post_reports_render_daily_chart')) {
 if (!function_exists('seo_post_reports_render_post')) {
     function seo_post_reports_render_post($post_id) {
         $post_id = absint($post_id);
-        $days = seo_post_reports_days($_GET['days'] ?? 28);
+        $days = seo_post_reports_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 28);
         $force = false;
 
-        if (isset($_GET['refresh']) && '1' === (string) $_GET['refresh']) {
+        if (isset($_GET['refresh']) && 1 === absint(wp_unslash($_GET['refresh']))) {
             $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
             $force = wp_verify_nonce($nonce, 'seo_post_report_refresh_' . $post_id);
         }
@@ -880,8 +881,8 @@ if (!function_exists('seo_post_reports_render_selector')) {
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $category_filter = isset($_GET['product_cat']) ? sanitize_text_field(wp_unslash($_GET['product_cat'])) : '';
         $status = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '';
-        $days = seo_post_reports_days($_GET['days'] ?? 28);
-        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
+        $days = seo_post_reports_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 28);
+        $score_order = isset($_GET['score_order']) && 'asc' === sanitize_key(wp_unslash($_GET['score_order'])) ? 'asc' : 'desc';
         $paged = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
         $per_page = 40;
 
@@ -894,7 +895,7 @@ if (!function_exists('seo_post_reports_render_selector')) {
         }
 
         $force_snapshot = false;
-        if (isset($_GET['refresh_catalog']) && '1' === (string) $_GET['refresh_catalog']) {
+        if (isset($_GET['refresh_catalog']) && 1 === absint(wp_unslash($_GET['refresh_catalog']))) {
             $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
             $force_snapshot = wp_verify_nonce($nonce, 'seo_post_reports_refresh_catalog_' . $days);
         }
@@ -1072,8 +1073,11 @@ if (!function_exists('seo_post_reports_page')) {
             return;
         }
 
-        $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
-        $target = seo_post_reports_admin_url($post_id, isset($_GET['days']) ? absint($_GET['days']) : 28);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected post ID.
+        $post_id = isset($_GET['post_id']) ? absint(wp_unslash($_GET['post_id'])) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report period.
+        $days = isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 28;
+        $target = seo_post_reports_admin_url($post_id, $days);
         wp_safe_redirect($target);
         exit;
 

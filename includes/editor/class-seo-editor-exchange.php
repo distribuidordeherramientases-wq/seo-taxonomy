@@ -264,7 +264,9 @@ final class SEO_Editor_Exchange {
     public static function handle_preview() {
         if (!current_user_can('manage_options')) wp_die('Permisos insuficientes.');
         check_admin_referer('seo_editor_csv_preview');
-        $rows = self::parse_upload($_FILES['editor_csv'] ?? array());
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- parse_upload() validates the CSV upload metadata and contents before creating a preview.
+        $editor_file = isset($_FILES['editor_csv']) && is_array($_FILES['editor_csv']) ? $_FILES['editor_csv'] : array();
+        $rows = self::parse_upload($editor_file);
         if (is_wp_error($rows)) self::redirect(array('editor_error'=>$rows->get_error_message()));
         if (!$rows) self::redirect(array('editor_error'=>'El CSV está vacío.'));
         $token = bin2hex(random_bytes(10));

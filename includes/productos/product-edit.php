@@ -13,7 +13,8 @@ if (!function_exists('seo_page_edit_products')) {
             return;
         }
 
-        $product_id = isset($_GET['product_id']) ? absint($_GET['product_id']) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected product ID.
+        $product_id = isset($_GET['product_id']) ? absint(wp_unslash($_GET['product_id'])) : 0;
         if ($product_id > 0) {
             echo '<div style="max-width:1180px;padding:10px 0 30px;">';
             echo '<div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;">';
@@ -105,12 +106,18 @@ if (!function_exists('seo_page_edit_products')) {
             return;
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only product search filter.
         $search = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
-        $category_id = isset($_GET['cat']) ? absint($_GET['cat']) : 0;
-        $status = isset($_GET['status']) ? sanitize_key($_GET['status']) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only category filter.
+        $category_id = isset($_GET['cat']) ? absint(wp_unslash($_GET['cat'])) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only product status filter.
+        $status = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only provider filter.
         $provider = isset($_GET['provider']) ? sanitize_text_field(wp_unslash($_GET['provider'])) : '';
-        $paged = isset($_GET['paged']) ? max(1, absint($_GET['paged'])) : 1;
-        $score_order = isset($_GET['score_order']) && 'asc' === strtolower((string) $_GET['score_order']) ? 'asc' : 'desc';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only product pagination.
+        $paged = isset($_GET['paged']) ? max(1, absint(wp_unslash($_GET['paged']))) : 1;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only score order selector.
+        $score_order = isset($_GET['score_order']) && 'asc' === sanitize_key(wp_unslash($_GET['score_order'])) ? 'asc' : 'desc';
         $score_days = 28;
         $per_page = 40;
 

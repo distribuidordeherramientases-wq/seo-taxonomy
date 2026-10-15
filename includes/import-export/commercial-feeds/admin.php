@@ -36,7 +36,7 @@ function seo_ie_cf_admin_save_settings() {
     $enabled  = array_values(
         array_intersect(
             $channels,
-            array_map( 'sanitize_key', (array) ( $_POST['enabled_channels'] ?? [] ) )
+            array_map( 'sanitize_key', (array) ( isset( $_POST['enabled_channels'] ) ? wp_unslash( $_POST['enabled_channels'] ) : [] ) )
         )
     );
 
@@ -44,15 +44,15 @@ function seo_ie_cf_admin_save_settings() {
         $enabled = [ 'google' ];
     }
 
-    $country = strtoupper( substr( preg_replace( '/[^A-Za-z]/', '', (string) ( $_POST['country'] ?? 'ES' ) ), 0, 2 ) );
-    $language = strtolower( substr( preg_replace( '/[^A-Za-z]/', '', (string) ( $_POST['language'] ?? 'es' ) ), 0, 2 ) );
+    $country = strtoupper( substr( preg_replace( '/[^A-Za-z]/', '', (string) ( isset( $_POST['country'] ) ? wp_unslash( $_POST['country'] ) : 'ES' ) ), 0, 2 ) );
+    $language = strtolower( substr( preg_replace( '/[^A-Za-z]/', '', (string) ( isset( $_POST['language'] ) ? wp_unslash( $_POST['language'] ) : 'es' ) ), 0, 2 ) );
 
     $settings = [
         'enabled_channels'            => $enabled,
         'country'                     => $country ?: 'ES',
         'language'                    => $language ?: 'es',
         'auto_refresh'                => empty( $_POST['auto_refresh'] ) ? 0 : 1,
-        'daily_time'                  => seo_ie_cf_sanitize_daily_time( $_POST['daily_time'] ?? '03:30' ),
+        'daily_time'                  => seo_ie_cf_sanitize_daily_time( isset( $_POST['daily_time'] ) ? wp_unslash( $_POST['daily_time'] ) : '03:30' ),
         'refresh_after_supplier_sync' => empty( $_POST['refresh_after_supplier_sync'] ) ? 0 : 1,
         'batch_size'                  => absint( seo_ie_cf_settings()['batch_size'] ?? SEO_IE_CF_BATCH_SIZE ), // Legacy: el lote real lo regula Procesos.
     ];

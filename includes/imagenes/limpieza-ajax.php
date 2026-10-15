@@ -22,7 +22,7 @@ if (!function_exists('seo_images_cleanup_ajax_start_audit')) {
 
         $result = seo_images_cleanup_start_audit();
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()), 400);
+            wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 400);
         }
 
         wp_send_json_success(array(

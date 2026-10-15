@@ -237,7 +237,7 @@ final class SEO_Auditor_Category_Rebalance {
     }
 
     private static function render_notice() {
-        $status = sanitize_key((string) ($_GET['rebalance_status'] ?? ''));
+        $status = isset($_GET['rebalance_status']) ? sanitize_key(wp_unslash($_GET['rebalance_status'])) : '';
         $message = isset($_GET['rebalance_message']) ? sanitize_text_field(wp_unslash($_GET['rebalance_message'])) : '';
         if (!$status && !$message) return;
         $class = 'ok' === $status ? 'notice-success' : ('warning' === $status ? 'notice-warning' : 'notice-error');
@@ -370,9 +370,10 @@ final class SEO_Auditor_Category_Rebalance {
 
     public static function handle_save() {
         self::guard('seo_auditor_rebalance_save');
-        $kind = sanitize_key((string) ($_POST['kind'] ?? ''));
-        $source_id = absint($_POST['source_id'] ?? 0);
-        $decision = sanitize_key((string) ($_POST['decision'] ?? ''));
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
+        $kind = isset($_POST['kind']) ? sanitize_key(wp_unslash($_POST['kind'])) : '';
+        $source_id = isset($_POST['source_id']) ? absint(wp_unslash($_POST['source_id'])) : 0;
+        $decision = isset($_POST['decision']) ? sanitize_key(wp_unslash($_POST['decision'])) : '';
         if (!in_array($kind, array('split','merge'), true) || !$source_id || !in_array($decision, array('approve','reject'), true)) {
             self::redirect('error', 'Propuesta no valida.');
         }
@@ -394,7 +395,7 @@ final class SEO_Auditor_Category_Rebalance {
         );
 
         if ('merge' === $kind) {
-            $target_id = absint($_POST['merge_target'] ?? 0);
+            $target_id = isset($_POST['merge_target']) ? absint(wp_unslash($_POST['merge_target'])) : 0;
             if ('approve' === $decision && (!$target_id || $target_id === $source_id)) {
                 self::redirect('error', 'Selecciona una categoria destino distinta antes de aprobar la concentracion.');
             }
@@ -404,10 +405,13 @@ final class SEO_Auditor_Category_Rebalance {
             foreach ((array) ($proposal['groups'] ?? array()) as $group) {
                 $concept = (string) ($group['concept'] ?? '');
                 $key = sanitize_key(str_replace(':', '__', $concept));
-                $posted_concept = sanitize_text_field((string) ($_POST['split_concept_' . $key] ?? ''));
+                $concept_key = 'split_concept_' . $key;
+                $posted_concept = isset($_POST[$concept_key]) ? sanitize_text_field(wp_unslash($_POST[$concept_key])) : '';
                 if ($posted_concept !== $concept) continue;
-                $target_id = absint($_POST['split_target_' . $key] ?? 0);
-                $target_name = sanitize_text_field((string) ($_POST['split_name_' . $key] ?? ''));
+                $target_key = 'split_target_' . $key;
+                $target_id = isset($_POST[$target_key]) ? absint(wp_unslash($_POST[$target_key])) : 0;
+                $name_key = 'split_name_' . $key;
+                $target_name = isset($_POST[$name_key]) ? sanitize_text_field(wp_unslash($_POST[$name_key])) : '';
                 if ('approve' === $decision && !$target_id && '' === trim($target_name)) {
                     self::redirect('error', 'Cada cohorte necesita una categoria destino existente o un nombre para crearla.');
                 }
@@ -417,12 +421,14 @@ final class SEO_Auditor_Category_Rebalance {
 
         $state['decisions'][$source_id] = $row;
         update_option(self::OPTION, $state, false);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect('ok', 'Propuesta guardada. No se ha modificado el catalogo.');
     }
 
     public static function handle_apply() {
         self::guard('seo_auditor_rebalance_apply');
-        $source_id = absint($_POST['source_id'] ?? 0);
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
+        $source_id = isset($_POST['source_id']) ? absint(wp_unslash($_POST['source_id'])) : 0;
         $state = self::state();
         $decision = (array) ($state['decisions'][$source_id] ?? array());
         if (!$source_id || 'approved' !== ($decision['status'] ?? '')) self::redirect('error', 'La propuesta no esta aprobada.');
@@ -437,12 +443,14 @@ final class SEO_Auditor_Category_Rebalance {
             $state['decisions'][$source_id]['result'] = $result;
             update_option(self::OPTION, $state, false);
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect('ok', (string) ($result['message'] ?? 'Operacion aplicada.'));
     }
 
     public static function handle_apply_all() {
         self::guard('seo_auditor_rebalance_apply_all');
-        $kind = sanitize_key((string) ($_POST['kind'] ?? ''));
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
+        $kind = isset($_POST['kind']) ? sanitize_key(wp_unslash($_POST['kind'])) : '';
         if (!in_array($kind, array('split','merge'), true)) self::redirect('error', 'Tipo de operacion no valido.');
 
         $state = self::state();
@@ -461,6 +469,7 @@ final class SEO_Auditor_Category_Rebalance {
             $state['decisions'][$source_id]['result'] = $result;
         }
         update_option(self::OPTION, $state, false);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $message = sprintf('Aplicadas: %d. No aplicadas: %d.', $ok, $failed);
         if ($messages) $message .= ' ' . implode(' | ', array_slice($messages, 0, 3));
         self::redirect($failed ? 'warning' : 'ok', $message);
