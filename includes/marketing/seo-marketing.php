@@ -1360,7 +1360,8 @@ function seo_marketing_query_arg($key, $default = '')
         return $default;
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
-    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw request value is intentionally returned; each caller applies the sanitizer required by its expected type.\n    return wp_unslash($_GET[$key]);
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw request value is intentionally returned; each caller applies the sanitizer required by its expected type.
+    return wp_unslash($_GET[$key]);
 }
 
 /**
