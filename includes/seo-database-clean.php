@@ -1692,8 +1692,10 @@ function seo_clean_db_handle_data_error_action($action) {
             return array('type' => $fixed === false ? 'error' : 'success', 'message' => $fixed === false ? 'No se pudo reparar la jerarquía de categorías.' : 'Categorías movidas a la raíz: <strong>' . (int) $fixed . '</strong>.');
 
         case 'reset_registered_object':
-            $object_id = isset($_POST['object_id']) ? absint($_POST['object_id']) : 0;
+            // phpcs:disable WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before dispatching this action.
+            $object_id = isset($_POST['object_id']) ? absint(wp_unslash($_POST['object_id'])) : 0;
             $seo_role = isset($_POST['seo_role']) ? sanitize_key(wp_unslash($_POST['seo_role'])) : '';
+            // phpcs:enable WordPress.Security.NonceVerification.Missing
 
             if ($object_id <= 0 || !in_array($seo_role, $config['node_roles'], true)) {
                 return array('type' => 'error', 'message' => 'Debes indicar un ID y un rol SEO válidos.');
