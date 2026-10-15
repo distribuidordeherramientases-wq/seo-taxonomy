@@ -146,27 +146,27 @@ if (!function_exists('dht_amazon_family_variants')) {
         $name = trim(wp_strip_all_tags((string)$name));
         $key  = sanitize_title(remove_accents(mb_strtolower($name)));
         $sets = array(
-            'camaras-inspeccion-tuberias' => array(
-                array('label'=>'Cámaras con localizador','query'=>'cámara inspección tuberías localizador 512 Hz','description'=>'Busca opciones de inspección con localización de sonda para trabajos donde importa conocer la posición del cabezal.'),
-                array('label'=>'Sondas de mayor longitud','query'=>'cámara inspección tuberías sonda 30m 50m','description'=>'Compara equipos por longitud de cable o sonda cuando necesitas cubrir recorridos más largos.'),
-                array('label'=>'Cámaras y endoscopios profesionales','query'=>'cámara endoscopio inspección tuberías profesional','description'=>'Explora equipos orientados a inspección frecuente, mantenimiento y trabajos profesionales.'),
-                array('label'=>'Accesorios y sondas','query'=>'accesorios sonda cámara inspección tuberías','description'=>'Localiza complementos relacionados con inspección, guiado, protección y uso de la sonda.'),
+            'inspection-cameras' => array(
+                array('label'=>'Inspection cameras with locator','query'=>'pipe inspection camera locator 512 Hz','description'=>'Find inspection options with probe locating when knowing the camera head position matters.'),
+                array('label'=>'Longer inspection cables','query'=>'pipe inspection camera 100 ft 165 ft cable','description'=>'Compare equipment by cable length when you need to cover longer runs.'),
+                array('label'=>'Professional inspection cameras and borescopes','query'=>'professional pipe inspection camera borescope','description'=>'Explore equipment intended for frequent inspection, maintenance and professional work.'),
+                array('label'=>'Inspection accessories and probes','query'=>'pipe inspection camera accessories probe','description'=>'Find accessories for inspection, guidance, protection and probe use.'),
             ),
-            'destornillador' => array(
-                array('label'=>'Destornilladores aislados VDE','query'=>'destornilladores aislados VDE','description'=>'Opciones para trabajos eléctricos donde importan el aislamiento, la medida y el tipo de punta.'),
-                array('label'=>'Destornilladores de precisión','query'=>'destornilladores de precisión','description'=>'Formatos pequeños para electrónica, mecanismos, móviles y tornillería de reducido tamaño.'),
-                array('label'=>'Destornilladores con carraca','query'=>'destornilladores con carraca','description'=>'Alternativas orientadas a montaje repetitivo y espacios donde conviene reducir el movimiento de la mano.'),
-                array('label'=>'Juegos de destornilladores','query'=>'juego de destornilladores profesional','description'=>'Conjuntos con distintas puntas y medidas para ampliar cobertura con una sola compra.'),
+            'screwdriver' => array(
+                array('label'=>'VDE insulated screwdrivers','query'=>'VDE insulated screwdrivers','description'=>'Options for electrical work where insulation, size and tip type matter.'),
+                array('label'=>'Precision screwdrivers','query'=>'precision screwdrivers','description'=>'Small formats for electronics, mechanisms, mobile devices and small fasteners.'),
+                array('label'=>'Ratcheting screwdrivers','query'=>'ratcheting screwdrivers','description'=>'Options for repetitive assembly and tight spaces where reduced hand movement helps.'),
+                array('label'=>'Screwdriver sets','query'=>'professional screwdriver set','description'=>'Sets with multiple tips and sizes for broader coverage in one purchase.'),
             ),
-            'gatos-de-pie' => array(
-                array('label'=>'Gatos hidráulicos de uña','query'=>'gato hidráulico de uña','description'=>'Para elevar maquinaria desde puntos de apoyo bajos o laterales, con diferentes capacidades de carga.'),
-                array('label'=>'Gatos hidráulicos industriales','query'=>'gato hidráulico industrial maquinaria','description'=>'Modelos destinados a maquinaria, mantenimiento industrial y cargas superiores a las de automoción ligera.'),
-                array('label'=>'Gatos de baja altura','query'=>'gato hidráulico baja altura maquinaria','description'=>'Opciones pensadas para introducir el punto de elevación cuando el espacio libre inicial es reducido.'),
-                array('label'=>'Soportes y accesorios de elevación','query'=>'accesorios soporte gato hidráulico maquinaria','description'=>'Complementos para apoyo, estabilización y trabajo alrededor de equipos de elevación.'),
+            'hydraulic-jacks' => array(
+                array('label'=>'Toe jacks','query'=>'hydraulic toe jack','description'=>'For lifting machinery from low or side lifting points, with different load capacities.'),
+                array('label'=>'Industrial hydraulic jacks','query'=>'industrial hydraulic machinery jack','description'=>'Models for machinery, industrial maintenance and heavier loads.'),
+                array('label'=>'Low-profile jacks','query'=>'low profile hydraulic machinery jack','description'=>'Options designed for low initial clearance.'),
+                array('label'=>'Lifting supports and accessories','query'=>'hydraulic machinery jack lifting accessories','description'=>'Accessories for support, stabilization and work around lifting equipment.'),
             ),
         );
         if (false !== strpos($key, 'camara') && (false !== strpos($key, 'tuber') || false !== strpos($key, 'inspeccion'))) {
-            return $sets['camaras-inspeccion-tuberias'];
+            return $sets['inspection-cameras'];
         }
         foreach ($sets as $needle => $items) {
             if (false !== strpos($key, $needle)) return $items;
@@ -183,9 +183,9 @@ if (!function_exists('dht_amazon_family_variants')) {
 if (!function_exists('dht_amazon_compare_points')) {
     function dht_amazon_compare_points($name) {
         $key = sanitize_title(remove_accents(mb_strtolower((string)$name)));
-        if (false !== strpos($key, 'camara') && (false !== strpos($key, 'tuber') || false !== strpos($key, 'inspeccion'))) return array('Longitud de sonda o cable','Diámetro del cabezal y acceso','Resolución, pantalla y grabación','Impermeabilidad y condiciones de trabajo','Localizador, accesorios y frecuencia de uso');
-        if (false !== strpos($key, 'destornill')) return array('Tipo y geometría de la punta','Medidas incluidas','Aislamiento o certificación VDE cuando corresponda','Ergonomía, agarre y longitud','Uso general, precisión, impacto o carraca');
-        if (false !== strpos($key, 'gato')) return array('Capacidad nominal de carga','Altura mínima de entrada','Altura máxima y recorrido','Tipo de accionamiento y estabilidad','Aplicación: vehículo, taller o maquinaria industrial');
+        if ((false !== strpos($key, 'camera') || false !== strpos($key, 'borescope')) && (false !== strpos($key, 'pipe') || false !== strpos($key, 'inspection'))) return array('Cable length','Camera head diameter and access','Resolution, display and recording','Water resistance and working conditions','Locator, accessories and frequency of use');
+        if (false !== strpos($key, 'screwdriver')) return array('Tip type and geometry','Included sizes','Insulation or VDE certification when relevant','Ergonomics, grip and length','General, precision, impact or ratcheting use');
+        if (false !== strpos($key, 'jack')) return array('Rated load capacity','Minimum entry height','Maximum lift and travel','Drive type and stability','Application: vehicle, workshop or industrial machinery');
         return array('Intended use and compatibility','Size, capacity or working range','Materials and construction','Included accessories','Frequency of use and professional level');
     }
 }
