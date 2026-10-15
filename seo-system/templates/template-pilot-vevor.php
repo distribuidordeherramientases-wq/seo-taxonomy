@@ -10,7 +10,7 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-pilot-market.php';
 
-$market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : '';
+$market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : strtoupper((string) ($GLOBALS['dht_pilot_market'] ?? ''));
 $markets = array(
     'US' => array(
         'lang' => 'en-US', 'country' => 'United States', 'support' => 'https://www.vevor.com/pages/contact-us',
