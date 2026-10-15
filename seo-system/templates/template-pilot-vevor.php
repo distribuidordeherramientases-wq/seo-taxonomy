@@ -57,7 +57,13 @@ if (!isset($markets[$market])) {
     return;
 }
 $t = $markets[$market];
+$GLOBALS['dht_pilot_market_active'] = $market;
 $GLOBALS['dht_frontend_language_tag'] = $t['lang'];
+$dht_current_url = (function_exists('is_product_category') && is_product_category())
+    ? get_term_link(get_queried_object()) : get_permalink(get_queried_object_id());
+if (!is_wp_error($dht_current_url) && $dht_current_url) {
+    $GLOBALS['dht_frontend_hreflang_url'] = esc_url_raw((string) $dht_current_url);
+}
 $is_category = function_exists('is_product_category') && is_product_category();
 $term = $is_category ? get_queried_object() : null;
 $product = !$is_category && function_exists('wc_get_product') ? wc_get_product(get_queried_object_id()) : null;
@@ -88,9 +94,12 @@ $affiliate_url = static function ($item) {
         }
         $host = strtolower((string) wp_parse_url($url, PHP_URL_HOST));
         // No enviar al visitante a tiendas ajenas ni al carrito de Espana.
-        if (!preg_match('/(^|\.)vevor\.(?:com|de|nl)$/', $host)) {
+        $host_by_market = array('US' => 'vevor.com', 'DE' => 'vevor.de', 'NL' => 'vevor.nl');
+        $market_for_url = isset($GLOBALS['dht_pilot_market_active']) ? (string) $GLOBALS['dht_pilot_market_active'] : '';
+        $required_host = isset($host_by_market[$market_for_url]) ? $host_by_market[$market_for_url] : '';
+        if ($required_host === '' || !in_array($host, array($required_host, 'www.' . $required_host), true)) {
             continue;
-        }
+        }  }
         // Mismo etiquetado de afiliacion usado por el bloque VEVOR del plugin.
         return add_query_arg(array(
             'utm_source' => 'inhouse',
@@ -215,7 +224,7 @@ if ($is_category) {
             continue;
         }
         $provider = strtolower(trim((string) get_post_meta($item->get_id(), '_seo_proveedor', true)));
-        if ('vevor' !== $provider && $affiliate_url($item) === '') {
+        if ($affiliate_url($item) === '') {
             continue;
         }
         $category_items[] = $item;
