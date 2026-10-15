@@ -1525,10 +1525,14 @@ function search_product_attributes($options = []) {
     // =========================
     // FILTROS
     // =========================
-    $cluster        = isset($_GET['cluster']) ? intval($_GET['cluster']) : 0;
-    $hub_primario   = isset($_GET['hub_primario']) ? intval($_GET['hub_primario']) : 0;
-    $hub_secundario = isset($_GET['hub_secundario']) ? intval($_GET['hub_secundario']) : 0;
-    $cat            = isset($_GET['cat']) ? intval($_GET['cat']) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only catalog filters.
+    $cluster        = isset($_GET['cluster']) ? absint(wp_unslash($_GET['cluster'])) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only catalog filters.
+    $hub_primario   = isset($_GET['hub_primario']) ? absint(wp_unslash($_GET['hub_primario'])) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only catalog filters.
+    $hub_secundario = isset($_GET['hub_secundario']) ? absint(wp_unslash($_GET['hub_secundario'])) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only catalog filters.
+    $cat            = isset($_GET['cat']) ? absint(wp_unslash($_GET['cat'])) : 0;
 
     $search_attributes  = isset($_GET['search_attributes']) ? 1 : 0;
     $propose_attributes = isset($_GET['propose_attributes']) ? 1 : 0;
@@ -1547,8 +1551,9 @@ function search_product_attributes($options = []) {
         ? sanitize_text_field(wp_unslash($_GET['delete_global_attribute']))
         : '';
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Legacy read-only flag; destructive execution is protected separately.
     $delete_global_action = isset($_GET['delete_global_action'])
-        && '1' === (string) wp_unslash($_GET['delete_global_action']);
+        && 1 === absint(wp_unslash($_GET['delete_global_action']));
 
     // Acciones del panel semántico. Todas las acciones destructivas nuevas
     // usan POST + nonce y terminan en operaciones rollbackable del Data Layer.
