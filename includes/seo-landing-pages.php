@@ -635,7 +635,7 @@ function seo_landing_handle_save_candidate()
         'total_score'            => $requirements_pass ? seo_landing_score_total($scores) : 0,
         'existing_destination'   => sanitize_textarea_field(wp_unslash($_POST['existing_destination'] ?? '')),
         'differentiation_reason' => sanitize_textarea_field(wp_unslash($_POST['differentiation_reason'] ?? '')),
-        'page_id'                => absint($_POST['page_id'] ?? 0),
+        'page_id'                => isset($_POST['page_id']) ? absint(wp_unslash($_POST['page_id'])) : 0,
         'updated_at'             => current_time('mysql'),
     );
 
@@ -1166,7 +1166,9 @@ function seo_landing_render_candidate_form($prefill = array(), $route = array())
 {
     $requirements = $prefill['requirements'] ?? array();
     $scores = $prefill['scores'] ?? array();
-    echo '<details class="seo-marketing-card" ' . (!empty($_GET['new_candidate']) ? 'open' : '') . '>';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only UI expansion flag.
+    $open_candidate = isset($_GET['new_candidate']) ? absint(wp_unslash($_GET['new_candidate'])) : 0;
+    echo '<details class="seo-marketing-card" ' . ($open_candidate ? 'open' : '') . '>';
     echo '<summary style="cursor:pointer;font-weight:700;font-size:15px;">Nueva candidata / evaluar oportunidad</summary>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="seo-landing-form">';
     echo '<input type="hidden" name="action" value="seo_landing_save_candidate">';
@@ -1453,7 +1455,8 @@ echo '</details>';
     echo '</section>';
 
     $prefill = array();
-    $gap_id = absint($_GET['gap_id'] ?? 0);
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only coverage-gap selector.
+    $gap_id = isset($_GET['gap_id']) ? absint(wp_unslash($_GET['gap_id'])) : 0;
     if ($gap_id > 0) {
         $gap_post = get_post($gap_id);
         if ($gap_post && 'page' === $gap_post->post_type) {
