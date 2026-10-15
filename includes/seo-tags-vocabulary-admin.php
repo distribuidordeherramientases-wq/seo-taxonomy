@@ -3722,12 +3722,14 @@ if (!function_exists('seo_assignment_notice')) {
 
 if (!function_exists('seo_assignment_mass_apply')) {
     function seo_assignment_mass_apply($section) {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Caller seo_assignment_handle_request() verifies seo_assignment_nonce before invoking this helper.
         $filters = [
             'search' => sanitize_text_field(wp_unslash($_POST['assignment_s'] ?? '')),
             'category_id' => absint(wp_unslash($_POST['assignment_category_id'] ?? 0)),
             'coverage' => sanitize_key(wp_unslash($_POST['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any'))),
             'priority' => sanitize_key(wp_unslash($_POST['assignment_priority'] ?? 'all')),
         ];
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $max = 500;
         $saved = 0; $errors = 0; $total = 0;
         if ($section === 'category_labels') {
