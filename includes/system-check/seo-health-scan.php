@@ -1214,12 +1214,15 @@ if (!function_exists('seo_health_render_scope_tab')) {
 
         global $wpdb;
         $table = seo_health_scan_tables()['items'];
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Health Scan status filter.
         $filter = isset($_GET['health_filter']) ? sanitize_key(wp_unslash($_GET['health_filter'])) : 'error';
         if (!in_array($filter, array('error','warning','pending','ok','all'), true)) {
             $filter = 'error';
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Health Scan search filter.
         $search = isset($_GET['health_s']) ? sanitize_text_field(wp_unslash($_GET['health_s'])) : '';
-        $paged = isset($_GET['health_paged']) ? max(1, absint($_GET['health_paged'])) : 1;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Health Scan pagination.
+        $paged = isset($_GET['health_paged']) ? max(1, absint(wp_unslash($_GET['health_paged']))) : 1;
         $per_page = 50;
         $where = array('scope=%s','active=1');
         $params = array($scope);
