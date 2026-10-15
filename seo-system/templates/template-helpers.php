@@ -2176,7 +2176,7 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Guías para elegir',
+            dht_template_is_us_market() ? 'Buying guides' : 'Guías para elegir',
             'dependiente',
             'product'
         );
@@ -2188,7 +2188,7 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
         );
         dht_template_render_context_posts(
             $ingeniero_posts,
-            'Información especializada',
+            dht_template_is_us_market() ? 'Specialized information' : 'Información especializada',
             'ingeniero',
             'product'
         );
@@ -2247,7 +2247,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         $external_comments = dht_template_category_external_comments($term_id, 6, 2);
         dht_template_render_external_comments(
             $external_comments,
-            'Comentarios externos sobre productos de esta categoría',
+            dht_template_is_us_market() ? 'External comments about products in this category' : 'Comentarios externos sobre productos de esta categoría',
             'category'
         );
     }
