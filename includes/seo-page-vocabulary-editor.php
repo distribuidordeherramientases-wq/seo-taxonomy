@@ -293,13 +293,16 @@ if (!function_exists('seo_page_vocab_save_from_request')) {
         }
 
         $marker = $field_name . '_present';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The page save/create handlers verify their form nonce before calling this request adapter.
         if (empty($_POST[$marker])) {
             return true;
         }
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller nonce is already verified; nested vocabulary IDs are normalized with absint below.
         $posted = isset($_POST[$field_name]) && is_array($_POST[$field_name])
             ? wp_unslash($_POST[$field_name])
             : array();
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
         foreach (seo_page_vocab_groups() as $group => $label) {
             $selected = isset($posted[$group]) && is_array($posted[$group])

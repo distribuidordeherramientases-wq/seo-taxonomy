@@ -506,7 +506,7 @@ final class SEO_Dependiente_Entrenador {
 
             wp_send_json_success(self::prepare_response($lesson_key, $source_done));
         } catch (Throwable $error) {
-            wp_send_json_error(array('message' => $error->getMessage()), 500);
+            wp_send_json_error(array('message' => sanitize_text_field($error->getMessage())), 500);
         } finally {
             self::release_db_lock('prepare');
         }
@@ -618,7 +618,7 @@ final class SEO_Dependiente_Entrenador {
                 'rows'            => $rows,
             ));
         } catch (Throwable $error) {
-            wp_send_json_error(array('message' => $error->getMessage()), 500);
+            wp_send_json_error(array('message' => sanitize_text_field($error->getMessage())), 500);
         } finally {
             self::release_db_lock('run');
         }
@@ -634,7 +634,7 @@ final class SEO_Dependiente_Entrenador {
         if ('stop' === $mode) {
             $result = self::process_control_stop();
             if (is_wp_error($result)) {
-                wp_send_json_error(array('message' => $result->get_error_message()), 409);
+                wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 409);
             }
             wp_send_json_success(self::automation_payload());
         }
@@ -1986,7 +1986,7 @@ final class SEO_Dependiente_Entrenador {
                 'message'   => 'Archivo añadido a la cola con ' . number_format_i18n($created) . ' preguntas. Academia lo procesará en segundo plano.',
             ));
         } catch (Throwable $error) {
-            wp_send_json_error(array('message' => $error->getMessage()), 400);
+            wp_send_json_error(array('message' => sanitize_text_field($error->getMessage())), 400);
         }
     }
 
@@ -2024,7 +2024,7 @@ final class SEO_Dependiente_Entrenador {
             $step = self::run_lab_batch_step($batch_key, $batch_size, $batch_uuid);
             wp_send_json_success($step);
         } catch (Throwable $error) {
-            wp_send_json_error(array('message' => $error->getMessage()), 500);
+            wp_send_json_error(array('message' => sanitize_text_field($error->getMessage())), 500);
         } finally {
             self::release_db_lock('lab_run');
         }
@@ -7823,7 +7823,7 @@ final class SEO_Dependiente_Entrenador {
         if (!isset($_GET[$key])) {
             return $default;
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación GET de solo lectura.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw read-only filter is returned so each caller can apply its type-specific sanitizer.
         return wp_unslash($_GET[$key]);
     }
 
@@ -7843,7 +7843,7 @@ final class SEO_Dependiente_Entrenador {
         if (!isset($_POST[$key])) {
             return $default;
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Todos los callers verifican el nonce mediante guard_ajax().
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- guard_ajax() verifies the nonce; each caller applies its type-specific sanitizer.
         return wp_unslash($_POST[$key]);
     }
 

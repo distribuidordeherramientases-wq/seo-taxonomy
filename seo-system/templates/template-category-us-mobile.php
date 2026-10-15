@@ -1,24 +1,14 @@
 <?php
 /*
  * US WooCommerce category template
- * Sistema visual común DHT
+ * Shared DHT visual system
  */
 
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-helpers.php';
 
-$GLOBALS['dht_frontend_language_tag'] = 'en-US';
-$dht_us_category_term = get_queried_object();
-if ($dht_us_category_term instanceof WP_Term) {
-    $dht_us_category_url = get_term_link($dht_us_category_term);
-    if (!is_wp_error($dht_us_category_url) && $dht_us_category_url) {
-        $GLOBALS['dht_frontend_hreflang_url'] = (string) $dht_us_category_url;
-    }
-}
-
-
-$amazon_category_template = __DIR__ . '/template-amazon-category.php';
+$amazon_category_template = __DIR__ . '/template-amazon-category-us.php';
 if (is_readable($amazon_category_template)) {
     require_once $amazon_category_template;
 }
@@ -636,7 +626,7 @@ $json = array(
                     </h2>
 
                     <p class="dht-section-subtitle">
-                        Expand your search with categories directly related to <?php echo esc_html($term->name); ?>.
+                        Broaden your search with categories directly related to <?php echo esc_html($term->name); ?>.
                     </p>
 
                 </header>
@@ -745,7 +735,7 @@ $json = array(
             <details class="dht-category-question-details">
                 <summary>
                     <span>
-                        <strong>Prefer to send us a question?</strong>
+                        <strong>Would you rather send us your question?</strong>
                         <small>Open the form and send us a question about this category.</small>
                     </span>
                     <span class="dht-category-question-details__icon" aria-hidden="true">+</span>
@@ -772,6 +762,16 @@ $json = array(
     ====================================================== -->
 
     <!-- DHT EXTERNAL ORDER: AMAZON -> VEVOR -> FOOTER -->
+
+    <?php
+    if (function_exists('dht_render_amazon_category_block')) {
+        dht_render_amazon_category_block($term, array(
+            'limit' => 8,
+            'title' => 'More related options on Amazon',
+            'mode'  => 'dynamic',
+        ));
+    }
+    ?>
 
     <?php
     $dht_vevor_category_term = $term;

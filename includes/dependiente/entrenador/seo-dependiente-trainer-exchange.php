@@ -724,6 +724,7 @@ final class SEO_Dependiente_Trainer_Exchange {
             self::redirect();
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated for extension and readable temporary path before parsing.
         $file = $_FILES['seo_dependiente_trainer_questions_csv'];
         $name = sanitize_file_name((string) ($file['name'] ?? ''));
         if (strtolower((string) pathinfo($name, PATHINFO_EXTENSION)) !== 'csv') {

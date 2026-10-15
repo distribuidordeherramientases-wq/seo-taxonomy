@@ -247,14 +247,18 @@ function seo_comentarista_coverage_admin_page()
     }
 
     $segments = seo_comentarista_coverage_segments();
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only coverage segment filter.
     $segment = sanitize_key(wp_unslash($_GET['segment'] ?? 'all'));
     if (!isset($segments[$segment])) {
         $segment = 'all';
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only coverage search filter.
     $search = sanitize_text_field(wp_unslash($_GET['coverage_search'] ?? ''));
-    $category_id = absint($_GET['coverage_category'] ?? 0);
-    $page = max(1, absint($_GET['coverage_page'] ?? 1));
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only coverage category filter.
+    $category_id = isset($_GET['coverage_category']) ? absint(wp_unslash($_GET['coverage_category'])) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only coverage pagination.
+    $page = isset($_GET['coverage_page']) ? max(1, absint(wp_unslash($_GET['coverage_page']))) : 1;
 
     $stats = seo_comentarista_coverage_stats();
     $inventory = seo_comentarista_coverage_inventory(array(

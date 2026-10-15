@@ -309,6 +309,7 @@ if (!function_exists('seo_product_inventory_context_label')) {
 
 if (!function_exists('seo_product_inventory_get_filters')) {
     function seo_product_inventory_get_filters() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter map; every consumed field is normalized by type below.
         $get = wp_unslash($_GET);
 
         $array_ids = static function ($key) use ($get) {
@@ -957,10 +958,14 @@ if (!function_exists('seo_product_inventory_page')) {
             wp_enqueue_style('select2');
         }
 
-        $cluster = isset($_GET['cluster']) ? absint($_GET['cluster']) : 0;
-        $hub_primary = isset($_GET['hub_primario']) ? absint($_GET['hub_primario']) : 0;
-        $hub_secondary = isset($_GET['hub_secundario']) ? absint($_GET['hub_secundario']) : 0;
-        $cat = isset($_GET['cat']) ? absint($_GET['cat']) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only hierarchy filter.
+        $cluster = isset($_GET['cluster']) ? absint(wp_unslash($_GET['cluster'])) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only hierarchy filter.
+        $hub_primary = isset($_GET['hub_primario']) ? absint(wp_unslash($_GET['hub_primario'])) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only hierarchy filter.
+        $hub_secondary = isset($_GET['hub_secundario']) ? absint(wp_unslash($_GET['hub_secundario'])) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only hierarchy filter.
+        $cat = isset($_GET['cat']) ? absint(wp_unslash($_GET['cat'])) : 0;
 
         $requested_category_id = absint($requested_category_id);
         if ($requested_category_id > 0) {

@@ -223,6 +223,7 @@ if ( ! function_exists( 'seo_google_python_runner_save_settings' ) ) {
         $project = sanitize_text_field( wp_unslash( $_POST['project_id'] ?? '' ) );
         $region  = sanitize_key( wp_unslash( $_POST['region'] ?? '' ) );
         $job     = sanitize_key( wp_unslash( $_POST['job_name'] ?? '' ) );
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Service-account JSON must preserve PEM newlines; it is decoded and structurally validated before storage.
         $service_raw = trim( (string) wp_unslash( $_POST['service_account_json'] ?? '' ) );
         $service_json = (string) ( $current['service_account_json'] ?? '' );
 

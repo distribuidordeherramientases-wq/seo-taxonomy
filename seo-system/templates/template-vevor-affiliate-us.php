@@ -1,6 +1,6 @@
 <?php
 /**
- * Dynamic US-English VEVOR template.
+ * Dynamic VEVOR template - US market.
  *
  * Esta plantilla se ejecuta directamente cuando se incluye desde una plantilla
  * de categoría. No necesita que otra plantilla llame a ninguna función.
@@ -71,7 +71,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
     }
 
     $raw_tokens = preg_split('/[^\\p{L}\\p{N}]+/u', remove_accents(mb_strtolower($category_context->name . ' ' . $category_keywords)));
-    $stop = array('de','del','la','las','el','los','y','para','por','con','sin','una','uno','unos','unas','en','a','al','que','categoria','productos','producto');
+    $stop = array('the','and','for','with','without','from','into','this','that','category','categories','product','products');
     $tokens = array();
     foreach ((array) $raw_tokens as $token) {
         $token = trim((string) $token);
@@ -280,7 +280,7 @@ if (!$items) {
         <header class="dht-vevor-products__header">
             <span class="dht-vevor-products__kicker">More related options</span>
             <h2 id="dht-vevor-products-title"><?php echo $category_context instanceof WP_Term ? 'Also on VEVOR: ' . esc_html($category_context->name) : 'Featured products on VEVOR'; ?></h2>
-            <p><?php echo $category_context instanceof WP_Term ? 'VEVOR options selected for their relevance to this category. Checkout is completed on VEVOR.' : 'A selection of products available on VEVOR.'; ?></p>
+            <p><?php echo $category_context instanceof WP_Term ? 'VEVOR options selected for relevance to this category. Purchase is completed on VEVOR.' : 'A selection of products available on VEVOR.'; ?></p>
         </header>
 
         <div class="dht-vevor-products__grid">
@@ -290,7 +290,7 @@ if (!$items) {
                 $image = $vevor_first_image($item['imagenes'] ?? '');
                 $url = $vevor_affiliate_url($item);
                 $price = isset($item['precio_con_iva']) ? (float) $item['precio_con_iva'] : 0.0;
-                $currency = strtoupper(trim((string) ($item['moneda'] ?? 'EUR')));
+                $currency = strtoupper(trim((string) ($item['moneda'] ?? 'USD')));
             ?>
                 <article class="dht-vevor-product" data-vevor-id="<?php echo esc_attr((string) ($item['id'] ?? '')); ?>">
                     <?php if ($url !== '') : ?>
@@ -326,10 +326,10 @@ if (!$items) {
                         <?php if ($price > 0) : ?>
                             <div class="dht-vevor-product__price">
                                 <?php
-                                if ($currency === 'EUR' && function_exists('wc_price')) {
-                                    echo wp_kses_post(wc_price($price));
+                                if ($currency === 'USD' && function_exists('wc_price')) {
+                                    echo wp_kses_post(wc_price($price, array('currency' => 'USD')));
                                 } else {
-                                    echo esc_html(number_format_i18n($price, 2) . ' ' . ($currency ?: 'EUR'));
+                                    echo esc_html(number_format_i18n($price, 2) . ' ' . ($currency ?: 'USD'));
                                 }
                                 ?>
                             </div>

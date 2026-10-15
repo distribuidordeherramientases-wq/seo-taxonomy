@@ -72,7 +72,7 @@ final class SEO_Comparador_Public {
     private static function render($payload,$context) {
         if (!$payload) return;
         $context=sanitize_key((string)$context);
-        $is_us = function_exists('dht_template_is_us_english') && dht_template_is_us_english();
+        $is_us = function_exists('dht_template_is_us_market') && dht_template_is_us_market();
 
         echo '<section class="dht-comparador-extract dht-comparador-extract-' . esc_attr($context) . '">';
         echo '<div class="dht-container"><div class="dht-comparador-extract__card">';

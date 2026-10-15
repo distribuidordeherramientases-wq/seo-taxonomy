@@ -3,47 +3,37 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 /* =========================================================
    SEO BASE: IDIOMA / MERCADO
-   - España sigue siendo el valor por defecto.
-   - Las plantillas internacionales pueden definir:
-     $GLOBALS['dht_frontend_language_tag']
-     $GLOBALS['dht_frontend_hreflang_url']
+   España sigue siendo es-ES por defecto. Las plantillas
+   internacionales pueden definir idioma y URL hreflang.
 ========================================================= */
-if (!function_exists('dht_frontend_language_tag')) {
-    function dht_frontend_language_tag()
-    {
-        $tag = isset($GLOBALS['dht_frontend_language_tag'])
-            ? trim((string) $GLOBALS['dht_frontend_language_tag'])
-            : 'es-ES';
-
-        return preg_match('/^[a-z]{2,3}(?:-[A-Z0-9]{2,8})*$/', $tag)
-            ? $tag
-            : 'es-ES';
-    }
-}
-
-if (!function_exists('dht_frontend_hreflang_url')) {
-    function dht_frontend_hreflang_url()
-    {
-        if (!empty($GLOBALS['dht_frontend_hreflang_url'])) {
-            $url = esc_url_raw((string) $GLOBALS['dht_frontend_hreflang_url']);
-            if ($url !== '') {
-                return $url;
-            }
-        }
-
-        return home_url('/');
-    }
-}
-
 add_filter('language_attributes', function($output) {
-    $output = (string) $output;
-    $output = preg_replace('/\\blang=(["\']).*?\\1\\s*/i', '', $output);
+    $lang = !empty($GLOBALS['dht_frontend_language_tag'])
+        ? (string) $GLOBALS['dht_frontend_language_tag']
+        : 'es-ES';
 
-    return 'lang="' . esc_attr(dht_frontend_language_tag()) . '" ' . trim($output);
+    if (!preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/', $lang)) {
+        $lang = 'es-ES';
+    }
+
+    $output = preg_replace('/\\blang=(["\']).*?\\1\\s*/i', '', (string) $output);
+
+    return 'lang="' . esc_attr($lang) . '" ' . trim((string) $output);
 }, PHP_INT_MAX);
 
 add_action('wp_head', function () {
-    echo '<link rel="alternate" hreflang="' . esc_attr(dht_frontend_language_tag()) . '" href="' . esc_url(dht_frontend_hreflang_url()) . '" />' . "\n";
+    $lang = !empty($GLOBALS['dht_frontend_language_tag'])
+        ? (string) $GLOBALS['dht_frontend_language_tag']
+        : 'es-ES';
+
+    if (!preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/', $lang)) {
+        $lang = 'es-ES';
+    }
+
+    $href = !empty($GLOBALS['dht_frontend_hreflang_url'])
+        ? esc_url_raw((string) $GLOBALS['dht_frontend_hreflang_url'])
+        : home_url('/');
+
+    echo '<link rel="alternate" hreflang="' . esc_attr($lang) . '" href="' . esc_url($href) . '" />' . "\n";
 }, 1);
 
 

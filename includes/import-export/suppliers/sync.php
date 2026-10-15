@@ -801,8 +801,8 @@ function seo_supplier_sync_handle_single_action() {
 
     global $wpdb;
     $table  = $wpdb->prefix . 'seo_proveedores_productos';
-    $row_id = absint( $_POST['producto_proveedor_id'] ?? 0 );
-    $action = sanitize_key( $_POST['sync_action'] ?? '' );
+    $row_id = isset( $_POST['producto_proveedor_id'] ) ? absint( wp_unslash( $_POST['producto_proveedor_id'] ) ) : 0;
+    $action = isset( $_POST['sync_action'] ) ? sanitize_key( wp_unslash( $_POST['sync_action'] ) ) : '';
 
     $row = $row_id
         ? $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $row_id ), ARRAY_A )
@@ -813,10 +813,10 @@ function seo_supplier_sync_handle_single_action() {
     }
 
     $commission_sale = function_exists( 'seo_proveedores_normalizar_comision' )
-        ? seo_proveedores_normalizar_comision( $_POST['comision_descuento'] ?? 20, 20 )
+        ? seo_proveedores_normalizar_comision( isset( $_POST['comision_descuento'] ) ? wp_unslash( $_POST['comision_descuento'] ) : 20, 20 )
         : 20;
     $commission_regular = function_exists( 'seo_proveedores_normalizar_comision' )
-        ? seo_proveedores_normalizar_comision( $_POST['comision_original'] ?? 45, 45 )
+        ? seo_proveedores_normalizar_comision( isset( $_POST['comision_original'] ) ? wp_unslash( $_POST['comision_original'] ) : 45, 45 )
         : 45;
 
     $external_images = function_exists( 'seo_proveedores_resolver_modo_imagenes_externas' )
@@ -860,7 +860,7 @@ function seo_supplier_sync_handle_bulk_action() {
 
     check_admin_referer( 'seo_supplier_sync_bulk_action', 'seo_supplier_sync_bulk_nonce' );
 
-    $action = sanitize_key( $_POST['accion_masiva'] ?? '' );
+    $action = isset( $_POST['accion_masiva'] ) ? sanitize_key( wp_unslash( $_POST['accion_masiva'] ) ) : '';
     if ( ! in_array( $action, [ 'aceptar', 'actualizar', 'baja', 'reactivar', 'descartar' ], true ) ) {
         wp_die( 'La accion masiva no es valida.' );
     }
@@ -869,19 +869,21 @@ function seo_supplier_sync_handle_bulk_action() {
     $table = $wpdb->prefix . 'seo_proveedores_productos';
 
     $provider  = sanitize_text_field( wp_unslash( $_POST['f_proveedor'] ?? '' ) );
-    $selection = sanitize_key( $_POST['f_estado'] ?? '' );
-    $situation = sanitize_key( $_POST['f_situacion'] ?? '' );
-    $change    = sanitize_key( $_POST['f_cambio'] ?? '' );
+    $selection = isset( $_POST['f_estado'] ) ? sanitize_key( wp_unslash( $_POST['f_estado'] ) ) : '';
+    $situation = isset( $_POST['f_situacion'] ) ? sanitize_key( wp_unslash( $_POST['f_situacion'] ) ) : '';
+    $change    = isset( $_POST['f_cambio'] ) ? sanitize_key( wp_unslash( $_POST['f_cambio'] ) ) : '';
     $search    = sanitize_text_field( wp_unslash( $_POST['f_buscar'] ?? '' ) );
     $sku       = sanitize_text_field( wp_unslash( $_POST['f_sku'] ?? '' ) );
     $category  = sanitize_text_field( wp_unslash( $_POST['f_categoria'] ?? '' ) );
     $suggested = sanitize_text_field( wp_unslash( $_POST['f_categoria_sugerida'] ?? '' ) );
 
-    $price_min = isset( $_POST['f_precio_min'] ) && '' !== (string) $_POST['f_precio_min']
-        ? (float) str_replace( ',', '.', wp_unslash( $_POST['f_precio_min'] ) )
+    $price_min_raw = isset( $_POST['f_precio_min'] ) ? wp_unslash( $_POST['f_precio_min'] ) : '';
+    $price_max_raw = isset( $_POST['f_precio_max'] ) ? wp_unslash( $_POST['f_precio_max'] ) : '';
+    $price_min = '' !== (string) $price_min_raw
+        ? (float) str_replace( ',', '.', (string) $price_min_raw )
         : null;
-    $price_max = isset( $_POST['f_precio_max'] ) && '' !== (string) $_POST['f_precio_max']
-        ? (float) str_replace( ',', '.', wp_unslash( $_POST['f_precio_max'] ) )
+    $price_max = '' !== (string) $price_max_raw
+        ? (float) str_replace( ',', '.', (string) $price_max_raw )
         : null;
 
     $where  = [ '1=1' ];
@@ -963,10 +965,10 @@ function seo_supplier_sync_handle_bulk_action() {
     $rows = $wpdb->get_results( $sql, ARRAY_A );
 
     $commission_sale = function_exists( 'seo_proveedores_normalizar_comision' )
-        ? seo_proveedores_normalizar_comision( $_POST['comision_descuento'] ?? 20, 20 )
+        ? seo_proveedores_normalizar_comision( isset( $_POST['comision_descuento'] ) ? wp_unslash( $_POST['comision_descuento'] ) : 20, 20 )
         : 20;
     $commission_regular = function_exists( 'seo_proveedores_normalizar_comision' )
-        ? seo_proveedores_normalizar_comision( $_POST['comision_original'] ?? 45, 45 )
+        ? seo_proveedores_normalizar_comision( isset( $_POST['comision_original'] ) ? wp_unslash( $_POST['comision_original'] ) : 45, 45 )
         : 45;
     $requested_external = ! empty( $_POST['no_importar_imagenes'] );
 

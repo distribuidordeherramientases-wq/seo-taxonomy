@@ -45,7 +45,7 @@ final class SEO_Dependiente_Admin {
             wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
         }
 
-        $tab = sanitize_key((string) ($_GET['tab'] ?? 'settings'));
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'settings';
         if (!in_array($tab, array('settings', 'statistics', 'diagnostic', 'learning', 'trainer', 'interpreter', 'knowledge', 'auditor'), true)) {
             $tab = 'settings';
         }
@@ -247,7 +247,7 @@ final class SEO_Dependiente_Admin {
             echo '<div class="notice notice-error"><p>No está disponible el módulo de diagnóstico.</p></div>';
             return;
         }
-        $days = SEO_Dependiente_Insights::normalize_days($_GET['days'] ?? 7);
+        $days = SEO_Dependiente_Insights::normalize_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 7);
         $snapshot = SEO_Dependiente_Insights::snapshot($days, 80);
         $summary = (array) ($snapshot['summary'] ?? array());
 
@@ -379,7 +379,7 @@ final class SEO_Dependiente_Admin {
             wp_die('No está disponible el módulo de diagnóstico.');
         }
 
-        $days = SEO_Dependiente_Insights::normalize_days($_GET['days'] ?? 7);
+        $days = SEO_Dependiente_Insights::normalize_days(isset($_GET['days']) ? absint(wp_unslash($_GET['days'])) : 7);
         $snapshot = SEO_Dependiente_Insights::snapshot($days, 120);
         $json = wp_json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if (false === $json) {
@@ -400,8 +400,8 @@ final class SEO_Dependiente_Admin {
         }
         check_admin_referer('seo_dependiente_learning_review');
 
-        $candidate_id = absint($_POST['candidate_id'] ?? 0);
-        $decision = sanitize_key((string) ($_POST['decision'] ?? ''));
+        $candidate_id = isset($_POST['candidate_id']) ? absint(wp_unslash($_POST['candidate_id'])) : 0;
+        $decision = isset($_POST['decision']) ? sanitize_key(wp_unslash($_POST['decision'])) : '';
         $result = new WP_Error('seo_dependiente_review_invalid', 'Revisión no válida.');
 
         if ($candidate_id && 'approve' === $decision && class_exists('SEO_Dependiente_Learning')) {
@@ -435,7 +435,7 @@ final class SEO_Dependiente_Admin {
             'results_per_page'     => min(48, max(6, absint($_POST['results_per_page'] ?? 18))),
             'menu_cards'           => min(12, max(4, absint($_POST['menu_cards'] ?? 8))),
             'help_email'           => $help_email,
-            'custom_meta_keys'     => self::sanitize_meta_keys($_POST['custom_meta_keys'] ?? ''),
+            'custom_meta_keys'     => self::sanitize_meta_keys(isset($_POST['custom_meta_keys']) ? wp_unslash($_POST['custom_meta_keys']) : ''),
             'action_image_need'    => absint($_POST['action_image_need'] ?? 0),
             'action_image_product' => absint($_POST['action_image_product'] ?? 0),
             'action_image_tool'    => absint($_POST['action_image_tool'] ?? 0),
@@ -454,7 +454,7 @@ final class SEO_Dependiente_Admin {
 
         $result = SEO_Dependiente_Plugin::start_reindex();
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()), 500);
+            wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 500);
         }
         wp_send_json_success($result);
     }
@@ -474,7 +474,7 @@ final class SEO_Dependiente_Admin {
         check_ajax_referer('seo_dependiente_admin', 'nonce');
         $result = SEO_Dependiente_Plugin::stop_reindex(true, 'manual_clear');
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()), 409);
+            wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 409);
         }
         delete_option('seo_dependiente_last_full_index');
         wp_send_json_success(array(
@@ -499,7 +499,7 @@ final class SEO_Dependiente_Admin {
 
         $result = SEO_Dependiente_Reset::reset();
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()), 500);
+            wp_send_json_error(array('message' => sanitize_text_field($result->get_error_message())), 500);
         }
         wp_send_json_success($result);
     }

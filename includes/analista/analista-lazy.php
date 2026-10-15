@@ -359,7 +359,7 @@ if (!function_exists('seo_analista_ajax_partial_report')) {
         check_ajax_referer('seo_analista_partial_report', 'nonce');
 
         $report = isset($_POST['report']) ? sanitize_key(wp_unslash($_POST['report'])) : '';
-        $days = isset($_POST['days']) ? seo_analista_days(wp_unslash($_POST['days'])) : 28;
+        $days = isset($_POST['days']) ? seo_analista_days(absint(wp_unslash($_POST['days']))) : 28;
         $reports = seo_analista_lazy_reports();
 
         if (!isset($reports[$report])) {
@@ -377,7 +377,7 @@ if (!function_exists('seo_analista_ajax_partial_report')) {
             $html = ob_get_clean();
         } catch (Throwable $e) {
             ob_end_clean();
-            wp_send_json_error(array('message' => 'Error en ' . $reports[$report]['label'] . ': ' . $e->getMessage()), 500);
+            wp_send_json_error(array('message' => 'Error en ' . sanitize_text_field((string) $reports[$report]['label']) . ': ' . sanitize_text_field($e->getMessage())), 500);
         }
 
         wp_send_json_success(array(

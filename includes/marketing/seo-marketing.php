@@ -1360,6 +1360,7 @@ function seo_marketing_query_arg($key, $default = '')
         return $default;
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw request value is intentionally returned; each caller applies the sanitizer required by its expected type.
     return wp_unslash($_GET[$key]);
 }
 
@@ -1505,6 +1506,7 @@ add_action('wp_head', 'seo_marketing_identity_print_home_meta_description', 2);
  */
 function seo_marketing_identity_render_notice()
 {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only identity notice code.
     $message = isset($_GET['identity_msg'])
         ? sanitize_key(wp_unslash($_GET['identity_msg']))
         : '';
@@ -1735,6 +1737,7 @@ function seo_menu_manager_marketing_page()
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Marketing tab selector.
     $requested_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'marketing';
     if ('landings' === $requested_tab) {
         wp_safe_redirect(add_query_arg(array('page'=>'seo-page-admin','tab'=>'landing-report'), admin_url('admin.php')));
@@ -2645,6 +2648,7 @@ add_action(
  */
 function seo_marketing_render_relations_notice()
 {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only relations notice code.
     $message = isset($_GET['marketing_relations_msg'])
         ? sanitize_key(wp_unslash($_GET['marketing_relations_msg']))
         : '';
@@ -2653,20 +2657,25 @@ function seo_marketing_render_relations_notice()
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice counter.
     $auto_count = isset($_GET['marketing_auto_count'])
-        ? absint($_GET['marketing_auto_count'])
+        ? absint(wp_unslash($_GET['marketing_auto_count']))
         : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice counter.
     $bulk_updated = isset($_GET['marketing_bulk_updated'])
-        ? absint($_GET['marketing_bulk_updated'])
+        ? absint(wp_unslash($_GET['marketing_bulk_updated']))
         : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice counter.
     $bulk_unchanged = isset($_GET['marketing_bulk_unchanged'])
-        ? absint($_GET['marketing_bulk_unchanged'])
+        ? absint(wp_unslash($_GET['marketing_bulk_unchanged']))
         : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice counter.
     $bulk_skipped = isset($_GET['marketing_bulk_skipped'])
-        ? absint($_GET['marketing_bulk_skipped'])
+        ? absint(wp_unslash($_GET['marketing_bulk_skipped']))
         : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice counter.
     $bulk_relations = isset($_GET['marketing_bulk_relations'])
-        ? absint($_GET['marketing_bulk_relations'])
+        ? absint(wp_unslash($_GET['marketing_bulk_relations']))
         : 0;
 
     $messages = array(

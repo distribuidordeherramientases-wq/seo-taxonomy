@@ -29,6 +29,7 @@ if (!function_exists('seo_tags_vocab_query_arg')) {
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura; no cambian estado.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
         return wp_unslash($_GET[$key]);
     }
 }
@@ -1195,7 +1196,8 @@ if (!function_exists('seo_tags_vocab_render_products')) {
         echo '</tbody></table></div>';
 
         if ($total_pages > 1) {
-            $query = $_GET;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination state.
+            $query = map_deep(wp_unslash($_GET), 'sanitize_text_field');
             unset($query['paged']);
             echo '<div class="seo-tags-pagination">';
             $window_start = max(1, $page_number - 3);
@@ -1898,7 +1900,8 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
         echo '</tbody></table></div>';
 
         if ($total_pages > 1) {
-            $query = $_GET;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination state.
+            $query = map_deep(wp_unslash($_GET), 'sanitize_text_field');
             unset($query['paged']);
             echo '<div class="seo-tags-pagination">';
             $window_start = max(1, $page_number - 3);
@@ -2749,7 +2752,7 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
         if (!in_array($per_page, [25, 50, 100, 200], true)) {
             $per_page = 50;
         }
-        $page_number = max(1, absint($_GET['attr_paged'] ?? 1));
+        $page_number = max(1, absint(seo_tags_vocab_query_arg('attr_paged', 1)));
 
         $published_total = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type='product' AND p.post_status='publish'"
@@ -3720,12 +3723,14 @@ if (!function_exists('seo_assignment_notice')) {
 
 if (!function_exists('seo_assignment_mass_apply')) {
     function seo_assignment_mass_apply($section) {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Caller seo_assignment_handle_request() verifies seo_assignment_nonce before invoking this helper.
         $filters = [
             'search' => sanitize_text_field(wp_unslash($_POST['assignment_s'] ?? '')),
             'category_id' => absint(wp_unslash($_POST['assignment_category_id'] ?? 0)),
             'coverage' => sanitize_key(wp_unslash($_POST['assignment_coverage'] ?? ($section === 'product_attributes' ? 'without' : 'missing_any'))),
             'priority' => sanitize_key(wp_unslash($_POST['assignment_priority'] ?? 'all')),
         ];
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $max = 500;
         $saved = 0; $errors = 0; $total = 0;
         if ($section === 'category_labels') {
@@ -3804,6 +3809,7 @@ if (!function_exists('seo_assignment_parse_group_json')) {
 if (!function_exists('seo_assignment_apply_product_label_matrix')) {
     function seo_assignment_apply_product_label_matrix($product_id) {
         $payload = [];
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Caller seo_assignment_handle_request() verifies seo_assignment_nonce before invoking this helper.
         foreach (['tipo','aplicacion','plataforma','subtipo'] as $group) {
             $field = 'assignment_group_' . $group;
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON is strictly validated by seo_assignment_parse_group_json().
@@ -3811,6 +3817,7 @@ if (!function_exists('seo_assignment_apply_product_label_matrix')) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON is strictly validated by seo_assignment_parse_group_json().
             $payload[$group] = seo_assignment_parse_group_json(wp_unslash($_POST[$field]), $group);
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         if (!$payload) throw new InvalidArgumentException('No hay celdas de etiquetas para confirmar.');
         return seo_assignment_apply_product_labels_json(absint($product_id), seo_assignment_json($payload));
     }
@@ -4807,6 +4814,7 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
                 ]);
             } else {
                 seo_semantic_attributes_render_products_inventory();
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_attributes only controls whether this read-only details panel is expanded.
                 echo '<details class="seo-tags-panel" style="margin-top:18px" ' . ((seo_tags_vocab_query_arg('search_attributes', '') !== '' || seo_tags_vocab_query_arg('propose_attributes', '') !== '' || isset($_POST['save_attributes'])) ? 'open' : '') . '>';
                 echo '<summary style="cursor:pointer;font-weight:700">Explorador manual de atributos existente</summary>';
                 echo '<p class="seo-tags-help">Se conserva la herramienta anterior de exploración/propuesta para no perder funcionalidad. El inventario superior es la nueva vista de cobertura.</p>';

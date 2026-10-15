@@ -1,6 +1,6 @@
 <?php
 /**
- * Reusable US-English question form.
+ * Reusable form for submitting questions.
  *
  * Variables esperadas:
  *

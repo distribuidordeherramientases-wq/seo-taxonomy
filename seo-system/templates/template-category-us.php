@@ -1,7 +1,13 @@
 <?php
 /**
- * US WooCommerce category template dispatcher.
- * Locale: en-US.
+ * Template Name: US WooCommerce SEO Category
+ *
+ * US category router:
+ * - mobile  -> template-category-us-mobile.php
+ * - desktop -> template-category-us-desktop.php
+ *
+ * WordPress locale: en_US
+ * HTML / hreflang language tag: en-US
  */
 
 defined('ABSPATH') || exit;
@@ -14,12 +20,13 @@ if (!is_product_category()) {
 require_once __DIR__ . '/template-helpers.php';
 
 $GLOBALS['dht_frontend_language_tag'] = 'en-US';
+$GLOBALS['dht_frontend_market'] = 'us';
 
-$term = get_queried_object();
-if ($term instanceof WP_Term) {
-    $term_url = get_term_link($term);
-    if (!is_wp_error($term_url) && $term_url) {
-        $GLOBALS['dht_frontend_hreflang_url'] = (string) $term_url;
+$current_term = get_queried_object();
+if ($current_term instanceof WP_Term) {
+    $current_term_url = get_term_link($current_term);
+    if (!is_wp_error($current_term_url)) {
+        $GLOBALS['dht_frontend_hreflang_url'] = (string) $current_term_url;
     }
 }
 
@@ -33,10 +40,17 @@ $template_file = wp_is_mobile()
     : __DIR__ . '/template-category-us-desktop.php';
 
 if (!is_readable($template_file)) {
+    if ($dht_us_locale_switched && function_exists('restore_previous_locale')) {
+        restore_previous_locale();
+    }
+
     wp_die(
-        esc_html('US category template not found: ' . basename($template_file)),
-        esc_html('Template unavailable'),
-        array('response' => 500)
+        esc_html(
+            sprintf(
+                'US category template not found: %s',
+                basename($template_file)
+            )
+        )
     );
 }
 

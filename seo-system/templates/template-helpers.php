@@ -5,33 +5,11 @@
 
 defined('ABSPATH') || exit;
 
-/* ==========================================================
-   FRONTEND MARKET / LANGUAGE HELPERS
-   Spain remains the default. International templates set the
-   language tag before rendering shared components.
-========================================================== */
-if (!function_exists('dht_template_language_tag')) {
-    function dht_template_language_tag()
+if (!function_exists('dht_template_is_us_market')) {
+    function dht_template_is_us_market()
     {
-        $tag = isset($GLOBALS['dht_frontend_language_tag'])
-            ? trim((string) $GLOBALS['dht_frontend_language_tag'])
-            : 'es-ES';
-
-        return $tag !== '' ? $tag : 'es-ES';
-    }
-}
-
-if (!function_exists('dht_template_is_us_english')) {
-    function dht_template_is_us_english()
-    {
-        return 'en-US' === dht_template_language_tag();
-    }
-}
-
-if (!function_exists('dht_template_label')) {
-    function dht_template_label($spanish, $us_english)
-    {
-        return dht_template_is_us_english() ? (string) $us_english : (string) $spanish;
+        return isset($GLOBALS['dht_frontend_language_tag'])
+            && 'en-US' === (string) $GLOBALS['dht_frontend_language_tag'];
     }
 }
 
@@ -938,7 +916,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         var id = String(button.getAttribute('data-dht-compare-product') || '');
                         var active = selected.indexOf(id) !== -1;
                         button.setAttribute('aria-pressed', active ? 'true' : 'false');
-                        button.textContent = active ? <?php echo wp_json_encode(dht_template_label('Seleccionado', 'Selected')); ?> : <?php echo wp_json_encode(dht_template_label('Comparar', 'Compare')); ?>;
+                        button.textContent = active ? 'Seleccionado' : 'Comparar';
                         button.disabled = !active && selected.length >= compareMax;
                     });
 
@@ -947,8 +925,8 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     }
                     if (countNode) {
                         countNode.textContent = selected.length === 1
-                            ? <?php echo wp_json_encode(dht_template_label('1 producto seleccionado', '1 product selected')); ?>
-                            : selected.length + <?php echo wp_json_encode(dht_template_label(' productos seleccionados', ' products selected')); ?>;
+                            ? '1 producto seleccionado'
+                            : selected.length + ' productos seleccionados';
                     }
                     if (showButton) {
                         showButton.disabled = selected.length < 2;
@@ -1087,14 +1065,14 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         if (ap !== bp) {
                             return ap - bp;
                         }
-                        return a.localeCompare(b, <?php echo wp_json_encode(dht_template_is_us_english() ? 'en-US' : 'es'); ?>, {sensitivity: 'base'});
+                        return a.localeCompare(b, 'es', {sensitivity: 'base'});
                     });
 
                     result.innerHTML = '';
                     result.hidden = false;
 
                     var title = document.createElement('h3');
-                    title.textContent = <?php echo wp_json_encode(dht_template_label('Comparación de productos', 'Product comparison')); ?>;
+                    title.textContent = 'Comparación de productos';
                     result.appendChild(title);
 
                     var wrap = document.createElement('div');
@@ -1106,7 +1084,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     var headRow = document.createElement('tr');
                     var featureHead = document.createElement('th');
                     featureHead.scope = 'col';
-                    featureHead.textContent = <?php echo wp_json_encode(dht_template_label('Característica', 'Feature')); ?>;
+                    featureHead.textContent = 'Característica';
                     headRow.appendChild(featureHead);
 
                     chosen.forEach(function (product) {
@@ -1125,7 +1103,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
 
                         var link = document.createElement('a');
                         link.href = product.url || '#';
-                        link.textContent = product.name || <?php echo wp_json_encode(dht_template_label('Producto', 'Product')); ?>;
+                        link.textContent = product.name || 'Producto';
                         productBox.appendChild(link);
 
                         if (product.excerpt) {
@@ -1180,13 +1158,13 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         tbody.appendChild(row);
                     }
 
-                    appendSection(<?php echo wp_json_encode(dht_template_label('Datos comerciales', 'Commercial details')); ?>);
-                    appendComparisonRow(<?php echo wp_json_encode(dht_template_label('Precio', 'Price')); ?>, function (product) {
+                    appendSection('Datos comerciales');
+                    appendComparisonRow('Precio', function (product) {
                         return product.price;
                     });
 
                     if (semanticLabels.length) {
-                        appendSection(<?php echo wp_json_encode(dht_template_label('Clasificación', 'Classification')); ?>);
+                        appendSection('Clasificación');
                         semanticLabels.forEach(function (label) {
                             appendComparisonRow(label, function (product) {
                                 var attrs = product.attributes || {};
@@ -1196,7 +1174,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     }
 
                     if (technicalLabels.length) {
-                        appendSection(<?php echo wp_json_encode(dht_template_label('Características técnicas', 'Technical specifications')); ?>);
+                        appendSection('Características técnicas');
                         technicalLabels.forEach(function (label) {
                             appendComparisonRow(label, function (product) {
                                 var attrs = product.attributes || {};
@@ -1268,6 +1246,8 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
 if (!function_exists('dht_shared_render_product_card')) {
     function dht_shared_render_product_card($card_product, $supplier_limit = 3, $enable_compare = false)
     {
+        $dht_us_market = dht_template_is_us_market();
+
         if (!is_a($card_product, 'WC_Product') || 'publish' !== get_post_status($card_product->get_id())) {
             return;
         }
@@ -1286,7 +1266,7 @@ if (!function_exists('dht_shared_render_product_card')) {
         echo '<a href="' . esc_url($permalink) . '" class="dh-product-link">';
 
         if ($card_product->is_on_sale()) {
-            echo '<span class="onsale">' . esc_html(dht_template_label('Oferta', 'Sale')) . '</span>';
+            echo '<span class="onsale">' . esc_html($dht_us_market ? 'Sale' : 'Oferta') . '</span>';
         }
 
         echo '<div class="dh-product-image">';
@@ -1301,7 +1281,7 @@ if (!function_exists('dht_shared_render_product_card')) {
             woocommerce_template_loop_add_to_cart();
         }
         if ($enable_compare) {
-            echo '<button type="button" class="dht-category-compare-toggle" data-dht-compare-product="' . esc_attr((string) $card_product->get_id()) . '" aria-pressed="false">' . esc_html(dht_template_label('Comparar', 'Compare')) . '</button>';
+            echo '<button type="button" class="dht-category-compare-toggle" data-dht-compare-product="' . esc_attr((string) $card_product->get_id()) . '" aria-pressed="false">' . esc_html($dht_us_market ? 'Compare' : 'Comparar') . '</button>';
         }
         echo '</div>';
         echo '</li>';
@@ -1315,6 +1295,7 @@ if (!function_exists('dht_shared_render_product_card')) {
 if (!function_exists('dht_shared_render_product_grid')) {
     function dht_shared_render_product_grid($products, $extra_class = '', $supplier_limit = 3, $enable_compare = false)
     {
+        $dht_us_market = dht_template_is_us_market();
         $valid = array();
         foreach ((array) $products as $item) {
             $candidate = is_a($item, 'WC_Product') ? $item : (function_exists('wc_get_product') ? wc_get_product(absint($item)) : null);
@@ -1356,11 +1337,13 @@ if (!function_exists('dht_shared_render_product_grid')) {
         if ($enable_compare && count($compare_data) >= 2) {
             echo '<div class="dht-category-live-compare" data-dht-compare-toolbar hidden>';
             echo '<div class="dht-category-live-compare-toolbar">';
-            echo '<span class="dht-category-live-compare-count" data-dht-compare-count>' . esc_html(dht_template_label('0 productos seleccionados', '0 products selected')) . '</span>';
-            echo '<button type="button" data-dht-compare-show disabled>' . esc_html(dht_template_label('Comparar seleccionados', 'Compare selected')) . '</button>';
-            echo '<button type="button" data-dht-compare-pdf disabled>' . esc_html(dht_template_label('Descargar comparativa PDF', 'Download comparison PDF')) . '</button>';
-            echo '<button type="button" data-dht-compare-clear>' . esc_html(dht_template_label('Limpiar', 'Clear')) . '</button>';
-            echo '<p class="dht-category-live-compare-note">' . esc_html(dht_template_label('Selecciona entre 2 y ', 'Select between 2 and ')) . esc_html((string) $compare_max) . esc_html(dht_template_label(' productos. La comparativa usa la clasificación y los atributos canónicos disponibles en el catálogo.', ' products. The comparison uses the canonical classification and attributes available in the catalog.')) . '</p>';
+            echo '<span class="dht-category-live-compare-count" data-dht-compare-count>' . esc_html($dht_us_market ? '0 products selected' : '0 productos seleccionados') . '</span>';
+            echo '<button type="button" data-dht-compare-show disabled>' . esc_html($dht_us_market ? 'Compare selected' : 'Comparar seleccionados') . '</button>';
+            echo '<button type="button" data-dht-compare-pdf disabled>' . esc_html($dht_us_market ? 'Download comparison PDF' : 'Descargar comparativa PDF') . '</button>';
+            echo '<button type="button" data-dht-compare-clear>' . esc_html($dht_us_market ? 'Clear' : 'Limpiar') . '</button>';
+            echo '<p class="dht-category-live-compare-note">' . ($dht_us_market
+                ? 'Select between 2 and ' . esc_html((string) $compare_max) . ' products. The comparison uses the catalog classification and available canonical attributes.'
+                : 'Selecciona entre 2 y ' . esc_html((string) $compare_max) . ' productos. La comparativa usa la clasificación y los atributos canónicos disponibles en el catálogo.') . '</p>';
             echo '</div>';
             echo '<div class="dht-category-live-compare-result" data-dht-compare-result hidden></div>';
             echo '</div>';
@@ -1838,20 +1821,13 @@ if (!function_exists('dht_template_render_context_posts')) {
 
         $variant = in_array($variant, array('dependiente', 'ingeniero'), true) ? $variant : 'dependiente';
         $context = in_array($context, array('product', 'category'), true) ? $context : 'product';
-        $us_english = dht_template_is_us_english();
-        $kicker = 'ingeniero' === $variant
-            ? ($us_english ? 'Technical editorial content' : 'Contenido técnico editorial')
-            : ($us_english ? 'Editorial content' : 'Contenido editorial');
-        $link_label = 'ingeniero' === $variant
-            ? ($us_english ? 'Read technical information' : 'Leer información técnica')
-            : ($us_english ? 'Read guide' : 'Leer guía');
-        $count_label = $us_english
-            ? sprintf(count($valid) === 1 ? '%d article' : '%d articles', count($valid))
-            : sprintf(
-                /* translators: %d: número de artículos editoriales relacionados. */
-                _n('%d artículo', '%d artículos', count($valid), 'taxocommerce-seo'),
-                count($valid)
-            );
+        $kicker = 'ingeniero' === $variant ? 'Contenido técnico editorial' : 'Contenido editorial';
+        $link_label = 'ingeniero' === $variant ? 'Leer información técnica' : 'Leer guía';
+        $count_label = sprintf(
+            /* translators: %d: número de artículos editoriales relacionados. */
+            _n('%d artículo', '%d artículos', count($valid), 'taxocommerce-seo'),
+            count($valid)
+        );
         ?>
         <section class="dht-context-posts dht-context-posts--<?php echo esc_attr($variant); ?> dht-context-posts--<?php echo esc_attr($context); ?>">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
@@ -2054,45 +2030,33 @@ if (!function_exists('dht_template_render_external_comments')) {
         }
 
         $comment_count = count($valid);
-        $us_english = dht_template_is_us_english();
-        if ($us_english) {
-            $summary_label = sprintf(
-                $comment_count === 1 ? 'View %d external comment' : 'View %d external comments',
-                $comment_count
-            );
-            $count_label = sprintf(
-                $comment_count === 1 ? '%d external comment' : '%d external comments',
-                $comment_count
-            );
-        } else {
-            $summary_label = sprintf(
-                /* translators: %d: número de comentarios externos disponibles. */
-                _n(
-                    'Ver %d comentario externo',
-                    'Ver %d comentarios externos',
-                    $comment_count,
-                    'taxocommerce-seo'
-                ),
-                $comment_count
-            );
-            $count_label = sprintf(
-                /* translators: %d: número de comentarios externos disponibles. */
-                _n('%d comentario externo', '%d comentarios externos', $comment_count, 'taxocommerce-seo'),
-                $comment_count
-            );
-        }
+        $summary_label = sprintf(
+            /* translators: %d: número de comentarios externos disponibles. */
+            _n(
+                'Ver %d comentario externo',
+                'Ver %d comentarios externos',
+                $comment_count,
+                'taxocommerce-seo'
+            ),
+            $comment_count
+        );
+        $count_label = sprintf(
+            /* translators: %d: número de comentarios externos disponibles. */
+            _n('%d comentario externo', '%d comentarios externos', $comment_count, 'taxocommerce-seo'),
+            $comment_count
+        );
         ?>
         <section class="dht-external-comments dht-external-comments--<?php echo esc_attr($context); ?> seo-comentarista">
             <?php if ('category' === $context) : ?><div class="dht-container"><?php endif; ?>
             <header class="dht-external-comments__header">
                 <div class="dht-external-comments__heading">
-                    <span class="dht-context-posts__kicker"><?php echo esc_html($us_english ? 'External experiences' : 'Experiencias externas'); ?></span>
+                    <span class="dht-context-posts__kicker">Experiencias externas</span>
                     <h2><?php echo esc_html($title); ?></h2>
                 </div>
                 <?php if ('category' === $context) : ?>
                     <span class="dht-external-comments__count"><?php echo esc_html($count_label); ?></span>
                 <?php endif; ?>
-                <p><?php echo esc_html($us_english ? 'Opinions and experiences published by external sources. They are not customer reviews from Distribuidor de Herramientas and are not part of our store rating.' : 'Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.'); ?></p>
+                <p>Opiniones y experiencias publicadas en fuentes externas. No son reseñas de clientes de Distribuidor de Herramientas y no forman parte de la valoración de nuestra tienda.</p>
             </header>
 
             <?php if ('category' === $context) : ?>
@@ -2130,9 +2094,9 @@ if (!function_exists('dht_template_render_external_comments')) {
                         <?php endif; ?>
 
                         <div class="dht-external-comment__meta">
-                            <strong><?php echo esc_html($us_english ? 'External comment' : 'Comentario externo'); ?></strong>
+                            <strong>Comentario externo</strong>
                             <?php if ($external_comment_rating !== '') : ?>
-                                <span><?php echo esc_html($us_english ? 'Source rating:' : 'Valoración en la fuente:'); ?> <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
+                                <span>Valoración en la fuente: <strong><?php echo esc_html($external_comment_rating); ?></strong></span>
                             <?php endif; ?>
                         </div>
 
@@ -2140,7 +2104,7 @@ if (!function_exists('dht_template_render_external_comments')) {
 
                         <?php if ($external_comment_meta !== '') : ?>
                             <p class="dht-external-comment__source">
-                                <strong><?php echo esc_html($us_english ? 'Source:' : 'Fuente:'); ?></strong>
+                                <strong>Fuente:</strong>
                                 <?php echo wp_kses($external_comment_meta, array(
                                     'strong' => array(),
                                     'a' => array(
@@ -2198,7 +2162,7 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            'Guías para elegir',
+            $dht_us_market ? 'Buying guides' : 'Guías para elegir',
             'dependiente',
             'product'
         );
@@ -2210,7 +2174,7 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
         );
         dht_template_render_context_posts(
             $ingeniero_posts,
-            'Información especializada',
+            $dht_us_market ? 'Specialized information' : 'Información especializada',
             'ingeniero',
             'product'
         );
@@ -2233,6 +2197,7 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
 if (!function_exists('dht_template_render_category_context_blocks')) {
     function dht_template_render_category_context_blocks($term_id)
     {
+        $dht_us_market = dht_template_is_us_market();
         $term_id = absint($term_id);
         if ($term_id < 1) {
             return;
@@ -2245,7 +2210,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         );
         dht_template_render_context_posts(
             $dependiente_posts,
-            dht_template_label('Guías para elegir', 'Buying guides'),
+            $dht_us_market ? 'Buying guides' : 'Guías para elegir',
             'dependiente',
             'category'
         );
@@ -2257,7 +2222,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         );
         dht_template_render_context_posts(
             $ingeniero_posts,
-            dht_template_label('Información especializada', 'Specialized information'),
+            $dht_us_market ? 'Specialized information' : 'Información especializada',
             'ingeniero',
             'category'
         );
@@ -2269,7 +2234,7 @@ if (!function_exists('dht_template_render_category_context_blocks')) {
         $external_comments = dht_template_category_external_comments($term_id, 6, 2);
         dht_template_render_external_comments(
             $external_comments,
-            dht_template_label('Comentarios externos sobre productos de esta categoría', 'External comments about products in this category'),
+            $dht_us_market ? 'External comments about products in this category' : 'Comentarios externos sobre productos de esta categoría',
             'category'
         );
     }
@@ -2636,48 +2601,70 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
         $url = dht_template_dependiente_page_url();
         $service_url = dht_template_service_page_url();
         $shop_url = dht_template_shop_url();
-        $us_english = dht_template_is_us_english();
+        $dht_us_market = dht_template_is_us_market();
 
-        if ('guide' === $variant) {
-            $kicker = $us_english ? 'From the guide to the catalog' : 'De la guía al catálogo';
-            $title = $us_english ? 'Turn this information into a specific search' : 'Convierte esta información en una búsqueda concreta';
-            $body = $us_english
-                ? 'Enter the product, need, use, brand or reference you want to find. The Shopping Assistant connects your query with the catalog and compares options.'
-                : 'Escribe el producto, la necesidad, el uso, la marca o la referencia que quieres localizar. Dependiente relaciona la consulta con el catálogo y compara opciones.';
+        if ($dht_us_market) {
+            if ('guide' === $variant) {
+                $kicker = 'From guide to catalog';
+                $title = 'Turn this information into a specific search';
+                $body = 'Enter the product, need, use, brand or reference you want to find. The Shopping Assistant connects your request with the catalog and compares options.';
+            } elseif ('compact' === $variant) {
+                $kicker = 'Your catalog Shopping Assistant';
+                $title = 'Looking for a specific option?';
+                $body = 'Describe what you need and continue with the Shopping Assistant.';
+            } elseif ('product' === $variant) {
+                $kicker = 'Check before you buy';
+                $title = 'Is this product right for your needs?';
+                $body = 'Ask about use, compatibility, dimensions or features before making a decision.';
+            } else {
+                $kicker = 'Search with the Shopping Assistant';
+                $title = $context !== ''
+                    ? 'What do you need within ' . $context . '?'
+                    : 'Not sure which product you need?';
+                $body = 'Start with a product, need, application, brand or reference. The Shopping Assistant connects your request with the catalog to help you find options.';
+            }
+        } elseif ('guide' === $variant) {
+            $kicker = 'De la guía al catálogo';
+            $title = 'Convierte esta información en una búsqueda concreta';
+            $body = 'Escribe el producto, la necesidad, el uso, la marca o la referencia que quieres localizar. Dependiente relaciona la consulta con el catálogo y compara opciones.';
         } elseif ('compact' === $variant) {
-            $kicker = $us_english ? 'Your catalog Shopping Assistant' : 'Tu Dependiente del catálogo';
-            $title = $us_english ? 'Looking for a specific option?' : '¿Quieres localizar una opción concreta?';
-            $body = $us_english
-                ? 'Enter what you are looking for and continue with the Shopping Assistant.'
-                : 'Escribe lo que buscas y continúa en Dependiente.';
+            $kicker = 'Tu Dependiente del catálogo';
+            $title = '¿Quieres localizar una opción concreta?';
+            $body = 'Escribe lo que buscas y continúa en Dependiente.';
         } elseif ('product' === $variant) {
-            $kicker = $us_english ? 'Check before you buy' : 'Comprueba antes de comprar';
-            $title = $us_english ? 'Is this product right for your needs?' : '¿Este producto encaja con lo que necesitas?';
-            $body = $us_english
-                ? 'Ask about use, compatibility, dimensions or features. The Shopping Assistant starts from the product you are viewing and helps you compare it with your needs.'
-                : 'Pregunta por uso, compatibilidad, medidas o características. Dependiente parte del producto que estás viendo y te ayuda a contrastarlo con tu necesidad.';
+            $kicker = 'Comprueba antes de comprar';
+            $title = '¿Este producto encaja con lo que necesitas?';
+            $body = 'Pregunta por uso, compatibilidad, medidas o características. Dependiente parte del producto que estás viendo y te ayuda a contrastarlo con tu necesidad.';
         } else {
-            $kicker = $us_english ? 'Search with the Shopping Assistant' : 'Busca con Dependiente';
+            $kicker = 'Busca con Dependiente';
             $title = $context !== ''
-                ? ($us_english ? 'What do you need within ' . $context . '?' : '¿Qué necesitas dentro de ' . $context . '?')
-                : ($us_english ? 'Not sure which product you need?' : '¿No tienes claro qué producto necesitas?');
-            $body = $us_english
-                ? 'Start with a product, need, application, brand or reference. The Shopping Assistant connects your query with the catalog to help you find options.'
-                : 'Empieza por un producto, una necesidad, una aplicación, una marca o una referencia. Dependiente relaciona la consulta con el catálogo para ayudarte a localizar opciones.';
+                ? '¿Qué necesitas dentro de ' . $context . '?'
+                : '¿No tienes claro qué producto necesitas?';
+            $body = 'Empieza por un producto, una necesidad, una aplicación, una marca o una referencia. Dependiente relaciona la consulta con el catálogo para ayudarte a localizar opciones.';
         }
 
-        if ('product' === $variant && $context !== '') {
-            $placeholder = $us_english ? 'Example: Is this suitable for my project?' : 'Ej.: ¿Me sirve para el trabajo que necesito?';
-            $input_value = ($us_english ? 'About "' : 'Sobre "') . $context . '": ';
+        if ($dht_us_market) {
+            if ('product' === $variant && $context !== '') {
+                $placeholder = 'Example: Is this suitable for my project?';
+                $input_value = 'About "' . $context . '": ';
+            } else {
+                $placeholder = $context !== ''
+                    ? 'Product, use or need in ' . $context . '...'
+                    : 'Product, need, use or reference...';
+                $input_value = '';
+            }
+        } elseif ('product' === $variant && $context !== '') {
+            $placeholder = 'Ej.: ¿Me sirve para el trabajo que necesito?';
+            $input_value = 'Sobre "' . $context . '": ';
         } else {
             $placeholder = $context !== ''
-                ? ($us_english ? 'Product, use or need in ' . $context . '...' : 'Producto, uso o necesidad en ' . $context . '...')
-                : ($us_english ? 'Product, need, use or reference...' : 'Producto, necesidad, uso o referencia...');
+                ? 'Producto, uso o necesidad en ' . $context . '...'
+                : 'Producto, necesidad, uso o referencia...';
             $input_value = '';
         }
         $input_id = wp_unique_id('dht-dependiente-query-');
         ?>
-        <aside class="dht-assistant-cta dht-assistant-cta--<?php echo esc_attr($variant); ?>" aria-label="<?php echo esc_attr($us_english ? 'Search with the Shopping Assistant' : 'Buscar con Dependiente'); ?>">
+        <aside class="dht-assistant-cta dht-assistant-cta--<?php echo esc_attr($variant); ?>" aria-label="<?php echo esc_attr($dht_us_market ? 'Search with the Shopping Assistant' : 'Buscar con Dependiente'); ?>">
             <div class="dht-assistant-cta__copy">
                 <span class="dht-assistant-cta__kicker"><?php echo esc_html($kicker); ?></span>
                 <strong class="dht-assistant-cta__title"><?php echo esc_html($title); ?></strong>
@@ -2686,19 +2673,19 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
 
             <div class="dht-assistant-cta__action">
                 <form class="dht-assistant-cta__form" action="<?php echo esc_url($url); ?>" method="get">
-                    <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo esc_html($us_english ? 'Describe what you are looking for' : 'Describe lo que buscas'); ?></label>
+                    <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo esc_html($dht_us_market ? 'Describe what you are looking for' : 'Describe lo que buscas'); ?></label>
                     <input id="<?php echo esc_attr($input_id); ?>" type="search" name="dep_q" value="<?php echo esc_attr($input_value); ?>" placeholder="<?php echo esc_attr($placeholder); ?>" autocomplete="off">
-                    <button type="submit"><?php echo esc_html($us_english ? 'Ask the Shopping Assistant' : 'Preguntar al Dependiente'); ?></button>
+                    <button type="submit"><?php echo esc_html($dht_us_market ? 'Ask the Shopping Assistant' : 'Preguntar al Dependiente'); ?></button>
                 </form>
                 <div class="dht-assistant-cta__links">
                     <?php if ('product' === $variant) : ?>
-                        <?php $whatsapp_url = 'https://wa.me/34640874540?text=' . rawurlencode(($us_english ? 'Hello, I need help with ' : 'Hola, necesito ayuda con ') . $context . '.'); ?>
-                        <span><?php echo esc_html($us_english ? 'Prefer to talk to a person?' : '¿Prefieres una persona?'); ?></span>
-                        <a href="<?php echo esc_url($whatsapp_url); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($us_english ? 'Chat on WhatsApp' : 'Hablar por WhatsApp'); ?></a>
+                        <?php $whatsapp_url = 'https://wa.me/34640874540?text=' . rawurlencode('Hola, necesito ayuda con ' . $context . '.'); ?>
+                        <span>¿Prefieres una persona?</span>
+                        <a href="<?php echo esc_url($whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
                     <?php else : ?>
-                        <a href="<?php echo esc_url($shop_url); ?>"><?php echo esc_html($us_english ? 'View catalog' : 'Ver catálogo'); ?></a>
+                        <a href="<?php echo esc_url($shop_url); ?>"><?php echo esc_html($dht_us_market ? 'View catalog' : 'Ver catálogo'); ?></a>
                         <span aria-hidden="true">·</span>
-                        <a href="<?php echo esc_url($service_url); ?>"><?php echo esc_html($us_english ? 'Our support' : 'Nuestro acompañamiento'); ?></a>
+                        <a href="<?php echo esc_url($service_url); ?>"><?php echo esc_html($dht_us_market ? 'Our support' : 'Nuestro acompañamiento'); ?></a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -3253,6 +3240,7 @@ if (!function_exists('dht_template_category_query_url')) {
 if (!function_exists('dht_template_render_category_filter_form')) {
     function dht_template_render_category_filter_form($state, $variant = 'desktop')
     {
+        $dht_us_market = dht_template_is_us_market();
         $facets = (array) ($state['facets'] ?? array());
         $selected_attributes = (array) ($state['selected_attributes'] ?? array());
         $variant = 'mobile' === $variant ? 'mobile' : 'desktop';
@@ -3263,18 +3251,18 @@ if (!function_exists('dht_template_render_category_filter_form')) {
             <?php endif; ?>
 
             <div class="dht-category-filter-form__head">
-                <strong><?php echo esc_html(dht_template_label('Filtrar', 'Filter')); ?></strong>
+                <strong><?php echo esc_html($dht_us_market ? 'Filter' : 'Filtrar'); ?></strong>
                 <?php if (!empty($state['active_count'])) : ?>
-                    <a href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html(dht_template_label('Limpiar', 'Clear')); ?></a>
+                    <a href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html($dht_us_market ? 'Clear' : 'Limpiar'); ?></a>
                 <?php endif; ?>
             </div>
 
             <?php if (!empty($state['instock_count'])) : ?>
                 <fieldset class="dht-category-filter-group">
-                    <legend><?php echo esc_html(dht_template_label('Disponibilidad', 'Availability')); ?></legend>
+                    <legend><?php echo esc_html($dht_us_market ? 'Availability' : 'Disponibilidad'); ?></legend>
                     <label class="dht-category-filter-option">
                         <input type="checkbox" name="dht_stock" value="instock" <?php checked('instock', $state['stock'] ?? ''); ?>>
-                        <span><?php echo esc_html(dht_template_label('En stock', 'In stock')); ?></span>
+                        <span><?php echo esc_html($dht_us_market ? 'In stock' : 'En stock'); ?></span>
                         <small><?php echo esc_html(number_format_i18n((int) $state['instock_count'])); ?></small>
                     </label>
                 </fieldset>
@@ -3282,14 +3270,14 @@ if (!function_exists('dht_template_render_category_filter_form')) {
 
             <?php if ((float) ($state['catalog_max_price'] ?? 0) > 0) : ?>
                 <fieldset class="dht-category-filter-group">
-                    <legend><?php echo esc_html(dht_template_label('Precio', 'Price')); ?></legend>
+                    <legend><?php echo esc_html($dht_us_market ? 'Price' : 'Precio'); ?></legend>
                     <div class="dht-category-price-filter">
                         <label>
-                            <span><?php echo esc_html(dht_template_label('Desde', 'Min')); ?></span>
+                            <span><?php echo esc_html($dht_us_market ? 'From' : 'Desde'); ?></span>
                             <input type="number" min="0" step="0.01" name="dht_min_price" value="<?php echo esc_attr(($state['min_price'] ?? 0) > 0 ? wc_format_decimal($state['min_price'], 2) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_decimal($state['catalog_min_price'] ?? 0, 2)); ?>">
                         </label>
                         <label>
-                            <span><?php echo esc_html(dht_template_label('Hasta', 'Max')); ?></span>
+                            <span><?php echo esc_html($dht_us_market ? 'To' : 'Hasta'); ?></span>
                             <input type="number" min="0" step="0.01" name="dht_max_price" value="<?php echo esc_attr(($state['max_price'] ?? 0) > 0 ? wc_format_decimal($state['max_price'], 2) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_decimal($state['catalog_max_price'] ?? 0, 2)); ?>">
                         </label>
                     </div>
@@ -3317,9 +3305,9 @@ if (!function_exists('dht_template_render_category_filter_form')) {
             <?php endforeach; ?>
 
             <div class="dht-category-filter-actions">
-                <button type="submit"><?php echo esc_html(dht_template_label('Aplicar filtros', 'Apply filters')); ?></button>
+                <button type="submit"><?php echo esc_html($dht_us_market ? 'Apply filters' : 'Aplicar filtros'); ?></button>
                 <?php if (!empty($state['active_count'])) : ?>
-                    <a href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html(dht_template_label('Quitar filtros', 'Remove filters')); ?></a>
+                    <a href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html($dht_us_market ? 'Remove filters' : 'Quitar filtros'); ?></a>
                 <?php endif; ?>
             </div>
         </form>
@@ -3330,14 +3318,15 @@ if (!function_exists('dht_template_render_category_filter_form')) {
 if (!function_exists('dht_template_render_category_toolbar')) {
     function dht_template_render_category_toolbar($state, $term_name = '')
     {
+        $dht_us_market = dht_template_is_us_market();
         $term_name = trim(wp_strip_all_tags((string) $term_name));
         $query_args = (array) ($state['query_args'] ?? array());
         unset($query_args['dht_sort'], $query_args['dht_page']);
         ?>
         <div class="dht-category-catalog-toolbar">
             <div class="dht-category-catalog-toolbar__count">
-                <strong><?php echo esc_html(number_format_i18n((int) ($state['total'] ?? 0))); ?> <?php echo esc_html(dht_template_label('resultados', 'results')); ?></strong>
-                <?php if ($term_name !== '') : ?><span><?php echo esc_html(dht_template_label('en', 'in')); ?> <?php echo esc_html($term_name); ?></span><?php endif; ?>
+                <strong><?php echo esc_html(number_format_i18n((int) ($state['total'] ?? 0))); ?> <?php echo esc_html($dht_us_market ? 'results' : 'resultados'); ?></strong>
+                <?php if ($term_name !== '') : ?><span><?php echo esc_html($dht_us_market ? 'in' : 'en'); ?> <?php echo esc_html($term_name); ?></span><?php endif; ?>
             </div>
 
             <form class="dht-category-sort-form" action="<?php echo esc_url($state['base_url'] ?? ''); ?>" method="get">
@@ -3347,13 +3336,13 @@ if (!function_exists('dht_template_render_category_toolbar')) {
                     <?php endforeach; ?>
                 <?php endforeach; ?>
                 <label>
-                    <span><?php echo esc_html(dht_template_label('Ordenar por', 'Sort by')); ?></span>
+                    <span><?php echo esc_html($dht_us_market ? 'Sort by' : 'Ordenar por'); ?></span>
                     <select name="dht_sort" onchange="this.form.submit()">
-                        <option value="relevance" <?php selected('relevance', $state['sort'] ?? 'relevance'); ?>><?php echo esc_html(dht_template_label('Relevancia', 'Relevance')); ?></option>
-                        <option value="price_asc" <?php selected('price_asc', $state['sort'] ?? ''); ?>><?php echo esc_html(dht_template_label('Precio: menor a mayor', 'Price: low to high')); ?></option>
-                        <option value="price_desc" <?php selected('price_desc', $state['sort'] ?? ''); ?>><?php echo esc_html(dht_template_label('Precio: mayor a menor', 'Price: high to low')); ?></option>
-                        <option value="rating" <?php selected('rating', $state['sort'] ?? ''); ?>><?php echo esc_html(dht_template_label('Mejor valorados', 'Top rated')); ?></option>
-                        <option value="newest" <?php selected('newest', $state['sort'] ?? ''); ?>><?php echo esc_html(dht_template_label('Novedades', 'Newest')); ?></option>
+                        <option value="relevance" <?php selected('relevance', $state['sort'] ?? 'relevance'); ?>><?php echo esc_html($dht_us_market ? 'Relevance' : 'Relevancia'); ?></option>
+                        <option value="price_asc" <?php selected('price_asc', $state['sort'] ?? ''); ?>><?php echo esc_html($dht_us_market ? 'Price: low to high' : 'Precio: menor a mayor'); ?></option>
+                        <option value="price_desc" <?php selected('price_desc', $state['sort'] ?? ''); ?>><?php echo esc_html($dht_us_market ? 'Price: high to low' : 'Precio: mayor a menor'); ?></option>
+                        <option value="rating" <?php selected('rating', $state['sort'] ?? ''); ?>><?php echo esc_html($dht_us_market ? 'Top rated' : 'Mejor valorados'); ?></option>
+                        <option value="newest" <?php selected('newest', $state['sort'] ?? ''); ?>><?php echo esc_html($dht_us_market ? 'Newest' : 'Novedades'); ?></option>
                     </select>
                 </label>
             </form>
@@ -3365,6 +3354,8 @@ if (!function_exists('dht_template_render_category_toolbar')) {
 if (!function_exists('dht_template_render_category_active_filters')) {
     function dht_template_render_category_active_filters($state)
     {
+        $dht_us_market = dht_template_is_us_market();
+
         if (empty($state['active_count'])) {
             return;
         }
@@ -3373,19 +3364,19 @@ if (!function_exists('dht_template_render_category_active_filters')) {
 
         if ('instock' === ($state['stock'] ?? '')) {
             $chips[] = array(
-                'label' => dht_template_label('En stock', 'In stock'),
+                'label' => $dht_us_market ? 'In stock' : 'En stock',
                 'url'   => dht_template_category_query_url($state, array(), array('dht_stock')),
             );
         }
 
         if (($state['min_price'] ?? 0) > 0 || ($state['max_price'] ?? 0) > 0) {
-            $label = dht_template_label('Precio', 'Price');
+            $label = $dht_us_market ? 'Price' : 'Precio';
             if (($state['min_price'] ?? 0) > 0 && ($state['max_price'] ?? 0) > 0) {
                 $label .= ': ' . wc_price($state['min_price']) . ' – ' . wc_price($state['max_price']);
             } elseif (($state['min_price'] ?? 0) > 0) {
-                $label .= dht_template_label(': desde ', ': from ') . wc_price($state['min_price']);
+                $label .= ($dht_us_market ? ': from ' : ': desde ') . wc_price($state['min_price']);
             } else {
-                $label .= dht_template_label(': hasta ', ': up to ') . wc_price($state['max_price']);
+                $label .= ($dht_us_market ? ': up to ' : ': hasta ') . wc_price($state['max_price']);
             }
             $chips[] = array(
                 'label_html' => $label,
@@ -3411,8 +3402,8 @@ if (!function_exists('dht_template_render_category_active_filters')) {
         }
 
         ?>
-        <div class="dht-category-active-filters" aria-label="<?php echo esc_attr(dht_template_label('Filtros activos', 'Active filters')); ?>">
-            <span><?php echo esc_html(dht_template_label('Filtros:', 'Filters:')); ?></span>
+        <div class="dht-category-active-filters" aria-label="<?php echo esc_attr($dht_us_market ? 'Active filters' : 'Filtros activos'); ?>">
+            <span><?php echo esc_html($dht_us_market ? 'Filters:' : 'Filtros:'); ?></span>
             <?php foreach ($chips as $chip) : ?>
                 <a href="<?php echo esc_url($chip['url'] ?? $state['base_url']); ?>">
                     <?php
@@ -3425,7 +3416,7 @@ if (!function_exists('dht_template_render_category_active_filters')) {
                     <b aria-hidden="true">×</b>
                 </a>
             <?php endforeach; ?>
-            <a class="dht-category-active-filters__clear" href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html(dht_template_label('Borrar todo', 'Clear all')); ?></a>
+            <a class="dht-category-active-filters__clear" href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html($dht_us_market ? 'Clear all' : 'Borrar todo'); ?></a>
         </div>
         <?php
     }
@@ -3434,6 +3425,7 @@ if (!function_exists('dht_template_render_category_active_filters')) {
 if (!function_exists('dht_template_render_category_pagination')) {
     function dht_template_render_category_pagination($state)
     {
+        $dht_us_market = dht_template_is_us_market();
         $current = max(1, absint($state['page'] ?? 1));
         $max_pages = max(1, absint($state['max_pages'] ?? 1));
         if ($max_pages <= 1) {
@@ -3443,9 +3435,9 @@ if (!function_exists('dht_template_render_category_pagination')) {
         $start = max(1, $current - 2);
         $end = min($max_pages, $current + 2);
         ?>
-        <nav class="dht-category-pagination" aria-label="<?php echo esc_attr(dht_template_label('Paginación de productos', 'Product pagination')); ?>">
+        <nav class="dht-category-pagination" aria-label="<?php echo esc_attr($dht_us_market ? 'Product pagination' : 'Paginación de productos'); ?>">
             <?php if ($current > 1) : ?>
-                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current - 1))); ?>">← <?php echo esc_html(dht_template_label('Anterior', 'Previous')); ?></a>
+                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current - 1))); ?>"><?php echo esc_html($dht_us_market ? '← Previous' : '← Anterior'); ?></a>
             <?php endif; ?>
 
             <?php if ($start > 1) : ?>
@@ -3467,7 +3459,7 @@ if (!function_exists('dht_template_render_category_pagination')) {
             <?php endif; ?>
 
             <?php if ($current < $max_pages) : ?>
-                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current + 1))); ?>"><?php echo esc_html(dht_template_label('Siguiente', 'Next')); ?> →</a>
+                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current + 1))); ?>"><?php echo esc_html($dht_us_market ? 'Next →' : 'Siguiente →'); ?></a>
             <?php endif; ?>
         </nav>
         <?php

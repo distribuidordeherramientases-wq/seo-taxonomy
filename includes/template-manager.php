@@ -68,10 +68,12 @@ function seo_tm_redirect($tab, $message, $type = 'success') {
 }
 
 function seo_tm_render_notice() {
-    if (empty($_GET['seo_tm_notice'])) return;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice payload.
+    $message = isset($_GET['seo_tm_notice']) ? sanitize_text_field(wp_unslash($_GET['seo_tm_notice'])) : '';
+    if ('' === $message) return;
 
-    $message = sanitize_text_field(wp_unslash($_GET['seo_tm_notice']));
-    $type    = isset($_GET['seo_tm_notice_type']) ? sanitize_key($_GET['seo_tm_notice_type']) : 'success';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice type.
+    $type = isset($_GET['seo_tm_notice_type']) ? sanitize_key(wp_unslash($_GET['seo_tm_notice_type'])) : 'success';
 
     $allowed = ['success', 'warning', 'error', 'info'];
     if (!in_array($type, $allowed, true)) {
@@ -982,10 +984,12 @@ function seo_tm_handle_assignments() {
         ));
     }
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Assignment values are resolved against known template keys and normalized to post IDs below.
     $posted_assignments = isset($_POST['assigned_pages']) && is_array($_POST['assigned_pages'])
         ? wp_unslash($_POST['assigned_pages'])
         : [];
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only known template keys are consumed and converted to boolean flags below.
     $posted_device_modes = isset($_POST['device_variants_enabled']) && is_array($_POST['device_variants_enabled'])
         ? wp_unslash($_POST['device_variants_enabled'])
         : [];
@@ -1675,6 +1679,7 @@ function seo_tm_handle_registry() {
 
     $table     = $wpdb->prefix . 'seo_templates';
     $templates = seo_tm_get_templates();
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Registry rows are consumed only for known templates and each field is sanitized according to type below.
     $posted    = isset($_POST['templates']) && is_array($_POST['templates'])
         ? wp_unslash($_POST['templates'])
         : [];
@@ -1832,6 +1837,7 @@ function seo_templates_page() {
     seo_tm_handle_registry();
     seo_tm_handle_sync_from_pro();
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only template manager tab selector.
     $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'asignar';
     $allowed_tabs = ['asignar', 'archivos', 'configuracion', 'sincronizar'];
 

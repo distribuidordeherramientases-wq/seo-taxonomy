@@ -365,8 +365,8 @@ final class SEO_Ingeniero_Posts {
 
     public static function handle_update_action() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
-        $post_id = absint($_POST['post_id'] ?? 0);
-        $action = sanitize_key((string) ($_POST['update_action'] ?? ''));
+        $post_id = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        $action = isset($_POST['update_action']) ? sanitize_key(wp_unslash($_POST['update_action'])) : '';
         check_admin_referer('seo_ingeniero_post_update_' . $post_id);
 
         $result = $action === 'mark_reviewed'
@@ -393,7 +393,7 @@ final class SEO_Ingeniero_Posts {
         self::sync_pending_update($editorial_id);
         $pending = self::pending_knowledge_details($post_id);
         $count = count($pending);
-        $state = sanitize_key((string) ($_GET['ingeniero_update'] ?? ''));
+        $state = isset($_GET['ingeniero_update']) ? sanitize_key(wp_unslash($_GET['ingeniero_update'])) : '';
 
         echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px">';
         echo '<h2 style="margin:0 0 6px">Ingeniero · novedades técnicas</h2>';

@@ -44,14 +44,17 @@ function seo_comentarista_csv_stream_close($handle)
  */
 function seo_comentarista_maybe_handle_legacy_csv_post()
 {
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Legacy router only selects a handler; export/import handlers verify their own nonces.
     if (!empty($_POST['action'])) {
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- seo_comentarista_export_csv() verifies seo_export_comentarista_nonce.
     if (isset($_POST['seo_export_comentarista'])) {
         seo_comentarista_export_csv();
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- seo_comentarista_import_csv() verifies seo_import_comentarista_nonce.
     if (isset($_POST['seo_import_comentarista'])) {
         seo_comentarista_import_csv();
     }
@@ -338,9 +341,14 @@ function seo_comentarista_import_csv()
     $return_to_comentarista = !empty($_POST['seo_comentarista_return'])
         && sanitize_key(wp_unslash($_POST['seo_comentarista_return'])) === 'comentarista';
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated below before opening the file.
+    $comentarista_file = isset($_FILES['comentarista_csv']) && is_array($_FILES['comentarista_csv'])
+        ? $_FILES['comentarista_csv']
+        : array();
+
     $log = array(
         'operacion'          => 'Importación de Comentarista',
-        'archivo'            => sanitize_file_name($_FILES['comentarista_csv']['name'] ?? ''),
+        'archivo'            => sanitize_file_name((string) ($comentarista_file['name'] ?? '')),
         'procesados'         => 0,
         'correctos'          => 0,
         'creados'            => 0,
@@ -354,8 +362,8 @@ function seo_comentarista_import_csv()
     );
 
     if (
-        empty($_FILES['comentarista_csv']['tmp_name'])
-        || !is_uploaded_file($_FILES['comentarista_csv']['tmp_name'])
+        empty($comentarista_file['tmp_name'])
+        || !is_uploaded_file($comentarista_file['tmp_name'])
     ) {
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'No se recibió un archivo CSV válido.');
@@ -389,7 +397,7 @@ function seo_comentarista_import_csv()
     $log['registros_antes'] = $before['records'];
     $log['comentarios_antes'] = $before['comments'];
 
-    $handle = seo_comentarista_csv_stream_open($_FILES['comentarista_csv']['tmp_name'], 'r');
+    $handle = seo_comentarista_csv_stream_open($comentarista_file['tmp_name'], 'r');
     if ($handle === false) {
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'No se pudo abrir el CSV.');

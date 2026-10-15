@@ -2042,7 +2042,7 @@ function seo_ie_batch_file_action_url( $operation, $bucket, $filename ) {
  * @return void
  */
 function seo_ie_batch_handle_file_download() {
-    $operation = sanitize_key( $_GET['seo_ie_batch_file_action'] ?? '' );
+    $operation = isset( $_GET['seo_ie_batch_file_action'] ) ? sanitize_key( wp_unslash( $_GET['seo_ie_batch_file_action'] ) ) : '';
 
     if ( ! in_array( $operation, [ 'download', 'download_log' ], true ) ) {
         return;
@@ -2052,7 +2052,7 @@ function seo_ie_batch_handle_file_download() {
         wp_die( esc_html__( 'No tienes permisos para descargar archivos de la cola.', 'taxocommerce-seo' ) );
     }
 
-    $bucket   = sanitize_key( $_GET['seo_ie_batch_bucket'] ?? '' );
+    $bucket   = isset( $_GET['seo_ie_batch_bucket'] ) ? sanitize_key( wp_unslash( $_GET['seo_ie_batch_bucket'] ) ) : '';
     $filename = sanitize_file_name( wp_unslash( $_GET['seo_ie_batch_file'] ?? '' ) );
     $action   = 'seo_ie_batch_file_' . $operation . '_' . $bucket . '_' . $filename;
 
@@ -2239,7 +2239,8 @@ function seo_ie_batch_admin_action() {
     if ( ! empty( $errors ) ) {
         $notice['seo_ie_batch_error'] = implode( ' ', $errors );
     } elseif ( 'upload' === $action || 'upload_start' === $action ) {
-        $files    = $_FILES['seo_ie_batch_files'] ?? [];
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw multi-upload metadata is validated per file for error, filename, path and managed destination.
+        $files    = isset($_FILES['seo_ie_batch_files']) && is_array($_FILES['seo_ie_batch_files']) ? $_FILES['seo_ie_batch_files'] : [];
         $names    = (array) ( $files['name'] ?? [] );
         $tmp      = (array) ( $files['tmp_name'] ?? [] );
         $statuses = (array) ( $files['error'] ?? [] );
@@ -2513,7 +2514,7 @@ function seo_ie_batch_admin_action() {
             }
         }
     } elseif ( 'delete_file' === $action ) {
-        $bucket   = sanitize_key( $_POST['seo_ie_batch_bucket'] ?? '' );
+        $bucket   = isset( $_POST['seo_ie_batch_bucket'] ) ? sanitize_key( wp_unslash( $_POST['seo_ie_batch_bucket'] ) ) : '';
         $filename = sanitize_file_name( wp_unslash( $_POST['seo_ie_batch_file'] ?? '' ) );
         $deleted  = seo_ie_batch_delete_managed_file( $bucket, $filename );
 
@@ -2651,7 +2652,7 @@ function seo_ie_batch_render_page() {
     $files    = (array) ( $snapshot['files'] ?? [] );
     $running  = seo_ie_batch_is_running() || ! empty( $status['enabled'] );
 
-    $preview_bucket = sanitize_key( $_GET['seo_ie_batch_preview_bucket'] ?? '' );
+    $preview_bucket = isset( $_GET['seo_ie_batch_preview_bucket'] ) ? sanitize_key( wp_unslash( $_GET['seo_ie_batch_preview_bucket'] ) ) : '';
     $preview_file   = sanitize_file_name( wp_unslash( $_GET['seo_ie_batch_preview_file'] ?? '' ) );
     $preview_path   = '';
     $preview        = null;

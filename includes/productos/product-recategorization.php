@@ -231,16 +231,16 @@ function product_recategorization() {
 
     // Leer búsqueda de producto
     $product_search = isset($_REQUEST['product_search'])
-        ? sanitize_text_field($_REQUEST['product_search'])
+        ? sanitize_text_field(wp_unslash($_REQUEST['product_search']))
         : '';
 
     // Página y pestaña actual del admin
     $current_page = isset($_REQUEST['page'])
-        ? sanitize_text_field($_REQUEST['page'])
+        ? sanitize_text_field(wp_unslash($_REQUEST['page']))
         : 'product-page-admin';
 
     $current_tab = isset($_REQUEST['tab'])
-        ? sanitize_text_field($_REQUEST['tab'])
+        ? sanitize_text_field(wp_unslash($_REQUEST['tab']))
         : 'duplicados';
 
     // Movimiento directo mediante IDs de productos e ID de categoría.
