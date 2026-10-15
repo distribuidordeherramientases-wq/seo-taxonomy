@@ -263,6 +263,9 @@ add_action('admin_menu', function () {
 // Al abrir Search desde su tarjeta, mantener TaxoCommerce SEO como menú padre y
 // Herramientas como sección activa en la navegación lateral.
 add_filter('parent_file', function ($parent_file) {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
     if (in_array($page, [
@@ -319,6 +322,7 @@ add_action('admin_init', function () {
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
     if ('seo-import-export' === $page) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only legacy tab selector used only for redirect routing.
         $tab = isset($_GET['seo_ie_tab']) ? sanitize_key(wp_unslash($_GET['seo_ie_tab'])) : '';
         if ('conexiones-proveedores' === $tab) {
             $args = ['page' => 'seo-provider-connections'];
@@ -339,6 +343,7 @@ add_action('admin_init', function () {
     }
 
     if ('seo-reports' === $page) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reports tab selector used only for redirect routing.
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
         $view = isset($_GET['google_view']) ? sanitize_key(wp_unslash($_GET['google_view'])) : '';
         if ('google_intelligence' === $tab && in_array($view, ['sources', 'settings', 'sync'], true)) {
