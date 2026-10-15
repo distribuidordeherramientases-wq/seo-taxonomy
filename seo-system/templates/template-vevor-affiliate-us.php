@@ -290,7 +290,7 @@ if (!$items) {
                 $image = $vevor_first_image($item['imagenes'] ?? '');
                 $url = $vevor_affiliate_url($item);
                 $price = isset($item['precio_con_iva']) ? (float) $item['precio_con_iva'] : 0.0;
-                $currency = strtoupper(trim((string) ($item['moneda'] ?? 'EUR')));
+                $currency = strtoupper(trim((string) ($item['moneda'] ?? 'USD')));
             ?>
                 <article class="dht-vevor-product" data-vevor-id="<?php echo esc_attr((string) ($item['id'] ?? '')); ?>">
                     <?php if ($url !== '') : ?>
@@ -327,7 +327,7 @@ if (!$items) {
                             <div class="dht-vevor-product__price">
                                 <?php
                                 if ($currency === 'USD' && function_exists('wc_price')) {
-                                    echo wp_kses_post(wc_price($price));
+                                    echo wp_kses_post(wc_price($price, array('currency' => 'USD')));
                                 } else {
                                     echo esc_html(number_format_i18n($price, 2) . ' ' . ($currency ?: 'USD'));
                                 }
