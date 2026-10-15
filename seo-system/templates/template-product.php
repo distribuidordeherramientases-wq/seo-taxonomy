@@ -18,7 +18,7 @@ if (is_array($product_categories)) {
     }
 }
 if ($dht_pilot_market !== '') {
-    require __DIR__ . '/template-pilot-vevor.php';
+    require __DIR__ . '/template-product-' . strtolower($dht_pilot_market) . '.php';
     return;
 }
 require dht_template_device_variant_file('product');
