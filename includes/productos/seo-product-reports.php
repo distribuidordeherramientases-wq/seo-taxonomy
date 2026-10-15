@@ -11,6 +11,7 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_product_reports_enqueue_assets')) {
     function seo_product_reports_enqueue_assets() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
         if ('product-page-admin' !== $page) {
             return;
@@ -1291,7 +1292,8 @@ if (!function_exists('seo_product_reports_page')) {
             return;
         }
 
-        $product_id = isset($_GET['product_id']) ? absint($_GET['product_id']) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected product ID.
+        $product_id = isset($_GET['product_id']) ? absint(wp_unslash($_GET['product_id'])) : 0;
 if ($product_id > 0) {
             echo '<p><a class="button" href="' . esc_url(seo_product_reports_admin_url()) . '">← Volver a productos</a></p>';
             seo_product_reports_render_product($product_id);
