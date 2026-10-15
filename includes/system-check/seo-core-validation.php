@@ -7,6 +7,7 @@ if (!defined('SEO_CORE_SYSTEM_TEST_VERSION')) {
 }
 
 function seo_core_system_test_enqueue_admin_assets() {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin page routing GET; read-only and sanitized.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     if ('seo-core-system-test' !== $page) {
         return;
@@ -401,6 +402,7 @@ function seo_core_system_test() {
 
 
 function seo_core_system_test_get_active_tab() {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin tab selector.
     $tab = isset($_GET['seo_core_test_tab'])
         ? sanitize_key(wp_unslash($_GET['seo_core_test_tab']))
         : 'summary';
@@ -450,6 +452,7 @@ function seo_core_system_test_get_requested_section() {
         return 'data_layer';
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report section selector.
     $section = isset($_GET['seo_core_test_section'])
         ? sanitize_key(wp_unslash($_GET['seo_core_test_section']))
         : '';
