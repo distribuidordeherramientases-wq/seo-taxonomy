@@ -936,6 +936,7 @@ function seo_reports_page() {
     
     if (!current_user_can('manage_options')) return;
     
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reports tab selector.
     $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'informes';
 
     if ($active_tab === 'content') {
@@ -2169,13 +2170,15 @@ function seo_render_faq_orphan_anomalies_report() {
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice counter.
     if (isset($_GET['faq_category_orphans_deleted'])) {
-        $deleted = absint($_GET['faq_category_orphans_deleted']);
+        $deleted = absint(wp_unslash($_GET['faq_category_orphans_deleted']));
         echo '<div class="notice notice-success inline"><p>FAQs de categorías desaparecidas eliminadas: <strong>' . esc_html(number_format_i18n($deleted)) . '</strong>.</p></div>';
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice counter.
     if (isset($_GET['faq_product_orphans_deleted'])) {
-        $deleted = absint($_GET['faq_product_orphans_deleted']);
+        $deleted = absint(wp_unslash($_GET['faq_product_orphans_deleted']));
         echo '<div class="notice notice-success inline"><p>FAQs de productos desaparecidos eliminadas: <strong>' . esc_html(number_format_i18n($deleted)) . '</strong>.</p></div>';
     }
 
@@ -3284,8 +3287,9 @@ function seo_render_anomalies_report() {
 
         echo '</div>';
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only recount notice.
         if (isset($_GET['product_categories_recounted'])) {
-            $recounted_categories = absint($_GET['product_categories_recounted']);
+            $recounted_categories = absint(wp_unslash($_GET['product_categories_recounted']));
 
             echo '<div class="notice notice-success inline"><p>';
             echo '<strong>Contadores recalculados.</strong> Se han procesado <strong>' . esc_html(number_format_i18n($recounted_categories)) . '</strong> categorías de producto. ';
@@ -3293,8 +3297,9 @@ function seo_render_anomalies_report() {
             echo '</p></div>';
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice.
         if (isset($_GET['empty_categories_deleted'])) {
-            $deleted_empty = absint($_GET['empty_categories_deleted']);
+            $deleted_empty = absint(wp_unslash($_GET['empty_categories_deleted']));
             $skipped_empty = isset($_GET['empty_categories_skipped'])
                 ? absint($_GET['empty_categories_skipped'])
                 : 0;
