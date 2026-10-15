@@ -517,9 +517,12 @@ final class SEO_Ingeniero_Admin {
     private static function render_editorial_tab() {
         self::render_notices();
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only editorial status filter.
         $status = isset($_GET['editorial_status']) ? sanitize_key(wp_unslash($_GET['editorial_status'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only editorial action filter.
         $action = isset($_GET['editorial_action']) ? strtoupper(sanitize_key(wp_unslash($_GET['editorial_action']))) : '';
-        $page = max(1, absint($_GET['paged'] ?? 1));
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only editorial pagination.
+        $page = isset($_GET['paged']) ? max(1, absint(wp_unslash($_GET['paged']))) : 1;
         $list = SEO_Ingeniero_DB::editorial_rows(array(
             'status'=>$status,
             'action'=>$action,
@@ -536,7 +539,8 @@ final class SEO_Ingeniero_Admin {
             if ($active > 0) $categories_with_active++;
             if ($active > 0 && $active < SEO_Ingeniero::TARGET_ACTIVE_KNOWLEDGE_PER_CATEGORY) $categories_below_target++;
         }
-        $detail_id = absint($_GET['editorial_id'] ?? 0);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selected editorial record.
+        $detail_id = isset($_GET['editorial_id']) ? absint(wp_unslash($_GET['editorial_id'])) : 0;
 
         echo '<section class="seo-ingeniero-editorial">';
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
@@ -937,6 +941,7 @@ final class SEO_Ingeniero_Admin {
         $term = get_term($term_id, 'product_cat');
         if (!$term || is_wp_error($term)) return;
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only information-layer filter.
         $requested_layer = isset($_GET['info_layer']) ? sanitize_key(wp_unslash($_GET['info_layer'])) : 'all';
         $allowed_layers = array(
             'all'=>'Todas',
