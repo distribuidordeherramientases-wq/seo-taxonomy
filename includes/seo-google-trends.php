@@ -2011,16 +2011,19 @@ function seo_google_trends_import_handler() {
     $geo = strtoupper(sanitize_text_field(wp_unslash($_POST['geo'] ?? 'ES')));
     $timeframe = sanitize_text_field(wp_unslash($_POST['timeframe'] ?? '12m'));
 
-    if ($seed === '' || empty($_FILES['trends_csv']['tmp_name'])) {
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated for path, upload origin and size before opening the CSV.
+    $trends_file = isset($_FILES['trends_csv']) && is_array($_FILES['trends_csv']) ? $_FILES['trends_csv'] : array();
+    $trends_tmp = (string) ($trends_file['tmp_name'] ?? '');
+    if ($seed === '' || '' === $trends_tmp || !is_uploaded_file($trends_tmp)) {
         wp_safe_redirect(seo_google_admin_url('trends_market', array('trends_error' => 'missing')));
         exit;
     }
-    if (!empty($_FILES['trends_csv']['size']) && (int) $_FILES['trends_csv']['size'] > 5 * MB_IN_BYTES) {
+    if (!empty($trends_file['size']) && (int) $trends_file['size'] > 5 * MB_IN_BYTES) {
         wp_safe_redirect(seo_google_admin_url('trends_market', array('trends_error' => 'size')));
         exit;
     }
 
-    $handle = seo_google_trends_csv_stream_open($_FILES['trends_csv']['tmp_name'], 'r');
+    $handle = seo_google_trends_csv_stream_open($trends_tmp, 'r');
     if (!$handle) {
         wp_safe_redirect(seo_google_admin_url('trends_market', array('trends_error' => 'file')));
         exit;

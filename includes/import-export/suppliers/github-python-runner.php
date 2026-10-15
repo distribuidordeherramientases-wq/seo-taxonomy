@@ -154,7 +154,7 @@ if ( ! function_exists( 'seo_github_python_runner_save_settings' ) ) {
         $repo = sanitize_text_field( wp_unslash( $_POST['repo'] ?? '' ) );
         $workflow_id = sanitize_file_name( wp_unslash( $_POST['workflow_id'] ?? '' ) );
         $ref = sanitize_text_field( wp_unslash( $_POST['ref'] ?? '' ) );
-        $token_raw = trim( (string) wp_unslash( $_POST['token'] ?? '' ) );
+        $token_raw = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
         $token = (string) ( $current['token'] ?? '' );
 
         if ( '' !== $token_raw ) {

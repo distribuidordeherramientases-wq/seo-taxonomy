@@ -425,7 +425,7 @@ function seo_supplier_recipe_amazon_save_settings() {
     check_admin_referer( 'seo_amazon_recipe_save', 'seo_amazon_recipe_nonce' );
 
     $current       = get_option( seo_supplier_recipe_amazon_option_key(), [] );
-    $new_secret    = isset( $_POST['client_secret'] ) ? trim( (string) wp_unslash( $_POST['client_secret'] ) ) : '';
+    $new_secret    = isset( $_POST['client_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['client_secret'] ) ) : '';
     $posted_tag    = isset( $_POST['partner_tag'] ) ? sanitize_text_field( wp_unslash( $_POST['partner_tag'] ) ) : '';
     $current_tag   = sanitize_text_field( (string) ( $current['partner_tag'] ?? '' ) );
     $clear_tag     = ! empty( $_POST['clear_partner_tag'] );

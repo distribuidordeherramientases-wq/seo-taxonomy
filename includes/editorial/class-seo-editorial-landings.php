@@ -237,7 +237,7 @@ final class SEO_Editorial_Landings {
     public static function handle_sync() {
         if (!current_user_can('manage_options')) wp_die('Permisos insuficientes.');
         check_admin_referer('seo_editorial_landings_sync');
-        $service = sanitize_key((string) ($_POST['service'] ?? ''));
+        $service = isset($_POST['service']) ? sanitize_key(wp_unslash($_POST['service'])) : '';
         if (!in_array($service,array('solucionador','ingeniero'),true)) wp_die('Servicio no válido.');
         SEO_Editorial_Opportunities::sync('manual');
         self::redirect($service,array('landing_notice'=>'synced'));
@@ -331,8 +331,8 @@ final class SEO_Editorial_Landings {
 
     public static function handle_review() {
         if (!current_user_can('manage_options')) wp_die('Permisos insuficientes.');
-        $service = sanitize_key((string) ($_POST['service'] ?? ''));
-        $id = absint($_POST['candidate_id'] ?? 0);
+        $service = isset($_POST['service']) ? sanitize_key(wp_unslash($_POST['service'])) : '';
+        $id = isset($_POST['candidate_id']) ? absint(wp_unslash($_POST['candidate_id'])) : 0;
         if (!in_array($service,array('solucionador','ingeniero'),true)) wp_die('Servicio no válido.');
         check_admin_referer('seo_editorial_landings_' . $id);
         $candidate = self::get_candidate($id);
@@ -345,7 +345,7 @@ final class SEO_Editorial_Landings {
             self::redirect($service,array('landing_error'=>'El borrador ya existe; edítalo desde Páginas.'));
         }
 
-        $action = sanitize_key((string) ($_POST['command'] ?? 'save'));
+        $action = isset($_POST['command']) ? sanitize_key(wp_unslash($_POST['command'])) : 'save';
         if ($action === 'reject') {
             global $wpdb;
             $wpdb->update(self::table(),array('status'=>'rejected','updated_at'=>current_time('mysql')),array('id'=>$id));
@@ -363,9 +363,12 @@ final class SEO_Editorial_Landings {
         if (count(array_unique(array_filter($category_ids))) !== count($valid_categories) || $title === '') {
             self::redirect($service,array('landing_error'=>'Título vacío o categorías inexistentes.','candidate_id'=>$id));
         }
+        $posted_requirements = isset($_POST['requirements']) && is_array($_POST['requirements'])
+            ? map_deep(wp_unslash($_POST['requirements']), 'sanitize_key')
+            : array();
         $requirements = array();
         foreach (seo_landing_requirement_labels() as $key=>$label) {
-            $value = isset($_POST['requirements'][$key]) ? (string) wp_unslash($_POST['requirements'][$key]) : '-1';
+            $value = isset($posted_requirements[$key]) ? $posted_requirements[$key] : '-1';
             $requirements[$key] = seo_landing_requirement_value($value);
         }
         $proposal['category_ids'] = $valid_categories;

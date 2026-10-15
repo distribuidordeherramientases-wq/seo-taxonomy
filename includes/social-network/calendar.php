@@ -220,13 +220,15 @@ function seo_social_calendar_group_by_day($events)
  */
 function seo_social_calendar_render_admin()
 {
-    $month = seo_social_calendar_month(isset($_GET['social_month']) ? wp_unslash($_GET['social_month']) : '');
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only calendar month selector.
+    $month = seo_social_calendar_month(isset($_GET['social_month']) ? sanitize_text_field(wp_unslash($_GET['social_month'])) : '');
     $month_key = $month->format('Y-m');
     $month_start = $month->setTime(0, 0, 0);
     $month_end = $month->modify('last day of this month')->setTime(23, 59, 59);
     $today = new DateTimeImmutable('today', wp_timezone());
     $today_key = $today->format('Y-m-d');
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only social provider filter.
     $provider_filter = isset($_GET['social_calendar_provider'])
         ? sanitize_key(wp_unslash($_GET['social_calendar_provider']))
         : '';

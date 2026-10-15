@@ -16,6 +16,15 @@ if (!is_product_category()) {
 
 require_once __DIR__ . '/template-helpers.php';
 
+// Solo categorías identificadas explícitamente por país usan el piloto.
+require_once __DIR__ . '/template-pilot-market.php';
+$current_category = get_queried_object();
+$dht_pilot_market = dht_pilot_market_for_term($current_category);
+if ($dht_pilot_market !== '') {
+    require __DIR__ . '/template-category-' . strtolower($dht_pilot_market) . '.php';
+    return;
+}
+
 $template_file = wp_is_mobile()
     ? __DIR__ . '/template-category-mobile.php'
     : __DIR__ . '/template-category-desktop.php';

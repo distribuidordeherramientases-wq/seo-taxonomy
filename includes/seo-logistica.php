@@ -405,6 +405,7 @@ add_action('admin_head', static function () {
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector used only for asset loading.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     if ('seo-logistica' !== $page) {
         return;

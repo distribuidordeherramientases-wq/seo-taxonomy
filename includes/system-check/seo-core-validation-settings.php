@@ -131,6 +131,7 @@ function seo_core_validation_handle_settings_actions() {
         return array('type' => 'success', 'message' => 'Se han restaurado los valores recomendados de Plugin Validation.');
     }
 
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Structured validation settings are normalized field by field by seo_core_validation_sanitize_settings().
     $raw = isset($_POST['seo_core_validation_settings']) && is_array($_POST['seo_core_validation_settings'])
         ? wp_unslash($_POST['seo_core_validation_settings'])
         : array();

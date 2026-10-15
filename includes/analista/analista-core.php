@@ -212,10 +212,12 @@ if (!function_exists('seo_analista_save_settings_handler')) {
 
         check_admin_referer('seo_analista_save_settings', 'seo_analista_nonce');
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw multiline domain list is split and normalized by seo_analista_sanitize_domains() immediately below.
         $raw = isset($_POST['competitors']) ? (string) wp_unslash($_POST['competitors']) : '';
         $domains = preg_split('/[\r\n,;]+/', $raw);
         $domains = seo_analista_sanitize_domains(is_array($domains) ? $domains : array());
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw multiline keywords are split and normalized by seo_analista_sanitize_keywords() immediately below.
         $raw_keywords = isset($_POST['tracked_keywords']) ? (string) wp_unslash($_POST['tracked_keywords']) : '';
         $keywords = preg_split('/[\r\n]+/', $raw_keywords);
         $keywords = seo_analista_sanitize_keywords(is_array($keywords) ? $keywords : array());

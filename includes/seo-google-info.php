@@ -317,6 +317,7 @@ function seo_google_query_arg($key, $default = '') {
         return $default;
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
     return wp_unslash($_GET[$key]);
 }
 
@@ -1857,6 +1858,7 @@ function seo_google_get_sync_history($property_id, $limit = 10) {
 function seo_google_intelligence_page() {
     $install_result = seo_google_install_tables();
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Google Intelligence view selector.
     $view = isset($_GET['google_view'])
         ? sanitize_key(wp_unslash($_GET['google_view']))
         : 'actions';
@@ -4133,6 +4135,7 @@ function seo_google_render_coverage() {
  * Lee y valida los filtros del Laboratorio.
  */
 function seo_google_get_lab_filters($property_id, $source = null) {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter map; each consumed field is unslashed and sanitized by type below.
     $source = is_array($source) ? $source : $_GET;
     $period = seo_google_get_analysis_period($property_id, 28);
 

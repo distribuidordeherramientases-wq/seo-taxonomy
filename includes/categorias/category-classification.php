@@ -1172,12 +1172,10 @@ if (
     && $_POST['add_stopword'] == '1'
 ) {
 
-    $word = wp_unslash($_POST['new_stopword'] ?? '');
-    $word = sanitize_text_field(
-        strtolower(
-            trim($word)
-        )
-    );
+    $word = isset($_POST['new_stopword'])
+        ? sanitize_text_field(wp_unslash($_POST['new_stopword']))
+        : '';
+    $word = strtolower(trim($word));
 
     if ($word === '') {
 
@@ -1206,7 +1204,8 @@ if (
 // ELIMINAR ETIQUETA GLOBAL DE CATEGORÍAS
 // =========================
 if (isset($_POST['remove_keyword']) && $_POST['remove_keyword'] == '1' && !empty($_POST['delete_keyword'])) {
-    $word = sanitize_text_field(trim(wp_unslash($_POST['delete_keyword'])));
+    $word = sanitize_text_field(wp_unslash($_POST['delete_keyword']));
+    $word = trim($word);
     try {
         $result = seo_category_vocabulary_remove_term_from_categories($word, 'category_classification');
         if (is_wp_error($result)) {
@@ -1337,7 +1336,8 @@ if (isset($_POST['save_category_keywords'])) {
         $saved_keywords = 0;
         $save_errors = [];
 
-        foreach (wp_unslash($_POST['category_keywords']) as $cat_id => $keywords_value) {
+        $posted_keywords = map_deep(wp_unslash($_POST['category_keywords']), 'sanitize_textarea_field');
+        foreach ($posted_keywords as $cat_id => $keywords_value) {
 
             $cat_id = absint($cat_id);
             $keywords_value = sanitize_textarea_field($keywords_value);
@@ -1424,10 +1424,10 @@ if (isset($_POST['clear_category_keywords'])) {
 
         <form method="POST" style="margin-bottom:20px;padding:15px;background:#f6f7f7;border:1px solid #ddd;border-radius:6px;">
             <?php wp_nonce_field('seo_category_classification_action','seo_category_classification_nonce'); ?>
-            <input type="hidden" name="page" value="<?php echo esc_attr(sanitize_key($_GET['page'] ?? 'seo-taxonomy')); ?>">
-            <input type="hidden" name="tab" value="<?php echo esc_attr(sanitize_key($_GET['tab'] ?? 'semantic')); ?>">
+            <input type="hidden" name="page" value="<?php echo esc_attr(sanitize_key(isset($_GET['page']) ? wp_unslash($_GET['page']) : 'seo-taxonomy')); ?>">
+            <input type="hidden" name="tab" value="<?php echo esc_attr(sanitize_key(isset($_GET['tab']) ? wp_unslash($_GET['tab']) : 'semantic')); ?>">
             <?php if (!empty($_GET['semantic_tab'])) : ?>
-                <input type="hidden" name="semantic_tab" value="<?php echo esc_attr(sanitize_key($_GET['semantic_tab'])); ?>">
+                <input type="hidden" name="semantic_tab" value="<?php echo esc_attr(sanitize_key(wp_unslash($_GET['semantic_tab']))); ?>">
             <?php endif; ?>
 
             <select name="cluster" onchange="this.form.submit()">

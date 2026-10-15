@@ -1140,8 +1140,8 @@ final class SEO_Comparador_Engine {
 
     public static function handle_post_update_action() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos.');
-        $post_id = absint($_POST['post_id'] ?? 0);
-        $action = sanitize_key((string) ($_POST['update_action'] ?? ''));
+        $post_id = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        $action = isset($_POST['update_action']) ? sanitize_key(wp_unslash($_POST['update_action'])) : '';
         check_admin_referer('seo_comparador_post_update_' . $post_id);
 
         $result = $action === 'mark_reviewed'
@@ -1165,7 +1165,7 @@ final class SEO_Comparador_Engine {
         self::sync_pending_update($profile_id);
         $pending = get_post_meta($post_id, self::META_PENDING_PAYLOAD, true);
         $count = self::pending_count($post_id);
-        $state = sanitize_key((string) ($_GET['comparador_update'] ?? ''));
+        $state = isset($_GET['comparador_update']) ? sanitize_key(wp_unslash($_GET['comparador_update'])) : '';
 
         echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px">';
         echo '<h2 style="margin:0 0 6px">Comparador · novedades del mercado/perfil</h2>';
