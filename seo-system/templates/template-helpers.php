@@ -938,7 +938,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         var id = String(button.getAttribute('data-dht-compare-product') || '');
                         var active = selected.indexOf(id) !== -1;
                         button.setAttribute('aria-pressed', active ? 'true' : 'false');
-                        button.textContent = active ? 'Seleccionado' : 'Comparar';
+                        button.textContent = active ? <?php echo wp_json_encode(dht_template_label('Seleccionado', 'Selected')); ?> : <?php echo wp_json_encode(dht_template_label('Comparar', 'Compare')); ?>;
                         button.disabled = !active && selected.length >= compareMax;
                     });
 
@@ -947,8 +947,8 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     }
                     if (countNode) {
                         countNode.textContent = selected.length === 1
-                            ? '1 producto seleccionado'
-                            : selected.length + ' productos seleccionados';
+                            ? <?php echo wp_json_encode(dht_template_label('1 producto seleccionado', '1 product selected')); ?>
+                            : selected.length + <?php echo wp_json_encode(dht_template_label(' productos seleccionados', ' products selected')); ?>;
                     }
                     if (showButton) {
                         showButton.disabled = selected.length < 2;
@@ -1087,14 +1087,14 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         if (ap !== bp) {
                             return ap - bp;
                         }
-                        return a.localeCompare(b, 'es', {sensitivity: 'base'});
+                        return a.localeCompare(b, <?php echo wp_json_encode(dht_template_is_us_english() ? 'en-US' : 'es'); ?>, {sensitivity: 'base'});
                     });
 
                     result.innerHTML = '';
                     result.hidden = false;
 
                     var title = document.createElement('h3');
-                    title.textContent = 'Comparación de productos';
+                    title.textContent = <?php echo wp_json_encode(dht_template_label('Comparación de productos', 'Product comparison')); ?>;
                     result.appendChild(title);
 
                     var wrap = document.createElement('div');
@@ -1106,7 +1106,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     var headRow = document.createElement('tr');
                     var featureHead = document.createElement('th');
                     featureHead.scope = 'col';
-                    featureHead.textContent = 'Característica';
+                    featureHead.textContent = <?php echo wp_json_encode(dht_template_label('Característica', 'Feature')); ?>;
                     headRow.appendChild(featureHead);
 
                     chosen.forEach(function (product) {
@@ -1125,7 +1125,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
 
                         var link = document.createElement('a');
                         link.href = product.url || '#';
-                        link.textContent = product.name || 'Producto';
+                        link.textContent = product.name || <?php echo wp_json_encode(dht_template_label('Producto', 'Product')); ?>;
                         productBox.appendChild(link);
 
                         if (product.excerpt) {
@@ -1180,13 +1180,13 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                         tbody.appendChild(row);
                     }
 
-                    appendSection('Datos comerciales');
-                    appendComparisonRow('Precio', function (product) {
+                    appendSection(<?php echo wp_json_encode(dht_template_label('Datos comerciales', 'Commercial details')); ?>);
+                    appendComparisonRow(<?php echo wp_json_encode(dht_template_label('Precio', 'Price')); ?>, function (product) {
                         return product.price;
                     });
 
                     if (semanticLabels.length) {
-                        appendSection('Clasificación');
+                        appendSection(<?php echo wp_json_encode(dht_template_label('Clasificación', 'Classification')); ?>);
                         semanticLabels.forEach(function (label) {
                             appendComparisonRow(label, function (product) {
                                 var attrs = product.attributes || {};
@@ -1196,7 +1196,7 @@ if (!function_exists('dht_shared_render_category_compare_assets')) {
                     }
 
                     if (technicalLabels.length) {
-                        appendSection('Características técnicas');
+                        appendSection(<?php echo wp_json_encode(dht_template_label('Características técnicas', 'Technical specifications')); ?>);
                         technicalLabels.forEach(function (label) {
                             appendComparisonRow(label, function (product) {
                                 var attrs = product.attributes || {};
@@ -1286,7 +1286,7 @@ if (!function_exists('dht_shared_render_product_card')) {
         echo '<a href="' . esc_url($permalink) . '" class="dh-product-link">';
 
         if ($card_product->is_on_sale()) {
-            echo '<span class="onsale">' . esc_html__('Oferta', 'taxocommerce-seo') . '</span>';
+            echo '<span class="onsale">' . esc_html(dht_template_label('Oferta', 'Sale')) . '</span>';
         }
 
         echo '<div class="dh-product-image">';
@@ -1301,7 +1301,7 @@ if (!function_exists('dht_shared_render_product_card')) {
             woocommerce_template_loop_add_to_cart();
         }
         if ($enable_compare) {
-            echo '<button type="button" class="dht-category-compare-toggle" data-dht-compare-product="' . esc_attr((string) $card_product->get_id()) . '" aria-pressed="false">Comparar</button>';
+            echo '<button type="button" class="dht-category-compare-toggle" data-dht-compare-product="' . esc_attr((string) $card_product->get_id()) . '" aria-pressed="false">' . esc_html(dht_template_label('Comparar', 'Compare')) . '</button>';
         }
         echo '</div>';
         echo '</li>';
@@ -1356,11 +1356,11 @@ if (!function_exists('dht_shared_render_product_grid')) {
         if ($enable_compare && count($compare_data) >= 2) {
             echo '<div class="dht-category-live-compare" data-dht-compare-toolbar hidden>';
             echo '<div class="dht-category-live-compare-toolbar">';
-            echo '<span class="dht-category-live-compare-count" data-dht-compare-count>0 productos seleccionados</span>';
-            echo '<button type="button" data-dht-compare-show disabled>Comparar seleccionados</button>';
-            echo '<button type="button" data-dht-compare-pdf disabled>Descargar comparativa PDF</button>';
-            echo '<button type="button" data-dht-compare-clear>Limpiar</button>';
-            echo '<p class="dht-category-live-compare-note">Selecciona entre 2 y ' . esc_html((string) $compare_max) . ' productos. La comparativa usa la clasificación y los atributos canónicos disponibles en el catálogo.</p>';
+            echo '<span class="dht-category-live-compare-count" data-dht-compare-count>' . esc_html(dht_template_label('0 productos seleccionados', '0 products selected')) . '</span>';
+            echo '<button type="button" data-dht-compare-show disabled>' . esc_html(dht_template_label('Comparar seleccionados', 'Compare selected')) . '</button>';
+            echo '<button type="button" data-dht-compare-pdf disabled>' . esc_html(dht_template_label('Descargar comparativa PDF', 'Download comparison PDF')) . '</button>';
+            echo '<button type="button" data-dht-compare-clear>' . esc_html(dht_template_label('Limpiar', 'Clear')) . '</button>';
+            echo '<p class="dht-category-live-compare-note">' . esc_html(dht_template_label('Selecciona entre 2 y ', 'Select between 2 and ')) . esc_html((string) $compare_max) . esc_html(dht_template_label(' productos. La comparativa usa la clasificación y los atributos canónicos disponibles en el catálogo.', ' products. The comparison uses the canonical classification and attributes available in the catalog.')) . '</p>';
             echo '</div>';
             echo '<div class="dht-category-live-compare-result" data-dht-compare-result hidden></div>';
             echo '</div>';
@@ -3235,18 +3235,18 @@ if (!function_exists('dht_template_render_category_filter_form')) {
             <?php endif; ?>
 
             <div class="dht-category-filter-form__head">
-                <strong>Filtrar</strong>
+                <strong><?php echo esc_html(dht_template_label('Filtrar', 'Filter')); ?></strong>
                 <?php if (!empty($state['active_count'])) : ?>
-                    <a href="<?php echo esc_url($state['base_url']); ?>">Limpiar</a>
+                    <a href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html(dht_template_label('Limpiar', 'Clear')); ?></a>
                 <?php endif; ?>
             </div>
 
             <?php if (!empty($state['instock_count'])) : ?>
                 <fieldset class="dht-category-filter-group">
-                    <legend>Disponibilidad</legend>
+                    <legend><?php echo esc_html(dht_template_label('Disponibilidad', 'Availability')); ?></legend>
                     <label class="dht-category-filter-option">
                         <input type="checkbox" name="dht_stock" value="instock" <?php checked('instock', $state['stock'] ?? ''); ?>>
-                        <span>En stock</span>
+                        <span><?php echo esc_html(dht_template_label('En stock', 'In stock')); ?></span>
                         <small><?php echo esc_html(number_format_i18n((int) $state['instock_count'])); ?></small>
                     </label>
                 </fieldset>
@@ -3254,14 +3254,14 @@ if (!function_exists('dht_template_render_category_filter_form')) {
 
             <?php if ((float) ($state['catalog_max_price'] ?? 0) > 0) : ?>
                 <fieldset class="dht-category-filter-group">
-                    <legend>Precio</legend>
+                    <legend><?php echo esc_html(dht_template_label('Precio', 'Price')); ?></legend>
                     <div class="dht-category-price-filter">
                         <label>
-                            <span>Desde</span>
+                            <span><?php echo esc_html(dht_template_label('Desde', 'Min')); ?></span>
                             <input type="number" min="0" step="0.01" name="dht_min_price" value="<?php echo esc_attr(($state['min_price'] ?? 0) > 0 ? wc_format_decimal($state['min_price'], 2) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_decimal($state['catalog_min_price'] ?? 0, 2)); ?>">
                         </label>
                         <label>
-                            <span>Hasta</span>
+                            <span><?php echo esc_html(dht_template_label('Hasta', 'Max')); ?></span>
                             <input type="number" min="0" step="0.01" name="dht_max_price" value="<?php echo esc_attr(($state['max_price'] ?? 0) > 0 ? wc_format_decimal($state['max_price'], 2) : ''); ?>" placeholder="<?php echo esc_attr(wc_format_decimal($state['catalog_max_price'] ?? 0, 2)); ?>">
                         </label>
                     </div>
@@ -3289,9 +3289,9 @@ if (!function_exists('dht_template_render_category_filter_form')) {
             <?php endforeach; ?>
 
             <div class="dht-category-filter-actions">
-                <button type="submit">Aplicar filtros</button>
+                <button type="submit"><?php echo esc_html(dht_template_label('Aplicar filtros', 'Apply filters')); ?></button>
                 <?php if (!empty($state['active_count'])) : ?>
-                    <a href="<?php echo esc_url($state['base_url']); ?>">Quitar filtros</a>
+                    <a href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html(dht_template_label('Quitar filtros', 'Remove filters')); ?></a>
                 <?php endif; ?>
             </div>
         </form>
@@ -3308,8 +3308,8 @@ if (!function_exists('dht_template_render_category_toolbar')) {
         ?>
         <div class="dht-category-catalog-toolbar">
             <div class="dht-category-catalog-toolbar__count">
-                <strong><?php echo esc_html(number_format_i18n((int) ($state['total'] ?? 0))); ?> resultados</strong>
-                <?php if ($term_name !== '') : ?><span>en <?php echo esc_html($term_name); ?></span><?php endif; ?>
+                <strong><?php echo esc_html(number_format_i18n((int) ($state['total'] ?? 0))); ?> <?php echo esc_html(dht_template_label('resultados', 'results')); ?></strong>
+                <?php if ($term_name !== '') : ?><span><?php echo esc_html(dht_template_label('en', 'in')); ?> <?php echo esc_html($term_name); ?></span><?php endif; ?>
             </div>
 
             <form class="dht-category-sort-form" action="<?php echo esc_url($state['base_url'] ?? ''); ?>" method="get">
@@ -3319,13 +3319,13 @@ if (!function_exists('dht_template_render_category_toolbar')) {
                     <?php endforeach; ?>
                 <?php endforeach; ?>
                 <label>
-                    <span>Ordenar por</span>
+                    <span><?php echo esc_html(dht_template_label('Ordenar por', 'Sort by')); ?></span>
                     <select name="dht_sort" onchange="this.form.submit()">
-                        <option value="relevance" <?php selected('relevance', $state['sort'] ?? 'relevance'); ?>>Relevancia</option>
-                        <option value="price_asc" <?php selected('price_asc', $state['sort'] ?? ''); ?>>Precio: menor a mayor</option>
-                        <option value="price_desc" <?php selected('price_desc', $state['sort'] ?? ''); ?>>Precio: mayor a menor</option>
-                        <option value="rating" <?php selected('rating', $state['sort'] ?? ''); ?>>Mejor valorados</option>
-                        <option value="newest" <?php selected('newest', $state['sort'] ?? ''); ?>>Novedades</option>
+                        <option value="relevance" <?php selected('relevance', $state['sort'] ?? 'relevance'); ?>><?php echo esc_html(dht_template_label('Relevancia', 'Relevance')); ?></option>
+                        <option value="price_asc" <?php selected('price_asc', $state['sort'] ?? ''); ?>><?php echo esc_html(dht_template_label('Precio: menor a mayor', 'Price: low to high')); ?></option>
+                        <option value="price_desc" <?php selected('price_desc', $state['sort'] ?? ''); ?>><?php echo esc_html(dht_template_label('Precio: mayor a menor', 'Price: high to low')); ?></option>
+                        <option value="rating" <?php selected('rating', $state['sort'] ?? ''); ?>><?php echo esc_html(dht_template_label('Mejor valorados', 'Top rated')); ?></option>
+                        <option value="newest" <?php selected('newest', $state['sort'] ?? ''); ?>><?php echo esc_html(dht_template_label('Novedades', 'Newest')); ?></option>
                     </select>
                 </label>
             </form>
@@ -3345,19 +3345,19 @@ if (!function_exists('dht_template_render_category_active_filters')) {
 
         if ('instock' === ($state['stock'] ?? '')) {
             $chips[] = array(
-                'label' => 'En stock',
+                'label' => dht_template_label('En stock', 'In stock'),
                 'url'   => dht_template_category_query_url($state, array(), array('dht_stock')),
             );
         }
 
         if (($state['min_price'] ?? 0) > 0 || ($state['max_price'] ?? 0) > 0) {
-            $label = 'Precio';
+            $label = dht_template_label('Precio', 'Price');
             if (($state['min_price'] ?? 0) > 0 && ($state['max_price'] ?? 0) > 0) {
                 $label .= ': ' . wc_price($state['min_price']) . ' – ' . wc_price($state['max_price']);
             } elseif (($state['min_price'] ?? 0) > 0) {
-                $label .= ': desde ' . wc_price($state['min_price']);
+                $label .= dht_template_label(': desde ', ': from ') . wc_price($state['min_price']);
             } else {
-                $label .= ': hasta ' . wc_price($state['max_price']);
+                $label .= dht_template_label(': hasta ', ': up to ') . wc_price($state['max_price']);
             }
             $chips[] = array(
                 'label_html' => $label,
@@ -3383,8 +3383,8 @@ if (!function_exists('dht_template_render_category_active_filters')) {
         }
 
         ?>
-        <div class="dht-category-active-filters" aria-label="Filtros activos">
-            <span>Filtros:</span>
+        <div class="dht-category-active-filters" aria-label="<?php echo esc_attr(dht_template_label('Filtros activos', 'Active filters')); ?>">
+            <span><?php echo esc_html(dht_template_label('Filtros:', 'Filters:')); ?></span>
             <?php foreach ($chips as $chip) : ?>
                 <a href="<?php echo esc_url($chip['url'] ?? $state['base_url']); ?>">
                     <?php
@@ -3397,7 +3397,7 @@ if (!function_exists('dht_template_render_category_active_filters')) {
                     <b aria-hidden="true">×</b>
                 </a>
             <?php endforeach; ?>
-            <a class="dht-category-active-filters__clear" href="<?php echo esc_url($state['base_url']); ?>">Borrar todo</a>
+            <a class="dht-category-active-filters__clear" href="<?php echo esc_url($state['base_url']); ?>"><?php echo esc_html(dht_template_label('Borrar todo', 'Clear all')); ?></a>
         </div>
         <?php
     }
@@ -3415,9 +3415,9 @@ if (!function_exists('dht_template_render_category_pagination')) {
         $start = max(1, $current - 2);
         $end = min($max_pages, $current + 2);
         ?>
-        <nav class="dht-category-pagination" aria-label="Paginación de productos">
+        <nav class="dht-category-pagination" aria-label="<?php echo esc_attr(dht_template_label('Paginación de productos', 'Product pagination')); ?>">
             <?php if ($current > 1) : ?>
-                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current - 1))); ?>">← Anterior</a>
+                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current - 1))); ?>">← <?php echo esc_html(dht_template_label('Anterior', 'Previous')); ?></a>
             <?php endif; ?>
 
             <?php if ($start > 1) : ?>
@@ -3439,7 +3439,7 @@ if (!function_exists('dht_template_render_category_pagination')) {
             <?php endif; ?>
 
             <?php if ($current < $max_pages) : ?>
-                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current + 1))); ?>">Siguiente →</a>
+                <a href="<?php echo esc_url(dht_template_category_query_url($state, array('dht_page' => $current + 1))); ?>"><?php echo esc_html(dht_template_label('Siguiente', 'Next')); ?> →</a>
             <?php endif; ?>
         </nav>
         <?php
