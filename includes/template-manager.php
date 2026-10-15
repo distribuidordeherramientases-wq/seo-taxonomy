@@ -68,10 +68,12 @@ function seo_tm_redirect($tab, $message, $type = 'success') {
 }
 
 function seo_tm_render_notice() {
-    if (empty($_GET['seo_tm_notice'])) return;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice payload.
+    $message = isset($_GET['seo_tm_notice']) ? sanitize_text_field(wp_unslash($_GET['seo_tm_notice'])) : '';
+    if ('' === $message) return;
 
-    $message = sanitize_text_field(wp_unslash($_GET['seo_tm_notice']));
-    $type    = isset($_GET['seo_tm_notice_type']) ? sanitize_key(wp_unslash($_GET['seo_tm_notice_type'])) : 'success';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice type.
+    $type = isset($_GET['seo_tm_notice_type']) ? sanitize_key(wp_unslash($_GET['seo_tm_notice_type'])) : 'success';
 
     $allowed = ['success', 'warning', 'error', 'info'];
     if (!in_array($type, $allowed, true)) {
@@ -1835,6 +1837,7 @@ function seo_templates_page() {
     seo_tm_handle_registry();
     seo_tm_handle_sync_from_pro();
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only template manager tab selector.
     $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'asignar';
     $allowed_tabs = ['asignar', 'archivos', 'configuracion', 'sincronizar'];
 
