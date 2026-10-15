@@ -2666,9 +2666,9 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
                         <span>¿Prefieres una persona?</span>
                         <a href="<?php echo esc_url($whatsapp_url); ?>" target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>
                     <?php else : ?>
-                        <a href="<?php echo esc_url($shop_url); ?>">Ver catálogo</a>
+                        <a href="<?php echo esc_url($shop_url); ?>"><?php echo esc_html($is_us ? 'View catalog' : 'Ver catálogo'); ?></a>
                         <span aria-hidden="true">·</span>
-                        <a href="<?php echo esc_url($service_url); ?>">Nuestro acompañamiento</a>
+                        <a href="<?php echo esc_url($service_url); ?>"><?php echo esc_html($is_us ? 'How we help' : 'Nuestro acompañamiento'); ?></a>
                     <?php endif; ?>
                 </div>
             </div>
