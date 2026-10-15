@@ -16,7 +16,7 @@ if (!function_exists('dht_pilot_country_for_term')) {
         $ids = array_merge(array((int) $term->term_id), get_ancestors($term->term_id, 'product_cat', 'taxonomy'));
         $patterns = array(
             'US' => '/^(?:us|usa|eua|eeuu|estados-unidos|united-states|en-us)(?:-|$)/',
-            'DE' => '/^(?:de|deu|deutschland|alemania|germany|de-de)(?:-|$)/',
+            'DE' => '/^(?:(?:de|deu)(?:$)|(?:deutschland|alemania|germany|de-de)(?:-|$))/',
             'NL' => '/^(?:nl|nld|nederland|netherlands|holanda|paises-bajos|nl-nl)(?:-|$)/',
         );
         foreach ($ids as $id) {
