@@ -5865,6 +5865,10 @@ function seo_proveedores_actualizar_estado_masivo() {
 function seo_proveedores_render_catalogo() {
     global $wpdb;
 
+    // Las ofertas regionales aceptadas aun no son fichas WooCommerce.
+    // Mostrar un puente explicito y limitado de creacion de borradores.
+    do_action( 'seo_vevor_region_batch_card' );
+
     $table  = seo_proveedores_tabla_productos();
     $exists = $wpdb->get_var(
         $wpdb->prepare(
