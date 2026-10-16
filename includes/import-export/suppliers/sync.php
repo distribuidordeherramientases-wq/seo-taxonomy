@@ -711,6 +711,61 @@ function seo_supplier_sync_apply_reactivation( array $row, $commission_sale, $co
 }
 
 /**
+ * Aprueba una oferta comercial VEVOR por pais sin alterar WooCommerce.
+ *
+ * El catalogo intermedio ya conserva el nombre localizado, la moneda, el
+ * precio y la URL afiliada por pais. Hasta implementar la asociacion segura
+ * a producto maestro, aprobar significa validar esa oferta, NO publicarla.
+ *
+ * @param array $row Registro de proveedor con pais_origen.
+ * @return array
+ */
+function seo_supplier_sync_approve_vevor_market_offer( array $row ) {
+    global $wpdb;
+
+    $id       = absint( $row['id'] ?? 0 );
+    $country  = strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) );
+    $language = strtolower( trim( (string) ( $row['idioma_origen'] ?? '' ) ) );
+
+    if ( ! $id || ! preg_match( '/^[A-Z]{2}$/', $country ) || ! preg_match( '/^[a-z]{2}$/', $language ) ) {
+        return [
+            'result' => 'error',
+            'product_id' => 0,
+            'message' => 'La oferta VEVOR necesita pais e idioma validos antes de aceptarla.',
+            'warnings' => [],
+        ];
+    }
+
+    $snapshot = seo_supplier_sync_snapshot( $row );
+    $data = [
+        'estado_seleccion'      => 'aceptado',
+        'estado_sincronizacion' => 'sin_cambios',
+        'hash_aplicado'         => seo_supplier_sync_snapshot_hash( $snapshot ),
+        'snapshot_aplicado'     => seo_supplier_sync_snapshot_json( $snapshot ),
+        'cambios_detectados'    => '',
+        'ultimo_error_sync'     => null,
+        'actualizado'          => current_time( 'mysql' ),
+    ];
+
+    $updated = $wpdb->update(
+        $wpdb->prefix . 'seo_proveedores_productos',
+        $data,
+        [ 'id' => $id ],
+        [ '%s', '%s', '%s', '%s', '%s', '%s', '%s' ],
+        [ '%d' ]
+    );
+
+    return [
+        'result'     => false === $updated ? 'error' : 'offer_accepted',
+        'product_id' => absint( $row['object_id'] ?? 0 ),
+        'message'    => false === $updated
+            ? 'No se pudo aceptar la oferta VEVOR: ' . (string) $wpdb->last_error
+            : 'Oferta VEVOR ' . $country . '/' . $language . ' aceptada en catalogo. No se ha modificado WooCommerce.',
+        'warnings'   => [],
+    ];
+}
+
+/**
  * Ejecuta una accion coherente sobre una fila.
  *
  * @param array  $row Fila.
@@ -746,17 +801,22 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
         ];
     }
 
-    // La fase actual importa datos por mercado al catálogo intermedio.
-    // No puede convertir títulos/precios/URLs extranjeros en la ficha española.
-    // La aplicación a WooCommerce se habilitará con la capa de ofertas localizada.
+    // La oferta regional se acepta comercialmente en el catalogo intermedio;
+    // no se escribe en el producto WooCommerce espanol.
     if (
         0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' )
         && '' !== trim( (string) ( $row['pais_origen'] ?? '' ) )
     ) {
+        if ( in_array( $action, [ 'aceptar', 'actualizar' ], true ) ) {
+            if ( 'actualizar' === $action && ! in_array( $situation, [ 'modificado', 'error' ], true ) ) {
+                return [ 'result' => 'error', 'product_id' => 0, 'message' => 'Esta oferta no tiene una actualizacion pendiente.', 'warnings' => [] ];
+            }
+            return seo_supplier_sync_approve_vevor_market_offer( $row );
+        }
         return [
             'result'     => 'error',
             'product_id' => absint( $row['object_id'] ?? 0 ),
-            'message'    => 'La oferta VEVOR internacional se conserva en catálogo de proveedores; falta implementar su enlace al producto y mercado WooCommerce sin sobrescribir la ficha española.',
+            'message'    => 'La baja o reactivacion de ofertas internacionales requiere una accion comercial especifica; no se modifica el producto WooCommerce.',
             'warnings'   => [],
         ];
     }
@@ -986,7 +1046,9 @@ function seo_supplier_sync_handle_bulk_action() {
     } elseif ( 'actualizar' === $action ) {
         $where[] = "estado_sincronizacion IN ('modificado','error')";
         $where[] = "estado_seleccion = 'aceptado'";
-        $where[] = 'object_id IS NOT NULL AND object_id > 0';
+        if ( 0 !== strcasecmp( $provider, 'VEVOR' ) ) {
+            $where[] = 'object_id IS NOT NULL AND object_id > 0';
+        }
     } elseif ( 'baja' === $action ) {
         $where[] = "estado_sincronizacion = 'baja_pendiente'";
         $where[] = "estado_seleccion = 'aceptado'";
@@ -1000,6 +1062,51 @@ function seo_supplier_sync_handle_bulk_action() {
     }
 
     $where_sql = implode( ' AND ', $where );
+
+    // Para VEVOR se validan ofertas por mercado, no se crean fichas WooCommerce.
+    // Una sola operacion SQL evita cargar miles de filas o agotar PHP por 8.000+
+    // actualizaciones individuales, y conserva todos los filtros del formulario.
+    if (
+        0 === strcasecmp( $provider, 'VEVOR' )
+        && in_array( $action, [ 'aceptar', 'actualizar' ], true )
+    ) {
+        $market_where = $where_sql . " AND proveedor = %s AND pais_origen <> '' AND idioma_origen <> ''";
+        $market_params = array_merge( [ current_time( 'mysql' ) ], $params, [ 'VEVOR' ] );
+        $market_sql = "UPDATE {$table}
+            SET estado_seleccion = 'aceptado',
+                estado_sincronizacion = 'sin_cambios',
+                hash_aplicado = hash_producto,
+                snapshot_aplicado = NULL,
+                cambios_detectados = '',
+                ultimo_error_sync = NULL,
+                actualizado = %s
+            WHERE {$market_where}";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Campos y WHERE cerrados; valores POST enlazados con prepare.
+        $market_query = $wpdb->prepare( $market_sql, $market_params );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query completamente preparada.
+        $market_updated = $wpdb->query( $market_query );
+        $processed = false === $market_updated ? 0 : max( 0, (int) $market_updated );
+        $errors    = false === $market_updated ? 1 : 0;
+
+        $redirect = esc_url_raw( wp_unslash( $_POST['return_url'] ?? '' ) );
+        if ( ! $redirect ) {
+            $redirect = add_query_arg(
+                [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'catalogo-proveedores' ],
+                admin_url( 'admin.php' )
+            );
+        }
+        wp_safe_redirect( add_query_arg(
+            [
+                'seo_sync_bulk_action'    => $action,
+                'seo_sync_bulk_processed' => absint( $processed ),
+                'seo_sync_bulk_errors'    => absint( $errors ),
+                'seo_sync_market_offers'  => 1,
+            ],
+            $redirect
+        ) );
+        exit;
+    }
+
     $sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id ASC";
     if ( $params ) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE is assembled from internal action rules and placeholders; external values are bound here.
