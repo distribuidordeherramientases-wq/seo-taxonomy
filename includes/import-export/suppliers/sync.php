@@ -1017,9 +1017,15 @@ function seo_supplier_sync_handle_bulk_action() {
 
     // Barreras de seguridad independientes del filtro elegido por el usuario.
     if ( 'aceptar' === $action ) {
-        $where[] = "(estado_sincronizacion = 'nuevo' OR (proveedor = 'VEVOR' AND pais_origen <> '' AND estado_sincronizacion IN ('error','modificado','sin_cambios')))";
+        // Los registros WooCommerce normales mantienen la restriccion anterior.
+        // En VEVOR una oferta por pais se puede aprobar aunque haya un
+        // object_id historico: su aceptacion no toca ese producto.
+        $where[] = "(
+            (estado_sincronizacion = 'nuevo' AND (object_id IS NULL OR object_id = 0))
+            OR
+            (proveedor = 'VEVOR' AND pais_origen <> '' AND estado_sincronizacion IN ('nuevo','legacy','error','modificado','sin_cambios'))
+        )";
         $where[] = "estado_seleccion IN ('pendiente','revisar')";
-        $where[] = '(object_id IS NULL OR object_id = 0)';
     } elseif ( 'actualizar' === $action ) {
         $where[] = "estado_sincronizacion IN ('modificado','error')";
         $where[] = "estado_seleccion = 'aceptado'";
