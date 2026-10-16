@@ -330,10 +330,30 @@ function seo_vevor_region_batch_card() {
     }
     $filters = (array) ( $report['filters'] ?? array() );
     $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC' ) );
+    global $wpdb;
+    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $backlog = $wpdb->get_results( $wpdb->prepare(
+        "SELECT pais_origen, COUNT(*) AS total FROM {$table}
+         WHERE proveedor = %s
+           AND pais_origen IN ('US', 'DE', 'NL')
+           AND estado_seleccion = %s
+           AND (object_id IS NULL OR object_id = 0)
+         GROUP BY pais_origen",
+        'VEVOR', 'aceptado'
+    ), ARRAY_A );
     ?>
     <div class="card" style="max-width:none;padding:20px;">
         <h2>VEVOR internacional: crear fichas de producto para revisar</h2>
-        <p>Las ofertas importadas y aceptadas solo estan en el catalogo intermedio. Este servicio crea <strong>hasta 5 fichas WooCommerce en borrador</strong> por accion, sin modificar productos espanoles, sin publicarlas ni activar su carrito. No vuelve a importar los CSV.</p>
+        <p>Al aceptar <strong>una oferta individual</strong> de US, DE o NL, el plugin intenta crear su ficha WooCommerce en <code>draft</code> con categoria validada. Las antiguas aceptaciones masivas solo actualizaron el catalogo intermedio: este bloque recupera esas ofertas pendientes en tandas de cinco, sin volver a importar los CSV ni modificar productos espanoles.</p>
+        <p><strong>Ofertas VEVOR anteriormente aceptadas pero todavia sin ficha WooCommerce:</strong>
+            <?php if ( empty( $backlog ) ) : ?>
+                0
+            <?php else : ?>
+                <?php foreach ( (array) $backlog as $market_backlog ) : ?>
+                    <?php echo esc_html( strtoupper( (string) $market_backlog['pais_origen'] ) . ': ' . number_format_i18n( absint( $market_backlog['total'] ) ) ); ?>&nbsp;
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </p>
         <?php if ( ! empty( $report ) ) : ?>
             <div class="notice notice-info inline"><p>
                 <?php echo esc_html( sprintf( 'Nuevas fichas: %d. Fichas anteriores vinculadas: %d.', absint( $report['created'] ?? 0 ), absint( $report['existing'] ?? 0 ) ) ); ?>
