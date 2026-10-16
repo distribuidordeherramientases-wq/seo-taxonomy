@@ -180,6 +180,11 @@ final class SEO_Semantic_Catalog_Transfer {
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         $out = array();
         foreach ($raw as $value) {
+            // Reject nested arrays/objects instead of passing malformed input
+            // to sanitize_key(). Only identifiers from our fixed allowlist pass.
+            if (!is_string($value)) {
+                continue;
+            }
             $value = sanitize_key($value);
             if (in_array($value, self::allowed_scopes(), true)) {
                 $out[] = $value;

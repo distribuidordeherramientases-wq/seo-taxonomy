@@ -33,11 +33,13 @@ function seo_ie_cf_admin_save_settings() {
     check_admin_referer( 'seo_ie_cf_save_settings' );
 
     $channels = array_keys( seo_ie_cf_channels() );
-    $enabled  = array_values(
-        array_intersect(
-            $channels,
-            array_map( 'sanitize_key', (array) ( isset( $_POST['enabled_channels'] ) ? wp_unslash( $_POST['enabled_channels'] ) : [] ) )
-        )
+    // Only accept string channel identifiers from the submitted checkbox list.
+    $submitted_channels = isset( $_POST['enabled_channels'] ) && is_array( $_POST['enabled_channels'] )
+        ? wp_unslash( $_POST['enabled_channels'] )
+        : [];
+    $submitted_channels = array_filter( $submitted_channels, 'is_string' );
+    $enabled = array_values(
+        array_intersect( $channels, array_map( 'sanitize_key', $submitted_channels ) )
     );
 
     if ( empty( $enabled ) ) {
@@ -55,12 +57,16 @@ function seo_ie_cf_admin_save_settings() {
     $country  = strtoupper( substr( preg_replace( '/[^A-Za-z]/', '', $country_input ), 0, 2 ) );
     $language = strtolower( substr( preg_replace( '/[^A-Za-z]/', '', $language_input ), 0, 2 ) );
 
+    $daily_time = isset( $_POST['daily_time'] ) && is_string( $_POST['daily_time'] )
+        ? sanitize_text_field( wp_unslash( $_POST['daily_time'] ) )
+        : '03:30';
+
     $settings = [
         'enabled_channels'            => $enabled,
         'country'                     => $country ?: 'ES',
         'language'                    => $language ?: 'es',
         'auto_refresh'                => empty( $_POST['auto_refresh'] ) ? 0 : 1,
-        'daily_time'                  => seo_ie_cf_sanitize_daily_time( isset( $_POST['daily_time'] ) ? wp_unslash( $_POST['daily_time'] ) : '03:30' ),
+        'daily_time'                  => seo_ie_cf_sanitize_daily_time( $daily_time ),
         'refresh_after_supplier_sync' => empty( $_POST['refresh_after_supplier_sync'] ) ? 0 : 1,
         'batch_size'                  => absint( seo_ie_cf_settings()['batch_size'] ?? SEO_IE_CF_BATCH_SIZE ), // Legacy: el lote real lo regula Procesos.
     ];
