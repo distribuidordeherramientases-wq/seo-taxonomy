@@ -2651,6 +2651,29 @@ function seo_ie_batch_render_page() {
     $status   = (array) ( $snapshot['status'] ?? [] );
     $files    = (array) ( $snapshot['files'] ?? [] );
     $running  = seo_ie_batch_is_running() || ! empty( $status['enabled'] );
+    $max_batch_uploads = max( 1, (int) ( ini_get( 'max_file_uploads' ) ?: 20 ) );
+
+    // Enqueue footer JS with safely encoded per-request admin configuration.
+    wp_enqueue_script(
+        'taxocommerce-ie-batch-ui',
+        SEO_SYSTEM_URL . 'includes/assets/seo-ie-batch.js',
+        array(),
+        SEO_SYSTEM_VERSION,
+        true
+    );
+    wp_add_inline_script(
+        'taxocommerce-ie-batch-ui',
+        'window.taxocommerceBatchUIConfig = ' . wp_json_encode(
+            array(
+                'maxFiles' => $max_batch_uploads,
+                'running'  => (bool) $running,
+                'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+                'nonce'    => wp_create_nonce( 'seo_ie_batch_tick' ),
+            ),
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        ) . ';',
+        'before'
+    );
 
     $preview_bucket = isset( $_GET['seo_ie_batch_preview_bucket'] ) ? sanitize_key( wp_unslash( $_GET['seo_ie_batch_preview_bucket'] ) ) : '';
     $preview_file   = sanitize_file_name( wp_unslash( $_GET['seo_ie_batch_preview_file'] ?? '' ) );
@@ -2700,25 +2723,12 @@ function seo_ie_batch_render_page() {
                         <button type="submit" name="seo_ie_batch_action" value="upload_start" class="button button-primary">Anadir e iniciar</button>
                     </p>
                 </form>
-                <?php $max_batch_uploads = max( 1, intval( ini_get( 'max_file_uploads' ) ?: 20 ) ); ?>
+
                 <p class="description">
                     Los nombres controlan el orden: <code>001_...</code>, <code>002_...</code>, etc.
                     Limite PHP por seleccion: <strong><?php echo esc_html( $max_batch_uploads ); ?></strong> archivos.
                     Si necesitas mas, subelos en varias selecciones; los ya pendientes se conservan.
                 </p>
-                <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const input = document.querySelector('input[name="seo_ie_batch_files[]"]');
-                    if (!input) return;
-                    input.addEventListener('change', function () {
-                        const maxFiles = <?php echo (int) $max_batch_uploads; ?>;
-                        if (this.files && this.files.length > maxFiles) {
-                            window.alert('El servidor admite como maximo ' + maxFiles + ' archivos por seleccion. Divide la subida en varios grupos.');
-                            this.value = '';
-                        }
-                    });
-                });
-                </script>
             </div>
 
             <div class="card" style="max-width:none;padding:20px;">
@@ -2904,23 +2914,5 @@ function seo_ie_batch_render_page() {
             </ul>
         </div>
     </div>
-
-    <?php if ( $running ) : ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const endpoint = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
-            const nonce = <?php echo wp_json_encode( wp_create_nonce( 'seo_ie_batch_tick' ) ); ?>;
-            window.setInterval(function () {
-                const body = new URLSearchParams();
-                body.set('action', 'seo_ie_batch_tick');
-                body.set('nonce', nonce);
-                fetch(endpoint, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}, body: body.toString()})
-                    .then(function (response) { return response.json(); })
-                    .then(function () { window.location.reload(); })
-                    .catch(function () {});
-            }, 10000);
-        });
-        </script>
-    <?php endif; ?>
     <?php
 }
