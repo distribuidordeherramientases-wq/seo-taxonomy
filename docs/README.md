@@ -14,6 +14,12 @@ La documentación se divide en dos niveles:
 - [Marketing y campañas](MARKETING.md)
 - [Versiones y publicación](RELEASE-PROCESS.md)
 
+## Guías de arquitectura
+
+- [Categorías multidioma: importación y relaciones SEO](wiki/Categorias-multidioma.md)
+- [Servicios y tablas](wiki/Servicios-y-tablas.md)
+- [Flujo de datos](wiki/Flujo-de-datos.md)
+
 ## Manual por pantalla
 
 - [Inicio](manual/INICIO.md)
