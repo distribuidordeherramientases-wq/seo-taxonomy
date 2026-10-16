@@ -5592,6 +5592,7 @@ function seo_proveedores_actualizar_estado_masivo() {
     $external_synced_urls     = 0;
     $external_without_source  = 0;
     $external_sync_errors     = 0;
+    $vevor_approved           = 0;
 
     if ( in_array( $estado, [ 'aceptado', 'actualizar' ], true ) ) {
         /*
@@ -5639,6 +5640,36 @@ function seo_proveedores_actualizar_estado_masivo() {
             // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Explicit admin bulk operation may exceed the host's default execution time.
             @set_time_limit( 0 );
         }
+
+        // La accion legada tambien debe respetar el mercado VEVOR.
+        // Aprobar no significa publicar ni alterar los datos del producto ES.
+        // Evitar miles de escrituras y objetos WooCommerce: una sentencia
+        // atomica valida las ofertas y las deja pendientes de publicacion.
+        if ( 'aceptado' === $estado ) {
+            $vevor_sql = "UPDATE {$table}
+                SET estado_seleccion = 'aceptado',
+                    estado_sincronizacion = 'pendiente_publicacion',
+                    ultimo_error_sync = NULL,
+                    actualizado = %s
+                WHERE {$where_sql}
+                  AND proveedor = %s
+                  AND pais_origen <> ''
+                  AND estado_seleccion IN ('pendiente','revisar')
+                  AND estado_sincronizacion <> 'conflicto'";
+            $vevor_args = array_merge( [ current_time( 'mysql' ) ], $params, [ 'VEVOR' ] );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Filtros internos y parametros preparados.
+            $vevor_query = $wpdb->prepare( $vevor_sql, $vevor_args );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- La consulta usa wpdb::prepare() y tabla interna.
+            $vevor_approved = $wpdb->query( $vevor_query );
+            if ( false === $vevor_approved ) {
+                wp_die( 'No se pudo aprobar el catalogo VEVOR: ' . esc_html( $wpdb->last_error ) );
+            }
+            $updated += absint( $vevor_approved );
+        }
+
+        // Nunca dejar pasar una oferta VEVOR regional al importador legado:
+        // ese flujo escribiria titulos, precios y URLs sobre WooCommerce ES.
+        $where_sql .= " AND NOT (proveedor = 'VEVOR' AND pais_origen <> '')";
 
         $select_sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id ASC";
         if ( $params ) {
@@ -5804,6 +5835,7 @@ function seo_proveedores_actualizar_estado_masivo() {
             'seo_bulk_external_urls'       => absint( $external_synced_urls ),
             'seo_bulk_external_empty'      => absint( $external_without_source ),
             'seo_bulk_external_errors'     => absint( $external_sync_errors ),
+            'seo_bulk_vevor_approved'       => absint( $vevor_approved ),
         ],
         $redirect
     );
@@ -6285,6 +6317,7 @@ function seo_proveedores_render_catalogo() {
         'seo_sync_bulk_processed',
         'seo_sync_bulk_errors',
         'seo_sync_bulk_vevor_approved',
+        'seo_bulk_vevor_approved',
     ];
     ?>
 
@@ -6426,6 +6459,11 @@ function seo_proveedores_render_catalogo() {
                     registros procesados como
                     <strong><?php echo esc_html( $bulk_label ); ?></strong>.
 
+                    <?php if ( absint( seo_proveedores_query_arg( 'seo_bulk_vevor_approved', 0 ) ) > 0 ) : ?>
+                        Ofertas VEVOR aprobadas sin cambiar WooCommerce:
+                        <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_vevor_approved', 0 ) ) ) ); ?></strong>.
+                        Su publicacion internacional esta pendiente.
+                    <?php endif; ?>
                     <?php if ( in_array( $bulk_estado, [ 'aceptado', 'actualizar' ], true ) ) : ?>
                         Creados como borrador:
                         <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_created', 0 ) ) ) ); ?></strong>.
