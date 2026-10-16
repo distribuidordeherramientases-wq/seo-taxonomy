@@ -105,10 +105,10 @@ if ( ! function_exists( 'seo_supplier_recipe_vevor_market' ) ) {
         $csv_country = strtoupper( trim( (string) ( $row['Country'] ?? $row['country'] ?? '' ) ) );
         $host_country = $hosts[ $host ] ?? '';
         if ( '' === $host_country ) {
-            throw new RuntimeException( 'Dominio VEVOR no reconocido: ' . $host );
+            throw new RuntimeException( 'Dominio VEVOR no reconocido. Se admite un dominio de la lista configurada.' );
         }
         if ( '' !== $csv_country && ! isset( $languages[ $csv_country ] ) ) {
-            throw new RuntimeException( 'Mercado VEVOR no soportado: ' . $csv_country );
+            throw new RuntimeException( 'Mercado VEVOR no soportado. Seleccione un pais de la lista configurada.' );
         }
         // .com puede servir a distintos mercados. Un dominio nacional no.
         if ( '' !== $csv_country && 'vevor.com' !== $host && $csv_country !== $host_country ) {
