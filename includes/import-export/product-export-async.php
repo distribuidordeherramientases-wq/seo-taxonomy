@@ -28,7 +28,10 @@ function seo_ie_products_export_authorize_ajax() {
 }
 
 function seo_ie_products_export_enqueue( $hook ) {
-    if ( 'admin_page_seo-import-export' !== $hook ) {
+    // El submenu se registra sin padre; su hook puede variar con WordPress.
+    // Usar la ruta administrativa de la pantalla evita omitir el script.
+    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+    if ( 'seo-import-export' !== $page ) {
         return;
     }
     wp_enqueue_script(
@@ -127,15 +130,15 @@ function seo_ie_products_export_current_state() {
 }
 
 function seo_ie_products_export_download_url( $state ) {
-    return wp_nonce_url(
-        add_query_arg(
-            [
-                'action' => 'seo_ie_products_export_download',
-                'job'    => $state['id'],
-            ],
-            admin_url( 'admin-post.php' )
-        ),
-        'seo_ie_products_export_download_' . $state['id']
+    // wp_nonce_url() puede escapar los separadores para salida HTML; el enlace
+    // se consume como URL en JS, por eso se construye sin entidades HTML.
+    return add_query_arg(
+        [
+            'action'   => 'seo_ie_products_export_download',
+            'job'      => $state['id'],
+            '_wpnonce' => wp_create_nonce( 'seo_ie_products_export_download_' . $state['id'] ),
+        ],
+        admin_url( 'admin-post.php' )
     );
 }
 
