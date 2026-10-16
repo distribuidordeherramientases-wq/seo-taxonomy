@@ -2770,7 +2770,6 @@ function seo_export_products_csv() {
         'post_type'              => 'product',
         'posts_per_page'         => $export_batch_size,
         'paged'                  => 1,
-        'fields'                 => 'ids',
         'no_found_rows'          => true,
         'orderby'                => 'ID',
         'order'                  => 'ASC',
@@ -2889,10 +2888,11 @@ function seo_export_products_csv() {
     $exported = 0;
     for ( $export_page = 1; ; $export_page++ ) {
         $query_args['paged'] = $export_page;
-        $product_ids_for_export = get_posts( $query_args );
-        if ( empty( $product_ids_for_export ) ) {
+        $posts_in_batch = get_posts( $query_args );
+        if ( empty( $posts_in_batch ) ) {
             break;
         }
+        $product_ids_for_export = array_map( 'absint', wp_list_pluck( $posts_in_batch, 'ID' ) );
 
         $canonical_roles_by_product = function_exists( 'seo_catalog_get_product_roles' )
             ? seo_catalog_get_product_roles( $product_ids_for_export )
@@ -2911,12 +2911,8 @@ function seo_export_products_csv() {
         update_meta_cache( 'post', $product_ids_for_export );
         update_object_term_cache( $product_ids_for_export, 'product' );
 
-        foreach ( $product_ids_for_export as $product_id ) {
-        $product_id = absint( $product_id );
-        $post = get_post( $product_id );
-        if ( ! $post instanceof WP_Post ) {
-            continue;
-        }
+        foreach ( $posts_in_batch as $post ) {
+        $product_id = absint( $post->ID );
         $product = wc_get_product( $product_id );
 
         if ( ! $product instanceof WC_Product ) {
@@ -3150,7 +3146,7 @@ function seo_export_products_csv() {
         }
 
         $export_batch_count = count( $product_ids_for_export );
-        unset( $canonical_roles_by_product, $attributes_by_product, $vocabulary_by_product, $product_ids_for_export, $row, $product, $post );
+        unset( $canonical_roles_by_product, $attributes_by_product, $vocabulary_by_product, $product_ids_for_export, $posts_in_batch, $row, $product, $post );
         if ( function_exists( 'wp_cache_flush_runtime' ) ) {
             wp_cache_flush_runtime();
         }
