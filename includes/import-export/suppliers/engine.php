@@ -5886,6 +5886,9 @@ function seo_proveedores_render_catalogo() {
         return;
     }
 
+    // El servicio se muestra solo cuando el catalogo intermedio existe.
+    do_action( 'seo_vevor_region_batch_card' );
+
     // The read-only supplier catalog CSV export was already implemented but
     // never rendered. Show it before the catalog filters so a regional VEVOR
     // export can be audited without changing any WooCommerce product.
@@ -6388,11 +6391,12 @@ function seo_proveedores_render_catalogo() {
         <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
             <div class="notice notice-info inline" style="margin:15px 0;padding:12px;">
                 <p style="margin:0;">
-                    <strong>VEVOR internacional:</strong> Aceptar una oferta con Pais e Idioma
-                    la valida en el catalogo de proveedores sin crear borradores ni modificar
-                    los productos espanoles de WooCommerce. Las ofertas aceptadas se consultan
-                    con el filtro Seleccion = Aceptado. Su vinculacion con las fichas publicas
-                    internacionales es una fase posterior.
+                    <strong>VEVOR internacional:</strong> <strong>Aceptar una oferta individual</strong>
+                    crea una ficha WooCommerce en <code>draft</code> cuando puede identificar
+                    una categoria segura del mismo pais; nunca modifica productos espanoles.
+                    <strong>La aceptacion masiva heredada solo valida ofertas</strong> en
+                    el catalogo intermedio: recupera las aceptadas sin producto mediante
+                    el panel VEVOR internacional de esta misma pantalla.
                 </p>
             </div>
         <?php endif; ?>
