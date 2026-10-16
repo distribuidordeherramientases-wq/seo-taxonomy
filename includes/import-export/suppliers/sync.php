@@ -877,13 +877,20 @@ function seo_supplier_sync_handle_bulk_action() {
     $category  = sanitize_text_field( wp_unslash( $_POST['f_categoria'] ?? '' ) );
     $suggested = sanitize_text_field( wp_unslash( $_POST['f_categoria_sugerida'] ?? '' ) );
 
-    $price_min_raw = isset( $_POST['f_precio_min'] ) ? wp_unslash( $_POST['f_precio_min'] ) : '';
-    $price_max_raw = isset( $_POST['f_precio_max'] ) ? wp_unslash( $_POST['f_precio_max'] ) : '';
-    $price_min = '' !== (string) $price_min_raw
-        ? (float) str_replace( ',', '.', (string) $price_min_raw )
+    // Only scalar prices are valid filter input; reject nested POST arrays.
+    $price_min_raw = isset( $_POST['f_precio_min'] ) && is_scalar( $_POST['f_precio_min'] )
+        ? sanitize_text_field( wp_unslash( (string) $_POST['f_precio_min'] ) )
+        : '';
+    $price_max_raw = isset( $_POST['f_precio_max'] ) && is_scalar( $_POST['f_precio_max'] )
+        ? sanitize_text_field( wp_unslash( (string) $_POST['f_precio_max'] ) )
+        : '';
+    $price_min_value = str_replace( ',', '.', trim( $price_min_raw ) );
+    $price_max_value = str_replace( ',', '.', trim( $price_max_raw ) );
+    $price_min = '' !== $price_min_value && is_numeric( $price_min_value )
+        ? (float) $price_min_value
         : null;
-    $price_max = '' !== (string) $price_max_raw
-        ? (float) str_replace( ',', '.', (string) $price_max_raw )
+    $price_max = '' !== $price_max_value && is_numeric( $price_max_value )
+        ? (float) $price_max_value
         : null;
 
     $where  = [ '1=1' ];
