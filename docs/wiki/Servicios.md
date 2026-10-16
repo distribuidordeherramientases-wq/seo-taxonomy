@@ -18,6 +18,12 @@ Los **Servicios** son motores funcionales especializados. Cada uno observa o tra
 
 Principio común: distinguir entre **observar**, **proponer**, **validar**, **aplicar** y **publicar**.
 
+### Importador de categorías multidioma (PR #914)
+
+Este **nuevo servicio de Import / Export** permite crear o actualizar categorías WooCommerce en `en-US`, `de-DE` y `nl-NL` y registra su equivalencia española en `seo_relations` mediante `category_translation`. Resuelve el original por `source_slug` (no por ID extranjero ni por coincidencia de nombres), conserva el `_seo_locale` y evita relaciones contradictorias. **No traduce textos automáticamente ni importa productos**. Su despliegue depende de fusionar y validar el [PR #914](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/pull/914).
+
+Manual y esquema: [[Categorías multidioma|Categorias-multidioma]].
+
 La relación entre servicios está documentada en [[Flujo de datos|Flujo-de-datos]].
 
 El inventario de persistencia está documentado en [[Servicios y tablas|Servicios-y-tablas]], donde se identifica qué tablas son canónicas, derivadas, de workflow o de runtime y qué servicio las utiliza.
