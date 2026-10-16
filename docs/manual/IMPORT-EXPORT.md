@@ -10,6 +10,10 @@ Cuando hay proceso activo: **Reintentar cola**, **Detener importación**, **Libe
 
 Productos: **Exportar productos**, **Exportar inventario reducido portable**. Categorías: Exportar e Importar.
 
+**Exportar productos** genera únicamente fichas reales WooCommerce (publicadas, borrador, pendientes o privadas, según filtros). Las **ofertas VEVOR regionales aceptadas en el catálogo intermedio de proveedores** no pasan a ser productos WooCommerce por el hecho de aprobarlas. Para revisar país, idioma, enlace de afiliación y relación con WooCommerce, usar la exportación separada de **Catálogo de proveedores → Exportar productos de proveedores**.
+
+Los selectores de categorías del exportador WooCommerce incluyen también las categorías que todavía no están asignadas a un hub SEO, como las de `en-US`, `de-DE` y `nl-NL`: dejar cluster y hubs en «Todos» para seleccionarlas. Cuando una exportación encuentra cero fichas con los filtros elegidos, lo indica explícitamente y no descarga un CSV vacío de forma automática.
+
 ### Importar traducciones de categorías (PR #914)
 
 El nuevo bloque **Importar traducciones de categorías** se encuentra junto a **Importar categorías** en la pestaña **Importación individual** una vez que el PR #914 esté fusionado y desplegado. Admite un CSV UTF-8 separado por `;`, con **100 filas como máximo** y **8 MB como máximo**.

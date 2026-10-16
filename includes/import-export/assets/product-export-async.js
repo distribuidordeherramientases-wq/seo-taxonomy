@@ -93,9 +93,16 @@
                 announce('El proceso terminó sin enlace de descarga. Recarga la pantalla.');
                 return;
             }
-            announce('CSV generado: ' + processed + ' productos. Puedes descargar el inventario completo.');
             download.href = url;
             download.style.display = '';
+            if (processed === 0) {
+                announce('0 productos WooCommerce encontrados con estos filtros. Revisa estados, cluster, hubs y categorías. Las ofertas VEVOR aprobadas que solo estén en el catálogo intermedio no aparecerán aquí.');
+                download.textContent = 'Descargar CSV vacío (solo cabecera)';
+                // No descargar automáticamente un CSV sin registros.
+                return;
+            }
+            download.textContent = 'Descargar CSV terminado';
+            announce('CSV generado: ' + processed + ' productos. Puedes descargar el inventario completo.');
             // Mantener el enlace visible incluso si el navegador móvil
             // impide iniciar automáticamente una descarga asincrónica.
             download.click();
@@ -173,9 +180,14 @@
             }
             if (data.complete) {
                 activeJob = data.job;
-                announce('CSV preparado con ' + data.processed + ' productos.');
-                download.href = data.downloadUrl;
-                download.style.display = '';
+                if (Number(data.processed || 0) === 0) {
+                    showDownload(data.downloadUrl, 0);
+                } else {
+                    announce('CSV preparado con ' + data.processed + ' productos.');
+                    download.textContent = 'Descargar CSV terminado';
+                    download.href = data.downloadUrl;
+                    download.style.display = '';
+                }
                 return;
             }
             activeJob = data.job;
