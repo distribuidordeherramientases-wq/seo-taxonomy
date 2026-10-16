@@ -517,6 +517,11 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
         $external_id = trim( (string) ( $data['proveedor_id_externo'] ?? '' ) );
         $name        = trim( (string) ( $data['nombre'] ?? '' ) );
         $incoming_sku = trim( (string) ( $data['sku'] ?? '' ) );
+        // Una referencia VEVOR se puede vender en varios mercados; no mezclar
+        // sus precios, idiomas ni URLs en una única fila del catálogo intermedio.
+        $vevor_market = 0 === strcasecmp( (string) $state['proveedor'], 'VEVOR' )
+            && '' !== trim( (string) ( $data['pais_origen'] ?? '' ) );
+        $market_country = strtoupper( trim( (string) ( $data['pais_origen'] ?? '' ) ) );
 
         if ( '' === $external_id || '' === $name ) {
             $log['errores']++;
@@ -535,24 +540,30 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
         $existing_by_external = null;
 
         if ( '' !== $incoming_sku ) {
-            $existing_by_sku = $wpdb->get_row(
-                $wpdb->prepare(
+            $sku_sql = $vevor_market
+                ? $wpdb->prepare(
+                    "SELECT * FROM {$table} WHERE proveedor = %s AND sku = %s AND pais_origen = %s ORDER BY id ASC LIMIT 1",
+                    $state['proveedor'], $incoming_sku, $market_country
+                )
+                : $wpdb->prepare(
                     "SELECT * FROM {$table} WHERE proveedor = %s AND sku = %s ORDER BY id ASC LIMIT 1",
-                    $state['proveedor'],
-                    $incoming_sku
-                ),
-                ARRAY_A
-            );
+                    $state['proveedor'], $incoming_sku
+                );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Both branches are prepared SQL queries.
+            $existing_by_sku = $wpdb->get_row( $sku_sql, ARRAY_A );
         }
 
-        $existing_by_external = $wpdb->get_row(
-            $wpdb->prepare(
+        $external_sql = $vevor_market
+            ? $wpdb->prepare(
+                "SELECT * FROM {$table} WHERE proveedor = %s AND proveedor_id_externo = %s AND pais_origen = %s ORDER BY id ASC LIMIT 1",
+                $state['proveedor'], $external_id, $market_country
+            )
+            : $wpdb->prepare(
                 "SELECT * FROM {$table} WHERE proveedor = %s AND proveedor_id_externo = %s ORDER BY id ASC LIMIT 1",
-                $state['proveedor'],
-                $external_id
-            ),
-            ARRAY_A
-        );
+                $state['proveedor'], $external_id
+            );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Both branches are prepared SQL queries.
+        $existing_by_external = $wpdb->get_row( $external_sql, ARRAY_A );
 
         /*
          * Un SKU y un codigo externo que resuelven a filas diferentes indican
@@ -610,7 +621,7 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
          * Si el SKU ya pertenece explicitamente a otro proveedor, se bloquea.
          */
         $woo_product_id = 0;
-        if ( '' !== $incoming_sku && function_exists( 'wc_get_product_id_by_sku' ) ) {
+        if ( '' !== $incoming_sku && ! $vevor_market && function_exists( 'wc_get_product_id_by_sku' ) ) {
             $woo_product_id = absint( wc_get_product_id_by_sku( $incoming_sku ) );
             if ( $woo_product_id && ( 'product' !== get_post_type( $woo_product_id ) || 'trash' === get_post_status( $woo_product_id ) ) ) {
                 $woo_product_id = 0;
@@ -807,6 +818,8 @@ function seo_proveedores_campos_importacion() {
     return [
         'proveedor_id_externo' => [ 'label' => 'Código del proveedor', 'required' => true, 'type' => 'text' ],
         'sku'                   => [ 'label' => 'SKU del proveedor', 'type' => 'text' ],
+        'pais_origen'           => [ 'label' => 'País de origen comercial', 'type' => 'text' ],
+        'idioma_origen'         => [ 'label' => 'Idioma de origen', 'type' => 'text' ],
         'mpn'                   => [ 'label' => 'MPN', 'type' => 'text' ],
         'url_origen'            => [ 'label' => 'Enlace del producto', 'type' => 'url' ],
         'url_canonica'          => [ 'label' => 'URL canónica', 'type' => 'url' ],
@@ -2321,6 +2334,8 @@ function seo_proveedores_columnas_catalogo() {
         'proveedor'             => 'Proveedor',
         'proveedor_id_externo'  => 'Código proveedor',
         'sku'                   => 'SKU',
+        'pais_origen'           => 'País',
+        'idioma_origen'         => 'Idioma',
         'mpn'                   => 'MPN',
         'nombre'                => 'Nombre',
         'marca'                 => 'Marca',
@@ -2413,6 +2428,8 @@ function seo_proveedores_exportar_productos_columnas() {
         'proveedor',
         'proveedor_id_externo',
         'sku',
+        'pais_origen',
+        'idioma_origen',
         'mpn',
         'nombre',
         'marca',
@@ -2781,7 +2798,7 @@ function seo_proveedores_exportar_productos_csv() {
         $batch_params[] = $last_id;
 
         $sql = "SELECT
-                    id, proveedor, proveedor_id_externo, sku, mpn, nombre, marca,
+                    id, proveedor, proveedor_id_externo, sku, pais_origen, idioma_origen, mpn, nombre, marca,
                     categoria_proveedor, descripcion, precio_sin_iva, precio_con_iva,
                     iva_porcentaje, moneda, stock_estado, stock_cantidad, stock_texto,
                     estado_seleccion, estado_sincronizacion, cambios_detectados,
@@ -2858,6 +2875,8 @@ function seo_proveedores_exportar_productos_csv() {
                 'proveedor'              => (string) ( $source_row['proveedor'] ?? '' ),
                 'proveedor_id_externo'   => (string) ( $source_row['proveedor_id_externo'] ?? '' ),
                 'sku'                    => (string) ( $source_row['sku'] ?? '' ),
+                'pais_origen'            => (string) ( $source_row['pais_origen'] ?? '' ),
+                'idioma_origen'          => (string) ( $source_row['idioma_origen'] ?? '' ),
                 'mpn'                    => (string) ( $source_row['mpn'] ?? '' ),
                 'nombre'                 => (string) ( $source_row['nombre'] ?? '' ),
                 'marca'                  => (string) ( $source_row['marca'] ?? '' ),
@@ -5893,6 +5912,8 @@ function seo_proveedores_render_catalogo() {
         'proveedor',
         'proveedor_id_externo',
         'sku',
+        'pais_origen',
+        'idioma_origen',
         'nombre',
         'categoria_proveedor',
         'categoria_sugerida',

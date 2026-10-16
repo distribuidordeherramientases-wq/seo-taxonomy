@@ -87,6 +87,8 @@ function seo_supplier_sync_ensure_schema() {
 
     $definitions = [
         'estado_sincronizacion' => "VARCHAR(30) NOT NULL DEFAULT 'legacy'",
+        'pais_origen'           => "VARCHAR(2) NOT NULL DEFAULT ''",
+        'idioma_origen'         => "VARCHAR(10) NOT NULL DEFAULT ''",
         'hash_aplicado'         => 'CHAR(64) DEFAULT NULL',
         'snapshot_aplicado'     => 'LONGTEXT DEFAULT NULL',
         'last_seen_run_id'      => 'BIGINT(20) UNSIGNED DEFAULT NULL',
@@ -113,6 +115,10 @@ function seo_supplier_sync_ensure_schema() {
     $indexes = $wpdb->get_col( "SHOW INDEX FROM {$table}", 2 );
     if ( ! in_array( 'estado_sincronizacion', (array) $indexes, true ) ) {
         $wpdb->query( "ALTER TABLE {$table} ADD KEY `estado_sincronizacion` (`estado_sincronizacion`)" );
+    }
+    // Este índice es compartido y vacío para los proveedores no regionales.
+    if ( ! in_array( 'proveedor_pais_sku', (array) $wpdb->get_col( "SHOW INDEX FROM {$table}", 2 ), true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD KEY `proveedor_pais_sku` (`proveedor`, `pais_origen`, `sku`)" );
     }
 }
 
@@ -489,6 +495,15 @@ function seo_supplier_sync_finalize_import( $run_id, array $state, array $log, $
         return $log;
     }
 
+    // Un CSV VEVOR puede contener solo un mercado o una mezcla de mercados.
+    // Nunca dar de baja productos de DE al importar un CSV completo de NL.
+    if ( 'vevor' === sanitize_key( (string) ( $state['recipe_id'] ?? '' ) ) ) {
+        if ( function_exists( 'seo_ie_add_log_detail' ) ) {
+            seo_ie_add_log_detail( $log, 'VEVOR: se omiten bajas por catálogo completo mientras la sincronización no esté particionada por país.' );
+        }
+        return $log;
+    }
+
     $errors  = absint( $log['errores'] ?? 0 );
     $omitted = absint( $log['filas_omitidas'] ?? 0 );
 
@@ -727,6 +742,21 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
             'result'     => false === $ok ? 'error' : 'discarded',
             'product_id' => absint( $row['object_id'] ?? 0 ),
             'message'    => false === $ok ? 'No se pudo descartar.' : 'Producto descartado en el catalogo intermedio.',
+            'warnings'   => [],
+        ];
+    }
+
+    // La fase actual importa datos por mercado al catálogo intermedio.
+    // No puede convertir títulos/precios/URLs extranjeros en la ficha española.
+    // La aplicación a WooCommerce se habilitará con la capa de ofertas localizada.
+    if (
+        0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' )
+        && '' !== trim( (string) ( $row['pais_origen'] ?? '' ) )
+    ) {
+        return [
+            'result'     => 'error',
+            'product_id' => absint( $row['object_id'] ?? 0 ),
+            'message'    => 'La oferta VEVOR internacional se conserva en catálogo de proveedores; falta implementar su enlace al producto y mercado WooCommerce sin sobrescribir la ficha española.',
             'warnings'   => [],
         ];
     }

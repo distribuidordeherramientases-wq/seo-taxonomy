@@ -97,6 +97,11 @@ unset( $seo_import_batch_file );
 add_action( 'admin_init', 'seo_export_categories_csv' );
 add_action( 'admin_init', 'seo_import_categories_csv' );
 add_action( 'admin_init', 'seo_export_products_csv' );
+$seo_ie_product_export_async_module = __DIR__ . '/product-export-async.php';
+if ( is_readable( $seo_ie_product_export_async_module ) ) {
+    require_once $seo_ie_product_export_async_module;
+}
+unset( $seo_ie_product_export_async_module );
 add_action( 'admin_init', 'seo_import_products_csv' );
 add_action( 'wp_ajax_seo_ie_product_import', 'seo_import_products_csv' );
 add_action( 'seo_ie_process_product_import_batch', 'seo_ie_product_import_background_worker', 10, 2 );
@@ -2651,11 +2656,17 @@ function seo_ie_product_reduced_vocabulary_map( $product_ids ) {
  *
  * @return void
  */
-function seo_export_products_csv() {
+function seo_export_products_csv( $export_context = null ) {
 
-    $reduced_export = isset( $_POST['seo_export_products_reduced'] );
+    // La invocacion normal sigue admitiendo la descarga clasica. El servicio
+    // asincrono usa esta misma serializacion V2, pero en peticiones acotadas.
+    $async_export = is_array( $export_context ) && ! empty( $export_context['async'] );
+    $export_input = $async_export ? (array) ( $export_context['filters'] ?? [] ) : $_POST;
+    $reduced_export = $async_export
+        ? 'reduced' === (string) ( $export_context['mode'] ?? '' )
+        : isset( $_POST['seo_export_products_reduced'] );
 
-    if ( ! isset( $_POST['seo_export_products'] ) && ! $reduced_export ) {
+    if ( ! $async_export && ! isset( $_POST['seo_export_products'] ) && ! $reduced_export ) {
         return;
     }
 
@@ -2663,7 +2674,9 @@ function seo_export_products_csv() {
         wp_die( esc_html__( 'No tienes permisos para exportar productos.', 'taxocommerce-seo' ) );
     }
 
-    check_admin_referer( 'seo_export_products_csv', 'seo_export_products_nonce' );
+    if ( ! $async_export ) {
+        check_admin_referer( 'seo_export_products_csv', 'seo_export_products_nonce' );
+    }
 
     if ( ! seo_ie_product_v2_wc_ready() ) {
         wp_die( esc_html__( 'WooCommerce debe estar activo para exportar el catálogo.', 'taxocommerce-seo' ) );
@@ -2675,7 +2688,7 @@ function seo_export_products_csv() {
     $allowed_statuses = [ 'publish', 'draft', 'pending', 'private' ];
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The complete array is normalized immediately by seo_ie_sanitize_text_array().
     $selected_statuses = seo_ie_sanitize_text_array(
-        wp_unslash( $_POST['export_statuses'] ?? $_POST['seo_export_product_statuses'] ?? [] )
+        wp_unslash( $export_input['export_statuses'] ?? $export_input['seo_export_product_statuses'] ?? [] )
     );
     $selected_statuses = array_values( array_intersect( $selected_statuses, $allowed_statuses ) );
 
@@ -2683,12 +2696,12 @@ function seo_export_products_csv() {
         $selected_statuses = $allowed_statuses;
     }
 
-    $selected_cluster   = absint( $_POST['export_cluster'] ?? 0 );
-    $selected_primary   = absint( $_POST['export_hub_primary'] ?? 0 );
-    $selected_secondary = absint( $_POST['export_hub_secondary'] ?? 0 );
+    $selected_cluster   = absint( $export_input['export_cluster'] ?? 0 );
+    $selected_primary   = absint( $export_input['export_hub_primary'] ?? 0 );
+    $selected_secondary = absint( $export_input['export_hub_secondary'] ?? 0 );
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The complete array is normalized immediately by seo_ie_sanitize_absint_array().
     $selected_categories = seo_ie_sanitize_absint_array(
-        wp_unslash( $_POST['export_categories'] ?? $_POST['seo_export_product_categories'] ?? [] )
+        wp_unslash( $export_input['export_categories'] ?? $export_input['seo_export_product_categories'] ?? [] )
     );
 
     $relation_rows = $wpdb->get_results(
@@ -2765,7 +2778,7 @@ function seo_export_products_csv() {
 
     // Evita cargar todos los productos y sus metadatos en una sola peticion.
     // El formato completo V2 no cambia; solo el tamaño del lote.
-    $export_batch_size = 200;
+    $export_batch_size = $async_export ? 100 : 200;
     $query_args = [
         'post_type'              => 'product',
         'posts_per_page'         => $export_batch_size,
@@ -2860,7 +2873,9 @@ function seo_export_products_csv() {
             'fecha_creacion', 'fecha_modificacion',
         ];
 
-    $filename = ( $reduced_export ? 'seo_products_reduced_portable_' : 'seo_products_v2_' ) . wp_date( 'Ymd_His' ) . '.csv';
+    $filename = $async_export
+        ? sanitize_file_name( (string) ( $export_context['filename'] ?? '' ) )
+        : ( $reduced_export ? 'seo_products_reduced_portable_' : 'seo_products_v2_' ) . wp_date( 'Ymd_His' ) . '.csv';
     $export_log = [
             'operacion'    => $reduced_export ? 'Exportación de inventario reducido de productos' : 'Exportación de productos V2',
             'archivo'      => $filename,
@@ -2882,14 +2897,47 @@ function seo_export_products_csv() {
                 ],
     ];
 
-    $output = seo_ie_open_csv_download( $filename );
-    seo_ie_write_csv_row( $output, $columns );
+    if ( $async_export ) {
+        // Reiniciar siempre desde el ultimo byte confirmado: un timeout a
+        // mitad de un lote no duplicara filas en el reintento.
+        $export_path = (string) ( $export_context['path'] ?? '' );
+        $confirmed_offset = max( 0, (int) ( $export_context['offset'] ?? 0 ) );
+        if ( '' === $export_path || ! is_file( $export_path ) ) {
+            return new WP_Error( 'seo_export_missing_file', 'No existe el archivo temporal de exportacion.' );
+        }
+        clearstatcache( true, $export_path );
+        if ( (int) filesize( $export_path ) < $confirmed_offset ) {
+            return new WP_Error( 'seo_export_invalid_offset', 'El CSV temporal es mas corto que el ultimo bloque confirmado.' );
+        }
+        $output = seo_ie_stream_open( $export_path, 'c+b' );
+        if ( false === $output ) {
+            return new WP_Error( 'seo_export_file_open', 'No se pudo abrir el CSV temporal.' );
+        }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fseek -- CSV transaccional por lotes requiere posicionar un stream.
+        $seeked = fseek( $output, $confirmed_offset, SEEK_SET );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_ftruncate -- Se eliminan solo bytes de un lote no confirmado.
+        $truncated = 0 === $seeked ? ftruncate( $output, $confirmed_offset ) : false;
+        if ( 0 !== $seeked || ! $truncated ) {
+            seo_ie_stream_close( $output );
+            return new WP_Error( 'seo_export_seek', 'No se pudo recuperar la posicion del CSV temporal.' );
+        }
+        if ( 0 === $confirmed_offset ) {
+            seo_ie_stream_write( $output, "\xEF\xBB\xBF" );
+            seo_ie_write_csv_row( $output, $columns );
+        }
+    } else {
+        $output = seo_ie_open_csv_download( $filename );
+        seo_ie_write_csv_row( $output, $columns );
+    }
 
     $exported = 0;
-    for ( $export_page = 1; ; $export_page++ ) {
+    $export_complete = false;
+    $export_initial_page = $async_export ? max( 1, absint( $export_context['page'] ?? 1 ) ) : 1;
+    for ( $export_page = $export_initial_page; ; $export_page++ ) {
         $query_args['paged'] = $export_page;
         $posts_in_batch = get_posts( $query_args );
         if ( empty( $posts_in_batch ) ) {
+            $export_complete = true;
             break;
         }
         $product_ids_for_export = array_map( 'absint', wp_list_pluck( $posts_in_batch, 'ID' ) );
@@ -3152,8 +3200,27 @@ function seo_export_products_csv() {
         }
 
         if ( $export_batch_count < $export_batch_size ) {
+            $export_complete = true;
             break;
         }
+        if ( $async_export ) {
+            // Nunca intentar vaciar el catalogo entero en una peticion AJAX.
+            break;
+        }
+    }
+
+    if ( $async_export ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_ftell -- Guardamos la posicion real del stream tras escribir el lote.
+        $next_offset = ftell( $output );
+        seo_ie_stream_close( $output );
+        if ( false === $next_offset ) {
+            return new WP_Error( 'seo_export_offset_read', 'No se pudo confirmar el ultimo bloque del CSV.' );
+        }
+        return [
+            'exported' => $exported,
+            'offset'   => (int) $next_offset,
+            'complete' => $export_complete,
+        ];
     }
 
     seo_ie_stream_close( $output );
