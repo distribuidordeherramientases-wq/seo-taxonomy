@@ -721,7 +721,7 @@ if (!function_exists('seo_health_scan_launch')) {
                 array('%s','%s','%s','%s','%s'),
                 array('%d')
             );
-            $wpdb->query("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id={$run_id}");
+            $wpdb->query($wpdb->prepare("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", absint($run_id)));
             return new WP_Error('seo_health_dispatch', $response->get_error_message());
         }
         return array('run_id'=>$run_id,'scan_uuid'=>$scan_uuid,'count'=>$total_items,'mode'=>$mode);
@@ -752,7 +752,7 @@ if (!function_exists('seo_health_scan_handle_action')) {
                     array('%s','%s','%s','%s','%s'),
                     array('%d')
                 );
-                $wpdb->query("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=" . absint($active['id']));
+                $wpdb->query($wpdb->prepare("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", absint($active['id'])));
                 $msg = 'synced';
                 $detail = 'Escaneo parado y elementos pendientes liberados.';
             } else {
@@ -1070,13 +1070,13 @@ if (!function_exists('seo_health_scan_rest_results')) {
                 array('%s','%d','%d','%d','%d','%s','%s','%s','%s'),
                 array('%d')
             );
-            $wpdb->query("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=" . absint($run['id']));
+            $wpdb->query($wpdb->prepare("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", absint($run['id'])));
             return rest_ensure_response(array('ok'=>$complete_ok,'processed'=>$processed,'expected'=>$expected));
         }
         if ($event === 'failed') {
             $message = substr(sanitize_text_field((string) ($payload['error_message'] ?? 'Fallo del worker.')), 0, 4000);
             $wpdb->update($tables['runs'], array('status'=>'failed','error_message'=>$message,'callback_token_hash'=>'','completed_at'=>$now,'updated_at'=>$now), array('id'=>absint($run['id'])), array('%s','%s','%s','%s','%s'), array('%d'));
-            $wpdb->query("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=" . absint($run['id']));
+            $wpdb->query($wpdb->prepare("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", absint($run['id'])));
             return rest_ensure_response(array('ok'=>true));
         }
         return new WP_Error('seo_health_event', 'Evento no reconocido.', array('status'=>400));
