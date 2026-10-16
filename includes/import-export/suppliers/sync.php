@@ -57,6 +57,7 @@ function seo_supplier_sync_situations() {
         'nuevo'          => 'Nuevo',
         'modificado'     => 'Modificado',
         'sin_cambios'    => 'Sin cambios',
+        'pendiente_publicacion' => 'Aceptado; pendiente de publicar',
         'baja_pendiente' => 'Baja',
         'baja_aplicada'  => 'Baja aplicada',
         'reactivado'     => 'Reactivado',
@@ -746,17 +747,53 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
         ];
     }
 
-    // La fase actual importa datos por mercado al catálogo intermedio.
-    // No puede convertir títulos/precios/URLs extranjeros en la ficha española.
-    // La aplicación a WooCommerce se habilitará con la capa de ofertas localizada.
+    // Las ofertas regionales VEVOR se pueden APROBAR editorialmente sin
+    // convertirlas en un producto WooCommerce ni sobrescribir el catalogo ES.
+    // La publicacion por mercado es una fase diferente y explicita.
     if (
         0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' )
         && '' !== trim( (string) ( $row['pais_origen'] ?? '' ) )
     ) {
+        if ( 'aceptar' !== $action ) {
+            return [
+                'result'     => 'error',
+                'product_id' => absint( $row['object_id'] ?? 0 ),
+                'message'    => 'La oferta VEVOR internacional esta en el catalogo de proveedores. Las operaciones sobre WooCommerce siguen bloqueadas hasta que exista la publicacion por mercado.',
+                'warnings'   => [],
+            ];
+        }
+        if (
+            ! in_array( (string) ( $row['estado_seleccion'] ?? '' ), [ 'pendiente', 'revisar', 'aceptado' ], true )
+            || 'conflicto' === $situation
+        ) {
+            return [
+                'result'     => 'error',
+                'product_id' => 0,
+                'message'    => 'La oferta VEVOR no esta pendiente de aprobacion o requiere revision de identidad.',
+                'warnings'   => [],
+            ];
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'seo_proveedores_productos';
+        $saved = $wpdb->update(
+            $table,
+            [
+                'estado_seleccion'      => 'aceptado',
+                'estado_sincronizacion' => 'pendiente_publicacion',
+                'ultimo_error_sync'     => null,
+                'actualizado'           => current_time( 'mysql' ),
+            ],
+            [ 'id' => absint( $row['id'] ?? 0 ) ],
+            [ '%s', '%s', '%s', '%s' ],
+            [ '%d' ]
+        );
         return [
-            'result'     => 'error',
+            'result'     => false === $saved ? 'error' : 'approved_offer',
             'product_id' => absint( $row['object_id'] ?? 0 ),
-            'message'    => 'La oferta VEVOR internacional se conserva en catálogo de proveedores; falta implementar su enlace al producto y mercado WooCommerce sin sobrescribir la ficha española.',
+            'message'    => false === $saved
+                ? 'No se pudo aprobar la oferta VEVOR en el catalogo intermedio.'
+                : 'Oferta VEVOR aprobada en catalogo de proveedores. Pendiente de publicacion por mercado; no se ha creado ni modificado ningun producto WooCommerce.',
             'warnings'   => [],
         ];
     }
@@ -980,7 +1017,7 @@ function seo_supplier_sync_handle_bulk_action() {
 
     // Barreras de seguridad independientes del filtro elegido por el usuario.
     if ( 'aceptar' === $action ) {
-        $where[] = "estado_sincronizacion = 'nuevo'";
+        $where[] = "(estado_sincronizacion = 'nuevo' OR (proveedor = 'VEVOR' AND pais_origen <> '' AND estado_sincronizacion IN ('error','modificado','sin_cambios')))";
         $where[] = "estado_seleccion IN ('pendiente','revisar')";
         $where[] = '(object_id IS NULL OR object_id = 0)';
     } elseif ( 'actualizar' === $action ) {
@@ -1000,6 +1037,32 @@ function seo_supplier_sync_handle_bulk_action() {
     }
 
     $where_sql = implode( ' AND ', $where );
+    $vevor_approved = 0;
+
+    if ( 'aceptar' === $action ) {
+        // Los feeds VEVOR pueden tener miles de filas: aprobarlas en una sola
+        // consulta SQL y sin instanciar productos WooCommerce (ni descargar imagenes).
+        // Los filtros son los mismos que se aplican a los demas proveedores.
+        $approval_sql = "UPDATE {$table}
+            SET estado_seleccion = 'aceptado',
+                estado_sincronizacion = 'pendiente_publicacion',
+                ultimo_error_sync = NULL,
+                actualizado = %s
+            WHERE {$where_sql}
+              AND proveedor = %s
+              AND pais_origen <> ''";
+        $approval_args = array_merge( [ current_time( 'mysql' ) ], $params, [ 'VEVOR' ] );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Todas las entradas del filtro usan placeholders; el WHERE procede de opciones internas.
+        $approval_query = $wpdb->prepare( $approval_sql, $approval_args );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta preparada con filtros parametrizados y nombres internos.
+        $vevor_approved = $wpdb->query( $approval_query );
+        if ( false === $vevor_approved ) {
+            wp_die( 'No se pudieron aprobar las ofertas VEVOR: ' . esc_html( $wpdb->last_error ) );
+        }
+        // No volver a procesar estas filas mediante el importador WooCommerce.
+        $where_sql .= " AND NOT (proveedor = 'VEVOR' AND pais_origen <> '')";
+    }
+
     $sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id ASC";
     if ( $params ) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE is assembled from internal action rules and placeholders; external values are bound here.
@@ -1027,7 +1090,7 @@ function seo_supplier_sync_handle_bulk_action() {
         // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running administrator/worker operation with explicit bounds or recovery controls.
         @set_time_limit( 0 );}
 
-    $processed = 0;
+    $processed = absint( $vevor_approved );
     $errors    = 0;
 
     foreach ( (array) $rows as $row ) {
@@ -1056,6 +1119,7 @@ function seo_supplier_sync_handle_bulk_action() {
             'seo_sync_bulk_action'    => $action,
             'seo_sync_bulk_processed' => absint( $processed ),
             'seo_sync_bulk_errors'    => absint( $errors ),
+            'seo_sync_bulk_vevor_approved' => absint( $vevor_approved ),
         ],
         $redirect
     );
