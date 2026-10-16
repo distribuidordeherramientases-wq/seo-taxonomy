@@ -32,6 +32,7 @@ jobs:
           cp docs/wiki/Servicios.md wiki/Servicios.md
           cp docs/wiki/Flujo-de-datos.md wiki/Flujo-de-datos.md
           cp docs/wiki/Servicios-y-tablas.md wiki/Servicios-y-tablas.md
+          cp docs/wiki/Categorias-multidioma.md wiki/Categorias-multidioma.md
 
           python3 - <<'PY'
           from pathlib import Path
@@ -137,6 +138,7 @@ jobs:
             - [[Ojeador|Ojeador]]
           - [[Comentarista|Comentarista]]
           - [[Servicios y tablas|Servicios-y-tablas]]
+          - [[Categorías multidioma|Categorias-multidioma]]
           - [[Conexiones y credenciales|Conexiones-y-credenciales]]
           <!-- SEO-TAXONOMY-SIDEBAR-MANUAL:END -->"""
 
