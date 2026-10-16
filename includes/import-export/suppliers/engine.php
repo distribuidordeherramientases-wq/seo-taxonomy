@@ -5865,10 +5865,6 @@ function seo_proveedores_actualizar_estado_masivo() {
 function seo_proveedores_render_catalogo() {
     global $wpdb;
 
-    // Las ofertas regionales aceptadas aun no son fichas WooCommerce.
-    // Mostrar un puente explicito y limitado de creacion de borradores.
-    do_action( 'seo_vevor_region_batch_card' );
-
     $table  = seo_proveedores_tabla_productos();
     $exists = $wpdb->get_var(
         $wpdb->prepare(
@@ -5881,6 +5877,9 @@ function seo_proveedores_render_catalogo() {
         echo '<div class="notice notice-error"><p>No existe la tabla de productos de proveedores.</p></div>';
         return;
     }
+
+    // El servicio se muestra solo cuando el catalogo intermedio existe.
+    do_action( 'seo_vevor_region_batch_card' );
 
     // The read-only supplier catalog CSV export was already implemented but
     // never rendered. Show it before the catalog filters so a regional VEVOR
