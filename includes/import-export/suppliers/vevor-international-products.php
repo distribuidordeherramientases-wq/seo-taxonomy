@@ -345,15 +345,29 @@ function seo_vevor_region_batch_card() {
     <div class="card" style="max-width:none;padding:20px;">
         <h2>VEVOR internacional: crear fichas de producto para revisar</h2>
         <p>Al aceptar <strong>una oferta individual</strong> de US, DE o NL, el plugin intenta crear su ficha WooCommerce en <code>draft</code> con categoria validada. Las antiguas aceptaciones masivas solo actualizaron el catalogo intermedio: este bloque recupera esas ofertas pendientes en tandas de cinco, sin volver a importar los CSV ni modificar productos espanoles.</p>
-        <p><strong>Ofertas VEVOR anteriormente aceptadas pero todavia sin ficha WooCommerce:</strong>
+        <p><strong>Ofertas aceptadas sin vínculo WooCommerce:</strong>
             <?php if ( empty( $backlog ) ) : ?>
                 0
             <?php else : ?>
-                <?php foreach ( (array) $backlog as $market_backlog ) : ?>
-                    <?php echo esc_html( strtoupper( (string) $market_backlog['pais_origen'] ) . ': ' . number_format_i18n( absint( $market_backlog['total'] ) ) ); ?>&nbsp;
+                <?php foreach ( (array) $backlog as $market_backlog ) :
+                    $code = strtoupper( (string) ( $market_backlog['pais_origen'] ?? '' ) );
+                    $target_url = add_query_arg(
+                        array(
+                            'page' => 'seo-import-export',
+                            'seo_ie_tab' => 'catalogo-proveedores',
+                            'f_proveedor' => 'VEVOR',
+                            'f_estado' => 'aceptado',
+                            'f_pais' => $code,
+                            'f_woo_link' => 'accepted_unlinked',
+                        ),
+                        admin_url( 'admin.php' )
+                    );
+                    ?>
+                    <a href="<?php echo esc_url( $target_url ); ?>"><?php echo esc_html( $code . ': ' . number_format_i18n( absint( $market_backlog['total'] ) ) ); ?></a>&nbsp;
                 <?php endforeach; ?>
             <?php endif; ?>
         </p>
+        <p class="description">Pulsa en US, DE o NL para ver las ofertas aceptadas pendientes de convertir o de enlazar con una ficha existente. No son productos WooCommerce en borrador. El recuento procede de la base de datos actual y se recalcula al abrir la pantalla.</p>
         <?php if ( ! empty( $report ) ) : ?>
             <div class="notice notice-info inline"><p>
                 <?php echo esc_html( sprintf( 'Nuevas fichas: %d. Fichas anteriores vinculadas: %d.', absint( $report['created'] ?? 0 ), absint( $report['existing'] ?? 0 ) ) ); ?>
