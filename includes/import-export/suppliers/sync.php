@@ -1040,9 +1040,16 @@ function seo_supplier_sync_handle_bulk_action() {
 
     // Barreras de seguridad independientes del filtro elegido por el usuario.
     if ( 'aceptar' === $action ) {
-        $where[] = "estado_sincronizacion = 'nuevo'";
         $where[] = "estado_seleccion IN ('pendiente','revisar')";
-        $where[] = '(object_id IS NULL OR object_id = 0)';
+        if ( 0 === strcasecmp( $provider, 'VEVOR' ) ) {
+            // La oferta comercial puede estar pendiente aunque su situacion
+            // tecnica ya sea sin_cambios tras una importacion anterior.
+            // Conflictos, errores y bajas no se aprueban masivamente.
+            $where[] = "estado_sincronizacion NOT IN ('conflicto','error','baja_pendiente','baja_aplicada')";
+        } else {
+            $where[] = "estado_sincronizacion = 'nuevo'";
+            $where[] = '(object_id IS NULL OR object_id = 0)';
+        }
     } elseif ( 'actualizar' === $action ) {
         $where[] = "estado_sincronizacion IN ('modificado','error')";
         $where[] = "estado_seleccion = 'aceptado'";
