@@ -131,7 +131,10 @@ if (!function_exists('dht_us_stock_alert_feedback')) {
 if (!function_exists('dht_us_handle_stock_alert_request')) {
     function dht_us_handle_stock_alert_request()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['dht_stock_alert_submit'])) {
+        $request_method = isset($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD'])
+            ? strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'])))
+            : '';
+        if ('POST' !== $request_method || empty($_POST['dht_stock_alert_submit'])) {
             return;
         }
 
