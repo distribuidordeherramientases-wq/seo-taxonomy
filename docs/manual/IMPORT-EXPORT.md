@@ -50,6 +50,31 @@ Seleccionar Receta y Archivo, **Leer archivo y mostrar relaciones**, revisar col
 ## Importar Amazon
 Partner Tag, checkbox para eliminarlo, Client ID, Secret, versión, Search Index y productos por llamada. **Guardar configuración**, **Explorar Amazon**, **Explorar** y **Probar conexión OAuth**.
 
+## VEVOR internacional: convertir ofertas aceptadas en productos revisables
+
+**Importación y aprobación no equivalen a publicación.** Los CSV Goods_Export de VEVOR US/DE/NL se incorporan al catálogo intermedio `seo_proveedores_productos` con país, idioma, nombre, categoría original, precio, imagen externa y enlace afiliado. La aprobación comercial marca `estado_seleccion=aceptado` **sin crear un producto WooCommerce**.
+
+En **Importar / Exportar → Catálogo de proveedores**, el bloque **VEVOR internacional: crear fichas de producto para revisar** permite crear los productos reales de forma controlada:
+
+1. Seleccionar país US/DE/NL y **categoría WooCommerce internacional existente**.
+2. Introducir la **ruta exacta `categoryPath`** de VEVOR. La selección no toma automáticamente productos de otras categorías.
+3. Pulsar **Previsualizar ofertas**. Comprueba las primeras cinco ofertas aceptadas que no tengan producto enlazado.
+4. Confirmar y pulsar **Crear hasta 5 fichas en borrador**.
+5. Revisar fichas en **WooCommerce → Productos → Borrador**: categoría/país, texto disponible, imagen externa, enlace de afiliación, tipo de producto **External** y monedas.
+6. Publicar únicamente fichas revisadas. La publicación no es automática.
+
+### Seguridad del piloto
+
+- Cada alta usa un SKU WooCommerce diferenciado por país; conserva la referencia original VEVOR. Repetir la acción reutiliza productos previos en vez de duplicarlos.
+- Si ya existe una ficha del piloto de ese mismo mercado, se vincula sin sobrescribirla; **nunca se actualiza una ficha española**.
+- Se exige URL HTTPS VEVOR del país, los parámetros de afiliación y moneda esperada, título e imagen externa.
+- El producto se crea como **externo** para enviar a VEVOR, no al carrito español.
+- El precio original se conserva en metadatos con su moneda; no se representa erróneamente USD como EUR en WooCommerce.
+- No crea hubs, clusters ni categorías; estas deben existir antes de vincular.
+- No se debe ejecutar ningún alta masiva hasta probar esta fase en STAGING y contrastar el catálogo intermedio real.
+
+**Referencias:** [Importador multidioma](../wiki/Categorias-multidioma.md); diagnóstico del flujo VEVOR US/DE/NL.
+
 ## Catálogo de proveedores
 Checkboxes de columnas visibles, filtros, checkboxes de selección y selector de acción masiva. Acciones por fila: **Aceptar**, **Descartar**, **Actualizar**, **Aplicar baja**, **Reactivar**, **Reintentar actualización**.
 
