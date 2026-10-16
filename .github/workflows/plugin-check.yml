@@ -7,6 +7,12 @@ on:
       - staging
       - main
   workflow_dispatch:
+    inputs:
+      release_gate:
+        description: 'Strict WordPress.org release gate (no Plugin Check warnings, ZIP under 10 MB)'
+        required: true
+        type: boolean
+        default: true
 
 concurrency:
   group: wp-plugin-check-${{ github.event.pull_request.number || github.ref }}
@@ -38,9 +44,22 @@ jobs:
             --exclude='SUPPLIER-SYNC-V2.md' \
             ./ build/taxocommerce-seo/
 
+      - name: Validate WordPress.org package metadata and ZIP size
+        env:
+          RELEASE_GATE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_gate && 'true' || 'false' }}
+        run: python3 .github/scripts/wordpress_quality_gate.py package build/taxocommerce-seo --strict "$RELEASE_GATE"
+
       - name: Run WordPress Plugin Check
         uses: wordpress/plugin-check-action@v1
         with:
           build-dir: './build/taxocommerce-seo'
           slug: taxocommerce-seo
           wp-version: latest
+          ignore-warnings: false
+          ignore-errors: false
+
+      - name: Report warnings and enforce quality gate
+        if: always()
+        env:
+          RELEASE_GATE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_gate && 'true' || 'false' }}
+        run: python3 .github/scripts/wordpress_quality_gate.py report "$RUNNER_TEMP/plugin-check-results.txt" --strict "$RELEASE_GATE"
