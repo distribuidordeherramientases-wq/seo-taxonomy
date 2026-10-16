@@ -6338,7 +6338,9 @@ function seo_proveedores_render_catalogo() {
                         ? esc_html( $fallback_category['name'] )
                         : 'No configurada'; ?>
                 </strong>.
-                Los productos aceptados continúan siendo borradores ocultos.
+                Los productos de proveedores nacionales aceptados siguen el flujo WooCommerce habitual.
+                En VEVOR internacional, Aceptar valida la oferta en el catalogo intermedio;
+                la publicacion localizada en WooCommerce es una fase posterior.
             </p>
         </div>
 
