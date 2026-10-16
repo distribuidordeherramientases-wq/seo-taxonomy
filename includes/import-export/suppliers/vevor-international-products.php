@@ -52,6 +52,60 @@ function seo_vevor_region_product_market( $product_id ) {
     return count( $found ) === 1 ? (string) key( $found ) : '';
 }
 
+/**
+ * Resolve only a clear, market-local category from the VEVOR categoryPath.
+ * Fails closed: never fallback to a Spanish category or a generic market root.
+ */
+function seo_vevor_region_category_for_offer( array $row ) {
+    $market = strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) );
+    if ( ! in_array( $market, array( 'US', 'DE', 'NL' ), true ) ) {
+        return new WP_Error( 'vevor_market_invalid', 'El mercado VEVOR no esta soportado.' );
+    }
+    $path = trim( (string) ( $row['categoria_proveedor'] ?? '' ) );
+    if ( '' === $path ) {
+        return new WP_Error( 'vevor_category_missing', 'La oferta no contiene categoryPath; selecciona su categoria internacional en el servicio de revision.' );
+    }
+    // VEVOR category paths are hierarchy labels, not arbitrary keywords.
+    $segments = preg_split( '/\s*(?:>|»|::|\||\/)\s*/u', $path );
+    $parts = array();
+    foreach ( (array) $segments as $index => $segment ) {
+        $key = sanitize_title( trim( $segment ) );
+        if ( '' !== $key ) {
+            $parts[ $key ] = max( (int) ( $parts[ $key ] ?? -1 ), (int) $index );
+        }
+    }
+    $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) );
+    if ( is_wp_error( $terms ) ) {
+        return $terms;
+    }
+    $best = array();
+    $score = -1;
+    foreach ( (array) $terms as $term ) {
+        if ( seo_vevor_region_category_market( $term->term_id ) !== $market ) {
+            continue;
+        }
+        $key = sanitize_title( (string) $term->name );
+        if ( ! isset( $parts[ $key ] ) ) {
+            continue;
+        }
+        // Prefer the deepest matched VEVOR path segment.
+        $current = (int) $parts[ $key ];
+        if ( $current > $score ) {
+            $best = array( (int) $term->term_id );
+            $score = $current;
+        } elseif ( $current === $score ) {
+            $best[] = (int) $term->term_id;
+        }
+    }
+    if ( 1 !== count( $best ) ) {
+        return new WP_Error(
+            'vevor_category_review',
+            'No se ha identificado una categoria internacional inequivoca para categoryPath. Usa el bloque VEVOR internacional y selecciona la categoria.'
+        );
+    }
+    return $best[0];
+}
+
 function seo_vevor_region_existing_product( array $row, $market, $regional_sku ) {
     $linked_id = absint( $row['object_id'] ?? 0 );
     if ( $linked_id && 'product' === get_post_type( $linked_id ) && 'trash' !== get_post_status( $linked_id ) ) {
@@ -97,7 +151,7 @@ function seo_vevor_region_apply_offer( array $row, $market, $category_id ) {
     }
     if ( 'VEVOR' !== strtoupper( trim( (string) ( $row['proveedor'] ?? '' ) ) ) ||
         $market !== strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ) ||
-        'aceptado' !== (string) ( $row['estado_seleccion'] ?? '' ) ||
+        ! in_array( (string) ( $row['estado_seleccion'] ?? '' ), array( 'pendiente', 'revisar', 'aceptado' ), true ) ||
         $market !== seo_vevor_region_category_market( $category_id ) ) {
         return new WP_Error( 'vevor_invalid_scope', 'Proveedor, pais, aprobacion o categoria incorrectos.' );
     }
@@ -134,7 +188,7 @@ function seo_vevor_region_apply_offer( array $row, $market, $category_id ) {
             $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1", absint( $row['id'] ?? 0 ) ),
             ARRAY_A
         );
-        if ( ! is_array( $fresh ) || 'aceptado' !== (string) ( $fresh['estado_seleccion'] ?? '' ) ||
+        if ( ! is_array( $fresh ) || ! in_array( (string) ( $fresh['estado_seleccion'] ?? '' ), array( 'pendiente', 'revisar', 'aceptado' ), true ) ||
             $market !== strtoupper( (string) ( $fresh['pais_origen'] ?? '' ) ) ) {
             return new WP_Error( 'vevor_offer_changed', 'La oferta ha cambiado durante el proceso.' );
         }
