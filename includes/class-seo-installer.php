@@ -431,6 +431,8 @@ final class SEO_System_Installer
         $queries[] = "CREATE TABLE {$provider_products} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             proveedor VARCHAR(190) NOT NULL,
+            pais VARCHAR(2) NOT NULL DEFAULT '',
+            idioma VARCHAR(12) NOT NULL DEFAULT '',
             proveedor_id_externo VARCHAR(190) NOT NULL,
             sku VARCHAR(190) NOT NULL DEFAULT '',
             mpn VARCHAR(190) NOT NULL DEFAULT '',
@@ -469,6 +471,8 @@ final class SEO_System_Installer
             PRIMARY KEY  (id),
             KEY proveedor_externo (proveedor, proveedor_id_externo),
             KEY proveedor_sku (proveedor, sku),
+            KEY proveedor_pais_externo (proveedor, pais, proveedor_id_externo),
+            KEY proveedor_pais_sku (proveedor, pais, sku),
             KEY object_id (object_id),
             KEY estado_seleccion (estado_seleccion),
             KEY estado_sincronizacion (estado_sincronizacion),
