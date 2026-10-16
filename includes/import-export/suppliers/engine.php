@@ -4899,6 +4899,21 @@ function seo_proveedores_resolver_modo_imagenes_externas( array $row, $requested
  * }
  */
 function seo_proveedores_crear_borrador_desde_fila( array $row, $comision_descuento = 20, $comision_original = 45, $imagenes_externas = false ) {
+    // Barrera central: toda ruta de creacion/actualizacion usa esta funcion.
+    // No es seguro importar precios, URLs y titulos de un mercado VEVOR
+    // directamente sobre un producto WooCommerce del catalogo espanol.
+    if (
+        0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' )
+        && '' !== trim( (string) ( $row['pais_origen'] ?? '' ) )
+    ) {
+        return [
+            'result'     => 'error',
+            'product_id' => absint( $row['object_id'] ?? 0 ),
+            'message'    => 'Oferta VEVOR regional: aceptala desde Acciones del catalogo; su vinculo comercial a WooCommerce sigue pendiente.',
+            'warnings'   => [],
+        ];
+    }
+
     if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'WC_Product_Simple' ) ) {
         return [
             'result'     => 'error',
@@ -5572,6 +5587,7 @@ function seo_proveedores_actualizar_estado_masivo() {
     $external_synced_urls     = 0;
     $external_without_source  = 0;
     $external_sync_errors     = 0;
+    $vevor_approved           = 0;
 
     if ( in_array( $estado, [ 'aceptado', 'actualizar' ], true ) ) {
         /*
@@ -5619,6 +5635,38 @@ function seo_proveedores_actualizar_estado_masivo() {
             // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Explicit admin bulk operation may exceed the host's default execution time.
             @set_time_limit( 0 );
         }
+
+        // La accion masiva legada aprueba ofertas VEVOR regionales sin
+        // convertirlas en productos WooCommerce espanoles.
+        if ( 'aceptado' === $estado ) {
+            $vevor_sql = "UPDATE {$table}
+                SET estado_seleccion = 'aceptado',
+                    estado_sincronizacion = 'sin_cambios',
+                    hash_aplicado = hash_producto,
+                    snapshot_aplicado = NULL,
+                    cambios_detectados = '',
+                    ultimo_error_sync = NULL,
+                    actualizado = %s
+                WHERE {$where_sql}
+                  AND proveedor = %s
+                  AND pais_origen <> ''
+                  AND idioma_origen <> ''
+                  AND estado_seleccion IN ('pendiente','revisar')
+                  AND estado_sincronizacion NOT IN ('conflicto','error','baja_pendiente','baja_aplicada')";
+            $vevor_args = array_merge( [ current_time( 'mysql' ) ], $params, [ 'VEVOR' ] );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE de filtros internos, todos los valores parametrizados.
+            $vevor_query = $wpdb->prepare( $vevor_sql, $vevor_args );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta preparada sobre tabla interna.
+            $vevor_approved = $wpdb->query( $vevor_query );
+            if ( false === $vevor_approved ) {
+                wp_die( 'Error al aprobar ofertas VEVOR: ' . esc_html( $wpdb->last_error ) );
+            }
+            $updated += absint( $vevor_approved );
+        }
+
+        // Excluir SIEMPRE a VEVOR internacional del procesador WooCommerce
+        // legado, tambien para las operaciones de actualizacion.
+        $where_sql .= " AND NOT (proveedor = 'VEVOR' AND pais_origen <> '')";
 
         $select_sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id ASC";
         if ( $params ) {
@@ -5784,6 +5832,7 @@ function seo_proveedores_actualizar_estado_masivo() {
             'seo_bulk_external_urls'       => absint( $external_synced_urls ),
             'seo_bulk_external_empty'      => absint( $external_without_source ),
             'seo_bulk_external_errors'     => absint( $external_sync_errors ),
+            'seo_bulk_vevor_approved'       => absint( $vevor_approved ),
         ],
         $redirect
     );
@@ -6264,6 +6313,8 @@ function seo_proveedores_render_catalogo() {
         'seo_sync_bulk_action',
         'seo_sync_bulk_processed',
         'seo_sync_bulk_errors',
+        'seo_sync_market_offers',
+        'seo_bulk_vevor_approved',
     ];
     ?>
 
@@ -6320,6 +6371,18 @@ function seo_proveedores_render_catalogo() {
                 Los productos aceptados continúan siendo borradores ocultos.
             </p>
         </div>
+
+        <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
+            <div class="notice notice-info inline" style="margin:15px 0;padding:12px;">
+                <p style="margin:0;">
+                    <strong>VEVOR internacional:</strong> Aceptar una oferta con Pais e Idioma
+                    la valida en el catalogo de proveedores sin crear borradores ni modificar
+                    los productos espanoles de WooCommerce. Las ofertas aceptadas se consultan
+                    con el filtro Seleccion = Aceptado. Su vinculacion con las fichas publicas
+                    internacionales es una fase posterior.
+                </p>
+            </div>
+        <?php endif; ?>
 
         <?php if ( ! $fallback_category['valid'] ) : ?>
             <div class="notice notice-error inline">
@@ -6390,6 +6453,16 @@ function seo_proveedores_render_catalogo() {
             </div>
         <?php endif; ?>
 
+        <?php if ( '1' === (string) seo_proveedores_query_arg( 'seo_sync_market_offers', '' ) ) : ?>
+            <div class="notice notice-info inline">
+                <p><strong>Ofertas VEVOR validadas:</strong>
+                    <?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_sync_bulk_processed', 0 ) ) ) ); ?>.
+                    Errores: <?php echo esc_html( absint( seo_proveedores_query_arg( 'seo_sync_bulk_errors', 0 ) ) ); ?>.
+                    No se han creado ni actualizado productos WooCommerce.
+                    Cambia el filtro Seleccion a Aceptado para verlas.</p>
+            </div>
+        <?php endif; ?>
+
         <?php if ( '' !== (string) seo_proveedores_query_arg( 'seo_bulk_updated', '' ) ) : ?>
             <?php
             $bulk_updated = absint( seo_proveedores_query_arg( 'seo_bulk_updated', '' ) );
@@ -6403,6 +6476,11 @@ function seo_proveedores_render_catalogo() {
                     registros procesados como
                     <strong><?php echo esc_html( $bulk_label ); ?></strong>.
 
+                    <?php if ( absint( seo_proveedores_query_arg( 'seo_bulk_vevor_approved', 0 ) ) > 0 ) : ?>
+                        Ofertas VEVOR aceptadas en catalogo (pendientes de publicar):
+                        <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_vevor_approved', 0 ) ) ) ); ?></strong>.
+                        No se ha creado ni modificado ningun producto WooCommerce.
+                    <?php endif; ?>
                     <?php if ( in_array( $bulk_estado, [ 'aceptado', 'actualizar' ], true ) ) : ?>
                         Creados como borrador:
                         <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_bulk_created', 0 ) ) ) ); ?></strong>.
@@ -6701,6 +6779,11 @@ function seo_proveedores_render_catalogo() {
             <hr style="margin:22px 0 18px;">
 
             <h3 style="margin-bottom:6px;">Acción sobre todos los resultados filtrados</h3>
+
+            <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
+                <p><strong>VEVOR:</strong> Aceptar valida las ofertas por pais en el catalogo
+                    intermedio. No publica fichas WooCommerce ni modifica la tienda espanola.</p>
+            <?php endif; ?>
 
             <p style="margin-top:0;">
                 El cambio afectará a los
