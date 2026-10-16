@@ -19,3 +19,29 @@ jobs:
       - uses: actions/checkout@v4
       - name: Lint all PHP
         run: find . -type f -name '*.php' -not -path './vendor/*' -not -path './.git/*' -print0 | sort -z | xargs -0 -n1 php -l
+      - name: Check provider export SQL was not swallowed by phpcs comments
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path("includes/import-export/suppliers/engine.php")
+          source = path.read_text(encoding="utf-8")
+          # The literal sequence \\n after a PHP // comment can swallow the
+          # following SQL assignment without producing a PHP syntax error.
+          swallowed = re.findall(r'// phpcs:ignore[^\r\n]*\\n[ \t]*\
+, source)
+          assert not swallowed, f"{len(swallowed)} PHP statements commented by literal \\n"
+          required = [
+              "$post_rows = $wpdb->get_results( $post_sql, ARRAY_A );",
+              "$term_rows = $wpdb->get_results( $term_sql, ARRAY_A );",
+              "$semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );",
+              "$canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );",
+              "$count_sql = $wpdb->prepare( $count_sql, $params );",
+              "$total = absint( $wpdb->get_var( $count_sql ) );",
+              "$sql = $wpdb->prepare( $sql, $batch_params );",
+              "$rows = $wpdb->get_results( $sql, ARRAY_A );",
+          ]
+          for statement in required:
+              assert re.search(r"^\s*" + re.escape(statement) + r"\s*$", source, re.M), statement
+          print("Supplier export SQL statements are executable and not commented.")
+          PY
