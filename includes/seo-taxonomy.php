@@ -19,7 +19,7 @@ defined('ABSPATH') || exit;
 function seo_render_taxonomy_hierarchy($show_excerpt = false) {
     global $wpdb;
     
-    $nodes = $wpdb->get_results("SELECT object_id, seo_role FROM wp_seo_nodes WHERE status=1");
+    $nodes = $wpdb->get_results("SELECT object_id, seo_role FROM {$wpdb->prefix}seo_nodes WHERE status=1");
     
     $map = [];
     foreach ($nodes as $n) {
@@ -49,7 +49,7 @@ function seo_render_taxonomy_hierarchy($show_excerpt = false) {
         echo "</h3>";
     
         $hubs_primary_rel = $wpdb->get_results($wpdb->prepare("
-            SELECT DISTINCT r.target_id FROM wp_seo_relations r
+            SELECT DISTINCT r.target_id FROM {$wpdb->prefix}seo_relations r
             WHERE r.source_type='cluster' AND r.source_id=%d AND r.relation_type='cluster_to_primary'
         ", $cluster_id));
     
@@ -64,7 +64,7 @@ function seo_render_taxonomy_hierarchy($show_excerpt = false) {
             }
     
             $hubs_secondary_rel = $wpdb->get_results($wpdb->prepare("
-                SELECT DISTINCT r.target_id FROM wp_seo_relations r
+                SELECT DISTINCT r.target_id FROM {$wpdb->prefix}seo_relations r
                 WHERE r.source_type='hub_primary' AND r.source_id=%d AND r.relation_type='hub_primary_to_hub_secondary'
             ", $hp->target_id));
     
@@ -82,7 +82,7 @@ function seo_render_taxonomy_hierarchy($show_excerpt = false) {
                     SELECT DISTINCT c.term_id, c.name
                     FROM {$wpdb->terms} c
                     INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = c.term_id
-                    INNER JOIN wp_seo_relations r ON r.target_id = c.term_id
+                    INNER JOIN {$wpdb->prefix}seo_relations r ON r.target_id = c.term_id
                     WHERE r.source_type='hub_secondary' AND r.source_id=%d AND r.target_type='product_cat'
                     ORDER BY c.name ASC
                 ", $hs->target_id));
