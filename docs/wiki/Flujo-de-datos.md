@@ -127,6 +127,25 @@ flowchart TD
     ACT --> ACA
 ```
 
+## Flujo internacional: categorías traducidas
+
+```mermaid
+flowchart TD
+    ES[Categoría española verificada] --> CSV[CSV de traducciones con source_slug]
+    CSV --> IMP[Importador de categorías multidioma]
+    IMP --> WC[Crear / actualizar product_cat del mercado]
+    IMP --> LOCALE[Registrar _seo_locale en termmeta]
+    IMP --> SEO[Persistir excerpt / description en seo_nodes]
+    ES --> REL[seo_relations: category_translation]
+    WC --> REL
+    REL --> FUT[Informes por familia y desglose por país: integración posterior]
+    WC --> PRODUCTS[Asignación posterior de productos internacionales]
+```
+
+La equivalencia `source_slug` → `product_cat` español es explícita y debe verificarse. El proceso **no mueve productos**, no crea redirecciones ni cambia el padre español. Cada destino tiene sus datos WooCommerce y sus propias URLs, pero la relación lógica permite identificar las distintas traducciones de una categoría. Los IDs se resuelven localmente en PRO o STAGING; Clonador debe remapear ambos extremos de `category_translation`.
+
+El importador regional se describe en [[Categorías multidioma|Categorias-multidioma]] y en [Import / Export](../manual/IMPORT-EXPORT.md). Está propuesto en el PR #914; la agregación efectiva de los servicios de informes es trabajo posterior.
+
 ## Lectura funcional
 
 ### 1. Catálogo y conocimiento canónico

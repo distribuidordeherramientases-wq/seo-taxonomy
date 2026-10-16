@@ -18,7 +18,7 @@ if (!function_exists('seo_analista_table_exists')) {
         global $wpdb;
         $table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $table);
         if ($table === '') return false;
-        return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
+        return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table;
     }
 }
 

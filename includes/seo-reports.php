@@ -2657,7 +2657,7 @@ function seo_recount_product_categories_handler() {
 function seo_render_anomalies_report() {
     global $wpdb;
 
-    $nodes = $wpdb->get_results("SELECT object_id, seo_role FROM wp_seo_nodes WHERE status=1");
+    $nodes = $wpdb->get_results("SELECT object_id, seo_role FROM {$wpdb->prefix}seo_nodes WHERE status=1");
     
     $map = [];
     foreach ($nodes as $n) {
@@ -2686,7 +2686,7 @@ function seo_render_anomalies_report() {
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px;">Clusters sin hubs primarios</h3>';
     $has_clusters_anomalies = false;
     foreach ($clusters as $cluster_id) {
-        $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM wp_seo_relations WHERE source_type='cluster' AND source_id=%d AND relation_type='cluster_to_primary'", $cluster_id));
+        $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE source_type='cluster' AND source_id=%d AND relation_type='cluster_to_primary'", $cluster_id));
         if ($count == 0) {
             echo "• " . esc_html(get_the_title($cluster_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $cluster_id) . ")</code><br>";
             $has_clusters_anomalies = true;
@@ -2697,7 +2697,7 @@ function seo_render_anomalies_report() {
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">Hubs primarios sin cluster</h3>';
     $has_hp_anomalies = false;
     foreach ($hubs_primary as $hp_id) {
-        $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM wp_seo_relations WHERE target_id=%d AND relation_type='cluster_to_primary'", $hp_id));
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE target_id=%d AND relation_type='cluster_to_primary'", $hp_id));
         if ($exists == 0) {
             echo "• " . esc_html(get_the_title($hp_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $hp_id) . ")</code><br>";
             $has_hp_anomalies = true;
@@ -2708,7 +2708,7 @@ function seo_render_anomalies_report() {
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">Hubs secundarios sin hub primary</h3>';
     $has_hs_anomalies = false;
     foreach ($hubs_secondary as $hs_id) {
-        $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM wp_seo_relations WHERE target_id=%d AND relation_type='hub_primary_to_hub_secondary'", $hs_id));
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE target_id=%d AND relation_type='hub_primary_to_hub_secondary'", $hs_id));
         if ($exists == 0) {
             echo "• " . esc_html(get_the_title($hs_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $hs_id) . ")</code><br>";
             $has_hs_anomalies = true;
@@ -2849,7 +2849,7 @@ function seo_render_anomalies_report() {
     
     
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">Hubs primarios en múltiples clusters</h3>';
-    $multi = $wpdb->get_results("SELECT target_id, COUNT(*) as c FROM wp_seo_relations WHERE relation_type='cluster_to_primary' GROUP BY target_id HAVING c > 1");
+    $multi = $wpdb->get_results("SELECT target_id, COUNT(*) as c FROM {$wpdb->prefix}seo_relations WHERE relation_type='cluster_to_primary' GROUP BY target_id HAVING c > 1");
     if (!empty($multi)) {
         foreach ($multi as $m) {
             echo "• " . esc_html(get_the_title($m->target_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $m->target_id) . ")</code> - <strong>" . esc_html((string) $m->c) . " clusters</strong><br>";
@@ -2859,10 +2859,10 @@ function seo_render_anomalies_report() {
     }
     
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">Landings sin hub secondary</h3>';
-    $landings = $wpdb->get_results("SELECT DISTINCT target_id FROM wp_seo_relations WHERE target_type='landing_page'");
+    $landings = $wpdb->get_results("SELECT DISTINCT target_id FROM {$wpdb->prefix}seo_relations WHERE target_type='landing_page'");
     $has_landings_anomalies = false;
     foreach ($landings as $l) {
-        $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM wp_seo_relations WHERE target_id=%d AND relation_type='hub_secondary_to_landing'", $l->target_id));
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE target_id=%d AND relation_type='hub_secondary_to_landing'", $l->target_id));
         if ($exists == 0) {
             echo "• " . esc_html(get_the_title($l->target_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $l->target_id) . ")</code><br>";
             $has_landings_anomalies = true;
@@ -3263,7 +3263,7 @@ function seo_render_anomalies_report() {
     
     echo '<h3 style="color:#ff9800; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">⚠️ Categorías sin asignación estructural</h3>';
     $cats = get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false]);
-    $used = $wpdb->get_col("SELECT DISTINCT target_id FROM wp_seo_relations WHERE target_type='product_cat'");
+    $used = $wpdb->get_col("SELECT DISTINCT target_id FROM {$wpdb->prefix}seo_relations WHERE target_type='product_cat'");
     
     $has_cats_anomalies = false;
     foreach ($cats as $c) {
@@ -3630,7 +3630,7 @@ function seo_render_anomalies_report() {
     
     $duplicate_cats = $wpdb->get_results("
         SELECT r.target_id as cat_id, COUNT(*) as repetido_veces
-        FROM wp_seo_relations r 
+        FROM {$wpdb->prefix}seo_relations r 
         WHERE r.source_type = 'hub_secondary' 
           AND r.target_type = 'product_cat'
         GROUP BY r.target_id 
@@ -3646,7 +3646,7 @@ function seo_render_anomalies_report() {
                 echo "• 🚨 La categoría <strong>" . esc_html($term->name) . "</strong> <code style='font-size:12px;'> (Cat ID: " . esc_html((string) $dup->cat_id) . ")</code> está asignada en <strong>" . esc_html((string) $dup->repetido_veces) . " Hubs Secundarios</strong> diferentes:";
                 
                 $associated_hubs = $wpdb->get_results($wpdb->prepare("
-                    SELECT source_id FROM wp_seo_relations 
+                    SELECT source_id FROM {$wpdb->prefix}seo_relations 
                     WHERE source_type = 'hub_secondary' 
                       AND target_type = 'product_cat' 
                       AND target_id = %d

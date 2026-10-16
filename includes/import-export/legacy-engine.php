@@ -11592,6 +11592,7 @@ function seo_import_export_page() {
                 </div>
 
                 <div class="card" style="max-width:none;padding:20px;"><h2>Importar categorías</h2><p>Crea o actualiza categorías. Si category_id está vacío, reutiliza por slug/nombre o crea la categoría. Admite imagen_destacada_id e imagen_destacada (URL); la URL puede descargar la imagen a Medios y se usa para evitar asociar un ID incorrecto. hub_secondary_id permite asignarla a la jerarquía SEO.</p><form method="post" enctype="multipart/form-data"><?php wp_nonce_field( 'seo_import_categories_csv', 'seo_import_categories_nonce' ); ?><input type="file" name="categories_csv" accept=".csv,text/csv" required><p><button type="submit" name="seo_import_categories" value="1" class="button button-primary">Importar categorías</button></p></form></div>
+                <?php do_action( 'seo_ie_category_translations_form' ); ?>
                     
 
                 <div class="card" style="max-width:none;padding:20px;">
