@@ -2669,11 +2669,20 @@ function seo_ie_batch_render_page() {
             productos, categorias, paginas, entradas (posts), FAQs o redirects. El catalogo bruto de proveedores se importa desde su pestana independiente.
         </p>
 
-        <?php if ( ! empty( $_GET['seo_ie_batch_message'] ) ) : ?>
-            <div class="notice notice-success inline"><p><?php echo esc_html( rawurldecode( wp_unslash( $_GET['seo_ie_batch_message'] ) ) ); ?></p></div>
+        <?php
+        // Notices are read-only URL parameters. Validate and sanitize before display.
+        $batch_message = isset( $_GET['seo_ie_batch_message'] ) && is_string( $_GET['seo_ie_batch_message'] )
+            ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['seo_ie_batch_message'] ) ) )
+            : '';
+        $batch_error = isset( $_GET['seo_ie_batch_error'] ) && is_string( $_GET['seo_ie_batch_error'] )
+            ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['seo_ie_batch_error'] ) ) )
+            : '';
+        ?>
+        <?php if ( '' !== $batch_message ) : ?>
+            <div class="notice notice-success inline"><p><?php echo esc_html( $batch_message ); ?></p></div>
         <?php endif; ?>
-        <?php if ( ! empty( $_GET['seo_ie_batch_error'] ) ) : ?>
-            <div class="notice notice-error inline"><p><?php echo esc_html( rawurldecode( wp_unslash( $_GET['seo_ie_batch_error'] ) ) ); ?></p></div>
+        <?php if ( '' !== $batch_error ) : ?>
+            <div class="notice notice-error inline"><p><?php echo esc_html( $batch_error ); ?></p></div>
         <?php endif; ?>
         <?php if ( ! empty( $snapshot['errors'] ) ) : ?>
             <div class="notice notice-error inline"><p><?php echo esc_html( implode( ' ', $snapshot['errors'] ) ); ?></p></div>
