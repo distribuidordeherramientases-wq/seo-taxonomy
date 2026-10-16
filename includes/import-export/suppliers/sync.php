@@ -812,11 +812,18 @@ function seo_supplier_sync_handle_single_action() {
         wp_die( 'No se ha encontrado el producto del proveedor.' );
     }
 
+    // Normalize only scalar POST values before passing them to the commission parser.
+    $posted_sale = isset( $_POST['comision_descuento'] ) && is_string( $_POST['comision_descuento'] )
+        ? sanitize_text_field( wp_unslash( $_POST['comision_descuento'] ) )
+        : '20';
+    $posted_regular = isset( $_POST['comision_original'] ) && is_string( $_POST['comision_original'] )
+        ? sanitize_text_field( wp_unslash( $_POST['comision_original'] ) )
+        : '45';
     $commission_sale = function_exists( 'seo_proveedores_normalizar_comision' )
-        ? seo_proveedores_normalizar_comision( isset( $_POST['comision_descuento'] ) ? wp_unslash( $_POST['comision_descuento'] ) : 20, 20 )
+        ? seo_proveedores_normalizar_comision( $posted_sale, 20 )
         : 20;
     $commission_regular = function_exists( 'seo_proveedores_normalizar_comision' )
-        ? seo_proveedores_normalizar_comision( isset( $_POST['comision_original'] ) ? wp_unslash( $_POST['comision_original'] ) : 45, 45 )
+        ? seo_proveedores_normalizar_comision( $posted_regular, 45 )
         : 45;
 
     $external_images = function_exists( 'seo_proveedores_resolver_modo_imagenes_externas' )
@@ -971,11 +978,18 @@ function seo_supplier_sync_handle_bulk_action() {
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Without params SQL is internal-only; with params it is the result of $wpdb->prepare().
     $rows = $wpdb->get_results( $sql, ARRAY_A );
 
+    // Normalize only scalar POST values before passing them to the commission parser.
+    $posted_sale = isset( $_POST['comision_descuento'] ) && is_string( $_POST['comision_descuento'] )
+        ? sanitize_text_field( wp_unslash( $_POST['comision_descuento'] ) )
+        : '20';
+    $posted_regular = isset( $_POST['comision_original'] ) && is_string( $_POST['comision_original'] )
+        ? sanitize_text_field( wp_unslash( $_POST['comision_original'] ) )
+        : '45';
     $commission_sale = function_exists( 'seo_proveedores_normalizar_comision' )
-        ? seo_proveedores_normalizar_comision( isset( $_POST['comision_descuento'] ) ? wp_unslash( $_POST['comision_descuento'] ) : 20, 20 )
+        ? seo_proveedores_normalizar_comision( $posted_sale, 20 )
         : 20;
     $commission_regular = function_exists( 'seo_proveedores_normalizar_comision' )
-        ? seo_proveedores_normalizar_comision( isset( $_POST['comision_original'] ) ? wp_unslash( $_POST['comision_original'] ) : 45, 45 )
+        ? seo_proveedores_normalizar_comision( $posted_regular, 45 )
         : 45;
     $requested_external = ! empty( $_POST['no_importar_imagenes'] );
 
