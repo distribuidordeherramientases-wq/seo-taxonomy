@@ -5338,7 +5338,16 @@ function seo_proveedores_actualizar_estado_catalogo() {
 
     $notice = [];
 
-    if ( 'aceptado' === $estado && empty( $row['object_id'] ) ) {
+    if (
+        'aceptado' === $estado
+        && (
+            empty( $row['object_id'] )
+            || (
+                0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' )
+                && '' !== trim( (string) ( $row['pais_origen'] ?? '' ) )
+            )
+        )
+    ) {
         /*
          * Aceptar una fila que todavía no tiene producto sí es una acción de
          * alta. Para productos ya enlazados, Selección es solo una decisión
@@ -6420,6 +6429,7 @@ function seo_proveedores_render_catalogo() {
         <?php if ( '' !== (string) seo_proveedores_query_arg( 'seo_single_result', '' ) ) : ?>
             <?php
             $single_product_id = absint( seo_proveedores_query_arg( 'seo_single_id', 0 ) );
+            $single_result = sanitize_key( seo_proveedores_query_arg( 'seo_single_result', '' ) );
             $single_category_id = absint( seo_proveedores_query_arg( 'seo_single_category_id', 0 ) );
             $single_source = sanitize_key( seo_proveedores_query_arg( 'seo_single_category_source', '' ) );
             $single_category = $single_category_id
@@ -6429,11 +6439,16 @@ function seo_proveedores_render_catalogo() {
 
             <div class="notice notice-success inline">
                 <p>
-                    Producto
-                    <strong>#<?php echo esc_html( $single_product_id ); ?></strong>
-                    creado o actualizado como borrador.
+                    <?php if ( 'approved_offer' === $single_result ) : ?>
+                        Oferta VEVOR aprobada en el catalogo intermedio.
+                        Pendiente de publicacion internacional; no se ha creado ni modificado ningun producto WooCommerce.
+                    <?php else : ?>
+                        Producto
+                        <strong>#<?php echo esc_html( $single_product_id ); ?></strong>
+                        creado o actualizado como borrador.
+                    <?php endif; ?>
 
-                    <?php if ( $single_category && ! is_wp_error( $single_category ) ) : ?>
+                    <?php if ( 'approved_offer' !== $single_result && $single_category && ! is_wp_error( $single_category ) ) : ?>
                         Categoría asignada:
                         <strong><?php echo esc_html( $single_category->name ); ?></strong>
                         (<?php
