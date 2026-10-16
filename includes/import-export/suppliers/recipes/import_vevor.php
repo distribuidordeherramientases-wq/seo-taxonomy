@@ -2,7 +2,9 @@
 /**
  * Receta oficial VEVOR para TaxoCommerce SEO.
  *
- * V1.6.0
+ * V1.7.0
+ * - Identifica mercado de origen y lengua de contenido VEVOR sin afectar otras recetas.
+ * - Conserva URL afiliada por mercado y separa URL canonica limpia.
  * - PHP normaliza el CSV y lo entrega directamente al importador comun.
  * - Conserva la imagen principal del feed en `imagenes`.
  * - No necesita GitHub/Python ni enriquecimiento F1..F12/M1..M12 para el flujo manual.
@@ -11,7 +13,7 @@
  *
  * @package SEOSystem
  * @subpackage SupplierImports
- * @version 1.6.0
+ * @version 1.7.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -71,6 +73,51 @@ if ( ! function_exists( 'seo_supplier_recipe_vevor_extract_identity' ) ) {
     }
 }
 
+/**
+ * El mercado se toma primero de Country/Market si el CSV lo declara;
+ * en exports VEVOR sin esa columna se reconoce el dominio de su tienda.
+ * La lengua describe la traduccion, no identifica el mercado comercial.
+ *
+ * @return array{pais:string,idioma:string}
+ */
+if ( ! function_exists( 'seo_supplier_recipe_vevor_market_locale' ) ) {
+    function seo_supplier_recipe_vevor_market_locale( $row, $product_url ) {
+        $explicit = strtoupper( trim( (string) ( $row['Country'] ?? $row['country'] ?? $row['Market'] ?? $row['market'] ?? '' ) ) );
+        $aliases = [
+            'GERMANY' => 'DE', 'DEUTSCHLAND' => 'DE',
+            'NETHERLANDS' => 'NL', 'HOLLAND' => 'NL', 'NEDERLAND' => 'NL',
+            'UNITED STATES' => 'US', 'USA' => 'US',
+            'FRANCE' => 'FR', 'UNITED KINGDOM' => 'GB',
+        ];
+        $explicit = $aliases[ $explicit ] ?? $explicit;
+        if ( '' !== $explicit && ! preg_match( '/^[A-Z]{2}$/', $explicit ) ) {
+            throw new RuntimeException( 'Country/Market VEVOR no valido.' );
+        }
+
+        $host = strtolower( (string) wp_parse_url( $product_url, PHP_URL_HOST ) );
+        $domain_markets = [
+            'vevor.de' => 'DE', 'vevor.nl' => 'NL', 'vevor.com' => 'US',
+            'vevor.fr' => 'FR', 'vevor.es' => 'ES', 'vevor.it' => 'IT',
+            'vevor.co.uk' => 'GB',
+        ];
+        $host = preg_replace( '/^www\\./', '', $host );
+        if ( ! isset( $domain_markets[ $host ] ) ) {
+            throw new RuntimeException( 'La URL no pertenece a una tienda VEVOR reconocida.' );
+        }
+        $inferred = $domain_markets[ $host ];
+        if ( '' !== $explicit && 'vevor.com' !== $host && $explicit !== $inferred ) {
+            throw new RuntimeException( 'El pais del CSV no corresponde con el dominio VEVOR de la URL.' );
+        }
+        $country = '' !== $explicit ? $explicit : $inferred;
+        $languages = [ 'DE' => 'de', 'NL' => 'nl', 'US' => 'en', 'GB' => 'en', 'FR' => 'fr', 'ES' => 'es', 'IT' => 'it' ];
+        $language = $languages[ $country ] ?? '';
+        if ( '' === $language ) {
+            throw new RuntimeException( 'El pais VEVOR carece de idioma configurado.' );
+        }
+        return [ 'pais' => $country, 'idioma' => $language ];
+    }
+}
+
 if ( ! function_exists( 'seo_supplier_recipe_vevor_transform' ) ) {
     /**
      * Convierte una fila original VEVOR al CSV estandar.
@@ -89,11 +136,15 @@ if ( ! function_exists( 'seo_supplier_recipe_vevor_transform' ) ) {
         $product_url = trim( (string) ( $row['URL to product'] ?? '' ) );
         $identity    = seo_supplier_recipe_vevor_extract_identity( $product_url );
         $primary     = esc_url_raw( trim( (string) ( $row['URL to image'] ?? '' ) ) );
+        $market      = seo_supplier_recipe_vevor_market_locale( $row, $product_url );
 
         return [
             'proveedor_id_externo' => $identity['id'],
             'sku'                   => $identity['sku'],
-            'url_origen'            => seo_supplier_recipe_vevor_clean_product_url( $product_url ),
+            'url_origen'            => esc_url_raw( $product_url ),
+            'url_canonica'          => seo_supplier_recipe_vevor_clean_product_url( $product_url ),
+            'pais'                  => $market['pais'],
+            'idioma'                => $market['idioma'],
             'nombre'                => trim( (string) ( $row['Name'] ?? '' ) ),
             'categoria_proveedor'   => trim( (string) ( $row['categoryPath'] ?? '' ) ),
             'imagenes'              => '' === $primary
@@ -116,7 +167,7 @@ add_filter(
             'id'          => 'vevor',
             'label'       => 'VEVOR - imagen principal externa',
             'provider'    => 'VEVOR',
-            'version'     => '1.6.0',
+            'version'     => '1.7.0',
             'mode'        => 'transform',
             'description' => 'Normaliza el CSV VEVOR, conserva la imagen principal como externa y lo importa directamente al catalogo intermedio. No necesita GitHub/Python ni borra Media.',
 
@@ -143,7 +194,22 @@ add_filter(
                 [
                     'source'    => 'URL to product',
                     'target'    => 'url_origen',
-                    'operation' => 'Conservar la ficha VEVOR sin query string ni fragmento.',
+                    'operation' => 'Conservar el enlace VEVOR completo del mercado, incluida la referencia afiliada.',
+                ],
+                [
+                    'source'    => 'URL to product',
+                    'target'    => 'url_canonica',
+                    'operation' => 'URL VEVOR limpia, sin parametros.',
+                ],
+                [
+                    'source'    => 'Country / URL to product',
+                    'target'    => 'pais',
+                    'operation' => 'Priorizar Country si existe; si falta, detectar mercado por dominio VEVOR.',
+                ],
+                [
+                    'source'    => 'Pais VEVOR',
+                    'target'    => 'idioma',
+                    'operation' => 'Idioma reutilizable de la traduccion, independiente del pais comercial.',
                 ],
                 [
                     'source'    => 'Name',
