@@ -26,11 +26,9 @@ jobs:
           import re
           path = Path("includes/import-export/suppliers/engine.php")
           source = path.read_text(encoding="utf-8")
-          # The literal sequence \\n after a PHP // comment can swallow the
-          # following SQL assignment without producing a PHP syntax error.
-          swallowed = re.findall(r'// phpcs:ignore[^\r\n]*\\n[ \t]*\
-, source)
-          assert not swallowed, f"{len(swallowed)} PHP statements commented by literal \\n"
+          # A literal backslash-n after a PHP // comment can swallow SQL.
+          swallowed = re.findall(r'// phpcs:ignore[^\r\n]*\\n[ \t]*\$[A-Za-z_]', source)
+          assert not swallowed, f"{len(swallowed)} PHP statements hidden by literal backslash-n"
           required = [
               "$post_rows = $wpdb->get_results( $post_sql, ARRAY_A );",
               "$term_rows = $wpdb->get_results( $term_sql, ARRAY_A );",
@@ -42,6 +40,6 @@ jobs:
               "$rows = $wpdb->get_results( $sql, ARRAY_A );",
           ]
           for statement in required:
-              assert re.search(r"^\s*" + re.escape(statement) + r"\s*$", source, re.M), statement
+              assert re.search(r"^[ \t]*" + re.escape(statement) + r"[ \t]*$", source, re.M), statement
           print("Supplier export SQL statements are executable and not commented.")
           PY
