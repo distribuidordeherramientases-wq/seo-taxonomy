@@ -2763,14 +2763,20 @@ function seo_export_products_csv() {
         $category_filter = $selected_categories;
     }
 
+    // Evita cargar todos los productos y sus metadatos en una sola peticion.
+    // El formato completo V2 no cambia; solo el tamaño del lote.
+    $export_batch_size = 200;
     $query_args = [
         'post_type'              => 'product',
-        'posts_per_page'         => -1,
+        'posts_per_page'         => $export_batch_size,
+        'paged'                  => 1,
+        'fields'                 => 'ids',
+        'no_found_rows'          => true,
         'orderby'                => 'ID',
         'order'                  => 'ASC',
         'cache_results'          => false,
-        'update_post_meta_cache' => true,
-        'update_post_term_cache' => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
         'post_status'            => $selected_statuses,
     ];
 
@@ -2788,30 +2794,7 @@ function seo_export_products_csv() {
         ];
     }
 
-    $posts = get_posts( $query_args );
-
-    /*
-     * El CSV conserva la cabecera pública "ambito", pero para productos su
-     * valor sale del ROL canónico (TIPO -> ROL) y no del nodo legacy.
-     */
-    $canonical_roles_by_product = [];
-    if ( function_exists( 'seo_catalog_get_product_roles' ) ) {
-        $canonical_roles_by_product = seo_catalog_get_product_roles(
-            array_map( 'absint', wp_list_pluck( $posts, 'ID' ) )
-        );
-    }
-
-    $attributes_by_product = [];
-    $attribute_rows = function_exists( 'seo_attributes_get_rows_for_products' )
-        ? seo_attributes_get_rows_for_products( null )
-        : [];
-
-    foreach ( $attribute_rows as $attribute_row ) {
-        $attributes_by_product[ absint( $attribute_row->product_id ) ][] = $attribute_row;
-    }
-
-    $product_ids_for_export = array_map( 'absint', wp_list_pluck( $posts, 'ID' ) );
-    $vocabulary_by_product  = $reduced_export ? seo_ie_product_reduced_vocabulary_map( $product_ids_for_export ) : [];
+    // El inventario, el ROL y los atributos se consultan por lotes.
 
     $classification_cache = [];
     $get_classification = static function ( $post_id, $fallback ) use ( &$classification_cache ) {
@@ -2879,12 +2862,11 @@ function seo_export_products_csv() {
         ];
 
     $filename = ( $reduced_export ? 'seo_products_reduced_portable_' : 'seo_products_v2_' ) . wp_date( 'Ymd_His' ) . '.csv';
-    seo_ie_store_log(
-        [
+    $export_log = [
             'operacion'    => $reduced_export ? 'Exportación de inventario reducido de productos' : 'Exportación de productos V2',
             'archivo'      => $filename,
-            'procesados'   => count( $posts ),
-            'correctos'    => count( $posts ),
+            'procesados'   => 0,
+            'correctos'    => 0,
             'errores'      => 0,
             'advertencias' => 0,
             'detalles'     => $reduced_export
@@ -2899,15 +2881,43 @@ function seo_export_products_csv() {
                     'La columna atributos_seo se conserva para compatibilidad; atributos_seo_json es el formato recomendado.',
                     'Las variaciones se listan como inventario, pero no se exportan como filas independientes.',
                 ],
-        ]
-    );
+    ];
 
     $output = seo_ie_open_csv_download( $filename );
     seo_ie_write_csv_row( $output, $columns );
 
-    foreach ( $posts as $post ) {
-        $product_id = absint( $post->ID );
-        $product    = wc_get_product( $product_id );
+    $exported = 0;
+    for ( $export_page = 1; ; $export_page++ ) {
+        $query_args['paged'] = $export_page;
+        $product_ids_for_export = get_posts( $query_args );
+        if ( empty( $product_ids_for_export ) ) {
+            break;
+        }
+
+        $canonical_roles_by_product = function_exists( 'seo_catalog_get_product_roles' )
+            ? seo_catalog_get_product_roles( $product_ids_for_export )
+            : [];
+        $attributes_by_product = [];
+        if ( function_exists( 'seo_attributes_get_rows_for_products' ) ) {
+            foreach ( (array) seo_attributes_get_rows_for_products( $product_ids_for_export ) as $attribute_row ) {
+                $attributes_by_product[ absint( $attribute_row->product_id ) ][] = $attribute_row;
+            }
+        }
+        $vocabulary_by_product = $reduced_export
+            ? seo_ie_product_reduced_vocabulary_map( $product_ids_for_export )
+            : [];
+
+        // Cache acotada al lote para no multiplicar las consultas a meta y taxonomias.
+        update_meta_cache( 'post', $product_ids_for_export );
+        update_object_term_cache( $product_ids_for_export, 'product' );
+
+        foreach ( $product_ids_for_export as $product_id ) {
+        $product_id = absint( $product_id );
+        $post = get_post( $product_id );
+        if ( ! $post instanceof WP_Post ) {
+            continue;
+        }
+        $product = wc_get_product( $product_id );
 
         if ( ! $product instanceof WC_Product ) {
             continue;
@@ -3044,6 +3054,7 @@ function seo_export_products_csv() {
                     $columns
                 )
             );
+            $exported++;
             continue;
         }
 
@@ -3135,9 +3146,24 @@ function seo_export_products_csv() {
                 $columns
             )
         );
+        $exported++;
+        }
+
+        $export_batch_count = count( $product_ids_for_export );
+        unset( $canonical_roles_by_product, $attributes_by_product, $vocabulary_by_product, $product_ids_for_export, $row, $product, $post );
+        if ( function_exists( 'wp_cache_flush_runtime' ) ) {
+            wp_cache_flush_runtime();
+        }
+
+        if ( $export_batch_count < $export_batch_size ) {
+            break;
+        }
     }
 
     seo_ie_stream_close( $output );
+    $export_log['procesados'] = $exported;
+    $export_log['correctos'] = $exported;
+    seo_ie_store_log( $export_log );
     exit;
 }
 
