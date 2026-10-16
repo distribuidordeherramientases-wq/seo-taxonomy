@@ -11093,24 +11093,22 @@ function seo_ie_render_product_export_filters() {
     }
 
     /*
-     * Categorías WooCommerce.
+     * Categorías WooCommerce, incluso sin hub secundario.
+     * Antes solo se listaban las que estaban en hub_secondary_to_category,
+     * excluyendo las categorías internacionales del piloto VEVOR.
+     * La restricción por hub sigue funcionando en los selectores JS.
      */
-    $categories = [];
+    $categories = get_terms(
+        [
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => false,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+        ]
+    );
 
-    if ( ! empty( $category_ids ) ) {
-        $categories = get_terms(
-            [
-                'taxonomy'   => 'product_cat',
-                'hide_empty' => false,
-                'include'    => $category_ids,
-                'orderby'    => 'name',
-                'order'      => 'ASC',
-            ]
-        );
-
-        if ( is_wp_error( $categories ) ) {
-            $categories = [];
-        }
+    if ( is_wp_error( $categories ) ) {
+        $categories = [];
     }
 
     /*
@@ -11141,6 +11139,12 @@ function seo_ie_render_product_export_filters() {
                 'taxocommerce-seo'
             );
             ?>
+        </p>
+
+        <p class="description" style="margin-top:-6px;">
+            Las categorías internacionales que aún no tienen hubs aparecen si se dejan Cluster y Hubs en «Todos».
+            Este exportador solo incluye fichas de productos WooCommerce; las ofertas VEVOR aprobadas en el catálogo
+            intermedio deben exportarse desde «Catálogo de proveedores».
         </p>
 
         <div

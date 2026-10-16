@@ -12,6 +12,11 @@ on:
 permissions:
   contents: write
 
+# Only the newest staging documentation snapshot may write to the Wiki.
+concurrency:
+  group: sync-wiki-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sync-wiki:
     runs-on: ubuntu-latest
