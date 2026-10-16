@@ -88,7 +88,6 @@ function seo_clean_db_page() {
     echo '<h1>Clean Database</h1>';
     echo '<p>Auditoría, reparación y limpieza controlada de datos del plugin, WordPress y WooCommerce.</p>';
 
-    seo_clean_db_render_styles();
     seo_clean_db_render_tabs($active_tab);
 
     if ($notice) {
@@ -146,27 +145,27 @@ function seo_clean_db_render_tabs($active_tab) {
 }
 
 /**
- * Estilos internos para mantener el archivo independiente.
+ * Carga CSS con la API de estilos de WordPress, solo en la página Clean Database.
  */
-function seo_clean_db_render_styles() {
-    echo '<style>
-        .seo-clean-db-panel{background:#fff;border:1px solid #ccd0d4;border-top:none;padding:20px;max-width:1280px;}
-        .seo-clean-db-tabs{margin-top:18px;}
-        .seo-clean-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:20px 0;}
-        .seo-clean-card{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:16px;margin:0 0 18px;max-width:none;}
-        .seo-clean-kpi{font-size:26px;font-weight:600;line-height:1.2;}
-        .seo-clean-muted{color:#646970;}
-        .seo-clean-warning-box{border-left:4px solid #dba617;background:#fff8e5;padding:12px 14px;margin:16px 0;}
-        .seo-clean-danger-box{border-left:4px solid #d63638;background:#fcf0f1;padding:12px 14px;margin:16px 0;}
-        .seo-clean-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
-        .seo-clean-table td,.seo-clean-table th{vertical-align:top;}
-        .seo-clean-badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;}
-        .seo-clean-ok{background:#d1e7dd;color:#0f5132;}
-        .seo-clean-warning{background:#fff3cd;color:#664d03;}
-        .seo-clean-error{background:#f8d7da;color:#842029;}
-        .seo-clean-info{background:#cff4fc;color:#055160;}
-    </style>';
+function seo_clean_db_enqueue_styles() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page selector used solely to enqueue admin CSS.
+    $page = isset($_GET['page']) && is_string($_GET['page'])
+        ? sanitize_key(wp_unslash($_GET['page']))
+        : '';
+    if ('seo-clean-db' !== $page) {
+        return;
+    }
+    wp_enqueue_style(
+        'taxocommerce-clean-db',
+        plugins_url('assets/seo-clean-db.css', __FILE__),
+        array(),
+        SEO_SYSTEM_VERSION
+    );
 }
+add_action('admin_enqueue_scripts', 'seo_clean_db_enqueue_styles');
 
 /**
  * Comprueba si una tabla existe.
