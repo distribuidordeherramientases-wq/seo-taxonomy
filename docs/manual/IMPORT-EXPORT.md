@@ -54,7 +54,11 @@ Partner Tag, checkbox para eliminarlo, Client ID, Secret, versión, Search Index
 
 **Importación y aprobación no equivalen a publicación.** Los CSV Goods_Export de VEVOR US/DE/NL se incorporan al catálogo intermedio `seo_proveedores_productos` con país, idioma, nombre, categoría original, precio, imagen externa y enlace afiliado. La aprobación comercial marca `estado_seleccion=aceptado` **sin crear un producto WooCommerce**.
 
-En **Importar / Exportar → Catálogo de proveedores**, el bloque **VEVOR internacional: crear fichas de producto para revisar** permite crear los productos reales de forma controlada:
+Tras el PR #950, al **aceptar individualmente** una oferta US/DE/NL se intenta crear una ficha WooCommerce `external` en `draft` y asociarla a una categoría del mismo país **solo si `categoryPath` identifica una categoría inequívoca**. Si no hay coincidencia segura, la aceptación se rechaza con un mensaje; no se asigna a una categoría española ni genérica. El flujo individual también reutiliza una ficha antigua del mismo mercado sin sobrescribirla.
+
+**La aceptación masiva heredada sigue siendo una validación del catálogo intermedio y no crea productos WooCommerce**: procesar decenas de miles de fichas dentro de una petición bloquearía el hosting. El panel VEVOR muestra el recuento de ofertas anteriormente aceptadas y sin producto, desglosadas por mercado.
+
+En **Importar / Exportar → Catálogo de proveedores**, el bloque **VEVOR internacional: crear fichas de producto para revisar** permite recuperar esas ofertas antiguas de forma controlada:
 
 1. Seleccionar país US/DE/NL y **categoría WooCommerce internacional existente**.
 2. Introducir la **ruta exacta `categoryPath`** de VEVOR. La selección no toma automáticamente productos de otras categorías.
