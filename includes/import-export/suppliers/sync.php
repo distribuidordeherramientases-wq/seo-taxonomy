@@ -86,6 +86,8 @@ function seo_supplier_sync_ensure_schema() {
     $columns = array_map( 'strval', (array) $columns );
 
     $definitions = [
+        'pais'                  => "VARCHAR(2) NOT NULL DEFAULT ''",
+        'idioma'                => "VARCHAR(12) NOT NULL DEFAULT ''",
         'estado_sincronizacion' => "VARCHAR(30) NOT NULL DEFAULT 'legacy'",
         'hash_aplicado'         => 'CHAR(64) DEFAULT NULL',
         'snapshot_aplicado'     => 'LONGTEXT DEFAULT NULL',
@@ -113,6 +115,12 @@ function seo_supplier_sync_ensure_schema() {
     $indexes = $wpdb->get_col( "SHOW INDEX FROM {$table}", 2 );
     if ( ! in_array( 'estado_sincronizacion', (array) $indexes, true ) ) {
         $wpdb->query( "ALTER TABLE {$table} ADD KEY `estado_sincronizacion` (`estado_sincronizacion`)" );
+    }
+    if ( ! in_array( 'proveedor_pais_externo', (array) $indexes, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD KEY `proveedor_pais_externo` (`proveedor`, `pais`, `proveedor_id_externo`)" );
+    }
+    if ( ! in_array( 'proveedor_pais_sku', (array) $indexes, true ) ) {
+        $wpdb->query( "ALTER TABLE {$table} ADD KEY `proveedor_pais_sku` (`proveedor`, `pais`, `sku`)" );
     }
 }
 
@@ -486,6 +494,16 @@ function seo_supplier_sync_finalize_import( $run_id, array $state, array $log, $
     }
 
     if ( empty( $state['v2_catalog_complete'] ) ) {
+        return $log;
+    }
+
+    // Un CSV VEVOR corresponde a un mercado, no al inventario mundial.
+    // Hasta tener una baja comercial por mercado nunca ocultar un producto
+    // WooCommerce a causa de su ausencia en el feed de otro pais.
+    if ( 0 === strcasecmp( $provider, 'VEVOR' ) ) {
+        if ( function_exists( 'seo_ie_add_log_detail' ) ) {
+            seo_ie_add_log_detail( $log, 'VEVOR: bajas globales desactivadas; cada importacion solo cubre su mercado.' );
+        }
         return $log;
     }
 
