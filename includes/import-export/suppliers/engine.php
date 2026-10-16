@@ -2529,7 +2529,8 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
            AND ID IN ({$placeholders})",
         $product_ids
     );
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $post_sql is the direct result of $wpdb->prepare() above.\n    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $post_sql is the direct result of $wpdb->prepare() above.
+    $post_rows = $wpdb->get_results( $post_sql, ARRAY_A );
 
     foreach ( (array) $post_rows as $post_row ) {
         $product_id = absint( $post_row['ID'] ?? 0 );
@@ -2553,7 +2554,8 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
          ORDER BY tr.object_id ASC, tt.taxonomy ASC, t.name ASC",
         $product_ids
     );
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $term_sql is the direct result of $wpdb->prepare() above.\n    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $term_sql is the direct result of $wpdb->prepare() above.
+    $term_rows = $wpdb->get_results( $term_sql, ARRAY_A );
 
     foreach ( (array) $term_rows as $term_row ) {
         $product_id = absint( $term_row['object_id'] ?? 0 );
@@ -2592,7 +2594,8 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
                       v.label ASC",
             $product_ids
         );
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $semantic_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.\n        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $semantic_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.
+        $semantic_rows = $wpdb->get_results( $semantic_sql, ARRAY_A );
 
         foreach ( (array) $semantic_rows as $semantic_row ) {
             $product_id = absint( $semantic_row['object_id'] ?? 0 );
@@ -2641,7 +2644,8 @@ function seo_proveedores_exportar_productos_contexto_wp( $product_ids ) {
              ORDER BY ot.object_id ASC, rv.label ASC",
             $product_ids
         );
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $canonical_role_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.\n        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $canonical_role_sql is the direct result of $wpdb->prepare() above; table identifiers are internal.
+        $canonical_role_rows = $wpdb->get_results( $canonical_role_sql, ARRAY_A );
         $canonical_roles = [];
 
         foreach ( (array) $canonical_role_rows as $canonical_role_row ) {
@@ -2757,9 +2761,11 @@ function seo_proveedores_exportar_productos_csv() {
     $where_sql = implode( ' AND ', $where );
     $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
     if ( ! empty( $params ) ) {
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal query template; filter values are passed separately as placeholders.\n        $count_sql = $wpdb->prepare( $count_sql, $params );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal query template; filter values are passed separately as placeholders.
+        $count_sql = $wpdb->prepare( $count_sql, $params );
     }
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $count_sql is either a closed internal query or the result of $wpdb->prepare() above.\n    $total = absint( $wpdb->get_var( $count_sql ) );
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $count_sql is either a closed internal query or the result of $wpdb->prepare() above.
+    $total = absint( $wpdb->get_var( $count_sql ) );
 
     $filename_parts = [ 'seo_supplier_products_classified' ];
     if ( '' !== $provider ) {
@@ -2808,8 +2814,10 @@ function seo_proveedores_exportar_productos_csv() {
                 WHERE " . implode( ' AND ', $batch_where ) . "
                 ORDER BY id ASC
                 LIMIT {$batch_size}";
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal batch query; all filter values are placeholders.\n        $sql = $wpdb->prepare( $sql, $batch_params );
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above.\n        $rows = $wpdb->get_results( $sql, ARRAY_A );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal batch query; all filter values are placeholders.
+        $sql = $wpdb->prepare( $sql, $batch_params );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() above.
+        $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         if ( empty( $rows ) ) {
             break;
@@ -5878,6 +5886,9 @@ function seo_proveedores_render_catalogo() {
         return;
     }
 
+    // El servicio se muestra solo cuando el catalogo intermedio existe.
+    do_action( 'seo_vevor_region_batch_card' );
+
     // The read-only supplier catalog CSV export was already implemented but
     // never rendered. Show it before the catalog filters so a regional VEVOR
     // export can be audited without changing any WooCommerce product.
@@ -6380,11 +6391,12 @@ function seo_proveedores_render_catalogo() {
         <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
             <div class="notice notice-info inline" style="margin:15px 0;padding:12px;">
                 <p style="margin:0;">
-                    <strong>VEVOR internacional:</strong> Aceptar una oferta con Pais e Idioma
-                    la valida en el catalogo de proveedores sin crear borradores ni modificar
-                    los productos espanoles de WooCommerce. Las ofertas aceptadas se consultan
-                    con el filtro Seleccion = Aceptado. Su vinculacion con las fichas publicas
-                    internacionales es una fase posterior.
+                    <strong>VEVOR internacional:</strong> <strong>Aceptar una oferta individual</strong>
+                    crea una ficha WooCommerce en <code>draft</code> cuando puede identificar
+                    una categoria segura del mismo pais; nunca modifica productos espanoles.
+                    <strong>La aceptacion masiva heredada solo valida ofertas</strong> en
+                    el catalogo intermedio: recupera las aceptadas sin producto mediante
+                    el panel VEVOR internacional de esta misma pantalla.
                 </p>
             </div>
         <?php endif; ?>

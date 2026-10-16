@@ -801,8 +801,8 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
         ];
     }
 
-    // La oferta regional se acepta comercialmente en el catalogo intermedio;
-    // no se escribe en el producto WooCommerce espanol.
+    // VEVOR regional: aceptar una oferta crea una ficha WooCommerce externa
+    // en draft y registra object_id en el catalogo intermedio. No toca ES.
     if (
         0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' )
         && '' !== trim( (string) ( $row['pais_origen'] ?? '' ) )
@@ -811,7 +811,30 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
             if ( 'actualizar' === $action && ! in_array( $situation, [ 'modificado', 'error' ], true ) ) {
                 return [ 'result' => 'error', 'product_id' => 0, 'message' => 'Esta oferta no tiene una actualizacion pendiente.', 'warnings' => [] ];
             }
-            return seo_supplier_sync_approve_vevor_market_offer( $row );
+            if ( ! function_exists( 'seo_vevor_region_apply_offer' ) || ! function_exists( 'seo_vevor_region_category_for_offer' ) ) {
+                return [ 'result' => 'error', 'product_id' => 0, 'message' => 'No se encuentra el nuevo servicio de fichas VEVOR regionales.', 'warnings' => [] ];
+            }
+            $destination = seo_vevor_region_category_for_offer( $row );
+            if ( is_wp_error( $destination ) ) {
+                return [ 'result' => 'error', 'product_id' => 0, 'message' => $destination->get_error_message(), 'warnings' => [] ];
+            }
+            $result = seo_vevor_region_apply_offer(
+                $row,
+                strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ),
+                absint( $destination )
+            );
+            if ( is_wp_error( $result ) ) {
+                return [ 'result' => 'error', 'product_id' => 0, 'message' => $result->get_error_message(), 'warnings' => [] ];
+            }
+            $is_new = ! empty( $result['created'] );
+            return [
+                'result'     => $is_new ? 'created' : 'existing',
+                'product_id' => absint( $result['product_id'] ?? 0 ),
+                'message'    => $is_new
+                    ? 'Oferta aceptada: producto VEVOR internacional creado en draft y vinculado a su categoria.'
+                    : 'Oferta aceptada: ficha VEVOR internacional existente reutilizada sin modificarla.',
+                'warnings'   => [],
+            ];
         }
         return [
             'result'     => 'error',
