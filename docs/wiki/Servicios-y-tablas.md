@@ -38,8 +38,21 @@ Esta página identifica las tablas principales del plugin y explica qué servici
 | `{prefix}sql_product_atributos` | Atributos | Asignaciones normalizadas de atributos a productos. | Canónica |
 | `{prefix}seo_object_vocabulary` | Vocabulary / Clasificador | Asignación de términos de Vocabulary a productos, categorías, posts u otros objetos. | Canónica |
 | `{prefix}seo_nodes` | Arquitectura SEO | Nodos de la arquitectura SEO. | Canónica |
-| `{prefix}seo_relations` | Arquitectura SEO | Relaciones entre nodos, hubs, categorías y otros objetos estructurales. | Canónica |
+| `{prefix}seo_relations` | Arquitectura SEO / traducciones de categorías | Relaciones entre nodos, hubs y categorías; también registra `category_translation` (`product_cat` ES → `product_cat` traducido). | Canónica |
 | `{prefix}seo_faq` | FAQ / Academia / Solucionador | Preguntas y respuestas persistidas. | Canónica editorial |
+
+### Categorías traducidas y relaciones internacionales (PR #914)
+
+El **Importador de traducciones de categorías** añade categorías `product_cat` independientes para `en-US`, `de-DE` y `nl-NL`. **No crea nuevas tablas ni columnas SQL**.
+
+- WordPress `terms` y `term_taxonomy` son la fuente de verdad del nombre, slug, padre y descripción de cada categoría regional.
+- `termmeta._seo_locale` indica el idioma/país; `termmeta.seo_excerpt` guarda extracto de respaldo cuando se aporta.
+- `seo_nodes` conserva `excerpt` y `description` por categoría, compatible con el editor y las plantillas.
+- `seo_relations` guarda `source_type=product_cat`, `target_type=product_cat`, `relation_type=category_translation`, con la **categoría española como source** y cada categoría regional como target. Este enlace no reemplaza la jerarquía `hub_secondary_to_category`.
+- El importador resuelve `source_slug` en la instalación local, no copia IDs desde otro entorno; protege la relación entre PRO y STAGING.
+- El Clonador debe incluir `category_translation` en el conjunto de relaciones gestionadas para remapear IDs de ambos extremos; el limpiador debe reconocer el tipo válido.
+
+**No hay todavía una agregación automática de todos los informes por familia multidioma ni vinculación `product_translation` de productos.** Consultar [[Categorías multidioma|Categorias-multidioma]] para el CSV, funcionamiento y pruebas.
 
 ### Clasificador
 
