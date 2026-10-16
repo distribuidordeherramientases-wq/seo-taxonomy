@@ -684,7 +684,7 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
                 : [];
             $applied_hash = trim( (string) ( $existing['hash_aplicado'] ?? '' ) );
 
-            if ( empty( $applied_snapshot ) && ( $object_id || 'aceptado' === $selection ) ) {
+            if ( empty( $applied_snapshot ) && ( $object_id || 'aceptado' === $selection ) && ! ( $vevor_market && ! $object_id ) ) {
                 $applied_snapshot = function_exists( 'seo_supplier_sync_snapshot' )
                     ? seo_supplier_sync_snapshot( $existing )
                     : $existing;
@@ -700,6 +700,12 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
             $situation = function_exists( 'seo_supplier_sync_determine_situation' )
                 ? seo_supplier_sync_determine_situation( $existing, $selection, $object_id, $current_hash, $diff )
                 : ( empty( $diff ) ? 'sin_cambios' : 'modificado' );
+
+            // Una oferta internacional VEVOR aprobada pero sin WooCommerce
+            // vinculado sigue esperando PUBLICACION, aunque se reimporte el CSV.
+            if ( $vevor_market && 'aceptado' === $selection && ! $object_id ) {
+                $situation = 'pendiente_publicacion';
+            }
 
             $data['proveedor']               = $state['proveedor'];
             $data['hash_producto']           = $current_hash;
@@ -4899,6 +4905,20 @@ function seo_proveedores_resolver_modo_imagenes_externas( array $row, $requested
  * }
  */
 function seo_proveedores_crear_borrador_desde_fila( array $row, $comision_descuento = 20, $comision_original = 45, $imagenes_externas = false ) {
+    // Defensa comun: ni la aceptacion historica ni un reintento externo pueden
+    // convertir una oferta internacional VEVOR en un producto de venta ES.
+    if (
+        0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' )
+        && '' !== trim( (string) ( $row['pais_origen'] ?? '' ) )
+    ) {
+        return [
+            'result'     => 'error',
+            'product_id' => 0,
+            'message'    => 'Oferta VEVOR internacional: usar Aceptar productos nuevos en el catalogo de proveedores; la publicacion WooCommerce localizada no esta implementada.',
+            'warnings'   => [],
+        ];
+    }
+
     if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'WC_Product_Simple' ) ) {
         return [
             'result'     => 'error',
@@ -6264,6 +6284,7 @@ function seo_proveedores_render_catalogo() {
         'seo_sync_bulk_action',
         'seo_sync_bulk_processed',
         'seo_sync_bulk_errors',
+        'seo_sync_bulk_vevor_approved',
     ];
     ?>
 
@@ -6453,6 +6474,11 @@ function seo_proveedores_render_catalogo() {
                     Accion <strong><?php echo esc_html( sanitize_key( seo_proveedores_query_arg( 'seo_sync_bulk_action', '' ) ) ); ?></strong>:
                     <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_sync_bulk_processed', 0 ) ) ) ); ?></strong> procesados.
                     Errores: <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_sync_bulk_errors', 0 ) ) ) ); ?></strong>.
+                    <?php if ( absint( seo_proveedores_query_arg( 'seo_sync_bulk_vevor_approved', 0 ) ) > 0 ) : ?>
+                        <strong><?php echo esc_html( number_format_i18n( absint( seo_proveedores_query_arg( 'seo_sync_bulk_vevor_approved', 0 ) ) ) ); ?></strong>
+                        ofertas VEVOR aprobadas en el catalogo intermedio, pendientes de publicar por mercado.
+                        No se han creado ni modificado productos WooCommerce por estas aprobaciones.
+                    <?php endif; ?>
                 </p>
             </div>
         <?php endif; ?>
