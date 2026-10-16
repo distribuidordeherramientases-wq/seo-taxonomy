@@ -5878,6 +5878,11 @@ function seo_proveedores_render_catalogo() {
         return;
     }
 
+    // The read-only supplier catalog CSV export was already implemented but
+    // never rendered. Show it before the catalog filters so a regional VEVOR
+    // export can be audited without changing any WooCommerce product.
+    seo_proveedores_render_export_productos_card();
+
     /*
      * Configuración de precios.
      */
