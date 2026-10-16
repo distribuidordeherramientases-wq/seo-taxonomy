@@ -158,7 +158,7 @@ function seo_ie_ct_import_row( array $row ) {
         return new WP_Error( 'seo_ct_incomplete', 'Se necesitan source_slug ES, locale en-US/de-DE/nl-NL, titulo y slug traducidos.' );
     }
     $source = get_term_by( 'slug', $source_slug, 'product_cat' );
-    if ( ! $source || seo_ie_ct_term_locale( $source ) !== '' && seo_ie_ct_term_locale( $source ) !== 'es-ES' ) {
+    if ( ! $source instanceof WP_Term || ! in_array( seo_ie_ct_term_locale( $source ), array( '', 'es-ES' ), true ) ) {
         return new WP_Error( 'seo_ct_source_invalid', 'source_slug debe identificar una categoria espanola existente.' );
     }
     $source_id = (int) $source->term_id;
@@ -207,7 +207,9 @@ function seo_ie_ct_import_row( array $row ) {
         }
     }
 
-    update_term_meta( $target_id, '_seo_locale', $locale );
+    if ( false === update_term_meta( $target_id, '_seo_locale', $locale ) && (string) get_term_meta( $target_id, '_seo_locale', true ) !== $locale ) {
+        return new WP_Error( 'seo_ct_locale_save_failed', 'No se pudo guardar locale; revisa la categoria antes de reimportar.' );
+    }
     if ( '' === (string) get_term_meta( $source_id, '_seo_locale', true ) ) {
         update_term_meta( $source_id, '_seo_locale', 'es-ES' );
     }
