@@ -6020,6 +6020,17 @@ function seo_proveedores_render_catalogo() {
         seo_proveedores_query_arg( 'f_estado', '' )
     );
 
+    // Filtros de seguimiento de ofertas internacionales aceptadas pero
+    // todavia sin ficha WooCommerce (no equivalen a productos en draft).
+    $pais_filtro = strtoupper( sanitize_key( seo_proveedores_query_arg( 'f_pais', '' ) ) );
+    if ( ! in_array( $pais_filtro, array( 'US', 'DE', 'NL' ), true ) ) {
+        $pais_filtro = '';
+    }
+    $vinculo_filtro = sanitize_key( seo_proveedores_query_arg( 'f_woo_link', '' ) );
+    if ( ! in_array( $vinculo_filtro, array( 'accepted_unlinked', 'linked' ), true ) ) {
+        $vinculo_filtro = '';
+    }
+
     $situacion = sanitize_key(
         seo_proveedores_query_arg( 'f_situacion', '' )
     );
@@ -6063,6 +6074,21 @@ function seo_proveedores_render_catalogo() {
     ) {
         $where[]  = 'estado_seleccion = %s';
         $params[] = $estado;
+    }
+
+    if ( '' !== $pais_filtro ) {
+        $where[]  = 'pais_origen = %s';
+        $params[] = $pais_filtro;
+    }
+    if ( 'accepted_unlinked' === $vinculo_filtro ) {
+        $where[]  = 'proveedor = %s';
+        $params[] = 'VEVOR';
+        $where[]  = 'estado_seleccion = %s';
+        $params[] = 'aceptado';
+        $where[] = "pais_origen IN ('US','DE','NL')";
+        $where[] = '(object_id IS NULL OR object_id = 0)';
+    } elseif ( 'linked' === $vinculo_filtro ) {
+        $where[] = 'object_id > 0';
     }
 
     if (
@@ -6211,6 +6237,7 @@ function seo_proveedores_render_catalogo() {
             [
                 'id',
                 'proveedor',
+                'pais_origen',
                 'estado_seleccion',
                 'estado_sincronizacion',
                 'cambios_detectados',
@@ -6674,6 +6701,27 @@ function seo_proveedores_render_catalogo() {
                 </label>
 
                 <label>
+                    País VEVOR
+                    <br>
+                    <select name="f_pais">
+                        <option value="">Todos</option>
+                        <?php foreach ( array( 'US' => 'Estados Unidos', 'DE' => 'Alemania', 'NL' => 'Paises Bajos' ) as $code => $label ) : ?>
+                            <option value="<?php echo esc_attr( $code ); ?>" <?php selected( $pais_filtro, $code ); ?>><?php echo esc_html( $label ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+                <label>
+                    Vinculación WooCommerce
+                    <br>
+                    <select name="f_woo_link">
+                        <option value="">Todas</option>
+                        <option value="accepted_unlinked" <?php selected( $vinculo_filtro, 'accepted_unlinked' ); ?>>Aceptado · pendiente de crear ficha</option>
+                        <option value="linked" <?php selected( $vinculo_filtro, 'linked' ); ?>>Con ficha WooCommerce vinculada</option>
+                    </select>
+                </label>
+
+                <label>
                     Situacion
                     <br>
                     <select name="f_situacion">
@@ -6792,7 +6840,7 @@ function seo_proveedores_render_catalogo() {
             </div>
         </form>
 
-        <?php if ( $total > 0 ) : ?>
+        <?php if ( $total > 0 && '' === $pais_filtro && '' === $vinculo_filtro ) : ?>
             <hr style="margin:22px 0 18px;">
 
             <h3 style="margin-bottom:6px;">Acción sobre todos los resultados filtrados</h3>
@@ -6864,6 +6912,8 @@ function seo_proveedores_render_catalogo() {
                     Aplicar a resultados compatibles
                 </button>
             </form>
+        <?php elseif ( $total > 0 ) : ?>
+            <p class="description">Estos filtros internacionales son de consulta y revision individual. Las acciones masivas se ocultan porque el procesador antiguo no filtra por pais ni por vinculacion WooCommerce. Usa el panel de recuperacion VEVOR para crear borradores en tandas de cinco.</p>
         <?php endif; ?>
     </div>
 
@@ -6966,6 +7016,16 @@ function seo_proveedores_render_catalogo() {
                                     $selection_key = sanitize_key( (string) ( $row['estado_seleccion'] ?? 'pendiente' ) );
                                     $selection_labels = seo_proveedores_estados_catalogo();
                                     ?>
+                                    <?php
+                                    $is_vevor_unlinked = 0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' )
+                                        && in_array( strtoupper( (string) ( $row['pais_origen'] ?? '' ) ), array( 'US', 'DE', 'NL' ), true )
+                                        && empty( $row['object_id'] )
+                                        && 'aceptado' === $selection_key;
+                                    ?>
+                                    <?php if ( $is_vevor_unlinked ) : ?>
+                                        <strong>Aceptado · pendiente de crear ficha WooCommerce</strong>
+                                        <br><small>Esta oferta NO es un borrador de WordPress hasta convertirla.</small>
+                                    <?php endif; ?>
                                     <?php if ( ! empty( $row['object_id'] ) ) : ?>
                                         <strong><?php echo esc_html( $selection_labels[ $selection_key ] ?? $selection_key ); ?></strong>
                                         <br><small style="color:#646970;">La situación controla las acciones sobre WooCommerce.</small>
