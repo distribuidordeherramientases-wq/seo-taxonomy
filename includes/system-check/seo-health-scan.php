@@ -472,16 +472,20 @@ if (!function_exists('seo_health_scan_expire_stale')) {
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
             // Only internal table names are interpolated. Dates and IDs are
             // bound through prepare() rather than embedded into SQL strings.
-            $run_sql = $wpdb->prepare(
-                "UPDATE {$tables['runs']} SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN ({$placeholders})",
-                array_merge(array($now, $now), $ids)
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal fixed table name and generated %d placeholders; all values are bound.
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$tables['runs']} SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN ({$placeholders})",
+                    array_merge(array($now, $now), $ids)
+                )
             );
-            $item_sql = $wpdb->prepare(
-                "UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id IN ({$placeholders})",
-                $ids
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal fixed table name and generated %d placeholders; all values are bound.
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id IN ({$placeholders})",
+                    $ids
+                )
             );
-            $wpdb->query($run_sql);
-            $wpdb->query($item_sql);
         }
     }
 }
