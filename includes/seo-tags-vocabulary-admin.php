@@ -149,9 +149,9 @@ if (!function_exists('seo_tags_vocab_get_summary')) {
         $objects = $wpdb->prefix . 'seo_object_vocabulary';
 
         $summary = [
-            'products' => (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'"
-            ),
+            'products' => isset(($product_counts = wp_count_posts('product'))->publish)
+                ? absint($product_counts->publish)
+                : 0,
             'classified_products' => 0,
             'unclassified_products' => 0,
             'wc_tagged_products' => 0,
