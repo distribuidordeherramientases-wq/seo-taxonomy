@@ -278,10 +278,8 @@ final class SEO_Dependiente_Index {
     }
 
     public static function count_published() {
-        global $wpdb;
-        return absint($wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'"
-        ));
+        $counts = wp_count_posts('product');
+        return isset($counts->publish) ? absint($counts->publish) : 0;
     }
 
     /**
