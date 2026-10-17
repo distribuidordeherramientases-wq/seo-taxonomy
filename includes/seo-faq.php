@@ -3849,12 +3849,13 @@ function seo_faq_report_type_label($object_type)
  */
 function seo_faq_report_get_target_counts()
 {
-    global $wpdb;
+    $category_count = wp_count_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
+    $product_counts = wp_count_posts('product');
 
     return [
         1 => count(seo_faq_report_get_hub_ids()),
-        2 => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy = 'product_cat'"),
-        3 => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'"),
+        2 => is_wp_error($category_count) ? 0 : absint($category_count),
+        3 => isset($product_counts->publish) ? absint($product_counts->publish) : 0,
     ];
 }
 
