@@ -68,10 +68,10 @@ function seo_dashboard_page() {
         $cluster_post  = get_post($cluster_id);
         $cluster_title = $cluster_post ? $cluster_post->post_title : 'Cluster ' . $cluster_id;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna; cluster_id enlazado mediante placeholder.
-        $primary_sql = $wpdb->prepare("\n            SELECT DISTINCT target_id\n            FROM {$relations_table}\n            WHERE source_type = 'cluster'\n              AND source_id = %d\n              AND relation_type = 'cluster_to_primary'\n        ", $cluster_id);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $primary_sql es el resultado de $wpdb->prepare().
-        $primary_ids = array_map('intval', (array) $wpdb->get_col($primary_sql));
+
+        $primary_ids = array_map('intval', (array) $wpdb->get_col(
+            $wpdb->prepare("\n            SELECT DISTINCT target_id\n            FROM {$relations_table}\n            WHERE source_type = 'cluster'\n              AND source_id = %d\n              AND relation_type = 'cluster_to_primary'\n        ", $cluster_id)
+        ));
 
         $primary_rows        = [];
         $cluster_secondaries = [];
@@ -82,10 +82,10 @@ function seo_dashboard_page() {
             $primary_post  = get_post($primary_id);
             $primary_title = $primary_post ? $primary_post->post_title : 'Hub ' . $primary_id;
 
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna; primary_id enlazado mediante placeholder.
-            $secondary_sql = $wpdb->prepare("\n                SELECT DISTINCT target_id\n                FROM {$relations_table}\n                WHERE source_type = 'hub_primary'\n                  AND source_id = %d\n                  AND relation_type = 'hub_primary_to_hub_secondary'\n            ", $primary_id);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $secondary_sql es el resultado de $wpdb->prepare().
-            $secondary_ids = array_map('intval', (array) $wpdb->get_col($secondary_sql));
+
+            $secondary_ids = array_map('intval', (array) $wpdb->get_col(
+                $wpdb->prepare("\n                SELECT DISTINCT target_id\n                FROM {$relations_table}\n                WHERE source_type = 'hub_primary'\n                  AND source_id = %d\n                  AND relation_type = 'hub_primary_to_hub_secondary'\n            ", $primary_id)
+            ));
 
             $category_ids = [];
 
