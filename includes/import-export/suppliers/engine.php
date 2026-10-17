@@ -4388,6 +4388,10 @@ function seo_proveedores_tabla_imagenes_externas() {
  * @return true|WP_Error
  */
 function seo_proveedores_asegurar_tabla_imagenes_externas() {
+    static $already_checked = false;
+    if ( $already_checked ) {
+        return true;
+    }
     global $wpdb;
 
     $table = seo_proveedores_tabla_imagenes_externas();
@@ -4532,6 +4536,7 @@ function seo_proveedores_asegurar_tabla_imagenes_externas() {
         }
     }
 
+    $already_checked = true;
     return true;
 }
 

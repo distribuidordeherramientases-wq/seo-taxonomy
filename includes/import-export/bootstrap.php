@@ -75,6 +75,7 @@ if ( is_readable( __DIR__ . '/suppliers/vevor-international-products.php' ) ) {
     require_once __DIR__ . '/suppliers/vevor-international-products.php';
     if ( is_readable( __DIR__ . '/suppliers/vevor-accepted-recovery.php' ) ) {
         require_once __DIR__ . '/suppliers/vevor-accepted-recovery.php';
+        require_once __DIR__ . '/suppliers/vevor-accepted-queue.php';
     }
 }
 require_once __DIR__ . '/catalogs/importer.php';
