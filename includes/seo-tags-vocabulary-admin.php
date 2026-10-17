@@ -147,11 +147,10 @@ if (!function_exists('seo_tags_vocab_get_summary')) {
 
         $vocabulary = $wpdb->prefix . 'seo_vocabulary';
         $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $product_counts = wp_count_posts('product');
 
         $summary = [
-            'products' => isset(($product_counts = wp_count_posts('product'))->publish)
-                ? absint($product_counts->publish)
-                : 0,
+            'products' => isset($product_counts->publish) ? absint($product_counts->publish) : 0,
             'classified_products' => 0,
             'unclassified_products' => 0,
             'wc_tagged_products' => 0,
