@@ -24,7 +24,6 @@ function seo_ie_products_export_authorize_ajax() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_send_json_error( [ 'message' => 'Sin permisos para exportar productos.' ], 403 );
     }
-    check_ajax_referer( 'seo_ie_products_export_async', 'nonce' );
 }
 
 function seo_ie_products_export_enqueue( $hook ) {
@@ -77,6 +76,7 @@ function seo_ie_products_export_filters_from_post() {
 
 function seo_ie_products_export_start() {
     seo_ie_products_export_authorize_ajax();
+    check_ajax_referer( 'seo_ie_products_export_async', 'nonce' );
 
     $mode = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : '';
     if ( ! in_array( $mode, [ 'full', 'reduced' ], true ) ) {
@@ -144,6 +144,7 @@ function seo_ie_products_export_download_url( $state ) {
 
 function seo_ie_products_export_status() {
     seo_ie_products_export_authorize_ajax();
+    check_ajax_referer( 'seo_ie_products_export_async', 'nonce' );
     $state = seo_ie_products_export_current_state();
     if ( ! $state ) {
         wp_send_json_success( [ 'active' => false ] );
@@ -159,6 +160,7 @@ function seo_ie_products_export_status() {
 
 function seo_ie_products_export_step() {
     seo_ie_products_export_authorize_ajax();
+    check_ajax_referer( 'seo_ie_products_export_async', 'nonce' );
     $state = seo_ie_products_export_current_state();
     $job = isset( $_POST['job'] ) ? sanitize_text_field( wp_unslash( $_POST['job'] ) ) : '';
 
