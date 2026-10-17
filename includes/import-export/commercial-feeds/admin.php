@@ -35,9 +35,8 @@ function seo_ie_cf_admin_save_settings() {
     $channels = array_keys( seo_ie_cf_channels() );
     // Only accept string channel identifiers from the submitted checkbox list.
     $submitted_channels = isset( $_POST['enabled_channels'] ) && is_array( $_POST['enabled_channels'] )
-        ? wp_unslash( $_POST['enabled_channels'] )
+        ? array_map( 'sanitize_key', array_filter( map_deep( wp_unslash( $_POST['enabled_channels'] ), 'sanitize_text_field' ), 'is_string' ) )
         : [];
-    $submitted_channels = array_filter( $submitted_channels, 'is_string' );
     $enabled = array_values(
         array_intersect( $channels, array_map( 'sanitize_key', $submitted_channels ) )
     );

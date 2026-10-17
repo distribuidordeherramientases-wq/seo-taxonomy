@@ -2521,7 +2521,7 @@ function seo_delete_empty_product_categories_handler() {
 
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every category ID is normalized with absint immediately below.
     $category_ids = isset($_POST['category_ids'])
-        ? (array) wp_unslash($_POST['category_ids'])
+        ? array_map('absint', (array) wp_unslash($_POST['category_ids']))
         : array();
 
     $category_ids = array_values(
