@@ -228,10 +228,8 @@ if (!function_exists('seo_images_inventory_summary')) {
             'formats'           => $formats,
         );
 
-        $summary['published_products'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->posts}
-             WHERE post_type = 'product' AND post_status = 'publish'"
-        );
+        $product_counts = wp_count_posts('product');
+        $summary['published_products'] = isset($product_counts->publish) ? absint($product_counts->publish) : 0;
 
         if (seo_images_table_exists($supplier_table)) {
             $row = $wpdb->get_row(
