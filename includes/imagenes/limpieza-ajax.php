@@ -12,13 +12,14 @@ if (!function_exists('seo_images_cleanup_ajax_authorize')) {
         if (!current_user_can('manage_options') || !current_user_can('upload_files')) {
             wp_send_json_error(array('message' => 'No tienes permisos suficientes.'), 403);
         }
-        check_ajax_referer('seo_images_cleanup_admin', 'nonce');
+
     }
 }
 
 if (!function_exists('seo_images_cleanup_ajax_start_audit')) {
     function seo_images_cleanup_ajax_start_audit() {
         seo_images_cleanup_ajax_authorize();
+        check_ajax_referer('seo_images_cleanup_admin', 'nonce');
 
         $result = seo_images_cleanup_start_audit();
         if (is_wp_error($result)) {
@@ -37,6 +38,7 @@ add_action('wp_ajax_seo_images_cleanup_start_audit', 'seo_images_cleanup_ajax_st
 if (!function_exists('seo_images_cleanup_ajax_audit_batch')) {
     function seo_images_cleanup_ajax_audit_batch() {
         seo_images_cleanup_ajax_authorize();
+        check_ajax_referer('seo_images_cleanup_admin', 'nonce');
 
         $result = seo_images_cleanup_run_audit_batch();
         if (is_wp_error($result)) {
@@ -58,6 +60,7 @@ add_action('wp_ajax_seo_images_cleanup_audit_batch', 'seo_images_cleanup_ajax_au
 if (!function_exists('seo_images_cleanup_ajax_delete_batch')) {
     function seo_images_cleanup_ajax_delete_batch() {
         seo_images_cleanup_ajax_authorize();
+        check_ajax_referer('seo_images_cleanup_admin', 'nonce');
 
         $confirmed = isset($_POST['confirm']) ? sanitize_key(wp_unslash($_POST['confirm'])) : '';
         if ($confirmed !== '1') {
@@ -81,6 +84,7 @@ add_action('wp_ajax_seo_images_cleanup_delete_batch', 'seo_images_cleanup_ajax_d
 if (!function_exists('seo_images_cleanup_ajax_retry_errors')) {
     function seo_images_cleanup_ajax_retry_errors() {
         seo_images_cleanup_ajax_authorize();
+        check_ajax_referer('seo_images_cleanup_admin', 'nonce');
 
         $reset = seo_images_cleanup_retry_errors();
         wp_send_json_success(array(
