@@ -234,6 +234,16 @@ final class SEO_Facturas_Quotes {
             self::fail('La solicitud ha caducado. Recarga el carrito y vuelve a intentarlo.');
         }
 
+        // Read and sanitize form fields only after the nonce has been verified.
+        // Helpers below receive these validated values instead of reading $_POST.
+        $quote_fields = array(
+            'company'     => sanitize_text_field(wp_unslash($_POST['seo_quote_company'] ?? '')),
+            'tax_id'      => sanitize_text_field(wp_unslash($_POST['seo_quote_tax_id'] ?? '')),
+            'contact'     => sanitize_text_field(wp_unslash($_POST['seo_quote_contact'] ?? '')),
+            'email'       => sanitize_email(wp_unslash($_POST['seo_quote_email'] ?? '')),
+            'compare_ids' => sanitize_text_field(wp_unslash($_POST['seo_facturas_compare_ids'] ?? '')),
+        );
+
         $kind = isset($_POST['seo_facturas_cart_document_kind'])
             ? sanitize_key(wp_unslash($_POST['seo_facturas_cart_document_kind']))
             : 'quote';
@@ -266,7 +276,7 @@ final class SEO_Facturas_Quotes {
             self::fail($rate_error->get_error_message());
         }
 
-        $buyer = self::buyer_from_request();
+        $buyer = self::buyer_from_request($quote_fields);
         if (is_wp_error($buyer)) {
             self::fail($buyer->get_error_message());
         }
@@ -287,7 +297,7 @@ final class SEO_Facturas_Quotes {
             self::fail($numbering->get_error_message());
         }
 
-        $snapshot = self::snapshot_from_cart($buyer, $numbering, $kind);
+        $snapshot = self::snapshot_from_cart($buyer, $numbering, $kind, $quote_fields['compare_ids']);
         if (is_wp_error($snapshot)) {
             self::fail($snapshot->get_error_message());
         }
@@ -318,13 +328,13 @@ final class SEO_Facturas_Quotes {
         exit;
     }
 
-    private static function buyer_from_request() {
+    private static function buyer_from_request(array $validated_fields) {
         $s = SEO_Facturas_Settings::quote();
         $buyer = array(
-            'company' => sanitize_text_field(wp_unslash($_POST['seo_quote_company'] ?? '')),
-            'tax_id'  => sanitize_text_field(wp_unslash($_POST['seo_quote_tax_id'] ?? '')),
-            'contact' => sanitize_text_field(wp_unslash($_POST['seo_quote_contact'] ?? '')),
-            'email'   => sanitize_email(wp_unslash($_POST['seo_quote_email'] ?? '')),
+            'company' => $validated_fields['company'],
+            'tax_id'  => $validated_fields['tax_id'],
+            'contact' => $validated_fields['contact'],
+            'email'   => $validated_fields['email'],
         );
 
         if (!empty($s['quote_require_email']) && empty($buyer['email'])) {
@@ -334,7 +344,7 @@ final class SEO_Facturas_Quotes {
         return $buyer;
     }
 
-    private static function snapshot_from_cart(array $buyer, array $numbering, $kind = 'quote') {
+    private static function snapshot_from_cart(array $buyer, array $numbering, $kind = 'quote', $comparison_raw = '') {
         $cart = WC()->cart;
         $currency = get_woocommerce_currency();
         $profile = SEO_Facturas_Settings::document_profile(SEO_Facturas_Documents::TYPE_QUOTE);
@@ -467,7 +477,7 @@ final class SEO_Facturas_Quotes {
             'items'          => $items,
             'coupon_lines'   => $coupons,
             'tax_lines'      => $tax_lines,
-            'comparison'     => self::comparison_from_request(),
+            'comparison'     => self::comparison_from_request($comparison_raw),
             'totals'         => array(
                 'subtotal_items' => (float) $cart->get_subtotal(),
                 'discount_total' => (float) $cart->get_discount_total(),
@@ -494,11 +504,7 @@ final class SEO_Facturas_Quotes {
      * Los IDs llegan desde sessionStorage mediante el formulario del documento.
      * No se genera comparativa si el usuario no la abrio previamente.
      */
-    private static function comparison_from_request() {
-        $raw = isset($_POST['seo_facturas_compare_ids'])
-            ? sanitize_text_field(wp_unslash($_POST['seo_facturas_compare_ids']))
-            : '';
-
+    private static function comparison_from_request($raw) {
         if ('' === $raw) {
             return array();
         }
