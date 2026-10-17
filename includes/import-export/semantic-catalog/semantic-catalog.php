@@ -177,7 +177,7 @@ final class SEO_Semantic_Catalog_Transfer {
     private static function requested_scopes() {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- This helper is called only after seo_semantic_catalog_export verifies its nonce.
         $raw = isset($_POST['scope']) && is_array($_POST['scope'])
-            ? array_map('sanitize_key', array_filter(wp_unslash($_POST['scope']), 'is_string'))
+            ? array_map('sanitize_key', array_filter(map_deep(wp_unslash($_POST['scope']), 'sanitize_text_field'), 'is_string'))
             : array();
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         $out = array();
