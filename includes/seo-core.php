@@ -750,9 +750,9 @@ function seo_render_hub_secondary_row($page, $templates, $categories) {
     $global_assigned_cats = $wpdb->get_col($wpdb->prepare("
         SELECT DISTINCT target_id
         FROM {$wpdb->prefix}seo_relations
-        WHERE target_type = 'product_cat'
-          AND relation_type = 'hub_secondary_to_category'
-    "));
+        WHERE target_type = %s
+          AND relation_type = %s
+    ", 'product_cat', 'hub_secondary_to_category'));
     $global_assigned_map = array_flip(array_map('intval', (array) $global_assigned_cats));
 
     /************************************************************

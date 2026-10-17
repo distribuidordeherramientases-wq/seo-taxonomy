@@ -83,62 +83,23 @@ if (!function_exists('seo_tags_vocab_group_label')) {
 
 if (!function_exists('seo_tags_vocab_render_styles')) {
     function seo_tags_vocab_render_styles() {
-        echo '<style>
-            .seo-tags-wrap{max-width:1700px}
-            .seo-tags-intro{max-width:1180px;font-size:14px;color:#50575e}
-            .seo-tags-mode{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#e7f5ee;color:#136c3b;font-weight:600;font-size:12px;margin-left:8px}
-            .seo-tags-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0}
-            .seo-tags-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px 16px;box-shadow:0 1px 1px rgba(0,0,0,.03)}
-            .seo-tags-card .value{font-size:26px;font-weight:700;line-height:1.15;margin:3px 0}
-            .seo-tags-card .label{font-weight:600;color:#1d2327}
-            .seo-tags-card .meta{font-size:12px;color:#646970;margin-top:5px}
-            .seo-tags-panel{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}
-            .seo-tags-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
-            .seo-tags-filter label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#50575e}
-            .seo-tags-filter input[type=text],.seo-tags-filter select{min-width:170px;max-width:270px}
-            .seo-tags-filter .search-wide{min-width:310px;max-width:420px}
-            .seo-tags-table{table-layout:auto}
-            .seo-tags-table th{white-space:nowrap}
-            .seo-tags-product{min-width:300px;max-width:470px}
-            .seo-tags-pills{display:flex;flex-wrap:wrap;gap:4px;min-width:120px}
-            .seo-tags-pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#f0f0f1;border:1px solid #dcdcde;font-size:11px;line-height:1.25}
-            .seo-tags-pill.role{background:#f1f5ff;border-color:#c7d2fe}
-            .seo-tags-pill.type{background:#fff7e6;border-color:#f3d28e}
-            .seo-tags-pill.application{background:#eaf7ef;border-color:#b7dfc6}
-            .seo-tags-pill.platform{background:#eef7ff;border-color:#b9d9f2}
-            .seo-tags-pill.subtype{background:#f8efff;border-color:#ddc3f4}
-            .seo-tags-muted{color:#8c8f94;font-style:italic}
-            .seo-tags-alignment{min-width:190px;max-width:300px}
-            .seo-tags-alignment-state{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
-            .seo-tags-alignment-state.good{background:#edfaef;color:#176b2c}
-            .seo-tags-alignment-state.warn{background:#fff8e5;color:#8a5a00}
-            .seo-tags-alignment-state.bad{background:#fce8e6;color:#a12622}
-            .seo-tags-alignment-state.muted{background:#f0f0f1;color:#646970}
-            .seo-tags-count{color:#646970;font-size:12px;margin:10px 0}
-            .seo-tags-anomaly-count{display:inline-flex;align-items:center;min-height:30px;padding:6px 10px;border-radius:4px;font-size:12px;font-weight:700;margin:10px 0}
-            .seo-tags-anomaly-count.is-clean{color:#176b2c;background:#edfaef;border:1px solid #b8dfc1}
-            .seo-tags-anomaly-count.has-errors{color:#a12622;background:#fce8e6;border:1px solid #e6b8b4}
-            .seo-tags-pagination{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:14px}
-            .seo-tags-pagination a,.seo-tags-pagination span{display:inline-block;padding:4px 8px;border:1px solid #c3c4c7;background:#fff;text-decoration:none;border-radius:3px}
-            .seo-tags-pagination .current{background:#2271b1;color:#fff;border-color:#2271b1}
-            .seo-tags-ok{color:#137333;font-weight:700}.seo-tags-bad{color:#b32d2e;font-weight:700}.seo-tags-warn{color:#996800;font-weight:700}
-            .seo-tags-control-grid{display:grid;grid-template-columns:minmax(250px,1fr) minmax(130px,.35fr) minmax(300px,1.3fr);gap:0;border:1px solid #dcdcde;border-bottom:0}
-            .seo-tags-control-grid>div{padding:10px 12px;border-bottom:1px solid #dcdcde;background:#fff}
-            .seo-tags-control-grid .head{font-weight:700;background:#f6f7f7}
-            .seo-tags-vocab-source{font-size:11px;color:#646970}
-            .seo-tags-manager-form{display:grid;grid-template-columns:minmax(180px,.55fr) minmax(280px,1.25fr) minmax(220px,.8fr) auto;gap:10px;align-items:end}
-            .seo-tags-manager-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#50575e}
-            .seo-tags-manager-form input,.seo-tags-manager-form select{width:100%}
-            .seo-tags-state{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
-            .seo-tags-state.active{background:#edfaef;color:#176b2c}.seo-tags-state.inactive{background:#f0f0f1;color:#646970}
-            .seo-tags-state.current{background:#edfaef;color:#176b2c;border:1px solid #b8dfc1}.seo-tags-state.safe{background:#e8f2ff;color:#135e96;border:1px solid #b7d7f5}.seo-tags-state.review{background:#fff7d6;color:#7a4f01;border:1px solid #e9d48a}.seo-tags-state.new{background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe}.seo-tags-state.pending{background:#f6f7f7;color:#50575e;border:1px dashed #a7aaad}.seo-tags-state.unresolved,.seo-tags-state.empty{background:#f0f0f1;color:#646970;border:1px solid #dcdcde}
-            .seo-tags-new-box{margin-top:6px;padding:7px;border:1px solid #d8b4fe;background:#faf5ff;border-radius:4px}.seo-tags-new-box input[type=text]{width:100%;font-size:11px}.seo-tags-new-button{border-color:#7e22ce!important;color:#6b21a8!important}.seo-tags-new-button:hover{border-color:#6b21a8!important;color:#581c87!important}
-            .seo-classifier-job{border:1px solid #c3c4c7;border-left:4px solid #2271b1;background:#fff;padding:12px 14px;margin:12px 0}.seo-classifier-job-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}.seo-classifier-job-kpi{background:#f6f7f7;border-radius:5px;padding:8px 10px}.seo-classifier-job-kpi strong{display:block;font-size:18px}.seo-classifier-progress{height:12px;background:#e2e4e7;border-radius:999px;overflow:hidden;margin:10px 0 4px}.seo-classifier-progress>span{display:block;height:100%;background:#2271b1;width:0;transition:width .3s ease}.seo-classifier-job-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-            .seo-tags-row-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.seo-tags-row-form input[type=text]{min-width:240px}
-            .seo-tags-danger{color:#b32d2e}.seo-tags-help{font-size:12px;color:#646970;margin-top:6px}
-            @media(max-width:900px){.seo-tags-control-grid{grid-template-columns:1fr}.seo-tags-control-grid .head{display:none}.seo-tags-filter .search-wide{min-width:220px}.seo-tags-manager-form{grid-template-columns:1fr}}
-        </style>';
+        wp_enqueue_style(
+            'taxocommerce-seo-tags-vocabulary',
+            SEO_SYSTEM_URL . 'includes/assets/seo-tags-vocabulary.css',
+            array(),
+            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+        );
     }
+}
+
+if (!function_exists('seo_tags_vocab_maybe_enqueue_styles')) {
+    function seo_tags_vocab_maybe_enqueue_styles($hook_suffix) {
+        if (false === strpos((string) $hook_suffix, 'seo-tags-vocabulary')) {
+            return;
+        }
+        seo_tags_vocab_render_styles();
+    }
+    add_action('admin_enqueue_scripts', 'seo_tags_vocab_maybe_enqueue_styles');
 }
 
 if (!function_exists('seo_tags_vocab_get_summary')) {
@@ -147,11 +108,10 @@ if (!function_exists('seo_tags_vocab_get_summary')) {
 
         $vocabulary = $wpdb->prefix . 'seo_vocabulary';
         $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $product_counts = wp_count_posts('product');
 
         $summary = [
-            'products' => (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'"
-            ),
+            'products' => isset($product_counts->publish) ? absint($product_counts->publish) : 0,
             'classified_products' => 0,
             'unclassified_products' => 0,
             'wc_tagged_products' => 0,
@@ -4749,8 +4709,8 @@ if (!function_exists('seo_tags_vocabulary_admin_page')) {
         echo '<div class="wrap seo-tags-wrap">';
         echo '<h1>Semántica <span class="seo-tags-mode">Vocabularios canónicos</span></h1>';
         echo '<p class="seo-tags-intro">Unifica los diccionarios que describen el catálogo: etiquetas semánticas, atributos técnicos y la correspondencia de nuestra arquitectura con la taxonomía de Google. Cada familia conserva su propio modelo y controles de integridad.</p>';
-        seo_tags_vocab_render_styles();
-        echo '<style>.seo-semantic-domain-tabs{margin:18px 0 10px;border-bottom:1px solid #c3c4c7}.seo-semantic-domain-tabs .nav-tab{font-size:15px;padding:8px 18px}.seo-semantic-subtabs{margin:8px 0 20px}.seo-semantic-domain-title{display:flex;align-items:center;gap:10px;margin:16px 0 4px}</style>';
+
+
 
         echo '<nav class="nav-tab-wrapper seo-semantic-domain-tabs">';
         echo '<a class="nav-tab ' . ($domain === 'labels' ? 'nav-tab-active' : '') . '" href="' . esc_url($base . '&domain=labels&section=vocabulary') . '">Etiquetas</a>';

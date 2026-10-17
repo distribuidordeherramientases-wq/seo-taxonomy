@@ -1255,12 +1255,8 @@ function seo_report_contents_render_page() {
     $overall_coverage = seo_report_contents_overall_coverage($summaries);
     $overall_color = $overall_coverage >= 95 ? '#2e7d32' : ($overall_coverage >= 80 ? '#b57d00' : '#b32d2e');
 
-    $draft_products = (int) $wpdb->get_var("
-        SELECT COUNT(*)
-        FROM {$wpdb->posts}
-        WHERE post_type = 'product'
-          AND post_status = 'draft'
-    ");
+    $product_counts = wp_count_posts('product');
+    $draft_products = isset($product_counts->draft) ? absint($product_counts->draft) : 0;
 
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:20px 0;">';
 

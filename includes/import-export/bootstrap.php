@@ -73,6 +73,9 @@ require_once __DIR__ . '/category-translations.php';
 // Conversion voluntaria y acotada de ofertas VEVOR internacionales aceptadas.
 if ( is_readable( __DIR__ . '/suppliers/vevor-international-products.php' ) ) {
     require_once __DIR__ . '/suppliers/vevor-international-products.php';
+    if ( is_readable( __DIR__ . '/suppliers/vevor-accepted-recovery.php' ) ) {
+        require_once __DIR__ . '/suppliers/vevor-accepted-recovery.php';
+    }
 }
 require_once __DIR__ . '/catalogs/importer.php';
 require_once __DIR__ . '/semantic-catalog/semantic-catalog.php';
