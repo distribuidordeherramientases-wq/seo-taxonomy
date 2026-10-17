@@ -31,6 +31,7 @@ function seo_vevor_recover_one( array $row ) {
         return new WP_Error( 'invalid_feed', 'Datos regionales incompletos o enlace afiliado invalido' );
     }
     $sku = 'vevor-' . strtolower( $country ) . '-p_' . $external;
+    $row['sku'] = $sku;
     $lock = seo_proveedores_adquirir_bloqueo_alta( $row, 5 );
     if ( is_wp_error( $lock ) ) {
         return $lock;
@@ -129,40 +130,16 @@ function seo_vevor_recover_panel() {
     if ( ! current_user_can( 'manage_options' ) ) { return; }
     $nonce = wp_create_nonce( 'seo_vevor_recover' );
     $url = admin_url( 'admin-ajax.php' );
+    wp_enqueue_script( 'seo-vevor-recovery', plugin_dir_url( __FILE__ ) . 'vevor-accepted-recovery.js', array(), '2.4.0', true );
     ?>
-    <div class="card" style="max-width:none;padding:16px">
+    <div class="card" id="seo-vevor-recover" data-url="<?php echo esc_url( $url ); ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" style="max-width:none;padding:16px">
       <h3>VEVOR: pasar ofertas internacionales aceptadas a borradores</h3>
       <p>Recupera US/DE/NL en tandas de diez. Las fichas se crean como productos externos en borrador, dentro de la categoria raiz del pais, para clasificarlas antes de publicar. No modifica productos espanoles.</p>
-      <button class="button button-primary" id="seo-vevor-recover-start" type="button">Convertir aceptados</button>
-      <button class="button" id="seo-vevor-recover-pause" type="button" disabled>Pausar</button>
-      <p id="seo-vevor-recover-result" role="status"></p>
+      <button class="button button-primary" data-action="start" type="button">Convertir aceptados</button>
+      <button class="button" data-action="pause" type="button" disabled>Pausar</button>
+      <p data-role="status" role="status"></p>
     </div>
-    <script>
-    (function(){
-      const start=document.getElementById('seo-vevor-recover-start');
-      const pause=document.getElementById('seo-vevor-recover-pause');
-      const out=document.getElementById('seo-vevor-recover-result');
-      if(!start||!pause||!out)return;
-      let running=false,cursor=0,created=0,linked=0,errors=0;
-      async function next(){
-        if(!running)return;
-        try{
-          const form=new URLSearchParams({action:'seo_vevor_recover',nonce:<?php echo wp_json_encode( $nonce ); ?>,cursor:String(cursor)});
-          const response=await fetch(<?php echo wp_json_encode( $url ); ?>,{method:'POST',credentials:'same-origin',body:form});
-          const result=await response.json();
-          if(!result.success)throw new Error(result.data?.message||'Error al convertir');
-          const d=result.data;
-          cursor=d.cursor; created+=d.created; linked+=d.linked; errors+=d.errors.length;
-          out.textContent='Creados: '+created+'; vinculados: '+linked+'; errores: '+errors+'; pendientes: '+d.remaining;
-          if(d.errors.length)out.textContent+='; ultimos errores: '+d.errors.slice(0,2).join(' | ');
-          if(d.done){running=false;start.disabled=false;pause.disabled=true;return;}
-          if(running)next();
-        }catch(e){running=false;start.disabled=false;pause.disabled=true;out.textContent='Lote detenido: '+e.message;}
-      }
-      start.addEventListener('click',()=>{if(running)return;running=true;start.disabled=true;pause.disabled=false;next();});
-      pause.addEventListener('click',()=>{running=false;start.disabled=false;pause.disabled=true;out.textContent+=' (pausado; para reanudar se inicia desde el principio, sin duplicar productos ya enlazados)';});
-    })();
-    </script>
+
     <?php
 }
 add_action( 'seo_vevor_region_batch_card', 'seo_vevor_recover_panel', 20 );
