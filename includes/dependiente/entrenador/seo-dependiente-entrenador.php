@@ -6662,7 +6662,7 @@ final class SEO_Dependiente_Entrenador {
              LEFT JOIN {$runs_table} r
                ON r.question_id=q.id
               AND r.lesson_key=q.lesson_key
-              AND r.status='answered'
+              AND r.status IN ('answered','error')
              WHERE q.lesson_key LIKE %s
                AND q.enabled=1
                AND r.id IS NULL
