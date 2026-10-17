@@ -280,16 +280,20 @@ function seo_vevor_region_batch_post() {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_proveedores_productos';
         // Exact categoryPath: no accidental mixing of unrelated supplier ranges.
-        $sql = $wpdb->prepare(
-            "SELECT * FROM {$table}
-             WHERE proveedor = %s AND pais_origen = %s
-               AND estado_seleccion = %s
-               AND categoria_proveedor = %s
-               AND (object_id IS NULL OR object_id = 0)
-             ORDER BY id ASC LIMIT 5",
-            'VEVOR', $market, 'aceptado', $source_category
+        // The table suffix is fixed in code; all external values are bound via prepare().
+        // Keep the prepared statement in the get_results() call so Plugin Check can verify it.
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$table}
+                 WHERE proveedor = %s AND pais_origen = %s
+                   AND estado_seleccion = %s
+                   AND categoria_proveedor = %s
+                   AND (object_id IS NULL OR object_id = 0)
+                 ORDER BY id ASC LIMIT 5",
+                'VEVOR', $market, 'aceptado', $source_category
+            ),
+            ARRAY_A
         );
-        $rows = (array) $wpdb->get_results( $sql, ARRAY_A );
         if ( empty( $rows ) ) {
             $report['errors'][] = 'No hay ofertas VEVOR aceptadas y sin enlazar para esa ruta exacta.';
         }
