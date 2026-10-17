@@ -5434,13 +5434,13 @@ final class SEO_Dependiente_Entrenador {
 
         $runs_table = self::runs_table();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; question ID and lesson key are bound through prepare().
-        $existing_answered = absint($wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$runs_table} WHERE question_id = %d AND lesson_key = %s AND status = 'answered' ORDER BY id DESC LIMIT 1",
+        $existing_terminal = absint($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$runs_table} WHERE question_id = %d AND lesson_key = %s AND status IN ('answered','error') ORDER BY id DESC LIMIT 1",
             $question_id,
             (string) $question['lesson_key']
         )));
-        if ($existing_answered) {
-            return $existing_answered;
+        if ($existing_terminal) {
+            return $existing_terminal;
         }
         $started_at = microtime(true);
         $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
