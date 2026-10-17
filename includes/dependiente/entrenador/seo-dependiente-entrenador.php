@@ -973,7 +973,7 @@ final class SEO_Dependiente_Entrenador {
                 $duration = max(0, microtime(true) - $started);
                 $answered_rows = 0;
                 foreach ((array) ($result['rows'] ?? array()) as $row) {
-                    if ('answered' === (string) ($row['status'] ?? '')) {
+                    if (in_array((string) ($row['status'] ?? ''), array('answered','error'), true)) {
                         $answered_rows++;
                     }
                 }
@@ -5341,7 +5341,7 @@ final class SEO_Dependiente_Entrenador {
              LEFT JOIN {$runs_table} r
                ON r.question_id = q.id
               AND r.lesson_key = q.lesson_key
-              AND r.status = 'answered'
+              AND r.status IN ('answered','error')
              WHERE q.lesson_key = %s
                AND q.module_no = %d
                AND q.enabled = 1
@@ -5442,13 +5442,6 @@ final class SEO_Dependiente_Entrenador {
         if ($existing_answered) {
             return $existing_answered;
         }
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; question ID and lesson key are bound through prepare().
-        $wpdb->query($wpdb->prepare(
-            "DELETE FROM {$runs_table} WHERE question_id = %d AND lesson_key = %s AND status = 'error'",
-            $question_id,
-            (string) $question['lesson_key']
-        ));
-
         $started_at = microtime(true);
         $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
         $use_v3_lesson9 = 'v2_l9_product_language' === $lesson_key
@@ -6980,7 +6973,7 @@ final class SEO_Dependiente_Entrenador {
              LEFT JOIN {$runs_table} r
                ON r.question_id = q.id
               AND r.lesson_key = q.lesson_key
-              AND r.status = 'answered'
+              AND r.status IN ('answered','error')
              WHERE q.lesson_key = %s
                AND q.enabled = 1
                AND r.id IS NULL
@@ -6998,7 +6991,7 @@ final class SEO_Dependiente_Entrenador {
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(q.id) AS total,
-                    COALESCE(SUM(r.status = 'answered'), 0) AS answered,
+                    COALESCE(SUM(r.status IN ('answered','error')), 0) AS answered,
                     COALESCE(SUM(r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')), 0) AS learned,
                     COALESCE(SUM(r.evaluation_status = 'fail'), 0) AS failed,
                     COALESCE(SUM(r.status = 'answered' AND r.returned_count > 0), 0) AS with_results,
@@ -7028,7 +7021,7 @@ final class SEO_Dependiente_Entrenador {
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(q.id) AS total,
-                    COALESCE(SUM(r.status = 'answered'), 0) AS answered,
+                    COALESCE(SUM(r.status IN ('answered','error')), 0) AS answered,
                     COALESCE(SUM(r.evaluation_status = 'pass_top1'), 0) AS pass_top1,
                     COALESCE(SUM(r.evaluation_status IN ('pass_top1','pass_top3')), 0) AS pass_top3,
                     COALESCE(SUM(r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')), 0) AS pass_any,
@@ -7062,7 +7055,7 @@ final class SEO_Dependiente_Entrenador {
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.module_no,
                     COUNT(q.id) AS total,
-                    COALESCE(SUM(r.status = 'answered'), 0) AS answered,
+                    COALESCE(SUM(r.status IN ('answered','error')), 0) AS answered,
                     COALESCE(SUM(r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')), 0) AS passed,
                     COALESCE(SUM(r.evaluation_status = 'fail'), 0) AS failed,
                     COALESCE(SUM(r.status = 'error'), 0) AS errors
