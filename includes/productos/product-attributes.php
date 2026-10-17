@@ -1332,9 +1332,12 @@ if (!function_exists('seo_attributes_render_dashboard')) {
         global $wpdb;
         $tables = seo_attributes_tables();
 
-        $total_products = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM `{$wpdb->posts}` WHERE post_type = 'product' AND post_status NOT IN ('trash','auto-draft')"
-        );
+        // Include all product statuses except trash and auto-draft, as before.
+        // Core caches the grouped counts and invalidates them on post changes.
+        $product_counts = (array) wp_count_posts('product');
+        $total_products = max(0, array_sum($product_counts)
+            - (int) ($product_counts['trash'] ?? 0)
+            - (int) ($product_counts['auto-draft'] ?? 0));
         $products_with_attributes = (int) $wpdb->get_var(
             "SELECT COUNT(DISTINCT pa.product_id)
              FROM `{$tables['values']}` pa
