@@ -138,6 +138,7 @@ function seo_vevor_recover_panel() {
       <button class="button button-primary" data-action="start" type="button">Convertir aceptados</button>
       <button class="button" data-action="pause" type="button" disabled>Pausar</button>
       <p data-role="status" role="status"></p>
+      <p data-role="errors"></p>
     </div>
 
     <?php
