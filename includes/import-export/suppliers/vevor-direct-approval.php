@@ -10,6 +10,11 @@ function seo_vevor_approval_restore_unlinked_pending() {
         || get_option( 'seo_vevor_approval_pending_migrated' ) ) {
         return;
     }
+    // Cancel the retired recovery callback before changing supplier states.
+    wp_clear_scheduled_hook( 'seo_vevor_normal_import_tick' );
+    if ( function_exists( 'as_unschedule_all_actions' ) ) {
+        as_unschedule_all_actions( 'seo_vevor_normal_import_tick', array(), 'seo-supplier-import' );
+    }
     global $wpdb;
     $table = $wpdb->prefix . 'seo_proveedores_productos';
     if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
