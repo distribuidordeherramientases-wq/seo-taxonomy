@@ -626,6 +626,8 @@ function seo_clean_db_get_term_state($term_id, $taxonomy) {
 function seo_clean_db_get_nodes($nodes_table) {
     global $wpdb;
 
+    $nodes_table = esc_sql( $nodes_table );
+
     return $wpdb->get_results(
         "SELECT id, object_type, object_id, seo_role, status
          FROM {$nodes_table}
@@ -766,6 +768,8 @@ function seo_clean_db_validate_endpoint($type, $id, $node_index, $node_roles) {
 function seo_clean_db_analyze_relations($relations_table, $node_index, $config) {
     global $wpdb;
 
+    $relations_table = esc_sql( $relations_table );
+
     $relations = $wpdb->get_results(
         "SELECT id, source_type, source_id, target_type, target_id, relation_type, created_at
          FROM {$relations_table}
@@ -851,6 +855,8 @@ function seo_clean_db_get_stale_nodes($nodes) {
 function seo_clean_db_get_duplicate_relations($relations_table) {
     global $wpdb;
 
+    $relations_table = esc_sql( $relations_table );
+
     return $wpdb->get_results(
         "SELECT MIN(id) AS keep_id, GROUP_CONCAT(id ORDER BY id ASC SEPARATOR ',') AS relation_ids,
             source_type, source_id, target_type, target_id, relation_type, COUNT(*) AS total
@@ -869,6 +875,8 @@ function seo_clean_db_get_duplicate_relations($relations_table) {
  */
 function seo_clean_db_get_duplicate_node_rows($nodes_table) {
     global $wpdb;
+
+    $nodes_table = esc_sql( $nodes_table );
 
     return $wpdb->get_results(
         "SELECT MAX(id) AS keep_id, GROUP_CONCAT(id ORDER BY id ASC SEPARATOR ',') AS node_ids,
@@ -889,6 +897,8 @@ function seo_clean_db_get_duplicate_node_rows($nodes_table) {
  */
 function seo_clean_db_get_multiple_ambito_products($nodes_table) {
     global $wpdb;
+
+    $nodes_table = esc_sql( $nodes_table );
 
     return $wpdb->get_results(
         "SELECT object_type, object_id,
@@ -1025,6 +1035,8 @@ function seo_clean_db_transactional_delete_ids($table_key, $ids, $operation_args
  */
 function seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by_role) {
     global $wpdb;
+
+    $relations_table = esc_sql( $relations_table );
 
     $ids = array();
 
@@ -1399,6 +1411,9 @@ function seo_clean_db_delete_duplicate_node_rows($nodes_table) {
 function seo_clean_db_reset_multiple_role_objects($relations_table, $nodes_table, $objects, $node_roles) {
     global $wpdb;
 
+    $relations_table = esc_sql( $relations_table );
+    $nodes_table = esc_sql( $nodes_table );
+
     $node_ids = array();
     $objects_by_role = array();
 
@@ -1482,6 +1497,9 @@ function seo_clean_db_reset_multiple_role_objects($relations_table, $nodes_table
  */
 function seo_clean_db_reset_registered_object($relations_table, $nodes_table, $seo_role, $object_id) {
     global $wpdb;
+
+    $relations_table = esc_sql( $relations_table );
+    $nodes_table = esc_sql( $nodes_table );
 
     $object_id = (int) $object_id;
 
@@ -1622,8 +1640,8 @@ function seo_clean_db_object_label($type, $id, $title) {
 function seo_clean_db_handle_data_error_action($action) {
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
     $config = seo_clean_db_get_config();
 
     if (!seo_clean_db_table_exists($relations_table) || !seo_clean_db_table_exists($nodes_table)) {
@@ -1723,8 +1741,8 @@ function seo_clean_db_handle_data_error_action($action) {
 function seo_clean_db_render_data_errors_tab() {
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
     $config = seo_clean_db_get_config();
 
     echo '<h2>Errores en datos del plugin</h2>';
@@ -2005,7 +2023,7 @@ function seo_clean_db_count_expired_transients() {
 function seo_clean_db_count_wc_expired_sessions() {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'woocommerce_sessions';
+    $table = esc_sql( $wpdb->prefix . 'woocommerce_sessions' );
 
     if (!seo_clean_db_table_exists($table)) {
         return 0;
@@ -2023,8 +2041,8 @@ function seo_clean_db_count_wc_expired_sessions() {
 function seo_clean_db_count_as_orphan_logs() {
     global $wpdb;
 
-    $logs = $wpdb->prefix . 'actionscheduler_logs';
-    $actions = $wpdb->prefix . 'actionscheduler_actions';
+    $logs = esc_sql( $wpdb->prefix . 'actionscheduler_logs' );
+    $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
         return 0;
@@ -2045,8 +2063,8 @@ function seo_clean_db_count_as_orphan_logs() {
 function seo_clean_db_count_as_old_completed_logs() {
     global $wpdb;
 
-    $logs = $wpdb->prefix . 'actionscheduler_logs';
-    $actions = $wpdb->prefix . 'actionscheduler_actions';
+    $logs = esc_sql( $wpdb->prefix . 'actionscheduler_logs' );
+    $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
         return 0;
@@ -2067,8 +2085,8 @@ function seo_clean_db_count_as_old_completed_logs() {
 function seo_clean_db_count_as_orphan_claims() {
     global $wpdb;
 
-    $claims = $wpdb->prefix . 'actionscheduler_claims';
-    $actions = $wpdb->prefix . 'actionscheduler_actions';
+    $claims = esc_sql( $wpdb->prefix . 'actionscheduler_claims' );
+    $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_clean_db_table_exists($claims) || !seo_clean_db_table_exists($actions)) {
         return 0;
@@ -2090,7 +2108,7 @@ function seo_clean_db_count_as_orphan_claims() {
 function seo_clean_db_count_wc_expired_reserved_stock() {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'wc_reserved_stock';
+    $table = esc_sql( $wpdb->prefix . 'wc_reserved_stock' );
 
     if (!seo_clean_db_table_exists($table)) {
         return 0;
@@ -2108,8 +2126,8 @@ function seo_clean_db_count_wc_expired_reserved_stock() {
 function seo_clean_db_count_wc_orphan_order_itemmeta() {
     global $wpdb;
 
-    $items = $wpdb->prefix . 'woocommerce_order_items';
-    $meta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+    $items = esc_sql( $wpdb->prefix . 'woocommerce_order_items' );
+    $meta = esc_sql( $wpdb->prefix . 'woocommerce_order_itemmeta' );
 
     if (!seo_clean_db_table_exists($items) || !seo_clean_db_table_exists($meta)) {
         return 0;
@@ -2272,7 +2290,7 @@ function seo_clean_db_delete_expired_transients() {
 function seo_clean_db_delete_wc_expired_sessions() {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'woocommerce_sessions';
+    $table = esc_sql( $wpdb->prefix . 'woocommerce_sessions' );
 
     if (!seo_clean_db_table_exists($table)) {
         return 0;
@@ -2288,8 +2306,8 @@ function seo_clean_db_delete_wc_expired_sessions() {
 function seo_clean_db_delete_as_orphan_logs() {
     global $wpdb;
 
-    $logs = $wpdb->prefix . 'actionscheduler_logs';
-    $actions = $wpdb->prefix . 'actionscheduler_actions';
+    $logs = esc_sql( $wpdb->prefix . 'actionscheduler_logs' );
+    $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
         return 0;
@@ -2310,8 +2328,8 @@ function seo_clean_db_delete_as_orphan_logs() {
 function seo_clean_db_delete_as_old_completed_logs() {
     global $wpdb;
 
-    $logs = $wpdb->prefix . 'actionscheduler_logs';
-    $actions = $wpdb->prefix . 'actionscheduler_actions';
+    $logs = esc_sql( $wpdb->prefix . 'actionscheduler_logs' );
+    $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
         return 0;
@@ -2332,8 +2350,8 @@ function seo_clean_db_delete_as_old_completed_logs() {
 function seo_clean_db_delete_as_orphan_claims() {
     global $wpdb;
 
-    $claims = $wpdb->prefix . 'actionscheduler_claims';
-    $actions = $wpdb->prefix . 'actionscheduler_actions';
+    $claims = esc_sql( $wpdb->prefix . 'actionscheduler_claims' );
+    $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_clean_db_table_exists($claims) || !seo_clean_db_table_exists($actions)) {
         return 0;
@@ -2355,7 +2373,7 @@ function seo_clean_db_delete_as_orphan_claims() {
 function seo_clean_db_delete_wc_expired_reserved_stock() {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'wc_reserved_stock';
+    $table = esc_sql( $wpdb->prefix . 'wc_reserved_stock' );
 
     if (!seo_clean_db_table_exists($table)) {
         return 0;
@@ -2371,8 +2389,8 @@ function seo_clean_db_delete_wc_expired_reserved_stock() {
 function seo_clean_db_delete_wc_orphan_order_itemmeta() {
     global $wpdb;
 
-    $items = $wpdb->prefix . 'woocommerce_order_items';
-    $meta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+    $items = esc_sql( $wpdb->prefix . 'woocommerce_order_items' );
+    $meta = esc_sql( $wpdb->prefix . 'woocommerce_order_itemmeta' );
 
     if (!seo_clean_db_table_exists($items) || !seo_clean_db_table_exists($meta)) {
         return 0;

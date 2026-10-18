@@ -1820,29 +1820,45 @@ if (!function_exists('seo_images_scan_render_tab')) {
         $issue_search = sanitize_text_field((string) seo_images_scan_query_arg('issue_s', ''));
         $issue_page = max(1, absint(seo_images_scan_query_arg('issue_paged', 1)));
         $issue_per_page = 100;
-        $issue_where = array('i.active_on_page=1', 's.active_in_sitemap=1');
-        if ($issue_filter === 'broken') {
-            $issue_where[] = "i.status_bucket NOT IN ('ok','redirect')";
-        } elseif ($issue_filter === 'all') {
-            $issue_where[] = "i.status_bucket<>'ok'";
-        } elseif (in_array($issue_filter, array('404','403','429','4xx','5xx','timeout','network','ssl','not_image','redirect','other'), true)) {
-            $issue_where[] = $wpdb->prepare('i.status_bucket=%s', $issue_filter);
-        } else {
+        // Enumerated filters and bound search text: never concatenate a WHERE
+        // clause into SQL. Both queries keep the exact same filter semantics.
+        $allowed_issue_filters = array('broken', 'all', '404', '403', '429', '4xx', '5xx', 'timeout', 'network', 'ssl', 'not_image', 'redirect', 'other');
+        if (!in_array($issue_filter, $allowed_issue_filters, true)) {
             $issue_filter = 'broken';
-            $issue_where[] = "i.status_bucket NOT IN ('ok','redirect')";
         }
-        if ($issue_search !== '') {
-            $like = '%' . $wpdb->esc_like($issue_search) . '%';
-            $issue_where[] = $wpdb->prepare('(i.image_url LIKE %s OR p.page_url LIKE %s)', $like, $like);
-        }
-        $issue_where_sql = implode(' AND ', $issue_where);
-        $issue_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$tables['items']} i INNER JOIN {$tables['pages']} p ON p.id=i.page_id INNER JOIN {$tables['sitemap']} s ON s.id=p.sitemap_inventory_id WHERE {$issue_where_sql}");
+        $issue_like = '%' . $wpdb->esc_like($issue_search) . '%';
+        $issue_total = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$tables['items']} i
+                 INNER JOIN {$tables['pages']} p ON p.id=i.page_id
+                 INNER JOIN {$tables['sitemap']} s ON s.id=p.sitemap_inventory_id
+                 WHERE i.active_on_page=1 AND s.active_in_sitemap=1
+                   AND (
+                     (%s='broken' AND i.status_bucket NOT IN ('ok','redirect'))
+                     OR (%s='all' AND i.status_bucket<>'ok')
+                     OR (%s NOT IN ('broken','all') AND i.status_bucket=%s)
+                   )
+                   AND (%s='' OR i.image_url LIKE %s OR p.page_url LIKE %s)"
+                , $issue_filter, $issue_filter, $issue_filter, $issue_filter,
+                $issue_search, $issue_like, $issue_like
+            )
+        );
         $issue_offset = ($issue_page - 1) * $issue_per_page;
         $issue_rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT i.*, p.page_url FROM {$tables['items']} i INNER JOIN {$tables['pages']} p ON p.id=i.page_id INNER JOIN {$tables['sitemap']} s ON s.id=p.sitemap_inventory_id WHERE {$issue_where_sql} ORDER BY i.last_checked_at DESC, i.id DESC LIMIT %d OFFSET %d",
-                $issue_per_page,
-                $issue_offset
+                "SELECT i.*, p.page_url FROM {$tables['items']} i
+                 INNER JOIN {$tables['pages']} p ON p.id=i.page_id
+                 INNER JOIN {$tables['sitemap']} s ON s.id=p.sitemap_inventory_id
+                 WHERE i.active_on_page=1 AND s.active_in_sitemap=1
+                   AND (
+                     (%s='broken' AND i.status_bucket NOT IN ('ok','redirect'))
+                     OR (%s='all' AND i.status_bucket<>'ok')
+                     OR (%s NOT IN ('broken','all') AND i.status_bucket=%s)
+                   )
+                   AND (%s='' OR i.image_url LIKE %s OR p.page_url LIKE %s)
+                 ORDER BY i.last_checked_at DESC, i.id DESC LIMIT %d OFFSET %d"
+                , $issue_filter, $issue_filter, $issue_filter, $issue_filter,
+                $issue_search, $issue_like, $issue_like, $issue_per_page, $issue_offset
             ),
             ARRAY_A
         );

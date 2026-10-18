@@ -3501,7 +3501,7 @@ final class SEO_Dependiente_Entrenador {
         $indexed=absint($status['indexed']??0);$published=absint($status['published']??0);$last_full=trim((string)($status['last_full']??''));
         $posts=absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='post' AND post_status='publish'"));
         $pages=absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='page' AND post_status='publish'"));
-        $faq_table=$wpdb->prefix.'seo_faq';$faqs=self::table_exists($faq_table)?absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type IN (2,3)")):0;
+        $faq_table=esc_sql( $wpdb->prefix.'seo_faq' );$faqs=self::table_exists($faq_table)?absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type IN (2,3)")):0;
         $ready=class_exists('WooCommerce')&&$indexed>0&&''!==$last_full;
         if(!class_exists('WooCommerce')){$message='WooCommerce no está disponible. La Academia necesita el catálogo.';}
         elseif($published<1){$message='No hay productos publicados que puedan formar parte del temario.';$ready=false;}
@@ -4142,8 +4142,8 @@ final class SEO_Dependiente_Entrenador {
         }
         if (null === $map) {
             $map = array();
-            $objects = $wpdb->prefix . 'seo_object_vocabulary';
-            $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+            $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+            $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
             if (self::table_exists($objects) && self::table_exists($vocabulary)) {
                 $rows = (array) $wpdb->get_results(
                     "SELECT ov.object_id,v.id,v.semantic_group,v.slug,v.label
@@ -4183,7 +4183,7 @@ final class SEO_Dependiente_Entrenador {
         if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) {
             return $cache;
         }
-        $index_table = SEO_Dependiente_Index::table();
+        $index_table = esc_sql( SEO_Dependiente_Index::table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Dependiente index table; query has no external values.
         $rows = (array) $wpdb->get_results(
             "SELECT product_id,title,brand_slug,categories_json,vocabulary_json FROM {$index_table} ORDER BY product_id ASC",
@@ -4237,8 +4237,8 @@ final class SEO_Dependiente_Entrenador {
         }
         global $wpdb;
         $cache = array();
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         if (!self::table_exists($vocabulary) || !self::table_exists($objects)) {
             return $cache;
         }
@@ -4442,7 +4442,7 @@ final class SEO_Dependiente_Entrenador {
             return $cache;
         }
 
-        $index_table = SEO_Dependiente_Index::table();
+        $index_table = esc_sql( SEO_Dependiente_Index::table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Dependiente index table; query has no external values.
         $rows = (array) $wpdb->get_results(
             "SELECT product_id,vocabulary_json,tags_json,attributes_json FROM {$index_table} ORDER BY product_id ASC",
@@ -4769,8 +4769,8 @@ final class SEO_Dependiente_Entrenador {
         if (null !== $cache) return $cache;
         global $wpdb;
         $cache = array();
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!self::table_exists($objects) || !self::table_exists($vocabulary)) return $cache;
         $rows = (array) $wpdb->get_results(
             "SELECT p.ID,p.post_type,p.post_title,v.id vocabulary_id,v.semantic_group,v.slug,v.label
@@ -4826,7 +4826,7 @@ final class SEO_Dependiente_Entrenador {
         if (null !== $cache) return $cache;
         global $wpdb;
         $cache=array();
-        $faq=$wpdb->prefix.'seo_faq';
+        $faq=esc_sql( $wpdb->prefix.'seo_faq' );
         if (!self::table_exists($faq)) return $cache;
         $faq_scope_select = self::table_has_column($faq, 'ambito') ? 'f.ambito' : "'' AS ambito";
         $limit=self::MAX_FAQ_SOURCES;
@@ -4898,8 +4898,8 @@ final class SEO_Dependiente_Entrenador {
         // varias lecciones dentro del mismo proceso PHP; no debemos conservar un
         // cache vacio si las asignaciones semanticas han cambiado durante ese proceso.
         $items = array();
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $index = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::table() : '';
         $limit = self::MAX_CROSS_SOURCES;
 
@@ -5284,7 +5284,7 @@ final class SEO_Dependiente_Entrenador {
             return false;
         }
         SEO_Dependiente_Semantics::ensure_ready();
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         if (!self::table_exists($table)) {
             return false;
         }
@@ -5341,7 +5341,7 @@ final class SEO_Dependiente_Entrenador {
         if (!class_exists('SEO_Dependiente_Semantics')) {
             return;
         }
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         if (!self::table_exists($table)) {
             return;
         }
@@ -5357,7 +5357,7 @@ final class SEO_Dependiente_Entrenador {
         $updated = 0;
 
         if (class_exists('SEO_Dependiente_Semantics')) {
-            $table = SEO_Dependiente_Semantics::table();
+            $table = esc_sql( SEO_Dependiente_Semantics::table() );
             if (self::table_exists($table)) {
                 $prefix = $wpdb->esc_like('academy-' . $lesson_key . '-') . '%';
                 $semantic_updated = (int) $wpdb->query($wpdb->prepare(
@@ -6425,8 +6425,8 @@ final class SEO_Dependiente_Entrenador {
         if (null === $type_to_role) {
             global $wpdb;
             $type_to_role = array();
-            $map = $wpdb->prefix . 'seo_type_role_map';
-            $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+            $map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
+            $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
             if (self::table_exists($map) && self::table_exists($vocabulary)) {
                 $rows = (array) $wpdb->get_results(
                     "SELECT tv.slug AS type_slug, rv.slug AS role_slug
@@ -7465,7 +7465,7 @@ final class SEO_Dependiente_Entrenador {
         global $wpdb;
         $parts=array();
         $parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(post_modified_gmt),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(ID,'|',post_modified_gmt,'|',post_status))),0)) FROM {$wpdb->posts} WHERE post_type IN ('product','post','page') AND post_status='publish'");
-        $v=$wpdb->prefix.'seo_vocabulary';$ov=$wpdb->prefix.'seo_object_vocabulary';$faq=$wpdb->prefix.'seo_faq';
+        $v=esc_sql( $wpdb->prefix.'seo_vocabulary' );$ov=esc_sql( $wpdb->prefix.'seo_object_vocabulary' );$faq=esc_sql( $wpdb->prefix.'seo_faq' );
         if(self::table_exists($v))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(id,'|',semantic_group,'|',slug,'|',active))),0)) FROM {$v}");
         if(self::table_exists($ov))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(object_type,'|',object_id,'|',vocabulary_id,'|',status))),0)) FROM {$ov} WHERE object_type IN ('product','product_cat','post','page')");
         if(self::table_exists($faq))$parts[]=(string)$wpdb->get_var("SELECT CONCAT(COUNT(*),'|',COALESCE(MAX(updated_at),''),'|',COALESCE(BIT_XOR(CRC32(CONCAT(id,'|',object_type,'|',object_id,'|',active))),0)) FROM {$faq} WHERE object_type IN (2,3)");
@@ -7677,7 +7677,7 @@ final class SEO_Dependiente_Entrenador {
         if (2 === $module_no) {
             if (!$product_ids || !class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) return array();
             $out = array();
-            $index_table = SEO_Dependiente_Index::table();
+            $index_table = esc_sql( SEO_Dependiente_Index::table() );
             foreach (array_chunk($product_ids, 200) as $chunk) {
                 $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
                 // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Dependiente index table plus generated %d placeholders; every product ID is bound through prepare().
@@ -7726,7 +7726,7 @@ final class SEO_Dependiente_Entrenador {
         if (4 === $module_no) {
             if (!$product_ids || !class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists()) return array();
             $out = array();
-            $index_table = SEO_Dependiente_Index::table();
+            $index_table = esc_sql( SEO_Dependiente_Index::table() );
             foreach (array_chunk($product_ids, 200) as $chunk) {
                 $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
                 // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Dependiente index table plus generated %d placeholders; every product ID is bound through prepare().
@@ -7763,7 +7763,7 @@ final class SEO_Dependiente_Entrenador {
             $wanted_faq = array_fill_keys($faq_ids, true);
             $wanted_products = array_fill_keys($product_ids, true);
             $wanted_categories = array_fill_keys($category_ids, true);
-            $faq_table = $wpdb->prefix . 'seo_faq';
+            $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
             if (!self::table_exists($faq_table)) return array();
             $faq_scope_select = self::table_has_column($faq_table, 'ambito') ? 'f.ambito' : "'' AS ambito";
             $rows = (array) $wpdb->get_results(
@@ -7876,7 +7876,7 @@ final class SEO_Dependiente_Entrenador {
             && class_exists('SEO_Dependiente_Index')
             && SEO_Dependiente_Index::table_exists()
         ) {
-            $index_table = SEO_Dependiente_Index::table();
+            $index_table = esc_sql( SEO_Dependiente_Index::table() );
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; ID enlazado mediante prepare().
             $row = (array) $wpdb->get_row($wpdb->prepare(
                 "SELECT product_id,title,normalized_title FROM {$index_table} WHERE product_id=%d LIMIT 1",
@@ -7988,9 +7988,9 @@ final class SEO_Dependiente_Entrenador {
         $expected = self::decode_json($question['expected_json'] ?? '');
         $conditions = is_array($expected['conditions'] ?? null) ? $expected['conditions'] : array();
         $source_key = (string) ($question['source_key'] ?? '');
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $type_role = $wpdb->prefix . 'seo_type_role_map';
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $type_role = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
 
         $valid = false;
         $matched_count = 0;
@@ -8161,7 +8161,7 @@ final class SEO_Dependiente_Entrenador {
             && class_exists('SEO_Dependiente_Index')
             && SEO_Dependiente_Index::table_exists()
         ) {
-            $index_table = SEO_Dependiente_Index::table();
+            $index_table = esc_sql( SEO_Dependiente_Index::table() );
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; ID enlazado.
             $row = (array) $wpdb->get_row($wpdb->prepare(
                 "SELECT product_id,vocabulary_json,tags_json,attributes_json FROM {$index_table} WHERE product_id=%d LIMIT 1",
@@ -8302,7 +8302,7 @@ final class SEO_Dependiente_Entrenador {
             return array('staged'=>0,'merged'=>0,'created'=>0,'updated'=>0);
         }
         SEO_Dependiente_Semantics::ensure_ready();
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         if (!self::table_exists($table)) return array('staged'=>0,'merged'=>0,'created'=>0,'updated'=>0);
         $prefix = $wpdb->esc_like('academy-' . $stage_key . '-') . '%';
         $rows = (array) $wpdb->get_results($wpdb->prepare(
