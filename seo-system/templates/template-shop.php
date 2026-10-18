@@ -517,6 +517,10 @@ if (empty($featured_products)) {
 }
 
 $render_products = static function ($products, $extra_class = '') {
+    // Defence in depth: never display a foreign affiliate product with an ES cart CTA.
+    if (function_exists('seo_front_es_product_is_visible')) {
+        $products = array_values(array_filter((array) $products, 'seo_front_es_product_is_visible'));
+    }
     if (empty($products)) {
         echo '<p class="sf-empty">No hay productos disponibles en este bloque.</p>';
         return;
