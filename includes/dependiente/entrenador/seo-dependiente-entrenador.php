@@ -1641,15 +1641,19 @@ final class SEO_Dependiente_Entrenador {
      * @return bool
      */
     public static function process_manager_slice($seconds = 20, $backend = 'manager_cron') {
-        // Los lotes manuales son una cola persistente independiente de la
-        // pantalla. Se procesan con el mismo regulador y presupuesto de Academia.
+        // Los lotes manuales comparten el gestor con el curso. Nunca pueden
+        // monopolizar todas las ventanas: procesamos como máximo una porción
+        // corta del Laboratorio y, si el curso automático sigue activo,
+        // continuamos después con Academia dentro de la misma llamada.
+        $lab_processed = false;
         if (self::pending_lab_batch()) {
-            return self::process_lab_queue_slice($seconds, $backend);
+            $lab_budget = max(5, min(10, absint($seconds)));
+            $lab_processed = self::process_lab_queue_slice($lab_budget, $backend);
         }
 
         $state = self::auto_state();
         if (!self::is_auto_running($state)) {
-            return false;
+            return (bool) $lab_processed;
         }
         if (!empty($state['worker_active'])) {
             $heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
@@ -5691,7 +5695,16 @@ final class SEO_Dependiente_Entrenador {
             'created_at'        => current_time('mysql'),
         ));
 
-        return false === $inserted ? 0 : absint($wpdb->insert_id);
+        if (false === $inserted) {
+            $db_error = sanitize_text_field((string) $wpdb->last_error);
+            throw new RuntimeException(
+                $db_error
+                    ? 'No se pudo guardar el resultado de Academia: ' . $db_error
+                    : 'No se pudo guardar el resultado de Academia en la base de datos.'
+            );
+        }
+
+        return absint($wpdb->insert_id);
     }
 
     private static function lab_ranked_from_data($data) {
@@ -6598,6 +6611,7 @@ final class SEO_Dependiente_Entrenador {
             'next_due_ts'     => 0,
             'last_duration'   => 0,
             'last_processed'  => 0,
+            'no_progress_cycles' => 0,
             'last_batch_key'  => '',
             'last_backend'    => '',
             'last_error'      => '',
@@ -6835,7 +6849,8 @@ final class SEO_Dependiente_Entrenador {
         return array(
             'batch_key'  => $batch_key,
             'batch_uuid' => $batch_uuid,
-            'processed'  => count($questions),
+            'selected'   => count($questions),
+            'processed'  => count($rows),
             'done'       => $done,
             'summary'    => $summary,
             'rows'       => $rows,
@@ -6874,10 +6889,24 @@ final class SEO_Dependiente_Entrenador {
             $batch_key = (string) ($pending['batch_key'] ?? '');
             $batch_size = self::sanitize_batch_size($state['batch_size'] ?? self::AJAX_BATCH_INITIAL);
             $step = self::run_lab_batch_step($batch_key, $batch_size);
+            $selected = absint($step['selected'] ?? 0);
             $processed = absint($step['processed'] ?? 0);
             $duration = max(0.001, microtime(true) - $started);
             $speed = self::auto_speed_config();
             $fast_streak = absint($state['fast_streak'] ?? 0);
+            $no_progress = absint($state['no_progress_cycles'] ?? 0);
+
+            if ($selected > 0 && $processed < 1) {
+                $no_progress++;
+            } else {
+                $no_progress = 0;
+            }
+            if ($no_progress >= self::AUTO_MAX_NO_PROGRESS) {
+                throw new RuntimeException(
+                    'La cola de preguntas de Academia lleva ' . $no_progress .
+                    ' ciclos sin poder guardar ningún resultado. Se aplica una pausa de seguridad y el curso principal seguirá recibiendo ventanas.'
+                );
+            }
 
             if ($duration >= (float) ($speed['very_slow_seconds'] ?? 14)) {
                 $batch_size = absint($speed['min_batch'] ?? 1);
@@ -6911,13 +6940,17 @@ final class SEO_Dependiente_Entrenador {
                 'next_due_ts'    => time() + max(1, $delay),
                 'last_duration'  => round($duration, 3),
                 'last_processed' => $processed,
+                'no_progress_cycles' => $no_progress,
                 'last_batch_key' => $batch_key,
                 'last_backend'   => sanitize_key((string) $backend),
                 'last_error'     => '',
             ));
         } catch (Throwable $error) {
+            $no_progress = absint($state['no_progress_cycles'] ?? 0) + 1;
+            $backoff = $no_progress >= self::AUTO_MAX_NO_PROGRESS ? 300 : 30;
             self::save_lab_queue_state(array(
-                'next_due_ts' => time() + 10,
+                'next_due_ts' => time() + $backoff,
+                'no_progress_cycles' => $no_progress,
                 'last_error'  => sanitize_text_field($error->getMessage()),
                 'last_backend'=> sanitize_key((string) $backend),
             ));
