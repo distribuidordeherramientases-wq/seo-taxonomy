@@ -122,34 +122,56 @@ function seo_supplier_sync_ensure_schema() {
     }
 
     /*
-     * Legacy installations can still have UNIQUE(proveedor,
-     * proveedor_id_externo) under the name proveedor_producto. That silently
-     * rejects the same VEVOR product in another country. Replace it in one
-     * atomic ALTER only when the legacy key has the expected two columns.
-     * Do not touch other indexes or supplier data.
+     * A VEVOR item may have the same external ID in several markets. Both
+     * legacy sites (with proveedor_producto) and newer STAGING databases
+     * (without that index) must end up with the same country-aware key.
      */
     if ( in_array( 'pais_origen', $columns, true ) ) {
-        $legacy = $wpdb->get_results(
-            $wpdb->prepare(
-                "SHOW INDEX FROM {$table} WHERE Key_name = %s ORDER BY Seq_in_index ASC",
-                'proveedor_producto'
-            ),
-            ARRAY_A
-        );
-        if (
-            2 === count( (array) $legacy )
+        $index_rows = (array) $wpdb->get_results( "SHOW INDEX FROM {$table}", ARRAY_A );
+        $legacy     = array();
+        $market_key = array();
+
+        foreach ( $index_rows as $index_row ) {
+            if ( 'proveedor_producto' === (string) ( $index_row['Key_name'] ?? '' ) ) {
+                $legacy[] = $index_row;
+            }
+            if ( 'proveedor_pais_producto' === (string) ( $index_row['Key_name'] ?? '' ) ) {
+                $market_key[] = $index_row;
+            }
+        }
+
+        usort( $legacy, static function ( $first, $second ) {
+            return (int) $first['Seq_in_index'] <=> (int) $second['Seq_in_index'];
+        } );
+        usort( $market_key, static function ( $first, $second ) {
+            return (int) $first['Seq_in_index'] <=> (int) $second['Seq_in_index'];
+        } );
+
+        $legacy_unique = 2 === count( $legacy )
             && 0 === (int) $legacy[0]['Non_unique']
             && 0 === (int) $legacy[1]['Non_unique']
             && 'proveedor' === (string) $legacy[0]['Column_name']
-            && 'proveedor_id_externo' === (string) $legacy[1]['Column_name']
-        ) {
-            $has_market_key = in_array( 'proveedor_pais_producto', (array) $wpdb->get_col( "SHOW INDEX FROM {$table}", 2 ), true );
-            $replace = $has_market_key
-                ? "ALTER TABLE {$table} DROP INDEX `proveedor_producto`"
-                : "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)";
-            if ( false === $wpdb->query( $replace ) && function_exists( 'seo_system_private_log' ) ) {
-                seo_system_private_log( 'error', 'Supplier market identity migration: ' . $wpdb->last_error );
-            }
+            && 'proveedor_id_externo' === (string) $legacy[1]['Column_name'];
+
+        $market_unique = 3 === count( $market_key )
+            && 0 === (int) $market_key[0]['Non_unique']
+            && 0 === (int) $market_key[1]['Non_unique']
+            && 0 === (int) $market_key[2]['Non_unique']
+            && 'proveedor' === (string) $market_key[0]['Column_name']
+            && 'pais_origen' === (string) $market_key[1]['Column_name']
+            && 'proveedor_id_externo' === (string) $market_key[2]['Column_name'];
+
+        $alter = '';
+        if ( $legacy_unique && $market_unique ) {
+            $alter = "ALTER TABLE {$table} DROP INDEX `proveedor_producto`";
+        } elseif ( $legacy_unique && ! $market_key ) {
+            $alter = "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)";
+        } elseif ( ! $legacy && ! $market_key ) {
+            $alter = "ALTER TABLE {$table} ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)";
+        }
+
+        if ( '' !== $alter && false === $wpdb->query( $alter ) && function_exists( 'seo_system_private_log' ) ) {
+            seo_system_private_log( 'error', 'Supplier market identity migration: ' . $wpdb->last_error );
         }
     }
 }
