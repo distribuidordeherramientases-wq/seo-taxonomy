@@ -37,6 +37,7 @@ jobs:
             **/.github/**
             taxocommerce-core/**
             taxocommerce-images/**
+            taxocommerce-import-export/**
             **/node_modules/**
             **/*.bak
             **/*.md
@@ -80,6 +81,31 @@ jobs:
 
           local-dir: ./taxocommerce-images/
           server-dir: ./wp-content/plugins/taxocommerce-images/
+
+          dry-run: false
+          log-level: verbose
+
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+
+      - name: Deploy TaxoCommerce Import-Export to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+
+          protocol: ftps
+          port: 21
+
+          local-dir: ./taxocommerce-import-export/
+          server-dir: ./wp-content/plugins/taxocommerce-import-export/
 
           dry-run: false
           log-level: verbose
