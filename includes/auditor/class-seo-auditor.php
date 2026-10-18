@@ -1352,14 +1352,25 @@ final class SEO_Auditor {
         $faqs = array();
         $faq_stats = array('total'=>0,'active_all'=>0,'active_supported'=>0,'inactive'=>0,'type1_active'=>0,'type2_active'=>0,'type3_active'=>0,'other_active'=>0,'orphan_categories_active'=>0,'orphan_products_active'=>0,'nonpublished_products_active'=>0);
         if (self::table_exists($faq_table)) {
-            $faq_stats['total'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table}"));
-            $faq_stats['active_all'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1"));
-            $faq_stats['active_supported'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type IN (2,3)"));
+            // One consistent SQL snapshot replaces seven separate FAQ count reads.
+            // SUM(CASE...) preserves the former WHERE filters and returns 0 on empty tables.
+            $counts = $wpdb->get_row(
+                "SELECT COUNT(*) AS total,
+                        COALESCE(SUM(CASE WHEN active=1 THEN 1 ELSE 0 END),0) AS active_all,
+                        COALESCE(SUM(CASE WHEN active=1 AND object_type IN (2,3) THEN 1 ELSE 0 END),0) AS active_supported,
+                        COALESCE(SUM(CASE WHEN active=1 AND object_type=1 THEN 1 ELSE 0 END),0) AS type1_active,
+                        COALESCE(SUM(CASE WHEN active=1 AND object_type=2 THEN 1 ELSE 0 END),0) AS type2_active,
+                        COALESCE(SUM(CASE WHEN active=1 AND object_type=3 THEN 1 ELSE 0 END),0) AS type3_active,
+                        COALESCE(SUM(CASE WHEN active=1 AND object_type NOT IN (1,2,3) THEN 1 ELSE 0 END),0) AS other_active
+                 FROM {$faq_table}",
+                ARRAY_A
+            );
+            if (is_array($counts)) {
+                foreach (array('total','active_all','active_supported','type1_active','type2_active','type3_active','other_active') as $field) {
+                    $faq_stats[$field] = absint($counts[$field] ?? 0);
+                }
+            }
             $faq_stats['inactive'] = max(0,$faq_stats['total']-$faq_stats['active_all']);
-            $faq_stats['type1_active'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type=1"));
-            $faq_stats['type2_active'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type=2"));
-            $faq_stats['type3_active'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type=3"));
-            $faq_stats['other_active'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} WHERE active=1 AND object_type NOT IN (1,2,3)"));
             $faq_stats['orphan_categories_active'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} f LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=f.object_id AND tt.taxonomy='product_cat' WHERE f.active=1 AND f.object_type=2 AND tt.term_id IS NULL"));
             $faq_stats['orphan_products_active'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} f LEFT JOIN {$wpdb->posts} p ON p.ID=f.object_id WHERE f.active=1 AND f.object_type=3 AND (p.ID IS NULL OR p.post_type<>'product')"));
             $faq_stats['nonpublished_products_active'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table} f INNER JOIN {$wpdb->posts} p ON p.ID=f.object_id AND p.post_type='product' WHERE f.active=1 AND f.object_type=3 AND p.post_status<>'publish'"));
