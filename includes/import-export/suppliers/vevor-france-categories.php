@@ -181,3 +181,5 @@ function seo_vevor_fr_render_categories_admin() {
     echo '<input type="hidden" name="action" value="seo_vevor_fr_categories_create">'
         . '<button type="submit" class="button button-secondary">Creer / completer les categories France</button></form></div>';
 }
+
+add_action( 'seo_vevor_fr_categories_card', 'seo_vevor_fr_render_categories_admin' );
