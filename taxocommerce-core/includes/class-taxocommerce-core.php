@@ -87,7 +87,7 @@ final class TaxoCommerce_Core {
 				'name'        => 'TaxoCommerce Core',
 				'version'     => TAXOCOMMERCE_CORE_VERSION,
 				'status'      => 'active',
-				'description' => 'Shared content, hierarchy, process, logging, and extension services.',
+				'description' => 'Servicios comunes de contenidos, jerarquía, procesos, registro técnico y extensiones.',
 			)
 		);
 
@@ -130,7 +130,7 @@ final class TaxoCommerce_Core {
 		$url = admin_url( 'admin.php?page=taxocommerce-core' );
 		array_unshift(
 			$links,
-			'<a href="' . esc_url( $url ) . '">' . esc_html__( 'Open Core', 'taxocommerce-core' ) . '</a>'
+			'<a href="' . esc_url( $url ) . '">' . esc_html__( 'Abrir Core', 'taxocommerce-core' ) . '</a>'
 		);
 		return $links;
 	}
@@ -155,8 +155,8 @@ final class TaxoCommerce_Core {
 
 		add_submenu_page(
 			'taxocommerce-core',
-			__( 'Dashboard', 'taxocommerce-core' ),
-			__( 'Dashboard', 'taxocommerce-core' ),
+			__( 'Inicio', 'taxocommerce-core' ),
+			__( 'Inicio', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core',
 			array( $this, 'render_dashboard' )
@@ -164,8 +164,8 @@ final class TaxoCommerce_Core {
 
 		add_submenu_page(
 			'taxocommerce-core',
-			__( 'Content', 'taxocommerce-core' ),
-			__( 'Content', 'taxocommerce-core' ),
+			__( 'Contenidos', 'taxocommerce-core' ),
+			__( 'Contenidos', 'taxocommerce-core' ),
 			$capability,
 			TaxoCommerce_Core_Content_Manager::PAGE_SLUG,
 			array( $this->content, 'render' )
@@ -173,8 +173,8 @@ final class TaxoCommerce_Core {
 
 		add_submenu_page(
 			'taxocommerce-core',
-			__( 'Hierarchy', 'taxocommerce-core' ),
-			__( 'Hierarchy', 'taxocommerce-core' ),
+			__( 'Jerarquía SEO', 'taxocommerce-core' ),
+			__( 'Jerarquía SEO', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core-hierarchy',
 			array( $this, 'render_hierarchy' )
@@ -182,8 +182,8 @@ final class TaxoCommerce_Core {
 
 		add_submenu_page(
 			'taxocommerce-core',
-			__( 'Processes', 'taxocommerce-core' ),
-			__( 'Processes', 'taxocommerce-core' ),
+			__( 'Procesos automáticos', 'taxocommerce-core' ),
+			__( 'Procesos automáticos', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core-processes',
 			array( $this, 'render_processes' )
@@ -191,8 +191,8 @@ final class TaxoCommerce_Core {
 
 		add_submenu_page(
 			'taxocommerce-core',
-			__( 'Modules', 'taxocommerce-core' ),
-			__( 'Modules', 'taxocommerce-core' ),
+			__( 'Extensiones', 'taxocommerce-core' ),
+			__( 'Extensiones', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core-modules',
 			array( $this, 'render_modules' )
@@ -200,8 +200,8 @@ final class TaxoCommerce_Core {
 
 		add_submenu_page(
 			'taxocommerce-core',
-			__( 'Logs', 'taxocommerce-core' ),
-			__( 'Logs', 'taxocommerce-core' ),
+			__( 'Registro técnico', 'taxocommerce-core' ),
+			__( 'Registro técnico', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core-logs',
 			array( $this, 'render_logs' )
@@ -224,7 +224,7 @@ final class TaxoCommerce_Core {
 	 */
 	private function guard() {
 		if ( ! current_user_can( $this->capability() ) ) {
-			wp_die( esc_html__( 'You do not have permission to manage TaxoCommerce Core.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'No tienes permisos para gestionar TaxoCommerce Core.', 'taxocommerce-core' ) );
 		}
 	}
 
@@ -352,14 +352,33 @@ final class TaxoCommerce_Core {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Pilot modular foundation running independently from the legacy TaxoCommerce SEO plugin.', 'taxocommerce-core' ); ?></p>
+			<p><?php echo esc_html__( 'Núcleo modular piloto que funciona de forma independiente y puede convivir con el TaxoCommerce SEO actual durante la migración.', 'taxocommerce-core' ); ?></p>
 			<table class="widefat striped" style="max-width:900px;">
 				<tbody>
-					<tr><th scope="row"><?php echo esc_html__( 'Core version', 'taxocommerce-core' ); ?></th><td><?php echo esc_html( TAXOCOMMERCE_CORE_VERSION ); ?></td></tr>
-					<tr><th scope="row"><?php echo esc_html__( 'WooCommerce', 'taxocommerce-core' ); ?></th><td><?php echo $this->woocommerce_detected() ? esc_html__( 'Detected', 'taxocommerce-core' ) : esc_html__( 'Not detected', 'taxocommerce-core' ); ?></td></tr>
-					<tr><th scope="row"><?php echo esc_html__( 'Legacy TaxoCommerce SEO', 'taxocommerce-core' ); ?></th><td><?php echo $this->legacy_detected() ? esc_html__( 'Detected - coexistence mode', 'taxocommerce-core' ) : esc_html__( 'Not detected', 'taxocommerce-core' ); ?></td></tr>
-					<tr><th scope="row"><?php echo esc_html__( 'Registered modules', 'taxocommerce-core' ); ?></th><td><?php echo esc_html( (string) count( $this->modules ) ); ?></td></tr>
-					<tr><th scope="row"><?php echo esc_html__( 'Registered processes', 'taxocommerce-core' ); ?></th><td><?php echo esc_html( (string) count( $this->processes ) ); ?></td></tr>
+					<tr><th scope="row"><?php echo esc_html__( 'Versión del Core', 'taxocommerce-core' ); ?></th><td><?php echo esc_html( TAXOCOMMERCE_CORE_VERSION ); ?></td></tr>
+					<tr><th scope="row"><?php echo esc_html__( 'WooCommerce', 'taxocommerce-core' ); ?></th><td><?php echo $this->woocommerce_detected() ? esc_html__( 'Detectado', 'taxocommerce-core' ) : esc_html__( 'No detectado', 'taxocommerce-core' ); ?></td></tr>
+					<tr><th scope="row"><?php echo esc_html__( 'TaxoCommerce SEO actual', 'taxocommerce-core' ); ?></th><td><?php echo $this->legacy_detected() ? esc_html__( 'Detectado · modo convivencia', 'taxocommerce-core' ) : esc_html__( 'No detectado', 'taxocommerce-core' ); ?></td></tr>
+					<tr><th scope="row"><?php echo esc_html__( 'Extensiones registradas', 'taxocommerce-core' ); ?></th><td><?php echo esc_html( (string) count( $this->modules ) ); ?></td></tr>
+					<tr><th scope="row"><?php echo esc_html__( 'Procesos registrados', 'taxocommerce-core' ); ?></th><td><?php echo esc_html( (string) count( $this->processes ) ); ?></td></tr>
+				</tbody>
+			</table>
+
+			<h2><?php echo esc_html__( 'Mapa de migración', 'taxocommerce-core' ); ?></h2>
+			<p><?php echo esc_html__( 'Esta tabla permite identificar qué función del plugin actual corresponde a cada pieza del nuevo Core.', 'taxocommerce-core' ); ?></p>
+			<table class="widefat striped" style="max-width:1100px;">
+				<thead>
+					<tr>
+						<th><?php echo esc_html__( 'Nuevo Core', 'taxocommerce-core' ); ?></th>
+						<th><?php echo esc_html__( 'Equivalente en el plugin actual', 'taxocommerce-core' ); ?></th>
+						<th><?php echo esc_html__( 'Estado de migración', 'taxocommerce-core' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr><td><strong><?php echo esc_html__( 'Contenidos', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Edición de productos, categorías WooCommerce, posts y páginas repartida entre WordPress, WooCommerce y herramientas TaxoCommerce.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Piloto funcional', 'taxocommerce-core' ); ?></td></tr>
+					<tr><td><strong><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría → Producto; nodos y relaciones del sistema actual.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Pendiente de migrar', 'taxocommerce-core' ); ?></td></tr>
+					<tr><td><strong><?php echo esc_html__( 'Procesos automáticos', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Supervisor, Gestor de procesos, workers, WP-Cron, cursores, colas y recuperaciones del plugin actual.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Contrato creado; motores pendientes', 'taxocommerce-core' ); ?></td></tr>
+					<tr><td><strong><?php echo esc_html__( 'Extensiones', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Los módulos que hoy viven dentro del monolito: Imágenes, Vocabulary, Auditor, Mercado, Proveedores, Assistant, etc.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Sistema nuevo', 'taxocommerce-core' ); ?></td></tr>
+					<tr><td><strong><?php echo esc_html__( 'Registro técnico', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Logs y diagnósticos que actualmente están repartidos entre distintos servicios y pantallas.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Base funcional', 'taxocommerce-core' ); ?></td></tr>
 				</tbody>
 			</table>
 		</div>
@@ -375,8 +394,9 @@ final class TaxoCommerce_Core {
 		$this->guard();
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'Hierarchy', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Target model: Cluster → Primary hub → Secondary hub → Product category → Product. This pilot does not duplicate or migrate legacy hierarchy data yet.', 'taxocommerce-core' ); ?></p>
+			<h1><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></h1>
+			<p><?php echo esc_html__( 'Modelo objetivo: Cluster → Hub primario → Hub secundario → Categoría de producto → Producto.', 'taxocommerce-core' ); ?></p>
+			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'la jerarquía SEO del plugin TaxoCommerce actual, incluidos sus nodos y relaciones. Todavía no está migrada al nuevo Core.', 'taxocommerce-core' ); ?></p></div>
 		</div>
 		<?php
 	}
@@ -390,13 +410,14 @@ final class TaxoCommerce_Core {
 		$this->guard();
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'Processes', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Extensions can register their workers here. Core does not take over legacy workers yet.', 'taxocommerce-core' ); ?></p>
+			<h1><?php echo esc_html__( 'Procesos automáticos', 'taxocommerce-core' ); ?></h1>
+			<p><?php echo esc_html__( 'Aquí se registrarán y controlarán los trabajos automáticos de las extensiones.', 'taxocommerce-core' ); ?></p>
+			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Supervisor, Gestor de procesos, workers, WP-Cron, colas, cursores y mecanismos de recuperación. Todavía no se han trasladado al nuevo Core.', 'taxocommerce-core' ); ?></p></div>
 			<table class="widefat striped">
-				<thead><tr><th><?php echo esc_html__( 'Process', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Module', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Status', 'taxocommerce-core' ); ?></th></tr></thead>
+				<thead><tr><th><?php echo esc_html__( 'Proceso', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Extensión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th></tr></thead>
 				<tbody>
 					<?php if ( empty( $this->processes ) ) : ?>
-						<tr><td colspan="3"><?php echo esc_html__( 'No Core processes registered yet.', 'taxocommerce-core' ); ?></td></tr>
+						<tr><td colspan="3"><?php echo esc_html__( 'Todavía no hay procesos del nuevo Core registrados.', 'taxocommerce-core' ); ?></td></tr>
 					<?php else : ?>
 						<?php foreach ( $this->processes as $process ) : ?>
 							<tr><td><?php echo esc_html( $process['name'] ); ?></td><td><?php echo esc_html( $process['module'] ); ?></td><td><?php echo esc_html( $process['status'] ); ?></td></tr>
@@ -417,9 +438,11 @@ final class TaxoCommerce_Core {
 		$this->guard();
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'Modules', 'taxocommerce-core' ); ?></h1>
+			<h1><?php echo esc_html__( 'Extensiones', 'taxocommerce-core' ); ?></h1>
+			<p><?php echo esc_html__( 'Aquí aparecerán los plugins que amplían el Core: Imágenes, Vocabulary, Auditor, Conexiones, Mercado, Proveedores, Assistant y otros.', 'taxocommerce-core' ); ?></p>
+			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'son los servicios que hoy están integrados dentro del plugin monolítico. En la nueva arquitectura pasarán a ser extensiones independientes cuando tenga sentido.', 'taxocommerce-core' ); ?></p></div>
 			<table class="widefat striped">
-				<thead><tr><th><?php echo esc_html__( 'Module', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Version', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Status', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Description', 'taxocommerce-core' ); ?></th></tr></thead>
+				<thead><tr><th><?php echo esc_html__( 'Extensión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Versión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></th></tr></thead>
 				<tbody>
 					<?php foreach ( $this->modules as $module ) : ?>
 						<tr><td><?php echo esc_html( $module['name'] ); ?></td><td><?php echo esc_html( $module['version'] ); ?></td><td><?php echo esc_html( $module['status'] ); ?></td><td><?php echo esc_html( $module['description'] ); ?></td></tr>
@@ -444,13 +467,15 @@ final class TaxoCommerce_Core {
 		);
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'Logs', 'taxocommerce-core' ); ?></h1>
-			<p><a class="button" href="<?php echo esc_url( $url ); ?>"><?php echo esc_html__( 'Clear Core logs', 'taxocommerce-core' ); ?></a></p>
+			<h1><?php echo esc_html__( 'Registro técnico', 'taxocommerce-core' ); ?></h1>
+			<p><?php echo esc_html__( 'Registro común de avisos, errores y sucesos del Core y, más adelante, de todas sus extensiones.', 'taxocommerce-core' ); ?></p>
+			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'los logs y diagnósticos que ahora están repartidos entre procesos, servicios y herramientas del plugin actual.', 'taxocommerce-core' ); ?></p></div>
+			<p><a class="button" href="<?php echo esc_url( $url ); ?>"><?php echo esc_html__( 'Vaciar registro técnico', 'taxocommerce-core' ); ?></a></p>
 			<table class="widefat striped">
-				<thead><tr><th><?php echo esc_html__( 'UTC time', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Level', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Message', 'taxocommerce-core' ); ?></th></tr></thead>
+				<thead><tr><th><?php echo esc_html__( 'Hora UTC', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Nivel', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Mensaje', 'taxocommerce-core' ); ?></th></tr></thead>
 				<tbody>
 					<?php if ( empty( $entries ) ) : ?>
-						<tr><td colspan="3"><?php echo esc_html__( 'No log entries.', 'taxocommerce-core' ); ?></td></tr>
+						<tr><td colspan="3"><?php echo esc_html__( 'No hay registros técnicos.', 'taxocommerce-core' ); ?></td></tr>
 					<?php else : ?>
 						<?php foreach ( $entries as $entry ) : ?>
 							<tr><td><?php echo esc_html( (string) $entry['time'] ); ?></td><td><?php echo esc_html( (string) $entry['level'] ); ?></td><td><?php echo esc_html( (string) $entry['message'] ); ?></td></tr>
