@@ -303,15 +303,50 @@ final class SEO_Solucionador_DB {
         dbDelta($sql_dossiers);
 
         // Compatibilidad con decisiones previas a RF v1.0.
-        $wpdb->query("UPDATE {$topics} SET recommended_action='CREATE_POST' WHERE recommended_action='create_post'");
-        $wpdb->query("UPDATE {$topics} SET recommended_action='CREATE_LANDING' WHERE recommended_action='create_landing'");
-        $wpdb->query("UPDATE {$topics} SET recommended_action='IMPROVE_POST' WHERE recommended_action IN ('expand_existing_post','create_section')");
-        $wpdb->query("UPDATE {$topics} SET recommended_action='NO_ACTION' WHERE recommended_action='no_action'");
-        $wpdb->query("UPDATE {$topics} SET recommended_action='DEFER' WHERE recommended_action='observe'");
-        $wpdb->query("UPDATE {$topics} SET workflow_state='candidate' WHERE status='candidate' AND workflow_state='detected'");
-        $wpdb->query("UPDATE {$topics} SET workflow_state='approved' WHERE status='approved'");
-        $wpdb->query("UPDATE {$topics} SET workflow_state='in_editing' WHERE status='draft_created'");
-        $wpdb->query("UPDATE {$topics} SET workflow_state='published' WHERE status='covered'");
+        // Identificador generado internamente por WordPress; los valores se preparan.
+        $topics_sql = esc_sql($topics);
+        $action_migrations = array(
+            array('CREATE_POST', 'create_post'),
+            array('CREATE_LANDING', 'create_landing'),
+            array('NO_ACTION', 'no_action'),
+            array('DEFER', 'observe'),
+        );
+        foreach ($action_migrations as $migration) {
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$topics_sql} SET recommended_action = %s WHERE recommended_action = %s",
+                $migration[0],
+                $migration[1]
+            ));
+        }
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$topics_sql} SET recommended_action = %s WHERE recommended_action IN (%s, %s)",
+            'IMPROVE_POST',
+            'expand_existing_post',
+            'create_section'
+        ));
+
+        $workflow_migrations = array(
+            array('candidate', 'candidate', 'detected'),
+            array('approved', 'approved', null),
+            array('in_editing', 'draft_created', null),
+            array('published', 'covered', null),
+        );
+        foreach ($workflow_migrations as $migration) {
+            if ($migration[2] !== null) {
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE {$topics_sql} SET workflow_state = %s WHERE status = %s AND workflow_state = %s",
+                    $migration[0],
+                    $migration[1],
+                    $migration[2]
+                ));
+            } else {
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE {$topics_sql} SET workflow_state = %s WHERE status = %s",
+                    $migration[0],
+                    $migration[1]
+                ));
+            }
+        }
 
         update_option(self::VERSION_OPTION, SEO_SOLUCIONADOR_DB_VERSION, false);
         return true;
