@@ -726,6 +726,7 @@ final class SEO_Dependiente_Entrenador {
             'next_delay'          => 0,
             'fast_streak'         => 0,
             'no_progress_cycles'  => 0,
+            'needs_training_retry_allowed' => 1,
             'worker_heartbeat_at' => '',
             'worker_heartbeat_ts' => 0,
             'worker_runs'         => 0,
@@ -906,12 +907,36 @@ final class SEO_Dependiente_Entrenador {
             ));
 
             if ('needs_training' === $status) {
+                $retry_allowed = !empty($state['needs_training_retry_allowed']);
+                if ($retry_allowed) {
+                    self::save_auto_state(array(
+                        'needs_training_retry_allowed' => 0,
+                        'last_message' => $lesson_label . ' necesita entrenamiento. Repreparación automática iniciada tras la orden de reanudación.',
+                        'last_error'   => '',
+                        'updated_at'   => current_time('mysql'),
+                    ));
+                    $result = self::auto_prepare_lesson_batch($lesson_key);
+                    self::save_auto_state(array(
+                        'current_module' => self::next_pending_module($lesson_key),
+                        'last_processed' => 0,
+                        'next_delay'     => 1,
+                        'no_progress_cycles' => 0,
+                        'last_message'   => !empty($result['done'])
+                            ? $lesson_label . ' repreparada automáticamente. Continuando con sus ejercicios.'
+                            : 'Repreparando ' . $lesson_label . ' desde un temario limpio.',
+                        'last_error'     => '',
+                        'updated_at'     => current_time('mysql'),
+                    ));
+                    self::schedule_auto_worker(1);
+                    return;
+                }
+
                 self::save_auto_state(array(
                     'enabled'        => false,
                     'mode'           => 'auto',
                     'status'         => 'needs_training',
                     'current_module' => 0,
-                    'last_message'   => $lesson_label . ' no ha superado el quality gate. No se ha creado snapshot ni promocionado conocimiento. Reprepara la leccion cuando quieras repetirla.',
+                    'last_message'   => $lesson_label . ' no ha superado de nuevo el quality gate tras el reintento automático. Se detiene para evitar un bucle.',
                     'last_error'     => '',
                     'updated_at'     => current_time('mysql'),
                 ));
@@ -1372,6 +1397,7 @@ final class SEO_Dependiente_Entrenador {
             'batch_size'         => self::auto_speed_config()['initial_batch'],
             'fast_streak'        => 0,
             'no_progress_cycles' => 0,
+            'needs_training_retry_allowed' => 0,
             'last_duration'      => 0,
             'last_processed'     => 0,
             'next_delay'         => 0,
@@ -1806,6 +1832,7 @@ final class SEO_Dependiente_Entrenador {
             'mode'                  => 'auto',
             'status'                => 'running',
             'last_error'            => '',
+            'needs_training_retry_allowed' => 1,
             'direct_worker_pending' => 0,
             'direct_worker_dispatch_id' => '',
             'direct_worker_not_before' => 0,
