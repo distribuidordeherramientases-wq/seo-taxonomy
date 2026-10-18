@@ -43,3 +43,5 @@ The pilot also includes:
 
 = 0.1.0 =
 * Initial modular Core pilot.
+
+Deployment marker: Core 0.2.0.
