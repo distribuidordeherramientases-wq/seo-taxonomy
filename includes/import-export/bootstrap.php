@@ -70,17 +70,12 @@ define( 'SEO_IE_MIGRATIONS_DIR', __DIR__ . '/migrations' );
 require_once __DIR__ . '/core/registry.php';
 require_once __DIR__ . '/legacy-engine.php';
 require_once __DIR__ . '/category-translations.php';
-// Conversion voluntaria y acotada de ofertas VEVOR internacionales aceptadas.
+// VEVOR international product creation through the regular supplier import only.
 if ( is_readable( __DIR__ . '/suppliers/vevor-international-products.php' ) ) {
     require_once __DIR__ . '/suppliers/vevor-international-products.php';
-    if ( is_readable( __DIR__ . '/suppliers/vevor-accepted-recovery.php' ) ) {
-        require_once __DIR__ . '/suppliers/vevor-accepted-recovery.php';
-        require_once __DIR__ . '/suppliers/vevor-accepted-queue.php';
-        require_once __DIR__ . '/suppliers/vevor-normal-import.php';
-        // Retire all temporary VEVOR recovery cards and manual batch tools.
-        remove_action( 'seo_vevor_region_batch_card', 'seo_vevor_region_batch_card' );
-        remove_action( 'admin_init', 'seo_vevor_region_batch_post' );
-    }
+}
+if ( is_readable( __DIR__ . '/suppliers/vevor-normal-import.php' ) ) {
+    require_once __DIR__ . '/suppliers/vevor-normal-import.php';
 }
 require_once __DIR__ . '/catalogs/importer.php';
 require_once __DIR__ . '/semantic-catalog/semantic-catalog.php';
