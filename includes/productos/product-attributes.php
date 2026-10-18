@@ -7,11 +7,16 @@ if (!defined('ABSPATH')) exit;
 if (!function_exists('seo_attributes_tables')) {
     function seo_attributes_tables() {
         global $wpdb;
+        // Only fixed internal identifiers derived from the validated WordPress
+        // table prefix are permitted here. Escape before use in dynamic SQL;
+        // the standard [a-zA-Z0-9_] prefix remains byte-for-byte unchanged.
+        // WordPress 5.8 compatibility: do not depend on the newer %i placeholder.
+        $prefix = (string) $wpdb->prefix;
         return [
-            'definitions' => $wpdb->prefix . 'sql_atributos',
-            'terms'       => $wpdb->prefix . 'sql_atributos_terminos',
-            'aliases'     => $wpdb->prefix . 'sql_atributos_aliases',
-            'values'      => $wpdb->prefix . 'sql_product_atributos',
+            'definitions' => esc_sql( $prefix . 'sql_atributos' ),
+            'terms'       => esc_sql( $prefix . 'sql_atributos_terminos' ),
+            'aliases'     => esc_sql( $prefix . 'sql_atributos_aliases' ),
+            'values'      => esc_sql( $prefix . 'sql_product_atributos' ),
         ];
     }
 }
