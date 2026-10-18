@@ -438,16 +438,45 @@ final class TaxoCommerce_Core {
 	 */
 	public function render_modules() {
 		$this->guard();
+
+		$search_url = add_query_arg(
+			array(
+				's'    => 'TaxoCommerce',
+				'tab'  => 'search',
+				'type' => 'term',
+			),
+			admin_url( 'plugin-install.php' )
+		);
+		$upload_url = admin_url( 'plugin-install.php?tab=upload' );
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Extensiones', 'taxocommerce-core' ); ?></h1>
 			<p><?php echo esc_html__( 'Aquí aparecerán los plugins que amplían el Core: Imágenes, Vocabulary, Auditor, Conexiones, Mercado, Proveedores, Assistant y otros.', 'taxocommerce-core' ); ?></p>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'son los servicios que hoy están integrados dentro del plugin monolítico. En la nueva arquitectura pasarán a ser extensiones independientes cuando tenga sentido.', 'taxocommerce-core' ); ?></p></div>
+
+			<p>
+				<a class="button" href="<?php echo esc_url( $search_url ); ?>"><?php echo esc_html__( 'Buscar extensiones en WordPress.org', 'taxocommerce-core' ); ?></a>
+				<a class="button button-primary" href="<?php echo esc_url( $upload_url ); ?>"><?php echo esc_html__( 'Subir extensión ZIP', 'taxocommerce-core' ); ?></a>
+			</p>
+			<p class="description"><?php echo esc_html__( 'Mientras una extensión TaxoCommerce no esté publicada en WordPress.org, usa “Subir extensión ZIP”. Una vez instalada y activada, se registrará automáticamente aquí si es compatible con el Core.', 'taxocommerce-core' ); ?></p>
+
 			<table class="widefat striped">
-				<thead><tr><th><?php echo esc_html__( 'Extensión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Versión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></th></tr></thead>
+				<thead><tr><th><?php echo esc_html__( 'Extensión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Versión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acción', 'taxocommerce-core' ); ?></th></tr></thead>
 				<tbody>
 					<?php foreach ( $this->modules as $module ) : ?>
-						<tr><td><?php echo esc_html( $module['name'] ); ?></td><td><?php echo esc_html( $module['version'] ); ?></td><td><?php echo esc_html( $module['status'] ); ?></td><td><?php echo esc_html( $module['description'] ); ?></td></tr>
+						<tr>
+							<td><?php echo esc_html( $module['name'] ); ?></td>
+							<td><?php echo esc_html( $module['version'] ); ?></td>
+							<td><?php echo esc_html( $module['status'] ); ?></td>
+							<td><?php echo esc_html( $module['description'] ); ?></td>
+							<td>
+								<?php if ( ! empty( $module['admin_url'] ) ) : ?>
+									<a class="button button-small" href="<?php echo esc_url( $module['admin_url'] ); ?>"><?php echo esc_html__( 'Abrir', 'taxocommerce-core' ); ?></a>
+								<?php else : ?>
+									<span aria-hidden="true">—</span>
+								<?php endif; ?>
+							</td>
+						</tr>
 					<?php endforeach; ?>
 				</tbody>
 			</table>
