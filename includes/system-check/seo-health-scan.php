@@ -754,10 +754,10 @@ if (!function_exists('seo_health_scan_handle_action')) {
         if ($task === 'cancel') {
             global $wpdb;
             $tables = seo_health_scan_tables();
-        // Escape only trusted WP-prefixed SQL identifiers before interpolation.
-        // WP 5.8 compatibility: do not require the %i placeholder.
-        $tables['runs']  = esc_sql( $tables['runs'] );
-        $tables['items'] = esc_sql( $tables['items'] );
+            // Escape only trusted WP-prefixed SQL identifiers before interpolation.
+            // WP 5.8 compatibility: do not require the %i placeholder.
+            $tables['runs']  = esc_sql( $tables['runs'] );
+            $tables['items'] = esc_sql( $tables['items'] );
             $active = seo_health_scan_active_run($scope);
             if ($active) {
                 $now = current_time('mysql', true);
