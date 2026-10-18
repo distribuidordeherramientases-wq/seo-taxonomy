@@ -521,7 +521,7 @@ function seo_ie_upsert_node_value( $object_type, $object_id, $seo_role, $keyword
     $object_id   = absint( $object_id );
     $seo_role    = sanitize_key( $seo_role );
     $keywords    = seo_ie_csv_to_utf8( (string) $keywords );
-    $table       = $wpdb->prefix . 'seo_nodes';
+    $table       = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     $valid_roles = [
         'category' => [ 'ambito', 'excerpt', 'description' ],
@@ -1644,7 +1644,7 @@ if ( ! empty( $term_data ) ) {
                 continue;
             }
 
-            $relations_table = $wpdb->prefix . 'seo_relations';
+            $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
             // Primero garantiza el destino nuevo; solo después retira relaciones antiguas.
             $inserted = $wpdb->query(
@@ -2561,8 +2561,8 @@ function seo_ie_product_reduced_vocabulary_map( $product_ids ) {
         return [];
     }
 
-    $objects_table = $wpdb->prefix . 'seo_object_vocabulary';
-    $vocab_table   = $wpdb->prefix . 'seo_vocabulary';
+    $objects_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+    $vocab_table   = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
 
     $objects_exists = $wpdb->get_var(
         $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $objects_table ) )
@@ -2684,7 +2684,7 @@ function seo_export_products_csv( $export_context = null ) {
 
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
     $allowed_statuses = [ 'publish', 'draft', 'pending', 'private' ];
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The complete array is normalized immediately by seo_ie_sanitize_text_array().
     $selected_statuses = seo_ie_sanitize_text_array(
@@ -6726,7 +6726,7 @@ function seo_ie_get_page_seo_role_for_export( $page_id ) {
         return '';
     }
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     static $table_exists = null;
 
@@ -6795,7 +6795,7 @@ function seo_ie_get_product_cat_relation_payload_for_export( $source_type, $sour
         return $empty;
     }
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     static $table_exists = null;
 
@@ -7040,7 +7040,7 @@ function seo_ie_replace_product_cat_relations( $source_type, $source_id, $term_i
         }
     }
 
-    $table = $wpdb->prefix . 'seo_relations';
+    $table = esc_sql( $wpdb->prefix . 'seo_relations' );
     if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
         return new WP_Error( 'seo_ie_relations_table', 'No existe la tabla seo_relations.' );
     }
@@ -7118,7 +7118,7 @@ function seo_ie_apply_page_seo_role_for_import( $page_id, $seo_role ) {
         );
     }
 
-    $table = $wpdb->prefix . 'seo_nodes';
+    $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
     if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
         return new WP_Error( 'seo_ie_nodes_table', 'No existe la tabla seo_nodes.' );
     }
@@ -10090,7 +10090,7 @@ function seo_export_faqs_csv() {
 
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_faq';
+    $table = esc_sql( $wpdb->prefix . 'seo_faq' );
     $faq_has_legacy_scope = (bool) $wpdb->get_var(
         $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", 'ambito')
     );
@@ -10272,7 +10272,7 @@ function seo_import_faqs_csv() {
 
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_faq';
+    $table = esc_sql( $wpdb->prefix . 'seo_faq' );
     $faq_has_legacy_scope = (bool) $wpdb->get_var(
         $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", 'ambito')
     );
@@ -10947,7 +10947,7 @@ function seo_ie_render_product_export_filters() {
     // phpcs:disable WordPress.Security.NonceVerification.Missing -- Solo se repinta el estado del formulario; la exportación real valida nonce en su handler.
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     /*
      * Valores seleccionados.
