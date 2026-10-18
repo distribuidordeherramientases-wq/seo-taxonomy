@@ -161,16 +161,18 @@ function seo_supplier_sync_ensure_schema() {
             && 'pais_origen' === (string) $market_key[1]['Column_name']
             && 'proveedor_id_externo' === (string) $market_key[2]['Column_name'];
 
-        $alter = '';
+        // Three fixed schema operations only; do not pass a dynamically built
+        // SQL string to wpdb->query(). Each branch retains the old behaviour.
+        $migration_result = null;
         if ( $legacy_unique && $market_unique ) {
-            $alter = "ALTER TABLE {$table} DROP INDEX `proveedor_producto`";
+            $migration_result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`" );
         } elseif ( $legacy_unique && ! $market_key ) {
-            $alter = "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)";
+            $migration_result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)" );
         } elseif ( ! $legacy && ! $market_key ) {
-            $alter = "ALTER TABLE {$table} ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)";
+            $migration_result = $wpdb->query( "ALTER TABLE {$table} ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)" );
         }
 
-        if ( '' !== $alter && false === $wpdb->query( $alter ) && function_exists( 'seo_system_private_log' ) ) {
+        if ( false === $migration_result && function_exists( 'seo_system_private_log' ) ) {
             seo_system_private_log( 'error', 'Supplier market identity migration: ' . $wpdb->last_error );
         }
     }
