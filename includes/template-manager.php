@@ -118,7 +118,7 @@ function seo_tm_ensure_builtin_templates() {
         return;
     }
 
-    $table = $wpdb->prefix . 'seo_templates';
+    $table = esc_sql( $wpdb->prefix . 'seo_templates' );
 
     $table_exists = $wpdb->get_var($wpdb->prepare(
         'SHOW TABLES LIKE %s',
@@ -198,7 +198,7 @@ add_action('plugins_loaded', 'seo_tm_ensure_builtin_templates', 20);
 function seo_tm_ensure_schema() {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_templates';
+    $table = esc_sql( $wpdb->prefix . 'seo_templates' );
 
     $table_exists = $wpdb->get_var($wpdb->prepare(
         'SHOW TABLES LIKE %s',
@@ -307,7 +307,7 @@ function seo_tm_ensure_schema() {
         ));
 
         /* Conservar cualquier rol de página que ya estuviera asignado. */
-        $nodes_table = $wpdb->prefix . 'seo_nodes';
+        $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
         $nodes_exists = $wpdb->get_var($wpdb->prepare(
             'SHOW TABLES LIKE %s',
             $wpdb->esc_like($nodes_table)
@@ -380,7 +380,7 @@ function seo_tm_ensure_schema() {
 function seo_tm_get_templates($where = '', array $params = []) {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_templates';
+    $table = esc_sql( $wpdb->prefix . 'seo_templates' );
 
     $sql = "SELECT * FROM {$table}";
 
@@ -402,7 +402,7 @@ function seo_tm_get_templates($where = '', array $params = []) {
 function seo_tm_get_template_by_key($template_key) {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_templates';
+    $table = esc_sql( $wpdb->prefix . 'seo_templates' );
 
     return $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM {$table} WHERE template_key = %s LIMIT 1",
@@ -770,7 +770,7 @@ function seo_tm_sync_page_template_meta($template_key) {
 function seo_tm_get_assigned_page_ids($template_key) {
     global $wpdb;
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     return array_map('intval', $wpdb->get_col($wpdb->prepare(
         "SELECT object_id
@@ -812,7 +812,7 @@ function seo_tm_cleanup_legacy_plugin_page_template_meta() {
     global $wpdb;
 
     $files = [];
-    $table = $wpdb->prefix . 'seo_templates';
+    $table = esc_sql( $wpdb->prefix . 'seo_templates' );
     $table_exists = $wpdb->get_var($wpdb->prepare(
         'SHOW TABLES LIKE %s',
         $wpdb->esc_like($table)
@@ -947,7 +947,7 @@ function seo_tm_handle_assignments() {
 
     global $wpdb;
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     $templates = seo_tm_get_templates(
         'is_public = 1 AND is_assignable = 1 AND assignment_mode IN (%s, %s)',
@@ -1677,7 +1677,7 @@ function seo_tm_handle_registry() {
 
     global $wpdb;
 
-    $table     = $wpdb->prefix . 'seo_templates';
+    $table     = esc_sql( $wpdb->prefix . 'seo_templates' );
     $templates = seo_tm_get_templates();
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Registry rows are consumed only for known templates and each field is sanitized according to type below.
     $posted    = isset($_POST['templates']) && is_array($_POST['templates'])
@@ -1881,7 +1881,7 @@ function seo_templates_page() {
 function seo_tm_render_assignments_tab() {
     global $wpdb;
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     $templates = seo_tm_get_templates(
         'is_public = 1 AND is_assignable = 1 AND assignment_mode IN (%s, %s)',

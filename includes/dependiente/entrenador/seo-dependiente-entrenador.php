@@ -84,9 +84,9 @@ final class SEO_Dependiente_Entrenador {
         global $wpdb;
 
         $charset_collate = $wpdb->get_charset_collate();
-        $lessons = self::lessons_table();
-        $questions = self::questions_table();
-        $runs = self::runs_table();
+        $lessons = esc_sql( self::lessons_table() );
+        $questions = esc_sql( self::questions_table() );
+        $runs = esc_sql( self::runs_table() );
 
         $lessons_sql = "CREATE TABLE {$lessons} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -2129,8 +2129,8 @@ final class SEO_Dependiente_Entrenador {
         }
 
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $question_ids = (array) $wpdb->get_col($wpdb->prepare(
             "SELECT q.id
@@ -2184,8 +2184,8 @@ final class SEO_Dependiente_Entrenador {
         }
 
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.question, r.status, r.evaluation_status, r.evaluation_score,
@@ -2283,8 +2283,8 @@ final class SEO_Dependiente_Entrenador {
         }
 
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $questions = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.*, r.id AS run_id, r.batch_uuid, r.status AS run_status,
@@ -2539,8 +2539,8 @@ final class SEO_Dependiente_Entrenador {
             return array();
         }
 
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.module_no,
@@ -2781,7 +2781,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function progress_search_strategy_summary($lesson_key) {
         global $wpdb;
-        $runs_table = self::runs_table();
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal runs table; lesson key is bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT COALESCE(NULLIF(search_strategy, ''), 'unknown') AS strategy,
@@ -2899,8 +2899,8 @@ final class SEO_Dependiente_Entrenador {
         }
 
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         $questions = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.*, r.id AS run_id, r.batch_uuid, r.status AS run_status,
@@ -3296,7 +3296,7 @@ final class SEO_Dependiente_Entrenador {
         // La recuperación queda protegida por el estado vacío exacto de la
         // remigración, el cierre automático del curso y L1-L9 completadas.
 
-        $lessons_table = self::lessons_table();
+        $lessons_table = esc_sql( self::lessons_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; query has no external values.
         $prior_total = absint($wpdb->get_var(
             "SELECT COUNT(*) FROM {$lessons_table} WHERE lesson_order < 10"
@@ -3348,7 +3348,7 @@ final class SEO_Dependiente_Entrenador {
             return;
         }
         $lesson_key = 'v2_l10_consolidation_debt';
-        $lessons_table = self::lessons_table();
+        $lessons_table = esc_sql( self::lessons_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; lesson key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$lessons_table} WHERE lesson_key = %s LIMIT 1",
@@ -3390,7 +3390,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function sync_lessons() {
         global $wpdb;
-        $lessons_table = self::lessons_table();
+        $lessons_table = esc_sql( self::lessons_table() );
         if (!self::table_exists($lessons_table)) {
             return;
         }
@@ -3460,7 +3460,7 @@ final class SEO_Dependiente_Entrenador {
                 $syncing = false;
             }
         }
-        $lessons_table = self::lessons_table();
+        $lessons_table = esc_sql( self::lessons_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; query has no external values.
         $rows = (array) $wpdb->get_results(
             "SELECT * FROM {$lessons_table} ORDER BY lesson_order ASC, id ASC",
@@ -3475,7 +3475,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lesson_row($lesson_key) {
         global $wpdb;
-        $lessons_table = self::lessons_table();
+        $lessons_table = esc_sql( self::lessons_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; lesson key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$lessons_table} WHERE lesson_key = %s LIMIT 1",
@@ -5114,7 +5114,7 @@ final class SEO_Dependiente_Entrenador {
         if(null!==$cache)return $cache;
         global $wpdb;
         $cache=array();
-        $questions_table = self::questions_table();
+        $questions_table = esc_sql( self::questions_table() );
         $previous=array('v2_l1_categories','v2_l2_inventory','v2_l3_type_role','v2_l4_features','v2_l5_editorial','v2_l6_faq','v2_l7_cross');
         $per=max(20,(int)floor(self::MAX_EXAM_SOURCES/count($previous)));
         foreach($previous as $lesson_key){
@@ -5145,7 +5145,7 @@ final class SEO_Dependiente_Entrenador {
         $source_key = sanitize_text_field((string) ($item['source_key'] ?? ''));
         $normalized = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::normalize($question) : strtolower($question);
         $hash = hash('sha256', $lesson_key . '|' . $source_key . '|' . $normalized);
-        $questions_table = self::questions_table();
+        $questions_table = esc_sql( self::questions_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; question hash is bound through prepare().
         $exists = absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$questions_table} WHERE question_hash = %s LIMIT 1",
@@ -5380,8 +5380,8 @@ final class SEO_Dependiente_Entrenador {
 
     private static function clear_lesson_data($lesson_key) {
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; lesson key is bound through prepare().
         $question_ids = (array) $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM {$questions_table} WHERE lesson_key = %s",
@@ -5417,8 +5417,8 @@ final class SEO_Dependiente_Entrenador {
 
     private static function pending_module_questions($lesson_key, $module_no, $limit) {
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key, module and LIMIT are bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.*
@@ -5517,7 +5517,7 @@ final class SEO_Dependiente_Entrenador {
             return 0;
         }
 
-        $runs_table = self::runs_table();
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; question ID and lesson key are bound through prepare().
         $existing_terminal = absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$runs_table} WHERE question_id = %d AND lesson_key = %s AND status IN ('answered','error') ORDER BY id DESC LIMIT 1",
@@ -6734,7 +6734,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lab_batch_meta($batch_key) {
         global $wpdb;
-        $questions_table = self::questions_table();
+        $questions_table = esc_sql( self::questions_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; batch key is bound through prepare().
         $json = $wpdb->get_var($wpdb->prepare(
             "SELECT expected_json FROM {$questions_table} WHERE lesson_key=%s AND enabled=1 ORDER BY id ASC LIMIT 1",
@@ -6745,8 +6745,8 @@ final class SEO_Dependiente_Entrenador {
 
     private static function pending_lab_batch() {
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; LIKE pattern is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
@@ -6779,7 +6779,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lab_queue_batches($limit = self::LAB_QUEUE_HISTORY_LIMIT) {
         global $wpdb;
-        $questions_table = self::questions_table();
+        $questions_table = esc_sql( self::questions_table() );
         $limit = max(1, min(50, absint($limit)));
         $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; LIKE pattern and LIMIT are bound through prepare().
@@ -7064,7 +7064,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function latest_lab_batch() {
         global $wpdb;
-        $questions_table = self::questions_table();
+        $questions_table = esc_sql( self::questions_table() );
         $pattern = $wpdb->esc_like(self::LAB_PREFIX) . '%';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; LIKE pattern is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
@@ -7076,8 +7076,8 @@ final class SEO_Dependiente_Entrenador {
 
     private static function pending_lab_questions($batch_key, $limit) {
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key and LIMIT are bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.*
@@ -7098,8 +7098,8 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lab_summary($batch_key) {
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(q.id) AS total,
@@ -7128,8 +7128,8 @@ final class SEO_Dependiente_Entrenador {
 
     private static function lesson_summary($lesson_key) {
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(q.id) AS total,
@@ -7161,8 +7161,8 @@ final class SEO_Dependiente_Entrenador {
 
     private static function module_progress($lesson_key) {
         global $wpdb;
-        $questions_table = self::questions_table();
-        $runs_table = self::runs_table();
+        $questions_table = esc_sql( self::questions_table() );
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; lesson key is bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT q.module_no,
@@ -7298,7 +7298,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function reconcile_failed_quality_gates() {
         global $wpdb;
-        $lessons_table = self::lessons_table();
+        $lessons_table = esc_sql( self::lessons_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia lessons table; query has no external values.
         $rows = (array) $wpdb->get_results(
             "SELECT lesson_key, status, snapshot_after, metadata FROM {$lessons_table} WHERE status = 'completed'",
@@ -7331,7 +7331,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function recent_runs($lesson_key, $limit) {
         global $wpdb;
-        $runs_table = self::runs_table();
+        $runs_table = esc_sql( self::runs_table() );
         $limit = min(500, max(1, absint($limit)));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; lesson key and LIMIT are bound through prepare().
         return (array) $wpdb->get_results($wpdb->prepare(
@@ -7343,7 +7343,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function run_by_id($run_id) {
         global $wpdb;
-        $runs_table = self::runs_table();
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia runs table; run ID is bound through prepare().
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$runs_table} WHERE id = %d LIMIT 1",
@@ -7429,13 +7429,13 @@ final class SEO_Dependiente_Entrenador {
             return false;
         }
         $clean['updated_at'] = current_time('mysql');
-        $lessons_table = self::lessons_table();
+        $lessons_table = esc_sql( self::lessons_table() );
         return false !== $wpdb->update($lessons_table, $clean, array('lesson_key' => $lesson_key));
     }
 
     private static function question_count($lesson_key) {
         global $wpdb;
-        $questions_table = self::questions_table();
+        $questions_table = esc_sql( self::questions_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; lesson key is bound through prepare().
         return absint($wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$questions_table} WHERE lesson_key = %s AND enabled = 1",
@@ -7445,7 +7445,7 @@ final class SEO_Dependiente_Entrenador {
 
     private static function question_module_count($lesson_key) {
         global $wpdb;
-        $questions_table = self::questions_table();
+        $questions_table = esc_sql( self::questions_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia questions table; lesson key is bound through prepare().
         return absint($wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(MAX(module_no),0) FROM {$questions_table} WHERE lesson_key = %s AND enabled = 1",
@@ -7855,7 +7855,7 @@ final class SEO_Dependiente_Entrenador {
             return 0;
         }
 
-        $runs_table = self::runs_table();
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; valores enlazados con prepare().
         $existing = absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$runs_table} WHERE question_id=%d AND lesson_key=%s AND status IN ('answered','error') ORDER BY id DESC LIMIT 1",
@@ -7974,7 +7974,7 @@ final class SEO_Dependiente_Entrenador {
             return 0;
         }
 
-        $runs_table = self::runs_table();
+        $runs_table = esc_sql( self::runs_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; valores enlazados mediante prepare().
         $existing = absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$runs_table} WHERE question_id=%d AND lesson_key=%s AND status IN ('answered','error') ORDER BY id DESC LIMIT 1",
@@ -8112,16 +8112,172 @@ final class SEO_Dependiente_Entrenador {
         ));
 
         if (false === $inserted) {
-            $db_error = sanitize_text_field((string) $wpdb->last_error);
-            throw new RuntimeException(
-                $db_error
-                    ? 'No se pudo guardar la comprobación TIPO/ROL de Academia: ' . $db_error
-                    : 'No se pudo guardar la comprobación TIPO/ROL de Academia.'
-            );
+            // Preserve SQL diagnostics in the server log, never in an exception
+            // that may be shown to an administrator (same as M1/M2).
+            error_log('[TaxoCommerce Academia] Insert type/role check: ' . sanitize_text_field((string) $wpdb->last_error));
+            throw new RuntimeException('No se pudo guardar la comprobación TIPO/ROL de Academia.');
         }
 
         return absint($wpdb->insert_id);
     }
+
+    /**
+     * Fast path de Actualización M4 (Características).
+     *
+     * Valida exhaustivamente las restricciones esperadas contra la fila ya
+     * indexada del producto. M8 conserva la regresión end-to-end del buscador.
+     */
+    public static function update_run_feature_question($question, $batch_uuid) {
+        global $wpdb;
+
+        $question = (array) $question;
+        $question_id = absint($question['id'] ?? 0);
+        $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        if (!$question_id || !$lesson_key) {
+            return 0;
+        }
+
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; valores enlazados.
+        $existing = absint($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$runs_table} WHERE question_id=%d AND lesson_key=%s AND status IN ('answered','error') ORDER BY id DESC LIMIT 1",
+            $question_id,
+            $lesson_key
+        )));
+        if ($existing) {
+            return $existing;
+        }
+
+        $expected = self::decode_json($question['expected_json'] ?? '');
+        $features = array_values(array_filter((array) ($expected['features'] ?? array()), 'is_array'));
+        $product_id = absint($expected['source_product_id'] ?? $question['source_id'] ?? 0);
+
+        static $row_cache = array();
+        $row = array();
+        if ($product_id && isset($row_cache[$product_id])) {
+            $row = $row_cache[$product_id];
+        } elseif (
+            $product_id
+            && class_exists('SEO_Dependiente_Index')
+            && SEO_Dependiente_Index::table_exists()
+        ) {
+            $index_table = SEO_Dependiente_Index::table();
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; ID enlazado.
+            $row = (array) $wpdb->get_row($wpdb->prepare(
+                "SELECT product_id,vocabulary_json,tags_json,attributes_json FROM {$index_table} WHERE product_id=%d LIMIT 1",
+                $product_id
+            ), ARRAY_A);
+            $row_cache[$product_id] = $row;
+        }
+
+        $vocabulary = self::decode_json($row['vocabulary_json'] ?? '');
+        $tags = self::decode_json($row['tags_json'] ?? '');
+        $attributes = self::decode_json($row['attributes_json'] ?? '');
+
+        $matched = 0;
+        $checks = array();
+        foreach ($features as $feature) {
+            $kind = sanitize_key((string) ($feature['kind'] ?? ''));
+            $ok = false;
+
+            if ('vocabulary' === $kind) {
+                $group = sanitize_key((string) ($feature['group'] ?? ''));
+                $slug = sanitize_title((string) ($feature['slug'] ?? ''));
+                foreach ((array) ($vocabulary[$group] ?? array()) as $term) {
+                    if ($slug && $slug === sanitize_title((string) ($term['slug'] ?? ''))) {
+                        $ok = true;
+                        break;
+                    }
+                }
+            } elseif ('attribute' === $kind) {
+                $key = sanitize_title((string) ($feature['key'] ?? ''));
+                $value = SEO_Dependiente_Index::normalize((string) ($feature['value'] ?? ''));
+                foreach ((array) $attributes as $attribute) {
+                    $candidate_key = sanitize_title((string) ($attribute['key'] ?? $attribute['label'] ?? ''));
+                    if ($key && $candidate_key !== $key) {
+                        continue;
+                    }
+                    foreach ((array) ($attribute['values'] ?? array()) as $candidate_value) {
+                        if ($value && $value === SEO_Dependiente_Index::normalize((string) $candidate_value)) {
+                            $ok = true;
+                            break 2;
+                        }
+                    }
+                }
+            } elseif ('tag' === $kind) {
+                $slug = sanitize_title((string) ($feature['slug'] ?? ''));
+                foreach ((array) $tags as $tag) {
+                    $candidate = sanitize_title((string) ($tag['slug'] ?? $tag['name'] ?? ''));
+                    if ($slug && $candidate === $slug) {
+                        $ok = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($ok) {
+                $matched++;
+            }
+            $checks[] = array(
+                'kind' => $kind,
+                'matched' => $ok,
+                'group' => sanitize_key((string) ($feature['group'] ?? '')),
+                'key' => sanitize_title((string) ($feature['key'] ?? '')),
+                'slug' => sanitize_title((string) ($feature['slug'] ?? '')),
+            );
+        }
+
+        $total = count($features);
+        $valid = $product_id > 0 && !empty($row) && $total > 0 && $matched === $total;
+        $evaluation = array(
+            'status' => $valid ? 'pass_top1' : 'fail',
+            'score' => $valid ? 1 : ($total > 0 ? round($matched / $total, 4) : 0),
+            'matched_product_id' => $valid ? $product_id : null,
+            'matched_position' => $valid ? 1 : null,
+            'diagnostic_type' => $valid ? 'feature_structure_ok' : 'feature_structure_mismatch',
+            'classroom_stage_used' => false,
+            'matched_features' => $matched,
+            'total_features' => $total,
+        );
+
+        $inserted = $wpdb->insert($runs_table, array(
+            'batch_uuid'        => (string) $batch_uuid,
+            'lesson_key'        => $lesson_key,
+            'module_no'         => absint($question['module_no'] ?? 0),
+            'question_id'       => $question_id,
+            'source_type'       => sanitize_key((string) ($question['source_type'] ?? 'features')),
+            'source_id'         => $product_id ?: null,
+            'question_type'     => sanitize_key((string) ($question['question_type'] ?? 'features')),
+            'mode'              => self::sanitize_mode($question['mode'] ?? 'need'),
+            'question'          => sanitize_text_field((string) ($question['question'] ?? '')),
+            'status'            => 'answered',
+            'result_count'      => $valid ? 1 : 0,
+            'returned_count'    => $valid ? 1 : 0,
+            'search_uuid'       => null,
+            'search_strategy'   => 'feature_structure_check',
+            'execution_ms'      => 0,
+            'evaluation_status' => $evaluation['status'],
+            'evaluation_score'  => $evaluation['score'],
+            'evaluation_json'   => wp_json_encode($evaluation, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'top_results'       => wp_json_encode(array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'response_meta'     => wp_json_encode(array(
+                'feature_check' => array(
+                    'product_id' => $product_id,
+                    'checks' => $checks,
+                ),
+            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'error_message'     => null,
+            'created_at'        => current_time('mysql'),
+        ));
+
+        if (false === $inserted) {
+            error_log('[TaxoCommerce Academia] Insert M4 feature check: ' . sanitize_text_field((string) $wpdb->last_error));
+            throw new RuntimeException('No se pudo guardar la comprobación de características de Academia.');
+        }
+
+        return absint($wpdb->insert_id);
+    }
+
 
     public static function update_question_count($lesson_key) {
         return self::question_count(sanitize_key((string) $lesson_key));

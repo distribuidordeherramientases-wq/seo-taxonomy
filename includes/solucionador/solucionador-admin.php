@@ -510,21 +510,38 @@ final class SEO_Solucionador_Admin {
 
     private static function counts() {
         global $wpdb;
-        $table = SEO_Solucionador_DB::topics_table();
+        $table = esc_sql( SEO_Solucionador_DB::topics_table() );
         if (!SEO_Solucionador_DB::table_exists($table)) return array();
 
-        $base = "intent='dependiente_qa_basic'";
+        // One aggregate snapshot replaces ten round trips to the same table.
+        // Keep the existing predicates unchanged; COALESCE handles empty tables.
+        $row = $wpdb->get_row(
+            "SELECT
+                COALESCE(SUM(workflow_state<>'rejected'),0) AS total,
+                COALESCE(SUM(workflow_state IN ('detected','validated','candidate','approved','brief_ready','in_editing','scheduled')),0) AS active,
+                COALESCE(SUM(workflow_state='candidate'),0) AS candidate,
+                COALESCE(SUM(workflow_state IN ('approved','brief_ready')),0) AS approved,
+                COALESCE(SUM(recommended_action='IMPROVE_POST' AND workflow_state<>'rejected'),0) AS improve,
+                COALESCE(SUM(recommended_action='MERGE_CONTENT' AND workflow_state<>'rejected'),0) AS merge_count,
+                COALESCE(SUM(recommended_action='NO_ACTION' AND workflow_state<>'rejected'),0) AS no_action,
+                COALESCE(SUM(recommended_action='DEFER' OR workflow_state='deferred'),0) AS deferred,
+                COALESCE(SUM(recommended_action='CREATE_POST' AND workflow_state<>'rejected'),0) AS create_post,
+                COALESCE(SUM(draft_post_id IS NOT NULL AND draft_post_id>0),0) AS drafts
+             FROM {$table}",
+            ARRAY_A
+        );
+        $row = is_array($row) ? $row : array();
         return array(
-            'total'       => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state<>'rejected'"),
-            'active'      => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state IN ('detected','validated','candidate','approved','brief_ready','in_editing','scheduled')"),
-            'candidate'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state='candidate'"),
-            'approved'    => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE workflow_state IN ('approved','brief_ready')"),
-            'improve'     => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='IMPROVE_POST' AND workflow_state<>'rejected'"),
-            'merge'       => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='MERGE_CONTENT' AND workflow_state<>'rejected'"),
-            'no_action'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='NO_ACTION' AND workflow_state<>'rejected'"),
-            'deferred'    => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='DEFER' OR workflow_state='deferred'"),
-            'create_post' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE recommended_action='CREATE_POST' AND workflow_state<>'rejected'"),
-            'drafts'      => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE draft_post_id IS NOT NULL AND draft_post_id>0"),
+            'total'       => absint($row['total'] ?? 0),
+            'active'      => absint($row['active'] ?? 0),
+            'candidate'   => absint($row['candidate'] ?? 0),
+            'approved'    => absint($row['approved'] ?? 0),
+            'improve'     => absint($row['improve'] ?? 0),
+            'merge'       => absint($row['merge_count'] ?? 0),
+            'no_action'   => absint($row['no_action'] ?? 0),
+            'deferred'    => absint($row['deferred'] ?? 0),
+            'create_post' => absint($row['create_post'] ?? 0),
+            'drafts'      => absint($row['drafts'] ?? 0),
         );
     }
 
@@ -630,13 +647,22 @@ final class SEO_Solucionador_Admin {
     private static function simple_counts() {
         global $wpdb;
 
-        $dossiers = SEO_Solucionador_DB::dossiers_table();
-        $total = SEO_Solucionador_DB::table_exists($dossiers)
-            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$dossiers} WHERE (rejected_source_hash='' OR rejected_source_hash<>source_hash)"))
-            : 0;
-        $with_material = SEO_Solucionador_DB::table_exists($dossiers)
-            ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$dossiers} WHERE question_count>0 AND (rejected_source_hash='' OR rejected_source_hash<>source_hash)"))
-            : 0;
+        $dossiers = esc_sql( SEO_Solucionador_DB::dossiers_table() );
+        $total = 0;
+        $with_material = 0;
+        if (SEO_Solucionador_DB::table_exists($dossiers)) {
+            $dossier_counts = $wpdb->get_row(
+                "SELECT
+                    COUNT(CASE WHEN (rejected_source_hash='' OR rejected_source_hash<>source_hash) THEN 1 END) AS total,
+                    COUNT(CASE WHEN question_count>0 AND (rejected_source_hash='' OR rejected_source_hash<>source_hash) THEN 1 END) AS with_material
+                 FROM {$dossiers}",
+                ARRAY_A
+            );
+            if (is_array($dossier_counts)) {
+                $total = absint($dossier_counts['total'] ?? 0);
+                $with_material = absint($dossier_counts['with_material'] ?? 0);
+            }
+        }
 
         $category_meta = SEO_Solucionador_Posts::META_DOSSIER_CATEGORY_ID;
         $drafts = absint($wpdb->get_var($wpdb->prepare(
@@ -927,7 +953,7 @@ final class SEO_Solucionador_Admin {
 
     private static function render_diagnostics_simple() {
         global $wpdb;
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
 
         $detail_category = absint(self::query_arg('sol_category', 0));
         if ($detail_category) {
@@ -1195,7 +1221,7 @@ final class SEO_Solucionador_Admin {
                 . number_format_i18n(absint($academy['dependiente_semantic_rules_total'] ?? 0)) . ' reglas consolidadas inventariables.',
         );
 
-        $coverage_table = SEO_Solucionador_DB::coverage_table();
+        $coverage_table = esc_sql( SEO_Solucionador_DB::coverage_table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna controlada; consulta fija sin entrada de usuario.
         $coverage = SEO_Solucionador_DB::table_exists($coverage_table)
             ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$coverage_table}"))
@@ -1230,7 +1256,7 @@ final class SEO_Solucionador_Admin {
     private static function render_diagnostics() {
         global $wpdb;
         $academy = class_exists('SEO_Solucionador_Dossiers') ? SEO_Solucionador_Dossiers::snapshot() : array();
-        $dossiers_table = SEO_Solucionador_DB::dossiers_table();
+        $dossiers_table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px">';
         echo '<h2 style="margin-top:0">Diagnóstico FAQ + Dependiente → Solucionador</h2>';
@@ -1608,7 +1634,7 @@ final class SEO_Solucionador_Admin {
 
     private static function render_proposals() {
         global $wpdb;
-        $topics_table = SEO_Solucionador_DB::topics_table();
+        $topics_table = esc_sql( SEO_Solucionador_DB::topics_table() );
         $rows = (array) $wpdb->get_results(
             "SELECT * FROM {$topics_table}
              WHERE intent='dependiente_qa_basic'
@@ -1724,7 +1750,7 @@ final class SEO_Solucionador_Admin {
 
     private static function render_coverage() {
         global $wpdb;
-        $table = SEO_Solucionador_DB::coverage_table();
+        $table = esc_sql( SEO_Solucionador_DB::coverage_table() );
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Cobertura editorial existente</h2>';
         echo '<p class="description">Índice multientidad usado para evitar duplicación y canibalización. Incluye posts, páginas, landings, hubs y categorías; analiza título, H1/H2/H3, contenido, categorías asociadas y Vocabulary.</p>';
@@ -1775,7 +1801,7 @@ final class SEO_Solucionador_Admin {
 
     private static function render_sources() {
         global $wpdb;
-        $e=SEO_Solucionador_DB::evidence_table();
+        $e=esc_sql( SEO_Solucionador_DB::evidence_table() );
         $counts=SEO_Solucionador_DB::table_exists($e)
             ? (array)$wpdb->get_results("SELECT source_type,SUM(occurrences) evidence FROM {$e} GROUP BY source_type ORDER BY evidence DESC",ARRAY_A)
             : array();
@@ -1824,13 +1850,13 @@ final class SEO_Solucionador_Admin {
         global $wpdb;
 
         $tables = array(
-            'Temas / decisiones'=>SEO_Solucionador_DB::topics_table(),
-            'Evidencias'=>SEO_Solucionador_DB::evidence_table(),
-            'Cobertura multientidad'=>SEO_Solucionador_DB::coverage_table(),
-            'Workflow'=>SEO_Solucionador_DB::workflow_table(),
-            'Dossiers FAQ + Dependiente'=>SEO_Solucionador_DB::dossiers_table(),
-            'Seguimiento histórico (compatibilidad)'=>SEO_Solucionador_DB::tracking_table(),
-            'Cobertura posts (compatibilidad)'=>SEO_Solucionador_DB::post_topics_table(),
+            'Temas / decisiones'=>esc_sql( SEO_Solucionador_DB::topics_table() ),
+            'Evidencias'=>esc_sql( SEO_Solucionador_DB::evidence_table() ),
+            'Cobertura multientidad'=>esc_sql( SEO_Solucionador_DB::coverage_table() ),
+            'Workflow'=>esc_sql( SEO_Solucionador_DB::workflow_table() ),
+            'Dossiers FAQ + Dependiente'=>esc_sql( SEO_Solucionador_DB::dossiers_table() ),
+            'Seguimiento histórico (compatibilidad)'=>esc_sql( SEO_Solucionador_DB::tracking_table() ),
+            'Cobertura posts (compatibilidad)'=>esc_sql( SEO_Solucionador_DB::post_topics_table() ),
         );
 
         echo '<div class="postbox" style="padding:18px;margin-top:18px"><h2 style="margin-top:0">Datos internos de Solucionador</h2>';

@@ -383,31 +383,32 @@ if (!function_exists('seo_product_vocab_editor_save')) {
         if (!current_user_can('edit_post', $post_id)) {
             return;
         }
-        if (empty($_POST['seo_product_vocab_editor_nonce']) || !wp_verify_nonce(
-            sanitize_text_field(wp_unslash($_POST['seo_product_vocab_editor_nonce'])),
-            'seo_product_vocab_editor_save'
-        )) {
+        $nonce = isset($_POST['seo_product_vocab_editor_nonce']) && is_string($_POST['seo_product_vocab_editor_nonce'])
+            ? sanitize_text_field(wp_unslash($_POST['seo_product_vocab_editor_nonce']))
+            : '';
+        if (!wp_verify_nonce($nonce, 'seo_product_vocab_editor_save')) {
             return;
         }
         if (!seo_product_vocab_editor_tables_ready()) {
             return;
         }
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Existing vocabulary selections are normalized to absint IDs per semantic group below.
         $posted = isset($_POST['seo_product_vocab']) && is_array($_POST['seo_product_vocab'])
-            ? wp_unslash($_POST['seo_product_vocab'])
+            ? map_deep(wp_unslash($_POST['seo_product_vocab']), 'sanitize_text_field')
             : [];
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- New labels are split and normalized by the vocabulary creation path below.
         $new_terms = isset($_POST['seo_product_vocab_new']) && is_array($_POST['seo_product_vocab_new'])
-            ? wp_unslash($_POST['seo_product_vocab_new'])
+            ? map_deep(wp_unslash($_POST['seo_product_vocab_new']), 'sanitize_text_field')
             : [];
 
         foreach (seo_product_vocab_editor_groups() as $group => $label) {
+            // Malformed nested arrays cannot be converted to term IDs or labels.
             $selected = isset($posted[$group]) && is_array($posted[$group])
-                ? array_map('absint', $posted[$group])
+                ? array_map('absint', array_filter($posted[$group], 'is_scalar'))
                 : [];
 
-            $raw_new = trim((string) ($new_terms[$group] ?? ''));
+            $raw_new = isset($new_terms[$group]) && is_string($new_terms[$group])
+                ? trim($new_terms[$group])
+                : '';
             if ($raw_new !== '') {
                 $labels = preg_split('/\s*,\s*/u', $raw_new, -1, PREG_SPLIT_NO_EMPTY);
                 foreach ((array) $labels as $new_label) {

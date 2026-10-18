@@ -7,11 +7,16 @@ if (!defined('ABSPATH')) exit;
 if (!function_exists('seo_attributes_tables')) {
     function seo_attributes_tables() {
         global $wpdb;
+        // Only fixed internal identifiers derived from the validated WordPress
+        // table prefix are permitted here. Escape before use in dynamic SQL;
+        // the standard [a-zA-Z0-9_] prefix remains byte-for-byte unchanged.
+        // WordPress 5.8 compatibility: do not depend on the newer %i placeholder.
+        $prefix = (string) $wpdb->prefix;
         return [
-            'definitions' => $wpdb->prefix . 'sql_atributos',
-            'terms'       => $wpdb->prefix . 'sql_atributos_terminos',
-            'aliases'     => $wpdb->prefix . 'sql_atributos_aliases',
-            'values'      => $wpdb->prefix . 'sql_product_atributos',
+            'definitions' => esc_sql( $prefix . 'sql_atributos' ),
+            'terms'       => esc_sql( $prefix . 'sql_atributos_terminos' ),
+            'aliases'     => esc_sql( $prefix . 'sql_atributos_aliases' ),
+            'values'      => esc_sql( $prefix . 'sql_product_atributos' ),
         ];
     }
 }
@@ -61,6 +66,10 @@ add_filter('seo_data_layer_tables', 'seo_attributes_register_data_layer_table');
 if (!function_exists('seo_attributes_require_schema')) {
     function seo_attributes_require_schema() {
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         foreach ($tables as $table) {
             if (!seo_attributes_table_is_innodb($table)) {
                 throw new RuntimeException('La tabla ' . esc_html((string) $table) . ' no existe o no usa InnoDB.');
@@ -77,6 +86,10 @@ if (!function_exists('seo_attributes_get_definition')) {
     function seo_attributes_get_definition($attribute_type, $active_only = false) {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $slug = sanitize_key((string) $attribute_type);
         if ($slug === '') {
             return null;
@@ -99,6 +112,10 @@ if (!function_exists('seo_attributes_usage_count')) {
     function seo_attributes_usage_count($attribute_type) {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $definition = seo_attributes_get_definition($attribute_type, false);
         if (!$definition) {
             return 0;
@@ -116,6 +133,10 @@ if (!function_exists('seo_attributes_resolve_term')) {
     function seo_attributes_resolve_term($attribute_id, $value) {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $attribute_id = (int) $attribute_id;
         $value = trim((string) $value);
         if ($attribute_id < 1 || $value === '') {
@@ -223,6 +244,10 @@ if (!function_exists('seo_attributes_product_row_exists')) {
     function seo_attributes_product_row_exists($row) {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
 
         if (!empty($row['termino_id'])) {
             return (int) $wpdb->get_var(
@@ -306,6 +331,10 @@ if (!function_exists('seo_attributes_get_rows_for_products')) {
     function seo_attributes_get_rows_for_products($product_ids = null) {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
 
         $where = 'p.product_id > 0';
         $args = [];
@@ -363,6 +392,10 @@ if (!function_exists('seo_attributes_get_catalog')) {
     function seo_attributes_get_catalog($active_only = true) {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         if ($active_only) {
             $definitions_sql = "SELECT a.* FROM `{$tables['definitions']}` a WHERE a.activo = 1 ORDER BY a.orden ASC, a.nombre ASC";
         } else {
@@ -412,6 +445,10 @@ if (!function_exists('seo_attributes_delete_global_type')) {
     function seo_attributes_delete_global_type($attribute_type) {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $definition = seo_attributes_get_definition($attribute_type, false);
         if (!$definition) {
             return [
@@ -492,6 +529,10 @@ if (!function_exists('seo_attributes_replace_product')) {
     function seo_attributes_replace_product($product_id, $attributes, $source_module = 'product_attributes') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $product_id = (int) $product_id;
         if ($product_id < 1) {
             throw new InvalidArgumentException('El ID de producto no es válido.');
@@ -574,6 +615,10 @@ if (!function_exists('seo_attributes_replace_product')) {
 if (!function_exists('seo_attributes_add_master_type')) {
     function seo_attributes_add_master_type($attribute_type, $source_module = 'product_attributes') {
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $slug = str_replace('-', '_', sanitize_title(remove_accents((string) $attribute_type)));
         $slug = sanitize_key($slug);
         if ($slug === '') {
@@ -634,6 +679,10 @@ if (!function_exists('seo_attributes_save_definition')) {
     function seo_attributes_save_definition(array $data, $source_module = 'semantic_attributes_admin') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
 
         $id = absint($data['id'] ?? 0);
         $existing = null;
@@ -741,6 +790,10 @@ if (!function_exists('seo_attributes_save_term')) {
     function seo_attributes_save_term(array $data, $source_module = 'semantic_attributes_admin') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $id = absint($data['id'] ?? 0);
         $attribute_id = absint($data['atributo_id'] ?? 0);
         if ($attribute_id < 1) {
@@ -831,6 +884,10 @@ if (!function_exists('seo_attributes_delete_term')) {
     function seo_attributes_delete_term($term_id, $source_module = 'semantic_attributes_admin') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $term_id = absint($term_id);
         $term = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM `{$tables['terms']}` WHERE id = %d LIMIT 1", $term_id),
@@ -878,6 +935,10 @@ if (!function_exists('seo_attributes_add_alias')) {
     function seo_attributes_add_alias($attribute_id, $term_id, $alias, $source_module = 'semantic_attributes_admin') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $attribute_id = absint($attribute_id);
         $term_id = absint($term_id);
         $alias = sanitize_text_field(trim((string) $alias));
@@ -927,6 +988,10 @@ if (!function_exists('seo_attributes_delete_alias')) {
     function seo_attributes_delete_alias($alias_id, $source_module = 'semantic_attributes_admin') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $alias_id = absint($alias_id);
         $row = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM `{$tables['aliases']}` WHERE id = %d LIMIT 1", $alias_id),
@@ -959,6 +1024,10 @@ if (!function_exists('seo_attributes_delete_master_type')) {
     function seo_attributes_delete_master_type($attribute_type, $source_module = 'product_attributes') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $definition = seo_attributes_get_definition($attribute_type, false);
         if (!$definition) {
             return ['operation_id' => 0, 'operation_uuid' => '', 'deleted' => 0];
@@ -1073,6 +1142,10 @@ if (!function_exists('seo_detect_title_attributes')) {
     function seo_detect_title_attributes($product_id) {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $product_id = (int) $product_id;
         $product = get_post($product_id);
         if (!$product || $product->post_type !== 'product') return [];
@@ -1171,6 +1244,10 @@ if (!function_exists('seo_attributes_delete_unused_master_rows')) {
     function seo_attributes_delete_unused_master_rows($source_module = 'product_attributes_dashboard') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
 
         $definitions = $wpdb->get_results(
             "SELECT a.id, a.slug
@@ -1229,6 +1306,10 @@ if (!function_exists('seo_attributes_delete_orphan_rows')) {
     function seo_attributes_delete_orphan_rows($source_module = 'product_attributes_dashboard') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $rows = $wpdb->get_results(
             "SELECT pa.id, pa.product_id
              FROM `{$tables['values']}` pa
@@ -1276,6 +1357,10 @@ if (!function_exists('seo_attributes_delete_exact_duplicates')) {
     function seo_attributes_delete_exact_duplicates($source_module = 'product_attributes_dashboard') {
         global $wpdb;
         $tables = seo_attributes_require_schema();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $rows = $wpdb->get_results(
             "SELECT DISTINCT a.id, a.product_id
              FROM `{$tables['values']}` a
@@ -1331,6 +1416,10 @@ if (!function_exists('seo_attributes_render_dashboard')) {
     function seo_attributes_render_dashboard($unused_table = null) {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
 
         // Include all product statuses except trash and auto-draft, as before.
         // Core caches the grouped counts and invalidates them on post changes.

@@ -2091,7 +2091,7 @@ function seo_marketing_get_category_relation_sources($source_type)
         return array();
     }
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     return (array) $wpdb->get_results(
         $wpdb->prepare(
@@ -2129,7 +2129,7 @@ function seo_marketing_category_relation_source_is_valid($source_type, $source_i
         return false;
     }
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     return (bool) $wpdb->get_var(
         $wpdb->prepare(
@@ -2166,7 +2166,7 @@ function seo_marketing_get_selected_category_ids($source_type, $source_id)
         return array();
     }
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
     $ids = $wpdb->get_col(
         $wpdb->prepare(
             "
@@ -2217,7 +2217,7 @@ function seo_marketing_get_structural_category_ids($source_type, $source_id)
         return array();
     }
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     if ('cluster' === $source_type) {
         $sql = $wpdb->prepare(
@@ -2427,7 +2427,7 @@ function seo_marketing_handle_save_category_relations()
     }
 
     global $wpdb;
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
     $failed = false;
 
     $wpdb->query('START TRANSACTION');
@@ -2522,7 +2522,7 @@ function seo_marketing_handle_auto_assign_all_category_relations()
     $failed         = false;
 
     global $wpdb;
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     $wpdb->query('START TRANSACTION');
 
@@ -2733,7 +2733,7 @@ function seo_marketing_get_cluster_primary_map()
 {
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
     $rows = $wpdb->get_results(
         "
         SELECT source_id, target_id
@@ -4934,7 +4934,7 @@ function seo_marketing_get_node_page_ids_by_roles($roles)
         return array();
     }
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
     $table_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $nodes_table)
     );
@@ -5696,9 +5696,9 @@ function seo_marketing_scan_tables()
     global $wpdb;
 
     return array(
-        'scans'     => $wpdb->prefix . 'seo_sitemap_scans',
-        'urls'      => $wpdb->prefix . 'seo_sitemap_scan_urls',
-        'inventory' => $wpdb->prefix . 'seo_sitemap_inventory',
+        'scans'     => esc_sql( $wpdb->prefix . 'seo_sitemap_scans' ),
+        'urls'      => esc_sql( $wpdb->prefix . 'seo_sitemap_scan_urls' ),
+        'inventory' => esc_sql( $wpdb->prefix . 'seo_sitemap_inventory' ),
     );
 }
 
