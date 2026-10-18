@@ -6,6 +6,7 @@
  * No bulk publication or edits to Spanish products.
  */
 defined( 'ABSPATH' ) || exit;
+require_once __DIR__ . '/vevor-direct-approval.php';
 
 function seo_vevor_region_category_market( $category_id ) {
     $term = get_term( absint( $category_id ), 'product_cat' );
