@@ -316,6 +316,14 @@ final class TaxoCommerce_Core {
 				'search_term' => 'TaxoCommerce Import-Export',
 				'description' => __( 'Importación y exportación CSV de catálogo y contenidos.', 'taxocommerce-core' ),
 			),
+			'images' => array(
+				'id'          => 'images',
+				'name'        => 'TaxoCommerce Images',
+				'plugin_file' => 'taxocommerce-images/taxocommerce-images.php',
+				'org_slug'    => 'taxocommerce-images',
+				'search_term' => 'TaxoCommerce Images',
+				'description' => __( 'Gestión, auditoría, miniaturas, metadatos y optimización de imágenes.', 'taxocommerce-core' ),
+			),
 		);
 
 		/**
