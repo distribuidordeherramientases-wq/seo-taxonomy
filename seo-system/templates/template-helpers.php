@@ -3012,19 +3012,21 @@ if (!function_exists('dht_template_category_catalog_state')) {
         $catalog_min_price = $prices ? min($prices) : 0.0;
         $catalog_max_price = $prices ? max($prices) : 0.0;
 
-        $selected_stock = isset($_GET['dht_stock'])
+        // Los filtros públicos son GET de solo lectura. Se validan tipos antes
+        // de convertir a texto: una URL con arrays no debe generar avisos PHP.
+        $selected_stock = isset($_GET['dht_stock']) && is_scalar($_GET['dht_stock'])
             ? sanitize_key(wp_unslash((string) $_GET['dht_stock']))
             : '';
         $selected_stock = 'instock' === $selected_stock ? 'instock' : '';
 
-        $selected_min_price = isset($_GET['dht_min_price'])
-            ? max(0.0, (float) wc_format_decimal(wp_unslash((string) $_GET['dht_min_price'])))
+        $selected_min_price = isset($_GET['dht_min_price']) && is_scalar($_GET['dht_min_price'])
+            ? max(0.0, (float) wc_format_decimal(sanitize_text_field(wp_unslash((string) $_GET['dht_min_price']))))
             : 0.0;
-        $selected_max_price = isset($_GET['dht_max_price'])
-            ? max(0.0, (float) wc_format_decimal(wp_unslash((string) $_GET['dht_max_price'])))
+        $selected_max_price = isset($_GET['dht_max_price']) && is_scalar($_GET['dht_max_price'])
+            ? max(0.0, (float) wc_format_decimal(sanitize_text_field(wp_unslash((string) $_GET['dht_max_price']))))
             : 0.0;
 
-        $sort = isset($_GET['dht_sort'])
+        $sort = isset($_GET['dht_sort']) && is_scalar($_GET['dht_sort'])
             ? sanitize_key(wp_unslash((string) $_GET['dht_sort']))
             : 'relevance';
         $allowed_sorts = array('relevance', 'price_asc', 'price_desc', 'rating', 'newest');
@@ -3035,7 +3037,11 @@ if (!function_exists('dht_template_category_catalog_state')) {
         $selected_attributes = array();
         foreach ($facets as $type => $facet) {
             $param = 'dht_f_' . $type;
-            $raw_values = isset($_GET[$param]) ? (array) wp_unslash($_GET[$param]) : array();
+            $raw_values = isset($_GET[$param])
+                ? map_deep(wp_unslash((array) $_GET[$param]), 'sanitize_text_field')
+                : array();
+            // Las facetas admiten slugs escalares, no arrays anidados.
+            $raw_values = array_filter($raw_values, 'is_scalar');
             $valid_values = array_keys((array) ($facet['values'] ?? array()));
             $selected = array_values(array_unique(array_filter(array_map(
                 'sanitize_title',
