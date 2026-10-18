@@ -15,7 +15,7 @@ defined('ABSPATH') || exit;
  * workers que ya controla Academia.
  */
 final class SEO_Dependiente_Actualizacion {
-    const VERSION = '1.0.4';
+    const VERSION = '1.0.5';
     const STATE_OPTION = 'seo_dependiente_academy_update_state';
     const HISTORY_OPTION = 'seo_dependiente_academy_update_history';
     const LAST_SUCCESS_OPTION = 'seo_dependiente_academy_update_last_success';
@@ -389,11 +389,14 @@ final class SEO_Dependiente_Actualizacion {
         $modules = (array) ($state['modules'] ?? array());
         $module_state = is_array($modules[$module] ?? null) ? $modules[$module] : array();
         $answered_before = absint($module_state['answered'] ?? 0);
-        $run_batch = 2 === $module ? 40 : self::RUN_BATCH;
+        $run_batch = 2 === $module ? 40 : (3 === $module ? 80 : self::RUN_BATCH);
         $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, $run_batch);
         foreach ($questions as $question) {
-            if (2 === $module && 'product_identity' === sanitize_key((string) ($question['question_type'] ?? ''))) {
+            $question_type = sanitize_key((string) ($question['question_type'] ?? ''));
+            if (2 === $module && 'product_identity' === $question_type) {
                 SEO_Dependiente_Entrenador::update_run_inventory_question($question, $batch_uuid);
+            } elseif (3 === $module && in_array($question_type, array('tipo','rol','type_role'), true)) {
+                SEO_Dependiente_Entrenador::update_run_type_role_question($question, $batch_uuid);
             } else {
                 SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
             }
@@ -744,29 +747,67 @@ final class SEO_Dependiente_Actualizacion {
     private static function build_exam_items($lesson_key) {
         global $wpdb;
         $questions_table = SEO_Dependiente_Entrenador::questions_table();
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal questions table; lesson key and limit are bound through prepare().
-        $rows = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT id,source_type,source_id,source_key,question_type,mode,question,expected_json
-             FROM {$questions_table}
-             WHERE lesson_key=%s AND enabled=1 AND module_no BETWEEN 1 AND 7
-             ORDER BY id ASC LIMIT %d",
-            $lesson_key,
-            self::MAX_EXAM_ITEMS
-        ), ARRAY_A);
+        $lesson_key = sanitize_key((string) $lesson_key);
         $items = array();
-        foreach ($rows as $row) {
-            $items[] = array(
-                'source_type'   => 'regression',
-                'source_id'     => absint($row['id'] ?? 0),
-                'source_key'    => 'update-regression:' . absint($row['id'] ?? 0),
-                'question_type' => 'regression_' . sanitize_key((string) ($row['question_type'] ?? 'other')),
-                'mode'          => sanitize_key((string) ($row['mode'] ?? 'need')),
-                'question'      => (string) ($row['question'] ?? ''),
-                'expected'      => self::decode_json($row['expected_json'] ?? ''),
-                'rules'         => array(),
-            );
+        if (!$lesson_key) {
+            return $items;
         }
-        return $items;
+
+        // Examen end-to-end estratificado: cada módulo M1-M7 aporta hasta cinco
+        // preguntas repartidas a lo largo de su secuencia. Evita que un módulo
+        // enorme monopolice M8 y mantiene una regresión real del buscador.
+        $per_module = 5;
+        foreach (range(1, 7) as $module) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; lesson_key y módulo enlazados.
+            $count = absint($wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$questions_table} WHERE lesson_key=%s AND module_no=%d AND enabled=1",
+                $lesson_key,
+                $module
+            )));
+            if ($count < 1) {
+                continue;
+            }
+
+            $sample_count = min($per_module, $count);
+            $offsets = array();
+            if (1 === $sample_count) {
+                $offsets[] = 0;
+            } else {
+                for ($i = 0; $i < $sample_count; $i++) {
+                    $offsets[] = (int) round(($count - 1) * ($i / ($sample_count - 1)));
+                }
+            }
+            $offsets = array_values(array_unique(array_map('absint', $offsets)));
+
+            foreach ($offsets as $offset) {
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; todos los valores enlazados.
+                $row = $wpdb->get_row($wpdb->prepare(
+                    "SELECT id,source_type,source_id,source_key,question_type,mode,question,expected_json
+                     FROM {$questions_table}
+                     WHERE lesson_key=%s AND module_no=%d AND enabled=1
+                     ORDER BY sequence_no ASC,id ASC
+                     LIMIT 1 OFFSET %d",
+                    $lesson_key,
+                    $module,
+                    $offset
+                ), ARRAY_A);
+                if (!$row) {
+                    continue;
+                }
+                $items[] = array(
+                    'source_type'   => 'regression',
+                    'source_id'     => absint($row['id'] ?? 0),
+                    'source_key'    => 'update-regression:m' . $module . ':' . absint($row['id'] ?? 0),
+                    'question_type' => 'regression_' . sanitize_key((string) ($row['question_type'] ?? 'other')),
+                    'mode'          => sanitize_key((string) ($row['mode'] ?? 'need')),
+                    'question'      => (string) ($row['question'] ?? ''),
+                    'expected'      => self::decode_json($row['expected_json'] ?? ''),
+                    'rules'         => array(),
+                );
+            }
+        }
+
+        return array_slice($items, 0, min(self::MAX_EXAM_ITEMS, 35));
     }
 
     private static function insert_question($lesson_key, $module, $item, $sequence) {
