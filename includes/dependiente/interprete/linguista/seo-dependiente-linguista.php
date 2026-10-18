@@ -868,7 +868,7 @@ final class SEO_Dependiente_Linguista {
         $rows = array();
 
         if ('vocabulary' === $phase) {
-            $table = $wpdb->prefix . 'seo_vocabulary';
+            $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
             if (!self::table_exists($table)) {
                 return array('done' => false, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Vocabulary no disponible; se continúa con categorías.', 'state_changes' => array('lesson_phase' => 'categories', 'cursor' => 0));
             }
@@ -1137,7 +1137,7 @@ final class SEO_Dependiente_Linguista {
             return array('done' => false, 'processed' => count($slice), 'learned' => $learned, 'rejected' => $rejected, 'message' => 'Sinónimos explícitos procesados.', 'state_changes' => array('cursor' => $cursor + count($slice)));
         }
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!self::table_exists($vocabulary)) {
             return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Lección de sinónimos completada.');
         }
@@ -1186,7 +1186,7 @@ final class SEO_Dependiente_Linguista {
         global $wpdb;
         $batch = min(80, self::batch_size($state));
         $cursor = absint($state['cursor'] ?? 0);
-        $table = SEO_Dependiente_Interprete_DB::table();
+        $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$table} WHERE id>%d AND lesson_key IN ('ling_l2_actions','ling_l3_synonyms') ORDER BY id ASC LIMIT %d",
             $cursor,
@@ -1219,7 +1219,7 @@ final class SEO_Dependiente_Linguista {
         global $wpdb;
         $batch = min(100, self::batch_size($state));
         $cursor = absint($state['cursor'] ?? 0);
-        $table = SEO_Dependiente_Interprete_DB::table();
+        $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$table} WHERE id>%d AND lesson_key IN ('ling_l2_actions','ling_l3_synonyms') ORDER BY id ASC LIMIT %d",
             $cursor,
@@ -1349,7 +1349,7 @@ final class SEO_Dependiente_Linguista {
         }
 
         if ('morphology' === $phase) {
-            $table = SEO_Dependiente_Interprete_DB::table();
+            $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
             if (!self::table_exists($table)) {
                 return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Gramática instalada; no hay léxico para compilar morfología.');
             }
@@ -1490,7 +1490,7 @@ final class SEO_Dependiente_Linguista {
         $soft_deadline = microtime(true) + 5.0;
         $cursor = absint($state['cursor'] ?? 0);
         $phase = sanitize_key((string) ($state['lesson_phase'] ?? '')) ?: 'active_regression';
-        $table = SEO_Dependiente_Interprete_DB::table();
+        $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
 
         if ('active_regression' === $phase) {
             $max_id = absint($state['exam_active_max_id'] ?? 0);
@@ -2088,7 +2088,7 @@ final class SEO_Dependiente_Linguista {
         $key = sanitize_key((string) $key);
         if ('ling_l1_catalog_language' === $key) {
             $total = 0;
-            $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+            $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
             if (self::table_exists($vocabulary)) {
                 $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocabulary} WHERE active=1 AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')"));
             }
@@ -2100,15 +2100,15 @@ final class SEO_Dependiente_Linguista {
             return absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish'"));
         }
         if ('ling_l3_synonyms' === $key) {
-            $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+            $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
             return count(self::existing_synonym_pairs()) + (self::table_exists($vocabulary) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocabulary} WHERE active=1")) : 0);
         }
         if (in_array($key, array('ling_l4_context','ling_l5_ambiguity'), true)) {
-            $table = SEO_Dependiente_Interprete_DB::table();
+            $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
             return self::table_exists($table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE lesson_key IN ('ling_l2_actions','ling_l3_synonyms')")) : 0;
         }
         if ('ling_l6_natural_language' === $key) {
-            $table = SEO_Dependiente_Interprete_DB::table();
+            $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
             $verbs = self::table_exists($table)
                 ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND relation_type='verb_to_tool'"))
                 : 0;
@@ -2118,7 +2118,7 @@ final class SEO_Dependiente_Linguista {
             return 1;
         }
         if ('ling_l8_exam' === $key) {
-            $table = SEO_Dependiente_Interprete_DB::table();
+            $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
             if (!self::table_exists($table)) {
                 return 0;
             }
@@ -2139,8 +2139,8 @@ final class SEO_Dependiente_Linguista {
             return array();
         }
         $in = implode(',', $ids);
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $out = array();
 
         if (self::table_exists($vocabulary) && self::table_exists($objects)) {
@@ -2335,8 +2335,8 @@ final class SEO_Dependiente_Linguista {
             return array();
         }
         $in = implode(',', array_map('absint', $product_ids));
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $contexts = array();
         if (self::table_exists($vocabulary) && self::table_exists($objects)) {
             $rows = (array) $wpdb->get_results(

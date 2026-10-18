@@ -36,7 +36,7 @@ final class SEO_Dependiente_Interprete_DB {
         if (null !== self::$table_exists) {
             return self::$table_exists;
         }
-        $table = self::table();
+        $table = esc_sql( self::table() );
         self::$table_exists = (string) $wpdb->get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
         ) === $table;
@@ -48,7 +48,7 @@ final class SEO_Dependiente_Interprete_DB {
         if (null !== self::$evidence_table_exists) {
             return self::$evidence_table_exists;
         }
-        $table = self::evidence_table();
+        $table = esc_sql( self::evidence_table() );
         self::$evidence_table_exists = (string) $wpdb->get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
         ) === $table;
@@ -61,8 +61,8 @@ final class SEO_Dependiente_Interprete_DB {
     public static function install() {
         global $wpdb;
 
-        $table = self::table();
-        $evidence = self::evidence_table();
+        $table = esc_sql( self::table() );
+        $evidence = esc_sql( self::evidence_table() );
         $charset_collate = $wpdb->get_charset_collate();
 
         $sql = "CREATE TABLE {$table} (
@@ -202,7 +202,7 @@ final class SEO_Dependiente_Interprete_DB {
         }
 
         $context_terms = self::normalize_terms((array) ($row['context_terms'] ?? array()));
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $existing = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table} WHERE normalized_expression=%s AND canonical_term=%s AND relation_type=%s LIMIT 1",
             $normalized,
@@ -280,7 +280,7 @@ final class SEO_Dependiente_Interprete_DB {
             $source_hash = hash('sha256', (string) $source_hash);
         }
         $context_terms = self::normalize_terms((array) $context_terms);
-        $table = self::evidence_table();
+        $table = esc_sql( self::evidence_table() );
         $existing_id = absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$table} WHERE lexicon_id=%d AND source_type=%s AND source_id=%d LIMIT 1",
             $lexicon_id,
@@ -315,14 +315,14 @@ final class SEO_Dependiente_Interprete_DB {
         if (!$lexicon_id || !self::evidence_table_exists() || !self::table_exists()) {
             return;
         }
-        $evidence = self::evidence_table();
+        $evidence = esc_sql( self::evidence_table() );
         $summary = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(*) evidence_count, MAX(confidence) max_confidence FROM {$evidence} WHERE lexicon_id=%d AND active=1",
             $lexicon_id
         ), ARRAY_A);
         $count = max(1, absint($summary['evidence_count'] ?? 0));
         $evidence_confidence = min(1, max(0, (float) ($summary['max_confidence'] ?? 0)));
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $current_confidence = (float) $wpdb->get_var($wpdb->prepare(
             "SELECT confidence FROM {$table} WHERE id=%d",
             $lexicon_id
@@ -352,7 +352,7 @@ final class SEO_Dependiente_Interprete_DB {
             return 0;
         }
         $ids = array_slice($ids, 0, 20);
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
@@ -435,7 +435,7 @@ final class SEO_Dependiente_Interprete_DB {
         if ('' === $normalized_expression || !self::table_exists()) {
             return 0;
         }
-        $table = self::table();
+        $table = esc_sql( self::table() );
         return absint($wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(DISTINCT canonical_term) FROM {$table} WHERE normalized_expression=%s AND language='es' AND active=1",
             $normalized_expression
@@ -451,7 +451,7 @@ final class SEO_Dependiente_Interprete_DB {
             self::$usage_columns_ready = false;
             return false;
         }
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $column = $wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'usage_count'");
         self::$usage_columns_ready = 'usage_count' === (string) $column;
         return self::$usage_columns_ready;
@@ -499,7 +499,7 @@ final class SEO_Dependiente_Interprete_DB {
         if (!$id || !self::table_exists()) {
             return array();
         }
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $id), ARRAY_A);
         return is_array($row) ? $row : array();
     }
@@ -510,7 +510,7 @@ final class SEO_Dependiente_Interprete_DB {
         if ('' === $normalized_expression || !self::table_exists()) {
             return 0;
         }
-        $table = self::table();
+        $table = esc_sql( self::table() );
         return absint($wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(DISTINCT canonical_term) FROM {$table} WHERE normalized_expression=%s AND language='es'",
             $normalized_expression
@@ -523,7 +523,7 @@ final class SEO_Dependiente_Interprete_DB {
         if ('' === $normalized || !self::table_exists()) {
             return array();
         }
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT id,canonical_term,target_search,semantic_group,vocabulary_id,confidence FROM {$table} WHERE normalized_expression=%s AND active=1 ORDER BY priority ASC,confidence DESC,id ASC LIMIT 1",
             $normalized
@@ -538,7 +538,7 @@ final class SEO_Dependiente_Interprete_DB {
         if (!$lexicon_id || !self::evidence_table_exists()) {
             return array();
         }
-        $evidence_table = self::evidence_table();
+        $evidence_table = esc_sql( self::evidence_table() );
         return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
             "SELECT source_id FROM {$evidence_table} WHERE lexicon_id=%d AND source_type='product' AND active=1 ORDER BY source_id ASC LIMIT %d",
             $lexicon_id,
@@ -551,13 +551,13 @@ final class SEO_Dependiente_Interprete_DB {
         if (!self::table_exists()) {
             return;
         }
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $exists = (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($vocabulary))) === $vocabulary;
         if (!$exists) {
             return;
         }
 
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $rows = $wpdb->get_results(
             "SELECT id,canonical_term FROM {$table} WHERE active=1 AND (vocabulary_id IS NULL OR vocabulary_id=0) LIMIT 5000",
             ARRAY_A
@@ -678,7 +678,7 @@ final class SEO_Dependiente_Interprete_DB {
             self::$rows_cache = array();
             return self::$rows_cache;
         }
-        $table = self::table();
+        $table = esc_sql( self::table() );
         self::$rows_cache = (array) $wpdb->get_results(
             "SELECT * FROM {$table} WHERE active=1 AND language='es' ORDER BY priority ASC,id ASC",
             ARRAY_A
@@ -703,7 +703,7 @@ final class SEO_Dependiente_Interprete_DB {
         if (!$stats['ready']) {
             return $stats;
         }
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $stats['active'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1");
         $stats['staged'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=0 AND source LIKE 'linguista%'");
         $stats['validated'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE validated=1");
@@ -714,7 +714,7 @@ final class SEO_Dependiente_Interprete_DB {
         }
         $stats['provisional'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND source='linguista_l8_auto'");
         if ($stats['evidence_ready']) {
-            $evidence_table = self::evidence_table();
+            $evidence_table = esc_sql( self::evidence_table() );
             $stats['evidence'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$evidence_table} WHERE active=1");
         }
         return $stats;
