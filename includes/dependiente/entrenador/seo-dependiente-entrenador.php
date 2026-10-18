@@ -7957,6 +7957,172 @@ final class SEO_Dependiente_Entrenador {
         return absint($wpdb->insert_id);
     }
 
+    /**
+     * Fast path de Actualización M3 (TIPO y ROL).
+     *
+     * Valida directamente las asignaciones canónicas de Vocabulary y el bridge
+     * TIPO -> ROL. M3 comprueba integridad estructural; el examen end-to-end
+     * del buscador se realiza después en M8.
+     */
+    public static function update_run_type_role_question($question, $batch_uuid) {
+        global $wpdb;
+
+        $question = (array) $question;
+        $question_id = absint($question['id'] ?? 0);
+        $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        if (!$question_id || !$lesson_key) {
+            return 0;
+        }
+
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; valores enlazados mediante prepare().
+        $existing = absint($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$runs_table} WHERE question_id=%d AND lesson_key=%s AND status IN ('answered','error') ORDER BY id DESC LIMIT 1",
+            $question_id,
+            $lesson_key
+        )));
+        if ($existing) {
+            return $existing;
+        }
+
+        $expected = self::decode_json($question['expected_json'] ?? '');
+        $conditions = is_array($expected['conditions'] ?? null) ? $expected['conditions'] : array();
+        $source_key = (string) ($question['source_key'] ?? '');
+        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $type_role = $wpdb->prefix . 'seo_type_role_map';
+
+        $valid = false;
+        $matched_count = 0;
+        $diagnostic = 'type_role_structure_missing';
+
+        if (self::table_exists($objects) && self::table_exists($vocabulary)) {
+            $tipo_slugs = array_values(array_filter(array_map('sanitize_title', (array) ($conditions['tipo'] ?? array()))));
+            $rol_slugs = array_values(array_filter(array_map('sanitize_title', (array) ($conditions['rol'] ?? array()))));
+
+            if ($tipo_slugs && !$rol_slugs) {
+                $slug = $tipo_slugs[0];
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; slug enlazado.
+                $matched_count = absint($wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(DISTINCT ov.object_id)
+                     FROM {$objects} ov
+                     INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id
+                     WHERE ov.object_type='product' AND ov.status=1
+                       AND v.active=1 AND v.semantic_group='tipo' AND v.slug=%s",
+                    $slug
+                )));
+                $valid = $matched_count > 0;
+                $diagnostic = $valid ? 'tipo_structure_ok' : 'tipo_structure_missing';
+            } elseif ($rol_slugs && !$tipo_slugs) {
+                $slug = $rol_slugs[0];
+                // Preferimos fuente canónica bridge TIPO -> ROL.
+                if (self::table_exists($type_role)) {
+                    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; slug enlazado.
+                    $matched_count = absint($wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(DISTINCT ot.object_id)
+                         FROM {$objects} ot
+                         INNER JOIN {$vocabulary} tv
+                           ON tv.id=ot.vocabulary_id AND tv.active=1 AND tv.semantic_group='tipo'
+                         INNER JOIN {$type_role} trm
+                           ON trm.type_vocabulary_id=tv.id AND trm.active=1
+                         INNER JOIN {$vocabulary} rv
+                           ON rv.id=trm.role_vocabulary_id AND rv.active=1 AND rv.semantic_group='rol'
+                         WHERE ot.object_type='product' AND ot.status=1 AND rv.slug=%s",
+                        $slug
+                    )));
+                }
+                if ($matched_count < 1) {
+                    // Fallback compatible: ROL materializado.
+                    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; slug enlazado.
+                    $matched_count = absint($wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(DISTINCT ov.object_id)
+                         FROM {$objects} ov
+                         INNER JOIN {$vocabulary} v ON v.id=ov.vocabulary_id
+                         WHERE ov.object_type='product' AND ov.status=1
+                           AND v.active=1 AND v.semantic_group='rol' AND v.slug=%s",
+                        $slug
+                    )));
+                }
+                $valid = $matched_count > 0;
+                $diagnostic = $valid ? 'rol_structure_ok' : 'rol_structure_missing';
+            } elseif ($tipo_slugs && $rol_slugs) {
+                $tipo = $tipo_slugs[0];
+                $rol = $rol_slugs[0];
+                if (self::table_exists($type_role)) {
+                    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; slugs enlazados.
+                    $matched_count = absint($wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(DISTINCT ot.object_id)
+                         FROM {$objects} ot
+                         INNER JOIN {$vocabulary} tv
+                           ON tv.id=ot.vocabulary_id AND tv.active=1 AND tv.semantic_group='tipo'
+                         INNER JOIN {$type_role} trm
+                           ON trm.type_vocabulary_id=tv.id AND trm.active=1
+                         INNER JOIN {$vocabulary} rv
+                           ON rv.id=trm.role_vocabulary_id AND rv.active=1 AND rv.semantic_group='rol'
+                         WHERE ot.object_type='product' AND ot.status=1
+                           AND tv.slug=%s AND rv.slug=%s",
+                        $tipo,
+                        $rol
+                    )));
+                }
+                $valid = $matched_count > 0;
+                $diagnostic = $valid ? 'type_role_pair_ok' : 'type_role_pair_missing';
+            }
+        }
+
+        $evaluation = array(
+            'status'              => $valid ? 'pass_top1' : 'fail',
+            'score'               => $valid ? 1 : 0,
+            'matched_product_id'  => null,
+            'matched_position'    => null,
+            'diagnostic_type'     => $diagnostic,
+            'classroom_stage_used'=> false,
+            'matched_count'       => $matched_count,
+        );
+
+        $inserted = $wpdb->insert($runs_table, array(
+            'batch_uuid'        => (string) $batch_uuid,
+            'lesson_key'        => $lesson_key,
+            'module_no'         => absint($question['module_no'] ?? 0),
+            'question_id'       => $question_id,
+            'source_type'       => sanitize_key((string) ($question['source_type'] ?? 'vocabulary')),
+            'source_id'         => absint($question['source_id'] ?? 0) ?: null,
+            'question_type'     => sanitize_key((string) ($question['question_type'] ?? 'type_role')),
+            'mode'              => self::sanitize_mode($question['mode'] ?? 'need'),
+            'question'          => sanitize_text_field((string) ($question['question'] ?? '')),
+            'status'            => 'answered',
+            'result_count'      => $matched_count,
+            'returned_count'    => min(8, $matched_count),
+            'search_uuid'       => null,
+            'search_strategy'   => 'type_role_structure_check',
+            'execution_ms'      => 0,
+            'evaluation_status' => $evaluation['status'],
+            'evaluation_score'  => $evaluation['score'],
+            'evaluation_json'   => wp_json_encode($evaluation, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'top_results'       => wp_json_encode(array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'response_meta'     => wp_json_encode(array(
+                'structure_check' => array(
+                    'source_key' => sanitize_text_field($source_key),
+                    'conditions' => $conditions,
+                    'matched_count' => $matched_count,
+                ),
+            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'error_message'     => null,
+            'created_at'        => current_time('mysql'),
+        ));
+
+        if (false === $inserted) {
+            $db_error = sanitize_text_field((string) $wpdb->last_error);
+            throw new RuntimeException(
+                $db_error
+                    ? 'No se pudo guardar la comprobación TIPO/ROL de Academia: ' . $db_error
+                    : 'No se pudo guardar la comprobación TIPO/ROL de Academia.'
+            );
+        }
+
+        return absint($wpdb->insert_id);
+    }
+
     public static function update_question_count($lesson_key) {
         return self::question_count(sanitize_key((string) $lesson_key));
     }
