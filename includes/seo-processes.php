@@ -717,6 +717,7 @@ if (!function_exists('seo_processes_collect_academy')) {
 
         $state_data = isset($payload['state']) && is_array($payload['state']) ? $payload['state'] : (array) get_option('seo_dependiente_academy_auto_state', array());
         $engine = isset($payload['scheduler']) && is_array($payload['scheduler']) ? $payload['scheduler'] : array();
+        $queue_state = isset($payload['queue_state']) && is_array($payload['queue_state']) ? $payload['queue_state'] : array();
         $running = !empty($payload['running']) || (
             !empty($state_data['enabled'])
             && 'auto' === (string) ($state_data['mode'] ?? '')
@@ -835,6 +836,9 @@ if (!function_exists('seo_processes_collect_academy')) {
         }
         if (!empty($engine['direct_error'])) {
             $detail .= ($detail ? ' ' : '') . 'Motor propio: ' . sanitize_text_field((string) $engine['direct_error']);
+        }
+        if (!empty($queue_state['last_error'])) {
+            $detail .= ($detail ? ' ' : '') . 'Cola de preguntas: ' . sanitize_text_field((string) $queue_state['last_error']);
         }
         if ($lesson) {
             $detail = ($detail ? $detail . ' ' : '') . $lesson . ($module > 0 ? ', módulo ' . $module : '') . '.';
