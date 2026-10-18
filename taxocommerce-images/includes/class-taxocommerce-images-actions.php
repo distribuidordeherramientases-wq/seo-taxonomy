@@ -203,6 +203,8 @@ final class TaxoCommerce_Images_Actions {
 			$this->redirect( 'error', __( 'La imagen indicada no se puede optimizar.', 'taxocommerce-images' ), 'library' );
 		}
 
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+
 		if ( ! wp_is_file_mod_allowed( 'taxocommerce-images' ) ) {
 			$this->redirect( 'error', __( 'WordPress no permite modificar archivos en este entorno.', 'taxocommerce-images' ), 'library', $id );
 		}
@@ -286,7 +288,7 @@ final class TaxoCommerce_Images_Actions {
 			wp_update_attachment_metadata( $id, $metadata );
 		}
 
-		@unlink( $backup ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Cleanup after successful restore.
+		wp_delete_file( $backup );
 		delete_post_meta( $id, self::BACKUP_META );
 
 		$this->redirect( 'ok', __( 'Imagen original restaurada.', 'taxocommerce-images' ), 'library', $id );
