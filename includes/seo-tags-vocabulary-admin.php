@@ -325,6 +325,7 @@ if (!function_exists('seo_tags_vocab_get_category_profiles')) {
             }
         }
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ph contains only generated %d placeholders, and $category_ids were normalized with absint() and bound through wpdb->prepare().
         $term_rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT
@@ -398,6 +399,7 @@ if (!function_exists('seo_tags_vocab_get_type_role_map')) {
         }
 
         $ph = seo_tags_vocab_placeholders($type_ids, '%d');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ph is a generated %d placeholder list; every type_id is absint() and passed to wpdb->prepare().
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT type_vocabulary_id, role_vocabulary_id
@@ -844,6 +846,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
                 $wc_tags_map[(int) $row['product_id']][] = (string) ($row['name'] ?? '');
             }
 
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ph is a generated %d placeholder list; all product IDs are bound with wpdb->prepare().
             $vocab_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT ov.object_id, v.id AS vocabulary_id, v.semantic_group, v.slug, v.label, ov.source, ov.confidence
