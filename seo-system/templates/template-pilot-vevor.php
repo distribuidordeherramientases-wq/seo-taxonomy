@@ -59,6 +59,21 @@ $markets = array(
         'affiliate' => 'Affiliatevermelding', 'disclosure' => 'Distribuidor de Herramientas is een onafhankelijke affiliate en niet de verkoper. Bij aankopen via onze links kunnen wij een commissie ontvangen, zonder extra kosten voor u.',
         'editorial' => 'Contact over deze website', 'privacy' => 'Ons privacybeleid', 'back' => 'Bekijk categorieën',
     ),
+    'FR' => array(
+        'lang' => 'fr-FR', 'country' => 'France', 'support' => 'https://www.vevor.fr/pages/contact-us',
+        'tagline' => 'Guides indépendants et sélections de produits VEVOR',
+        'brand_title' => 'Outils et équipements professionnels · France', 'flag' => '🇫🇷',
+        'all_categories' => 'Toutes les catégories', 'image_placeholder' => 'Image du produit indisponible',
+        'categories' => 'Catégories', 'browse' => 'Découvrir la sélection', 'overview' => 'Guide de catégorie',
+        'products' => 'Produits dans cette catégorie', 'product' => 'Fiche produit',
+        'view' => 'Voir le produit', 'buy' => 'Voir chez VEVOR', 'none' => 'Aucun produit disponible dans cette catégorie pour le moment.',
+        'source' => 'Les images, caractéristiques et informations proviennent du fournisseur. Vérifiez le prix et la disponibilité sur VEVOR.',
+        'details' => 'Détails techniques', 'sku' => 'Référence',
+        'customer' => 'Achats, livraison et retours', 'support_label' => 'Service client VEVOR',
+        'service' => 'Les commandes et paiements sont effectués directement chez VEVOR. La livraison, les retours, les remboursements et le service après-vente sont gérés par VEVOR selon ses conditions.',
+        'affiliate' => 'Information sur les liens affiliés', 'disclosure' => 'Distribuidor de Herramientas est un partenaire affilié indépendant, pas le vendeur. Un achat via nos liens peut nous rapporter une commission sans coût supplémentaire pour vous.',
+        'editorial' => 'Contacter notre site', 'privacy' => 'Notre politique de confidentialité', 'back' => 'Voir les catégories',
+    ),
 );
 
 if (!isset($markets[$market])) {
@@ -87,7 +102,7 @@ if ($is_landing && !($landing_page instanceof WP_Post)) {
 if (!$is_category && !$is_landing && !($product instanceof WC_Product)) {
     return;
 }
-$landing_labels = array('US' => 'Project guide', 'DE' => 'Ratgeber', 'NL' => 'Keuzegids');
+$landing_labels = array('US' => 'Project guide', 'DE' => 'Ratgeber', 'NL' => 'Keuzegids', 'FR' => 'Guide pratique');
 
 $affiliate_url = static function ($item) {
     if (!($item instanceof WC_Product)) {
@@ -108,7 +123,7 @@ $affiliate_url = static function ($item) {
         }
         $host = strtolower((string) wp_parse_url($url, PHP_URL_HOST));
         // No enviar al visitante a tiendas ajenas ni al carrito de Espana.
-        $host_by_market = array('US' => 'vevor.com', 'DE' => 'vevor.de', 'NL' => 'vevor.nl');
+        $host_by_market = array('US' => 'vevor.com', 'DE' => 'vevor.de', 'NL' => 'vevor.nl', 'FR' => 'vevor.fr');
         $market_for_url = isset($GLOBALS['dht_pilot_market_active']) ? (string) $GLOBALS['dht_pilot_market_active'] : '';
         $required_host = isset($host_by_market[$market_for_url]) ? $host_by_market[$market_for_url] : '';
         if ($required_host === '' || !in_array($host, array($required_host, 'www.' . $required_host), true)) {
