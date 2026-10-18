@@ -55,6 +55,9 @@ function seo_ie_products_export_enqueue( $hook ) {
  * un formulario POST completo ni un nombre/ruta de archivo elegido por cliente.
  */
 function seo_ie_products_export_filters_from_post() {
+    // This helper reads POST independently of its AJAX caller. Verify here as
+    // well so future callers cannot persist unauthenticated export filters.
+    check_ajax_referer( 'seo_ie_products_export_async', 'nonce' );
     $allowed = [
         'export_statuses',
         'seo_export_product_statuses',
@@ -66,9 +69,16 @@ function seo_ie_products_export_filters_from_post() {
     ];
     $filters = [];
     foreach ( $allowed as $key ) {
-        if ( isset( $_POST[ $key ] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- El motor V2 normaliza cada campo al consumirlo; se conserva el slashing original.
-            $filters[ $key ] = wp_unslash( $_POST[ $key ] );
+        if ( ! isset( $_POST[ $key ] ) ) {
+            continue;
+        }
+        // Preserve the legacy filter shapes (scalars or arrays), but never
+        // persist unsanitized values or unexpected nested objects.
+        $raw = wp_unslash( $_POST[ $key ] );
+        if ( is_array( $raw ) ) {
+            $filters[ $key ] = map_deep( $raw, 'sanitize_text_field' );
+        } elseif ( is_scalar( $raw ) ) {
+            $filters[ $key ] = sanitize_text_field( (string) $raw );
         }
     }
     return $filters;
