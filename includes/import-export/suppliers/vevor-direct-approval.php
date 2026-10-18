@@ -148,8 +148,8 @@ function seo_vevor_direct_approval_request() {
     if ( in_array( $selected, array( 'pendiente', 'revisar' ), true ) ) {
         $where[] = 'estado_seleccion = %s';
         $params[] = $selected;
-    } elseif ( '' !== $selected && 'aceptado' !== $selected ) {
-        wp_die( 'Filtro de seleccion no compatible con la aprobacion VEVOR.' );
+    } elseif ( '' !== $selected ) {
+        wp_die( 'Para crear borradores VEVOR debes seleccionar Pendiente o Todos en el filtro Seleccion.' );
     }
     $market = strtoupper( sanitize_key( $read( 'f_pais' ) ) );
     if ( in_array( $market, array( 'US', 'DE', 'NL', 'FR' ), true ) ) {
