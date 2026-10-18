@@ -7,7 +7,6 @@
  * Explicit admin action, never implicit on page load or supplier import.
  */
 defined( 'ABSPATH' ) || exit;
-require_once __DIR__ . '/vevor-direct-approval.php';
 
 /** Stable country-prefixed term identifier, independent from local WP term IDs. */
 function seo_vevor_fr_category_slug( $segments ) {
