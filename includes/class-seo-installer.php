@@ -469,6 +469,7 @@ final class SEO_System_Installer
             creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             actualizado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
+            UNIQUE KEY proveedor_pais_producto (proveedor, pais_origen, proveedor_id_externo),
             KEY proveedor_externo (proveedor, proveedor_id_externo),
             KEY proveedor_sku (proveedor, sku),
             KEY proveedor_pais_sku (proveedor, pais_origen, sku),
