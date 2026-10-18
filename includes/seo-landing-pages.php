@@ -250,7 +250,7 @@ function seo_landing_score_total($scores)
 function seo_landing_get_existing()
 {
     global $wpdb;
-    $nodes = $wpdb->prefix . 'seo_nodes';
+    $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
     $stats = seo_landing_stats_table();
 
     $has_stats = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $stats)) === $stats);
@@ -331,8 +331,8 @@ function seo_landing_get_kpis()
 function seo_landing_get_coverage_gaps($limit = 40)
 {
     global $wpdb;
-    $nodes = $wpdb->prefix . 'seo_nodes';
-    $relations = $wpdb->prefix . 'seo_relations';
+    $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
+    $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
     $limit = max(1, min(200, absint($limit)));
 
     $sql = "
@@ -803,7 +803,7 @@ function seo_landing_export_related_categories($page_id)
         return array();
     }
 
-    $relations = $wpdb->prefix . 'seo_relations';
+    $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
     $ids = $wpdb->get_col($wpdb->prepare(
         "SELECT DISTINCT target_id
          FROM {$relations}
@@ -1038,7 +1038,7 @@ function seo_landing_track_view()
     }
 
     global $wpdb;
-    $nodes = $wpdb->prefix . 'seo_nodes';
+    $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
     $is_landing = (bool) $wpdb->get_var($wpdb->prepare(
         "SELECT 1 FROM {$nodes}
          WHERE object_type = 'page' AND object_id = %d AND seo_role = 'landing' AND status = 1
