@@ -726,6 +726,7 @@ final class SEO_Dependiente_Entrenador {
             'next_delay'          => 0,
             'fast_streak'         => 0,
             'no_progress_cycles'  => 0,
+            'needs_training_retry_allowed' => 1,
             'worker_heartbeat_at' => '',
             'worker_heartbeat_ts' => 0,
             'worker_runs'         => 0,
@@ -906,12 +907,36 @@ final class SEO_Dependiente_Entrenador {
             ));
 
             if ('needs_training' === $status) {
+                $retry_allowed = !empty($state['needs_training_retry_allowed']);
+                if ($retry_allowed) {
+                    self::save_auto_state(array(
+                        'needs_training_retry_allowed' => 0,
+                        'last_message' => $lesson_label . ' necesita entrenamiento. Repreparación automática iniciada tras la orden de reanudación.',
+                        'last_error'   => '',
+                        'updated_at'   => current_time('mysql'),
+                    ));
+                    $result = self::auto_prepare_lesson_batch($lesson_key);
+                    self::save_auto_state(array(
+                        'current_module' => self::next_pending_module($lesson_key),
+                        'last_processed' => 0,
+                        'next_delay'     => 1,
+                        'no_progress_cycles' => 0,
+                        'last_message'   => !empty($result['done'])
+                            ? $lesson_label . ' repreparada automáticamente. Continuando con sus ejercicios.'
+                            : 'Repreparando ' . $lesson_label . ' desde un temario limpio.',
+                        'last_error'     => '',
+                        'updated_at'     => current_time('mysql'),
+                    ));
+                    self::schedule_auto_worker(1);
+                    return;
+                }
+
                 self::save_auto_state(array(
                     'enabled'        => false,
                     'mode'           => 'auto',
                     'status'         => 'needs_training',
                     'current_module' => 0,
-                    'last_message'   => $lesson_label . ' no ha superado el quality gate. No se ha creado snapshot ni promocionado conocimiento. Reprepara la leccion cuando quieras repetirla.',
+                    'last_message'   => $lesson_label . ' no ha superado de nuevo el quality gate tras el reintento automático. Se detiene para evitar un bucle.',
                     'last_error'     => '',
                     'updated_at'     => current_time('mysql'),
                 ));
@@ -1372,6 +1397,7 @@ final class SEO_Dependiente_Entrenador {
             'batch_size'         => self::auto_speed_config()['initial_batch'],
             'fast_streak'        => 0,
             'no_progress_cycles' => 0,
+            'needs_training_retry_allowed' => 0,
             'last_duration'      => 0,
             'last_processed'     => 0,
             'next_delay'         => 0,
@@ -1806,6 +1832,7 @@ final class SEO_Dependiente_Entrenador {
             'mode'                  => 'auto',
             'status'                => 'running',
             'last_error'            => '',
+            'needs_training_retry_allowed' => 1,
             'direct_worker_pending' => 0,
             'direct_worker_dispatch_id' => '',
             'direct_worker_not_before' => 0,
@@ -7810,6 +7837,130 @@ final class SEO_Dependiente_Entrenador {
 
     public static function update_run_question($question, $batch_uuid) {
         return self::run_question((array) $question, (string) $batch_uuid);
+    }
+
+    /**
+     * Fast path de Actualización M2 (Inventario nuevo).
+     *
+     * M2 no necesita ejecutar el buscador completo para comprobar la identidad
+     * de cada producto del delta: valida directamente que el producto exista en
+     * el índice de Dependiente y persiste un run normal para conservar
+     * trazabilidad, métricas y quality gate.
+     */
+    public static function update_run_inventory_question($question, $batch_uuid) {
+        global $wpdb;
+
+        $question = (array) $question;
+        $question_id = absint($question['id'] ?? 0);
+        $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        if (!$question_id || !$lesson_key) {
+            return 0;
+        }
+
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; valores enlazados con prepare().
+        $existing = absint($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$runs_table} WHERE question_id=%d AND lesson_key=%s AND status IN ('answered','error') ORDER BY id DESC LIMIT 1",
+            $question_id,
+            $lesson_key
+        )));
+        if ($existing) {
+            return $existing;
+        }
+
+        $expected = self::decode_json($question['expected_json'] ?? '');
+        $expected_product_id = absint($expected['product_id'] ?? $question['source_id'] ?? 0);
+        $expected_title = trim((string) ($expected['title'] ?? ''));
+        $row = array();
+
+        if (
+            $expected_product_id
+            && class_exists('SEO_Dependiente_Index')
+            && SEO_Dependiente_Index::table_exists()
+        ) {
+            $index_table = SEO_Dependiente_Index::table();
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; ID enlazado mediante prepare().
+            $row = (array) $wpdb->get_row($wpdb->prepare(
+                "SELECT product_id,title,normalized_title FROM {$index_table} WHERE product_id=%d LIMIT 1",
+                $expected_product_id
+            ), ARRAY_A);
+        }
+
+        $found_id = absint($row['product_id'] ?? 0);
+        $found_title = trim((string) ($row['title'] ?? ''));
+        $expected_normalized = class_exists('SEO_Dependiente_Index')
+            ? SEO_Dependiente_Index::normalize($expected_title)
+            : sanitize_title($expected_title);
+        $found_normalized = trim((string) ($row['normalized_title'] ?? ''));
+        if ('' === $found_normalized && '' !== $found_title) {
+            $found_normalized = class_exists('SEO_Dependiente_Index')
+                ? SEO_Dependiente_Index::normalize($found_title)
+                : sanitize_title($found_title);
+        }
+
+        $matched = $found_id > 0
+            && $found_id === $expected_product_id
+            && ('' === $expected_normalized || '' === $found_normalized || $expected_normalized === $found_normalized);
+
+        $evaluation = array(
+            'status'             => $matched ? 'pass_top1' : 'fail',
+            'score'              => $matched ? 1 : 0,
+            'matched_product_id' => $matched ? $found_id : null,
+            'matched_position'   => $matched ? 1 : null,
+            'diagnostic_type'    => $matched ? 'inventory_index_ok' : 'inventory_index_mismatch',
+            'classroom_stage_used'=> false,
+        );
+        $top_results = $found_id ? array(array(
+            'id'       => $found_id,
+            'title'    => sanitize_text_field($found_title),
+            'score'    => 1,
+            'position' => 1,
+            'reasons'  => array('Comprobación directa del índice de Dependiente'),
+        )) : array();
+        $response_meta = array(
+            'inventory_check' => array(
+                'expected_product_id' => $expected_product_id,
+                'found_product_id'    => $found_id,
+                'expected_title'      => sanitize_text_field($expected_title),
+                'found_title'         => sanitize_text_field($found_title),
+            ),
+        );
+
+        $inserted = $wpdb->insert($runs_table, array(
+            'batch_uuid'        => (string) $batch_uuid,
+            'lesson_key'        => $lesson_key,
+            'module_no'         => absint($question['module_no'] ?? 0),
+            'question_id'       => $question_id,
+            'source_type'       => sanitize_key((string) ($question['source_type'] ?? 'product')),
+            'source_id'         => $expected_product_id ?: null,
+            'question_type'     => sanitize_key((string) ($question['question_type'] ?? 'product_identity')),
+            'mode'              => self::sanitize_mode($question['mode'] ?? 'product'),
+            'question'          => sanitize_text_field((string) ($question['question'] ?? '')),
+            'status'            => 'answered',
+            'result_count'      => $found_id ? 1 : 0,
+            'returned_count'    => $found_id ? 1 : 0,
+            'search_uuid'       => null,
+            'search_strategy'   => 'inventory_index_check',
+            'execution_ms'      => 0,
+            'evaluation_status' => $evaluation['status'],
+            'evaluation_score'  => $evaluation['score'],
+            'evaluation_json'   => wp_json_encode($evaluation, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'top_results'       => wp_json_encode($top_results, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'response_meta'     => wp_json_encode($response_meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'error_message'     => null,
+            'created_at'        => current_time('mysql'),
+        ));
+
+        if (false === $inserted) {
+            $db_error = sanitize_text_field((string) $wpdb->last_error);
+            throw new RuntimeException(
+                $db_error
+                    ? 'No se pudo guardar la comprobación de inventario de Academia: ' . $db_error
+                    : 'No se pudo guardar la comprobación de inventario de Academia.'
+            );
+        }
+
+        return absint($wpdb->insert_id);
     }
 
     public static function update_question_count($lesson_key) {
