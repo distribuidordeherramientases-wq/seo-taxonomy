@@ -530,6 +530,14 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
             );
         }
 
+        // The provider table stores the product name in VARCHAR(255).
+        // Keep the full original in the uploaded CSV, but avoid a failed row
+        // when the source supplies a longer title (9 cases in the FR feed).
+        if ( mb_strlen( (string) ( $data['nombre'] ?? '' ), 'UTF-8' ) > 255 ) {
+            $data['nombre'] = mb_substr( (string) $data['nombre'], 0, 255, 'UTF-8' );
+            seo_ie_add_log_detail( $log, sprintf( 'Fila preparada %d: nombre adaptado al limite de 255 caracteres de MySQL.', $line ) );
+        }
+
         $external_id = trim( (string) ( $data['proveedor_id_externo'] ?? '' ) );
         $name        = trim( (string) ( $data['nombre'] ?? '' ) );
         $incoming_sku = trim( (string) ( $data['sku'] ?? '' ) );
