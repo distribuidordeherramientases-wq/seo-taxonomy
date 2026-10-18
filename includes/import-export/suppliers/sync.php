@@ -669,7 +669,8 @@ function seo_supplier_sync_apply_baja( array $row ) {
 
 /**
  * Reactiva un producto dado de baja: conserva su contenido editorial, aplica
- * los datos comerciales actuales y lo devuelve a Nuevos productos en draft.
+ * los datos comerciales actuales y lo devuelve a Draft con la categoría
+ * predeterminada de WooCommerce.
  *
  * @param array $row Fila.
  * @param float $commission_sale Comision descuento.
@@ -694,19 +695,19 @@ function seo_supplier_sync_apply_reactivation( array $row, $commission_sale, $co
         return [ 'result' => 'error', 'product_id' => 0, 'message' => 'No se pudo reactivar el producto.', 'warnings' => [] ];
     }
 
-    $product->set_status( 'draft' );
-    $product->set_catalog_visibility( 'hidden' );
-
-    $new_category = seo_supplier_sync_new_products_category_id();
-    if ( $new_category ) {
-        $product->set_category_ids( [ $new_category ] );
+    $default_category = seo_proveedores_categoria_respaldo();
+    if ( empty( $default_category['valid'] ) || empty( $default_category['term_id'] ) ) {
+        return [ 'result' => 'error', 'product_id' => $product_id, 'message' => 'No existe una categoría predeterminada de WooCommerce válida.', 'warnings' => [] ];
     }
 
+    $product->set_status( 'draft' );
+    $product->set_catalog_visibility( 'hidden' );
+    $product->set_category_ids( [ absint( $default_category['term_id'] ) ] );
     $product->save();
     seo_supplier_sync_finalize_applied_row( $row, $product_id );
 
     $result['result']  = 'reactivated';
-    $result['message'] = 'Producto reactivado como borrador en Nuevos productos.';
+    $result['message'] = 'Producto reactivado como borrador en la categoría predeterminada.';
     return $result;
 }
 
