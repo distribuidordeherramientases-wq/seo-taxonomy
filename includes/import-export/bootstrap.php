@@ -70,6 +70,9 @@ define( 'SEO_IE_MIGRATIONS_DIR', __DIR__ . '/migrations' );
 require_once __DIR__ . '/core/registry.php';
 require_once __DIR__ . '/legacy-engine.php';
 require_once __DIR__ . '/category-translations.php';
+if ( is_readable( __DIR__ . '/suppliers/vevor-france-categories.php' ) ) {
+    require_once __DIR__ . '/suppliers/vevor-france-categories.php';
+}
 // VEVOR international product creation through the regular supplier import only.
 if ( is_readable( __DIR__ . '/suppliers/vevor-international-products.php' ) ) {
     require_once __DIR__ . '/suppliers/vevor-international-products.php';
