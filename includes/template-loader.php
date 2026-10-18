@@ -1,6 +1,8 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+require_once __DIR__ . '/seo-front-es-catalog.php';
+
 add_filter('template_include', 'seo_template_loader', PHP_INT_MAX);
 
 /**
@@ -212,7 +214,16 @@ function seo_pilot_vevor_request_market() {
     }
 
     if (is_singular('product')) {
-        $terms = get_the_terms(get_queried_object_id(), 'product_cat');
+        // VEVOR drafts may still have the default ES category after approval.
+        // Their explicit market metadata must take precedence over category routing.
+        $product_id = absint(get_queried_object_id());
+        $stored_market = strtoupper(trim((string) get_post_meta($product_id, '_seo_pais_origen', true)));
+        $provider = strtoupper(trim((string) get_post_meta($product_id, '_seo_proveedor', true)));
+        if ('VEVOR' === $provider && in_array($stored_market, array('US', 'DE', 'NL'), true)) {
+            return $stored_market;
+        }
+
+        $terms = get_the_terms($product_id, 'product_cat');
         if (!is_array($terms) || is_wp_error($terms)) {
             return '';
         }
