@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.3
+Stable tag: 0.4.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,11 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.4.4 =
+* Process registry now exposes progress, detail and an extension action URL.
+* Process Manager can display the automatic Vocabulary classifier as a real managed process.
+* Updated Vocabulary family description for automatic inventory classification.
 
 = 0.4.3 =
 * Added TaxoCommerce Vocabulary to the family catalog.
