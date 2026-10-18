@@ -131,10 +131,12 @@ function seo_core_validation_handle_settings_actions() {
         return array('type' => 'success', 'message' => 'Se han restaurado los valores recomendados de Plugin Validation.');
     }
 
-    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Structured validation settings are normalized field by field by seo_core_validation_sanitize_settings().
     $raw = isset($_POST['seo_core_validation_settings']) && is_array($_POST['seo_core_validation_settings'])
-        ? wp_unslash($_POST['seo_core_validation_settings'])
+        ? map_deep(wp_unslash($_POST['seo_core_validation_settings']), 'sanitize_text_field')
         : array();
+    // Every setting is scalar (checkbox, enum, number); reject nested input
+    // so absint/float conversions never receive arrays from an HTTP request.
+    $raw = array_filter($raw, 'is_scalar');
     $clean = seo_core_validation_sanitize_settings($raw);
     update_option(seo_core_validation_settings_option_name(), $clean, false);
     return array('type' => 'success', 'message' => 'Configuración guardada. Ejecuta de nuevo la validación para recalcular los resultados.');
