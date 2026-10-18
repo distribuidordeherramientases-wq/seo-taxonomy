@@ -167,6 +167,25 @@ function seo_vevor_normal_import_tick() {
         if ( null === $rows || $wpdb->last_error ) {
             throw new RuntimeException( 'Error al leer ofertas aprobadas VEVOR.' );
         }
+        // Approved rows may have IDs below the persisted cursor (for example
+        // after a new country import). A manual recovery click should process
+        // the first five immediately, not just reset and wait for cron.
+        if ( ! $rows && $cursor > 0 && seo_vevor_normal_import_eligible_count() > 0 ) {
+            $cursor = 0;
+            $rows = $wpdb->get_results( $wpdb->prepare(
+                "SELECT * FROM {$table}
+                 WHERE proveedor = %s AND pais_origen IN ('US','DE','NL','FR')
+                   AND estado_seleccion = %s
+                   AND estado_sincronizacion NOT IN ('error','conflicto','baja_pendiente','baja_aplicada')
+                   AND (object_id IS NULL OR object_id = 0)
+                 ORDER BY id ASC LIMIT 5",
+                'VEVOR', 'aceptado'
+            ), ARRAY_A );
+            if ( null === $rows || $wpdb->last_error ) {
+                throw new RuntimeException( 'Error al reanudar las ofertas VEVOR desde el inicio.' );
+            }
+            $state['cursor'] = 0;
+        }
         $started = microtime( true );
         foreach ( $rows as $row ) {
             if ( microtime( true ) - $started >= 10 && absint( $state['processed'] ?? 0 ) > 0 ) {
