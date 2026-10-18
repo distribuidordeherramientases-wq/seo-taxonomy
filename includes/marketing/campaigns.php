@@ -29,8 +29,8 @@ function seo_marketing_campaigns_tables()
     global $wpdb;
 
     return array(
-        'campaigns' => $wpdb->prefix . 'seo_marketing_campaigns',
-        'products'  => $wpdb->prefix . 'seo_marketing_campaign_products',
+        'campaigns' => esc_sql( $wpdb->prefix . 'seo_marketing_campaigns' ),
+        'products'  => esc_sql( $wpdb->prefix . 'seo_marketing_campaign_products' ),
     );
 }
 
@@ -364,7 +364,7 @@ function seo_marketing_campaigns_register_public_template()
     }
 
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_templates';
+    $table = esc_sql( $wpdb->prefix . 'seo_templates' );
 
     $table_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
@@ -438,7 +438,7 @@ function seo_marketing_campaigns_public_template_is_enabled()
 {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_templates';
+    $table = esc_sql( $wpdb->prefix . 'seo_templates' );
     $table_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
     );
