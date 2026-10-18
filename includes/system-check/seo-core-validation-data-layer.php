@@ -21,8 +21,8 @@ function seo_core_system_test_action_scheduler_checks() {
     global $wpdb;
 
     $results = array();
-    $table = $wpdb->prefix . 'actionscheduler_actions';
-    $groups_table = $wpdb->prefix . 'actionscheduler_groups';
+    $table = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
+    $groups_table = esc_sql( $wpdb->prefix . 'actionscheduler_groups' );
     $exists = function_exists('seo_core_system_test_table_exists')
         ? seo_core_system_test_table_exists($table)
         : $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
@@ -213,8 +213,8 @@ function seo_core_system_test_data_layer_passive_checks() {
         return $results;
     }
 
-    $operations = SEO_Data_Layer::operations_table();
-    $changes = SEO_Data_Layer::changes_table();
+    $operations = esc_sql( SEO_Data_Layer::operations_table() );
+    $changes = esc_sql( SEO_Data_Layer::changes_table() );
 
     $required_columns = array(
         $operations => array(
@@ -413,9 +413,9 @@ function seo_core_system_test_data_layer_run_active_tests() {
     $results = array();
     $operation_ids = array();
     $relation_ids = array();
-    $relations_table = $wpdb->prefix . 'seo_relations';
-    $operations_table = $wpdb->prefix . 'seo_operations';
-    $changes_table = $wpdb->prefix . 'seo_operation_changes';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $operations_table = esc_sql( $wpdb->prefix . 'seo_operations' );
+    $changes_table = esc_sql( $wpdb->prefix . 'seo_operation_changes' );
     $marker = '__seo_test__';
 
     $classes_ready = class_exists('SEO_Data_Layer')
