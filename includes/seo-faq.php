@@ -94,7 +94,7 @@ function seo_faq_maybe_upgrade_metrics_schema()
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-    $table   = seo_faq_metrics_table_name();
+    $table   = esc_sql( seo_faq_metrics_table_name() );
     $charset = $wpdb->get_charset_collate();
 
     $sql = "CREATE TABLE {$table} (
@@ -146,7 +146,7 @@ function seo_faq_frontend_tracking_context()
 
     global $wpdb;
 
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
     // En instalaciones limpias la tabla de FAQs puede no existir hasta
     // completar la activacion/migracion. Evitar errores SQL en frontend.
     // Se cachea solo durante esta peticion para detectar altas posteriores.
@@ -244,7 +244,7 @@ function seo_faq_increment_block_metric($object_type, $object_id, $metric)
 
     seo_faq_maybe_upgrade_metrics_schema();
 
-    $table      = seo_faq_metrics_table_name();
+    $table      = esc_sql( seo_faq_metrics_table_name() );
     $time_field = $allowed[$metric];
     $now        = current_time('mysql', true);
 
@@ -304,7 +304,7 @@ function seo_faq_track_event()
         wp_send_json_error(['message' => 'Evento FAQ invalido.'], 400);
     }
 
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     $active_count = (int) $wpdb->get_var(
         $wpdb->prepare(
@@ -1794,7 +1794,7 @@ function seo_faq_process_bulk_create($current_tab, $object_type)
         );
     }
 
-    $table    = seo_faq_table_name();
+    $table    = esc_sql( seo_faq_table_name() );
     $inserted = 0;
 
     foreach ($target_ids as $target_id) {
@@ -1862,7 +1862,7 @@ function seo_faq_process_action($current_tab, $object_type)
 
     global $wpdb;
 
-    $table     = seo_faq_table_name();
+    $table     = esc_sql( seo_faq_table_name() );
     $filters   = seo_faq_read_classification_filters($_POST);
     $object_id = isset($_POST['object_id']) ? absint($_POST['object_id']) : 0;
     $faq_id    = isset($_POST['faq_id']) ? absint($_POST['faq_id']) : 0;
@@ -2029,7 +2029,7 @@ function seo_faq_render_management(
 ) {
     global $wpdb;
 
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     $faqs = $wpdb->get_results(
         $wpdb->prepare(
@@ -2333,7 +2333,7 @@ function seo_faq_get_target_counts($object_type, $object_ids)
         return [];
     }
 
-    $table        = seo_faq_table_name();
+    $table        = esc_sql( seo_faq_table_name() );
     $placeholders = implode(',', array_fill(0, count($object_ids), '%d'));
 
     $query = "
@@ -2851,7 +2851,7 @@ function seo_faq_report_get_duplicate_groups()
 {
     global $wpdb;
 
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     $rows = $wpdb->get_results(
         "SELECT f.*
@@ -3090,7 +3090,7 @@ function seo_faq_report_get_orphan_rows()
 {
     global $wpdb;
 
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     $rows = $wpdb->get_results(
         "SELECT f.*,
@@ -3154,7 +3154,7 @@ function seo_faq_report_get_unpublished_rows()
 {
     global $wpdb;
 
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     $rows = $wpdb->get_results(
         "SELECT f.id, f.object_type, f.object_id, f.question, f.active,
@@ -3353,7 +3353,7 @@ function seo_faq_report_get_tracking_metrics()
     seo_faq_maybe_upgrade_metrics_schema();
 
     $metrics_table = seo_faq_metrics_table_name();
-    $faq_table     = seo_faq_table_name();
+    $faq_table     = esc_sql( seo_faq_table_name() );
     $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $metrics_table));
 
     $empty = [
@@ -3474,7 +3474,7 @@ function seo_faq_report_get_performance_rows($filters, $limit = 100)
 {
     global $wpdb;
 
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
     $limit = max(1, min(50000, (int) $limit));
     $where = ['1=1'];
     $args  = [];
@@ -3549,7 +3549,7 @@ function seo_faq_report_get_object_tracking_rows($limit = 100)
     global $wpdb;
 
     seo_faq_maybe_upgrade_metrics_schema();
-    $table = seo_faq_metrics_table_name();
+    $table = esc_sql( seo_faq_metrics_table_name() );
     $limit = max(1, min(50000, (int) $limit));
 
     $rows = $wpdb->get_results(
@@ -3714,7 +3714,7 @@ function seo_faq_render_report()
 {
     global $wpdb;
 
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
     $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
 
     if ($exists !== $table) {
@@ -3765,7 +3765,7 @@ function seo_faq_render_report()
 function seo_faq_report_get_summary()
 {
     global $wpdb;
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     $summary = [
         1 => seo_faq_report_empty_level(1),
@@ -3891,7 +3891,7 @@ function seo_faq_report_get_hub_ids()
 function seo_faq_report_get_quality_metrics()
 {
     global $wpdb;
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     return [
         'short_or_empty' => (int) $wpdb->get_var(
@@ -3943,7 +3943,7 @@ function seo_faq_report_get_quality_metrics()
 function seo_faq_report_get_usage_metrics()
 {
     global $wpdb;
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     $row = $wpdb->get_row(
         "SELECT SUM(load_count) AS total_loads,
@@ -4084,7 +4084,7 @@ function seo_faq_report_get_editorial_quality()
     }
 
     global $wpdb;
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
 
     $rows = $wpdb->get_results(
         "SELECT f.id, f.object_type, f.object_id, f.question, f.answer, f.active,
@@ -4426,7 +4426,7 @@ function seo_faq_report_render_missing_items($object_type, $limit = 15)
 function seo_faq_report_get_missing_items($object_type, $limit = 15)
 {
     global $wpdb;
-    $table = seo_faq_table_name();
+    $table = esc_sql( seo_faq_table_name() );
     $limit = max(1, min(100, (int) $limit));
 
     if ($object_type === 1) {

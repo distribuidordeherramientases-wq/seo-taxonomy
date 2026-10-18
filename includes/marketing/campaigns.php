@@ -48,6 +48,9 @@ function seo_marketing_campaigns_maybe_install_tables()
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $charset_collate = $wpdb->get_charset_collate();
 
     $sql_campaigns = "CREATE TABLE {$tables['campaigns']} (
@@ -221,6 +224,9 @@ function seo_marketing_campaigns_unique_key($base, $exclude_id = 0)
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     $base = sanitize_title((string) $base);
     if ($base === '') {
@@ -264,6 +270,9 @@ function seo_marketing_campaigns_backfill_identity_columns()
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$tables['campaigns']}", 0);
     if (!in_array('campaign_key', $columns, true) || !in_array('campaign_type', $columns, true)) {
@@ -481,6 +490,9 @@ function seo_marketing_campaigns_get_public_active()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     foreach (array('campaigns', 'products') as $required_table) {
         $table_name = $tables[$required_table];
@@ -614,6 +626,9 @@ function seo_marketing_campaigns_get_social_catalog()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     foreach (array('campaigns', 'products') as $required_table) {
         $table_name = $tables[$required_table];
         $table_exists = $wpdb->get_var(
@@ -940,6 +955,9 @@ function seo_marketing_campaigns_get($campaign_id)
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $campaign_id = absint($campaign_id);
 
     if (!$campaign_id) {
@@ -964,6 +982,9 @@ function seo_marketing_campaigns_find_product_overlap($product_id, $campaign_id,
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     return $wpdb->get_row(
         $wpdb->prepare(
@@ -1083,6 +1104,9 @@ function seo_marketing_campaign_apply($campaign_id)
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $campaign = seo_marketing_campaigns_get($campaign_id);
 
     if (!$campaign || empty($campaign->is_enabled)) {
@@ -1162,6 +1186,9 @@ function seo_marketing_campaigns_restore_product_row($row, $campaign)
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $product = wc_get_product(absint($row->product_id));
     $now = seo_marketing_campaigns_now_mysql();
 
@@ -1208,6 +1235,9 @@ function seo_marketing_campaign_restore($campaign_id)
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $campaign = seo_marketing_campaigns_get($campaign_id);
 
     if (!$campaign) {
@@ -1263,6 +1293,9 @@ function seo_marketing_campaigns_handle_save()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
     $name = isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '';
@@ -1378,6 +1411,9 @@ function seo_marketing_campaigns_handle_add_products()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
     $campaign = seo_marketing_campaigns_get($campaign_id);
     if (!$campaign) {
@@ -1464,6 +1500,9 @@ function seo_marketing_campaigns_handle_update_products()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
     $campaign = seo_marketing_campaigns_get($campaign_id);
     if (!$campaign) {
@@ -1530,6 +1569,9 @@ function seo_marketing_campaigns_handle_clear_products()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
     $campaign = seo_marketing_campaigns_get($campaign_id);
     if (!$campaign) {
@@ -1572,6 +1614,9 @@ function seo_marketing_campaigns_handle_delete()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
     $campaign = seo_marketing_campaigns_get($campaign_id);
     if (!$campaign) {
@@ -1612,6 +1657,9 @@ function seo_marketing_campaigns_handle_duplicate()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $campaign_id = isset($_POST['campaign_id']) ? absint($_POST['campaign_id']) : 0;
     $campaign = seo_marketing_campaigns_get($campaign_id);
     if (!$campaign) {
@@ -1679,6 +1727,9 @@ function seo_marketing_campaigns_export_rows()
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     $rows = (array) $wpdb->get_results(
         "SELECT campaign_key, series_key, name, edition_label, campaign_type, recurrence, social_creative_template, start_at, end_at, is_enabled
@@ -1714,6 +1765,9 @@ function seo_marketing_campaigns_export_records()
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $records = array();
 
     $campaigns = (array) $wpdb->get_results(
@@ -1967,6 +2021,9 @@ function seo_marketing_campaigns_import_validate_existing_products($campaign_id,
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     if ($campaign_id <= 0) {
         return true;
@@ -2167,6 +2224,9 @@ function seo_marketing_campaigns_handle_import()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
     $created = 0;
     $updated = 0;
     $products_upserted = 0;
@@ -2527,6 +2587,9 @@ function seo_marketing_campaigns_render_dashboard()
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     $rows = $wpdb->get_results(
         "SELECT c.*, COUNT(cp.id) AS product_count
@@ -2573,6 +2636,9 @@ function seo_marketing_campaigns_render_existing_products($campaign)
 {
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    // Escape identifiers at the query site; the registry returns fixed WP-prefixed names.
+    $tables['campaigns'] = esc_sql( $tables['campaigns'] );
+    $tables['products']  = esc_sql( $tables['products'] );
 
     $rows = $wpdb->get_results(
         $wpdb->prepare(
