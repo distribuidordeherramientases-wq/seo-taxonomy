@@ -220,6 +220,15 @@ final class TaxoCommerce_Core {
 
 		add_submenu_page(
 			'taxocommerce-core',
+			__( 'Ampliar familia', 'taxocommerce-core' ),
+			__( 'Ampliar familia', 'taxocommerce-core' ),
+			$capability,
+			'taxocommerce-core-family',
+			array( $this, 'render_family_catalog' )
+		);
+
+		add_submenu_page(
+			'taxocommerce-core',
 			__( 'Extensiones', 'taxocommerce-core' ),
 			__( 'Extensiones', 'taxocommerce-core' ),
 			$capability,
@@ -616,6 +625,91 @@ final class TaxoCommerce_Core {
 					<?php endif; ?>
 				</tbody>
 			</table>
+		</div>
+		<?php
+	}
+
+
+	/**
+	 * TaxoCommerce family installer/discovery page.
+	 *
+	 * @return void
+	 */
+	public function render_family_catalog() {
+		$this->guard();
+
+		$catalog    = $this->family_extensions();
+		$upload_url = admin_url( 'plugin-install.php?tab=upload' );
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html__( 'Ampliar familia TaxoCommerce', 'taxocommerce-core' ); ?></h1>
+			<p><?php echo esc_html__( 'Instala nuevas extensiones de la familia. Mientras una extensión no esté publicada en WordPress.org puedes instalarla mediante su ZIP.', 'taxocommerce-core' ); ?></p>
+
+			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;max-width:1100px;margin-top:18px;">
+				<?php foreach ( $catalog as $extension_id => $extension ) : ?>
+					<?php
+					$plugin_file = sanitize_text_field( (string) ( isset( $extension['plugin_file'] ) ? $extension['plugin_file'] : '' ) );
+					$plugin_data = $plugin_file ? $this->installed_plugin_data( $plugin_file ) : array();
+					$installed   = ! empty( $plugin_data );
+					$active      = $installed && $this->extension_is_active( $plugin_file );
+					$runtime     = isset( $this->modules[ $extension_id ] ) ? $this->modules[ $extension_id ] : array();
+					$version     = ! empty( $runtime['version'] ) ? $runtime['version'] : ( isset( $plugin_data['Version'] ) ? $plugin_data['Version'] : '' );
+					$admin_url   = ! empty( $runtime['admin_url'] ) ? $runtime['admin_url'] : '';
+					$search_term = sanitize_text_field( (string) ( isset( $extension['search_term'] ) ? $extension['search_term'] : $extension['name'] ) );
+					$search_url  = add_query_arg(
+						array(
+							's'    => $search_term,
+							'tab'  => 'search',
+							'type' => 'term',
+						),
+						admin_url( 'plugin-install.php' )
+					);
+					?>
+					<div class="card" style="max-width:none;margin:0;padding:18px;">
+						<h2 style="margin-top:0;"><?php echo esc_html( (string) $extension['name'] ); ?></h2>
+						<p><?php echo esc_html( (string) ( isset( $extension['description'] ) ? $extension['description'] : '' ) ); ?></p>
+						<p>
+							<strong><?php echo esc_html__( 'Estado:', 'taxocommerce-core' ); ?></strong>
+							<?php
+							if ( $active ) {
+								echo esc_html__( 'Activo', 'taxocommerce-core' );
+							} elseif ( $installed ) {
+								echo esc_html__( 'Instalado · inactivo', 'taxocommerce-core' );
+							} else {
+								echo esc_html__( 'No instalado', 'taxocommerce-core' );
+							}
+							?>
+							<?php if ( $version ) : ?> · <?php echo esc_html__( 'Versión', 'taxocommerce-core' ); ?> <?php echo esc_html( (string) $version ); ?><?php endif; ?>
+						</p>
+
+						<?php if ( ! $installed ) : ?>
+							<p>
+								<a class="button" href="<?php echo esc_url( $search_url ); ?>"><?php echo esc_html__( 'Buscar en WordPress.org', 'taxocommerce-core' ); ?></a>
+								<a class="button button-primary" href="<?php echo esc_url( $upload_url ); ?>"><?php echo esc_html__( 'Subir ZIP', 'taxocommerce-core' ); ?></a>
+							</p>
+							<p class="description"><?php
+							if ( 'images' === $extension_id ) {
+								echo esc_html__( 'Sube el ZIP de TaxoCommerce Images. Tras instalarlo, vuelve al Core para activarlo.', 'taxocommerce-core' );
+							} elseif ( 'import_export' === $extension_id ) {
+								echo esc_html__( 'Sube el ZIP de TaxoCommerce Import-Export. Tras instalarlo, vuelve al Core para activarlo.', 'taxocommerce-core' );
+							}
+							?></p>
+						<?php elseif ( ! $active ) : ?>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<input type="hidden" name="action" value="taxocommerce_core_activate_extension">
+								<input type="hidden" name="extension_id" value="<?php echo esc_attr( $extension_id ); ?>">
+								<?php wp_nonce_field( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' ); ?>
+								<button class="button button-primary"><?php echo esc_html__( 'Activar extensión', 'taxocommerce-core' ); ?></button>
+							</form>
+						<?php else : ?>
+							<p>
+								<?php if ( $admin_url ) : ?><a class="button button-primary" href="<?php echo esc_url( $admin_url ); ?>"><?php echo esc_html__( 'Abrir', 'taxocommerce-core' ); ?></a><?php endif; ?>
+								<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core-modules' ) ); ?>"><?php echo esc_html__( 'Gestionar extensión', 'taxocommerce-core' ); ?></a>
+							</p>
+						<?php endif; ?>
+					</div>
+				<?php endforeach; ?>
+			</div>
 		</div>
 		<?php
 	}
