@@ -60,7 +60,7 @@ function seo_vevor_queue_schedule( $delay = 3, $from_worker = false ) {
  * The DB option lock prevents parallel workers and duplicate creation.
  * Progress remains in wp_options across page reloads and network failures.
  */
-function seo_vevor_queue_tick() {
+function seo_vevor_queue_tick( $from_status = false ) {
     $lock_key = 'seo_vevor_recovery_queue_lock';
     $acquired = add_option( $lock_key, time(), '', false );
     if ( ! $acquired && time() - absint( get_option( $lock_key ) ) > 120 ) {
@@ -86,7 +86,7 @@ function seo_vevor_queue_tick() {
                 "SELECT * FROM {$table}
                  WHERE proveedor = %s AND pais_origen IN ('US','DE','NL')
                    AND estado_seleccion = %s AND (object_id IS NULL OR object_id = 0)
-                   AND id > %d ORDER BY id ASC LIMIT 12",
+                   AND id > %d ORDER BY id ASC LIMIT 100",
                 'VEVOR',
                 'aceptado',
                 $cursor
@@ -105,7 +105,7 @@ function seo_vevor_queue_tick() {
         $started  = microtime( true );
         foreach ( $rows as $row ) {
             // Limit work per background request on shared hosting.
-            if ( $tried > 0 && microtime( true ) - $started >= 10 ) {
+            if ( $tried > 0 && microtime( true ) - $started >= 20 ) {
                 break;
             }
             $latest = get_option( $key, array() );
@@ -147,7 +147,7 @@ function seo_vevor_queue_tick() {
         $latest['remaining']  = seo_vevor_queue_pending_count();
         $latest['updated_at'] = time();
 
-        $scan_end = $tried === count( $rows ) && count( $rows ) < 12;
+        $scan_end = $tried === count( $rows ) && count( $rows ) < 100;
         if ( ! empty( $latest['active'] ) && ( 0 === $latest['remaining'] || $scan_end ) ) {
             $latest['active'] = false;
             $latest['status'] = $latest['remaining'] ? 'review' : 'complete';
@@ -155,7 +155,7 @@ function seo_vevor_queue_tick() {
         update_option( $key, $latest, false );
 
         if ( ! empty( $latest['active'] ) ) {
-            if ( ! seo_vevor_queue_schedule( 3, true ) ) {
+            if ( ! seo_vevor_queue_schedule( 3, ! $from_status ) ) {
                 $latest['active'] = false;
                 $latest['status'] = 'error';
                 $latest['messages'][] = 'No se pudo programar el siguiente lote; pulsa Reanudar.';
@@ -231,6 +231,17 @@ function seo_vevor_queue_control_ajax() {
             $state['messages'][] = 'No se ha podido iniciar la cola. Comprueba Action Scheduler / WP-Cron.';
             update_option( $key, $state, false );
         }
+    }
+
+    // Action Scheduler can remain overdue. Do real work directly on start,
+    // or when a visible page sees no progress for 12 seconds. The same
+    // per-product DB lock and persistent cursor make retries idempotent.
+    if (
+        in_array( $operation, array( 'start', 'status' ), true )
+        && ! empty( $state['active'] )
+        && ( 'start' === $operation || time() - absint( $state['updated_at'] ?? 0 ) >= 12 )
+    ) {
+        seo_vevor_queue_tick( true );
     }
 
     if ( empty( $state ) ) {
