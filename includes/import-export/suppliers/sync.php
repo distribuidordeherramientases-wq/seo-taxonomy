@@ -1174,6 +1174,11 @@ function seo_supplier_sync_handle_bulk_action() {
         // supplier worker. The SQL approval alone is not a successful import.
         if ( $processed > 0 && function_exists( 'seo_vevor_normal_import_schedule' ) ) {
             seo_vevor_normal_import_schedule();
+            if ( function_exists( 'seo_vevor_normal_import_tick' ) ) {
+                // Execute the first five products immediately, then the
+                // idempotent worker continues the rest in Action Scheduler.
+                seo_vevor_normal_import_tick();
+            }
         }
 
         $redirect = esc_url_raw( wp_unslash( $_POST['return_url'] ?? '' ) );
