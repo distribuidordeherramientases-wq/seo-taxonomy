@@ -322,16 +322,27 @@ final class TaxoCommerce_Core {
 				'name'        => 'TaxoCommerce Import-Export',
 				'plugin_file' => 'taxocommerce-import-export/taxocommerce-import-export.php',
 				'org_slug'    => 'taxocommerce-import-export',
-				'search_term' => 'TaxoCommerce Import-Export',
+				'search_term'   => 'TaxoCommerce Import-Export',
+				'wordpress_org' => true,
 				'description' => __( 'Importación y exportación de catálogo, contenidos y Media.', 'taxocommerce-core' ),
 			),
 			'images' => array(
-				'id'          => 'images',
-				'name'        => 'TaxoCommerce Images',
-				'plugin_file' => 'taxocommerce-images/taxocommerce-images.php',
-				'org_slug'    => 'taxocommerce-images',
-				'search_term' => 'TaxoCommerce Images',
-				'description' => __( 'Gestión, auditoría, miniaturas, metadatos y optimización de imágenes.', 'taxocommerce-core' ),
+				'id'            => 'images',
+				'name'          => 'TaxoCommerce Images',
+				'plugin_file'   => 'taxocommerce-images/taxocommerce-images.php',
+				'org_slug'      => 'taxocommerce-images',
+				'search_term'   => 'TaxoCommerce Images',
+				'wordpress_org' => true,
+				'description'   => __( 'Gestión, auditoría, miniaturas, metadatos y optimización de imágenes.', 'taxocommerce-core' ),
+			),
+			'vocabulary' => array(
+				'id'            => 'vocabulary',
+				'name'          => 'TaxoCommerce Vocabulary',
+				'plugin_file'   => 'taxocommerce-vocabulary/taxocommerce-vocabulary.php',
+				'org_slug'      => 'taxocommerce-vocabulary',
+				'search_term'   => 'TaxoCommerce Vocabulary',
+				'wordpress_org' => false,
+				'description'   => __( 'Vocabulario semántico y servicio Clasificador sobre taxonomías, atributos y metadatos nativos de WordPress/WooCommerce.', 'taxocommerce-core' ),
 			),
 		);
 
@@ -655,7 +666,8 @@ final class TaxoCommerce_Core {
 					$runtime     = isset( $this->modules[ $extension_id ] ) ? $this->modules[ $extension_id ] : array();
 					$version     = ! empty( $runtime['version'] ) ? $runtime['version'] : ( isset( $plugin_data['Version'] ) ? $plugin_data['Version'] : '' );
 					$admin_url   = ! empty( $runtime['admin_url'] ) ? $runtime['admin_url'] : '';
-					$search_term = sanitize_text_field( (string) ( isset( $extension['search_term'] ) ? $extension['search_term'] : $extension['name'] ) );
+					$search_term   = sanitize_text_field( (string) ( isset( $extension['search_term'] ) ? $extension['search_term'] : $extension['name'] ) );
+					$wordpress_org = ! isset( $extension['wordpress_org'] ) || (bool) $extension['wordpress_org'];
 					$search_url  = add_query_arg(
 						array(
 							's'    => $search_term,
@@ -684,7 +696,7 @@ final class TaxoCommerce_Core {
 
 						<?php if ( ! $installed ) : ?>
 							<p>
-								<a class="button" href="<?php echo esc_url( $search_url ); ?>"><?php echo esc_html__( 'Buscar en WordPress.org', 'taxocommerce-core' ); ?></a>
+								<?php if ( $wordpress_org ) : ?><a class="button" href="<?php echo esc_url( $search_url ); ?>"><?php echo esc_html__( 'Buscar en WordPress.org', 'taxocommerce-core' ); ?></a><?php endif; ?>
 								<a class="button button-primary" href="<?php echo esc_url( $upload_url ); ?>"><?php echo esc_html__( 'Subir ZIP', 'taxocommerce-core' ); ?></a>
 							</p>
 							<p class="description"><?php
@@ -692,6 +704,8 @@ final class TaxoCommerce_Core {
 								echo esc_html__( 'Sube el ZIP de TaxoCommerce Images. Tras instalarlo, vuelve al Core para activarlo.', 'taxocommerce-core' );
 							} elseif ( 'import_export' === $extension_id ) {
 								echo esc_html__( 'Sube el ZIP de TaxoCommerce Import-Export. Tras instalarlo, vuelve al Core para activarlo.', 'taxocommerce-core' );
+							} elseif ( 'vocabulary' === $extension_id ) {
+								echo esc_html__( 'TaxoCommerce Vocabulary todavía no está publicado en WordPress.org. Instálalo únicamente con el ZIP que publiques o distribuyas tú.', 'taxocommerce-core' );
 							}
 							?></p>
 						<?php elseif ( ! $active ) : ?>
@@ -761,7 +775,8 @@ final class TaxoCommerce_Core {
 						$runtime     = isset( $this->modules[ $extension_id ] ) ? $this->modules[ $extension_id ] : array();
 						$version     = ! empty( $runtime['version'] ) ? $runtime['version'] : ( $plugin_data['Version'] ?? '' );
 						$admin_url   = ! empty( $runtime['admin_url'] ) ? $runtime['admin_url'] : '';
-						$search_term = sanitize_text_field( (string) ( $extension['search_term'] ?? $extension['name'] ?? '' ) );
+						$search_term   = sanitize_text_field( (string) ( $extension['search_term'] ?? $extension['name'] ?? '' ) );
+						$wordpress_org = ! isset( $extension['wordpress_org'] ) || (bool) $extension['wordpress_org'];
 						$search_url  = add_query_arg(
 							array(
 								's'    => $search_term,
@@ -788,7 +803,7 @@ final class TaxoCommerce_Core {
 							<td><?php echo esc_html( (string) ( $extension['description'] ?? '' ) ); ?></td>
 							<td>
 								<?php if ( ! $installed ) : ?>
-									<a class="button button-small" href="<?php echo esc_url( $search_url ); ?>"><?php echo esc_html__( 'Buscar en WordPress.org', 'taxocommerce-core' ); ?></a>
+									<?php if ( $wordpress_org ) : ?><a class="button button-small" href="<?php echo esc_url( $search_url ); ?>"><?php echo esc_html__( 'Buscar en WordPress.org', 'taxocommerce-core' ); ?></a><?php endif; ?>
 									<a class="button button-small" href="<?php echo esc_url( $upload_url ); ?>"><?php echo esc_html__( 'Subir ZIP', 'taxocommerce-core' ); ?></a>
 								<?php elseif ( ! $active ) : ?>
 									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
