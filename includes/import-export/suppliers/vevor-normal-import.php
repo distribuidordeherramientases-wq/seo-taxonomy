@@ -114,6 +114,25 @@ function seo_vevor_normal_import_install() {
 add_action( 'admin_init', 'seo_vevor_normal_import_install', 30 );
 
 /**
+ * An earlier bulk approval may have saved offers without starting the worker.
+ * Reconcile accepted/unlinked rows on subsequent administrator requests; do
+ * not require a second approval or the one-time install flag to change.
+ */
+function seo_vevor_normal_import_maybe_resume() {
+    if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    if ( get_transient( 'seo_vevor_normal_resume_check' ) ) {
+        return;
+    }
+    set_transient( 'seo_vevor_normal_resume_check', 1, 5 * MINUTE_IN_SECONDS );
+    if ( seo_vevor_normal_import_eligible_count() > 0 ) {
+        seo_vevor_normal_import_schedule();
+    }
+}
+add_action( 'admin_init', 'seo_vevor_normal_import_maybe_resume', 40 );
+
+/**
  * Small, isolated product batches from the standard supplier acceptance path.
  * The cursor is persisted; no browser polling or recovery button is required.
  */
