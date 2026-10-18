@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ A modular WordPress/WooCommerce core for catalog hierarchy, unified content edit
 
 TaxoCommerce Core is the clean modular foundation for the next TaxoCommerce architecture. The 0.2.0 pilot is validated and deployed independently to STAGING.
 
-Version 0.2.1 includes a unified Content Manager for:
+Version 0.3.1 includes a unified Content Manager, WordPress-native SEO hierarchy and extension installer links for:
 
 * WooCommerce products.
 * WooCommerce product categories.
@@ -32,6 +32,26 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.3.2 =
+* Added built-in TaxoCommerce family catalog starting with Import-Export.
+* Detects family extensions even when installed but inactive.
+* Adds per-extension search in WordPress.org and ZIP upload actions.
+* Adds secure Activate / Deactivate controls from Core.
+* Active extensions may merge their administration pages into the Core menu.
+
+= 0.3.1 =
+* Extensions screen can open the native WordPress.org search and native ZIP upload installer.
+* Registered TaxoCommerce extensions can expose an Open action back into their own administration page.
+* Prepared Core integration for TaxoCommerce Import-Export.
+
+= 0.3.0 =
+* Added SEO hierarchy management: Cluster -> Primary Hub -> Secondary Hub -> Product Category.
+* Added one SEO structural role per WordPress page.
+* Stores hierarchy roles and links in native post meta / term meta; no duplicate page/category tables.
+* Imports the active hierarchy once from the current TaxoCommerce SEO helper APIs when both plugins coexist.
+* Added hierarchy KPIs, role filters, relation forms, tree view and unlink actions.
+* Does not copy legacy seo_nodes or seo_relations tables.
 
 = 0.2.1 =
 * Spanish administration labels throughout the Core.

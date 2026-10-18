@@ -934,17 +934,23 @@ function seo_proveedores_descartar_importacion_al_salir() {
  * @param string $line Primera línea del archivo.
  * @return string
  */
-function seo_proveedores_detectar_separador( $line ) {
-
-    $candidates = [ ';', ',', "\t", '|' ];
+function seo_proveedores_detectar_separador( $line, $required_headers = array() ) {
+    // A supplier CSV is not an arbitrary text file: prefer the separator
+    // which actually yields the expected original columns. Counting delimiter
+    // characters alone can misidentify quoted headers or alternate exports.
+    $candidates = array( ';', ',', "\t", '|' );
+    $required   = array_map( 'seo_proveedores_normalizar_cabecera', (array) $required_headers );
     $best       = ';';
-    $max        = -1;
+    $best_score = -1;
 
     foreach ( $candidates as $candidate ) {
-        $count = substr_count( (string) $line, $candidate );
-        if ( $count > $max ) {
-            $max  = $count;
-            $best = $candidate;
+        $parsed = str_getcsv( (string) $line, $candidate, '"', '' );
+        $header = array_map( 'seo_proveedores_normalizar_cabecera', (array) $parsed );
+        $matched = count( array_intersect( $required, $header ) );
+        $score = ( $matched * 1000 ) + count( $header );
+        if ( $score > $best_score ) {
+            $best       = $candidate;
+            $best_score = $score;
         }
     }
 
@@ -970,7 +976,7 @@ function seo_proveedores_normalizar_cabecera( $value ) {
  * @param string $path Ruta local.
  * @return array|WP_Error
  */
-function seo_proveedores_analizar_csv( $path ) {
+function seo_proveedores_analizar_csv( $path, $required_headers = array() ) {
     $handle = seo_proveedores_stream_open( $path, 'r' );
 
     if ( false === $handle ) {
@@ -983,7 +989,7 @@ function seo_proveedores_analizar_csv( $path ) {
         return new WP_Error( 'empty_file', 'El archivo esta vacio.' );
     }
 
-    $separator = seo_proveedores_detectar_separador( $first_line );
+    $separator = seo_proveedores_detectar_separador( $first_line, $required_headers );
     rewind( $handle );
     $header = fgetcsv( $handle, 0, $separator, '"', '' );
 
@@ -1499,7 +1505,7 @@ function seo_proveedores_analizar_archivo() {
         ? seo_proveedores_analizar_xlsx( $stored_path )
         : ( 'xls' === $extension
             ? seo_proveedores_analizar_xls( $stored_path )
-            : seo_proveedores_analizar_csv( $stored_path )
+            : seo_proveedores_analizar_csv( $stored_path, (array) ( $recipe['required_headers'] ?? array() ) )
         );
 
     if ( is_wp_error( $analysis ) ) {
@@ -1515,10 +1521,20 @@ function seo_proveedores_analizar_archivo() {
             (array) ( $analysis['header'] ?? array() )
         );
         if ( $missing_headers ) {
+            // Show what WordPress actually read from the stored upload.
+            // Do not ask the merchant to change VEVOR's source CSV.
+            $detected = array_slice( (array) ( $analysis['header'] ?? array() ), 0, 20 );
+            $separator_label = "\t" === ( $analysis['separator'] ?? '' )
+                ? 'TAB'
+                : (string) ( $analysis['separator'] ?? '(no disponible)' );
             wp_die( esc_html(
-                'Las columnas no corresponden al CSV original de ' . (string) $recipe['label']
+                'El lector no reconoce las cabeceras del CSV original de ' . (string) $recipe['label']
                 . '. Faltan: ' . implode( ', ', $missing_headers )
-                . '. Sube el archivo original Goods_Export o el CSV estandar de 19 columnas.'
+                . '. Archivo recibido: ' . $filename
+                . '. Columnas detectadas (' . count( (array) ( $analysis['header'] ?? array() ) )
+                . '): ' . implode( ' | ', $detected )
+                . '. Separador detectado: ' . $separator_label
+                . '. No modifiques el CSV de VEVOR; comunica estos datos para corregir el lector.'
             ) );
         }
     }
@@ -2073,7 +2089,7 @@ function seo_proveedores_render_importador() {
     ?>
     <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
         <h2><?php echo esc_html__( 'Importar catalogo de proveedor', 'taxocommerce-seo' ); ?></h2>
-        <p><code>Modulo de proveedores Build 033</code></p>
+        <p><code>Modulo de proveedores Build 034</code></p>
 
         <?php if ( ! empty( seo_proveedores_query_arg( 'seo_prov_github_started', '' ) ) ) : ?>
             <?php $seo_remote_run_id = sanitize_text_field( seo_proveedores_query_arg( 'seo_remote_run_id', '' ) ); ?>

@@ -116,8 +116,8 @@ add_action('admin_menu', function () {
 
 // Menú principal
 add_menu_page(
-    'TaxoCommerce SEO',
-    'TaxoCommerce SEO',
+    __('TaxoCommerce SEO', 'taxocommerce-seo'),
+    __('TaxoCommerce SEO', 'taxocommerce-seo'),
     'manage_options',
     'seo-system',
     'seo_home_page',
@@ -129,8 +129,8 @@ add_menu_page(
 // Inicio
 add_submenu_page(
     'seo-system',
-    'Inicio',
-    'Inicio',
+    __('Inicio', 'taxocommerce-seo'),
+    __('Inicio', 'taxocommerce-seo'),
     'manage_options',
     'seo-home',
     'seo_home_page'
@@ -140,8 +140,8 @@ add_submenu_page(
     // menú principal. Las pantallas conservan sus slugs y callbacks históricos.
     add_submenu_page(
         'seo-system',
-        'Contenidos',
-        'Contenidos',
+        __('Contenidos', 'taxocommerce-seo'),
+        __('Contenidos', 'taxocommerce-seo'),
         'manage_options',
         'seo-content',
         'seo_content_page'
@@ -155,8 +155,8 @@ add_submenu_page(
     // Etiquetas / vocabulario semántico de producto
     add_submenu_page(
         'seo-system',
-        'Etiquetas y vocabulario',
-        'Etiquetas',
+        __('Etiquetas y vocabulario', 'taxocommerce-seo'),
+        __('Etiquetas', 'taxocommerce-seo'),
         'manage_options',
         'seo-tags-vocabulary',
         'seo_tags_vocabulary_admin_page'
@@ -165,8 +165,8 @@ add_submenu_page(
     // Informes
     add_submenu_page(
         'seo-system',
-        'Informes',
-        'Informes',
+        __('Informes', 'taxocommerce-seo'),
+        __('Informes', 'taxocommerce-seo'),
         'manage_options',
         'seo-reports',
         'seo_reports_page'
@@ -175,8 +175,8 @@ add_submenu_page(
     // Dependiente: buscador guiado y comparador para el frontal de la tienda.
     add_submenu_page(
         'seo-system',
-        'Dependiente',
-        'Dependiente',
+        __('Dependiente', 'taxocommerce-seo'),
+        __('Dependiente', 'taxocommerce-seo'),
         class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options',
         'seo-dependiente',
         array('SEO_Dependiente_Admin', 'render_page')
@@ -185,8 +185,8 @@ add_submenu_page(
     // Tools
     add_submenu_page(
         'seo-system',
-        'Herramientas',
-        'Herramientas',
+        __('Herramientas', 'taxocommerce-seo'),
+        __('Herramientas', 'taxocommerce-seo'),
         'manage_options',
         'seo-tools',
         'seo_tools_page'
@@ -194,24 +194,24 @@ add_submenu_page(
     
     // Páginas ocultas de Contenidos. Conservan los slugs existentes para no
     // romper enlaces, formularios ni redirecciones internas.
-add_submenu_page(null, 'Administración de productos', 'Productos', 'manage_options', 'product-page-admin', 'seo_product_admin_callback');
-add_submenu_page(null, 'Administración de categorías', 'Categorías', 'manage_options', 'category-seo-admin', 'seo_category_admin_callback');
-add_submenu_page(null, 'Administración de páginas', 'Páginas', 'manage_options', 'seo-page-admin', 'seo_page_admin_callback');
+add_submenu_page(null, __('Administración de productos', 'taxocommerce-seo'), __('Productos', 'taxocommerce-seo'), 'manage_options', 'product-page-admin', 'seo_product_admin_callback');
+add_submenu_page(null, __('Administración de categorías', 'taxocommerce-seo'), __('Categorías', 'taxocommerce-seo'), 'manage_options', 'category-seo-admin', 'seo_category_admin_callback');
+add_submenu_page(null, __('Administración de páginas', 'taxocommerce-seo'), __('Páginas', 'taxocommerce-seo'), 'manage_options', 'seo-page-admin', 'seo_page_admin_callback');
 // Se registra siempre. Si el módulo no está disponible, el callback muestra
 // el motivo exacto en vez de ocultar silenciosamente la opción.
-add_submenu_page(null, 'Administración de entradas', 'Entradas', 'manage_options', 'seo-post-editor', 'seo_post_admin_callback');
-add_submenu_page(null, 'Imágenes', 'Imágenes', 'manage_options', 'seo-pictures-admin', 'seo_pictures_admin_page');
-add_submenu_page(null, 'Auditor de contenidos', 'Auditor', class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options', 'seo-content-auditor', array('SEO_Auditor', 'render_content_page'));
+add_submenu_page(null, __('Administración de entradas', 'taxocommerce-seo'), __('Entradas', 'taxocommerce-seo'), 'manage_options', 'seo-post-editor', 'seo_post_admin_callback');
+add_submenu_page(null, __('Imágenes', 'taxocommerce-seo'), __('Imágenes', 'taxocommerce-seo'), 'manage_options', 'seo-pictures-admin', 'seo_pictures_admin_page');
+add_submenu_page(null, __('Auditor de contenidos', 'taxocommerce-seo'), __('Auditor', 'taxocommerce-seo'), class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options', 'seo-content-auditor', array('SEO_Auditor', 'render_content_page'));
 
     // Páginas ocultas (accesibles desde Tools)
-add_submenu_page(null, 'Taxonomy', 'Taxonomy', 'manage_options', 'seo-taxonomy', 'seo_taxonomy_page');
-add_submenu_page(null, 'Templates', 'Templates', 'manage_options', 'seo-templates', 'seo_templates_page');
+add_submenu_page(null, __('Taxonomy', 'taxocommerce-seo'), __('Taxonomy', 'taxocommerce-seo'), 'manage_options', 'seo-taxonomy', 'seo_taxonomy_page');
+add_submenu_page(null, __('Templates', 'taxocommerce-seo'), __('Templates', 'taxocommerce-seo'), 'manage_options', 'seo-templates', 'seo_templates_page');
 // Search se registra como página oculta desde seo-search.php con slug canónico `seo-search`.
-add_submenu_page(null, 'Redirects', 'Redirects', 'manage_options', 'seo-menu-redirects', 'seo_menu_manager_redirects_page');
-add_submenu_page(null, 'Marketing', 'Marketing', 'manage_options', 'seo-menu-marketing', 'seo_menu_manager_marketing_page');
-add_submenu_page(null, 'SEO Data Table', 'Data Table', 'manage_options', 'seo-data-table', 'seo_data_table_page');
-add_submenu_page(null, 'Clean DB', 'Clean DB', 'manage_options', 'seo-clean-db', 'seo_clean_db_page');
-$seo_import_export_hook = add_submenu_page(null, 'Import / Export', 'Import / Export', 'manage_options', 'seo-import-export', 'seo_import_export_page');
+add_submenu_page(null, __('Redirects', 'taxocommerce-seo'), __('Redirects', 'taxocommerce-seo'), 'manage_options', 'seo-menu-redirects', 'seo_menu_manager_redirects_page');
+add_submenu_page(null, __('Marketing', 'taxocommerce-seo'), __('Marketing', 'taxocommerce-seo'), 'manage_options', 'seo-menu-marketing', 'seo_menu_manager_marketing_page');
+add_submenu_page(null, __('SEO Data Table', 'taxocommerce-seo'), __('Data Table', 'taxocommerce-seo'), 'manage_options', 'seo-data-table', 'seo_data_table_page');
+add_submenu_page(null, __('Clean DB', 'taxocommerce-seo'), __('Clean DB', 'taxocommerce-seo'), 'manage_options', 'seo-clean-db', 'seo_clean_db_page');
+$seo_import_export_hook = add_submenu_page(null, __('Import / Export', 'taxocommerce-seo'), __('Import / Export', 'taxocommerce-seo'), 'manage_options', 'seo-import-export', 'seo_import_export_page');
 if ($seo_import_export_hook) {
     add_action('load-' . $seo_import_export_hook, static function () {
         global $title;
@@ -222,7 +222,7 @@ if ($seo_import_export_hook) {
 }
 $seo_logistica_tool_label = html_entity_decode('Log&iacute;stica', ENT_QUOTES, 'UTF-8');
 add_submenu_page(null, $seo_logistica_tool_label, $seo_logistica_tool_label, class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options', 'seo-logistica', 'seo_logistica_page');
-$seo_processes_hook = add_submenu_page(null, 'Procesos', 'Procesos', 'manage_options', 'seo-processes', 'seo_processes_page');
+$seo_processes_hook = add_submenu_page(null, __('Procesos', 'taxocommerce-seo'), __('Procesos', 'taxocommerce-seo'), 'manage_options', 'seo-processes', 'seo_processes_page');
 // WordPress 7.1 puede dejar $title a null en paginas ocultas. Fijamos el
 // titulo al cargar esta pantalla sin convertirla en un submenu visible ni
 // alterar la comprobacion de permisos de admin.php.
@@ -234,11 +234,11 @@ if ($seo_processes_hook) {
         }
     });
 }
-add_submenu_page(null, 'Conexiones con proveedores', 'Conexiones con proveedores', 'manage_options', 'seo-provider-connections', 'seo_provider_connections_page');
-add_submenu_page(null, 'Menu Manager', 'Menu Manager', 'manage_options', 'seo-menu-manager', 'seo_menu_manager_page');
-add_submenu_page( null, 'FAQs', 'FAQs', 'manage_options', 'seo-faq','seo_faq_page');
-add_submenu_page( null, 'Server status', 'Server status', 'manage_options', 'seo_server_status','seo_server_status');
-add_submenu_page(null,'Plugin Validation','Plugin Validation','manage_options','seo-core-system-test', 'seo_core_system_test');
+add_submenu_page(null, __('Conexiones con proveedores', 'taxocommerce-seo'), __('Conexiones con proveedores', 'taxocommerce-seo'), 'manage_options', 'seo-provider-connections', 'seo_provider_connections_page');
+add_submenu_page(null, __('Menu Manager', 'taxocommerce-seo'), __('Menu Manager', 'taxocommerce-seo'), 'manage_options', 'seo-menu-manager', 'seo_menu_manager_page');
+add_submenu_page( null, __('FAQs', 'taxocommerce-seo'), __('FAQs', 'taxocommerce-seo'), 'manage_options', 'seo-faq','seo_faq_page');
+add_submenu_page( null, __('Server status', 'taxocommerce-seo'), __('Server status', 'taxocommerce-seo'), 'manage_options', 'seo_server_status','seo_server_status');
+add_submenu_page(null,__('Plugin Validation', 'taxocommerce-seo'),__('Plugin Validation', 'taxocommerce-seo'),'manage_options','seo-core-system-test', 'seo_core_system_test');
 });
 
 // Limpieza tardía del menú administrativo.
@@ -263,8 +263,6 @@ add_action('admin_menu', function () {
 // Al abrir Search desde su tarjeta, mantener TaxoCommerce SEO como menú padre y
 // Herramientas como sección activa en la navegación lateral.
 add_filter('parent_file', function ($parent_file) {
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin menu routing selector.
     $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
 
@@ -444,43 +442,43 @@ function seo_content_page() {
 
     $items = [
         [
-            'title' => 'Productos',
+            'title' => __('Productos', 'taxocommerce-seo'),
             'icon'  => 'dashicons-products',
             'page'  => 'product-page-admin',
             'desc'  => 'Gestiona productos, inventario, edición, informes y recategorización.'
         ],
         [
-            'title' => 'Categorías',
+            'title' => __('Categorías', 'taxocommerce-seo'),
             'icon'  => 'dashicons-category',
             'page'  => 'category-seo-admin',
             'desc'  => 'Edita categorías, contenido SEO, relaciones e inventarios.'
         ],
         [
-            'title' => 'Páginas',
+            'title' => __('Páginas', 'taxocommerce-seo'),
             'icon'  => 'dashicons-admin-page',
             'page'  => 'seo-page-admin',
             'desc'  => 'Gestiona hubs, landings, páginas corporativas y estructura editorial.'
         ],
         [
-            'title' => 'Entradas',
+            'title' => __('Entradas', 'taxocommerce-seo'),
             'icon'  => 'dashicons-admin-post',
             'page'  => 'seo-post-editor',
             'desc'  => 'Edita posts, guías, comparativas, oportunidades y contenido editorial.'
         ],
         [
-            'title' => 'Imágenes',
+            'title' => __('Imágenes', 'taxocommerce-seo'),
             'icon'  => 'dashicons-format-image',
             'page'  => 'seo-pictures-admin',
             'desc'  => 'Revisa inventario, anomalías, optimización y asignación de imágenes.'
         ],
         [
-            'title' => 'Auditor',
+            'title' => __('Auditor', 'taxocommerce-seo'),
             'icon'  => 'dashicons-search',
             'page'  => 'seo-content-auditor',
             'desc'  => 'Audita calidad, coherencia y arquitectura de productos, categorías, páginas, entradas, FAQs e índice.'
         ],
         [
-            'title' => 'FAQs',
+            'title' => __('FAQs', 'taxocommerce-seo'),
             'icon'  => 'dashicons-editor-help',
             'page'  => 'seo-faq',
             'desc'  => 'Gestiona preguntas frecuentes, cobertura, calidad e interacción.'
@@ -527,14 +525,14 @@ function seo_tools_page() {
         $tools = [
 
             [
-                'title' => 'Taxonomy',
+                'title' => __('Taxonomy', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-networking',
                 'page'  => 'seo-taxonomy',
                 'desc'  => 'Gestiona la taxonomía SEO.'
             ],
 
             [
-                'title' => 'Templates',
+                'title' => __('Templates', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-media-code',
                 'page'  => 'seo-templates',
                 'desc'  => 'Plantillas SEO.'
@@ -548,42 +546,42 @@ function seo_tools_page() {
             ],
 
             [
-                'title' => 'Redirects',
+                'title' => __('Redirects', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-randomize',
                 'page'  => 'seo-menu-redirects',
                 'desc'  => 'Gestión de redirecciones.'
             ],
 
             [
-                'title' => 'Marketing',
+                'title' => __('Marketing', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-chart-area',
                 'page'  => 'seo-menu-marketing',
                 'desc'  => 'Herramientas de marketing.'
             ],
 
             [
-                'title' => 'Data Table',
+                'title' => __('Data Table', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-table-col-after',
                 'page'  => 'seo-data-table',
                 'desc'  => 'Vista tipo Excel.'
             ],
 
             [
-                'title' => 'Clean DB',
+                'title' => __('Clean DB', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-database-remove',
                 'page'  => 'seo-clean-db',
                 'desc'  => 'Limpieza de base de datos.'
             ],
 
             [
-                'title' => 'Import / Export',
+                'title' => __('Import / Export', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-migrate',
                 'page'  => 'seo-import-export',
                 'desc'  => 'Importar y exportar datos.'
             ],
 
             [
-                'title' => 'Procesos',
+                'title' => __('Procesos', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-performance',
                 'page'  => 'seo-processes',
                 'desc'  => 'Estado, velocidad y carga de los procesos automáticos.'
@@ -597,7 +595,7 @@ function seo_tools_page() {
             ],
 
             [
-                'title' => 'Conexiones con proveedores',
+                'title' => __('Conexiones con proveedores', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-admin-links',
                 'page'  => 'seo-provider-connections',
                 'desc'  => 'Google, Amazon, Cloudflare, GitHub y servicios compartidos.'
@@ -612,7 +610,7 @@ function seo_tools_page() {
             ],
             
             [
-                'title' => 'Plugin Validation',
+                'title' => __('Plugin Validation', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-shield',
                 'page'  => 'seo-core-system-test',
                 'desc'  => 'Framework de validación y pruebas internas del plugin.'
@@ -620,7 +618,7 @@ function seo_tools_page() {
 
 
             [
-                'title' => 'Menu Manager',
+                'title' => __('Menu Manager', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-menu',
                 'page'  => 'seo-menu-manager',
                 'desc'  => 'Gestión de menús.'
@@ -818,49 +816,49 @@ function seo_home_page() {
         $home_cards = [
 
             [
-                'title' => 'Productos',
+                'title' => __('Productos', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-products',
                 'page'  => 'product-page-admin',
                 'desc'  => 'Gestiona el SEO de todos los productos WooCommerce. Edita títulos, descripciones, IA, imágenes y datos SEO desde una única pantalla.'
             ],
 
             [
-                'title' => 'Categorías',
+                'title' => __('Categorías', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-category',
                 'page'  => 'category-seo-admin',
                 'desc'  => 'Optimiza categorías, taxonomías y estructuras SEO para mejorar la organización y el posicionamiento.'
             ],
 
             [
-                'title' => 'Páginas',
+                'title' => __('Páginas', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-admin-page',
                 'page'  => 'seo-page-admin',
                 'desc'  => 'Administra las páginas de WordPress y su información dentro de la arquitectura SEO.'
             ],
 
             [
-                'title' => 'Entradas',
+                'title' => __('Entradas', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-admin-post',
                 'page'  => 'seo-post-editor',
                 'desc'  => 'Crea y edita posts de WordPress y relaciona cada entrada con categorías de producto mediante SEO Relations.'
             ],
 
             [
-                'title' => 'Imágenes',
+                'title' => __('Imágenes', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-format-image',
                 'page'  => 'seo-pictures-admin',
                 'desc'  => 'Gestiona títulos, atributos ALT, descripciones y metadatos de todas las imágenes del sitio.'
             ],
 
             [
-                'title' => 'Informes',
+                'title' => __('Informes', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-chart-area',
                 'page'  => 'seo-reports',
                 'desc'  => 'Consulta informes y estadísticas para conocer el estado SEO de tu proyecto y detectar mejoras.'
             ],
 
             [
-                'title' => 'Herramientas',
+                'title' => __('Herramientas', 'taxocommerce-seo'),
                 'icon'  => 'dashicons-admin-tools',
                 'page'  => 'seo-tools',
                 'desc'  => 'Accede a las herramientas avanzadas: Taxonomía, Plantillas, Búsqueda, Redirecciones, Marketing, Facturas y presupuestos, Tabla de datos, Limpiar BD, Importar / Exportar, Aprendizaje semántico y Gestor de menús.'
