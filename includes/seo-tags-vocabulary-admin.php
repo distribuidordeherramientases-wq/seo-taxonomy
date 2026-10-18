@@ -3456,8 +3456,8 @@ if (!function_exists('seo_assignment_query_products')) {
             if ($coverage === 'without') $where[] = "NOT EXISTS (SELECT 1 FROM `{$tables['values']}` pa WHERE pa.product_id=p.ID)";
             elseif ($coverage === 'with') $where[] = "EXISTS (SELECT 1 FROM `{$tables['values']}` pa WHERE pa.product_id=p.ID)";
         } elseif ($kind === 'product_labels') {
-            $v = $wpdb->prefix . 'seo_vocabulary';
-            $o = $wpdb->prefix . 'seo_object_vocabulary';
+            $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+            $o = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
             $group_map = ['without_type'=>'tipo','without_role'=>'rol','without_application'=>'aplicacion','without_platform'=>'plataforma','without_subtype'=>'subtipo'];
             $exists = [];
             foreach (['tipo','rol','aplicacion','plataforma','subtipo'] as $group) {
@@ -3512,8 +3512,8 @@ if (!function_exists('seo_assignment_query_categories')) {
         global $wpdb;
         $search = trim((string) ($filters['search'] ?? ''));
         $coverage = sanitize_key((string) ($filters['coverage'] ?? 'all'));
-        $v = $wpdb->prefix . 'seo_vocabulary';
-        $o = $wpdb->prefix . 'seo_object_vocabulary';
+        $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $o = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $where = ["tt.taxonomy='product_cat'"];
         $args = [];
         if ($search !== '') { $where[] = '(t.name LIKE %s OR t.slug LIKE %s)'; $like='%'.$wpdb->esc_like($search).'%'; $args[]=$like; $args[]=$like; }
@@ -3550,7 +3550,7 @@ if (!function_exists('seo_assignment_summary')) {
         $labels = seo_tags_vocab_get_summary();
         $attrs = function_exists('seo_semantic_attributes_get_summary') ? seo_semantic_attributes_get_summary() : [];
         $total_cats = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy='product_cat'");
-        $v = $wpdb->prefix . 'seo_vocabulary'; $o = $wpdb->prefix . 'seo_object_vocabulary';
+        $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' ); $o = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $cats_with = (seo_tags_vocab_table_exists($v) && seo_tags_vocab_table_exists($o)) ? (int) $wpdb->get_var(
             "SELECT COUNT(DISTINCT ov.object_id) FROM {$o} ov JOIN {$v} vv ON vv.id=ov.vocabulary_id AND vv.active=1
              JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=ov.object_id AND tt.taxonomy='product_cat'
