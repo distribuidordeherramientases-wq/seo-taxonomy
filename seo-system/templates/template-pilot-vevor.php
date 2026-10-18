@@ -16,7 +16,7 @@ $markets = array(
     'US' => array(
         'lang' => 'en-US', 'country' => 'United States', 'support' => 'https://www.vevor.com/pages/contact-us',
         'tagline' => 'Independent tool guides and VEVOR product selections',
-        'brand_title' => 'Professional Tools & Equipment · United States',
+        'brand_title' => 'Professional Tools & Equipment · United States', 'flag' => '🇺🇸',
         'all_categories' => 'All categories', 'image_placeholder' => 'Product image unavailable',
         'categories' => 'Categories', 'browse' => 'Explore the collection', 'overview' => 'Category guide',
         'products' => 'Products in this category', 'product' => 'Product details',
@@ -31,7 +31,7 @@ $markets = array(
     'DE' => array(
         'lang' => 'de-DE', 'country' => 'Deutschland', 'support' => 'https://www.vevor.de/pages/contact-us',
         'tagline' => 'Unabhängige Ratgeber und VEVOR-Produktempfehlungen',
-        'brand_title' => 'Professionelle Werkzeuge & Ausrüstung · Deutschland',
+        'brand_title' => 'Professionelle Werkzeuge & Ausrüstung · Deutschland', 'flag' => '🇩🇪',
         'all_categories' => 'Alle Kategorien', 'image_placeholder' => 'Kein Produktbild verfügbar',
         'categories' => 'Kategorien', 'browse' => 'Auswahl entdecken', 'overview' => 'Ratgeber zur Kategorie',
         'products' => 'Produkte in dieser Kategorie', 'product' => 'Produktinformationen',
@@ -46,7 +46,7 @@ $markets = array(
     'NL' => array(
         'lang' => 'nl-NL', 'country' => 'Nederland', 'support' => 'https://www.vevor.nl/pages/contact-us',
         'tagline' => 'Onafhankelijke keuzehulpen en VEVOR-productselecties',
-        'brand_title' => 'Professioneel gereedschap & uitrusting · Nederland',
+        'brand_title' => 'Professioneel gereedschap & uitrusting · Nederland', 'flag' => '🇳🇱',
         'all_categories' => 'Alle categorieën', 'image_placeholder' => 'Geen productafbeelding beschikbaar',
         'categories' => 'Categorieën', 'browse' => 'Bekijk het assortiment', 'overview' => 'Categorieadvies',
         'products' => 'Producten in deze categorie', 'product' => 'Productinformatie',
@@ -341,23 +341,22 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-brand strong{font-size:clamp(20px,2.5vw,26px);letter-spacing:-.035em}
 .dht-pilot-brand span{font-size:12px;color:#526273}
 .dht-pilot-market{font-size:12px;white-space:nowrap;padding:6px 12px;border:1px solid #d6dfeb;border-radius:999px;color:#475467}
-.dht-pilot-nav{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:0 0 16px;position:relative}
-.dht-pilot-nav>.dht-pilot-nav-link,.dht-pilot-menu-more>summary{display:inline-flex;align-items:center;min-height:39px;padding:8px 14px;border-radius:8px;border:1px solid #dfe5ee;text-decoration:none;font-weight:650;font-size:13px;line-height:1.35;background:#f7f9fc;color:#172336}
-.dht-pilot-nav>.dht-pilot-nav-link:hover,.dht-pilot-menu-more>summary:hover{background:#eaf1fc}
-.dht-pilot-nav [aria-current="page"]{background:#eaf1fc;border-color:#9db9e7}
-.dht-pilot-menu-more>summary{cursor:pointer;list-style:none}
-.dht-pilot-menu-more>summary::-webkit-details-marker{display:none}
-.dht-pilot-menu-more>summary:after{content:" ▾";padding-left:8px}
-.dht-pilot-menu-more[open]>summary:after{content:" ▴"}
-.dht-pilot-menu-panel{position:absolute;z-index:60;top:calc(100% - 10px);left:0;width:min(850px,100%);max-height:min(65vh,530px);overflow:auto;overscroll-behavior:contain;padding:16px;background:#fff;border:1px solid #dbe4f0;border-radius:12px;box-shadow:0 14px 38px rgba(18,36,59,.16)}
-.dht-pilot-menu-list{margin:0;padding:0;list-style:none}
+.dht-pilot-flag{font-size:24px;vertical-align:middle;line-height:1}
+.dht-pilot-nav{padding:4px 0 18px;display:block}
+.dht-pilot-nav-heading{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:0 0 11px;font-size:14px;font-weight:700;color:#233956}
+.dht-pilot-nav-flag{font-size:19px;line-height:1}
+.dht-pilot-nav-home{font-size:12px;font-weight:600;text-decoration:none;color:#1c5aa4!important;margin-left:auto}
+.dht-pilot-nav-home:hover{text-decoration:underline}
+.dht-pilot-menu-list{list-style:none;margin:0;padding:0}
 .dht-pilot-menu-list li{min-width:0}
-.dht-pilot-menu-list a{display:block;padding:5px 0;overflow-wrap:anywhere;text-decoration:none;font-size:13px;color:#223c60}
-.dht-pilot-menu-list a:hover{text-decoration:underline}
-.dht-pilot-menu-list--depth-0{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.dht-pilot-menu-list--depth-0>li{padding:10px 12px;background:#f7f9fc;border-radius:9px}
-.dht-pilot-menu-list--depth-0>li>a{font-weight:700;font-size:14px}
-.dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0){padding-left:10px;border-left:1px solid #dbe4f0}
+.dht-pilot-menu-list a{display:block;padding:7px 9px;text-decoration:none;overflow-wrap:anywhere;color:#173454;font-size:13px;line-height:1.35;border-radius:7px}
+.dht-pilot-menu-list a:hover,.dht-pilot-menu-list a:focus-visible{background:#eaf1fc;text-decoration:underline}
+.dht-pilot-menu-list a[aria-current="page"]{background:#eaf1fc;font-weight:750}
+.dht-pilot-menu-list--depth-0{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.dht-pilot-menu-list--depth-0>li{border:1px solid #dfe5ee;border-radius:9px;padding:4px;background:#f7f9fc}
+.dht-pilot-menu-list--depth-0>li>a{font-weight:700}
+.dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0){margin:0 3px 3px;padding-left:7px;border-left:2px solid #dce7f7}
+.dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0) a{padding:5px 7px;font-weight:450;font-size:12px}
 .dht-pilot-breadcrumb{padding:24px 0 10px;font-size:13px;color:#66758a}
 .dht-pilot-breadcrumb a{text-decoration:none}
 .dht-pilot-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center;margin:12px 0 28px;padding:34px;background:#fff;border:1px solid #e7edf4;border-radius:18px}
@@ -389,8 +388,8 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-footer p{font-size:13px;line-height:1.7;color:#d5e0ee}
 .dht-pilot-footer a{color:#e3efff}
 .dht-pilot-copyright{border-top:1px solid #40536c;margin-top:20px;padding-top:15px;font-size:12px;color:#c2cedd}
-@media(max-width:760px){.dht-pilot-header-inner{align-items:flex-start}.dht-pilot-brand span{max-width:280px}.dht-pilot-hero{grid-template-columns:1fr;padding:20px;gap:20px}.dht-pilot-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dht-pilot-section{padding:18px}.dht-pilot-footer-grid{grid-template-columns:1fr;gap:18px}.dht-pilot-nav{gap:7px}.dht-pilot-nav>.dht-pilot-nav-link:nth-of-type(n+4){display:none}.dht-pilot-menu-list--depth-0{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:480px){.dht-pilot-grid{grid-template-columns:1fr}.dht-pilot-market{white-space:normal}.dht-pilot-brand strong{font-size:20px}.dht-pilot-header-inner{gap:10px}.dht-pilot-menu-panel{max-height:60vh}.dht-pilot-menu-list--depth-0{grid-template-columns:1fr}}
+@media(max-width:760px){.dht-pilot-header-inner{align-items:flex-start}.dht-pilot-brand span{max-width:280px}.dht-pilot-hero{grid-template-columns:1fr;padding:20px;gap:20px}.dht-pilot-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dht-pilot-section{padding:18px}.dht-pilot-footer-grid{grid-template-columns:1fr;gap:18px}.dht-pilot-menu-list--depth-0{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.dht-pilot-grid{grid-template-columns:1fr}.dht-pilot-market{white-space:normal}.dht-pilot-brand strong{font-size:20px}.dht-pilot-header-inner{gap:10px}.dht-pilot-menu-list--depth-0{grid-template-columns:1fr}}
 </style>
 </head>
 <body <?php body_class('dht-pilot-body'); ?>>
@@ -403,23 +402,17 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
                 <strong><?php echo esc_html($t['brand_title']); ?></strong>
                 <span><?php echo esc_html($t['tagline']); ?></span>
             </a>
-            <span class="dht-pilot-market"><?php echo esc_html($t['country']); ?></span>
+            <span class="dht-pilot-market"><span class="dht-pilot-flag" aria-hidden="true"><?php echo esc_html($t['flag']); ?></span> <?php echo esc_html($t['country']); ?></span>
         </div>
         <?php if ($navigation_roots) : ?>
+        <!-- Fixed pilot navigation: real category URLs, identical across this country's pages. -->
         <nav class="dht-pilot-nav" aria-label="<?php echo esc_attr($t['categories'] . ' · ' . $t['country']); ?>">
-            <?php foreach ($navigation as $nav_term) :
-                $url = get_term_link($nav_term);
-                if (is_wp_error($url)) { continue; }
-                $nav_active = $is_category && (int) $nav_term->term_id === (int) $term->term_id;
-                ?>
-                <a class="dht-pilot-nav-link" href="<?php echo esc_url($url); ?>"<?php echo $nav_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($nav_term->name); ?></a>
-            <?php endforeach; ?>
-            <details class="dht-pilot-menu-more">
-                <summary><?php echo esc_html($t['all_categories']); ?></summary>
-                <div class="dht-pilot-menu-panel">
-                    <?php dht_pilot_render_category_menu_tree($navigation_roots, $navigation_children); ?>
-                </div>
-            </details>
+            <div class="dht-pilot-nav-heading">
+                <span class="dht-pilot-nav-flag" aria-hidden="true"><?php echo esc_html($t['flag']); ?></span>
+                <span><?php echo esc_html($t['all_categories']); ?></span>
+                <a class="dht-pilot-nav-home" href="<?php echo esc_url($main_url); ?>"><?php echo esc_html($t['country']); ?></a>
+            </div>
+            <?php dht_pilot_render_category_menu_tree($navigation_roots, $navigation_children); ?>
         </nav>
         <?php endif; ?>
     </div>
