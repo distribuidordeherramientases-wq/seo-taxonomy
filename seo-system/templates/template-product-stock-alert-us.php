@@ -158,9 +158,12 @@ if (!function_exists('dht_us_handle_stock_alert_request')) {
             return;
         }
 
-        // Honeypot basico: los usuarios reales dejan este campo vacio.
+        // Honeypot: un valor o tipo inesperado se rechaza sin convertir arrays a texto.
+        if (isset($_POST['dht_stock_alert_website']) && !is_scalar($_POST['dht_stock_alert_website'])) {
+            return;
+        }
         $website = isset($_POST['dht_stock_alert_website'])
-            ? trim((string) wp_unslash($_POST['dht_stock_alert_website']))
+            ? trim(sanitize_text_field(wp_unslash((string) $_POST['dht_stock_alert_website'])))
             : '';
         if ($website !== '') {
             return;
