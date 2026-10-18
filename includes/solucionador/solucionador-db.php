@@ -74,13 +74,13 @@ final class SEO_Solucionador_DB {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $collate = $wpdb->get_charset_collate();
 
-        $topics = self::topics_table();
-        $evidence = self::evidence_table();
-        $post_topics = self::post_topics_table();
-        $coverage = self::coverage_table();
-        $workflow = self::workflow_table();
-        $tracking = self::tracking_table();
-        $dossiers = self::dossiers_table();
+        $topics = esc_sql( self::topics_table() );
+        $evidence = esc_sql( self::evidence_table() );
+        $post_topics = esc_sql( self::post_topics_table() );
+        $coverage = esc_sql( self::coverage_table() );
+        $workflow = esc_sql( self::workflow_table() );
+        $tracking = esc_sql( self::tracking_table() );
+        $dossiers = esc_sql( self::dossiers_table() );
 
         $sql_topics = "CREATE TABLE {$topics} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -432,7 +432,7 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         if (!$topic_id) return array();
-        $topics_table = self::topics_table();
+        $topics_table = esc_sql( self::topics_table() );
         $row = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM {$topics_table} WHERE id=%d LIMIT 1", $topic_id),
             ARRAY_A
@@ -445,7 +445,7 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $canonical_key = sanitize_text_field((string) $canonical_key);
         if ($canonical_key === '') return 0;
-        $topics_table = self::topics_table();
+        $topics_table = esc_sql( self::topics_table() );
         return absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$topics_table} WHERE canonical_key=%s LIMIT 1",
             $canonical_key
@@ -458,7 +458,7 @@ final class SEO_Solucionador_DB {
      */
     public static function begin_scan() {
         global $wpdb;
-        $evidence_table = self::evidence_table();
+        $evidence_table = esc_sql( self::evidence_table() );
         if (self::table_exists($evidence_table)) {
             $wpdb->query("TRUNCATE TABLE {$evidence_table}");
         }
@@ -471,8 +471,8 @@ final class SEO_Solucionador_DB {
      */
     public static function prune_orphan_topics() {
         global $wpdb;
-        $topics = self::topics_table();
-        $evidence = self::evidence_table();
+        $topics = esc_sql( self::topics_table() );
+        $evidence = esc_sql( self::evidence_table() );
         if (!self::table_exists($topics) || !self::table_exists($evidence)) return 0;
         $sql = "DELETE t FROM {$topics} t
                 LEFT JOIN {$evidence} e ON e.topic_id=t.id
@@ -487,7 +487,7 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         if (!$topic_id) return array();
-        $evidence_table = self::evidence_table();
+        $evidence_table = esc_sql( self::evidence_table() );
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM {$evidence_table} WHERE topic_id=%d ORDER BY evidence_score DESC,occurrences DESC,id ASC",
@@ -526,7 +526,7 @@ final class SEO_Solucionador_DB {
         $key = sanitize_text_field((string) ($profile['canonical_key'] ?? ''));
         if ($key === '') return 0;
 
-        $table = self::topics_table();
+        $table = esc_sql( self::topics_table() );
         $id = absint($wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE canonical_key=%s LIMIT 1", $key)));
         $now = current_time('mysql');
         $row = array(
@@ -575,7 +575,7 @@ final class SEO_Solucionador_DB {
             ? $source_type . '|' . $source_id
             : $source_type . '|' . SEO_Solucionador_Normalizer::normalize($source_text);
         $hash = hash('sha256', $identity);
-        $table = self::evidence_table();
+        $table = esc_sql( self::evidence_table() );
         $meta = (array) ($row['source_meta'] ?? array());
         $payload = array(
             'topic_id' => $topic_id,
@@ -613,7 +613,7 @@ final class SEO_Solucionador_DB {
 
     public static function clear_post_topics() {
         global $wpdb;
-        $post_topics_table = self::post_topics_table();
+        $post_topics_table = esc_sql( self::post_topics_table() );
         if (!self::table_exists($post_topics_table)) return false;
         return false !== $wpdb->query("TRUNCATE TABLE {$post_topics_table}");
     }
@@ -625,7 +625,7 @@ final class SEO_Solucionador_DB {
         $text = trim(wp_strip_all_tags((string) $text));
         if (!$post_id || $key === '' || $text === '') return false;
 
-        $table = self::post_topics_table();
+        $table = esc_sql( self::post_topics_table() );
         $existing = absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$table} WHERE post_id=%d AND canonical_key=%s LIMIT 1",
             $post_id,
@@ -656,7 +656,7 @@ final class SEO_Solucionador_DB {
 
     public static function clear_coverage_index() {
         global $wpdb;
-        $coverage_table = self::coverage_table();
+        $coverage_table = esc_sql( self::coverage_table() );
         if (!self::table_exists($coverage_table)) return false;
         return false !== $wpdb->query("TRUNCATE TABLE {$coverage_table}");
     }
@@ -671,7 +671,7 @@ final class SEO_Solucionador_DB {
         $text = trim(wp_strip_all_tags((string) ($row['source_text'] ?? '')));
         if ($entity_type === '' || !$entity_id || $key === '' || $text === '') return false;
 
-        $table = self::coverage_table();
+        $table = esc_sql( self::coverage_table() );
         $existing = absint($wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$table} WHERE entity_type=%s AND entity_id=%d AND scope=%s AND canonical_key=%s LIMIT 1",
             $entity_type, $entity_id, $scope, $key
@@ -731,7 +731,7 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         $limit = max(1,min(500,absint($limit)));
-        $workflow_table = self::workflow_table();
+        $workflow_table = esc_sql( self::workflow_table() );
         if (!$topic_id || !self::table_exists($workflow_table)) return array();
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$workflow_table} WHERE topic_id=%d ORDER BY id DESC LIMIT %d",
@@ -768,7 +768,7 @@ final class SEO_Solucionador_DB {
             'snapshot_at'=>$snapshot_at,
         );
 
-        $table = self::tracking_table();
+        $table = esc_sql( self::tracking_table() );
         // Una reejecucion del mismo dia actualiza el snapshot en lugar de
         // acumular filas identicas. Conservamos historial diario util.
         $existing_id = absint($wpdb->get_var($wpdb->prepare(
@@ -789,7 +789,7 @@ final class SEO_Solucionador_DB {
         global $wpdb;
         $topic_id = absint($topic_id);
         $limit = max(1,min(200,absint($limit)));
-        $tracking_table = self::tracking_table();
+        $tracking_table = esc_sql( self::tracking_table() );
         if (!$topic_id || !self::table_exists($tracking_table)) return array();
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$tracking_table} WHERE topic_id=%d ORDER BY snapshot_at DESC,id DESC LIMIT %d",

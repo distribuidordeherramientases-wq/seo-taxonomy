@@ -12,10 +12,10 @@ defined('ABSPATH') || exit;
 return static function () {
     global $wpdb;
 
-    $relations = $wpdb->prefix . 'seo_relations';
-    $nodes = $wpdb->prefix . 'seo_nodes';
-    $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-    $object_vocabulary = $wpdb->prefix . 'seo_object_vocabulary';
+    $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
+    $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+    $object_vocabulary = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
     foreach (array($relations, $nodes, $vocabulary, $object_vocabulary) as $table) {
         $exists = (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));

@@ -8,6 +8,7 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-helpers.php';
+require_once __DIR__ . '/template-pilot-country-switcher.php';
 
 /*
  * Hoja base y ajustes de cabecera mediante la API de estilos de WordPress.
@@ -31,6 +32,12 @@ html:root {
             --dht-bg: #f7f8fa !important;
             --dht-bg-light: #fafbfc !important;
         }
+
+/* Manual market selector: visible on desktop and mobile, not WP menu. */
+.dht-country-switcher{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:5px 16px 10px;max-width:1200px;margin:0 auto}
+.dht-country-switcher__link{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:38px;padding:5px;border-radius:9px;border:1px solid #e0e5eb;background:#fff;text-decoration:none!important;font-size:24px;line-height:1}
+.dht-country-switcher__link:hover,.dht-country-switcher__link:focus-visible{outline-offset:2px;border-color:#2d6fb4;background:#edf4ff}
+@media(max-width:767px){.dht-country-switcher{gap:7px;padding:4px 12px 9px}.dht-country-switcher__link{min-width:36px;min-height:36px;font-size:22px}}
 
 .dht-header-actions {
             display: flex;
@@ -589,6 +596,7 @@ if (!function_exists('dht_header_render_breadcrumbs')) {
             </nav>
         </div>
     </div>
+    <?php dht_pilot_render_country_switcher( 'ES' ); ?>
 </header>
 
 <?php

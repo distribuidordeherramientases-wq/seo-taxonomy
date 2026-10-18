@@ -14,8 +14,8 @@ defined('ABSPATH') || exit;
 final class SEO_Editorial_Coverage {
     private static function object_vocabulary_text($object_type, $object_id) {
         global $wpdb;
-        $ov = $wpdb->prefix . 'seo_object_vocabulary';
-        $v = $wpdb->prefix . 'seo_vocabulary';
+        $ov = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!SEO_Solucionador_DB::table_exists($ov) || !SEO_Solucionador_DB::table_exists($v)) return '';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ov/$v are internal prefixed tables validated immediately above.
         $labels = (array) $wpdb->get_col($wpdb->prepare(
@@ -32,7 +32,7 @@ final class SEO_Editorial_Coverage {
 
     private static function post_category_ids($post_id) {
         global $wpdb;
-        $relations = $wpdb->prefix . 'seo_relations';
+        $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
         if (!SEO_Solucionador_DB::table_exists($relations)) return array();
         return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT target_id
@@ -55,7 +55,7 @@ final class SEO_Editorial_Coverage {
 
     private static function page_role($page_id) {
         global $wpdb;
-        $nodes = $wpdb->prefix . 'seo_nodes';
+        $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (!SEO_Solucionador_DB::table_exists($nodes)) return 'page';
         $role = (string) $wpdb->get_var($wpdb->prepare(
             "SELECT seo_role FROM {$nodes}
@@ -69,7 +69,7 @@ final class SEO_Editorial_Coverage {
 
     private static function page_category_ids($page_id, $role = '') {
         global $wpdb;
-        $relations = $wpdb->prefix . 'seo_relations';
+        $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
         if (!SEO_Solucionador_DB::table_exists($relations)) return array();
 
         $page_id = absint($page_id);
@@ -156,7 +156,7 @@ final class SEO_Editorial_Coverage {
 
     private static function category_text($term_id) {
         global $wpdb;
-        $nodes = $wpdb->prefix . 'seo_nodes';
+        $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
         $parts = array();
         $term = get_term(absint($term_id), 'product_cat');
         if ($term && !is_wp_error($term)) {
@@ -452,7 +452,7 @@ final class SEO_Editorial_Coverage {
 
     public static function find(array $profile) {
         global $wpdb;
-        $table = SEO_Solucionador_DB::coverage_table();
+        $table = esc_sql( SEO_Solucionador_DB::coverage_table() );
         $key = sanitize_text_field((string) ($profile['canonical_key'] ?? ''));
         if ($key === '' || !SEO_Solucionador_DB::table_exists($table)) {
             return array('status'=>'uncovered','entity_type'=>'','entity_id'=>0,'post_id'=>0,'score'=>0,'scope'=>'','matches'=>array());

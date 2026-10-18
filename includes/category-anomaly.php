@@ -142,7 +142,7 @@ if (!function_exists('seo_category_anomaly_move_relation_with_data_layer')) {
             return new WP_Error('seo_category_move_no_datalayer', 'El Data Layer no está disponible.');
         }
 
-        $relations_table = $wpdb->prefix . 'seo_relations';
+        $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, source_id FROM {$relations_table}\n"
@@ -331,7 +331,7 @@ function search_category_anomaly() {
 
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
     
     
         // =========================
@@ -1221,7 +1221,7 @@ function seo_find_best_hub_secondary(
 
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     $best_score = 0;
     $best_hs = '';
@@ -1323,7 +1323,7 @@ function seo_get_category_hierarchy_objects($cat_id) {
 
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     $hs_id = (int) $wpdb->get_var($wpdb->prepare("
         SELECT source_id

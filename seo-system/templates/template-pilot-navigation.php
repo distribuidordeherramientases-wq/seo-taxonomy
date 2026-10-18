@@ -16,7 +16,7 @@ if ( ! function_exists( 'dht_pilot_country_navigation' ) ) {
             'children'    => array(),
         );
         $market = strtoupper( (string) $market );
-        if ( ! in_array( $market, array( 'US', 'DE', 'NL' ), true ) || ! taxonomy_exists( 'product_cat' ) ) {
+        if ( ! in_array( $market, array( 'US', 'DE', 'NL', 'FR' ), true ) || ! taxonomy_exists( 'product_cat' ) ) {
             return $empty;
         }
 
@@ -26,6 +26,7 @@ if ( ! function_exists( 'dht_pilot_country_navigation' ) ) {
             'US' => array( 'vevor-us', 'us', 'usa', 'eua', 'eeuu', 'estados-unidos', 'united-states', 'en-us' ),
             'DE' => array( 'vevor-de', 'de', 'alemania', 'deutschland', 'germany', 'de-de' ),
             'NL' => array( 'vevor-nl', 'nl', 'holanda', 'paises-bajos', 'nederland', 'netherlands', 'nl-nl' ),
+            'FR' => array( 'vevor-fr', 'fr', 'france', 'fr-fr' ),
         );
 
         $all = get_terms( array(

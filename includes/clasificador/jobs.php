@@ -215,8 +215,8 @@ if (!function_exists('seo_classifier_job_where_sql')) {
     function seo_classifier_job_where_sql(array $filters) {
         global $wpdb;
         $filters = seo_classifier_job_sanitize_filters($filters);
-        $v = $wpdb->prefix . 'seo_vocabulary';
-        $o = $wpdb->prefix . 'seo_object_vocabulary';
+        $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $o = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $where = ["p.post_type='product'", "p.post_status='publish'"];
         $args = [];
         $search = trim((string)$filters['search']);
@@ -755,8 +755,8 @@ if (!function_exists('seo_classifier_product_signature')) {
         $product_id = absint($product_id);
         if ($product_id < 1) return '';
         $tables = seo_classifier_jobs_tables();
-        $v = $wpdb->prefix . 'seo_vocabulary';
-        $o = $wpdb->prefix . 'seo_object_vocabulary';
+        $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $o = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $post = $wpdb->get_row($wpdb->prepare("SELECT post_modified_gmt,post_status FROM {$wpdb->posts} WHERE ID=%d", $product_id), ARRAY_A);
         if (!$post) return '';
         $labels = (string)$wpdb->get_var($wpdb->prepare(
@@ -772,7 +772,7 @@ if (!function_exists('seo_classifier_product_signature')) {
             $product_id
         ));
         $supplier = '';
-        $provider_table = $wpdb->prefix . 'seo_proveedores_productos';
+        $provider_table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
         if (function_exists('seo_classifier_table_exists') && seo_classifier_table_exists($provider_table)) {
             $supplier = (string)$wpdb->get_var($wpdb->prepare("SELECT CONCAT(IFNULL(hash_producto,''),'|',IFNULL(actualizado,'')) FROM {$provider_table} WHERE object_id=%d ORDER BY actualizado DESC,id DESC LIMIT 1", $product_id));
         }

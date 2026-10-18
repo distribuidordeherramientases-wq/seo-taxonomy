@@ -1234,8 +1234,8 @@ function seo_reports_category_vocabulary_map($category_ids = array()) {
     global $wpdb;
 
     $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
-    $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-    $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+    $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+    $vocab_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
 
     if ($category_ids) {
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
@@ -1518,7 +1518,7 @@ function seo_render_total_structure_report() {
 function seo_get_faq_table_name() {
     global $wpdb;
 
-    $faq_table = $wpdb->prefix . 'seo_faq';
+    $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
     $faq_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $faq_table)
     );
@@ -1807,7 +1807,7 @@ function seo_product_category_build_delete_context($term_id, $source_module = 'w
         return new WP_Error('seo_category_delete_redirect_self', 'La categoría y el Hub secundario resuelven a la misma URL.');
     }
 
-    $redirect_table = $wpdb->prefix . 'seo_redirects';
+    $redirect_table = esc_sql( $wpdb->prefix . 'seo_redirects' );
     $existing_id = absint(
         $wpdb->get_var(
             $wpdb->prepare(

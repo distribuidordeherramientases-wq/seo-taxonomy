@@ -82,7 +82,7 @@ final class SEO_Solucionador_Export {
     public static function build_simple_report() {
         global $wpdb;
 
-        $dossiers = SEO_Solucionador_DB::dossiers_table();
+        $dossiers = esc_sql( SEO_Solucionador_DB::dossiers_table() );
         $proposal_rows = SEO_Solucionador_DB::table_exists($dossiers)
             ? (array) $wpdb->get_results(
                 "SELECT * FROM {$dossiers} WHERE question_count>0 ORDER BY category_name ASC,id ASC",
@@ -185,12 +185,12 @@ final class SEO_Solucionador_Export {
     public static function build_payload() {
         global $wpdb;
 
-        $topics_table = SEO_Solucionador_DB::topics_table();
-        $evidence_table = SEO_Solucionador_DB::evidence_table();
-        $post_topics_table = SEO_Solucionador_DB::post_topics_table();
-        $coverage_table = SEO_Solucionador_DB::coverage_table();
-        $workflow_table = SEO_Solucionador_DB::workflow_table();
-        $dossiers_table = SEO_Solucionador_DB::dossiers_table();
+        $topics_table = esc_sql( SEO_Solucionador_DB::topics_table() );
+        $evidence_table = esc_sql( SEO_Solucionador_DB::evidence_table() );
+        $post_topics_table = esc_sql( SEO_Solucionador_DB::post_topics_table() );
+        $coverage_table = esc_sql( SEO_Solucionador_DB::coverage_table() );
+        $workflow_table = esc_sql( SEO_Solucionador_DB::workflow_table() );
+        $dossiers_table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
 
         $topics = SEO_Solucionador_DB::table_exists($topics_table)
             ? (array) $wpdb->get_results(

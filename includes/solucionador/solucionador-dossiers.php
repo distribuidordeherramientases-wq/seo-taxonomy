@@ -31,7 +31,7 @@ final class SEO_Solucionador_Dossiers {
 
     private static function faq_source_signature() {
         global $wpdb;
-        $table = self::faq_table();
+        $table = esc_sql( self::faq_table() );
         if (!SEO_Solucionador_DB::table_exists($table)) return '';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna sin entrada de usuario.
         $row = (array)$wpdb->get_row(
@@ -54,8 +54,8 @@ final class SEO_Solucionador_Dossiers {
         // Fallback defensivo para instalaciones que aún no hayan cargado el
         // proveedor. No se usa como contrato editorial principal.
         global $wpdb;
-        $questions = self::questions_table();
-        $runs = self::runs_table();
+        $questions = esc_sql( self::questions_table() );
+        $runs = esc_sql( self::runs_table() );
         if (!SEO_Solucionador_DB::table_exists($questions) || !SEO_Solucionador_DB::table_exists($runs)) return '';
         $where = self::curriculum_where();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas, filtro fijo.
@@ -186,7 +186,7 @@ final class SEO_Solucionador_Dossiers {
         } elseif (in_array($source_type, array('product','features'), true) && $source_id) {
             $ids = array_merge($ids, self::product_category_ids($source_id));
         } elseif ($source_type === 'faq' && $source_id && $kind !== 'faq') {
-            $faq_table = $wpdb->prefix . 'seo_faq';
+            $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
             if (SEO_Solucionador_DB::table_exists($faq_table)) {
                 $faq = $wpdb->get_row($wpdb->prepare(
                     "SELECT object_type,object_id FROM {$faq_table} WHERE id=%d LIMIT 1",
@@ -392,7 +392,7 @@ final class SEO_Solucionador_Dossiers {
         $state = self::fresh_state();
         update_option(self::STATE_OPTION,$state,false);
 
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
         if (SEO_Solucionador_DB::table_exists($table)) {
             $reset_sql = $wpdb->prepare(
                 "UPDATE {$table}
@@ -426,7 +426,7 @@ final class SEO_Solucionador_Dossiers {
         global $wpdb;
 
         SEO_Solucionador_DB::maybe_install();
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
         if (!SEO_Solucionador_DB::table_exists($table)) return 0;
 
         $token = sanitize_text_field((string) $token);
@@ -623,7 +623,7 @@ final class SEO_Solucionador_Dossiers {
         $token
     ) {
         global $wpdb;
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
         $term_id = absint($term_id);
         if (!$term_id || (!$dependiente_keys && !$faq_ids)) return false;
 
@@ -730,7 +730,7 @@ final class SEO_Solucionador_Dossiers {
 
     private static function active_faq_rows_by_ids(array $ids) {
         global $wpdb;
-        $table = self::faq_table();
+        $table = esc_sql( self::faq_table() );
         $out = array();
         $ids = array_values(array_unique(array_filter(array_map('absint',$ids))));
         if (!$ids || !SEO_Solucionador_DB::table_exists($table)) return $out;
@@ -767,7 +767,7 @@ final class SEO_Solucionador_Dossiers {
         $origin = sanitize_key((string)$origin);
         if (!in_array($origin,array('faq','dependiente'),true)) return array();
 
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
         if (!SEO_Solucionador_DB::table_exists($table)) return array();
 
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tabla interna fija.
@@ -950,7 +950,7 @@ final class SEO_Solucionador_Dossiers {
         global $wpdb;
         SEO_Solucionador_DB::maybe_install();
 
-        $faq_table = self::faq_table();
+        $faq_table = esc_sql( self::faq_table() );
         $dependiente_available = class_exists('SEO_Dependiente_Editorial_Knowledge')
             && SEO_Dependiente_Editorial_Knowledge::available();
         $faq_available = SEO_Solucionador_DB::table_exists($faq_table);
@@ -1252,7 +1252,7 @@ final class SEO_Solucionador_Dossiers {
     public static function snapshot() {
         global $wpdb;
         $state = self::migrate_state(self::state());
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
         $current_faq_signature = self::faq_source_signature();
         $current_dep_signature = self::dependiente_source_signature();
         $faq_source_changed = !empty($state['faq_complete'])
@@ -1289,7 +1289,7 @@ final class SEO_Solucionador_Dossiers {
         $semantic_rules_total = absint($dependiente_inventory['semantic_rules'] ?? 0);
         $dependiente_inventory_total = absint($dependiente_inventory['total'] ?? 0);
 
-        $faq_table = self::faq_table();
+        $faq_table = esc_sql( self::faq_table() );
         if (SEO_Solucionador_DB::table_exists($faq_table)) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
             $faqs_all_total = absint($wpdb->get_var("SELECT COUNT(*) FROM {$faq_table}"));
@@ -1367,7 +1367,7 @@ final class SEO_Solucionador_Dossiers {
 
     public static function rows($limit = 100, $after_id = 0) {
         global $wpdb;
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
         if (!SEO_Solucionador_DB::table_exists($table)) return array();
         $limit = max(1,min(500,absint($limit)));
         return (array) $wpdb->get_results($wpdb->prepare(
@@ -1381,7 +1381,7 @@ final class SEO_Solucionador_Dossiers {
 
     public static function get_by_category($category_id) {
         global $wpdb;
-        $table = SEO_Solucionador_DB::dossiers_table();
+        $table = esc_sql( SEO_Solucionador_DB::dossiers_table() );
         $category_id = absint($category_id);
         if (!$category_id || !SEO_Solucionador_DB::table_exists($table)) return array();
         $row = $wpdb->get_row($wpdb->prepare(
@@ -1700,7 +1700,7 @@ final class SEO_Solucionador_Dossiers {
         ))));
         if ($faq_ids && SEO_Solucionador_DB::table_exists(self::faq_table())) {
             $faq_ids = array_slice($faq_ids,0,500);
-            $faq_table = self::faq_table();
+            $faq_table = esc_sql( self::faq_table() );
             $placeholders = implode(',',array_fill(0,count($faq_ids),'%d'));
             $sql = "SELECT id,object_type,object_id,question,answer,created_at,updated_at
                     FROM {$faq_table}

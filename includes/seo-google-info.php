@@ -672,10 +672,10 @@ function seo_google_table_exists($table_name) {
  * Estado físico de las tablas requeridas.
  */
 function seo_google_tables_status() {
-    $runs_table = seo_google_table('sync_runs');
-    $data_table = seo_google_table('search_data');
-    $totals_table = seo_google_table('search_totals');
-    $pages_table = seo_google_table('search_pages');
+    $runs_table = esc_sql( seo_google_table('sync_runs') );
+    $data_table = esc_sql( seo_google_table('search_data') );
+    $totals_table = esc_sql( seo_google_table('search_totals') );
+    $pages_table = esc_sql( seo_google_table('search_pages') );
 
     return array(
         'runs_table'  => $runs_table,
@@ -1038,7 +1038,7 @@ function seo_google_fetch_search_day($property_id, $date, $dimensions = array('q
 /** Filas por URL sin desglosar consultas anónimas. */
 function seo_google_upsert_page_rows($run_id, $property_id, $date, array $rows) {
     global $wpdb;
-    $table = seo_google_table('search_pages');
+    $table = esc_sql( seo_google_table('search_pages') );
     $now = current_time('mysql', true);
     $property_hash = hash('sha256', $property_id);
     $stored = 0;
@@ -1096,7 +1096,7 @@ function seo_google_fetch_property_day($property_id, $date) {
 /** Persiste también días de cero impresiones para poder comprobar cobertura. */
 function seo_google_upsert_property_day($run_id, $property_id, $date, array $totals) {
     global $wpdb;
-    $table = seo_google_table('search_totals');
+    $table = esc_sql( seo_google_table('search_totals') );
     $sql = "INSERT INTO {$table} (property_id,property_hash,data_date,search_type,clicks,impressions,ctr,position,pages_synced,sync_run_id,updated_at)
         VALUES (%s,%s,%s,%s,%f,%f,%f,%f,1,%d,%s)
         ON DUPLICATE KEY UPDATE property_id=VALUES(property_id),clicks=VALUES(clicks),impressions=VALUES(impressions),ctr=VALUES(ctr),position=VALUES(position),pages_synced=1,sync_run_id=VALUES(sync_run_id),updated_at=VALUES(updated_at)";
@@ -1112,7 +1112,7 @@ function seo_google_upsert_property_day($run_id, $property_id, $date, array $tot
 function seo_google_upsert_search_rows($run_id, $property_id, $date, array $rows) {
     global $wpdb;
 
-    $table         = seo_google_table('search_data');
+    $table         = esc_sql( seo_google_table('search_data') );
     $property_hash = hash('sha256', $property_id);
     $now           = current_time('mysql', true);
     $valid_rows    = array();
@@ -1323,8 +1323,8 @@ function seo_google_sync_start_handler() {
     $settings      = seo_google_get_settings();
     $property_id   = $settings['property_id'];
     $property_hash = hash('sha256', $property_id);
-    $runs_table    = seo_google_table('sync_runs');
-    $data_table    = seo_google_table('search_data');
+    $runs_table    = esc_sql( seo_google_table('sync_runs') );
+    $data_table    = esc_sql( seo_google_table('search_data') );
     $now           = current_time('mysql', true);
     $stale_before  = gmdate('Y-m-d H:i:s', time() - (30 * MINUTE_IN_SECONDS));
 
@@ -1386,7 +1386,7 @@ function seo_google_sync_start_handler() {
 
     // Tras actualizar el esquema, las filas históricas no contienen totales
     // de propiedad. Recuperar la ventana entera una sola vez.
-    $totals_table = seo_google_table('search_totals');
+    $totals_table = esc_sql( seo_google_table('search_totals') );
     $totals_coverage = $wpdb->get_row($wpdb->prepare(
         "SELECT MIN(data_date) AS first_date, MAX(data_date) AS last_date, COUNT(*) AS days
          FROM {$totals_table} WHERE property_hash = %s AND data_date BETWEEN %s AND %s AND search_type = 'web' AND pages_synced = 1",
@@ -1488,7 +1488,7 @@ function seo_google_sync_day_handler() {
 
     global $wpdb;
 
-    $runs_table = seo_google_table('sync_runs');
+    $runs_table = esc_sql( seo_google_table('sync_runs') );
     $run        = $wpdb->get_row(
         $wpdb->prepare("SELECT * FROM {$runs_table} WHERE id = %d", $run_id),
         ARRAY_A
@@ -1646,7 +1646,7 @@ function seo_google_sync_day_handler() {
 function seo_google_latest_data_date($property_id) {
     global $wpdb;
 
-    $totals_table = seo_google_table('search_totals');
+    $totals_table = esc_sql( seo_google_table('search_totals') );
     if (seo_google_table_exists($totals_table)) {
         $latest_total = $wpdb->get_var($wpdb->prepare(
             "SELECT MAX(data_date) FROM {$totals_table} WHERE property_hash = %s AND search_type = 'web'",
@@ -1655,7 +1655,7 @@ function seo_google_latest_data_date($property_id) {
         if ($latest_total) return $latest_total;
     }
 
-    $table = seo_google_table('search_data');
+    $table = esc_sql( seo_google_table('search_data') );
 
     if (!seo_google_table_exists($table)) {
         return null;
@@ -1676,7 +1676,7 @@ function seo_google_latest_data_date($property_id) {
  */
 function seo_google_period_metrics($property_id, $date_from, $date_to) {
     global $wpdb;
-    $table = seo_google_table('search_data');
+    $table = esc_sql( seo_google_table('search_data') );
     $row = $wpdb->get_row($wpdb->prepare(
         "SELECT COALESCE(SUM(clicks),0) AS clicks, COALESCE(SUM(impressions),0) AS impressions,
             COUNT(DISTINCT query_hash) AS queries, COUNT(DISTINCT page_hash) AS pages,
@@ -1690,7 +1690,7 @@ function seo_google_period_metrics($property_id, $date_from, $date_to) {
     $row['days_available'] = 0;
     $row['days_expected'] = seo_google_days_inclusive($date_from, $date_to);
 
-    $totals_table = seo_google_table('search_totals');
+    $totals_table = esc_sql( seo_google_table('search_totals') );
     if (!seo_google_table_exists($totals_table)) return $row;
     $totals = $wpdb->get_row($wpdb->prepare(
         "SELECT COUNT(*) AS days_available, COALESCE(SUM(clicks),0) AS clicks,
@@ -1704,7 +1704,7 @@ function seo_google_period_metrics($property_id, $date_from, $date_to) {
     if ($row['days_available'] !== $row['days_expected']) return $row;
     foreach (array('clicks','impressions','ctr','position') as $key) $row[$key] = $totals[$key];
     if (seo_google_pages_period_complete($property_id, $date_from, $date_to)) {
-        $pages_table = seo_google_table('search_pages');
+        $pages_table = esc_sql( seo_google_table('search_pages') );
         $row['pages'] = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(DISTINCT page_hash) FROM {$pages_table} WHERE property_hash=%s AND search_type='web' AND data_date BETWEEN %s AND %s",
             hash('sha256', $property_id), $date_from, $date_to
@@ -1727,7 +1727,7 @@ function seo_google_metrics_coverage_notice($metrics) {
 /** Cobertura real de las filas por página, incluidos los días sin URLs. */
 function seo_google_pages_period_complete($property_id, $date_from, $date_to) {
     global $wpdb;
-    $table = seo_google_table('search_totals');
+    $table = esc_sql( seo_google_table('search_totals') );
     if (!seo_google_table_exists($table)) return false;
     $count = (int) $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*) FROM {$table} WHERE property_hash=%s AND search_type='web' AND pages_synced=1 AND data_date BETWEEN %s AND %s",
@@ -1772,7 +1772,7 @@ function seo_google_get_summary_metrics($property_id, $days = 28) {
 function seo_google_get_top_queries($property_id, $date_from, $date_to, $limit = 15) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
+    $table = esc_sql( seo_google_table('search_data') );
 
     return $wpdb->get_results(
         $wpdb->prepare(
@@ -1802,8 +1802,8 @@ function seo_google_get_top_queries($property_id, $date_from, $date_to, $limit =
 function seo_google_get_top_pages($property_id, $date_from, $date_to, $limit = 15) {
     global $wpdb;
 
-    $table = seo_google_table(seo_google_pages_period_complete($property_id, $date_from, $date_to)
-        ? 'search_pages' : 'search_data');
+    $table = esc_sql( seo_google_table(seo_google_pages_period_complete($property_id, $date_from, $date_to)
+        ? 'search_pages' : 'search_data') );
 
     return $wpdb->get_results(
         $wpdb->prepare(
@@ -1833,7 +1833,7 @@ function seo_google_get_top_pages($property_id, $date_from, $date_to, $limit = 1
 function seo_google_get_sync_history($property_id, $limit = 10) {
     global $wpdb;
 
-    $table = seo_google_table('sync_runs');
+    $table = esc_sql( seo_google_table('sync_runs') );
 
     if (!seo_google_table_exists($table)) {
         return array();
@@ -2415,7 +2415,7 @@ JS;
 function seo_google_get_summary_trend_data($property_id, $days = 365) {
     global $wpdb;
 
-    $table       = seo_google_table('search_data');
+    $table       = esc_sql( seo_google_table('search_data') );
     $latest_date = seo_google_latest_data_date($property_id);
 
     if (!$latest_date || !seo_google_table_exists($table)) {
@@ -2432,7 +2432,7 @@ function seo_google_get_summary_trend_data($property_id, $days = 365) {
         $date_from = gmdate('Y-m-d', strtotime($latest_date . ' -364 days'));
     }
 
-    $totals_table = seo_google_table('search_totals');
+    $totals_table = esc_sql( seo_google_table('search_totals') );
     if (seo_google_table_exists($totals_table)) {
         $totals_rows = $wpdb->get_results($wpdb->prepare(
             "SELECT data_date,clicks,impressions,ctr,position FROM {$totals_table}
@@ -2970,7 +2970,7 @@ function seo_google_analysis_ready() {
 function seo_google_get_signal_queries($property_id, $date_from, $date_to, $limit = 50, $min_impressions = 1, $search = '') {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
+    $table = esc_sql( seo_google_table('search_data') );
     $where = "property_hash = %s AND data_date BETWEEN %s AND %s";
     $args  = array(hash('sha256', $property_id), $date_from, $date_to);
 
@@ -3022,7 +3022,7 @@ function seo_google_get_signal_queries($property_id, $date_from, $date_to, $limi
 function seo_google_get_query_page_evidence($property_id, $query_hash, $date_from, $date_to, $limit = 4) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
+    $table = esc_sql( seo_google_table('search_data') );
 
     return $wpdb->get_results(
         $wpdb->prepare(
@@ -3054,7 +3054,7 @@ function seo_google_get_query_page_evidence($property_id, $query_hash, $date_fro
 function seo_google_get_page_query_evidence($property_id, $page_hash, $date_from, $date_to, $limit = 5) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
+    $table = esc_sql( seo_google_table('search_data') );
 
     return $wpdb->get_results(
         $wpdb->prepare(
@@ -3087,7 +3087,7 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
     global $wpdb;
 
     $page_source = seo_google_pages_period_complete($property_id, $date_from, $date_to);
-    $table = seo_google_table($page_source ? 'search_pages' : 'search_data');
+    $table = esc_sql( seo_google_table($page_source ? 'search_pages' : 'search_data') );
     $where = "property_hash = %s AND data_date BETWEEN %s AND %s AND search_type = 'web'";
     $args  = array(hash('sha256', $property_id), $date_from, $date_to);
 
@@ -3141,7 +3141,7 @@ function seo_google_attach_page_query_counts(&$rows, $property_id, $date_from, $
     if (!$rows) return;
     $hashes = array_values(array_unique(array_filter(array_column($rows, 'page_hash'))));
     if (!$hashes) return;
-    $table = seo_google_table('search_data');
+    $table = esc_sql( seo_google_table('search_data') );
     $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
     $counts = $wpdb->get_results($wpdb->prepare(
         "SELECT page_hash,COUNT(DISTINCT query_hash) AS queries FROM {$table}
@@ -3283,7 +3283,7 @@ function seo_google_get_dimension_changes($property_id, $dimension, array $perio
     $complete_pages = 'page' === $dimension
         && seo_google_pages_period_complete($property_id, $period['previous_from'], $period['previous_to'])
         && seo_google_pages_period_complete($property_id, $period['current_from'], $period['current_to']);
-    $table = seo_google_table($complete_pages ? 'search_pages' : 'search_data');
+    $table = esc_sql( seo_google_table($complete_pages ? 'search_pages' : 'search_data') );
     $hash_field = ('page' === $dimension) ? 'page_hash' : 'query_hash';
     $text_field = ('page' === $dimension) ? 'page_url' : 'query_text';
 
@@ -4012,7 +4012,7 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
     global $wpdb;
 
     $page_source = seo_google_pages_period_complete($property_id, $date_from, $date_to);
-    $table = seo_google_table($page_source ? 'search_pages' : 'search_data');
+    $table = esc_sql( seo_google_table($page_source ? 'search_pages' : 'search_data') );
 
     if ($page_source) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal GSC table; property, dates and limit are bound through $wpdb->prepare().
@@ -4182,7 +4182,7 @@ function seo_google_get_lab_filters($property_id, $source = null) {
 function seo_google_get_lab_rows($property_id, array $filters) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
+    $table = esc_sql( seo_google_table('search_data') );
     $where = 'property_hash = %s AND data_date BETWEEN %s AND %s';
     $args  = array(hash('sha256', $property_id), $filters['date_from'], $filters['date_to']);
 

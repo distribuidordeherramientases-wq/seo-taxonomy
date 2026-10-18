@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-pilot-market.php';
 require_once __DIR__ . '/template-pilot-navigation.php';
+require_once __DIR__ . '/template-pilot-country-switcher.php';
 
 $market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : strtoupper((string) ($GLOBALS['dht_pilot_market'] ?? ''));
 $markets = array(
@@ -58,6 +59,21 @@ $markets = array(
         'affiliate' => 'Affiliatevermelding', 'disclosure' => 'Distribuidor de Herramientas is een onafhankelijke affiliate en niet de verkoper. Bij aankopen via onze links kunnen wij een commissie ontvangen, zonder extra kosten voor u.',
         'editorial' => 'Contact over deze website', 'privacy' => 'Ons privacybeleid', 'back' => 'Bekijk categorieën',
     ),
+    'FR' => array(
+        'lang' => 'fr-FR', 'country' => 'France', 'support' => 'https://www.vevor.fr/pages/contact-us',
+        'tagline' => 'Guides indépendants et sélections de produits VEVOR',
+        'brand_title' => 'Outils et équipements professionnels · France', 'flag' => '🇫🇷',
+        'all_categories' => 'Toutes les catégories', 'image_placeholder' => 'Image du produit indisponible',
+        'categories' => 'Catégories', 'browse' => 'Découvrir la sélection', 'overview' => 'Guide de catégorie',
+        'products' => 'Produits dans cette catégorie', 'product' => 'Fiche produit',
+        'view' => 'Voir le produit', 'buy' => 'Voir chez VEVOR', 'none' => 'Aucun produit disponible dans cette catégorie pour le moment.',
+        'source' => 'Les images, caractéristiques et informations proviennent du fournisseur. Vérifiez le prix et la disponibilité sur VEVOR.',
+        'details' => 'Détails techniques', 'sku' => 'Référence',
+        'customer' => 'Achats, livraison et retours', 'support_label' => 'Service client VEVOR',
+        'service' => 'Les commandes et paiements sont effectués directement chez VEVOR. La livraison, les retours, les remboursements et le service après-vente sont gérés par VEVOR selon ses conditions.',
+        'affiliate' => 'Information sur les liens affiliés', 'disclosure' => 'Distribuidor de Herramientas est un partenaire affilié indépendant, pas le vendeur. Un achat via nos liens peut nous rapporter une commission sans coût supplémentaire pour vous.',
+        'editorial' => 'Contacter notre site', 'privacy' => 'Notre politique de confidentialité', 'back' => 'Voir les catégories',
+    ),
 );
 
 if (!isset($markets[$market])) {
@@ -86,7 +102,7 @@ if ($is_landing && !($landing_page instanceof WP_Post)) {
 if (!$is_category && !$is_landing && !($product instanceof WC_Product)) {
     return;
 }
-$landing_labels = array('US' => 'Project guide', 'DE' => 'Ratgeber', 'NL' => 'Keuzegids');
+$landing_labels = array('US' => 'Project guide', 'DE' => 'Ratgeber', 'NL' => 'Keuzegids', 'FR' => 'Guide pratique');
 
 $affiliate_url = static function ($item) {
     if (!($item instanceof WC_Product)) {
@@ -107,7 +123,7 @@ $affiliate_url = static function ($item) {
         }
         $host = strtolower((string) wp_parse_url($url, PHP_URL_HOST));
         // No enviar al visitante a tiendas ajenas ni al carrito de Espana.
-        $host_by_market = array('US' => 'vevor.com', 'DE' => 'vevor.de', 'NL' => 'vevor.nl');
+        $host_by_market = array('US' => 'vevor.com', 'DE' => 'vevor.de', 'NL' => 'vevor.nl', 'FR' => 'vevor.fr');
         $market_for_url = isset($GLOBALS['dht_pilot_market_active']) ? (string) $GLOBALS['dht_pilot_market_active'] : '';
         $required_host = isset($host_by_market[$market_for_url]) ? $host_by_market[$market_for_url] : '';
         if ($required_host === '' || !in_array($host, array($required_host, 'www.' . $required_host), true)) {
@@ -341,6 +357,11 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-brand strong{font-size:clamp(20px,2.5vw,26px);letter-spacing:-.035em}
 .dht-pilot-brand span{font-size:12px;color:#526273}
 .dht-pilot-market{font-size:12px;white-space:nowrap;padding:6px 12px;border:1px solid #d6dfeb;border-radius:999px;color:#475467}
+.dht-pilot-market-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.dht-pilot-market-actions .dht-country-switcher{display:flex;align-items:center;gap:7px}
+.dht-pilot-market-actions .dht-country-switcher__link{min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;padding:4px;background:#f7f9fc;border:1px solid #dfe5ee;border-radius:9px;font-size:24px;line-height:1;text-decoration:none}
+.dht-pilot-market-actions .dht-country-switcher__link:hover,.dht-pilot-market-actions .dht-country-switcher__link:focus-visible{background:#eaf1fc;border-color:#9db9e7}
+@media(max-width:760px){.dht-pilot-market-actions{gap:8px}.dht-pilot-market-actions .dht-country-switcher__link{font-size:22px;min-width:34px;min-height:34px}}
 .dht-pilot-flag{font-size:24px;vertical-align:middle;line-height:1}
 .dht-pilot-nav{padding:4px 0 18px;display:block}
 .dht-pilot-nav-heading{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:0 0 11px;font-size:14px;font-weight:700;color:#233956}
@@ -402,7 +423,10 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
                 <strong><?php echo esc_html($t['brand_title']); ?></strong>
                 <span><?php echo esc_html($t['tagline']); ?></span>
             </a>
-            <span class="dht-pilot-market"><span class="dht-pilot-flag" aria-hidden="true"><?php echo esc_html($t['flag']); ?></span> <?php echo esc_html($t['country']); ?></span>
+            <div class="dht-pilot-market-actions">
+                <span class="dht-pilot-market"><span class="dht-pilot-flag" aria-hidden="true"><?php echo esc_html($t['flag']); ?></span> <?php echo esc_html($t['country']); ?></span>
+                <?php dht_pilot_render_country_switcher( $market ); ?>
+            </div>
         </div>
         <?php if ($navigation_roots) : ?>
         <!-- Fixed pilot navigation: real category URLs, identical across this country's pages. -->

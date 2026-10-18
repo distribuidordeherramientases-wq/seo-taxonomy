@@ -45,7 +45,7 @@ if (!function_exists('seo_get_category_product_inventory_context')) {
         }
 
         global $wpdb;
-        $relations_table = $wpdb->prefix . 'seo_relations';
+        $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
         if (!seo_product_inventory_table_exists($relations_table)) {
             return [
@@ -131,7 +131,7 @@ if (!function_exists('seo_product_inventory_get_vocabulary_terms')) {
             'subtipo'    => [],
         ];
 
-        $table = $wpdb->prefix . 'seo_vocabulary';
+        $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!seo_product_inventory_table_exists($table)) {
             return $groups;
         }
@@ -163,7 +163,7 @@ if (!function_exists('seo_product_inventory_get_attribute_catalog')) {
         }
 
         global $wpdb;
-        $table = $wpdb->prefix . 'sql_atributos';
+        $table = esc_sql( $wpdb->prefix . 'sql_atributos' );
         if (!seo_product_inventory_table_exists($table)) {
             return [];
         }
@@ -200,7 +200,7 @@ if (!function_exists('seo_product_inventory_get_hierarchy_options')) {
     function seo_product_inventory_get_hierarchy_options($cluster, $hub_primary, $hub_secondary) {
         global $wpdb;
 
-        $relations_table = $wpdb->prefix . 'seo_relations';
+        $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $result = [
             'clusters'        => [],
             'hub_primarios'   => [],
@@ -370,11 +370,11 @@ if (!function_exists('seo_product_inventory_build_where')) {
         $postmeta = $wpdb->postmeta;
         $term_relationships = $wpdb->term_relationships;
         $term_taxonomy = $wpdb->term_taxonomy;
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $object_vocabulary = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_map = $wpdb->prefix . 'seo_type_role_map';
-        $attribute_values = $wpdb->prefix . 'sql_product_atributos';
-        $attribute_terms = $wpdb->prefix . 'sql_atributos_terminos';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_vocabulary = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
+        $attribute_values = esc_sql( $wpdb->prefix . 'sql_product_atributos' );
+        $attribute_terms = esc_sql( $wpdb->prefix . 'sql_atributos_terminos' );
 
         $has_vocab = seo_product_inventory_table_exists($vocabulary) && seo_product_inventory_table_exists($object_vocabulary);
         $has_type_role = $has_vocab && seo_product_inventory_table_exists($type_role_map);
@@ -681,9 +681,9 @@ if (!function_exists('seo_product_inventory_get_kpis')) {
     function seo_product_inventory_get_kpis() {
         global $wpdb;
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $object_vocabulary = $wpdb->prefix . 'seo_object_vocabulary';
-        $attribute_values = $wpdb->prefix . 'sql_product_atributos';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_vocabulary = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $attribute_values = esc_sql( $wpdb->prefix . 'sql_product_atributos' );
         $has_vocab = seo_product_inventory_table_exists($vocabulary) && seo_product_inventory_table_exists($object_vocabulary);
         $has_attrs = seo_product_inventory_table_exists($attribute_values);
 
@@ -780,9 +780,9 @@ if (!function_exists('seo_product_inventory_get_rows_data')) {
             }
         }
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $object_vocabulary = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_map = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_vocabulary = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
 
         if (seo_product_inventory_table_exists($vocabulary) && seo_product_inventory_table_exists($object_vocabulary)) {
             $semantic_rows = $wpdb->get_results($wpdb->prepare(

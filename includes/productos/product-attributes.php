@@ -1611,8 +1611,8 @@ function search_product_attributes($options = []) {
     $render_definition_controls = array_key_exists('render_definition_controls', $options) ? (bool) $options['render_definition_controls'] : true;
     $render_explorer = array_key_exists('render_explorer', $options) ? (bool) $options['render_explorer'] : true;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
-    $attr_table      = $wpdb->prefix . 'sql_product_atributos';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $attr_table      = esc_sql( $wpdb->prefix . 'sql_product_atributos' );
 
     // =========================
     // FILTROS

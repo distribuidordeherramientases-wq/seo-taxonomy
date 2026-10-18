@@ -120,6 +120,62 @@ function seo_supplier_sync_ensure_schema() {
     if ( ! in_array( 'proveedor_pais_sku', (array) $wpdb->get_col( "SHOW INDEX FROM {$table}", 2 ), true ) ) {
         $wpdb->query( "ALTER TABLE {$table} ADD KEY `proveedor_pais_sku` (`proveedor`, `pais_origen`, `sku`)" );
     }
+
+    /*
+     * A VEVOR item may have the same external ID in several markets. Both
+     * legacy sites (with proveedor_producto) and newer STAGING databases
+     * (without that index) must end up with the same country-aware key.
+     */
+    if ( in_array( 'pais_origen', $columns, true ) ) {
+        $index_rows = (array) $wpdb->get_results( "SHOW INDEX FROM {$table}", ARRAY_A );
+        $legacy     = array();
+        $market_key = array();
+
+        foreach ( $index_rows as $index_row ) {
+            if ( 'proveedor_producto' === (string) ( $index_row['Key_name'] ?? '' ) ) {
+                $legacy[] = $index_row;
+            }
+            if ( 'proveedor_pais_producto' === (string) ( $index_row['Key_name'] ?? '' ) ) {
+                $market_key[] = $index_row;
+            }
+        }
+
+        usort( $legacy, static function ( $first, $second ) {
+            return (int) $first['Seq_in_index'] <=> (int) $second['Seq_in_index'];
+        } );
+        usort( $market_key, static function ( $first, $second ) {
+            return (int) $first['Seq_in_index'] <=> (int) $second['Seq_in_index'];
+        } );
+
+        $legacy_unique = 2 === count( $legacy )
+            && 0 === (int) $legacy[0]['Non_unique']
+            && 0 === (int) $legacy[1]['Non_unique']
+            && 'proveedor' === (string) $legacy[0]['Column_name']
+            && 'proveedor_id_externo' === (string) $legacy[1]['Column_name'];
+
+        $market_unique = 3 === count( $market_key )
+            && 0 === (int) $market_key[0]['Non_unique']
+            && 0 === (int) $market_key[1]['Non_unique']
+            && 0 === (int) $market_key[2]['Non_unique']
+            && 'proveedor' === (string) $market_key[0]['Column_name']
+            && 'pais_origen' === (string) $market_key[1]['Column_name']
+            && 'proveedor_id_externo' === (string) $market_key[2]['Column_name'];
+
+        // Three fixed schema operations only; do not pass a dynamically built
+        // SQL string to wpdb->query(). Each branch retains the old behaviour.
+        $migration_result = null;
+        if ( $legacy_unique && $market_unique ) {
+            $migration_result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`" );
+        } elseif ( $legacy_unique && ! $market_key ) {
+            $migration_result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)" );
+        } elseif ( ! $legacy && ! $market_key ) {
+            $migration_result = $wpdb->query( "ALTER TABLE {$table} ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)" );
+        }
+
+        if ( false === $migration_result && function_exists( 'seo_system_private_log' ) ) {
+            seo_system_private_log( 'error', 'Supplier market identity migration: ' . $wpdb->last_error );
+        }
+    }
 }
 
 /**

@@ -236,6 +236,22 @@ function seo_proveedores_cabecera_estandar() {
 }
 
 /**
+ * A prepared supplier CSV has the exact column set produced by our common
+ * importer. Do not execute a recipe twice when an administrator reuploads it.
+ *
+ * @param array $state Analysed CSV file.
+ * @return bool
+ */
+function seo_proveedores_es_csv_estandar( $state ) {
+    $header = array_map( 'sanitize_key', (array) ( $state['header'] ?? array() ) );
+    $fields = seo_proveedores_cabecera_estandar();
+
+    return count( $header ) === count( $fields )
+        && count( $header ) === count( array_unique( $header ) )
+        && empty( array_diff( $fields, $header ) );
+}
+
+/**
  * Convierte una fila indexada en asociativa usando la cabecera original.
  *
  * @param array $header Cabecera.
@@ -512,6 +528,14 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
                 $csv_row[ $column_index ] ?? '',
                 $fields[ $field_key ]['type']
             );
+        }
+
+        // The provider table stores the product name in VARCHAR(255).
+        // Keep the full original in the uploaded CSV, but avoid a failed row
+        // when the source supplies a longer title (9 cases in the FR feed).
+        if ( mb_strlen( (string) ( $data['nombre'] ?? '' ), 'UTF-8' ) > 255 ) {
+            $data['nombre'] = mb_substr( (string) $data['nombre'], 0, 255, 'UTF-8' );
+            seo_ie_add_log_detail( $log, sprintf( 'Fila preparada %d: nombre adaptado al limite de 255 caracteres de MySQL.', $line ) );
         }
 
         $external_id = trim( (string) ( $data['proveedor_id_externo'] ?? '' ) );
@@ -1482,6 +1506,23 @@ function seo_proveedores_analizar_archivo() {
         wp_die( esc_html( $analysis->get_error_message() ) );
     }
 
+    if (
+        'transform' === ( $recipe['mode'] ?? 'mapping' )
+        && ! ( 'vevor' === $recipe_id && seo_proveedores_es_csv_estandar( $analysis ) )
+    ) {
+        $missing_headers = array_diff(
+            (array) ( $recipe['required_headers'] ?? array() ),
+            (array) ( $analysis['header'] ?? array() )
+        );
+        if ( $missing_headers ) {
+            wp_die( esc_html(
+                'Las columnas no corresponden al CSV original de ' . (string) $recipe['label']
+                . '. Faltan: ' . implode( ', ', $missing_headers )
+                . '. Sube el archivo original Goods_Export o el CSV estandar de 19 columnas.'
+            ) );
+        }
+    }
+
     $state = array_merge(
         $analysis,
         [
@@ -1741,7 +1782,24 @@ function seo_proveedores_importar_catalogo() {
         ? array_map( 'sanitize_key', wp_unslash( $_POST['mapeo'] ) )
         : [];
 
-    $prepared = seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping );
+    // VEVOR supports its 10-column original and the 19-column CSV produced
+    // by this importer. The latter must never pass through the recipe again.
+    if ( 'vevor' === ( $recipe['id'] ?? '' ) && seo_proveedores_es_csv_estandar( $state ) ) {
+        $prepared = array(
+            'state' => array_merge(
+                $state,
+                array( 'original_filename' => $state['source_name'] ?? $state['filename'] )
+            ),
+            'log' => array(
+                'preparados' => absint( $state['rows_total'] ?? 0 ),
+                'omitidos'   => 0,
+                'errores'    => 0,
+                'detalles'   => array( 'CSV estandar detectado: se importa directamente, sin volver a aplicar la receta VEVOR.' ),
+            ),
+        );
+    } else {
+        $prepared = seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping );
+    }
 
     if ( is_wp_error( $prepared ) ) {
         wp_die( esc_html( $prepared->get_error_message() ) );
@@ -1919,9 +1977,38 @@ function seo_proveedores_previsualizar_transformacion( $state, $recipe, $limit =
     );
     $result['fields'] = $targets;
 
+    // The CSV was already prepared by the common supplier importer: use its
+    // values as-is. Applying the VEVOR URL-to-ID transform again would make
+    // all 80 examples fail because `URL to product` is now `url_origen`.
+    if ( 'vevor' === ( $recipe['id'] ?? '' ) && seo_proveedores_es_csv_estandar( $state ) ) {
+        foreach ( array_slice( (array) ( $state['sample'] ?? array() ), 0, max( 1, absint( $limit ) ) ) as $sample_row ) {
+            $source = seo_proveedores_fila_asociativa( (array) $state['header'], (array) $sample_row );
+            $clean  = array();
+            foreach ( $standard as $field_key ) {
+                $clean[ $field_key ] = seo_proveedores_limpiar_valor(
+                    $source[ $field_key ] ?? '',
+                    $fields[ $field_key ]['type']
+                );
+            }
+            $result['rows'][] = $clean;
+        }
+        return $result;
+    }
+
+    $missing_headers = array_diff(
+        (array) ( $recipe['required_headers'] ?? array() ),
+        (array) ( $state['header'] ?? array() )
+    );
+    if ( $missing_headers ) {
+        $result['errors'][] = 'Faltan columnas del CSV original: ' . implode( ', ', $missing_headers )
+            . '. Selecciona el Goods_Export de VEVOR, o su CSV estandar de 19 columnas.';
+        return $result;
+    }
+
     $preview_iterator = seo_proveedores_iterar_filas( $state );
     $sample_index = 0;
     $checked = 0;
+    $preview_errors = 0;
     if ( is_wp_error( $preview_iterator ) ) {
         $result['errors'][] = $preview_iterator->get_error_message();
         return $result;
@@ -1937,16 +2024,18 @@ function seo_proveedores_previsualizar_transformacion( $state, $recipe, $limit =
         try {
             $normalized = call_user_func( $callback, $source_assoc, $state, $recipe );
         } catch ( Throwable $exception ) {
-            $result['errors'][] = sprintf(
-                'Ejemplo %d: %s',
-                $sample_index + 1,
-                $exception->getMessage()
-            );
+            $preview_errors++;
+            if ( $preview_errors <= 3 ) {
+                $result['errors'][] = sprintf( 'Ejemplo %d: %s', $sample_index + 1, $exception->getMessage() );
+            }
             continue;
         }
 
         if ( ! is_array( $normalized ) ) {
-            $result['errors'][] = sprintf( 'Ejemplo %d omitido por la receta.', $sample_index + 1 );
+            $preview_errors++;
+            if ( $preview_errors <= 3 ) {
+                $result['errors'][] = sprintf( 'Ejemplo %d omitido por la receta.', $sample_index + 1 );
+            }
             continue;
         }
 
@@ -1957,6 +2046,9 @@ function seo_proveedores_previsualizar_transformacion( $state, $recipe, $limit =
         }
 
         $result['rows'][] = $clean;
+    }
+    if ( $preview_errors > 3 ) {
+        $result['errors'][] = sprintf( 'Hay %d avisos adicionales en la vista previa.', $preview_errors - 3 );
     }
     return $result;
 }
@@ -1981,7 +2073,7 @@ function seo_proveedores_render_importador() {
     ?>
     <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
         <h2><?php echo esc_html__( 'Importar catalogo de proveedor', 'taxocommerce-seo' ); ?></h2>
-        <p><code>Modulo de proveedores Build 032</code></p>
+        <p><code>Modulo de proveedores Build 033</code></p>
 
         <?php if ( ! empty( seo_proveedores_query_arg( 'seo_prov_github_started', '' ) ) ) : ?>
             <?php $seo_remote_run_id = sanitize_text_field( seo_proveedores_query_arg( 'seo_remote_run_id', '' ) ); ?>
@@ -2042,6 +2134,10 @@ function seo_proveedores_render_importador() {
             </p>
             <p><a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'importar-proveedor', 'seo_prov_reset' => '1' ], admin_url( 'admin.php' ) ), 'seo_prov_reset' ) ); ?>">← Nueva importacion</a></p>
 
+            <?php if ( 'vevor' === ( $recipe['id'] ?? '' ) && seo_proveedores_es_csv_estandar( $state ) ) : ?>
+                <div class="notice notice-info inline"><p><strong>CSV VEVOR ya preparado (19 columnas).</strong>
+                Se importara directamente al catalogo de proveedores sin volver a ejecutar la receta ni modificar WooCommerce.</p></div>
+            <?php endif; ?>
             <form method="post">
                 <?php wp_nonce_field( 'seo_proveedores_importar', 'seo_proveedores_importar_nonce' ); ?>
 
@@ -6062,7 +6158,7 @@ function seo_proveedores_render_catalogo() {
         $params[] = 'VEVOR';
         $where[]  = 'estado_seleccion = %s';
         $params[] = 'aceptado';
-        $where[] = "pais_origen IN ('US','DE','NL')";
+        $where[] = "pais_origen IN ('US','DE','NL','FR')";
         $where[] = '(object_id IS NULL OR object_id = 0)';
     } elseif ( 'linked' === $vinculo_filtro ) {
         $where[] = 'object_id > 0';

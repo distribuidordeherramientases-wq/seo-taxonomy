@@ -18,6 +18,7 @@ if (!function_exists('dht_pilot_market_for_term')) {
             'US' => '/^(?:vevor-)?(?:us|usa|eua|eeuu|estados-unidos|united-states|en-us)(?:-|$)/',
             'DE' => '/^(?:vevor-)?(?:(?:de|deu)(?:$|-(?:best-sellers|bestsellers|kategorie|category|produkte|products)(?:-|$))|(?:deutschland|alemania|germany|de-de)(?:-|$))/',
             'NL' => '/^(?:vevor-)?(?:nl|nld|nederland|netherlands|holanda|paises-bajos|nl-nl)(?:-|$)/',
+            'FR' => '/^(?:vevor-)?(?:fr|fra|france|fr-fr)(?:-|$)/',
         );
         foreach ($ids as $id) {
             $category = get_term((int) $id, 'product_cat');
