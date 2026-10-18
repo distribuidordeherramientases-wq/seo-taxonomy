@@ -15,7 +15,7 @@ defined('ABSPATH') || exit;
  * workers que ya controla Academia.
  */
 final class SEO_Dependiente_Actualizacion {
-    const VERSION = '1.0.3';
+    const VERSION = '1.0.4';
     const STATE_OPTION = 'seo_dependiente_academy_update_state';
     const HISTORY_OPTION = 'seo_dependiente_academy_update_history';
     const LAST_SUCCESS_OPTION = 'seo_dependiente_academy_update_last_success';
@@ -389,9 +389,14 @@ final class SEO_Dependiente_Actualizacion {
         $modules = (array) ($state['modules'] ?? array());
         $module_state = is_array($modules[$module] ?? null) ? $modules[$module] : array();
         $answered_before = absint($module_state['answered'] ?? 0);
-        $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, self::RUN_BATCH);
+        $run_batch = 2 === $module ? 40 : self::RUN_BATCH;
+        $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, $run_batch);
         foreach ($questions as $question) {
-            SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
+            if (2 === $module && 'product_identity' === sanitize_key((string) ($question['question_type'] ?? ''))) {
+                SEO_Dependiente_Entrenador::update_run_inventory_question($question, $batch_uuid);
+            } else {
+                SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
+            }
         }
 
         $summary = SEO_Dependiente_Entrenador::update_module_summary($lesson_key, $module);
