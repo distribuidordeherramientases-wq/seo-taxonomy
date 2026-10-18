@@ -167,6 +167,25 @@ function seo_vevor_normal_import_tick() {
         if ( null === $rows || $wpdb->last_error ) {
             throw new RuntimeException( 'Error al leer ofertas aprobadas VEVOR.' );
         }
+        // Approved rows may have IDs below the persisted cursor (for example
+        // after a new country import). A manual recovery click should process
+        // the first five immediately, not just reset and wait for cron.
+        if ( ! $rows && $cursor > 0 && seo_vevor_normal_import_eligible_count() > 0 ) {
+            $cursor = 0;
+            $rows = $wpdb->get_results( $wpdb->prepare(
+                "SELECT * FROM {$table}
+                 WHERE proveedor = %s AND pais_origen IN ('US','DE','NL','FR')
+                   AND estado_seleccion = %s
+                   AND estado_sincronizacion NOT IN ('error','conflicto','baja_pendiente','baja_aplicada')
+                   AND (object_id IS NULL OR object_id = 0)
+                 ORDER BY id ASC LIMIT 5",
+                'VEVOR', 'aceptado'
+            ), ARRAY_A );
+            if ( null === $rows || $wpdb->last_error ) {
+                throw new RuntimeException( 'Error al reanudar las ofertas VEVOR desde el inicio.' );
+            }
+            $state['cursor'] = 0;
+        }
         $started = microtime( true );
         foreach ( $rows as $row ) {
             if ( microtime( true ) - $started >= 10 && absint( $state['processed'] ?? 0 ) > 0 ) {
@@ -227,3 +246,165 @@ function seo_vevor_normal_import_tick() {
     }
 }
 add_action( 'seo_vevor_normal_import_tick', 'seo_vevor_normal_import_tick' );
+
+
+/**
+ * Merchant-facing counters for each approved VEVOR market. Approval alone is
+ * NOT creation: a linked WooCommerce object_id is the actual completion sign.
+ */
+function seo_vevor_normal_import_market_progress() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT pais_origen,
+           SUM(CASE WHEN estado_seleccion = 'aceptado'
+               AND (object_id IS NULL OR object_id = 0)
+               AND estado_sincronizacion NOT IN ('error','conflicto','baja_pendiente','baja_aplicada')
+               THEN 1 ELSE 0 END) AS pending,
+           SUM(CASE WHEN estado_seleccion = 'aceptado'
+               AND (object_id IS NULL OR object_id = 0)
+               AND estado_sincronizacion = 'error'
+               THEN 1 ELSE 0 END) AS failed,
+           SUM(CASE WHEN estado_seleccion = 'aceptado'
+               AND object_id > 0 THEN 1 ELSE 0 END) AS linked
+         FROM {$table}
+         WHERE proveedor = %s AND pais_origen IN ('US','DE','NL','FR')
+         GROUP BY pais_origen",
+        'VEVOR'
+    ), ARRAY_A );
+    return is_array( $rows ) ? $rows : array();
+}
+
+/** Operational status and one safe manual batch when Action Scheduler stalls. */
+function seo_vevor_normal_import_render_dashboard() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    $markets = seo_vevor_normal_import_market_progress();
+    if ( ! $markets ) {
+        return;
+    }
+    $state = get_option( 'seo_vevor_normal_import_state', array() );
+    if ( ! is_array( $state ) ) {
+        $state = array();
+    }
+    echo '<div class="card" style="max-width:none;padding:16px;margin:16px 0;">';
+    echo '<h3>VEVOR internacional: aprobacion y borradores WooCommerce</h3>';
+    echo '<p>Aprobado en el catalogo no significa creado en WooCommerce. '
+        . 'Cada ficha se crea como producto externo en <code>draft</code> con la categoria predeterminada y enlace de afiliacion regional.</p>';
+    echo '<table class="widefat striped"><thead><tr><th>Pais</th><th>Aprobados sin ficha</th>'
+        . '<th>Errores sin ficha</th><th>Vinculados a WooCommerce</th></tr></thead><tbody>';
+    $pending = 0;
+    $failed = 0;
+    foreach ( $markets as $item ) {
+        $pending += absint( $item['pending'] ?? 0 );
+        $failed += absint( $item['failed'] ?? 0 );
+        echo '<tr><td>' . esc_html( (string) ( $item['pais_origen'] ?? '' ) ) . '</td><td>'
+            . esc_html( number_format_i18n( absint( $item['pending'] ?? 0 ) ) ) . '</td><td>'
+            . esc_html( number_format_i18n( absint( $item['failed'] ?? 0 ) ) ) . '</td><td>'
+            . esc_html( number_format_i18n( absint( $item['linked'] ?? 0 ) ) ) . '</td></tr>';
+    }
+    echo '</tbody></table>';
+    echo '<p>Trabajador: <strong>' . esc_html( (string) ( $state['status'] ?? 'sin iniciar' ) )
+        . '</strong> · Procesados: ' . esc_html( number_format_i18n( absint( $state['processed'] ?? 0 ) ) )
+        . ' · Creados: ' . esc_html( number_format_i18n( absint( $state['created'] ?? 0 ) ) )
+        . ' · Ultima actividad: '
+        . esc_html( ! empty( $state['updated_at'] ) ? wp_date( 'Y-m-d H:i:s', absint( $state['updated_at'] ) ) : 'ninguna' )
+        . '</p>';
+    if ( ! empty( $state['last_error'] ) ) {
+        echo '<p><strong>Ultimo fallo:</strong> ' . esc_html( (string) $state['last_error'] ) . '</p>';
+    }
+    if ( $failed ) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'seo_proveedores_productos';
+        $sample = $wpdb->get_results( $wpdb->prepare(
+            "SELECT id, pais_origen, ultimo_error_sync FROM {$table}
+             WHERE proveedor = %s AND estado_seleccion = 'aceptado'
+             AND estado_sincronizacion = 'error' AND (object_id IS NULL OR object_id = 0)
+             ORDER BY id ASC LIMIT 3",
+            'VEVOR'
+        ), ARRAY_A );
+        foreach ( (array) $sample as $issue ) {
+            echo '<p><code>#' . esc_html( (string) ( $issue['id'] ?? '' ) ) . '</code> '
+                . esc_html( (string) ( $issue['pais_origen'] ?? '' ) ) . ': '
+                . esc_html( (string) ( $issue['ultimo_error_sync'] ?? '' ) ) . '</p>';
+        }
+    }
+    if ( $pending ) {
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        wp_nonce_field( 'seo_vevor_resume_import' );
+        echo '<input type="hidden" name="action" value="seo_vevor_resume_import">';
+        echo '<button class="button button-primary" type="submit">Procesar 5 borradores ahora y reanudar cola</button>';
+        echo '</form>';
+    }
+    if ( $failed ) {
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"'
+            . ' onsubmit="return confirm(\'Se reintentaran hasta 5 registros VEVOR ya aceptados y con error. No se modificaran productos existentes. ¿Continuar?\');">';
+        wp_nonce_field( 'seo_vevor_retry_failed' );
+        echo '<input type="hidden" name="action" value="seo_vevor_retry_failed">';
+        echo '<button class="button button-secondary" type="submit">Reintentar 5 ofertas fallidas</button>';
+        echo '</form>';
+    }
+    echo '</div>';
+}
+add_action( 'seo_vevor_region_batch_card', 'seo_vevor_normal_import_render_dashboard', 10 );
+
+/** Explicit, nonce-protected recovery of a small batch; no repeated approval. */
+function seo_vevor_normal_import_admin_resume() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'Permisos insuficientes.' );
+    }
+    check_admin_referer( 'seo_vevor_resume_import' );
+    seo_vevor_normal_import_tick();
+    if ( seo_vevor_normal_import_eligible_count() > 0 ) {
+        seo_vevor_normal_import_schedule( 2, true );
+    }
+    wp_safe_redirect( add_query_arg(
+        array( 'page' => 'seo-import-export', 'seo_ie_tab' => 'catalogo-proveedores', 'f_proveedor' => 'VEVOR' ),
+        admin_url( 'admin.php' )
+    ) );
+    exit;
+}
+add_action( 'admin_post_seo_vevor_resume_import', 'seo_vevor_normal_import_admin_resume' );
+
+/**
+ * Retry only failed and previously approved offers, five at a time. Errors
+ * stay available for diagnosis until the merchant explicitly retries them.
+ */
+function seo_vevor_normal_import_admin_retry_failed() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'Permisos insuficientes.' );
+    }
+    check_admin_referer( 'seo_vevor_retry_failed' );
+    global $wpdb;
+    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $ids = $wpdb->get_col( $wpdb->prepare(
+        "SELECT id FROM {$table}
+         WHERE proveedor = %s AND pais_origen IN ('US','DE','NL','FR')
+           AND estado_seleccion = 'aceptado'
+           AND estado_sincronizacion = 'error'
+           AND (object_id IS NULL OR object_id = 0)
+         ORDER BY id ASC LIMIT 5",
+        'VEVOR'
+    ) );
+    foreach ( (array) $ids as $id ) {
+        $wpdb->update( $table,
+            array( 'estado_sincronizacion' => 'nuevo', 'ultimo_error_sync' => null ),
+            array( 'id' => absint( $id ), 'estado_seleccion' => 'aceptado', 'estado_sincronizacion' => 'error' ),
+            array( '%s', '%s' ),
+            array( '%d', '%s', '%s' )
+        );
+    }
+    if ( $ids ) {
+        seo_vevor_normal_import_tick();
+        if ( seo_vevor_normal_import_eligible_count() > 0 ) {
+            seo_vevor_normal_import_schedule( 2, true );
+        }
+    }
+    wp_safe_redirect( add_query_arg(
+        array( 'page' => 'seo-import-export', 'seo_ie_tab' => 'catalogo-proveedores', 'f_proveedor' => 'VEVOR' ),
+        admin_url( 'admin.php' )
+    ) );
+    exit;
+}
+add_action( 'admin_post_seo_vevor_retry_failed', 'seo_vevor_normal_import_admin_retry_failed' );
