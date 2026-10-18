@@ -244,7 +244,7 @@ if (!function_exists('seo_health_scan_config_errors')) {
 if (!function_exists('seo_health_scan_upsert_rows')) {
     function seo_health_scan_upsert_rows($scope, array $rows, $sync_token) {
         global $wpdb;
-        $table = seo_health_scan_tables()['items'];
+        $table = esc_sql( seo_health_scan_tables()['items'] );
         $now = current_time('mysql', true);
         $written = 0;
 
@@ -413,7 +413,7 @@ if (!function_exists('seo_health_scan_sync_inventory')) {
             return $written;
         }
         global $wpdb;
-        $table = seo_health_scan_tables()['items'];
+        $table = esc_sql( seo_health_scan_tables()['items'] );
         $wpdb->query(
             $wpdb->prepare(
                 "UPDATE {$table}
@@ -430,7 +430,7 @@ if (!function_exists('seo_health_scan_sync_inventory')) {
 if (!function_exists('seo_health_scan_summary')) {
     function seo_health_scan_summary($scope) {
         global $wpdb;
-        $table = seo_health_scan_tables()['items'];
+        $table = esc_sql( seo_health_scan_tables()['items'] );
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT
@@ -455,6 +455,10 @@ if (!function_exists('seo_health_scan_expire_stale')) {
     function seo_health_scan_expire_stale() {
         global $wpdb;
         $tables = seo_health_scan_tables();
+        // Escape only trusted WP-prefixed SQL identifiers before interpolation.
+        // WP 5.8 compatibility: do not require the %i placeholder.
+        $tables['runs']  = esc_sql( $tables['runs'] );
+        $tables['items'] = esc_sql( $tables['items'] );
         $cutoff = gmdate('Y-m-d H:i:s', time() - 2 * HOUR_IN_SECONDS);
         $now = current_time('mysql', true);
         $stale_ids = $wpdb->get_col(
@@ -494,7 +498,7 @@ if (!function_exists('seo_health_scan_active_run')) {
     function seo_health_scan_active_run($scope) {
         seo_health_scan_expire_stale();
         global $wpdb;
-        $table = seo_health_scan_tables()['runs'];
+        $table = esc_sql( seo_health_scan_tables()['runs'] );
         return $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM {$table} WHERE scope=%s AND status IN ('queued','running') ORDER BY id DESC LIMIT 1",
@@ -508,7 +512,7 @@ if (!function_exists('seo_health_scan_active_run')) {
 if (!function_exists('seo_health_scan_latest_run')) {
     function seo_health_scan_latest_run($scope) {
         global $wpdb;
-        $table = seo_health_scan_tables()['runs'];
+        $table = esc_sql( seo_health_scan_tables()['runs'] );
         return $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM {$table} WHERE scope=%s ORDER BY id DESC LIMIT 1", $scope),
             ARRAY_A
@@ -529,7 +533,7 @@ if (!function_exists('seo_health_scan_select_batch')) {
      */
     function seo_health_scan_select_batch($scope, $mode, $limit) {
         global $wpdb;
-        $table = seo_health_scan_tables()['items'];
+        $table = esc_sql( seo_health_scan_tables()['items'] );
         $limit = max(1, min(2000, absint($limit)));
 
         if ($mode === 'load_test') {
@@ -638,6 +642,10 @@ if (!function_exists('seo_health_scan_launch')) {
         }
 
         $tables = seo_health_scan_tables();
+        // Escape only trusted WP-prefixed SQL identifiers before interpolation.
+        // WP 5.8 compatibility: do not require the %i placeholder.
+        $tables['runs']  = esc_sql( $tables['runs'] );
+        $tables['items'] = esc_sql( $tables['items'] );
         $total_items = count($batch);
 
         $scan_uuid = wp_generate_uuid4();
@@ -746,6 +754,10 @@ if (!function_exists('seo_health_scan_handle_action')) {
         if ($task === 'cancel') {
             global $wpdb;
             $tables = seo_health_scan_tables();
+            // Escape only trusted WP-prefixed SQL identifiers before interpolation.
+            // WP 5.8 compatibility: do not require the %i placeholder.
+            $tables['runs']  = esc_sql( $tables['runs'] );
+            $tables['items'] = esc_sql( $tables['items'] );
             $active = seo_health_scan_active_run($scope);
             if ($active) {
                 $now = current_time('mysql', true);
@@ -794,6 +806,10 @@ if (!function_exists('seo_health_scan_auth_run')) {
         }
         global $wpdb;
         $tables = seo_health_scan_tables();
+        // Escape only trusted WP-prefixed SQL identifiers before interpolation.
+        // WP 5.8 compatibility: do not require the %i placeholder.
+        $tables['runs']  = esc_sql( $tables['runs'] );
+        $tables['items'] = esc_sql( $tables['items'] );
         $runs_table = $tables['runs'];
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table name from $wpdb->prefix; scan_uuid is bound through prepare().
         $run = $wpdb->get_row(
@@ -821,6 +837,10 @@ if (!function_exists('seo_health_scan_rest_batch')) {
         }
         global $wpdb;
         $tables = seo_health_scan_tables();
+        // Escape only trusted WP-prefixed SQL identifiers before interpolation.
+        // WP 5.8 compatibility: do not require the %i placeholder.
+        $tables['runs']  = esc_sql( $tables['runs'] );
+        $tables['items'] = esc_sql( $tables['items'] );
         $items_table = $tables['items'];
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table name from $wpdb->prefix; queued_scan_id is bound through prepare().
         $items = $wpdb->get_results(
@@ -887,7 +907,7 @@ if (!function_exists('seo_health_scan_store_results')) {
      */
     function seo_health_scan_store_results($run, array $results) {
         global $wpdb;
-        $table = seo_health_scan_tables()['items'];
+        $table = esc_sql( seo_health_scan_tables()['items'] );
         $run_id = absint($run['id'] ?? 0);
         $stored = 0;
         $ignored = 0;
@@ -978,6 +998,10 @@ if (!function_exists('seo_health_scan_refresh_run')) {
     function seo_health_scan_refresh_run($run_id) {
         global $wpdb;
         $tables = seo_health_scan_tables();
+        // Escape only trusted WP-prefixed SQL identifiers before interpolation.
+        // WP 5.8 compatibility: do not require the %i placeholder.
+        $tables['runs']  = esc_sql( $tables['runs'] );
+        $tables['items'] = esc_sql( $tables['items'] );
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT
@@ -1024,6 +1048,10 @@ if (!function_exists('seo_health_scan_rest_results')) {
         $now = current_time('mysql', true);
         global $wpdb;
         $tables = seo_health_scan_tables();
+        // Escape only trusted WP-prefixed SQL identifiers before interpolation.
+        // WP 5.8 compatibility: do not require the %i placeholder.
+        $tables['runs']  = esc_sql( $tables['runs'] );
+        $tables['items'] = esc_sql( $tables['items'] );
 
         if ($event === 'start') {
             $wpdb->update($tables['runs'], array('status'=>'running','started_at'=>$now,'updated_at'=>$now), array('id'=>absint($run['id'])), array('%s','%s','%s'), array('%d'));
@@ -1232,7 +1260,7 @@ if (!function_exists('seo_health_render_scope_tab')) {
         }
 
         global $wpdb;
-        $table = seo_health_scan_tables()['items'];
+        $table = esc_sql( seo_health_scan_tables()['items'] );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Health Scan status filter.
         $filter = isset($_GET['health_filter']) ? sanitize_key(wp_unslash($_GET['health_filter'])) : 'error';
         if (!in_array($filter, array('error','warning','pending','ok','all'), true)) {
