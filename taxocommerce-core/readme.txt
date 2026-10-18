@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.1
+Stable tag: 0.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,13 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.4.2 =
+* Added a dedicated "Ampliar familia" screen in Core.
+* TaxoCommerce Import-Export and TaxoCommerce Images are always visible there, even before installation.
+* Each family extension offers WordPress.org search and ZIP upload when not installed.
+* Installed extensions can be activated from the family screen.
+* Active extensions can be opened or managed from Core.
 
 = 0.4.1 =
 * Added TaxoCommerce Images to the built-in family catalog.
