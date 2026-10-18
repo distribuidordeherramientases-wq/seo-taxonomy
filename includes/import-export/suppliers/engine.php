@@ -5982,6 +5982,7 @@ function seo_proveedores_render_catalogo() {
 
     // El servicio se muestra solo cuando el catalogo intermedio existe.
     do_action( 'seo_vevor_region_batch_card' );
+    do_action( 'seo_vevor_fr_categories_card' );
 
     // The read-only supplier catalog CSV export was already implemented but
     // never rendered. Show it before the catalog filters so a regional VEVOR
