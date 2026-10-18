@@ -9,69 +9,6 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Fallback classification is a market-local child, never a Spanish category.
- */
-function seo_vevor_normal_import_category( array $row ) {
-    static $cache = array();
-
-    $market = strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) );
-    $path   = (string) ( $row['categoria_proveedor'] ?? '' );
-    $key    = $market . ':' . md5( $path );
-    if ( isset( $cache[ $key ] ) ) {
-        return $cache[ $key ];
-    }
-
-    $category = seo_vevor_region_category_for_offer( $row );
-    if ( ! is_wp_error( $category ) ) {
-        $cache[ $key ] = absint( $category );
-        return $cache[ $key ];
-    }
-    if ( ! in_array( $category->get_error_code(), array( 'vevor_category_missing', 'vevor_category_review' ), true ) ) {
-        return $category;
-    }
-
-    $slugs = array( 'US' => 'vevor-us', 'DE' => 'vevor-de', 'NL' => 'vevor-nl' );
-    $names = array(
-        'US' => 'Pending classification',
-        'DE' => 'Noch einzuordnen',
-        'NL' => 'Nog te categoriseren',
-    );
-    if ( ! isset( $slugs[ $market ] ) ) {
-        return new WP_Error( 'vevor_market_invalid', 'Pais VEVOR no soportado.' );
-    }
-
-    $root = get_term_by( 'slug', $slugs[ $market ], 'product_cat' );
-    if ( ! $root instanceof WP_Term ) {
-        return new WP_Error( 'vevor_market_root_missing', 'Falta la categoria raiz VEVOR ' . $market . '.' );
-    }
-    $slug = 'vevor-' . strtolower( $market ) . '-clasificar';
-    $term = get_term_by( 'slug', $slug, 'product_cat' );
-    if ( $term instanceof WP_Term && absint( $term->parent ) !== absint( $root->term_id ) ) {
-        return new WP_Error( 'vevor_category_conflict', 'La categoria de revision esta en otro mercado.' );
-    }
-    if ( ! $term ) {
-        $inserted = wp_insert_term(
-            $names[ $market ],
-            'product_cat',
-            array( 'parent' => absint( $root->term_id ), 'slug' => $slug )
-        );
-        if ( is_wp_error( $inserted ) ) {
-            if ( 'term_exists' !== $inserted->get_error_code() ) {
-                return $inserted;
-            }
-            $term = get_term_by( 'slug', $slug, 'product_cat' );
-        } else {
-            $term = get_term( absint( $inserted['term_id'] ), 'product_cat' );
-        }
-    }
-    if ( ! $term instanceof WP_Term || absint( $term->parent ) !== absint( $root->term_id ) ) {
-        return new WP_Error( 'vevor_category_conflict', 'No se puede asignar la categoria de revision del pais.' );
-    }
-    $cache[ $key ] = absint( $term->term_id );
-    return $cache[ $key ];
-}
-
 function seo_vevor_normal_import_schedule( $delay = 0, $from_worker = false ) {
     $hook  = 'seo_vevor_normal_import_tick';
     $group = 'seo-supplier-import';
@@ -219,9 +156,8 @@ function seo_vevor_normal_import_tick() {
             $cursor = absint( $row['id'] );
             $market = strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) );
             try {
-                $category = seo_vevor_normal_import_category( $row );
-                $result = is_wp_error( $category ) ? $category :
-                    seo_vevor_region_apply_offer( $row, $market, absint( $category ) );
+                // New WC drafts remain in the WooCommerce default category.
+                $result = seo_vevor_region_apply_offer( $row, $market );
             } catch ( Throwable $exception ) {
                 $result = new WP_Error( 'vevor_import_exception', $exception->getMessage() );
             }
@@ -230,14 +166,6 @@ function seo_vevor_normal_import_tick() {
                 $state['errors'] = absint( $state['errors'] ?? 0 ) + 1;
                 $state['last_error'] = '#' . $cursor . ': ' . substr( $result->get_error_message(), 0, 200 );
             } else {
-                $product_id = absint( $result['product_id'] ?? 0 );
-                if ( $product_id && get_post_status( $product_id ) === 'draft' ) {
-                    $assigned = get_post_meta( $product_id, '_seo_vevor_source_category', true );
-                    $fallback = get_term_by( 'slug', 'vevor-' . strtolower( $market ) . '-clasificar', 'product_cat' );
-                    if ( $fallback instanceof WP_Term && has_term( $fallback->term_id, 'product_cat', $product_id ) ) {
-                        update_post_meta( $product_id, '_seo_vevor_category_review', '1' );
-                    }
-                }
                 $state['created'] = absint( $state['created'] ?? 0 ) + ( ! empty( $result['created'] ) ? 1 : 0 );
                 $state['linked'] = absint( $state['linked'] ?? 0 ) + ( empty( $result['created'] ) ? 1 : 0 );
             }
