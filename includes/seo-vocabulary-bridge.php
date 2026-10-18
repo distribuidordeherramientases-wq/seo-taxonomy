@@ -85,9 +85,9 @@ if (!function_exists('seo_catalog_get_product_roles')) {
         $product_ids = array_values(array_unique(array_filter(array_map('absint', (array) $product_ids))));
         $result = [];
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_table = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_table = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
 
         if (!seo_catalog_table_exists($vocabulary_table) || !seo_catalog_table_exists($object_table)) {
             return $result;
@@ -171,7 +171,7 @@ if (!function_exists('seo_catalog_get_product_legacy_ambito')) {
             return '';
         }
 
-        $nodes_table = $wpdb->prefix . 'seo_nodes';
+        $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (!seo_catalog_table_exists($nodes_table)) {
             return '';
         }
@@ -233,9 +233,9 @@ if (!function_exists('seo_catalog_get_product_role_from_type')) {
             return '';
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_table = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_table = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
         if (
             !seo_catalog_table_exists($vocabulary_table)
             || !seo_catalog_table_exists($object_table)
@@ -319,8 +319,8 @@ if (!function_exists('seo_catalog_assign_provisional_product_role')) {
             return $derived === $role;
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna derivada de $wpdb->prefix; el slug se enlaza mediante placeholder.
         $role_sql = $wpdb->prepare(
@@ -422,9 +422,9 @@ if (!function_exists('seo_catalog_sync_product_role_from_type')) {
             return false;
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_table = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_table = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
 
         if (!seo_catalog_table_exists($type_role_table)) {
             return false;
@@ -576,7 +576,7 @@ if (!function_exists('seo_catalog_find_active_vocabulary_term')) {
             return null;
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!seo_catalog_table_exists($vocabulary_table)) {
             return null;
         }
@@ -630,8 +630,8 @@ if (!function_exists('seo_catalog_replace_product_vocabulary_group')) {
             return false;
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         if (!seo_catalog_table_exists($vocabulary_table) || !seo_catalog_table_exists($object_table)) {
             return false;
         }
@@ -751,8 +751,8 @@ if (!function_exists('seo_catalog_get_role_for_type_vocabulary')) {
             return null;
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $type_role_table = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $type_role_table = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
         if (!seo_catalog_table_exists($vocabulary_table) || !seo_catalog_table_exists($type_role_table)) {
             return null;
         }
@@ -808,9 +808,9 @@ if (!function_exists('seo_catalog_apply_product_vocabulary_changes')) {
             $source = 'vocabulary_csv';
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_table = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_table = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
         if (!seo_catalog_table_exists($vocabulary_table) || !seo_catalog_table_exists($object_table)) {
             return ['ok' => false, 'message' => 'No están disponibles las tablas canónicas de vocabulario.'];
         }
@@ -1030,8 +1030,8 @@ if (!function_exists('seo_catalog_get_product_public_semantic_labels')) {
             return [];
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         if (!seo_catalog_table_exists($vocabulary_table) || !seo_catalog_table_exists($object_table)) {
             return [];
         }
