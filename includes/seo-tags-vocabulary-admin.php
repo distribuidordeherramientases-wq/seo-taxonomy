@@ -2397,6 +2397,10 @@ if (!function_exists('seo_semantic_attributes_get_summary')) {
             return [];
         }
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         // Core provides a cached product count, invalidated on post changes.
         $product_counts = wp_count_posts( 'product' );
         $total_products = isset( $product_counts->publish ) ? absint( $product_counts->publish ) : 0;
@@ -2521,6 +2525,10 @@ if (!function_exists('seo_semantic_attributes_render_definitions')) {
     function seo_semantic_attributes_render_definitions() {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $edit_id = absint(seo_tags_vocab_query_arg('edit_attribute', 0));
         $editing = $edit_id > 0
             ? $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$tables['definitions']}` WHERE id=%d LIMIT 1", $edit_id), ARRAY_A)
@@ -2589,6 +2597,10 @@ if (!function_exists('seo_semantic_attributes_render_terms')) {
     function seo_semantic_attributes_render_terms() {
         global $wpdb;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         $definitions = $wpdb->get_results(
             "SELECT * FROM `{$tables['definitions']}` WHERE tipo='termino' ORDER BY activo DESC,orden ASC,nombre ASC",
             ARRAY_A
@@ -2698,6 +2710,10 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
         }
 
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         foreach (['definitions', 'terms', 'values'] as $required_key) {
             if (empty($tables[$required_key]) || !seo_tags_vocab_table_exists($tables[$required_key])) {
                 echo '<div class="notice notice-error inline"><p>No está disponible la tabla canónica de atributos requerida: <code>' . esc_html((string) ($tables[$required_key] ?? $required_key)) . '</code>.</p></div>';
@@ -3434,6 +3450,10 @@ if (!function_exists('seo_assignment_query_products')) {
         }
         if ($kind === 'product_attributes' && function_exists('seo_attributes_tables')) {
             $tables = seo_attributes_tables();
+            $tables['definitions'] = esc_sql( $tables['definitions'] );
+            $tables['terms'] = esc_sql( $tables['terms'] );
+            $tables['aliases'] = esc_sql( $tables['aliases'] );
+            $tables['values'] = esc_sql( $tables['values'] );
             if ($coverage === 'without') $where[] = "NOT EXISTS (SELECT 1 FROM `{$tables['values']}` pa WHERE pa.product_id=p.ID)";
             elseif ($coverage === 'with') $where[] = "EXISTS (SELECT 1 FROM `{$tables['values']}` pa WHERE pa.product_id=p.ID)";
         } elseif ($kind === 'product_labels') {
@@ -4362,6 +4382,10 @@ if (!function_exists('seo_assignment_example_attribute_payload')) {
         $out = [];
         if (!function_exists('seo_attributes_tables')) return $out;
         $tables = seo_attributes_tables();
+        $tables['definitions'] = esc_sql( $tables['definitions'] );
+        $tables['terms'] = esc_sql( $tables['terms'] );
+        $tables['aliases'] = esc_sql( $tables['aliases'] );
+        $tables['values'] = esc_sql( $tables['values'] );
         if (empty($tables['definitions']) || !seo_tags_vocab_table_exists($tables['definitions'])) return $out;
 
         $preferred = ['diametro', 'materiales_compatibles', 'material', 'longitud', 'numero_piezas'];
