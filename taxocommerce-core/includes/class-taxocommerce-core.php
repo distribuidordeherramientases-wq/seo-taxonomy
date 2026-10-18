@@ -36,6 +36,13 @@ final class TaxoCommerce_Core {
 	private $logger = null;
 
 	/**
+	 * Hierarchy manager.
+	 *
+	 * @var TaxoCommerce_Core_Hierarchy|null
+	 */
+	private $hierarchy = null;
+
+	/**
 	 * Content manager.
 	 *
 	 * @var TaxoCommerce_Core_Content_Manager|null
@@ -78,8 +85,9 @@ final class TaxoCommerce_Core {
 			return;
 		}
 
-		$this->logger  = new TaxoCommerce_Core_Logger();
-		$this->content = new TaxoCommerce_Core_Content_Manager( $this->logger );
+		$this->logger    = new TaxoCommerce_Core_Logger();
+		$this->hierarchy = new TaxoCommerce_Core_Hierarchy( $this->logger );
+		$this->content   = new TaxoCommerce_Core_Content_Manager( $this->logger );
 
 		$this->register_module(
 			'core',
@@ -109,6 +117,7 @@ final class TaxoCommerce_Core {
 		add_action( 'admin_post_taxocommerce_core_clear_logs', array( $this, 'clear_logs' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_CORE_BASENAME, array( $this, 'plugin_action_links' ) );
 
+		$this->hierarchy->register_hooks();
 		$this->content->register_hooks();
 		$this->booted = true;
 
@@ -177,7 +186,7 @@ final class TaxoCommerce_Core {
 			__( 'Jerarquía SEO', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core-hierarchy',
-			array( $this, 'render_hierarchy' )
+			array( $this->hierarchy, 'render' )
 		);
 
 		add_submenu_page(
@@ -325,6 +334,15 @@ final class TaxoCommerce_Core {
 	}
 
 	/**
+	 * Returns hierarchy manager.
+	 *
+	 * @return TaxoCommerce_Core_Hierarchy|null
+	 */
+	public function hierarchy() {
+		return $this->hierarchy;
+	}
+
+	/**
 	 * Detects legacy plugin.
 	 *
 	 * @return bool
@@ -375,7 +393,7 @@ final class TaxoCommerce_Core {
 				</thead>
 				<tbody>
 					<tr><td><strong><?php echo esc_html__( 'Contenidos', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Edición de productos, categorías WooCommerce, posts y páginas repartida entre WordPress, WooCommerce y herramientas TaxoCommerce.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Piloto funcional', 'taxocommerce-core' ); ?></td></tr>
-					<tr><td><strong><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría → Producto; nodos y relaciones del sistema actual.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Pendiente de migrar', 'taxocommerce-core' ); ?></td></tr>
+					<tr><td><strong><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría → Producto; nodos y relaciones del sistema actual.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Migrado al modelo nativo del Core', 'taxocommerce-core' ); ?></td></tr>
 					<tr><td><strong><?php echo esc_html__( 'Procesos automáticos', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Supervisor, Gestor de procesos, workers, WP-Cron, cursores, colas y recuperaciones del plugin actual.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Contrato creado; motores pendientes', 'taxocommerce-core' ); ?></td></tr>
 					<tr><td><strong><?php echo esc_html__( 'Extensiones', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Los módulos que hoy viven dentro del monolito: Imágenes, Vocabulary, Auditor, Mercado, Proveedores, Assistant, etc.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Sistema nuevo', 'taxocommerce-core' ); ?></td></tr>
 					<tr><td><strong><?php echo esc_html__( 'Registro técnico', 'taxocommerce-core' ); ?></strong></td><td><?php echo esc_html__( 'Logs y diagnósticos que actualmente están repartidos entre distintos servicios y pantallas.', 'taxocommerce-core' ); ?></td><td><?php echo esc_html__( 'Base funcional', 'taxocommerce-core' ); ?></td></tr>
