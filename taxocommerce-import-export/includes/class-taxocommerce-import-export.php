@@ -1,0 +1,265 @@
+<?php
+/**
+ * Main plugin coordinator.
+ *
+ * @package TaxoCommerceImportExport
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Coordinates administration and Core integration.
+ */
+final class TaxoCommerce_Import_Export {
+
+	/**
+	 * Singleton instance.
+	 *
+	 * @var TaxoCommerce_Import_Export|null
+	 */
+	private static $instance = null;
+
+	/**
+	 * CSV service.
+	 *
+	 * @var TaxoCommerce_Import_Export_CSV|null
+	 */
+	private $csv = null;
+
+	/**
+	 * Media service.
+	 *
+	 * @var TaxoCommerce_Import_Export_Media|null
+	 */
+	private $media = null;
+
+	/**
+	 * Returns singleton.
+	 *
+	 * @return TaxoCommerce_Import_Export
+	 */
+	public static function instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Boots hooks.
+	 *
+	 * @return void
+	 */
+	public function boot() {
+		$this->csv   = new TaxoCommerce_Import_Export_CSV();
+		$this->media = new TaxoCommerce_Import_Export_Media();
+
+		add_action( 'admin_menu', array( $this, 'register_menu' ), 40 );
+		add_action( 'admin_post_taxocommerce_import_export_export', array( $this->csv, 'handle_export' ) );
+		add_action( 'admin_post_taxocommerce_import_export_import', array( $this->csv, 'handle_import' ) );
+		add_action( 'admin_post_taxocommerce_import_export_media_export', array( $this->media, 'handle_export' ) );
+		add_action( 'admin_post_taxocommerce_import_export_media_import', array( $this->media, 'handle_import' ) );
+		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_IMPORT_EXPORT_BASENAME, array( $this, 'plugin_action_links' ) );
+	}
+
+	/**
+	 * Registers plugin in TaxoCommerce Core when Core is active.
+	 *
+	 * Do not invoke translations here because Core registration runs before init.
+	 *
+	 * @param object $core Core registry.
+	 * @return void
+	 */
+	public function register_in_core( $core ) {
+		if ( ! is_object( $core ) || ! method_exists( $core, 'register_module' ) ) {
+			return;
+		}
+
+		$core->register_module(
+			'import_export',
+			array(
+				'name'        => 'TaxoCommerce Import-Export',
+				'version'     => TAXOCOMMERCE_IMPORT_EXPORT_VERSION,
+				'status'      => 'active',
+				'description' => 'Importación y exportación de catálogo, contenidos y Media.',
+				'admin_url'   => admin_url( 'admin.php?page=taxocommerce-import-export' ),
+			)
+		);
+	}
+
+	/**
+	 * Registers admin menu.
+	 *
+	 * @return void
+	 */
+	public function register_menu() {
+		$capability = $this->capability();
+
+		if ( function_exists( 'taxocommerce_core' ) ) {
+			add_submenu_page(
+				'taxocommerce-core',
+				__( 'Importar / Exportar', 'taxocommerce-import-export' ),
+				__( 'Importar / Exportar', 'taxocommerce-import-export' ),
+				$capability,
+				'taxocommerce-import-export',
+				array( $this, 'render_page' )
+			);
+			return;
+		}
+
+		add_menu_page(
+			__( 'TaxoCommerce Import-Export', 'taxocommerce-import-export' ),
+			__( 'TaxoCommerce Import-Export', 'taxocommerce-import-export' ),
+			$capability,
+			'taxocommerce-import-export',
+			array( $this, 'render_page' ),
+			'dashicons-database-import',
+			58
+		);
+	}
+
+	/**
+	 * Plugin-list shortcut.
+	 *
+	 * @param array $links Links.
+	 * @return array
+	 */
+	public function plugin_action_links( $links ) {
+		array_unshift(
+			$links,
+			'<a href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-import-export' ) ) . '">' . esc_html__( 'Abrir', 'taxocommerce-import-export' ) . '</a>'
+		);
+		return $links;
+	}
+
+	/**
+	 * Renders administration page.
+	 *
+	 * @return void
+	 */
+	public function render_page() {
+		$this->guard();
+
+		$result = isset( $_GET['tc_ie_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
+		$count  = isset( $_GET['tc_ie_count'] ) ? absint( $_GET['tc_ie_count'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
+		$error  = isset( $_GET['tc_ie_error'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_ie_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
+		$kind   = isset( $_GET['tc_ie_kind'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_kind'] ) ) : 'csv'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html__( 'TaxoCommerce Import-Export', 'taxocommerce-import-export' ); ?></h1>
+			<p><?php echo esc_html__( 'Un único punto de intercambio para productos, categorías, posts, páginas y Biblioteca de Medios.', 'taxocommerce-import-export' ); ?></p>
+
+			<?php if ( 'ok' === $result ) : ?>
+				<div class="notice notice-success is-dismissible"><p>
+					<?php
+					if ( 'media' === $kind ) {
+						echo esc_html( sprintf( __( 'Importación de Media completada. Imágenes importadas: %d.', 'taxocommerce-import-export' ), $count ) );
+					} else {
+						echo esc_html( sprintf( __( 'Importación completada. Filas procesadas: %d.', 'taxocommerce-import-export' ), $count ) );
+					}
+					?>
+				</p></div>
+			<?php elseif ( 'error' === $result && $error ) : ?>
+				<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
+			<?php endif; ?>
+
+			<h2><?php echo esc_html__( 'Datos y contenidos', 'taxocommerce-import-export' ); ?></h2>
+			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;max-width:1200px;">
+				<div class="card" style="max-width:none;">
+					<h3><?php echo esc_html__( 'Exportar CSV', 'taxocommerce-import-export' ); ?></h3>
+					<p><?php echo esc_html__( 'Genera un CSV completo del tipo de contenido seleccionado.', 'taxocommerce-import-export' ); ?></p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="taxocommerce_import_export_export">
+						<?php wp_nonce_field( 'taxocommerce_import_export_export', 'taxocommerce_import_export_nonce' ); ?>
+						<p>
+							<label for="tc-ie-export-type"><strong><?php echo esc_html__( 'Contenido', 'taxocommerce-import-export' ); ?></strong></label><br>
+							<select id="tc-ie-export-type" name="content_type">
+								<option value="products"><?php echo esc_html__( 'Productos', 'taxocommerce-import-export' ); ?></option>
+								<option value="product_categories"><?php echo esc_html__( 'Categorías de producto', 'taxocommerce-import-export' ); ?></option>
+								<option value="posts"><?php echo esc_html__( 'Posts', 'taxocommerce-import-export' ); ?></option>
+								<option value="pages"><?php echo esc_html__( 'Páginas', 'taxocommerce-import-export' ); ?></option>
+							</select>
+						</p>
+						<?php submit_button( __( 'Descargar CSV', 'taxocommerce-import-export' ), 'primary', 'submit', false ); ?>
+					</form>
+				</div>
+
+				<div class="card" style="max-width:none;">
+					<h3><?php echo esc_html__( 'Importar CSV', 'taxocommerce-import-export' ); ?></h3>
+					<p><?php echo esc_html__( 'Importa un CSV generado por este plugin.', 'taxocommerce-import-export' ); ?></p>
+					<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="taxocommerce_import_export_import">
+						<?php wp_nonce_field( 'taxocommerce_import_export_import', 'taxocommerce_import_export_nonce' ); ?>
+						<p>
+							<label for="tc-ie-import-file"><strong><?php echo esc_html__( 'Archivo CSV', 'taxocommerce-import-export' ); ?></strong></label><br>
+							<input id="tc-ie-import-file" type="file" name="csv_file" accept=".csv,text/csv" required>
+						</p>
+						<?php submit_button( __( 'Importar CSV', 'taxocommerce-import-export' ), 'primary', 'submit', false ); ?>
+					</form>
+				</div>
+			</div>
+
+			<h2><?php echo esc_html__( 'Media · imágenes', 'taxocommerce-import-export' ); ?></h2>
+			<p><?php echo esc_html__( 'Las imágenes se transportan aquí, no desde TaxoCommerce Images. El paquete contiene originales, metadatos y relaciones; las miniaturas se regeneran al importar.', 'taxocommerce-import-export' ); ?></p>
+			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;max-width:1200px;">
+				<div class="card" style="max-width:none;">
+					<h3><?php echo esc_html__( 'Exportar Media', 'taxocommerce-import-export' ); ?></h3>
+					<p><?php echo esc_html__( 'Genera un ZIP con media.csv, manifest.json y los archivos originales de las imágenes.', 'taxocommerce-import-export' ); ?></p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="taxocommerce_import_export_media_export">
+						<?php wp_nonce_field( 'taxocommerce_import_export_media_export', 'taxocommerce_import_export_nonce' ); ?>
+						<?php submit_button( __( 'Descargar ZIP de Media', 'taxocommerce-import-export' ), 'primary', 'submit', false ); ?>
+					</form>
+				</div>
+
+				<div class="card" style="max-width:none;">
+					<h3><?php echo esc_html__( 'Importar Media', 'taxocommerce-import-export' ); ?></h3>
+					<p><?php echo esc_html__( 'Importa un ZIP generado por TaxoCommerce Import-Export. Los archivos se crean como attachments reales en Media.', 'taxocommerce-import-export' ); ?></p>
+					<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="taxocommerce_import_export_media_import">
+						<?php wp_nonce_field( 'taxocommerce_import_export_media_import', 'taxocommerce_import_export_nonce' ); ?>
+						<p>
+							<label for="tc-ie-media-file"><strong><?php echo esc_html__( 'Paquete ZIP de Media', 'taxocommerce-import-export' ); ?></strong></label><br>
+							<input id="tc-ie-media-file" type="file" name="media_zip" accept=".zip,application/zip" required>
+						</p>
+						<?php submit_button( __( 'Importar ZIP de Media', 'taxocommerce-import-export' ), 'primary', 'submit', false ); ?>
+					</form>
+				</div>
+			</div>
+
+			<h2><?php echo esc_html__( 'Qué se transporta', 'taxocommerce-import-export' ); ?></h2>
+			<table class="widefat striped" style="max-width:1200px;">
+				<thead><tr><th><?php echo esc_html__( 'Tipo', 'taxocommerce-import-export' ); ?></th><th><?php echo esc_html__( 'Contenido', 'taxocommerce-import-export' ); ?></th></tr></thead>
+				<tbody>
+					<tr><td><?php echo esc_html__( 'Productos', 'taxocommerce-import-export' ); ?></td><td><?php echo esc_html__( 'ID, tipo, estado, nombre, slug, SKU, precios, stock, descripciones, categorías, etiquetas, atributos y datos de producto externo.', 'taxocommerce-import-export' ); ?></td></tr>
+					<tr><td><?php echo esc_html__( 'Categorías', 'taxocommerce-import-export' ); ?></td><td><?php echo esc_html__( 'ID, nombre, slug, padre, descripción e imagen.', 'taxocommerce-import-export' ); ?></td></tr>
+					<tr><td><?php echo esc_html__( 'Posts / Páginas', 'taxocommerce-import-export' ); ?></td><td><?php echo esc_html__( 'ID, estado, título, slug, extracto, contenido, fecha, autor y taxonomías.', 'taxocommerce-import-export' ); ?></td></tr>
+					<tr><td><?php echo esc_html__( 'Media · imágenes', 'taxocommerce-import-export' ); ?></td><td><?php echo esc_html__( 'Archivo original, título, ALT, leyenda, descripción, post_parent, imagen destacada, galería WooCommerce e imagen de categoría.', 'taxocommerce-import-export' ); ?></td></tr>
+				</tbody>
+			</table>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Required capability.
+	 *
+	 * @return string
+	 */
+	private function capability() {
+		return (string) apply_filters( 'taxocommerce_import_export_capability', 'manage_woocommerce' );
+	}
+
+	/**
+	 * Guard.
+	 *
+	 * @return void
+	 */
+	private function guard() {
+		if ( ! current_user_can( $this->capability() ) && ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'No tienes permisos para gestionar TaxoCommerce Import-Export.', 'taxocommerce-import-export' ) );
+		}
+	}
+}
