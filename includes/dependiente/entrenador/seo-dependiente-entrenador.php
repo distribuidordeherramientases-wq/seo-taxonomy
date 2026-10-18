@@ -8121,6 +8121,164 @@ final class SEO_Dependiente_Entrenador {
         return absint($wpdb->insert_id);
     }
 
+    /**
+     * Fast path de Actualización M4 (Características).
+     *
+     * Valida exhaustivamente las restricciones esperadas contra la fila ya
+     * indexada del producto. M8 conserva la regresión end-to-end del buscador.
+     */
+    public static function update_run_feature_question($question, $batch_uuid) {
+        global $wpdb;
+
+        $question = (array) $question;
+        $question_id = absint($question['id'] ?? 0);
+        $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        if (!$question_id || !$lesson_key) {
+            return 0;
+        }
+
+        $runs_table = self::runs_table();
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; valores enlazados.
+        $existing = absint($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$runs_table} WHERE question_id=%d AND lesson_key=%s AND status IN ('answered','error') ORDER BY id DESC LIMIT 1",
+            $question_id,
+            $lesson_key
+        )));
+        if ($existing) {
+            return $existing;
+        }
+
+        $expected = self::decode_json($question['expected_json'] ?? '');
+        $features = array_values(array_filter((array) ($expected['features'] ?? array()), 'is_array'));
+        $product_id = absint($expected['source_product_id'] ?? $question['source_id'] ?? 0);
+
+        static $row_cache = array();
+        $row = array();
+        if ($product_id && isset($row_cache[$product_id])) {
+            $row = $row_cache[$product_id];
+        } elseif (
+            $product_id
+            && class_exists('SEO_Dependiente_Index')
+            && SEO_Dependiente_Index::table_exists()
+        ) {
+            $index_table = SEO_Dependiente_Index::table();
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna; ID enlazado.
+            $row = (array) $wpdb->get_row($wpdb->prepare(
+                "SELECT product_id,vocabulary_json,tags_json,attributes_json FROM {$index_table} WHERE product_id=%d LIMIT 1",
+                $product_id
+            ), ARRAY_A);
+            $row_cache[$product_id] = $row;
+        }
+
+        $vocabulary = self::decode_json($row['vocabulary_json'] ?? '');
+        $tags = self::decode_json($row['tags_json'] ?? '');
+        $attributes = self::decode_json($row['attributes_json'] ?? '');
+
+        $matched = 0;
+        $checks = array();
+        foreach ($features as $feature) {
+            $kind = sanitize_key((string) ($feature['kind'] ?? ''));
+            $ok = false;
+
+            if ('vocabulary' === $kind) {
+                $group = sanitize_key((string) ($feature['group'] ?? ''));
+                $slug = sanitize_title((string) ($feature['slug'] ?? ''));
+                foreach ((array) ($vocabulary[$group] ?? array()) as $term) {
+                    if ($slug && $slug === sanitize_title((string) ($term['slug'] ?? ''))) {
+                        $ok = true;
+                        break;
+                    }
+                }
+            } elseif ('attribute' === $kind) {
+                $key = sanitize_title((string) ($feature['key'] ?? ''));
+                $value = SEO_Dependiente_Index::normalize((string) ($feature['value'] ?? ''));
+                foreach ((array) $attributes as $attribute) {
+                    $candidate_key = sanitize_title((string) ($attribute['key'] ?? $attribute['label'] ?? ''));
+                    if ($key && $candidate_key !== $key) {
+                        continue;
+                    }
+                    foreach ((array) ($attribute['values'] ?? array()) as $candidate_value) {
+                        if ($value && $value === SEO_Dependiente_Index::normalize((string) $candidate_value)) {
+                            $ok = true;
+                            break 2;
+                        }
+                    }
+                }
+            } elseif ('tag' === $kind) {
+                $slug = sanitize_title((string) ($feature['slug'] ?? ''));
+                foreach ((array) $tags as $tag) {
+                    $candidate = sanitize_title((string) ($tag['slug'] ?? $tag['name'] ?? ''));
+                    if ($slug && $candidate === $slug) {
+                        $ok = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($ok) {
+                $matched++;
+            }
+            $checks[] = array(
+                'kind' => $kind,
+                'matched' => $ok,
+                'group' => sanitize_key((string) ($feature['group'] ?? '')),
+                'key' => sanitize_title((string) ($feature['key'] ?? '')),
+                'slug' => sanitize_title((string) ($feature['slug'] ?? '')),
+            );
+        }
+
+        $total = count($features);
+        $valid = $product_id > 0 && !empty($row) && $total > 0 && $matched === $total;
+        $evaluation = array(
+            'status' => $valid ? 'pass_top1' : 'fail',
+            'score' => $valid ? 1 : ($total > 0 ? round($matched / $total, 4) : 0),
+            'matched_product_id' => $valid ? $product_id : null,
+            'matched_position' => $valid ? 1 : null,
+            'diagnostic_type' => $valid ? 'feature_structure_ok' : 'feature_structure_mismatch',
+            'classroom_stage_used' => false,
+            'matched_features' => $matched,
+            'total_features' => $total,
+        );
+
+        $inserted = $wpdb->insert($runs_table, array(
+            'batch_uuid'        => (string) $batch_uuid,
+            'lesson_key'        => $lesson_key,
+            'module_no'         => absint($question['module_no'] ?? 0),
+            'question_id'       => $question_id,
+            'source_type'       => sanitize_key((string) ($question['source_type'] ?? 'features')),
+            'source_id'         => $product_id ?: null,
+            'question_type'     => sanitize_key((string) ($question['question_type'] ?? 'features')),
+            'mode'              => self::sanitize_mode($question['mode'] ?? 'need'),
+            'question'          => sanitize_text_field((string) ($question['question'] ?? '')),
+            'status'            => 'answered',
+            'result_count'      => $valid ? 1 : 0,
+            'returned_count'    => $valid ? 1 : 0,
+            'search_uuid'       => null,
+            'search_strategy'   => 'feature_structure_check',
+            'execution_ms'      => 0,
+            'evaluation_status' => $evaluation['status'],
+            'evaluation_score'  => $evaluation['score'],
+            'evaluation_json'   => wp_json_encode($evaluation, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'top_results'       => wp_json_encode(array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'response_meta'     => wp_json_encode(array(
+                'feature_check' => array(
+                    'product_id' => $product_id,
+                    'checks' => $checks,
+                ),
+            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'error_message'     => null,
+            'created_at'        => current_time('mysql'),
+        ));
+
+        if (false === $inserted) {
+            error_log('[TaxoCommerce Academia] Insert M4 feature check: ' . sanitize_text_field((string) $wpdb->last_error));
+            throw new RuntimeException('No se pudo guardar la comprobación de características de Academia.');
+        }
+
+        return absint($wpdb->insert_id);
+    }
+
+
     public static function update_question_count($lesson_key) {
         return self::question_count(sanitize_key((string) $lesson_key));
     }
