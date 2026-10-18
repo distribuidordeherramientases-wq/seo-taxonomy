@@ -5777,12 +5777,10 @@ final class SEO_Dependiente_Entrenador {
         ));
 
         if (false === $inserted) {
-            $db_error = sanitize_text_field((string) $wpdb->last_error);
-            throw new RuntimeException(
-                $db_error
-                    ? 'No se pudo guardar el resultado de Academia: ' . $db_error
-                    : 'No se pudo guardar el resultado de Academia en la base de datos.'
-            );
+            // Database details belong in the server log, not in an exception
+            // that could later be displayed in an admin notice.
+            error_log('[TaxoCommerce Academia] Insert run: ' . sanitize_text_field((string) $wpdb->last_error));
+            throw new RuntimeException('No se pudo guardar el resultado de Academia en la base de datos.');
         }
 
         return absint($wpdb->insert_id);
@@ -7952,12 +7950,8 @@ final class SEO_Dependiente_Entrenador {
         ));
 
         if (false === $inserted) {
-            $db_error = sanitize_text_field((string) $wpdb->last_error);
-            throw new RuntimeException(
-                $db_error
-                    ? 'No se pudo guardar la comprobación de inventario de Academia: ' . $db_error
-                    : 'No se pudo guardar la comprobación de inventario de Academia.'
-            );
+            error_log('[TaxoCommerce Academia] Insert inventory check: ' . sanitize_text_field((string) $wpdb->last_error));
+            throw new RuntimeException('No se pudo guardar la comprobación de inventario de Academia.');
         }
 
         return absint($wpdb->insert_id);
