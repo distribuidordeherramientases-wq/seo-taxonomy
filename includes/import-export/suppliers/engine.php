@@ -236,13 +236,6 @@ function seo_proveedores_cabecera_estandar() {
 }
 
 /**
- * Convierte una fila indexada en asociativa usando la cabecera original.
- *
- * @param array $header Cabecera.
- * @param array $row Fila.
- * @return array
- */
-/**
  * A prepared supplier CSV has the exact column set produced by our common
  * importer. Do not execute a recipe twice when an administrator reuploads it.
  *
@@ -258,6 +251,13 @@ function seo_proveedores_es_csv_estandar( $state ) {
         && empty( array_diff( $fields, $header ) );
 }
 
+/**
+ * Convierte una fila indexada en asociativa usando la cabecera original.
+ *
+ * @param array $header Cabecera.
+ * @param array $row Fila.
+ * @return array
+ */
 function seo_proveedores_fila_asociativa( $header, $row ) {
     $result = [];
 
