@@ -40,8 +40,8 @@ function seo_solo_desvincular_relacion_callback() {
     }
 
     global $wpdb;
-    $tabla_relations = $wpdb->prefix . 'seo_relations';
-    $tabla_redirects = $wpdb->prefix . 'seo_redirects';
+    $tabla_relations = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $tabla_redirects = esc_sql( $wpdb->prefix . 'seo_redirects' );
 
     // Formatear la URL Origen: Relativa y sin barra al final para tu motor SQL
     $ruta_origen = '/' . trim(wp_make_link_relative($url_origen), '/');
@@ -191,7 +191,7 @@ function seo_save_category_editor_data($term_id, array $data) {
 
     global $wpdb;
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     $update_data = [];
 
@@ -450,11 +450,11 @@ if (!function_exists('seo_category_inventory_export_batch')) {
         }
 
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-        $relations_table = $wpdb->prefix . 'seo_relations';
+        $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $posts_table = $wpdb->posts;
-        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_vocab_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $faq_table = $wpdb->prefix . 'seo_faq';
+        $vocab_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_vocab_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
 
         $hierarchy = $vocabulary = $posts = $landings = $faqs = [];
         foreach ($category_ids as $category_id) {
@@ -932,7 +932,7 @@ if (!function_exists('seo_category_inventory_render')) {
          * de posts/landings de todo el catálogo.
          */
         if ($inventory_sort === 'pressure_desc' || $inventory_sort === 'pressure_asc') {
-            $relations_sort_table = $wpdb->prefix . 'seo_relations';
+            $relations_sort_table = esc_sql( $wpdb->prefix . 'seo_relations' );
             $url_load_by_category = [];
 
             if (seo_category_inventory_table_exists($relations_sort_table)) {
@@ -1052,11 +1052,11 @@ if (!function_exists('seo_category_inventory_render')) {
         }
 
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-        $relations_table = $wpdb->prefix . 'seo_relations';
+        $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $posts_table = $wpdb->posts;
-        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_vocab_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $faq_table = $wpdb->prefix . 'seo_faq';
+        $vocab_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_vocab_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
 
         $hierarchy = [];
         $vocabulary = [];
@@ -2535,7 +2535,7 @@ if ($active_tab === 'reasignar_categorias') {
     if (!current_user_can('manage_options')) return;
 
     global $wpdb;
-    $tabla_relations = $wpdb->prefix . 'seo_relations';
+    $tabla_relations = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     // Guardado estándar mediante la API modular.
     if (isset($_POST['action']) && 'update_seo_categories' === sanitize_key(wp_unslash($_POST['action']))) {
@@ -3644,7 +3644,7 @@ wp_localize_script(
             );
         }
     
-        $table_redirects = $wpdb->prefix . 'seo_redirects';
+        $table_redirects = esc_sql( $wpdb->prefix . 'seo_redirects' );
     
         /*
          * Buscar una redirección anterior con el mismo origen.
