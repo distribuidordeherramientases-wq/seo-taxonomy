@@ -1735,8 +1735,53 @@ final class SEO_Dependiente_Entrenador {
         if ('completed' === (string) ($state['status'] ?? '')) {
             return new WP_Error('academy_completed', 'La Academia ya ha completado el trabajo pendiente.');
         }
-        if (self::controller_is_active($state) || !empty($state['worker_active'])) {
+        $worker_heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
+        $worker_fresh = !empty($state['worker_active'])
+            && $worker_heartbeat
+            && (time() - $worker_heartbeat) <= self::AUTO_DIRECT_STALE_SECONDS;
+        $controller_fresh = self::controller_is_active($state);
+
+        if ($controller_fresh || $worker_fresh) {
             return array('started' => false, 'message' => 'La Academia ya tiene un proceso propio activo.');
+        }
+
+        $recovered_stale_runtime = !empty($state['worker_active'])
+            || !empty($state['controller_active'])
+            || !empty($state['direct_worker_pending'])
+            || !empty($state['worker_pid'])
+            || !empty($state['controller_pid']);
+
+        if ($recovered_stale_runtime) {
+            self::save_auto_state(array(
+                'worker_active'              => 0,
+                'worker_pid'                 => 0,
+                'worker_heartbeat_at'        => '',
+                'worker_heartbeat_ts'        => 0,
+                'worker_finished_ts'         => time(),
+                'controller_active'          => 0,
+                'controller_pid'             => 0,
+                'controller_backend'         => '',
+                'controller_started_ts'      => 0,
+                'controller_heartbeat_ts'    => 0,
+                'controller_next_ts'         => 0,
+                'direct_worker_pending'      => 0,
+                'direct_worker_dispatch_id'  => '',
+                'direct_worker_not_before'   => 0,
+                'last_dispatch_pid'          => 0,
+                'last_dispatch_error'        => '',
+                'no_progress_cycles'         => 0,
+                'updated_at'                 => current_time('mysql'),
+            ));
+
+            // Solo reiniciamos el runtime de la cola manual. Preguntas, runs,
+            // conocimiento y progreso permanecen intactos.
+            self::save_lab_queue_state(array(
+                'next_due_ts'       => 0,
+                'no_progress_cycles'=> 0,
+                'last_error'        => '',
+                'last_processed'    => 0,
+            ));
+            $state = self::auto_state();
         }
 
         $lessons = self::lessons_by_key();
@@ -1769,7 +1814,9 @@ final class SEO_Dependiente_Entrenador {
             'last_dispatch_error'   => '',
             'controller_active'     => 0,
             'controller_heartbeat_ts' => 0,
-            'last_message'          => 'Arranque manual solicitado desde Herramientas > Procesos.',
+            'last_message'          => $recovered_stale_runtime
+                ? 'Estado de ejecución obsoleto recuperado. Academia se reanuda desde el progreso guardado.'
+                : 'Arranque manual solicitado desde Herramientas > Procesos.',
             'updated_at'            => current_time('mysql'),
         ));
 
@@ -1781,7 +1828,13 @@ final class SEO_Dependiente_Entrenador {
         }
         self::process_manager_slice(15, 'manual_manager');
 
-        return array('started' => true, 'message' => 'Academia entregada al gestor periódico.');
+        return array(
+            'started' => true,
+            'recovered_stale_runtime' => (bool) $recovered_stale_runtime,
+            'message' => $recovered_stale_runtime
+                ? 'Academia reanudada tras limpiar un estado de ejecución obsoleto. El progreso se conserva.'
+                : 'Academia entregada al gestor periódico.',
+        );
     }
 
     private static function schedule_auto_watchdog($delay = 60, $force = false) {
