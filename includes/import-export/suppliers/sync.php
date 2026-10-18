@@ -120,6 +120,38 @@ function seo_supplier_sync_ensure_schema() {
     if ( ! in_array( 'proveedor_pais_sku', (array) $wpdb->get_col( "SHOW INDEX FROM {$table}", 2 ), true ) ) {
         $wpdb->query( "ALTER TABLE {$table} ADD KEY `proveedor_pais_sku` (`proveedor`, `pais_origen`, `sku`)" );
     }
+
+    /*
+     * Legacy installations can still have UNIQUE(proveedor,
+     * proveedor_id_externo) under the name proveedor_producto. That silently
+     * rejects the same VEVOR product in another country. Replace it in one
+     * atomic ALTER only when the legacy key has the expected two columns.
+     * Do not touch other indexes or supplier data.
+     */
+    if ( in_array( 'pais_origen', $columns, true ) ) {
+        $legacy = $wpdb->get_results(
+            $wpdb->prepare(
+                "SHOW INDEX FROM {$table} WHERE Key_name = %s ORDER BY Seq_in_index ASC",
+                'proveedor_producto'
+            ),
+            ARRAY_A
+        );
+        if (
+            2 === count( (array) $legacy )
+            && 0 === (int) $legacy[0]['Non_unique']
+            && 0 === (int) $legacy[1]['Non_unique']
+            && 'proveedor' === (string) $legacy[0]['Column_name']
+            && 'proveedor_id_externo' === (string) $legacy[1]['Column_name']
+        ) {
+            $has_market_key = in_array( 'proveedor_pais_producto', (array) $wpdb->get_col( "SHOW INDEX FROM {$table}", 2 ), true );
+            $replace = $has_market_key
+                ? "ALTER TABLE {$table} DROP INDEX `proveedor_producto`"
+                : "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)";
+            if ( false === $wpdb->query( $replace ) && function_exists( 'seo_system_private_log' ) ) {
+                seo_system_private_log( 'error', 'Supplier market identity migration: ' . $wpdb->last_error );
+            }
+        }
+    }
 }
 
 /**
