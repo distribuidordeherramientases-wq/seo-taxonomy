@@ -1,0 +1,60 @@
+name: Deploy TaxoCommerce Core to STAGING
+
+on:
+  push:
+    branches:
+      - taxocommerce-core-staging
+    paths:
+      - 'taxocommerce-core/**'
+      - '.github/workflows/deploy-taxocommerce-core-staging.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Core
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Core branch
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: PHP lint
+        run: find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Guard against direct database access
+        run: |
+          if grep -R --line-number --fixed-strings '$wpdb' taxocommerce-core --include='*.php'; then
+            echo "Direct wpdb access is not allowed in the Core pilot."
+            exit 1
+          fi
+
+  deploy:
+    name: Deploy Core plugin to STAGING
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Core branch
+        uses: actions/checkout@v4
+
+      - name: Deploy TaxoCommerce Core
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-core/
+          server-dir: ./wp-content/plugins/taxocommerce-core/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak
