@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.2
+Stable tag: 0.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,11 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.4.3 =
+* Added TaxoCommerce Vocabulary to the family catalog.
+* Vocabulary is distributed by ZIP only until the owner publishes it.
+* Added support for family extensions that intentionally are not yet listed on WordPress.org.
 
 = 0.4.2 =
 * Added a dedicated "Ampliar familia" screen in Core.
