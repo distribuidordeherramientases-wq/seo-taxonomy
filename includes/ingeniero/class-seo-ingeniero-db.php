@@ -45,9 +45,9 @@ final class SEO_Ingeniero_DB {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $charset = $wpdb->get_charset_collate();
-        $sources = self::table('sources');
-        $knowledge = self::table('knowledge');
-        $editorial = self::table('editorial');
+        $sources = esc_sql( self::table('sources') );
+        $knowledge = esc_sql( self::table('knowledge') );
+        $editorial = esc_sql( self::table('editorial') );
 
         dbDelta("CREATE TABLE {$sources} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -141,10 +141,10 @@ final class SEO_Ingeniero_DB {
      */
     private static function migrate_legacy_investigador() {
         global $wpdb;
-        $legacy_sources = $wpdb->prefix . 'seo_investigador_sources';
-        $legacy_knowledge = $wpdb->prefix . 'seo_investigador_knowledge';
-        $sources = self::table('sources');
-        $knowledge = self::table('knowledge');
+        $legacy_sources = esc_sql( $wpdb->prefix . 'seo_investigador_sources' );
+        $legacy_knowledge = esc_sql( $wpdb->prefix . 'seo_investigador_knowledge' );
+        $sources = esc_sql( self::table('sources') );
+        $knowledge = esc_sql( self::table('knowledge') );
 
         $legacy_sources_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_sources)) === $legacy_sources;
         $legacy_knowledge_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_knowledge)) === $legacy_knowledge;
@@ -192,7 +192,7 @@ final class SEO_Ingeniero_DB {
 
     public static function upsert_source($data) {
         global $wpdb;
-        $table = self::table('sources');
+        $table = esc_sql( self::table('sources') );
         $url = esc_url_raw((string) ($data['url'] ?? ''));
         $term_id = absint($data['term_id'] ?? 0);
         $lesson = sanitize_key((string) ($data['lesson'] ?? 'l1_technical'));
@@ -238,7 +238,7 @@ final class SEO_Ingeniero_DB {
 
     public static function upsert_knowledge($data) {
         global $wpdb;
-        $table = self::table('knowledge');
+        $table = esc_sql( self::table('knowledge') );
         $term_id = absint($data['term_id'] ?? 0);
         $lesson = sanitize_key((string) ($data['lesson'] ?? 'l1_technical'));
         $type = sanitize_key((string) ($data['knowledge_type'] ?? ''));
@@ -279,7 +279,7 @@ final class SEO_Ingeniero_DB {
 
     public static function sources_for_category($term_id, $lesson = 'l1_technical') {
         global $wpdb;
-        $table = self::table('sources');
+        $table = esc_sql( self::table('sources') );
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$table} WHERE term_id=%d AND lesson=%s AND status<>'superseded' ORDER BY trust_level ASC,id DESC",
             absint($term_id),
@@ -344,7 +344,7 @@ final class SEO_Ingeniero_DB {
             return new WP_Error('ingeniero_approve_term', 'La categoría no es válida.');
         }
 
-        $table = self::table('knowledge');
+        $table = esc_sql( self::table('knowledge') );
         $updated = $wpdb->query($wpdb->prepare(
             "UPDATE {$table}
              SET status='active', updated_at=%s
@@ -362,7 +362,7 @@ final class SEO_Ingeniero_DB {
     public static function approve_all_review($lesson = 'l1_technical') {
         global $wpdb;
         $lesson = sanitize_key((string) $lesson);
-        $table = self::table('knowledge');
+        $table = esc_sql( self::table('knowledge') );
 
         $term_ids = array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT term_id
@@ -408,8 +408,8 @@ final class SEO_Ingeniero_DB {
     public static function category_stats_map($lesson = 'l1_technical') {
         global $wpdb;
         $lesson = sanitize_key($lesson);
-        $sources = self::table('sources');
-        $knowledge = self::table('knowledge');
+        $sources = esc_sql( self::table('sources') );
+        $knowledge = esc_sql( self::table('knowledge') );
         $out = array();
 
         $source_rows = (array) $wpdb->get_results($wpdb->prepare(
@@ -440,8 +440,8 @@ final class SEO_Ingeniero_DB {
     public static function totals($lesson = 'l1_technical') {
         global $wpdb;
         $lesson = sanitize_key($lesson);
-        $sources = self::table('sources');
-        $knowledge = self::table('knowledge');
+        $sources = esc_sql( self::table('sources') );
+        $knowledge = esc_sql( self::table('knowledge') );
         return array(
             'sources' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$sources} WHERE lesson=%s AND status<>'superseded'", $lesson))),
             'knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$knowledge} WHERE lesson=%s AND status<>'superseded'", $lesson))),
@@ -454,9 +454,9 @@ final class SEO_Ingeniero_DB {
     public static function export_payload($term_id = 0) {
         global $wpdb;
         $term_id = absint($term_id);
-        $sources = self::table('sources');
-        $knowledge = self::table('knowledge');
-        $editorial_table = self::table('editorial');
+        $sources = esc_sql( self::table('sources') );
+        $knowledge = esc_sql( self::table('knowledge') );
+        $editorial_table = esc_sql( self::table('editorial') );
 
         if ($term_id) {
             $src = (array)$wpdb->get_results($wpdb->prepare(
@@ -567,7 +567,7 @@ final class SEO_Ingeniero_DB {
 
     public static function upsert_editorial($data) {
         global $wpdb;
-        $table = self::table('editorial');
+        $table = esc_sql( self::table('editorial') );
         $term_id = absint($data['term_id'] ?? 0);
         $topic_key = sanitize_key((string) ($data['topic_key'] ?? ''));
         if (!$term_id || '' === $topic_key) {
@@ -638,14 +638,14 @@ final class SEO_Ingeniero_DB {
 
     public static function editorial_get($id) {
         global $wpdb;
-        $table = self::table('editorial');
+        $table = esc_sql( self::table('editorial') );
         $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d LIMIT 1", absint($id)), ARRAY_A);
         return $row ? self::hydrate_editorial($row) : array();
     }
 
     public static function editorial_get_by_topic($term_id, $topic_key) {
         global $wpdb;
-        $table = self::table('editorial');
+        $table = esc_sql( self::table('editorial') );
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM {$table} WHERE term_id=%d AND topic_key=%s LIMIT 1",
@@ -659,7 +659,7 @@ final class SEO_Ingeniero_DB {
 
     public static function editorial_rows($args = array()) {
         global $wpdb;
-        $table = self::table('editorial');
+        $table = esc_sql( self::table('editorial') );
         $args = wp_parse_args((array) $args, array(
             'status' => '',
             'action' => '',
@@ -745,7 +745,7 @@ final class SEO_Ingeniero_DB {
 
     public static function editorial_counts() {
         global $wpdb;
-        $table = self::table('editorial');
+        $table = esc_sql( self::table('editorial') );
         $rows = (array) $wpdb->get_results(
             "SELECT recommended_action,status,COUNT(*) total FROM {$table} GROUP BY recommended_action,status",
             ARRAY_A
@@ -774,7 +774,7 @@ final class SEO_Ingeniero_DB {
 
     public static function update_editorial($id, $data) {
         global $wpdb;
-        $table = self::table('editorial');
+        $table = esc_sql( self::table('editorial') );
         $allowed = array(
             'status','post_id','recommended_action','coverage_status','suggested_title','source_hash',
             'primary_layer','content_type','freshness','confidence','evidence_count','domain_count',
@@ -802,7 +802,7 @@ final class SEO_Ingeniero_DB {
         global $wpdb;
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
         if (!$ids) return array();
-        $table = self::table('sources');
+        $table = esc_sql( self::table('sources') );
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE id IN ({$placeholders}) ORDER BY id ASC", $ids), ARRAY_A);
         foreach ($rows as &$row) {
