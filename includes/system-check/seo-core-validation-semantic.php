@@ -91,7 +91,7 @@ function seo_core_system_test_semantic_product_image_inventory($product_ids) {
         }
     }
 
-    $table = $wpdb->prefix . 'seo_supplier_images';
+    $table = esc_sql( $wpdb->prefix . 'seo_supplier_images' );
     if (!seo_core_system_test_semantic_table_exists($table)) {
         return $states;
     }
@@ -424,7 +424,7 @@ function seo_core_system_test_semantic_attribute_unit_error($attribute_type, $at
 function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_nodes';
+    $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
     if (!seo_core_system_test_semantic_table_exists($table)) {
         return array();
     }
@@ -480,8 +480,8 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
 function seo_core_system_test_semantic_category_vocabulary($category_ids = array()) {
     global $wpdb;
 
-    $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-    $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+    $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+    $vocab_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
     $allowed_groups = array('rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo');
 
     $result = array(
@@ -1734,7 +1734,7 @@ function seo_core_system_test_semantic_snapshot() {
     /* ---------------------------------------------------------------------
      * FAQS
      * ------------------------------------------------------------------ */
-    $faq_table = $wpdb->prefix . 'seo_faq';
+    $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
     $faq_available = seo_core_system_test_semantic_table_exists($faq_table);
     $faq_rows = array();
     $faq_has_legacy_scope = $faq_available && seo_core_system_test_semantic_table_has_column($faq_table, 'ambito');
@@ -1983,8 +1983,8 @@ function seo_core_system_test_semantic_snapshot() {
     /* ---------------------------------------------------------------------
      * ESTRUCTURA CLUSTER / HUB
      * ------------------------------------------------------------------ */
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
     $structure = array(
         'available' => false,
         'clusters' => 0,
