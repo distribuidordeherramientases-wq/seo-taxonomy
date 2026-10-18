@@ -106,8 +106,8 @@ if (!function_exists('seo_tags_vocab_get_summary')) {
     function seo_tags_vocab_get_summary() {
         global $wpdb;
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $product_counts = wp_count_posts('product');
 
         $summary = [
@@ -223,7 +223,7 @@ if (!function_exists('seo_tags_vocab_render_summary_cards')) {
 if (!function_exists('seo_tags_vocab_get_term_options')) {
     function seo_tags_vocab_get_term_options() {
         global $wpdb;
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
 
         $result = [
             'rol' => [],
@@ -282,8 +282,8 @@ if (!function_exists('seo_tags_vocab_get_category_profiles')) {
             return [];
         }
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         if (!seo_tags_vocab_table_exists($vocabulary) || !seo_tags_vocab_table_exists($objects)) {
             return [];
         }
@@ -325,6 +325,7 @@ if (!function_exists('seo_tags_vocab_get_category_profiles')) {
             }
         }
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ph contains only generated %d placeholders, and $category_ids were normalized with absint() and bound through wpdb->prepare().
         $term_rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT
@@ -392,12 +393,13 @@ if (!function_exists('seo_tags_vocab_get_type_role_map')) {
             return [];
         }
 
-        $table = $wpdb->prefix . 'seo_type_role_map';
+        $table = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
         if (!seo_tags_vocab_table_exists($table)) {
             return [];
         }
 
         $ph = seo_tags_vocab_placeholders($type_ids, '%d');
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ph is a generated %d placeholder list; every type_id is absint() and passed to wpdb->prepare().
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT type_vocabulary_id, role_vocabulary_id
@@ -573,8 +575,8 @@ if (!function_exists('seo_tags_vocab_render_products')) {
     function seo_tags_vocab_render_products() {
         global $wpdb;
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         if (!seo_tags_vocab_table_exists($vocabulary) || !seo_tags_vocab_table_exists($objects)) {
             echo '<div class="notice notice-error inline"><p>No están disponibles las tablas canónicas <code>seo_vocabulary</code> y <code>seo_object_vocabulary</code>.</p></div>';
@@ -844,6 +846,7 @@ if (!function_exists('seo_tags_vocab_render_products')) {
                 $wc_tags_map[(int) $row['product_id']][] = (string) ($row['name'] ?? '');
             }
 
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $ph is a generated %d placeholder list; all product IDs are bound with wpdb->prepare().
             $vocab_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT ov.object_id, v.id AS vocabulary_id, v.semantic_group, v.slug, v.label, ov.source, ov.confidence
@@ -1194,7 +1197,7 @@ if (!function_exists('seo_tags_vocab_allowed_groups')) {
 if (!function_exists('seo_tags_vocab_get_active_roles')) {
     function seo_tags_vocab_get_active_roles() {
         global $wpdb;
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!seo_tags_vocab_table_exists($vocabulary)) {
             return [];
         }
@@ -1215,8 +1218,8 @@ if (!function_exists('seo_tags_vocab_get_type_role_id')) {
         if ($type_id < 1) {
             return 0;
         }
-        $map = $wpdb->prefix . 'seo_type_role_map';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!seo_tags_vocab_table_exists($map) || !seo_tags_vocab_table_exists($vocabulary)) {
             return 0;
         }
@@ -1241,8 +1244,8 @@ if (!function_exists('seo_tags_vocab_set_type_role')) {
         global $wpdb;
         $type_id = absint($type_id);
         $role_id = absint($role_id);
-        $map = $wpdb->prefix . 'seo_type_role_map';
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
 
         if ($type_id < 1 || $role_id < 1 || !seo_tags_vocab_table_exists($map) || !seo_tags_vocab_table_exists($vocabulary)) {
             return false;
@@ -1309,7 +1312,7 @@ if (!function_exists('seo_tags_vocab_sync_products_for_type')) {
         if ($type_id < 1 || !function_exists('seo_catalog_sync_product_role_from_type')) {
             return;
         }
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         if (!seo_tags_vocab_table_exists($objects)) {
             return;
         }
@@ -1335,8 +1338,8 @@ if (!function_exists('seo_tags_vocab_has_reactivation_conflict')) {
         if ($term_id < 1 || !in_array($group, ['tipo', 'rol'], true)) {
             return false;
         }
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         if (!seo_tags_vocab_table_exists($vocabulary) || !seo_tags_vocab_table_exists($objects)) {
             return false;
         }
@@ -1392,9 +1395,9 @@ if (!function_exists('seo_tags_vocab_handle_manager_action')) {
         check_admin_referer('seo_tags_vocab_manager', 'seo_tags_vocab_manager_nonce');
 
         global $wpdb;
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $map = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
         if (!seo_tags_vocab_table_exists($vocabulary)) {
             seo_tags_vocab_manager_redirect('tables_missing');
         }
@@ -1626,9 +1629,9 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
     function seo_tags_vocab_render_vocabulary() {
         global $wpdb;
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_map = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
 
         if (!seo_tags_vocab_table_exists($vocabulary) || !seo_tags_vocab_table_exists($objects)) {
             echo '<div class="notice notice-error inline"><p>No están disponibles las tablas del vocabulario.</p></div>';
@@ -1883,8 +1886,8 @@ if (!function_exists('seo_tags_vocab_render_vocabulary')) {
 if (!function_exists('seo_tags_vocab_count_duplicate_products')) {
     function seo_tags_vocab_count_duplicate_products($group) {
         global $wpdb;
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         return (int) $wpdb->get_var(
             $wpdb->prepare(
@@ -1913,8 +1916,8 @@ if (!function_exists('seo_tags_vocab_count_duplicate_products')) {
 if (!function_exists('seo_tags_vocab_count_invalid_assignments')) {
     function seo_tags_vocab_count_invalid_assignments($group) {
         global $wpdb;
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         return (int) $wpdb->get_var(
             $wpdb->prepare(
@@ -1950,9 +1953,9 @@ if (!function_exists('seo_tags_vocab_render_control')) {
     function seo_tags_vocab_render_control(array $summary) {
         global $wpdb;
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_map = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
 
         if (!seo_tags_vocab_table_exists($vocabulary) || !seo_tags_vocab_table_exists($objects)) {
             echo '<div class="notice notice-error inline"><p>No están disponibles las tablas canónicas del vocabulario.</p></div>';
@@ -2092,9 +2095,9 @@ if (!function_exists('seo_tags_vocab_get_dictionary_rows')) {
     function seo_tags_vocab_get_dictionary_rows() {
         global $wpdb;
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $type_role_map = $wpdb->prefix . 'seo_type_role_map';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $type_role_map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
 
         if (!seo_tags_vocab_table_exists($vocabulary)) {
             return [];
@@ -2394,9 +2397,9 @@ if (!function_exists('seo_semantic_attributes_get_summary')) {
             return [];
         }
         $tables = seo_attributes_tables();
-        $total_products = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM `{$wpdb->posts}` WHERE post_type='product' AND post_status='publish'"
-        );
+        // Core provides a cached product count, invalidated on post changes.
+        $product_counts = wp_count_posts( 'product' );
+        $total_products = isset( $product_counts->publish ) ? absint( $product_counts->publish ) : 0;
         $products = (int) $wpdb->get_var(
             "SELECT COUNT(DISTINCT pa.product_id) FROM `{$tables['values']}` pa
              INNER JOIN `{$wpdb->posts}` p ON p.ID=pa.product_id
@@ -3278,7 +3281,7 @@ if (!function_exists('seo_assignment_create_and_assign_new_product_label')) {
         $slug = sanitize_title($label);
         if ($slug === '') throw new InvalidArgumentException('No se puede generar un slug válido para la nueva etiqueta.');
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!seo_tags_vocab_table_exists($vocabulary)) throw new RuntimeException('No está disponible el inventario canónico de vocabulario.');
 
         // Evita duplicados: si ya existe un término activo equivalente, se reutiliza.
@@ -3353,7 +3356,7 @@ if (!function_exists('seo_assignment_create_and_assign_new_product_label')) {
             if ($created) {
                 $wpdb->update($vocabulary, ['active'=>0], ['id'=>$term_id], ['%d'], ['%d']);
                 if ($group === 'tipo') {
-                    $map = $wpdb->prefix . 'seo_type_role_map';
+                    $map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
                     if (seo_tags_vocab_table_exists($map)) $wpdb->update($map, ['active'=>0], ['type_vocabulary_id'=>$term_id], ['%d'], ['%d']);
                 }
             }
