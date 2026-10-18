@@ -15,7 +15,7 @@ defined('ABSPATH') || exit;
  * workers que ya controla Academia.
  */
 final class SEO_Dependiente_Actualizacion {
-    const VERSION = '1.0.5';
+    const VERSION = '1.0.6';
     const STATE_OPTION = 'seo_dependiente_academy_update_state';
     const HISTORY_OPTION = 'seo_dependiente_academy_update_history';
     const LAST_SUCCESS_OPTION = 'seo_dependiente_academy_update_last_success';
@@ -389,7 +389,7 @@ final class SEO_Dependiente_Actualizacion {
         $modules = (array) ($state['modules'] ?? array());
         $module_state = is_array($modules[$module] ?? null) ? $modules[$module] : array();
         $answered_before = absint($module_state['answered'] ?? 0);
-        $run_batch = 2 === $module ? 40 : (3 === $module ? 80 : self::RUN_BATCH);
+        $run_batch = 2 === $module ? 40 : (3 === $module ? 80 : (4 === $module ? 120 : self::RUN_BATCH));
         $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, $run_batch);
         foreach ($questions as $question) {
             $question_type = sanitize_key((string) ($question['question_type'] ?? ''));
@@ -397,6 +397,8 @@ final class SEO_Dependiente_Actualizacion {
                 SEO_Dependiente_Entrenador::update_run_inventory_question($question, $batch_uuid);
             } elseif (3 === $module && in_array($question_type, array('tipo','rol','type_role'), true)) {
                 SEO_Dependiente_Entrenador::update_run_type_role_question($question, $batch_uuid);
+            } elseif (4 === $module && 0 === strpos($question_type, 'features_')) {
+                SEO_Dependiente_Entrenador::update_run_feature_question($question, $batch_uuid);
             } else {
                 SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
             }
