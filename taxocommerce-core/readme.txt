@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ A modular WordPress/WooCommerce core for catalog hierarchy, unified content edit
 
 TaxoCommerce Core is the clean modular foundation for the next TaxoCommerce architecture. The 0.2.0 pilot is validated and deployed independently to STAGING.
 
-Version 0.2.0 includes a unified Content Manager for:
+Version 0.2.1 includes a unified Content Manager for:
 
 * WooCommerce products.
 * WooCommerce product categories.
@@ -32,6 +32,12 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.2.1 =
+* Spanish administration labels throughout the Core.
+* Renamed Dashboard, Content, Hierarchy, Processes, Modules and Logs to Inicio, Contenidos, Jerarquía SEO, Procesos automáticos, Extensiones and Registro técnico.
+* Added a migration map showing the equivalent feature in the current TaxoCommerce SEO plugin and migration status.
+* Added equivalent-current-system notices to the main Core sections.
 
 = 0.2.0 =
 * Added unified content lists, filters and editing.
