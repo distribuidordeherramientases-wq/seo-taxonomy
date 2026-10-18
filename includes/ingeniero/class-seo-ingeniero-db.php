@@ -141,8 +141,8 @@ final class SEO_Ingeniero_DB {
      */
     private static function migrate_legacy_investigador() {
         global $wpdb;
-        $legacy_sources = $wpdb->prefix . 'seo_investigador_sources';
-        $legacy_knowledge = $wpdb->prefix . 'seo_investigador_knowledge';
+        $legacy_sources = esc_sql( $wpdb->prefix . 'seo_investigador_sources' );
+        $legacy_knowledge = esc_sql( $wpdb->prefix . 'seo_investigador_knowledge' );
         $sources = esc_sql( self::table('sources') );
         $knowledge = esc_sql( self::table('knowledge') );
 
