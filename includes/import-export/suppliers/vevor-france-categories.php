@@ -151,35 +151,3 @@ function seo_vevor_fr_category_admin_action() {
 }
 add_action( 'admin_post_seo_vevor_fr_categories_create', 'seo_vevor_fr_category_admin_action' );
 
-/** Visible merchant control; never creates terms simply by loading an admin page. */
-function seo_vevor_fr_render_categories_admin() {
-    if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
-        return;
-    }
-    if ( isset( $_GET['seo_fr_categories_done'] ) ) {
-        $report = get_transient( 'seo_vevor_fr_category_report_' . get_current_user_id() );
-        delete_transient( 'seo_vevor_fr_category_report_' . get_current_user_id() );
-        if ( is_wp_error( $report ) ) {
-            echo '<div class="notice notice-error inline"><p>' . esc_html( $report->get_error_message() ) . '</p></div>';
-        } elseif ( is_array( $report ) ) {
-            echo '<div class="notice notice-success inline"><p>France : '
-                . esc_html( (string) $report['created'] ) . ' categories creees, '
-                . esc_html( (string) $report['existing'] ) . ' deja presentes, '
-                . esc_html( (string) $report['main'] ) . ' principales, '
-                . esc_html( (string) $report['sub'] ) . ' sous-categories, '
-                . esc_html( (string) $report['errors'] ) . ' erreurs. '
-                . esc_html( implode( ' | ', $report['details'] ) ) . '</p></div>';
-        }
-    }
-    echo '<div class="notice notice-info inline" style="padding:12px;margin:14px 0;">'
-        . '<p><strong>VEVOR France · categories en francais</strong></p>'
-        . '<p>Construit uniquement France &rarr; categories &rarr; sous-categories a partir des '
-        . '<code>categoryPath</code> francais deja importes. Action repetable sans doublons. '
-        . 'Ne modifie pas les CSV, ne reclassifie pas les produits et ne les publie pas.</p>'
-        . '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post">';
-    wp_nonce_field( 'seo_vevor_fr_categories_create' );
-    echo '<input type="hidden" name="action" value="seo_vevor_fr_categories_create">'
-        . '<button type="submit" class="button button-secondary">Creer / completer les categories France</button></form></div>';
-}
-
-add_action( 'seo_vevor_fr_categories_card', 'seo_vevor_fr_render_categories_admin' );
