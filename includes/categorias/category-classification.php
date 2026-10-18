@@ -102,7 +102,7 @@ if (!function_exists('seo_category_vocabulary_active_index')) {
             'by_slug'  => [],
         ];
 
-        $table = $wpdb->prefix . 'seo_vocabulary';
+        $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $rows = $wpdb->get_results(
             "SELECT id, semantic_group, slug, label\n"
             . "FROM {$table}\n"
@@ -171,8 +171,8 @@ if (!function_exists('seo_category_vocabulary_rows_map')) {
         global $wpdb;
 
         $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $vocab_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
 
         if ($category_ids) {
             $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
@@ -400,8 +400,8 @@ if (!function_exists('seo_category_vocabulary_replace')) {
             $source = 'category_editor';
         }
 
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $vocab_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas; category_id enlazado mediante $wpdb->prepare().
         $current_sql = $wpdb->prepare(
@@ -582,7 +582,7 @@ if (!function_exists('seo_category_vocabulary_remove_term_from_categories')) {
         }
 
         seo_category_vocabulary_assert_data_layer('object_vocabulary');
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, object_id FROM {$object_table}\n"
@@ -656,7 +656,7 @@ if (!function_exists('seo_category_node_upsert_with_data_layer')) {
         }
 
         seo_category_vocabulary_assert_data_layer('nodes');
-        $nodes_table = $wpdb->prefix . 'seo_nodes';
+        $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
         $existing_id = absint($wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id FROM {$nodes_table}\n"
@@ -733,7 +733,7 @@ if (!function_exists('seo_category_insert_stopword_with_data_layer')) {
         }
 
         seo_category_vocabulary_assert_data_layer('dictionary');
-        $table = $wpdb->prefix . 'seo_dictionari';
+        $table = esc_sql( $wpdb->prefix . 'seo_dictionari' );
         $existing = absint($wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE palabra = %s LIMIT 1", $word)));
         if ($existing > 0) {
             return ['inserted' => 0, 'operation_id' => 0, 'operation_uuid' => ''];
@@ -839,7 +839,7 @@ if (!function_exists('seo_cc_stopwords')) {
         if (null !== $cache) return $cache;
         global $wpdb;
         $words = seo_cc_default_stopwords();
-        $table = $wpdb->prefix . 'seo_dictionari';
+        $table = esc_sql( $wpdb->prefix . 'seo_dictionari' );
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table) {
             $words = array_merge($words, (array) $wpdb->get_col("SELECT palabra FROM {$table} WHERE palabra IS NOT NULL AND palabra<>''"));
         }
@@ -999,7 +999,7 @@ if (!function_exists('seo_cc_build_keyword_proposal')) {
             seo_cc_add_candidate($items, (string) ($current_row['label'] ?? ''), 32, 'etiqueta_actual');
         }
 
-        $knowledge_table=$wpdb->prefix.'seo_categoria_conocimiento';
+        $knowledge_table=esc_sql( $wpdb->prefix.'seo_categoria_conocimiento' );
         if($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$knowledge_table))===$knowledge_table) {
             $knowledge=$wpdb->get_col($wpdb->prepare("SELECT valor FROM {$knowledge_table} WHERE categoria_id=%d AND estado=1 ORDER BY prioridad DESC",$cat_id));
             foreach((array)$knowledge as $value) foreach(seo_cc_ngrams($value,1,3) as $phrase) seo_cc_add_candidate($items,$phrase,55,'conocimiento');
@@ -1152,7 +1152,7 @@ function seo_category_classification() {
     global $wpdb;
 
 
-$relations_table = $wpdb->prefix . 'seo_relations';
+$relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
 $mutating_actions = ['add_stopword','remove_keyword','save_category_keywords','clear_category_keywords'];
 foreach ($mutating_actions as $mutating_action) {
