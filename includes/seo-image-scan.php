@@ -53,6 +53,10 @@ if (!function_exists('seo_images_scan_install_schema')) {
     function seo_images_scan_install_schema() {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         $charset_collate = $wpdb->get_charset_collate();
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -282,6 +286,10 @@ if (!function_exists('seo_images_scan_mark_stale_runs')) {
     function seo_images_scan_mark_stale_runs() {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         if (!seo_images_scan_table_exists($tables['runs'])) {
             return;
         }
@@ -335,6 +343,10 @@ if (!function_exists('seo_images_scan_active_run')) {
     function seo_images_scan_active_run() {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         seo_images_scan_mark_stale_runs();
         if (!seo_images_scan_table_exists($tables['runs'])) {
             return null;
@@ -425,6 +437,10 @@ if (!function_exists('seo_images_scan_pending_count')) {
     function seo_images_scan_pending_count() {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         if (!seo_images_scan_table_exists($tables['sitemap'])) {
             return 0;
         }
@@ -580,6 +596,10 @@ if (!function_exists('seo_images_scan_choose_batch')) {
     function seo_images_scan_choose_batch($limit = SEO_IMAGES_SCAN_PAGE_LIMIT) {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         $limit = max(1, min(SEO_IMAGES_SCAN_PAGE_LIMIT, absint($limit)));
 
         if (!seo_images_scan_table_exists($tables['sitemap'])) {
@@ -760,6 +780,10 @@ if (!function_exists('seo_images_scan_launch_next_batch')) {
     function seo_images_scan_launch_next_batch($validate_workflow = false) {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
 
         if (seo_images_scan_active_run()) {
             return new WP_Error('seo_images_scan_active', 'Ya existe un lote de imágenes activo.');
@@ -972,6 +996,10 @@ if (!function_exists('seo_images_scan_handle_stop')) {
         check_admin_referer('seo_images_scan_stop');
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
 
         $state = seo_images_scan_process_state();
         $was_enabled = !empty($state['enabled']);
@@ -1056,6 +1084,10 @@ if (!function_exists('seo_images_scan_auth_run')) {
     function seo_images_scan_auth_run($request) {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         $scan_uuid = sanitize_text_field((string) $request->get_param('scan_id'));
         if ($scan_uuid === '') {
             $json = $request->get_json_params();
@@ -1090,6 +1122,10 @@ if (!function_exists('seo_images_scan_rest_batch')) {
     function seo_images_scan_rest_batch($request) {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         $run = seo_images_scan_auth_run($request);
         if (is_wp_error($run)) {
             return $run;
@@ -1137,6 +1173,10 @@ if (!function_exists('seo_images_scan_process_page_result')) {
     function seo_images_scan_process_page_result($run, $page_result) {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         if (!is_array($page_result)) {
             return;
         }
@@ -1277,6 +1317,10 @@ if (!function_exists('seo_images_scan_refresh_run_stats')) {
     function seo_images_scan_refresh_run_stats($run_id) {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT COUNT(*) AS processed_pages,
@@ -1316,6 +1360,10 @@ if (!function_exists('seo_images_scan_rest_results')) {
     function seo_images_scan_rest_results($request) {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         $run = seo_images_scan_auth_run($request);
         if (is_wp_error($run)) {
             return $run;
@@ -1530,6 +1578,10 @@ if (!function_exists('seo_images_scan_summary')) {
     function seo_images_scan_summary() {
         global $wpdb;
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         $summary = array(
             'total_pages' => 0, 'checked_pages' => 0, 'pending_pages' => 0,
             'error_pages' => 0, 'warning_pages' => 0, 'ok_pages' => 0,
@@ -1600,6 +1652,10 @@ if (!function_exists('seo_images_scan_render_tab')) {
             seo_images_scan_install_schema();
         }
         $tables = seo_images_scan_tables();
+        $tables['runs'] = esc_sql( $tables['runs'] );
+        $tables['pages'] = esc_sql( $tables['pages'] );
+        $tables['items'] = esc_sql( $tables['items'] );
+        $tables['sitemap'] = esc_sql( $tables['sitemap'] );
         $summary = seo_images_scan_summary();
         $active = seo_images_scan_active_run();
         $process = seo_images_scan_process_state();
