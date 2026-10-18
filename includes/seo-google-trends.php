@@ -45,7 +45,7 @@ function seo_google_trends_table() {
 function seo_google_trends_maybe_install() {
     global $wpdb;
 
-    $table = seo_google_trends_table();
+    $table = esc_sql( seo_google_trends_table() );
     $installed_version = (string) get_option(SEO_GOOGLE_TRENDS_DB_OPTION, '');
     $runtime_version = (string) get_option(SEO_GOOGLE_TRENDS_RUNTIME_MIGRATION_OPTION, '');
     $exists = $wpdb->get_var(
@@ -311,7 +311,7 @@ function seo_google_trends_business_universe($limit = 400) {
         $add($manual_seed, 'Área manual', 100, 'manual', 0);
     }
 
-    $nodes_table = $wpdb->prefix . 'seo_nodes';
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
     $nodes_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($nodes_table))
     ) === $nodes_table;
@@ -704,7 +704,7 @@ function seo_google_trends_upsert_signal(array $row) {
     global $wpdb;
 
     seo_google_trends_maybe_install();
-    $table = seo_google_trends_table();
+    $table = esc_sql( seo_google_trends_table() );
     $seed = sanitize_text_field((string) ($row['seed'] ?? ''));
     $query = sanitize_text_field((string) ($row['query_text'] ?? ''));
     $result_type = sanitize_key((string) ($row['result_type'] ?? 'related'));
@@ -1218,7 +1218,7 @@ function seo_google_trends_public_select_seeds(array $settings, array $universe,
 
     $latest = array();
     if (!$force) {
-        $table = seo_google_trends_table();
+        $table = esc_sql( seo_google_trends_table() );
         $rows = $wpdb->get_results(
             "SELECT seed_hash, MAX(imported_at) AS latest
              FROM {$table}
@@ -1401,7 +1401,7 @@ function seo_google_trends_public_parse_related(array $payload) {
 
 function seo_google_trends_public_store_related($seed, array $rows, $geo, $timeframe) {
     global $wpdb;
-    $table = seo_google_trends_table();
+    $table = esc_sql( seo_google_trends_table() );
     $seed_hash = hash('sha256', seo_google_trends_normalize($seed));
     $wpdb->query($wpdb->prepare(
         "DELETE FROM {$table}
@@ -1463,7 +1463,7 @@ function seo_google_trends_public_autocomplete($seed, $geo = 'ES') {
 
 function seo_google_trends_public_store_autocomplete($seed, array $rows, $geo = 'ES') {
     global $wpdb;
-    $table = seo_google_trends_table();
+    $table = esc_sql( seo_google_trends_table() );
     $seed_hash = hash('sha256', seo_google_trends_normalize($seed));
     $wpdb->query($wpdb->prepare(
         "DELETE FROM {$table} WHERE provider = %s AND seed_hash = %s AND geo = %s",
@@ -1800,7 +1800,7 @@ function seo_google_trends_sync($force = false, $limit = 0) {
     );
 
     global $wpdb;
-    $table = seo_google_trends_table();
+    $table = esc_sql( seo_google_trends_table() );
     $cutoff = wp_date('Y-m-d H:i:s', time() - (8 * DAY_IN_SECONDS), wp_timezone());
     $wpdb->query(
         $wpdb->prepare(
@@ -2107,7 +2107,7 @@ function seo_google_trends_clear_handler() {
 
     global $wpdb;
     seo_google_trends_maybe_install();
-    $table = seo_google_trends_table();
+    $table = esc_sql( seo_google_trends_table() );
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna controlada; mantenimiento fijo sin entrada de usuario.
     $wpdb->query("TRUNCATE TABLE {$table}");
     delete_option(SEO_GOOGLE_TRENDS_LAST_SYNC_OPTION);
@@ -2121,7 +2121,7 @@ function seo_google_trends_clear_handler() {
 function seo_google_trends_get_signals($limit = 500) {
     global $wpdb;
     seo_google_trends_maybe_install();
-    $table = seo_google_trends_table();
+    $table = esc_sql( seo_google_trends_table() );
     $limit = max(1, min(5000, absint($limit)));
 
     return (array) $wpdb->get_results(
@@ -2143,7 +2143,7 @@ function seo_google_trends_get_signals($limit = 500) {
 function seo_google_trends_provider_counts() {
     global $wpdb;
     seo_google_trends_maybe_install();
-    $table = seo_google_trends_table();
+    $table = esc_sql( seo_google_trends_table() );
     $rows = $wpdb->get_results(
         "SELECT provider, COUNT(*) AS total, MAX(imported_at) AS latest
          FROM {$table}
