@@ -16,3 +16,5 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 delete_option( 'taxocommerce_core_version' );
 delete_option( 'taxocommerce_core_log_limit' );
 delete_option( 'taxocommerce_core_log_entries' );
+delete_option( 'taxocommerce_core_menu_id' );
+delete_option( 'taxocommerce_core_menu_location_backup' );
