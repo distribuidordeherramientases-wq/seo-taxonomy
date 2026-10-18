@@ -669,7 +669,8 @@ function seo_supplier_sync_apply_baja( array $row ) {
 
 /**
  * Reactiva un producto dado de baja: conserva su contenido editorial, aplica
- * los datos comerciales actuales y lo devuelve a Nuevos productos en draft.
+ * los datos comerciales actuales y lo devuelve a Draft con la categoría
+ * predeterminada de WooCommerce.
  *
  * @param array $row Fila.
  * @param float $commission_sale Comision descuento.
@@ -694,19 +695,19 @@ function seo_supplier_sync_apply_reactivation( array $row, $commission_sale, $co
         return [ 'result' => 'error', 'product_id' => 0, 'message' => 'No se pudo reactivar el producto.', 'warnings' => [] ];
     }
 
-    $product->set_status( 'draft' );
-    $product->set_catalog_visibility( 'hidden' );
-
-    $new_category = seo_supplier_sync_new_products_category_id();
-    if ( $new_category ) {
-        $product->set_category_ids( [ $new_category ] );
+    $default_category = seo_proveedores_categoria_respaldo();
+    if ( empty( $default_category['valid'] ) || empty( $default_category['term_id'] ) ) {
+        return [ 'result' => 'error', 'product_id' => $product_id, 'message' => 'No existe una categoría predeterminada de WooCommerce válida.', 'warnings' => [] ];
     }
 
+    $product->set_status( 'draft' );
+    $product->set_catalog_visibility( 'hidden' );
+    $product->set_category_ids( [ absint( $default_category['term_id'] ) ] );
     $product->save();
     seo_supplier_sync_finalize_applied_row( $row, $product_id );
 
     $result['result']  = 'reactivated';
-    $result['message'] = 'Producto reactivado como borrador en Nuevos productos.';
+    $result['message'] = 'Producto reactivado como borrador en la categoría predeterminada.';
     return $result;
 }
 
@@ -811,17 +812,13 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
             if ( 'actualizar' === $action && ! in_array( $situation, [ 'modificado', 'error' ], true ) ) {
                 return [ 'result' => 'error', 'product_id' => 0, 'message' => 'Esta oferta no tiene una actualizacion pendiente.', 'warnings' => [] ];
             }
-            if ( ! function_exists( 'seo_vevor_region_apply_offer' ) || ! function_exists( 'seo_vevor_region_category_for_offer' ) ) {
-                return [ 'result' => 'error', 'product_id' => 0, 'message' => 'No se encuentra el nuevo servicio de fichas VEVOR regionales.', 'warnings' => [] ];
+            if ( ! function_exists( 'seo_vevor_region_apply_offer' ) ) {
+                return [ 'result' => 'error', 'product_id' => 0, 'message' => 'No se encuentra el servicio de fichas VEVOR regionales.', 'warnings' => [] ];
             }
-            $destination = seo_vevor_region_category_for_offer( $row );
-            if ( is_wp_error( $destination ) ) {
-                return [ 'result' => 'error', 'product_id' => 0, 'message' => $destination->get_error_message(), 'warnings' => [] ];
-            }
+            // Commercial approval must not depend on categoryPath classification.
             $result = seo_vevor_region_apply_offer(
                 $row,
-                strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ),
-                absint( $destination )
+                strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) )
             );
             if ( is_wp_error( $result ) ) {
                 return [ 'result' => 'error', 'product_id' => 0, 'message' => $result->get_error_message(), 'warnings' => [] ];
@@ -831,7 +828,7 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
                 'result'     => $is_new ? 'created' : 'existing',
                 'product_id' => absint( $result['product_id'] ?? 0 ),
                 'message'    => $is_new
-                    ? 'Oferta aceptada: producto VEVOR internacional creado en draft y vinculado a su categoria.'
+                    ? 'Oferta aceptada: producto VEVOR internacional creado en draft con la categoria predeterminada.'
                     : 'Oferta aceptada: ficha VEVOR internacional existente reutilizada sin modificarla.',
                 'warnings'   => [],
             ];

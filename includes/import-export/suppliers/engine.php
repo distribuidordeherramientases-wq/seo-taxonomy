@@ -4984,42 +4984,31 @@ function seo_proveedores_crear_borrador_desde_fila( array $row, $comision_descue
     $warnings   = [];
 
     /*
-     * La misma resolución se usa en aceptación individual y masiva. Así no
-     * puede existir una diferencia entre lo mostrado y lo finalmente asignado.
-     */
-    $category_destination = seo_proveedores_resolver_categoria_destino(
-        (string) ( $row['categoria_proveedor'] ?? '' ),
-        (string) ( $row['proveedor'] ?? '' )
-    );
-
-    if ( empty( $category_destination['valid'] ) || empty( $category_destination['term_id'] ) ) {
-        return [
-            'result'     => 'error',
-            'product_id' => 0,
-            'message'    => 'No existe una categoría de producto predeterminada válida para los casos sin propuesta.',
-            'warnings'   => [],
-        ];
-    }
-
-    $category_term = get_term(
-        absint( $category_destination['term_id'] ),
-        'product_cat'
-    );
-
-    if ( ! $category_term || is_wp_error( $category_term ) ) {
-        return [
-            'result'     => 'error',
-            'product_id' => 0,
-            'message'    => 'La categoría calculada ya no existe en WooCommerce.',
-            'warnings'   => [],
-        ];
-    }
-
-    /*
-     * La búsqueda se repite dentro del bloqueo. Así, si otra petición creó el
-     * producto mientras esta esperaba, se reutiliza en vez de crear una copia.
+     * La aprobación de una ficha NUEVA no clasifica productos. Se usa solo
+     * la categoría predeterminada de WooCommerce; categoría definitiva por CSV.
+     * En actualizaciones se conservan las categorías editoriales existentes.
      */
     $product_id = seo_proveedores_buscar_producto_existente( $row );
+    $category_destination = [];
+    if ( ! $product_id ) {
+        $default_category = seo_proveedores_categoria_respaldo();
+        if ( empty( $default_category['valid'] ) || empty( $default_category['term_id'] ) ) {
+            return [
+                'result'     => 'error',
+                'product_id' => 0,
+                'message'    => 'No existe una categoría predeterminada de WooCommerce válida.',
+                'warnings'   => [],
+            ];
+        }
+        $category_destination = [
+            'term_id' => absint( $default_category['term_id'] ),
+            'name'    => (string) $default_category['name'],
+            'source'  => 'predeterminada',
+            'score'   => 1,
+            'reason'  => 'alta_inicial',
+            'valid'   => true,
+        ];
+    }
 
     try {
         if ( $product_id ) {
@@ -5105,26 +5094,7 @@ function seo_proveedores_crear_borrador_desde_fila( array $row, $comision_descue
             );
         }
 
-        /* Los productos nuevos entran en Nuevos productos. En actualizaciones
-         * posteriores la categoria editorial definitiva nunca se modifica. */
-        if ( ! $is_update && function_exists( 'seo_supplier_sync_new_products_category_id' ) ) {
-            $new_category = seo_supplier_sync_new_products_category_id();
-            if ( $new_category ) {
-                $new_category_name = get_term_field( 'name', $new_category, 'product_cat' );
-                if ( is_wp_error( $new_category_name ) || '' === (string) $new_category_name ) {
-                    $new_category_name = 'Nuevos productos';
-                }
-                $category_destination = [
-                    'term_id' => $new_category,
-                    'name'    => (string) $new_category_name,
-                    'source'  => 'nuevos_productos',
-                    'score'   => 1,
-                    'reason'  => 'alta_inicial',
-                    'valid'   => true,
-                ];
-            }
-        }
-
+        // Mantener cualquier clasificación editorial existente al actualizar.
         if ( ! $is_update ) {
             $product->set_category_ids( [ absint( $category_destination['term_id'] ) ] );
         }
@@ -5205,13 +5175,6 @@ function seo_proveedores_crear_borrador_desde_fila( array $row, $comision_descue
             update_post_meta( $product_id, '_seo_categoria_sugerida_confianza', (float) $category_destination['score'] );
             update_post_meta( $product_id, '_seo_categoria_sugerida_motivo', sanitize_key( $category_destination['reason'] ) );
 
-            if ( 'sugerida' === $category_destination['source'] ) {
-                seo_proveedores_guardar_mapeo_categoria(
-                    (string) ( $row['proveedor'] ?? '' ),
-                    (string) ( $row['categoria_proveedor'] ?? '' ),
-                    absint( $category_destination['term_id'] )
-                );
-            }
         }
 
         $brand_result = seo_proveedores_asignar_marca(
@@ -5306,8 +5269,8 @@ function seo_proveedores_crear_borrador_desde_fila( array $row, $comision_descue
 /**
  * Actualiza manualmente el estado de un producto del proveedor.
  *
- * Cuando se selecciona "Aceptado", crea o actualiza el borrador y aplica la
- * misma categoría propuesta que se muestra en el catálogo.
+ * Cuando se selecciona "Aceptado", crea el borrador en la categoría
+ * predeterminada; su clasificación editorial se realiza después por CSV.
  *
  * @return void
  */
