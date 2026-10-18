@@ -342,7 +342,7 @@ final class TaxoCommerce_Core {
 				'org_slug'      => 'taxocommerce-vocabulary',
 				'search_term'   => 'TaxoCommerce Vocabulary',
 				'wordpress_org' => false,
-				'description'   => __( 'Vocabulario semántico y servicio Clasificador sobre taxonomías, atributos y metadatos nativos de WordPress/WooCommerce.', 'taxocommerce-core' ),
+				'description'   => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático gestionado por Procesos.', 'taxocommerce-core' ),
 			),
 		);
 
@@ -495,7 +495,9 @@ final class TaxoCommerce_Core {
 				'name'        => $id,
 				'module'      => '',
 				'status'      => 'idle',
+				'progress'    => 0,
 				'description' => '',
+				'admin_url'   => '',
 			)
 		);
 
@@ -509,7 +511,9 @@ final class TaxoCommerce_Core {
 			'name'        => sanitize_text_field( (string) $args['name'] ),
 			'module'      => sanitize_key( (string) $args['module'] ),
 			'status'      => $status,
+			'progress'    => max( 0, min( 100, absint( $args['progress'] ) ) ),
 			'description' => sanitize_text_field( (string) $args['description'] ),
+			'admin_url'   => esc_url_raw( (string) $args['admin_url'] ),
 		);
 		return true;
 	}
@@ -625,13 +629,20 @@ final class TaxoCommerce_Core {
 			<p><?php echo esc_html__( 'Aquí se registrarán y controlarán los trabajos automáticos de las extensiones.', 'taxocommerce-core' ); ?></p>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Supervisor, Gestor de procesos, workers, WP-Cron, colas, cursores y mecanismos de recuperación. Todavía no se han trasladado al nuevo Core.', 'taxocommerce-core' ); ?></p></div>
 			<table class="widefat striped">
-				<thead><tr><th><?php echo esc_html__( 'Proceso', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Extensión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th></tr></thead>
+				<thead><tr><th><?php echo esc_html__( 'Proceso', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Extensión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Progreso', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Detalle', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acciones', 'taxocommerce-core' ); ?></th></tr></thead>
 				<tbody>
 					<?php if ( empty( $this->processes ) ) : ?>
-						<tr><td colspan="3"><?php echo esc_html__( 'Todavía no hay procesos del nuevo Core registrados.', 'taxocommerce-core' ); ?></td></tr>
+						<tr><td colspan="6"><?php echo esc_html__( 'Todavía no hay procesos del nuevo Core registrados.', 'taxocommerce-core' ); ?></td></tr>
 					<?php else : ?>
 						<?php foreach ( $this->processes as $process ) : ?>
-							<tr><td><?php echo esc_html( $process['name'] ); ?></td><td><?php echo esc_html( $process['module'] ); ?></td><td><?php echo esc_html( $process['status'] ); ?></td></tr>
+							<tr>
+								<td><strong><?php echo esc_html( $process['name'] ); ?></strong></td>
+								<td><?php echo esc_html( $process['module'] ); ?></td>
+								<td><?php echo esc_html( $process['status'] ); ?></td>
+								<td><?php echo esc_html( (string) absint( $process['progress'] ?? 0 ) ); ?>%</td>
+								<td><?php echo esc_html( (string) ( $process['description'] ?? '' ) ); ?></td>
+								<td><?php if ( ! empty( $process['admin_url'] ) ) : ?><a class="button button-small" href="<?php echo esc_url( $process['admin_url'] ); ?>"><?php echo esc_html__( 'Abrir', 'taxocommerce-core' ); ?></a><?php else : ?>—<?php endif; ?></td>
+							</tr>
 						<?php endforeach; ?>
 					<?php endif; ?>
 				</tbody>

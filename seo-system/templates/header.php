@@ -33,11 +33,52 @@ html:root {
             --dht-bg-light: #fafbfc !important;
         }
 
-/* Manual market selector: visible on desktop and mobile, not WP menu. */
-.dht-country-switcher{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:5px 16px 10px;max-width:1200px;margin:0 auto}
-.dht-country-switcher__link{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:38px;padding:5px;border-radius:9px;border:1px solid #e0e5eb;background:#fff;text-decoration:none!important;font-size:24px;line-height:1}
-.dht-country-switcher__link:hover,.dht-country-switcher__link:focus-visible{outline-offset:2px;border-color:#2d6fb4;background:#edf4ff}
-@media(max-width:767px){.dht-country-switcher{gap:7px;padding:4px 12px 9px}.dht-country-switcher__link{min-width:36px;min-height:36px;font-size:22px}}
+/* Market flags share the existing header toolbar; no dedicated second line. */
+.custom-header .dht-country-switcher{
+    display:flex;align-items:center;justify-content:flex-end;gap:4px;
+    width:max-content;max-width:none;min-width:0;margin:0;padding:0;white-space:nowrap;
+}
+.custom-header .dht-country-switcher__link{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:32px;width:32px;min-height:36px;padding:2px;
+    border:1px solid #e0e5eb;border-radius:8px;background:#fff;
+    text-decoration:none!important;font-size:22px;line-height:1;
+}
+.custom-header .dht-country-switcher__link:hover,
+.custom-header .dht-country-switcher__link:focus-visible{
+    outline-offset:2px;border-color:#2d6fb4;background:#edf4ff;
+}
+@media(min-width:768px){
+    .custom-header .header-main-tools{
+        display:grid;
+        grid-template-columns:minmax(150px,1fr) auto auto !important;
+        gap:10px !important;align-items:center;min-width:0;
+    }
+    .custom-header .dht-header-actions{gap:5px}
+    .custom-header .dht-header-action{padding-inline:10px}
+}
+@media(min-width:1024px){
+    .custom-header .header-top{grid-template-columns:auto minmax(0,1fr) !important;gap:18px !important}
+    .custom-header .header-main-tools{grid-template-columns:minmax(160px,1fr) auto auto !important}
+}
+/* Retain a usable search field on narrower desktop/tablet viewports. */
+@media(min-width:768px) and (max-width:1279px){
+    .custom-header .dht-header-action{min-width:40px;width:40px;padding-inline:0}
+    .custom-header .dht-header-action-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    .custom-header .dht-header-actions{gap:4px}
+}
+@media(max-width:767px){
+    .custom-header .header-top{
+        grid-template-columns:minmax(0,1fr) auto !important;
+        grid-template-areas:"brand actions" "search markets" !important;
+    }
+    .custom-header .dht-country-switcher{grid-area:markets;gap:2px;justify-content:flex-end}
+    .custom-header .dht-country-switcher__link{min-width:28px;width:28px;min-height:38px;font-size:20px;padding:1px}
+    .custom-header .search{min-width:0}
+}
+@media(max-width:380px){
+    .custom-header .dht-country-switcher__link{min-width:26px;width:26px}
+}
 
 .dht-header-actions {
             display: flex;
@@ -594,9 +635,9 @@ if (!function_exists('dht_header_render_breadcrumbs')) {
                     <span class="dht-header-action-label">WhatsApp</span>
                 </a>
             </nav>
+            <?php dht_pilot_render_country_switcher( 'ES' ); ?>
         </div>
     </div>
-    <?php dht_pilot_render_country_switcher( 'ES' ); ?>
 </header>
 
 <?php
