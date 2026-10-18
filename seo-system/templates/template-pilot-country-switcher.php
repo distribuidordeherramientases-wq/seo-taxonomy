@@ -20,6 +20,7 @@ if ( ! function_exists( 'dht_pilot_country_switcher_urls' ) ) {
             'US' => array( 'vevor-us', 'us', 'usa', 'eua', 'eeuu', 'estados-unidos', 'united-states', 'en-us' ),
             'DE' => array( 'vevor-de', 'de', 'alemania', 'deutschland', 'germany', 'de-de' ),
             'NL' => array( 'vevor-nl', 'nl', 'holanda', 'paises-bajos', 'nederland', 'netherlands', 'nl-nl' ),
+            'FR' => array( 'vevor-fr', 'fr', 'france', 'fr-fr' ),
         );
         if ( ! taxonomy_exists( 'product_cat' ) ) {
             return $urls;
@@ -113,12 +114,14 @@ if ( ! function_exists( 'dht_pilot_render_country_switcher' ) ) {
             'US' => array( 'flag' => '🇺🇸', 'name' => 'United States' ),
             'DE' => array( 'flag' => '🇩🇪', 'name' => 'Deutschland' ),
             'NL' => array( 'flag' => '🇳🇱', 'name' => 'Nederland' ),
+            'FR' => array( 'flag' => '🇫🇷', 'name' => 'France' ),
         );
         $nav_labels = array(
             'ES' => 'Ver tiendas de otros países',
             'US' => 'Explore other countries',
             'DE' => 'Andere Länder entdecken',
             'NL' => 'Bekijk andere landen',
+            'FR' => 'Explorer les autres pays',
         );
         $urls = dht_pilot_country_switcher_urls();
         $items = array();

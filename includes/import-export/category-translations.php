@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 
 /** Solo mercados con una plantilla internacional operativa. */
 function seo_ie_ct_markets() {
-    return array( 'en-US' => 'us', 'de-DE' => 'de', 'nl-NL' => 'nl' );
+    return array( 'en-US' => 'us', 'de-DE' => 'de', 'nl-NL' => 'nl', 'fr-FR' => 'fr' );
 }
 
 /** Obtiene el locale guardado o el heredado de una raiz del piloto VEVOR. */
@@ -155,7 +155,7 @@ function seo_ie_ct_import_row( array $row ) {
     $parent_slug = sanitize_title( (string) ( $row['parent_slug'] ?? '' ) );
 
     if ( ! isset( seo_ie_ct_markets()[ $locale ] ) || '' === $source_slug || '' === $title || '' === $slug ) {
-        return new WP_Error( 'seo_ct_incomplete', 'Se necesitan source_slug ES, locale en-US/de-DE/nl-NL, titulo y slug traducidos.' );
+        return new WP_Error( 'seo_ct_incomplete', 'Se necesitan source_slug ES, locale en-US/de-DE/nl-NL/fr-FR, titulo y slug traducidos.' );
     }
     $source = get_term_by( 'slug', $source_slug, 'product_cat' );
     if ( ! $source instanceof WP_Term || ! in_array( seo_ie_ct_term_locale( $source ), array( '', 'es-ES' ), true ) ) {

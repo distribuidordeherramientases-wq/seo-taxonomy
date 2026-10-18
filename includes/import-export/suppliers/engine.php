@@ -6062,7 +6062,7 @@ function seo_proveedores_render_catalogo() {
         $params[] = 'VEVOR';
         $where[]  = 'estado_seleccion = %s';
         $params[] = 'aceptado';
-        $where[] = "pais_origen IN ('US','DE','NL')";
+        $where[] = "pais_origen IN ('US','DE','NL','FR')";
         $where[] = '(object_id IS NULL OR object_id = 0)';
     } elseif ( 'linked' === $vinculo_filtro ) {
         $where[] = 'object_id > 0';

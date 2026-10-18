@@ -219,7 +219,7 @@ function seo_pilot_vevor_request_market() {
         $product_id = absint(get_queried_object_id());
         $stored_market = strtoupper(trim((string) get_post_meta($product_id, '_seo_pais_origen', true)));
         $provider = strtoupper(trim((string) get_post_meta($product_id, '_seo_proveedor', true)));
-        if ('VEVOR' === $provider && in_array($stored_market, array('US', 'DE', 'NL'), true)) {
+        if ('VEVOR' === $provider && in_array($stored_market, array('US', 'DE', 'NL', 'FR'), true)) {
             return $stored_market;
         }
 
@@ -242,7 +242,7 @@ function seo_pilot_vevor_request_market() {
     if (is_singular('page')) {
         $id = absint(get_queried_object_id());
         $slug = (string) get_post_field('post_name', $id);
-        if (!preg_match('/^vevor-(us|de|nl)-[a-z0-9-]+$/', $slug, $parts)) {
+        if (!preg_match('/^vevor-(us|de|nl|fr)-[a-z0-9-]+$/', $slug, $parts)) {
             return '';
         }
         $expected = strtoupper($parts[1]);
@@ -292,7 +292,7 @@ function seo_template_loader($template) {
     if (is_tax('product_cat') || is_singular('product') || is_singular('page')) {
         $pilot_market = seo_pilot_vevor_request_market();
         $pilot_file = $base_path . 'template-pilot-vevor.php';
-        if (in_array($pilot_market, array('US', 'DE', 'NL'), true) && is_readable($pilot_file)) {
+        if (in_array($pilot_market, array('US', 'DE', 'NL', 'FR'), true) && is_readable($pilot_file)) {
             $GLOBALS['dht_pilot_market'] = $pilot_market;
             return $pilot_file;
         }

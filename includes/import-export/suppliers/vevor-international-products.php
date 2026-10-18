@@ -13,7 +13,7 @@ function seo_vevor_region_category_market( $category_id ) {
         return '';
     }
     // Country roots are not sufficiently precise destinations for products.
-    if ( in_array( $term->slug, array( 'vevor-us', 'vevor-de', 'vevor-nl' ), true ) ) {
+    if ( in_array( $term->slug, array( 'vevor-us', 'vevor-de', 'vevor-nl', 'vevor-fr' ), true ) ) {
         return '';
     }
     $ancestors = get_ancestors( $term->term_id, 'product_cat', 'taxonomy' );
@@ -29,6 +29,9 @@ function seo_vevor_region_category_market( $category_id ) {
             if ( 'vevor-nl' === $ancestor->slug ) {
                 return 'NL';
             }
+            if ( 'vevor-fr' === $ancestor->slug ) {
+                return 'FR';
+            }
         }
     }
     return '';
@@ -38,7 +41,7 @@ function seo_vevor_region_product_market( $product_id ) {
     // Drafts awaiting classification have only the WooCommerce default category.
     $meta_market = strtoupper( (string) get_post_meta( absint( $product_id ), '_seo_pais_origen', true ) );
     $provider = (string) get_post_meta( absint( $product_id ), '_seo_proveedor', true );
-    if ( in_array( $meta_market, array( 'US', 'DE', 'NL' ), true ) && 0 === strcasecmp( $provider, 'VEVOR' ) ) {
+    if ( in_array( $meta_market, array( 'US', 'DE', 'NL', 'FR' ), true ) && 0 === strcasecmp( $provider, 'VEVOR' ) ) {
         return $meta_market;
     }
     $terms = wp_get_post_terms( absint( $product_id ), 'product_cat', array( 'fields' => 'ids' ) );
@@ -101,12 +104,12 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
     if ( 'VEVOR' !== strtoupper( trim( (string) ( $row['proveedor'] ?? '' ) ) ) ||
         $market !== strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ) ||
         ! in_array( (string) ( $row['estado_seleccion'] ?? '' ), array( 'pendiente', 'revisar', 'aceptado' ), true ) ||
-        ! in_array( $market, array( 'US', 'DE', 'NL' ), true ) ) {
+        ! in_array( $market, array( 'US', 'DE', 'NL', 'FR' ), true ) ) {
         return new WP_Error( 'vevor_invalid_scope', 'Proveedor, pais o aprobacion incorrectos.' );
     }
 
-    $expected_host = array( 'US' => 'vevor.com', 'DE' => 'vevor.de', 'NL' => 'vevor.nl' );
-    $expected_currency = array( 'US' => 'USD', 'DE' => 'EUR', 'NL' => 'EUR' );
+    $expected_host = array( 'US' => 'vevor.com', 'DE' => 'vevor.de', 'NL' => 'vevor.nl', 'FR' => 'vevor.fr' );
+    $expected_currency = array( 'US' => 'USD', 'DE' => 'EUR', 'NL' => 'EUR', 'FR' => 'EUR' );
     $url = esc_url_raw( (string) ( $row['url_origen'] ?? '' ) );
     $host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
     $query = (string) wp_parse_url( $url, PHP_URL_QUERY );
@@ -157,7 +160,7 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
             $product->set_catalog_visibility( 'visible' );
             $product->set_sku( $regional_sku );
             $product->set_product_url( $url );
-            $buttons = array( 'US' => 'View at VEVOR', 'DE' => 'Bei VEVOR ansehen', 'NL' => 'Bekijk bij VEVOR' );
+            $buttons = array( 'US' => 'View at VEVOR', 'DE' => 'Bei VEVOR ansehen', 'NL' => 'Bekijk bij VEVOR', 'FR' => 'Voir sur VEVOR' );
             $product->set_button_text( $buttons[ $market ] );
             // Category mapping is deliberately deferred until after approval.
             // Do not use categoryPath or create market categories here.
@@ -178,7 +181,7 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
             update_post_meta( $product_id, '_seo_proveedor_url_origen', $url );
             update_post_meta( $product_id, '_seo_proveedor_url_canonica', esc_url_raw( (string) ( $fresh['url_canonica'] ?? '' ) ) );
             update_post_meta( $product_id, '_seo_pais_origen', $market );
-            update_post_meta( $product_id, '_seo_locale', array( 'US' => 'en-US', 'DE' => 'de-DE', 'NL' => 'nl-NL' )[ $market ] );
+            update_post_meta( $product_id, '_seo_locale', array( 'US' => 'en-US', 'DE' => 'de-DE', 'NL' => 'nl-NL', 'FR' => 'fr-FR' )[ $market ] );
             update_post_meta( $product_id, '_seo_market_currency', $expected_currency[ $market ] );
             update_post_meta( $product_id, '_seo_market_price', sanitize_text_field( (string) ( $fresh['precio_con_iva'] ?? '' ) ) );
             update_post_meta( $product_id, '_seo_vevor_source_category', sanitize_text_field( (string) ( $fresh['categoria_proveedor'] ?? '' ) ) );

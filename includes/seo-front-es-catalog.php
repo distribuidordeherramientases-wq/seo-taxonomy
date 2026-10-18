@@ -51,6 +51,7 @@ function seo_front_es_international_category_ids() {
             || preg_match( '/^(?:vevor-)?(?:us|usa|eua|eeuu|estados-unidos|united-states|en-us)(?:-|$)/', $slug )
             || preg_match( '/^(?:vevor-)?(?:(?:de|deu)(?:$|-(?:best-sellers|bestsellers|kategorie|category|produkte|products)(?:-|$))|(?:deutschland|alemania|germany|de-de)(?:-|$))/', $slug )
             || preg_match( '/^(?:vevor-)?(?:nl|nld|nederland|netherlands|holanda|paises-bajos|nl-nl)(?:-|$)/', $slug )
+            || preg_match( '/^(?:vevor-)?(?:fr|fra|france|fr-fr)(?:-|$)/', $slug )
         ) {
             $market_roots[ $id ] = true;
         }
@@ -85,7 +86,7 @@ function seo_front_es_is_storefront() {
         return false;
     }
 
-    if ( in_array( strtoupper( (string) ( $GLOBALS['dht_pilot_market'] ?? '' ) ), array( 'US', 'DE', 'NL' ), true ) ) {
+    if ( in_array( strtoupper( (string) ( $GLOBALS['dht_pilot_market'] ?? '' ) ), array( 'US', 'DE', 'NL', 'FR' ), true ) ) {
         return false;
     }
 
@@ -239,7 +240,7 @@ function seo_front_es_product_is_visible( $product ) {
     }
 
     $sku = strtolower( (string) $product->get_sku() );
-    if ( preg_match( '/^vevor-(?:us|de|nl)-/', $sku ) ) {
+    if ( preg_match( '/^vevor-(?:us|de|nl|fr)-/', $sku ) ) {
         return $checked[ $id ] = false;
     }
 
@@ -334,12 +335,14 @@ add_filter( 'posts_where', static function ( $where, $query ) {
                 es_sku.meta_value LIKE %s
                 OR es_sku.meta_value LIKE %s
                 OR es_sku.meta_value LIKE %s
+                OR es_sku.meta_value LIKE %s
               )
         )",
         '_sku',
         $wpdb->esc_like( 'vevor-us-' ) . '%',
         $wpdb->esc_like( 'vevor-de-' ) . '%',
-        $wpdb->esc_like( 'vevor-nl-' ) . '%'
+        $wpdb->esc_like( 'vevor-nl-' ) . '%',
+        $wpdb->esc_like( 'vevor-fr-' ) . '%'
     );
 
     static $supplier_table_present = null;

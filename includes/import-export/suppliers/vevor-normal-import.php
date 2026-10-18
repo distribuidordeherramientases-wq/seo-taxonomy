@@ -46,7 +46,7 @@ function seo_vevor_normal_import_eligible_count() {
     return (int) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT COUNT(*) FROM {$table}
-             WHERE proveedor = %s AND pais_origen IN ('US','DE','NL')
+             WHERE proveedor = %s AND pais_origen IN ('US','DE','NL','FR')
                AND estado_seleccion = %s
                AND estado_sincronizacion NOT IN ('error','conflicto','baja_pendiente','baja_aplicada')
                AND (object_id IS NULL OR object_id = 0)",
@@ -89,7 +89,7 @@ function seo_vevor_normal_import_install() {
                  hash_aplicado = NULL,
                  snapshot_aplicado = NULL,
                  actualizado = %s
-             WHERE proveedor = %s AND pais_origen IN ('US','DE','NL')
+             WHERE proveedor = %s AND pais_origen IN ('US','DE','NL','FR')
                AND estado_seleccion = %s AND estado_sincronizacion = %s
                AND (object_id IS NULL OR object_id = 0)",
             'nuevo',
@@ -155,7 +155,7 @@ function seo_vevor_normal_import_tick() {
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM {$table}
-                 WHERE proveedor = %s AND pais_origen IN ('US','DE','NL')
+                 WHERE proveedor = %s AND pais_origen IN ('US','DE','NL','FR')
                    AND estado_seleccion = %s
                    AND estado_sincronizacion NOT IN ('error','conflicto','baja_pendiente','baja_aplicada')
                    AND (object_id IS NULL OR object_id = 0)
