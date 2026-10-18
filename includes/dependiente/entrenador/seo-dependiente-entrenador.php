@@ -1130,6 +1130,7 @@ final class SEO_Dependiente_Entrenador {
             'running' => self::is_auto_running($state) || (bool) $lab_pending,
             'scheduler' => self::automation_scheduler_status(),
             'queue' => self::lab_queue_overview(),
+            'queue_state' => self::lab_queue_state(),
             'next_due_ts' => $lab_pending
                 ? absint($lab_queue_state['next_due_ts'] ?? 0)
                 : absint($state['direct_worker_not_before'] ?? 0),
