@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,10 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.4.1 =
+* Added TaxoCommerce Images to the built-in family catalog.
+* Core can detect, activate, deactivate and open the Images extension like Import-Export.
 
 = 0.4.0 =
 * Added Core menu manager based on the native SEO hierarchy.
