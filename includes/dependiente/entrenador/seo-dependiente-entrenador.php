@@ -8112,12 +8112,10 @@ final class SEO_Dependiente_Entrenador {
         ));
 
         if (false === $inserted) {
-            $db_error = sanitize_text_field((string) $wpdb->last_error);
-            throw new RuntimeException(
-                $db_error
-                    ? 'No se pudo guardar la comprobación TIPO/ROL de Academia: ' . $db_error
-                    : 'No se pudo guardar la comprobación TIPO/ROL de Academia.'
-            );
+            // Preserve SQL diagnostics in the server log, never in an exception
+            // that may be shown to an administrator (same as M1/M2).
+            error_log('[TaxoCommerce Academia] Insert type/role check: ' . sanitize_text_field((string) $wpdb->last_error));
+            throw new RuntimeException('No se pudo guardar la comprobación TIPO/ROL de Academia.');
         }
 
         return absint($wpdb->insert_id);
