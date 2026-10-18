@@ -14,7 +14,7 @@ final class SEO_Dependiente_Index {
     public static function install() {
         global $wpdb;
 
-        $table = self::table();
+        $table = esc_sql( self::table() );
         $charset_collate = $wpdb->get_charset_collate();
 
         $sql = "CREATE TABLE {$table} (
@@ -311,7 +311,7 @@ final class SEO_Dependiente_Index {
         global $wpdb;
 
         $sample_limit = min(100, max(1, absint($sample_limit)));
-        $index_table = self::table();
+        $index_table = esc_sql( self::table() );
         $expected = self::count_indexable();
         $published = self::count_published();
         $indexed = self::count_indexed();
@@ -521,8 +521,8 @@ final class SEO_Dependiente_Index {
             'plataforma' => array(),
             'subtipo'    => array(),
         );
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         if (!self::table_exists($vocabulary) || !self::table_exists($objects)) {
             return $result;
         }
@@ -615,7 +615,7 @@ final class SEO_Dependiente_Index {
 
     private static function get_seo_attributes($product_id) {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_attributes';
+        $table = esc_sql( $wpdb->prefix . 'seo_attributes' );
         if (!self::table_exists($table)) {
             return array();
         }
@@ -737,7 +737,7 @@ final class SEO_Dependiente_Index {
             }
         }
 
-        $supplier_table = $wpdb->prefix . 'seo_proveedores_productos';
+        $supplier_table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
         if (self::table_exists($supplier_table)) {
             $row = $wpdb->get_row(
                 $wpdb->prepare(
@@ -838,7 +838,7 @@ final class SEO_Dependiente_Index {
         global $wpdb;
 
         // 4) Tabla normalizada de imagenes externas.
-        $supplier_images = $wpdb->prefix . 'seo_supplier_images';
+        $supplier_images = esc_sql( $wpdb->prefix . 'seo_supplier_images' );
         if (self::table_exists($supplier_images)) {
             $columns = self::table_columns($supplier_images);
             $link_parts = array();
@@ -899,7 +899,7 @@ final class SEO_Dependiente_Index {
         }
 
         $product_id = absint($product->get_id());
-        $table = $wpdb->prefix . 'seo_proveedores_productos';
+        $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
 
         if (!$product_id || !self::table_exists($table)) {
             return '';
