@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,13 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.3.2 =
+* Added built-in TaxoCommerce family catalog starting with Import-Export.
+* Detects family extensions even when installed but inactive.
+* Adds per-extension search in WordPress.org and ZIP upload actions.
+* Adds secure Activate / Deactivate controls from Core.
+* Active extensions may merge their administration pages into the Core menu.
 
 = 0.3.1 =
 * Extensions screen can open the native WordPress.org search and native ZIP upload installer.
