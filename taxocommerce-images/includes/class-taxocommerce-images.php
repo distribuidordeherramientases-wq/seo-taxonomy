@@ -158,7 +158,6 @@ final class TaxoCommerce_Images {
 			'audit'      => __( 'Auditoría', 'taxocommerce-images' ),
 			'library'    => __( 'Biblioteca', 'taxocommerce-images' ),
 			'thumbnails' => __( 'Miniaturas', 'taxocommerce-images' ),
-			'import'     => __( 'Importar a Media', 'taxocommerce-images' ),
 			'settings'   => __( 'Ajustes', 'taxocommerce-images' ),
 		);
 		if ( ! isset( $tabs[ $tab ] ) ) {
@@ -167,7 +166,7 @@ final class TaxoCommerce_Images {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'TaxoCommerce Images', 'taxocommerce-images' ); ?></h1>
-			<p><?php echo esc_html__( 'Media de WordPress es la fuente de verdad. Las imágenes externas se descargan a Media antes de asignarlas a contenidos o productos.', 'taxocommerce-images' ); ?></p>
+			<p><?php echo esc_html__( 'Media de WordPress es la fuente de verdad. La importación y exportación de archivos pertenece a TaxoCommerce Import-Export.', 'taxocommerce-images' ); ?></p>
 			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de imágenes', 'taxocommerce-images' ); ?>">
 				<?php foreach ( $tabs as $key => $label ) : ?>
 					<a class="nav-tab<?php echo $tab === $key ? ' nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-images', 'tab' => $key ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( $label ); ?></a>
@@ -184,9 +183,6 @@ final class TaxoCommerce_Images {
 					break;
 				case 'thumbnails':
 					$this->render_thumbnails();
-					break;
-				case 'import':
-					$this->render_import();
 					break;
 				case 'settings':
 					$this->render_settings();
@@ -234,7 +230,6 @@ final class TaxoCommerce_Images {
 		<h2><?php echo esc_html__( 'Criterios del nuevo sistema', 'taxocommerce-images' ); ?></h2>
 		<ul style="list-style:disc;margin-left:24px;">
 			<li><?php echo esc_html__( 'No depender de imágenes externas para mostrar normalmente el catálogo.', 'taxocommerce-images' ); ?></li>
-			<li><?php echo esc_html__( 'Descargar a Media cualquier imagen externa que se decida utilizar.', 'taxocommerce-images' ); ?></li>
 			<li><?php echo esc_html__( 'Mantener título, ALT, leyenda y descripción gestionables desde un único lugar.', 'taxocommerce-images' ); ?></li>
 			<li><?php echo esc_html__( 'Detectar imágenes grandes antes de optimizarlas; las reducciones manuales crean copia de seguridad.', 'taxocommerce-images' ); ?></li>
 			<li><?php echo esc_html__( 'Usar las miniaturas registradas por WordPress y poder regenerarlas.', 'taxocommerce-images' ); ?></li>
@@ -442,29 +437,6 @@ final class TaxoCommerce_Images {
 			</tbody>
 		</table>
 		<p><?php echo esc_html__( 'La Auditoría identifica attachments a los que les faltan tamaños que podrían generarse. Desde Biblioteca puedes regenerar las miniaturas de cada imagen.', 'taxocommerce-images' ); ?></p>
-		<?php
-	}
-
-	/**
-	 * External-to-Media intake.
-	 *
-	 * @return void
-	 */
-	private function render_import() {
-		?>
-		<h2><?php echo esc_html__( 'Descargar imagen externa a Media', 'taxocommerce-images' ); ?></h2>
-		<div class="notice notice-info inline"><p><?php echo esc_html__( 'Una URL externa es sólo una fuente de entrada. Al confirmar, WordPress descarga el archivo y crea un attachment local en Media.', 'taxocommerce-images' ); ?></p></div>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width:850px;">
-			<input type="hidden" name="action" value="taxocommerce_images_sideload">
-			<?php wp_nonce_field( 'taxocommerce_images_sideload', 'taxocommerce_images_nonce' ); ?>
-			<table class="form-table" role="presentation">
-				<tr><th><label for="tc-image-url"><?php echo esc_html__( 'URL externa', 'taxocommerce-images' ); ?></label></th><td><input id="tc-image-url" class="large-text" type="url" name="image_url" required></td></tr>
-				<tr><th><label for="tc-image-title"><?php echo esc_html__( 'Título', 'taxocommerce-images' ); ?></label></th><td><input id="tc-image-title" class="large-text" name="image_title"></td></tr>
-				<tr><th><label for="tc-parent-id"><?php echo esc_html__( 'ID de producto/post/página', 'taxocommerce-images' ); ?></label></th><td><input id="tc-parent-id" type="number" min="0" name="parent_id" value="0"><p class="description"><?php echo esc_html__( '0 = guardar en Media sin asociar a un objeto.', 'taxocommerce-images' ); ?></p></td></tr>
-				<tr><th><label for="tc-assign-mode"><?php echo esc_html__( 'Asignación', 'taxocommerce-images' ); ?></label></th><td><select id="tc-assign-mode" name="assign_mode"><option value="media"><?php echo esc_html__( 'Sólo Media', 'taxocommerce-images' ); ?></option><option value="featured"><?php echo esc_html__( 'Imagen destacada/principal', 'taxocommerce-images' ); ?></option><option value="gallery"><?php echo esc_html__( 'Galería de producto WooCommerce', 'taxocommerce-images' ); ?></option></select></td></tr>
-			</table>
-			<?php submit_button( __( 'Descargar a Media', 'taxocommerce-images' ) ); ?>
-		</form>
 		<?php
 	}
 
