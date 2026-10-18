@@ -841,7 +841,22 @@ if (!function_exists('seo_processes_collect_academy')) {
             $detail .= ($detail ? ' ' : '') . 'Cola de preguntas: ' . sanitize_text_field((string) $queue_state['last_error']);
         }
         if ($lesson) {
-            $detail = ($detail ? $detail . ' ' : '') . $lesson . ($module > 0 ? ', módulo ' . $module : '') . '.';
+            $lesson_status = sanitize_key((string) ($current['status'] ?? ''));
+            $summary = isset($current['summary']) && is_array($current['summary']) ? $current['summary'] : array();
+            $evaluated = absint($summary['answered'] ?? 0);
+            $total_eval = absint($summary['total'] ?? 0);
+            $technical_errors = absint($summary['errors'] ?? 0);
+            $detail = ($detail ? $detail . ' ' : '') . $lesson . ($module > 0 ? ', módulo ' . $module : '');
+            if ($lesson_status) {
+                $detail .= ' · estado ' . $lesson_status;
+            }
+            if ($total_eval > 0) {
+                $detail .= ' · evaluadas ' . number_format_i18n($evaluated) . '/' . number_format_i18n($total_eval);
+            }
+            if ($technical_errors > 0) {
+                $detail .= ' · errores técnicos ' . number_format_i18n($technical_errors);
+            }
+            $detail .= '.';
         }
 
         $progress = null;
