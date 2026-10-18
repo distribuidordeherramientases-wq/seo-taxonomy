@@ -76,6 +76,10 @@ if ( is_readable( __DIR__ . '/suppliers/vevor-international-products.php' ) ) {
     if ( is_readable( __DIR__ . '/suppliers/vevor-accepted-recovery.php' ) ) {
         require_once __DIR__ . '/suppliers/vevor-accepted-recovery.php';
         require_once __DIR__ . '/suppliers/vevor-accepted-queue.php';
+        require_once __DIR__ . '/suppliers/vevor-normal-import.php';
+        // Retire all temporary VEVOR recovery cards and manual batch tools.
+        remove_action( 'seo_vevor_region_batch_card', 'seo_vevor_region_batch_card' );
+        remove_action( 'admin_init', 'seo_vevor_region_batch_post' );
     }
 }
 require_once __DIR__ . '/catalogs/importer.php';

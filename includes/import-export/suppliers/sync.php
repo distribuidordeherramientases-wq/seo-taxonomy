@@ -1117,6 +1117,11 @@ function seo_supplier_sync_handle_bulk_action() {
         $market_updated = $wpdb->query( $market_query );
         $processed = false === $market_updated ? 0 : max( 0, (int) $market_updated );
         $errors    = false === $market_updated ? 1 : 0;
+        // Convert approved international offers to WC products using the standard
+        // supplier worker. The SQL approval alone is not a successful import.
+        if ( $processed > 0 && function_exists( 'seo_vevor_normal_import_schedule' ) ) {
+            seo_vevor_normal_import_schedule();
+        }
 
         $redirect = esc_url_raw( wp_unslash( $_POST['return_url'] ?? '' ) );
         if ( ! $redirect ) {
@@ -1130,7 +1135,7 @@ function seo_supplier_sync_handle_bulk_action() {
                 'seo_sync_bulk_action'    => $action,
                 'seo_sync_bulk_processed' => absint( $processed ),
                 'seo_sync_bulk_errors'    => absint( $errors ),
-                'seo_sync_market_offers'  => 1,
+                'seo_sync_market_offers'  => 0,
             ],
             $redirect
         ) );
