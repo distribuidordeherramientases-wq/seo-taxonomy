@@ -2138,19 +2138,22 @@ final class SEO_Dependiente_Linguista {
         if (!$ids) {
             return array();
         }
-        $in = implode(',', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $out = array();
 
         if (self::table_exists($vocabulary) && self::table_exists($objects)) {
             $rows = (array) $wpdb->get_results(
-                "SELECT ov.object_id,v.id vocabulary_id,v.semantic_group,v.label,v.slug
+                $wpdb->prepare(
+                    "SELECT ov.object_id,v.id vocabulary_id,v.semantic_group,v.label,v.slug
                  FROM {$objects} ov
                  JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
-                 WHERE ov.object_type='product' AND ov.status=1 AND ov.object_id IN ({$in})
+                 WHERE ov.object_type='product' AND ov.status=1 AND ov.object_id IN ({$placeholders})
                    AND v.semantic_group IN ('tipo','subtipo','aplicacion','rol')
                  ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'tipo','subtipo','aplicacion','rol'), v.id ASC",
+                    ...$ids
+                ),
                 ARRAY_A
             );
             foreach ($rows as $row) {
