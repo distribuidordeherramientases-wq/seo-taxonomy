@@ -335,6 +335,7 @@ add_filter( 'posts_where', static function ( $where, $query ) {
                 es_sku.meta_value LIKE %s
                 OR es_sku.meta_value LIKE %s
                 OR es_sku.meta_value LIKE %s
+                OR es_sku.meta_value LIKE %s
               )
         )",
         '_sku',
