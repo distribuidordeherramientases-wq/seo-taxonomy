@@ -361,13 +361,26 @@ if (!function_exists('seo_content_vocab_save_from_request')) {
             return true;
         }
 
+        // The post editor already verifies its own nonce, but guard this
+        // mutating helper independently in case another caller uses it later.
+        if (!current_user_can('manage_options')) {
+            return new WP_Error('seo_content_vocab_forbidden', 'No tienes permisos para modificar Vocabulary.');
+        }
+        $nonce_field = $field_name . '_nonce';
+        $nonce = isset($_POST[$nonce_field]) && is_string($_POST[$nonce_field])
+            ? sanitize_text_field(wp_unslash($_POST[$nonce_field]))
+            : '';
+        if (!wp_verify_nonce($nonce, 'seo_content_vocab_' . $object_type . '_' . $field_name)) {
+            return new WP_Error('seo_content_vocab_nonce', 'La verificacion de seguridad de Vocabulary ha caducado. Recarga la pagina.');
+        }
+
         $posted = isset($_POST[$field_name]) && is_array($_POST[$field_name])
-            ? wp_unslash($_POST[$field_name])
+            ? map_deep(wp_unslash($_POST[$field_name]), 'sanitize_text_field')
             : array();
 
         foreach (seo_content_vocab_groups() as $group => $label) {
             $selected = isset($posted[$group]) && is_array($posted[$group])
-                ? array_map('absint', $posted[$group])
+                ? array_map('absint', array_filter($posted[$group], 'is_scalar'))
                 : array();
 
             $result = seo_content_vocab_replace_manual_group($object_type, $object_id, $group, $selected);
@@ -399,6 +412,7 @@ if (!function_exists('seo_content_vocab_render_fields')) {
             : array();
 
         echo '<div class="seo-content-vocabulary">';
+        wp_nonce_field('seo_content_vocab_' . $object_type . '_' . $field_name, $field_name . '_nonce', false);
         echo '<input type="hidden" name="' . esc_attr($field_name) . '_present" value="1">';
         echo '<p style="margin:0 0 12px;color:#50575e;font-size:12px;line-height:1.5;">Fuente semantica canonica: <code>wp_seo_object_vocabulary</code> con <code>object_type=' . esc_html($object_type) . '</code>. No se leen ni se escriben <code>post_tag</code>.</p>';
 
