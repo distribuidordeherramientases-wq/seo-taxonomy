@@ -40,7 +40,7 @@ function seo_faq_table_name()
 {
     global $wpdb;
 
-    return $wpdb->prefix . 'seo_faq';
+    return esc_sql( $wpdb->prefix . 'seo_faq' );
 }
 
 
@@ -76,7 +76,7 @@ add_filter('seo_data_layer_tables', 'seo_faq_register_data_layer_table');
 function seo_faq_metrics_table_name()
 {
     global $wpdb;
-    return $wpdb->prefix . 'seo_faq_metrics';
+    return esc_sql( $wpdb->prefix . 'seo_faq_metrics' );
 }
 
 /**
@@ -1335,7 +1335,7 @@ function seo_faq_get_classification_hierarchy($filters)
 {
     global $wpdb;
 
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     $cluster_ids = array_map(
         'absint',
@@ -3865,7 +3865,7 @@ function seo_faq_report_get_target_counts()
 function seo_faq_report_get_hub_ids()
 {
     global $wpdb;
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
     $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_table));
 
     if ($exists !== $relations_table) {
