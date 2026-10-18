@@ -404,22 +404,6 @@ final class TaxoCommerce_Core {
 	}
 
 	/**
-	 * Hierarchy pilot page.
-	 *
-	 * @return void
-	 */
-	public function render_hierarchy() {
-		$this->guard();
-		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Modelo objetivo: Cluster → Hub primario → Hub secundario → Categoría de producto → Producto.', 'taxocommerce-core' ); ?></p>
-			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'la jerarquía SEO del plugin TaxoCommerce actual, incluidos sus nodos y relaciones. Todavía no está migrada al nuevo Core.', 'taxocommerce-core' ); ?></p></div>
-		</div>
-		<?php
-	}
-
-	/**
 	 * Processes page.
 	 *
 	 * @return void
