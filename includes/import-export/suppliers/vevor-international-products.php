@@ -6,6 +6,7 @@
  * No bulk publication or edits to Spanish products.
  */
 defined( 'ABSPATH' ) || exit;
+require_once __DIR__ . '/vevor-direct-approval.php';
 
 function seo_vevor_region_category_market( $category_id ) {
     $term = get_term( absint( $category_id ), 'product_cat' );
@@ -70,6 +71,10 @@ function seo_vevor_region_existing_product( array $row, $market, $regional_sku )
 
     $sku_owner = function_exists( 'wc_get_product_id_by_sku' ) ? absint( wc_get_product_id_by_sku( $regional_sku ) ) : 0;
     if ( $sku_owner ) {
+        // A trashed WooCommerce record is not a successfully created draft.
+        if ( 'trash' === get_post_status( $sku_owner ) ) {
+            return new WP_Error( 'vevor_sku_in_trash', 'El SKU pertenece a una ficha en la papelera; no se aceptara hasta resolverla.' );
+        }
         if ( seo_vevor_region_product_market( $sku_owner ) !== $market ||
             (string) get_post_meta( $sku_owner, '_seo_proveedor_id_externo', true ) !== (string) ( $row['proveedor_id_externo'] ?? '' ) ) {
             return new WP_Error( 'vevor_sku_collision', 'El SKU regional pertenece a otra ficha; no se modifica.' );
