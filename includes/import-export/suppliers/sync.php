@@ -811,17 +811,13 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
             if ( 'actualizar' === $action && ! in_array( $situation, [ 'modificado', 'error' ], true ) ) {
                 return [ 'result' => 'error', 'product_id' => 0, 'message' => 'Esta oferta no tiene una actualizacion pendiente.', 'warnings' => [] ];
             }
-            if ( ! function_exists( 'seo_vevor_region_apply_offer' ) || ! function_exists( 'seo_vevor_region_category_for_offer' ) ) {
-                return [ 'result' => 'error', 'product_id' => 0, 'message' => 'No se encuentra el nuevo servicio de fichas VEVOR regionales.', 'warnings' => [] ];
+            if ( ! function_exists( 'seo_vevor_region_apply_offer' ) ) {
+                return [ 'result' => 'error', 'product_id' => 0, 'message' => 'No se encuentra el servicio de fichas VEVOR regionales.', 'warnings' => [] ];
             }
-            $destination = seo_vevor_region_category_for_offer( $row );
-            if ( is_wp_error( $destination ) ) {
-                return [ 'result' => 'error', 'product_id' => 0, 'message' => $destination->get_error_message(), 'warnings' => [] ];
-            }
+            // Commercial approval must not depend on categoryPath classification.
             $result = seo_vevor_region_apply_offer(
                 $row,
-                strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ),
-                absint( $destination )
+                strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) )
             );
             if ( is_wp_error( $result ) ) {
                 return [ 'result' => 'error', 'product_id' => 0, 'message' => $result->get_error_message(), 'warnings' => [] ];
@@ -831,7 +827,7 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
                 'result'     => $is_new ? 'created' : 'existing',
                 'product_id' => absint( $result['product_id'] ?? 0 ),
                 'message'    => $is_new
-                    ? 'Oferta aceptada: producto VEVOR internacional creado en draft y vinculado a su categoria.'
+                    ? 'Oferta aceptada: producto VEVOR internacional creado en draft con la categoria predeterminada.'
                     : 'Oferta aceptada: ficha VEVOR internacional existente reutilizada sin modificarla.',
                 'warnings'   => [],
             ];
