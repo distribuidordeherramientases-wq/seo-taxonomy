@@ -918,8 +918,8 @@ final class SEO_Auditor {
         $types = array_values(array_intersect($allowed, array_map('sanitize_key', (array) $types)));
         if (!$types) return array();
 
-        $ov = $wpdb->prefix . 'seo_object_vocabulary';
-        $v = $wpdb->prefix . 'seo_vocabulary';
+        $ov = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!self::table_exists($ov) || !self::table_exists($v)) return array();
 
         $placeholders = implode(',', array_fill(0, count($types), '%s'));
@@ -1056,7 +1056,7 @@ final class SEO_Auditor {
         }
 
         $category_content = array();
-        $nodes = $wpdb->prefix . 'seo_nodes';
+        $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (self::table_exists($nodes)) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
             $node_rows = (array) $wpdb->get_results(
@@ -1073,7 +1073,7 @@ final class SEO_Auditor {
             }
         }
 
-        $rel_table = $wpdb->prefix . 'seo_relations';
+        $rel_table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $relations = self::table_exists($rel_table)
             ? (array) $wpdb->get_results("SELECT source_type,source_id,target_type,target_id,relation_type FROM {$rel_table} ORDER BY source_type,source_id,target_type,target_id,relation_type", ARRAY_A)
             : array();
@@ -1131,7 +1131,7 @@ final class SEO_Auditor {
         }
 
         $category_content = array();
-        $nodes = $wpdb->prefix . 'seo_nodes';
+        $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (self::table_exists($nodes)) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna validada; consulta fija sin entrada de usuario.
             $node_rows = (array) $wpdb->get_results(
@@ -1148,7 +1148,7 @@ final class SEO_Auditor {
             }
         }
 
-        $faq_table = $wpdb->prefix . 'seo_faq';
+        $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
         $faqs = self::table_exists($faq_table)
             ? (array) $wpdb->get_results("SELECT id,object_type,object_id,question,LEFT(answer,2000) answer,CHAR_LENGTH(TRIM(answer)) answer_length,active,updated_at FROM {$faq_table} WHERE active=1 ORDER BY id ASC", ARRAY_A)
             : array();
@@ -1266,7 +1266,7 @@ final class SEO_Auditor {
             }
 
             // Atributos SEO canonicos usados tambien por el indice/Academia.
-            $seo_attr_table=$wpdb->prefix.'seo_attributes';
+            $seo_attr_table=esc_sql( $wpdb->prefix.'seo_attributes' );
             if(self::table_exists($seo_attr_table)){
                 $seo_attr_stats['table_present']=true;
                 $seo_attr_stats['total']=absint($wpdb->get_var("SELECT COUNT(*) FROM {$seo_attr_table}"));
@@ -1321,7 +1321,7 @@ final class SEO_Auditor {
         // Contenido SEO propio del sistema, cuando existe. Se usa como evidencia adicional, nunca para sustituir wp_posts.
         $seo_nodes = array();
         $category_content = array();
-        $nodes = $wpdb->prefix . 'seo_nodes';
+        $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (self::table_exists($nodes)) {
             $node_rows = (array)$wpdb->get_results(
                 "SELECT object_type,object_id,seo_role,keywords FROM {$nodes} WHERE status=1 ORDER BY object_type,object_id,seo_role",
@@ -1348,7 +1348,7 @@ final class SEO_Auditor {
         );
 
         // FAQs: relacion canonica = object_type + object_id. El texto nunca decide el owner.
-        $faq_table = $wpdb->prefix . 'seo_faq';
+        $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
         $faqs = array();
         $faq_stats = array('total'=>0,'active_all'=>0,'active_supported'=>0,'inactive'=>0,'type1_active'=>0,'type2_active'=>0,'type3_active'=>0,'other_active'=>0,'orphan_categories_active'=>0,'orphan_products_active'=>0,'nonpublished_products_active'=>0);
         if (self::table_exists($faq_table)) {
@@ -1366,11 +1366,11 @@ final class SEO_Auditor {
             $faqs = (array)$wpdb->get_results("SELECT id,object_type,object_id,question,LEFT(answer,2000) answer,CHAR_LENGTH(TRIM(answer)) answer_length,active,updated_at FROM {$faq_table} WHERE active=1 ORDER BY id ASC", ARRAY_A);
         }
 
-        $rel_table = $wpdb->prefix . 'seo_relations';
+        $rel_table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $relations = self::table_exists($rel_table) ? (array)$wpdb->get_results("SELECT source_type,source_id,target_type,target_id,relation_type FROM {$rel_table} ORDER BY source_type,source_id,target_type,target_id,relation_type", ARRAY_A) : array();
 
-        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
-        $ov_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocab_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $ov_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $vocab_count = self::table_exists($vocab_table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocab_table} WHERE active=1")) : 0;
         $vocab_total = self::table_exists($vocab_table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocab_table}")) : 0;
         $ov_stats = array('total'=>0,'managed_total'=>0,'active_managed'=>0,'inactive_managed'=>0,'orphan_vocabulary'=>0,'orphan_objects'=>0,'by_type'=>array());
@@ -1393,7 +1393,7 @@ final class SEO_Auditor {
         $indexed_category_ids = array();
         $indexed_with_categories = 0;
         $indexed_with_vocabulary = 0;
-        $index_table = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::table() : '';
+        $index_table = class_exists('SEO_Dependiente_Index') ? esc_sql( SEO_Dependiente_Index::table() ) : '';
         $index_exists = $index_table && self::table_exists($index_table);
         $index_verification = array();
         $index_stale_rows = 0;
@@ -1542,8 +1542,8 @@ final class SEO_Auditor {
 
     private static function load_object_vocabulary() {
         global $wpdb;
-        $ov = $wpdb->prefix . 'seo_object_vocabulary';
-        $v = $wpdb->prefix . 'seo_vocabulary';
+        $ov = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!self::table_exists($ov) || !self::table_exists($v)) return array();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas validadas; consulta fija sin entrada de usuario.
         $rows = (array)$wpdb->get_results(
@@ -2290,7 +2290,7 @@ final class SEO_Auditor {
         if(!class_exists('SEO_Dependiente_Index')||empty($inventory['index_table_present'])||empty($inventory['index_verified']))return array('ready'=>false,'reason'=>'El indice de Dependiente no esta verificado.');
         if(!class_exists('SEO_Dependiente_Semantics'))return array('ready'=>false,'reason'=>'La capa semantica de Dependiente no esta cargada.');
         if(!method_exists('SEO_Dependiente_Semantics','table'))return array('ready'=>false,'reason'=>'No se puede verificar la tabla semantica sin mutarla.');
-        $table=SEO_Dependiente_Semantics::table();
+        $table=esc_sql( SEO_Dependiente_Semantics::table() );
         if(!self::table_exists($table))return array('ready'=>false,'reason'=>'La tabla semantica no existe; Auditor no la crea en modo solo lectura.');
         $seed_count=absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE source='seed'"));
         $seed_option=(string)get_option('seo_dependiente_semantic_seed_version','');
@@ -2403,7 +2403,7 @@ final class SEO_Auditor {
     private static function audit_academia($inventory=array(), $cross_source_identity=true) {
         if (!class_exists('SEO_Dependiente_Entrenador')) return array('available'=>false,'current'=>false);
         global $wpdb;
-        $lt=SEO_Dependiente_Entrenador::lessons_table();$qt=SEO_Dependiente_Entrenador::questions_table();$rt=SEO_Dependiente_Entrenador::runs_table();
+        $lt=esc_sql( SEO_Dependiente_Entrenador::lessons_table() );$qt=esc_sql( SEO_Dependiente_Entrenador::questions_table() );$rt=esc_sql( SEO_Dependiente_Entrenador::runs_table() );
         if(!self::table_exists($lt)||!self::table_exists($qt)||!self::table_exists($rt))return array('available'=>false,'current'=>false);
 
         $products=$cross_source_identity?(array)($inventory['products']??array()):array();$categories=$cross_source_identity?(array)($inventory['categories']??array()):array();$identity_groups=$cross_source_identity?self::build_product_identity_groups($products):array();$category_identity_groups=$cross_source_identity?self::build_category_identity_groups($categories):array();
@@ -2462,7 +2462,7 @@ final class SEO_Auditor {
         $out=array('available'=>false,'snapshot'=>$snapshot,'active_academy_rules'=>0,'active_learned_rules'=>0,'staged_rules'=>0,'rules_by_lesson'=>array(),'raw_lesson_aliases'=>array(),'lessons'=>array());
         if(!class_exists('SEO_Dependiente_Semantics')||!SEO_Dependiente_Semantics::table_exists())return $out;
         $out['available']=true;
-        $table=SEO_Dependiente_Semantics::table();
+        $table=esc_sql( SEO_Dependiente_Semantics::table() );
         $out['active_academy_rules']=absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE source='academy' AND active=1"));
         $out['active_learned_rules']=absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE source='learned' AND active=1"));
         $out['staged_rules']=absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE source='academy_stage'"));
@@ -3013,7 +3013,7 @@ final class SEO_Auditor {
 
     private static function quality_page_roles() {
         global $wpdb;
-        $nodes = $wpdb->prefix . 'seo_nodes';
+        $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (!self::table_exists($nodes)) return array();
 
         $rows = (array)$wpdb->get_results(
