@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-pilot-market.php';
 require_once __DIR__ . '/template-pilot-navigation.php';
+require_once __DIR__ . '/template-pilot-country-switcher.php';
 
 $market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : strtoupper((string) ($GLOBALS['dht_pilot_market'] ?? ''));
 $markets = array(
@@ -341,6 +342,11 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-brand strong{font-size:clamp(20px,2.5vw,26px);letter-spacing:-.035em}
 .dht-pilot-brand span{font-size:12px;color:#526273}
 .dht-pilot-market{font-size:12px;white-space:nowrap;padding:6px 12px;border:1px solid #d6dfeb;border-radius:999px;color:#475467}
+.dht-pilot-market-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.dht-pilot-market-actions .dht-country-switcher{display:flex;align-items:center;gap:7px}
+.dht-pilot-market-actions .dht-country-switcher__link{min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;padding:4px;background:#f7f9fc;border:1px solid #dfe5ee;border-radius:9px;font-size:24px;line-height:1;text-decoration:none}
+.dht-pilot-market-actions .dht-country-switcher__link:hover,.dht-pilot-market-actions .dht-country-switcher__link:focus-visible{background:#eaf1fc;border-color:#9db9e7}
+@media(max-width:760px){.dht-pilot-market-actions{gap:8px}.dht-pilot-market-actions .dht-country-switcher__link{font-size:22px;min-width:34px;min-height:34px}}
 .dht-pilot-flag{font-size:24px;vertical-align:middle;line-height:1}
 .dht-pilot-nav{padding:4px 0 18px;display:block}
 .dht-pilot-nav-heading{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:0 0 11px;font-size:14px;font-weight:700;color:#233956}
@@ -402,7 +408,10 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
                 <strong><?php echo esc_html($t['brand_title']); ?></strong>
                 <span><?php echo esc_html($t['tagline']); ?></span>
             </a>
-            <span class="dht-pilot-market"><span class="dht-pilot-flag" aria-hidden="true"><?php echo esc_html($t['flag']); ?></span> <?php echo esc_html($t['country']); ?></span>
+            <div class="dht-pilot-market-actions">
+                <span class="dht-pilot-market"><span class="dht-pilot-flag" aria-hidden="true"><?php echo esc_html($t['flag']); ?></span> <?php echo esc_html($t['country']); ?></span>
+                <?php dht_pilot_render_country_switcher( $market ); ?>
+            </div>
         </div>
         <?php if ($navigation_roots) : ?>
         <!-- Fixed pilot navigation: real category URLs, identical across this country's pages. -->

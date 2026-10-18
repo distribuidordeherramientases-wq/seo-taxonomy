@@ -116,6 +116,11 @@ function seo_front_es_is_storefront() {
  * receive their requested number of entries instead of losing slots.
  */
 add_filter( 'get_terms_args', static function ( $args, $taxonomies ) {
+    // Country flag navigation must resolve the real foreign roots even from
+    // an ES storefront, without exposing them in Spanish category listings.
+    if ( ! empty( $args['seo_pilot_country_switcher'] ) ) {
+        return $args;
+    }
     if ( ! did_action( 'wp' ) || ! seo_front_es_is_storefront() ) {
         return $args;
     }
