@@ -202,6 +202,70 @@ add_filter( 'woocommerce_product_data_store_cpt_get_products_query', static func
     return seo_front_es_scope_product_query_args( $wp_query_args );
 }, 50, 2 );
 
+
+/**
+ * Last-line storefront safeguard: never render a foreign product card in ES.
+ * An early provider import could have created a simple product with missing
+ * region metadata; its supplier link or regional SKU still identifies it.
+ *
+ * This protects purchase buttons even if a third-party WooCommerce query
+ * bypasses the datastore and posts_where hooks.
+ */
+function seo_front_es_product_is_visible( $product ) {
+    if ( ! $product instanceof WC_Product ) {
+        return false;
+    }
+    $id = absint( $product->get_id() );
+    if ( ! $id ) {
+        return false;
+    }
+    static $checked = array();
+    if ( isset( $checked[ $id ] ) ) {
+        return $checked[ $id ];
+    }
+
+    $country = strtoupper( trim( (string) get_post_meta( $id, '_seo_pais_origen', true ) ) );
+    $locale  = strtolower( trim( (string) get_post_meta( $id, '_seo_locale', true ) ) );
+    if (
+        ( '' !== $country && 'ES' !== $country )
+        || ( '' !== $locale && 'es-es' !== $locale )
+    ) {
+        return $checked[ $id ] = false;
+    }
+
+    $sku = strtolower( (string) $product->get_sku() );
+    if ( preg_match( '/^vevor-(?:us|de|nl)-/', $sku ) ) {
+        return $checked[ $id ] = false;
+    }
+
+    $assigned = wp_get_post_terms( $id, 'product_cat', array( 'fields' => 'ids' ) );
+    if ( is_array( $assigned ) && array_intersect( array_map( 'absint', $assigned ), seo_front_es_international_category_ids() ) ) {
+        return $checked[ $id ] = false;
+    }
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    static $has_supplier_table = null;
+    if ( null === $has_supplier_table ) {
+        $has_supplier_table = $table === $wpdb->get_var(
+            $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
+        );
+    }
+    if ( $has_supplier_table ) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A trusted WordPress-prefixed table, with all values bound.
+        $is_foreign = $wpdb->get_var( $wpdb->prepare(
+            "SELECT id FROM {$table}
+             WHERE object_id = %d AND proveedor = %s
+             AND pais_origen NOT IN (%s,%s) LIMIT 1",
+            $id, 'VEVOR', '', 'ES'
+        ) );
+        if ( $is_foreign ) {
+            return $checked[ $id ] = false;
+        }
+    }
+    return $checked[ $id ] = true;
+}
+
 /** Public Spanish native WordPress product loops also get the same constraints. */
 add_action( 'pre_get_posts', static function ( $query ) {
     if ( ! $query instanceof WP_Query || ! seo_front_es_is_storefront() ) {
