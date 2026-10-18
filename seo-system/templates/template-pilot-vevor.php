@@ -9,12 +9,15 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-pilot-market.php';
+require_once __DIR__ . '/template-pilot-navigation.php';
 
 $market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : strtoupper((string) ($GLOBALS['dht_pilot_market'] ?? ''));
 $markets = array(
     'US' => array(
         'lang' => 'en-US', 'country' => 'United States', 'support' => 'https://www.vevor.com/pages/contact-us',
         'tagline' => 'Independent tool guides and VEVOR product selections',
+        'brand_title' => 'Professional Tools & Equipment · United States',
+        'all_categories' => 'All categories', 'image_placeholder' => 'Product image unavailable',
         'categories' => 'Categories', 'browse' => 'Explore the collection', 'overview' => 'Category guide',
         'products' => 'Products in this category', 'product' => 'Product details',
         'view' => 'View product', 'buy' => 'View on VEVOR', 'none' => 'No products available in this pilot category yet.',
@@ -28,6 +31,8 @@ $markets = array(
     'DE' => array(
         'lang' => 'de-DE', 'country' => 'Deutschland', 'support' => 'https://www.vevor.de/pages/contact-us',
         'tagline' => 'Unabhängige Ratgeber und VEVOR-Produktempfehlungen',
+        'brand_title' => 'Professionelle Werkzeuge & Ausrüstung · Deutschland',
+        'all_categories' => 'Alle Kategorien', 'image_placeholder' => 'Kein Produktbild verfügbar',
         'categories' => 'Kategorien', 'browse' => 'Auswahl entdecken', 'overview' => 'Ratgeber zur Kategorie',
         'products' => 'Produkte in dieser Kategorie', 'product' => 'Produktinformationen',
         'view' => 'Produkt ansehen', 'buy' => 'Bei VEVOR ansehen', 'none' => 'In dieser Pilotkategorie sind derzeit keine Produkte verfügbar.',
@@ -41,6 +46,8 @@ $markets = array(
     'NL' => array(
         'lang' => 'nl-NL', 'country' => 'Nederland', 'support' => 'https://www.vevor.nl/pages/contact-us',
         'tagline' => 'Onafhankelijke keuzehulpen en VEVOR-productselecties',
+        'brand_title' => 'Professioneel gereedschap & uitrusting · Nederland',
+        'all_categories' => 'Alle categorieën', 'image_placeholder' => 'Geen productafbeelding beschikbaar',
         'categories' => 'Categorieën', 'browse' => 'Bekijk het assortiment', 'overview' => 'Categorieadvies',
         'products' => 'Producten in deze categorie', 'product' => 'Productinformatie',
         'view' => 'Bekijk product', 'buy' => 'Bekijk bij VEVOR', 'none' => 'Er zijn nog geen producten beschikbaar in deze pilotcategorie.',
@@ -165,53 +172,13 @@ if (!$is_category && !$is_landing) {
     }
 }
 
-// Menu de como maximo tres categorias del pais: hijos de su raiz,
-// o categorias hermanas etiquetadas con el pais cuando no hay raiz.
-$navigation = array();
-if ($primary_category instanceof WP_Term) {
-    $lineage = array_merge(
-        array((int) $primary_category->term_id),
-        get_ancestors($primary_category->term_id, 'product_cat', 'taxonomy')
-    );
-    $country_roots = array(
-        'US' => array('us', 'usa', 'eua', 'eeuu', 'estados-unidos', 'united-states', 'vevor-us'),
-        'DE' => array('de', 'alemania', 'deutschland', 'germany', 'vevor-de'),
-        'NL' => array('nl', 'holanda', 'paises-bajos', 'nederland', 'netherlands', 'vevor-nl'),
-    );
-    $root = null;
-    foreach ($lineage as $ancestor_id) {
-        $ancestor = get_term((int) $ancestor_id, 'product_cat');
-        if ($ancestor instanceof WP_Term && in_array($ancestor->slug, $country_roots[$market], true)) {
-            $root = $ancestor;
-            break;
-        }
-    }
-    $parent = $root instanceof WP_Term ? (int) $root->term_id : (int) $primary_category->parent;
-    $choices = get_terms(array(
-        'taxonomy' => 'product_cat', 'parent' => $parent, 'hide_empty' => false,
-        'orderby' => 'name', 'order' => 'ASC', 'number' => 100,
-    ));
-    if (is_array($choices)) {
-        foreach ($choices as $choice) {
-            if (!($choice instanceof WP_Term) || dht_pilot_country_for_term($choice) !== $market) {
-                continue;
-            }
-            $navigation[] = $choice;
-            if (count($navigation) === 3) {
-                break;
-            }
-        }
-    }
-    if (!$navigation && dht_pilot_country_for_term($primary_category) === $market) {
-        $navigation[] = $primary_category;
-    }
-}
-
-if ($is_landing && $landing_categories) {
-    // El menu de la landing debe mostrar sus propias categorias relacionadas,
-    // no otras ramas internacionales potencialmente vacias.
-    $navigation = $landing_categories;
-}
+// One stable, country-specific navigation on all regional category, landing
+// and product pages. Links always resolve to real WooCommerce regional terms.
+$country_navigation = dht_pilot_country_navigation( $market );
+$navigation = (array) $country_navigation['featured'];
+$navigation_roots = (array) $country_navigation['roots'];
+$navigation_children = (array) $country_navigation['children'];
+$navigation_market_root = $country_navigation['market_root'];
 
 $category_items = array();
 $category_excerpt = '';
@@ -329,21 +296,23 @@ if ($is_category) {
     $urls = $product_images($product);
     $hero_image = isset($urls[0]) ? (string) $urls[0] : '';
 }
-$site_title = (string) get_bloginfo('name');
+// Keep the actual publisher name in the legal footer, without the Spanish
+// market-specific WordPress site title on international pages.
+$site_title = 'Distribuidor de Herramientas';
 $site_privacy_url = get_privacy_policy_url();
 $editorial_email = 'servicioacliente@distribuidordeherramientas.es';
-$main_url = $navigation ? get_term_link($navigation[0]) : ($primary_category instanceof WP_Term ? get_term_link($primary_category) : home_url('/'));
-if (is_wp_error($main_url)) {
-    $main_url = home_url('/');
-}
-if ($is_landing && $primary_category instanceof WP_Term && $primary_category->parent) {
-    $parent_term = get_term((int) $primary_category->parent, 'product_cat');
-    if ($parent_term instanceof WP_Term && dht_pilot_country_for_term($parent_term) === $market) {
-        $country_home = get_term_link($parent_term);
-        if (!is_wp_error($country_home)) {
-            $main_url = $country_home;
-        }
-    }
+
+$country_home_term = $navigation_market_root instanceof WP_Term
+    ? $navigation_market_root
+    : ( $navigation_roots[0] ?? $primary_category );
+$main_url = $country_home_term instanceof WP_Term
+    ? get_term_link( $country_home_term )
+    : '';
+if ( is_wp_error( $main_url ) || ! $main_url ) {
+    // Avoid redirecting country navigation to the Spanish home page.
+    $main_url = ! is_wp_error( $dht_current_url ) && $dht_current_url
+        ? (string) $dht_current_url
+        : home_url( '/' );
 }
 ?>
 <!doctype html>
@@ -372,9 +341,23 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-brand strong{font-size:clamp(20px,2.5vw,26px);letter-spacing:-.035em}
 .dht-pilot-brand span{font-size:12px;color:#526273}
 .dht-pilot-market{font-size:12px;white-space:nowrap;padding:6px 12px;border:1px solid #d6dfeb;border-radius:999px;color:#475467}
-.dht-pilot-nav{display:flex;flex-wrap:wrap;gap:10px;padding:0 0 16px}
-.dht-pilot-nav a{padding:8px 14px;border-radius:8px;border:1px solid #dfe5ee;text-decoration:none;font-weight:650;font-size:13px;background:#f7f9fc}
-.dht-pilot-nav a:hover{background:#eaf1fc}
+.dht-pilot-nav{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:0 0 16px;position:relative}
+.dht-pilot-nav>.dht-pilot-nav-link,.dht-pilot-menu-more>summary{display:inline-flex;align-items:center;min-height:39px;padding:8px 14px;border-radius:8px;border:1px solid #dfe5ee;text-decoration:none;font-weight:650;font-size:13px;line-height:1.35;background:#f7f9fc;color:#172336}
+.dht-pilot-nav>.dht-pilot-nav-link:hover,.dht-pilot-menu-more>summary:hover{background:#eaf1fc}
+.dht-pilot-nav [aria-current="page"]{background:#eaf1fc;border-color:#9db9e7}
+.dht-pilot-menu-more>summary{cursor:pointer;list-style:none}
+.dht-pilot-menu-more>summary::-webkit-details-marker{display:none}
+.dht-pilot-menu-more>summary:after{content:" ▾";padding-left:8px}
+.dht-pilot-menu-more[open]>summary:after{content:" ▴"}
+.dht-pilot-menu-panel{position:absolute;z-index:60;top:calc(100% - 10px);left:0;width:min(850px,100%);max-height:min(65vh,530px);overflow:auto;overscroll-behavior:contain;padding:16px;background:#fff;border:1px solid #dbe4f0;border-radius:12px;box-shadow:0 14px 38px rgba(18,36,59,.16)}
+.dht-pilot-menu-list{margin:0;padding:0;list-style:none}
+.dht-pilot-menu-list li{min-width:0}
+.dht-pilot-menu-list a{display:block;padding:5px 0;overflow-wrap:anywhere;text-decoration:none;font-size:13px;color:#223c60}
+.dht-pilot-menu-list a:hover{text-decoration:underline}
+.dht-pilot-menu-list--depth-0{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.dht-pilot-menu-list--depth-0>li{padding:10px 12px;background:#f7f9fc;border-radius:9px}
+.dht-pilot-menu-list--depth-0>li>a{font-weight:700;font-size:14px}
+.dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0){padding-left:10px;border-left:1px solid #dbe4f0}
 .dht-pilot-breadcrumb{padding:24px 0 10px;font-size:13px;color:#66758a}
 .dht-pilot-breadcrumb a{text-decoration:none}
 .dht-pilot-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center;margin:12px 0 28px;padding:34px;background:#fff;border:1px solid #e7edf4;border-radius:18px}
@@ -406,8 +389,8 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-footer p{font-size:13px;line-height:1.7;color:#d5e0ee}
 .dht-pilot-footer a{color:#e3efff}
 .dht-pilot-copyright{border-top:1px solid #40536c;margin-top:20px;padding-top:15px;font-size:12px;color:#c2cedd}
-@media(max-width:760px){.dht-pilot-header-inner{align-items:flex-start}.dht-pilot-brand span{max-width:280px}.dht-pilot-hero{grid-template-columns:1fr;padding:20px;gap:20px}.dht-pilot-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dht-pilot-section{padding:18px}.dht-pilot-footer-grid{grid-template-columns:1fr;gap:18px}}
-@media(max-width:480px){.dht-pilot-grid{grid-template-columns:1fr}.dht-pilot-market{white-space:normal}.dht-pilot-brand strong{font-size:20px}.dht-pilot-header-inner{gap:10px}}
+@media(max-width:760px){.dht-pilot-header-inner{align-items:flex-start}.dht-pilot-brand span{max-width:280px}.dht-pilot-hero{grid-template-columns:1fr;padding:20px;gap:20px}.dht-pilot-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dht-pilot-section{padding:18px}.dht-pilot-footer-grid{grid-template-columns:1fr;gap:18px}.dht-pilot-nav{gap:7px}.dht-pilot-nav>.dht-pilot-nav-link:nth-of-type(n+4){display:none}.dht-pilot-menu-list--depth-0{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.dht-pilot-grid{grid-template-columns:1fr}.dht-pilot-market{white-space:normal}.dht-pilot-brand strong{font-size:20px}.dht-pilot-header-inner{gap:10px}.dht-pilot-menu-panel{max-height:60vh}.dht-pilot-menu-list--depth-0{grid-template-columns:1fr}}
 </style>
 </head>
 <body <?php body_class('dht-pilot-body'); ?>>
@@ -417,19 +400,26 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
     <div class="dht-pilot-container">
         <div class="dht-pilot-header-inner">
             <a class="dht-pilot-brand" href="<?php echo esc_url($main_url); ?>">
-                <strong><?php echo esc_html($site_title); ?></strong>
+                <strong><?php echo esc_html($t['brand_title']); ?></strong>
                 <span><?php echo esc_html($t['tagline']); ?></span>
             </a>
             <span class="dht-pilot-market"><?php echo esc_html($t['country']); ?></span>
         </div>
-        <?php if ($navigation) : ?>
-        <nav class="dht-pilot-nav" aria-label="<?php echo esc_attr($t['categories']); ?>">
+        <?php if ($navigation_roots) : ?>
+        <nav class="dht-pilot-nav" aria-label="<?php echo esc_attr($t['categories'] . ' · ' . $t['country']); ?>">
             <?php foreach ($navigation as $nav_term) :
                 $url = get_term_link($nav_term);
                 if (is_wp_error($url)) { continue; }
+                $nav_active = $is_category && (int) $nav_term->term_id === (int) $term->term_id;
                 ?>
-                <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($nav_term->name); ?></a>
+                <a class="dht-pilot-nav-link" href="<?php echo esc_url($url); ?>"<?php echo $nav_active ? ' aria-current="page"' : ''; ?>><?php echo esc_html($nav_term->name); ?></a>
             <?php endforeach; ?>
+            <details class="dht-pilot-menu-more">
+                <summary><?php echo esc_html($t['all_categories']); ?></summary>
+                <div class="dht-pilot-menu-panel">
+                    <?php dht_pilot_render_category_menu_tree($navigation_roots, $navigation_children); ?>
+                </div>
+            </details>
         </nav>
         <?php endif; ?>
     </div>
@@ -473,7 +463,7 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
             <?php if ($hero_image !== '') : ?>
                 <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr($is_landing ? get_the_title($landing_page->ID) : ($is_category ? $term->name : $product->get_name())); ?>" decoding="async" fetchpriority="high">
             <?php else : ?>
-                <span class="dht-pilot-placeholder"><?php echo esc_html($site_title); ?></span>
+                <span class="dht-pilot-placeholder"><?php echo esc_html($t['image_placeholder']); ?></span>
             <?php endif; ?>
         </div>
     </section>
