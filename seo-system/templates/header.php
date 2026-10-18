@@ -61,6 +61,12 @@ html:root {
     .custom-header .header-top{grid-template-columns:auto minmax(0,1fr) !important;gap:18px !important}
     .custom-header .header-main-tools{grid-template-columns:minmax(160px,1fr) auto auto !important}
 }
+/* Retain a usable search field on narrower desktop/tablet viewports. */
+@media(min-width:768px) and (max-width:1279px){
+    .custom-header .dht-header-action{min-width:40px;width:40px;padding-inline:0}
+    .custom-header .dht-header-action-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    .custom-header .dht-header-actions{gap:4px}
+}
 @media(max-width:767px){
     .custom-header .header-top{
         grid-template-columns:minmax(0,1fr) auto !important;
