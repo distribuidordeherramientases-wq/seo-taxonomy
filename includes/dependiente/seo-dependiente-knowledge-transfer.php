@@ -379,7 +379,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
     private static function merge_rules($rules) {
         global $wpdb;
 
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         if (!SEO_Dependiente_Semantics::table_exists()) {
             return new WP_Error('seo_dependiente_semantics_missing', 'No existe la tabla de semántica de Dependiente.');
         }
@@ -473,7 +473,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
             return new WP_Error('seo_dependiente_academy_missing', 'No se pueden preparar las tablas de Academia en el destino.');
         }
 
-        $table = SEO_Dependiente_Entrenador::lessons_table();
+        $table = esc_sql( SEO_Dependiente_Entrenador::lessons_table() );
         foreach ((array) $lessons as $incoming) {
             if (!is_array($incoming)) {
                 continue;
@@ -528,7 +528,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
     private static function export_rules() {
         global $wpdb;
 
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         if (!SEO_Dependiente_Semantics::table_exists()) {
             return array();
         }
@@ -556,7 +556,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
         if (!class_exists('SEO_Dependiente_Entrenador') || !SEO_Dependiente_Entrenador::ensure_ready()) {
             return array();
         }
-        $table = SEO_Dependiente_Entrenador::lessons_table();
+        $table = esc_sql( SEO_Dependiente_Entrenador::lessons_table() );
         $rows = (array) $wpdb->get_results(
             "SELECT lesson_key, lesson_order, title, status, module_size, module_count, item_count, completed_items, snapshot_before, snapshot_after, metadata, completed_at FROM {$table} WHERE status = 'completed' ORDER BY lesson_order ASC, id ASC",
             ARRAY_A
@@ -742,7 +742,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
     private static function vocabulary_identity_map() {
         global $wpdb;
 
-        $table = $wpdb->prefix . 'seo_vocabulary';
+        $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!class_exists('SEO_Dependiente_Index') || !SEO_Dependiente_Index::table_exists($table)) {
             return array();
         }
@@ -808,7 +808,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
         );
 
         if (class_exists('SEO_Dependiente_Semantics') && SEO_Dependiente_Semantics::table_exists()) {
-            $table = SEO_Dependiente_Semantics::table();
+            $table = esc_sql( SEO_Dependiente_Semantics::table() );
             $stats['portable_rules'] = absint($wpdb->get_var(
                 "SELECT COUNT(*) FROM {$table} WHERE source IS NULL OR source NOT IN ('seed','academy_stage','learned_candidate','learned_rejected')"
             ));
@@ -820,7 +820,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
         }
 
         if (class_exists('SEO_Dependiente_Entrenador') && SEO_Dependiente_Entrenador::ensure_ready()) {
-            $table = SEO_Dependiente_Entrenador::lessons_table();
+            $table = esc_sql( SEO_Dependiente_Entrenador::lessons_table() );
             $stats['completed_lessons'] = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'completed'"));
         }
 
@@ -840,7 +840,7 @@ final class SEO_Dependiente_Knowledge_Transfer {
         if (!SEO_Dependiente_Entrenador::ensure_ready()) {
             return false;
         }
-        $table = SEO_Dependiente_Entrenador::lessons_table();
+        $table = esc_sql( SEO_Dependiente_Entrenador::lessons_table() );
         $count = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status IN ('preparing','prepared','in_progress')"));
         return $count > 0;
     }
