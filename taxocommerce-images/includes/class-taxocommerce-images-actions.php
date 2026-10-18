@@ -25,7 +25,6 @@ final class TaxoCommerce_Images_Actions {
 	public function register_hooks() {
 		add_action( 'admin_post_taxocommerce_images_save_metadata', array( $this, 'save_metadata' ) );
 		add_action( 'admin_post_taxocommerce_images_regenerate', array( $this, 'regenerate' ) );
-		add_action( 'admin_post_taxocommerce_images_sideload', array( $this, 'sideload' ) );
 		add_action( 'admin_post_taxocommerce_images_optimize', array( $this, 'optimize' ) );
 		add_action( 'admin_post_taxocommerce_images_restore_backup', array( $this, 'restore_backup' ) );
 		add_action( 'admin_post_taxocommerce_images_save_settings', array( $this, 'save_settings' ) );
@@ -128,65 +127,6 @@ final class TaxoCommerce_Images_Actions {
 
 		wp_update_attachment_metadata( $id, $metadata );
 		$this->redirect( 'ok', __( 'Miniaturas regeneradas correctamente.', 'taxocommerce-images' ), 'thumbnails', $id );
-	}
-
-	/**
-	 * Download an external image into Media and optionally assign it to a product.
-	 *
-	 * @return void
-	 */
-	public function sideload() {
-		$this->guard_uploads();
-		check_admin_referer( 'taxocommerce_images_sideload', 'taxocommerce_images_nonce' );
-
-		$url       = isset( $_POST['image_url'] ) ? esc_url_raw( wp_unslash( $_POST['image_url'] ) ) : '';
-		$parent_id = isset( $_POST['parent_id'] ) ? absint( $_POST['parent_id'] ) : 0;
-		$mode      = isset( $_POST['assign_mode'] ) ? sanitize_key( wp_unslash( $_POST['assign_mode'] ) ) : 'media';
-		$title     = isset( $_POST['image_title'] ) ? sanitize_text_field( wp_unslash( $_POST['image_title'] ) ) : '';
-
-		if ( ! $url || ! wp_http_validate_url( $url ) ) {
-			$this->redirect( 'error', __( 'La URL de imagen no es válida.', 'taxocommerce-images' ), 'import' );
-		}
-
-		if ( $parent_id && ! get_post( $parent_id ) ) {
-			$this->redirect( 'error', __( 'El objeto al que quieres asociar la imagen no existe.', 'taxocommerce-images' ), 'import' );
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		require_once ABSPATH . 'wp-admin/includes/media.php';
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-
-		$attachment_id = media_sideload_image( $url, $parent_id, $title ?: null, 'id' );
-		if ( is_wp_error( $attachment_id ) ) {
-			$this->redirect( 'error', $attachment_id->get_error_message(), 'import' );
-		}
-
-		$attachment_id = absint( $attachment_id );
-
-		if ( $parent_id && 'featured' === $mode ) {
-			set_post_thumbnail( $parent_id, $attachment_id );
-		} elseif ( $parent_id && 'gallery' === $mode && 'product' === get_post_type( $parent_id ) && function_exists( 'wc_get_product' ) ) {
-			$product = wc_get_product( $parent_id );
-			if ( $product ) {
-				$gallery = array_map( 'absint', $product->get_gallery_image_ids() );
-				if ( ! in_array( $attachment_id, $gallery, true ) ) {
-					$gallery[] = $attachment_id;
-					$product->set_gallery_image_ids( $gallery );
-					$product->save();
-				}
-			}
-		}
-
-		$this->redirect(
-			'ok',
-			sprintf(
-				/* translators: %d: attachment ID. */
-				__( 'Imagen descargada a Media correctamente. Attachment #%d.', 'taxocommerce-images' ),
-				$attachment_id
-			),
-			'import',
-			$attachment_id
-		);
 	}
 
 	/**
