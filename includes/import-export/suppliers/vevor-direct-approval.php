@@ -94,3 +94,126 @@ function seo_vevor_accept_all_directly( $where, $params, $action = 'aceptar', $s
     } while ( 100 === count( $rows ) );
     return array( 'processed' => $done, 'created' => $created, 'errors' => $errors, 'last_error' => $last_error );
 }
+
+/**
+ * Process the two existing approval forms BEFORE their former SQL-only paths.
+ * This is the normal approval request, not a background recovery mechanism.
+ */
+function seo_vevor_direct_approval_request() {
+    $is_legacy = isset( $_POST['seo_prov_actualizar_estado_masivo'] );
+    $is_sync = isset( $_POST['seo_supplier_sync_bulk_action'] );
+    if ( ! $is_legacy && ! $is_sync ) {
+        return;
+    }
+    $provider = isset( $_POST['f_proveedor'] ) && is_string( $_POST['f_proveedor'] )
+        ? sanitize_text_field( wp_unslash( $_POST['f_proveedor'] ) ) : '';
+    if ( 0 !== strcasecmp( $provider, 'VEVOR' ) ) {
+        return;
+    }
+    $action = $is_legacy
+        ? ( isset( $_POST['estado_masivo'] ) && is_string( $_POST['estado_masivo'] )
+            ? sanitize_key( wp_unslash( $_POST['estado_masivo'] ) ) : '' )
+        : ( isset( $_POST['accion_masiva'] ) && is_string( $_POST['accion_masiva'] )
+            ? sanitize_key( wp_unslash( $_POST['accion_masiva'] ) ) : '' );
+    if ( ! in_array( $action, array( 'aceptado', 'aceptar' ), true ) ) {
+        return;
+    }
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'No tienes permiso para aprobar productos.' );
+    }
+    if ( $is_legacy ) {
+        check_admin_referer( 'seo_prov_actualizar_estado_masivo', 'seo_prov_estado_masivo_nonce' );
+    } else {
+        check_admin_referer( 'seo_supplier_sync_bulk_action', 'seo_supplier_sync_bulk_nonce' );
+    }
+
+    // Prior versions marked supplier rows accepted before creating WC drafts.
+    // Restore only the rows with no real linked product before selecting work.
+    seo_vevor_approval_restore_unlinked_pending();
+
+    global $wpdb;
+    $where = array( "estado_seleccion IN ('pendiente','revisar')" );
+    $params = array();
+    $read = static function ( $key ) {
+        return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] )
+            ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+    };
+
+    $selected = sanitize_key( $read( 'f_estado' ) );
+    if ( in_array( $selected, array( 'pendiente', 'revisar' ), true ) ) {
+        $where[] = 'estado_seleccion = %s';
+        $params[] = $selected;
+    } elseif ( '' !== $selected && 'aceptado' !== $selected ) {
+        wp_die( 'Filtro de seleccion no compatible con la aprobacion VEVOR.' );
+    }
+    $market = strtoupper( sanitize_key( $read( 'f_pais' ) ) );
+    if ( in_array( $market, array( 'US', 'DE', 'NL', 'FR' ), true ) ) {
+        $where[] = 'pais_origen = %s';
+        $params[] = $market;
+    }
+    $situation = sanitize_key( $read( 'f_situacion' ) );
+    if ( '' !== $situation ) {
+        $where[] = 'estado_sincronizacion = %s';
+        $params[] = $situation;
+    }
+    foreach ( array( 'f_buscar', 'f_categoria', 'f_sku' ) as $field ) {
+        $needle = trim( $read( $field ) );
+        if ( '' === $needle ) {
+            continue;
+        }
+        $like = '%' . $wpdb->esc_like( $needle ) . '%';
+        if ( 'f_buscar' === $field ) {
+            $where[] = '(nombre LIKE %s OR descripcion LIKE %s OR marca LIKE %s)';
+            array_push( $params, $like, $like, $like );
+        } elseif ( 'f_categoria' === $field ) {
+            $where[] = 'categoria_proveedor LIKE %s';
+            $params[] = $like;
+        } else {
+            $where[] = '(sku LIKE %s OR mpn LIKE %s OR proveedor_id_externo LIKE %s)';
+            array_push( $params, $like, $like, $like );
+        }
+    }
+    foreach ( array( 'f_precio_min' => '>=', 'f_precio_max' => '<=' ) as $field => $operator ) {
+        $value = trim( str_replace( ',', '.', $read( $field ) ) );
+        if ( '' !== $value && is_numeric( $value ) ) {
+            $where[] = 'COALESCE(precio_con_iva, precio_sin_iva) ' . $operator . ' %f';
+            $params[] = (float) $value;
+        }
+    }
+    // Do not approve cancelled feeds or unresolved duplicate identities.
+    $where[] = "estado_sincronizacion NOT IN ('conflicto','baja_pendiente','baja_aplicada')";
+
+    $lock_name = 'seo_vevor_bulk_' . md5( $wpdb->prefix );
+    $locked = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock_name ) );
+    if ( '1' !== (string) $locked ) {
+        wp_die( 'Ya existe una aprobacion VEVOR en curso.' );
+    }
+    try {
+        $out = seo_vevor_accept_all_directly( implode( ' AND ', $where ), $params );
+    } finally {
+        $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+    }
+
+    $redirect = $read( 'return_url' );
+    if ( ! $redirect ) {
+        $redirect = add_query_arg(
+            array( 'page' => 'seo-import-export', 'seo_ie_tab' => 'catalogo-proveedores', 'f_proveedor' => 'VEVOR' ),
+            admin_url( 'admin.php' )
+        );
+    }
+    $notice = $is_legacy
+        ? array(
+            'seo_bulk_updated' => absint( $out['processed'] ),
+            'seo_bulk_estado' => 'aceptado',
+            'seo_bulk_created' => absint( $out['created'] ),
+            'seo_bulk_errors' => absint( $out['errors'] ),
+        )
+        : array(
+            'seo_sync_bulk_action' => 'aceptar',
+            'seo_sync_bulk_processed' => absint( $out['processed'] ),
+            'seo_sync_bulk_errors' => absint( $out['errors'] ),
+        );
+    wp_safe_redirect( add_query_arg( $notice, $redirect ) );
+    exit;
+}
+add_action( 'admin_init', 'seo_vevor_direct_approval_request', 7 );
