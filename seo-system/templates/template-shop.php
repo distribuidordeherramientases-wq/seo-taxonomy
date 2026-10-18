@@ -482,12 +482,14 @@ $get_term_image = static function ($term, $size = 'medium_large') use ($wpdb) {
 $popular_products  = function_exists('wc_get_products') ? wc_get_products(array(
     'limit'   => 12,
     'status'  => 'publish',
+    'seo_es_catalog_only' => true,
     'orderby' => 'popularity',
 )) : array();
 
 $sale_products = function_exists('wc_get_products') ? wc_get_products(array(
     'limit'   => 12,
     'status'  => 'publish',
+    'seo_es_catalog_only' => true,
     'on_sale' => true,
     'orderby' => 'date',
     'order'   => 'DESC',
@@ -496,6 +498,7 @@ $sale_products = function_exists('wc_get_products') ? wc_get_products(array(
 $new_products = function_exists('wc_get_products') ? wc_get_products(array(
     'limit'   => 12,
     'status'  => 'publish',
+    'seo_es_catalog_only' => true,
     'orderby' => 'date',
     'order'   => 'DESC',
 )) : array();
@@ -503,6 +506,7 @@ $new_products = function_exists('wc_get_products') ? wc_get_products(array(
 $featured_products = function_exists('wc_get_products') ? wc_get_products(array(
     'limit'    => 12,
     'status'   => 'publish',
+    'seo_es_catalog_only' => true,
     'featured' => true,
     'orderby'  => 'date',
     'order'    => 'DESC',
@@ -513,6 +517,10 @@ if (empty($featured_products)) {
 }
 
 $render_products = static function ($products, $extra_class = '') {
+    // Defence in depth: never display a foreign affiliate product with an ES cart CTA.
+    if (function_exists('seo_front_es_product_is_visible')) {
+        $products = array_values(array_filter((array) $products, 'seo_front_es_product_is_visible'));
+    }
     if (empty($products)) {
         echo '<p class="sf-empty">No hay productos disponibles en este bloque.</p>';
         return;
