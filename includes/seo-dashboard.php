@@ -25,7 +25,8 @@ function seo_dashboard_page() {
     global $wpdb;
 
     $nodes_table     = $wpdb->prefix . 'seo_nodes';
-    $relations_table = $wpdb->prefix . 'seo_relations';
+    // Prefixes are validated by WordPress; escape the full identifier for legacy WP 5.8 support.
+    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     /* ---------------------------------------------------------
      * Nodos publicados
