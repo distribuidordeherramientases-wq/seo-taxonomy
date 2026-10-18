@@ -294,6 +294,16 @@ function seo_template_loader($template) {
         $pilot_file = $base_path . 'template-pilot-vevor.php';
         if (in_array($pilot_market, array('US', 'DE', 'NL', 'FR'), true) && is_readable($pilot_file)) {
             $GLOBALS['dht_pilot_market'] = $pilot_market;
+            if ('FR' === $pilot_market) {
+                // France has explicit category and product device routers.
+                // Other markets retain their current routes unchanged.
+                $french_route = is_tax('product_cat')
+                    ? $base_path . 'template-category-fr.php'
+                    : (is_singular('product') ? $base_path . 'template-product-fr.php' : '');
+                if ($french_route !== '' && is_readable($french_route)) {
+                    return $french_route;
+                }
+            }
             return $pilot_file;
         }
     }
