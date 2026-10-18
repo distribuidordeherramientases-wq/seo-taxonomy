@@ -5758,6 +5758,11 @@ function seo_proveedores_actualizar_estado_masivo() {
                 && seo_vevor_normal_import_eligible_count() > 0
             ) {
                 seo_vevor_normal_import_schedule();
+                // First batch runs in the explicit merchant action. Do not
+                // report the bulk approval as a successful WooCommerce import.
+                if ( function_exists( 'seo_vevor_normal_import_tick' ) ) {
+                    seo_vevor_normal_import_tick();
+                }
             }
         }
 
