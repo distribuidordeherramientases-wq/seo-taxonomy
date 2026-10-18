@@ -55,12 +55,13 @@ final class TaxoCommerce_Core_Content_Manager {
 		$item_id      = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'Content Manager', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Products, product categories, posts, and pages are edited in one place while WordPress and WooCommerce remain the source of truth.', 'taxocommerce-core' ); ?></p>
+			<h1><?php echo esc_html__( 'Gestor de contenidos', 'taxocommerce-core' ); ?></h1>
+			<p><?php echo esc_html__( 'Productos, categorías de producto, posts y páginas se editan desde un único lugar, manteniendo WordPress y WooCommerce como fuente de verdad.', 'taxocommerce-core' ); ?></p>
+			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'estas ediciones están repartidas entre WordPress, WooCommerce y varias herramientas del plugin TaxoCommerce actual. Aquí empezamos a unificarlas sin duplicar los datos.', 'taxocommerce-core' ); ?></p></div>
 			<?php $this->render_tabs( $content_type ); ?>
 
 			<?php if ( isset( $_GET['updated'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['updated'] ) ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Success flag only. ?>
-				<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Content updated.', 'taxocommerce-core' ); ?></p></div>
+				<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Contenido actualizado.', 'taxocommerce-core' ); ?></p></div>
 			<?php endif; ?>
 
 			<?php
@@ -90,7 +91,7 @@ final class TaxoCommerce_Core_Content_Manager {
 		$item_id      = isset( $_POST['item_id'] ) ? absint( $_POST['item_id'] ) : 0;
 
 		if ( ! in_array( $content_type, array( 'products', 'categories', 'posts', 'pages' ), true ) || ! $item_id ) {
-			wp_die( esc_html__( 'Invalid content request.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'Solicitud de contenido no válida.', 'taxocommerce-core' ) );
 		}
 
 		if ( 'products' === $content_type ) {
@@ -106,7 +107,7 @@ final class TaxoCommerce_Core_Content_Manager {
 		}
 
 		$this->logger->info(
-			'Content updated from Core.',
+			'Contenido actualizado desde el Core.',
 			array(
 				'content_type' => $content_type,
 				'item_id'      => $item_id,
@@ -135,7 +136,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function guard() {
 		if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-			wp_die( esc_html__( 'You do not have permission to manage TaxoCommerce Core.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'No tienes permisos para gestionar TaxoCommerce Core.', 'taxocommerce-core' ) );
 		}
 	}
 
@@ -157,13 +158,13 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function render_tabs( $current ) {
 		$tabs = array(
-			'products'   => __( 'Products', 'taxocommerce-core' ),
-			'categories' => __( 'Product categories', 'taxocommerce-core' ),
+			'products'   => __( 'Productos', 'taxocommerce-core' ),
+			'categories' => __( 'Categorías de producto', 'taxocommerce-core' ),
 			'posts'      => __( 'Posts', 'taxocommerce-core' ),
-			'pages'      => __( 'Pages', 'taxocommerce-core' ),
+			'pages'      => __( 'Páginas', 'taxocommerce-core' ),
 		);
 		?>
-		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Content types', 'taxocommerce-core' ); ?>">
+		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Tipos de contenido', 'taxocommerce-core' ); ?>">
 			<?php foreach ( $tabs as $type => $label ) : ?>
 				<?php
 				$url   = add_query_arg( array( 'page' => self::PAGE_SLUG, 'tc_type' => $type ), admin_url( 'admin.php' ) );
@@ -193,16 +194,16 @@ final class TaxoCommerce_Core_Content_Manager {
 			);
 
 			$cards = array(
-				__( 'Categories', 'taxocommerce-core' )    => is_wp_error( $total ) ? 0 : absint( $total ),
-				__( 'With products', 'taxocommerce-core' ) => is_wp_error( $non_empty ) ? 0 : count( $non_empty ),
+				__( 'Categorías', 'taxocommerce-core' )    => is_wp_error( $total ) ? 0 : absint( $total ),
+				__( 'Con productos', 'taxocommerce-core' ) => is_wp_error( $non_empty ) ? 0 : count( $non_empty ),
 			);
 		} else {
 			$counts = wp_count_posts( $this->post_type_for_content( $content_type ) );
 			$cards  = array(
-				__( 'Published', 'taxocommerce-core' ) => isset( $counts->publish ) ? absint( $counts->publish ) : 0,
-				__( 'Draft', 'taxocommerce-core' )     => isset( $counts->draft ) ? absint( $counts->draft ) : 0,
-				__( 'Pending', 'taxocommerce-core' )   => isset( $counts->pending ) ? absint( $counts->pending ) : 0,
-				__( 'Trash', 'taxocommerce-core' )     => isset( $counts->trash ) ? absint( $counts->trash ) : 0,
+				__( 'Publicado', 'taxocommerce-core' ) => isset( $counts->publish ) ? absint( $counts->publish ) : 0,
+				__( 'Borrador', 'taxocommerce-core' )     => isset( $counts->draft ) ? absint( $counts->draft ) : 0,
+				__( 'Pendiente', 'taxocommerce-core' )   => isset( $counts->pending ) ? absint( $counts->pending ) : 0,
+				__( 'Papelera', 'taxocommerce-core' )     => isset( $counts->trash ) ? absint( $counts->trash ) : 0,
 			);
 		}
 
@@ -239,12 +240,12 @@ final class TaxoCommerce_Core_Content_Manager {
 		<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin:16px 0;">
 			<input type="hidden" name="page" value="<?php echo esc_attr( self::PAGE_SLUG ); ?>">
 			<input type="hidden" name="tc_type" value="<?php echo esc_attr( $content_type ); ?>">
-			<label class="screen-reader-text" for="tc-content-search"><?php echo esc_html__( 'Search content', 'taxocommerce-core' ); ?></label>
-			<input id="tc-content-search" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Search', 'taxocommerce-core' ); ?>">
+			<label class="screen-reader-text" for="tc-content-search"><?php echo esc_html__( 'Buscar contenidos', 'taxocommerce-core' ); ?></label>
+			<input id="tc-content-search" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Buscar', 'taxocommerce-core' ); ?>">
 
 			<?php if ( 'categories' !== $content_type ) : ?>
-				<select name="tc_status" aria-label="<?php echo esc_attr__( 'Status', 'taxocommerce-core' ); ?>">
-					<option value=""><?php echo esc_html__( 'All statuses', 'taxocommerce-core' ); ?></option>
+				<select name="tc_status" aria-label="<?php echo esc_attr__( 'Estado', 'taxocommerce-core' ); ?>">
+					<option value=""><?php echo esc_html__( 'Todos los estados', 'taxocommerce-core' ); ?></option>
 					<?php foreach ( $this->editable_statuses() as $status_key => $status_label ) : ?>
 						<option value="<?php echo esc_attr( $status_key ); ?>" <?php selected( $status, $status_key ); ?>><?php echo esc_html( $status_label ); ?></option>
 					<?php endforeach; ?>
@@ -255,7 +256,7 @@ final class TaxoCommerce_Core_Content_Manager {
 				<?php
 				wp_dropdown_categories(
 					array(
-						'show_option_all' => __( 'All categories', 'taxocommerce-core' ),
+						'show_option_all' => __( 'Todas las categorías', 'taxocommerce-core' ),
 						'taxonomy'        => 'products' === $content_type ? 'product_cat' : 'category',
 						'hide_empty'      => false,
 						'name'            => 'tc_category',
@@ -266,7 +267,7 @@ final class TaxoCommerce_Core_Content_Manager {
 				?>
 			<?php endif; ?>
 
-			<button class="button"><?php echo esc_html__( 'Filter', 'taxocommerce-core' ); ?></button>
+			<button class="button"><?php echo esc_html__( 'Filtrar', 'taxocommerce-core' ); ?></button>
 		</form>
 		<?php
 	}
@@ -324,22 +325,22 @@ final class TaxoCommerce_Core_Content_Manager {
 		<table class="widefat striped">
 			<thead>
 				<tr>
-					<th><?php echo esc_html__( 'Title', 'taxocommerce-core' ); ?></th>
-					<th><?php echo esc_html__( 'Status', 'taxocommerce-core' ); ?></th>
-					<th><?php echo esc_html__( 'Categories', 'taxocommerce-core' ); ?></th>
+					<th><?php echo esc_html__( 'Título', 'taxocommerce-core' ); ?></th>
+					<th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th>
+					<th><?php echo esc_html__( 'Categorías', 'taxocommerce-core' ); ?></th>
 					<?php if ( 'products' === $content_type ) : ?>
-						<th><?php echo esc_html__( 'Price', 'taxocommerce-core' ); ?></th>
+						<th><?php echo esc_html__( 'Precio', 'taxocommerce-core' ); ?></th>
 						<th><?php echo esc_html__( 'Stock', 'taxocommerce-core' ); ?></th>
-						<th><?php echo esc_html__( 'Image', 'taxocommerce-core' ); ?></th>
+						<th><?php echo esc_html__( 'Imagen', 'taxocommerce-core' ); ?></th>
 					<?php endif; ?>
 					<th><?php echo esc_html__( 'KPI', 'taxocommerce-core' ); ?></th>
-					<th><?php echo esc_html__( 'Modified', 'taxocommerce-core' ); ?></th>
-					<th><?php echo esc_html__( 'Actions', 'taxocommerce-core' ); ?></th>
+					<th><?php echo esc_html__( 'Modificado', 'taxocommerce-core' ); ?></th>
+					<th><?php echo esc_html__( 'Acciones', 'taxocommerce-core' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 			<?php if ( empty( $query->posts ) ) : ?>
-				<tr><td colspan="10"><?php echo esc_html__( 'No content found.', 'taxocommerce-core' ); ?></td></tr>
+				<tr><td colspan="10"><?php echo esc_html__( 'No se ha encontrado contenido.', 'taxocommerce-core' ); ?></td></tr>
 			<?php else : ?>
 				<?php foreach ( $query->posts as $post ) : ?>
 					<?php
@@ -357,13 +358,13 @@ final class TaxoCommerce_Core_Content_Manager {
 						<?php if ( 'products' === $content_type ) : ?>
 							<td><?php echo $product ? wp_kses_post( $product->get_price_html() ) : '—'; ?></td>
 							<td><?php echo $product ? esc_html( $product->get_stock_status() ) : '—'; ?></td>
-							<td><?php echo has_post_thumbnail( $post->ID ) ? esc_html__( 'Yes', 'taxocommerce-core' ) : esc_html__( 'No', 'taxocommerce-core' ); ?></td>
+							<td><?php echo has_post_thumbnail( $post->ID ) ? esc_html__( 'Sí', 'taxocommerce-core' ) : esc_html__( 'No', 'taxocommerce-core' ); ?></td>
 						<?php endif; ?>
 						<td><strong><?php echo esc_html( (string) $this->content_score( $content_type, $post->ID ) ); ?>%</strong></td>
 						<td><?php echo esc_html( get_post_modified_time( 'Y-m-d H:i', false, $post ) ); ?></td>
 						<td>
-							<a href="<?php echo esc_url( $this->core_edit_url( $content_type, $post->ID ) ); ?>"><?php echo esc_html__( 'Edit here', 'taxocommerce-core' ); ?></a>
-							<?php if ( $native ) : ?> · <a href="<?php echo esc_url( $native ); ?>"><?php echo esc_html__( 'WordPress', 'taxocommerce-core' ); ?></a><?php endif; ?>
+							<a href="<?php echo esc_url( $this->core_edit_url( $content_type, $post->ID ) ); ?>"><?php echo esc_html__( 'Editar aquí', 'taxocommerce-core' ); ?></a>
+							<?php if ( $native ) : ?> · <a href="<?php echo esc_url( $native ); ?>"><?php echo esc_html__( 'Editor nativo', 'taxocommerce-core' ); ?></a><?php endif; ?>
 						</td>
 					</tr>
 				<?php endforeach; ?>
@@ -407,10 +408,10 @@ final class TaxoCommerce_Core_Content_Manager {
 		$total_pages = is_wp_error( $count ) ? 1 : max( 1, (int) ceil( absint( $count ) / self::PER_PAGE ) );
 		?>
 		<table class="widefat striped">
-			<thead><tr><th><?php echo esc_html__( 'Category', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Parent', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Products', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Description', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Image', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'KPI', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Actions', 'taxocommerce-core' ); ?></th></tr></thead>
+			<thead><tr><th><?php echo esc_html__( 'Categoría', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Superior', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Productos', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Imagen', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'KPI', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acciones', 'taxocommerce-core' ); ?></th></tr></thead>
 			<tbody>
 			<?php if ( is_wp_error( $terms ) || empty( $terms ) ) : ?>
-				<tr><td colspan="7"><?php echo esc_html__( 'No categories found.', 'taxocommerce-core' ); ?></td></tr>
+				<tr><td colspan="7"><?php echo esc_html__( 'No se han encontrado categorías.', 'taxocommerce-core' ); ?></td></tr>
 			<?php else : ?>
 				<?php foreach ( $terms as $term ) : ?>
 					<?php
@@ -421,10 +422,10 @@ final class TaxoCommerce_Core_Content_Manager {
 						<td><strong><?php echo esc_html( $term->name ); ?></strong><br><small><?php echo esc_html( $term->slug ); ?> · #<?php echo esc_html( (string) $term->term_id ); ?></small></td>
 						<td><?php echo $parent && ! is_wp_error( $parent ) ? esc_html( $parent->name ) : '—'; ?></td>
 						<td><?php echo esc_html( (string) $term->count ); ?></td>
-						<td><?php echo $term->description ? esc_html__( 'Yes', 'taxocommerce-core' ) : esc_html__( 'No', 'taxocommerce-core' ); ?></td>
-						<td><?php echo absint( get_term_meta( $term->term_id, 'thumbnail_id', true ) ) ? esc_html__( 'Yes', 'taxocommerce-core' ) : esc_html__( 'No', 'taxocommerce-core' ); ?></td>
+						<td><?php echo $term->description ? esc_html__( 'Sí', 'taxocommerce-core' ) : esc_html__( 'No', 'taxocommerce-core' ); ?></td>
+						<td><?php echo absint( get_term_meta( $term->term_id, 'thumbnail_id', true ) ) ? esc_html__( 'Sí', 'taxocommerce-core' ) : esc_html__( 'No', 'taxocommerce-core' ); ?></td>
 						<td><strong><?php echo esc_html( (string) $this->content_score( 'categories', $term->term_id ) ); ?>%</strong></td>
-						<td><a href="<?php echo esc_url( $this->core_edit_url( 'categories', $term->term_id ) ); ?>"><?php echo esc_html__( 'Edit here', 'taxocommerce-core' ); ?></a><?php if ( $native ) : ?> · <a href="<?php echo esc_url( $native ); ?>"><?php echo esc_html__( 'WordPress', 'taxocommerce-core' ); ?></a><?php endif; ?></td>
+						<td><a href="<?php echo esc_url( $this->core_edit_url( 'categories', $term->term_id ) ); ?>"><?php echo esc_html__( 'Editar aquí', 'taxocommerce-core' ); ?></a><?php if ( $native ) : ?> · <a href="<?php echo esc_url( $native ); ?>"><?php echo esc_html__( 'Editor nativo', 'taxocommerce-core' ); ?></a><?php endif; ?></td>
 					</tr>
 				<?php endforeach; ?>
 			<?php endif; ?>
@@ -459,12 +460,12 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function render_product_editor( $item_id ) {
 		if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_post', $item_id ) ) {
-			wp_die( esc_html__( 'Product editing is unavailable.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'La edición de productos no está disponible.', 'taxocommerce-core' ) );
 		}
 
 		$product = wc_get_product( $item_id );
 		if ( ! $product ) {
-			wp_die( esc_html__( 'Product not found.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'Producto no encontrado.', 'taxocommerce-core' ) );
 		}
 
 		$category_ids = array_map( 'absint', $product->get_category_ids() );
@@ -478,17 +479,17 @@ final class TaxoCommerce_Core_Content_Manager {
 			<input type="hidden" name="item_id" value="<?php echo esc_attr( (string) $item_id ); ?>">
 			<?php wp_nonce_field( 'taxocommerce_core_save_content', 'taxocommerce_core_nonce' ); ?>
 			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="tc-title"><?php echo esc_html__( 'Name', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-title" name="title" value="<?php echo esc_attr( $product->get_name( 'edit' ) ); ?>" required></td></tr>
+				<tr><th scope="row"><label for="tc-title"><?php echo esc_html__( 'Nombre', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-title" name="title" value="<?php echo esc_attr( $product->get_name( 'edit' ) ); ?>" required></td></tr>
 				<tr><th scope="row"><label for="tc-slug"><?php echo esc_html__( 'Slug', 'taxocommerce-core' ); ?></label></th><td><input class="regular-text" id="tc-slug" name="slug" value="<?php echo esc_attr( $product->get_slug( 'edit' ) ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-status"><?php echo esc_html__( 'Status', 'taxocommerce-core' ); ?></label></th><td><?php $this->render_status_select( $product->get_status( 'edit' ) ); ?></td></tr>
+				<tr><th scope="row"><label for="tc-status"><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></label></th><td><?php $this->render_status_select( $product->get_status( 'edit' ) ); ?></td></tr>
 				<tr><th scope="row"><label for="tc-sku"><?php echo esc_html__( 'SKU', 'taxocommerce-core' ); ?></label></th><td><input class="regular-text" id="tc-sku" name="sku" value="<?php echo esc_attr( $product->get_sku( 'edit' ) ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-regular-price"><?php echo esc_html__( 'Regular price', 'taxocommerce-core' ); ?></label></th><td><input id="tc-regular-price" name="regular_price" value="<?php echo esc_attr( $product->get_regular_price( 'edit' ) ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-sale-price"><?php echo esc_html__( 'Sale price', 'taxocommerce-core' ); ?></label></th><td><input id="tc-sale-price" name="sale_price" value="<?php echo esc_attr( $product->get_sale_price( 'edit' ) ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-stock-status"><?php echo esc_html__( 'Stock status', 'taxocommerce-core' ); ?></label></th><td><select id="tc-stock-status" name="stock_status"><option value="instock" <?php selected( $product->get_stock_status( 'edit' ), 'instock' ); ?>><?php echo esc_html__( 'In stock', 'taxocommerce-core' ); ?></option><option value="outofstock" <?php selected( $product->get_stock_status( 'edit' ), 'outofstock' ); ?>><?php echo esc_html__( 'Out of stock', 'taxocommerce-core' ); ?></option><option value="onbackorder" <?php selected( $product->get_stock_status( 'edit' ), 'onbackorder' ); ?>><?php echo esc_html__( 'On backorder', 'taxocommerce-core' ); ?></option></select></td></tr>
-				<tr><th scope="row"><label for="tc-excerpt"><?php echo esc_html__( 'Short description', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="5" id="tc-excerpt" name="excerpt"><?php echo esc_textarea( $product->get_short_description( 'edit' ) ); ?></textarea></td></tr>
-				<tr><th scope="row"><label for="tc-content"><?php echo esc_html__( 'Description', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="14" id="tc-content" name="content"><?php echo esc_textarea( $product->get_description( 'edit' ) ); ?></textarea></td></tr>
+				<tr><th scope="row"><label for="tc-regular-price"><?php echo esc_html__( 'Precio normal', 'taxocommerce-core' ); ?></label></th><td><input id="tc-regular-price" name="regular_price" value="<?php echo esc_attr( $product->get_regular_price( 'edit' ) ); ?>"></td></tr>
+				<tr><th scope="row"><label for="tc-sale-price"><?php echo esc_html__( 'Precio rebajado', 'taxocommerce-core' ); ?></label></th><td><input id="tc-sale-price" name="sale_price" value="<?php echo esc_attr( $product->get_sale_price( 'edit' ) ); ?>"></td></tr>
+				<tr><th scope="row"><label for="tc-stock-status"><?php echo esc_html__( 'Estado de stock', 'taxocommerce-core' ); ?></label></th><td><select id="tc-stock-status" name="stock_status"><option value="instock" <?php selected( $product->get_stock_status( 'edit' ), 'instock' ); ?>><?php echo esc_html__( 'En stock', 'taxocommerce-core' ); ?></option><option value="outofstock" <?php selected( $product->get_stock_status( 'edit' ), 'outofstock' ); ?>><?php echo esc_html__( 'Agotado', 'taxocommerce-core' ); ?></option><option value="onbackorder" <?php selected( $product->get_stock_status( 'edit' ), 'onbackorder' ); ?>><?php echo esc_html__( 'Disponible bajo pedido', 'taxocommerce-core' ); ?></option></select></td></tr>
+				<tr><th scope="row"><label for="tc-excerpt"><?php echo esc_html__( 'Descripción corta', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="5" id="tc-excerpt" name="excerpt"><?php echo esc_textarea( $product->get_short_description( 'edit' ) ); ?></textarea></td></tr>
+				<tr><th scope="row"><label for="tc-content"><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="14" id="tc-content" name="content"><?php echo esc_textarea( $product->get_description( 'edit' ) ); ?></textarea></td></tr>
 				<tr>
-					<th scope="row"><label for="tc-product-categories"><?php echo esc_html__( 'Product categories', 'taxocommerce-core' ); ?></label></th>
+					<th scope="row"><label for="tc-product-categories"><?php echo esc_html__( 'Categorías de producto', 'taxocommerce-core' ); ?></label></th>
 					<td>
 						<select id="tc-product-categories" name="category_ids[]" multiple size="14" style="min-width:420px;max-width:100%;">
 							<?php if ( is_array( $categories ) ) : ?>
@@ -497,11 +498,11 @@ final class TaxoCommerce_Core_Content_Manager {
 								<?php endforeach; ?>
 							<?php endif; ?>
 						</select>
-						<p class="description"><?php echo esc_html__( 'This writes to the native WooCommerce product-category relationship.', 'taxocommerce-core' ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Esta edición escribe directamente en la relación nativa producto-categoría de WooCommerce.', 'taxocommerce-core' ); ?></p>
 					</td>
 				</tr>
 			</table>
-			<?php submit_button( __( 'Update product', 'taxocommerce-core' ) ); ?>
+			<?php submit_button( __( 'Actualizar producto', 'taxocommerce-core' ) ); ?>
 		</form>
 		<?php
 	}
@@ -515,12 +516,12 @@ final class TaxoCommerce_Core_Content_Manager {
 	private function render_category_editor( $item_id ) {
 		$taxonomy = get_taxonomy( 'product_cat' );
 		if ( ! $taxonomy || ! current_user_can( $taxonomy->cap->edit_terms ) ) {
-			wp_die( esc_html__( 'Product category editing is unavailable.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'La edición de categorías de producto no está disponible.', 'taxocommerce-core' ) );
 		}
 
 		$term = get_term( $item_id, 'product_cat' );
 		if ( ! $term || is_wp_error( $term ) ) {
-			wp_die( esc_html__( 'Category not found.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'Categoría no encontrada.', 'taxocommerce-core' ) );
 		}
 
 		$this->render_editor_header( 'categories', $item_id, $term->name, $this->content_score( 'categories', $item_id ) );
@@ -531,13 +532,13 @@ final class TaxoCommerce_Core_Content_Manager {
 			<input type="hidden" name="item_id" value="<?php echo esc_attr( (string) $item_id ); ?>">
 			<?php wp_nonce_field( 'taxocommerce_core_save_content', 'taxocommerce_core_nonce' ); ?>
 			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="tc-name"><?php echo esc_html__( 'Name', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-name" name="name" value="<?php echo esc_attr( $term->name ); ?>" required></td></tr>
+				<tr><th scope="row"><label for="tc-name"><?php echo esc_html__( 'Nombre', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-name" name="name" value="<?php echo esc_attr( $term->name ); ?>" required></td></tr>
 				<tr><th scope="row"><label for="tc-slug"><?php echo esc_html__( 'Slug', 'taxocommerce-core' ); ?></label></th><td><input class="regular-text" id="tc-slug" name="slug" value="<?php echo esc_attr( $term->slug ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-parent"><?php echo esc_html__( 'Parent', 'taxocommerce-core' ); ?></label></th><td><?php wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'name' => 'parent', 'id' => 'tc-parent', 'selected' => $term->parent, 'show_option_none' => __( 'None', 'taxocommerce-core' ), 'exclude' => $term->term_id, 'value_field' => 'term_id' ) ); ?></td></tr>
-				<tr><th scope="row"><label for="tc-description"><?php echo esc_html__( 'Description', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="14" id="tc-description" name="description"><?php echo esc_textarea( $term->description ); ?></textarea></td></tr>
-				<tr><th scope="row"><label for="tc-thumbnail-id"><?php echo esc_html__( 'Image attachment ID', 'taxocommerce-core' ); ?></label></th><td><input type="number" min="0" id="tc-thumbnail-id" name="thumbnail_id" value="<?php echo esc_attr( (string) absint( get_term_meta( $item_id, 'thumbnail_id', true ) ) ); ?>"><p class="description"><?php echo esc_html__( 'Image selection UI will move to the future Images module; Core stores the native WooCommerce category image reference.', 'taxocommerce-core' ); ?></p></td></tr>
+				<tr><th scope="row"><label for="tc-parent"><?php echo esc_html__( 'Superior', 'taxocommerce-core' ); ?></label></th><td><?php wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'name' => 'parent', 'id' => 'tc-parent', 'selected' => $term->parent, 'show_option_none' => __( 'Ninguna', 'taxocommerce-core' ), 'exclude' => $term->term_id, 'value_field' => 'term_id' ) ); ?></td></tr>
+				<tr><th scope="row"><label for="tc-description"><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="14" id="tc-description" name="description"><?php echo esc_textarea( $term->description ); ?></textarea></td></tr>
+				<tr><th scope="row"><label for="tc-thumbnail-id"><?php echo esc_html__( 'ID de la imagen', 'taxocommerce-core' ); ?></label></th><td><input type="number" min="0" id="tc-thumbnail-id" name="thumbnail_id" value="<?php echo esc_attr( (string) absint( get_term_meta( $item_id, 'thumbnail_id', true ) ) ); ?>"><p class="description"><?php echo esc_html__( 'El selector visual de imágenes se incorporará al futuro módulo de Imágenes; el Core guarda la referencia nativa de imagen de categoría de WooCommerce.', 'taxocommerce-core' ); ?></p></td></tr>
 			</table>
-			<?php submit_button( __( 'Update category', 'taxocommerce-core' ) ); ?>
+			<?php submit_button( __( 'Actualizar categoría', 'taxocommerce-core' ) ); ?>
 		</form>
 		<?php
 	}
@@ -552,7 +553,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	private function render_post_editor( $content_type, $item_id ) {
 		$post = get_post( $item_id );
 		if ( ! $post || $post->post_type !== $this->post_type_for_content( $content_type ) || ! current_user_can( 'edit_post', $item_id ) ) {
-			wp_die( esc_html__( 'Content not found or cannot be edited.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'El contenido no existe o no se puede editar.', 'taxocommerce-core' ) );
 		}
 
 		$selected_categories = 'posts' === $content_type ? array_map( 'absint', wp_get_post_categories( $item_id ) ) : array();
@@ -564,14 +565,14 @@ final class TaxoCommerce_Core_Content_Manager {
 			<input type="hidden" name="item_id" value="<?php echo esc_attr( (string) $item_id ); ?>">
 			<?php wp_nonce_field( 'taxocommerce_core_save_content', 'taxocommerce_core_nonce' ); ?>
 			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="tc-title"><?php echo esc_html__( 'Title', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-title" name="title" value="<?php echo esc_attr( $post->post_title ); ?>" required></td></tr>
+				<tr><th scope="row"><label for="tc-title"><?php echo esc_html__( 'Título', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-title" name="title" value="<?php echo esc_attr( $post->post_title ); ?>" required></td></tr>
 				<tr><th scope="row"><label for="tc-slug"><?php echo esc_html__( 'Slug', 'taxocommerce-core' ); ?></label></th><td><input class="regular-text" id="tc-slug" name="slug" value="<?php echo esc_attr( $post->post_name ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-status"><?php echo esc_html__( 'Status', 'taxocommerce-core' ); ?></label></th><td><?php $this->render_status_select( $post->post_status ); ?></td></tr>
-				<tr><th scope="row"><label for="tc-excerpt"><?php echo esc_html__( 'Excerpt', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="5" id="tc-excerpt" name="excerpt"><?php echo esc_textarea( $post->post_excerpt ); ?></textarea></td></tr>
-				<tr><th scope="row"><label for="tc-content"><?php echo esc_html__( 'Content', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="20" id="tc-content" name="content"><?php echo esc_textarea( $post->post_content ); ?></textarea></td></tr>
+				<tr><th scope="row"><label for="tc-status"><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></label></th><td><?php $this->render_status_select( $post->post_status ); ?></td></tr>
+				<tr><th scope="row"><label for="tc-excerpt"><?php echo esc_html__( 'Extracto', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="5" id="tc-excerpt" name="excerpt"><?php echo esc_textarea( $post->post_excerpt ); ?></textarea></td></tr>
+				<tr><th scope="row"><label for="tc-content"><?php echo esc_html__( 'Contenido', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="20" id="tc-content" name="content"><?php echo esc_textarea( $post->post_content ); ?></textarea></td></tr>
 				<?php if ( 'posts' === $content_type ) : ?>
 					<tr>
-						<th scope="row"><label for="tc-post-categories"><?php echo esc_html__( 'Categories', 'taxocommerce-core' ); ?></label></th>
+						<th scope="row"><label for="tc-post-categories"><?php echo esc_html__( 'Categorías', 'taxocommerce-core' ); ?></label></th>
 						<td>
 							<select id="tc-post-categories" name="category_ids[]" multiple size="12" style="min-width:360px;">
 								<?php foreach ( get_categories( array( 'hide_empty' => false ) ) as $category ) : ?>
@@ -582,7 +583,7 @@ final class TaxoCommerce_Core_Content_Manager {
 					</tr>
 				<?php endif; ?>
 			</table>
-			<?php submit_button( 'posts' === $content_type ? __( 'Update post', 'taxocommerce-core' ) : __( 'Update page', 'taxocommerce-core' ) ); ?>
+			<?php submit_button( 'posts' === $content_type ? __( 'Actualizar post', 'taxocommerce-core' ) : __( 'Actualizar página', 'taxocommerce-core' ) ); ?>
 		</form>
 		<?php
 	}
@@ -599,10 +600,10 @@ final class TaxoCommerce_Core_Content_Manager {
 	private function render_editor_header( $content_type, $item_id, $title, $score ) {
 		$back = add_query_arg( array( 'page' => self::PAGE_SLUG, 'tc_type' => $content_type ), admin_url( 'admin.php' ) );
 		?>
-		<p><a href="<?php echo esc_url( $back ); ?>">&larr; <?php echo esc_html__( 'Back to list', 'taxocommerce-core' ); ?></a></p>
+		<p><a href="<?php echo esc_url( $back ); ?>">&larr; <?php echo esc_html__( 'Volver al listado', 'taxocommerce-core' ); ?></a></p>
 		<div class="card" style="max-width:none;margin:16px 0;">
 			<h2><?php echo esc_html( $title ); ?></h2>
-			<p><strong><?php echo esc_html__( 'Object ID:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( (string) $item_id ); ?> &nbsp; <strong><?php echo esc_html__( 'Core KPI:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( (string) $score ); ?>%</p>
+			<p><strong><?php echo esc_html__( 'ID del elemento:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( (string) $item_id ); ?> &nbsp; <strong><?php echo esc_html__( 'KPI del Core:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( (string) $score ); ?>%</p>
 		</div>
 		<?php
 	}
@@ -615,12 +616,12 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function save_product( $item_id ) {
 		if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_post', $item_id ) ) {
-			return new WP_Error( 'taxocommerce_core_product_permission', __( 'You cannot edit this product.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_product_permission', __( 'No tienes permisos para editar este producto.', 'taxocommerce-core' ) );
 		}
 
 		$product = wc_get_product( $item_id );
 		if ( ! $product ) {
-			return new WP_Error( 'taxocommerce_core_product_missing', __( 'Product not found.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_product_missing', __( 'Producto no encontrado.', 'taxocommerce-core' ) );
 		}
 
 		$title         = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
@@ -635,11 +636,11 @@ final class TaxoCommerce_Core_Content_Manager {
 		$category_ids  = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ? array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['category_ids'] ) ) ) ) ) : array();
 
 		if ( ! $title || ! isset( $this->editable_statuses()[ $status ] ) || ! in_array( $stock_status, array( 'instock', 'outofstock', 'onbackorder' ), true ) ) {
-			return new WP_Error( 'taxocommerce_core_product_invalid', __( 'Invalid product values.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_product_invalid', __( 'Los datos del producto no son válidos.', 'taxocommerce-core' ) );
 		}
 
 		if ( 'trash' === $status ) {
-			return wp_trash_post( $item_id ) ? true : new WP_Error( 'taxocommerce_core_product_trash', __( 'The product could not be moved to Trash.', 'taxocommerce-core' ) );
+			return wp_trash_post( $item_id ) ? true : new WP_Error( 'taxocommerce_core_product_trash', __( 'No se ha podido mover el producto a la papelera.', 'taxocommerce-core' ) );
 		}
 
 		try {
@@ -670,7 +671,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	private function save_product_category( $item_id ) {
 		$taxonomy = get_taxonomy( 'product_cat' );
 		if ( ! $taxonomy || ! current_user_can( $taxonomy->cap->edit_terms ) ) {
-			return new WP_Error( 'taxocommerce_core_category_permission', __( 'You cannot edit product categories.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_category_permission', __( 'No tienes permisos para editar categorías de producto.', 'taxocommerce-core' ) );
 		}
 
 		$name         = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
@@ -680,7 +681,7 @@ final class TaxoCommerce_Core_Content_Manager {
 		$thumbnail_id = isset( $_POST['thumbnail_id'] ) ? absint( $_POST['thumbnail_id'] ) : 0;
 
 		if ( ! $name || $parent === $item_id ) {
-			return new WP_Error( 'taxocommerce_core_category_invalid', __( 'Invalid category values.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_category_invalid', __( 'Los datos de la categoría no son válidos.', 'taxocommerce-core' ) );
 		}
 
 		$result = wp_update_term(
@@ -712,7 +713,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	private function save_post_object( $content_type, $item_id ) {
 		$post = get_post( $item_id );
 		if ( ! $post || $post->post_type !== $this->post_type_for_content( $content_type ) || ! current_user_can( 'edit_post', $item_id ) ) {
-			return new WP_Error( 'taxocommerce_core_post_permission', __( 'You cannot edit this content.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_post_permission', __( 'No tienes permisos para editar este contenido.', 'taxocommerce-core' ) );
 		}
 
 		$title   = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
@@ -722,11 +723,11 @@ final class TaxoCommerce_Core_Content_Manager {
 		$body    = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '';
 
 		if ( ! $title || ! isset( $this->editable_statuses()[ $status ] ) ) {
-			return new WP_Error( 'taxocommerce_core_post_invalid', __( 'Invalid content values.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_post_invalid', __( 'Los datos del contenido no son válidos.', 'taxocommerce-core' ) );
 		}
 
 		if ( 'trash' === $status ) {
-			return wp_trash_post( $item_id ) ? true : new WP_Error( 'taxocommerce_core_post_trash', __( 'The content could not be moved to Trash.', 'taxocommerce-core' ) );
+			return wp_trash_post( $item_id ) ? true : new WP_Error( 'taxocommerce_core_post_trash', __( 'No se ha podido mover el contenido a la papelera.', 'taxocommerce-core' ) );
 		}
 
 		$result = wp_update_post(
@@ -833,11 +834,11 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function editable_statuses() {
 		return array(
-			'publish' => __( 'Published', 'taxocommerce-core' ),
-			'draft'   => __( 'Draft', 'taxocommerce-core' ),
-			'pending' => __( 'Pending review', 'taxocommerce-core' ),
-			'private' => __( 'Private', 'taxocommerce-core' ),
-			'trash'   => __( 'Trash', 'taxocommerce-core' ),
+			'publish' => __( 'Publicado', 'taxocommerce-core' ),
+			'draft'   => __( 'Borrador', 'taxocommerce-core' ),
+			'pending' => __( 'Pendiente de revisión', 'taxocommerce-core' ),
+			'private' => __( 'Privado', 'taxocommerce-core' ),
+			'trash'   => __( 'Papelera', 'taxocommerce-core' ),
 		);
 	}
 
@@ -908,8 +909,8 @@ final class TaxoCommerce_Core_Content_Manager {
 				'current'   => max( 1, absint( $current_page ) ),
 				'total'     => max( 1, absint( $total_pages ) ),
 				'type'      => 'list',
-				'prev_text' => __( '&laquo; Previous', 'taxocommerce-core' ),
-				'next_text' => __( 'Next &raquo;', 'taxocommerce-core' ),
+				'prev_text' => __( '&laquo; Anterior', 'taxocommerce-core' ),
+				'next_text' => __( 'Siguiente &raquo;', 'taxocommerce-core' ),
 			)
 		);
 
