@@ -403,10 +403,31 @@ final class TaxoCommerce_Core_Menu {
 	 * @return void
 	 */
 	private function delete_generated_items( $menu_id ) {
-		foreach ( (array) wp_get_nav_menu_items( $menu_id ) as $item ) {
+		$items         = (array) wp_get_nav_menu_items( $menu_id );
+		$generated_ids = array();
+
+		foreach ( $items as $item ) {
 			if ( absint( get_post_meta( $item->ID, self::GENERATED_META, true ) ) === 1 ) {
-				wp_delete_post( $item->ID, true );
+				$generated_ids[] = absint( $item->ID );
 			}
+		}
+
+		/*
+		 * Preserve manual items. If a manually added item was placed below an
+		 * automatically generated parent, move it to the menu root before the
+		 * generated branch is rebuilt.
+		 */
+		foreach ( $items as $item ) {
+			if (
+				absint( get_post_meta( $item->ID, self::GENERATED_META, true ) ) !== 1 &&
+				in_array( absint( $item->menu_item_parent ), $generated_ids, true )
+			) {
+				update_post_meta( $item->ID, '_menu_item_menu_item_parent', 0 );
+			}
+		}
+
+		foreach ( $generated_ids as $item_id ) {
+			wp_delete_post( $item_id, true );
 		}
 	}
 
