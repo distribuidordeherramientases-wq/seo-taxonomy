@@ -38,6 +38,7 @@ jobs:
             taxocommerce-core/**
             taxocommerce-images/**
             taxocommerce-import-export/**
+            packages/**
             **/node_modules/**
             **/*.bak
             **/*.md
@@ -106,6 +107,38 @@ jobs:
 
           local-dir: ./taxocommerce-import-export/
           server-dir: ./wp-content/plugins/taxocommerce-import-export/
+
+          dry-run: false
+          log-level: verbose
+
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+
+      - name: Prepare TaxoCommerce Vocabulary package
+        run: |
+          rm -rf .deploy-vocabulary
+          mkdir -p .deploy-vocabulary
+          unzip -q packages/taxocommerce-vocabulary-0.2.0.zip -d .deploy-vocabulary
+          test -f .deploy-vocabulary/taxocommerce-vocabulary/taxocommerce-vocabulary.php
+
+      - name: Deploy TaxoCommerce Vocabulary to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+
+          protocol: ftps
+          port: 21
+
+          local-dir: ./.deploy-vocabulary/taxocommerce-vocabulary/
+          server-dir: ./wp-content/plugins/taxocommerce-vocabulary/
 
           dry-run: false
           log-level: verbose
