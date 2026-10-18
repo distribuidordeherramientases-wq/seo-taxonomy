@@ -12,7 +12,7 @@ A modular WordPress/WooCommerce core for catalog hierarchy, unified content edit
 
 == Description ==
 
-TaxoCommerce Core is the clean modular foundation for the next TaxoCommerce architecture.
+TaxoCommerce Core is the clean modular foundation for the next TaxoCommerce architecture. The 0.2.0 pilot is validated and deployed independently to STAGING.
 
 Version 0.2.0 includes a unified Content Manager for:
 
