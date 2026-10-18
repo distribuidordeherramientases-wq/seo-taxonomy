@@ -1,6 +1,7 @@
 <?php
 /**
- * Separate the Spanish storefront catalog from the US, DE and NL VEVOR pilot.
+ * Public Spanish storefront: ES products and legacy entries without a market.
+ * Explicitly non-ES products and categories belong to their own storefronts.
  *
  * Restrict public listings, not stored categories/products or admin workflows.
  * The international pilot pages retain their own unfiltered queries.
@@ -46,7 +47,7 @@ function seo_front_es_international_category_ids() {
         $slug = strtolower( (string) ( $row['slug'] ?? '' ) );
         $locale = strtolower( (string) ( $row['locale'] ?? '' ) );
         if (
-            in_array( $locale, array( 'en-us', 'de-de', 'nl-nl' ), true )
+            ( '' !== $locale && 'es-es' !== $locale )
             || preg_match( '/^(?:vevor-)?(?:us|usa|eua|eeuu|estados-unidos|united-states|en-us)(?:-|$)/', $slug )
             || preg_match( '/^(?:vevor-)?(?:(?:de|deu)(?:$|-(?:best-sellers|bestsellers|kategorie|category|produkte|products)(?:-|$))|(?:deutschland|alemania|germany|de-de)(?:-|$))/', $slug )
             || preg_match( '/^(?:vevor-)?(?:nl|nld|nederland|netherlands|holanda|paises-bajos|nl-nl)(?:-|$)/', $slug )
@@ -99,10 +100,9 @@ function seo_front_es_is_storefront() {
         $id = absint( get_queried_object_id() );
         $market = strtoupper( (string) get_post_meta( $id, '_seo_pais_origen', true ) );
         $locale = strtolower( (string) get_post_meta( $id, '_seo_locale', true ) );
-        $provider = strtoupper( (string) get_post_meta( $id, '_seo_proveedor', true ) );
         if (
-            in_array( $locale, array( 'en-us', 'de-de', 'nl-nl' ), true )
-            || ( 'VEVOR' === $provider && in_array( $market, array( 'US', 'DE', 'NL' ), true ) )
+            ( '' !== $locale && 'es-es' !== $locale )
+            || ( '' !== $market && 'ES' !== $market )
         ) {
             return false;
         }
@@ -138,7 +138,7 @@ add_filter( 'get_terms_args', static function ( $args, $taxonomies ) {
     return $args;
 }, 50, 2 );
 
-/** All Spanish WP_Query/WC_Product_Query listings exclude foreign products. */
+/** Public Spanish WP_Query/WC_Product_Query results accept ES and legacy unmarked entries only. */
 add_action( 'pre_get_posts', static function ( $query ) {
     if ( ! $query instanceof WP_Query || ! seo_front_es_is_storefront() ) {
         return;
@@ -170,14 +170,17 @@ add_action( 'pre_get_posts', static function ( $query ) {
     if ( is_array( $old_meta ) && $old_meta ) {
         $meta_query[] = $old_meta;
     }
+    // The original Spanish WooCommerce catalog predates country tagging.
+    // Missing/empty market fields are therefore legacy ES, while explicit
+    // foreign values never enter the Spanish product listings.
     foreach ( array(
-        '_seo_pais_origen' => array( 'US', 'DE', 'NL' ),
-        '_seo_locale'      => array( 'en-US', 'de-DE', 'nl-NL' ),
-    ) as $key => $markets ) {
+        '_seo_pais_origen' => array( '', 'ES' ),
+        '_seo_locale'      => array( '', 'es-ES' ),
+    ) as $key => $spanish_values ) {
         $meta_query[] = array(
             'relation' => 'OR',
             array( 'key' => $key, 'compare' => 'NOT EXISTS' ),
-            array( 'key' => $key, 'value' => $markets, 'compare' => 'NOT IN' ),
+            array( 'key' => $key, 'value' => $spanish_values, 'compare' => 'IN' ),
         );
     }
     $query->set( 'meta_query', $meta_query );
