@@ -2872,8 +2872,8 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
                 $category_map[(int) $row['product_id']][] = (string) $row['name'];
             }
 
-            $attribute_rows = $wpdb->get_results(
-                $wpdb->prepare(
+            // Placeholder list contains only %d; each ID is bound with $wpdb->prepare().
+            $attribute_query = $wpdb->prepare(
                     "SELECT pa.product_id,a.nombre AS attribute_name,a.slug AS attribute_slug,
                             t.nombre AS term_name,pa.valor_texto,pa.valor_numero,pa.valor_numero_max,pa.unidad,pa.valor_original
                      FROM `{$tables['values']}` pa
@@ -2882,9 +2882,8 @@ if (!function_exists('seo_semantic_attributes_render_products_inventory')) {
                      WHERE pa.product_id IN ({$ph})
                      ORDER BY pa.product_id,a.orden,a.nombre,pa.orden,pa.id",
                     ...$product_ids
-                ),
-                ARRAY_A
             );
+            $attribute_rows = $wpdb->get_results($attribute_query, ARRAY_A);
             foreach ((array) $attribute_rows as $row) {
                 $pid = (int) $row['product_id'];
                 if (count($attribute_map[$pid] ?? []) >= 8) {
