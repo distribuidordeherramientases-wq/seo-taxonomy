@@ -5617,8 +5617,8 @@ function seo_proveedores_actualizar_estado_masivo() {
         if ( 'aceptado' === $estado ) {
             $vevor_sql = "UPDATE {$table}
                 SET estado_seleccion = 'aceptado',
-                    estado_sincronizacion = 'sin_cambios',
-                    hash_aplicado = hash_producto,
+                    estado_sincronizacion = 'nuevo',
+                    hash_aplicado = NULL,
                     snapshot_aplicado = NULL,
                     cambios_detectados = '',
                     ultimo_error_sync = NULL,
@@ -5638,6 +5638,15 @@ function seo_proveedores_actualizar_estado_masivo() {
                 wp_die( 'Error al aprobar ofertas VEVOR: ' . esc_html( $wpdb->last_error ) );
             }
             $updated += absint( $vevor_approved );
+            // Approval is not a WooCommerce import. Queue the regular worker
+            // to create external drafts and persist the real product object_id.
+            // Already-approved and unlinked rows are eligible too.
+            if ( function_exists( 'seo_vevor_normal_import_eligible_count' )
+                && function_exists( 'seo_vevor_normal_import_schedule' )
+                && seo_vevor_normal_import_eligible_count() > 0
+            ) {
+                seo_vevor_normal_import_schedule();
+            }
         }
 
         // Excluir SIEMPRE a VEVOR internacional del procesador WooCommerce
