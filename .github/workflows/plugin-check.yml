@@ -74,3 +74,14 @@ jobs:
         env:
           RELEASE_GATE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_gate && 'true' || 'false' }}
         run: python3 .github/scripts/wordpress_quality_gate.py report "$RUNNER_TEMP/plugin-check-results.txt" --strict "$RELEASE_GATE"
+
+      - name: Save full Plugin Check findings for batch remediation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-check-findings-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/plugin-check-findings.csv
+            ${{ runner.temp }}/plugin-check-hotspots.csv
+          retention-days: 30
+          if-no-files-found: ignore
