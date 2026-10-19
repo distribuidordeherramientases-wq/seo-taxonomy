@@ -62,9 +62,15 @@ final class TaxoCommerce_Core_Menu {
 		$result     = isset( $_GET['tc_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'Gestor de menús', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Propone un menú a partir de la Jerarquía SEO y lo convierte en un menú nativo de WordPress. Los elementos manuales se conservan al sincronizar.', 'taxocommerce-core' ); ?></p>
+		<div class="wrap tcc-family-screen">
+            <header class="tcc-page-header">
+                <span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-menu-alt3"></span></span>
+                <div class="tcc-page-header__content">
+                    <p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
+                    <h1><?php echo esc_html__( 'Gestor de menús', 'taxocommerce-core' ); ?></h1>
+                    <p><?php echo esc_html__( 'Propone un menú a partir de la Jerarquía SEO y lo convierte en un menú nativo de WordPress. Los elementos manuales se conservan al sincronizar.', 'taxocommerce-core' ); ?></p>
+                </div>
+            </header>
 
 			<?php if ( 'ok' === $result && $message ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>

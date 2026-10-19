@@ -78,3 +78,56 @@ body.tcc-family-admin #adminmenu .wp-has-current-submenu>a.wp-has-current-submen
 @media(max-width:1000px){.tcc-module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tcc-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.tcc-hero__art{opacity:.18}.tcc-migration__header{flex-wrap:wrap}.tcc-migration__header p{flex:0 0 100%;margin-left:0}}
 @media(max-width:600px){.tcc-dashboard{margin-right:10px}.tcc-hero{padding:22px}.tcc-hero__identity{align-items:flex-start;gap:13px}.tcc-hero__emblem{width:48px;height:48px;flex-basis:48px}.tcc-hero__emblem .dashicons{font-size:29px;width:29px;height:29px}.tcc-dashboard .tcc-hero h1{font-size:24px}.tcc-metrics,.tcc-module-grid{grid-template-columns:1fr}.tcc-module{min-height:230px}.tcc-metric{min-height:76px}}
 @media(prefers-reduced-motion:reduce){.tcc-dashboard *{transition:none!important}}
+
+
+/* Unified premium interior pages: shared by Core, Images, Import-Export and System Check. */
+body.tcc-family-admin{--tc-page-max:1680px}
+body.tcc-family-admin #wpbody-content>.wrap{max-width:var(--tc-page-max);padding-bottom:25px}
+body.tcc-family-admin .tcc-page-header{position:relative;overflow:hidden;display:flex;align-items:center;gap:19px;min-height:120px;padding:24px 30px;margin:0 0 22px;border:1px solid var(--tc-border);border-left:4px solid var(--tc-blue);border-radius:12px;background:linear-gradient(105deg,#fff 0%,#f8fbff 68%,#edf4ff 100%);box-shadow:0 4px 15px rgba(18,45,91,.055)}
+body.tcc-family-admin .tcc-page-header:after{content:'';position:absolute;right:-23px;top:-40px;width:200px;height:210px;border:30px solid rgba(44,125,232,.06);border-radius:42px;transform:rotate(28deg);pointer-events:none}
+body.tcc-family-admin .tcc-page-header__icon{display:grid;place-items:center;flex:0 0 58px;width:58px;height:58px;border-radius:13px;background:#e6f0ff;color:#1769de}
+body.tcc-family-admin .tcc-page-header__icon>.dashicons{font-size:31px;width:31px;height:31px}
+body.tcc-family-admin .tcc-page-header__content{position:relative;z-index:1;min-width:0}
+body.tcc-family-admin .tcc-page-header__eyebrow{font-size:11px;font-weight:760;text-transform:uppercase;letter-spacing:.085em;color:#6681a9;margin:0 0 4px!important}
+body.tcc-family-admin .wrap .tcc-page-header h1,body.tcc-family-admin .tcc-page-header h1{margin:0 0 8px!important;padding:0!important;color:#17243b!important;font-size:27px!important;font-weight:760!important;line-height:1.15!important}
+body.tcc-family-admin .wrap .tcc-page-header p:last-child{font-size:13px;max-width:1050px;margin:0!important;color:#586a85;line-height:1.6}
+body.tcc-family-admin .wrap .tcc-family-panel{background:#fff;padding:18px 22px;border:1px solid var(--tc-border);border-radius:11px;box-shadow:0 3px 12px rgba(18,45,91,.04);margin:15px 0}
+body.tcc-family-admin .wrap .tcc-family-panel>h2:first-child{margin-top:0}
+body.tcc-family-admin .wrap .tcc-family-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px;max-width:none!important;margin:16px 0 26px}
+body.tcc-family-admin .wrap .tcc-family-grid>.card{min-width:0!important;margin:0!important;padding:20px!important}
+body.tcc-family-admin .wrap .tcc-family-grid>.card h3{font-size:17px;margin:0 0 10px}
+body.tcc-family-admin .wrap .tcc-family-grid>.card .button-primary{min-height:36px}
+body.tcc-family-admin .wrap .tcc-stat-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px!important;margin:18px 0!important}
+body.tcc-family-admin .wrap .tcc-stat-grid>.card{margin:0!important;min-width:0!important;padding:17px 19px!important}
+body.tcc-family-admin .wrap .tcc-stat-grid>.card strong{color:#164eaf;line-height:1.1}
+body.tcc-family-admin .wrap .tcc-stat-grid>.card span{color:#62728a;font-size:12px}
+body.tcc-family-admin .wrap nav.nav-tab-wrapper{margin:16px 0!important}
+body.tcc-family-admin .wrap .tc-hierarchy-panel{border-radius:10px!important;border:1px solid var(--tc-border)!important;box-shadow:0 3px 12px rgba(18,45,91,.04)}
+body.tcc-family-admin .wrap .tc-hierarchy-panel>.description{margin-bottom:19px}
+body.tcc-family-admin .wrap .tc-editor-shell{max-width:none}
+body.tcc-family-admin .wrap .tc-editor-card,body.tcc-family-admin .wrap .tc-editor-hero{border-color:var(--tc-border);box-shadow:0 3px 12px rgba(18,45,91,.045)}
+body.tcc-family-admin .wrap .tcs-url-audit .tcs-stat{border-radius:9px;border-color:var(--tc-border);box-shadow:0 3px 12px rgba(18,45,91,.04)}
+body.tcc-family-admin .wrap details{border-radius:7px}
+body.tcc-family-admin .wrap .tablenav .actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+body.tcc-family-admin .wrap table.widefat,body.tcc-family-admin .wrap .wp-list-table{max-width:100%}
+body.tcc-family-admin .wrap table.widefat td{overflow-wrap:anywhere}
+body.tcc-family-admin .wrap .tcc-family-scroll{max-width:100%;overflow-x:auto}
+body.tcc-family-admin .wrap input[type=file]{max-width:100%}
+body.tcc-family-admin .wrap .notice:not(.tcc-page-header .notice){border:1px solid #d9e2ed;border-left:4px solid #2775d8;background:#fff}
+body.tcc-family-admin .wrap .notice.notice-success{border-left-color:#278451}
+body.tcc-family-admin .wrap .notice.notice-error{border-left-color:#d63638}
+body.tcc-family-admin .wrap .notice.notice-warning{border-left-color:#d58b14}
+body.tcc-family-admin .wrap .tcc-page-header:focus-within{outline:0}
+@media(max-width:960px){body.tcc-family-admin .wrap .tcc-family-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}}
+@media(max-width:782px){body.tcc-family-admin .tcc-page-header{padding:18px;gap:12px;min-height:104px}body.tcc-family-admin .tcc-page-header__icon{flex-basis:43px;width:43px;height:43px}body.tcc-family-admin .tcc-page-header__icon>.dashicons{font-size:24px;width:24px;height:24px}body.tcc-family-admin .wrap .tcc-page-header h1{font-size:23px!important}body.tcc-family-admin .wrap .tcc-family-panel{padding:15px}body.tcc-family-admin #wpbody-content>.wrap{margin:15px 10px 22px 0}}
+@media(max-width:480px){body.tcc-family-admin .tcc-page-header{align-items:flex-start}body.tcc-family-admin .tcc-page-header__icon{display:none}body.tcc-family-admin .wrap .tcc-page-header h1{font-size:21px!important}}
+
+/* Identical standalone/Core page components, maintained across all family ZIPs. */
+body.tcc-family-admin .wrap .tcc-family-grid>.tcc-family-panel{min-width:0;margin:0;display:block;padding:21px 23px}
+body.tcc-family-admin .wrap .tcc-family-grid>.tcc-family-panel h2{margin-top:0}
+body.tcc-family-admin .wrap .tcc-family-panel form,body.tcc-family-admin .wrap .tcc-family-grid>.card form{min-width:0}
+body.tcc-family-admin .wrap .tcc-family-panel .form-table{max-width:100%}
+body.tcc-family-admin .wrap .tcc-family-panel .form-table td,body.tcc-family-admin .wrap .tcc-family-panel .form-table th{padding:12px;vertical-align:top}
+body.tcc-family-admin .wrap .tcc-family-panel table.widefat{width:100%}
+body.tcc-family-admin .wrap .tcc-family-grid>.tcc-family-panel:focus-within{border-color:#b4d3fa}
+@media(max-width:782px){body.tcc-family-admin .wrap .tcc-family-grid>.tcc-family-panel{padding:17px}}
