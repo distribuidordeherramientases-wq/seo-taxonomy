@@ -57,6 +57,7 @@ final class TaxoCommerce_Core_Hierarchy {
 	 */
 	public function reconcile_relations() {
 		if ( current_user_can( 'manage_options' ) ) {
+			TaxoCommerce_Core_Hierarchy_Classic::reconcile_role_nodes( $this );
 			TaxoCommerce_Core_Hierarchy_Classic::reconcile_native( $this );
 		}
 	}
@@ -100,7 +101,7 @@ final class TaxoCommerce_Core_Hierarchy {
 	 * @return string
 	 */
 	public function get_page_role( $page_id ) {
-		$role = sanitize_key( (string) get_post_meta( absint( $page_id ), self::ROLE_META, true ) );
+		$role = TaxoCommerce_Core_Hierarchy_Classic::role_node( absint( $page_id ) );
 		return isset( $this->roles()[ $role ] ) ? $role : '';
 	}
 
@@ -135,6 +136,11 @@ final class TaxoCommerce_Core_Hierarchy {
 			);
 		}
 
+		$saved = TaxoCommerce_Core_Hierarchy_Classic::save_role_node( $page_id, $role );
+		if ( is_wp_error( $saved ) ) {
+			return $saved;
+		}
+		// Legacy Core metadata mirrored during the transition.
 		if ( '' === $role ) {
 			delete_post_meta( $page_id, self::ROLE_META );
 		} else {
@@ -388,8 +394,8 @@ final class TaxoCommerce_Core_Hierarchy {
 		);
 
 		if ( $filter && isset( $this->roles()[ $filter ] ) ) {
-			$args['meta_key']   = self::ROLE_META; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Admin-only hierarchy filter.
-			$args['meta_value'] = $filter; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Admin-only hierarchy filter.
+			$role_pages = TaxoCommerce_Core_Hierarchy_Classic::role_pages( $filter );
+			$args['post__in'] = $role_pages ? array_map( static function( $page ) { return absint( $page->ID ); }, $role_pages ) : array( 0 );
 		}
 
 		$query = new WP_Query( $args );
@@ -670,21 +676,8 @@ final class TaxoCommerce_Core_Hierarchy {
 	 */
 	private function pages_by_role( $role ) {
 		$role = sanitize_key( $role );
-		if ( ! isset( $this->roles()[ $role ] ) ) {
-			return array();
-		}
-
-		return get_posts(
-			array(
-				'post_type'      => 'page',
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'meta_key'       => self::ROLE_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Small admin-only page set.
-				'meta_value'     => $role, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Small admin-only page set.
-			)
-		);
+		return isset( $this->roles()[ $role ] )
+			? TaxoCommerce_Core_Hierarchy_Classic::role_pages( $role ) : array();
 	}
 
 	/**
