@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
- * Version: 0.2.1
+ * Version: 0.2.2
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.1' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.2' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -81,6 +81,8 @@ function taxocommerce_system_check_boot() {
     }
     add_action( 'admin_menu', 'taxocommerce_system_check_register_menu', 60 );
     add_action( 'admin_enqueue_scripts', 'taxocommerce_system_check_enqueue_assets' );
+    add_action( 'admin_enqueue_scripts', 'taxocommerce_system_check_family_styles' );
+    add_filter( 'admin_body_class', 'taxocommerce_system_check_body_class' );
     if ( ! $legacy_active ) {
         add_action( 'admin_menu', 'taxocommerce_system_check_register_legacy_routes', 100 );
     }
@@ -145,6 +147,45 @@ function taxocommerce_system_check_render_tabs( $active ) {
     echo '</nav>';
 }
 
+/**
+ * Load the shared family design only on System Check's own pages.
+ * Never enqueue it inside TaxoCommerce SEO / legacy diagnostics.
+ */
+function taxocommerce_system_check_family_styles( $hook ) {
+    if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+        return;
+    }
+    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+    $screen_id = $screen ? (string) $screen->id : '';
+    $is_own_page = false !== strpos( (string) $hook, 'taxocommerce-system-check' )
+        || false !== strpos( $screen_id, 'taxocommerce-system-check' )
+        || false !== strpos( (string) $hook, 'tcs-' )
+        || false !== strpos( $screen_id, 'tcs-' );
+    if ( ! $is_own_page ) {
+        return;
+    }
+    wp_enqueue_style(
+        'taxocommerce-family-admin',
+        TAXOCOMMERCE_SYSTEM_CHECK_URL . 'assets/admin.css',
+        array(),
+        TAXOCOMMERCE_SYSTEM_CHECK_VERSION
+    );
+}
+
+/**
+ * Add family scope only to standalone System Check screens.
+ */
+function taxocommerce_system_check_body_class( $classes ) {
+    if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+        return $classes;
+    }
+    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+    $id = $screen ? (string) $screen->id : '';
+    return ( false !== strpos( $id, 'taxocommerce-system-check' ) || false !== strpos( $id, 'tcs-' ) )
+        ? $classes . ' tcc-family-admin'
+        : $classes;
+}
+
 function taxocommerce_system_check_enqueue_assets() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
@@ -182,7 +223,11 @@ function taxocommerce_system_check_home() {
         wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
     }
     $tab = taxocommerce_system_check_active_tab();
-    echo '<div class="wrap"><h1>TaxoCommerce System Check</h1>';
+    echo '<div class="wrap tcc-family-screen">';
+    echo '<header class="tcc-page-header"><span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-shield-alt"></span></span>';
+    echo '<div class="tcc-page-header__content"><p class="tcc-page-header__eyebrow">' . esc_html__( 'Familia TaxoCommerce', 'taxocommerce-system-check' ) . '</p>';
+    echo '<h1>' . esc_html__( 'TaxoCommerce System Check', 'taxocommerce-system-check' ) . '</h1>';
+    echo '<p>' . esc_html__( 'Diagnósticos del servidor, comprobación de plugins y auditorías HTTP desde una única interfaz.', 'taxocommerce-system-check' ) . '</p></div></header>';
     taxocommerce_system_check_render_tabs( $tab );
     echo '</div>';
     if ( 'plugin' === $tab ) {

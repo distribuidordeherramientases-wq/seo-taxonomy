@@ -1519,7 +1519,7 @@ function seo_build_tree_from_db() {
     global $wpdb;
 
     $nodes_table = $wpdb->prefix . 'seo_nodes';
-    $rel_table   = $wpdb->prefix . 'seo_relations';
+    $rel_table   = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     $cluster_map = [];
     $primary_map = [];

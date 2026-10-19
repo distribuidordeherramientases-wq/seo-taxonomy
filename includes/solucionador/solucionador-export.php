@@ -476,6 +476,10 @@ final class SEO_Solucionador_Export {
 
     private static function summary($topics_table, $evidence_table, $coverage_table) {
         global $wpdb;
+        // Table names are owned by Solucionador DB and must be safe at SQL boundaries.
+        $topics_table = esc_sql( (string) $topics_table );
+        $evidence_table = esc_sql( (string) $evidence_table );
+        $coverage_table = esc_sql( (string) $coverage_table );
         $summary = array(
             'topics_total' => 0,
             'evidence_occurrences_total' => 0,

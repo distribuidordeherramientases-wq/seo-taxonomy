@@ -61,8 +61,45 @@ final class TaxoCommerce_Images {
 
 		add_action( 'taxocommerce_core_register_modules', array( $this, 'register_with_core' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ), 60 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_admin_styles' ) );
+		add_filter( 'admin_body_class', array( $this, 'family_admin_body_class' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_IMAGES_BASENAME, array( $this, 'plugin_action_links' ) );
 		add_filter( 'taxocommerce_core_content_summary_kpis', array( $this, 'add_core_product_kpi' ), 20, 2 );
+	}
+
+	/**
+	 * Use the common family theme even when this extension runs standalone.
+	 * If Core is active it owns the shared stylesheet and body class.
+	 *
+	 * @param string $hook Current admin page hook.
+	 * @return void
+	 */
+	public function enqueue_family_admin_styles( $hook ) {
+		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) || false === strpos( (string) $hook, 'taxocommerce-images' ) ) {
+			return;
+		}
+		wp_enqueue_style(
+			'taxocommerce-family-admin',
+			plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/admin.css',
+			array(),
+			TAXOCOMMERCE_IMAGES_VERSION
+		);
+	}
+
+	/**
+	 * Isolate the shared appearance from unrelated WordPress plugin screens.
+	 *
+	 * @param string $classes Admin body class string.
+	 * @return string
+	 */
+	public function family_admin_body_class( $classes ) {
+		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+			return $classes;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		return $screen && false !== strpos( (string) $screen->id, 'taxocommerce-images' )
+			? $classes . ' tcc-family-admin'
+			: $classes;
 	}
 
 	/**
@@ -164,9 +201,15 @@ final class TaxoCommerce_Images {
 			$tab = 'summary';
 		}
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'TaxoCommerce Images', 'taxocommerce-images' ); ?></h1>
-			<p><?php echo esc_html__( 'Media de WordPress es la fuente de verdad. La importación y exportación de archivos pertenece a TaxoCommerce Import-Export.', 'taxocommerce-images' ); ?></p>
+		<div class="wrap tcc-family-screen">
+			<header class="tcc-page-header">
+				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-format-image"></span></span>
+				<div class="tcc-page-header__content">
+					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'Familia TaxoCommerce', 'taxocommerce-images' ); ?></p>
+					<h1><?php echo esc_html__( 'TaxoCommerce Images', 'taxocommerce-images' ); ?></h1>
+					<p><?php echo esc_html__( 'Media de WordPress es la fuente de verdad. La importación y exportación de archivos pertenece a TaxoCommerce Import-Export.', 'taxocommerce-images' ); ?></p>
+				</div>
+			</header>
 			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de imágenes', 'taxocommerce-images' ); ?>">
 				<?php foreach ( $tabs as $key => $label ) : ?>
 					<a class="nav-tab<?php echo $tab === $key ? ' nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-images', 'tab' => $key ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( $label ); ?></a>
@@ -216,9 +259,9 @@ final class TaxoCommerce_Images {
 		);
 		?>
 		<h2><?php echo esc_html__( 'Estado de imágenes', 'taxocommerce-images' ); ?></h2>
-		<div style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;">
+		<div class="tcc-stat-grid">
 			<?php foreach ( $cards as $label => $value ) : ?>
-				<div class="card" style="min-width:165px;margin:0;padding:12px 16px;"><strong style="display:block;font-size:24px;"><?php echo esc_html( (string) $value ); ?></strong><span><?php echo esc_html( $label ); ?></span></div>
+				<div class="card"><strong style="display:block;font-size:24px;"><?php echo esc_html( (string) $value ); ?></strong><span><?php echo esc_html( $label ); ?></span></div>
 			<?php endforeach; ?>
 		</div>
 		<?php if ( empty( $audit ) ) : ?>

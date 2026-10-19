@@ -224,7 +224,7 @@ function seo_search_vocabulary_tables_ready() {
     global $wpdb;
 
     $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-    $objects = $wpdb->prefix . 'seo_object_vocabulary';
+    $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
     static $ready = null;
     if (null !== $ready) {
@@ -286,7 +286,7 @@ function seo_search_get_vocabulary_matching_product_ids($vocabulary_filters, $ba
     }
 
     $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-    $objects = $wpdb->prefix . 'seo_object_vocabulary';
+    $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
     $where_or = array();
     $where_params = array();
@@ -354,7 +354,7 @@ function seo_search_build_global_vocabulary_facets() {
     }
 
     $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-    $objects = $wpdb->prefix . 'seo_object_vocabulary';
+    $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
     $rows = $wpdb->get_results(
         "SELECT v.semantic_group, v.id, v.label AS name, v.slug,
@@ -926,11 +926,14 @@ function seo_search_build_facets($product_ids) {
     }
 
     if (seo_search_vocabulary_tables_ready()) {
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
+        // The ID list contains only absint-validated IDs, but values must still
+        // be bound using WordPress placeholders rather than interpolated SQL.
         $vocab_rows = $wpdb->get_results(
-            "SELECT v.semantic_group, v.id, v.label AS name, v.slug,
+            $wpdb->prepare(
+                "SELECT v.semantic_group, v.id, v.label AS name, v.slug,
                     COUNT(DISTINCT ov.object_id) AS product_count
              FROM {$objects} ov
              INNER JOIN {$vocabulary} v
@@ -938,10 +941,12 @@ function seo_search_build_facets($product_ids) {
                AND v.active = 1
              WHERE ov.object_type = 'product'
                AND ov.status = 1
-               AND ov.object_id IN ({$id_sql})
+               AND ov.object_id IN ({$id_placeholders})
                AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
              GROUP BY v.semantic_group, v.id, v.label, v.slug
              ORDER BY v.semantic_group ASC, product_count DESC, v.label ASC",
+                $product_ids
+            ),
             ARRAY_A
         );
 
@@ -963,10 +968,17 @@ function seo_search_build_facets($product_ids) {
         }
     }
 
-    $lookup_table = $wpdb->prefix . 'wc_product_meta_lookup';
+    $lookup_table = esc_sql( $wpdb->prefix . 'wc_product_meta_lookup' );
     $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $lookup_table));
     if ($table_exists === $lookup_table) {
-        $price_row = $wpdb->get_row("SELECT MIN(min_price) AS min_price, MAX(max_price) AS max_price FROM {$lookup_table} WHERE product_id IN ({$id_sql})", ARRAY_A);
+        $price_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT MIN(min_price) AS min_price, MAX(max_price) AS max_price
+                 FROM {$lookup_table} WHERE product_id IN ({$id_placeholders})",
+                $product_ids
+            ),
+            ARRAY_A
+        );
         if ($price_row) {
             $facets['price']['min'] = null !== $price_row['min_price'] ? (float) $price_row['min_price'] : '';
             $facets['price']['max'] = null !== $price_row['max_price'] ? (float) $price_row['max_price'] : '';
@@ -1909,7 +1921,7 @@ function seo_search_settings_page() {
 
     if (isset($_POST['seo_search_clear_logs']) && check_admin_referer('seo_search_clear_logs')) {
         global $wpdb;
-        $wpdb->query('TRUNCATE TABLE ' . seo_search_log_table_name()); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $wpdb->query( 'TRUNCATE TABLE ' . esc_sql( seo_search_log_table_name() ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Historial eliminado.', 'taxocommerce-seo') . '</p></div>';
     }
     ?>

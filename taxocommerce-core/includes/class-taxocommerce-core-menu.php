@@ -62,9 +62,15 @@ final class TaxoCommerce_Core_Menu {
 		$result     = isset( $_GET['tc_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'Gestor de menús', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Propone un menú a partir de la Jerarquía SEO y lo convierte en un menú nativo de WordPress. Los elementos manuales se conservan al sincronizar.', 'taxocommerce-core' ); ?></p>
+		<div class="wrap tcc-family-screen">
+            <header class="tcc-page-header">
+                <span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-menu-alt3"></span></span>
+                <div class="tcc-page-header__content">
+                    <p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
+                    <h1><?php echo esc_html__( 'Gestor de menús', 'taxocommerce-core' ); ?></h1>
+                    <p><?php echo esc_html__( 'Propone un menú a partir de la Jerarquía SEO y lo convierte en un menú nativo de WordPress. Los elementos manuales se conservan al sincronizar.', 'taxocommerce-core' ); ?></p>
+                </div>
+            </header>
 
 			<?php if ( 'ok' === $result && $message ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
@@ -214,49 +220,51 @@ final class TaxoCommerce_Core_Menu {
 		$categories  = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC' ) );
 		$categories  = is_wp_error( $categories ) ? array() : $categories;
 
-		$primary_map = array();
-		foreach ( $primaries as $primary ) {
-			foreach ( $this->post_meta_ids( $primary->ID, TaxoCommerce_Core_Hierarchy::PARENT_CLUSTER_META ) as $cluster_id ) {
-				$primary_map[ $cluster_id ][] = $primary;
-			}
+		// seo_relations is now authoritative. Older post/term metadata is
+		// retained for compatibility, but does not drive generated menus.
+		$cluster_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'cluster_to_primary' );
+		$primary_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_primary_to_hub_secondary' );
+		$secondary_map = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_secondary_to_category' );
+		$primaries_by_id = array();
+		$secondaries_by_id = array();
+		$categories_by_id = array();
+		foreach ( $primaries as $page ) {
+			$primaries_by_id[ (int) $page->ID ] = $page;
 		}
-
-		$secondary_map = array();
-		foreach ( $secondaries as $secondary ) {
-			foreach ( $this->post_meta_ids( $secondary->ID, TaxoCommerce_Core_Hierarchy::PARENT_PRIMARY_META ) as $primary_id ) {
-				$secondary_map[ $primary_id ][] = $secondary;
-			}
+		foreach ( $secondaries as $page ) {
+			$secondaries_by_id[ (int) $page->ID ] = $page;
 		}
-
-		$category_map = array();
-		foreach ( $categories as $category ) {
-			foreach ( $this->term_meta_ids( $category->term_id, TaxoCommerce_Core_Hierarchy::PARENT_SECONDARY_TERM_META ) as $secondary_id ) {
-				$category_map[ $secondary_id ][] = $category;
-			}
+		foreach ( $categories as $term ) {
+			$categories_by_id[ (int) $term->term_id ] = $term;
 		}
 
 		$tree = array();
 		foreach ( $clusters as $cluster ) {
-			$node = array(
-				'page'       => $cluster,
-				'primaries'  => array(),
-			);
-			foreach ( $primary_map[ $cluster->ID ] ?? array() as $primary ) {
-				$primary_node = array(
-					'page'        => $primary,
-					'secondaries' => array(),
-				);
-				foreach ( $secondary_map[ $primary->ID ] ?? array() as $secondary ) {
+			$node = array( 'page' => $cluster, 'primaries' => array() );
+			foreach ( array_keys( $cluster_map[ $cluster->ID ] ?? array() ) as $primary_id ) {
+				if ( ! isset( $primaries_by_id[ $primary_id ] ) ) {
+					continue;
+				}
+				$primary_node = array( 'page' => $primaries_by_id[ $primary_id ], 'secondaries' => array() );
+				foreach ( array_keys( $primary_map[ $primary_id ] ?? array() ) as $secondary_id ) {
+					if ( ! isset( $secondaries_by_id[ $secondary_id ] ) ) {
+						continue;
+					}
+					$category_nodes = array();
+					foreach ( array_keys( $secondary_map[ $secondary_id ] ?? array() ) as $category_id ) {
+						if ( isset( $categories_by_id[ $category_id ] ) ) {
+							$category_nodes[] = $categories_by_id[ $category_id ];
+						}
+					}
 					$primary_node['secondaries'][] = array(
-						'page'       => $secondary,
-						'categories' => $category_map[ $secondary->ID ] ?? array(),
+						'page' => $secondaries_by_id[ $secondary_id ],
+						'categories' => $category_nodes,
 					);
 				}
 				$node['primaries'][] = $primary_node;
 			}
 			$tree[] = $node;
 		}
-
 		return $tree;
 	}
 
@@ -473,17 +481,7 @@ final class TaxoCommerce_Core_Menu {
 	 * @return WP_Post[]
 	 */
 	private function pages_by_role( $role ) {
-		return get_posts(
-			array(
-				'post_type'      => 'page',
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'meta_key'       => TaxoCommerce_Core_Hierarchy::ROLE_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Small admin-only structural page set.
-				'meta_value'     => sanitize_key( $role ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Small admin-only structural page set.
-			)
-		);
+		return TaxoCommerce_Core_Hierarchy_Classic::role_pages( sanitize_key( $role ) );
 	}
 
 	/**

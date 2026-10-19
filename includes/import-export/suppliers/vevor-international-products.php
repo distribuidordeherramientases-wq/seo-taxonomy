@@ -199,6 +199,25 @@ function seo_vevor_region_apply_offer( array $row, $market, $linked_draft_only =
                 return new WP_Error( 'vevor_shared_object_id', 'Varias filas del catálogo apuntan al mismo draft; no se mezclan.' );
             }
         }
+        // Preflight *before* inserting a WC_Product_External. An invalid
+        // price or empty JSON image array must never leave a partial draft.
+        $price_raw = trim( (string) ( $fresh['precio_con_iva'] ?? '' ) );
+        if ( '' === $price_raw ) {
+            $price_raw = trim( (string) ( $fresh['precio_sin_iva'] ?? '' ) );
+        }
+        $price = wc_format_decimal( $price_raw );
+        if ( '' === $price_raw || ! is_numeric( str_replace( ',', '.', $price_raw ) )
+            || '' === $price || (float) $price <= 0 ) {
+            return new WP_Error( 'vevor_market_price_missing', 'Precio de mercado incompleto en el catálogo; no se crea ni modifica el producto.' );
+        }
+        if ( ! function_exists( 'seo_proveedores_extraer_urls_imagenes' )
+            || ! seo_proveedores_extraer_urls_imagenes( $fresh['imagenes'] ?? '' ) ) {
+            return new WP_Error( 'vevor_market_image_missing', 'No hay imagen válida en el catálogo; no se crea ni modifica el producto.' );
+        }
+        if ( ! function_exists( 'seo_proveedores_guardar_imagenes_externas' ) ) {
+            return new WP_Error( 'vevor_images_unavailable', 'El servicio de imágenes externas no está cargado.' );
+        }
+
         $created = false;
         if ( $existing ) {
             $product_id = absint( $existing );
@@ -215,6 +234,15 @@ function seo_vevor_region_apply_offer( array $row, $market, $linked_draft_only =
             }
             if ( '' === trim( (string) $product->get_description() ) && ! empty( $fresh['descripcion'] ) ) {
                 $product->set_description( wp_kses_post( (string) $fresh['descripcion'] ) );
+            }
+            if ( '' === trim( (string) $product->get_short_description() ) ) {
+                $real_description = trim( wp_strip_all_tags( (string) $fresh['descripcion'] ) );
+                if ( '' !== $real_description ) {
+                    $product->set_short_description( wp_trim_words( $real_description, 32, '…' ) );
+                }
+            }
+            if ( '' === trim( (string) $product->get_slug() ) ) {
+                $product->set_slug( sanitize_title( $name . '-' . strtolower( $market ) . '-' . absint( $fresh['id'] ) ) );
             }
             $product->save();
         } else {
@@ -236,6 +264,12 @@ function seo_vevor_region_apply_offer( array $row, $market, $linked_draft_only =
             $default_term = $default_id ? get_term( $default_id, 'product_cat' ) : null;
             $product->set_category_ids( $default_term instanceof WP_Term ? array( $default_id ) : array() );
             $product->set_description( wp_kses_post( (string) ( $fresh['descripcion'] ?? '' ) ) );
+            // The short description uses only supplier-supplied facts.
+            $real_description = trim( wp_strip_all_tags( (string) ( $fresh['descripcion'] ?? '' ) ) );
+            if ( '' !== $real_description ) {
+                $product->set_short_description( wp_trim_words( $real_description, 32, '…' ) );
+            }
+            $product->set_slug( sanitize_title( $name . '-' . strtolower( $market ) . '-' . absint( $fresh['id'] ) ) );
             // WooCommerce has one site-wide currency (EUR). Do NOT write a
             // US-dollar supplier offer as a bogus EUR WooCommerce price.
             $product_id = absint( $product->save() );
@@ -248,15 +282,7 @@ function seo_vevor_region_apply_offer( array $row, $market, $linked_draft_only =
 
         // Copy the complete regional commercial snapshot to BOTH new and
         // previously approved products. Updates keep status, SKU and categories.
-        $price_raw = trim( (string) ( $fresh['precio_con_iva'] ?? '' ) );
-        if ( '' === $price_raw ) {
-            $price_raw = trim( (string) ( $fresh['precio_sin_iva'] ?? '' ) );
-        }
-        $price = wc_format_decimal( $price_raw );
-        if ( '' === $price_raw || ! is_numeric( str_replace( ',', '.', $price_raw ) ) ||
-            '' === $price || (float) $price <= 0 ) {
-            return new WP_Error( 'vevor_market_price_missing', 'Precio de mercado incompleto en el catálogo; no se confirma.' );
-        }
+        // The price was validated before creating/updating the product.
         // WooCommerce uses a single shop-wide currency (EUR). USD belongs
         // to market metadata only, never a misleading EUR _regular_price.
         if ( 'EUR' === $expected_currency[ $market ] ) {
@@ -295,6 +321,12 @@ function seo_vevor_region_apply_offer( array $row, $market, $linked_draft_only =
         if ( 'EUR' === $expected_currency[ $market ] ) {
             $metadata['_seo_precio_proveedor'] = $price;
         }
+        // Content is an editorial stage, not a reason to invent features or
+        // automatically publish thousands of identical thin affiliate pages.
+        $metadata['_seo_vevor_editorial_status'] = (
+            '' !== trim( (string) $product->get_description() )
+            && '' !== trim( (string) $product->get_short_description() )
+        ) ? 'needs_category_review' : 'needs_content';
         foreach ( $metadata as $key => $value ) {
             update_post_meta( $product_id, $key, $value );
         }
