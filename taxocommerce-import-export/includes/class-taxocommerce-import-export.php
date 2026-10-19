@@ -57,11 +57,48 @@ final class TaxoCommerce_Import_Export {
 		$this->media = new TaxoCommerce_Import_Export_Media();
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 40 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_admin_styles' ) );
+		add_filter( 'admin_body_class', array( $this, 'family_admin_body_class' ) );
 		add_action( 'admin_post_taxocommerce_import_export_export', array( $this->csv, 'handle_export' ) );
 		add_action( 'admin_post_taxocommerce_import_export_import', array( $this->csv, 'handle_import' ) );
 		add_action( 'admin_post_taxocommerce_import_export_media_export', array( $this->media, 'handle_export' ) );
 		add_action( 'admin_post_taxocommerce_import_export_media_import', array( $this->media, 'handle_import' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_IMPORT_EXPORT_BASENAME, array( $this, 'plugin_action_links' ) );
+	}
+
+	/**
+	 * Use the common family theme even when this extension runs standalone.
+	 * If Core is active it owns the shared stylesheet and body class.
+	 *
+	 * @param string $hook Current admin page hook.
+	 * @return void
+	 */
+	public function enqueue_family_admin_styles( $hook ) {
+		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) || false === strpos( (string) $hook, 'taxocommerce-import-export' ) ) {
+			return;
+		}
+		wp_enqueue_style(
+			'taxocommerce-family-admin',
+			plugin_dir_url( TAXOCOMMERCE_IMPORT_EXPORT_FILE ) . 'assets/admin.css',
+			array(),
+			TAXOCOMMERCE_IMPORT_EXPORT_VERSION
+		);
+	}
+
+	/**
+	 * Isolate the shared appearance from unrelated WordPress plugin screens.
+	 *
+	 * @param string $classes Admin body class string.
+	 * @return string
+	 */
+	public function family_admin_body_class( $classes ) {
+		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+			return $classes;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		return $screen && false !== strpos( (string) $screen->id, 'taxocommerce-import-export' )
+			? $classes . ' tcc-family-admin'
+			: $classes;
 	}
 
 	/**
