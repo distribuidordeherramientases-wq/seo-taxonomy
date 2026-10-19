@@ -104,7 +104,7 @@ function seo_supplier_sync_ensure_schema() {
             continue;
         }
 
-        $safe_column = preg_replace( '/[^A-Za-z0-9_]/', '', $column );
+        $safe_column = esc_sql( preg_replace( '/[^A-Za-z0-9_]/', '', $column ) );
         if ( '' === $safe_column ) {
             continue;
         }
