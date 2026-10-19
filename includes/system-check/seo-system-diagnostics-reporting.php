@@ -1016,8 +1016,8 @@ function seo_system_diagnostics_collect_components() {
 
 function seo_system_diagnostics_collect_scheduler_snapshot() {
     global $wpdb;
-    $actions = $wpdb->prefix . 'actionscheduler_actions';
-    $logs = $wpdb->prefix . 'actionscheduler_logs';
+    $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
+    $logs = esc_sql( $wpdb->prefix . 'actionscheduler_logs' );
     $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($actions)));
     if ((string) $exists !== $actions) {
         return array('available' => false);

@@ -139,7 +139,7 @@ final class SEO_Dependiente_Interprete {
         }
 
         $query = isset($_GET['interpreter_q'])
-            ? self::clean_query(wp_unslash((string) $_GET['interpreter_q']))
+            ? self::clean_query( sanitize_text_field( wp_unslash( (string) $_GET['interpreter_q'] ) ) )
             : '';
         $test = '' !== $query ? self::interpret($query) : array();
         $stats = class_exists('SEO_Dependiente_Interprete_DB')

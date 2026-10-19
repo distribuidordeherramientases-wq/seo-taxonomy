@@ -79,7 +79,7 @@ if (!function_exists('seo_classifier_google_schema_install_schema')) {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        $table = seo_classifier_google_schema_table();
+        $table = esc_sql( seo_classifier_google_schema_table() );
         $charset = $wpdb->get_charset_collate();
         $sql = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -126,7 +126,7 @@ if (!function_exists('seo_classifier_google_schema_collect_nodes')) {
      */
     function seo_classifier_google_schema_collect_nodes() {
         global $wpdb;
-        $relations = seo_classifier_google_schema_relations_table();
+        $relations = esc_sql( seo_classifier_google_schema_relations_table() );
         if (!seo_classifier_google_schema_table_exists($relations)) return [];
 
         $allowed = array_keys(seo_classifier_google_schema_node_types());
@@ -270,7 +270,7 @@ if (!function_exists('seo_classifier_google_schema_collect_nodes')) {
 if (!function_exists('seo_classifier_google_schema_mapping_index')) {
     function seo_classifier_google_schema_mapping_index() {
         global $wpdb;
-        $table = seo_classifier_google_schema_table();
+        $table = esc_sql( seo_classifier_google_schema_table() );
         if (!seo_classifier_google_schema_table_exists($table)) return [];
         $rows = (array)$wpdb->get_results("SELECT * FROM {$table}", ARRAY_A);
         $out = [];
@@ -288,7 +288,7 @@ if (!function_exists('seo_classifier_google_schema_get_mapping')) {
         $object_type = sanitize_key((string)$object_type);
         $object_id = absint($object_id);
         if ($object_id < 1 || !isset(seo_classifier_google_schema_node_types()[$object_type])) return null;
-        $table = seo_classifier_google_schema_table();
+        $table = esc_sql( seo_classifier_google_schema_table() );
         if (!seo_classifier_google_schema_table_exists($table)) return null;
         $row = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM {$table} WHERE object_type=%s AND object_id=%d LIMIT 1", $object_type, $object_id),
@@ -304,7 +304,7 @@ if (!function_exists('seo_classifier_google_schema_node_exists')) {
         $object_type = sanitize_key((string)$object_type);
         $object_id = absint($object_id);
         if ($object_id < 1 || !isset(seo_classifier_google_schema_node_types()[$object_type])) return false;
-        $relations = seo_classifier_google_schema_relations_table();
+        $relations = esc_sql( seo_classifier_google_schema_relations_table() );
         if (!seo_classifier_google_schema_table_exists($relations)) return false;
         $count = (int)$wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$relations}
@@ -324,7 +324,7 @@ if (!function_exists('seo_classifier_google_schema_save_mapping')) {
             return new WP_Error('seo_google_schema_invalid_node', 'El elemento ya no pertenece a la jerarquía de seo_relations.');
         }
         seo_classifier_google_schema_maybe_install_schema();
-        $table = seo_classifier_google_schema_table();
+        $table = esc_sql( seo_classifier_google_schema_table() );
         $statuses = seo_classifier_google_schema_statuses();
         $status = sanitize_key((string)($data['status'] ?? 'pending'));
         if (!isset($statuses[$status])) $status = 'pending';
@@ -443,7 +443,7 @@ if (!function_exists('seo_classifier_google_schema_render_panel')) {
         }
 
         seo_classifier_google_schema_maybe_install_schema();
-        $relations = seo_classifier_google_schema_relations_table();
+        $relations = esc_sql( seo_classifier_google_schema_relations_table() );
         if (!seo_classifier_google_schema_table_exists($relations)) {
             echo '<div class="notice notice-error"><p>No existe la tabla <code>' . esc_html($relations) . '</code>.</p></div>';
             return;
