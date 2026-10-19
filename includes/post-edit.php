@@ -133,7 +133,7 @@ if (!function_exists('seo_post_editor_relations_table_exists')) {
     function seo_post_editor_relations_table_exists() {
         global $wpdb;
 
-        $table = seo_post_editor_relations_table();
+        $table = esc_sql( seo_post_editor_relations_table() );
         static $cache = array();
 
         if (!array_key_exists($table, $cache)) {
@@ -211,7 +211,7 @@ if (!function_exists('seo_post_editor_get_product_cat_ids')) {
             return array();
         }
 
-        $table = seo_post_editor_relations_table();
+        $table = esc_sql( seo_post_editor_relations_table() );
         $ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT target_id
@@ -269,7 +269,7 @@ if (!function_exists('seo_post_editor_replace_product_cat_relations')) {
             return seo_ie_replace_product_cat_relations('post', $post_id, $valid);
         }
 
-        $table = seo_post_editor_relations_table();
+        $table = esc_sql( seo_post_editor_relations_table() );
         $failed = false;
 
         $wpdb->query('START TRANSACTION');
@@ -361,7 +361,7 @@ if (!function_exists('seo_post_editor_get_relation_map')) {
         }
 
         $placeholders = implode(',', array_fill(0, count($post_ids), '%d'));
-        $table = seo_post_editor_relations_table();
+        $table = esc_sql( seo_post_editor_relations_table() );
         $sql = "SELECT r.source_id, r.target_id, t.name
                 FROM {$table} r
                 INNER JOIN {$wpdb->terms} t ON t.term_id = r.target_id
@@ -403,7 +403,7 @@ if (!function_exists('seo_post_editor_get_ids_for_relation_filter')) {
             return array(0);
         }
 
-        $table = seo_post_editor_relations_table();
+        $table = esc_sql( seo_post_editor_relations_table() );
 
         if ($filter === 'none') {
             return array_values(array_unique(array_filter(array_map(
@@ -452,7 +452,7 @@ if (!function_exists('seo_post_editor_get_ids_with_product_cat_relation')) {
             return array(0);
         }
 
-        $table = seo_post_editor_relations_table();
+        $table = esc_sql( seo_post_editor_relations_table() );
         return array_values(array_unique(array_filter(array_map(
             'absint',
             (array) $wpdb->get_col(

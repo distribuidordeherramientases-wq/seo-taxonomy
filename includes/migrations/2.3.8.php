@@ -15,10 +15,10 @@ defined('ABSPATH') || exit;
 return static function () {
     global $wpdb;
 
-    $relations = $wpdb->prefix . 'seo_relations';
-    $nodes = $wpdb->prefix . 'seo_nodes';
-    $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-    $object_vocabulary = $wpdb->prefix . 'seo_object_vocabulary';
+    $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
+    $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+    $object_vocabulary = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
     $required_tables = array($relations, $nodes, $vocabulary, $object_vocabulary);
     foreach ($required_tables as $table) {

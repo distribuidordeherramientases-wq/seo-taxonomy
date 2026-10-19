@@ -419,12 +419,12 @@ final class SEO_Dependiente_Actualizacion {
         // Without this guard, a mismatched question/run state returns an
         // empty pending batch forever while still reporting "running".
         if (!$questions && $answered_now < absint($summary['total'] ?? 0)) {
-            throw new RuntimeException(sprintf(
+            throw new RuntimeException( esc_html( sprintf(
                 'M%d: no hay preguntas pendientes recuperables, pero solo hay %d de %d evaluadas. Comprobar enabled y registros de ejecucion de Academia.',
-                $module,
-                $answered_now,
-                absint($summary['total'] ?? 0)
-            ));
+                absint( $module ),
+                absint( $answered_now ),
+                absint( $summary['total'] ?? 0 )
+            ) ) );
         }
         if ($questions && $answered_now <= $answered_before) {
             $module_state['no_progress'] = absint($module_state['no_progress'] ?? 0) + 1;

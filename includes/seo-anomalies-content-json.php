@@ -443,7 +443,7 @@ if (!function_exists('seo_reports_anomalies_json_replace_manual_vocabulary')) {
         $object_type = sanitize_key((string) $object_type);
         $object_id = absint($object_id);
         $groups = array('rol','tipo','aplicacion','plataforma','subtipo');
-        $vocab_table = $wpdb->prefix . 'seo_vocabulary';
+        $vocab_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $objects_table = $wpdb->prefix . 'seo_object_vocabulary';
 
         foreach ($groups as $group) {
