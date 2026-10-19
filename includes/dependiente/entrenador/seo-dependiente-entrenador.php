@@ -4860,7 +4860,7 @@ final class SEO_Dependiente_Entrenador {
                 'source_type'=>'editorial','source_id'=>null,'source_key'=>'editorial:'.substr(hash('sha256',$sig),0,40),
                 'question_type'=>'editorial_semantic','mode'=>'need',
                 'question'=>'¿Qué contenido de la web tienes relacionado con "'.implode('" y "',$labels).'"?',
-                'expected'=>array('kind'=>'content','acceptable_related'=>$group['objects'],'labels'=>$labels),
+                'expected'=>array('kind'=>'content','acceptable_related'=>$group['objects'],'labels'=>$labels,'vocabulary_ids'=>array_values(array_unique(array_filter(array_map('absint', array_column($group['rules'], 'id'))))),),
                 'rules'=>$group['rules'],
             );
         }
@@ -8347,6 +8347,170 @@ final class SEO_Dependiente_Entrenador {
             throw new RuntimeException('No se pudo guardar la comprobación de características de Academia.');
         }
 
+        return absint($wpdb->insert_id);
+    }
+
+
+    /**
+     * M5 Actualización: valida el contenido editorial y sus rutas canónicas.
+     *
+     * Los miles de ejercicios estructurales no deben ejecutar una búsqueda
+     * completa de productos. M8 conserva las pruebas reales end-to-end de
+     * recuperación editorial mediante su muestra estratificada.
+     *
+     * Compatible con preguntas M5 ya creadas: usa etiquetas cuando el
+     * expected_json antiguo no incluye vocabulary_ids.
+     */
+    public static function update_run_editorial_question($question, $batch_uuid) {
+        global $wpdb;
+        $started = microtime(true);
+        $question = (array) $question;
+        $question_id = absint($question['id'] ?? 0);
+        $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        if (!$question_id || !$lesson_key) {
+            return 0;
+        }
+
+        $runs_table = esc_sql(self::runs_table());
+        $existing = absint($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$runs_table}
+             WHERE question_id=%d AND lesson_key=%s
+               AND status IN ('answered','error')
+             ORDER BY id DESC LIMIT 1",
+            $question_id,
+            $lesson_key
+        )));
+        if ($existing) {
+            return $existing;
+        }
+
+        $expected = self::decode_json($question['expected_json'] ?? '');
+        $required_ids = array_values(array_unique(array_filter(
+            array_map('absint', (array) ($expected['vocabulary_ids'] ?? array()))
+        )));
+        $required_labels = array_values(array_unique(array_filter(
+            array_map('strval', (array) ($expected['labels'] ?? array())),
+            static function ($label) { return '' !== trim($label); }
+        )));
+        $expected_posts = array();
+        foreach ((array) ($expected['acceptable_related'] ?? array()) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $id = absint($item['id'] ?? 0);
+            $type = sanitize_key((string) ($item['type'] ?? ''));
+            if ($id && in_array($type, array('post', 'landing'), true)) {
+                $expected_posts[$id] = 'landing' === $type ? 'page' : 'post';
+            }
+        }
+
+        $matches = array();
+        $checked_posts = 0;
+        $db_problem = '';
+        if ($expected_posts && ($required_ids || $required_labels)) {
+            $objects = esc_sql($wpdb->prefix . 'seo_object_vocabulary');
+            $vocabulary = esc_sql($wpdb->prefix . 'seo_vocabulary');
+            if (!self::table_exists($objects) || !self::table_exists($vocabulary)) {
+                $db_problem = 'No están disponibles las tablas canónicas de Vocabulary.';
+            } else {
+                foreach (array_chunk(array_keys($expected_posts), 100) as $ids) {
+                    $checked_posts += count($ids);
+                    $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+                    $rows = $wpdb->get_results($wpdb->prepare(
+                        "SELECT p.ID, p.post_type, v.id AS vocabulary_id, v.label
+                         FROM {$wpdb->posts} p
+                         INNER JOIN {$objects} ov
+                           ON ov.object_id=p.ID AND ov.object_type=p.post_type AND ov.status=1
+                         INNER JOIN {$vocabulary} v
+                           ON v.id=ov.vocabulary_id AND v.active=1
+                         WHERE p.ID IN ({$placeholders})
+                           AND p.post_type IN ('post','page')
+                           AND p.post_status='publish'
+                           AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')",
+                        $ids
+                    ), ARRAY_A);
+                    if ('' !== (string) $wpdb->last_error) {
+                        $db_problem = 'Falló la consulta de relaciones editoriales.';
+                        break;
+                    }
+
+                    $found = array();
+                    foreach ((array) $rows as $row) {
+                        $id = absint($row['ID'] ?? 0);
+                        if (!$id || !isset($expected_posts[$id])
+                            || $expected_posts[$id] !== (string) ($row['post_type'] ?? '')) {
+                            continue;
+                        }
+                        $found[$id]['ids'][absint($row['vocabulary_id'] ?? 0)] = true;
+                        $found[$id]['labels'][(string) ($row['label'] ?? '')] = true;
+                    }
+
+                    foreach ($found as $id => $terms) {
+                        $required = $required_ids ?: $required_labels;
+                        $available = $required_ids
+                            ? array_keys((array) ($terms['ids'] ?? array()))
+                            : array_keys((array) ($terms['labels'] ?? array()));
+                        if (!$required || array_diff($required, $available)) {
+                            continue;
+                        }
+                        $matches[] = absint($id);
+                        if (count($matches) >= 8) {
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        $technical_error = '' !== $db_problem;
+        $valid = !$technical_error && !empty($matches);
+        $evaluation_status = $technical_error ? 'error' : ($valid ? 'pass_top1' : 'fail');
+        $diagnostic = $technical_error
+            ? 'technical_error'
+            : ($valid ? 'editorial_structure_ok' : 'editorial_structure_missing');
+        $evaluation = array(
+            'status' => $evaluation_status,
+            'score' => $valid ? 1 : 0,
+            'diagnostic_type' => $diagnostic,
+            'classroom_stage_used' => false,
+            'matched_related_id' => $valid ? $matches[0] : null,
+            'matched_expected' => count($matches),
+            'expected_related' => count($expected_posts),
+            'required_routes' => count($required_ids ?: $required_labels),
+        );
+        $inserted = $wpdb->insert($runs_table, array(
+            'batch_uuid'        => (string) $batch_uuid,
+            'lesson_key'        => $lesson_key,
+            'module_no'         => absint($question['module_no'] ?? 0),
+            'question_id'       => $question_id,
+            'source_type'       => sanitize_key((string) ($question['source_type'] ?? 'editorial')),
+            'source_id'         => absint($question['source_id'] ?? 0) ?: null,
+            'question_type'     => sanitize_key((string) ($question['question_type'] ?? 'editorial_semantic')),
+            'mode'              => self::sanitize_mode($question['mode'] ?? 'need'),
+            'question'          => sanitize_text_field((string) ($question['question'] ?? '')),
+            'status'            => $technical_error ? 'error' : 'answered',
+            'result_count'      => count($matches),
+            'returned_count'    => count($matches),
+            'search_uuid'       => null,
+            'search_strategy'   => 'editorial_structure_check',
+            'execution_ms'      => round(max(0, (microtime(true) - $started) * 1000), 3),
+            'evaluation_status' => $evaluation_status,
+            'evaluation_score'  => $valid ? 1 : 0,
+            'evaluation_json'   => wp_json_encode($evaluation, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'top_results'       => wp_json_encode(array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'response_meta'     => wp_json_encode(array('editorial_structure_check' => array(
+                'checked_posts' => $checked_posts,
+                'matched_ids' => $matches,
+                'fallback_to_labels' => !$required_ids,
+                'error' => $db_problem,
+            )), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'error_message'     => $technical_error ? $db_problem : null,
+            'created_at'        => current_time('mysql'),
+        ));
+        if (false === $inserted) {
+            error_log('[TaxoCommerce Academia] Insert M5 editorial check: ' . sanitize_text_field((string) $wpdb->last_error));
+            throw new RuntimeException('No se pudo guardar la comprobación editorial de Academia.');
+        }
         return absint($wpdb->insert_id);
     }
 
