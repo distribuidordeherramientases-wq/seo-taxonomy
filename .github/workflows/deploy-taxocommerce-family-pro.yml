@@ -46,6 +46,23 @@ jobs:
             cmp "taxocommerce-core/assets/admin.css" "$module/assets/admin.css"
           done
 
+
+      - name: Verify single Extensiones menu in Core
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path("taxocommerce-core/includes/class-taxocommerce-core.php").read_text()
+          marker = "public function register_menu()"
+          start = source.index(marker)
+          end = source.index("\n\t/**", start)
+          menu = source[start:end]
+          assert menu.count("'taxocommerce-core-modules'") == 1, "Extensiones must be a single menu item"
+          assert "'taxocommerce-core-family'" not in menu, "Ampliar familia must not be a second menu item"
+          assert "public function redirect_legacy_family_page()" in source, "Existing bookmarks must redirect"
+          PY
+
   deploy:
     name: Deploy family plugins without SEO
     runs-on: ubuntu-latest
