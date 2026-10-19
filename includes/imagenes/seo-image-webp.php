@@ -1158,7 +1158,16 @@ if (!function_exists('seo_images_webp_store_legacy_redirects')) {
 
 if (!function_exists('seo_images_webp_maybe_redirect_legacy_request')) {
     function seo_images_webp_maybe_redirect_legacy_request() {
-        if (is_admin() || wp_doing_ajax() || empty($_SERVER['REQUEST_URI'])) {
+        if (is_admin() || wp_doing_ajax()
+            || !isset($_SERVER['REQUEST_URI'])
+            || !is_string($_SERVER['REQUEST_URI'])) {
+            return;
+        }
+
+        // The HTTP request target is untrusted. Sanitize it once before
+        // extracting path and query; preserve percent-encoded filenames.
+        $request_uri = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+        if ('' === $request_uri) {
             return;
         }
 
@@ -1167,7 +1176,7 @@ if (!function_exists('seo_images_webp_maybe_redirect_legacy_request')) {
             return;
         }
 
-        $request_path = wp_parse_url(wp_unslash($_SERVER['REQUEST_URI']), PHP_URL_PATH);
+        $request_path = wp_parse_url($request_uri, PHP_URL_PATH);
         $uploads_path = wp_parse_url($uploads['baseurl'], PHP_URL_PATH);
         if (!is_string($request_path) || !is_string($uploads_path) || $uploads_path === '') {
             return;
@@ -1195,7 +1204,7 @@ if (!function_exists('seo_images_webp_maybe_redirect_legacy_request')) {
         }
 
         $target = trailingslashit($uploads['baseurl']) . str_replace('%2F', '/', rawurlencode($new_rel));
-        $query = wp_parse_url(wp_unslash($_SERVER['REQUEST_URI']), PHP_URL_QUERY);
+        $query = wp_parse_url($request_uri, PHP_URL_QUERY);
         if (is_string($query) && $query !== '') {
             $target .= '?' . $query;
         }
