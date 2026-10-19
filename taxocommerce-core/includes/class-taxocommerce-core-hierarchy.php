@@ -265,52 +265,71 @@ final class TaxoCommerce_Core_Hierarchy {
 	 */
 	public function render() {
 		$this->guard();
-
-		$import_report = get_option( self::LEGACY_IMPORT_OPTION, array() );
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'hierarchy'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only UI tab.
+		if ( ! in_array( $tab, array( 'hierarchy', 'roles' ), true ) ) {
+			$tab = 'hierarchy';
+		}
+		$hierarchy_url = add_query_arg(
+			array( 'page' => 'taxocommerce-core-hierarchy', 'tab' => 'hierarchy' ),
+			admin_url( 'admin.php' )
+		);
+		$roles_url = add_query_arg(
+			array( 'page' => 'taxocommerce-core-hierarchy', 'tab' => 'roles' ),
+			admin_url( 'admin.php' )
+		);
 		?>
-		<div class="wrap">
+		<div class="wrap taxocommerce-hierarchy-admin">
 			<h1><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Asigna un rol estructural a las páginas y enlaza Cluster → Hub primario → Hub secundario → Categoría de producto.', 'taxocommerce-core' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'Clasifica los contenidos y organiza las relaciones SEO de la tienda.', 'taxocommerce-core' ); ?></p>
 
-			<div class="notice notice-info inline">
-				<p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong>
-				<?php echo esc_html__( 'Las asociaciones se guardan en seo_relations, con compatibilidad para metadatos existentes. Asigna roles primero y relaciones después.', 'taxocommerce-core' ); ?></p>
-			</div>
-
-			<?php if ( is_array( $import_report ) && ! empty( $import_report ) ) : ?>
-				<div class="notice notice-success inline">
-					<p>
-						<strong><?php echo esc_html__( 'Importación inicial realizada:', 'taxocommerce-core' ); ?></strong>
-						<?php
-						echo esc_html(
-							sprintf(
-								/* translators: 1: roles, 2: page relations, 3: categories. */
-								__( '%1$d roles, %2$d relaciones entre páginas y %3$d asociaciones con categorías.', 'taxocommerce-core' ),
-								absint( $import_report['roles'] ?? 0 ),
-								absint( $import_report['relations'] ?? 0 ),
-								absint( $import_report['categories'] ?? 0 )
-							)
-						);
-						?>
-					</p>
-				</div>
-			<?php endif; ?>
+			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de jerarquía SEO', 'taxocommerce-core' ); ?>">
+				<a href="<?php echo esc_url( $hierarchy_url ); ?>" class="nav-tab <?php echo 'hierarchy' === $tab ? 'nav-tab-active' : ''; ?>" <?php echo 'hierarchy' === $tab ? 'aria-current="page"' : ''; ?>>
+					<?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?>
+				</a>
+				<a href="<?php echo esc_url( $roles_url ); ?>" class="nav-tab <?php echo 'roles' === $tab ? 'nav-tab-active' : ''; ?>" <?php echo 'roles' === $tab ? 'aria-current="page"' : ''; ?>>
+					<?php echo esc_html__( 'Asignación de roles', 'taxocommerce-core' ); ?>
+				</a>
+			</nav>
+			<style>
+				.taxocommerce-hierarchy-admin{max-width:1440px}
+				.taxocommerce-hierarchy-admin .nav-tab-wrapper{margin-top:22px}
+				.taxocommerce-hierarchy-admin .nav-tab{padding:11px 19px;font-weight:600}
+				.taxocommerce-hierarchy-admin .nav-tab-active{background:#fff;border-bottom-color:#fff}
+				.tc-hierarchy-panel{background:#fff;border:1px solid #dcdcde;border-top:0;padding:22px 24px;min-height:280px}
+				.tc-hierarchy-panel>h2{margin:0 0 8px;font-size:20px}
+				.tc-hierarchy-panel>.description{max-width:860px;margin:0 0 19px;color:#646970}
+				.tc-hierarchy-roles-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}
+				.tc-hierarchy-roles-filter input[type=search]{width:min(330px,100%);min-height:38px}
+				.tc-hierarchy-roles-filter select{min-height:38px}
+				.tc-hierarchy-panel .widefat th{font-weight:650}
+				.tc-hierarchy-panel .widefat td{vertical-align:middle;padding:11px 12px}
+				.tc-hierarchy-panel .widefat form{flex-wrap:wrap}
+				.tc-hierarchy-panel .widefat select{min-width:150px;max-width:220px}
+				.tc-hierarchy-panel .tc-hierarchy-preview{margin-top:24px;border-top:1px solid #dcdcde;padding-top:18px}
+				.tc-hierarchy-preview>summary{font-weight:600;cursor:pointer}
+				@media(max-width:782px){
+					.tc-hierarchy-panel{padding:15px 12px}
+					.taxocommerce-hierarchy-admin .nav-tab{padding:10px 11px}
+					.tc-hierarchy-panel .widefat{display:block;overflow-x:auto}
+				}
+			</style>
 
 			<?php $this->render_notices(); ?>
-			<?php $this->render_kpis(); ?>
-
-			<hr>
-			<h2><?php echo esc_html__( '1. Roles de las páginas', 'taxocommerce-core' ); ?></h2>
-			<p><?php echo esc_html__( 'Cada página puede tener un único rol SEO estructural. Una página ya vinculada debe desvincularse antes de cambiar de rol.', 'taxocommerce-core' ); ?></p>
-			<?php $this->render_page_roles(); ?>
-
-			<hr>
-			<h2><?php echo esc_html__( '2. Asociaciones jerárquicas', 'taxocommerce-core' ); ?></h2>
-			<?php TaxoCommerce_Core_Hierarchy_Classic::render( $this ); ?>
-
-			<hr>
-			<h2><?php echo esc_html__( '3. Árbol actual', 'taxocommerce-core' ); ?></h2>
-			<?php TaxoCommerce_Core_Hierarchy_Classic::render_tree( $this ); ?>
+			<section class="tc-hierarchy-panel">
+				<?php if ( 'roles' === $tab ) : ?>
+					<h2><?php echo esc_html__( 'Asignación de roles', 'taxocommerce-core' ); ?></h2>
+					<p class="description"><?php echo esc_html__( 'Primero clasifica cada página como Cluster, Hub primario, Hub secundario, Landing o Corporativa. Después podrás vincularla desde la pestaña Jerarquía SEO.', 'taxocommerce-core' ); ?></p>
+					<?php $this->render_page_roles(); ?>
+				<?php else : ?>
+					<h2><?php echo esc_html__( 'Organización de la jerarquía', 'taxocommerce-core' ); ?></h2>
+					<p class="description"><?php echo esc_html__( 'Abre un cluster y sus hubs para asignar elementos mediante casillas. Los ya asignados aparecen arriba y los disponibles debajo. Cada bloque se guarda por separado.', 'taxocommerce-core' ); ?></p>
+					<?php TaxoCommerce_Core_Hierarchy_Classic::render( $this ); ?>
+					<details class="tc-hierarchy-preview">
+						<summary><?php echo esc_html__( 'Ver árbol SEO completo (solo lectura)', 'taxocommerce-core' ); ?></summary>
+						<?php TaxoCommerce_Core_Hierarchy_Classic::render_tree( $this ); ?>
+					</details>
+				<?php endif; ?>
+			</section>
 		</div>
 		<?php
 	}
@@ -414,8 +433,9 @@ final class TaxoCommerce_Core_Hierarchy {
 
 		$query = new WP_Query( $args );
 		?>
-		<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin:12px 0;">
+		<form class="tc-hierarchy-roles-filter" method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 			<input type="hidden" name="page" value="taxocommerce-core-hierarchy">
+			<input type="hidden" name="tab" value="roles">
 			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Buscar página', 'taxocommerce-core' ); ?>">
 			<select name="role">
 				<option value=""><?php echo esc_html__( 'Todos los roles', 'taxocommerce-core' ); ?></option>
@@ -666,10 +686,16 @@ final class TaxoCommerce_Core_Hierarchy {
 	 * @return void
 	 */
 	private function redirect_with_result( $result, $context ) {
+		$tab = 'role' === $context ? 'roles' : 'hierarchy';
+		$focus = 'hierarchy' === $tab && isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
 		$args = array(
 			'page'       => 'taxocommerce-core-hierarchy',
+			'tab'        => $tab,
 			'tc_context' => sanitize_key( $context ),
 		);
+		if ( $focus ) {
+			$args['tc_focus'] = $focus;
+		}
 
 		if ( is_wp_error( $result ) ) {
 			$args['tc_result']  = 'error';
@@ -678,7 +704,8 @@ final class TaxoCommerce_Core_Hierarchy {
 			$args['tc_result'] = 'ok';
 		}
 
-		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+		$url = add_query_arg( $args, admin_url( 'admin.php' ) );
+		wp_safe_redirect( $url . ( $focus ? '#tc-source-' . $focus : '' ) );
 		exit;
 	}
 
