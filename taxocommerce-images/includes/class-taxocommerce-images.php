@@ -201,9 +201,15 @@ final class TaxoCommerce_Images {
 			$tab = 'summary';
 		}
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'TaxoCommerce Images', 'taxocommerce-images' ); ?></h1>
-			<p><?php echo esc_html__( 'Media de WordPress es la fuente de verdad. La importación y exportación de archivos pertenece a TaxoCommerce Import-Export.', 'taxocommerce-images' ); ?></p>
+		<div class="wrap tcc-family-screen">
+			<header class="tcc-page-header">
+				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-format-image"></span></span>
+				<div class="tcc-page-header__content">
+					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'Familia TaxoCommerce', 'taxocommerce-images' ); ?></p>
+					<h1><?php echo esc_html__( 'TaxoCommerce Images', 'taxocommerce-images' ); ?></h1>
+					<p><?php echo esc_html__( 'Media de WordPress es la fuente de verdad. La importación y exportación de archivos pertenece a TaxoCommerce Import-Export.', 'taxocommerce-images' ); ?></p>
+				</div>
+			</header>
 			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de imágenes', 'taxocommerce-images' ); ?>">
 				<?php foreach ( $tabs as $key => $label ) : ?>
 					<a class="nav-tab<?php echo $tab === $key ? ' nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-images', 'tab' => $key ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( $label ); ?></a>
@@ -253,9 +259,9 @@ final class TaxoCommerce_Images {
 		);
 		?>
 		<h2><?php echo esc_html__( 'Estado de imágenes', 'taxocommerce-images' ); ?></h2>
-		<div style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;">
+		<div class="tcc-stat-grid">
 			<?php foreach ( $cards as $label => $value ) : ?>
-				<div class="card" style="min-width:165px;margin:0;padding:12px 16px;"><strong style="display:block;font-size:24px;"><?php echo esc_html( (string) $value ); ?></strong><span><?php echo esc_html( $label ); ?></span></div>
+				<div class="card"><strong style="display:block;font-size:24px;"><?php echo esc_html( (string) $value ); ?></strong><span><?php echo esc_html( $label ); ?></span></div>
 			<?php endforeach; ?>
 		</div>
 		<?php if ( empty( $audit ) ) : ?>
