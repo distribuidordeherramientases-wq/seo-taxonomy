@@ -23,8 +23,8 @@ if (!function_exists('seo_product_vocab_editor_tables_ready')) {
     function seo_product_vocab_editor_tables_ready() {
         global $wpdb;
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         if (function_exists('seo_catalog_table_exists')) {
             return seo_catalog_table_exists($vocabulary) && seo_catalog_table_exists($objects);
@@ -50,7 +50,7 @@ if (!function_exists('seo_product_vocab_editor_get_terms')) {
             return [];
         }
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
 
         return (array) $wpdb->get_results(
             $wpdb->prepare(
@@ -83,8 +83,8 @@ if (!function_exists('seo_product_vocab_editor_get_assignments')) {
             return $result;
         }
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
@@ -238,7 +238,7 @@ if (!function_exists('seo_product_vocab_editor_create_term')) {
             return 0;
         }
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $existing = (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id FROM {$vocabulary}
@@ -287,8 +287,8 @@ if (!function_exists('seo_product_vocab_editor_replace_group')) {
             return;
         }
 
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         // Validar la seleccion recibida contra el vocabulario activo del grupo.
         $vocabulary_ids = array_values(array_unique(array_filter(array_map('absint', $vocabulary_ids))));
