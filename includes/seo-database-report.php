@@ -477,6 +477,7 @@ function seo_data_get_columns(string $table_name): array
         return [];
     }
 
+    $table_name = esc_sql( $table_name );
     $columns = $wpdb->get_results("DESCRIBE `{$table_name}`", ARRAY_A);
     return is_array($columns) ? $columns : [];
 }
@@ -666,8 +667,8 @@ function seo_data_render_operations_center(): void
 {
     global $wpdb;
 
-    $operations_table = $wpdb->prefix . 'seo_operations';
-    $changes_table = $wpdb->prefix . 'seo_operation_changes';
+    $operations_table = esc_sql( $wpdb->prefix . 'seo_operations' );
+    $changes_table = esc_sql( $wpdb->prefix . 'seo_operation_changes' );
 
     if (!seo_data_table_exists($operations_table) || !seo_data_table_exists($changes_table)) {
         echo '<div class="notice notice-error"><p>No se encuentran las tablas del Data Layer.</p></div>';
@@ -834,8 +835,8 @@ function seo_data_operation_preview(int $operation_id, $operation = null): ?arra
 function seo_data_render_operation_details(int $operation_id): void
 {
     global $wpdb;
-    $operations_table = $wpdb->prefix . 'seo_operations';
-    $changes_table = $wpdb->prefix . 'seo_operation_changes';
+    $operations_table = esc_sql( $wpdb->prefix . 'seo_operations' );
+    $changes_table = esc_sql( $wpdb->prefix . 'seo_operation_changes' );
     $operation = $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$operations_table}` WHERE id = %d", $operation_id));
     if (!$operation) {
         echo '<div class="notice notice-error"><p>La operación solicitada no existe.</p></div>';
@@ -1147,6 +1148,8 @@ function seo_data_write_table_csv(string $table_name, $handle): void
         return;
     }
 
+    // Registered table checked by seo_data_get_columns().
+    $table_name = esc_sql( $table_name );
     fputcsv($handle, $column_names, ';', '"', '\\');
 
     $batch_size = 1000;
@@ -1177,6 +1180,11 @@ function seo_data_write_table_csv(string $table_name, $handle): void
 function seo_data_write_table_sql(string $table_name, $handle): void
 {
     global $wpdb;
+    // Validate the requested table against the Data Layer registry before SQL.
+    if (!seo_data_is_registered_table($table_name)) {
+        return;
+    }
+    $table_name = esc_sql( $table_name );
 
     $create = $wpdb->get_row("SHOW CREATE TABLE `{$table_name}`", ARRAY_N);
     if (!$create || empty($create[1])) {

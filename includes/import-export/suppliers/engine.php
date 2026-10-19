@@ -246,9 +246,11 @@ function seo_proveedores_es_csv_estandar( $state ) {
     $header = array_map( 'sanitize_key', (array) ( $state['header'] ?? array() ) );
     $fields = seo_proveedores_cabecera_estandar();
 
-    return count( $header ) === count( $fields )
-        && count( $header ) === count( array_unique( $header ) )
-        && empty( array_diff( $fields, $header ) );
+    // CSV normalizados anteriormente no incluian source_row_key.
+    $legacy = array_values( array_diff( $fields, array( 'source_row_key' ) ) );
+    return count( $header ) === count( array_unique( $header ) )
+        && ( ( count( $header ) === count( $fields ) && empty( array_diff( $fields, $header ) ) )
+            || ( count( $header ) === count( $legacy ) && empty( array_diff( $legacy, $header ) ) ) );
 }
 
 /**
@@ -266,6 +268,26 @@ function seo_proveedores_fila_asociativa( $header, $row ) {
     }
 
     return $result;
+}
+
+
+/**
+ * SKU + title + country separate VEVOR variants. Supplier external ID keeps
+ * different products with the same visible name apart. Price, affiliate URL
+ * and images are deliberately excluded so updates retain identity.
+ */
+function seo_proveedores_vevor_fila_base( array $row ) {
+    return hash( 'sha256', wp_json_encode( array(
+        strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ),
+        trim( (string) ( $row['sku'] ?? '' ) ),
+        trim( (string) ( $row['nombre'] ?? '' ) ),
+        trim( (string) ( $row['proveedor_id_externo'] ?? '' ) ),
+    ) ) );
+}
+
+/** Repeated identical VEVOR CSV lines still represent separate entries. */
+function seo_proveedores_vevor_fila_clave( $base, $occurrence ) {
+    return hash( 'sha256', (string) $base . ':' . absint( $occurrence ) );
 }
 
 /**
@@ -346,6 +368,7 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
 
     $iterator = seo_proveedores_iterar_filas( $state );
     $line     = 1;
+    $vevor_occurrences = array();
 
     foreach ( $iterator as $source_row ) {
         $line++;
@@ -395,6 +418,14 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
             $log['errores']++;
             seo_ie_add_log_detail( $log, sprintf( 'Fila %d: faltan ID externo o nombre tras aplicar la receta.', $line ) );
             continue;
+        }
+
+        // The prepared CSV retains each VEVOR source row, irrespective of
+        // shared provider SKU, external ID, title or source row order.
+        if ( 0 === strcasecmp( (string) ( $recipe['provider'] ?? '' ), 'VEVOR' ) && '' !== (string) ( $clean['pais_origen'] ?? '' ) ) {
+            $base = seo_proveedores_vevor_fila_base( $clean );
+            $vevor_occurrences[ $base ] = ( $vevor_occurrences[ $base ] ?? 0 ) + 1;
+            $clean['source_row_key'] = seo_proveedores_vevor_fila_clave( $base, $vevor_occurrences[ $base ] );
         }
 
         fputcsv(
@@ -457,7 +488,7 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
     global $wpdb;
 
     $fields = seo_proveedores_campos_importacion();
-    $table  = seo_proveedores_tabla_productos();
+    $table  = esc_sql( seo_proveedores_tabla_productos() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
     if ( $exists !== $table ) {
@@ -508,6 +539,7 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
 
     $iterator = seo_proveedores_iterar_filas( $state );
     $line     = 1;
+    $vevor_occurrences = array();
     $now      = current_time( 'mysql' );
     $run_id   = function_exists( 'seo_supplier_sync_start_run' )
         ? seo_supplier_sync_start_run( $state, $now )
@@ -560,8 +592,59 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
             ? seo_supplier_sync_snapshot_hash( $current_snapshot )
             : hash( 'sha256', wp_json_encode( $current_snapshot ) );
 
-        $existing_by_sku = null;
-        $existing_by_external = null;
+        if ( $vevor_market ) {
+            $incoming_key = strtolower( trim( (string) ( $data['source_row_key'] ?? '' ) ) );
+            if ( ! preg_match( '/^[a-f0-9]{64}$/', $incoming_key ) ) {
+                // Reuse the identity rule for pre-upgrade prepared CSVs.
+                $base = seo_proveedores_vevor_fila_base( $data );
+                $vevor_occurrences[ $base ] = ( $vevor_occurrences[ $base ] ?? 0 ) + 1;
+                $incoming_key = seo_proveedores_vevor_fila_clave( $base, $vevor_occurrences[ $base ] );
+            } else {
+                $vevor_occurrences[ $incoming_key ] = ( $vevor_occurrences[ $incoming_key ] ?? 0 ) + 1;
+                if ( $vevor_occurrences[ $incoming_key ] > 1 ) {
+                    // Do not discard duplicate rows from an edited CSV.
+                    $incoming_key = seo_proveedores_vevor_fila_clave( $incoming_key, $vevor_occurrences[ $incoming_key ] );
+                }
+            }
+            $data['source_row_key'] = $incoming_key;
+            $existing = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$table}
+                     WHERE proveedor = %s AND pais_origen = %s
+                       AND proveedor_id_externo = %s AND source_row_key = %s
+                     ORDER BY id ASC LIMIT 1",
+                    'VEVOR', $market_country, $external_id, $incoming_key
+                ),
+                ARRAY_A
+            );
+
+            // First reimport after upgrading: bind each matching historical
+            // catalogue row to its key. Its object_id and approval remain.
+            // Only an exact unique country + ID + SKU + title match qualifies.
+            if ( ! $existing ) {
+                $legacy_rows = (array) $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT * FROM {$table}
+                         WHERE proveedor = %s AND pais_origen = %s
+                           AND proveedor_id_externo = %s AND sku = %s AND nombre = %s
+                           AND (source_row_key = '' OR source_row_key IS NULL)
+                         ORDER BY id ASC LIMIT 2",
+                        'VEVOR', $market_country, $external_id, $incoming_sku, $name
+                    ),
+                    ARRAY_A
+                );
+                if ( 1 === count( $legacy_rows ) ) {
+                    $existing = $legacy_rows[0];
+                }
+            }
+            // VEVOR matching never uses SKU or title by itself to overwrite
+            // a different variant. Woo linkage is kept via object_id.
+            $woo_product_id = 0;
+        } else {
+            // Other suppliers keep their historical SKU/external ID logic.
+            $data['source_row_key'] = '';
+            $existing_by_sku = null;
+            $existing_by_external = null;
 
         if ( '' !== $incoming_sku ) {
             $sku_sql = $vevor_market
@@ -681,6 +764,8 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
                 }
             }
         }
+
+        } // End traditional supplier matching.
 
         if ( $existing ) {
             $selection = sanitize_key( (string) ( $existing['estado_seleccion'] ?? '' ) );
@@ -842,6 +927,7 @@ function seo_proveedores_campos_importacion() {
     return [
         'proveedor_id_externo' => [ 'label' => 'Código del proveedor', 'required' => true, 'type' => 'text' ],
         'sku'                   => [ 'label' => 'SKU del proveedor', 'type' => 'text' ],
+        'source_row_key'        => [ 'label' => 'Identidad de variante VEVOR', 'type' => 'text' ],
         'pais_origen'           => [ 'label' => 'País de origen comercial', 'type' => 'text' ],
         'idioma_origen'         => [ 'label' => 'Idioma de origen', 'type' => 'text' ],
         'mpn'                   => [ 'label' => 'MPN', 'type' => 'text' ],
@@ -2537,6 +2623,7 @@ function seo_proveedores_columnas_virtuales_catalogo() {
 function seo_proveedores_exportar_productos_columnas() {
     return [
         'catalogo_proveedor_id',
+        'source_row_key',
         'proveedor',
         'proveedor_id_externo',
         'sku',
@@ -2829,7 +2916,7 @@ function seo_proveedores_exportar_productos_csv() {
 
     global $wpdb;
 
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
     if ( $exists !== $table ) {
         wp_die( esc_html__( 'No existe el catálogo de productos de proveedores.', 'taxocommerce-seo' ) );
@@ -2992,6 +3079,7 @@ function seo_proveedores_exportar_productos_csv() {
 
             $row = [
                 'catalogo_proveedor_id'  => absint( $source_row['id'] ?? 0 ),
+                'source_row_key'         => (string) ( $source_row['source_row_key'] ?? '' ),
                 'proveedor'              => (string) ( $source_row['proveedor'] ?? '' ),
                 'proveedor_id_externo'   => (string) ( $source_row['proveedor_id_externo'] ?? '' ),
                 'sku'                    => (string) ( $source_row['sku'] ?? '' ),
@@ -3071,7 +3159,7 @@ function seo_proveedores_render_export_productos_card() {
     }
 
     global $wpdb;
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
     ?>
     <div class="card" style="max-width:none;padding:20px;">
@@ -3944,6 +4032,8 @@ function seo_proveedores_resolver_categoria_destino( $supplier_category, $provid
  */
 function seo_proveedores_pares_categoria_proveedor_distintos( $table ) {
     global $wpdb;
+    // Identificador de tabla interna recibido de un llamador que ya la valido.
+    $table = esc_sql( (string) $table );
 
     $rows = $wpdb->get_results(
         "
@@ -4298,6 +4388,12 @@ function seo_proveedores_cargar_gestor_imagenes() {
  */
 function seo_proveedores_identidad_alta( array $row ) {
 
+    // Different VEVOR catalogue rows can reuse the same supplier SKU.
+    if ( 0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' ) &&
+        '' !== trim( (string) ( $row['pais_origen'] ?? '' ) ) && absint( $row['id'] ?? 0 ) ) {
+        return 'vevor-row|' . absint( $row['id'] );
+    }
+
     $sku = mb_strtolower( trim( sanitize_text_field( (string) ( $row['sku'] ?? '' ) ) ) );
 
     if ( '' !== $sku ) {
@@ -4506,7 +4602,7 @@ function seo_proveedores_asegurar_tabla_imagenes_externas() {
     }
     global $wpdb;
 
-    $table = seo_proveedores_tabla_imagenes_externas();
+    $table = esc_sql( seo_proveedores_tabla_imagenes_externas() );
 
     /*
      * IMPORTANTE: dbDelta debe ejecutarse tambien cuando la tabla ya existe.
@@ -4605,7 +4701,7 @@ function seo_proveedores_asegurar_tabla_imagenes_externas() {
         $is_expected_unique = $index_info['unique'] && $columns === $expected_columns;
 
         if ( $index_info['unique'] && ! $is_expected_unique ) {
-            $safe_index_name = preg_replace( '/[^A-Za-z0-9_]/', '', $index_name );
+            $safe_index_name = esc_sql( preg_replace( '/[^A-Za-z0-9_]/', '', $index_name ) );
             if ( '' !== $safe_index_name ) {
                 $drop_index = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `{$safe_index_name}`" );
                 if ( false === $drop_index ) {
@@ -4723,7 +4819,7 @@ function seo_proveedores_extraer_urls_imagenes( $value ) {
 function seo_proveedores_desactivar_imagenes_externas( array $row, $product_id = 0 ) {
     global $wpdb;
 
-    $table = seo_proveedores_tabla_imagenes_externas();
+    $table = esc_sql( seo_proveedores_tabla_imagenes_externas() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
     if ( $exists !== $table ) {
@@ -4770,7 +4866,7 @@ function seo_proveedores_guardar_imagenes_externas( array $row, $product_id ) {
         return $ready;
     }
 
-    $table       = seo_proveedores_tabla_imagenes_externas();
+    $table       = esc_sql( seo_proveedores_tabla_imagenes_externas() );
     $supplier    = sanitize_text_field( (string) ( $row['proveedor'] ?? '' ) );
     $external_id = sanitize_text_field( (string) ( $row['proveedor_id_externo'] ?? '' ) );
     $sku         = sanitize_text_field( (string) ( $row['sku'] ?? '' ) );
@@ -4965,7 +5061,7 @@ function seo_proveedores_resolver_modo_imagenes_externas( array $row, $requested
 
     global $wpdb;
 
-    $table = seo_proveedores_tabla_imagenes_externas();
+    $table = esc_sql( seo_proveedores_tabla_imagenes_externas() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
     if ( $exists !== $table ) {
@@ -5062,7 +5158,7 @@ function seo_proveedores_crear_borrador_desde_fila( array $row, $comision_descue
     try {
         global $wpdb;
 
-        $providers_table = seo_proveedores_tabla_productos();
+        $providers_table = esc_sql( seo_proveedores_tabla_productos() );
         $catalog_row_id  = absint( $row['id'] ?? 0 );
 
         /*
@@ -5406,7 +5502,7 @@ function seo_proveedores_actualizar_estado_catalogo() {
 
     global $wpdb;
 
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
     $row   = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT * FROM {$table} WHERE id = %d",
@@ -5520,7 +5616,7 @@ function seo_proveedores_actualizar_estado_masivo() {
 
     global $wpdb;
 
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
 
     $proveedor          = sanitize_text_field( wp_unslash( $_POST['f_proveedor'] ?? '' ) );
     $estado_filtro      = sanitize_key( wp_unslash( $_POST['f_estado'] ?? '' ) );
@@ -5967,7 +6063,7 @@ function seo_proveedores_actualizar_estado_masivo() {
 function seo_proveedores_render_catalogo() {
     global $wpdb;
 
-    $table  = seo_proveedores_tabla_productos();
+    $table  = esc_sql( seo_proveedores_tabla_productos() );
     $exists = $wpdb->get_var(
         $wpdb->prepare(
             'SHOW TABLES LIKE %s',
@@ -6939,6 +7035,31 @@ function seo_proveedores_render_catalogo() {
             <hr style="margin:22px 0 18px;">
 
             <h3 style="margin-bottom:6px;">Acción sobre todos los resultados filtrados</h3>
+
+            <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin:12px 0;padding:12px;border:1px solid #c3c4c7;">
+                    <?php wp_nonce_field( 'seo_vevor_completar_drafts', 'seo_vevor_completar_nonce' ); ?>
+                    <p><strong>Completar borradores VEVOR vinculados</strong></p>
+                    <p>Actualiza precio, moneda, enlace de afiliado e imágenes externas desde el catálogo de proveedores.
+                    Solo modifica los productos WooCommerce existentes en draft y vinculados por object_id.
+                    No crea productos, no cambia categorías y no publica fichas.</p>
+                    <button type="submit" name="seo_vevor_completar_drafts" value="1" class="button button-secondary">
+                        Completar datos de drafts VEVOR
+                    </button>
+                </form>
+                <?php if ( isset( $_GET['seo_vevor_completed'] ) ) : ?>
+                    <p class="notice notice-info" style="padding:10px;">
+                        <?php
+                        echo esc_html( sprintf(
+                            'VEVOR: %d actualizados, %d errores, %d omitidos. Los errores permanecen en el catálogo para revisión.',
+                            absint( $_GET['seo_vevor_completed'] ),
+                            absint( $_GET['seo_vevor_errors'] ?? 0 ),
+                            absint( $_GET['seo_vevor_skipped'] ?? 0 )
+                        ) );
+                        ?>
+                    </p>
+                <?php endif; ?>
+            <?php endif; ?>
 
             <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
                 <p><strong>VEVOR:</strong> Aceptar valida las ofertas por pais en el catalogo

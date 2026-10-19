@@ -544,7 +544,7 @@ final class SEO_Comparador_Engine {
 
     private static function legacy_priority_labels($term_id) {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_category_comparisons';
+        $table = esc_sql( $wpdb->prefix . 'seo_category_comparisons' );
         if (!SEO_Comparador_DB::table_exists($table)) return array();
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT analysis_snapshot FROM {$table} WHERE category_id=%d ORDER BY updated_at DESC LIMIT 1",
@@ -707,7 +707,7 @@ final class SEO_Comparador_Engine {
         $hash = self::source_hash($records,$axes);
         $now = self::now();
 
-        $profiles_table = SEO_Comparador_DB::table('profiles');
+        $profiles_table = esc_sql( SEO_Comparador_DB::table('profiles') );
         $existing = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$profiles_table} WHERE canonical_key=%s LIMIT 1",
             self::profile_key($term_id)
@@ -774,8 +774,8 @@ final class SEO_Comparador_Engine {
 
         $wpdb->delete(SEO_Comparador_DB::table('axes'),array('profile_id'=>$profile_id));
         $wpdb->delete(SEO_Comparador_DB::table('values'),array('comparison_product_id'=>0)); // limpieza defensiva
-        $products_table = SEO_Comparador_DB::table('products');
-        $values_table = SEO_Comparador_DB::table('values');
+        $products_table = esc_sql( SEO_Comparador_DB::table('products') );
+        $values_table = esc_sql( SEO_Comparador_DB::table('values') );
         $product_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$products_table} WHERE profile_id=%d",$profile_id));
         if ($product_ids) {
             $placeholders=implode(',',array_fill(0,count($product_ids),'%d'));
@@ -1231,8 +1231,8 @@ final class SEO_Comparador_Engine {
         $profile_id = absint($profile_id);
         $axis_key = sanitize_key((string) $axis_key);
         if (!$profile_id || $axis_key === '') return 0.0;
-        $values_table = SEO_Comparador_DB::table('values');
-        $products_table = SEO_Comparador_DB::table('products');
+        $values_table = esc_sql( SEO_Comparador_DB::table('values') );
+        $products_table = esc_sql( SEO_Comparador_DB::table('products') );
         $value = $wpdb->get_var($wpdb->prepare(
             "SELECT AVG(v.confidence)
              FROM {$values_table} v
@@ -1498,7 +1498,7 @@ final class SEO_Comparador_Engine {
             return seo_post_editor_replace_product_cat_relations($post_id,array($category_id));
         }
 
-        $table = $wpdb->prefix . 'seo_relations';
+        $table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $exists = (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($table))) === $table;
         if (!$exists) return new WP_Error('comparador_relation','No está disponible seo_relations.');
 
@@ -1629,7 +1629,7 @@ final class SEO_Comparador_Engine {
         if (is_wp_error($relation)) return $relation;
 
         $now=self::now();
-        $post_map_table = SEO_Comparador_DB::table('post_map');
+        $post_map_table = esc_sql( SEO_Comparador_DB::table('post_map') );
         $exists=$wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$post_map_table} WHERE profile_id=%d AND post_id=%d LIMIT 1",
             $profile_id,$post_id

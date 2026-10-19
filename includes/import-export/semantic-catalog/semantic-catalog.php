@@ -417,12 +417,16 @@ final class SEO_Semantic_Catalog_Transfer {
     private static function export_masters() {
         global $wpdb;
         $t = self::required_tables();
+        $seo_wporg_sql_vocabulary = esc_sql( $t['vocabulary'] );
+        $seo_wporg_sql_attributes = esc_sql( $t['attributes'] );
+        $seo_wporg_sql_attribute_terms = esc_sql( $t['attribute_terms'] );
+        $seo_wporg_sql_attribute_aliases = esc_sql( $t['attribute_aliases'] );
         foreach (array('vocabulary', 'type_role_map', 'attributes', 'attribute_terms', 'attribute_aliases') as $key) {
             if (!self::table_exists($t[$key])) {
                 return new WP_Error('semantic_catalog_missing_table', 'Falta la tabla ' . $t[$key] . '.');
             }
         }
-        $vocab_rows = (array) $wpdb->get_results("SELECT id,semantic_group,slug,label,parent_id,source,active,created_at,updated_at FROM {$t['vocabulary']} ORDER BY semantic_group,slug,id", ARRAY_A);
+        $vocab_rows = (array) $wpdb->get_results("SELECT id,semantic_group,slug,label,parent_id,source,active,created_at,updated_at FROM {$seo_wporg_sql_vocabulary} ORDER BY semantic_group,slug,id", ARRAY_A);
         $vocab_by_id = array();
         foreach ($vocab_rows as $row) {
             $vocab_by_id[absint($row['id'])] = $row;
@@ -468,7 +472,7 @@ final class SEO_Semantic_Catalog_Transfer {
                 'audit' => array('source_id' => absint($row['id']), 'type_vocabulary_id' => absint($row['type_vocabulary_id']), 'role_vocabulary_id' => absint($row['role_vocabulary_id']), 'created_at' => (string) $row['created_at'], 'updated_at' => (string) $row['updated_at']),
             );
         }
-        $attribute_rows = (array) $wpdb->get_results("SELECT * FROM {$t['attributes']} ORDER BY slug,id", ARRAY_A);
+        $attribute_rows = (array) $wpdb->get_results("SELECT * FROM {$seo_wporg_sql_attributes} ORDER BY slug,id", ARRAY_A);
         $attributes = array();
         $attribute_by_id = array();
         foreach ($attribute_rows as $row) {
@@ -489,7 +493,7 @@ final class SEO_Semantic_Catalog_Transfer {
                 'audit' => array('source_id' => absint($row['id']), 'created_at' => (string) ($row['created_at'] ?? ''), 'updated_at' => (string) ($row['updated_at'] ?? '')),
             );
         }
-        $term_rows = (array) $wpdb->get_results("SELECT * FROM {$t['attribute_terms']} ORDER BY atributo_id,slug,id", ARRAY_A);
+        $term_rows = (array) $wpdb->get_results("SELECT * FROM {$seo_wporg_sql_attribute_terms} ORDER BY atributo_id,slug,id", ARRAY_A);
         $terms = array();
         $term_by_id = array();
         foreach ($term_rows as $row) {
@@ -506,7 +510,7 @@ final class SEO_Semantic_Catalog_Transfer {
                 'audit' => array('source_id' => absint($row['id']), 'attribute_id' => absint($row['atributo_id'])),
             );
         }
-        $alias_rows = (array) $wpdb->get_results("SELECT id,atributo_id,termino_id,alias FROM {$t['attribute_aliases']} ORDER BY atributo_id,alias,id", ARRAY_A);
+        $alias_rows = (array) $wpdb->get_results("SELECT id,atributo_id,termino_id,alias FROM {$seo_wporg_sql_attribute_aliases} ORDER BY atributo_id,alias,id", ARRAY_A);
         $alias_groups = array();
         foreach ($alias_rows as $row) {
             $attribute_slug = $attribute_by_id[absint($row['atributo_id'])] ?? '';
@@ -1204,6 +1208,10 @@ final class SEO_Semantic_Catalog_Transfer {
             return $cache;
         }
         $t = self::required_tables();
+        $seo_wporg_sql_vocabulary = esc_sql( $t['vocabulary'] );
+        $seo_wporg_sql_attributes = esc_sql( $t['attributes'] );
+        $seo_wporg_sql_attribute_terms = esc_sql( $t['attribute_terms'] );
+        $seo_wporg_sql_attribute_aliases = esc_sql( $t['attribute_aliases'] );
         $out = array(
             'vocabulary' => array(),
             'type_role_map' => array(),
@@ -1213,7 +1221,7 @@ final class SEO_Semantic_Catalog_Transfer {
             'product_tags' => array(),
         );
         if (self::table_exists($t['vocabulary'])) {
-            $rows = (array) $wpdb->get_results("SELECT id,semantic_group,slug,label,parent_id,source,active FROM {$t['vocabulary']} ORDER BY id", ARRAY_A);
+            $rows = (array) $wpdb->get_results("SELECT id,semantic_group,slug,label,parent_id,source,active FROM {$seo_wporg_sql_vocabulary} ORDER BY id", ARRAY_A);
             $by_id = array();
             foreach ($rows as $row) {
                 $by_id[absint($row['id'])] = $row;
@@ -1260,7 +1268,7 @@ final class SEO_Semantic_Catalog_Transfer {
             }
         }
         if (self::table_exists($t['attributes'])) {
-            $rows = (array) $wpdb->get_results("SELECT * FROM {$t['attributes']} ORDER BY id", ARRAY_A);
+            $rows = (array) $wpdb->get_results("SELECT * FROM {$seo_wporg_sql_attributes} ORDER BY id", ARRAY_A);
             $attr_by_id = array();
             foreach ($rows as $row) {
                 $slug = self::attribute_key($row['slug']);
@@ -1282,7 +1290,7 @@ final class SEO_Semantic_Catalog_Transfer {
                 $out['attributes'][$slug] = array('id' => absint($row['id']), 'portable' => $portable, 'raw' => $row);
             }
             if (self::table_exists($t['attribute_terms'])) {
-                $term_rows = (array) $wpdb->get_results("SELECT * FROM {$t['attribute_terms']} ORDER BY id", ARRAY_A);
+                $term_rows = (array) $wpdb->get_results("SELECT * FROM {$seo_wporg_sql_attribute_terms} ORDER BY id", ARRAY_A);
                 $term_by_id = array();
                 foreach ($term_rows as $row) {
                     $attr_slug = $attr_by_id[absint($row['atributo_id'])] ?? '';
@@ -1301,7 +1309,7 @@ final class SEO_Semantic_Catalog_Transfer {
                     $out['attribute_terms'][$key] = array('id' => absint($row['id']), 'portable' => $portable, 'raw' => $row);
                 }
                 if (self::table_exists($t['attribute_aliases'])) {
-                    $alias_rows = (array) $wpdb->get_results("SELECT id,atributo_id,termino_id,alias FROM {$t['attribute_aliases']} ORDER BY id", ARRAY_A);
+                    $alias_rows = (array) $wpdb->get_results("SELECT id,atributo_id,termino_id,alias FROM {$seo_wporg_sql_attribute_aliases} ORDER BY id", ARRAY_A);
                     foreach ($alias_rows as $row) {
                         $attr_slug = $attr_by_id[absint($row['atributo_id'])] ?? '';
                         if (!$attr_slug) {
@@ -1395,12 +1403,14 @@ final class SEO_Semantic_Catalog_Transfer {
     private static function master_extra_is_safe($type, $entry, $package, &$state, $scope = array()) {
         global $wpdb;
         $t = self::required_tables();
+        $seo_wporg_sql_object_vocabulary = esc_sql( $t['object_vocabulary'] );
+        $seo_wporg_sql_product_attributes = esc_sql( $t['product_attributes'] );
         $scope = array_map('sanitize_key', (array) $scope);
 
         if ('vocabulary' === $type) {
             $id = absint($entry['id'] ?? 0);
             $uses = (array) $wpdb->get_results($wpdb->prepare(
-                "SELECT object_type,COUNT(*) total FROM {$t['object_vocabulary']} WHERE vocabulary_id=%d AND status=1 GROUP BY object_type",
+                "SELECT object_type,COUNT(*) total FROM {$seo_wporg_sql_object_vocabulary} WHERE vocabulary_id=%d AND status=1 GROUP BY object_type",
                 $id
             ), ARRAY_A);
             $unsafe = array();
@@ -1424,14 +1434,14 @@ final class SEO_Semantic_Catalog_Transfer {
             }
         } elseif ('attributes' === $type) {
             $id = absint($entry['id'] ?? 0);
-            $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t['product_attributes']} WHERE atributo_id=%d", $id));
+            $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_product_attributes} WHERE atributo_id=%d", $id));
             if ($count > 0 && !in_array('product_attributes', $scope, true)) {
                 self::add_conflict($state, 'No se puede retirar el atributo extra ' . ($entry['portable']['key']['attribute_slug'] ?? '') . ' porque tiene asignaciones y product_attributes no forma parte del MIRROR.', 'ambiguous');
                 return false;
             }
         } elseif ('attribute_terms' === $type) {
             $id = absint($entry['id'] ?? 0);
-            $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t['product_attributes']} WHERE termino_id=%d", $id));
+            $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_product_attributes} WHERE termino_id=%d", $id));
             if ($count > 0 && !in_array('product_attributes', $scope, true)) {
                 self::add_conflict($state, 'No se puede retirar un termino de atributo extra porque tiene asignaciones y product_attributes no forma parte del MIRROR.', 'ambiguous');
                 return false;
@@ -1626,12 +1636,14 @@ final class SEO_Semantic_Catalog_Transfer {
     private static function local_semantic_rows($object_type, $object_id) {
         global $wpdb;
         $t = self::required_tables();
+        $seo_wporg_sql_object_vocabulary = esc_sql( $t['object_vocabulary'] );
+        $seo_wporg_sql_vocabulary = esc_sql( $t['vocabulary'] );
         if (!self::table_exists($t['object_vocabulary']) || !self::table_exists($t['vocabulary'])) {
             return array();
         }
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT ov.id,ov.vocabulary_id,ov.source,ov.confidence,ov.status,v.semantic_group,v.slug
-             FROM {$t['object_vocabulary']} ov JOIN {$t['vocabulary']} v ON v.id=ov.vocabulary_id
+             FROM {$seo_wporg_sql_object_vocabulary} ov JOIN {$seo_wporg_sql_vocabulary} v ON v.id=ov.vocabulary_id
              WHERE ov.object_type=%s AND ov.object_id=%d ORDER BY ov.id",
             $object_type,
             (int) $object_id
@@ -1705,14 +1717,17 @@ final class SEO_Semantic_Catalog_Transfer {
     private static function local_product_attribute_rows($product_id) {
         global $wpdb;
         $t = self::required_tables();
+        $seo_wporg_sql_product_attributes = esc_sql( $t['product_attributes'] );
+        $seo_wporg_sql_attributes = esc_sql( $t['attributes'] );
+        $seo_wporg_sql_attribute_terms = esc_sql( $t['attribute_terms'] );
         if (!self::table_exists($t['product_attributes']) || !self::table_exists($t['attributes'])) {
             return array();
         }
         return (array) $wpdb->get_results($wpdb->prepare(
             "SELECT pa.id,a.slug attribute_slug,t.slug term_slug,pa.valor_texto,pa.valor_numero,pa.valor_numero_max,pa.unidad,pa.valor_original,pa.orden
-             FROM {$t['product_attributes']} pa
-             JOIN {$t['attributes']} a ON a.id=pa.atributo_id
-             LEFT JOIN {$t['attribute_terms']} t ON t.id=pa.termino_id
+             FROM {$seo_wporg_sql_product_attributes} pa
+             JOIN {$seo_wporg_sql_attributes} a ON a.id=pa.atributo_id
+             LEFT JOIN {$seo_wporg_sql_attribute_terms} t ON t.id=pa.termino_id
              WHERE pa.product_id=%d ORDER BY a.slug,pa.orden,pa.id",
             (int) $product_id
         ), ARRAY_A);
@@ -1845,11 +1860,12 @@ final class SEO_Semantic_Catalog_Transfer {
     private static function local_category_label($category_id) {
         global $wpdb;
         $t = self::required_tables();
+        $seo_wporg_sql_nodes = esc_sql( $t['nodes'] );
         if (!self::table_exists($t['nodes'])) {
             return null;
         }
         $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT id,keywords,title,status FROM {$t['nodes']} WHERE object_type='category' AND object_id=%d AND seo_role='category' LIMIT 1",
+            "SELECT id,keywords,title,status FROM {$seo_wporg_sql_nodes} WHERE object_type='category' AND object_id=%d AND seo_role='category' LIMIT 1",
             (int) $category_id
         ), ARRAY_A);
         if (!$row) {
@@ -2447,8 +2463,9 @@ final class SEO_Semantic_Catalog_Transfer {
     private static function apply_category_label(SEO_Data_Operation $op, $category_id, $desired, $mode, &$stats) {
         global $wpdb;
         $t = self::required_tables();
+        $seo_wporg_sql_nodes = esc_sql( $t['nodes'] );
         $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT id,keywords,title,status FROM {$t['nodes']} WHERE object_type='category' AND object_id=%d AND seo_role='category' LIMIT 1",
+            "SELECT id,keywords,title,status FROM {$seo_wporg_sql_nodes} WHERE object_type='category' AND object_id=%d AND seo_role='category' LIMIT 1",
             $category_id
         ), ARRAY_A);
         if (null === $desired) {
@@ -2487,6 +2504,8 @@ final class SEO_Semantic_Catalog_Transfer {
         global $wpdb;
         $local = self::local_master_index();
         $t = self::required_tables();
+        $seo_wporg_sql_product_attributes = esc_sql( $t['product_attributes'] );
+        $seo_wporg_sql_object_vocabulary = esc_sql( $t['object_vocabulary'] );
         foreach ($local['type_role_map'] as $key => $entry) {
             if (!isset($package['type_role_map'][$key])) {
                 $op->delete('semantic_type_role_map', array('id' => (int) $entry['id']), array('portable_key' => $key));
@@ -2503,7 +2522,7 @@ final class SEO_Semantic_Catalog_Transfer {
         }
         foreach ($local['attribute_terms'] as $key => $entry) {
             if (!isset($package['attribute_terms'][$key]) && absint($entry['raw']['activo'] ?? 0) === 1) {
-                $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t['product_attributes']} WHERE termino_id=%d", (int) $entry['id']));
+                $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_product_attributes} WHERE termino_id=%d", (int) $entry['id']));
                 if ($count > 0) {
                     throw new RuntimeException('Termino extra aun en uso: ' . esc_html($key));
                 }
@@ -2513,7 +2532,7 @@ final class SEO_Semantic_Catalog_Transfer {
         }
         foreach ($local['attributes'] as $key => $entry) {
             if (!isset($package['attributes'][$key]) && absint($entry['raw']['activo'] ?? 0) === 1) {
-                $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t['product_attributes']} WHERE atributo_id=%d", (int) $entry['id']));
+                $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_product_attributes} WHERE atributo_id=%d", (int) $entry['id']));
                 if ($count > 0) {
                     throw new RuntimeException('Atributo extra aun en uso: ' . esc_html($key));
                 }
@@ -2523,7 +2542,7 @@ final class SEO_Semantic_Catalog_Transfer {
         }
         foreach ($local['vocabulary'] as $key => $entry) {
             if (!isset($package['vocabulary'][$key]) && absint($entry['raw']['active'] ?? 0) === 1) {
-                $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t['object_vocabulary']} WHERE vocabulary_id=%d AND status=1", (int) $entry['id']));
+                $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_object_vocabulary} WHERE vocabulary_id=%d AND status=1", (int) $entry['id']));
                 if ($count > 0) {
                     throw new RuntimeException('Vocabulary extra aun en uso: ' . esc_html($key));
                 }

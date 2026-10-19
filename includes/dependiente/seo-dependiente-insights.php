@@ -104,7 +104,7 @@ final class SEO_Dependiente_Insights {
             return $empty;
         }
 
-        $table = SEO_Dependiente_Search_Log::table();
+        $table = esc_sql( SEO_Dependiente_Search_Log::table() );
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT
@@ -145,7 +145,7 @@ final class SEO_Dependiente_Insights {
         }
 
         if (class_exists('SEO_Dependiente_Semantics') && SEO_Dependiente_Semantics::table_exists()) {
-            $semantic_table = SEO_Dependiente_Semantics::table();
+            $semantic_table = esc_sql( SEO_Dependiente_Semantics::table() );
             $counts = (array) $wpdb->get_results(
                 "SELECT source, active, COUNT(*) AS qty FROM {$semantic_table} GROUP BY source, active",
                 ARRAY_A
@@ -182,7 +182,7 @@ final class SEO_Dependiente_Insights {
 
         $days = self::normalize_days($days);
         $limit = min(30, max(1, absint($limit)));
-        $table = SEO_Dependiente_Search_Log::table();
+        $table = esc_sql( SEO_Dependiente_Search_Log::table() );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $column is selected from an internal allowlist before this query.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
@@ -216,7 +216,7 @@ final class SEO_Dependiente_Insights {
         }
         $days = self::normalize_days($days);
         $limit = min(50, max(1, absint($limit)));
-        $table = SEO_Dependiente_Search_Log::table();
+        $table = esc_sql( SEO_Dependiente_Search_Log::table() );
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT query_normalized AS value, MIN(query_original) AS example, COUNT(*) AS qty
@@ -250,7 +250,7 @@ final class SEO_Dependiente_Insights {
         $days = self::normalize_days($days);
         $limit = min(100, max(1, absint($limit)));
         $scan_limit = min(5000, max(200, absint($scan_limit)));
-        $table = SEO_Dependiente_Search_Log::table();
+        $table = esc_sql( SEO_Dependiente_Search_Log::table() );
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT top_results, clicked_product_id
@@ -330,7 +330,7 @@ final class SEO_Dependiente_Insights {
         }
         $days = self::normalize_days($days);
         $limit = min(100, max(1, absint($limit)));
-        $table = SEO_Dependiente_Search_Log::table();
+        $table = esc_sql( SEO_Dependiente_Search_Log::table() );
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT clicked_product_id AS id, COUNT(*) AS qty, AVG(clicked_position) AS avg_position
@@ -377,7 +377,7 @@ final class SEO_Dependiente_Insights {
         if (!class_exists('SEO_Dependiente_Semantics') || !SEO_Dependiente_Semantics::table_exists()) {
             return $out;
         }
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         $rows = (array) $wpdb->get_results(
             "SELECT source, active, rule_type, semantic_role, COUNT(*) AS qty
              FROM {$table}
@@ -517,7 +517,7 @@ final class SEO_Dependiente_Insights {
             return $out;
         }
 
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         $rows = (array) $wpdb->get_results(
             "SELECT id, rule_key, rule_type, expression, canonical_expression, match_type, semantic_role,
                     source_group, source_slug, context_group, context_slug, target_group, target_slug,

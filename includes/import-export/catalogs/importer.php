@@ -145,7 +145,7 @@ function seo_ie_catalog_import_row_type( array $row ) {
  */
 function seo_ie_catalog_import_get_vocabulary( $group, $slug ) {
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_vocabulary';
+    $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
     $row = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT id, semantic_group, slug, label, active FROM {$table} WHERE semantic_group=%s AND slug=%s LIMIT 1",
@@ -165,7 +165,7 @@ function seo_ie_catalog_import_get_vocabulary( $group, $slug ) {
  */
 function seo_ie_catalog_import_get_attribute( $slug ) {
     global $wpdb;
-    $table = $wpdb->prefix . 'sql_atributos';
+    $table = esc_sql( $wpdb->prefix . 'sql_atributos' );
     $row = $wpdb->get_row(
         $wpdb->prepare( "SELECT * FROM {$table} WHERE slug=%s LIMIT 1", sanitize_key( $slug ) ),
         ARRAY_A
@@ -182,7 +182,7 @@ function seo_ie_catalog_import_get_attribute( $slug ) {
  */
 function seo_ie_catalog_import_get_attribute_term( $attribute_id, $term_slug ) {
     global $wpdb;
-    $table = $wpdb->prefix . 'sql_atributos_terminos';
+    $table = esc_sql( $wpdb->prefix . 'sql_atributos_terminos' );
     $row = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT * FROM {$table} WHERE atributo_id=%d AND slug=%s LIMIT 1",
@@ -202,7 +202,7 @@ function seo_ie_catalog_import_get_attribute_term( $attribute_id, $term_slug ) {
  */
 function seo_ie_catalog_import_get_type_role_map( $type_id ) {
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_type_role_map';
+    $table = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
     $row = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT id, type_vocabulary_id, role_vocabulary_id, active FROM {$table} WHERE type_vocabulary_id=%d LIMIT 1",
@@ -304,7 +304,7 @@ function seo_ie_catalog_import_vocabulary_row( array $item, &$log, $dry_run ) {
         return true;
     }
 
-    $table = $wpdb->prefix . 'seo_vocabulary';
+    $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
     $ok = $wpdb->insert(
         $table,
         [
@@ -479,7 +479,7 @@ function seo_ie_catalog_import_type_row( array $item, array $maps_by_type, &$log
         return true;
     }
 
-    $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+    $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
     $map_table  = $wpdb->prefix . 'seo_type_role_map';
     $wpdb->query( 'START TRANSACTION' );
 
@@ -780,7 +780,7 @@ function seo_ie_catalog_import_attribute_alias_row( array $item, &$log, $dry_run
     }
 
     if ( (int) $attribute['id'] > 0 ) {
-        $aliases_table = $wpdb->prefix . 'sql_atributos_aliases';
+        $aliases_table = esc_sql( $wpdb->prefix . 'sql_atributos_aliases' );
         $existing_id = (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id FROM {$aliases_table} WHERE atributo_id=%d AND LOWER(alias)=LOWER(%s) LIMIT 1",

@@ -1,0 +1,77 @@
+name: Package and Deploy TaxoCommerce System Check
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-system-check/**'
+      - '.github/workflows/taxocommerce-system-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: PHP lint and independent package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PHP 7.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: PHP lint and no developer email
+        run: |
+          test -f taxocommerce-system-check/taxocommerce-system-check.php
+          test -f taxocommerce-system-check/includes/system-check/seo-core-validation.php
+          test -f taxocommerce-system-check/includes/system-check/seo-system-server-status.php
+          test -f taxocommerce-system-check/includes/system-check/seo-system-diagnostics-reporting.php
+          test -f taxocommerce-system-check/includes/class-taxocommerce-system-check-url-audit.php
+          find taxocommerce-system-check -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
+          if grep -R --fixed-strings 'davidperezmartorell@gmail.com' taxocommerce-system-check; then
+            echo 'Do not package a developer email address.'
+            exit 1
+          fi
+
+      - name: Build installable ZIP
+        run: zip -qr taxocommerce-system-check.zip taxocommerce-system-check
+
+      - name: Upload plugin ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-system-check-${{ github.sha }}
+          path: taxocommerce-system-check.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    name: Deploy to STAGING independently
+    runs-on: ubuntu-latest
+    needs: verify
+    if: github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy System Check
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-system-check/
+          server-dir: ./wp-content/plugins/taxocommerce-system-check/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak

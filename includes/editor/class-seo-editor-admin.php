@@ -90,7 +90,7 @@ final class SEO_Editor_Admin {
         $ok = 0; $fail = array();
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Revision fingerprints are sanitized individually before hash comparison below.
         $revisions = isset($_POST['revision']) && is_array($_POST['revision'])
-            ? (array)wp_unslash($_POST['revision']) : array();
+            ? map_deep( wp_unslash( $_POST['revision'] ), 'sanitize_text_field' ) : array();
         foreach ($ids as $id) {
             $post = get_post($id);
             $expected = isset($revisions[$id]) ? sanitize_text_field((string)$revisions[$id]) : '';

@@ -22,8 +22,8 @@ final class SEO_Dependiente_V3_Frontend {
         global $wpdb;
 
         $limit = max(1, min(5, absint($limit)));
-        $nodes = $wpdb->prefix . 'seo_nodes';
-        $relations = $wpdb->prefix . 'seo_relations';
+        $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
+        $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
 
         $cluster_ids = $wpdb->get_col(
             $wpdb->prepare(
