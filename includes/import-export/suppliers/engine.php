@@ -4607,7 +4607,7 @@ function seo_proveedores_asegurar_tabla_imagenes_externas() {
         $is_expected_unique = $index_info['unique'] && $columns === $expected_columns;
 
         if ( $index_info['unique'] && ! $is_expected_unique ) {
-            $safe_index_name = preg_replace( '/[^A-Za-z0-9_]/', '', $index_name );
+            $safe_index_name = esc_sql( preg_replace( '/[^A-Za-z0-9_]/', '', $index_name ) );
             if ( '' !== $safe_index_name ) {
                 $drop_index = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `{$safe_index_name}`" );
                 if ( false === $drop_index ) {
