@@ -666,8 +666,8 @@ function seo_data_render_operations_center(): void
 {
     global $wpdb;
 
-    $operations_table = $wpdb->prefix . 'seo_operations';
-    $changes_table = $wpdb->prefix . 'seo_operation_changes';
+    $operations_table = esc_sql( $wpdb->prefix . 'seo_operations' );
+    $changes_table = esc_sql( $wpdb->prefix . 'seo_operation_changes' );
 
     if (!seo_data_table_exists($operations_table) || !seo_data_table_exists($changes_table)) {
         echo '<div class="notice notice-error"><p>No se encuentran las tablas del Data Layer.</p></div>';
@@ -834,8 +834,8 @@ function seo_data_operation_preview(int $operation_id, $operation = null): ?arra
 function seo_data_render_operation_details(int $operation_id): void
 {
     global $wpdb;
-    $operations_table = $wpdb->prefix . 'seo_operations';
-    $changes_table = $wpdb->prefix . 'seo_operation_changes';
+    $operations_table = esc_sql( $wpdb->prefix . 'seo_operations' );
+    $changes_table = esc_sql( $wpdb->prefix . 'seo_operation_changes' );
     $operation = $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$operations_table}` WHERE id = %d", $operation_id));
     if (!$operation) {
         echo '<div class="notice notice-error"><p>La operación solicitada no existe.</p></div>';
