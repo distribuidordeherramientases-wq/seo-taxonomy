@@ -2695,10 +2695,10 @@ function seo_ie_batch_render_page() {
         <?php
         // Notices are read-only URL parameters. Validate and sanitize before display.
         $batch_message = isset( $_GET['seo_ie_batch_message'] ) && is_string( $_GET['seo_ie_batch_message'] )
-            ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['seo_ie_batch_message'] ) ) )
+            ? sanitize_text_field( wp_unslash( $_GET['seo_ie_batch_message'] ) )
             : '';
         $batch_error = isset( $_GET['seo_ie_batch_error'] ) && is_string( $_GET['seo_ie_batch_error'] )
-            ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['seo_ie_batch_error'] ) ) )
+            ? sanitize_text_field( wp_unslash( $_GET['seo_ie_batch_error'] ) )
             : '';
         ?>
         <?php if ( '' !== $batch_message ) : ?>

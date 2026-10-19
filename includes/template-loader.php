@@ -2,6 +2,7 @@
 if (!defined('ABSPATH')) exit;
 
 require_once __DIR__ . '/seo-front-es-catalog.php';
+require_once __DIR__ . '/pilot-france-root.php';
 
 add_filter('template_include', 'seo_template_loader', PHP_INT_MAX);
 
