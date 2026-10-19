@@ -34,9 +34,12 @@ if (!function_exists('seo_classifier_jobs_install_schema')) {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $tables = seo_classifier_jobs_tables();
+        $seo_wporg_sql_jobs = esc_sql( $tables['jobs'] );
+        $seo_wporg_sql_items = esc_sql( $tables['items'] );
+        $seo_wporg_sql_proposals = esc_sql( $tables['proposals'] );
         $charset = $wpdb->get_charset_collate();
 
-        $sql_jobs = "CREATE TABLE {$tables['jobs']} (
+        $sql_jobs = "CREATE TABLE {$seo_wporg_sql_jobs} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             job_uuid CHAR(36) NOT NULL,
             job_type VARCHAR(24) NOT NULL DEFAULT 'classify',
@@ -84,7 +87,7 @@ if (!function_exists('seo_classifier_jobs_install_schema')) {
             KEY updated_at (updated_at)
         ) {$charset};";
 
-        $sql_items = "CREATE TABLE {$tables['items']} (
+        $sql_items = "CREATE TABLE {$seo_wporg_sql_items} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             job_id BIGINT UNSIGNED NOT NULL,
             product_id BIGINT UNSIGNED NOT NULL,
@@ -104,7 +107,7 @@ if (!function_exists('seo_classifier_jobs_install_schema')) {
             KEY updated_at (updated_at)
         ) {$charset};";
 
-        $sql_proposals = "CREATE TABLE {$tables['proposals']} (
+        $sql_proposals = "CREATE TABLE {$seo_wporg_sql_proposals} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             product_id BIGINT UNSIGNED NOT NULL,
             semantic_group VARCHAR(40) NOT NULL,
@@ -329,7 +332,10 @@ if (!function_exists('seo_classifier_job_seed')) {
         $job_id = absint($job_id);
         if ($job_id < 1) return new WP_Error('seo_classifier_job_invalid', 'Trabajo inválido.');
         $tables = seo_classifier_jobs_tables();
-        $job = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tables['jobs']} WHERE id=%d", $job_id), ARRAY_A);
+        $seo_wporg_sql_jobs = esc_sql( $tables['jobs'] );
+        $seo_wporg_sql_proposals = esc_sql( $tables['proposals'] );
+        $seo_wporg_sql_items = esc_sql( $tables['items'] );
+        $job = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$seo_wporg_sql_jobs} WHERE id=%d", $job_id), ARRAY_A);
         if (!$job) return new WP_Error('seo_classifier_job_missing', 'No existe el trabajo.');
         $parts = seo_classifier_job_where_sql($filters);
         $where = $parts['where'];
@@ -338,10 +344,10 @@ if (!function_exists('seo_classifier_job_seed')) {
         $mask_sql = '((' . $parts['missing_mask'] . ') & ' . $target_mask . ')';
         $where[] = $mask_sql . ' > 0';
         if ((string)$job['job_type'] === 'apply') {
-            $where[] = "EXISTS (SELECT 1 FROM {$tables['proposals']} cp WHERE cp.product_id=p.ID AND cp.active=1 AND cp.state='safe')";
+            $where[] = "EXISTS (SELECT 1 FROM {$seo_wporg_sql_proposals} cp WHERE cp.product_id=p.ID AND cp.active=1 AND cp.state='safe')";
         }
         $where_sql = implode(' AND ', $where);
-        $sql = "INSERT IGNORE INTO {$tables['items']} (job_id,product_id,group_mask,status,created_at,updated_at)
+        $sql = "INSERT IGNORE INTO {$seo_wporg_sql_items} (job_id,product_id,group_mask,status,created_at,updated_at)
                 SELECT %d,p.ID,{$mask_sql},'pending',NOW(),NOW()
                 FROM {$wpdb->posts} p WHERE {$where_sql}";
         $seed_args = array_merge([$job_id], $args);
@@ -350,7 +356,7 @@ if (!function_exists('seo_classifier_job_seed')) {
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared es el resultado de $wpdb->prepare().
         $result = $wpdb->query($prepared);
         if ($result === false) return new WP_Error('seo_classifier_job_seed_failed', $wpdb->last_error ?: 'No se pudo crear la cola.');
-        $total = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$tables['items']} WHERE job_id=%d", $job_id));
+        $total = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_items} WHERE job_id=%d", $job_id));
         $wpdb->update($tables['jobs'], ['total_items'=>$total,'updated_at'=>current_time('mysql')], ['id'=>$job_id], ['%d','%s'], ['%d']);
         return $total;
     }
@@ -360,7 +366,8 @@ if (!function_exists('seo_classifier_job_get')) {
     function seo_classifier_job_get($job_id) {
         global $wpdb;
         $tables = seo_classifier_jobs_tables();
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tables['jobs']} WHERE id=%d", absint($job_id)), ARRAY_A);
+        $seo_wporg_sql_jobs = esc_sql( $tables['jobs'] );
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$seo_wporg_sql_jobs} WHERE id=%d", absint($job_id)), ARRAY_A);
         if (!$row) return null;
         $row['filters'] = json_decode((string)($row['filters_json'] ?? ''), true);
         if (!is_array($row['filters'])) $row['filters'] = [];
@@ -372,11 +379,12 @@ if (!function_exists('seo_classifier_job_latest')) {
     function seo_classifier_job_latest($created_by = 0) {
         global $wpdb;
         $tables = seo_classifier_jobs_tables();
+        $seo_wporg_sql_jobs = esc_sql( $tables['jobs'] );
         $created_by = absint($created_by);
         if ($created_by > 0) {
-            $id = (int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$tables['jobs']} WHERE created_by=%d ORDER BY id DESC LIMIT 1", $created_by));
+            $id = (int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$seo_wporg_sql_jobs} WHERE created_by=%d ORDER BY id DESC LIMIT 1", $created_by));
         } else {
-            $id = (int)$wpdb->get_var("SELECT id FROM {$tables['jobs']} ORDER BY id DESC LIMIT 1");
+            $id = (int)$wpdb->get_var("SELECT id FROM {$seo_wporg_sql_jobs} ORDER BY id DESC LIMIT 1");
         }
         return $id > 0 ? seo_classifier_job_get($id) : null;
     }
@@ -725,8 +733,9 @@ if (!function_exists('seo_classifier_job_recover_stale_items')) {
     function seo_classifier_job_recover_stale_items($job_id) {
         global $wpdb;
         $tables = seo_classifier_jobs_tables();
+        $seo_wporg_sql_items = esc_sql( $tables['items'] );
         $wpdb->query($wpdb->prepare(
-            "UPDATE {$tables['items']} SET status='pending',updated_at=NOW(),last_error=CONCAT(IFNULL(last_error,''),' [recuperado tras bloqueo]') WHERE job_id=%d AND status='processing' AND updated_at < DATE_SUB(NOW(), INTERVAL 10 MINUTE)",
+            "UPDATE {$seo_wporg_sql_items} SET status='pending',updated_at=NOW(),last_error=CONCAT(IFNULL(last_error,''),' [recuperado tras bloqueo]') WHERE job_id=%d AND status='processing' AND updated_at < DATE_SUB(NOW(), INTERVAL 10 MINUTE)",
             absint($job_id)
         ));
     }
@@ -736,15 +745,16 @@ if (!function_exists('seo_classifier_job_claim_batch')) {
     function seo_classifier_job_claim_batch($job_id, $limit) {
         global $wpdb;
         $tables = seo_classifier_jobs_tables();
+        $seo_wporg_sql_items = esc_sql( $tables['items'] );
         $job_id = absint($job_id);
         $limit = max(1, min(100, absint($limit)));
         seo_classifier_job_recover_stale_items($job_id);
-        $ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$tables['items']} WHERE job_id=%d AND status='pending' ORDER BY id ASC LIMIT %d", $job_id, $limit));
+        $ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$seo_wporg_sql_items} WHERE job_id=%d AND status='pending' ORDER BY id ASC LIMIT %d", $job_id, $limit));
         $ids = array_values(array_filter(array_map('absint', (array)$ids)));
         if (!$ids) return [];
         $id_sql = implode(',', $ids);
-        $wpdb->query("UPDATE {$tables['items']} SET status='processing',attempts=attempts+1,started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE id IN ({$id_sql}) AND status='pending'");
-        return (array)$wpdb->get_results("SELECT * FROM {$tables['items']} WHERE id IN ({$id_sql}) AND status='processing' ORDER BY id ASC", ARRAY_A);
+        $wpdb->query("UPDATE {$seo_wporg_sql_items} SET status='processing',attempts=attempts+1,started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE id IN ({$id_sql}) AND status='pending'");
+        return (array)$wpdb->get_results("SELECT * FROM {$seo_wporg_sql_items} WHERE id IN ({$id_sql}) AND status='processing' ORDER BY id ASC", ARRAY_A);
     }
 }
 
@@ -785,10 +795,11 @@ if (!function_exists('seo_classifier_proposals_for_products')) {
     function seo_classifier_proposals_for_products(array $product_ids, $active_only = true) {
         global $wpdb;
         $tables = seo_classifier_jobs_tables();
+        $seo_wporg_sql_proposals = esc_sql( $tables['proposals'] );
         $ids = array_values(array_unique(array_filter(array_map('absint', $product_ids))));
         if (!$ids) return [];
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $sql = "SELECT * FROM {$tables['proposals']} WHERE product_id IN ({$placeholders})";
+        $sql = "SELECT * FROM {$seo_wporg_sql_proposals} WHERE product_id IN ({$placeholders})";
         if ($active_only) $sql .= ' AND active=1';
         $sql .= ' ORDER BY product_id,semantic_group';
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %d generada localmente.
@@ -832,6 +843,7 @@ if (!function_exists('seo_classifier_proposal_upsert')) {
     function seo_classifier_proposal_upsert($product_id, $group, array $proposal, $context_hash, $job_id = 0) {
         global $wpdb;
         $tables = seo_classifier_jobs_tables();
+        $seo_wporg_sql_proposals = esc_sql( $tables['proposals'] );
         $product_id = absint($product_id);
         $group = sanitize_key((string)$group);
         $state = sanitize_key((string)($proposal['status'] ?? $proposal['state'] ?? 'unresolved'));
@@ -865,7 +877,7 @@ if (!function_exists('seo_classifier_proposal_upsert')) {
             'active'=>in_array($state, ['current'], true) ? 0 : 1,
             'updated_at'=>current_time('mysql'),
         ];
-        $existing = (int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$tables['proposals']} WHERE product_id=%d AND semantic_group=%s", $product_id, $group));
+        $existing = (int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$seo_wporg_sql_proposals} WHERE product_id=%d AND semantic_group=%s", $product_id, $group));
         if ($existing > 0) {
             $wpdb->update($tables['proposals'], $data, ['id'=>$existing]);
             return $existing;
@@ -880,6 +892,7 @@ if (!function_exists('seo_classifier_proposal_invalidate_product')) {
     function seo_classifier_proposal_invalidate_product($product_id, $groups = []) {
         global $wpdb;
         $tables = seo_classifier_jobs_tables();
+        $seo_wporg_sql_proposals = esc_sql( $tables['proposals'] );
         $product_id = absint($product_id);
         if ($product_id < 1) return;
         if (!$groups) {
@@ -892,7 +905,7 @@ if (!function_exists('seo_classifier_proposal_invalidate_product')) {
         $query_args = array_merge([$product_id], $groups);
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y lista de placeholders %s generada localmente.
         $sql = $wpdb->prepare(
-            "UPDATE {$tables['proposals']} SET active=0,updated_at=NOW() WHERE product_id=%d AND semantic_group IN ({$placeholders})",
+            "UPDATE {$seo_wporg_sql_proposals} SET active=0,updated_at=NOW() WHERE product_id=%d AND semantic_group IN ({$placeholders})",
             ...$query_args
         );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
@@ -1063,6 +1076,7 @@ if (!function_exists('seo_classifier_process_job')) {
             return;
         }
         $tables = seo_classifier_jobs_tables();
+        $seo_wporg_sql_items = esc_sql( $tables['items'] );
         $source = sanitize_key((string)$source);
         if ($source === '') $source = 'scheduler';
         $now_mysql = current_time('mysql');
@@ -1106,7 +1120,7 @@ if (!function_exists('seo_classifier_process_job')) {
             $batch_size = max(1, (int)$plan['batch_size']);
             $items = seo_classifier_job_claim_batch($job_id, $batch_size);
             if (!$items) {
-                $pending = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$tables['items']} WHERE job_id=%d AND status IN ('pending','processing')", $job_id));
+                $pending = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_items} WHERE job_id=%d AND status IN ('pending','processing')", $job_id));
                 if ($pending < 1) {
                     $wpdb->update($tables['jobs'], [
                         'status'=>'completed',
@@ -1203,7 +1217,7 @@ if (!function_exists('seo_classifier_process_job')) {
                 if ($value > 0) $sets[$key] = absint($job[$key] ?? 0) + $value;
             }
             $wpdb->update($tables['jobs'], $sets, ['id'=>$job_id]);
-            $remaining = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$tables['items']} WHERE job_id=%d AND status IN ('pending','processing')", $job_id));
+            $remaining = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_items} WHERE job_id=%d AND status IN ('pending','processing')", $job_id));
             if ($remaining < 1) {
                 $wpdb->update($tables['jobs'], [
                     'status'=>'completed',
