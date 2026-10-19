@@ -2,6 +2,7 @@
 """Report Plugin Check findings and validate the WordPress.org plugin package."""
 
 import argparse
+import csv
 from collections import Counter
 import json
 import os
@@ -67,6 +68,27 @@ def report_findings(report_file, strict):
     by_file = Counter(item['file'] for item in findings if item['type'] == 'WARNING')
     errors = by_type['ERROR']
     warnings = by_type['WARNING']
+
+    # Preserve the full finding set, not just the top 12 files shown in the
+    # workflow summary. These CSVs can drive reproducible remediation batches.
+    output_dir = Path(os.environ.get('RUNNER_TEMP', '/tmp'))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with (output_dir / 'plugin-check-findings.csv').open('w', newline='', encoding='utf-8') as result:
+        csv_out = csv.writer(result)
+        csv_out.writerow(('file', 'line', 'severity', 'code', 'message'))
+        for item in findings:
+            csv_out.writerow((item['file'], item['line'], item['type'], item['code'], item['message']))
+
+    hotspots = Counter(
+        (item['code'], item['file']) for item in findings if item['type'] == 'WARNING'
+    )
+    with (output_dir / 'plugin-check-hotspots.csv').open('w', newline='', encoding='utf-8') as result:
+        csv_out = csv.writer(result)
+        csv_out.writerow(('warning_code', 'file', 'count'))
+        for (code, file_path), count in sorted(
+            hotspots.items(), key=lambda row: (-row[1], row[0][0], row[0][1])
+        ):
+            csv_out.writerow((code, file_path, count))
     lines = [
         '### WordPress.org Plugin Check results',
         '',
