@@ -362,8 +362,12 @@ function seo_comentarista_import_csv()
     );
 
     if (
-        empty($comentarista_file['tmp_name'])
+        !isset($comentarista_file['error'])
+        || (int) $comentarista_file['error'] !== UPLOAD_ERR_OK
+        || empty($comentarista_file['tmp_name'])
+        || !is_string($comentarista_file['tmp_name'])
         || !is_uploaded_file($comentarista_file['tmp_name'])
+        || 'csv' !== strtolower(pathinfo($log['archivo'], PATHINFO_EXTENSION))
     ) {
         $log['errores']++;
         seo_comentarista_import_add_detail($log, 'No se recibió un archivo CSV válido.');
@@ -412,14 +416,7 @@ function seo_comentarista_import_csv()
         seo_comentarista_import_finish($log, $return_to_comentarista, 'error', 'El CSV de Comentarista está vacío.');
     }
 
-    $header = array_map(
-        static function ($value) {
-            $value = function_exists('seo_ie_csv_to_utf8') ? seo_ie_csv_to_utf8((string) $value) : (string) $value;
-            return sanitize_key(trim($value));
-        },
-        $header
-    );
-
+    // Check the delimiter before sanitize_key() strips the comma from headers.
     if (count($header) === 1 && strpos((string) $header[0], ',') !== false) {
         seo_comentarista_csv_stream_close($handle);
         $log['errores']++;
@@ -431,6 +428,14 @@ function seo_comentarista_import_csv()
             'El CSV parece usar coma como separador. Comentarista espera punto y coma (;).'
         );
     }
+
+    $header = array_map(
+        static function ($value) {
+            $value = function_exists('seo_ie_csv_to_utf8') ? seo_ie_csv_to_utf8((string) $value) : (string) $value;
+            return sanitize_key(trim($value));
+        },
+        $header
+    );
 
     $non_empty_headers = array_values(array_filter($header, static function ($value) {
         return $value !== '';
