@@ -35,7 +35,7 @@ function seo_comentarista_csv_stream_open($path, $mode)
 function seo_comentarista_csv_stream_close($handle)
 {
     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por las utilidades CSV.
-    return seo_comentarista_csv_stream_close($handle);
+    return fclose($handle);
 }
 
 /**
