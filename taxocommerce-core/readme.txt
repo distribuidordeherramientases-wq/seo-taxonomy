@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.7
+Stable tag: 0.4.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,11 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.4.8 =
+* Consolidated Ampliar familia and Extensiones into one administration page.
+* Kept install, activate, deactivate, open and ZIP functions in Extensiones.
+* Redirects old family-page bookmarks to the unified screen without changing plugin state.
 
 = 0.4.6 =
 * Redisenado el editor de contenidos: interfaz responsive con tarjetas, editor visual de WordPress, imagen, publicacion y buscadores AJAX de categorias y etiquetas.
