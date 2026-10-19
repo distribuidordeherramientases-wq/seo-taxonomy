@@ -63,7 +63,7 @@ final class TaxoCommerce_Core_Editorial_Guide {
 				'purpose' => __( 'La categoría ayuda a explorar una familia de productos, entender sus diferencias y encontrar la opción adecuada.', 'taxocommerce-core' ),
 				'rules' => array(
 					__( 'Nombre preciso y coherente con el inventario; no mezcles productos ajenos para rellenar una categoría.', 'taxocommerce-core' ),
-					__( 'Extracto: explica qué reúne la familia y su utilidad principal. La descripción desarrolla las decisiones de compra que necesitan contexto.', 'taxocommerce-core' ),
+					__( 'Descripción: define la familia y explica las decisiones de compra relevantes. Si el tema o la plantilla muestran además un resumen de categoría, escribe ahí una síntesis breve sin repetir el contenido.', 'taxocommerce-core' ),
 					__( 'Explica solo las diferencias que existen en el catálogo: tipos, usos, medidas, alimentación, accesorios o compatibilidades, según la familia.', 'taxocommerce-core' ),
 					__( 'Cuando sea relevante, indica cómo elegir, qué comprobar antes de comprar y qué errores habituales conviene evitar.', 'taxocommerce-core' ),
 					__( 'Conecta mediante enlaces navegables con subcategorías y productos realmente relacionados. Mantén una estructura comprensible y sin páginas huérfanas.', 'taxocommerce-core' ),
