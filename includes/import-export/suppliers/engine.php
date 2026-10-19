@@ -246,9 +246,11 @@ function seo_proveedores_es_csv_estandar( $state ) {
     $header = array_map( 'sanitize_key', (array) ( $state['header'] ?? array() ) );
     $fields = seo_proveedores_cabecera_estandar();
 
-    return count( $header ) === count( $fields )
-        && count( $header ) === count( array_unique( $header ) )
-        && empty( array_diff( $fields, $header ) );
+    // Keep accepting supplier CSVs prepared with the previous 19-column schema.
+    $legacy = array_values( array_diff( $fields, array( 'source_row_key' ) ) );
+    return count( $header ) === count( array_unique( $header ) )
+        && ( ( count( $header ) === count( $fields ) && empty( array_diff( $fields, $header ) ) )
+            || ( count( $header ) === count( $legacy ) && empty( array_diff( $legacy, $header ) ) ) );
 }
 
 /**
@@ -266,6 +268,32 @@ function seo_proveedores_fila_asociativa( $header, $row ) {
     }
 
     return $result;
+}
+
+
+/**
+ * Distinguishes supplier variants even when VEVOR repeats a SKU or ID.
+ * Mutable price and image fields must not participate in update identity.
+ */
+function seo_proveedores_vevor_fila_base( array $row ) {
+    $canonical = trim( (string) ( $row['url_canonica'] ?? '' ) );
+    if ( '' === $canonical ) {
+        $canonical = (string) ( $row['url_origen'] ?? '' );
+    }
+    $canonical = (string) preg_replace( '/[?#].*$/', '', $canonical );
+    return hash( 'sha256', wp_json_encode( array(
+        strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ),
+        trim( (string) ( $row['proveedor_id_externo'] ?? '' ) ),
+        strtolower( $canonical ),
+        trim( (string) ( $row['nombre'] ?? '' ) ),
+        trim( (string) ( $row['categoria_proveedor'] ?? '' ) ),
+        trim( (string) ( $row['mpn'] ?? '' ) ),
+    ) ) );
+}
+
+/** Give every repeated CSV occurrence a separate durable supplier identity. */
+function seo_proveedores_vevor_fila_clave( $base, $occurrence ) {
+    return hash( 'sha256', (string) $base . ':' . absint( $occurrence ) );
 }
 
 /**
@@ -346,6 +374,7 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
 
     $iterator = seo_proveedores_iterar_filas( $state );
     $line     = 1;
+    $vevor_occurrences = array();
 
     foreach ( $iterator as $source_row ) {
         $line++;
@@ -395,6 +424,13 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
             $log['errores']++;
             seo_ie_add_log_detail( $log, sprintf( 'Fila %d: faltan ID externo o nombre tras aplicar la receta.', $line ) );
             continue;
+        }
+
+        // Each physical VEVOR line survives, including identical SKU variants.
+        if ( 0 === strcasecmp( (string) ( $recipe['provider'] ?? '' ), 'VEVOR' ) && '' !== (string) ( $clean['pais_origen'] ?? '' ) ) {
+            $base = seo_proveedores_vevor_fila_base( $clean );
+            $vevor_occurrences[ $base ] = ( $vevor_occurrences[ $base ] ?? 0 ) + 1;
+            $clean['source_row_key'] = seo_proveedores_vevor_fila_clave( $base, $vevor_occurrences[ $base ] );
         }
 
         fputcsv(
@@ -508,6 +544,7 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
 
     $iterator = seo_proveedores_iterar_filas( $state );
     $line     = 1;
+    $vevor_occurrences = array();
     $now      = current_time( 'mysql' );
     $run_id   = function_exists( 'seo_supplier_sync_start_run' )
         ? seo_supplier_sync_start_run( $state, $now )
@@ -560,8 +597,35 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
             ? seo_supplier_sync_snapshot_hash( $current_snapshot )
             : hash( 'sha256', wp_json_encode( $current_snapshot ) );
 
-        $existing_by_sku = null;
-        $existing_by_external = null;
+        if ( $vevor_market ) {
+            $incoming_key = strtolower( trim( (string) ( $data['source_row_key'] ?? '' ) ) );
+            if ( ! preg_match( '/^[a-f0-9]{64}$/', $incoming_key ) ) {
+                // Existing prepared CSVs can have no source_row_key column.
+                $base = seo_proveedores_vevor_fila_base( $data );
+                $vevor_occurrences[ $base ] = ( $vevor_occurrences[ $base ] ?? 0 ) + 1;
+                $incoming_key = seo_proveedores_vevor_fila_clave( $base, $vevor_occurrences[ $base ] );
+            } else {
+                $vevor_occurrences[ $incoming_key ] = ( $vevor_occurrences[ $incoming_key ] ?? 0 ) + 1;
+                if ( 1 < $vevor_occurrences[ $incoming_key ] ) {
+                    $incoming_key = seo_proveedores_vevor_fila_clave( $incoming_key, $vevor_occurrences[ $incoming_key ] );
+                }
+            }
+            $data['source_row_key'] = $incoming_key;
+            // The only match that can update an international offer is the
+            // identity of this individual CSV line. SKU/title are not keys.
+            $existing = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$table} WHERE proveedor = %s AND pais_origen = %s AND source_row_key = %s LIMIT 1",
+                    'VEVOR', $market_country, $incoming_key
+                ),
+                ARRAY_A
+            );
+            $woo_product_id = 0;
+        } else {
+            // Keep existing matching semantics for Spanish/other providers.
+            $data['source_row_key'] = null;
+            $existing_by_sku = null;
+            $existing_by_external = null;
 
         if ( '' !== $incoming_sku ) {
             $sku_sql = $vevor_market
@@ -681,6 +745,8 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
                 }
             }
         }
+
+        } // Non-VEVOR SKU/external-ID matching.
 
         if ( $existing ) {
             $selection = sanitize_key( (string) ( $existing['estado_seleccion'] ?? '' ) );
@@ -842,6 +908,7 @@ function seo_proveedores_campos_importacion() {
     return [
         'proveedor_id_externo' => [ 'label' => 'Código del proveedor', 'required' => true, 'type' => 'text' ],
         'sku'                   => [ 'label' => 'SKU del proveedor', 'type' => 'text' ],
+        'source_row_key'        => [ 'label' => 'Identidad de fila de origen', 'type' => 'text' ],
         'pais_origen'           => [ 'label' => 'País de origen comercial', 'type' => 'text' ],
         'idioma_origen'         => [ 'label' => 'Idioma de origen', 'type' => 'text' ],
         'mpn'                   => [ 'label' => 'MPN', 'type' => 'text' ],
@@ -2537,6 +2604,7 @@ function seo_proveedores_columnas_virtuales_catalogo() {
 function seo_proveedores_exportar_productos_columnas() {
     return [
         'catalogo_proveedor_id',
+        'source_row_key',
         'proveedor',
         'proveedor_id_externo',
         'sku',
@@ -2992,6 +3060,7 @@ function seo_proveedores_exportar_productos_csv() {
 
             $row = [
                 'catalogo_proveedor_id'  => absint( $source_row['id'] ?? 0 ),
+                'source_row_key'         => (string) ( $source_row['source_row_key'] ?? '' ),
                 'proveedor'              => (string) ( $source_row['proveedor'] ?? '' ),
                 'proveedor_id_externo'   => (string) ( $source_row['proveedor_id_externo'] ?? '' ),
                 'sku'                    => (string) ( $source_row['sku'] ?? '' ),
@@ -4299,6 +4368,12 @@ function seo_proveedores_cargar_gestor_imagenes() {
  * @return string
  */
 function seo_proveedores_identidad_alta( array $row ) {
+
+    // Lock per offer, never per VEVOR supplier SKU shared by variants.
+    if ( 0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' ) &&
+        '' !== trim( (string) ( $row['pais_origen'] ?? '' ) ) && absint( $row['id'] ?? 0 ) ) {
+        return 'vevor-row|' . absint( $row['id'] );
+    }
 
     $sku = mb_strtolower( trim( sanitize_text_field( (string) ( $row['sku'] ?? '' ) ) ) );
 
