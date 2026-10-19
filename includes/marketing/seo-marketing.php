@@ -5714,11 +5714,14 @@ function seo_marketing_scan_ensure_tables()
 
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_scans = esc_sql( $tables['scans'] );
+    $seo_wporg_sql_urls = esc_sql( $tables['urls'] );
+    $seo_wporg_sql_inventory = esc_sql( $tables['inventory'] );
     $charset_collate = $wpdb->get_charset_collate();
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-    $sql_scans = "CREATE TABLE {$tables['scans']} (
+    $sql_scans = "CREATE TABLE {$seo_wporg_sql_scans} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         scan_uuid varchar(64) NOT NULL,
         status varchar(20) NOT NULL DEFAULT 'queued',
@@ -5747,7 +5750,7 @@ function seo_marketing_scan_ensure_tables()
         KEY created_at (created_at)
     ) {$charset_collate};";
 
-    $sql_urls = "CREATE TABLE {$tables['urls']} (
+    $sql_urls = "CREATE TABLE {$seo_wporg_sql_urls} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         scan_id bigint(20) unsigned NOT NULL,
         inventory_id bigint(20) unsigned NULL,
@@ -5774,7 +5777,7 @@ function seo_marketing_scan_ensure_tables()
         KEY scan_http (scan_id,http_status)
     ) {$charset_collate};";
 
-    $sql_inventory = "CREATE TABLE {$tables['inventory']} (
+    $sql_inventory = "CREATE TABLE {$seo_wporg_sql_inventory} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         url_hash char(32) NOT NULL,
         url text NOT NULL,
@@ -6024,6 +6027,7 @@ function seo_marketing_scan_sync_inventory()
 
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_inventory = esc_sql( $tables['inventory'] );
     $now = current_time('mysql', true);
     $sync_token = wp_generate_uuid4();
 
@@ -6040,7 +6044,7 @@ function seo_marketing_scan_sync_inventory()
             $params[] = $sync_token;
         }
 
-        $sql = "INSERT INTO {$tables['inventory']}
+        $sql = "INSERT INTO {$seo_wporg_sql_inventory}
             (url_hash,url,sitemap_url,active_in_sitemap,first_seen_at,last_seen_at,removed_at,sync_token,status_bucket)
             VALUES " . implode(',', $values) . "
             ON DUPLICATE KEY UPDATE
@@ -6061,7 +6065,7 @@ function seo_marketing_scan_sync_inventory()
 
     $removed = $wpdb->query(
         $wpdb->prepare(
-            "UPDATE {$tables['inventory']}
+            "UPDATE {$seo_wporg_sql_inventory}
              SET active_in_sitemap=0, removed_at=COALESCE(removed_at,%s)
              WHERE active_in_sitemap=1 AND sync_token<>%s",
             $now,
@@ -6104,7 +6108,7 @@ function seo_marketing_scan_inventory_stats()
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
-    $table = $tables['inventory'];
+    $table = esc_sql( $tables['inventory'] );
 
     $row = $wpdb->get_row(
         "SELECT
@@ -6160,6 +6164,8 @@ function seo_marketing_scan_enqueue_inventory($scan_id, $mode = 'full', $limit =
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_inventory = esc_sql( $tables['inventory'] );
+    $seo_wporg_sql_urls = esc_sql( $tables['urls'] );
     $scan_id = absint($scan_id);
     if ($scan_id <= 0) return 0;
 
@@ -6173,7 +6179,7 @@ function seo_marketing_scan_enqueue_inventory($scan_id, $mode = 'full', $limit =
         $take = min($read_chunk, $remaining);
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id,url,sitemap_url FROM {$tables['inventory']}
+                "SELECT id,url,sitemap_url FROM {$seo_wporg_sql_inventory}
                  WHERE active_in_sitemap=1 AND id>%d
                  ORDER BY id ASC LIMIT %d",
                 $cursor,
@@ -6200,7 +6206,7 @@ function seo_marketing_scan_enqueue_inventory($scan_id, $mode = 'full', $limit =
         }
 
         if (!empty($values)) {
-            $sql = "INSERT IGNORE INTO {$tables['urls']}
+            $sql = "INSERT IGNORE INTO {$seo_wporg_sql_urls}
                 (scan_id,inventory_id,url_hash,resource_type,queue_status,sitemap_url,url)
                 VALUES " . implode(',', $values);
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal INSERT template with generated placeholder tuples; all values are passed separately.
@@ -6228,6 +6234,7 @@ function seo_marketing_scan_stats_by_sitemap()
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_inventory = esc_sql( $tables['inventory'] );
     $rows = $wpdb->get_results(
         "SELECT sitemap_url,
             COUNT(*) AS total,
@@ -6235,7 +6242,7 @@ function seo_marketing_scan_stats_by_sitemap()
             SUM(status_bucket='ok') AS ok_count,
             SUM(status_bucket IN ('3xx','seo_warning')) AS warnings,
             SUM(status_bucket IN ('404','403','4xx','5xx','network','seo_error')) AS errors
-         FROM {$tables['inventory']}
+         FROM {$seo_wporg_sql_inventory}
          WHERE active_in_sitemap=1
          GROUP BY sitemap_url",
         ARRAY_A
@@ -6259,11 +6266,12 @@ function seo_marketing_scan_expire_stale_runs()
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_scans = esc_sql( $tables['scans'] );
     $cutoff = gmdate('Y-m-d H:i:s', time() - 6 * HOUR_IN_SECONDS);
     $now = current_time('mysql', true);
     $wpdb->query(
         $wpdb->prepare(
-            "UPDATE {$tables['scans']}
+            "UPDATE {$seo_wporg_sql_scans}
              SET status='failed', error_message='Ejecucion caducada sin callback final.', callback_token_hash='', completed_at=%s, updated_at=%s
              WHERE status IN ('queued','running') AND updated_at<%s",
             $now,
@@ -6277,7 +6285,7 @@ function seo_marketing_scan_expire_stale_runs()
     $token_cutoff = gmdate('Y-m-d H:i:s', time() - HOUR_IN_SECONDS);
     $wpdb->query(
         $wpdb->prepare(
-            "UPDATE {$tables['scans']} SET callback_token_hash=''
+            "UPDATE {$seo_wporg_sql_scans} SET callback_token_hash=''
              WHERE status IN ('completed','failed') AND callback_token_hash<>'' AND updated_at<%s",
             $token_cutoff
         )
@@ -6298,6 +6306,7 @@ function seo_marketing_scan_handle_start()
 
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_scans = esc_sql( $tables['scans'] );
     $config = seo_marketing_scan_get_runner_config();
     $missing = seo_marketing_scan_config_errors($config);
     if (!empty($missing)) {
@@ -6307,7 +6316,7 @@ function seo_marketing_scan_handle_start()
 
     seo_marketing_scan_expire_stale_runs();
     $busy = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$tables['scans']} WHERE status IN ('queued','running')"
+        "SELECT COUNT(*) FROM {$seo_wporg_sql_scans} WHERE status IN ('queued','running')"
     );
     if ($busy > 0) {
         wp_safe_redirect(seo_marketing_scan_admin_url(array('scan_msg' => 'busy')));
@@ -6458,9 +6467,10 @@ function seo_marketing_scan_handle_cancel()
 
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_scans = esc_sql( $tables['scans'] );
     $scan = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT id,status FROM {$tables['scans']} WHERE scan_uuid=%s LIMIT 1",
+            "SELECT id,status FROM {$seo_wporg_sql_scans} WHERE scan_uuid=%s LIMIT 1",
             $scan_uuid
         ),
         ARRAY_A
@@ -6525,8 +6535,9 @@ function seo_marketing_scan_verify_request(WP_REST_Request $request, $scan_uuid)
 
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_scans = esc_sql( $tables['scans'] );
     $scan = $wpdb->get_row(
-        $wpdb->prepare("SELECT * FROM {$tables['scans']} WHERE scan_uuid=%s LIMIT 1", $scan_uuid),
+        $wpdb->prepare("SELECT * FROM {$seo_wporg_sql_scans} WHERE scan_uuid=%s LIMIT 1", $scan_uuid),
         ARRAY_A
     );
     if (!$scan) {
@@ -6557,12 +6568,13 @@ function seo_marketing_scan_batch_endpoint(WP_REST_Request $request)
 
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_urls = esc_sql( $tables['urls'] );
     $control = seo_marketing_scan_runner_control();
     $limit = max(10, min(SEO_MARKETING_SCAN_BATCH_LIMIT, absint($control['remote_batch'] ?? 100)));
 
     $items = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT url,sitemap_url,resource_type FROM {$tables['urls']}
+            "SELECT url,sitemap_url,resource_type FROM {$seo_wporg_sql_urls}
              WHERE scan_id=%d AND queue_status='queued'
              ORDER BY id ASC LIMIT %d",
             (int) $scan['id'],
@@ -6573,13 +6585,13 @@ function seo_marketing_scan_batch_endpoint(WP_REST_Request $request)
 
     $processed = (int) $wpdb->get_var(
         $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$tables['urls']} WHERE scan_id=%d AND queue_status='done'",
+            "SELECT COUNT(*) FROM {$seo_wporg_sql_urls} WHERE scan_id=%d AND queue_status='done'",
             (int) $scan['id']
         )
     );
     $remaining = (int) $wpdb->get_var(
         $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$tables['urls']} WHERE scan_id=%d AND queue_status='queued'",
+            "SELECT COUNT(*) FROM {$seo_wporg_sql_urls} WHERE scan_id=%d AND queue_status='queued'",
             (int) $scan['id']
         )
     );
@@ -6648,6 +6660,8 @@ function seo_marketing_scan_store_batch($scan_id, $results)
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_urls = esc_sql( $tables['urls'] );
+    $seo_wporg_sql_inventory = esc_sql( $tables['inventory'] );
 
     foreach ((array) $results as $raw) {
         $row = seo_marketing_scan_sanitize_result_row($raw);
@@ -6657,7 +6671,7 @@ function seo_marketing_scan_store_batch($scan_id, $results)
 
         $queue = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id,inventory_id,queue_status FROM {$tables['urls']} WHERE scan_id=%d AND url_hash=%s LIMIT 1",
+                "SELECT id,inventory_id,queue_status FROM {$seo_wporg_sql_urls} WHERE scan_id=%d AND url_hash=%s LIMIT 1",
                 (int) $scan_id,
                 $row['url_hash']
             ),
@@ -6694,7 +6708,7 @@ function seo_marketing_scan_store_batch($scan_id, $results)
         $is_ok = $bucket === 'ok' ? 1 : 0;
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$tables['inventory']} SET
+                "UPDATE {$seo_wporg_sql_inventory} SET
                     status_bucket=%s,
                     http_status=%d,
                     final_status=%d,
@@ -6737,9 +6751,10 @@ function seo_marketing_scan_refresh_progress($scan_id)
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_urls = esc_sql( $tables['urls'] );
     $processed = (int) $wpdb->get_var(
         $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$tables['urls']} WHERE scan_id=%d AND queue_status='done'",
+            "SELECT COUNT(*) FROM {$seo_wporg_sql_urls} WHERE scan_id=%d AND queue_status='done'",
             (int) $scan_id
         )
     );
@@ -6769,6 +6784,7 @@ function seo_marketing_scan_callback(WP_REST_Request $request)
 
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_urls = esc_sql( $tables['urls'] );
     $scan_id = (int) $scan['id'];
     $event = isset($payload['event']) ? sanitize_key((string) $payload['event']) : '';
     $now = current_time('mysql', true);
@@ -6808,10 +6824,10 @@ function seo_marketing_scan_callback(WP_REST_Request $request)
     if ($event === 'complete') {
         $summary = isset($payload['summary']) && is_array($payload['summary']) ? $payload['summary'] : array();
         $processed = (int) $wpdb->get_var(
-            $wpdb->prepare("SELECT COUNT(*) FROM {$tables['urls']} WHERE scan_id=%d AND queue_status='done'", $scan_id)
+            $wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_urls} WHERE scan_id=%d AND queue_status='done'", $scan_id)
         );
         $remaining = (int) $wpdb->get_var(
-            $wpdb->prepare("SELECT COUNT(*) FROM {$tables['urls']} WHERE scan_id=%d AND queue_status='queued'", $scan_id)
+            $wpdb->prepare("SELECT COUNT(*) FROM {$seo_wporg_sql_urls} WHERE scan_id=%d AND queue_status='queued'", $scan_id)
         );
         if ($remaining > 0) {
             return new WP_Error('seo_scan_incomplete', 'El worker intento completar la ejecucion con URLs pendientes.', array('status' => 409, 'pending' => $remaining));
@@ -6903,15 +6919,17 @@ function seo_marketing_scan_latest_run()
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
-    return $wpdb->get_row("SELECT * FROM {$tables['scans']} ORDER BY id DESC LIMIT 1", ARRAY_A);
+    $seo_wporg_sql_scans = esc_sql( $tables['scans'] );
+    return $wpdb->get_row("SELECT * FROM {$seo_wporg_sql_scans} ORDER BY id DESC LIMIT 1", ARRAY_A);
 }
 
 function seo_marketing_scan_active_run()
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_scans = esc_sql( $tables['scans'] );
     return $wpdb->get_row(
-        "SELECT * FROM {$tables['scans']} WHERE status IN ('queued','running') ORDER BY id DESC LIMIT 1",
+        "SELECT * FROM {$seo_wporg_sql_scans} WHERE status IN ('queued','running') ORDER BY id DESC LIMIT 1",
         ARRAY_A
     );
 }
@@ -7126,6 +7144,7 @@ function seo_marketing_scan_render_inventory_table($stats)
 {
     global $wpdb;
     $tables = seo_marketing_scan_tables();
+    $seo_wporg_sql_inventory = esc_sql( $tables['inventory'] );
     $filter = sanitize_key((string) seo_marketing_query_arg('inventory_filter', 'issues'));
     $allowed = array('all','ok','issues','pending','3xx','seo_warning','seo_error','404','403','4xx','5xx','network','removed');
     if (!in_array($filter, $allowed, true)) {
@@ -7142,7 +7161,7 @@ function seo_marketing_scan_render_inventory_table($stats)
         $params = array($like,$like,$like);
     }
 
-    $count_sql = "SELECT COUNT(*) FROM {$tables['inventory']} WHERE {$where}";
+    $count_sql = "SELECT COUNT(*) FROM {$seo_wporg_sql_inventory} WHERE {$where}";
     if (!empty($params)) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE is selected from a closed whitelist; search values remain placeholders.
         $count_query = $wpdb->prepare($count_sql, $params);
@@ -7155,7 +7174,7 @@ function seo_marketing_scan_render_inventory_table($stats)
     $page = min($page, $total_pages);
     $offset = ($page - 1) * $per_page;
 
-    $list_sql = "SELECT * FROM {$tables['inventory']} WHERE {$where}
+    $list_sql = "SELECT * FROM {$seo_wporg_sql_inventory} WHERE {$where}
         ORDER BY active_in_sitemap DESC,
         CASE status_bucket WHEN '5xx' THEN 1 WHEN 'network' THEN 2 WHEN '404' THEN 3 WHEN '403' THEN 4 WHEN '4xx' THEN 5 WHEN 'seo_error' THEN 6 WHEN '3xx' THEN 7 WHEN 'seo_warning' THEN 8 WHEN 'pending' THEN 9 ELSE 10 END,
         COALESCE(last_checked_at,'1970-01-01 00:00:00') ASC, id ASC
