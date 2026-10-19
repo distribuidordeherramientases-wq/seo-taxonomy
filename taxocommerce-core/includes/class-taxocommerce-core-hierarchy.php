@@ -278,9 +278,15 @@ final class TaxoCommerce_Core_Hierarchy {
 			admin_url( 'admin.php' )
 		);
 		?>
-		<div class="wrap taxocommerce-hierarchy-admin">
-			<h1><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></h1>
-			<p class="description"><?php echo esc_html__( 'Clasifica los contenidos y organiza las relaciones SEO de la tienda.', 'taxocommerce-core' ); ?></p>
+		<div class="wrap taxocommerce-hierarchy-admin tcc-family-screen">
+            <header class="tcc-page-header">
+                <span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-networking"></span></span>
+                <div class="tcc-page-header__content">
+                    <p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
+                    <h1><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></h1>
+                    <p><?php echo esc_html__( 'Clasifica los contenidos y organiza las relaciones SEO de la tienda.', 'taxocommerce-core' ); ?></p>
+                </div>
+            </header>
 
 			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de jerarquía SEO', 'taxocommerce-core' ); ?>">
 				<a href="<?php echo esc_url( $hierarchy_url ); ?>" class="nav-tab <?php echo 'hierarchy' === $tab ? 'nav-tab-active' : ''; ?>" <?php echo 'hierarchy' === $tab ? 'aria-current="page"' : ''; ?>>
