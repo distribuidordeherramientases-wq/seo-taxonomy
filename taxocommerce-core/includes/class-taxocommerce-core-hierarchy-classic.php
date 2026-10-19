@@ -431,50 +431,184 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         return $cached[ $target_role ];
     }
 
+    /**
+     * Display exactly the existing hierarchy, not three unrelated flat lists.
+     * The editor keeps the original parent-first checkbox workflow, while
+     * collapsed branches prevent large trees from overwhelming the screen.
+     */
     public static function render( $hierarchy ) {
         if ( ! self::available() ) {
             echo '<div class="notice notice-error"><p>Falta la tabla seo_relations. Activa de nuevo TaxoCommerce Core para crearla sin borrar datos.</p></div>';
             return;
         }
-        echo '<p>Editor clásico: primero clasifica las páginas y después asigna elementos a cada padre. Casillas marcadas arriba, disponibles debajo. Cada bloque guarda únicamente sus relaciones.</p>';
+
         echo '<style>
-          .tc-classic-card{background:#fff;border:1px solid #c3d9c5;border-left:4px solid #278044;border-radius:6px;margin:12px 0;padding:14px;max-width:1180px}
-          .tc-classic-card h3{margin:0 0 4px}.tc-classic-label{font-size:12px;color:#646970;margin-bottom:10px}
-          .tc-classic-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
-          .tc-classic-selected,.tc-classic-available{padding:8px;border:1px solid #c3c4c7;max-height:190px;overflow:auto}
-          .tc-classic-selected{background:#e8f5e9;border-color:#2e7d32;max-height:130px}
-          .tc-classic-check{display:block;padding:4px 3px;line-height:1.45}
-          .tc-classic-search{width:100%;max-width:330px;margin:7px 0}
-          .tc-classic-none{font-size:12px;color:#646970}
-          .tc-classic-card .button-primary{margin-top:11px}
-          .tc-classic-children{margin-left:22px;border-left:2px solid #dcdcde;padding-left:12px}
-          @media(max-width:782px){.tc-classic-children{margin-left:8px;padding-left:8px}}
+          .tc-classic-tree{max-width:1100px}
+          .tc-classic-node{border:1px solid #dcdcde;background:#fff;border-radius:8px;margin:10px 0;min-width:0}
+          .tc-classic-node[open]{border-color:#b8c2cf}
+          .tc-classic-node summary{cursor:pointer;display:flex;align-items:center;gap:9px;padding:13px 16px;min-height:32px;list-style:none}
+          .tc-classic-node summary::-webkit-details-marker{display:none}
+          .tc-classic-node summary:before{content:"▸";color:#646970;flex:none;font-size:15px}
+          .tc-classic-node[open]>summary:before{content:"▾"}
+          .tc-classic-node summary:hover{background:#f6f7f7}
+          .tc-classic-node summary:focus-visible{outline:2px solid #2271b1;outline-offset:-3px}
+          .tc-classic-node__label{font-weight:650;font-size:14px;min-width:0;overflow-wrap:anywhere}
+          .tc-classic-node__role{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:.045em;color:#50575e;background:#f0f0f1;padding:4px 7px;border-radius:5px;white-space:nowrap}
+          .tc-classic-node__count{margin-left:auto;color:#646970;font-size:12px;white-space:nowrap}
+          .tc-classic-node__body{padding:0 16px 16px;border-top:1px solid #f0f0f1;min-width:0}
+          .tc-classic-node__meta{font-size:12px;color:#646970;margin:11px 0}
+          .tc-classic-node--child{margin:11px 0 0 17px;border-left:3px solid #ccd5df}
+          .tc-classic-node--secondary{border-left-color:#b6cabb}
+          .tc-classic-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:12px}
+          .tc-classic-group{border:1px solid #e0e0e0;border-radius:7px;background:#fafafa;padding:12px;min-width:0}
+          .tc-classic-group h4{margin:0 0 10px;font-size:13px;color:#1d2327}
+          .tc-classic-selected,.tc-classic-available{background:#fff;border:1px solid #dcdcde;border-radius:5px;padding:7px;max-height:178px;min-height:42px;overflow-y:auto}
+          .tc-classic-selected{border-color:#b8d1ba;background:#f4faf4;max-height:140px}
+          .tc-classic-check{display:flex;align-items:flex-start;gap:7px;padding:5px 4px;font-size:13px;line-height:1.4;border-radius:4px}
+          .tc-classic-check:hover{background:#f0f4f8}
+          .tc-classic-check input{margin-top:2px;flex:none}
+          .tc-classic-check small{color:#646970;margin-left:auto;padding-left:8px;white-space:nowrap}
+          .tc-classic-search{width:100%;max-width:none;margin:8px 0;min-height:36px}
+          .tc-classic-none{display:block;font-size:12px;color:#646970;padding:8px 4px}
+          .tc-classic-group .button-primary{margin-top:12px;min-height:34px}
+          .tc-classic-section-title{display:flex;align-items:center;gap:8px;margin:18px 0 10px;font-size:16px}
+          .tc-classic-orphans{border-top:1px solid #dcdcde;padding-top:15px;margin-top:20px}
+          .tc-classic-orphans>details{border:1px solid #dcdcde;border-radius:6px;margin-bottom:9px;background:#f6f7f7}
+          .tc-classic-orphans>details>summary{padding:12px;cursor:pointer;font-weight:650}
+          .tc-classic-orphans__body{padding:6px 12px 12px}
+          .tc-classic-children{margin-left:18px;border-left:2px solid #dcdcde;padding-left:12px}
+          @media(max-width:782px){
+            .tc-classic-node--child{margin-left:6px}
+            .tc-classic-node__body{padding:0 8px 12px}
+            .tc-classic-node summary{flex-wrap:wrap;padding:11px 10px}
+            .tc-classic-node__count{margin-left:0}
+            .tc-classic-groups{grid-template-columns:minmax(0,1fr)}
+          }
         </style>';
-        $definitions = self::definitions();
-        foreach ( array(
-            'cluster' => array( 'cluster_to_primary' ),
-            'hub_primary' => array( 'hub_primary_to_hub_secondary' ),
-            'hub_secondary' => array( 'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post' ),
-        ) as $role => $types ) {
-            echo '<h3>' . esc_html( array(
-                'cluster' => 'Clusters', 'hub_primary' => 'Hubs primarios', 'hub_secondary' => 'Hubs secundarios',
-            )[ $role ] ) . '</h3>';
-            $parents = self::role_pages( $role );
-            if ( ! $parents ) {
-                echo '<p class="tc-classic-none">Aún no hay páginas con este rol. Asígnalo en la sección superior.</p>';
-                continue;
-            }
-            foreach ( $parents as $parent ) {
-                echo '<div class="tc-classic-card"><h3>' . esc_html( $parent->post_title ) . '</h3>';
-                echo '<div class="tc-classic-label">ID ' . esc_html( (string) $parent->ID ) . ' · ' . esc_html( strtoupper( $parent->post_status ) ) . ' · Plantilla: ' . esc_html( (string) ( get_page_template_slug( $parent->ID ) ?: 'predeterminada' ) ) . '</div>';
-                echo '<div class="tc-classic-groups">';
-                foreach ( $types as $type ) {
-                    self::render_checkboxes( $parent, $type, $definitions[ $type ] );
+
+        $defs       = self::definitions();
+        $clusters   = self::role_pages( 'cluster' );
+        $primaries  = self::role_pages( 'hub_primary' );
+        $secondaries= self::role_pages( 'hub_secondary' );
+        $cluster_map= self::map( 'cluster_to_primary' );
+        $primary_map= self::map( 'hub_primary_to_hub_secondary' );
+        $p_by_id    = array();
+        $s_by_id    = array();
+        foreach ( $primaries as $page ) {
+            $p_by_id[ (int) $page->ID ] = $page;
+        }
+        foreach ( $secondaries as $page ) {
+            $s_by_id[ (int) $page->ID ] = $page;
+        }
+
+        echo '<div class="tc-classic-tree">';
+        if ( ! $clusters ) {
+            echo '<p>No hay clusters clasificados. Ve a <strong>Asignación de roles</strong> para crear el primero.</p>';
+        } else {
+            foreach ( $clusters as $index => $cluster ) {
+                self::node_open( $cluster, 'Cluster', count( $cluster_map[ $cluster->ID ] ?? array() ), 'cluster', 0 === $index );
+                self::render_group( $cluster, array( 'cluster_to_primary' ), $defs );
+                foreach ( array_keys( $cluster_map[ $cluster->ID ] ?? array() ) as $primary_id ) {
+                    if ( ! isset( $p_by_id[ $primary_id ] ) ) {
+                        continue;
+                    }
+                    $primary = $p_by_id[ $primary_id ];
+                    self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary_id ] ?? array() ), 'child', false );
+                    self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs );
+                    foreach ( array_keys( $primary_map[ $primary_id ] ?? array() ) as $secondary_id ) {
+                        if ( ! isset( $s_by_id[ $secondary_id ] ) ) {
+                            continue;
+                        }
+                        $secondary = $s_by_id[ $secondary_id ];
+                        $links = self::secondary_link_count( $secondary_id );
+                        self::node_open( $secondary, 'Hub secundario', $links, 'secondary', false );
+                        self::render_group( $secondary, array(
+                            'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
+                        ), $defs );
+                        self::node_close();
+                    }
+                    self::node_close();
                 }
-                echo '</div></div>';
+                self::node_close();
             }
         }
+
+        $assigned_primaries = array();
+        foreach ( $cluster_map as $links ) {
+            foreach ( $links as $id => $_ ) {
+                $assigned_primaries[ (int) $id ] = true;
+            }
+        }
+        $assigned_secondaries = array();
+        foreach ( $primary_map as $links ) {
+            foreach ( $links as $id => $_ ) {
+                $assigned_secondaries[ (int) $id ] = true;
+            }
+        }
+        $loose_primaries = array_filter( $primaries, static function ( $page ) use ( $assigned_primaries ) {
+            return ! isset( $assigned_primaries[ (int) $page->ID ] );
+        } );
+        $loose_secondaries = array_filter( $secondaries, static function ( $page ) use ( $assigned_secondaries ) {
+            return ! isset( $assigned_secondaries[ (int) $page->ID ] );
+        } );
+
+        if ( $loose_primaries || $loose_secondaries ) {
+            echo '<div class="tc-classic-orphans"><h3 class="tc-classic-section-title">Elementos pendientes de vincular</h3>';
+            if ( $loose_primaries ) {
+                echo '<details><summary>Hubs primarios sin cluster (' . esc_html( (string) count( $loose_primaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
+                foreach ( $loose_primaries as $primary ) {
+                    self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary->ID ] ?? array() ), 'child', false );
+                    self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs );
+                    self::node_close();
+                }
+                echo '</div></details>';
+            }
+            if ( $loose_secondaries ) {
+                echo '<details><summary>Hubs secundarios sin hub primario (' . esc_html( (string) count( $loose_secondaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
+                foreach ( $loose_secondaries as $secondary ) {
+                    self::node_open( $secondary, 'Hub secundario', self::secondary_link_count( $secondary->ID ), 'secondary', false );
+                    self::render_group( $secondary, array(
+                        'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
+                    ), $defs );
+                    self::node_close();
+                }
+                echo '</div></details>';
+            }
+            echo '</div>';
+        }
+        echo '</div>';
+
         self::enqueue_search_script();
+    }
+
+    private static function secondary_link_count( $secondary_id ) {
+        $count = 0;
+        foreach ( array( 'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post' ) as $type ) {
+            $count += count( self::map( $type )[ $secondary_id ] ?? array() );
+        }
+        return $count;
+    }
+
+    private static function node_open( $page, $role, $count, $level, $open ) {
+        echo '<details class="tc-classic-node tc-classic-node--' . esc_attr( $level ) . '"' . ( $open ? ' open' : '' ) . '>';
+        echo '<summary><span class="tc-classic-node__role">' . esc_html( $role ) . '</span>';
+        echo '<span class="tc-classic-node__label">' . esc_html( $page->post_title ) . '</span>';
+        echo '<span class="tc-classic-node__count">' . esc_html( (string) $count ) . ' relaciones</span></summary>';
+        echo '<div class="tc-classic-node__body"><div class="tc-classic-node__meta">ID '
+            . esc_html( (string) $page->ID ) . ' · ' . esc_html( strtoupper( $page->post_status ) )
+            . ' · Plantilla: ' . esc_html( (string) ( get_page_template_slug( $page->ID ) ?: 'predeterminada' ) ) . '</div>';
+    }
+
+    private static function render_group( $parent, $types, $definitions ) {
+        echo '<div class="tc-classic-groups">';
+        foreach ( $types as $type ) {
+            self::render_checkboxes( $parent, $type, $definitions[ $type ] );
+        }
+        echo '</div>';
+    }
+
+    private static function node_close() {
+        echo '</div></details>';
     }
 
     private static function target_name( $object ) {
@@ -500,7 +634,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 }
             }
         }
-        echo '<div><h4>' . esc_html( $def['title'] ) . '</h4>';
+        echo '<div class="tc-classic-group"><h4>' . esc_html( $def['title'] ) . '</h4>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="taxocommerce_core_replace_hierarchy_relations">';
         echo '<input type="hidden" name="source_id" value="' . esc_attr( (string) $parent->ID ) . '">';
