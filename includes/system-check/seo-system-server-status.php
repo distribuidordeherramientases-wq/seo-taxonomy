@@ -3052,7 +3052,7 @@ function seo_server_status_count_products_without_image() {
 function seo_server_status_count_products_without_any_image_source() {
     global $wpdb;
 
-    $supplier_table = $wpdb->prefix . 'seo_supplier_images';
+    $supplier_table = esc_sql( $wpdb->prefix . 'seo_supplier_images' );
     if (!seo_server_status_table_exists($supplier_table)) {
         return seo_server_status_count_products_without_image();
     }
@@ -3104,7 +3104,7 @@ function seo_server_status_count_products_without_any_image_source() {
 function seo_server_status_get_action_scheduler_count($status) {
     global $wpdb;
 
-    $actions_table = $wpdb->prefix . 'actionscheduler_actions';
+    $actions_table = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_server_status_table_exists($actions_table)) {
         return 0;
@@ -3142,7 +3142,7 @@ function seo_server_status_action_scheduler_rows() {
 function seo_server_status_render_action_scheduler_detail_section() {
     global $wpdb;
 
-    $actions_table = $wpdb->prefix . 'actionscheduler_actions';
+    $actions_table = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_server_status_table_exists($actions_table)) {
         return;
