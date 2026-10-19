@@ -300,7 +300,7 @@ if (!function_exists('seo_wc_process_control_table_exists')) {
 if (!function_exists('seo_wc_process_control_snapshot')) {
     function seo_wc_process_control_snapshot() {
         global $wpdb;
-        $actions = $wpdb->prefix . 'actionscheduler_actions';
+        $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
         if (!seo_wc_process_control_table_exists($actions)) {
             return array(
                 'available' => false,
