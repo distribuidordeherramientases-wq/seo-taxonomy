@@ -3,6 +3,7 @@
 
 import argparse
 from collections import Counter
+import csv
 import json
 import os
 from pathlib import Path
@@ -61,6 +62,20 @@ def report_findings(report_file, strict):
     if pending or parsed_blocks == 0:
         append_summary('### Plugin Check: unrecognized report format\nRefusing to treat the scan as successful.')
         return 1
+
+    # Keep the complete audit available outside the distributable plugin ZIP.
+    output_dir = Path(os.environ.get('RUNNER_TEMP', '/tmp'))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with (output_dir / 'plugin-check-findings.csv').open('w', newline='', encoding='utf-8-sig') as output:
+        writer = csv.DictWriter(output, fieldnames=['file', 'line', 'type', 'code', 'message'])
+        writer.writeheader()
+        writer.writerows(findings)
+    hotspots = Counter((item['code'], item['file']) for item in findings if item['type'] == 'WARNING')
+    with (output_dir / 'plugin-check-hotspots.csv').open('w', newline='', encoding='utf-8-sig') as output:
+        writer = csv.writer(output)
+        writer.writerow(['code', 'file', 'count'])
+        for (code, filename), count in sorted(hotspots.items(), key=lambda row: (-row[1], row[0])):
+            writer.writerow([code, filename, count])
 
     by_type = Counter(item['type'] for item in findings)
     by_code = Counter(item['code'] for item in findings if item['type'] == 'WARNING')
