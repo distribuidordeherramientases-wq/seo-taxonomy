@@ -125,6 +125,7 @@ if (!function_exists('seo_images_cleanup_install_tables')) {
         // auxiliares del escáner a utf8mb4 para que wpdb no rechace la consulta
         // antes de enviarla a MariaDB como "datos no válidos".
         foreach (array($source, $cand, $log) as $utf8_table) {
+            $utf8_table = esc_sql( $utf8_table );
             $wpdb->query(
                 "ALTER TABLE {$utf8_table} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
             );
@@ -346,8 +347,8 @@ if (!function_exists('seo_images_cleanup_start_audit')) {
             );
         }
 
-        $source_table = seo_images_cleanup_table_source_index();
-        $cand_table   = seo_images_cleanup_table_candidates();
+        $source_table = esc_sql( seo_images_cleanup_table_source_index() );
+        $cand_table   = esc_sql( seo_images_cleanup_table_candidates() );
 
         foreach (array($source_table, $cand_table, seo_images_cleanup_table_log()) as $required_table) {
             $table_check = seo_images_cleanup_require_table($required_table);
@@ -413,7 +414,7 @@ if (!function_exists('seo_images_cleanup_insert_source_rows')) {
     function seo_images_cleanup_insert_source_rows(array $source, array $rows) {
         global $wpdb;
 
-        $table = seo_images_cleanup_table_source_index();
+        $table = esc_sql( seo_images_cleanup_table_source_index() );
         $normalized = array();
 
         foreach ($rows as $row) {
@@ -586,7 +587,7 @@ if (!function_exists('seo_images_cleanup_source_rows_by_key')) {
             return array();
         }
 
-        $table = seo_images_cleanup_table_source_index();
+        $table = esc_sql( seo_images_cleanup_table_source_index() );
         $sql = "SELECT * FROM {$table} WHERE {$column} IN ({$in['sql']})";
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columna están restringidas internamente y la lista contiene únicamente placeholders %s.
         $prepared = $wpdb->prepare($sql, $in['params']);
@@ -802,7 +803,7 @@ if (!function_exists('seo_images_cleanup_index_source_maps')) {
 if (!function_exists('seo_images_cleanup_save_candidate')) {
     function seo_images_cleanup_save_candidate(array $data) {
         global $wpdb;
-        $table = seo_images_cleanup_table_candidates();
+        $table = esc_sql( seo_images_cleanup_table_candidates() );
 
         return $wpdb->replace(
             $table,
@@ -842,7 +843,7 @@ if (!function_exists('seo_images_cleanup_release_source_index')) {
      */
     function seo_images_cleanup_release_source_index() {
         global $wpdb;
-        $table = seo_images_cleanup_table_source_index();
+        $table = esc_sql( seo_images_cleanup_table_source_index() );
         $wpdb->query("TRUNCATE TABLE {$table}");
     }
 }
@@ -1130,7 +1131,7 @@ if (!function_exists('seo_images_cleanup_candidate_stats')) {
         global $wpdb;
 
         seo_images_cleanup_install_tables();
-        $table = seo_images_cleanup_table_candidates();
+        $table = esc_sql( seo_images_cleanup_table_candidates() );
 
         $stats = array(
             'total'                        => 0,
@@ -1171,7 +1172,7 @@ if (!function_exists('seo_images_cleanup_candidate_rows')) {
         global $wpdb;
 
         $limit = max(1, min(200, absint($limit)));
-        $table = seo_images_cleanup_table_candidates();
+        $table = esc_sql( seo_images_cleanup_table_candidates() );
         $where = $safe_only ? 'WHERE safe_to_delete = 1' : '';
 
         return (array) $wpdb->get_results(
