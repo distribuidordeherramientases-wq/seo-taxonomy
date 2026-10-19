@@ -11,6 +11,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class TaxoCommerce_Core_Hierarchy_Classic {
     const TABLE_SUFFIX = 'seo_relations';
+    const NODES_SUFFIX = 'seo_nodes';
     private static $map_cache = array();
 
     public static function definitions() {
@@ -43,6 +44,73 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         );
     }
 
+    private static function nodes_table() {
+        global $wpdb;
+        return $wpdb->prefix . self::NODES_SUFFIX;
+    }
+
+    public static function role_node( $page_id ) {
+        global $wpdb;
+        $table = self::nodes_table();
+        $row = $wpdb->get_var( $wpdb->prepare(
+            "SELECT seo_role FROM {$table} WHERE object_type = %s AND object_id = %d AND status = 1 ORDER BY id DESC LIMIT 1",
+            'page', absint( $page_id )
+        ) );
+        return sanitize_key( (string) $row );
+    }
+
+    public static function save_role_node( $page_id, $role ) {
+        global $wpdb;
+        $page_id = absint( $page_id );
+        $role = sanitize_key( (string) $role );
+        $table = self::nodes_table();
+        $existing = $wpdb->get_var( $wpdb->prepare(
+            "SELECT id FROM {$table} WHERE object_type = %s AND object_id = %d AND seo_role = %s LIMIT 1",
+            'page', $page_id, $role
+        ) );
+        $now = current_time( 'mysql' );
+        $wpdb->query( 'START TRANSACTION' );
+        $disabled = $wpdb->update( $table, array( 'status' => 0, 'updated_at' => $now ), array( 'object_type' => 'page', 'object_id' => $page_id ) );
+        $saved = true;
+        if ( false !== $disabled && '' !== $role ) {
+            if ( $existing ) {
+                $saved = false !== $wpdb->update( $table, array( 'status' => 1, 'updated_at' => $now ), array( 'id' => absint( $existing ) ) );
+            } else {
+                $saved = false !== $wpdb->insert( $table, array(
+                    'object_type' => 'page', 'object_id' => $page_id,
+                    'seo_role' => $role, 'status' => 1,
+                    'created_at' => $now, 'updated_at' => $now,
+                ) );
+            }
+        }
+        if ( false === $disabled || ! $saved ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'taxocommerce_core_node_save_failed', 'No se pudo guardar la clasificación en seo_nodes.' );
+        }
+        $wpdb->query( 'COMMIT' );
+        return true;
+    }
+
+    /** Copy earlier Core meta-only classifications into seo_nodes once. */
+    public static function reconcile_role_nodes( $hierarchy ) {
+        if ( get_option( 'taxocommerce_core_nodes_bridge_v1', false ) ) {
+            return;
+        }
+        $pages = get_posts( array( 'post_type' => 'page', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids',
+            'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META ) );
+        foreach ( $pages as $id ) {
+            $id = absint( $id );
+            $role = sanitize_key( (string) get_post_meta( $id, TaxoCommerce_Core_Hierarchy::ROLE_META, true ) );
+            if ( $role && isset( $hierarchy->roles()[ $role ] ) && ! self::role_node( $id ) ) {
+                $saved = self::save_role_node( $id, $role );
+                if ( is_wp_error( $saved ) ) {
+                    return;
+                }
+            }
+        }
+        update_option( 'taxocommerce_core_nodes_bridge_v1', 1, false );
+    }
+
     private static function table() {
         global $wpdb;
         return $wpdb->prefix . self::TABLE_SUFFIX;
@@ -72,6 +140,23 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             KEY target_lookup (target_type,target_id),
             KEY relation_type (relation_type),
             KEY relation_endpoints (source_id,target_id)
+        ) {$collate};" );
+        $nodes = self::nodes_table();
+        dbDelta( "CREATE TABLE {$nodes} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            object_type VARCHAR(50) NOT NULL,
+            object_id BIGINT UNSIGNED NOT NULL,
+            seo_role VARCHAR(80) NOT NULL,
+            keywords LONGTEXT NULL,
+            title VARCHAR(255) NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY unique_object_role (object_type,object_id,seo_role),
+            KEY object_lookup (object_type,object_id),
+            KEY seo_role (seo_role),
+            KEY status (status)
         ) {$collate};" );
     }
 
@@ -306,12 +391,22 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     }
 
     public static function role_pages( $role ) {
+        global $wpdb;
+        $nodes = self::nodes_table();
+        $sql = $wpdb->prepare(
+            "SELECT p.ID FROM {$wpdb->posts} p
+             INNER JOIN {$nodes} n ON n.object_type = %s AND n.object_id = p.ID
+             WHERE p.post_type = %s AND p.post_status IN ('publish','draft','pending','private','future')
+               AND n.seo_role = %s AND n.status = 1 ORDER BY p.post_title ASC",
+            'page', 'page', sanitize_key( $role )
+        );
+        $ids = array_map( 'absint', (array) $wpdb->get_col( $sql ) );
+        if ( ! $ids ) {
+            return array();
+        }
         return get_posts( array(
-            'post_type' => 'page',
-            'post_status' => array( 'publish', 'draft', 'pending', 'private', 'future' ),
-            'posts_per_page' => -1, 'orderby' => 'title', 'order' => 'ASC',
-            'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META,
-            'meta_value' => $role,
+            'post_type' => 'page', 'post_status' => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+            'posts_per_page' => -1, 'post__in' => $ids, 'orderby' => 'title', 'order' => 'ASC',
         ) );
     }
 
