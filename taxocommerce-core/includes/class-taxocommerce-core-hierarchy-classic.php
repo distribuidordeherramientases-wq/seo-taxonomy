@@ -238,7 +238,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         if ( ! self::valid_source( $hierarchy, $def, $source ) ) {
             return new WP_Error( 'tc_relations_source', 'El origen no tiene el rol SEO requerido.' );
         }
-        $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $ids ) ) );
+        $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $ids ) ) ) );
         foreach ( $ids as $id ) {
             if ( ! self::valid_target( $hierarchy, $def, $id ) ) {
                 return new WP_Error( 'tc_relations_target', 'Hay una página, entrada o categoría no válida en la selección.' );
