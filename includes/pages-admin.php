@@ -79,7 +79,7 @@ if (!function_exists('seo_page_editor_save_node_role')) {
             return new WP_Error('seo_page_role_invalid', 'Rol SEO de página no válido.');
         }
 
-        $table = $wpdb->prefix . 'seo_nodes';
+        $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
         $node  = seo_page_editor_get_node($page_id, $role);
         $now   = current_time('mysql');
 
@@ -179,7 +179,7 @@ if (!function_exists('seo_page_editor_get_structure_tree')) {
     function seo_page_editor_get_structure_tree() {
         global $wpdb;
 
-        $relations = $wpdb->prefix . 'seo_relations';
+        $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
 
         $rows = $wpdb->get_results(
             "SELECT DISTINCT
@@ -347,7 +347,7 @@ if (!function_exists('seo_page_editor_replace_landing_categories')) {
             }
         }
 
-        $table = $wpdb->prefix . 'seo_relations';
+        $table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $wpdb->query('START TRANSACTION');
 
         $deleted = $wpdb->delete(
@@ -439,8 +439,8 @@ function seo_solo_desvincular_pagina_callback() {
     list($page_id, $url_origen, $url_destino) = seo_page_editor_validate_redirect_request();
 
     global $wpdb;
-    $relations = $wpdb->prefix . 'seo_relations';
-    $redirects = $wpdb->prefix . 'seo_redirects';
+    $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $redirects = esc_sql( $wpdb->prefix . 'seo_redirects' );
 
     $origin_path = '/' . trim(wp_make_link_relative($url_origen), '/');
     $target_path = '/' . trim(wp_make_link_relative($url_destino), '/');
@@ -489,9 +489,9 @@ function seo_borrar_y_redirigir_pagina_callback() {
     list($page_id, $url_origen, $url_destino) = seo_page_editor_validate_redirect_request();
 
     global $wpdb;
-    $relations = $wpdb->prefix . 'seo_relations';
-    $redirects = $wpdb->prefix . 'seo_redirects';
-    $nodes     = $wpdb->prefix . 'seo_nodes';
+    $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
+    $redirects = esc_sql( $wpdb->prefix . 'seo_redirects' );
+    $nodes     = esc_sql( $wpdb->prefix . 'seo_nodes' );
 
     $origin_path = '/' . trim(wp_make_link_relative($url_origen), '/');
     $target_path = '/' . trim(wp_make_link_relative($url_destino), '/');
