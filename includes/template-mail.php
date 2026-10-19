@@ -89,7 +89,7 @@ function seo_mail_ensure_schema() {
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-    $table           = seo_mail_table_name();
+    $table           = esc_sql( seo_mail_table_name() );
     $charset_collate = $wpdb->get_charset_collate();
 
     $sql = "CREATE TABLE {$table} (
@@ -198,7 +198,7 @@ function seo_mail_get_woocommerce_emails() {
 function seo_mail_get_assignment($mail_key) {
     global $wpdb;
 
-    $table = seo_mail_table_name();
+    $table = esc_sql( seo_mail_table_name() );
     if (!seo_mail_table_exists($table)) return null;
 
     return $wpdb->get_row($wpdb->prepare(
@@ -219,7 +219,7 @@ function seo_mail_legacy_template_map() {
 function seo_mail_template_key_exists($template_key) {
     global $wpdb;
 
-    $table = seo_mail_templates_table_name();
+    $table = esc_sql( seo_mail_templates_table_name() );
 
     return (bool) $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*) FROM {$table} WHERE template_key = %s",
@@ -237,7 +237,7 @@ function seo_mail_sync_woocommerce_emails() {
         return new WP_Error('woocommerce_missing', 'WooCommerce no está activo.');
     }
 
-    $table      = seo_mail_table_name();
+    $table      = esc_sql( seo_mail_table_name() );
     $emails     = seo_mail_get_woocommerce_emails();
     $legacy_map = seo_mail_legacy_template_map();
     $now        = current_time('mysql');
@@ -308,7 +308,7 @@ function seo_mail_sync_woocommerce_emails() {
 function seo_mail_get_assignments() {
     global $wpdb;
 
-    $table = seo_mail_table_name();
+    $table = esc_sql( seo_mail_table_name() );
     if (!seo_mail_table_exists($table)) return [];
 
     return $wpdb->get_results(
@@ -324,7 +324,7 @@ function seo_mail_get_assignments() {
 function seo_mail_get_email_templates($only_available = false) {
     global $wpdb;
 
-    $table = seo_mail_templates_table_name();
+    $table = esc_sql( seo_mail_templates_table_name() );
     if (!seo_mail_table_exists($table)) return [];
 
     $where = "template_type = 'email'";
@@ -343,7 +343,7 @@ function seo_mail_get_email_templates($only_available = false) {
 function seo_mail_get_email_template($template_key) {
     global $wpdb;
 
-    $table = seo_mail_templates_table_name();
+    $table = esc_sql( seo_mail_templates_table_name() );
 
     return $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM {$table}
@@ -409,7 +409,7 @@ function seo_mail_handle_save_assignments() {
         wp_die('No tienes permisos para gestionar correos.');
     }
 
-    $table      = seo_mail_table_name();
+    $table      = esc_sql( seo_mail_table_name() );
     $posted     = isset($_POST['mail_config']) && is_array($_POST['mail_config'])
         ? map_deep( wp_unslash( $_POST['mail_config'] ), 'sanitize_text_field' )
         : [];
@@ -459,7 +459,7 @@ function seo_mail_handle_save_library() {
         wp_die('No tienes permisos para gestionar plantillas de correo.');
     }
 
-    $table  = seo_mail_templates_table_name();
+    $table  = esc_sql( seo_mail_templates_table_name() );
     $posted = isset($_POST['email_templates']) && is_array($_POST['email_templates'])
         ? map_deep( wp_unslash( $_POST['email_templates'] ), 'sanitize_textarea_field' )
         : [];
