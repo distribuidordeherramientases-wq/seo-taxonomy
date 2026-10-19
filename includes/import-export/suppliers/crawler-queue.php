@@ -408,8 +408,8 @@ function seo_supplier_crawl_records_table() {
 function seo_supplier_crawl_install_table() {
     global $wpdb;
 
-    $queue_table   = seo_supplier_crawl_table();
-    $records_table = seo_supplier_crawl_records_table();
+    $queue_table   = esc_sql( seo_supplier_crawl_table() );
+    $records_table = esc_sql( seo_supplier_crawl_records_table() );
     $installed     = (string) get_option( 'seo_supplier_crawl_db_version', '' );
     $queue_exists  = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $queue_table ) );
     $records_exists= $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $records_table ) );
@@ -528,8 +528,8 @@ function seo_supplier_crawl_handle_reset_all() {
     seo_supplier_crawl_install_table();
     global $wpdb;
 
-    $queue_table   = seo_supplier_crawl_table();
-    $records_table = seo_supplier_crawl_records_table();
+    $queue_table   = esc_sql( seo_supplier_crawl_table() );
+    $records_table = esc_sql( seo_supplier_crawl_records_table() );
 
     // TRUNCATE evita recorrer cientos de miles de filas. Si el hosting no lo permite,
     // se usa DELETE como alternativa.
@@ -632,7 +632,7 @@ function seo_supplier_crawl_enqueue( $recipe_id, $url, $job_type = 'page', $prio
         return false;
     }
 
-    $table    = seo_supplier_crawl_table();
+    $table    = esc_sql( seo_supplier_crawl_table() );
     $hash     = hash( 'sha256', $url );
     $job_type = sanitize_key( $job_type );
     $job_type = in_array( $job_type, [ 'robots', 'sitemap', 'home', 'category', 'product', 'page' ], true ) ? $job_type : 'page';
@@ -698,7 +698,7 @@ function seo_supplier_crawl_counts( $recipe_id ) {
     seo_supplier_crawl_install_table();
 
     global $wpdb;
-    $table = seo_supplier_crawl_table();
+    $table = esc_sql( seo_supplier_crawl_table() );
     $rows  = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT status,COUNT(*) total FROM {$table} WHERE recipe = %s GROUP BY status",
@@ -1064,7 +1064,7 @@ function seo_supplier_crawl_upsert_record( $recipe, $row ) {
     }
 
     seo_supplier_crawl_install_table();
-    $table         = seo_supplier_crawl_records_table();
+    $table         = esc_sql( seo_supplier_crawl_records_table() );
     $external_hash = hash( 'sha256', $external_id );
     $record_hash   = hash( 'sha256', $json );
     $now           = current_time( 'mysql' );
@@ -1194,7 +1194,7 @@ function seo_supplier_crawl_process_sitemap( $recipe, $body, $source_url ) {
  */
 function seo_supplier_crawl_retry_job( $job, $message, $delay, $http_status = 0 ) {
     global $wpdb;
-    $table = seo_supplier_crawl_table();
+    $table = esc_sql( seo_supplier_crawl_table() );
     $wpdb->update(
         $table,
         [
@@ -1234,7 +1234,7 @@ function seo_supplier_crawl_worker( $recipe_id ) {
 
     seo_supplier_crawl_install_table();
     global $wpdb;
-    $table = seo_supplier_crawl_table();
+    $table = esc_sql( seo_supplier_crawl_table() );
     $now   = current_time( 'mysql' );
 
     // Recupera trabajos abandonados por un timeout o cierre inesperado de PHP.
@@ -1590,7 +1590,7 @@ function seo_supplier_crawl_seed_recipe( $recipe, $force = false ) {
 function seo_supplier_crawl_refresh_recipe( $recipe ) {
     seo_supplier_crawl_install_table();
     global $wpdb;
-    $table     = seo_supplier_crawl_table();
+    $table     = esc_sql( seo_supplier_crawl_table() );
     $threshold = wp_date( 'Y-m-d H:i:s', time() - $recipe['revisit_days'] * DAY_IN_SECONDS, wp_timezone() );
 
     $wpdb->query(
@@ -1868,7 +1868,7 @@ function seo_supplier_crawl_handle_start_request() {
 function seo_supplier_crawl_record_counts( $recipe_id ) {
     seo_supplier_crawl_install_table();
     global $wpdb;
-    $table = seo_supplier_crawl_records_table();
+    $table = esc_sql( seo_supplier_crawl_records_table() );
     $row   = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT COUNT(*) total,SUM(CASE WHEN imported_hash = '' OR imported_hash <> record_hash THEN 1 ELSE 0 END) dirty FROM {$table} WHERE recipe = %s",
@@ -1915,7 +1915,7 @@ function seo_supplier_crawl_build_standard_csv( $recipe ) {
     fputcsv( $out, $columns, ';', '"', '' );
 
     global $wpdb;
-    $table   = seo_supplier_crawl_records_table();
+    $table   = esc_sql( seo_supplier_crawl_records_table() );
     $last_id = 0;
     $written = 0;
 
@@ -2039,7 +2039,7 @@ function seo_supplier_crawl_maybe_import_csv( $recipe_id, $force = false ) {
     }
 
     global $wpdb;
-    $table = seo_supplier_crawl_records_table();
+    $table = esc_sql( seo_supplier_crawl_records_table() );
     $wpdb->query(
         $wpdb->prepare(
             "UPDATE {$table} SET imported_hash = record_hash WHERE recipe = %s",
@@ -2072,7 +2072,7 @@ function seo_supplier_crawl_catalog_count( $provider ) {
         return 0;
     }
     global $wpdb;
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
     return absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE proveedor = %s", sanitize_text_field( $provider ) ) ) );
 }
 
@@ -2086,7 +2086,7 @@ function seo_supplier_crawl_catalog_count( $provider ) {
 function seo_supplier_crawl_recent_jobs( $recipe_id, $limit = 20 ) {
     seo_supplier_crawl_install_table();
     global $wpdb;
-    $table = seo_supplier_crawl_table();
+    $table = esc_sql( seo_supplier_crawl_table() );
     $limit = max( 1, min( 100, absint( $limit ) ) );
 
     return (array) $wpdb->get_results(
