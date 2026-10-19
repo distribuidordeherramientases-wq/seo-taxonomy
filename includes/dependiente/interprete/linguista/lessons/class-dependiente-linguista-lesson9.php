@@ -234,7 +234,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
      */
     private static function review_total() {
         global $wpdb;
-        $table = SEO_Dependiente_Interprete_DB::table();
+        $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
         if (!SEO_Dependiente_Interprete_DB::table_exists()) {
             return 0;
         }
@@ -263,7 +263,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
 
     private static function run_review_batch($state) {
         global $wpdb;
-        $table = SEO_Dependiente_Interprete_DB::table();
+        $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
         $cursor = absint($state['cursor'] ?? 0);
         $batch = self::batch_size($state);
 
@@ -623,7 +623,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
             return self::$vocabulary_labels[$cache_key];
         }
 
-        $table = $wpdb->prefix . 'seo_vocabulary';
+        $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $label = (string) $wpdb->get_var($wpdb->prepare(
             "SELECT label FROM {$table} WHERE active=1 AND semantic_group=%s AND slug=%s ORDER BY id ASC LIMIT 1",
             $group,
@@ -804,7 +804,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
             return array('evidence' => false, 'promoted' => false, 'evidence_count' => 0, 'id' => 0);
         }
 
-        $table = SEO_Dependiente_Interprete_DB::table();
+        $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
         $before = $wpdb->get_row($wpdb->prepare(
             "SELECT id,active,evidence_count FROM {$table}
               WHERE normalized_expression=%s AND canonical_term=%s AND relation_type='noise'
@@ -877,7 +877,7 @@ final class SEO_Dependiente_Linguista_Lesson9 {
 
     private static function has_conflicting_active_meaning($expression, $noise_id) {
         global $wpdb;
-        $table = SEO_Dependiente_Interprete_DB::table();
+        $table = esc_sql( SEO_Dependiente_Interprete_DB::table() );
         return absint($wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$table}
               WHERE normalized_expression=%s
