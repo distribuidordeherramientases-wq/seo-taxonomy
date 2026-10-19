@@ -223,7 +223,11 @@ function taxocommerce_system_check_home() {
         wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
     }
     $tab = taxocommerce_system_check_active_tab();
-    echo '<div class="wrap"><h1>TaxoCommerce System Check</h1>';
+    echo '<div class="wrap tcc-family-screen">';
+    echo '<header class="tcc-page-header"><span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-shield-alt"></span></span>';
+    echo '<div class="tcc-page-header__content"><p class="tcc-page-header__eyebrow">' . esc_html__( 'Familia TaxoCommerce', 'taxocommerce-system-check' ) . '</p>';
+    echo '<h1>' . esc_html__( 'TaxoCommerce System Check', 'taxocommerce-system-check' ) . '</h1>';
+    echo '<p>' . esc_html__( 'Diagnósticos del servidor, comprobación de plugins y auditorías HTTP desde una única interfaz.', 'taxocommerce-system-check' ) . '</p></div></header>';
     taxocommerce_system_check_render_tabs( $tab );
     echo '</div>';
     if ( 'plugin' === $tab ) {
