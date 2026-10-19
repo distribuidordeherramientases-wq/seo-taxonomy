@@ -28,6 +28,7 @@ require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-vocabula
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-editor-ui.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-manager.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core.php';
+require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-dashboard.php';
 
 /**
  * Returns the TaxoCommerce Core singleton.
