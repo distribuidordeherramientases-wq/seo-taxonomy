@@ -42,7 +42,17 @@ jobs:
             --exclude='CONTRIBUTING.md' \
             --exclude='README.md' \
             --exclude='SUPPLIER-SYNC-V2.md' \
+            --exclude='/taxocommerce-core/' \
+            --exclude='/taxocommerce-images/' \
+            --exclude='/taxocommerce-import-export/' \
+            --exclude='/packages/' \
+            --exclude='node_modules/' \
             ./ build/taxocommerce-seo/
+          # Sibling plugins have independent headers and translation domains.
+          # They are deployed separately, never inside the taxocommerce-seo ZIP.
+          for sibling in taxocommerce-core taxocommerce-images taxocommerce-import-export packages; do
+            test ! -e "build/taxocommerce-seo/$sibling"
+          done
 
       - name: Validate WordPress.org package metadata and ZIP size
         env:
