@@ -22,6 +22,7 @@ define( 'TAXOCOMMERCE_CORE_BASENAME', plugin_basename( __FILE__ ) );
 
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-logger.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-hierarchy.php';
+require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-hierarchy-classic.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-menu.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-manager.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core.php';
@@ -51,6 +52,7 @@ add_action( 'plugins_loaded', 'taxocommerce_core_boot', 20 );
  * @return void
  */
 function taxocommerce_core_activate() {
+	TaxoCommerce_Core_Hierarchy_Classic::install();
 	update_option( 'taxocommerce_core_version', TAXOCOMMERCE_CORE_VERSION, false );
 
 	if ( false === get_option( 'taxocommerce_core_log_limit', false ) ) {
