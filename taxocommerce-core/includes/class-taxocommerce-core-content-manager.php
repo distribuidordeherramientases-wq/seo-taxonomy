@@ -74,6 +74,7 @@ final class TaxoCommerce_Core_Content_Manager {
                 </div>
             </header>
             <?php $this->render_tabs( $content_type ); ?>
+            <?php TaxoCommerce_Core_Editorial_Guide::render( $content_type, 'overview' ); ?>
 
             <?php if ( isset( $_GET['updated'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['updated'] ) ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only confirmation. ?>
                 <div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Contenido actualizado.', 'taxocommerce-core' ); ?></p></div>
