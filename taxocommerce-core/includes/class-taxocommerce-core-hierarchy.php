@@ -42,6 +42,7 @@ final class TaxoCommerce_Core_Hierarchy {
 	 * @return void
 	 */
 	public function register_hooks() {
+		add_action( 'admin_init', array( $this, 'ensure_relations_schema' ), 10 );
 		add_action( 'admin_init', array( $this, 'maybe_import_legacy' ), 30 );
 		add_action( 'admin_init', array( $this, 'reconcile_relations' ), 40 );
 		add_action( 'admin_post_taxocommerce_core_replace_hierarchy_relations', array( $this, 'handle_replace_relations' ) );
@@ -49,6 +50,19 @@ final class TaxoCommerce_Core_Hierarchy {
 		add_action( 'admin_post_taxocommerce_core_save_page_role', array( $this, 'handle_save_page_role' ) );
 		add_action( 'admin_post_taxocommerce_core_add_hierarchy_relation', array( $this, 'handle_add_relation' ) );
 		add_action( 'admin_post_taxocommerce_core_delete_hierarchy_relation', array( $this, 'handle_delete_relation' ) );
+	}
+
+	/** Existing installations must receive the two canonical tables after upgrades. */
+	public function ensure_relations_schema() {
+		if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
+			return;
+		}
+		global $wpdb;
+		$nodes = $wpdb->prefix . 'seo_nodes';
+		$nodes_exists = $nodes === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $nodes ) ) );
+		if ( ! TaxoCommerce_Core_Hierarchy_Classic::available() || ! $nodes_exists ) {
+			TaxoCommerce_Core_Hierarchy_Classic::install();
+		}
 	}
 
 	/**
