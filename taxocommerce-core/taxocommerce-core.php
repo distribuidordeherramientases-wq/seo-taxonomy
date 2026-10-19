@@ -25,6 +25,7 @@ require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-hierarch
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-hierarchy-classic.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-menu.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-vocabulary.php';
+require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-editorial-guide.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-editor-ui.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-manager.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core.php';
