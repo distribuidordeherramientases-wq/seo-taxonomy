@@ -75,7 +75,7 @@ function seo_supplier_sync_situations() {
 function seo_supplier_sync_ensure_schema() {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
     if ( $exists !== $table ) {
@@ -191,7 +191,7 @@ function seo_supplier_sync_migrate_legacy_states() {
     }
 
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
     if ( $exists !== $table ) {
@@ -499,7 +499,7 @@ function seo_supplier_sync_determine_situation( array $existing, $selection, $ob
 function seo_supplier_sync_mark_conflict( array $row, array $incoming, $run_id, $message ) {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
     $id    = absint( $row['id'] ?? 0 );
     if ( ! $id ) {
         return;
@@ -570,7 +570,7 @@ function seo_supplier_sync_finalize_import( $run_id, array $state, array $log, $
         return $log;
     }
 
-    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
 
     $affected = $wpdb->query(
         $wpdb->prepare(
@@ -623,7 +623,7 @@ function seo_supplier_sync_new_products_category_id() {
 function seo_supplier_sync_finalize_applied_row( array $row, $product_id ) {
     global $wpdb;
 
-    $table       = $wpdb->prefix . 'seo_proveedores_productos';
+    $table       = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
     $row_id      = absint( $row['id'] ?? 0 );
     $product_id  = absint( $product_id );
     $snapshot    = seo_supplier_sync_snapshot( $row );
@@ -663,7 +663,7 @@ function seo_supplier_sync_finalize_applied_row( array $row, $product_id ) {
  */
 function seo_supplier_sync_mark_error( $row_id, $message ) {
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
 
     $wpdb->update(
         $table,
@@ -704,7 +704,7 @@ function seo_supplier_sync_apply_baja( array $row ) {
     $product->save();
 
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
     $wpdb->update(
         $table,
         [
@@ -838,7 +838,7 @@ function seo_supplier_sync_apply_action( array $row, $action, $commission_sale =
 
     if ( 'descartar' === $action ) {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_proveedores_productos';
+        $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
         $ok = $wpdb->update(
             $table,
             [
@@ -966,7 +966,7 @@ function seo_supplier_sync_handle_single_action() {
     check_admin_referer( 'seo_supplier_sync_action', 'seo_supplier_sync_nonce' );
 
     global $wpdb;
-    $table  = $wpdb->prefix . 'seo_proveedores_productos';
+    $table  = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
     $row_id = isset( $_POST['producto_proveedor_id'] ) ? absint( wp_unslash( $_POST['producto_proveedor_id'] ) ) : 0;
     $action = isset( $_POST['sync_action'] ) ? sanitize_key( wp_unslash( $_POST['sync_action'] ) ) : '';
 
@@ -1039,7 +1039,7 @@ function seo_supplier_sync_handle_bulk_action() {
     }
 
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $table = esc_sql( $wpdb->prefix . 'seo_proveedores_productos' );
 
     $provider  = sanitize_text_field( wp_unslash( $_POST['f_proveedor'] ?? '' ) );
     $selection = isset( $_POST['f_estado'] ) ? sanitize_key( wp_unslash( $_POST['f_estado'] ) ) : '';
