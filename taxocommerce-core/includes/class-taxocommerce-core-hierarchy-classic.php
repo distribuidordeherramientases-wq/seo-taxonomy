@@ -11,6 +11,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class TaxoCommerce_Core_Hierarchy_Classic {
     const TABLE_SUFFIX = 'seo_relations';
+    private static $map_cache = array();
 
     public static function definitions() {
         return array(
@@ -104,6 +105,9 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
 
     /** Source => target IDs, used without querying per category. */
     public static function map( $type ) {
+        if ( isset( self::$map_cache[ $type ] ) ) {
+            return self::$map_cache[ $type ];
+        }
         $map = array();
         foreach ( self::rows( $type ) as $row ) {
             $source = absint( $row['source_id'] );
@@ -112,6 +116,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 $map[ $source ][ $target ] = true;
             }
         }
+        self::$map_cache[ $type ] = $map;
         return $map;
     }
 
@@ -194,6 +199,9 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             }
         }
         $wpdb->query( $ok ? 'COMMIT' : 'ROLLBACK' );
+        if ( $ok ) {
+            unset( self::$map_cache[ $type ] );
+        }
         if ( ! $ok ) {
             return new WP_Error( 'tc_relations_save_failed', 'No se pudieron guardar las relaciones. No se han aplicado cambios parciales.' );
         }
@@ -269,12 +277,18 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 ) );
             }
             $existing = self::map( $type );
+            $already_taken = array();
+            foreach ( $existing as $parents ) {
+                foreach ( $parents as $assigned_id => $_ ) {
+                    $already_taken[ absint( $assigned_id ) ] = true;
+                }
+            }
             foreach ( (array) $targets as $target ) {
                 $target = absint( $target );
                 $parents = 'product_cat' === $def['target_type']
                     ? get_term_meta( $target, $def['meta'], false ) : get_post_meta( $target, $def['meta'], false );
                 foreach ( array_unique( array_filter( array_map( 'absint', (array) $parents ) ) ) as $source ) {
-                    if ( ! isset( $existing[ $source ][ $target ] ) && self::valid_source( $hierarchy, $def, $source ) ) {
+                    if ( ! isset( $already_taken[ $target ] ) && self::valid_source( $hierarchy, $def, $source ) ) {
                         global $wpdb;
                         $wpdb->insert( self::table(), array(
                             'source_type' => $def['source_type'], 'source_id' => $source,
@@ -282,10 +296,12 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                             'relation_type' => $type, 'created_at' => current_time( 'mysql' ),
                         ) );
                         $existing[ $source ][ $target ] = true;
+                        $already_taken[ $target ] = true;
                     }
                 }
             }
         }
+        self::$map_cache = array();
         update_option( 'taxocommerce_core_relations_native_bridge_v1', 1, false );
     }
 
