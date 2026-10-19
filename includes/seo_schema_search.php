@@ -9,7 +9,7 @@ function seo_schema_search() {
 
     global $wpdb;
 
-    $tabla_relations = $wpdb->prefix . 'seo_relations';
+    $tabla_relations = esc_sql( $wpdb->prefix . 'seo_relations' );
 
     echo '<div class="wrap">';
     echo '<h2>Análisis Semántico de Categorías</h2>';
