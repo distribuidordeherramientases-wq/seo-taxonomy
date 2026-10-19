@@ -224,7 +224,7 @@ function seo_search_vocabulary_tables_ready() {
     global $wpdb;
 
     $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-    $objects = $wpdb->prefix . 'seo_object_vocabulary';
+    $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
     static $ready = null;
     if (null !== $ready) {
@@ -286,7 +286,7 @@ function seo_search_get_vocabulary_matching_product_ids($vocabulary_filters, $ba
     }
 
     $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-    $objects = $wpdb->prefix . 'seo_object_vocabulary';
+    $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
     $where_or = array();
     $where_params = array();
@@ -354,7 +354,7 @@ function seo_search_build_global_vocabulary_facets() {
     }
 
     $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-    $objects = $wpdb->prefix . 'seo_object_vocabulary';
+    $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
     $rows = $wpdb->get_results(
         "SELECT v.semantic_group, v.id, v.label AS name, v.slug,
@@ -927,7 +927,7 @@ function seo_search_build_facets($product_ids) {
 
     if (seo_search_vocabulary_tables_ready()) {
         $vocabulary = $wpdb->prefix . 'seo_vocabulary';
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         $vocab_rows = $wpdb->get_results(
             "SELECT v.semantic_group, v.id, v.label AS name, v.slug,
@@ -963,7 +963,7 @@ function seo_search_build_facets($product_ids) {
         }
     }
 
-    $lookup_table = $wpdb->prefix . 'wc_product_meta_lookup';
+    $lookup_table = esc_sql( $wpdb->prefix . 'wc_product_meta_lookup' );
     $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $lookup_table));
     if ($table_exists === $lookup_table) {
         $price_row = $wpdb->get_row("SELECT MIN(min_price) AS min_price, MAX(max_price) AS max_price FROM {$lookup_table} WHERE product_id IN ({$id_sql})", ARRAY_A);
@@ -1909,7 +1909,7 @@ function seo_search_settings_page() {
 
     if (isset($_POST['seo_search_clear_logs']) && check_admin_referer('seo_search_clear_logs')) {
         global $wpdb;
-        $wpdb->query('TRUNCATE TABLE ' . seo_search_log_table_name()); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $wpdb->query( 'TRUNCATE TABLE ' . esc_sql( seo_search_log_table_name() ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Historial eliminado.', 'taxocommerce-seo') . '</p></div>';
     }
     ?>
