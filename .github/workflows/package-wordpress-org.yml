@@ -24,6 +24,11 @@ jobs:
             --exclude='.*' \
             --exclude='.github/' \
             --exclude='build/' \
+            --exclude='/taxocommerce-core/' \
+            --exclude='/taxocommerce-images/' \
+            --exclude='/taxocommerce-import-export/' \
+            --exclude='/taxocommerce-system-check/' \
+            --exclude='/packages/' \
             --exclude='docs/' \
             --exclude='CONTRIBUTING.md' \
             --exclude='README.md' \
