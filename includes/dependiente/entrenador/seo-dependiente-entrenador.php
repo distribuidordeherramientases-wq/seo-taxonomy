@@ -1810,9 +1810,16 @@ final class SEO_Dependiente_Entrenador {
             $state = self::auto_state();
         }
 
+        // A paused continuous update takes priority over the next initial
+        // lesson. Otherwise a pending L10 / Interpreter gate can prevent the
+        // supervisor from ever resuming M4-M8 of the existing update.
+        $update_current = class_exists('SEO_Dependiente_Actualizacion')
+            && SEO_Dependiente_Actualizacion::has_pending_work()
+            ? SEO_Dependiente_Actualizacion::monitor_current()
+            : null;
         $lessons = self::lessons_by_key();
         $current_key = self::current_lesson_key($lessons);
-        if ('v2_l10_consolidation_debt' === $current_key && !self::interpreter_l9_completed()) {
+        if (!$update_current && 'v2_l10_consolidation_debt' === $current_key && !self::interpreter_l9_completed()) {
             self::save_auto_state(array(
                 'enabled'        => false,
                 'mode'           => 'manual',
@@ -1831,6 +1838,8 @@ final class SEO_Dependiente_Entrenador {
             'enabled'               => true,
             'mode'                  => 'auto',
             'status'                => 'running',
+            'current_lesson'        => $update_current ? (string) ($update_current['lesson_key'] ?? '') : (string) $current_key,
+            'current_module'        => $update_current ? absint($update_current['next_module'] ?? 0) : ($current_key ? self::next_pending_module($current_key) : 0),
             'last_error'            => '',
             'needs_training_retry_allowed' => 1,
             'direct_worker_pending' => 0,
@@ -1841,9 +1850,11 @@ final class SEO_Dependiente_Entrenador {
             'last_dispatch_error'   => '',
             'controller_active'     => 0,
             'controller_heartbeat_ts' => 0,
-            'last_message'          => $recovered_stale_runtime
-                ? 'Estado de ejecución obsoleto recuperado. Academia se reanuda desde el progreso guardado.'
-                : 'Arranque manual solicitado desde Herramientas > Procesos.',
+            'last_message'          => $update_current
+                ? 'Actualización de Dependiente reanudada desde M' . absint($update_current['next_module'] ?? 0) . ' conservando todas las preguntas evaluadas.'
+                : ($recovered_stale_runtime
+                    ? 'Estado de ejecución obsoleto recuperado. Academia se reanuda desde el progreso guardado.'
+                    : 'Arranque manual solicitado desde Herramientas > Procesos.'),
             'updated_at'            => current_time('mysql'),
         ));
 
