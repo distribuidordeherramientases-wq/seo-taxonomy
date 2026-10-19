@@ -228,9 +228,9 @@ final class TaxoCommerce_Core_Content_Manager {
 		 */
 		$cards = (array) apply_filters( 'taxocommerce_core_content_summary_kpis', $cards, $content_type );
 		?>
-		<div style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;">
+		<div class="tc-content-kpis">
 			<?php foreach ( $cards as $label => $value ) : ?>
-				<div class="card" style="min-width:160px;margin:0;padding:12px 16px;">
+				<div class="tc-content-kpi">
 					<strong style="display:block;font-size:22px;"><?php echo esc_html( (string) $value ); ?></strong>
 					<span><?php echo esc_html( (string) $label ); ?></span>
 				</div>
@@ -245,46 +245,65 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @param string $content_type Type.
 	 * @return void
 	 */
-	private function render_filters( $content_type ) {
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-		$status = isset( $_GET['tc_status'] ) ? sanitize_key( wp_unslash( $_GET['tc_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-		$cat_id = isset( $_GET['tc_category'] ) ? absint( $_GET['tc_category'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-		?>
-		<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin:16px 0;">
-			<input type="hidden" name="page" value="<?php echo esc_attr( self::PAGE_SLUG ); ?>">
-			<input type="hidden" name="tc_type" value="<?php echo esc_attr( $content_type ); ?>">
-			<label class="screen-reader-text" for="tc-content-search"><?php echo esc_html__( 'Buscar contenidos', 'taxocommerce-core' ); ?></label>
-			<input id="tc-content-search" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Buscar', 'taxocommerce-core' ); ?>">
+    private function render_filters( $content_type ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only search controls.
+        $search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only search controls.
+        $status = isset( $_GET['tc_status'] ) ? sanitize_key( wp_unslash( $_GET['tc_status'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only search controls.
+        $cat_id = isset( $_GET['tc_category'] ) ? absint( $_GET['tc_category'] ) : 0;
+        ?>
+        <form method="get" class="tc-content-filters" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
+            <input type="hidden" name="page" value="<?php echo esc_attr( self::PAGE_SLUG ); ?>">
+            <input type="hidden" name="tc_type" value="<?php echo esc_attr( $content_type ); ?>">
+            <div class="tc-content-filter-field tc-content-filter-search">
+                <label for="tc-content-search"><?php echo esc_html__( 'Buscar contenido', 'taxocommerce-core' ); ?></label>
+                <input id="tc-content-search" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Título o descripción…', 'taxocommerce-core' ); ?>">
+            </div>
 
-			<?php if ( 'categories' !== $content_type ) : ?>
-				<select name="tc_status" aria-label="<?php echo esc_attr__( 'Estado', 'taxocommerce-core' ); ?>">
-					<option value=""><?php echo esc_html__( 'Todos los estados', 'taxocommerce-core' ); ?></option>
-					<?php foreach ( $this->editable_statuses() as $status_key => $status_label ) : ?>
-						<option value="<?php echo esc_attr( $status_key ); ?>" <?php selected( $status, $status_key ); ?>><?php echo esc_html( $status_label ); ?></option>
-					<?php endforeach; ?>
-				</select>
-			<?php endif; ?>
+            <?php if ( 'categories' !== $content_type ) : ?>
+                <div class="tc-content-filter-field">
+                    <label for="tc-content-status"><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></label>
+                    <select id="tc-content-status" name="tc_status">
+                        <option value=""><?php echo esc_html__( 'Todos los estados', 'taxocommerce-core' ); ?></option>
+                        <?php foreach ( $this->editable_statuses() as $status_key => $status_label ) : ?>
+                            <option value="<?php echo esc_attr( $status_key ); ?>" <?php selected( $status, $status_key ); ?>><?php echo esc_html( $status_label ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
 
-			<?php if ( in_array( $content_type, array( 'products', 'posts' ), true ) ) : ?>
-				<?php
-				wp_dropdown_categories(
-					array(
-						'show_option_all' => __( 'Todas las categorías', 'taxocommerce-core' ),
-						'taxonomy'        => 'products' === $content_type ? 'product_cat' : 'category',
-						'hide_empty'      => false,
-						'name'            => 'tc_category',
-						'selected'        => $cat_id,
-						'value_field'     => 'term_id',
-					)
-				);
-				?>
-			<?php endif; ?>
+            <?php if ( in_array( $content_type, array( 'products', 'posts' ), true ) ) : ?>
+                <div class="tc-content-filter-field tc-content-filter-category">
+                    <label><?php echo esc_html__( 'Categoría', 'taxocommerce-core' ); ?></label>
+                    <?php
+                    $taxonomy = 'products' === $content_type ? 'product_cat' : 'category';
+                    $selected = array();
+                    if ( $cat_id ) {
+                        $term = get_term( $cat_id, $taxonomy );
+                        if ( $term && ! is_wp_error( $term ) ) {
+                            $selected[] = array( 'id' => $cat_id, 'label' => $term->name );
+                        }
+                    }
+                    TaxoCommerce_Core_Vocabulary::render_picker(
+                        'tc_category',
+                        'taxonomy',
+                        $taxonomy,
+                        $selected,
+                        __( 'Buscar categoría…', 'taxocommerce-core' ),
+                        true
+                    );
+                    ?>
+                </div>
+            <?php endif; ?>
 
-			<button class="button"><?php echo esc_html__( 'Filtrar', 'taxocommerce-core' ); ?></button>
-		</form>
-		<?php
-	}
-
+            <div class="tc-content-filter-actions">
+                <button class="button button-primary"><?php echo esc_html__( 'Aplicar filtros', 'taxocommerce-core' ); ?></button>
+                <a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => self::PAGE_SLUG, 'tc_type' => $content_type ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html__( 'Limpiar', 'taxocommerce-core' ); ?></a>
+            </div>
+        </form>
+        <?php
+    }
 	/**
 	 * Content list.
 	 *
@@ -335,7 +354,7 @@ final class TaxoCommerce_Core_Content_Manager {
 
 		$query = new WP_Query( $args );
 		?>
-		<table class="widefat striped">
+		<div class="tc-overview-table-scroll"><table class="widefat striped tc-overview-table">
 			<thead>
 				<tr>
 					<th><?php echo esc_html__( 'Título', 'taxocommerce-core' ); ?></th>
@@ -383,7 +402,7 @@ final class TaxoCommerce_Core_Content_Manager {
 				<?php endforeach; ?>
 			<?php endif; ?>
 			</tbody>
-		</table>
+		</table></div>
 		<?php
 		$this->render_pagination( absint( $query->max_num_pages ), $paged, $content_type );
 		wp_reset_postdata();
@@ -420,7 +439,7 @@ final class TaxoCommerce_Core_Content_Manager {
 		);
 		$total_pages = is_wp_error( $count ) ? 1 : max( 1, (int) ceil( absint( $count ) / self::PER_PAGE ) );
 		?>
-		<table class="widefat striped">
+		<div class="tc-overview-table-scroll"><table class="widefat striped tc-overview-table">
 			<thead><tr><th><?php echo esc_html__( 'Categoría', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Superior', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Productos', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Imagen', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'KPI', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acciones', 'taxocommerce-core' ); ?></th></tr></thead>
 			<tbody>
 			<?php if ( is_wp_error( $terms ) || empty( $terms ) ) : ?>
@@ -443,7 +462,7 @@ final class TaxoCommerce_Core_Content_Manager {
 				<?php endforeach; ?>
 			<?php endif; ?>
 			</tbody>
-		</table>
+		</table></div>
 		<?php
 		$this->render_pagination( $total_pages, $paged, 'categories' );
 	}
