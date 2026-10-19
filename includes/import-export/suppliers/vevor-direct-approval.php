@@ -222,3 +222,80 @@ function seo_vevor_direct_approval_request() {
     exit;
 }
 add_action( 'admin_init', 'seo_vevor_direct_approval_request', 7 );
+
+/**
+ * Completa fichas VEVOR ya aprobadas, exclusivamente drafts enlazados.
+ * Usa el mismo aplicador de catálogo -> WooCommerce; no hay worker ni alta.
+ */
+function seo_vevor_completar_drafts_vinculados() {
+    if ( ! isset( $_POST['seo_vevor_completar_drafts'] ) ) {
+        return;
+    }
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'No tienes permiso para actualizar borradores VEVOR.' );
+    }
+    check_admin_referer( 'seo_vevor_completar_drafts', 'seo_vevor_completar_nonce' );
+    global $wpdb;
+    $table = $wpdb->prefix . 'seo_proveedores_productos';
+    $cursor = 0;
+    $updated = 0;
+    $errors = 0;
+    $skipped = 0;
+    if ( function_exists( 'set_time_limit' ) ) {
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Explicit administrator bulk action.
+        @set_time_limit( 0 );
+    }
+
+    do {
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT s.* FROM {$table} s
+                 INNER JOIN {$wpdb->posts} p ON p.ID = s.object_id
+                 WHERE s.proveedor = %s
+                   AND s.pais_origen IN ('US','DE','NL','FR')
+                   AND s.estado_seleccion = %s
+                   AND p.post_type = %s AND p.post_status = %s
+                   AND s.id > %d ORDER BY s.id ASC LIMIT 100",
+                'VEVOR', 'aceptado', 'product', 'draft', $cursor
+            ),
+            ARRAY_A
+        );
+        if ( ! is_array( $rows ) || $wpdb->last_error ) {
+            ++$errors;
+            break;
+        }
+        foreach ( $rows as $row ) {
+            $cursor = absint( $row['id'] );
+            // The service rechecks the fresh catalogue row, backlink, exact
+            // product ID, market, SKU-independent identity and current status.
+            $result = seo_vevor_region_apply_offer(
+                $row,
+                strtoupper( (string) $row['pais_origen'] ),
+                true
+            );
+            if ( is_wp_error( $result ) ) {
+                ++$errors;
+                seo_supplier_sync_mark_error( $cursor, $result->get_error_message() );
+            } elseif ( empty( $result['product_id'] ) || ! empty( $result['created'] ) ) {
+                ++$skipped;
+            } else {
+                ++$updated;
+            }
+        }
+    } while ( 100 === count( $rows ) );
+
+    $redirect = add_query_arg(
+        array(
+            'page' => 'seo-import-export',
+            'seo_ie_tab' => 'catalogo-proveedores',
+            'f_proveedor' => 'VEVOR',
+            'seo_vevor_completed' => $updated,
+            'seo_vevor_errors' => $errors,
+            'seo_vevor_skipped' => $skipped,
+        ),
+        admin_url( 'admin.php' )
+    );
+    wp_safe_redirect( $redirect );
+    exit;
+}
+add_action( 'admin_init', 'seo_vevor_completar_drafts_vinculados', 6 );
