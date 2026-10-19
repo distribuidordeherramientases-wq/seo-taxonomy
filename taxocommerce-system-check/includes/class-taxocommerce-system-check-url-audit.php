@@ -31,12 +31,12 @@ final class TaxoCommerce_System_Check_URL_Audit {
      */
     public static function maybe_schedule_watchdog() {
         if ( ! wp_next_scheduled( self::RESUME_HOOK ) ) {
-            wp_schedule_event( time() + 300, 'five_minutes', self::RESUME_HOOK );
+            wp_schedule_event( time() + 300, 'tcs_five_minutes', self::RESUME_HOOK );
         }
     }
 
     public static function cron_intervals( $schedules ) {
-        $schedules['five_minutes'] = array(
+        $schedules['tcs_five_minutes'] = array(
             'interval' => 300,
             'display' => 'Cada cinco minutos (System Check)',
         );
@@ -64,15 +64,22 @@ final class TaxoCommerce_System_Check_URL_Audit {
 
     public static function deactivate() {
         wp_clear_scheduled_hook( self::RESUME_HOOK );
-        if ( function_exists( 'as_unschedule_all_actions' ) ) {
-            as_unschedule_all_actions( self::HOOK, array(), self::GROUP );
-        }
         if ( ! self::supported() ) {
             return;
         }
         global $wpdb;
         $runs = self::table( 'runs' );
         $items = self::table( 'items' );
+        $run_ids = $wpdb->get_col(
+            "SELECT id FROM {$runs} WHERE mode='local' AND status IN ('queued','running')"
+        );
+        foreach ( (array) $run_ids as $id ) {
+            $args = array( absint( $id ) );
+            wp_clear_scheduled_hook( self::HOOK, $args );
+            if ( function_exists( 'as_unschedule_all_actions' ) ) {
+                as_unschedule_all_actions( self::HOOK, $args, self::GROUP );
+            }
+        }
         $now = current_time( 'mysql', true );
         $wpdb->query(
             $wpdb->prepare(
@@ -390,6 +397,13 @@ final class TaxoCommerce_System_Check_URL_Audit {
                 }
                 $results[] = self::probe( (string) $row['url'], (string) $run['scope'], (int) $row['id'] );
             }
+            // The administrator may cancel while a remote request is in flight.
+            $current_state = (string) $wpdb->get_var(
+                $wpdb->prepare( "SELECT status FROM {$runs} WHERE id=%d LIMIT 1", $run_id )
+            );
+            if ( ! in_array( $current_state, array( 'queued', 'running' ), true ) ) {
+                return;
+            }
             $stored = seo_health_scan_store_results( $run, $results );
             if ( (int) ( $stored['stored'] ?? 0 ) !== count( $results ) ) {
                 self::fail( $run_id, 'No se han podido guardar todos los resultados del lote.' );
@@ -481,6 +495,40 @@ final class TaxoCommerce_System_Check_URL_Audit {
         return (bool) wp_http_validate_url( $url );
     }
 
+    /**
+     * Resolve relative Location headers without depending on a private or
+     * version-sensitive WP_Http method. Final URLs are validated separately.
+     */
+    private static function resolve_redirect( $location, $current ) {
+        $location = trim( (string) $location );
+        if ( preg_match( '#^https?://#i', $location ) ) {
+            return $location;
+        }
+        $parts = wp_parse_url( $current );
+        if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+            return '';
+        }
+        $scheme = strtolower( $parts['scheme'] );
+        $authority = $parts['host'];
+        if ( isset( $parts['port'] ) ) {
+            $authority .= ':' . (int) $parts['port'];
+        }
+        $base = $scheme . '://' . $authority;
+        if ( 0 === strpos( $location, '//' ) ) {
+            return $scheme . ':' . $location;
+        }
+        if ( 0 === strpos( $location, '/' ) ) {
+            return $base . $location;
+        }
+        $path = (string) ( $parts['path'] ?? '/' );
+        if ( '?' === substr( $location, 0, 1 ) || '#' === substr( $location, 0, 1 ) ) {
+            return $base . $path . $location;
+        }
+        $slash = strrpos( $path, '/' );
+        $dir = false === $slash ? '/' : substr( $path, 0, $slash + 1 );
+        return $base . $dir . $location;
+    }
+
     private static function probe( $url, $scope, $item_id ) {
         $origin = esc_url_raw( $url, array( 'http', 'https' ) );
         $result = array(
@@ -544,11 +592,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
                 $result['warnings'][] = 'Redirección HTTP ' . $status . ' sin destino verificable o con límite de saltos alcanzado.';
                 break;
             }
-            $next = $location;
-            if ( method_exists( 'WP_Http', 'make_absolute_url' ) ) {
-                $http = new WP_Http();
-                $next = $http->make_absolute_url( $location, $current );
-            }
+            $next = self::resolve_redirect( $location, $current );
             $next = esc_url_raw( (string) $next, array( 'http', 'https' ) );
             if ( '' === $next ) {
                 $result['error_type'] = 'invalid_redirect';
