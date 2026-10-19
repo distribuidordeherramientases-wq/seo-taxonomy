@@ -926,11 +926,12 @@ function seo_search_build_facets($product_ids) {
     }
 
     if (seo_search_vocabulary_tables_ready()) {
-        $vocabulary = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
-        $vocab_rows = $wpdb->get_results(
-            "SELECT v.semantic_group, v.id, v.label AS name, v.slug,
+        // The ID list contains only absint-validated IDs, but values must still
+        // be bound using WordPress placeholders rather than interpolated SQL.
+        $vocab_sql = "SELECT v.semantic_group, v.id, v.label AS name, v.slug,
                     COUNT(DISTINCT ov.object_id) AS product_count
              FROM {$objects} ov
              INNER JOIN {$vocabulary} v
@@ -938,10 +939,13 @@ function seo_search_build_facets($product_ids) {
                AND v.active = 1
              WHERE ov.object_type = 'product'
                AND ov.status = 1
-               AND ov.object_id IN ({$id_sql})
+               AND ov.object_id IN ({$id_placeholders})
                AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
              GROUP BY v.semantic_group, v.id, v.label, v.slug
-             ORDER BY v.semantic_group ASC, product_count DESC, v.label ASC",
+             ORDER BY v.semantic_group ASC, product_count DESC, v.label ASC";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Generated %d placeholders; product IDs are bound via prepare().
+        $vocab_rows = $wpdb->get_results(
+            $wpdb->prepare( $vocab_sql, $product_ids ),
             ARRAY_A
         );
 
@@ -966,7 +970,10 @@ function seo_search_build_facets($product_ids) {
     $lookup_table = esc_sql( $wpdb->prefix . 'wc_product_meta_lookup' );
     $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $lookup_table));
     if ($table_exists === $lookup_table) {
-        $price_row = $wpdb->get_row("SELECT MIN(min_price) AS min_price, MAX(max_price) AS max_price FROM {$lookup_table} WHERE product_id IN ({$id_sql})", ARRAY_A);
+        $price_sql = "SELECT MIN(min_price) AS min_price, MAX(max_price) AS max_price
+                      FROM {$lookup_table} WHERE product_id IN ({$id_placeholders})";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Generated %d placeholders; product IDs are bound via prepare().
+        $price_row = $wpdb->get_row( $wpdb->prepare( $price_sql, $product_ids ), ARRAY_A );
         if ($price_row) {
             $facets['price']['min'] = null !== $price_row['min_price'] ? (float) $price_row['min_price'] : '';
             $facets['price']['max'] = null !== $price_row['max_price'] ? (float) $price_row['max_price'] : '';
