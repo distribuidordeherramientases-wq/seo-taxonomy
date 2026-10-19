@@ -238,7 +238,7 @@ function seo_images_is_valid_attachment( $attachment_id ) {
 function seo_images_find_by_url_hash( $url_hash ) {
     global $wpdb;
 
-    $table = seo_images_table_images();
+    $table = esc_sql( seo_images_table_images() );
 
     return $wpdb->get_row(
         $wpdb->prepare(
@@ -261,7 +261,7 @@ function seo_images_find_by_content_hash( $content_hash ) {
         return null;
     }
 
-    $table = seo_images_table_images();
+    $table = esc_sql( seo_images_table_images() );
 
     return $wpdb->get_row(
         $wpdb->prepare(
@@ -298,7 +298,7 @@ function seo_images_register_usage( $attachment_id, $object_id, $usage = 'featur
         return new WP_Error( 'seo_images_invalid_relation', 'No se puede registrar la relación de la imagen.' );
     }
 
-    $table = seo_images_table_usages();
+    $table = esc_sql( seo_images_table_usages() );
 
     $result = $wpdb->query(
         $wpdb->prepare(
@@ -330,7 +330,7 @@ function seo_images_register_usage( $attachment_id, $object_id, $usage = 'featur
 function seo_images_store_image_record( array $data ) {
     global $wpdb;
 
-    $table = seo_images_table_images();
+    $table = esc_sql( seo_images_table_images() );
 
     $defaults = array(
         'attachment_id'  => null,
@@ -1004,7 +1004,7 @@ function seo_images_find_record_by_attachment( $attachment_id ) {
         return null;
     }
 
-    $table = seo_images_table_images();
+    $table = esc_sql( seo_images_table_images() );
 
     return $wpdb->get_row(
         $wpdb->prepare(
@@ -1373,7 +1373,7 @@ if (!function_exists('seo_images_supplier_image_link_columns')) {
         }
 
         $columns = array();
-        $table   = seo_images_table_supplier_images();
+        $table   = esc_sql( seo_images_table_supplier_images() );
 
         if (!seo_images_table_exists($table)) {
             return $columns;
