@@ -491,8 +491,8 @@ function seo_report_contents_get_attribute_summary() {
         }
     }
 
-    $values = $tables['values'];
-    $definitions = $tables['definitions'];
+    $values = esc_sql( $tables['values'] );
+    $definitions = esc_sql( $tables['definitions'] );
     $summary['available'] = true;
     $summary['assignments'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$values} WHERE product_id > 0");
     $summary['master_rows'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$definitions} WHERE activo = 1");
@@ -926,7 +926,7 @@ function seo_report_contents_get_affected_rows($level, $issue, $limit, $offset) 
                 }
             }
 
-            $values_table = $attribute_tables['values'];
+            $values_table = esc_sql( $attribute_tables['values'] );
             $definitions_table = $attribute_tables['definitions'];
             $terms_table = $attribute_tables['terms'];
             $display_value = "COALESCE(t.nombre, NULLIF(pa.valor_texto, ''), NULLIF(pa.valor_original, ''), CONCAT(CAST(pa.valor_numero AS CHAR), IF(pa.valor_numero_max IS NULL, '', CONCAT(' - ', CAST(pa.valor_numero_max AS CHAR))), IF(TRIM(COALESCE(pa.unidad,''))='', '', CONCAT(' ', pa.unidad))))";
