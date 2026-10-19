@@ -60,11 +60,11 @@ final class SEO_Ojeador_DB {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $charset = $wpdb->get_charset_collate();
 
-        $products = self::table('products');
-        $offers = self::table('offers');
-        $categories = self::table('categories');
+        $products = esc_sql( self::table('products') );
+        $offers = esc_sql( self::table('offers') );
+        $categories = esc_sql( self::table('categories') );
         $category_results = self::table('category_results');
-        $runs = self::table('runs');
+        $runs = esc_sql( self::table('runs') );
         $query_log = self::table('query_log');
 
         // Exact-product layer retained so historical data/helpers keep working.
@@ -788,7 +788,7 @@ final class SEO_Ojeador_DB {
         $args = wp_parse_args($args, array('limit'=>1000, 'search'=>''));
         $limit = max(1, min(2000, absint($args['limit'])));
         $search = trim((string) $args['search']);
-        $categories = self::table('categories');
+        $categories = esc_sql( self::table('categories') );
         $schema = self::google_schema_table();
         $has_schema = self::google_schema_available();
 
@@ -986,7 +986,7 @@ final class SEO_Ojeador_DB {
 
     public static function count_due_products() {
         global $wpdb;
-        $products = self::table('products');
+        $products = esc_sql( self::table('products') );
         $now = self::utc_now();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; cutoff time is bound through prepare().
         return absint($wpdb->get_var($wpdb->prepare(
@@ -1002,7 +1002,7 @@ final class SEO_Ojeador_DB {
     public static function due_product_ids($limit) {
         global $wpdb;
         $limit = max(1, min(50, absint($limit)));
-        $products = self::table('products');
+        $products = esc_sql( self::table('products') );
         $now = self::utc_now();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; cutoff time and LIMIT are bound through prepare().
         return array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
@@ -1239,7 +1239,7 @@ final class SEO_Ojeador_DB {
         $args = wp_parse_args($args, array('limit'=>250,'search'=>''));
         $limit = max(1, min(1000, absint($args['limit'])));
         $search = trim((string) $args['search']);
-        $products = self::table('products');
+        $products = esc_sql( self::table('products') );
         $where = "WHERE m.status IN ('ok','no_offers','no_match','error','weak_identity')";
         $params = array();
         if ($search !== '') {
@@ -1260,8 +1260,8 @@ final class SEO_Ojeador_DB {
 
     public static function summary() {
         global $wpdb;
-        $products = self::table('products');
-        $offers = self::table('offers');
+        $products = esc_sql( self::table('products') );
+        $offers = esc_sql( self::table('offers') );
         $rows = $wpdb->get_results("SELECT status,own_price_snapshot,market_median,offer_count FROM {$products}", ARRAY_A);
         $out = array(
             'published' => self::count_published_products(),
