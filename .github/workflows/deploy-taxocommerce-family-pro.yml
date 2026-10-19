@@ -63,6 +63,14 @@ jobs:
           assert "public function redirect_legacy_family_page()" in source, "Existing bookmarks must redirect"
           PY
 
+      - name: Verify editorial guidance for all four content types
+        shell: bash
+        run: |
+          set -euo pipefail
+          php taxocommerce-core/tests/editorial-guide-smoke.php
+          grep -Fq "TaxoCommerce_Core_Editorial_Guide::render( \$content_type, 'overview' )" taxocommerce-core/includes/class-taxocommerce-core-content-manager.php
+          grep -Fq "TaxoCommerce_Core_Editorial_Guide::render( \$type, 'editor' )" taxocommerce-core/includes/class-taxocommerce-core-editor-ui.php
+
   deploy:
     name: Deploy family plugins without SEO
     runs-on: ubuntu-latest
