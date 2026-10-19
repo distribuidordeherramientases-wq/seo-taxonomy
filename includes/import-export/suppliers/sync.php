@@ -87,6 +87,7 @@ function seo_supplier_sync_ensure_schema() {
 
     $definitions = [
         'estado_sincronizacion' => "VARCHAR(30) NOT NULL DEFAULT 'legacy'",
+        'source_row_key'       => "VARCHAR(64) NOT NULL DEFAULT ''",
         'pais_origen'           => "VARCHAR(2) NOT NULL DEFAULT ''",
         'idioma_origen'         => "VARCHAR(10) NOT NULL DEFAULT ''",
         'hash_aplicado'         => 'CHAR(64) DEFAULT NULL',
@@ -122,59 +123,60 @@ function seo_supplier_sync_ensure_schema() {
     }
 
     /*
-     * A VEVOR item may have the same external ID in several markets. Both
-     * legacy sites (with proveedor_producto) and newer STAGING databases
-     * (without that index) must end up with the same country-aware key.
+     * The original UNIQUE(proveedor,pais_origen,proveedor_id_externo)
+     * collapses different VEVOR variants. Extend it with source_row_key:
+     * ordinary providers keep source_row_key='', so their former uniqueness
+     * remains intact, while VEVOR variants use different stable keys.
+     * Never drop uniqueness globally for the other suppliers.
      */
-    if ( in_array( 'pais_origen', $columns, true ) ) {
-        $index_rows = (array) $wpdb->get_results( "SHOW INDEX FROM {$table}", ARRAY_A );
-        $legacy     = array();
-        $market_key = array();
-
-        foreach ( $index_rows as $index_row ) {
-            if ( 'proveedor_producto' === (string) ( $index_row['Key_name'] ?? '' ) ) {
-                $legacy[] = $index_row;
-            }
-            if ( 'proveedor_pais_producto' === (string) ( $index_row['Key_name'] ?? '' ) ) {
-                $market_key[] = $index_row;
-            }
+    $column_names = (array) $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+    if ( ! in_array( 'source_row_key', $column_names, true ) ) {
+        if ( function_exists( 'seo_system_private_log' ) ) {
+            seo_system_private_log( 'error', 'Supplier row key schema migration failed: ' . $wpdb->last_error );
         }
+        return;
+    }
 
-        usort( $legacy, static function ( $first, $second ) {
-            return (int) $first['Seq_in_index'] <=> (int) $second['Seq_in_index'];
-        } );
-        usort( $market_key, static function ( $first, $second ) {
-            return (int) $first['Seq_in_index'] <=> (int) $second['Seq_in_index'];
-        } );
-
-        $legacy_unique = 2 === count( $legacy )
-            && 0 === (int) $legacy[0]['Non_unique']
-            && 0 === (int) $legacy[1]['Non_unique']
-            && 'proveedor' === (string) $legacy[0]['Column_name']
-            && 'proveedor_id_externo' === (string) $legacy[1]['Column_name'];
-
-        $market_unique = 3 === count( $market_key )
-            && 0 === (int) $market_key[0]['Non_unique']
-            && 0 === (int) $market_key[1]['Non_unique']
-            && 0 === (int) $market_key[2]['Non_unique']
-            && 'proveedor' === (string) $market_key[0]['Column_name']
-            && 'pais_origen' === (string) $market_key[1]['Column_name']
-            && 'proveedor_id_externo' === (string) $market_key[2]['Column_name'];
-
-        // Three fixed schema operations only; do not pass a dynamically built
-        // SQL string to wpdb->query(). Each branch retains the old behaviour.
-        $migration_result = null;
-        if ( $legacy_unique && $market_unique ) {
-            $migration_result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`" );
-        } elseif ( $legacy_unique && ! $market_key ) {
-            $migration_result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)" );
-        } elseif ( ! $legacy && ! $market_key ) {
-            $migration_result = $wpdb->query( "ALTER TABLE {$table} ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`)" );
+    $index_rows = (array) $wpdb->get_results( "SHOW INDEX FROM {$table}", ARRAY_A );
+    $indexes = array();
+    foreach ( $index_rows as $index_row ) {
+        $name = (string) ( $index_row['Key_name'] ?? '' );
+        $sequence = absint( $index_row['Seq_in_index'] ?? 0 );
+        if ( '' === $name || ! $sequence ) {
+            continue;
         }
-
-        if ( false === $migration_result && function_exists( 'seo_system_private_log' ) ) {
-            seo_system_private_log( 'error', 'Supplier market identity migration: ' . $wpdb->last_error );
+        if ( ! isset( $indexes[ $name ] ) ) {
+            $indexes[ $name ] = array( 'unique' => 0 === (int) ( $index_row['Non_unique'] ?? 1 ), 'columns' => array() );
         }
+        $indexes[ $name ]['columns'][ $sequence ] = (string) ( $index_row['Column_name'] ?? '' );
+    }
+    foreach ( $indexes as $name => $info ) {
+        ksort( $info['columns'] );
+        $indexes[ $name ]['columns'] = array_values( $info['columns'] );
+    }
+
+    $new_index = isset( $indexes['proveedor_pais_producto'] )
+        && ! empty( $indexes['proveedor_pais_producto']['unique'] )
+        && array( 'proveedor', 'pais_origen', 'proveedor_id_externo', 'source_row_key' )
+            === $indexes['proveedor_pais_producto']['columns'];
+    $legacy = isset( $indexes['proveedor_producto'] );
+    $country = isset( $indexes['proveedor_pais_producto'] );
+    $result = true;
+    if ( $new_index ) {
+        if ( $legacy ) {
+            $result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`" );
+        }
+    } elseif ( $legacy && $country ) {
+        $result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, DROP INDEX `proveedor_pais_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`, `source_row_key`)" );
+    } elseif ( $country ) {
+        $result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_pais_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`, `source_row_key`)" );
+    } elseif ( $legacy ) {
+        $result = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `proveedor_producto`, ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`, `source_row_key`)" );
+    } else {
+        $result = $wpdb->query( "ALTER TABLE {$table} ADD UNIQUE KEY `proveedor_pais_producto` (`proveedor`, `pais_origen`, `proveedor_id_externo`, `source_row_key`)" );
+    }
+    if ( false === $result && function_exists( 'seo_system_private_log' ) ) {
+        seo_system_private_log( 'error', 'Supplier row identity migration: ' . $wpdb->last_error );
     }
 }
 
