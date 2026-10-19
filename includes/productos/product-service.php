@@ -109,7 +109,7 @@ if (!function_exists('seo_product_get_type_role_map')) {
 
         $map = [];
         $type_role_table = $wpdb->prefix . 'seo_type_role_map';
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
 
         if (!seo_product_table_exists($type_role_table) || !seo_product_table_exists($vocabulary_table)) {
             return $map;
@@ -163,8 +163,8 @@ if (!function_exists('seo_product_get_vocabulary_assignments')) {
             return $result;
         }
 
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
 
         if (!seo_product_table_exists($vocabulary_table) || !seo_product_table_exists($object_table)) {
             return $result;
