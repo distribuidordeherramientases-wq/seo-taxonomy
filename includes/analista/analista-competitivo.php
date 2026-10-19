@@ -904,7 +904,7 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
                 echo '<div class="notice notice-success inline"><p><strong>Informe competitivo generado y guardado.</strong></p></div>';
             } elseif ($notice === 'competitive_error') {
                 $message = isset($_GET['analista_message'])
-                    ? sanitize_text_field(rawurldecode((string) wp_unslash($_GET['analista_message'])))
+                    ? sanitize_text_field( wp_unslash( $_GET['analista_message'] ) )
                     : 'No se pudo generar el informe.';
                 echo '<div class="notice notice-error inline"><p><strong>' . esc_html($message) . '</strong></p></div>';
             }
