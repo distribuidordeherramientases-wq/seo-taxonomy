@@ -276,18 +276,13 @@ function seo_proveedores_fila_asociativa( $header, $row ) {
  * Mutable price and image fields must not participate in update identity.
  */
 function seo_proveedores_vevor_fila_base( array $row ) {
-    $canonical = trim( (string) ( $row['url_canonica'] ?? '' ) );
-    if ( '' === $canonical ) {
-        $canonical = (string) ( $row['url_origen'] ?? '' );
-    }
-    $canonical = (string) preg_replace( '/[?#].*$/', '', $canonical );
+    // Historical product differentiation: supplier SKU + title. A market
+    // extends the key to prevent US/DE/NL/FR variants from being mixed.
+    // Neither price nor the affiliate URL participates: they may change.
     return hash( 'sha256', wp_json_encode( array(
         strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ),
-        trim( (string) ( $row['proveedor_id_externo'] ?? '' ) ),
-        strtolower( $canonical ),
+        trim( (string) ( $row['sku'] ?? '' ) ),
         trim( (string) ( $row['nombre'] ?? '' ) ),
-        trim( (string) ( $row['categoria_proveedor'] ?? '' ) ),
-        trim( (string) ( $row['mpn'] ?? '' ) ),
     ) ) );
 }
 
