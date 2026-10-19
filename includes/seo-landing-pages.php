@@ -51,8 +51,8 @@ function seo_landing_maybe_install()
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
     $charset = $wpdb->get_charset_collate();
-    $candidates = seo_landing_candidates_table();
-    $stats = seo_landing_stats_table();
+    $candidates = esc_sql( seo_landing_candidates_table() );
+    $stats = esc_sql( seo_landing_stats_table() );
 
     dbDelta("CREATE TABLE {$candidates} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -251,7 +251,7 @@ function seo_landing_get_existing()
 {
     global $wpdb;
     $nodes = esc_sql( $wpdb->prefix . 'seo_nodes' );
-    $stats = seo_landing_stats_table();
+    $stats = esc_sql( seo_landing_stats_table() );
 
     $has_stats = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $stats)) === $stats);
     $stats_join = '';
@@ -293,7 +293,7 @@ function seo_landing_get_kpis()
 {
     global $wpdb;
     $existing = seo_landing_get_existing();
-    $candidates = seo_landing_candidates_table();
+    $candidates = esc_sql( seo_landing_candidates_table() );
 
     $published = 0;
     $views_30d = 0;
@@ -445,7 +445,7 @@ function seo_landing_sync_external_signals()
     }
 
     global $wpdb;
-    $table = seo_landing_candidates_table();
+    $table = esc_sql( seo_landing_candidates_table() );
     $signals = seo_landing_get_external_signals();
     $created = 0;
     $updated = 0;
@@ -592,7 +592,7 @@ function seo_landing_handle_save_candidate()
     seo_landing_maybe_install();
 
     global $wpdb;
-    $table = seo_landing_candidates_table();
+    $table = esc_sql( seo_landing_candidates_table() );
     $id = isset($_POST['candidate_id']) ? absint(wp_unslash($_POST['candidate_id'])) : 0;
     $title = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
     if ($title === '') {
@@ -1050,7 +1050,7 @@ function seo_landing_track_view()
     }
 
     seo_landing_maybe_install();
-    $stats = seo_landing_stats_table();
+    $stats = esc_sql( seo_landing_stats_table() );
     $date = current_time('Y-m-d');
     $now = current_time('mysql');
 
@@ -1071,7 +1071,7 @@ add_action('template_redirect', 'seo_landing_track_view', 40);
 function seo_landing_get_views_series($days = 30)
 {
     global $wpdb;
-    $stats = seo_landing_stats_table();
+    $stats = esc_sql( seo_landing_stats_table() );
     $days = max(7, min(90, absint($days)));
 
     $rows = $wpdb->get_results($wpdb->prepare(
@@ -1099,7 +1099,7 @@ function seo_landing_get_views_series($days = 30)
 function seo_landing_get_candidates($limit = 100)
 {
     global $wpdb;
-    $table = seo_landing_candidates_table();
+    $table = esc_sql( seo_landing_candidates_table() );
     $limit = max(1, min(500, absint($limit)));
     return (array) $wpdb->get_results("SELECT * FROM {$table} ORDER BY FIELD(status,'approved','review','candidate','detected','created','published','paused','rejected_requirements'), total_score DESC, updated_at DESC LIMIT {$limit}");
 }
