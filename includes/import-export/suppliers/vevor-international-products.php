@@ -59,49 +59,57 @@ function seo_vevor_region_product_market( $product_id ) {
     return count( $found ) === 1 ? (string) key( $found ) : '';
 }
 
+/**
+ * Only the catalogue row's object_id (or its exact catalogue-ID backlink)
+ * identifies the WooCommerce product. Provider SKUs and titles can repeat.
+ */
 function seo_vevor_region_existing_product( array $row, $market, $regional_sku ) {
+    global $wpdb;
+    unset( $regional_sku );
+
+    $catalog_id = absint( $row['id'] ?? 0 );
     $linked_id = absint( $row['object_id'] ?? 0 );
-    if ( $linked_id && 'product' === get_post_type( $linked_id ) && 'trash' !== get_post_status( $linked_id ) ) {
-        // Never overwrite or reassign a Spanish product.
-        if ( seo_vevor_region_product_market( $linked_id ) !== $market ) {
-            return new WP_Error( 'vevor_wrong_product', 'La oferta apunta a un producto de otro mercado; no se modifica.' );
+    if ( ! $linked_id && $catalog_id ) {
+        $matches = (array) $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT p.ID FROM {$wpdb->posts} p
+                 INNER JOIN {$wpdb->postmeta} pm
+                    ON pm.post_id = p.ID
+                   AND pm.meta_key = '_seo_proveedor_catalogo_id'
+                 WHERE p.post_type = 'product' AND p.post_status <> 'trash'
+                   AND pm.meta_value = %s ORDER BY p.ID ASC LIMIT 2",
+                (string) $catalog_id
+            )
+        );
+        if ( count( $matches ) > 1 ) {
+            return new WP_Error( 'vevor_ambiguous_backlink', 'Varias fichas enlazadas a la misma fila; no se modifica ninguna.' );
         }
-        return $linked_id;
+        $linked_id = absint( $matches[0] ?? 0 );
+    }
+    if ( ! $linked_id ) {
+        return 0;
     }
 
-    $sku_owner = function_exists( 'wc_get_product_id_by_sku' ) ? absint( wc_get_product_id_by_sku( $regional_sku ) ) : 0;
-    if ( $sku_owner ) {
-        // A trashed WooCommerce record is not a successfully created draft.
-        if ( 'trash' === get_post_status( $sku_owner ) ) {
-            return new WP_Error( 'vevor_sku_in_trash', 'El SKU pertenece a una ficha en la papelera; no se aceptara hasta resolverla.' );
-        }
-        if ( seo_vevor_region_product_market( $sku_owner ) !== $market ||
-            (string) get_post_meta( $sku_owner, '_seo_proveedor_id_externo', true ) !== (string) ( $row['proveedor_id_externo'] ?? '' ) ) {
-            return new WP_Error( 'vevor_sku_collision', 'El SKU regional pertenece a otra ficha; no se modifica.' );
-        }
-        return $sku_owner;
+    $linked_market = strtoupper( (string) get_post_meta( $linked_id, '_seo_pais_origen', true ) );
+    $linked_provider = (string) get_post_meta( $linked_id, '_seo_proveedor', true );
+    $linked_catalog_id = absint( get_post_meta( $linked_id, '_seo_proveedor_catalogo_id', true ) );
+    $linked_external_id = trim( (string) get_post_meta( $linked_id, '_seo_proveedor_id_externo', true ) );
+    if ( 'product' !== get_post_type( $linked_id ) || 'trash' === get_post_status( $linked_id ) ||
+        0 !== strcasecmp( $linked_provider, 'VEVOR' ) ||
+        ( '' !== $linked_market && $linked_market !== $market ) ||
+        ( $linked_catalog_id && $linked_catalog_id !== $catalog_id ) ||
+        ( '' !== $linked_external_id && $linked_external_id !== trim( (string) ( $row['proveedor_id_externo'] ?? '' ) ) ) ) {
+        return new WP_Error( 'vevor_wrong_product', 'La vinculación pertenece a otra ficha, proveedor o mercado.' );
     }
-
-    // The 32 earlier pilot products used p_XXXXXXXXXXXX instead of market SKUs.
-    $older_ids = get_posts( array(
-        'post_type'      => 'product',
-        'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-        'fields'         => 'ids',
-        'posts_per_page' => 20,
-        'meta_query'     => array(
-            array( 'key' => '_seo_proveedor_id_externo', 'value' => (string) ( $row['proveedor_id_externo'] ?? '' ) ),
-        ),
-    ) );
-    foreach ( (array) $older_ids as $id ) {
-        if ( seo_vevor_region_product_market( $id ) === $market &&
-            0 === strcasecmp( (string) get_post_meta( $id, '_seo_proveedor', true ), 'VEVOR' ) ) {
-            return absint( $id );
-        }
+    // If the original country metadata is missing, require the exact
+    // catalogue-ID backlink instead of trusting a repeated SKU.
+    if ( '' === $linked_market && $linked_catalog_id !== $catalog_id ) {
+        return new WP_Error( 'vevor_missing_market_identity', 'No se puede verificar el país de la ficha enlazada.' );
     }
-    return 0;
+    return $linked_id;
 }
 
-function seo_vevor_region_apply_offer( array $row, $market ) {
+function seo_vevor_region_apply_offer( array $row, $market, $linked_draft_only = false ) {
     global $wpdb;
     if ( ! class_exists( 'WC_Product_External' ) || ! function_exists( 'wc_get_product_id_by_sku' ) ) {
         return new WP_Error( 'vevor_wc_missing', 'WooCommerce no esta disponible.' );
@@ -134,7 +142,9 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
     if ( ! preg_match( '/^\d{12}$/', $external_id ) || '' === $name || empty( $row['imagenes'] ) ) {
         return new WP_Error( 'vevor_incomplete_offer', 'Faltan identidad VEVOR, titulo o imagen externa.' );
     }
-    $regional_sku = 'vevor-' . strtolower( $market ) . '-p_' . $external_id;
+    // WooCommerce requires a unique internal SKU. Keep VEVOR's original
+    // repeated SKU in supplier metadata; never use it to identify a variant.
+    $regional_sku = 'vevor-' . strtolower( $market ) . '-row-' . absint( $row['id'] ?? 0 );
     $lock = seo_proveedores_adquirir_bloqueo_alta( $row, 5 );
     if ( is_wp_error( $lock ) ) {
         return $lock;
@@ -145,19 +155,72 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
             $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1", absint( $row['id'] ?? 0 ) ),
             ARRAY_A
         );
-        if ( ! is_array( $fresh ) || ! in_array( (string) ( $fresh['estado_seleccion'] ?? '' ), array( 'pendiente', 'revisar', 'aceptado' ), true ) ||
-            $market !== strtoupper( (string) ( $fresh['pais_origen'] ?? '' ) ) ) {
+        if ( ! is_array( $fresh ) || 0 !== strcasecmp( (string) ( $fresh['proveedor'] ?? '' ), 'VEVOR' ) ||
+            ! in_array( (string) ( $fresh['estado_seleccion'] ?? '' ), array( 'pendiente', 'revisar', 'aceptado' ), true ) ||
+            $market !== strtoupper( (string) ( $fresh['pais_origen'] ?? '' ) ) ||
+            $external_id !== (string) ( $fresh['proveedor_id_externo'] ?? '' ) ||
+            $url !== esc_url_raw( (string) ( $fresh['url_origen'] ?? '' ) ) ||
+            $expected_currency[ $market ] !== strtoupper( (string) ( $fresh['moneda'] ?? '' ) ) ) {
             return new WP_Error( 'vevor_offer_changed', 'La oferta ha cambiado durante el proceso.' );
         }
 
-        $existing = seo_vevor_region_existing_product( $fresh, $market, $regional_sku );
+        $regional_sku = 'vevor-' . strtolower( $market ) . '-row-' . absint( $fresh['id'] );
+        $existing = $linked_draft_only
+            ? absint( $fresh['object_id'] ?? 0 )
+            : seo_vevor_region_existing_product( $fresh, $market, $regional_sku );
         if ( is_wp_error( $existing ) ) {
             return $existing;
+        }
+        if ( $linked_draft_only ) {
+            // The completion command MUST NOT create products, merge by SKU,
+            // change published products or alter Spanish inventory.
+            if ( ! $existing || 'draft' !== get_post_status( $existing ) ) {
+                return new WP_Error( 'vevor_draft_link_missing', 'No existe un draft enlazado; no se crea ninguna ficha.' );
+            }
+            $backlink = absint( get_post_meta( $existing, '_seo_proveedor_catalogo_id', true ) );
+            $provider = (string) get_post_meta( $existing, '_seo_proveedor', true );
+            $market_meta = strtoupper( (string) get_post_meta( $existing, '_seo_pais_origen', true ) );
+            $external_meta = (string) get_post_meta( $existing, '_seo_proveedor_id_externo', true );
+            if ( 'product' !== get_post_type( $existing ) ||
+                $backlink !== absint( $fresh['id'] ) ||
+                0 !== strcasecmp( $provider, 'VEVOR' ) ||
+                ( '' !== $market_meta && $market_meta !== $market ) ||
+                ( '' !== $external_meta && $external_meta !== $external_id ) ) {
+                return new WP_Error( 'vevor_draft_identity_invalid', 'Vinculacion de esta ficha no verificada; no se modifica.' );
+            }
+            $collisions = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$table}
+                     WHERE proveedor = %s AND object_id = %d AND id <> %d",
+                    'VEVOR', $existing, absint( $fresh['id'] )
+                )
+            );
+            if ( (int) $collisions > 0 ) {
+                return new WP_Error( 'vevor_shared_object_id', 'Varias filas del catálogo apuntan al mismo draft; no se mezclan.' );
+            }
         }
         $created = false;
         if ( $existing ) {
             $product_id = absint( $existing );
+            $product = wc_get_product( $product_id );
+            if ( ! $product || ! $product->is_type( 'external' ) ) {
+                return new WP_Error( 'vevor_wrong_type', 'La ficha vinculada no es un producto externo VEVOR.' );
+            }
+            $product->set_product_url( $url );
+            $buttons = array( 'US' => 'View at VEVOR', 'DE' => 'Bei VEVOR ansehen', 'NL' => 'Bekijk bij VEVOR', 'FR' => 'Voir sur VEVOR' );
+            $product->set_button_text( $buttons[ $market ] );
+            // Preserve editorial content. Fill empty fields only.
+            if ( '' === trim( (string) $product->get_name() ) ) {
+                $product->set_name( $name );
+            }
+            if ( '' === trim( (string) $product->get_description() ) && ! empty( $fresh['descripcion'] ) ) {
+                $product->set_description( wp_kses_post( (string) $fresh['descripcion'] ) );
+            }
+            $product->save();
         } else {
+            if ( $linked_draft_only ) {
+                return new WP_Error( 'vevor_no_create', 'La sincronización de drafts no crea productos.' );
+            }
             $product = new WC_Product_External();
             $product->set_name( $name );
             $product->set_status( 'draft' );
@@ -180,33 +243,87 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
                 return new WP_Error( 'vevor_wc_create_failed', 'WooCommerce no ha guardado el borrador.' );
             }
             $created = true;
-            update_post_meta( $product_id, '_seo_proveedor', 'VEVOR' );
-            update_post_meta( $product_id, '_seo_proveedor_id_externo', $external_id );
-            update_post_meta( $product_id, '_seo_proveedor_catalogo_id', absint( $fresh['id'] ) );
-            update_post_meta( $product_id, '_seo_proveedor_url_origen', $url );
-            update_post_meta( $product_id, '_seo_proveedor_url_canonica', esc_url_raw( (string) ( $fresh['url_canonica'] ?? '' ) ) );
-            update_post_meta( $product_id, '_seo_pais_origen', $market );
-            update_post_meta( $product_id, '_seo_locale', array( 'US' => 'en-US', 'DE' => 'de-DE', 'NL' => 'nl-NL', 'FR' => 'fr-FR' )[ $market ] );
-            update_post_meta( $product_id, '_seo_market_currency', $expected_currency[ $market ] );
-            update_post_meta( $product_id, '_seo_market_price', sanitize_text_field( (string) ( $fresh['precio_con_iva'] ?? '' ) ) );
-            update_post_meta( $product_id, '_seo_vevor_source_category', sanitize_text_field( (string) ( $fresh['categoria_proveedor'] ?? '' ) ) );
+
+        }
+
+        // Copy the complete regional commercial snapshot to BOTH new and
+        // previously approved products. Updates keep status, SKU and categories.
+        $price_raw = trim( (string) ( $fresh['precio_con_iva'] ?? '' ) );
+        if ( '' === $price_raw ) {
+            $price_raw = trim( (string) ( $fresh['precio_sin_iva'] ?? '' ) );
+        }
+        $price = wc_format_decimal( $price_raw );
+        if ( '' === $price_raw || ! is_numeric( str_replace( ',', '.', $price_raw ) ) ||
+            '' === $price || (float) $price <= 0 ) {
+            return new WP_Error( 'vevor_market_price_missing', 'Precio de mercado incompleto en el catálogo; no se confirma.' );
+        }
+        // WooCommerce uses a single shop-wide currency (EUR). USD belongs
+        // to market metadata only, never a misleading EUR _regular_price.
+        if ( 'EUR' === $expected_currency[ $market ] ) {
+            $product->set_regular_price( $price );
+            $product->set_sale_price( '' );
+            $product->set_price( $price );
+            $product->save();
+        } elseif ( 'draft' === get_post_status( $product_id ) ) {
+            $product->set_regular_price( '' );
+            $product->set_sale_price( '' );
+            $product->set_price( '' );
+            $product->save();
+        }
+
+        $canonical = esc_url_raw( (string) ( $fresh['url_canonica'] ?? '' ) );
+        if ( '' === $canonical ) {
+            $canonical = esc_url_raw( (string) preg_replace( '/[?#].*$/', '', $url ) );
+        }
+        $metadata = array(
+            '_seo_proveedor'                 => 'VEVOR',
+            '_seo_proveedor_id_externo'      => $external_id,
+            '_seo_proveedor_catalogo_id'     => absint( $fresh['id'] ),
+            '_seo_proveedor_url_origen'      => $url,
+            '_seo_proveedor_url_canonica'    => $canonical,
+            '_seo_pais_origen'               => $market,
+            '_seo_locale'                    => array( 'US' => 'en-US', 'DE' => 'de-DE', 'NL' => 'nl-NL', 'FR' => 'fr-FR' )[ $market ],
+            '_seo_market_currency'           => $expected_currency[ $market ],
+            '_seo_market_price'              => $price,
+            '_seo_proveedor_moneda'          => $expected_currency[ $market ],
+            '_seo_proveedor_precio_con_iva'  => sanitize_text_field( (string) ( $fresh['precio_con_iva'] ?? '' ) ),
+            '_seo_proveedor_precio_sin_iva'  => sanitize_text_field( (string) ( $fresh['precio_sin_iva'] ?? '' ) ),
+            '_seo_categoria_proveedor'       => sanitize_text_field( (string) ( $fresh['categoria_proveedor'] ?? '' ) ),
+            '_seo_vevor_source_category'     => sanitize_text_field( (string) ( $fresh['categoria_proveedor'] ?? '' ) ),
+            '_seo_proveedor_sku_original'    => sanitize_text_field( (string) ( $fresh['sku'] ?? '' ) ),
+        );
+        if ( 'EUR' === $expected_currency[ $market ] ) {
+            $metadata['_seo_precio_proveedor'] = $price;
+        }
+        foreach ( $metadata as $key => $value ) {
+            update_post_meta( $product_id, $key, $value );
+        }
+        if ( $url !== (string) get_post_meta( $product_id, '_product_url', true ) ||
+            $price !== (string) get_post_meta( $product_id, '_seo_market_price', true ) ||
+            $expected_currency[ $market ] !== (string) get_post_meta( $product_id, '_seo_market_currency', true ) ||
+            $market !== (string) get_post_meta( $product_id, '_seo_pais_origen', true ) ) {
+            return new WP_Error( 'vevor_data_not_saved', 'WooCommerce no ha conservado los datos comerciales; no se da por sincronizado.' );
         }
 
         // Image storage is keyed by supplier + SKU; keep that SKU regional
         // to prevent different country's image feeds overwriting each other.
         $image_row = $fresh;
-        $image_row['sku'] = $regional_sku;
-        $image_note = '';
-        if ( function_exists( 'seo_proveedores_guardar_imagenes_externas' ) ) {
-            $image_result = seo_proveedores_guardar_imagenes_externas( $image_row, $product_id );
-            if ( is_wp_error( $image_result ) ) {
-                $image_note = ' No se pudieron registrar las imagenes externas.';
-            }
+        $image_row['sku'] = 'vevor-' . strtolower( $market ) . '-row-' . absint( $fresh['id'] );
+        if ( ! function_exists( 'seo_proveedores_guardar_imagenes_externas' ) ) {
+            return new WP_Error( 'vevor_images_unavailable', 'El servicio de imagenes externas no esta cargado.' );
         }
+        $image_result = seo_proveedores_guardar_imagenes_externas( $image_row, $product_id );
+        if ( is_wp_error( $image_result ) ) {
+            return $image_result;
+        }
+        if ( ! is_array( $image_result ) || absint( $image_result['stored'] ?? 0 ) < 1 ) {
+            return new WP_Error( 'vevor_images_incomplete', 'La galeria externa esta incompleta; no se marca como sincronizado.' );
+        }
+
         if ( ! seo_supplier_sync_finalize_applied_row( $fresh, $product_id ) ) {
             return new WP_Error( 'vevor_catalog_link_failed', 'Producto creado o encontrado, pero no se pudo guardar object_id en el catalogo. Se puede reintentar sin duplicar.' );
         }
-        return array( 'product_id' => $product_id, 'created' => $created, 'message' => $image_note );
+        return array( 'product_id' => $product_id, 'created' => $created, 'message' => '' );
     } catch ( Throwable $error ) {
         return new WP_Error( 'vevor_region_failure', $error->getMessage() );
     } finally {
