@@ -752,9 +752,16 @@ if (!function_exists('seo_classifier_job_claim_batch')) {
         $ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$seo_wporg_sql_items} WHERE job_id=%d AND status='pending' ORDER BY id ASC LIMIT %d", $job_id, $limit));
         $ids = array_values(array_filter(array_map('absint', (array)$ids)));
         if (!$ids) return [];
-        $id_sql = implode(',', $ids);
-        $wpdb->query("UPDATE {$seo_wporg_sql_items} SET status='processing',attempts=attempts+1,started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE id IN ({$id_sql}) AND status='pending'");
-        return (array)$wpdb->get_results("SELECT * FROM {$seo_wporg_sql_items} WHERE id IN ({$id_sql}) AND status='processing' ORDER BY id ASC", ARRAY_A);
+        $id_placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        // The IDs come from absint() above and are passed as prepared parameters.
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$seo_wporg_sql_items} SET status='processing',attempts=attempts+1,started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE id IN ({$id_placeholders}) AND status='pending'",
+            $ids
+        ));
+        return (array)$wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$seo_wporg_sql_items} WHERE id IN ({$id_placeholders}) AND status='processing' ORDER BY id ASC",
+            $ids
+        ), ARRAY_A);
     }
 }
 
