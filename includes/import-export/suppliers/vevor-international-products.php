@@ -204,17 +204,20 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
         // to prevent different country's image feeds overwriting each other.
         $image_row = $fresh;
         $image_row['sku'] = 'vevor-' . strtolower( $market ) . '-row-' . absint( $fresh['id'] );
-        $image_note = '';
-        if ( function_exists( 'seo_proveedores_guardar_imagenes_externas' ) ) {
-            $image_result = seo_proveedores_guardar_imagenes_externas( $image_row, $product_id );
-            if ( is_wp_error( $image_result ) ) {
-                $image_note = ' No se pudieron registrar las imagenes externas.';
-            }
+        if ( ! function_exists( 'seo_proveedores_guardar_imagenes_externas' ) ) {
+            return new WP_Error( 'vevor_images_unavailable', 'Servicio de imagenes externas no disponible.' );
+        }
+        $image_result = seo_proveedores_guardar_imagenes_externas( $image_row, $product_id );
+        if ( is_wp_error( $image_result ) ) {
+            return $image_result;
+        }
+        if ( ! is_array( $image_result ) || absint( $image_result['stored'] ?? 0 ) < 1 ) {
+            return new WP_Error( 'vevor_images_incomplete', 'Imagenes externas incompletas: no se marca la oferta como sincronizada.' );
         }
         if ( ! seo_supplier_sync_finalize_applied_row( $fresh, $product_id ) ) {
             return new WP_Error( 'vevor_catalog_link_failed', 'Producto creado o encontrado, pero no se pudo guardar object_id en el catalogo. Se puede reintentar sin duplicar.' );
         }
-        return array( 'product_id' => $product_id, 'created' => $created, 'message' => $image_note );
+        return array( 'product_id' => $product_id, 'created' => $created, 'message' => '' );
     } catch ( Throwable $error ) {
         return new WP_Error( 'vevor_region_failure', $error->getMessage() );
     } finally {
