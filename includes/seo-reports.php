@@ -1576,6 +1576,9 @@ function seo_reports_data_layer_delete_ids($table_key, $ids, $type, $label, $met
  */
 function seo_reports_cleanup_deleted_category_data($term_id, $faq_table = false, $source_module = 'seo_reports') {
     global $wpdb;
+    // The table name comes from the plugin's FAQ resolver. Escape it at the
+    // SQL boundary for callers using this helper directly.
+    $faq_table = $faq_table ? esc_sql( $faq_table ) : false;
 
     $term_id = absint($term_id);
     $empty = array('relations' => 0, 'nodes' => 0, 'vocabulary' => 0, 'faqs' => 0);
@@ -2051,7 +2054,7 @@ function seo_delete_orphan_category_faqs_handler() {
         'seo_faq_orphan_nonce'
     );
 
-    $faq_table = seo_get_faq_table_name();
+    $faq_table = esc_sql( seo_get_faq_table_name() );
 
     if (!$faq_table) {
         wp_die('No se encuentra la tabla de FAQs.');
@@ -2110,7 +2113,7 @@ function seo_delete_orphan_product_faqs_handler() {
         'seo_faq_orphan_nonce'
     );
 
-    $faq_table = seo_get_faq_table_name();
+    $faq_table = esc_sql( seo_get_faq_table_name() );
 
     if (!$faq_table) {
         wp_die('No se encuentra la tabla de FAQs.');
@@ -2160,7 +2163,7 @@ function seo_delete_orphan_product_faqs_handler() {
 function seo_render_faq_orphan_anomalies_report() {
     global $wpdb;
 
-    $faq_table = seo_get_faq_table_name();
+    $faq_table = esc_sql( seo_get_faq_table_name() );
 
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">🧩 FAQs sin elemento relacionado</h3>';
     echo '<p>Detecta FAQs que quedaron vivas después de borrar, mover o enviar a papelera categorías, productos o páginas/hubs.</p>';
