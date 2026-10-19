@@ -3,7 +3,7 @@ Plugin Name: TaxoCommerce System Check
 Description: Diagnostico de WordPress, servidor, integridad del plugin e informes voluntarios.
 Requires at least: 5.8
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,6 +13,8 @@ Plugin independiente con los chequeos existentes de TaxoCommerce SEO:
 * System Check: PHP, MySQL, WordPress, hosting, rendimiento, seguridad y logs.
 * Plugin Validation: chequeos funcionales, de servicios e integridad del codigo.
 * Informes PDF/JSON y correo periodico previa activacion.
+
+Cuando TaxoCommerce Core esta activo, los menus y el registro de modulos se integran en Core. Sin Core se ofrece un menu independiente.
 
 Cuando TaxoCommerce SEO permanece activo, System Check reutiliza su motor
 actual para evitar declaraciones de funciones PHP duplicadas.

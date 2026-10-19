@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.4
+Stable tag: 0.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,10 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.4.5 =
+* TaxoCommerce System Check se incorpora al catalogo de la familia con instalacion mediante ZIP, activacion y acceso integrado en el menu Core.
+
 
 = 0.4.4 =
 * Process registry now exposes progress, detail and an extension action URL.
