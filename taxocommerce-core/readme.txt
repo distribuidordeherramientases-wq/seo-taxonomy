@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.5
+Stable tag: 0.4.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,14 @@ The pilot also includes:
 * Extension hooks for KPIs and future modules.
 
 == Changelog ==
+
+= 0.4.6 =
+* Redisenado el editor de contenidos: interfaz responsive con tarjetas, editor visual de WordPress, imagen, publicacion y buscadores AJAX de categorias y etiquetas.
+* Etiquetas semanticas transversales para productos, categorias, posts y paginas, reutilizando seo_vocabulary y seo_object_vocabulary; las asignaciones automaticas se conservan.
+* Atributos WooCommerce globales y personalizados editables por CRUD, con preservacion de atributos de variaciones.
+* Campos especificos de productos externos (URL de afiliacion y texto del boton) y etiquetas nativas de WordPress/WooCommerce.
+* Se mantiene la fuente de verdad canonica y no se crean terminos Vocabulary automaticamente.
+
 
 = 0.4.5 =
 * TaxoCommerce System Check se incorpora al catalogo de la familia con instalacion mediante ZIP, activacion y acceso integrado en el menu Core.

@@ -40,6 +40,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	public function register_hooks() {
 		add_action( 'admin_post_taxocommerce_core_save_content', array( $this, 'save_content' ) );
+        TaxoCommerce_Core_Editor_UI::register_hooks();
 	}
 
 	/**
@@ -47,37 +48,39 @@ final class TaxoCommerce_Core_Content_Manager {
 	 *
 	 * @return void
 	 */
-	public function render() {
-		$this->guard();
+    public function render() {
+        $this->guard();
 
-		$content_type = $this->request_content_type();
-		$action       = isset( $_GET['tc_action'] ) ? sanitize_key( wp_unslash( $_GET['tc_action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
-		$item_id      = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
-		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'Gestor de contenidos', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Productos, categorías de producto, posts y páginas se editan desde un único lugar, manteniendo WordPress y WooCommerce como fuente de verdad.', 'taxocommerce-core' ); ?></p>
-			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'estas ediciones están repartidas entre WordPress, WooCommerce y varias herramientas del plugin TaxoCommerce actual. Aquí empezamos a unificarlas sin duplicar los datos.', 'taxocommerce-core' ); ?></p></div>
-			<?php $this->render_tabs( $content_type ); ?>
+        $content_type = $this->request_content_type();
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only editor routing.
+        $action = isset( $_GET['tc_action'] ) ? sanitize_key( wp_unslash( $_GET['tc_action'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only editor routing.
+        $item_id = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
 
-			<?php if ( isset( $_GET['updated'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['updated'] ) ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Success flag only. ?>
-				<div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Contenido actualizado.', 'taxocommerce-core' ); ?></p></div>
-			<?php endif; ?>
+        if ( 'edit' === $action && $item_id ) {
+            echo '<div class="wrap tc-content-editor-wrap">';
+            $this->render_editor( $content_type, $item_id );
+            echo '</div>';
+            return;
+        }
+        ?>
+        <div class="wrap tc-content-overview">
+            <h1><?php echo esc_html__( 'Gestor de contenidos', 'taxocommerce-core' ); ?></h1>
+            <p><?php echo esc_html__( 'Administra contenidos y catálogo en un único lugar, manteniendo WordPress y WooCommerce como fuente canónica.', 'taxocommerce-core' ); ?></p>
+            <?php $this->render_tabs( $content_type ); ?>
 
-			<?php
-			if ( 'edit' === $action && $item_id ) {
-				$this->render_editor( $content_type, $item_id );
-				return;
-			}
+            <?php if ( isset( $_GET['updated'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['updated'] ) ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only confirmation. ?>
+                <div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Contenido actualizado.', 'taxocommerce-core' ); ?></p></div>
+            <?php endif; ?>
 
-			$this->render_kpis( $content_type );
-			$this->render_filters( $content_type );
-			$this->render_list( $content_type );
-			?>
-		</div>
-		<?php
-	}
-
+            <?php
+            $this->render_kpis( $content_type );
+            $this->render_filters( $content_type );
+            $this->render_list( $content_type );
+            ?>
+        </div>
+        <?php
+    }
 	/**
 	 * Saves one canonical object.
 	 *
@@ -105,6 +108,16 @@ final class TaxoCommerce_Core_Content_Manager {
 		if ( is_wp_error( $result ) ) {
 			wp_die( esc_html( $result->get_error_message() ) );
 		}
+
+        // A trash action must not rewrite the semantic relationships.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
+        $next_status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '';
+        if ( 'trash' !== $next_status ) {
+            $vocab_result = TaxoCommerce_Core_Vocabulary::save( $content_type, $item_id );
+            if ( is_wp_error( $vocab_result ) ) {
+                wp_die( esc_html( $vocab_result->get_error_message() ) );
+            }
+        }
 
 		$this->logger->info(
 			'Contenido actualizado desde el Core.',
@@ -458,54 +471,16 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @param int $item_id Product ID.
 	 * @return void
 	 */
-	private function render_product_editor( $item_id ) {
-		if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_post', $item_id ) ) {
-			wp_die( esc_html__( 'La edición de productos no está disponible.', 'taxocommerce-core' ) );
-		}
-
-		$product = wc_get_product( $item_id );
-		if ( ! $product ) {
-			wp_die( esc_html__( 'Producto no encontrado.', 'taxocommerce-core' ) );
-		}
-
-		$category_ids = array_map( 'absint', $product->get_category_ids() );
-		$categories   = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name' ) );
-
-		$this->render_editor_header( 'products', $item_id, $product->get_name(), $this->content_score( 'products', $item_id ) );
-		?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="taxocommerce_core_save_content">
-			<input type="hidden" name="content_type" value="products">
-			<input type="hidden" name="item_id" value="<?php echo esc_attr( (string) $item_id ); ?>">
-			<?php wp_nonce_field( 'taxocommerce_core_save_content', 'taxocommerce_core_nonce' ); ?>
-			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="tc-title"><?php echo esc_html__( 'Nombre', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-title" name="title" value="<?php echo esc_attr( $product->get_name( 'edit' ) ); ?>" required></td></tr>
-				<tr><th scope="row"><label for="tc-slug"><?php echo esc_html__( 'Slug', 'taxocommerce-core' ); ?></label></th><td><input class="regular-text" id="tc-slug" name="slug" value="<?php echo esc_attr( $product->get_slug( 'edit' ) ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-status"><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></label></th><td><?php $this->render_status_select( $product->get_status( 'edit' ) ); ?></td></tr>
-				<tr><th scope="row"><label for="tc-sku"><?php echo esc_html__( 'SKU', 'taxocommerce-core' ); ?></label></th><td><input class="regular-text" id="tc-sku" name="sku" value="<?php echo esc_attr( $product->get_sku( 'edit' ) ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-regular-price"><?php echo esc_html__( 'Precio normal', 'taxocommerce-core' ); ?></label></th><td><input id="tc-regular-price" name="regular_price" value="<?php echo esc_attr( $product->get_regular_price( 'edit' ) ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-sale-price"><?php echo esc_html__( 'Precio rebajado', 'taxocommerce-core' ); ?></label></th><td><input id="tc-sale-price" name="sale_price" value="<?php echo esc_attr( $product->get_sale_price( 'edit' ) ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-stock-status"><?php echo esc_html__( 'Estado de stock', 'taxocommerce-core' ); ?></label></th><td><select id="tc-stock-status" name="stock_status"><option value="instock" <?php selected( $product->get_stock_status( 'edit' ), 'instock' ); ?>><?php echo esc_html__( 'En stock', 'taxocommerce-core' ); ?></option><option value="outofstock" <?php selected( $product->get_stock_status( 'edit' ), 'outofstock' ); ?>><?php echo esc_html__( 'Agotado', 'taxocommerce-core' ); ?></option><option value="onbackorder" <?php selected( $product->get_stock_status( 'edit' ), 'onbackorder' ); ?>><?php echo esc_html__( 'Disponible bajo pedido', 'taxocommerce-core' ); ?></option></select></td></tr>
-				<tr><th scope="row"><label for="tc-excerpt"><?php echo esc_html__( 'Descripción corta', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="5" id="tc-excerpt" name="excerpt"><?php echo esc_textarea( $product->get_short_description( 'edit' ) ); ?></textarea></td></tr>
-				<tr><th scope="row"><label for="tc-content"><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="14" id="tc-content" name="content"><?php echo esc_textarea( $product->get_description( 'edit' ) ); ?></textarea></td></tr>
-				<tr>
-					<th scope="row"><label for="tc-product-categories"><?php echo esc_html__( 'Categorías de producto', 'taxocommerce-core' ); ?></label></th>
-					<td>
-						<select id="tc-product-categories" name="category_ids[]" multiple size="14" style="min-width:420px;max-width:100%;">
-							<?php if ( is_array( $categories ) ) : ?>
-								<?php foreach ( $categories as $category ) : ?>
-									<option value="<?php echo esc_attr( (string) $category->term_id ); ?>" <?php selected( in_array( absint( $category->term_id ), $category_ids, true ) ); ?>><?php echo esc_html( $category->name ); ?></option>
-								<?php endforeach; ?>
-							<?php endif; ?>
-						</select>
-						<p class="description"><?php echo esc_html__( 'Esta edición escribe directamente en la relación nativa producto-categoría de WooCommerce.', 'taxocommerce-core' ); ?></p>
-					</td>
-				</tr>
-			</table>
-			<?php submit_button( __( 'Actualizar producto', 'taxocommerce-core' ) ); ?>
-		</form>
-		<?php
-	}
+    private function render_product_editor( $item_id ) {
+        if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_post', $item_id ) ) {
+            wp_die( esc_html__( 'La edición de productos no está disponible.', 'taxocommerce-core' ) );
+        }
+        $product = wc_get_product( $item_id );
+        if ( ! $product ) {
+            wp_die( esc_html__( 'Producto no encontrado.', 'taxocommerce-core' ) );
+        }
+        TaxoCommerce_Core_Editor_UI::product( $product, $this->content_score( 'products', $item_id ) );
+    }
 
 	/**
 	 * Category editor.
@@ -513,35 +488,17 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @param int $item_id Term ID.
 	 * @return void
 	 */
-	private function render_category_editor( $item_id ) {
-		$taxonomy = get_taxonomy( 'product_cat' );
-		if ( ! $taxonomy || ! current_user_can( $taxonomy->cap->edit_terms ) ) {
-			wp_die( esc_html__( 'La edición de categorías de producto no está disponible.', 'taxocommerce-core' ) );
-		}
-
-		$term = get_term( $item_id, 'product_cat' );
-		if ( ! $term || is_wp_error( $term ) ) {
-			wp_die( esc_html__( 'Categoría no encontrada.', 'taxocommerce-core' ) );
-		}
-
-		$this->render_editor_header( 'categories', $item_id, $term->name, $this->content_score( 'categories', $item_id ) );
-		?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="taxocommerce_core_save_content">
-			<input type="hidden" name="content_type" value="categories">
-			<input type="hidden" name="item_id" value="<?php echo esc_attr( (string) $item_id ); ?>">
-			<?php wp_nonce_field( 'taxocommerce_core_save_content', 'taxocommerce_core_nonce' ); ?>
-			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="tc-name"><?php echo esc_html__( 'Nombre', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-name" name="name" value="<?php echo esc_attr( $term->name ); ?>" required></td></tr>
-				<tr><th scope="row"><label for="tc-slug"><?php echo esc_html__( 'Slug', 'taxocommerce-core' ); ?></label></th><td><input class="regular-text" id="tc-slug" name="slug" value="<?php echo esc_attr( $term->slug ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-parent"><?php echo esc_html__( 'Superior', 'taxocommerce-core' ); ?></label></th><td><?php wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'name' => 'parent', 'id' => 'tc-parent', 'selected' => $term->parent, 'show_option_none' => __( 'Ninguna', 'taxocommerce-core' ), 'exclude' => $term->term_id, 'value_field' => 'term_id' ) ); ?></td></tr>
-				<tr><th scope="row"><label for="tc-description"><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="14" id="tc-description" name="description"><?php echo esc_textarea( $term->description ); ?></textarea></td></tr>
-				<tr><th scope="row"><label for="tc-thumbnail-id"><?php echo esc_html__( 'ID de la imagen', 'taxocommerce-core' ); ?></label></th><td><input type="number" min="0" id="tc-thumbnail-id" name="thumbnail_id" value="<?php echo esc_attr( (string) absint( get_term_meta( $item_id, 'thumbnail_id', true ) ) ); ?>"><p class="description"><?php echo esc_html__( 'El selector visual de imágenes se incorporará al futuro módulo de Imágenes; el Core guarda la referencia nativa de imagen de categoría de WooCommerce.', 'taxocommerce-core' ); ?></p></td></tr>
-			</table>
-			<?php submit_button( __( 'Actualizar categoría', 'taxocommerce-core' ) ); ?>
-		</form>
-		<?php
-	}
+    private function render_category_editor( $item_id ) {
+        $taxonomy = get_taxonomy( 'product_cat' );
+        if ( ! $taxonomy || ! current_user_can( $taxonomy->cap->edit_terms ) ) {
+            wp_die( esc_html__( 'La edición de categorías de producto no está disponible.', 'taxocommerce-core' ) );
+        }
+        $term = get_term( $item_id, 'product_cat' );
+        if ( ! $term || is_wp_error( $term ) ) {
+            wp_die( esc_html__( 'Categoría no encontrada.', 'taxocommerce-core' ) );
+        }
+        TaxoCommerce_Core_Editor_UI::category( $term, $this->content_score( 'categories', $item_id ) );
+    }
 
 	/**
 	 * Post/page editor.
@@ -550,43 +507,13 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @param int    $item_id      Post ID.
 	 * @return void
 	 */
-	private function render_post_editor( $content_type, $item_id ) {
-		$post = get_post( $item_id );
-		if ( ! $post || $post->post_type !== $this->post_type_for_content( $content_type ) || ! current_user_can( 'edit_post', $item_id ) ) {
-			wp_die( esc_html__( 'El contenido no existe o no se puede editar.', 'taxocommerce-core' ) );
-		}
-
-		$selected_categories = 'posts' === $content_type ? array_map( 'absint', wp_get_post_categories( $item_id ) ) : array();
-		$this->render_editor_header( $content_type, $item_id, get_the_title( $post ), $this->content_score( $content_type, $item_id ) );
-		?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="taxocommerce_core_save_content">
-			<input type="hidden" name="content_type" value="<?php echo esc_attr( $content_type ); ?>">
-			<input type="hidden" name="item_id" value="<?php echo esc_attr( (string) $item_id ); ?>">
-			<?php wp_nonce_field( 'taxocommerce_core_save_content', 'taxocommerce_core_nonce' ); ?>
-			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="tc-title"><?php echo esc_html__( 'Título', 'taxocommerce-core' ); ?></label></th><td><input class="large-text" id="tc-title" name="title" value="<?php echo esc_attr( $post->post_title ); ?>" required></td></tr>
-				<tr><th scope="row"><label for="tc-slug"><?php echo esc_html__( 'Slug', 'taxocommerce-core' ); ?></label></th><td><input class="regular-text" id="tc-slug" name="slug" value="<?php echo esc_attr( $post->post_name ); ?>"></td></tr>
-				<tr><th scope="row"><label for="tc-status"><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></label></th><td><?php $this->render_status_select( $post->post_status ); ?></td></tr>
-				<tr><th scope="row"><label for="tc-excerpt"><?php echo esc_html__( 'Extracto', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="5" id="tc-excerpt" name="excerpt"><?php echo esc_textarea( $post->post_excerpt ); ?></textarea></td></tr>
-				<tr><th scope="row"><label for="tc-content"><?php echo esc_html__( 'Contenido', 'taxocommerce-core' ); ?></label></th><td><textarea class="large-text" rows="20" id="tc-content" name="content"><?php echo esc_textarea( $post->post_content ); ?></textarea></td></tr>
-				<?php if ( 'posts' === $content_type ) : ?>
-					<tr>
-						<th scope="row"><label for="tc-post-categories"><?php echo esc_html__( 'Categorías', 'taxocommerce-core' ); ?></label></th>
-						<td>
-							<select id="tc-post-categories" name="category_ids[]" multiple size="12" style="min-width:360px;">
-								<?php foreach ( get_categories( array( 'hide_empty' => false ) ) as $category ) : ?>
-									<option value="<?php echo esc_attr( (string) $category->term_id ); ?>" <?php selected( in_array( absint( $category->term_id ), $selected_categories, true ) ); ?>><?php echo esc_html( $category->name ); ?></option>
-								<?php endforeach; ?>
-							</select>
-						</td>
-					</tr>
-				<?php endif; ?>
-			</table>
-			<?php submit_button( 'posts' === $content_type ? __( 'Actualizar post', 'taxocommerce-core' ) : __( 'Actualizar página', 'taxocommerce-core' ) ); ?>
-		</form>
-		<?php
-	}
+    private function render_post_editor( $content_type, $item_id ) {
+        $post = get_post( $item_id );
+        if ( ! $post || $post->post_type !== $this->post_type_for_content( $content_type ) || ! current_user_can( 'edit_post', $item_id ) ) {
+            wp_die( esc_html__( 'El contenido no existe o no se puede editar.', 'taxocommerce-core' ) );
+        }
+        TaxoCommerce_Core_Editor_UI::post( $post, $this->content_score( $content_type, $item_id ), $content_type );
+    }
 
 	/**
 	 * Editor header.
@@ -597,16 +524,9 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @param int    $score        KPI.
 	 * @return void
 	 */
-	private function render_editor_header( $content_type, $item_id, $title, $score ) {
-		$back = add_query_arg( array( 'page' => self::PAGE_SLUG, 'tc_type' => $content_type ), admin_url( 'admin.php' ) );
-		?>
-		<p><a href="<?php echo esc_url( $back ); ?>">&larr; <?php echo esc_html__( 'Volver al listado', 'taxocommerce-core' ); ?></a></p>
-		<div class="card" style="max-width:none;margin:16px 0;">
-			<h2><?php echo esc_html( $title ); ?></h2>
-			<p><strong><?php echo esc_html__( 'ID del elemento:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( (string) $item_id ); ?> &nbsp; <strong><?php echo esc_html__( 'KPI del Core:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( (string) $score ); ?>%</p>
-		</div>
-		<?php
-	}
+    private function render_editor_header( $content_type, $item_id, $title, $score ) {
+        // Editor header is rendered by TaxoCommerce_Core_Editor_UI.
+    }
 
 	/**
 	 * Saves WooCommerce product through CRUD.
@@ -614,53 +534,105 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @param int $item_id Product ID.
 	 * @return true|WP_Error
 	 */
-	private function save_product( $item_id ) {
-		if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_post', $item_id ) ) {
-			return new WP_Error( 'taxocommerce_core_product_permission', __( 'No tienes permisos para editar este producto.', 'taxocommerce-core' ) );
-		}
+    private function save_product( $item_id ) {
+        if ( ! function_exists( 'wc_get_product' ) || ! current_user_can( 'edit_post', $item_id ) ) {
+            return new WP_Error( 'taxocommerce_core_product_permission', __( 'No tienes permisos para editar este producto.', 'taxocommerce-core' ) );
+        }
+        $product = wc_get_product( $item_id );
+        if ( ! $product ) {
+            return new WP_Error( 'taxocommerce_core_product_missing', __( 'Producto no encontrado.', 'taxocommerce-core' ) );
+        }
 
-		$product = wc_get_product( $item_id );
-		if ( ! $product ) {
-			return new WP_Error( 'taxocommerce_core_product_missing', __( 'Producto no encontrado.', 'taxocommerce-core' ) );
-		}
+        // All mutations are invoked from save_content(), which verifies nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+        $title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+        $slug = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( $_POST['slug'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+        $status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : $product->get_status();
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+        $sku = isset( $_POST['sku'] ) ? sanitize_text_field( wp_unslash( $_POST['sku'] ) ) : $product->get_sku( 'edit' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+        $stock_status = isset( $_POST['stock_status'] ) ? sanitize_key( wp_unslash( $_POST['stock_status'] ) ) : $product->get_stock_status();
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+        $excerpt = isset( $_POST['excerpt'] ) ? wp_kses_post( wp_unslash( $_POST['excerpt'] ) ) : $product->get_short_description( 'edit' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+        $body = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : $product->get_description( 'edit' );
 
-		$title         = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-		$slug          = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( $_POST['slug'] ) ) : '';
-		$status        = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : 'draft';
-		$sku           = isset( $_POST['sku'] ) ? sanitize_text_field( wp_unslash( $_POST['sku'] ) ) : '';
-		$regular_price = isset( $_POST['regular_price'] ) ? wc_format_decimal( wp_unslash( $_POST['regular_price'] ) ) : '';
-		$sale_price    = isset( $_POST['sale_price'] ) ? wc_format_decimal( wp_unslash( $_POST['sale_price'] ) ) : '';
-		$stock_status  = isset( $_POST['stock_status'] ) ? sanitize_key( wp_unslash( $_POST['stock_status'] ) ) : 'instock';
-		$excerpt       = isset( $_POST['excerpt'] ) ? wp_kses_post( wp_unslash( $_POST['excerpt'] ) ) : '';
-		$body          = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '';
-		$category_ids  = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ? array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['category_ids'] ) ) ) ) ) : array();
+        if ( ! $title || ! isset( $this->editable_statuses()[ $status ] ) || ! in_array( $stock_status, array( 'instock', 'outofstock', 'onbackorder' ), true ) ) {
+            return new WP_Error( 'taxocommerce_core_product_invalid', __( 'Los datos del producto no son válidos.', 'taxocommerce-core' ) );
+        }
+        if ( 'trash' === $status ) {
+            return wp_trash_post( $item_id ) ? true : new WP_Error( 'taxocommerce_core_product_trash', __( 'No se ha podido mover el producto a la papelera.', 'taxocommerce-core' ) );
+        }
 
-		if ( ! $title || ! isset( $this->editable_statuses()[ $status ] ) || ! in_array( $stock_status, array( 'instock', 'outofstock', 'onbackorder' ), true ) ) {
-			return new WP_Error( 'taxocommerce_core_product_invalid', __( 'Los datos del producto no son válidos.', 'taxocommerce-core' ) );
-		}
+        $attributes = TaxoCommerce_Core_Editor_UI::read_product_attributes( $product );
+        if ( is_wp_error( $attributes ) ) {
+            return $attributes;
+        }
+        $image_id = TaxoCommerce_Core_Editor_UI::image_id();
+        if ( is_wp_error( $image_id ) ) {
+            return $image_id;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+        $tax_present = ! empty( $_POST['tc_tax_present'] );
+        if ( $tax_present ) {
+            $category_ids = TaxoCommerce_Core_Editor_UI::selected_terms( 'product_cat' );
+            $tag_ids = TaxoCommerce_Core_Editor_UI::selected_terms( 'product_tag' );
+            if ( is_wp_error( $category_ids ) ) {
+                return $category_ids;
+            }
+            if ( is_wp_error( $tag_ids ) ) {
+                return $tag_ids;
+            }
+        } else {
+            // Preserve compatibility with pre-0.4.6 forms.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+            $category_ids = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] )
+                ? array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['category_ids'] ) ) ) ) ) : $product->get_category_ids();
+            $tag_ids = $product->get_tag_ids();
+        }
 
-		if ( 'trash' === $status ) {
-			return wp_trash_post( $item_id ) ? true : new WP_Error( 'taxocommerce_core_product_trash', __( 'No se ha podido mover el producto a la papelera.', 'taxocommerce-core' ) );
-		}
-
-		try {
-			$product->set_name( $title );
-			$product->set_slug( $slug );
-			$product->set_status( $status );
-			$product->set_sku( $sku );
-			$product->set_regular_price( $regular_price );
-			$product->set_sale_price( $sale_price );
-			$product->set_stock_status( $stock_status );
-			$product->set_short_description( $excerpt );
-			$product->set_description( $body );
-			$product->set_category_ids( $category_ids );
-			$product->save();
-		} catch ( Exception $exception ) {
-			return new WP_Error( 'taxocommerce_core_product_save', sanitize_text_field( $exception->getMessage() ) );
-		}
-
-		return true;
-	}
+        try {
+            $product->set_name( $title );
+            $product->set_slug( $slug );
+            $product->set_status( $status );
+            $product->set_sku( $sku );
+            $product->set_stock_status( $stock_status );
+            $product->set_short_description( $excerpt );
+            $product->set_description( $body );
+            if ( ! $product->is_type( 'variation' ) ) {
+                $product->set_category_ids( $category_ids );
+                $product->set_tag_ids( $tag_ids );
+                if ( null !== $image_id ) {
+                    $product->set_image_id( $image_id );
+                }
+            }
+            if ( is_array( $attributes ) ) {
+                $product->set_attributes( $attributes );
+            }
+            if ( $product->is_type( 'simple' ) || $product->is_type( 'external' ) ) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+                $regular_price = isset( $_POST['regular_price'] ) ? wc_format_decimal( wp_unslash( $_POST['regular_price'] ) ) : $product->get_regular_price( 'edit' );
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+                $sale_price = isset( $_POST['sale_price'] ) ? wc_format_decimal( wp_unslash( $_POST['sale_price'] ) ) : $product->get_sale_price( 'edit' );
+                $product->set_regular_price( $regular_price );
+                $product->set_sale_price( $sale_price );
+            }
+            if ( $product->is_type( 'external' ) ) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+                $url = isset( $_POST['product_url'] ) ? esc_url_raw( wp_unslash( $_POST['product_url'] ) ) : $product->get_product_url( 'edit' );
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
+                $button_text = isset( $_POST['button_text'] ) ? sanitize_text_field( wp_unslash( $_POST['button_text'] ) ) : $product->get_button_text( 'edit' );
+                $product->set_product_url( $url );
+                $product->set_button_text( $button_text );
+            }
+            $product->save();
+        } catch ( Exception $exception ) {
+            return new WP_Error( 'taxocommerce_core_product_save', sanitize_text_field( $exception->getMessage() ) );
+        }
+        return true;
+    }
 
 	/**
 	 * Saves product category.
@@ -668,40 +640,50 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @param int $item_id Term ID.
 	 * @return true|WP_Error
 	 */
-	private function save_product_category( $item_id ) {
-		$taxonomy = get_taxonomy( 'product_cat' );
-		if ( ! $taxonomy || ! current_user_can( $taxonomy->cap->edit_terms ) ) {
-			return new WP_Error( 'taxocommerce_core_category_permission', __( 'No tienes permisos para editar categorías de producto.', 'taxocommerce-core' ) );
-		}
-
-		$name         = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
-		$slug         = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( $_POST['slug'] ) ) : '';
-		$parent       = isset( $_POST['parent'] ) ? absint( $_POST['parent'] ) : 0;
-		$description  = isset( $_POST['description'] ) ? wp_kses_post( wp_unslash( $_POST['description'] ) ) : '';
-		$thumbnail_id = isset( $_POST['thumbnail_id'] ) ? absint( $_POST['thumbnail_id'] ) : 0;
-
-		if ( ! $name || $parent === $item_id ) {
-			return new WP_Error( 'taxocommerce_core_category_invalid', __( 'Los datos de la categoría no son válidos.', 'taxocommerce-core' ) );
-		}
-
-		$result = wp_update_term(
-			$item_id,
-			'product_cat',
-			array(
-				'name'        => $name,
-				'slug'        => $slug,
-				'parent'      => $parent,
-				'description' => $description,
-			)
-		);
-
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		update_term_meta( $item_id, 'thumbnail_id', $thumbnail_id );
-		return true;
-	}
+    private function save_product_category( $item_id ) {
+        $taxonomy = get_taxonomy( 'product_cat' );
+        if ( ! $taxonomy || ! current_user_can( $taxonomy->cap->edit_terms ) ) {
+            return new WP_Error( 'taxocommerce_core_category_permission', __( 'No tienes permisos para editar categorías de producto.', 'taxocommerce-core' ) );
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $slug = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( $_POST['slug'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $parent = isset( $_POST['parent'] ) ? absint( wp_unslash( $_POST['parent'] ) ) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $description = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '';
+        $image_id = TaxoCommerce_Core_Editor_UI::image_id();
+        if ( is_wp_error( $image_id ) ) {
+            return $image_id;
+        }
+        if ( ! $name || $parent === $item_id ) {
+            return new WP_Error( 'taxocommerce_core_category_invalid', __( 'Los datos de la categoría no son válidos.', 'taxocommerce-core' ) );
+        }
+        if ( $parent ) {
+            $parent_term = get_term( $parent, 'product_cat' );
+            if ( ! $parent_term || is_wp_error( $parent_term ) ) {
+                return new WP_Error( 'taxocommerce_core_category_parent', __( 'La categoría superior no existe.', 'taxocommerce-core' ) );
+            }
+        }
+        $result = wp_update_term(
+            $item_id,
+            'product_cat',
+            array(
+                'name' => $name,
+                'slug' => $slug,
+                'parent' => $parent,
+                'description' => $description,
+            )
+        );
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+        if ( null !== $image_id ) {
+            update_term_meta( $item_id, 'thumbnail_id', $image_id );
+        }
+        return true;
+    }
 
 	/**
 	 * Saves post/page.
@@ -710,49 +692,90 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @param int    $item_id      Post ID.
 	 * @return true|WP_Error
 	 */
-	private function save_post_object( $content_type, $item_id ) {
-		$post = get_post( $item_id );
-		if ( ! $post || $post->post_type !== $this->post_type_for_content( $content_type ) || ! current_user_can( 'edit_post', $item_id ) ) {
-			return new WP_Error( 'taxocommerce_core_post_permission', __( 'No tienes permisos para editar este contenido.', 'taxocommerce-core' ) );
-		}
+    private function save_post_object( $content_type, $item_id ) {
+        $post = get_post( $item_id );
+        if ( ! $post || $post->post_type !== $this->post_type_for_content( $content_type ) || ! current_user_can( 'edit_post', $item_id ) ) {
+            return new WP_Error( 'taxocommerce_core_post_permission', __( 'No tienes permisos para editar este contenido.', 'taxocommerce-core' ) );
+        }
 
-		$title   = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-		$slug    = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( $_POST['slug'] ) ) : '';
-		$status  = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : 'draft';
-		$excerpt = isset( $_POST['excerpt'] ) ? wp_kses_post( wp_unslash( $_POST['excerpt'] ) ) : '';
-		$body    = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $slug = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( $_POST['slug'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : $post->post_status;
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $excerpt = isset( $_POST['excerpt'] ) ? wp_kses_post( wp_unslash( $_POST['excerpt'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $body = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '';
 
-		if ( ! $title || ! isset( $this->editable_statuses()[ $status ] ) ) {
-			return new WP_Error( 'taxocommerce_core_post_invalid', __( 'Los datos del contenido no son válidos.', 'taxocommerce-core' ) );
-		}
+        if ( ! $title || ! isset( $this->editable_statuses()[ $status ] ) ) {
+            return new WP_Error( 'taxocommerce_core_post_invalid', __( 'Los datos del contenido no son válidos.', 'taxocommerce-core' ) );
+        }
+        if ( 'trash' === $status ) {
+            return wp_trash_post( $item_id ) ? true : new WP_Error( 'taxocommerce_core_post_trash', __( 'No se ha podido mover el contenido a la papelera.', 'taxocommerce-core' ) );
+        }
+        $image_id = TaxoCommerce_Core_Editor_UI::image_id();
+        if ( is_wp_error( $image_id ) ) {
+            return $image_id;
+        }
 
-		if ( 'trash' === $status ) {
-			return wp_trash_post( $item_id ) ? true : new WP_Error( 'taxocommerce_core_post_trash', __( 'No se ha podido mover el contenido a la papelera.', 'taxocommerce-core' ) );
-		}
+        // Validate native category/tag IDs before saving the post.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+        $tax_present = ! empty( $_POST['tc_tax_present'] );
+        if ( 'posts' === $content_type && $tax_present ) {
+            $category_ids = TaxoCommerce_Core_Editor_UI::selected_terms( 'category' );
+            $tag_ids = TaxoCommerce_Core_Editor_UI::selected_terms( 'post_tag' );
+            if ( is_wp_error( $category_ids ) ) {
+                return $category_ids;
+            }
+            if ( is_wp_error( $tag_ids ) ) {
+                return $tag_ids;
+            }
+        }
 
-		$result = wp_update_post(
-			array(
-				'ID'           => $item_id,
-				'post_title'   => $title,
-				'post_name'    => $slug,
-				'post_status'  => $status,
-				'post_excerpt' => $excerpt,
-				'post_content' => $body,
-			),
-			true
-		);
-
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		if ( 'posts' === $content_type ) {
-			$category_ids = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ? array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['category_ids'] ) ) ) ) ) : array();
-			wp_set_post_categories( $item_id, $category_ids, false );
-		}
-
-		return true;
-	}
+        $result = wp_update_post(
+            array(
+                'ID' => $item_id,
+                'post_title' => $title,
+                'post_name' => $slug,
+                'post_status' => $status,
+                'post_excerpt' => $excerpt,
+                'post_content' => $body,
+            ),
+            true
+        );
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+        if ( 'posts' === $content_type ) {
+            if ( $tax_present ) {
+                $categories_saved = wp_set_post_categories( $item_id, $category_ids, false );
+                $tags_saved = wp_set_post_terms( $item_id, $tag_ids, 'post_tag', false );
+                if ( is_wp_error( $categories_saved ) ) {
+                    return $categories_saved;
+                }
+                if ( is_wp_error( $tags_saved ) ) {
+                    return $tags_saved;
+                }
+            } else {
+                // Backward compatibility for earlier Core editor submissions.
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
+                if ( isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ) {
+                    $ids = array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['category_ids'] ) ) ) ) );
+                    wp_set_post_categories( $item_id, $ids, false );
+                }
+            }
+        }
+        if ( null !== $image_id ) {
+            if ( $image_id ) {
+                set_post_thumbnail( $item_id, $image_id );
+            } else {
+                delete_post_thumbnail( $item_id );
+            }
+        }
+        return true;
+    }
 
 	/**
 	 * Lightweight rebuildable completeness KPI.
