@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.8
+Stable tag: 0.4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,7 +31,31 @@ The pilot also includes:
 * A hierarchy shell for the future Cluster -> Primary Hub -> Secondary Hub -> Category -> Product model.
 * Extension hooks for KPIs and future modules.
 
+## Guías de edición en Contenidos
+
+El Gestor de contenidos incluye instrucciones de redacción para Productos,
+Categorías, Entradas y Páginas. Se muestran en cada pestaña y dentro de cada
+editor individual. La guía combina criterios originales recuperados del editor
+anterior con recomendaciones públicas de Google Search Central:
+
+* Información útil para personas, verificable y específica de cada objeto.
+* Redacción sencilla, sin contenido copiado ni plantillas repetitivas.
+* Identificación precisa de productos, variantes, categorías y páginas.
+* Enlaces internos y arquitectura comercial comprensibles.
+* Títulos descriptivos, imágenes relevantes y metadescripciones únicas.
+* Sin cuotas obligatorias de palabras, FAQs o porcentajes de keywords.
+* Enlaces a las referencias oficiales de Google.
+
+Esta ayuda es de solo lectura; no genera ni modifica contenido automáticamente
+y no cambia el plugin TaxoCommerce SEO.
+
 == Changelog ==
+
+= 0.4.9 =
+* Restored and expanded editorial guidance for all four content editors.
+* Responsive read-only guidance at the overview and individual editor levels.
+* Linked to official Google Search Central documentation; removed fixed-length SEO myths.
+
 
 = 0.4.8 =
 * Consolidated Ampliar familia and Extensiones into one administration page.
