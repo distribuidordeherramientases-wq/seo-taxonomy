@@ -6943,6 +6943,31 @@ function seo_proveedores_render_catalogo() {
             <h3 style="margin-bottom:6px;">Acción sobre todos los resultados filtrados</h3>
 
             <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin:12px 0;padding:12px;border:1px solid #c3c4c7;">
+                    <?php wp_nonce_field( 'seo_vevor_completar_drafts', 'seo_vevor_completar_nonce' ); ?>
+                    <p><strong>Completar borradores VEVOR vinculados</strong></p>
+                    <p>Actualiza precio, moneda, enlace de afiliado e imágenes externas desde el catálogo de proveedores.
+                    Solo modifica los productos WooCommerce existentes en draft y vinculados por object_id.
+                    No crea productos, no cambia categorías y no publica fichas.</p>
+                    <button type="submit" name="seo_vevor_completar_drafts" value="1" class="button button-secondary">
+                        Completar datos de drafts VEVOR
+                    </button>
+                </form>
+                <?php if ( isset( $_GET['seo_vevor_completed'] ) ) : ?>
+                    <p class="notice notice-info" style="padding:10px;">
+                        <?php
+                        echo esc_html( sprintf(
+                            'VEVOR: %d actualizados, %d errores, %d omitidos. Los errores permanecen en el catálogo para revisión.',
+                            absint( $_GET['seo_vevor_completed'] ),
+                            absint( $_GET['seo_vevor_errors'] ?? 0 ),
+                            absint( $_GET['seo_vevor_skipped'] ?? 0 )
+                        ) );
+                        ?>
+                    </p>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
                 <p><strong>VEVOR:</strong> Aceptar valida las ofertas por pais en el catalogo
                     intermedio. No publica fichas WooCommerce ni modifica la tienda espanola.</p>
             <?php endif; ?>
