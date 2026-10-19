@@ -176,8 +176,8 @@ if (!function_exists('seo_analista_architecture_family')) {
 if (!function_exists('seo_analista_architecture_signature')) {
     function seo_analista_architecture_signature() {
         global $wpdb;
-        $relations = $wpdb->prefix . 'seo_relations';
-        $object_vocab = $wpdb->prefix . 'seo_object_vocabulary';
+        $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
+        $object_vocab = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $parts = array(get_current_blog_id());
         if (seo_analista_architecture_table_exists($relations)) {
             $parts[] = (string) $wpdb->get_var("SELECT CONCAT(COUNT(*),':',COALESCE(MAX(id),0)) FROM {$relations}");
@@ -199,7 +199,7 @@ if (!function_exists('seo_analista_architecture_signature')) {
 if (!function_exists('seo_analista_architecture_hierarchy')) {
     function seo_analista_architecture_hierarchy() {
         global $wpdb;
-        $relations = $wpdb->prefix . 'seo_relations';
+        $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
         $out = array(
             'cluster_to_primary'=>array(), 'primary_to_cluster'=>array(),
             'primary_to_secondary'=>array(), 'secondary_to_primary'=>array(),
@@ -248,8 +248,8 @@ if (!function_exists('seo_analista_architecture_node_title')) {
 if (!function_exists('seo_analista_architecture_category_vocab')) {
     function seo_analista_architecture_category_vocab() {
         global $wpdb;
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocab = $wpdb->prefix . 'seo_vocabulary';
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $vocab = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $out = array();
         if (!seo_analista_architecture_table_exists($objects) || !seo_analista_architecture_table_exists($vocab)) return $out;
         $rows = (array) $wpdb->get_results(
@@ -277,8 +277,8 @@ if (!function_exists('seo_analista_architecture_category_vocab')) {
 if (!function_exists('seo_analista_architecture_product_vocab')) {
     function seo_analista_architecture_product_vocab() {
         global $wpdb;
-        $objects = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocab = $wpdb->prefix . 'seo_vocabulary';
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $vocab = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $out = array();
         if (!seo_analista_architecture_table_exists($objects) || !seo_analista_architecture_table_exists($vocab) || !taxonomy_exists('product_cat')) return $out;
         $rows = (array) $wpdb->get_results(
