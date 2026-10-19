@@ -81,6 +81,8 @@ function taxocommerce_system_check_boot() {
     }
     add_action( 'admin_menu', 'taxocommerce_system_check_register_menu', 60 );
     add_action( 'admin_enqueue_scripts', 'taxocommerce_system_check_enqueue_assets' );
+    add_action( 'admin_enqueue_scripts', 'taxocommerce_system_check_family_styles' );
+    add_filter( 'admin_body_class', 'taxocommerce_system_check_body_class' );
     if ( ! $legacy_active ) {
         add_action( 'admin_menu', 'taxocommerce_system_check_register_legacy_routes', 100 );
     }
@@ -143,6 +145,45 @@ function taxocommerce_system_check_render_tabs( $active ) {
             . esc_html( $label ) . '</a>';
     }
     echo '</nav>';
+}
+
+/**
+ * Load the shared family design only on System Check's own pages.
+ * Never enqueue it inside TaxoCommerce SEO / legacy diagnostics.
+ */
+function taxocommerce_system_check_family_styles( $hook ) {
+    if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+        return;
+    }
+    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+    $screen_id = $screen ? (string) $screen->id : '';
+    $is_own_page = false !== strpos( (string) $hook, 'taxocommerce-system-check' )
+        || false !== strpos( $screen_id, 'taxocommerce-system-check' )
+        || false !== strpos( (string) $hook, 'tcs-' )
+        || false !== strpos( $screen_id, 'tcs-' );
+    if ( ! $is_own_page ) {
+        return;
+    }
+    wp_enqueue_style(
+        'taxocommerce-family-admin',
+        TAXOCOMMERCE_SYSTEM_CHECK_URL . 'assets/admin.css',
+        array(),
+        TAXOCOMMERCE_SYSTEM_CHECK_VERSION
+    );
+}
+
+/**
+ * Add family scope only to standalone System Check screens.
+ */
+function taxocommerce_system_check_body_class( $classes ) {
+    if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+        return $classes;
+    }
+    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+    $id = $screen ? (string) $screen->id : '';
+    return ( false !== strpos( $id, 'taxocommerce-system-check' ) || false !== strpos( $id, 'tcs-' ) )
+        ? $classes . ' tcc-family-admin'
+        : $classes;
 }
 
 function taxocommerce_system_check_enqueue_assets() {
