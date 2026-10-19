@@ -41,6 +41,13 @@ add_action( 'admin_init', static function () {
     if ( ! $root instanceof WP_Term || (int) $root->parent !== 0 ) {
         return;
     }
+    $existing_country = strtoupper( trim( (string) get_term_meta( $root->term_id, '_seo_pais_origen', true ) ) );
+    $existing_locale = strtolower( trim( (string) get_term_meta( $root->term_id, '_seo_locale', true ) ) );
+    // Respect any previously categorised foreign term; never reassign it.
+    if ( ( '' !== $existing_country && 'FR' !== $existing_country )
+        || ( '' !== $existing_locale && 'fr-fr' !== $existing_locale ) ) {
+        return;
+    }
     if ( 'fr-FR' !== get_term_meta( $root->term_id, '_seo_locale', true ) ) {
         update_term_meta( $root->term_id, '_seo_locale', 'fr-FR' );
     }
