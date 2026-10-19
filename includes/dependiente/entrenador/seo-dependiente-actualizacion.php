@@ -389,13 +389,14 @@ final class SEO_Dependiente_Actualizacion {
         $modules = (array) ($state['modules'] ?? array());
         $module_state = is_array($modules[$module] ?? null) ? $modules[$module] : array();
         $answered_before = absint($module_state['answered'] ?? 0);
-        // M5-M8 execute the full public search engine. On a large catalogue,
-        // one question can require minutes. Commit one completed run per worker
-        // step so PHP/request timeouts cannot discard two earlier evaluations
-        // in the same batch. Existing runs and staged learning are preserved.
-        $run_batch = $module >= 5
+        // M4 previously executed up to 120 feature checks inside a single
+        // worker step. With no checkpoint until the end, PHP timeouts leave
+        // the UI permanently showing the same M4 position. Keep a one-question
+        // checkpoint for M4-M8; M2/M3 retain their direct fast-path batches.
+        // Terminal runs remain stored and are never re-evaluated.
+        $run_batch = $module >= 4
             ? 1
-            : (2 === $module ? 40 : (3 === $module ? 80 : (4 === $module ? 120 : self::RUN_BATCH)));
+            : (2 === $module ? 40 : (3 === $module ? 80 : self::RUN_BATCH));
         $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, $run_batch);
         foreach ($questions as $question) {
             $question_type = sanitize_key((string) ($question['question_type'] ?? ''));
@@ -415,6 +416,16 @@ final class SEO_Dependiente_Actualizacion {
             $module_state[$key] = absint($summary[$key] ?? 0);
         }
         $answered_now = absint($summary['answered'] ?? 0);
+        // Without this guard, a mismatched question/run state returns an
+        // empty pending batch forever while still reporting "running".
+        if (!$questions && $answered_now < absint($summary['total'] ?? 0)) {
+            throw new RuntimeException(sprintf(
+                'M%d: no hay preguntas pendientes recuperables, pero solo hay %d de %d evaluadas. Comprobar enabled y registros de ejecucion de Academia.',
+                $module,
+                $answered_now,
+                absint($summary['total'] ?? 0)
+            ));
+        }
         if ($questions && $answered_now <= $answered_before) {
             $module_state['no_progress'] = absint($module_state['no_progress'] ?? 0) + 1;
         } else {
