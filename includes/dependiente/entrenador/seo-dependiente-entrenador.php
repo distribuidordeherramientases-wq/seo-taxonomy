@@ -993,8 +993,14 @@ final class SEO_Dependiente_Entrenador {
                 $state = self::auto_state();
                 $speed = self::auto_speed_config();
                 $batch_size = self::sanitize_batch_size($state['batch_size'] ?? $speed['initial_batch']);
+                // The regular L1-L9 course has an independent M4 from the
+                // continuous Update M4. Protect this path too: a full product
+                // search can exceed a request limit, so checkpoint each M4
+                // question individually and retain normal speed for other
+                // modules. The persisted batch_size governor is unchanged.
+                $step_batch_size = 4 === $module_no ? 1 : $batch_size;
                 $started = microtime(true);
-                $result = self::auto_run_module_batch($lesson_key, $module_no, $batch_size);
+                $result = self::auto_run_module_batch($lesson_key, $module_no, $step_batch_size);
                 $duration = max(0, microtime(true) - $started);
                 $answered_rows = 0;
                 foreach ((array) ($result['rows'] ?? array()) as $row) {
