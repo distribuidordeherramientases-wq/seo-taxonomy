@@ -25,12 +25,6 @@ final class TaxoCommerce_Core_Editor_UI {
             array(),
             TAXOCOMMERCE_CORE_VERSION
         );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page router.
-        if ( ! isset( $_GET['tc_action'] ) || 'edit' !== sanitize_key( wp_unslash( $_GET['tc_action'] ) ) ) {
-            return;
-        }
-        wp_enqueue_editor();
-        wp_enqueue_media();
         wp_enqueue_script(
             'taxocommerce-core-editor',
             plugin_dir_url( TAXOCOMMERCE_CORE_FILE ) . 'assets/core-editor.js',
@@ -45,13 +39,18 @@ final class TaxoCommerce_Core_Editor_UI {
                 'url' => admin_url( 'admin-ajax.php' ),
                 'nonce' => wp_create_nonce( 'taxocommerce_core_editor_terms' ),
                 'strings' => array(
-                    'none'    => 'No hay términos coincidentes.',
+                    'none' => 'No hay términos coincidentes.',
                     'loading' => 'Buscando…',
-                    'error'   => 'No se han podido cargar los términos.',
-                    'choose'  => 'Selecciona primero un atributo global.',
+                    'error' => 'No se han podido cargar los términos.',
+                    'choose' => 'Selecciona primero un atributo global.',
                 ),
             )
         );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only route.
+        if ( isset( $_GET['tc_action'] ) && 'edit' === sanitize_key( wp_unslash( $_GET['tc_action'] ) ) ) {
+            wp_enqueue_editor();
+            wp_enqueue_media();
+        }
     }
 
     public static function ajax_terms() {
