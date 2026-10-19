@@ -61,8 +61,45 @@ final class TaxoCommerce_Images {
 
 		add_action( 'taxocommerce_core_register_modules', array( $this, 'register_with_core' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ), 60 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_admin_styles' ) );
+		add_filter( 'admin_body_class', array( $this, 'family_admin_body_class' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_IMAGES_BASENAME, array( $this, 'plugin_action_links' ) );
 		add_filter( 'taxocommerce_core_content_summary_kpis', array( $this, 'add_core_product_kpi' ), 20, 2 );
+	}
+
+	/**
+	 * Use the common family theme even when this extension runs standalone.
+	 * If Core is active it owns the shared stylesheet and body class.
+	 *
+	 * @param string $hook Current admin page hook.
+	 * @return void
+	 */
+	public function enqueue_family_admin_styles( $hook ) {
+		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) || false === strpos( (string) $hook, 'taxocommerce-images' ) ) {
+			return;
+		}
+		wp_enqueue_style(
+			'taxocommerce-family-admin',
+			plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/admin.css',
+			array(),
+			TAXOCOMMERCE_IMAGES_VERSION
+		);
+	}
+
+	/**
+	 * Isolate the shared appearance from unrelated WordPress plugin screens.
+	 *
+	 * @param string $classes Admin body class string.
+	 * @return string
+	 */
+	public function family_admin_body_class( $classes ) {
+		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+			return $classes;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		return $screen && false !== strpos( (string) $screen->id, 'taxocommerce-images' )
+			? $classes . ' tcc-family-admin'
+			: $classes;
 	}
 
 	/**
