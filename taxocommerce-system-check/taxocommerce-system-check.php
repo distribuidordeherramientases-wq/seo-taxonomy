@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.1.1' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -59,7 +59,13 @@ function taxocommerce_system_check_boot() {
         }
     }
 
-    add_action( 'admin_menu', 'taxocommerce_system_check_register_menu', 35 );
+    add_action( 'taxocommerce_core_register_modules', 'taxocommerce_system_check_register_with_core' );
+    // Core registers at plugins_loaded:20; this plugin boots at priority 100.
+    // Register immediately if Core has already completed its bootstrap.
+    if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
+        taxocommerce_system_check_register_with_core( taxocommerce_core() );
+    }
+    add_action( 'admin_menu', 'taxocommerce_system_check_register_menu', 60 );
     add_action( 'admin_enqueue_scripts', 'taxocommerce_system_check_enqueue_assets' );
     if ( ! $legacy_active ) {
         add_action( 'admin_menu', 'taxocommerce_system_check_register_legacy_routes', 100 );
@@ -67,11 +73,30 @@ function taxocommerce_system_check_boot() {
 }
 add_action( 'plugins_loaded', 'taxocommerce_system_check_boot', 100 );
 
+function taxocommerce_system_check_register_with_core( $core ) {
+    if ( is_object( $core ) && method_exists( $core, 'register_module' ) ) {
+        $core->register_module(
+            'system_check',
+            array(
+                'name'        => 'TaxoCommerce System Check',
+                'version'     => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
+                'status'      => 'active',
+                'description' => 'Diagnostico de sistema, validacion del plugin e informes.',
+                'admin_url'   => admin_url( 'admin.php?page=taxocommerce-system-check' ),
+            )
+        );
+    }
+}
+
 function taxocommerce_system_check_register_menu() {
-    add_menu_page( 'TaxoCommerce System Check', 'System Check', 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home', 'dashicons-shield-alt', 62 );
-    add_submenu_page( 'taxocommerce-system-check', 'Resumen', 'Resumen', 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home' );
-    add_submenu_page( 'taxocommerce-system-check', 'Estado del sistema', 'Estado del sistema', 'manage_options', 'tcs-system-status', 'taxocommerce_system_check_server_screen' );
-    add_submenu_page( 'taxocommerce-system-check', 'Plugin Validation', 'Plugin Validation', 'manage_options', 'tcs-plugin-validation', 'taxocommerce_system_check_validation_screen' );
+    $in_core = function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' );
+    $parent  = $in_core ? 'taxocommerce-core' : 'taxocommerce-system-check';
+    if ( ! $in_core ) {
+        add_menu_page( 'TaxoCommerce System Check', 'System Check', 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home', 'dashicons-shield-alt', 62 );
+    }
+    add_submenu_page( $parent, 'System Check', 'System Check', 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home' );
+    add_submenu_page( $parent, 'Estado del sistema', 'Estado del sistema', 'manage_options', 'tcs-system-status', 'taxocommerce_system_check_server_screen' );
+    add_submenu_page( $parent, 'Plugin Validation', 'Plugin Validation', 'manage_options', 'tcs-plugin-validation', 'taxocommerce_system_check_validation_screen' );
 }
 
 /** The copied module still uses these historic links in several locations. */

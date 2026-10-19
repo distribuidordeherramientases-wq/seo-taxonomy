@@ -335,6 +335,15 @@ final class TaxoCommerce_Core {
 				'wordpress_org' => true,
 				'description'   => __( 'Gestión, auditoría, miniaturas, metadatos y optimización de imágenes.', 'taxocommerce-core' ),
 			),
+			'system_check' => array(
+				'id'            => 'system_check',
+				'name'          => 'TaxoCommerce System Check',
+				'plugin_file'   => 'taxocommerce-system-check/taxocommerce-system-check.php',
+				'org_slug'      => 'taxocommerce-system-check',
+				'search_term'   => 'TaxoCommerce System Check',
+				'wordpress_org' => false,
+				'description'   => __( 'Diagnosticos del servidor, WordPress y Plugin Validation con informes y correo opcional.', 'taxocommerce-core' ),
+			),
 			'vocabulary' => array(
 				'id'            => 'vocabulary',
 				'name'          => 'TaxoCommerce Vocabulary',
@@ -715,6 +724,8 @@ final class TaxoCommerce_Core {
 								echo esc_html__( 'Sube el ZIP de TaxoCommerce Images. Tras instalarlo, vuelve al Core para activarlo.', 'taxocommerce-core' );
 							} elseif ( 'import_export' === $extension_id ) {
 								echo esc_html__( 'Sube el ZIP de TaxoCommerce Import-Export. Tras instalarlo, vuelve al Core para activarlo.', 'taxocommerce-core' );
+							} elseif ( 'system_check' === $extension_id ) {
+								echo esc_html__( 'Sube el ZIP de TaxoCommerce System Check. Despues podras activarlo desde Core y abrir sus chequeos en el menu TaxoCommerce Core.', 'taxocommerce-core' );
 							} elseif ( 'vocabulary' === $extension_id ) {
 								echo esc_html__( 'TaxoCommerce Vocabulary todavía no está publicado en WordPress.org. Instálalo únicamente con el ZIP que publiques o distribuyas tú.', 'taxocommerce-core' );
 							}
