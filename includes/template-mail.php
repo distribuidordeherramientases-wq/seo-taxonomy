@@ -411,7 +411,7 @@ function seo_mail_handle_save_assignments() {
 
     $table      = seo_mail_table_name();
     $posted     = isset($_POST['mail_config']) && is_array($_POST['mail_config'])
-        ? wp_unslash($_POST['mail_config'])
+        ? map_deep( wp_unslash( $_POST['mail_config'] ), 'sanitize_text_field' )
         : [];
     $assignments = seo_mail_get_assignments();
     $valid_keys = [];
@@ -461,7 +461,7 @@ function seo_mail_handle_save_library() {
 
     $table  = seo_mail_templates_table_name();
     $posted = isset($_POST['email_templates']) && is_array($_POST['email_templates'])
-        ? wp_unslash($_POST['email_templates'])
+        ? map_deep( wp_unslash( $_POST['email_templates'] ), 'sanitize_textarea_field' )
         : [];
 
     foreach (seo_mail_get_email_templates(false) as $template) {

@@ -901,7 +901,7 @@ function seo_proveedores_query_arg( $key, $default = '' ) {
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura; no modifican estado.
-    return wp_unslash( $_GET[ $key ] );
+    return map_deep( wp_unslash( $_GET[ $key ] ), 'sanitize_text_field' );
 }
 
 

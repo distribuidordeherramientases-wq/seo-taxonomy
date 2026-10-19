@@ -420,7 +420,10 @@ function seo_clean_db_handle_post_actions() {
             return seo_clean_db_handle_rollback_action();
 
         case 'unlock_bulk_accept_lock':
-            return seo_clean_db_handle_unlock_bulk_accept_lock();
+            $posted_token = isset($_POST['bulk_accept_lock_token']) && is_string($_POST['bulk_accept_lock_token'])
+                ? sanitize_text_field(wp_unslash($_POST['bulk_accept_lock_token']))
+                : '';
+            return seo_clean_db_handle_unlock_bulk_accept_lock($posted_token);
 
         case 'clean_revisions':
         case 'clean_auto_drafts':
@@ -459,8 +462,10 @@ function seo_clean_db_get_bulk_accept_lock() {
  *
  * La acción compara el token mostrado en pantalla con el token actual para
  * evitar eliminar por accidente un bloqueo creado por un proceso más reciente.
+ *
+ * @param string $posted_token Token recibido por el controlador tras verificar el nonce.
  */
-function seo_clean_db_handle_unlock_bulk_accept_lock() {
+function seo_clean_db_handle_unlock_bulk_accept_lock($posted_token) {
     $option_name = 'seo_proveedores_bulk_accept_lock';
     $lock = get_option($option_name, false);
 
@@ -470,11 +475,6 @@ function seo_clean_db_handle_unlock_bulk_accept_lock() {
             'message' => 'El bloqueo de aceptación masiva ya no existe.',
         );
     }
-
-    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before invoking this helper.
-    $posted_token = isset($_POST['bulk_accept_lock_token'])
-        ? sanitize_text_field(wp_unslash($_POST['bulk_accept_lock_token']))
-        : '';
 
     $current_token = is_array($lock) && isset($lock['token'])
         ? (string) $lock['token']
