@@ -64,9 +64,15 @@ final class TaxoCommerce_Core_Content_Manager {
             return;
         }
         ?>
-        <div class="wrap tc-content-overview">
-            <h1><?php echo esc_html__( 'Gestor de contenidos', 'taxocommerce-core' ); ?></h1>
-            <p><?php echo esc_html__( 'Administra contenidos y catálogo en un único lugar, manteniendo WordPress y WooCommerce como fuente canónica.', 'taxocommerce-core' ); ?></p>
+        <div class="wrap tc-content-overview tcc-family-screen">
+            <header class="tcc-page-header">
+                <span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-edit-page"></span></span>
+                <div class="tcc-page-header__content">
+                    <p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
+                    <h1><?php echo esc_html__( 'Gestor de contenidos', 'taxocommerce-core' ); ?></h1>
+                    <p><?php echo esc_html__( 'Administra contenidos y catálogo en un único lugar, manteniendo WordPress y WooCommerce como fuente canónica.', 'taxocommerce-core' ); ?></p>
+                </div>
+            </header>
             <?php $this->render_tabs( $content_type ); ?>
 
             <?php if ( isset( $_GET['updated'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['updated'] ) ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only confirmation. ?>
