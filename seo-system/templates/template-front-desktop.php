@@ -192,7 +192,7 @@ if (!function_exists('dht_template_get_supplier_product_image_candidates')) {
         }
 
         $candidates = array();
-        $supplier_table = $wpdb->prefix . 'seo_supplier_images';
+        $supplier_table = esc_sql( $wpdb->prefix . 'seo_supplier_images' );
         static $supplier_table_exists = null;
 
         if (null === $supplier_table_exists) {
@@ -561,7 +561,7 @@ $render_products = static function ($products, $extra_class = '') {
 $cluster_ids = array();
 $hub_primary_ids = array();
 $hub_secondary_by_primary = array();
-$relations_table = $wpdb->prefix . 'seo_relations';
+$relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
 $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_table));
 
 if ($table_exists === $relations_table) {
