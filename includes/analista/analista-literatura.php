@@ -155,7 +155,7 @@ if (!function_exists('seo_analista_page_metric_maps')) {
 if (!function_exists('seo_analista_vocabulary_count_map')) {
     function seo_analista_vocabulary_count_map() {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_object_vocabulary';
+        $table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         if (!function_exists('seo_analista_table_exists') || !seo_analista_table_exists($table)) return array();
         $rows = (array) $wpdb->get_results(
             "SELECT object_type, object_id, COUNT(*) AS total\n             FROM {$table}\n             WHERE status=1\n             GROUP BY object_type, object_id",
@@ -173,7 +173,7 @@ if (!function_exists('seo_analista_vocabulary_count_map')) {
 if (!function_exists('seo_analista_category_content_map')) {
     function seo_analista_category_content_map() {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_nodes';
+        $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (!function_exists('seo_analista_table_exists') || !seo_analista_table_exists($table)) return array();
         $rows = (array) $wpdb->get_results(
             "SELECT object_id, seo_role, keywords
@@ -198,7 +198,7 @@ if (!function_exists('seo_analista_category_content_map')) {
 if (!function_exists('seo_analista_page_role_map')) {
     function seo_analista_page_role_map() {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_nodes';
+        $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (!function_exists('seo_analista_table_exists') || !seo_analista_table_exists($table)) return array();
         $rows = (array) $wpdb->get_results(
             "SELECT object_id, seo_role
@@ -221,7 +221,7 @@ if (!function_exists('seo_analista_page_role_map')) {
 if (!function_exists('seo_analista_structural_role_map')) {
     function seo_analista_structural_role_map() {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_nodes';
+        $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
         if (!function_exists('seo_analista_table_exists') || !seo_analista_table_exists($table)) return array();
         $rows = (array) $wpdb->get_results(
             "SELECT object_id, seo_role FROM {$table}\n             WHERE status=1 AND object_type='page'\n               AND seo_role IN ('cluster','hub_primary','hub_secondary')",
@@ -240,7 +240,7 @@ if (!function_exists('seo_analista_structural_role_map')) {
 if (!function_exists('seo_analista_structural_child_count_map')) {
     function seo_analista_structural_child_count_map() {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_relations';
+        $table = esc_sql( $wpdb->prefix . 'seo_relations' );
         if (!function_exists('seo_analista_table_exists') || !seo_analista_table_exists($table)) return array();
         $rows = (array) $wpdb->get_results(
             "SELECT source_type, source_id, COUNT(DISTINCT target_id) AS total

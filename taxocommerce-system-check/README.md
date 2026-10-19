@@ -70,3 +70,7 @@ a STAGING desde la rama staging.
 - No se debe interpretar como una monitorización externa: si DNS, firewall o
   rutas del proveedor bloquean las solicitudes desde el propio hosting,
   el chequeo local puede fallar aunque los visitantes sí tengan acceso.
+
+## Interfaz 0.2.1
+
+Una sola entrada visible System Check. Pestañas: Sistema, Plugin Validation y HTTP. En HTTP permanecen las cuatro subpestañas: Páginas, Posts, Imágenes y Productos. Las rutas administrativas antiguas siguen disponibles de forma oculta; los enlaces y los formularios del auditor HTTP apuntan a la pantalla unificada.

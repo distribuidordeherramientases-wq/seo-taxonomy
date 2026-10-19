@@ -645,9 +645,9 @@ final class SEO_Auditor_Category_Rebalance {
 
     private static function copy_category_context($source_id, $target_id, $concept) {
         global $wpdb;
-        $relations = $wpdb->prefix . 'seo_relations';
-        $v = $wpdb->prefix . 'seo_vocabulary';
-        $map = $wpdb->prefix . 'seo_type_role_map';
+        $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
+        $v = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $map = esc_sql( $wpdb->prefix . 'seo_type_role_map' );
 
         // Mantener la nueva categoria dentro del mismo hub secundario.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
@@ -751,7 +751,7 @@ final class SEO_Auditor_Category_Rebalance {
 
     private static function prepare_redirect($origin_url, $target_url) {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_redirects';
+        $table = esc_sql( $wpdb->prefix . 'seo_redirects' );
         $origin = self::url_path($origin_url);
         $target = self::url_path($target_url);
         if (!$origin || !$target || $origin === $target) return new WP_Error('seo_rebalance_redirect', 'El redirect de concentracion no es valido.');

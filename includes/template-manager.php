@@ -986,12 +986,12 @@ function seo_tm_handle_assignments() {
 
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Assignment values are resolved against known template keys and normalized to post IDs below.
     $posted_assignments = isset($_POST['assigned_pages']) && is_array($_POST['assigned_pages'])
-        ? wp_unslash($_POST['assigned_pages'])
+        ? map_deep( wp_unslash( $_POST['assigned_pages'] ), 'sanitize_text_field' )
         : [];
 
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only known template keys are consumed and converted to boolean flags below.
     $posted_device_modes = isset($_POST['device_variants_enabled']) && is_array($_POST['device_variants_enabled'])
-        ? wp_unslash($_POST['device_variants_enabled'])
+        ? map_deep( wp_unslash( $_POST['device_variants_enabled'] ), 'sanitize_text_field' )
         : [];
 
     $occupied_in_request = [];
@@ -1681,7 +1681,7 @@ function seo_tm_handle_registry() {
     $templates = seo_tm_get_templates();
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Registry rows are consumed only for known templates and each field is sanitized according to type below.
     $posted    = isset($_POST['templates']) && is_array($_POST['templates'])
-        ? wp_unslash($_POST['templates'])
+        ? map_deep( wp_unslash( $_POST['templates'] ), 'sanitize_textarea_field' )
         : [];
     $files     = seo_tm_get_php_files();
 

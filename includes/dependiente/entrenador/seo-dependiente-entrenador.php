@@ -993,8 +993,14 @@ final class SEO_Dependiente_Entrenador {
                 $state = self::auto_state();
                 $speed = self::auto_speed_config();
                 $batch_size = self::sanitize_batch_size($state['batch_size'] ?? $speed['initial_batch']);
+                // The regular L1-L9 course has an independent M4 from the
+                // continuous Update M4. Protect this path too: a full product
+                // search can exceed a request limit, so checkpoint each M4
+                // question individually and retain normal speed for other
+                // modules. The persisted batch_size governor is unchanged.
+                $step_batch_size = 4 === $module_no ? 1 : $batch_size;
                 $started = microtime(true);
-                $result = self::auto_run_module_batch($lesson_key, $module_no, $batch_size);
+                $result = self::auto_run_module_batch($lesson_key, $module_no, $step_batch_size);
                 $duration = max(0, microtime(true) - $started);
                 $answered_rows = 0;
                 foreach ((array) ($result['rows'] ?? array()) as $row) {
@@ -1810,9 +1816,16 @@ final class SEO_Dependiente_Entrenador {
             $state = self::auto_state();
         }
 
+        // A paused continuous update takes priority over the next initial
+        // lesson. Otherwise a pending L10 / Interpreter gate can prevent the
+        // supervisor from ever resuming M4-M8 of the existing update.
+        $update_current = class_exists('SEO_Dependiente_Actualizacion')
+            && SEO_Dependiente_Actualizacion::has_pending_work()
+            ? SEO_Dependiente_Actualizacion::monitor_current()
+            : null;
         $lessons = self::lessons_by_key();
         $current_key = self::current_lesson_key($lessons);
-        if ('v2_l10_consolidation_debt' === $current_key && !self::interpreter_l9_completed()) {
+        if (!$update_current && 'v2_l10_consolidation_debt' === $current_key && !self::interpreter_l9_completed()) {
             self::save_auto_state(array(
                 'enabled'        => false,
                 'mode'           => 'manual',
@@ -1831,6 +1844,8 @@ final class SEO_Dependiente_Entrenador {
             'enabled'               => true,
             'mode'                  => 'auto',
             'status'                => 'running',
+            'current_lesson'        => $update_current ? (string) ($update_current['lesson_key'] ?? '') : (string) $current_key,
+            'current_module'        => $update_current ? absint($update_current['next_module'] ?? 0) : ($current_key ? self::next_pending_module($current_key) : 0),
             'last_error'            => '',
             'needs_training_retry_allowed' => 1,
             'direct_worker_pending' => 0,
@@ -1841,9 +1856,11 @@ final class SEO_Dependiente_Entrenador {
             'last_dispatch_error'   => '',
             'controller_active'     => 0,
             'controller_heartbeat_ts' => 0,
-            'last_message'          => $recovered_stale_runtime
-                ? 'Estado de ejecución obsoleto recuperado. Academia se reanuda desde el progreso guardado.'
-                : 'Arranque manual solicitado desde Herramientas > Procesos.',
+            'last_message'          => $update_current
+                ? 'Actualización de Dependiente reanudada desde M' . absint($update_current['next_module'] ?? 0) . ' conservando todas las preguntas evaluadas.'
+                : ($recovered_stale_runtime
+                    ? 'Estado de ejecución obsoleto recuperado. Academia se reanuda desde el progreso guardado.'
+                    : 'Arranque manual solicitado desde Herramientas > Procesos.'),
             'updated_at'            => current_time('mysql'),
         ));
 

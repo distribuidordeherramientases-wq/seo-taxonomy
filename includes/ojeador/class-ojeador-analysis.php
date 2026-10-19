@@ -109,8 +109,8 @@ final class SEO_Ojeador_Analysis {
             'per_page' => 100,
         ));
 
-        $table = SEO_Ojeador_DB::table('category_results');
-        $categories = SEO_Ojeador_DB::table('categories');
+        $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
+        $categories = esc_sql( SEO_Ojeador_DB::table('categories') );
         $where = array("r.active=1", "c.status='ok'");
         $params = array();
 
@@ -227,8 +227,8 @@ final class SEO_Ojeador_Analysis {
     /** @return array */
     public static function comparison_category_options() {
         global $wpdb;
-        $table = SEO_Ojeador_DB::table('category_results');
-        $categories = SEO_Ojeador_DB::table('categories');
+        $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
+        $categories = esc_sql( SEO_Ojeador_DB::table('categories') );
         return (array) $wpdb->get_results(
             "SELECT r.term_id,COALESCE(NULLIF(c.category_name,''),t.name) AS category_name,COUNT(*) AS products_found
              FROM {$table} r
@@ -244,7 +244,7 @@ final class SEO_Ojeador_Analysis {
     /** @return array */
     private static function market_aggregates() {
         global $wpdb;
-        $table = SEO_Ojeador_DB::table('category_results');
+        $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
         $sql = "SELECT term_id,
                        COUNT(*) AS result_count,
                        COUNT(DISTINCT NULLIF(merchant_key,'')) AS merchant_count,
@@ -272,7 +272,7 @@ final class SEO_Ojeador_Analysis {
     /** @return array */
     private static function top_merchant_shares() {
         global $wpdb;
-        $table = SEO_Ojeador_DB::table('category_results');
+        $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
         $rows = (array) $wpdb->get_results(
             "SELECT term_id,merchant_key,COUNT(*) AS n
              FROM {$table}
@@ -301,7 +301,7 @@ final class SEO_Ojeador_Analysis {
     private static function merchant_ranking($limit = 30) {
         global $wpdb;
         $limit = max(1, min(100, absint($limit)));
-        $table = SEO_Ojeador_DB::table('category_results');
+        $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
         return (array) $wpdb->get_results(
             "SELECT merchant,merchant_key,COUNT(*) AS appearances,COUNT(DISTINCT term_id) AS categories,
                     SUM(CASE WHEN price IS NOT NULL AND price>0 THEN 1 ELSE 0 END) AS rows_with_price,
@@ -639,7 +639,7 @@ final class SEO_Ojeador_Analysis {
         $out['avg_merchant_data_coverage_pct'] = $merchant_ratios ? round(array_sum($merchant_ratios) / count($merchant_ratios), 1) : 0;
 
         global $wpdb;
-        $table = SEO_Ojeador_DB::table('category_results');
+        $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
         $out['unique_merchants'] = absint($wpdb->get_var("SELECT COUNT(DISTINCT merchant_key) FROM {$table} WHERE active=1 AND merchant_key<>''"));
 
         $usage = SEO_Ojeador_Shopping::usage_month();

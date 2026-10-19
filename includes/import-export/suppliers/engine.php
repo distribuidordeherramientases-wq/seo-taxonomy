@@ -246,7 +246,7 @@ function seo_proveedores_es_csv_estandar( $state ) {
     $header = array_map( 'sanitize_key', (array) ( $state['header'] ?? array() ) );
     $fields = seo_proveedores_cabecera_estandar();
 
-    // Keep accepting supplier CSVs prepared with the previous 19-column schema.
+    // CSV normalizados anteriormente no incluian source_row_key.
     $legacy = array_values( array_diff( $fields, array( 'source_row_key' ) ) );
     return count( $header ) === count( array_unique( $header ) )
         && ( ( count( $header ) === count( $fields ) && empty( array_diff( $fields, $header ) ) )
@@ -272,21 +272,20 @@ function seo_proveedores_fila_asociativa( $header, $row ) {
 
 
 /**
- * Distinguishes supplier variants even when VEVOR repeats a SKU or ID.
- * Mutable price and image fields must not participate in update identity.
+ * SKU + title + country separate VEVOR variants. Supplier external ID keeps
+ * different products with the same visible name apart. Price, affiliate URL
+ * and images are deliberately excluded so updates retain identity.
  */
 function seo_proveedores_vevor_fila_base( array $row ) {
-    // Historical product differentiation: supplier SKU + title. A market
-    // extends the key to prevent US/DE/NL/FR variants from being mixed.
-    // Neither price nor the affiliate URL participates: they may change.
     return hash( 'sha256', wp_json_encode( array(
         strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ),
         trim( (string) ( $row['sku'] ?? '' ) ),
         trim( (string) ( $row['nombre'] ?? '' ) ),
+        trim( (string) ( $row['proveedor_id_externo'] ?? '' ) ),
     ) ) );
 }
 
-/** Give every repeated CSV occurrence a separate durable supplier identity. */
+/** Repeated identical VEVOR CSV lines still represent separate entries. */
 function seo_proveedores_vevor_fila_clave( $base, $occurrence ) {
     return hash( 'sha256', (string) $base . ':' . absint( $occurrence ) );
 }
@@ -421,7 +420,8 @@ function seo_proveedores_preparar_csv_estandar( $state, $recipe, $mapping = [] )
             continue;
         }
 
-        // Each physical VEVOR line survives, including identical SKU variants.
+        // The prepared CSV retains each VEVOR source row, irrespective of
+        // shared provider SKU, external ID, title or source row order.
         if ( 0 === strcasecmp( (string) ( $recipe['provider'] ?? '' ), 'VEVOR' ) && '' !== (string) ( $clean['pais_origen'] ?? '' ) ) {
             $base = seo_proveedores_vevor_fila_base( $clean );
             $vevor_occurrences[ $base ] = ( $vevor_occurrences[ $base ] ?? 0 ) + 1;
@@ -595,30 +595,54 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
         if ( $vevor_market ) {
             $incoming_key = strtolower( trim( (string) ( $data['source_row_key'] ?? '' ) ) );
             if ( ! preg_match( '/^[a-f0-9]{64}$/', $incoming_key ) ) {
-                // Existing prepared CSVs can have no source_row_key column.
+                // Reuse the identity rule for pre-upgrade prepared CSVs.
                 $base = seo_proveedores_vevor_fila_base( $data );
                 $vevor_occurrences[ $base ] = ( $vevor_occurrences[ $base ] ?? 0 ) + 1;
                 $incoming_key = seo_proveedores_vevor_fila_clave( $base, $vevor_occurrences[ $base ] );
             } else {
                 $vevor_occurrences[ $incoming_key ] = ( $vevor_occurrences[ $incoming_key ] ?? 0 ) + 1;
-                if ( 1 < $vevor_occurrences[ $incoming_key ] ) {
+                if ( $vevor_occurrences[ $incoming_key ] > 1 ) {
+                    // Do not discard duplicate rows from an edited CSV.
                     $incoming_key = seo_proveedores_vevor_fila_clave( $incoming_key, $vevor_occurrences[ $incoming_key ] );
                 }
             }
             $data['source_row_key'] = $incoming_key;
-            // The only match that can update an international offer is the
-            // identity of this individual CSV line. SKU/title are not keys.
             $existing = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT * FROM {$table} WHERE proveedor = %s AND pais_origen = %s AND source_row_key = %s LIMIT 1",
-                    'VEVOR', $market_country, $incoming_key
+                    "SELECT * FROM {$table}
+                     WHERE proveedor = %s AND pais_origen = %s
+                       AND proveedor_id_externo = %s AND source_row_key = %s
+                     ORDER BY id ASC LIMIT 1",
+                    'VEVOR', $market_country, $external_id, $incoming_key
                 ),
                 ARRAY_A
             );
+
+            // First reimport after upgrading: bind each matching historical
+            // catalogue row to its key. Its object_id and approval remain.
+            // Only an exact unique country + ID + SKU + title match qualifies.
+            if ( ! $existing ) {
+                $legacy_rows = (array) $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT * FROM {$table}
+                         WHERE proveedor = %s AND pais_origen = %s
+                           AND proveedor_id_externo = %s AND sku = %s AND nombre = %s
+                           AND (source_row_key = '' OR source_row_key IS NULL)
+                         ORDER BY id ASC LIMIT 2",
+                        'VEVOR', $market_country, $external_id, $incoming_sku, $name
+                    ),
+                    ARRAY_A
+                );
+                if ( 1 === count( $legacy_rows ) ) {
+                    $existing = $legacy_rows[0];
+                }
+            }
+            // VEVOR matching never uses SKU or title by itself to overwrite
+            // a different variant. Woo linkage is kept via object_id.
             $woo_product_id = 0;
         } else {
-            // Keep existing matching semantics for Spanish/other providers.
-            $data['source_row_key'] = null;
+            // Other suppliers keep their historical SKU/external ID logic.
+            $data['source_row_key'] = '';
             $existing_by_sku = null;
             $existing_by_external = null;
 
@@ -741,7 +765,7 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
             }
         }
 
-        } // Non-VEVOR SKU/external-ID matching.
+        } // End traditional supplier matching.
 
         if ( $existing ) {
             $selection = sanitize_key( (string) ( $existing['estado_seleccion'] ?? '' ) );
@@ -903,7 +927,7 @@ function seo_proveedores_campos_importacion() {
     return [
         'proveedor_id_externo' => [ 'label' => 'Código del proveedor', 'required' => true, 'type' => 'text' ],
         'sku'                   => [ 'label' => 'SKU del proveedor', 'type' => 'text' ],
-        'source_row_key'        => [ 'label' => 'Identidad de fila de origen', 'type' => 'text' ],
+        'source_row_key'        => [ 'label' => 'Identidad de variante VEVOR', 'type' => 'text' ],
         'pais_origen'           => [ 'label' => 'País de origen comercial', 'type' => 'text' ],
         'idioma_origen'         => [ 'label' => 'Idioma de origen', 'type' => 'text' ],
         'mpn'                   => [ 'label' => 'MPN', 'type' => 'text' ],
@@ -4364,7 +4388,7 @@ function seo_proveedores_cargar_gestor_imagenes() {
  */
 function seo_proveedores_identidad_alta( array $row ) {
 
-    // Lock per offer, never per VEVOR supplier SKU shared by variants.
+    // Different VEVOR catalogue rows can reuse the same supplier SKU.
     if ( 0 === strcasecmp( (string) ( $row['proveedor'] ?? '' ), 'VEVOR' ) &&
         '' !== trim( (string) ( $row['pais_origen'] ?? '' ) ) && absint( $row['id'] ?? 0 ) ) {
         return 'vevor-row|' . absint( $row['id'] );
@@ -7011,6 +7035,31 @@ function seo_proveedores_render_catalogo() {
             <hr style="margin:22px 0 18px;">
 
             <h3 style="margin-bottom:6px;">Acción sobre todos los resultados filtrados</h3>
+
+            <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin:12px 0;padding:12px;border:1px solid #c3c4c7;">
+                    <?php wp_nonce_field( 'seo_vevor_completar_drafts', 'seo_vevor_completar_nonce' ); ?>
+                    <p><strong>Completar borradores VEVOR vinculados</strong></p>
+                    <p>Actualiza precio, moneda, enlace de afiliado e imágenes externas desde el catálogo de proveedores.
+                    Solo modifica los productos WooCommerce existentes en draft y vinculados por object_id.
+                    No crea productos, no cambia categorías y no publica fichas.</p>
+                    <button type="submit" name="seo_vevor_completar_drafts" value="1" class="button button-secondary">
+                        Completar datos de drafts VEVOR
+                    </button>
+                </form>
+                <?php if ( isset( $_GET['seo_vevor_completed'] ) ) : ?>
+                    <p class="notice notice-info" style="padding:10px;">
+                        <?php
+                        echo esc_html( sprintf(
+                            'VEVOR: %d actualizados, %d errores, %d omitidos. Los errores permanecen en el catálogo para revisión.',
+                            absint( $_GET['seo_vevor_completed'] ),
+                            absint( $_GET['seo_vevor_errors'] ?? 0 ),
+                            absint( $_GET['seo_vevor_skipped'] ?? 0 )
+                        ) );
+                        ?>
+                    </p>
+                <?php endif; ?>
+            <?php endif; ?>
 
             <?php if ( 0 === strcasecmp( (string) $proveedor, 'VEVOR' ) ) : ?>
                 <p><strong>VEVOR:</strong> Aceptar valida las ofertas por pais en el catalogo

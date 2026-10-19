@@ -8,8 +8,8 @@ defined('ABSPATH') || exit;
 if (!function_exists('seo_analista_catalog_structure_snapshot')) {
     function seo_analista_catalog_structure_snapshot(array $gsc_pages = array()) {
         global $wpdb;
-        $nodes_table = $wpdb->prefix . 'seo_nodes';
-        $relations_table = $wpdb->prefix . 'seo_relations';
+        $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
+        $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $out = array(
             'available' => false,
             'clusters' => 0,

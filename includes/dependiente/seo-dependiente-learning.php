@@ -31,7 +31,7 @@ final class SEO_Dependiente_Learning {
             return array();
         }
 
-        $log_table = SEO_Dependiente_Search_Log::table();
+        $log_table = esc_sql( SEO_Dependiente_Search_Log::table() );
         $previous = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM {$log_table}
@@ -352,8 +352,8 @@ final class SEO_Dependiente_Learning {
             return array();
         }
 
-        $object_table = $wpdb->prefix . 'seo_object_vocabulary';
-        $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
+        $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         if (!self::table_exists($object_table) || !self::table_exists($vocabulary_table)) {
             return array();
         }
@@ -409,7 +409,7 @@ final class SEO_Dependiente_Learning {
             return new WP_Error('seo_dependiente_candidate_invalid', 'Candidato semantico no valido.');
         }
 
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         $row = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $semantic_id),
             ARRAY_A
@@ -450,7 +450,7 @@ final class SEO_Dependiente_Learning {
             return new WP_Error('seo_dependiente_candidate_invalid', 'Candidato semantico no valido.');
         }
 
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
         $row = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $semantic_id),
             ARRAY_A
@@ -494,7 +494,7 @@ final class SEO_Dependiente_Learning {
             return null;
         }
 
-        $table = SEO_Dependiente_Semantics::table();
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
 
         // Si ya existe una regla activa equivalente, no generamos otro candidato.
         $active_id = $wpdb->get_var(

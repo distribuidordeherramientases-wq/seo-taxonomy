@@ -435,7 +435,7 @@ final class SEO_Dependiente_Admin {
             'results_per_page'     => min(48, max(6, absint($_POST['results_per_page'] ?? 18))),
             'menu_cards'           => min(12, max(4, absint($_POST['menu_cards'] ?? 8))),
             'help_email'           => $help_email,
-            'custom_meta_keys'     => self::sanitize_meta_keys(isset($_POST['custom_meta_keys']) ? wp_unslash($_POST['custom_meta_keys']) : ''),
+            'custom_meta_keys'     => self::sanitize_meta_keys( isset( $_POST['custom_meta_keys'] ) ? map_deep( wp_unslash( $_POST['custom_meta_keys'] ), 'sanitize_text_field' ) : '' ),
             'action_image_need'    => absint($_POST['action_image_need'] ?? 0),
             'action_image_product' => absint($_POST['action_image_product'] ?? 0),
             'action_image_tool'    => absint($_POST['action_image_tool'] ?? 0),
