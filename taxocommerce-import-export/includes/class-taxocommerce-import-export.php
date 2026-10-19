@@ -184,9 +184,15 @@ final class TaxoCommerce_Import_Export {
 		$error  = isset( $_GET['tc_ie_error'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_ie_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
 		$kind   = isset( $_GET['tc_ie_kind'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_kind'] ) ) : 'csv'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'TaxoCommerce Import-Export', 'taxocommerce-import-export' ); ?></h1>
-			<p><?php echo esc_html__( 'Un único punto de intercambio para productos, categorías, posts, páginas y Biblioteca de Medios.', 'taxocommerce-import-export' ); ?></p>
+		<div class="wrap tcc-family-screen">
+			<header class="tcc-page-header">
+				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-database-import"></span></span>
+				<div class="tcc-page-header__content">
+					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'Familia TaxoCommerce', 'taxocommerce-import-export' ); ?></p>
+					<h1><?php echo esc_html__( 'TaxoCommerce Import-Export', 'taxocommerce-import-export' ); ?></h1>
+					<p><?php echo esc_html__( 'Un único punto de intercambio para productos, categorías, posts, páginas y Biblioteca de Medios.', 'taxocommerce-import-export' ); ?></p>
+				</div>
+			</header>
 
 			<?php if ( 'ok' === $result ) : ?>
 				<div class="notice notice-success is-dismissible"><p>
@@ -203,8 +209,8 @@ final class TaxoCommerce_Import_Export {
 			<?php endif; ?>
 
 			<h2><?php echo esc_html__( 'Datos y contenidos', 'taxocommerce-import-export' ); ?></h2>
-			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;max-width:1200px;">
-				<div class="card" style="max-width:none;">
+			<div class="tcc-family-grid">
+				<div class="card">
 					<h3><?php echo esc_html__( 'Exportar CSV', 'taxocommerce-import-export' ); ?></h3>
 					<p><?php echo esc_html__( 'Genera un CSV completo del tipo de contenido seleccionado.', 'taxocommerce-import-export' ); ?></p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -223,7 +229,7 @@ final class TaxoCommerce_Import_Export {
 					</form>
 				</div>
 
-				<div class="card" style="max-width:none;">
+				<div class="card">
 					<h3><?php echo esc_html__( 'Importar CSV', 'taxocommerce-import-export' ); ?></h3>
 					<p><?php echo esc_html__( 'Importa un CSV generado por este plugin.', 'taxocommerce-import-export' ); ?></p>
 					<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -240,8 +246,8 @@ final class TaxoCommerce_Import_Export {
 
 			<h2><?php echo esc_html__( 'Media · imágenes', 'taxocommerce-import-export' ); ?></h2>
 			<p><?php echo esc_html__( 'Las imágenes se transportan aquí, no desde TaxoCommerce Images. El paquete contiene originales, metadatos y relaciones; las miniaturas se regeneran al importar.', 'taxocommerce-import-export' ); ?></p>
-			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;max-width:1200px;">
-				<div class="card" style="max-width:none;">
+			<div class="tcc-family-grid">
+				<div class="card">
 					<h3><?php echo esc_html__( 'Exportar Media', 'taxocommerce-import-export' ); ?></h3>
 					<p><?php echo esc_html__( 'Genera un ZIP con media.csv, manifest.json y los archivos originales de las imágenes.', 'taxocommerce-import-export' ); ?></p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -251,7 +257,7 @@ final class TaxoCommerce_Import_Export {
 					</form>
 				</div>
 
-				<div class="card" style="max-width:none;">
+				<div class="card">
 					<h3><?php echo esc_html__( 'Importar Media', 'taxocommerce-import-export' ); ?></h3>
 					<p><?php echo esc_html__( 'Importa un ZIP generado por TaxoCommerce Import-Export. Los archivos se crean como attachments reales en Media.', 'taxocommerce-import-export' ); ?></p>
 					<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
