@@ -8,9 +8,11 @@ Se copian los dos chequeos del monolito TaxoCommerce SEO sin redisenar sus
 algoritmos: Server Status y Plugin Validation. Se incluyen sus modulos
 auxiliares, historial y el motor de informes PDF/JSON y correos.
 
-El archivo de escaneo externo `seo-health-scan.php` queda copiado como parte
-del inventario, pero no se carga automaticamente: depende de GitHub Actions
-y crea tablas separadas fuera de esta primera extraccion.
+`seo-health-scan.php` se reutiliza como fuente de inventarios y tablas de
+resultados. El nuevo ejecutor PHP local procesa lotes de hasta cinco URL mediante
+Action Scheduler (cuando existe) o WP-Cron. No se requieren tokens GitHub.
+El disparador de trabajos exige un WP-Cron o cron real operativo para progresar
+sin visitantes. La recuperacion programada revisa ejecuciones interrumpidas.
 
 ## Compatibilidad con el plugin original
 
@@ -50,3 +52,21 @@ a STAGING desde la rama staging.
    dependencia de simbolos `seo_*`.
 4. Configuracion completa de destinatarios, periodicidad y alertas.
 5. Integracion opcional del sistema de suscripciones.
+
+## Chequeos HTTP local: version 0.2.0
+
+- Pestañas: **Páginas, Posts, Imágenes y Productos**.
+- KPIs: URL activas, comprobadas, correctas, avisos, errores, pendientes, cobertura;
+  última ejecución con promedio, p95, HTTP 429 y HTTP 5xx.
+- Detalle por URL: HTTP inicial/final, duración, incidencias, filtros y búsqueda.
+- Motor HTTP: `wp_safe_remote_get`, valida URL pública contra SSRF, verifica
+  HTTPS, sigue hasta tres redirecciones explícitamente, con cuerpo de máximo 2 KB.
+- Ejecución manual en tandas de cinco URL, con pausas de 10 segundos;
+  bloqueo para no lanzar varios escaneos a la vez; cancelar/reanudar; vigilancia
+  periódica si una ejecución queda detenida.
+- Conserva `seo_health_runs` y `seo_health_items`, sin crear un segundo registro
+  para la misma URL. Para imágenes añade Media de WordPress al inventario
+  histórico; para productos utiliza publicaciones WooCommerce.
+- No se debe interpretar como una monitorización externa: si DNS, firewall o
+  rutas del proveedor bloquean las solicitudes desde el propio hosting,
+  el chequeo local puede fallar aunque los visitantes sí tengan acceso.

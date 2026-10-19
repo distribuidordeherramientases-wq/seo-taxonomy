@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
- * Version: 0.1.1
+ * Version: 0.2.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.1.1' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.0' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -59,6 +59,20 @@ function taxocommerce_system_check_boot() {
         }
     }
 
+    // Load the existing health inventory schema only when the SEO monolith
+    // has not already registered its global functions and REST routes.
+    if ( ! function_exists( 'seo_health_scan_tables' ) ) {
+        $inventory_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/system-check/seo-health-scan.php';
+        if ( is_readable( $inventory_module ) ) {
+            require_once $inventory_module;
+        }
+    }
+    $url_audit_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-url-audit.php';
+    if ( is_readable( $url_audit_module ) ) {
+        require_once $url_audit_module;
+        TaxoCommerce_System_Check_URL_Audit::register_hooks();
+    }
+
     add_action( 'taxocommerce_core_register_modules', 'taxocommerce_system_check_register_with_core' );
     // Core registers at plugins_loaded:20; this plugin boots at priority 100.
     // Register immediately if Core has already completed its bootstrap.
@@ -97,6 +111,7 @@ function taxocommerce_system_check_register_menu() {
     add_submenu_page( $parent, 'System Check', 'System Check', 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home' );
     add_submenu_page( $parent, 'Estado del sistema', 'Estado del sistema', 'manage_options', 'tcs-system-status', 'taxocommerce_system_check_server_screen' );
     add_submenu_page( $parent, 'Plugin Validation', 'Plugin Validation', 'manage_options', 'tcs-plugin-validation', 'taxocommerce_system_check_validation_screen' );
+    add_submenu_page( $parent, 'Chequeos HTTP', 'Chequeos HTTP', 'manage_options', 'tcs-url-audit', 'taxocommerce_system_check_url_audit_screen' );
 }
 
 /** The copied module still uses these historic links in several locations. */
@@ -118,6 +133,25 @@ function taxocommerce_system_check_enqueue_assets() {
     }
 }
 
+add_action( 'admin_head', 'taxocommerce_system_check_audit_styles' );
+function taxocommerce_system_check_audit_styles() {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
+    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+    if ( 'tcs-url-audit' !== $page ) {
+        return;
+    }
+    echo '<style>
+    .tcs-url-audit .tcs-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:20px 0;}
+    .tcs-url-audit .tcs-stat{background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:16px;}
+    .tcs-url-audit .tcs-stat strong{display:block;font-size:25px;line-height:1.2}
+    .tcs-url-audit .tcs-stat span{color:#50575e;font-size:12px}
+    .tcs-url-audit .tcs-actions,.tcs-url-audit .tcs-filter{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:15px 0;}
+    .tcs-url-audit .tcs-actions form{margin:0}
+    .tcs-url-audit .tcs-last{background:#fff;border:1px solid #dcdcde;padding:12px;margin:12px 0}
+    .tcs-url-audit table td{max-width:420px;overflow-wrap:anywhere}
+    </style>';
+}
+
 function taxocommerce_system_check_home() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
@@ -129,6 +163,8 @@ function taxocommerce_system_check_home() {
     echo '<p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=tcs-system-status' ) ) . '">Abrir estado del sistema</a></p>';
     echo '<h2>Plugin Validation</h2><p>Chequeos funcionales, integridad del codigo, informes y notificaciones por correo opcionales.</p>';
     echo '<p><a class="button" href="' . esc_url( admin_url( 'admin.php?page=tcs-plugin-validation' ) ) . '">Abrir Plugin Validation</a></p>';
+    echo '<h2>Chequeos HTTP</h2><p>Auditoría por lotes de páginas, posts, imágenes y productos sin GitHub.</p>';
+    echo '<p><a class="button" href="' . esc_url( admin_url( 'admin.php?page=tcs-url-audit' ) ) . '">Abrir chequeos HTTP</a></p>';
     echo '</div>';
     if ( defined( 'SEO_SYSTEM_FILE' ) && wp_normalize_path( (string) SEO_SYSTEM_FILE ) !== wp_normalize_path( TAXOCOMMERCE_SYSTEM_CHECK_FILE ) ) {
         echo '<p class="description">Se reutiliza el motor existente de TaxoCommerce SEO para evitar funciones duplicadas.</p>';
@@ -158,7 +194,21 @@ function taxocommerce_system_check_validation_screen() {
     echo '<div class="wrap"><h1>Plugin Validation</h1><div class="notice notice-error"><p>Motor original no disponible.</p></div></div>';
 }
 
+function taxocommerce_system_check_url_audit_screen() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'No autorizado.', 'taxocommerce-system-check' ) );
+    }
+    if ( class_exists( 'TaxoCommerce_System_Check_URL_Audit' ) ) {
+        TaxoCommerce_System_Check_URL_Audit::render();
+        return;
+    }
+    echo '<div class="wrap"><h1>Chequeos HTTP</h1><div class="notice notice-error"><p>El módulo de auditoría HTTP no se ha cargado.</p></div></div>';
+}
+
 function taxocommerce_system_check_deactivate() {
+    if ( class_exists( 'TaxoCommerce_System_Check_URL_Audit' ) ) {
+        TaxoCommerce_System_Check_URL_Audit::deactivate();
+    }
     if ( defined( 'SEO_SYSTEM_FILE' ) && wp_normalize_path( (string) SEO_SYSTEM_FILE ) !== wp_normalize_path( TAXOCOMMERCE_SYSTEM_CHECK_FILE ) ) {
         return;
     }
