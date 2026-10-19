@@ -40,7 +40,7 @@ function seo_ie_ct_term_locale( $term ) {
 /** Verifica que no haya ya otra referencia ES ni otra version del mismo locale. */
 function seo_ie_ct_check_relations( $source_id, $target_id, $locale ) {
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_relations';
+    $table = esc_sql( $wpdb->prefix . 'seo_relations' );
     if ( $target_id ) {
         $sources = $wpdb->get_col( $wpdb->prepare(
             "SELECT DISTINCT source_id FROM {$table}
@@ -84,7 +84,7 @@ function seo_ie_ct_resolve_parent( $source, $locale, $explicit_slug ) {
     }
 
     if ( (int) $source->parent > 0 ) {
-        $table = $wpdb->prefix . 'seo_relations';
+        $table = esc_sql( $wpdb->prefix . 'seo_relations' );
         $candidates = $wpdb->get_col( $wpdb->prepare(
             "SELECT target_id FROM {$table}
              WHERE source_type = %s AND source_id = %d AND target_type = %s AND relation_type = %s",
@@ -109,7 +109,7 @@ function seo_ie_ct_resolve_parent( $source, $locale, $explicit_slug ) {
 /** Inserta la relacion mediante Data Layer para conservar auditoria/rollback. */
 function seo_ie_ct_link( $source_id, $target_id ) {
     global $wpdb;
-    $table = $wpdb->prefix . 'seo_relations';
+    $table = esc_sql( $wpdb->prefix . 'seo_relations' );
     $existing = (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT id FROM {$table}
          WHERE source_type = %s AND source_id = %d AND target_type = %s AND target_id = %d AND relation_type = %s LIMIT 1",
