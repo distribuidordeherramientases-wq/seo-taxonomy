@@ -411,17 +411,24 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     }
 
     private static function candidates( $target_role ) {
+        static $cached = array();
+        if ( isset( $cached[ $target_role ] ) ) {
+            return $cached[ $target_role ];
+        }
         if ( 'category' === $target_role ) {
             $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name', 'number' => 40 ) );
-            return is_wp_error( $terms ) ? array() : $terms;
+            $cached[ $target_role ] = is_wp_error( $terms ) ? array() : $terms;
+            return $cached[ $target_role ];
         }
         if ( 'post' === $target_role ) {
-            return get_posts( array(
+            $cached[ $target_role ] = get_posts( array(
                 'post_type' => 'post', 'post_status' => 'publish', 'posts_per_page' => 80,
                 'orderby' => 'title', 'order' => 'ASC',
             ) );
+        } else {
+            $cached[ $target_role ] = self::role_pages( $target_role );
         }
-        return self::role_pages( $target_role );
+        return $cached[ $target_role ];
     }
 
     public static function render( $hierarchy ) {
