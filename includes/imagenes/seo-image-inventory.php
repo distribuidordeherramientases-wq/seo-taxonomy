@@ -217,7 +217,7 @@ if (!function_exists('seo_images_inventory_summary')) {
     function seo_images_inventory_summary() {
         global $wpdb;
 
-        $supplier_table = seo_images_table_supplier_images();
+        $supplier_table = esc_sql( seo_images_table_supplier_images() );
         $formats = seo_images_inventory_format_counts();
         $summary = array(
             'local_total'       => (int) $formats['total'],
@@ -255,7 +255,7 @@ if (!function_exists('seo_images_inventory_summary')) {
 if (!function_exists('seo_images_inventory_supplier_rows')) {
     function seo_images_inventory_supplier_rows() {
         global $wpdb;
-        $table = seo_images_table_supplier_images();
+        $table = esc_sql( seo_images_table_supplier_images() );
 
         if (!seo_images_table_exists($table)) {
             return array();
@@ -344,7 +344,7 @@ if (!function_exists('seo_images_anomaly_low_image_products')) {
 if (!function_exists('seo_images_anomaly_unlinked_external_count')) {
     function seo_images_anomaly_unlinked_external_count() {
         global $wpdb;
-        $table = seo_images_table_supplier_images();
+        $table = esc_sql( seo_images_table_supplier_images() );
 
         if (!seo_images_table_exists($table)) {
             return 0;
@@ -365,7 +365,7 @@ if (!function_exists('seo_images_anomaly_unlinked_external_count')) {
 if (!function_exists('seo_images_anomaly_unlinked_external')) {
     function seo_images_anomaly_unlinked_external($limit = 200) {
         global $wpdb;
-        $table = seo_images_table_supplier_images();
+        $table = esc_sql( seo_images_table_supplier_images() );
         $limit = max(1, min(500, absint($limit)));
 
         if (!seo_images_table_exists($table)) {
@@ -396,7 +396,7 @@ if (!function_exists('seo_images_anomaly_unlinked_external')) {
 if (!function_exists('seo_images_anomaly_products_without_images')) {
     function seo_images_anomaly_products_without_images($limit = 200) {
         global $wpdb;
-        $supplier_table = seo_images_table_supplier_images();
+        $supplier_table = esc_sql( seo_images_table_supplier_images() );
         $limit = max(1, min(500, absint($limit)));
 
         if (!seo_images_table_exists($supplier_table)) {
@@ -457,7 +457,7 @@ if (!function_exists('seo_images_anomaly_products_without_images')) {
 if (!function_exists('seo_images_anomaly_broken_media_index_count')) {
     function seo_images_anomaly_broken_media_index_count() {
         global $wpdb;
-        $table = seo_images_table_images();
+        $table = esc_sql( seo_images_table_images() );
 
         if (!seo_images_table_exists($table)) {
             return 0;
@@ -479,7 +479,7 @@ if (!function_exists('seo_images_anomaly_broken_media_index_count')) {
 if (!function_exists('seo_images_anomaly_broken_media_index')) {
     function seo_images_anomaly_broken_media_index($limit = 200) {
         global $wpdb;
-        $table = seo_images_table_images();
+        $table = esc_sql( seo_images_table_images() );
         $limit = max(1, min(500, absint($limit)));
 
         if (!seo_images_table_exists($table)) {
@@ -743,7 +743,7 @@ if (!function_exists('seo_images_handle_delete_unlinked_external')) {
         check_admin_referer('seo_images_delete_unlinked_external');
 
         global $wpdb;
-        $table = seo_images_table_supplier_images();
+        $table = esc_sql( seo_images_table_supplier_images() );
 
         if (!seo_images_table_exists($table)) {
             seo_images_admin_redirect('anomalies', 'invalid');

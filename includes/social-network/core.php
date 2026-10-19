@@ -338,7 +338,7 @@ function seo_social_network_maybe_install_tables()
     global $wpdb;
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-    $table = seo_social_network_publications_table();
+    $table = esc_sql( seo_social_network_publications_table() );
     $charset_collate = $wpdb->get_charset_collate();
 
     $sql = "CREATE TABLE {$table} (
@@ -497,7 +497,7 @@ function seo_social_network_capture_visit()
     }
 
     global $wpdb;
-    $table = seo_social_network_publications_table();
+    $table = esc_sql( seo_social_network_publications_table() );
     $updated = $wpdb->query(
         $wpdb->prepare(
             "UPDATE {$table}
@@ -655,7 +655,7 @@ function seo_social_network_create_pending_publication($content_id, $provider, $
         return new WP_Error('invalid_content', 'El contenido no existe o no esta publicado.');
     }
 
-    $table = seo_social_network_publications_table();
+    $table = esc_sql( seo_social_network_publications_table() );
     $now = current_time('mysql');
 
     $inserted = $wpdb->insert(
@@ -743,7 +743,7 @@ function seo_social_network_publish_content($content_id, $provider, $template_ov
     $result = call_user_func($provider_config['publish_callback'], $payload);
 
     global $wpdb;
-    $table = seo_social_network_publications_table();
+    $table = esc_sql( seo_social_network_publications_table() );
     $now = current_time('mysql');
 
     if (is_wp_error($result)) {
@@ -800,7 +800,7 @@ function seo_social_network_publish_content($content_id, $provider, $template_ov
 function seo_social_network_get_latest_publication($content_id, $provider)
 {
     global $wpdb;
-    $table = seo_social_network_publications_table();
+    $table = esc_sql( seo_social_network_publications_table() );
 
     return $wpdb->get_row(
         $wpdb->prepare(
@@ -1831,7 +1831,7 @@ function seo_social_network_scheduler_exportable_agenda_rows()
 function seo_social_network_scheduler_exportable_history_rows()
 {
     global $wpdb;
-    $table = seo_social_network_publications_table();
+    $table = esc_sql( seo_social_network_publications_table() );
     $rows = $wpdb->get_results(
         "SELECT sp.*, p.post_title
          FROM {$table} sp
@@ -2510,7 +2510,7 @@ function seo_social_network_handle_sync_reports()
     }
 
     global $wpdb;
-    $table = seo_social_network_publications_table();
+    $table = esc_sql( seo_social_network_publications_table() );
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT * FROM {$table}
@@ -3084,7 +3084,7 @@ function seo_social_network_render_scheduler()
 function seo_social_network_render_reports()
 {
     global $wpdb;
-    $table = seo_social_network_publications_table();
+    $table = esc_sql( seo_social_network_publications_table() );
 
     $summary = $wpdb->get_row(
         "SELECT

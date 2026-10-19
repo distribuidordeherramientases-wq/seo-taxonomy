@@ -217,7 +217,7 @@ final class SEO_Comparador_DB {
 
     public static function get_profile($profile_id) {
         global $wpdb;
-        $profiles_table = self::table('profiles');
+        $profiles_table = esc_sql( self::table('profiles') );
         return (array) $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM {$profiles_table} WHERE id=%d LIMIT 1", absint($profile_id)),
             ARRAY_A
@@ -228,7 +228,7 @@ final class SEO_Comparador_DB {
         global $wpdb;
         $term_id = absint($term_id);
         if (!$term_id) return array();
-        $profiles_table = self::table('profiles');
+        $profiles_table = esc_sql( self::table('profiles') );
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM {$profiles_table} WHERE primary_category_id=%d OR category_ids LIKE %s ORDER BY updated_at DESC,id DESC",
@@ -247,7 +247,7 @@ final class SEO_Comparador_DB {
     public static function list_profiles($limit = 500) {
         global $wpdb;
         $limit = max(1, min(2000, absint($limit)));
-        $profiles_table = self::table('profiles');
+        $profiles_table = esc_sql( self::table('profiles') );
         return (array) $wpdb->get_results(
             $wpdb->prepare("SELECT * FROM {$profiles_table} ORDER BY updated_at DESC,id DESC LIMIT %d", $limit),
             ARRAY_A
@@ -290,7 +290,7 @@ final class SEO_Comparador_DB {
 
     public static function axes($profile_id) {
         global $wpdb;
-        $axes_table = self::table('axes');
+        $axes_table = esc_sql( self::table('axes') );
         return (array) $wpdb->get_results(
             $wpdb->prepare("SELECT * FROM {$axes_table} WHERE profile_id=%d ORDER BY priority DESC,label ASC", absint($profile_id)),
             ARRAY_A
@@ -315,7 +315,7 @@ final class SEO_Comparador_DB {
 
     public static function values_for_profile($profile_id) {
         global $wpdb;
-        $values_table = self::table('values');
+        $values_table = esc_sql( self::table('values') );
         $products_table = self::table('products');
         return (array) $wpdb->get_results(
             $wpdb->prepare(
@@ -332,7 +332,7 @@ final class SEO_Comparador_DB {
 
     public static function editorial($profile_id) {
         global $wpdb;
-        $editorial_table = self::table('editorial');
+        $editorial_table = esc_sql( self::table('editorial') );
         return (array) $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM {$editorial_table} WHERE profile_id=%d LIMIT 1", absint($profile_id)),
             ARRAY_A
@@ -341,7 +341,7 @@ final class SEO_Comparador_DB {
 
     public static function post_map($profile_id) {
         global $wpdb;
-        $post_map_table = self::table('post_map');
+        $post_map_table = esc_sql( self::table('post_map') );
         return (array) $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT m.*,p.post_title,p.post_status

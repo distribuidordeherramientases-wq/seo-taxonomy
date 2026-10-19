@@ -262,7 +262,7 @@ if (!function_exists('seo_analista_resolve_property_id')) {
         }
         if (!function_exists('seo_google_table')) return '';
         global $wpdb;
-        $table = seo_google_table('search_data');
+        $table = esc_sql( seo_google_table('search_data') );
         if (function_exists('seo_analista_table_exists') && !seo_analista_table_exists($table)) return '';
         return (string) $wpdb->get_var("SELECT property_id FROM {$table} WHERE property_id<>'' ORDER BY data_date DESC, id DESC LIMIT 1");
     }
@@ -276,7 +276,7 @@ if (!function_exists('seo_analista_is_ready')) {
         if (function_exists('seo_google_connection_status') && 'connected' === seo_google_connection_status()) return true;
         // En staging puede analizar un clon de los datos ya sincronizados en PRO.
         global $wpdb;
-        $table = seo_google_table('search_data');
+        $table = esc_sql( seo_google_table('search_data') );
         $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE property_hash=%s", hash('sha256', $property_id)));
         return $count > 0;
     }
@@ -320,7 +320,7 @@ if (!function_exists('seo_analista_query_rows')) {
     function seo_analista_query_rows($property_id, $date_from, $date_to, $limit = 5000) {
         global $wpdb;
         if (!$property_id || !function_exists('seo_google_table')) return array();
-        $table = seo_google_table('search_data');
+        $table = esc_sql( seo_google_table('search_data') );
         $limit = max(100, min(10000, absint($limit)));
 
         $rows = (array) $wpdb->get_results(
@@ -356,12 +356,12 @@ if (!function_exists('seo_analista_page_rows')) {
     function seo_analista_page_rows($property_id, $date_from, $date_to, $limit = 1000) {
         global $wpdb;
         if (!$property_id || !function_exists('seo_google_table')) return array();
-        $table = seo_google_table('search_data');
+        $table = esc_sql( seo_google_table('search_data') );
         $limit = max(50, min(5000, absint($limit)));
 
         if (function_exists('seo_google_pages_period_complete')
             && seo_google_pages_period_complete($property_id, $date_from, $date_to)) {
-            $pages_table = seo_google_table('search_pages');
+            $pages_table = esc_sql( seo_google_table('search_pages') );
             $pages = (array) $wpdb->get_results($wpdb->prepare(
                 "SELECT page_hash,MAX(page_url) AS page_url,SUM(clicks) AS clicks,SUM(impressions) AS impressions,
                     CASE WHEN SUM(impressions)>0 THEN SUM(clicks)/SUM(impressions) ELSE 0 END AS ctr,
@@ -419,7 +419,7 @@ if (!function_exists('seo_analista_page_query_map')) {
     function seo_analista_page_query_map($property_id, $date_from, $date_to, $limit = 40000) {
         global $wpdb;
         if (!$property_id || !function_exists('seo_google_table')) return array();
-        $table = seo_google_table('search_data');
+        $table = esc_sql( seo_google_table('search_data') );
         $limit = max(1000, min(60000, absint($limit)));
 
         $rows = (array) $wpdb->get_results(
