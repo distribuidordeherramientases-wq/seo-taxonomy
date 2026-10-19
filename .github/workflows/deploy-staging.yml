@@ -122,9 +122,11 @@ jobs:
 
       - name: Prepare TaxoCommerce Vocabulary package
         run: |
-          rm -rf .deploy-vocabulary
+          rm -rf .deploy-vocabulary .deploy-vocabulary.zip
           mkdir -p .deploy-vocabulary
-          unzip -q packages/taxocommerce-vocabulary-0.2.0.zip -d .deploy-vocabulary
+          cat packages/vocabulary-0.2.0-bin/part_*.bin > .deploy-vocabulary.zip
+          echo "73868282759831e438881c063b2621311a561a5c99278fa70b64aca51049f24e  .deploy-vocabulary.zip" | sha256sum -c -
+          unzip -q .deploy-vocabulary.zip -d .deploy-vocabulary
           test -f .deploy-vocabulary/taxocommerce-vocabulary/taxocommerce-vocabulary.php
 
       - name: Deploy TaxoCommerce Vocabulary to STAGING
