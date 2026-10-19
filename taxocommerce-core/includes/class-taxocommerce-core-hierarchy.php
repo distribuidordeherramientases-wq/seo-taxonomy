@@ -686,11 +686,16 @@ final class TaxoCommerce_Core_Hierarchy {
 	 * @return void
 	 */
 	private function redirect_with_result( $result, $context ) {
+		$tab = 'role' === $context ? 'roles' : 'hierarchy';
+		$focus = 'hierarchy' === $tab && isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
 		$args = array(
 			'page'       => 'taxocommerce-core-hierarchy',
-			'tab'        => 'role' === $context ? 'roles' : 'hierarchy',
+			'tab'        => $tab,
 			'tc_context' => sanitize_key( $context ),
 		);
+		if ( $focus ) {
+			$args['tc_focus'] = $focus;
+		}
 
 		if ( is_wp_error( $result ) ) {
 			$args['tc_result']  = 'error';
@@ -699,7 +704,8 @@ final class TaxoCommerce_Core_Hierarchy {
 			$args['tc_result'] = 'ok';
 		}
 
-		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+		$url = add_query_arg( $args, admin_url( 'admin.php' ) );
+		wp_safe_redirect( $url . ( $focus ? '#tc-source-' . $focus : '' ) );
 		exit;
 	}
 
