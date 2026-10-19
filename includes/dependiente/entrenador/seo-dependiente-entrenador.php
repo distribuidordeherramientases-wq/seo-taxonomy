@@ -588,13 +588,38 @@ final class SEO_Dependiente_Entrenador {
             $questions = self::pending_module_questions($lesson_key, $module_no, $batch_size);
             $rows = array();
             foreach ($questions as $question) {
-                $run_id = self::run_question($question, $batch_uuid);
-                if ($run_id) {
-                    $run = self::run_by_id($run_id);
-                    if ($run) {
-                        $rows[] = self::present_run($run);
-                    }
+                // M4 uses the canonical feature-validation fast path from
+                // continuous Update. A single full semantic search may exceed
+                // the hosting PHP timeout and leave the course at 99%.
+                // The independent L8 exam still tests the real search engine.
+                $type = sanitize_key((string) ($question['question_type'] ?? ''));
+                $source = sanitize_key((string) ($question['source_type'] ?? ''));
+                $expected = self::decode_json($question['expected_json'] ?? '');
+                $kind = sanitize_key((string) ($expected['kind'] ?? ''));
+                $is_feature = 'v2_l4_features' === $lesson_key
+                    && 4 === absint($module_no)
+                    && (0 === strpos($type, 'features_')
+                        || 'features' === $source || 'features' === $kind);
+                $run_id = $is_feature
+                    ? self::update_run_feature_question($question, $batch_uuid)
+                    : self::run_question($question, $batch_uuid);
+                if (!$run_id) {
+                    throw new RuntimeException(sprintf(
+                        'Academia M%d: la pregunta %d no ha generado un run.',
+                        absint($module_no),
+                        absint($question['id'] ?? 0)
+                    ));
                 }
+                $run = self::run_by_id($run_id);
+                if (!$run || !in_array((string) ($run['status'] ?? ''), array('answered', 'error'), true)) {
+                    throw new RuntimeException(sprintf(
+                        'Academia M%d: no se ha persistido la pregunta %d (run %d).',
+                        absint($module_no),
+                        absint($question['id'] ?? 0),
+                        $run_id
+                    ));
+                }
+                $rows[] = self::present_run($run);
             }
 
             $module = self::single_module_progress($lesson_key, $module_no);
@@ -1374,7 +1399,7 @@ final class SEO_Dependiente_Entrenador {
             $lesson_after = self::lesson_row($lesson_key);
             return array(
                 'batch_uuid'      => $batch_uuid,
-                'processed'       => count($questions),
+                'processed'       => count($rows),
                 'module_no'       => absint($module_no),
                 'module_total'    => absint($module['total'] ?? 0),
                 'module_answered' => absint($module['answered'] ?? 0),
@@ -1764,7 +1789,11 @@ final class SEO_Dependiente_Entrenador {
         $state = self::auto_state();
         // El clic en Herramientas > Procesos es una orden explícita del
         // administrador: si estaba en manual, lo pasamos a automático aquí.
-        if ('completed' === (string) ($state['status'] ?? '')) {
+        // The initial Academy may be complete while a continuous Update
+        // still has an independent unfinished run. Allow explicit resume.
+        $update_pending = class_exists('SEO_Dependiente_Actualizacion')
+            && SEO_Dependiente_Actualizacion::has_pending_work();
+        if ('completed' === (string) ($state['status'] ?? '') && !$update_pending) {
             return new WP_Error('academy_completed', 'La Academia ya ha completado el trabajo pendiente.');
         }
         $worker_heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
@@ -7622,6 +7651,32 @@ final class SEO_Dependiente_Entrenador {
             'completed_at'    => is_array($row9) ? (string) ($row9['completed_at'] ?? '') : '',
             'snapshot'        => is_array($row9) ? absint($row9['snapshot_after'] ?? 0) : 0,
         );
+    }
+
+    /**
+     * Resume an already existing continuous Update without restarting the
+     * course, rebuilding questions or replacing the saved lesson_key.
+     */
+    public static function update_resume_worker($message = 'Reanudando Actualización pendiente.') {
+        if (!class_exists('SEO_Dependiente_Actualizacion')
+            || !SEO_Dependiente_Actualizacion::has_pending_work()) {
+            return new WP_Error('academy_update_not_pending', 'No hay una Actualización pendiente.');
+        }
+        $state = self::auto_state();
+        if (!self::is_auto_running($state)) {
+            return self::update_queue_worker($message);
+        }
+        $heartbeat = absint($state['worker_heartbeat_ts'] ?? 0);
+        $worker_live = !empty($state['worker_active'])
+            && $heartbeat && (time() - $heartbeat) <= self::AUTO_DIRECT_STALE_SECONDS;
+        if ($worker_live || self::controller_is_active($state)) {
+            return array('queued' => true, 'already_running' => true);
+        }
+        // The state says running but no worker is live: queue another tick.
+        if (!self::schedule_auto_worker(0, true)) {
+            return new WP_Error('academy_update_resume_failed', 'El Gestor no ha podido reprogramar el siguiente paso.');
+        }
+        return array('queued' => true, 'resumed' => true);
     }
 
     public static function update_queue_worker($message = 'Actualización encolada.') {

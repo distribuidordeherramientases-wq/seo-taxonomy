@@ -182,6 +182,12 @@ final class SEO_Dependiente_Actualizacion {
             wp_send_json_error(array('message' => 'Completa primero L9 · Necesidades y productos.'), 409);
         }
         if (self::is_running()) {
+            // Reconnect the existing saved run if the controller has stopped.
+            // Do not generate another run_id or discard completed questions.
+            $resumed = SEO_Dependiente_Entrenador::update_resume_worker();
+            if (is_wp_error($resumed)) {
+                wp_send_json_error(array('message' => $resumed->get_error_message()), 500);
+            }
             wp_send_json_success(self::payload());
         }
 
