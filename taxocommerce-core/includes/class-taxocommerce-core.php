@@ -593,24 +593,29 @@ final class TaxoCommerce_Core {
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 		$screen_id = $screen ? (string) $screen->id : '';
 		$hook = (string) $hook;
-		$prefixes = array( 'taxocommerce-', 'taxocommerce_', 'taxocommercecore', 'tcc-', 'tcc_' );
-		foreach ( $prefixes as $prefix ) {
-			if ( false !== strpos( $hook, $prefix ) || false !== strpos( $screen_id, $prefix ) ) {
-				return true;
-			}
-		}
-
-		// Compatibility: extensions can register pages under their own parent
-		// slugs while sharing TaxoCommerce Core's presentation layer.
-		$allowed = array( 'taxocommerce-core', 'taxocommerce-images', 'taxocommerce-import-export', 'taxocommerce-system-check', 'taxocommerce-vocabulary' );
-		foreach ( $allowed as $slug ) {
-			if ( false !== strpos( $screen_id, $slug ) || false !== strpos( $hook, $slug ) ) {
-				return true;
+		// Explicit allowlist: never style TaxoCommerce SEO or another plugin
+		// merely because its slug happens to contain "taxocommerce".
+		$slugs = array(
+			'taxocommerce-core',
+			'taxocommerce-images',
+			'taxocommerce-import-export',
+			'taxocommerce-system-check',
+			'taxocommerce-vocabulary',
+			'tcs-system-status',
+			'tcs-plugin-validation',
+			'tcs-url-audit',
+		);
+		foreach ( array( $screen_id, $hook ) as $candidate ) {
+			foreach ( $slugs as $slug ) {
+				if ( $candidate === $slug
+					|| $candidate === 'toplevel_page_' . $slug
+					|| false !== strpos( $candidate, '_page_' . $slug ) ) {
+					return true;
+				}
 			}
 		}
 		return false;
 	}
-
 	/**
 	 * One shared stylesheet for every screen owned by the plugin family.
 	 *
@@ -662,9 +667,15 @@ final class TaxoCommerce_Core {
 	public function render_processes() {
 		$this->guard();
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'Procesos automáticos', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Aquí se registrarán y controlarán los trabajos automáticos de las extensiones.', 'taxocommerce-core' ); ?></p>
+		<div class="wrap tcc-family-screen">
+			<header class="tcc-page-header">
+				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-admin-settings"></span></span>
+				<div class="tcc-page-header__content">
+					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
+					<h1><?php echo esc_html__( 'Procesos automáticos', 'taxocommerce-core' ); ?></h1>
+					<p><?php echo esc_html__( 'Aquí se registrarán y controlarán los trabajos automáticos de las extensiones.', 'taxocommerce-core' ); ?></p>
+				</div>
+			</header>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Supervisor, Gestor de procesos, workers, WP-Cron, colas, cursores y mecanismos de recuperación. Todavía no se han trasladado al nuevo Core.', 'taxocommerce-core' ); ?></p></div>
 			<table class="widefat striped">
 				<thead><tr><th><?php echo esc_html__( 'Proceso', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Extensión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Progreso', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Detalle', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acciones', 'taxocommerce-core' ); ?></th></tr></thead>
@@ -701,11 +712,17 @@ final class TaxoCommerce_Core {
 		$catalog    = $this->family_extensions();
 		$upload_url = admin_url( 'plugin-install.php?tab=upload' );
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'Ampliar familia TaxoCommerce', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Instala nuevas extensiones de la familia. Mientras una extensión no esté publicada en WordPress.org puedes instalarla mediante su ZIP.', 'taxocommerce-core' ); ?></p>
+		<div class="wrap tcc-family-screen">
+			<header class="tcc-page-header">
+				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-admin-plugins"></span></span>
+				<div class="tcc-page-header__content">
+					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
+					<h1><?php echo esc_html__( 'Ampliar familia TaxoCommerce', 'taxocommerce-core' ); ?></h1>
+					<p><?php echo esc_html__( 'Instala nuevas extensiones de la familia. Mientras una extensión no esté publicada en WordPress.org puedes instalarla mediante su ZIP.', 'taxocommerce-core' ); ?></p>
+				</div>
+			</header>
 
-			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;max-width:1100px;margin-top:18px;">
+			<div class="tcc-family-grid">
 				<?php foreach ( $catalog as $extension_id => $extension ) : ?>
 					<?php
 					$plugin_file = sanitize_text_field( (string) ( isset( $extension['plugin_file'] ) ? $extension['plugin_file'] : '' ) );
@@ -726,7 +743,7 @@ final class TaxoCommerce_Core {
 						admin_url( 'plugin-install.php' )
 					);
 					?>
-					<div class="card" style="max-width:none;margin:0;padding:18px;">
+					<div class="card" class="tcc-family-panel">
 						<h2 style="margin-top:0;"><?php echo esc_html( (string) $extension['name'] ); ?></h2>
 						<p><?php echo esc_html( (string) ( isset( $extension['description'] ) ? $extension['description'] : '' ) ); ?></p>
 						<p>
@@ -792,9 +809,15 @@ final class TaxoCommerce_Core {
 		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice only.
 		$catalog    = $this->family_extensions();
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'Extensiones', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Amplía TaxoCommerce instalando plugins de la misma familia. Pueden funcionar de forma independiente y, cuando Core está activo, integran sus funciones en este menú.', 'taxocommerce-core' ); ?></p>
+		<div class="wrap tcc-family-screen">
+			<header class="tcc-page-header">
+				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-screenoptions"></span></span>
+				<div class="tcc-page-header__content">
+					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
+					<h1><?php echo esc_html__( 'Extensiones', 'taxocommerce-core' ); ?></h1>
+					<p><?php echo esc_html__( 'Amplía TaxoCommerce instalando plugins de la misma familia. Pueden funcionar de forma independiente y, cuando Core está activo, integran sus funciones en este menú.', 'taxocommerce-core' ); ?></p>
+				</div>
+			</header>
 
 			<?php if ( 'ok' === $result && $message ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
@@ -899,9 +922,15 @@ final class TaxoCommerce_Core {
 			'taxocommerce_core_clear_logs'
 		);
 		?>
-		<div class="wrap">
-			<h1><?php echo esc_html__( 'Registro técnico', 'taxocommerce-core' ); ?></h1>
-			<p><?php echo esc_html__( 'Registro común de avisos, errores y sucesos del Core y, más adelante, de todas sus extensiones.', 'taxocommerce-core' ); ?></p>
+		<div class="wrap tcc-family-screen">
+			<header class="tcc-page-header">
+				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-media-text"></span></span>
+				<div class="tcc-page-header__content">
+					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
+					<h1><?php echo esc_html__( 'Registro técnico', 'taxocommerce-core' ); ?></h1>
+					<p><?php echo esc_html__( 'Registro común de avisos, errores y sucesos del Core y, más adelante, de todas sus extensiones.', 'taxocommerce-core' ); ?></p>
+				</div>
+			</header>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'los logs y diagnósticos que ahora están repartidos entre procesos, servicios y herramientas del plugin actual.', 'taxocommerce-core' ); ?></p></div>
 			<p><a class="button" href="<?php echo esc_url( $url ); ?>"><?php echo esc_html__( 'Vaciar registro técnico', 'taxocommerce-core' ); ?></a></p>
 			<table class="widefat striped">
