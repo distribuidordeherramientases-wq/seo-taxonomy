@@ -186,10 +186,11 @@ function seo_marketing_performance_campaign_id_from_publication($publication)
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    $seo_wporg_sql_campaigns = esc_sql( $tables['campaigns'] );
     return absint(
         $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM {$tables['campaigns']} WHERE campaign_key = %s LIMIT 1",
+                "SELECT id FROM {$seo_wporg_sql_campaigns} WHERE campaign_key = %s LIMIT 1",
                 $campaign_key
             )
         )
@@ -293,9 +294,10 @@ function seo_marketing_performance_capture_campaign_visit()
 
     global $wpdb;
     $tables = seo_marketing_campaigns_tables();
+    $seo_wporg_sql_products = esc_sql( $tables['products'] );
     $updated = $wpdb->query(
         $wpdb->prepare(
-            "UPDATE {$tables['products']}
+            "UPDATE {$seo_wporg_sql_products}
              SET visits = visits + 1,
                  last_visit_at = %s,
                  updated_at = %s
@@ -350,9 +352,10 @@ function seo_marketing_performance_attach_order_attribution($order)
     if (absint($touch['campaign_id'] ?? 0) > 0 && function_exists('seo_marketing_campaigns_tables')) {
         global $wpdb;
         $tables = seo_marketing_campaigns_tables();
+        $seo_wporg_sql_campaigns = esc_sql( $tables['campaigns'] );
         $key = (string) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT campaign_key FROM {$tables['campaigns']} WHERE id = %d LIMIT 1",
+                "SELECT campaign_key FROM {$seo_wporg_sql_campaigns} WHERE id = %d LIMIT 1",
                 absint($touch['campaign_id'])
             )
         );
@@ -427,9 +430,9 @@ function seo_marketing_performance_social_report($days = 28)
 {
     global $wpdb;
     $days = in_array(absint($days), array(7, 28, 90, 365), true) ? absint($days) : 28;
-    $table = function_exists('seo_social_network_publications_table')
+    $table = esc_sql( function_exists('seo_social_network_publications_table')
         ? seo_social_network_publications_table()
-        : $wpdb->prefix . 'seo_social_publications';
+        : $wpdb->prefix . 'seo_social_publications' );
 
     $since_ts = current_time('timestamp') - ($days * DAY_IN_SECONDS);
     $since = wp_date('Y-m-d H:i:s', $since_ts, wp_timezone());
@@ -543,14 +546,15 @@ function seo_marketing_performance_campaign_metrics($campaign)
     global $wpdb;
     $campaign_id = absint($campaign->id ?? 0);
     $tables = seo_marketing_campaigns_tables();
-    $social_table = function_exists('seo_social_network_publications_table')
+    $seo_wporg_sql_products = esc_sql( $tables['products'] );
+    $social_table = esc_sql( function_exists('seo_social_network_publications_table')
         ? seo_social_network_publications_table()
-        : $wpdb->prefix . 'seo_social_publications';
+        : $wpdb->prefix . 'seo_social_publications' );
 
     $product_rows = (array) $wpdb->get_results(
         $wpdb->prepare(
             "SELECT cp.*, p.post_title
-             FROM {$tables['products']} cp
+             FROM {$seo_wporg_sql_products} cp
              LEFT JOIN {$wpdb->posts} p ON p.ID = cp.product_id
              WHERE cp.campaign_id = %d
              ORDER BY cp.position ASC, cp.id ASC",
@@ -710,10 +714,11 @@ function seo_marketing_performance_campaign_report()
         return array();
     }
     $tables = seo_marketing_campaigns_tables();
+    $seo_wporg_sql_campaigns = esc_sql( $tables['campaigns'] );
 
     $campaigns = (array) $wpdb->get_results(
         "SELECT *
-         FROM {$tables['campaigns']}
+         FROM {$seo_wporg_sql_campaigns}
          ORDER BY start_at DESC, id DESC
          LIMIT 40"
     );
