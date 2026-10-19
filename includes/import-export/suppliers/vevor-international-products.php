@@ -60,45 +60,31 @@ function seo_vevor_region_product_market( $product_id ) {
 }
 
 function seo_vevor_region_existing_product( array $row, $market, $regional_sku ) {
+    global $wpdb;
+    unset( $regional_sku );
+    // Update ONLY the WP product explicitly attached to this catalog row.
     $linked_id = absint( $row['object_id'] ?? 0 );
-    if ( $linked_id && 'product' === get_post_type( $linked_id ) && 'trash' !== get_post_status( $linked_id ) ) {
-        // Never overwrite or reassign a Spanish product.
-        if ( seo_vevor_region_product_market( $linked_id ) !== $market ) {
-            return new WP_Error( 'vevor_wrong_product', 'La oferta apunta a un producto de otro mercado; no se modifica.' );
-        }
-        return $linked_id;
+    if ( ! $linked_id ) {
+        $linked_id = absint( $wpdb->get_var( $wpdb->prepare(
+            "SELECT p.ID FROM {$wpdb->posts} p INNER JOIN {$wpdb->postmeta} pm
+             ON pm.post_id = p.ID AND pm.meta_key = '_seo_proveedor_catalogo_id'
+             WHERE p.post_type = 'product' AND p.post_status <> 'trash'
+             AND pm.meta_value = %s ORDER BY p.ID ASC LIMIT 1",
+            (string) absint( $row['id'] ?? 0 )
+        ) ) );
     }
-
-    $sku_owner = function_exists( 'wc_get_product_id_by_sku' ) ? absint( wc_get_product_id_by_sku( $regional_sku ) ) : 0;
-    if ( $sku_owner ) {
-        // A trashed WooCommerce record is not a successfully created draft.
-        if ( 'trash' === get_post_status( $sku_owner ) ) {
-            return new WP_Error( 'vevor_sku_in_trash', 'El SKU pertenece a una ficha en la papelera; no se aceptara hasta resolverla.' );
-        }
-        if ( seo_vevor_region_product_market( $sku_owner ) !== $market ||
-            (string) get_post_meta( $sku_owner, '_seo_proveedor_id_externo', true ) !== (string) ( $row['proveedor_id_externo'] ?? '' ) ) {
-            return new WP_Error( 'vevor_sku_collision', 'El SKU regional pertenece a otra ficha; no se modifica.' );
-        }
-        return $sku_owner;
+    if ( ! $linked_id ) {
+        return 0;
     }
-
-    // The 32 earlier pilot products used p_XXXXXXXXXXXX instead of market SKUs.
-    $older_ids = get_posts( array(
-        'post_type'      => 'product',
-        'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-        'fields'         => 'ids',
-        'posts_per_page' => 20,
-        'meta_query'     => array(
-            array( 'key' => '_seo_proveedor_id_externo', 'value' => (string) ( $row['proveedor_id_externo'] ?? '' ) ),
-        ),
-    ) );
-    foreach ( (array) $older_ids as $id ) {
-        if ( seo_vevor_region_product_market( $id ) === $market &&
-            0 === strcasecmp( (string) get_post_meta( $id, '_seo_proveedor', true ), 'VEVOR' ) ) {
-            return absint( $id );
-        }
+    if ( 'product' !== get_post_type( $linked_id ) || 'trash' === get_post_status( $linked_id ) ||
+        seo_vevor_region_product_market( $linked_id ) !== $market ) {
+        return new WP_Error( 'vevor_wrong_product', 'Vinculo de catalogo incompatible; no se modifica.' );
     }
-    return 0;
+    $bound_id = absint( get_post_meta( $linked_id, '_seo_proveedor_catalogo_id', true ) );
+    if ( $bound_id && $bound_id !== absint( $row['id'] ?? 0 ) ) {
+        return new WP_Error( 'vevor_row_collision', 'Esta ficha pertenece a otra linea del catalogo.' );
+    }
+    return $linked_id;
 }
 
 function seo_vevor_region_apply_offer( array $row, $market ) {
@@ -134,7 +120,8 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
     if ( ! preg_match( '/^\d{12}$/', $external_id ) || '' === $name || empty( $row['imagenes'] ) ) {
         return new WP_Error( 'vevor_incomplete_offer', 'Faltan identidad VEVOR, titulo o imagen externa.' );
     }
-    $regional_sku = 'vevor-' . strtolower( $market ) . '-p_' . $external_id;
+    // Internal SKU is unique per supplier catalogue row; source SKU remains metadata.
+    $regional_sku = 'vevor-' . strtolower( $market ) . '-row-' . absint( $row['id'] ?? 0 );
     $lock = seo_proveedores_adquirir_bloqueo_alta( $row, 5 );
     if ( is_wp_error( $lock ) ) {
         return $lock;
@@ -150,6 +137,7 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
             return new WP_Error( 'vevor_offer_changed', 'La oferta ha cambiado durante el proceso.' );
         }
 
+        $regional_sku = 'vevor-' . strtolower( $market ) . '-row-' . absint( $fresh['id'] );
         $existing = seo_vevor_region_existing_product( $fresh, $market, $regional_sku );
         if ( is_wp_error( $existing ) ) {
             return $existing;
@@ -157,6 +145,16 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
         $created = false;
         if ( $existing ) {
             $product_id = absint( $existing );
+            $product = wc_get_product( $product_id );
+            if ( ! $product || ! $product->is_type( 'external' ) ) {
+                return new WP_Error( 'vevor_not_external', 'Ficha enlazada no es un producto externo VEVOR.' );
+            }
+            $product->set_product_url( $url );
+            $product->set_button_text( array( 'US' => 'View at VEVOR', 'DE' => 'Bei VEVOR ansehen', 'NL' => 'Bekijk bij VEVOR', 'FR' => 'Voir sur VEVOR' )[ $market ] );
+            if ( '' === $product->get_description() ) {
+                $product->set_description( wp_kses_post( (string) ( $fresh['descripcion'] ?? '' ) ) );
+            }
+            $product->save();
         } else {
             $product = new WC_Product_External();
             $product->set_name( $name );
@@ -180,6 +178,9 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
                 return new WP_Error( 'vevor_wc_create_failed', 'WooCommerce no ha guardado el borrador.' );
             }
             $created = true;
+        }
+        // Copy commercial data on BOTH initial creation and later updates.
+        if ( $product_id ) {
             update_post_meta( $product_id, '_seo_proveedor', 'VEVOR' );
             update_post_meta( $product_id, '_seo_proveedor_id_externo', $external_id );
             update_post_meta( $product_id, '_seo_proveedor_catalogo_id', absint( $fresh['id'] ) );
@@ -188,14 +189,21 @@ function seo_vevor_region_apply_offer( array $row, $market ) {
             update_post_meta( $product_id, '_seo_pais_origen', $market );
             update_post_meta( $product_id, '_seo_locale', array( 'US' => 'en-US', 'DE' => 'de-DE', 'NL' => 'nl-NL', 'FR' => 'fr-FR' )[ $market ] );
             update_post_meta( $product_id, '_seo_market_currency', $expected_currency[ $market ] );
-            update_post_meta( $product_id, '_seo_market_price', sanitize_text_field( (string) ( $fresh['precio_con_iva'] ?? '' ) ) );
+            $price = trim( (string) ( $fresh['precio_con_iva'] ?? '' ) );
+            if ( '' === $price ) { $price = trim( (string) ( $fresh['precio_sin_iva'] ?? '' ) ); }
+            update_post_meta( $product_id, '_seo_market_price', sanitize_text_field( $price ) );
+            update_post_meta( $product_id, '_seo_proveedor_moneda', $expected_currency[ $market ] );
+            update_post_meta( $product_id, '_seo_proveedor_precio_con_iva', sanitize_text_field( (string) ( $fresh['precio_con_iva'] ?? '' ) ) );
+            update_post_meta( $product_id, '_seo_categoria_proveedor', sanitize_text_field( (string) ( $fresh['categoria_proveedor'] ?? '' ) ) );
+            update_post_meta( $product_id, '_seo_proveedor_sku_original', sanitize_text_field( (string) ( $fresh['sku'] ?? '' ) ) );
+            update_post_meta( $product_id, '_seo_supplier_source_row_key', sanitize_text_field( (string) ( $fresh['source_row_key'] ?? '' ) ) );
             update_post_meta( $product_id, '_seo_vevor_source_category', sanitize_text_field( (string) ( $fresh['categoria_proveedor'] ?? '' ) ) );
         }
 
         // Image storage is keyed by supplier + SKU; keep that SKU regional
         // to prevent different country's image feeds overwriting each other.
         $image_row = $fresh;
-        $image_row['sku'] = $regional_sku;
+        $image_row['sku'] = 'vevor-' . strtolower( $market ) . '-row-' . absint( $fresh['id'] );
         $image_note = '';
         if ( function_exists( 'seo_proveedores_guardar_imagenes_externas' ) ) {
             $image_result = seo_proveedores_guardar_imagenes_externas( $image_row, $product_id );
