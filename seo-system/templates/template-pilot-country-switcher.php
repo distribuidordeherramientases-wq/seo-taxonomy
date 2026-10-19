@@ -20,7 +20,7 @@ if ( ! function_exists( 'dht_pilot_country_switcher_urls' ) ) {
             'US' => array( 'vevor-us', 'us', 'usa', 'eua', 'eeuu', 'estados-unidos', 'united-states', 'en-us' ),
             'DE' => array( 'vevor-de', 'de', 'alemania', 'deutschland', 'germany', 'de-de' ),
             'NL' => array( 'vevor-nl', 'nl', 'holanda', 'paises-bajos', 'nederland', 'netherlands', 'nl-nl' ),
-            'FR' => array( 'vevor-fr', 'fr', 'france', 'fr-fr' ),
+            'FR' => array( 'vevor-fr' ),
         );
         if ( ! taxonomy_exists( 'product_cat' ) ) {
             return $urls;
@@ -51,7 +51,8 @@ if ( ! function_exists( 'dht_pilot_country_switcher_urls' ) ) {
                     continue;
                 }
                 $term = $by_slug[ $slug ];
-                if ( dht_pilot_country_for_term( $term ) !== $country ) {
+                if ( dht_pilot_country_for_term( $term ) !== $country
+                    || ( 'FR' === $country && (int) $term->parent !== 0 ) ) {
                     continue;
                 }
                 $link = get_term_link( $term );
@@ -60,7 +61,9 @@ if ( ! function_exists( 'dht_pilot_country_switcher_urls' ) ) {
                     break;
                 }
             }
-            if ( ! isset( $urls[ $country ] ) ) {
+            // France must use its dedicated root; never infer its home from
+            // a random subcategory or from a different market.
+            if ( ! isset( $urls[ $country ] ) && 'FR' !== $country ) {
                 $unresolved[] = $country;
             }
         }
