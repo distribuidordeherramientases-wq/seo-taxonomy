@@ -475,17 +475,7 @@ final class TaxoCommerce_Core_Menu {
 	 * @return WP_Post[]
 	 */
 	private function pages_by_role( $role ) {
-		return get_posts(
-			array(
-				'post_type'      => 'page',
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'meta_key'       => TaxoCommerce_Core_Hierarchy::ROLE_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Small admin-only structural page set.
-				'meta_value'     => sanitize_key( $role ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Small admin-only structural page set.
-			)
-		);
+		return TaxoCommerce_Core_Hierarchy_Classic::role_pages( sanitize_key( $role ) );
 	}
 
 	/**
