@@ -134,7 +134,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
 
     private static function url( $scope, $args = array() ) {
         return add_query_arg(
-            array_merge( array( 'page' => 'tcs-url-audit', 'tcs_scope' => self::scope( $scope ) ), $args ),
+            array_merge( array( 'page' => 'taxocommerce-system-check', 'tcs_tab' => 'http', 'tcs_scope' => self::scope( $scope ) ), $args ),
             admin_url( 'admin.php' )
         );
     }
@@ -687,7 +687,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'No autorizado.', 'taxocommerce-system-check' ) );
         }
-        echo '<div class="wrap tcs-url-audit"><h1>Chequeos HTTP de recursos</h1>';
+        echo '<div class="wrap tcs-url-audit"><h2>Chequeos HTTP de recursos</h2>';
         echo '<p>Comprueba las URL públicas desde este servidor mediante peticiones HTTP reales. No necesita GitHub. No equivale a un monitor externo de disponibilidad.</p>';
         if ( ! self::supported() ) {
             echo '<div class="notice notice-error"><p>No se ha cargado el motor del inventario. Revisa la instalación de System Check.</p></div></div>';
@@ -843,7 +843,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             echo '<a class="button' . ( $filter === $code ? ' button-primary' : '' ) . '" href="' . esc_url( self::url( $scope, array( 'tcs_filter' => $code ) ) ) . '">' . esc_html( $label ) . '</a>';
         }
         echo '</div><form method="get" class="tcs-filter">';
-        echo '<input type="hidden" name="page" value="tcs-url-audit"><input type="hidden" name="tcs_scope" value="' . esc_attr( $scope ) . '">';
+        echo '<input type="hidden" name="page" value="taxocommerce-system-check"><input type="hidden" name="tcs_tab" value="http"><input type="hidden" name="tcs_scope" value="' . esc_attr( $scope ) . '">';
         echo '<input type="hidden" name="tcs_filter" value="' . esc_attr( $filter ) . '">';
         echo '<input type="search" name="tcs_search" value="' . esc_attr( $search ) . '" placeholder="Buscar URL o error">';
         echo '<button class="button">Buscar</button></form>';
