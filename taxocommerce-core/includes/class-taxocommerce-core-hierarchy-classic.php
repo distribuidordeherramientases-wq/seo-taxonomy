@@ -486,6 +486,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
           }
         </style>';
 
+        $focus      = isset( $_GET['tc_focus'] ) ? absint( $_GET['tc_focus'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only focus.
         $defs       = self::definitions();
         $clusters   = self::role_pages( 'cluster' );
         $primaries  = self::role_pages( 'hub_primary' );
@@ -506,14 +507,23 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             echo '<p>No hay clusters clasificados. Ve a <strong>Asignación de roles</strong> para crear el primero.</p>';
         } else {
             foreach ( $clusters as $index => $cluster ) {
-                self::node_open( $cluster, 'Cluster', count( $cluster_map[ $cluster->ID ] ?? array() ), 'cluster', 0 === $index );
+                $open_cluster = 0 === $index && 0 === $focus;
+                if ( $focus ) {
+                    $open_cluster = $focus === (int) $cluster->ID;
+                    foreach ( array_keys( $cluster_map[ $cluster->ID ] ?? array() ) as $linked_primary ) {
+                        $open_cluster = $open_cluster || $focus === (int) $linked_primary
+                            || isset( $primary_map[ $linked_primary ][ $focus ] );
+                    }
+                }
+                self::node_open( $cluster, 'Cluster', count( $cluster_map[ $cluster->ID ] ?? array() ), 'cluster', $open_cluster );
                 self::render_group( $cluster, array( 'cluster_to_primary' ), $defs );
                 foreach ( array_keys( $cluster_map[ $cluster->ID ] ?? array() ) as $primary_id ) {
                     if ( ! isset( $p_by_id[ $primary_id ] ) ) {
                         continue;
                     }
                     $primary = $p_by_id[ $primary_id ];
-                    self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary_id ] ?? array() ), 'child', false );
+                    self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary_id ] ?? array() ), 'child',
+                        $focus === (int) $primary_id || isset( $primary_map[ $primary_id ][ $focus ] ) );
                     self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs );
                     foreach ( array_keys( $primary_map[ $primary_id ] ?? array() ) as $secondary_id ) {
                         if ( ! isset( $s_by_id[ $secondary_id ] ) ) {
@@ -521,7 +531,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                         }
                         $secondary = $s_by_id[ $secondary_id ];
                         $links = self::secondary_link_count( $secondary_id );
-                        self::node_open( $secondary, 'Hub secundario', $links, 'secondary', false );
+                        self::node_open( $secondary, 'Hub secundario', $links, 'secondary', $focus === (int) $secondary_id );
                         self::render_group( $secondary, array(
                             'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
                         ), $defs );
@@ -555,18 +565,34 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         if ( $loose_primaries || $loose_secondaries ) {
             echo '<div class="tc-classic-orphans"><h3 class="tc-classic-section-title">Elementos pendientes de vincular</h3>';
             if ( $loose_primaries ) {
-                echo '<details><summary>Hubs primarios sin cluster (' . esc_html( (string) count( $loose_primaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
+                $orphan_primary_focused = false;
+                foreach ( $loose_primaries as $loose_primary ) {
+                    if ( $focus === (int) $loose_primary->ID ) {
+                        $orphan_primary_focused = true;
+                        break;
+                    }
+                }
+                echo '<details' . ( $orphan_primary_focused ? ' open' : '' ) . '><summary>Hubs primarios sin cluster ('
+ . esc_html( (string) count( $loose_primaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
                 foreach ( $loose_primaries as $primary ) {
-                    self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary->ID ] ?? array() ), 'child', false );
+                    self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary->ID ] ?? array() ), 'child', $focus === (int) $primary->ID );
                     self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs );
                     self::node_close();
                 }
                 echo '</div></details>';
             }
             if ( $loose_secondaries ) {
-                echo '<details><summary>Hubs secundarios sin hub primario (' . esc_html( (string) count( $loose_secondaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
+                $orphan_secondary_focused = false;
+                foreach ( $loose_secondaries as $loose_secondary ) {
+                    if ( $focus === (int) $loose_secondary->ID ) {
+                        $orphan_secondary_focused = true;
+                        break;
+                    }
+                }
+                echo '<details' . ( $orphan_secondary_focused ? ' open' : '' ) . '><summary>Hubs secundarios sin hub primario ('
+ . esc_html( (string) count( $loose_secondaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
                 foreach ( $loose_secondaries as $secondary ) {
-                    self::node_open( $secondary, 'Hub secundario', self::secondary_link_count( $secondary->ID ), 'secondary', false );
+                    self::node_open( $secondary, 'Hub secundario', self::secondary_link_count( $secondary->ID ), 'secondary', $focus === (int) $secondary->ID );
                     self::render_group( $secondary, array(
                         'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
                     ), $defs );
@@ -590,7 +616,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     }
 
     private static function node_open( $page, $role, $count, $level, $open ) {
-        echo '<details class="tc-classic-node tc-classic-node--' . esc_attr( $level ) . '"' . ( $open ? ' open' : '' ) . '>';
+        echo '<details id="tc-source-' . esc_attr( (string) $page->ID ) . '" class="tc-classic-node tc-classic-node--' . esc_attr( $level ) . '"' . ( $open ? ' open' : '' ) . '>';
         echo '<summary><span class="tc-classic-node__role">' . esc_html( $role ) . '</span>';
         echo '<span class="tc-classic-node__label">' . esc_html( $page->post_title ) . '</span>';
         echo '<span class="tc-classic-node__count">' . esc_html( (string) $count ) . ' relaciones</span></summary>';
