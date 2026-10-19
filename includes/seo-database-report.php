@@ -477,6 +477,7 @@ function seo_data_get_columns(string $table_name): array
         return [];
     }
 
+    $table_name = esc_sql( $table_name );
     $columns = $wpdb->get_results("DESCRIBE `{$table_name}`", ARRAY_A);
     return is_array($columns) ? $columns : [];
 }
@@ -1147,6 +1148,8 @@ function seo_data_write_table_csv(string $table_name, $handle): void
         return;
     }
 
+    // Registered table checked by seo_data_get_columns().
+    $table_name = esc_sql( $table_name );
     fputcsv($handle, $column_names, ';', '"', '\\');
 
     $batch_size = 1000;
@@ -1177,6 +1180,11 @@ function seo_data_write_table_csv(string $table_name, $handle): void
 function seo_data_write_table_sql(string $table_name, $handle): void
 {
     global $wpdb;
+    // Validate the requested table against the Data Layer registry before SQL.
+    if (!seo_data_is_registered_table($table_name)) {
+        return;
+    }
+    $table_name = esc_sql( $table_name );
 
     $create = $wpdb->get_row("SHOW CREATE TABLE `{$table_name}`", ARRAY_N);
     if (!$create || empty($create[1])) {

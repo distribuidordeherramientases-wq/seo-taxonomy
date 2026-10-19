@@ -457,7 +457,7 @@ function seo_proveedores_importar_csv_estandar( $state, $preparation_log = [] ) 
     global $wpdb;
 
     $fields = seo_proveedores_campos_importacion();
-    $table  = seo_proveedores_tabla_productos();
+    $table  = esc_sql( seo_proveedores_tabla_productos() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
     if ( $exists !== $table ) {
@@ -2829,7 +2829,7 @@ function seo_proveedores_exportar_productos_csv() {
 
     global $wpdb;
 
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
     if ( $exists !== $table ) {
         wp_die( esc_html__( 'No existe el catálogo de productos de proveedores.', 'taxocommerce-seo' ) );
@@ -3071,7 +3071,7 @@ function seo_proveedores_render_export_productos_card() {
     }
 
     global $wpdb;
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
     ?>
     <div class="card" style="max-width:none;padding:20px;">
@@ -3944,6 +3944,8 @@ function seo_proveedores_resolver_categoria_destino( $supplier_category, $provid
  */
 function seo_proveedores_pares_categoria_proveedor_distintos( $table ) {
     global $wpdb;
+    // Identificador de tabla interna recibido de un llamador que ya la valido.
+    $table = esc_sql( (string) $table );
 
     $rows = $wpdb->get_results(
         "
@@ -4506,7 +4508,7 @@ function seo_proveedores_asegurar_tabla_imagenes_externas() {
     }
     global $wpdb;
 
-    $table = seo_proveedores_tabla_imagenes_externas();
+    $table = esc_sql( seo_proveedores_tabla_imagenes_externas() );
 
     /*
      * IMPORTANTE: dbDelta debe ejecutarse tambien cuando la tabla ya existe.
@@ -4605,7 +4607,7 @@ function seo_proveedores_asegurar_tabla_imagenes_externas() {
         $is_expected_unique = $index_info['unique'] && $columns === $expected_columns;
 
         if ( $index_info['unique'] && ! $is_expected_unique ) {
-            $safe_index_name = preg_replace( '/[^A-Za-z0-9_]/', '', $index_name );
+            $safe_index_name = esc_sql( preg_replace( '/[^A-Za-z0-9_]/', '', $index_name ) );
             if ( '' !== $safe_index_name ) {
                 $drop_index = $wpdb->query( "ALTER TABLE {$table} DROP INDEX `{$safe_index_name}`" );
                 if ( false === $drop_index ) {
@@ -4723,7 +4725,7 @@ function seo_proveedores_extraer_urls_imagenes( $value ) {
 function seo_proveedores_desactivar_imagenes_externas( array $row, $product_id = 0 ) {
     global $wpdb;
 
-    $table = seo_proveedores_tabla_imagenes_externas();
+    $table = esc_sql( seo_proveedores_tabla_imagenes_externas() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
     if ( $exists !== $table ) {
@@ -4770,7 +4772,7 @@ function seo_proveedores_guardar_imagenes_externas( array $row, $product_id ) {
         return $ready;
     }
 
-    $table       = seo_proveedores_tabla_imagenes_externas();
+    $table       = esc_sql( seo_proveedores_tabla_imagenes_externas() );
     $supplier    = sanitize_text_field( (string) ( $row['proveedor'] ?? '' ) );
     $external_id = sanitize_text_field( (string) ( $row['proveedor_id_externo'] ?? '' ) );
     $sku         = sanitize_text_field( (string) ( $row['sku'] ?? '' ) );
@@ -4965,7 +4967,7 @@ function seo_proveedores_resolver_modo_imagenes_externas( array $row, $requested
 
     global $wpdb;
 
-    $table = seo_proveedores_tabla_imagenes_externas();
+    $table = esc_sql( seo_proveedores_tabla_imagenes_externas() );
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
     if ( $exists !== $table ) {
@@ -5062,7 +5064,7 @@ function seo_proveedores_crear_borrador_desde_fila( array $row, $comision_descue
     try {
         global $wpdb;
 
-        $providers_table = seo_proveedores_tabla_productos();
+        $providers_table = esc_sql( seo_proveedores_tabla_productos() );
         $catalog_row_id  = absint( $row['id'] ?? 0 );
 
         /*
@@ -5406,7 +5408,7 @@ function seo_proveedores_actualizar_estado_catalogo() {
 
     global $wpdb;
 
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
     $row   = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT * FROM {$table} WHERE id = %d",
@@ -5520,7 +5522,7 @@ function seo_proveedores_actualizar_estado_masivo() {
 
     global $wpdb;
 
-    $table = seo_proveedores_tabla_productos();
+    $table = esc_sql( seo_proveedores_tabla_productos() );
 
     $proveedor          = sanitize_text_field( wp_unslash( $_POST['f_proveedor'] ?? '' ) );
     $estado_filtro      = sanitize_key( wp_unslash( $_POST['f_estado'] ?? '' ) );
@@ -5967,7 +5969,7 @@ function seo_proveedores_actualizar_estado_masivo() {
 function seo_proveedores_render_catalogo() {
     global $wpdb;
 
-    $table  = seo_proveedores_tabla_productos();
+    $table  = esc_sql( seo_proveedores_tabla_productos() );
     $exists = $wpdb->get_var(
         $wpdb->prepare(
             'SHOW TABLES LIKE %s',
