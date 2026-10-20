@@ -301,6 +301,11 @@ final class TaxoCommerce_Core {
 	}
 
 
+	/** Return only modules registered by active plugins at runtime. */
+	public function get_registered_modules() {
+		return $this->modules;
+	}
+
 	/**
 	 * Returns the built-in TaxoCommerce family catalog.
 	 *
