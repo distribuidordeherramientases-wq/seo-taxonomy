@@ -1,0 +1,43 @@
+name: TaxoCommerce Core Editorial Guidance QA
+
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-core/**'
+      - '.github/workflows/taxocommerce-core-editorial-guide.yml'
+  push:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-core/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-editorial-guides:
+    name: Core PHP and guide smoke (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.2']
+    steps:
+      - name: Checkout plugin family
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint Core PHP
+        shell: bash
+        run: |
+          set -euo pipefail
+          find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Verify four guides in overview and editor
+        run: php taxocommerce-core/tests/editorial-guide-smoke.php

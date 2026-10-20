@@ -395,14 +395,13 @@ final class SEO_Dependiente_Actualizacion {
         $modules = (array) ($state['modules'] ?? array());
         $module_state = is_array($modules[$module] ?? null) ? $modules[$module] : array();
         $answered_before = absint($module_state['answered'] ?? 0);
-        // M4 previously executed up to 120 feature checks inside a single
-        // worker step. With no checkpoint until the end, PHP timeouts leave
-        // the UI permanently showing the same M4 position. Keep a one-question
-        // checkpoint for M4-M8; M2/M3 retain their direct fast-path batches.
-        // Terminal runs remain stored and are never re-evaluated.
-        $run_batch = $module >= 4
-            ? 1
-            : (2 === $module ? 40 : (3 === $module ? 80 : self::RUN_BATCH));
+        // M5 checks published editorial content + active vocabulary routes
+        // directly, without repeating an expensive full-catalog search.
+        // Terminal runs remain stored, and M8 retains end-to-end regression.
+        // M4/M6-M8 remain one-by-one until they have their own safe fast path.
+        $run_batch = 5 === $module
+            ? 20
+            : ($module >= 4 ? 1 : (2 === $module ? 40 : (3 === $module ? 80 : self::RUN_BATCH)));
         $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, $run_batch);
         foreach ($questions as $question) {
             $question_type = sanitize_key((string) ($question['question_type'] ?? ''));
@@ -412,6 +411,8 @@ final class SEO_Dependiente_Actualizacion {
                 SEO_Dependiente_Entrenador::update_run_type_role_question($question, $batch_uuid);
             } elseif (4 === $module && 0 === strpos($question_type, 'features_')) {
                 SEO_Dependiente_Entrenador::update_run_feature_question($question, $batch_uuid);
+            } elseif (5 === $module && 'editorial_semantic' === $question_type) {
+                SEO_Dependiente_Entrenador::update_run_editorial_question($question, $batch_uuid);
             } else {
                 SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
             }
@@ -1214,6 +1215,10 @@ final class SEO_Dependiente_Actualizacion {
             'retrieval_gap' => array(
                 'what_happened' => 'El motor no recuperó la entidad esperada.',
                 'review_first' => array('indexación del conocimiento', 'rutas/alias', 'Vocabulary', 'asociación con la fuente'),
+            ),
+            'editorial_structure_missing' => array(
+                'what_happened' => 'No existe un contenido editorial publicado con todas las asignaciones Vocabulary esperadas.',
+                'review_first' => array('publicación del post/página', 'asignaciones Vocabulary activas', 'relaciones editoriales'),
             ),
             'editorial_retrieval_gap' => array(
                 'what_happened' => 'No se recuperó el contenido editorial esperado.',
