@@ -246,6 +246,10 @@ function taxocommerce_system_check_home() {
         $url = wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), $action );
         echo '<p><a class="button button-secondary" href="' . esc_url( $url ) . '">'
             . esc_html( $exports[ $tab ][1] ) . '</a></p>';
+        if ( 'system' === $tab ) {
+            $complete_url = wp_nonce_url( add_query_arg( array( 'action' => 'seo_system_diagnostics_download_json' ), admin_url( 'admin-post.php' ) ), 'seo_system_diagnostics_download_json' );
+            echo '<p><a class="button button-secondary" href="' . esc_url( $complete_url ) . '">Descargar JSON completo</a></p>';
+        }
     }
     echo '</div>';
     if ( 'plugin' === $tab ) {
