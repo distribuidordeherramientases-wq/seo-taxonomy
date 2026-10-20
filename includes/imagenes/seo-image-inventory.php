@@ -39,6 +39,25 @@ if (is_readable($seo_images_scan)) {
 }
 unset($seo_images_scan);
 
+if (!function_exists('seo_images_inventory_query_arg')) {
+    /**
+     * Read a sanitized scalar query argument from read-only admin navigation.
+     *
+     * @param string $key Query parameter name.
+     * @param mixed $default Value when missing or invalid.
+     * @return mixed
+     */
+    function seo_images_inventory_query_arg($key, $default = '') {
+        $key = sanitize_key((string) $key);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation.
+        if ('' === $key || !isset($_GET[$key]) || !is_scalar($_GET[$key])) {
+            return $default;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation.
+        return sanitize_text_field(wp_unslash((string) $_GET[$key]));
+    }
+}
+
 if (!function_exists('seo_images_admin_url')) {
     function seo_images_admin_url($args = array()) {
         return add_query_arg(
