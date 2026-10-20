@@ -229,6 +229,24 @@ function taxocommerce_system_check_home() {
     echo '<h1>' . esc_html__( 'TaxoCommerce System Check', 'taxocommerce-system-check' ) . '</h1>';
     echo '<p>' . esc_html__( 'Diagnósticos del servidor, comprobación de plugins y auditorías HTTP desde una única interfaz.', 'taxocommerce-system-check' ) . '</p></div></header>';
     taxocommerce_system_check_render_tabs( $tab );
+    // Each tab downloads its stored results. No scan is started here.
+    $exports = array(
+        'system' => array( 'seo_system_diagnostics_download_server_json', 'Descargar JSON de Sistema' ),
+        'plugin' => array( 'seo_system_diagnostics_download_validation_json', 'Descargar JSON de Plugin Validation' ),
+        'http'   => array( 'taxocommerce_system_check_http_json', 'Descargar JSON de HTTP' ),
+    );
+    if ( isset( $exports[ $tab ] ) ) {
+        $action = $exports[ $tab ][0];
+        $args = array( 'action' => $action );
+        if ( 'http' === $tab ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only scope used in export link.
+            $requested = isset( $_GET['tcs_scope'] ) ? sanitize_key( wp_unslash( $_GET['tcs_scope'] ) ) : 'page';
+            $args['tcs_scope'] = in_array( $requested, array( 'page', 'post', 'image', 'product' ), true ) ? $requested : 'page';
+        }
+        $url = wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), $action );
+        echo '<p><a class="button button-secondary" href="' . esc_url( $url ) . '">'
+            . esc_html( $exports[ $tab ][1] ) . '</a></p>';
+    }
     echo '</div>';
     if ( 'plugin' === $tab ) {
         taxocommerce_system_check_validation_screen();
