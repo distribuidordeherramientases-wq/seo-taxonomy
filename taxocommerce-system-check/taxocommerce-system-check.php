@@ -79,6 +79,7 @@ function taxocommerce_system_check_boot() {
     if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
         taxocommerce_system_check_register_with_core( taxocommerce_core() );
     }
+    add_action( 'admin_post_taxocommerce_system_check_modules_json', 'taxocommerce_system_check_modules_json' );
     add_action( 'admin_menu', 'taxocommerce_system_check_register_menu', 60 );
     add_action( 'admin_enqueue_scripts', 'taxocommerce_system_check_enqueue_assets' );
     add_action( 'admin_enqueue_scripts', 'taxocommerce_system_check_family_styles' );
@@ -232,7 +233,7 @@ function taxocommerce_system_check_home() {
     // Each tab downloads its stored results. No scan is started here.
     $exports = array(
         'system' => array( 'seo_system_diagnostics_download_server_json', 'Descargar JSON de Sistema' ),
-        'plugin' => array( 'seo_system_diagnostics_download_validation_json', 'Descargar JSON de Plugin Validation' ),
+        'plugin' => array( 'taxocommerce_system_check_modules_json', 'Descargar JSON de módulos activos' ),
         'http'   => array( 'taxocommerce_system_check_http_json', 'Descargar JSON de HTTP' ),
     );
     if ( isset( $exports[ $tab ] ) ) {
@@ -272,30 +273,34 @@ function taxocommerce_system_check_server_screen() {
     echo '<div class="wrap"><h1>Estado del sistema</h1><div class="notice notice-error"><p>Motor original no disponible.</p></div></div>';
 }
 
+function taxocommerce_system_check_registered_modules() {
+
+    return $modules;
+}
+
+function taxocommerce_system_check_modules_json() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
+    }
+    check_admin_referer( 'taxocommerce_system_check_modules_json' );
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=UTF-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="taxocommerce-active-modules.json"' );
+    echo wp_json_encode( array(
+        'generated_at' => gmdate( 'c' ),
+        'source' => function_exists( 'taxocommerce_core' ) ? 'core_runtime_registry' : 'standalone',
+        'modules' => taxocommerce_system_check_registered_modules(),
+        'note' => 'Inventario de carga; no equivale a una comprobación funcional exhaustiva.',
+    ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download.
+    exit;
+}
+
 function taxocommerce_system_check_validation_screen() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
     }
-
-    // System Check always validates itself. Core provides the other ACTIVE
-    // modules. No hard-coded family catalog or dependency on the old plugin.
-    $modules = array(
-        'system_check' => array(
-            'name' => 'TaxoCommerce System Check',
-            'version' => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
-            'status' => 'active',
-        ),
-    );
-    if ( function_exists( 'taxocommerce_core' ) ) {
-        $core = taxocommerce_core();
-        if ( is_object( $core ) && method_exists( $core, 'get_registered_modules' ) ) {
-            foreach ( (array) $core->get_registered_modules() as $id => $module ) {
-                if ( is_array( $module ) && 'active' === ( $module['status'] ?? '' ) ) {
-                    $modules[ sanitize_key( $id ) ] = $module;
-                }
-            }
-        }
-    }
+    $modules = taxocommerce_system_check_registered_modules();
 
     echo '<div class="wrap"><h2>Plugin Validation · módulos activos</h2>';
     echo '<p>Estos módulos proceden del registro de Core. Sin Core, System Check se comprueba a sí mismo. No se evalúan plugins inactivos.</p>';
