@@ -2145,6 +2145,7 @@ if (!function_exists('dht_template_render_product_context_blocks')) {
     function dht_template_render_product_context_blocks($product_id)
     {
         $product_id = absint($product_id);
+        $dht_us_market = dht_template_is_us_market();
         if ($product_id < 1) {
             return;
         }
