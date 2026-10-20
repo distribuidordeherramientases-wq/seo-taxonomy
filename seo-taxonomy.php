@@ -19,6 +19,13 @@ defined('ABSPATH') || exit;
  *
  * Plataforma modular de gestión SEO, catálogo, contenidos y actividad comercial para WordPress y WooCommerce.
  *
+ * Resumen de la serie 2.4.0:
+ * - Consolidacion de Auditor por bloques, prioridades y exportacion de informes.
+ * - Evolucion de Analista, Ojeador, Ingeniero, Dependiente y Academia.
+ * - Mejoras de importacion/exportacion, proveedores y flujos VEVOR.
+ * - Preparacion de la familia modular TaxoCommerce (Core y extensiones).
+ * - Herramientas de validacion, diagnostico y gestion de procesos.
+ *
  * Incluye:
  * - Arquitectura Cluster → Hub → Categoría → Producto.
  * - Clasificación semántica y Vocabulary.

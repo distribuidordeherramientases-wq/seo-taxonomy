@@ -38,6 +38,19 @@ Key features:
 
 TaxoCommerce SEO is actively developed and uses staging to validate changes before promoting them to production.
 
+== Changelog ==
+
+= 2.4.0 =
+
+* Consolidated independent content-audit areas and prioritized editorial findings.
+* Improved market, demand, technical research, and assistant reporting tools.
+* Expanded CSV import/export workflows, including Trash handling and supplier catalog integration.
+* Refined centralized process orchestration, diagnostics, and validation workflows.
+* Introduced the modular TaxoCommerce family alongside the legacy plugin, with migration work continuing in later versions.
+* Updated plugin identity, documentation, and WordPress.org publication metadata.
+
+See CHANGELOG.md for details. This summary does not imply completion of ongoing WordPress.org validation or legacy-data migration.
+
 == Installation ==
 
 1. Download the plugin package.
