@@ -1431,9 +1431,8 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
         $running_confirmed = $controller || $worker;
         $healthy = $running_confirmed || $direct_fresh;
         $key = 'academy';
-        if ($queue_pending) {
-            $healthy = true;
-        }
+        // A pending queue is work to do, not evidence that its worker is alive.
+        // Otherwise a stalled Academy queue is reported healthy indefinitely.
         $managed_now = seo_process_supervisor_managed_update($key, array(
             'name'         => 'Academia',
             'pending'      => $pending ? 1 : 0,
