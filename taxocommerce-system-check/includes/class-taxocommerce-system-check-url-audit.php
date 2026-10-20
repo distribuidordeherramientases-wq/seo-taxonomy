@@ -19,6 +19,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
 
     public static function register_hooks() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_action' ) );
+        add_action( 'admin_post_taxocommerce_system_check_http_json', array( __CLASS__, 'download_json' ) );
         add_action( self::HOOK, array( __CLASS__, 'process_batch' ), 10, 1 );
         add_action( self::RESUME_HOOK, array( __CLASS__, 'watchdog' ) );
         add_action( 'init', array( __CLASS__, 'maybe_schedule_watchdog' ) );
@@ -680,6 +681,75 @@ final class TaxoCommerce_System_Check_URL_Audit {
             MINUTE_IN_SECONDS
         );
         wp_safe_redirect( self::url( $scope ) );
+        exit;
+    }
+
+    /**
+     * Download all stored HTTP results for the selected resource type.
+     * Read-only, paged SQL reads: no new scans or background processes.
+     */
+    public static function download_json() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'No autorizado.', 'taxocommerce-system-check' ) );
+        }
+        check_admin_referer( 'taxocommerce_system_check_http_json' );
+        if ( ! self::supported() ) {
+            wp_die( esc_html__( 'El inventario HTTP no está disponible.', 'taxocommerce-system-check' ) );
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified above.
+        $scope = self::scope( isset( $_GET['tcs_scope'] ) ? wp_unslash( $_GET['tcs_scope'] ) : 'page' );
+        seo_health_scan_maybe_upgrade();
+        $summary = seo_health_scan_summary( $scope );
+        $latest = function_exists( 'seo_health_scan_latest_run' ) ? seo_health_scan_latest_run( $scope ) : null;
+        if ( is_array( $latest ) ) {
+            unset( $latest['callback_token_hash'] );
+        }
+
+        global $wpdb;
+        $items = self::table( 'items' );
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=UTF-8' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Disposition: attachment; filename="system-check-http-' . $scope . '-' . gmdate( 'Ymd-His' ) . '.json"' );
+
+        echo '{"type":"http","scope":' . wp_json_encode( $scope );
+        echo ',"exported_at":' . wp_json_encode( gmdate( 'c' ) );
+        echo ',"summary":' . wp_json_encode( $summary );
+        echo ',"latest_run":' . wp_json_encode( $latest );
+        echo ',"items":[';
+
+        $last_id = 0;
+        $first = true;
+        $read_error = '';
+        do {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Internal WP-prefixed table; all user values bound below.
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id,object_id,label,url,source,status_bucket,http_status,final_status,
+                            final_url,response_ms,ttfb_ms,content_type,content_length,error_type,
+                            error_message,warnings,last_checked_at,last_ok_at,last_error_at
+                     FROM {$items} WHERE scope=%s AND active=1 AND id>%d
+                     ORDER BY id ASC LIMIT %d",
+                    $scope, $last_id, 250
+                ),
+                ARRAY_A
+            );
+            if ( ! is_array( $rows ) || $wpdb->last_error ) {
+                $read_error = 'No se pudieron consultar todos los resultados HTTP.';
+                break;
+            }
+            foreach ( $rows as $row ) {
+                $last_id = absint( $row['id'] );
+                $warnings = json_decode( (string) $row['warnings'], true );
+                $row['warnings'] = is_array( $warnings ) ? $warnings : array();
+                echo $first ? '' : ',';
+                echo wp_json_encode( $row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+                $first = false;
+            }
+        } while ( count( $rows ) === 250 );
+
+        echo '],"export_error":' . wp_json_encode( $read_error ) . '}';
         exit;
     }
 
