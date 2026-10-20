@@ -7,6 +7,27 @@ if ( 'cli' !== PHP_SAPI ) {
     exit;
 }
 define( 'ABSPATH', '/' );
+// Simulate Core's presence in a separate process. This is NOT a full
+// WordPress plugin integration test; it checks the independent PHP service.
+$with_core = in_array( '--with-core', isset( $argv ) ? $argv : array(), true );
+if ( $with_core ) {
+    define( 'TAXOCOMMERCE_CORE_VERSION', 'test' );
+}
+function current_user_can( $capability ) {
+    return 'manage_options' === $capability;
+}
+function admin_url( $path = '' ) {
+    return 'https://example.test/wp-admin/' . $path;
+}
+function add_query_arg( $args, $url ) {
+    return $url . '?' . http_build_query( $args );
+}
+function esc_html( $value ) {
+    return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' );
+}
+function esc_url( $value ) {
+    return esc_html( $value );
+}
 require_once dirname( __DIR__ ) . '/includes/class-taxocommerce-system-check-php.php';
 
 $required = array(
@@ -46,4 +67,14 @@ foreach ( get_defined_functions()['user'] as $function ) {
         exit( 1 );
     }
 }
-echo "Independent PHP checks OK.\n";
+ob_start();
+TaxoCommerce_System_Check_PHP::render();
+$html = ob_get_clean();
+if ( false === strpos( $html, 'Diagnóstico PHP autónomo' )
+    || substr_count( $html, '<th scope="row">' ) !== count( $rows )
+    || false === strpos( $html, 'tcs_tab=system' )
+    || function_exists( 'seo_server_status' ) ) {
+    fwrite( STDERR, "Independent PHP view failed.\n" );
+    exit( 1 );
+}
+echo $with_core ? "Independent PHP checks OK (Core simulated).\n" : "Independent PHP checks OK (standalone).\n";
