@@ -39,6 +39,7 @@ jobs:
             taxocommerce-images/**
             taxocommerce-import-export/**
             taxocommerce-system-check/**
+            taxocommerce-templates/**
             packages/**
             **/node_modules/**
             **/*.bak
