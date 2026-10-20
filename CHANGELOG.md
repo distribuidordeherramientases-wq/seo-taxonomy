@@ -4,6 +4,17 @@
 
 Primera release de la línea **TaxoCommerce SEO 2.4.x**.
 
+### Resumen ejecutivo del ciclo 2.4.0
+
+- **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
+- **Mercado y comercio:** reorganización de la capa Mercado (Analista, Ingeniero y Ojeador), observación de competencia y oportunidades, e integración progresiva de fuentes comerciales.
+- **Catálogo y proveedores:** ampliación de importación/exportación CSV, estados de publicación y papelera, flujos de proveedores y piloto internacional VEVOR con categorías, idiomas y enlaces de afiliación.
+- **Dependiente y Academia:** estadísticas y trazabilidad del uso, diagnósticos de aprendizaje y continuidad de procesos de entrenamiento.
+- **Operación:** gestor central de procesos, workers, herramientas de diagnóstico y validación, además de correcciones de compatibilidad y preparación para WordPress.org.
+- **Modularización:** inicio de la separación del monolito en TaxoCommerce Core y extensiones de Import-Export, Imágenes y System Check; diseño de Vocabulary y FAQs como módulos diferenciados.
+
+**Alcance:** este resumen recoge los trabajos desarrollados y la evolución funcional del ciclo, no certifica que cada flujo esté libre de incidencias. La migración completa de Vocabulary/Auditor a taxonomías nativas, la retirada de tablas `seo_*` y la validación final de WordPress.org continúan pendientes y corresponden a trabajos posteriores (2.4.1).
+
 ### Identidad pública y WordPress.org
 
 - El nombre público pasa a ser **TaxoCommerce SEO - Catalog, Trends, Content & Feeds**.
