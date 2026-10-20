@@ -343,6 +343,15 @@ final class TaxoCommerce_Core {
 				'wordpress_org' => false,
 				'description'   => __( 'Diagnosticos del servidor, WordPress y Plugin Validation con informes y correo opcional.', 'taxocommerce-core' ),
 			),
+			'templates' => array(
+				'id'            => 'templates',
+				'name'          => 'TaxoCommerce Templates',
+				'plugin_file'   => 'taxocommerce-templates/taxocommerce-templates.php',
+				'org_slug'      => 'taxocommerce-templates',
+				'search_term'   => 'TaxoCommerce Templates',
+				'wordpress_org' => false,
+				'description'   => 'Roles editoriales, asignación automática y gestión de plantillas.',
+			),
 			'vocabulary' => array(
 				'id'            => 'vocabulary',
 				'name'          => 'TaxoCommerce Vocabulary',
