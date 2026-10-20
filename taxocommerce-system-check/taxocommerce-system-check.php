@@ -276,11 +276,38 @@ function taxocommerce_system_check_validation_screen() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
     }
-    if ( function_exists( 'seo_core_system_test' ) ) {
-        seo_core_system_test();
-        return;
+
+    // System Check always validates itself. Core provides the other ACTIVE
+    // modules. No hard-coded family catalog or dependency on the old plugin.
+    $modules = array(
+        'system_check' => array(
+            'name' => 'TaxoCommerce System Check',
+            'version' => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
+            'status' => 'active',
+        ),
+    );
+    if ( function_exists( 'taxocommerce_core' ) ) {
+        $core = taxocommerce_core();
+        if ( is_object( $core ) && method_exists( $core, 'get_registered_modules' ) ) {
+            foreach ( (array) $core->get_registered_modules() as $id => $module ) {
+                if ( is_array( $module ) && 'active' === ( $module['status'] ?? '' ) ) {
+                    $modules[ sanitize_key( $id ) ] = $module;
+                }
+            }
+        }
     }
-    echo '<div class="wrap"><h1>Plugin Validation</h1><div class="notice notice-error"><p>Motor original no disponible.</p></div></div>';
+
+    echo '<div class="wrap"><h2>Plugin Validation · módulos activos</h2>';
+    echo '<p>Estos módulos proceden del registro de Core. Sin Core, System Check se comprueba a sí mismo. No se evalúan plugins inactivos.</p>';
+    echo '<table class="widefat striped"><thead><tr><th>Plugin</th><th>Versión</th><th>Registro</th></tr></thead><tbody>';
+    foreach ( $modules as $id => $module ) {
+        echo '<tr><th scope="row">' . esc_html( (string) ( $module['name'] ?? $id ) ) . '</th>';
+        echo '<td>' . esc_html( (string) ( $module['version'] ?? '' ) ) . '</td>';
+        echo '<td>Activo y registrado</td></tr>';
+    }
+    echo '</tbody></table>';
+    echo '<p class="description">El registro confirma la carga del módulo, no la ejecución correcta de todas sus funciones. Las comprobaciones específicas se incorporarán por módulo sin duplicar este inventario.</p>';
+    echo '</div>';
 }
 
 function taxocommerce_system_check_url_audit_screen() {
