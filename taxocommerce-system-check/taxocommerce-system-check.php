@@ -274,7 +274,23 @@ function taxocommerce_system_check_server_screen() {
 }
 
 function taxocommerce_system_check_registered_modules() {
-
+    $modules = array(
+        'system_check' => array(
+            'name' => 'TaxoCommerce System Check',
+            'version' => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
+            'status' => 'active',
+        ),
+    );
+    if ( function_exists( 'taxocommerce_core' ) ) {
+        $core = taxocommerce_core();
+        if ( is_object( $core ) && method_exists( $core, 'get_registered_modules' ) ) {
+            foreach ( (array) $core->get_registered_modules() as $id => $module ) {
+                if ( is_array( $module ) && 'active' === ( $module['status'] ?? '' ) ) {
+                    $modules[ sanitize_key( $id ) ] = $module;
+                }
+            }
+        }
+    }
     return $modules;
 }
 
