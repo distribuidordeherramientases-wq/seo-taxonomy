@@ -233,7 +233,7 @@ function taxocommerce_system_check_home() {
     // Each tab downloads its stored results. No scan is started here.
     $exports = array(
         'system' => array( 'seo_system_diagnostics_download_server_json', 'Descargar JSON de Sistema' ),
-        'plugin' => array( 'taxocommerce_system_check_modules_json', 'Descargar JSON de módulos activos' ),
+        'plugin' => array( 'taxocommerce_system_check_modules_json', 'Descargar JSON de comprobación básica' ),
         'http'   => array( 'taxocommerce_system_check_http_json', 'Descargar JSON de HTTP' ),
     );
     if ( isset( $exports[ $tab ] ) ) {
@@ -247,6 +247,10 @@ function taxocommerce_system_check_home() {
         $url = wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), $action );
         echo '<p><a class="button button-secondary" href="' . esc_url( $url ) . '">'
             . esc_html( $exports[ $tab ][1] ) . '</a></p>';
+        if ( 'plugin' === $tab ) {
+            $history_url = wp_nonce_url( add_query_arg( array( 'action' => 'seo_system_diagnostics_download_validation_json' ), admin_url( 'admin-post.php' ) ), 'seo_system_diagnostics_download_validation_json' );
+            echo '<p><a class="button button-secondary" href="' . esc_url( $history_url ) . '">Descargar JSON de chequeos anteriores (histórico)</a></p>';
+        }
         if ( 'system' === $tab ) {
             $complete_url = wp_nonce_url( add_query_arg( array( 'action' => 'seo_system_diagnostics_download_json' ), admin_url( 'admin-post.php' ) ), 'seo_system_diagnostics_download_json' );
             echo '<p><a class="button button-secondary" href="' . esc_url( $complete_url ) . '">Descargar JSON completo</a></p>';
@@ -294,6 +298,43 @@ function taxocommerce_system_check_registered_modules() {
     return $modules;
 }
 
+/** Basic checks available for every active module without static module lists. */
+function taxocommerce_system_check_module_checks( $id, $module ) {
+    $checks = array(
+        'registered' => array( 'ok' => true, 'label' => 'Cargado y registrado' ),
+        'version'    => array(
+            'ok'    => ! empty( $module['version'] ),
+            'label' => 'Versión declarada',
+        ),
+    );
+    if ( 'system_check' === $id ) {
+        $checks['server'] = array(
+            'ok'    => function_exists( 'seo_server_status' ),
+            'label' => 'Motor de diagnóstico del sistema disponible',
+        );
+        $checks['http'] = array(
+            'ok'    => class_exists( 'TaxoCommerce_System_Check_URL_Audit' ),
+            'label' => 'Auditor HTTP disponible',
+        );
+    }
+    return $checks;
+}
+
+function taxocommerce_system_check_module_results() {
+    $results = array();
+    foreach ( taxocommerce_system_check_registered_modules() as $id => $module ) {
+        $checks = taxocommerce_system_check_module_checks( $id, $module );
+        $failures = count( array_filter( $checks, static function ( $check ) { return ! $check['ok']; } ) );
+        $results[ $id ] = array(
+            'name'    => $module['name'] ?? $id,
+            'version' => $module['version'] ?? '',
+            'status'  => $failures ? 'warning' : 'ok',
+            'checks'  => $checks,
+        );
+    }
+    return $results;
+}
+
 function taxocommerce_system_check_modules_json() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
@@ -306,8 +347,8 @@ function taxocommerce_system_check_modules_json() {
     echo wp_json_encode( array(
         'generated_at' => gmdate( 'c' ),
         'source' => function_exists( 'taxocommerce_core' ) ? 'core_runtime_registry' : 'standalone',
-        'modules' => taxocommerce_system_check_registered_modules(),
-        'note' => 'Inventario de carga; no equivale a una comprobación funcional exhaustiva.',
+        'modules' => taxocommerce_system_check_module_results(),
+        'note' => 'Comprobación básica de carga; no equivale a un chequeo funcional exhaustivo.',
     ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download.
     exit;
 }
@@ -316,18 +357,22 @@ function taxocommerce_system_check_validation_screen() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
     }
-    $modules = taxocommerce_system_check_registered_modules();
+    $modules = taxocommerce_system_check_module_results();
 
     echo '<div class="wrap"><h2>Plugin Validation · módulos activos</h2>';
-    echo '<p>Estos módulos proceden del registro de Core. Sin Core, System Check se comprueba a sí mismo. No se evalúan plugins inactivos.</p>';
-    echo '<table class="widefat striped"><thead><tr><th>Plugin</th><th>Versión</th><th>Registro</th></tr></thead><tbody>';
-    foreach ( $modules as $id => $module ) {
-        echo '<tr><th scope="row">' . esc_html( (string) ( $module['name'] ?? $id ) ) . '</th>';
-        echo '<td>' . esc_html( (string) ( $module['version'] ?? '' ) ) . '</td>';
-        echo '<td>Activo y registrado</td></tr>';
+    echo '<p>Sin Core solo se comprueba System Check. Con Core se usan sus módulos activos; no hay una lista duplicada.</p>';
+    echo '<table class="widefat striped"><thead><tr><th>Plugin</th><th>Versión</th><th>Comprobación básica</th></tr></thead><tbody>';
+    foreach ( $modules as $module ) {
+        $messages = array();
+        foreach ( $module['checks'] as $check ) {
+            $messages[] = ( $check['ok'] ? 'OK: ' : 'Aviso: ' ) . $check['label'];
+        }
+        echo '<tr><th scope="row">' . esc_html( (string) $module['name'] ) . '</th>';
+        echo '<td>' . esc_html( (string) $module['version'] ) . '</td>';
+        echo '<td>' . esc_html( implode( ' · ', $messages ) ) . '</td></tr>';
     }
     echo '</tbody></table>';
-    echo '<p class="description">El registro confirma la carga del módulo, no la ejecución correcta de todas sus funciones. Las comprobaciones específicas se incorporarán por módulo sin duplicar este inventario.</p>';
+    echo '<p class="description">Comprobación de carga y servicios básicos de System Check. No sustituye todavía los chequeos profundos, que se adaptarán por módulo.</p>';
     echo '</div>';
 }
 
