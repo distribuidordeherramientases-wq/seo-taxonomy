@@ -86,6 +86,7 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_settings',array(__CLASS__,'settings'));
         add_action('admin_post_tct_save_page_role',array(__CLASS__,'save_page_role'));
         add_action('add_meta_boxes_page',array(__CLASS__,'page_metabox'));
+        add_action('save_post_page',array(__CLASS__,'save_metabox'),25,2);
         add_filter('template_include',array(__CLASS__,'resolve'),95);
         add_action('taxocommerce_core_register_modules',array(__CLASS__,'register_core'));
         if(function_exists('taxocommerce_core')&&did_action('taxocommerce_core_loaded')) self::register_core(taxocommerce_core());
@@ -149,6 +150,12 @@ final class TaxoCommerce_Templates {
         wp_nonce_field('tct_page_role','tct_page_role_nonce');
         // Save only during the native post save and after all validation.
     }
+    public static function save_metabox($id,$post) {
+        if(!isset($_POST['tct_page_role_nonce'])||!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['tct_page_role_nonce'])),'tct_page_role'))return;
+        if((defined('DOING_AUTOSAVE')&&DOING_AUTOSAVE)||wp_is_post_revision($id)||!current_user_can('edit_page',$id)||!self::installed())return;
+        $role=isset($_POST['tct_role'])?sanitize_key(wp_unslash($_POST['tct_role'])):'';
+        self::set_role($id,$role);
+    }
     public static function save_page_role() {
         self::guard('tct_page_role_admin');
         $id=isset($_POST['page_id'])?absint($_POST['page_id']):0;
@@ -175,8 +182,10 @@ final class TaxoCommerce_Templates {
         $path=TCT_DIR.'templates/'.$file;
         if(!is_file($path)||!is_readable($path))self::redirect('El archivo no existe en la biblioteca instalada.');
         $table=self::templates();
-        $wpdb->replace($table,array('template_key'=>$role,'template_name'=>self::roles()[$role],'template_file'=>$file,'is_active'=>1,'template_type'=>'page','is_public'=>1,'is_assignable'=>1,'assignment_mode'=>'multiple','updated_at'=>current_time('mysql')),array('%s','%s','%s','%d','%s','%d','%d','%s','%s'));
-        self::redirect('Plantilla asociada.');
+        $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE template_key=%s",$role));
+        $fields=array('template_name'=>self::roles()[$role],'template_file'=>$file,'is_active'=>1,'template_type'=>'page','is_public'=>1,'is_assignable'=>1,'assignment_mode'=>'multiple','updated_at'=>current_time('mysql'));
+        $saved=$exists ? $wpdb->update($table,$fields,array('id'=>(int)$exists)) : $wpdb->insert($table,array_merge(array('template_key'=>$role),$fields));
+        self::redirect(false===$saved?'No se pudo guardar la asignación.':'Plantilla asociada.');
     }
     public static function settings() {
         self::guard('tct_settings');
