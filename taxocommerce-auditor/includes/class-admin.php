@@ -29,7 +29,7 @@ final class Admin {
 
     private static function guard() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para consultar Auditor.', 'taxocommerce-auditor' ), 403 );
+            wp_die( esc_html__( 'No tienes permisos para consultar Auditor.', 'taxocommerce-auditor' ), '', array( 'response' => 403 ) );
         }
     }
 
@@ -205,7 +205,7 @@ final class Admin {
         $scope = isset( $_POST['scope'] ) ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
         $task = isset( $_POST['task'] ) ? sanitize_key( wp_unslash( $_POST['task'] ) ) : '';
         if ( ! Runner::valid_scope( $scope ) ) {
-            wp_die( esc_html__( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ), 400 );
+            wp_die( esc_html__( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ), '', array( 'response' => 400 ) );
         }
         check_admin_referer( 'taxocommerce_auditor_action_' . $scope );
         if ( 'start' === $task ) {
@@ -218,7 +218,7 @@ final class Admin {
         } elseif ( 'resume' === $task ) {
             Runner::resume( $scope );
         } else {
-            wp_die( esc_html__( 'Acción no reconocida.', 'taxocommerce-auditor' ), 400 );
+            wp_die( esc_html__( 'Acción no reconocida.', 'taxocommerce-auditor' ), '', array( 'response' => 400 ) );
         }
         wp_safe_redirect( self::scope_link( $scope ) );
         exit;
@@ -229,12 +229,12 @@ final class Admin {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Validated immediately after scope.
         $scope = isset( $_GET['scope'] ) ? sanitize_key( wp_unslash( $_GET['scope'] ) ) : '';
         if ( ! Runner::valid_scope( $scope ) ) {
-            wp_die( esc_html__( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ), 400 );
+            wp_die( esc_html__( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ), '', array( 'response' => 400 ) );
         }
         check_admin_referer( 'taxocommerce_auditor_export_' . $scope );
         $report = Runner::report( $scope );
         if ( ! $report ) {
-            wp_die( esc_html__( 'No hay informe completo que exportar.', 'taxocommerce-auditor' ), 404 );
+            wp_die( esc_html__( 'No hay informe completo que exportar.', 'taxocommerce-auditor' ), '', array( 'response' => 404 ) );
         }
         nocache_headers();
         header( 'X-Content-Type-Options: nosniff' );
