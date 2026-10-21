@@ -539,18 +539,36 @@ final class TaxoCommerce_Images {
 	 */
 	private function render_thumbnails() {
 		$sizes = wp_get_registered_image_subsizes();
+		$disabled = TaxoCommerce_Images_Thumbnails::disabled_sizes();
 		?>
-		<h2><?php echo esc_html__( 'Miniaturas registradas en WordPress', 'taxocommerce-images' ); ?></h2>
-		<p><?php echo esc_html__( 'TaxoCommerce Images no inventa un segundo sistema de miniaturas: muestra y regenera las medidas que WordPress, WooCommerce y el tema tienen registradas.', 'taxocommerce-images' ); ?></p>
-		<table class="widefat striped" style="max-width:850px;">
-			<thead><tr><th><?php echo esc_html__( 'Nombre', 'taxocommerce-images' ); ?></th><th><?php echo esc_html__( 'Ancho', 'taxocommerce-images' ); ?></th><th><?php echo esc_html__( 'Alto', 'taxocommerce-images' ); ?></th><th><?php echo esc_html__( 'Recorte', 'taxocommerce-images' ); ?></th></tr></thead>
-			<tbody>
-			<?php foreach ( $sizes as $name => $size ) : ?>
-				<tr><td><code><?php echo esc_html( $name ); ?></code></td><td><?php echo esc_html( (string) absint( $size['width'] ?? 0 ) ); ?></td><td><?php echo esc_html( (string) absint( $size['height'] ?? 0 ) ); ?></td><td><?php echo ! empty( $size['crop'] ) ? esc_html__( 'Sí', 'taxocommerce-images' ) : esc_html__( 'No', 'taxocommerce-images' ); ?></td></tr>
-			<?php endforeach; ?>
-			</tbody>
-		</table>
-		<p><?php echo esc_html__( 'La Auditoría identifica attachments a los que les faltan tamaños que podrían generarse. Desde Biblioteca puedes regenerar las miniaturas de cada imagen.', 'taxocommerce-images' ); ?></p>
+		<h2><?php esc_html_e( 'Miniaturas registradas en WordPress', 'taxocommerce-images' ); ?></h2>
+		<p><?php esc_html_e( 'La selección solo afecta a nuevas imágenes. No borra miniaturas existentes y puede afectar al diseño de la web si desactivas tamaños usados por el tema o WooCommerce.', 'taxocommerce-images' ); ?></p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="taxocommerce_images_save_thumbnail_policy">
+			<?php wp_nonce_field( 'taxocommerce_images_save_thumbnail_policy', 'taxocommerce_images_nonce' ); ?>
+			<table class="widefat striped" style="max-width:950px;">
+				<thead><tr>
+					<th><?php esc_html_e( 'Tamaño', 'taxocommerce-images' ); ?></th>
+					<th><?php esc_html_e( 'Ancho', 'taxocommerce-images' ); ?></th>
+					<th><?php esc_html_e( 'Alto', 'taxocommerce-images' ); ?></th>
+					<th><?php esc_html_e( 'Recorte', 'taxocommerce-images' ); ?></th>
+					<th><?php esc_html_e( 'No generar en nuevas subidas', 'taxocommerce-images' ); ?></th>
+				</tr></thead>
+				<tbody>
+				<?php foreach ( $sizes as $name => $size ) : ?>
+					<tr>
+						<td><code><?php echo esc_html( $name ); ?></code></td>
+						<td><?php echo esc_html( (string) absint( $size['width'] ?? 0 ) ); ?></td>
+						<td><?php echo esc_html( (string) absint( $size['height'] ?? 0 ) ); ?></td>
+						<td><?php echo ! empty( $size['crop'] ) ? esc_html__( 'Sí', 'taxocommerce-images' ) : esc_html__( 'No', 'taxocommerce-images' ); ?></td>
+						<td><label><input type="checkbox" name="disabled_sizes[]" value="<?php echo esc_attr( $name ); ?>" <?php checked( in_array( $name, $disabled, true ) ); ?>><span class="screen-reader-text"><?php echo esc_html( $name ); ?></span></label></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<?php submit_button( __( 'Guardar tamaños desactivados', 'taxocommerce-images' ) ); ?>
+		</form>
+		<p><?php esc_html_e( 'Desde Biblioteca puedes regenerar las miniaturas de un archivo. La auditoría tendrá en cuenta qué tamaños has desactivado.', 'taxocommerce-images' ); ?></p>
 		<?php
 	}
 
