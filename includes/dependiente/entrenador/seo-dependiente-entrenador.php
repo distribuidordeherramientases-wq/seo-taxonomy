@@ -2339,7 +2339,7 @@ final class SEO_Dependiente_Entrenador {
                     r.evaluation_json, r.top_results, r.response_meta, r.error_message,
                     r.created_at AS run_created_at
              FROM {$questions_table} q
-             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key AND r.status IN ('answered','error','unlearned')
              WHERE q.lesson_key = %s AND q.enabled = 1
              ORDER BY q.sequence_no ASC, q.id ASC",
             $batch_key
@@ -5472,7 +5472,7 @@ final class SEO_Dependiente_Entrenador {
              LEFT JOIN {$runs_table} r
                ON r.question_id = q.id
               AND r.lesson_key = q.lesson_key
-              AND r.status IN ('answered','error')
+              AND r.status IN ('answered','error','unlearned')
              WHERE q.lesson_key = %s
                AND q.module_no = %d
                AND q.enabled = 1
@@ -7149,7 +7149,8 @@ final class SEO_Dependiente_Entrenador {
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Academia tables; batch key is bound through prepare().
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT COUNT(q.id) AS total,
-                    COALESCE(SUM(r.status IN ('answered','error')), 0) AS answered,
+                    COALESCE(SUM(r.status IN ('answered','error','unlearned')), 0) AS answered,
+                    COALESCE(SUM(r.status = 'unlearned'), 0) AS unlearned,
                     COALESCE(SUM(r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')), 0) AS learned,
                     COALESCE(SUM(r.evaluation_status = 'fail'), 0) AS failed,
                     COALESCE(SUM(r.status = 'answered' AND r.returned_count > 0), 0) AS with_results,
@@ -7831,32 +7832,35 @@ final class SEO_Dependiente_Entrenador {
         }
 
         if (6 === $module_no) {
-            if (!$faq_ids && !$product_ids && !$category_ids) return array();
-            $wanted_faq = array_fill_keys($faq_ids, true);
-            $wanted_products = array_fill_keys($product_ids, true);
-            $wanted_categories = array_fill_keys($category_ids, true);
-            $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
+            // M6 is FAQ-only: a changed product/category does not retrain unchanged FAQs.
+            if (!$faq_ids) return array();
+            $faq_table = esc_sql($wpdb->prefix . 'seo_faq');
             if (!self::table_exists($faq_table)) return array();
             $faq_scope_select = self::table_has_column($faq_table, 'ambito') ? 'f.ambito' : "'' AS ambito";
-            $rows = (array) $wpdb->get_results(
-                "SELECT f.id,f.object_type,f.object_id,{$faq_scope_select},f.question,f.answer,
-                        CASE WHEN f.object_type=3 THEN p.post_title ELSE t.name END owner_title
-                 FROM {$faq_table} f
-                 LEFT JOIN {$wpdb->posts} p ON f.object_type=3 AND p.ID=f.object_id AND p.post_type='product' AND p.post_status='publish'
-                 LEFT JOIN {$wpdb->term_taxonomy} tt ON f.object_type=2 AND tt.term_id=f.object_id AND tt.taxonomy='product_cat'
-                 LEFT JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
-                 WHERE f.active=1 AND f.object_type IN (2,3)
-                   AND ((f.object_type=3 AND p.ID IS NOT NULL) OR (f.object_type=2 AND tt.term_id IS NOT NULL))
-                 ORDER BY f.id ASC",
-                ARRAY_A
-            );
+            $rows = array();
+            foreach (array_chunk(array_values(array_unique($faq_ids)), 200) as $ids) {
+                $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal tables and generated placeholders; FAQ IDs are bound.
+                $batch = $wpdb->get_results($wpdb->prepare(
+                    "SELECT f.id,f.object_type,f.object_id,{$faq_scope_select},f.question,f.answer,
+                            CASE WHEN f.object_type=3 THEN p.post_title ELSE t.name END owner_title
+                     FROM {$faq_table} f
+                     LEFT JOIN {$wpdb->posts} p ON f.object_type=3 AND p.ID=f.object_id AND p.post_type='product' AND p.post_status='publish'
+                     LEFT JOIN {$wpdb->term_taxonomy} tt ON f.object_type=2 AND tt.term_id=f.object_id AND tt.taxonomy='product_cat'
+                     LEFT JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+                     WHERE f.active=1 AND f.id IN ({$placeholders})
+                       AND f.object_type IN (2,3)
+                       AND ((f.object_type=3 AND p.ID IS NOT NULL) OR (f.object_type=2 AND tt.term_id IS NOT NULL))
+                     ORDER BY f.id ASC",
+                    $ids
+                ), ARRAY_A);
+                $rows = array_merge($rows, (array) $batch);
+            }
             $out = array();
             foreach ($rows as $row) {
                 $id = absint($row['id'] ?? 0);
                 $ot = absint($row['object_type'] ?? 0);
                 $oid = absint($row['object_id'] ?? 0);
-                $include = !empty($wanted_faq[$id]) || (3 === $ot && !empty($wanted_products[$oid])) || (2 === $ot && !empty($wanted_categories[$oid]));
-                if (!$include) continue;
                 $q = trim(wp_strip_all_tags((string) ($row['question'] ?? '')));
                 $owner_title = trim(wp_strip_all_tags((string) ($row['owner_title'] ?? '')));
                 if (!$id || !$oid || !$q || !$owner_title) continue;
@@ -7907,6 +7911,123 @@ final class SEO_Dependiente_Entrenador {
 
     public static function update_run_question($question, $batch_uuid) {
         return self::run_question((array) $question, (string) $batch_uuid);
+    }
+
+
+    /**
+     * M6 incremental: a failed search is not learned. Persist the failed attempt
+     * for diagnosis, but keep the question retryable until its final attempt.
+     */
+    public static function update_run_faq_question($question, $batch_uuid, $final_attempt = false) {
+        global $wpdb;
+        $question = (array) $question;
+        $question_id = absint($question['id'] ?? 0);
+        $lesson_key = sanitize_key((string) ($question['lesson_key'] ?? ''));
+        if (!$question_id || !$lesson_key) {
+            throw new RuntimeException('Pregunta FAQ sin identificador valido.');
+        }
+        $runs_table = esc_sql(self::runs_table());
+        // Historical errors must not suppress the bounded retry.
+        $wpdb->update(
+            $runs_table,
+            array('status' => 'retry'),
+            array('question_id' => $question_id, 'lesson_key' => $lesson_key, 'status' => 'error'),
+            array('%s'),
+            array('%d','%s','%s')
+        );
+        $run_id = self::run_question($question, (string) $batch_uuid);
+        if (!$run_id) {
+            throw new RuntimeException('La FAQ no ha guardado el resultado de la evaluacion.');
+        }
+        $run = $wpdb->get_row($wpdb->prepare(
+            "SELECT status,evaluation_status FROM {$runs_table} WHERE id=%d AND question_id=%d",
+            $run_id,
+            $question_id
+        ), ARRAY_A);
+        if (!$run) {
+            throw new RuntimeException('No se ha podido consultar el resultado de la FAQ.');
+        }
+        $passed = 'answered' === (string) ($run['status'] ?? '')
+            && 0 === strpos((string) ($run['evaluation_status'] ?? ''), 'pass_');
+        if ($passed) {
+            return array('learned'=>true, 'unlearned'=>false, 'run_id'=>$run_id);
+        }
+        $new_status = $final_attempt ? 'unlearned' : 'retry';
+        $updated = $wpdb->update(
+            $runs_table,
+            array('status'=>$new_status, 'evaluation_status'=>$new_status),
+            array('id'=>$run_id),
+            array('%s','%s'),
+            array('%d')
+        );
+        if (false === $updated) {
+            throw new RuntimeException('No se ha podido guardar el estado pendiente de la FAQ.');
+        }
+        return array('learned'=>false, 'unlearned'=>(bool)$final_attempt, 'run_id'=>$run_id);
+    }
+
+    /** Record an interrupted FAQ after the final retry, without claiming success. */
+    public static function update_abandon_interrupted_faq($question_id, $lesson_key) {
+        global $wpdb;
+        $question_id = absint($question_id);
+        $lesson_key = sanitize_key((string) $lesson_key);
+        $runs_table = esc_sql(self::runs_table());
+        $questions_table = esc_sql(self::questions_table());
+        $terminal = $wpdb->get_row($wpdb->prepare(
+            "SELECT id,status,evaluation_status FROM {$runs_table}
+             WHERE question_id=%d AND lesson_key=%s
+               AND status IN ('answered','error','unlearned')
+             ORDER BY id DESC LIMIT 1",
+            $question_id, $lesson_key
+        ), ARRAY_A);
+        if ($terminal && 'answered' === (string) $terminal['status']
+            && 0 === strpos((string) $terminal['evaluation_status'], 'pass_')) {
+            return true;
+        }
+        if ($terminal && 'unlearned' === (string) $terminal['status']) {
+            return false;
+        }
+        $question = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$questions_table} WHERE id=%d AND lesson_key=%s",
+            $question_id, $lesson_key
+        ), ARRAY_A);
+        if (!$question) {
+            throw new RuntimeException('No existe la pregunta FAQ interrumpida.');
+        }
+        if ($terminal && 'error' === (string) $terminal['status']) {
+            $wpdb->update($runs_table,
+                array('status'=>'unlearned','evaluation_status'=>'unlearned'),
+                array('id'=>absint($terminal['id'])),
+                array('%s','%s'),array('%d')
+            );
+            return false;
+        }
+        $inserted = $wpdb->insert($runs_table, array(
+            'batch_uuid' => wp_generate_uuid4(),
+            'lesson_key' => $lesson_key,
+            'module_no' => absint($question['module_no'] ?? 6),
+            'question_id' => $question_id,
+            'source_type' => 'faq',
+            'source_id' => absint($question['source_id'] ?? 0),
+            'question_type' => 'faq_owner_context',
+            'mode' => 'need',
+            'question' => sanitize_text_field((string) ($question['question'] ?? '')),
+            'status' => 'unlearned',
+            'result_count' => 0,
+            'returned_count' => 0,
+            'execution_ms' => 0,
+            'evaluation_status' => 'unlearned',
+            'evaluation_score' => 0,
+            'evaluation_json' => wp_json_encode(array('status'=>'unlearned','reason'=>'interrupted_after_retries')),
+            'top_results' => '[]',
+            'response_meta' => '{}',
+            'error_message' => 'La evaluacion de la FAQ fue interrumpida en todos los intentos.',
+            'created_at' => current_time('mysql'),
+        ));
+        if (false === $inserted) {
+            throw new RuntimeException('No se ha podido registrar la FAQ no aprendida.');
+        }
+        return false;
     }
 
     /**
@@ -8521,8 +8642,8 @@ final class SEO_Dependiente_Entrenador {
 
     public static function update_module_summary($lesson_key, $module_no) {
         $row = self::single_module_progress(sanitize_key((string) $lesson_key), absint($module_no));
-        if (!$row) return array('total'=>0,'answered'=>0,'passed'=>0,'failed'=>0,'errors'=>0);
-        return array_map('absint', wp_parse_args($row, array('total'=>0,'answered'=>0,'passed'=>0,'failed'=>0,'errors'=>0)));
+        if (!$row) return array('total'=>0,'answered'=>0,'passed'=>0,'failed'=>0,'errors'=>0,'unlearned'=>0);
+        return array_map('absint', wp_parse_args($row, array('total'=>0,'answered'=>0,'passed'=>0,'failed'=>0,'errors'=>0,'unlearned'=>0)));
     }
 
     public static function update_module_min_pass($module_no) {
