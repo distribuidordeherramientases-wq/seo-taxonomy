@@ -16,6 +16,7 @@ final class Runner {
     const MAX_STORED_FINDINGS = 400;
     const MAX_QUALITY_ROWS    = 100;
     const MAX_INDEXED_TITLES  = 25000;
+    const MAX_REBALANCE_PROPOSALS = 150;
 
     public static function scopes() {
         return array(
@@ -110,53 +111,12 @@ final class Runner {
         return '';
     }
 
-    /**
-     * Small native exact-title map for the editorial overlap check.
-     * This is only evidence for review, not proof of Google cannibalisation.
-     */
-    private static function canonical_owners( $scope ) {
-        if ( ! in_array( $scope, array( 'posts', 'pages' ), true ) ) {
-            return array();
-        }
-
-        $index = array();
-        if ( taxonomy_exists( 'product_cat' ) ) {
-            $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'fields' => 'all' ) );
-            foreach ( is_wp_error( $terms ) ? array() : (array) $terms as $term ) {
-                $key = Rules::identity_key( $term->name );
-                if ( '' !== $key ) {
-                    $index[ $key ] = array( 'entity_type' => 'product_cat', 'entity_id' => absint( $term->term_id ), 'role' => 'category' );
-                }
-            }
-        }
-
-        $page_ids = get_posts(
-            array(
-                'post_type'           => 'page',
-                'post_status'         => 'publish',
-                'fields'              => 'ids',
-                'posts_per_page'      => -1,
-                'orderby'            => 'ID',
-                'order'              => 'ASC',
-                'suppress_filters'   => true,
-                'no_found_rows'      => true,
-            )
-        );
-        foreach ( (array) $page_ids as $page_id ) {
-            $role = sanitize_key( (string) get_post_meta( $page_id, '_taxocommerce_core_seo_role', true ) );
-            if ( ! in_array( $role, array( 'cluster', 'hub_primary', 'hub_secondary' ), true ) ) {
-                continue;
-            }
-            $key = Rules::identity_key( get_the_title( $page_id ) );
-            if ( '' !== $key ) {
-                $index[ $key ] = array( 'entity_type' => 'page', 'entity_id' => absint( $page_id ), 'role' => $role );
-            }
-        }
-        return $index;
-    }
-
     public static function start( $scope ) {
         if ( ! self::valid_scope( $scope ) ) {
+            return false;
+        }
+        // Do not reset a run while a worker still owns this scope.
+        if ( get_transient( 'taxocommerce_auditor_lock_' . $scope ) ) {
             return false;
         }
         wp_clear_scheduled_hook( self::HOOK, array( $scope ) );
@@ -166,6 +126,7 @@ final class Runner {
             'status'           => $unavailable ? 'unavailable' : 'queued',
             'reason'           => $unavailable,
             'started_gmt'      => current_time( 'mysql', true ),
+            'started_timestamp' => time(),
             'completed_gmt'    => null,
             'processed'        => 0,
             'excluded'         => 0,
@@ -180,12 +141,32 @@ final class Runner {
             'quality_bands'    => array( 'fuerte' => 0, 'correcta' => 0, 'mejorable' => 0, 'debil' => 0 ),
             'quality_worst'    => array(),
             'seen_titles'      => array(),
-            'canonical_owners' => $unavailable ? array() : self::canonical_owners( $scope ),
+            'seen_skus'        => array(),
+            'seen_templates'   => array(),
+            'seen_faq_questions' => array(),
+            'priority_counts'  => array( 'P1' => 0, 'P2' => 0, 'P3' => 0, 'P4' => 0, 'P5' => 0 ),
+            'rebalance_summary' => array(
+                'review_split' => 0,
+                'split_proposals' => 0,
+                'review_merge' => 0,
+                'merge_proposals' => 0,
+                'approved' => 0,
+            ),
+            'rebalance_proposals' => array(),
+            'editorial_map'   => ! $unavailable && in_array( $scope, array( 'posts', 'pages' ), true )
+                ? Editorial_Specialist::build_map()
+                : array(),
             'notes'            => array(
                 'Auditoria de solo lectura: no altera contenido, terminos ni relaciones.',
                 'La puntuacion de calidad es interna, no una metrica ni una prediccion de Google.',
             ),
         );
+        if ( ! empty( $state['editorial_map']['partial'] ) ) {
+            $state['notes'][] = 'El mapa editorial se ha limitado a ' . Editorial_Specialist::MAP_LIMIT . ' objetos; la cobertura comparativa es parcial.';
+        }
+        if ( 'categories' === $scope ) {
+            $state['notes'][] = 'Referencia histórica para revisar tamaños: 5-10 productos. Las propuestas requieren evidencia semántica y no autorizan cambios automáticos.';
+        }
         if ( 'faqs' === $scope && ! $unavailable ) {
             $state['notes'][] = 'Validacion del owner solo cuando otro modulo ofrece el filtro taxocommerce_auditor_faq_owner.';
         }
