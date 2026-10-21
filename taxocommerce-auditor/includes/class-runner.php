@@ -217,7 +217,10 @@ final class Runner {
                     'order'      => 'ASC',
                 )
             );
-            return is_wp_error( $terms ) ? array() : (array) $terms;
+            if ( is_wp_error( $terms ) ) {
+                throw new \RuntimeException( $terms->get_error_message() );
+            }
+            return (array) $terms;
         }
 
         $post_type = 'faqs' === $scope ? self::faq_post_type() : ( 'products' === $scope ? 'product' : ( 'pages' === $scope ? 'page' : 'post' ) );
@@ -395,6 +398,8 @@ final class Runner {
         }
         $lock = 'taxocommerce_auditor_lock_' . $scope;
         if ( get_transient( $lock ) ) {
+            // The current cron event has been consumed; do not lose the next pulse.
+            self::enqueue( $scope );
             return;
         }
         set_transient( $lock, 1, 120 );
@@ -579,6 +584,14 @@ final class Runner {
             if ( 'categories' === $scope ) {
                 $state['cursor'] = absint( $state['cursor'] ) + count( $objects );
             }
+            // A user may pause/restart while this worker is running. Never
+            // overwrite that explicit newer state with an old batch.
+            $current_state = self::state( $scope );
+            if ( ! in_array( (string) ( $current_state['status'] ?? '' ), array( 'queued', 'running' ), true )
+                || (string) ( $current_state['started_gmt'] ?? '' ) !== (string) $state['started_gmt'] ) {
+                return;
+            }
+
             self::trim_samples( $state );
             if ( count( $objects ) < self::BATCH_SIZE ) {
                 self::complete( $scope, $state );
