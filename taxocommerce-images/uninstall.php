@@ -17,3 +17,4 @@ delete_option( 'taxocommerce_images_version' );
 delete_option( 'taxocommerce_images_settings' );
 delete_option( 'taxocommerce_images_audit_state' );
 delete_option( 'taxocommerce_images_audit_lock' );
+delete_option( 'taxocommerce_images_disabled_thumbnail_sizes' );
