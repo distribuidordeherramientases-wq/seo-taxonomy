@@ -272,9 +272,77 @@ final class Rules {
             $findings[] = self::finding( 'product_missing_description', 'medium', 'product', $id, $title, 'Descripción larga vacía.', 'Añadir datos técnicos y comerciales comprobables.' );
         }
         $alignment = self::title_alignment( $title, $excerpt );
-        if ( null !== $alignment && mb_strlen( $excerpt, 'UTF-8' ) >= 40 && $alignment < 0.1 ) {
-            $findings[] = self::finding( 'product_excerpt_identity_drift', 'high', 'product', $id, $title, 'Muy pocas palabras del título aparecen en el resumen.', 'Contrastar título y resumen con la fuente original; posible desplazamiento de contenido.' );
+        if ( null !== $alignment && mb_strlen( $excerpt, 'UTF-8' ) >= 35 && $alignment < 0.2 ) {
+            $findings[] = self::finding( 'product_title_excerpt_drift', 'high', 'product', $id, $title, 'Muy pocas palabras del título aparecen en el resumen.', 'Contrastar título y resumen con la fuente original; posible desplazamiento de contenido.' );
         }
+        // The legacy auditor distinguishes a weak textual match (review signal)
+        // from demonstrable displacement to another product (not inferred here).
+        if ( '' !== $body && mb_strlen( $body, 'UTF-8' ) >= 80 ) {
+            $long_alignment = self::title_alignment( $title, $body );
+            if ( null !== $long_alignment && $long_alignment < 0.08 ) {
+                $findings[] = self::finding(
+                    'product_description_alignment_weak', 'low', 'product', $id, $title,
+                    'La descripción presenta muy poca coincidencia literal con el título.',
+                    'Revisar la fuente original; esta señal por sí sola no prueba que se haya copiado otro producto.'
+                );
+            }
+        }
+
+        $attribute_text = '';
+        foreach ( (array) $product->get_attributes() as $attribute ) {
+            if ( ! $attribute instanceof \WC_Product_Attribute ) {
+                continue;
+            }
+            $name = $attribute->is_taxonomy() ? wc_attribute_label( $attribute->get_name() ) : $attribute->get_name();
+            $values = $attribute->is_taxonomy()
+                ? wc_get_product_terms( $id, $attribute->get_name(), array( 'fields' => 'names' ) )
+                : $attribute->get_options();
+            $values = is_wp_error( $values ) ? array() : array_values( array_filter( array_map( 'strval', (array) $values ), 'strlen' ) );
+            if ( '' === trim( (string) $name ) && $values ) {
+                $findings[] = self::finding( 'attribute_without_name', 'medium', 'product', $id, $title, 'Atributo con valor pero sin nombre.', 'Corregir el nombre del atributo mediante WooCommerce.' );
+            } elseif ( '' !== trim( (string) $name ) && ! $values ) {
+                $findings[] = self::finding( 'attribute_without_value', 'medium', 'product', $id, $title, 'Atributo ' . $name . ' sin valor.', 'Completar el valor o retirar el atributo vacío.' );
+            }
+            foreach ( array_slice( $values, 0, 30 ) as $value ) {
+                if ( self::suspicious_attribute( $value ) ) {
+                    $findings[] = self::finding( 'attribute_value_malformed', 'medium', 'product', $id, $title, 'Formato sospechoso en atributo ' . $name . ': ' . mb_substr( $value, 0, 120, 'UTF-8' ), 'Verificar si hay texto o datos desplazados procedentes del proveedor.' );
+                    break;
+                }
+            }
+            $attribute_text .= ' ' . $name . ' ' . implode( ' ', array_slice( $values, 0, 30 ) );
+        }
+
+        $conflicts = self::attribute_conflicts( $title, $attribute_text );
+        if ( $conflicts ) {
+            $findings[] = self::finding(
+                'product_attribute_title_conflict', 'high', 'product', $id, $title,
+                implode( '; ', $conflicts ),
+                'El título y los atributos muestran valores técnicos incompatibles; contrastar con el fabricante.'
+            );
+        }
+
+        // A tag without meaningful support is a review signal, never a deletion.
+        if ( taxonomy_exists( 'product_tag' ) ) {
+            $tags = wp_get_object_terms( $id, 'product_tag', array( 'fields' => 'names' ) );
+            if ( ! is_wp_error( $tags ) ) {
+                $category_names = function_exists( 'wc_get_product_terms' )
+                    ? wc_get_product_terms( $id, 'product_cat', array( 'fields' => 'names' ) )
+                    : array();
+                $category_names = is_wp_error( $category_names ) ? array() : (array) $category_names;
+                $identity = $title . ' ' . $excerpt . ' ' . $body . ' ' . $attribute_text . ' ' . implode( ' ', $category_names );
+                foreach ( array_slice( (array) $tags, 0, 30 ) as $tag ) {
+                    if ( ! self::tag_supported( $tag, $identity ) ) {
+                        $findings[] = self::finding(
+                            'product_tag_identity_drift', 'low', 'product', $id, $title,
+                            'La etiqueta "' . $tag . '" no aparece sustentada por título, contenido, categorías o atributos.',
+                            'Comprobar si la etiqueta describe realmente el producto.'
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+
         if ( '' === $sku ) {
             $findings[] = self::finding( 'product_no_stable_sku', 'low', 'product', $id, $title, 'SKU vacío; puede ser legítimo para algunos productos.', 'Comprobar si existe otro identificador estable en el proveedor.' );
         }
@@ -284,6 +352,8 @@ final class Rules {
 
         return array(
             'findings'  => $findings,
+            'sku_key'   => self::identity_key( $sku ),
+            'template_key' => self::template_signature( $body, $title ),
             'title_key' => self::identity_key( $title ),
             'quality'   => self::quality( 'product', $title, $body, $excerpt, '' !== $sku, (bool) $cats, $vocab, $slug, array( 'technical' => $product->get_image_id() > 0 ) ),
         );
