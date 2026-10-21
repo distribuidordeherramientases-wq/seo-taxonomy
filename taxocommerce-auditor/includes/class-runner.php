@@ -359,56 +359,172 @@ final class Runner {
                 $analysis = Rules::inspect( $scope, $object );
                 $state['processed']++;
                 $id = $object instanceof \WP_Term ? absint( $object->term_id ) : absint( $object->ID );
+
                 if ( 'categories' !== $scope ) {
                     $state['cursor'] = max( absint( $state['cursor'] ), $id );
                 }
+
                 if ( ! empty( $analysis['excluded'] ) ) {
                     $state['excluded']++;
                     continue;
                 }
-                $type = $object instanceof \WP_Term ? 'product_cat' : ( 'products' === $scope ? 'product' : ( 'faqs' === $scope ? 'faq' : ( 'pages' === $scope ? 'page' : 'post' ) ) );
+
+                $type = $object instanceof \WP_Term ? 'product_cat'
+                    : ( 'products' === $scope ? 'product'
+                    : ( 'faqs' === $scope ? 'faq' : ( 'pages' === $scope ? 'page' : 'post' ) ) );
                 $title = $object instanceof \WP_Term ? (string) $object->name : (string) $object->post_title;
                 $key = (string) ( $analysis['title_key'] ?? '' );
-                $duplicate_title = false;
-                $canonical_overlap = false;
-                if ( '' !== $key ) {
-                    $identity_hash = md5( $key ); // Bounded exact-title index, not used for security.
-                    if ( isset( $state['seen_titles'][ $identity_hash ] ) && absint( $state['seen_titles'][ $identity_hash ] ) !== $id ) {
-                        $duplicate_title = true;
-                        self::add_finding( $state, array(
-                            'code' => 'duplicate_title_candidate',
-                            'severity' => 'medium',
-                            'entity_type' => $type,
-                            'entity_id' => $id,
-                            'title' => $title,
-                            'evidence' => 'Título normalizado igual al objeto #' . absint( $state['seen_titles'][ $identity_hash ] ) . ' del mismo bloque.',
-                            'recommendation' => 'Verificar si son variantes legítimas o duplicados que compiten por la misma intención.',
-                        ) );
-                    } elseif ( count( $state['seen_titles'] ) < self::MAX_INDEXED_TITLES ) {
-                        $state['seen_titles'][ $identity_hash ] = $id;
+                $identity_duplicate = false;
+                $editorial_collision = false;
+
+                if ( 'categories' === $scope && $object instanceof \WP_Term ) {
+                    $review = Category_Review::inspect( $object );
+                    $analysis['findings'] = array_merge(
+                        (array) ( $analysis['findings'] ?? array() ),
+                        (array) ( $review['findings'] ?? array() )
+                    );
+                    $inventory = (array) ( $review['inventory'] ?? array() );
+                    if ( ! empty( $inventory['review_split'] ) ) {
+                        $state['rebalance_summary']['review_split']++;
                     }
-                    if ( in_array( $scope, array( 'posts', 'pages' ), true ) && isset( $state['canonical_owners'][ $key ] ) ) {
-                        $owner = $state['canonical_owners'][ $key ];
-                        if ( ! ( 'page' === $type && 'page' === $owner['entity_type'] && $id === absint( $owner['entity_id'] ) ) ) {
-                            $canonical_overlap = true;
-                            self::add_finding( $state, array(
-                                'code' => 'editorial_canonical_overlap_candidate',
-                                'severity' => 'high',
-                                'entity_type' => $type,
-                                'entity_id' => $id,
-                                'title' => $title,
-                                'evidence' => 'Mismo título normalizado que ' . $owner['entity_type'] . ' #' . absint( $owner['entity_id'] ) . '.',
-                                'recommendation' => 'Comprobar intención, propietario canónico y diferenciación; la coincidencia no demuestra canibalización.',
-                            ) );
+                    if ( ! empty( $inventory['review_merge'] ) ) {
+                        $state['rebalance_summary']['review_merge']++;
+                    }
+                    if ( ! empty( $inventory['split_proposal'] ) ) {
+                        $state['rebalance_summary']['split_proposals']++;
+                    }
+                    if ( ! empty( $inventory['merge_proposal'] ) ) {
+                        $state['rebalance_summary']['merge_proposals']++;
+                    }
+                    if ( ( ! empty( $inventory['split_proposal'] ) || ! empty( $inventory['merge_proposal'] ) )
+                        && count( $state['rebalance_proposals'] ) < self::MAX_REBALANCE_PROPOSALS ) {
+                        $state['rebalance_proposals'][] = $inventory;
+                    }
+                }
+
+                if ( in_array( $scope, array( 'posts', 'pages' ), true ) && $object instanceof \WP_Post ) {
+                    $additional = Editorial_Specialist::inspect(
+                        $object,
+                        $scope,
+                        (array) ( $state['editorial_map'] ?? array() )
+                    );
+                    $analysis['findings'] = array_merge(
+                        (array) ( $analysis['findings'] ?? array() ),
+                        (array) $additional
+                    );
+                    foreach ( $additional as $finding ) {
+                        $code = (string) ( $finding['code'] ?? '' );
+                        if ( false !== strpos( $code, 'cannibalization' )
+                            || false !== strpos( $code, '_duplicate' )
+                            || false !== strpos( $code, '_structural_overlap' ) ) {
+                            $editorial_collision = true;
                         }
                     }
                 }
+
+                // Legacy FAQ duplicate rule is scoped to the same confirmed
+                // owner; identical general questions across owners are valid.
+                if ( 'faqs' === $scope ) {
+                    $owner_key = (string) ( $analysis['owner_key'] ?? '' );
+                    if ( '' !== $owner_key && '' !== $key ) {
+                        $faq_key = md5( $owner_key . '|' . $key );
+                        if ( isset( $state['seen_faq_questions'][ $faq_key ] ) ) {
+                            self::add_finding(
+                                $state,
+                                array(
+                                    'code'           => 'duplicate_faq_same_owner',
+                                    'severity'       => 'medium',
+                                    'entity_type'    => $type,
+                                    'entity_id'      => $id,
+                                    'title'          => $title,
+                                    'evidence'       => 'Pregunta repetida para ' . $owner_key . '; primera FAQ #' . absint( $state['seen_faq_questions'][ $faq_key ] ),
+                                    'recommendation' => 'Revisar si las respuestas son equivalentes y consolidar solo después de verificarlas.',
+                                )
+                            );
+                        } elseif ( count( $state['seen_faq_questions'] ) < self::MAX_INDEXED_TITLES ) {
+                            $state['seen_faq_questions'][ $faq_key ] = $id;
+                        }
+                    }
+                } elseif ( '' !== $key ) {
+                    $identity_hash = md5( $key );
+                    if ( isset( $state['seen_titles'][ $identity_hash ] )
+                        && absint( $state['seen_titles'][ $identity_hash ] ) !== $id ) {
+                        $identity_duplicate = true;
+                        $code = in_array( $scope, array( 'posts', 'pages' ), true )
+                            ? 'duplicate_editorial_title' : 'duplicate_title_candidate';
+                        self::add_finding(
+                            $state,
+                            array(
+                                'code'           => $code,
+                                'severity'       => 'medium',
+                                'entity_type'    => $type,
+                                'entity_id'      => $id,
+                                'title'          => $title,
+                                'evidence'       => 'Misma identidad de título que #' . absint( $state['seen_titles'][ $identity_hash ] ) . ' en este bloque.',
+                                'recommendation' => 'Revisar variantes, localizaciones e intención antes de consolidar URLs.',
+                            )
+                        );
+                    } elseif ( count( $state['seen_titles'] ) < self::MAX_INDEXED_TITLES ) {
+                        $state['seen_titles'][ $identity_hash ] = $id;
+                    }
+                }
+
+                // Legacy product-identity check. Provider/country scope may
+                // be supplied explicitly by a native module; no country is
+                // guessed from the language or title.
+                $sku_key = (string) ( $analysis['sku_key'] ?? '' );
+                if ( 'products' === $scope && '' !== $sku_key ) {
+                    $identity_scope = apply_filters( 'taxocommerce_auditor_product_identity_scope', '', $id );
+                    $identity_scope = sanitize_key( (string) $identity_scope );
+                    $sku_hash = md5( $identity_scope . '|' . $sku_key );
+                    if ( isset( $state['seen_skus'][ $sku_hash ] ) ) {
+                        self::add_finding(
+                            $state,
+                            array(
+                                'code'           => 'source_duplicate_sku',
+                                'severity'       => 'medium',
+                                'entity_type'    => 'product',
+                                'entity_id'      => $id,
+                                'title'          => $title,
+                                'evidence'       => 'SKU repetido con producto #' . absint( $state['seen_skus'][ $sku_hash ] ) . '. Ámbito: ' . ( $identity_scope ?: 'no especificado' ) . '.',
+                                'recommendation' => 'Contrastar proveedor y país: dos mercados pueden publicar legítimamente el mismo SKU.',
+                            )
+                        );
+                        $identity_duplicate = true;
+                    } elseif ( count( $state['seen_skus'] ) < self::MAX_INDEXED_TITLES ) {
+                        $state['seen_skus'][ $sku_hash ] = $id;
+                    }
+                }
+
+                $template = (string) ( $analysis['template_key'] ?? '' );
+                if ( '' !== $template && 'faqs' !== $scope ) {
+                    $template_hash = md5( $template );
+                    if ( isset( $state['seen_templates'][ $template_hash ] )
+                        && absint( $state['seen_templates'][ $template_hash ] ) !== $id ) {
+                        self::add_finding(
+                            $state,
+                            array(
+                                'code'           => 'duplicate_content_template_candidate',
+                                'severity'       => 'low',
+                                'entity_type'    => $type,
+                                'entity_id'      => $id,
+                                'title'          => $title,
+                                'evidence'       => 'Patrón de cuerpo repetido; primer objeto #' . absint( $state['seen_templates'][ $template_hash ] ) . '.',
+                                'recommendation' => 'Revisar contenido original y diferencias legítimas. No duplicar ni eliminar por una coincidencia de plantilla.',
+                            )
+                        );
+                        $identity_duplicate = true;
+                    } elseif ( count( $state['seen_templates'] ) < self::MAX_INDEXED_TITLES ) {
+                        $state['seen_templates'][ $template_hash ] = $id;
+                    }
+                }
+
                 foreach ( (array) ( $analysis['findings'] ?? array() ) as $finding ) {
                     self::add_finding( $state, $finding );
                 }
                 $quality = $analysis['quality'] ?? null;
-                if ( is_array( $quality ) && ( $duplicate_title || $canonical_overlap ) ) {
-                    $quality['dimensions']['differentiation'] = $duplicate_title ? 5 : 10;
+                if ( is_array( $quality ) && ( $identity_duplicate || $editorial_collision ) ) {
+                    $quality['dimensions']['differentiation'] = $identity_duplicate ? 5 : 10;
                     $quality['score'] = array_sum( $quality['dimensions'] );
                     $quality['band'] = Rules::band( $quality['score'] );
                 }
