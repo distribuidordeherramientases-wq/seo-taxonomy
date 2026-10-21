@@ -1171,6 +1171,12 @@ final class SEO_Dependiente_Actualizacion {
                 if (!$row) {
                     continue;
                 }
+                // A FAQ declared unlearned must not be retried by M8 regression.
+                $unlearned = (array) (self::state()['unlearned_faqs'] ?? array());
+                if (6 === $module && 'faq' === (string) ($row['source_type'] ?? '')
+                    && !empty($unlearned[absint($row['source_id'] ?? 0)])) {
+                    continue;
+                }
                 $items[] = array(
                     'source_type'   => 'regression',
                     'source_id'     => absint($row['id'] ?? 0),
