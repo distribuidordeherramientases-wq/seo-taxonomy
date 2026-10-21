@@ -310,17 +310,38 @@ final class Runner {
         self::trim_samples( $state );
 
         $report = array(
-            'schema'      => 'taxocommerce_auditor_native_v1',
+            'schema'      => 'taxocommerce_auditor_native_v2',
             'version'     => Plugin::VERSION,
             'scope'       => $scope,
             'started_gmt' => $state['started_gmt'],
             'completed_gmt' => $state['completed_gmt'],
+            'duration_seconds' => max( 0, time() - absint( $state['started_timestamp'] ?? time() ) ),
+            'source_model' => 'WordPress post/term meta + WooCommerce CRUD + Vocabulary native taxonomies',
             'processed'   => $state['processed'],
             'excluded'    => $state['excluded'],
             'expected'    => $state['total'],
             'finding_count' => $state['finding_count'],
             'severity_counts' => $state['severity_counts'],
             'rule_counts'     => $state['rule_counts'],
+            'priority_counts' => $state['priority_counts'],
+            'category_rebalance' => 'categories' === $scope
+                ? array(
+                    'summary' => $state['rebalance_summary'],
+                    'proposals' => $state['rebalance_proposals'],
+                    'sample_truncated' => (
+                        (int) $state['rebalance_summary']['split_proposals']
+                        + (int) $state['rebalance_summary']['merge_proposals']
+                    ) > count( $state['rebalance_proposals'] ),
+                    'apply_actions_enabled' => false,
+                    'note' => 'Solo propuestas de revisión. No se mueven ni eliminan categorías y no se crean redirecciones.',
+                )
+                : null,
+            'editorial_comparison' => in_array( $scope, array( 'posts', 'pages' ), true )
+                ? array(
+                    'indexed_posts_pages' => absint( $state['editorial_map']['indexed_posts_pages'] ?? 0 ),
+                    'partial' => ! empty( $state['editorial_map']['partial'] ),
+                )
+                : null,
             'quality' => array(
                 'not_google_score' => true,
                 'dimensions' => Rules::DIMENSIONS,
@@ -334,7 +355,32 @@ final class Runner {
             'notes' => $state['notes'],
         );
         update_option( self::option( $scope, 'report' ), $report, false );
-        unset( $state['seen_titles'], $state['canonical_owners'] );
+
+        // Store a bounded list of completed runs, as in the legacy Auditor.
+        $history = (array) get_option( self::option( $scope, 'history' ), array() );
+        array_unshift(
+            $history,
+            array(
+                'completed_gmt' => $report['completed_gmt'],
+                'duration_seconds' => $report['duration_seconds'],
+                'processed' => $report['processed'],
+                'finding_count' => $report['finding_count'],
+                'severity_counts' => $report['severity_counts'],
+                'priority_counts' => $report['priority_counts'],
+            )
+        );
+        update_option( self::option( $scope, 'history' ), array_slice( $history, 0, 12 ), false );
+
+        unset(
+            $state['seen_titles'],
+            $state['seen_skus'],
+            $state['seen_templates'],
+            $state['seen_faq_questions'],
+            $state['editorial_map'],
+            $state['findings'],
+            $state['quality_worst'],
+            $state['rebalance_proposals']
+        );
         update_option( self::option( $scope, 'state' ), $state, false );
         wp_clear_scheduled_hook( self::HOOK, array( $scope ) );
     }
