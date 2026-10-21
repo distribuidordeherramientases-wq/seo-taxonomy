@@ -96,7 +96,7 @@ function taxocommerce_system_check_boot() {
 add_action( 'plugins_loaded', 'taxocommerce_system_check_boot', 100 );
 
 function taxocommerce_system_check_register_processes( $core ) {
-    if ( class_exists( 'TaxoCommerce_System_Check_URL_Audit' ) ) {
+    if ( class_exists( 'TaxoCommerce_System_Check_URL_Audit' ) && method_exists( 'TaxoCommerce_System_Check_URL_Audit', 'register_with_core' ) ) {
         TaxoCommerce_System_Check_URL_Audit::register_with_core( $core );
     }
 }
