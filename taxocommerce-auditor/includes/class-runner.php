@@ -275,6 +275,54 @@ final class Runner {
         return $objects;
     }
 
+    /**
+     * Four exact-match indexes must survive background batches. Compress them
+     * in the native WP option instead of repeatedly writing multi-MB arrays
+     * while auditing a large store. PHP zlib is optional; fall back safely.
+     */
+    private static function load_indexes( &$state ) {
+        $keys = array( 'seen_titles', 'seen_skus', 'seen_templates', 'seen_faq_questions' );
+        if ( isset( $state['indexes_compressed'] ) ) {
+            if ( ! function_exists( 'gzuncompress' ) ) {
+                throw new \RuntimeException( 'Falta zlib para recuperar los índices de este proceso.' );
+            }
+            $raw = base64_decode( (string) $state['indexes_compressed'], true );
+            $decoded = is_string( $raw ) ? @gzuncompress( $raw ) : false;
+            $maps = is_string( $decoded ) ? json_decode( $decoded, true ) : null;
+            if ( ! is_array( $maps ) ) {
+                throw new \RuntimeException( 'No se pueden recuperar los índices del Auditor; iniciar una nueva auditoría.' );
+            }
+            foreach ( $keys as $key ) {
+                $state[ $key ] = is_array( $maps[ $key ] ?? null ) ? $maps[ $key ] : array();
+            }
+            unset( $state['indexes_compressed'] );
+        } else {
+            foreach ( $keys as $key ) {
+                $state[ $key ] = is_array( $state[ $key ] ?? null ) ? $state[ $key ] : array();
+            }
+        }
+    }
+
+    private static function save_indexes( &$state ) {
+        if ( ! function_exists( 'gzcompress' ) ) {
+            return;
+        }
+        $keys = array( 'seen_titles', 'seen_skus', 'seen_templates', 'seen_faq_questions' );
+        $maps = array();
+        foreach ( $keys as $key ) {
+            $maps[ $key ] = (array) ( $state[ $key ] ?? array() );
+        }
+        $json = wp_json_encode( $maps );
+        $compressed = is_string( $json ) ? gzcompress( $json, 4 ) : false;
+        if ( ! is_string( $compressed ) ) {
+            return;
+        }
+        $state['indexes_compressed'] = base64_encode( $compressed );
+        foreach ( $keys as $key ) {
+            unset( $state[ $key ] );
+        }
+    }
+
     private static function add_finding( &$state, $row ) {
         $row = Priority::decorate( (array) $row );
         $severity = $row['severity'];
@@ -418,6 +466,7 @@ final class Runner {
         }
         set_transient( $lock, 1, 120 );
         try {
+            self::load_indexes( $state );
             $state['status'] = 'running';
             $objects = self::batch( $scope, absint( $state['cursor'] ) );
             foreach ( $objects as $object ) {
@@ -610,6 +659,7 @@ final class Runner {
             if ( count( $objects ) < self::BATCH_SIZE ) {
                 self::complete( $scope, $state );
             } else {
+                self::save_indexes( $state );
                 update_option( self::option( $scope, 'state' ), $state, false );
                 self::enqueue( $scope );
             }
