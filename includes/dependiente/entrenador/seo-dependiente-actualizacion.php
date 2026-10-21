@@ -149,17 +149,14 @@ final class SEO_Dependiente_Actualizacion {
         $faq_id = absint($faq_id);
         if (!$faq_id) return;
         $table = esc_sql($wpdb->prefix . 'seo_faq');
+        $with_scope = $wpdb->get_var($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table}` LIKE %s", 'ambito'
+        ));
+        $scope = $with_scope ? 'ambito' : "'' AS ambito";
         $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT id,object_type,object_id,question,answer,ambito FROM {$table} WHERE id=%d",
+            "SELECT id,object_type,object_id,question,answer,{$scope} FROM {$table} WHERE id=%d",
             $faq_id
         ), ARRAY_A);
-        // ambito is optional in the existing FAQ schema.
-        if (!$row && class_exists('SEO_Dependiente_Index')) {
-            $row = $wpdb->get_row($wpdb->prepare(
-                "SELECT id,object_type,object_id,question,answer FROM {$table} WHERE id=%d",
-                $faq_id
-            ), ARRAY_A);
-        }
         if (!$row) return;
         $previous = get_option(self::UNLEARNED_FAQS_OPTION, array());
         $previous = is_array($previous) ? $previous : array();
@@ -1018,16 +1015,47 @@ final class SEO_Dependiente_Actualizacion {
             }
         }
 
-        $faq = $wpdb->prefix . 'seo_faq';
+        $faq = esc_sql($wpdb->prefix . 'seo_faq');
         if (self::table_exists($faq)) {
-            $rows = (array) $wpdb->get_col($wpdb->prepare(
-                "SELECT id FROM {$faq} WHERE active=1 AND object_type IN (2,3) AND updated_at > %s AND updated_at <= %s",
-                $cutoff_local,
-                $scan_until_local
-            ));
-            foreach ($rows as $id) {
-                $id = absint($id);
-                if ($id) $faq_ids[$id] = true;
+            // A review is based on the last PASSED evaluation of each FAQ, not
+            // on owner changes or the date of an unrelated global review.
+            // This includes newly created FAQs with no passing history.
+            $questions_table = esc_sql(SEO_Dependiente_Entrenador::questions_table());
+            $runs_table = esc_sql(SEO_Dependiente_Entrenador::runs_table());
+            $faq_scope_select = $wpdb->get_var($wpdb->prepare(
+                "SHOW COLUMNS FROM `{$faq}` LIKE %s", 'ambito'
+            )) ? 'f.ambito' : "'' AS ambito";
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- All identifiers are internal table names.
+            $pending_faqs = (array) $wpdb->get_results(
+                "SELECT f.id,f.object_type,f.object_id,f.question,f.answer,{$faq_scope_select},f.updated_at,learned.last_pass
+                 FROM {$faq} f
+                 LEFT JOIN (
+                     SELECT q.source_id, MAX(r.created_at) AS last_pass
+                     FROM {$questions_table} q
+                     INNER JOIN {$runs_table} r ON r.question_id=q.id
+                       AND r.status='answered'
+                       AND r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')
+                     WHERE q.source_type='faq'
+                     GROUP BY q.source_id
+                 ) learned ON learned.source_id=f.id
+                 WHERE f.active=1 AND f.object_type IN (2,3)
+                   AND (learned.last_pass IS NULL OR f.updated_at > learned.last_pass)
+                 ORDER BY f.id ASC",
+                ARRAY_A
+            );
+            $previously_unlearned = get_option(self::UNLEARNED_FAQS_OPTION, array());
+            $previously_unlearned = is_array($previously_unlearned) ? $previously_unlearned : array();
+            foreach ($pending_faqs as $row) {
+                $id = absint($row['id'] ?? 0);
+                if (!$id) continue;
+                $quarantined = is_array($previously_unlearned[$id] ?? null)
+                    ? (string) ($previously_unlearned[$id]['fingerprint'] ?? '') : '';
+                // An unchanged unresolved FAQ stays visible as 'not learned',
+                // but does not trigger an endless retraining loop.
+                if ($quarantined && hash_equals($quarantined, self::faq_fingerprint($row))) {
+                    continue;
+                }
+                $faq_ids[$id] = true;
             }
         }
 
@@ -1071,29 +1099,6 @@ final class SEO_Dependiente_Actualizacion {
                     $id = absint($id);
                     if ($id) $vocabulary_ids[$id] = true;
                 }
-            }
-        }
-
-        // Las FAQs de propietarios afectados entran también aunque el texto de
-        // la FAQ no haya cambiado: el contexto comercial puede haber cambiado.
-        if (self::table_exists($faq) && ($product_ids || $category_ids)) {
-            $clauses = array();
-            $params = array();
-            if ($product_ids) {
-                $ids = array_keys($product_ids);
-                $clauses[] = '(object_type=3 AND object_id IN (' . implode(',', array_fill(0, count($ids), '%d')) . '))';
-                $params = array_merge($params, $ids);
-            }
-            if ($category_ids) {
-                $ids = array_keys($category_ids);
-                $clauses[] = '(object_type=2 AND object_id IN (' . implode(',', array_fill(0, count($ids), '%d')) . '))';
-                $params = array_merge($params, $ids);
-            }
-            $sql = "SELECT id FROM {$faq} WHERE active=1 AND (" . implode(' OR ', $clauses) . ')';
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table and generated %d placeholders; all IDs are bound through prepare().
-            foreach ((array) $wpdb->get_col($wpdb->prepare($sql, $params)) as $id) {
-                $id = absint($id);
-                if ($id) $faq_ids[$id] = true;
             }
         }
 
