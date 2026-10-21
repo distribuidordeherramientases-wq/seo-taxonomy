@@ -23,6 +23,9 @@ if (!defined('SEO_PROCESS_SUPERVISOR_STATE_OPTION')) {
 if (!defined('SEO_PROCESS_SUPERVISOR_LOG_OPTION')) {
     define('SEO_PROCESS_SUPERVISOR_LOG_OPTION', 'seo_process_supervisor_log');
 }
+if (!defined('SEO_PROCESS_SUPERVISOR_INCIDENTS_OPTION')) {
+    define('SEO_PROCESS_SUPERVISOR_INCIDENTS_OPTION', 'seo_process_supervisor_incidents');
+}
 if (!defined('SEO_PROCESS_SUPERVISOR_LOCK_OPTION')) {
     define('SEO_PROCESS_SUPERVISOR_LOCK_OPTION', 'seo_process_supervisor_lock');
 }
@@ -164,7 +167,7 @@ if (!function_exists('seo_process_supervisor_log')) {
 
         $rows = get_option(SEO_PROCESS_SUPERVISOR_LOG_OPTION, array());
         $rows = is_array($rows) ? $rows : array();
-        $rows[] = array(
+        $row = array(
             'time'    => time(),
             'level'   => in_array($level, array('info', 'warning', 'error', 'success', 'debug'), true) ? $level : 'info',
             'event'   => $event,
@@ -172,6 +175,17 @@ if (!function_exists('seo_process_supervisor_log')) {
             'message' => $message,
             'context' => $safe_context,
         );
+        $rows[] = $row;
+        // Los errores y avisos no deben desaparecer por miles de ciclos INFO.
+        if (in_array($row['level'], array('error', 'warning'), true)) {
+            $incidents = get_option(SEO_PROCESS_SUPERVISOR_INCIDENTS_OPTION, array());
+            $incidents = is_array($incidents) ? $incidents : array();
+            $incidents[] = $row;
+            if (count($incidents) > 100) {
+                $incidents = array_slice($incidents, -100);
+            }
+            update_option(SEO_PROCESS_SUPERVISOR_INCIDENTS_OPTION, $incidents, false);
+        }
         if (count($rows) > 500) {
             $rows = array_slice($rows, -500);
         }
@@ -184,6 +198,14 @@ if (!function_exists('seo_process_supervisor_logs')) {
         $rows = get_option(SEO_PROCESS_SUPERVISOR_LOG_OPTION, array());
         $rows = is_array($rows) ? $rows : array();
         return array_reverse(array_slice($rows, -max(1, min(500, absint($limit)))));
+    }
+}
+
+if (!function_exists('seo_process_supervisor_incidents')) {
+    function seo_process_supervisor_incidents($limit = 30) {
+        $rows = get_option(SEO_PROCESS_SUPERVISOR_INCIDENTS_OPTION, array());
+        $rows = is_array($rows) ? $rows : array();
+        return array_reverse(array_slice($rows, -max(1, min(100, absint($limit)))));
     }
 }
 
@@ -1409,6 +1431,20 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
         $state = isset($payload['state']) && is_array($payload['state']) ? $payload['state'] : array();
         $queue = isset($payload['queue']) && is_array($payload['queue']) ? $payload['queue'] : array();
         $queue_pending = absint($queue['pending_batches'] ?? 0) > 0;
+        $active_question = class_exists('SEO_Dependiente_Actualizacion')
+            && is_callable(array('SEO_Dependiente_Actualizacion', 'active_question_status'))
+            ? SEO_Dependiente_Actualizacion::active_question_status()
+            : array();
+        $active_detail = $active_question
+            ? sprintf(
+                'Actualización M%d: pregunta #%d · fuente %s #%d · %d s en evaluación. El contador se actualiza al terminar.',
+                absint($active_question['module']),
+                absint($active_question['question_id']),
+                sanitize_key((string) $active_question['source_type']),
+                absint($active_question['source_id']),
+                absint($active_question['elapsed_seconds'])
+            )
+            : '';
         $auto_pending = (
             !empty($payload['current'])
             && !empty($state['enabled'])
@@ -1431,6 +1467,33 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
         $direct_fresh = $direct_pending && (!$direct_due || (time() - $direct_due) <= 90);
         $running_confirmed = $controller || $worker;
         $healthy = $running_confirmed || $direct_fresh;
+        // Cinco minutos sin heartbeat son una sospecha, no una prueba de bloqueo.
+        // Evita inundar el historial con la misma pregunta.
+        if ($active_question && !$running_confirmed && absint($active_question['elapsed_seconds'] ?? 0) >= 300) {
+            $fingerprint = hash('sha256',
+                (string) ($active_question['run_id'] ?? '') . ':' .
+                absint($active_question['question_id'] ?? 0) . ':' .
+                absint($active_question['started_at'] ?? 0)
+            );
+            $last_alert = (string) get_option('seo_process_supervisor_academy_last_stall_alert', '');
+            if ($last_alert !== $fingerprint) {
+                update_option('seo_process_supervisor_academy_last_stall_alert', $fingerprint, false);
+                seo_process_supervisor_log(
+                    'warning',
+                    'academy_question_no_heartbeat',
+                    'Academia lleva más de 5 minutos evaluando una pregunta sin heartbeat reciente. Puede ser lentitud o un bloqueo; comprobar el proceso PHP.',
+                    'Academia',
+                    array(
+                        'run_id' => sanitize_text_field((string) ($active_question['run_id'] ?? '')),
+                        'module' => absint($active_question['module'] ?? 0),
+                        'question_id' => absint($active_question['question_id'] ?? 0),
+                        'source_type' => sanitize_key((string) ($active_question['source_type'] ?? '')),
+                        'source_id' => absint($active_question['source_id'] ?? 0),
+                        'elapsed_seconds' => absint($active_question['elapsed_seconds'] ?? 0),
+                    )
+                );
+            }
+        }
         $key = 'academy';
         // A pending queue is work to do, not evidence that its worker is alive.
         // Otherwise a stalled Academy queue is reported healthy indefinitely.
@@ -1439,9 +1502,10 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
             'pending'      => $pending ? 1 : 0,
             'healthy'      => $healthy ? 1 : 0,
             'last_checked' => time(),
-            'detail'       => $queue_pending
-                ? 'Cola de preguntas pendiente; el Gestor la procesa por ventanas adaptativas.'
-                : ($healthy ? 'Controlador activo o arrancando.' : ($pending ? 'Formación pendiente sin controlador.' : 'Academia sin ejecución automática pendiente.')),
+            'detail'       => $active_detail !== ''
+                ? $active_detail
+                : ($queue_pending ? 'Cola de preguntas pendiente; el Gestor la procesa por ventanas adaptativas.'
+                    : ($healthy ? 'Controlador activo o arrancando.' : ($pending ? 'Formación pendiente sin controlador.' : 'Academia sin ejecución automática pendiente.'))),
         ));
         if ($running_confirmed && 'requested' === (string) ($managed_now['last_result'] ?? '')) {
             seo_process_supervisor_managed_update($key, array(
@@ -1765,6 +1829,8 @@ if (!function_exists('seo_process_supervisor_control_action')) {
             $message = 'Gestor detenido.';
         } elseif ('clear_log' === $command) {
             delete_option(SEO_PROCESS_SUPERVISOR_LOG_OPTION);
+            delete_option(SEO_PROCESS_SUPERVISOR_INCIDENTS_OPTION);
+            delete_option('seo_process_supervisor_academy_last_stall_alert');
             $message = 'Log vaciado.';
         }
 
@@ -1821,6 +1887,7 @@ if (!function_exists('seo_process_supervisor_render_live')) {
         $active = seo_process_supervisor_is_active($state);
         $managed = isset($state['managed']) && is_array($state['managed']) ? $state['managed'] : array();
         $logs = seo_process_supervisor_logs(180);
+        $incidents = seo_process_supervisor_incidents(40);
         ob_start();
         ?>
         <div class="seo-worker-summary">
@@ -1926,6 +1993,27 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                     </tr>
                     <?php endforeach; ?>
                     <tr><td><strong>Chequeos páginas/posts/imágenes</strong></td><td colspan="5">Runner GitHub externo. No necesita un worker PHP local persistente.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+
+        <div class="seo-worker-log-head"><h3>Incidencias del gestor (errores y avisos)</h3><span><?php echo esc_html(number_format_i18n(count($incidents))); ?> visibles · máximo 100 conservadas</span></div>
+        <div class="seo-worker-log-wrap">
+            <table class="widefat striped seo-worker-log">
+                <thead><tr><th>Hora</th><th>Nivel</th><th>Origen</th><th>Evento</th><th>Mensaje y referencia</th></tr></thead>
+                <tbody>
+                <?php if (!$incidents) : ?>
+                    <tr><td colspan="5">No hay incidencias registradas desde la activación de este historial.</td></tr>
+                <?php else : foreach ($incidents as $row) : ?>
+                    <tr>
+                        <td><?php echo esc_html(wp_date('d/m H:i:s', absint($row['time'] ?? 0))); ?></td>
+                        <td><span class="seo-worker-pill is-<?php echo esc_attr(sanitize_key($row['level'] ?? 'warning')); ?>"><?php echo esc_html(strtoupper((string) ($row['level'] ?? 'WARNING'))); ?></span></td>
+                        <td><?php echo esc_html($row['process'] ?? 'Supervisor'); ?></td>
+                        <td><code><?php echo esc_html($row['event'] ?? ''); ?></code></td>
+                        <td><?php echo esc_html($row['message'] ?? ''); ?><?php if (!empty($row['context'])) : ?><br><small><?php echo esc_html(wp_json_encode($row['context'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?></small><?php endif; ?></td>
+                    </tr>
+                <?php endforeach; endif; ?>
                 </tbody>
             </table>
         </div>
