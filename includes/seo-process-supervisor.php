@@ -182,7 +182,20 @@ if (!function_exists('seo_process_supervisor_log')) {
             $incidents = is_array($incidents) ? $incidents : array();
             $incidents[] = $row;
             if (count($incidents) > 100) {
-                $incidents = array_slice($incidents, -100);
+                // Mantener errores antiguos aunque los avisos lentos sean frecuentes.
+                $errors = array_values(array_filter($incidents, static function ($item) {
+                    return 'error' === (string) ($item['level'] ?? '');
+                }));
+                $warnings = array_values(array_filter($incidents, static function ($item) {
+                    return 'warning' === (string) ($item['level'] ?? '');
+                }));
+                $reserved_warnings = min(20, count($warnings));
+                $errors = array_slice($errors, -(100 - $reserved_warnings));
+                $warnings = array_slice($warnings, -(100 - count($errors)));
+                $incidents = array_merge($errors, $warnings);
+                usort($incidents, static function ($a, $b) {
+                    return absint($a['time'] ?? 0) <=> absint($b['time'] ?? 0);
+                });
             }
             update_option(SEO_PROCESS_SUPERVISOR_INCIDENTS_OPTION, $incidents, false);
         }
