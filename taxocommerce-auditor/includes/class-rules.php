@@ -518,32 +518,70 @@ final class Rules {
      * No universal FAQ CPT exists in WordPress. Owner mapping is explicit and
      * filterable; an unknown schema must not be reported as a broken owner.
      */
+    /**
+     * The original FAQ check requires an explicit owner and compares repeated
+     * questions only within that owner. A missing schema is unavailable data.
+     */
     private static function inspect_faq( \WP_Post $post ) {
         $title = trim( (string) $post->post_title );
         $answer = self::text( $post->post_content );
         $findings = array();
-        $id = $post->ID;
+        $id = absint( $post->ID );
+        $owner_key = '';
         if ( '' === $title ) {
             $findings[] = self::finding( 'faq_empty_question', 'high', 'faq', $id, $title, 'FAQ sin pregunta.', 'Completar o retirar la pregunta.' );
         }
         if ( mb_strlen( $answer, 'UTF-8' ) < 30 ) {
             $findings[] = self::finding( 'faq_thin_answer', 'medium', 'faq', $id, $title, 'Respuesta ausente o demasiado escueta.', 'Aportar una respuesta concreta y verificable.' );
         }
+
+        // An FAQ plugin may register native owner metadata through the filter.
+        // Never guess an owner from the question's title.
         $owner = apply_filters( 'taxocommerce_auditor_faq_owner', null, $post );
         if ( is_array( $owner ) && isset( $owner['type'], $owner['id'] ) ) {
             $type = sanitize_key( (string) $owner['type'] );
             $owner_id = absint( $owner['id'] );
-            $valid = 'product' === $type
-                ? 'product' === get_post_type( $owner_id )
-                : ( 'product_cat' === $type && term_exists( $owner_id, 'product_cat' ) );
-            if ( ! $valid ) {
-                $findings[] = self::finding( 'faq_orphan_owner', 'critical', 'faq', $id, $title, 'Owner de FAQ no encontrado o de tipo incorrecto.', 'Reasignar al producto o categoría nativa válida; no inferir dueño por similitud.' );
+            $valid_type = in_array( $type, array( 'product', 'product_cat' ), true );
+            if ( ! $valid_type ) {
+                $findings[] = self::finding(
+                    'faq_invalid_owner_type', 'critical', 'faq', $id, $title,
+                    'El owner de FAQ no es un producto ni una categoría.',
+                    'Asignar un owner canónico del tipo correcto.'
+                );
+            } else {
+                $valid = 'product' === $type
+                    ? ( 'product' === get_post_type( $owner_id ) && 'publish' === get_post_status( $owner_id ) )
+                    : (bool) term_exists( $owner_id, 'product_cat' );
+                if ( ! $valid ) {
+                    $findings[] = self::finding(
+                        'faq_orphan_owner', 'critical', 'faq', $id, $title,
+                        'No se encuentra el owner publicado o su tipo no corresponde.',
+                        'Revisar la relación nativa por ID, sin inferirla mediante similitud.'
+                    );
+                } else {
+                    $owner_key = $type . ':' . $owner_id;
+                    $owner_text = 'product' === $type
+                        ? (string) get_the_title( $owner_id )
+                        : (string) get_term( $owner_id, 'product_cat' )->name;
+                    if ( count( self::tokens( $title ) ) >= 2 ) {
+                        $alignment = self::title_alignment( $title, $owner_text );
+                        if ( null !== $alignment && $alignment < 0.08 ) {
+                            $findings[] = self::finding(
+                                'faq_owner_semantic_drift', 'medium', 'faq', $id, $title,
+                                'La pregunta parece semánticamente alejada del owner ' . $owner_key . '.',
+                                'Comprobar contenido y owner; la relación técnica por ID puede ser válida.'
+                            );
+                        }
+                    }
+                }
             }
         }
+
         return array(
-            'findings'  => $findings,
-            'title_key' => self::identity_key( $title ),
-            'quality'   => self::quality( 'faq', $title, $answer, '', true, true, null, trim( (string) $post->post_name ) ),
+            'findings'   => $findings,
+            'title_key'  => self::identity_key( $title ),
+            'owner_key'  => $owner_key,
+            'quality'    => self::quality( 'faq', $title, $answer, '', true, true, null, trim( (string) $post->post_name ) ),
         );
     }
 
