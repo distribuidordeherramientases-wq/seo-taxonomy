@@ -1026,7 +1026,7 @@ final class SEO_Dependiente_Actualizacion {
                 "SHOW COLUMNS FROM `{$faq}` LIKE %s", 'ambito'
             )) ? 'f.ambito' : "'' AS ambito";
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- All identifiers are internal table names.
-            $pending_faqs = (array) $wpdb->get_results(
+            $pending_faqs = (array) $wpdb->get_results($wpdb->prepare(
                 "SELECT f.id,f.object_type,f.object_id,f.question,f.answer,{$faq_scope_select},f.created_at,f.updated_at,learned.last_pass
                  FROM {$faq} f
                  LEFT JOIN (
@@ -1045,8 +1045,7 @@ final class SEO_Dependiente_Actualizacion {
                    )
                  ORDER BY f.id ASC",
                 $cutoff_local, $cutoff_local
-            ), ARRAY_A
-            );
+            ), ARRAY_A);
             $previously_unlearned = get_option(self::UNLEARNED_FAQS_OPTION, array());
             $previously_unlearned = is_array($previously_unlearned) ? $previously_unlearned : array();
             foreach ($pending_faqs as $row) {
