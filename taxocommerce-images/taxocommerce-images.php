@@ -20,6 +20,7 @@ define( 'TAXOCOMMERCE_IMAGES_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_IMAGES_BASENAME', plugin_basename( __FILE__ ) );
 
+require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-inventory.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-audit.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-actions.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images.php';
