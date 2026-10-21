@@ -244,6 +244,9 @@ final class TaxoCommerce_Images_Audit {
 
 		$settings = TaxoCommerce_Images_Actions::settings();
 		$sizes = wp_get_registered_image_subsizes();
+		foreach ( TaxoCommerce_Images_Thumbnails::disabled_sizes() as $disabled_size ) {
+			unset( $sizes[ $disabled_size ] );
+		}
 		foreach ( $ids as $id ) {
 			$id = absint( $id );
 			if ( $id <= $last_id ) {
