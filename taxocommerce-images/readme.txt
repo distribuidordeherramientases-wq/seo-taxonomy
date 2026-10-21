@@ -4,7 +4,7 @@ Tags: woocommerce, images, media, thumbnails, alt, optimization
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,13 @@ Version 0.1.0 includes:
 * Optional integration into TaxoCommerce Core.
 
 == Changelog ==
+
+= 0.1.3 =
+* Read-only Media audit now uses bounded, resumable ID cursors.
+* Detect missing physical thumbnail files and missing dimensions metadata.
+* Keep unattached images distinct from images actually unused.
+* A bounded AJAX continuation runs the audit automatically, with manual fallback.
+
 
 = 0.1.1 =
 * Removed external URL / Media import from the Images extension.
