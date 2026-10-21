@@ -75,6 +75,25 @@ final class TaxoCommerce_Images {
 	 * @return void
 	 */
 	public function enqueue_family_admin_styles( $hook ) {
+		if ( false === strpos( (string) $hook, 'taxocommerce-images' ) ) {
+			return;
+		}
+		wp_enqueue_script(
+			'taxocommerce-images-legacy-jobs',
+			plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/legacy-jobs.js',
+			array(),
+			TAXOCOMMERCE_IMAGES_VERSION,
+			true
+		);
+		wp_localize_script(
+			'taxocommerce-images-legacy-jobs',
+			'taxocommerceImagesJobs',
+			array(
+				'ajax' => admin_url( 'admin-ajax.php' ),
+				'optimizerNonce' => wp_create_nonce( 'tci_optimizer_run' ),
+				'webpNonce' => wp_create_nonce( 'tci_webp_run' ),
+			)
+		);
 		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) || false === strpos( (string) $hook, 'taxocommerce-images' ) ) {
 			return;
 		}
@@ -246,7 +265,6 @@ final class TaxoCommerce_Images {
 	 */
 	private function render_summary() {
 		$formats = TaxoCommerce_Images_Inventory::formats();
-		$sources = TaxoCommerce_Images_Inventory::external_sources();
 		?>
 		<h2><?php esc_html_e( 'Formatos en Media local', 'taxocommerce-images' ); ?></h2>
 		<div class="tcc-stat-grid">
@@ -254,14 +272,13 @@ final class TaxoCommerce_Images {
 				<div class="card"><strong style="display:block;font-size:24px;"><?php echo esc_html( number_format_i18n( $formats[ $type ] ) ); ?></strong><?php echo esc_html( $label ); ?></div>
 			<?php endforeach; ?>
 		</div>
-		<h2><?php esc_html_e( 'Fuentes externas (integración opcional)', 'taxocommerce-images' ); ?></h2>
-		<p><?php esc_html_e( 'Las imágenes externas no son archivos locales. Su inventario es de solo lectura.', 'taxocommerce-images' ); ?></p>
-		<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Proveedor', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Imágenes', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Productos', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Sin producto', 'taxocommerce-images' ); ?></th></tr></thead><tbody>
-		<?php foreach ( $sources as $source ) : ?>
-			<tr><td><?php echo esc_html( $source['name'] ?? '' ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $source['images'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $source['products'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $source['unlinked'] ?? 0 ) ) ); ?></td></tr>
-		<?php endforeach; ?>
-		<?php if ( ! $sources ) : ?><tr><td colspan="4"><?php esc_html_e( 'No hay fuentes externas conectadas.', 'taxocommerce-images' ); ?></td></tr><?php endif; ?>
-		</tbody></table>
+		<h2><?php esc_html_e( 'Optimización de Media', 'taxocommerce-images' ); ?></h2>
+		<p><?php esc_html_e( 'Conservamos la recompresión y conversión WebP del sistema anterior. Los lotes pequeños solo comienzan tras confirmación; la conversión modifica archivos y enlaces y requiere copia de seguridad.', 'taxocommerce-images' ); ?></p>
+		<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+			<button type="button" class="button button-primary" id="tci-images-optimizer-run"><?php esc_html_e( 'Optimizar originales y miniaturas', 'taxocommerce-images' ); ?></button>
+			<button type="button" class="button" id="tci-images-webp-run" <?php disabled( empty( $formats['convertible'] ) ); ?>><?php esc_html_e( 'Convertir JPG/PNG a WebP', 'taxocommerce-images' ); ?></button>
+		</div>
+		<p id="tci-images-jobs-status" role="status" aria-live="polite"></p>
 		<?php
 		$total_images = $this->image_count();
 		$audit        = $this->audit->state();
@@ -285,12 +302,15 @@ final class TaxoCommerce_Images {
 		<?php if ( empty( $audit ) ) : ?>
 			<div class="notice notice-info inline"><p><?php echo esc_html__( 'Ejecuta la Auditoría para calcular ALT ausentes, imágenes sin relación padre, archivos perdidos, tamaños excesivos y miniaturas incompletas.', 'taxocommerce-images' ); ?></p></div>
 		<?php else : ?>
-			<p><?php echo esc_html( sprintf( __( 'Última auditoría: %1$s · %2$d/%3$d imágenes revisadas.', 'taxocommerce-images' ), (string) ( $audit['updated_at'] ?? '—' ), absint( $audit['scanned'] ?? 0 ), absint( $audit['total'] ?? 0 ) ) ); ?></p>
+			<?php
+			/* translators: 1: audit date, 2: images checked, 3: total images. */
+			$audit_status_format = __( 'Última auditoría: %1$s · %2$d/%3$d imágenes revisadas.', 'taxocommerce-images' );
+			?>
+			<p><?php echo esc_html( sprintf( $audit_status_format, (string) ( $audit['updated_at'] ?? '—' ), absint( $audit['scanned'] ?? 0 ), absint( $audit['total'] ?? 0 ) ) ); ?></p>
 		<?php endif; ?>
 
 		<h2><?php echo esc_html__( 'Criterios del nuevo sistema', 'taxocommerce-images' ); ?></h2>
 		<ul style="list-style:disc;margin-left:24px;">
-			<li><?php echo esc_html__( 'No depender de imágenes externas para mostrar normalmente el catálogo.', 'taxocommerce-images' ); ?></li>
 			<li><?php echo esc_html__( 'Mantener título, ALT, leyenda y descripción gestionables desde un único lugar.', 'taxocommerce-images' ); ?></li>
 			<li><?php echo esc_html__( 'Detectar imágenes grandes antes de optimizarlas; las reducciones manuales crean copia de seguridad.', 'taxocommerce-images' ); ?></li>
 			<li><?php echo esc_html__( 'Usar las miniaturas registradas por WordPress y poder regenerarlas.', 'taxocommerce-images' ); ?></li>
