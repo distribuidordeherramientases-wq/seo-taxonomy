@@ -347,7 +347,7 @@ final class Rules {
             $findings[] = self::finding( 'product_no_stable_sku', 'low', 'product', $id, $title, 'SKU vacío; puede ser legítimo para algunos productos.', 'Comprobar si existe otro identificador estable en el proveedor.' );
         }
         if ( 0 === $vocab ) {
-            $findings[] = self::finding( 'product_without_native_vocabulary', 'low', 'product', $id, $title, 'No hay términos tc_semantic_tag aprobados asignados.', 'Revisar las propuestas del Clasificador sin asignar etiquetas automáticamente.' );
+            $findings[] = self::finding( 'product_without_native_vocabulary', 'low', 'product', $id, $title, 'No hay términos tc_semantic_tag asignados.', 'Revisar las propuestas del Clasificador sin asignar etiquetas automáticamente.' );
         }
 
         return array(
@@ -468,7 +468,7 @@ final class Rules {
             $findings[] = self::finding( 'editorial_thin_content', 'low', $type, $id, $title, 'Texto corto: ' . mb_strlen( $body, 'UTF-8' ) . ' caracteres.', 'Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras SEO.' );
         }
         if ( 0 === $vocab && mb_strlen( $body, 'UTF-8' ) >= 120 ) {
-            $findings[] = self::finding( 'editorial_without_native_vocabulary', 'low', $type, $id, $title, 'Sin etiquetas semánticas aprobadas.', 'Revisar Vocabulary y añadir solo términos pertinentes.' );
+            $findings[] = self::finding( 'editorial_without_native_vocabulary', 'low', $type, $id, $title, 'Sin etiquetas semánticas asignadas.', 'Revisar Vocabulary y añadir solo términos pertinentes.' );
         }
         if ( 'page' === $type ) {
             // A missing role is evaluated once by Editorial_Specialist.
@@ -494,7 +494,7 @@ final class Rules {
                 if ( $native_terms && ! $matched ) {
                     $findings[] = self::finding(
                         'editorial_vocab_title_drift', 'low', $type, $id, $title,
-                        'Las etiquetas aprobadas no encuentran apoyo en el título o resumen.',
+                        'Las etiquetas asignadas no encuentran apoyo en el título o resumen.',
                         'Revisar las etiquetas y la intención antes de modificar el contenido.'
                     );
                 }
@@ -518,32 +518,83 @@ final class Rules {
      * No universal FAQ CPT exists in WordPress. Owner mapping is explicit and
      * filterable; an unknown schema must not be reported as a broken owner.
      */
+    /**
+     * The original FAQ check requires an explicit owner and compares repeated
+     * questions only within that owner. A missing schema is unavailable data.
+     */
     private static function inspect_faq( \WP_Post $post ) {
         $title = trim( (string) $post->post_title );
         $answer = self::text( $post->post_content );
         $findings = array();
-        $id = $post->ID;
+        $id = absint( $post->ID );
+        $owner_key = '';
         if ( '' === $title ) {
             $findings[] = self::finding( 'faq_empty_question', 'high', 'faq', $id, $title, 'FAQ sin pregunta.', 'Completar o retirar la pregunta.' );
         }
         if ( mb_strlen( $answer, 'UTF-8' ) < 30 ) {
             $findings[] = self::finding( 'faq_thin_answer', 'medium', 'faq', $id, $title, 'Respuesta ausente o demasiado escueta.', 'Aportar una respuesta concreta y verificable.' );
         }
+
+        // An FAQ plugin may register native owner metadata through the filter.
+        // Never guess an owner from the question's title.
         $owner = apply_filters( 'taxocommerce_auditor_faq_owner', null, $post );
         if ( is_array( $owner ) && isset( $owner['type'], $owner['id'] ) ) {
             $type = sanitize_key( (string) $owner['type'] );
             $owner_id = absint( $owner['id'] );
-            $valid = 'product' === $type
-                ? 'product' === get_post_type( $owner_id )
-                : ( 'product_cat' === $type && term_exists( $owner_id, 'product_cat' ) );
-            if ( ! $valid ) {
-                $findings[] = self::finding( 'faq_orphan_owner', 'critical', 'faq', $id, $title, 'Owner de FAQ no encontrado o de tipo incorrecto.', 'Reasignar al producto o categoría nativa válida; no inferir dueño por similitud.' );
+            $valid_type = in_array( $type, array( 'product', 'product_cat' ), true );
+            if ( ! $valid_type ) {
+                $findings[] = self::finding(
+                    'faq_invalid_owner_type', 'critical', 'faq', $id, $title,
+                    'El owner de FAQ no es un producto ni una categoría.',
+                    'Asignar un owner canónico del tipo correcto.'
+                );
+            } else {
+                $valid = 'product' === $type
+                    ? ( 'product' === get_post_type( $owner_id ) && 'publish' === get_post_status( $owner_id ) )
+                    : (bool) term_exists( $owner_id, 'product_cat' );
+                if ( ! $valid ) {
+                    $findings[] = self::finding(
+                        'faq_orphan_owner', 'critical', 'faq', $id, $title,
+                        'No se encuentra el owner publicado o su tipo no corresponde.',
+                        'Revisar la relación nativa por ID, sin inferirla mediante similitud.'
+                    );
+                } else {
+                    $owner_key = $type . ':' . $owner_id;
+                    $owner_text = '';
+                    if ( 'product' === $type ) {
+                        $owner_text = (string) get_the_title( $owner_id );
+                        if ( function_exists( 'wc_get_product' ) ) {
+                            $owner_product = wc_get_product( $owner_id );
+                            if ( $owner_product ) {
+                                $owner_text .= ' ' . self::text( $owner_product->get_short_description() )
+                                    . ' ' . self::text( $owner_product->get_description() );
+                            }
+                        }
+                    } else {
+                        $owner_term = get_term( $owner_id, 'product_cat' );
+                        if ( $owner_term instanceof \WP_Term ) {
+                            $owner_text = $owner_term->name . ' ' . self::text( $owner_term->description );
+                        }
+                    }
+                    if ( count( self::tokens( $title ) ) >= 2 ) {
+                        $alignment = self::title_alignment( $title, $owner_text );
+                        if ( null !== $alignment && $alignment < 0.08 ) {
+                            $findings[] = self::finding(
+                                'faq_owner_semantic_drift', 'medium', 'faq', $id, $title,
+                                'La pregunta parece semánticamente alejada del owner ' . $owner_key . '.',
+                                'Comprobar contenido y owner; la relación técnica por ID puede ser válida.'
+                            );
+                        }
+                    }
+                }
             }
         }
+
         return array(
-            'findings'  => $findings,
-            'title_key' => self::identity_key( $title ),
-            'quality'   => self::quality( 'faq', $title, $answer, '', true, true, null, trim( (string) $post->post_name ) ),
+            'findings'   => $findings,
+            'title_key'  => self::identity_key( $title ),
+            'owner_key'  => $owner_key,
+            'quality'    => self::quality( 'faq', $title, $answer, '', true, true, null, trim( (string) $post->post_name ) ),
         );
     }
 

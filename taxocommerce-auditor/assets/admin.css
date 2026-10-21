@@ -45,3 +45,77 @@
         padding: 16px;
     }
 }
+
+.taxocommerce-auditor-report {
+    margin: 28px 0 18px;
+    padding-top: 12px;
+    border-top: 1px solid #c3c4c7;
+}
+.taxocommerce-auditor-report h2 {
+    margin-bottom: 14px;
+}
+.taxocommerce-auditor-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 4px;
+    margin-bottom: 20px;
+}
+.taxocommerce-auditor-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+    gap: 12px;
+    margin: 15px 0 22px;
+}
+.taxocommerce-auditor-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 15px 16px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 5px;
+}
+.taxocommerce-auditor-metric strong {
+    color: #1d2327;
+    font-size: 23px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.taxocommerce-auditor-metric span {
+    color: #50575e;
+    font-size: 12px;
+    line-height: 1.4;
+}
+.taxocommerce-auditor-report .taxocommerce-auditor-table {
+    margin-bottom: 20px;
+}
+.taxocommerce-auditor-report td {
+    line-height: 1.6;
+}
+.taxocommerce-auditor-report td details {
+    margin: 8px 0;
+}
+.taxocommerce-auditor-report pre,
+.taxocommerce-auditor-json {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 450px;
+    overflow-y: auto;
+    padding: 12px;
+    border: 1px solid #dcdcde;
+    background: #f6f7f7;
+    font-size: 12px;
+}
+.taxocommerce-auditor-back {
+    margin-top: 22px;
+}
+@media (max-width: 782px) {
+    .taxocommerce-auditor-tabs .nav-tab {
+        margin: 4px 3px 0 0;
+        font-size: 13px;
+    }
+    .taxocommerce-auditor-metrics {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
+    }
+}

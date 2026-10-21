@@ -857,6 +857,13 @@ final class SEO_Dependiente_Entrenador {
             // solicitada de forma explícita y la formación inicial ya terminó.
             if (class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::has_pending_work()) {
                 $update_result = SEO_Dependiente_Actualizacion::worker_step($source);
+                $update_state_after = SEO_Dependiente_Actualizacion::state();
+                if ('stopped' === (string) ($update_state_after['status'] ?? '')
+                    || SEO_Dependiente_Actualizacion::stop_requested((string) ($update_state_after['run_id'] ?? ''))) {
+                    self::save_auto_state(array('enabled'=>false, 'mode'=>'manual', 'status'=>'stopped'));
+                    self::clear_auto_schedule();
+                    return;
+                }
                 $update_current = SEO_Dependiente_Actualizacion::monitor_current();
                 self::save_auto_state(array(
                     'current_lesson' => $update_current ? (string) ($update_current['lesson_key'] ?? '') : '',
@@ -1743,14 +1750,14 @@ final class SEO_Dependiente_Entrenador {
      */
     public static function process_control_stop() {
         $state = self::auto_state();
-        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
-            return new WP_Error('academy_completed', 'La Academia ya está completada.');
+        // The initial curriculum may be complete while its continuous update is active.
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))
+            && !(class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::is_running())) {
+            return array('stopped' => true, 'message' => 'No hay formación activa.');
         }
 
-        if ('stopped' === sanitize_key((string) ($state['status'] ?? '')) && empty($state['enabled'])) {
-            return array('stopped' => true, 'message' => 'La Academia ya está detenida.');
-        }
-
+        // Always clear pending schedule: 'stopped' in an older state is
+        // not proof that every pending scheduled action was cancelled.
         self::save_auto_state(array(
             'enabled'               => false,
             'mode'                  => 'manual',

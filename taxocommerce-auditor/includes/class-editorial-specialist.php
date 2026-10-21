@@ -38,7 +38,8 @@ final class Editorial_Specialist {
 
         if ( function_exists( 'wc_get_page_id' ) ) {
             foreach ( array( 'cart', 'checkout', 'myaccount', 'shop' ) as $woo_page ) {
-                if ( absint( wc_get_page_id( $woo_page ) ) === absint( $post->ID ) ) {
+                $woo_id = (int) wc_get_page_id( $woo_page );
+                if ( $woo_id > 0 && $woo_id === (int) $post->ID ) {
                     return 'functional';
                 }
             }
