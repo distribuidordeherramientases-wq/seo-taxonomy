@@ -9,6 +9,7 @@ function remove_accents( $text ) { return $text; }
 function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
 function strip_shortcodes( $text ) { return $text; }
 function absint( $value ) { return abs( (int) $value ); }
+function sanitize_key( $key ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $key ) ); }
 function taxonomy_exists( $name ) { return 'tc_semantic_tag' === $name; }
 function get_term_meta( $id, $key, $single = true ) { return $single ? array() : array(); }
 function get_post_meta( $id, $key, $single = true ) { return ''; }
