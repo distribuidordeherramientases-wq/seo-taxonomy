@@ -2339,7 +2339,7 @@ final class SEO_Dependiente_Entrenador {
                     r.evaluation_json, r.top_results, r.response_meta, r.error_message,
                     r.created_at AS run_created_at
              FROM {$questions_table} q
-             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key
+             LEFT JOIN {$runs_table} r ON r.question_id = q.id AND r.lesson_key = q.lesson_key AND r.status IN ('answered','error','unlearned')
              WHERE q.lesson_key = %s AND q.enabled = 1
              ORDER BY q.sequence_no ASC, q.id ASC",
             $batch_key
