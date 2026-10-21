@@ -790,6 +790,54 @@ if (!function_exists('seo_process_supervisor_academy_log_lost_runtime')) {
     }
 }
 
+
+/**
+ * Fallos fatales entre el inicio de una ventana y el primer ejercicio.
+ * No reemplaza el registro PHP del hosting; tampoco garantiza capturar OOM/SIGKILL.
+ */
+if (!function_exists('seo_process_supervisor_academy_window_guard')) {
+    function seo_process_supervisor_academy_window_guard($checkpoint = null) {
+        static $active = array();
+        static $registered = false;
+        if (is_array($checkpoint)) {
+            $active = $checkpoint;
+            if (!$registered) {
+                register_shutdown_function('seo_process_supervisor_academy_window_fatal_shutdown');
+                $registered = true;
+            }
+        } elseif (false === $checkpoint) {
+            $active = array();
+        }
+        return $active;
+    }
+}
+
+if (!function_exists('seo_process_supervisor_academy_window_fatal_shutdown')) {
+    function seo_process_supervisor_academy_window_fatal_shutdown() {
+        $checkpoint = seo_process_supervisor_academy_window_guard();
+        if (empty($checkpoint)) {
+            return;
+        }
+        $last_error = error_get_last();
+        $fatal_types = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR);
+        if (!is_array($last_error) || !in_array(absint($last_error['type'] ?? 0), $fatal_types, true)) {
+            return;
+        }
+        seo_process_supervisor_log(
+            'error',
+            'academy_window_php_fatal',
+            'PHP ha terminado la ventana de Academia con un error fatal. Consultar los errores PHP del hosting para el detalle.',
+            'Academia',
+            array(
+                'run_id' => sanitize_text_field((string) ($checkpoint['run_id'] ?? '')),
+                'module' => absint($checkpoint['module'] ?? 0),
+                'answered' => absint($checkpoint['answered'] ?? 0),
+                'fatal_type' => absint($last_error['type'] ?? 0),
+            )
+        );
+    }
+}
+
 /**
  * Contrasta dos ventanas reales: entrar en el gestor no equivale a aprender.
  * Limita a un warning de estancamiento cada diez minutos.
@@ -1477,7 +1525,12 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                         'detail' => 'Gestor: ventana abierta. El avance se comprobará al finalizar.'
                     ));
                     seo_process_supervisor_log('info', 'process_window_started', 'Academia entra en una ventana del gestor.', 'Academia', array('seconds' => $budget));
-                    $ok = SEO_Dependiente_Entrenador::process_manager_slice($budget, $source);
+                    seo_process_supervisor_academy_window_guard($academy_before);
+                    try {
+                        $ok = SEO_Dependiente_Entrenador::process_manager_slice($budget, $source);
+                    } finally {
+                        seo_process_supervisor_academy_window_guard(false);
+                    }
                     $still = seo_process_supervisor_academy_pending();
                     $academy_after = seo_process_supervisor_academy_snapshot();
                     seo_process_supervisor_academy_log_lost_runtime($academy_after);
