@@ -861,10 +861,21 @@ if (!function_exists('seo_process_supervisor_academy_window_report')) {
         );
         $last_progress = absint($prior['academy_progress_at'] ?? 0);
         $last_warning = absint($prior['academy_no_progress_warn_at'] ?? 0);
-
+        $has_confirmed_progress = !empty($prior['academy_progress_confirmed']);
+        $previous_run = (string) ($prior['academy_run_id'] ?? '');
+        $current_run = (string) ($after['run_id'] ?? '');
+        if ($previous_run !== $current_run) {
+            $has_confirmed_progress = false;
+        }
         if (!$last_progress || $previous_marker !== $marker) {
             $last_progress = $now;
             $last_warning = 0;
+            if ($previous_run === $current_run && '' !== $previous_marker && '' !== $marker) {
+                $has_confirmed_progress = true;
+            }
+        }
+        if ($progressed) {
+            $has_confirmed_progress = true;
         }
         $age = max(0, $now - $last_progress);
         $pending = !empty($after['update_pending']);
@@ -895,7 +906,7 @@ if (!function_exists('seo_process_supervisor_academy_window_report')) {
             );
         }
         $live = !empty($after['worker_alive']) || !empty($after['controller_alive']);
-        $recent_progress = $pending && $last_progress && $age <= 120;
+        $recent_progress = $pending && $has_confirmed_progress && $last_progress && $age <= 120;
         $healthy = $progressed || $live || $recent_progress;
         $worker_attempts = max(0, absint($after['worker_runs'] ?? 0) - absint($before['worker_runs'] ?? 0));
         $detail = $pending
@@ -914,6 +925,8 @@ if (!function_exists('seo_process_supervisor_academy_window_report')) {
         }
         return array(
             'academy_progress_marker' => $marker,
+            'academy_run_id' => $current_run,
+            'academy_progress_confirmed' => $has_confirmed_progress ? 1 : 0,
             'academy_progress_at' => $last_progress,
             'academy_no_progress_warn_at' => $last_warning,
             'healthy' => $healthy ? 1 : 0,
