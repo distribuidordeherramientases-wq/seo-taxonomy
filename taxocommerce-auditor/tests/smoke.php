@@ -174,7 +174,7 @@ $codes = array_column( $product['findings'], 'code' );
 verify( in_array( 'product_missing_excerpt', $codes, true ), 'Missing product excerpt' );
 verify( ! in_array( 'product_without_category', $codes, true ), 'No false missing category' );
 verify( isset( $product['quality']['score'] ), 'Internal quality exists' );
-verify( 'sku-test' === $product['sku_key'], 'SKU used for duplicate candidates' );
+verify( 'sku test' === $product['sku_key'], 'SKU used for duplicate candidates' );
 $GLOBALS['tc_wc']->attrs = array( new WC_Product_Attribute( 'Tension', array( '12 V' ) ) );
 $conflict = Rules::inspect( 'products', get_post( 4 ) );
 verify( in_array( 'product_attribute_title_conflict', array_column( $conflict['findings'], 'code' ), true ), 'Legacy voltage conflict rule' );
