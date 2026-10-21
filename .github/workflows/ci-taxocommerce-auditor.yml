@@ -1,0 +1,33 @@
+name: TaxoCommerce Auditor QA
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-auditor/**'
+      - '.github/workflows/ci-taxocommerce-auditor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  auditor-php:
+    name: Auditor PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring
+          coverage: none
+      - name: Check plugin PHP syntax
+        run: find taxocommerce-auditor -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - name: Verify native content rule smoke tests
+        run: php taxocommerce-auditor/tests/smoke.php
