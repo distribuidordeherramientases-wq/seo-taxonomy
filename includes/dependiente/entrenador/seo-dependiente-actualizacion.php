@@ -24,6 +24,7 @@ final class SEO_Dependiente_Actualizacion {
     const RUN_BATCH = 3;
     const MAX_EXAM_ITEMS = 500;
     const ACTIVE_QUESTION_OPTION = 'seo_dependiente_academy_update_active_question';
+    const STOP_REQUEST_OPTION = 'seo_dependiente_academy_update_stop_request';
     const SLOW_QUESTION_SECONDS = 300;
     const MAX_FAQ_RETRIES = 3;
     const UNLEARNED_FAQS_OPTION = 'seo_dependiente_academy_update_unlearned_faqs';
@@ -65,7 +66,23 @@ final class SEO_Dependiente_Actualizacion {
             'unlearned_faqs' => array(),
         );
         $state = get_option(self::STATE_OPTION, array());
-        return wp_parse_args(is_array($state) ? $state : array(), $defaults);
+        $state = wp_parse_args(is_array($state) ? $state : array(), $defaults);
+        // A cancellation is independent from worker-owned state. An in-flight
+        // worker cannot make a stopped run look running again.
+        if (self::stop_requested((string) ($state['run_id'] ?? ''))) {
+            $state['status'] = 'stopped';
+            $state['phase'] = 'stopped';
+        }
+        return $state;
+    }
+
+    public static function stop_requested($run_id = '') {
+        $run_id = sanitize_text_field((string) $run_id);
+        if ('' === $run_id) {
+            return false;
+        }
+        $cancelled = (string) get_option(self::STOP_REQUEST_OPTION, '');
+        return '' !== $cancelled && hash_equals($cancelled, $run_id);
     }
 
     private static function save_state($changes) {
@@ -74,6 +91,11 @@ final class SEO_Dependiente_Actualizacion {
             if (array_key_exists($key, $state)) {
                 $state[$key] = $value;
             }
+        }
+        // Never allow a stale worker to revert an explicitly stopped run.
+        if (self::stop_requested((string) ($state['run_id'] ?? ''))) {
+            $state['status'] = 'stopped';
+            $state['phase'] = 'stopped';
         }
         $state['version'] = self::VERSION;
         update_option(self::STATE_OPTION, $state, false);
@@ -401,26 +423,27 @@ final class SEO_Dependiente_Actualizacion {
 
     public static function ajax_stop() {
         self::guard_ajax();
-        if (!self::is_running()) {
-            wp_send_json_success(self::payload());
-        }
-        // First stop the scheduler; work already inside PHP may finish one atomic operation.
-        if (class_exists('SEO_Dependiente_Entrenador')) {
-            $result = SEO_Dependiente_Entrenador::process_control_stop();
-            if (is_wp_error($result)) {
-                wp_send_json_error(array('message' => $result->get_error_message()), 409);
-            }
-        }
         $state = self::state();
-        if (!empty($state['lesson_key'])) {
-            SEO_Dependiente_Entrenador::update_clear_staged_rules((string) $state['lesson_key']);
+        $run_id = sanitize_text_field((string) ($state['run_id'] ?? ''));
+        // Persist cancellation FIRST, before any potentially slow scheduler
+        // cleanup. Even if this HTTP request ends early, new work will stop.
+        if ('' !== $run_id) {
+            update_option(self::STOP_REQUEST_OPTION, $run_id, false);
         }
-        self::save_state(array(
+        $state = self::save_state(array(
             'status' => 'stopped',
             'phase' => 'stopped',
-            'last_message' => 'Actualización detenida manualmente. El conocimiento activo no se ha modificado. Puedes iniciar una nueva revisión.',
+            'last_message' => 'Actualización detenida por el usuario. No se iniciarán más evaluaciones.',
             'last_error' => '',
         ));
+
+        // This only prevents NEW work. A PHP call already inside search()
+        // must return (or be terminated by the PHP runtime) before it exits.
+        if (class_exists('SEO_Dependiente_Entrenador')) {
+            SEO_Dependiente_Entrenador::process_control_stop();
+        }
+        // Do not purge staged rules or the question checkpoint here: it can
+        // block the stop request and it destroys evidence for diagnosis.
         wp_send_json_success(self::payload());
     }
 
@@ -462,6 +485,8 @@ final class SEO_Dependiente_Actualizacion {
             $cutoff_gmt = current_time('mysql', true);
         }
 
+        // A new explicit run supersedes the cancellation of the old run.
+        delete_option(self::STOP_REQUEST_OPTION);
         $suffix = strtolower(wp_generate_password(6, false, false));
         $run_id = gmdate('YmdHis') . '-' . $suffix;
         $lesson_key = sanitize_key('update_' . gmdate('YmdHis') . '_' . $suffix);
@@ -564,6 +589,9 @@ final class SEO_Dependiente_Actualizacion {
             return array('done' => true, 'message' => 'No hay actualización pendiente.', 'delay' => 0);
         }
         self::$question_exception_logged = false;
+        if (self::stop_requested((string) ($state['run_id'] ?? ''))) {
+            return array('done'=>true, 'delay'=>0, 'message'=>'Actualización detenida.');
+        }
         self::recover_unfinished_question($state);
         if ('queued' === (string) $state['status']) {
             $state = self::save_state(array('status' => 'running'));
@@ -690,7 +718,9 @@ final class SEO_Dependiente_Actualizacion {
             : ($module >= 4 ? 1 : (2 === $module ? 40 : (3 === $module ? 80 : self::RUN_BATCH)));
         $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, $run_batch);
         foreach ($questions as $question) {
-            if (!self::is_running() || (string) (self::state()['run_id'] ?? '') !== (string) ($state['run_id'] ?? '')) {
+            if (self::stop_requested((string) ($state['run_id'] ?? ''))
+                || !self::is_running()
+                || (string) (self::state()['run_id'] ?? '') !== (string) ($state['run_id'] ?? '')) {
                 return array('done'=>true, 'delay'=>0, 'message'=>'Actualización detenida.');
             }
             $attempt = 0;
