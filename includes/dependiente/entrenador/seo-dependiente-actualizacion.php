@@ -25,6 +25,8 @@ final class SEO_Dependiente_Actualizacion {
     const MAX_EXAM_ITEMS = 500;
     const ACTIVE_QUESTION_OPTION = 'seo_dependiente_academy_update_active_question';
     const SLOW_QUESTION_SECONDS = 300;
+    const MAX_FAQ_RETRIES = 3;
+    const UNLEARNED_FAQS_OPTION = 'seo_dependiente_academy_update_unlearned_faqs';
 
     private static $active_question = null;
     private static $question_started = 0.0;
@@ -33,6 +35,7 @@ final class SEO_Dependiente_Actualizacion {
 
     public static function init() {
         add_action('wp_ajax_seo_dependiente_actualizacion_start', array(__CLASS__, 'ajax_start'));
+        add_action('wp_ajax_seo_dependiente_actualizacion_stop', array(__CLASS__, 'ajax_stop'));
         add_action('wp_ajax_seo_dependiente_actualizacion_export', array(__CLASS__, 'ajax_export'));
     }
 
@@ -58,6 +61,8 @@ final class SEO_Dependiente_Actualizacion {
             'merge'          => array(),
             'last_message'   => '',
             'last_error'     => '',
+            'faq_failures'  => array(),
+            'unlearned_faqs' => array(),
         );
         $state = get_option(self::STATE_OPTION, array());
         return wp_parse_args(is_array($state) ? $state : array(), $defaults);
@@ -124,6 +129,58 @@ final class SEO_Dependiente_Actualizacion {
         );
     }
 
+
+    /**
+     * A FAQ is considered learned only when a real Academy run passed.
+     * An unresolved FAQ is skipped until its content or canonical owner changes.
+     */
+    private static function faq_fingerprint($row) {
+        return hash('sha256', wp_json_encode(array(
+            absint($row['object_type'] ?? 0),
+            absint($row['object_id'] ?? 0),
+            (string) ($row['question'] ?? ''),
+            (string) ($row['answer'] ?? ''),
+            (string) ($row['ambito'] ?? ''),
+        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private static function remember_unlearned_faq($faq_id, $reason) {
+        global $wpdb;
+        $faq_id = absint($faq_id);
+        if (!$faq_id) return;
+        $table = esc_sql($wpdb->prefix . 'seo_faq');
+        $with_scope = $wpdb->get_var($wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table}` LIKE %s", 'ambito'
+        ));
+        $scope = $with_scope ? 'ambito' : "'' AS ambito";
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT id,object_type,object_id,question,answer,{$scope} FROM {$table} WHERE id=%d",
+            $faq_id
+        ), ARRAY_A);
+        if (!$row) return;
+        $previous = get_option(self::UNLEARNED_FAQS_OPTION, array());
+        $previous = is_array($previous) ? $previous : array();
+        $previous[$faq_id] = array(
+            'fingerprint' => self::faq_fingerprint($row),
+            'reason' => sanitize_key((string) $reason),
+            'at' => current_time('mysql'),
+        );
+        update_option(self::UNLEARNED_FAQS_OPTION, $previous, false);
+        $state = self::state();
+        $unlearned = is_array($state['unlearned_faqs'] ?? null) ? $state['unlearned_faqs'] : array();
+        $unlearned[$faq_id] = sanitize_key((string) $reason);
+        self::save_state(array('unlearned_faqs' => $unlearned));
+    }
+
+    private static function forget_unlearned_faq($faq_id) {
+        $faq_id = absint($faq_id);
+        $previous = get_option(self::UNLEARNED_FAQS_OPTION, array());
+        if (is_array($previous) && isset($previous[$faq_id])) {
+            unset($previous[$faq_id]);
+            update_option(self::UNLEARNED_FAQS_OPTION, $previous, false);
+        }
+    }
+
     private static function recover_unfinished_question($state) {
         $previous = get_option(self::ACTIVE_QUESTION_OPTION, array());
         if (!is_array($previous) || empty($previous['started_at'])) {
@@ -134,9 +191,24 @@ final class SEO_Dependiente_Actualizacion {
             self::log_incident(
                 'warning',
                 'academy_question_interrupted',
-                'La pregunta anterior quedó sin cierre confirmado. Puede tratarse de un timeout o de una interrupción; comprobar el log PHP.',
+                'La pregunta anterior quedó sin cierre confirmado.',
                 self::question_context($previous, $elapsed)
             );
+            if (6 === absint($previous['module'] ?? 0) && 'faq' === (string) ($previous['source_type'] ?? '')) {
+                $attempts = (array) ($state['faq_failures'] ?? array());
+                $question_id = absint($previous['question_id'] ?? 0);
+                if ($question_id && absint($attempts[$question_id] ?? 0) >= self::MAX_FAQ_RETRIES + 1) {
+                    $learned = SEO_Dependiente_Entrenador::update_abandon_interrupted_faq(
+                        $question_id,
+                        (string) ($state['lesson_key'] ?? '')
+                    );
+                    if (!$learned) {
+                        self::remember_unlearned_faq(absint($previous['source_id'] ?? 0), 'interrupted_after_retries');
+                    }
+                    unset($attempts[$question_id]);
+                    self::save_state(array('faq_failures' => $attempts));
+                }
+            }
         }
         delete_option(self::ACTIVE_QUESTION_OPTION);
     }
@@ -265,6 +337,7 @@ final class SEO_Dependiente_Actualizacion {
                 </div>
                 <div class="seo-dependiente-trainer__update-actions">
                     <button type="button" class="button button-primary" data-trainer-update-start <?php disabled(!$available || $running); ?>><?php echo $running ? 'Actualización en curso…' : 'Actualizar conocimiento'; ?></button>
+                    <button type="button" class="button" data-trainer-update-stop <?php disabled(!$running); ?>>Detener actualización</button>
                     <button type="button" class="button" data-trainer-update-export <?php disabled(empty($state['run_id'])); ?>>Descargar informe JSON</button>
                     <span class="description">El informe incluye el detalle real de fallos, diagnóstico y fuente formativa para poder revisar qué necesita aprender mejor.</span>
                 </div>
@@ -282,6 +355,10 @@ final class SEO_Dependiente_Actualizacion {
                     <span><strong>Frecuencia recomendada</strong><?php echo $next_recommended ? 'Próxima: ' . esc_html($next_recommended) : 'Una vez por semana'; ?></span>
                     <?php if (!empty($state['run_id'])) : ?><span><strong>Run</strong><code><?php echo esc_html((string) $state['run_id']); ?></code></span><?php endif; ?>
                 </div>
+
+                <?php if (!empty($state['unlearned_faqs'])) : ?>
+                    <p class="description"><strong>FAQs sin aprender:</strong> <?php echo esc_html(number_format_i18n(count((array) $state['unlearned_faqs']))); ?>. Permanecen pendientes para una futura revisión.</p>
+                <?php endif; ?>
 
                 <?php if ($delta) : ?>
                     <div class="seo-dependiente-trainer__update-delta">
@@ -320,6 +397,31 @@ final class SEO_Dependiente_Actualizacion {
             <?php endif; ?>
         </section>
         <?php
+    }
+
+    public static function ajax_stop() {
+        self::guard_ajax();
+        if (!self::is_running()) {
+            wp_send_json_success(self::payload());
+        }
+        // First stop the scheduler; work already inside PHP may finish one atomic operation.
+        if (class_exists('SEO_Dependiente_Entrenador')) {
+            $result = SEO_Dependiente_Entrenador::process_control_stop();
+            if (is_wp_error($result)) {
+                wp_send_json_error(array('message' => $result->get_error_message()), 409);
+            }
+        }
+        $state = self::state();
+        if (!empty($state['lesson_key'])) {
+            SEO_Dependiente_Entrenador::update_clear_staged_rules((string) $state['lesson_key']);
+        }
+        self::save_state(array(
+            'status' => 'stopped',
+            'phase' => 'stopped',
+            'last_message' => 'Actualización detenida manualmente. El conocimiento activo no se ha modificado. Puedes iniciar una nueva revisión.',
+            'last_error' => '',
+        ));
+        wp_send_json_success(self::payload());
     }
 
     public static function ajax_start() {
@@ -394,8 +496,10 @@ final class SEO_Dependiente_Actualizacion {
             'delta'          => array(),
             'modules'        => $modules,
             'merge'          => array(),
-            'last_message'   => 'Actualización encolada. El Gestor de workers revisará las novedades.',
+            'last_message'   => 'Actualización encolada para revisar novedades.',
             'last_error'     => '',
+            'faq_failures'   => array(),
+            'unlearned_faqs' => array(),
         ));
 
         $queued = SEO_Dependiente_Entrenador::update_queue_worker('Actualización de conocimiento encolada.');
@@ -586,6 +690,19 @@ final class SEO_Dependiente_Actualizacion {
             : ($module >= 4 ? 1 : (2 === $module ? 40 : (3 === $module ? 80 : self::RUN_BATCH)));
         $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, $run_batch);
         foreach ($questions as $question) {
+            if (!self::is_running() || (string) (self::state()['run_id'] ?? '') !== (string) ($state['run_id'] ?? '')) {
+                return array('done'=>true, 'delay'=>0, 'message'=>'Actualización detenida.');
+            }
+            $attempt = 0;
+            if (6 === $module && 'faq' === sanitize_key((string) ($question['source_type'] ?? ''))) {
+                $live = self::state();
+                $attempts = is_array($live['faq_failures'] ?? null) ? $live['faq_failures'] : array();
+                $question_id = absint($question['id'] ?? 0);
+                $attempt = absint($attempts[$question_id] ?? 0) + 1;
+                $attempts[$question_id] = $attempt;
+                // Persist BEFORE evaluation, including for a PHP kill/timeout.
+                self::save_state(array('faq_failures'=>$attempts));
+            }
             self::begin_question($state, $module, $question);
             try {
                 $question_type = sanitize_key((string) ($question['question_type'] ?? ''));
@@ -597,6 +714,21 @@ final class SEO_Dependiente_Actualizacion {
                     SEO_Dependiente_Entrenador::update_run_feature_question($question, $batch_uuid);
                 } elseif (5 === $module && 'editorial_semantic' === $question_type) {
                     SEO_Dependiente_Entrenador::update_run_editorial_question($question, $batch_uuid);
+                } elseif (6 === $module && 'faq_owner_context' === $question_type) {
+                    $outcome = SEO_Dependiente_Entrenador::update_run_faq_question(
+                        $question, $batch_uuid, $attempt >= self::MAX_FAQ_RETRIES + 1
+                    );
+                    if (!empty($outcome['learned'])) {
+                        self::forget_unlearned_faq(absint($question['source_id'] ?? 0));
+                    } elseif (!empty($outcome['unlearned'])) {
+                        self::remember_unlearned_faq(absint($question['source_id'] ?? 0), 'no_resolution_after_retries');
+                    }
+                    if (!empty($outcome['learned']) || !empty($outcome['unlearned'])) {
+                        $fresh = self::state();
+                        $attempts = is_array($fresh['faq_failures'] ?? null) ? $fresh['faq_failures'] : array();
+                        unset($attempts[absint($question['id'] ?? 0)]);
+                        self::save_state(array('faq_failures'=>$attempts));
+                    }
                 } else {
                     SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
                 }
@@ -605,6 +737,9 @@ final class SEO_Dependiente_Actualizacion {
                 throw $error;
             }
             self::finish_question();
+            if (!self::is_running() || (string) (self::state()['run_id'] ?? '') !== (string) ($state['run_id'] ?? '')) {
+                return array('done'=>true, 'delay'=>0, 'message'=>'Actualización detenida.');
+            }
         }
 
         $summary = SEO_Dependiente_Entrenador::update_module_summary($lesson_key, $module);
@@ -614,7 +749,7 @@ final class SEO_Dependiente_Actualizacion {
                 array('run_id' => (string) ($state['run_id'] ?? ''), 'module' => $module, 'total_errors' => absint($summary['errors'] ?? 0))
             );
         }
-        foreach (array('total','answered','passed','failed','errors') as $key) {
+        foreach (array('total','answered','passed','failed','errors','unlearned') as $key) {
             $module_state[$key] = absint($summary[$key] ?? 0);
         }
         $answered_now = absint($summary['answered'] ?? 0);
@@ -647,10 +782,14 @@ final class SEO_Dependiente_Actualizacion {
             return array('done' => false, 'delay' => 1, 'message' => 'Ejecutando M' . $module . '.');
         }
 
-        $total = max(1, absint($summary['total'] ?? 0));
-        $pass_ratio = absint($summary['passed'] ?? 0) / $total;
+        // Unlearned FAQs are recorded and excluded from the gate denominator;
+        // they do not count as passed and cannot stall the following modules.
+        $evaluable = max(0, absint($summary['total'] ?? 0) - (6 === $module ? absint($summary['unlearned'] ?? 0) : 0));
+        $pass_ratio = $evaluable > 0 ? absint($summary['passed'] ?? 0) / $evaluable : 0.0;
         $min_pass = SEO_Dependiente_Entrenador::update_module_min_pass($module);
-        if (absint($summary['errors'] ?? 0) > 0 || $pass_ratio < $min_pass) {
+        // A module with only unresolved FAQs finishes as 0 learned, not 100% passed.
+        $no_evaluable_faqs = 6 === $module && 0 === $evaluable;
+        if (absint($summary['errors'] ?? 0) > 0 || (!$no_evaluable_faqs && $pass_ratio < $min_pass)) {
             SEO_Dependiente_Entrenador::update_clear_staged_rules($lesson_key);
             $module_state['status'] = 'failed';
             $module_state['pass_ratio'] = round($pass_ratio, 4);
@@ -716,8 +855,17 @@ final class SEO_Dependiente_Actualizacion {
             throw $error;
         }
 
-        $snapshot = SEO_Dependiente_Entrenador::update_publish_snapshot();
         $modules = (array) ($state['modules'] ?? array());
+        $passed_any = 0;
+        foreach ($modules as $module_number => $module_result) {
+            if (absint($module_number) <= 8 && is_array($module_result)) {
+                $passed_any += absint($module_result['passed'] ?? 0);
+            }
+        }
+        // Skipped/unlearned FAQs are never promoted as new knowledge.
+        $snapshot = ($passed_any > 0 || $merged > 0)
+            ? SEO_Dependiente_Entrenador::update_publish_snapshot()
+            : absint(get_option(SEO_Dependiente_Entrenador::KNOWLEDGE_SNAPSHOT_OPTION, 0));
         $module9 = is_array($modules[9] ?? null) ? $modules[9] : array();
         $module9['status'] = 'completed';
         $module9['total'] = absint($merge['staged'] ?? 0);
@@ -784,6 +932,9 @@ final class SEO_Dependiente_Actualizacion {
     public static function mark_error($message) {
         $message = sanitize_text_field((string) $message);
         $state = self::state();
+        if ('stopped' === (string) ($state['status'] ?? '')) {
+            return;
+        }
         if (!self::$question_exception_logged) {
             self::log_incident('error', 'academy_update_error', self::safe_error_message($message),
                 array('run_id' => (string) ($state['run_id'] ?? ''), 'module' => absint($state['module'] ?? 0), 'phase' => (string) ($state['phase'] ?? ''))
@@ -872,16 +1023,51 @@ final class SEO_Dependiente_Actualizacion {
             }
         }
 
-        $faq = $wpdb->prefix . 'seo_faq';
+        $faq = esc_sql($wpdb->prefix . 'seo_faq');
         if (self::table_exists($faq)) {
-            $rows = (array) $wpdb->get_col($wpdb->prepare(
-                "SELECT id FROM {$faq} WHERE active=1 AND object_type IN (2,3) AND updated_at > %s AND updated_at <= %s",
-                $cutoff_local,
-                $scan_until_local
-            ));
-            foreach ($rows as $id) {
-                $id = absint($id);
-                if ($id) $faq_ids[$id] = true;
+            // A review is based on the last PASSED evaluation of each FAQ, not
+            // on owner changes or the date of an unrelated global review.
+            // For historical FAQs without a passing run, use the course cutoff:
+            // old unchanged inventory must not trigger mass retraining.
+            $questions_table = esc_sql(SEO_Dependiente_Entrenador::questions_table());
+            $runs_table = esc_sql(SEO_Dependiente_Entrenador::runs_table());
+            $faq_scope_select = $wpdb->get_var($wpdb->prepare(
+                "SHOW COLUMNS FROM `{$faq}` LIKE %s", 'ambito'
+            )) ? 'f.ambito' : "'' AS ambito";
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- All identifiers are internal table names.
+            $pending_faqs = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT f.id,f.object_type,f.object_id,f.question,f.answer,{$faq_scope_select},f.created_at,f.updated_at,learned.last_pass
+                 FROM {$faq} f
+                 LEFT JOIN (
+                     SELECT q.source_id, MAX(r.created_at) AS last_pass
+                     FROM {$questions_table} q
+                     INNER JOIN {$runs_table} r ON r.question_id=q.id
+                       AND r.status='answered'
+                       AND r.evaluation_status IN ('pass_top1','pass_top3','pass_top8')
+                     WHERE q.source_type='faq'
+                     GROUP BY q.source_id
+                 ) learned ON learned.source_id=f.id
+                 WHERE f.active=1 AND f.object_type IN (2,3)
+                   AND (
+                       (learned.last_pass IS NOT NULL AND f.updated_at > learned.last_pass)
+                       OR (learned.last_pass IS NULL AND (f.created_at > %s OR f.updated_at > %s))
+                   )
+                 ORDER BY f.id ASC",
+                $cutoff_local, $cutoff_local
+            ), ARRAY_A);
+            $previously_unlearned = get_option(self::UNLEARNED_FAQS_OPTION, array());
+            $previously_unlearned = is_array($previously_unlearned) ? $previously_unlearned : array();
+            foreach ($pending_faqs as $row) {
+                $id = absint($row['id'] ?? 0);
+                if (!$id) continue;
+                $quarantined = is_array($previously_unlearned[$id] ?? null)
+                    ? (string) ($previously_unlearned[$id]['fingerprint'] ?? '') : '';
+                // An unchanged unresolved FAQ stays visible as 'not learned',
+                // but does not trigger an endless retraining loop.
+                if ($quarantined && hash_equals($quarantined, self::faq_fingerprint($row))) {
+                    continue;
+                }
+                $faq_ids[$id] = true;
             }
         }
 
@@ -925,29 +1111,6 @@ final class SEO_Dependiente_Actualizacion {
                     $id = absint($id);
                     if ($id) $vocabulary_ids[$id] = true;
                 }
-            }
-        }
-
-        // Las FAQs de propietarios afectados entran también aunque el texto de
-        // la FAQ no haya cambiado: el contexto comercial puede haber cambiado.
-        if (self::table_exists($faq) && ($product_ids || $category_ids)) {
-            $clauses = array();
-            $params = array();
-            if ($product_ids) {
-                $ids = array_keys($product_ids);
-                $clauses[] = '(object_type=3 AND object_id IN (' . implode(',', array_fill(0, count($ids), '%d')) . '))';
-                $params = array_merge($params, $ids);
-            }
-            if ($category_ids) {
-                $ids = array_keys($category_ids);
-                $clauses[] = '(object_type=2 AND object_id IN (' . implode(',', array_fill(0, count($ids), '%d')) . '))';
-                $params = array_merge($params, $ids);
-            }
-            $sql = "SELECT id FROM {$faq} WHERE active=1 AND (" . implode(' OR ', $clauses) . ')';
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table and generated %d placeholders; all IDs are bound through prepare().
-            foreach ((array) $wpdb->get_col($wpdb->prepare($sql, $params)) as $id) {
-                $id = absint($id);
-                if ($id) $faq_ids[$id] = true;
             }
         }
 
@@ -1018,6 +1181,12 @@ final class SEO_Dependiente_Actualizacion {
                     $offset
                 ), ARRAY_A);
                 if (!$row) {
+                    continue;
+                }
+                // A FAQ declared unlearned must not be retried by M8 regression.
+                $unlearned = (array) (self::state()['unlearned_faqs'] ?? array());
+                if (6 === $module && 'faq' === (string) ($row['source_type'] ?? '')
+                    && !empty($unlearned[absint($row['source_id'] ?? 0)])) {
                     continue;
                 }
                 $items[] = array(

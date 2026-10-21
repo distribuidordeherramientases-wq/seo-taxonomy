@@ -3,7 +3,7 @@
  * TaxoCommerce SEO - Supervisor propio de procesos.
  *
  * Gestor periódico de procesos propios. Ejecuta ventanas limitadas de
- * Import/Export, Inventarios comerciales, Importación proveedores, Academia, Lingüista, Clasificador y Clonador directamente, sin Action Scheduler ni el worker de
+ * Import/Export, Inventarios comerciales, Importación proveedores, Lingüista, Clasificador y Clonador directamente, sin Action Scheduler ni el worker de
  * WooCommerce. Puede ser invocado por cron real del servidor; WP-Cron propio
  * queda como respaldo.
  *
@@ -43,7 +43,6 @@ if (!function_exists('seo_process_supervisor_defaults')) {
             'import_export'      => 1,
             'commercial_feeds'   => 1,
             'supplier_imports'   => 1,
-            'academy'            => 1,
             'ingeniero'       => 1,
             'linguista'          => 1,
             'classifier'         => 1,
@@ -65,7 +64,6 @@ if (!function_exists('seo_process_supervisor_sanitize_settings')) {
             'import_export'    => empty($raw['import_export']) ? 0 : 1,
             'commercial_feeds' => empty($raw['commercial_feeds']) ? 0 : 1,
             'supplier_imports' => empty($raw['supplier_imports']) ? 0 : 1,
-            'academy'          => empty($raw['academy']) ? 0 : 1,
             'ingeniero'     => empty($raw['ingeniero']) ? 0 : 1,
             'linguista'        => empty($raw['linguista']) ? 0 : 1,
             'classifier'       => empty($raw['classifier']) ? 0 : 1,
@@ -1124,10 +1122,6 @@ if (!function_exists('seo_process_supervisor_has_pending_work')) {
             }
         }
 
-        if (!$pending && !empty($settings['academy']) && seo_process_supervisor_academy_pending()) {
-            $pending = true;
-        }
-
         if (!$pending && !empty($settings['classifier']) && seo_process_supervisor_classifier_pending()) {
             $pending = true;
         }
@@ -1337,26 +1331,6 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                     }
                 }
             }
-            if (!empty($settings['academy']) && seo_process_supervisor_academy_pending() && is_callable(array('SEO_Dependiente_Entrenador', 'process_manager_slice'))) {
-                $academy_payload = is_callable(array('SEO_Dependiente_Entrenador', 'process_monitor_payload'))
-                    ? (array) SEO_Dependiente_Entrenador::process_monitor_payload()
-                    : array();
-                $academy_state = isset($academy_payload['state']) && is_array($academy_payload['state']) ? $academy_payload['state'] : array();
-                $academy_due = absint($academy_payload['next_due_ts'] ?? 0);
-                if (!$academy_due) {
-                    $academy_due = absint($academy_state['direct_worker_not_before'] ?? 0);
-                }
-                if ($academy_due && $academy_due > time()) {
-                    seo_process_supervisor_managed_update('academy', array(
-                        'name' => 'Academia', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
-                        'last_result' => 'waiting', 'last_error' => '',
-                        'detail' => 'En espera de la pausa adaptativa; el gestor la retomará automáticamente.'
-                    ));
-                } else {
-                    $targets[] = array('type' => 'academy', 'data' => array());
-                }
-            }
-
             if (!empty($settings['classifier']) && function_exists('seo_classifier_job_manager_slice')) {
                 foreach (seo_process_supervisor_classifier_jobs() as $classifier_job) {
                     $job_id = absint($classifier_job['id'] ?? 0);
@@ -1520,38 +1494,6 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                         'last_error' => '',
                         'detail' => $fresh ? 'Ventana completada; continuará en el siguiente ciclo.' : 'Importación terminada o sin trabajo pendiente.'
                     ));
-                    if ($ok) {
-                        $state = seo_process_supervisor_state();
-                        seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
-                    }
-                } elseif ('academy' === $target['type']) {
-                    $academy_before = seo_process_supervisor_academy_snapshot();
-                    // El detector se ejecuta aquí, no en el antiguo check_academy()
-                    // que no participa en el ciclo activo del Gestor.
-                    seo_process_supervisor_academy_log_lost_runtime($academy_before);
-                    $current_managed = (array) (seo_process_supervisor_state()['managed']['academy'] ?? array());
-                    seo_process_supervisor_managed_update('academy', array(
-                        'name' => 'Academia', 'pending' => 1,
-                        'healthy' => (!empty($academy_before['controller_alive']) || !empty($academy_before['worker_alive'])) ? 1 : 0,
-                        'last_checked' => time(), 'last_attempt_at' => time(),
-                        'last_result' => 'window_open',
-                        'detail' => 'Gestor: ventana abierta. El avance se comprobará al finalizar.'
-                    ));
-                    seo_process_supervisor_log('info', 'process_window_started', 'Academia entra en una ventana del gestor.', 'Academia', array('seconds' => $budget));
-                    seo_process_supervisor_academy_window_guard($academy_before);
-                    try {
-                        $ok = SEO_Dependiente_Entrenador::process_manager_slice($budget, $source);
-                    } finally {
-                        seo_process_supervisor_academy_window_guard(false);
-                    }
-                    $still = seo_process_supervisor_academy_pending();
-                    $academy_after = seo_process_supervisor_academy_snapshot();
-                    seo_process_supervisor_academy_log_lost_runtime($academy_after);
-                    $progress = seo_process_supervisor_academy_window_report($academy_before, $academy_after, $current_managed);
-                    seo_process_supervisor_managed_update('academy', array_merge($progress, array(
-                        'pending' => $still ? 1 : 0,
-                        'last_checked' => time(),
-                    )));
                     if ($ok) {
                         $state = seo_process_supervisor_state();
                         seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
@@ -2234,7 +2176,6 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                     $visible['commercial-feeds'] = isset($managed['commercial-feeds'])
                         ? $managed['commercial-feeds']
                         : array('name' => 'Inventarios comerciales', 'pending' => 0, 'healthy' => 1, 'detail' => 'Parado o sin generacion iniciada.', 'last_checked' => 0);
-                    $visible['academy'] = isset($managed['academy']) ? $managed['academy'] : array('name' => 'Academia', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
                     $visible['linguista'] = isset($managed['linguista']) ? $managed['linguista'] : array('name' => 'Lingüista', 'pending' => 0, 'healthy' => 0, 'detail' => 'Todavía sin lectura.', 'last_checked' => 0);
                     $classifier_rows = array();
                     foreach ($managed as $key => $row) {
@@ -2268,7 +2209,7 @@ if (!function_exists('seo_process_supervisor_render_live')) {
                         } elseif ($is_linguista) {
                             $enabled = !empty($settings['linguista']);
                         } else {
-                            $enabled = !empty($settings['academy']);
+                            $enabled = false;
                         }
                     ?>
                     <tr>
@@ -2398,7 +2339,6 @@ if (!function_exists('seo_process_supervisor_render_page')) {
                     <label><input type="checkbox" name="supervisor[import_export]" value="1" <?php checked(!empty($settings['import_export'])); ?>> Gestionar <strong>Import / Export</strong><small>Solo mientras una importación iniciada siga activa.</small></label>
                     <label><input type="checkbox" name="supervisor[commercial_feeds]" value="1" <?php checked(!empty($settings['commercial_feeds'])); ?>> Gestionar <strong>Inventarios comerciales</strong><small>Genera los feeds por ventanas y regula automáticamente el tamaño de lote.</small></label>
                     <label><input type="checkbox" name="supervisor[supplier_imports]" value="1" <?php checked(!empty($settings['supplier_imports'])); ?>> Gestionar <strong>Importación proveedores</strong><small>Descargas por lotes, checkpoints y pausas adaptativas de proveedores iniciados manualmente.</small></label>
-                    <label><input type="checkbox" name="supervisor[academy]" value="1" <?php checked(!empty($settings['academy'])); ?>> Gestionar <strong>Academia</strong><small>Solo después de que tú la hayas arrancado.</small></label>
                     <label><input type="checkbox" name="supervisor[ingeniero]" value="1" <?php checked(!empty($settings['ingeniero'])); ?>> Gestionar <strong>Ingeniero</strong><small>Conocimiento técnico externo por categorías. Solo trabaja después de un arranque manual.</small></label>
                     <label><input type="checkbox" name="supervisor[linguista]" value="1" <?php checked(!empty($settings['linguista'])); ?>> Gestionar <strong>Lingüista</strong><small>Formación del Intérprete. Solo procesa ventanas después de un arranque o reanudación manual.</small></label>
                     <label><input type="checkbox" name="supervisor[classifier]" value="1" <?php checked(!empty($settings['classifier'])); ?>> Gestionar <strong>Clasificador</strong><small>Solo jobs iniciados o reanudados manualmente.</small></label>
