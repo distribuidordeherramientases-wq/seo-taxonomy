@@ -58,53 +58,6 @@ final class TaxoCommerce_Images_Inventory {
 	}
 
 	/**
-	 * Optional read-only legacy supplier adapter. No plugin functions are called,
-	 * and installations without this table simply show no supplier rows.
-	 * Independent integrations may add more sources through the filter.
-	 *
-	 * @return array<string,array>
-	 */
-	public static function external_sources() {
-		global $wpdb;
-
-		$sources = array();
-		$table = $wpdb->prefix . 'seo_supplier_images';
-		$exists = $wpdb->get_var(
-			$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
-		);
-		if ( $exists === $table ) {
-			$quoted_table = esc_sql( $table );
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT supplier, COUNT(*) AS images,
-					 COUNT(DISTINCT product_id) AS products,
-					 SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) AS unlinked,
-					 SUM(CASE WHEN position = 0 THEN 1 ELSE 0 END) AS primary_images
-					 FROM {$quoted_table}
-					 WHERE status = %s
-					 GROUP BY supplier ORDER BY images DESC",
-					'active'
-				),
-				ARRAY_A
-			);
-			foreach ( (array) $rows as $row ) {
-				$name = sanitize_text_field( (string) $row['supplier'] );
-				$sources[ $name ] = array(
-					'name' => $name,
-					'images' => absint( $row['images'] ),
-					'products' => absint( $row['products'] ),
-					'unlinked' => absint( $row['unlinked'] ),
-					'primary' => absint( $row['primary_images'] ),
-					'origin' => 'seo_supplier_images',
-				);
-			}
-		}
-
-		$filtered = apply_filters( 'taxocommerce_images_external_sources', $sources );
-		return is_array( $filtered ) ? $filtered : $sources;
-	}
-
-	/**
 	 * Get a bounded Media page.
 	 *
 	 * @param int $page Page number.
@@ -213,30 +166,4 @@ final class TaxoCommerce_Images_Inventory {
 		return (bool) apply_filters( 'taxocommerce_images_is_attachment_used', false, $id );
 	}
 
-	/**
-	 * Count products with no featured image. Does not imply the product has
-	 * no usable images, because WooCommerce galleries/providers may exist.
-	 *
-	 * @return int
-	 */
-	public static function products_without_featured() {
-		if ( ! post_type_exists( 'product' ) ) {
-			return 0;
-		}
-		$query = new WP_Query(
-			array(
-				'post_type' => 'product',
-				'post_status' => array( 'publish', 'draft', 'pending', 'private' ),
-				'posts_per_page' => 1,
-				'fields' => 'ids',
-				'no_found_rows' => false,
-				'meta_query' => array(
-					'relation' => 'OR',
-					array( 'key' => '_thumbnail_id', 'compare' => 'NOT EXISTS' ),
-					array( 'key' => '_thumbnail_id', 'value' => '0', 'compare' => '=' ),
-				),
-			)
-		);
-		return absint( $query->found_posts );
-	}
 }
