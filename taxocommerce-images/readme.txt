@@ -1,10 +1,10 @@
 === TaxoCommerce Images - Image Management for WooCommerce ===
 Contributors: davidperezmartorell
-Tags: woocommerce, images, media, thumbnails, alt, optimization
+Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,10 +17,10 @@ TaxoCommerce Images is an independent member of the TaxoCommerce family.
 Core principles:
 
 * WordPress Media is the source of truth.
-* No custom image tables are required in 0.1.0.
+* No custom image tables or supplier image indexes are required.
 * WordPress and WooCommerce native APIs remain authoritative.
 
-Version 0.1.0 includes:
+Current functionality includes:
 
 * Media dashboard.
 * Bounded image audit in batches.
@@ -34,6 +34,16 @@ Version 0.1.0 includes:
 * Optional integration into TaxoCommerce Core.
 
 == Changelog ==
+
+= 0.2.0 =
+* Restored isolated image reference audit from the historical plugin (review only; no deletion).
+* Restored legacy recompression of originals and thumbnails, in small administrator-triggered batches.
+* Restored JPG/PNG-to-WebP conversion and redirects for known internal legacy links.
+* Added future-thumbnail exclusion settings, without removing existing thumbnails.
+* Added bounded HTTP availability checks for images linked from published pages, posts and products.
+* Removed all supplier-image indexing and provider image inventory from Images.
+* This release must pass independent WordPress Plugin Check and staging validation before distribution.
+
 
 = 0.1.3 =
 * Read-only Media audit now uses bounded, resumable ID cursors.
