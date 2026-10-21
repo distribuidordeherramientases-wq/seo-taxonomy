@@ -517,6 +517,7 @@ final class TaxoCommerce_Core {
 				'progress'    => 0,
 				'description' => '',
 				'admin_url'   => '',
+				'actions'     => array(),
 			)
 		);
 
@@ -531,7 +532,7 @@ final class TaxoCommerce_Core {
 			'module'      => sanitize_key( (string) $args['module'] ),
 			'status'      => $status,
 			'progress'    => max( 0, min( 100, absint( $args['progress'] ) ) ),
-			'actions'     => is_array( $args['actions'] ) ? $args['actions'] : array(),
+			'actions'     => isset( $args['actions'] ) && is_array( $args['actions'] ) ? $args['actions'] : array(),
 			'description' => sanitize_text_field( (string) $args['description'] ),
 			'admin_url'   => esc_url_raw( (string) $args['admin_url'] ),
 		);
