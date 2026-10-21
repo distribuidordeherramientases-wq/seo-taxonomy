@@ -15,7 +15,7 @@ defined('ABSPATH') || exit;
  * workers que ya controla Academia.
  */
 final class SEO_Dependiente_Actualizacion {
-    const VERSION = '1.0.6';
+    const VERSION = '1.0.7';
     const STATE_OPTION = 'seo_dependiente_academy_update_state';
     const HISTORY_OPTION = 'seo_dependiente_academy_update_history';
     const LAST_SUCCESS_OPTION = 'seo_dependiente_academy_update_last_success';
@@ -413,12 +413,38 @@ final class SEO_Dependiente_Actualizacion {
             wp_send_json_error(array('message' => 'Todavía no existe una actualización para exportar.'), 404);
         }
         $diagnostics = self::build_learning_diagnostics((string) ($state['lesson_key'] ?? ''));
+        // El JSON debe servir también mientras el run sigue activo, no solo al
+        // terminar. El estado de runtime es una foto y no detiene el trabajador.
+        $monitor = SEO_Dependiente_Entrenador::process_monitor_payload();
+        $auto_state = (array) ($monitor['state'] ?? array());
+        $recent_incidents = array();
+        if (function_exists('seo_process_supervisor_incidents')) {
+            foreach (seo_process_supervisor_incidents(100) as $incident) {
+                if ('Academia' === (string) ($incident['process'] ?? '')) {
+                    $recent_incidents[] = $incident;
+                    if (count($recent_incidents) >= 30) {
+                        break;
+                    }
+                }
+            }
+        }
+        $runtime = array(
+            'active_question' => self::active_question_status(),
+            'worker_active' => !empty($auto_state['worker_active']),
+            'worker_heartbeat_ts' => absint($auto_state['worker_heartbeat_ts'] ?? 0),
+            'controller_active' => !empty($auto_state['controller_active']),
+            'controller_heartbeat_ts' => absint($auto_state['controller_heartbeat_ts'] ?? 0),
+            'direct_worker_pending' => !empty($auto_state['direct_worker_pending']),
+            'last_dispatch_result' => sanitize_key((string) ($auto_state['last_dispatch_result'] ?? '')),
+            'incidents' => $recent_incidents,
+        );
         $document = array(
             'schema'         => 'seo-dependiente-academy-update',
             'schema_version' => 2,
             'generated_at'   => current_time('c'),
             'update_version' => self::VERSION,
             'state'          => $state,
+            'runtime'        => $runtime,
             'learning_diagnostics' => $diagnostics,
             'history'        => array_slice((array) get_option(self::HISTORY_OPTION, array()), 0, 10),
         );
