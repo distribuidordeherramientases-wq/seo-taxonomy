@@ -26,6 +26,7 @@ final class SEO_Dependiente_Actualizacion {
     const ACTIVE_QUESTION_OPTION = 'seo_dependiente_academy_update_active_question';
     const SLOW_QUESTION_SECONDS = 300;
     const MAX_FAQ_RETRIES = 3;
+    const UNLEARNED_FAQS_OPTION = 'seo_dependiente_academy_update_unlearned_faqs';
 
     private static $active_question = null;
     private static $question_started = 0.0;
@@ -128,6 +129,61 @@ final class SEO_Dependiente_Actualizacion {
         );
     }
 
+
+    /**
+     * A FAQ is considered learned only when a real Academy run passed.
+     * An unresolved FAQ is skipped until its content or canonical owner changes.
+     */
+    private static function faq_fingerprint($row) {
+        return hash('sha256', wp_json_encode(array(
+            absint($row['object_type'] ?? 0),
+            absint($row['object_id'] ?? 0),
+            (string) ($row['question'] ?? ''),
+            (string) ($row['answer'] ?? ''),
+            (string) ($row['ambito'] ?? ''),
+        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private static function remember_unlearned_faq($faq_id, $reason) {
+        global $wpdb;
+        $faq_id = absint($faq_id);
+        if (!$faq_id) return;
+        $table = esc_sql($wpdb->prefix . 'seo_faq');
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT id,object_type,object_id,question,answer,ambito FROM {$table} WHERE id=%d",
+            $faq_id
+        ), ARRAY_A);
+        // ambito is optional in the existing FAQ schema.
+        if (!$row && class_exists('SEO_Dependiente_Index')) {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT id,object_type,object_id,question,answer FROM {$table} WHERE id=%d",
+                $faq_id
+            ), ARRAY_A);
+        }
+        if (!$row) return;
+        $previous = get_option(self::UNLEARNED_FAQS_OPTION, array());
+        $previous = is_array($previous) ? $previous : array();
+        $previous[$faq_id] = array(
+            'fingerprint' => self::faq_fingerprint($row),
+            'reason' => sanitize_key((string) $reason),
+            'at' => current_time('mysql'),
+        );
+        update_option(self::UNLEARNED_FAQS_OPTION, $previous, false);
+        $state = self::state();
+        $unlearned = is_array($state['unlearned_faqs'] ?? null) ? $state['unlearned_faqs'] : array();
+        $unlearned[$faq_id] = sanitize_key((string) $reason);
+        self::save_state(array('unlearned_faqs' => $unlearned));
+    }
+
+    private static function forget_unlearned_faq($faq_id) {
+        $faq_id = absint($faq_id);
+        $previous = get_option(self::UNLEARNED_FAQS_OPTION, array());
+        if (is_array($previous) && isset($previous[$faq_id])) {
+            unset($previous[$faq_id]);
+            update_option(self::UNLEARNED_FAQS_OPTION, $previous, false);
+        }
+    }
+
     private static function recover_unfinished_question($state) {
         $previous = get_option(self::ACTIVE_QUESTION_OPTION, array());
         if (!is_array($previous) || empty($previous['started_at'])) {
@@ -138,9 +194,24 @@ final class SEO_Dependiente_Actualizacion {
             self::log_incident(
                 'warning',
                 'academy_question_interrupted',
-                'La pregunta anterior quedó sin cierre confirmado. Puede tratarse de un timeout o de una interrupción; comprobar el log PHP.',
+                'La pregunta anterior quedó sin cierre confirmado.',
                 self::question_context($previous, $elapsed)
             );
+            if (6 === absint($previous['module'] ?? 0) && 'faq' === (string) ($previous['source_type'] ?? '')) {
+                $attempts = (array) ($state['faq_failures'] ?? array());
+                $question_id = absint($previous['question_id'] ?? 0);
+                if ($question_id && absint($attempts[$question_id] ?? 0) >= self::MAX_FAQ_RETRIES + 1) {
+                    $learned = SEO_Dependiente_Entrenador::update_abandon_interrupted_faq(
+                        $question_id,
+                        (string) ($state['lesson_key'] ?? '')
+                    );
+                    if (!$learned) {
+                        self::remember_unlearned_faq(absint($previous['source_id'] ?? 0), 'interrupted_after_retries');
+                    }
+                    unset($attempts[$question_id]);
+                    self::save_state(array('faq_failures' => $attempts));
+                }
+            }
         }
         delete_option(self::ACTIVE_QUESTION_OPTION);
     }
@@ -622,6 +693,19 @@ final class SEO_Dependiente_Actualizacion {
             : ($module >= 4 ? 1 : (2 === $module ? 40 : (3 === $module ? 80 : self::RUN_BATCH)));
         $questions = SEO_Dependiente_Entrenador::update_pending_questions($lesson_key, $module, $run_batch);
         foreach ($questions as $question) {
+            if (!self::is_running() || (string) (self::state()['run_id'] ?? '') !== (string) ($state['run_id'] ?? '')) {
+                return array('done'=>true, 'delay'=>0, 'message'=>'Actualización detenida.');
+            }
+            $attempt = 0;
+            if (6 === $module && 'faq' === sanitize_key((string) ($question['source_type'] ?? ''))) {
+                $live = self::state();
+                $attempts = is_array($live['faq_failures'] ?? null) ? $live['faq_failures'] : array();
+                $question_id = absint($question['id'] ?? 0);
+                $attempt = absint($attempts[$question_id] ?? 0) + 1;
+                $attempts[$question_id] = $attempt;
+                // Persist BEFORE evaluation, including for a PHP kill/timeout.
+                self::save_state(array('faq_failures'=>$attempts));
+            }
             self::begin_question($state, $module, $question);
             try {
                 $question_type = sanitize_key((string) ($question['question_type'] ?? ''));
@@ -633,6 +717,21 @@ final class SEO_Dependiente_Actualizacion {
                     SEO_Dependiente_Entrenador::update_run_feature_question($question, $batch_uuid);
                 } elseif (5 === $module && 'editorial_semantic' === $question_type) {
                     SEO_Dependiente_Entrenador::update_run_editorial_question($question, $batch_uuid);
+                } elseif (6 === $module && 'faq_owner_context' === $question_type) {
+                    $outcome = SEO_Dependiente_Entrenador::update_run_faq_question(
+                        $question, $batch_uuid, $attempt >= self::MAX_FAQ_RETRIES + 1
+                    );
+                    if (!empty($outcome['learned'])) {
+                        self::forget_unlearned_faq(absint($question['source_id'] ?? 0));
+                    } elseif (!empty($outcome['unlearned'])) {
+                        self::remember_unlearned_faq(absint($question['source_id'] ?? 0), 'no_resolution_after_retries');
+                    }
+                    if (!empty($outcome['learned']) || !empty($outcome['unlearned'])) {
+                        $fresh = self::state();
+                        $attempts = is_array($fresh['faq_failures'] ?? null) ? $fresh['faq_failures'] : array();
+                        unset($attempts[absint($question['id'] ?? 0)]);
+                        self::save_state(array('faq_failures'=>$attempts));
+                    }
                 } else {
                     SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
                 }
@@ -641,6 +740,9 @@ final class SEO_Dependiente_Actualizacion {
                 throw $error;
             }
             self::finish_question();
+            if (!self::is_running() || (string) (self::state()['run_id'] ?? '') !== (string) ($state['run_id'] ?? '')) {
+                return array('done'=>true, 'delay'=>0, 'message'=>'Actualización detenida.');
+            }
         }
 
         $summary = SEO_Dependiente_Entrenador::update_module_summary($lesson_key, $module);
@@ -650,7 +752,7 @@ final class SEO_Dependiente_Actualizacion {
                 array('run_id' => (string) ($state['run_id'] ?? ''), 'module' => $module, 'total_errors' => absint($summary['errors'] ?? 0))
             );
         }
-        foreach (array('total','answered','passed','failed','errors') as $key) {
+        foreach (array('total','answered','passed','failed','errors','unlearned') as $key) {
             $module_state[$key] = absint($summary[$key] ?? 0);
         }
         $answered_now = absint($summary['answered'] ?? 0);
@@ -683,8 +785,13 @@ final class SEO_Dependiente_Actualizacion {
             return array('done' => false, 'delay' => 1, 'message' => 'Ejecutando M' . $module . '.');
         }
 
-        $total = max(1, absint($summary['total'] ?? 0));
+        // Unlearned FAQs are recorded and excluded from the gate denominator;
+        // they do not count as passed and cannot stall the following modules.
+        $total = max(1, absint($summary['total'] ?? 0) - (6 === $module ? absint($summary['unlearned'] ?? 0) : 0));
         $pass_ratio = absint($summary['passed'] ?? 0) / $total;
+        if (6 === $module && absint($summary['unlearned'] ?? 0) >= absint($summary['total'] ?? 0)) {
+            $pass_ratio = 1.0; // No evaluable FAQ remains; all are explicitly listed as unlearned.
+        }
         $min_pass = SEO_Dependiente_Entrenador::update_module_min_pass($module);
         if (absint($summary['errors'] ?? 0) > 0 || $pass_ratio < $min_pass) {
             SEO_Dependiente_Entrenador::update_clear_staged_rules($lesson_key);
