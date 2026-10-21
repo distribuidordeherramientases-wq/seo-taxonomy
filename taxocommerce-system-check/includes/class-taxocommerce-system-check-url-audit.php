@@ -168,7 +168,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $table = self::table( 'runs' );
         // Older GitHub scans also count: do not run two resource-heavy scans together.
         return (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$table} WHERE status IN ('queued','running')"
+            "SELECT COUNT(*) FROM {$table} WHERE status IN ('queued','running','paused')"
         ) > 0;
     }
 
