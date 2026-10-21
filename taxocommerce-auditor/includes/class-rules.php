@@ -347,7 +347,7 @@ final class Rules {
             $findings[] = self::finding( 'product_no_stable_sku', 'low', 'product', $id, $title, 'SKU vacío; puede ser legítimo para algunos productos.', 'Comprobar si existe otro identificador estable en el proveedor.' );
         }
         if ( 0 === $vocab ) {
-            $findings[] = self::finding( 'product_without_native_vocabulary', 'low', 'product', $id, $title, 'No hay términos tc_semantic_tag aprobados asignados.', 'Revisar las propuestas del Clasificador sin asignar etiquetas automáticamente.' );
+            $findings[] = self::finding( 'product_without_native_vocabulary', 'low', 'product', $id, $title, 'No hay términos tc_semantic_tag asignados.', 'Revisar las propuestas del Clasificador sin asignar etiquetas automáticamente.' );
         }
 
         return array(
@@ -468,7 +468,7 @@ final class Rules {
             $findings[] = self::finding( 'editorial_thin_content', 'low', $type, $id, $title, 'Texto corto: ' . mb_strlen( $body, 'UTF-8' ) . ' caracteres.', 'Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras SEO.' );
         }
         if ( 0 === $vocab && mb_strlen( $body, 'UTF-8' ) >= 120 ) {
-            $findings[] = self::finding( 'editorial_without_native_vocabulary', 'low', $type, $id, $title, 'Sin etiquetas semánticas aprobadas.', 'Revisar Vocabulary y añadir solo términos pertinentes.' );
+            $findings[] = self::finding( 'editorial_without_native_vocabulary', 'low', $type, $id, $title, 'Sin etiquetas semánticas asignadas.', 'Revisar Vocabulary y añadir solo términos pertinentes.' );
         }
         if ( 'page' === $type ) {
             // A missing role is evaluated once by Editorial_Specialist.
@@ -494,7 +494,7 @@ final class Rules {
                 if ( $native_terms && ! $matched ) {
                     $findings[] = self::finding(
                         'editorial_vocab_title_drift', 'low', $type, $id, $title,
-                        'Las etiquetas aprobadas no encuentran apoyo en el título o resumen.',
+                        'Las etiquetas asignadas no encuentran apoyo en el título o resumen.',
                         'Revisar las etiquetas y la intención antes de modificar el contenido.'
                     );
                 }
@@ -560,9 +560,22 @@ final class Rules {
                     );
                 } else {
                     $owner_key = $type . ':' . $owner_id;
-                    $owner_text = 'product' === $type
-                        ? (string) get_the_title( $owner_id )
-                        : (string) get_term( $owner_id, 'product_cat' )->name;
+                    $owner_text = '';
+                    if ( 'product' === $type ) {
+                        $owner_text = (string) get_the_title( $owner_id );
+                        if ( function_exists( 'wc_get_product' ) ) {
+                            $owner_product = wc_get_product( $owner_id );
+                            if ( $owner_product ) {
+                                $owner_text .= ' ' . self::text( $owner_product->get_short_description() )
+                                    . ' ' . self::text( $owner_product->get_description() );
+                            }
+                        }
+                    } else {
+                        $owner_term = get_term( $owner_id, 'product_cat' );
+                        if ( $owner_term instanceof \WP_Term ) {
+                            $owner_text = $owner_term->name . ' ' . self::text( $owner_term->description );
+                        }
+                    }
                     if ( count( self::tokens( $title ) ) >= 2 ) {
                         $alignment = self::title_alignment( $title, $owner_text );
                         if ( null !== $alignment && $alignment < 0.08 ) {
