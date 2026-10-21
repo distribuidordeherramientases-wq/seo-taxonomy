@@ -26,7 +26,11 @@ function taxocommerce_system_check_boot() {
     $legacy_active = defined( 'SEO_SYSTEM_FILE' )
         && wp_normalize_path( (string) SEO_SYSTEM_FILE ) !== wp_normalize_path( TAXOCOMMERCE_SYSTEM_CHECK_FILE );
 
-    if ( ! $legacy_active ) {
+    // The installed legacy plugin owns SEO_SYSTEM_* constants, even when
+    // temporarily inactive (for example during WordPress activation sandbox).
+    // Never claim its global namespace from this independent extension.
+    $legacy_installed = is_readable( WP_PLUGIN_DIR . '/seo-taxonomy/seo-taxonomy.php' );
+    if ( ! $legacy_active && ! $legacy_installed ) {
         if ( ! defined( 'SEO_SYSTEM_FILE' ) ) {
             define( 'SEO_SYSTEM_FILE', TAXOCOMMERCE_SYSTEM_CHECK_FILE );
         }
