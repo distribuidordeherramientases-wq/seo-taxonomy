@@ -1,0 +1,47 @@
+/* Only loaded on TaxoCommerce Auditor admin screens. */
+.taxocommerce-auditor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+.taxocommerce-auditor-card.card {
+    box-sizing: border-box;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    padding: 20px;
+    border-radius: 6px;
+}
+.taxocommerce-auditor-card h2 {
+    margin: 0 0 12px;
+    line-height: 1.35;
+}
+.taxocommerce-auditor-card p {
+    margin: 0 0 14px;
+}
+.taxocommerce-auditor-card form {
+    display: inline-block;
+    margin: 0 8px 8px 0;
+}
+.taxocommerce-auditor-table {
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 12px 0 24px;
+}
+.taxocommerce-auditor-table table {
+    min-width: 850px;
+}
+.taxocommerce-auditor-table td,
+.taxocommerce-auditor-table th {
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+@media (max-width: 782px) {
+    .taxocommerce-auditor-grid {
+        grid-template-columns: 1fr;
+    }
+    .taxocommerce-auditor-card.card {
+        padding: 16px;
+    }
+}
