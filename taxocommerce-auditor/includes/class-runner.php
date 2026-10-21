@@ -394,23 +394,28 @@ final class Runner {
                 $type = $object instanceof \WP_Term ? 'product_cat' : ( 'products' === $scope ? 'product' : ( 'faqs' === $scope ? 'faq' : ( 'pages' === $scope ? 'page' : 'post' ) ) );
                 $title = $object instanceof \WP_Term ? (string) $object->name : (string) $object->post_title;
                 $key = (string) ( $analysis['title_key'] ?? '' );
+                $duplicate_title = false;
+                $canonical_overlap = false;
                 if ( '' !== $key ) {
-                    if ( isset( $state['seen_titles'][ $key ] ) && absint( $state['seen_titles'][ $key ] ) !== $id ) {
+                    $identity_hash = md5( $key ); // Bounded exact-title index, not used for security.
+                    if ( isset( $state['seen_titles'][ $identity_hash ] ) && absint( $state['seen_titles'][ $identity_hash ] ) !== $id ) {
+                        $duplicate_title = true;
                         self::add_finding( $state, array(
                             'code' => 'duplicate_title_candidate',
                             'severity' => 'medium',
                             'entity_type' => $type,
                             'entity_id' => $id,
                             'title' => $title,
-                            'evidence' => 'Título normalizado igual al objeto #' . absint( $state['seen_titles'][ $key ] ) . ' del mismo bloque.',
+                            'evidence' => 'Título normalizado igual al objeto #' . absint( $state['seen_titles'][ $identity_hash ] ) . ' del mismo bloque.',
                             'recommendation' => 'Verificar si son variantes legítimas o duplicados que compiten por la misma intención.',
                         ) );
                     } elseif ( count( $state['seen_titles'] ) < self::MAX_INDEXED_TITLES ) {
-                        $state['seen_titles'][ $key ] = $id;
+                        $state['seen_titles'][ $identity_hash ] = $id;
                     }
                     if ( in_array( $scope, array( 'posts', 'pages' ), true ) && isset( $state['canonical_owners'][ $key ] ) ) {
                         $owner = $state['canonical_owners'][ $key ];
                         if ( ! ( 'page' === $type && 'page' === $owner['entity_type'] && $id === absint( $owner['entity_id'] ) ) ) {
+                            $canonical_overlap = true;
                             self::add_finding( $state, array(
                                 'code' => 'editorial_canonical_overlap_candidate',
                                 'severity' => 'high',
@@ -426,7 +431,13 @@ final class Runner {
                 foreach ( (array) ( $analysis['findings'] ?? array() ) as $finding ) {
                     self::add_finding( $state, $finding );
                 }
-                self::append_quality( $state, $scope, $object, $analysis['quality'] ?? null );
+                $quality = $analysis['quality'] ?? null;
+                if ( is_array( $quality ) && ( $duplicate_title || $canonical_overlap ) ) {
+                    $quality['dimensions']['differentiation'] = $duplicate_title ? 5 : 10;
+                    $quality['score'] = array_sum( $quality['dimensions'] );
+                    $quality['band'] = Rules::band( $quality['score'] );
+                }
+                self::append_quality( $state, $scope, $object, $quality );
             }
             if ( 'categories' === $scope ) {
                 $state['cursor'] = absint( $state['cursor'] ) + count( $objects );
