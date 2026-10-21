@@ -260,22 +260,16 @@ final class Runner {
     }
 
     private static function add_finding( &$state, $row ) {
-        $severity = sanitize_key( (string) ( $row['severity'] ?? 'info' ) );
-        $severity = isset( $state['severity_counts'][ $severity ] ) ? $severity : 'info';
-        $code = sanitize_key( (string) ( $row['code'] ?? 'unknown' ) );
-        $priority = 'critical' === $severity || 'high' === $severity ? 'P1' : ( 'medium' === $severity ? 'P2' : ( 'low' === $severity ? 'P4' : 'P5' ) );
-        $weights = array( 'critical' => 50, 'high' => 40, 'medium' => 30, 'low' => 20, 'info' => 10 );
-        $row['severity'] = $severity;
-        $row['code'] = $code;
-        $row['priority'] = $priority;
-        $row['priority_score'] = $weights[ $severity ];
-        $row['status'] = 'REVIEW_REQUIRED';
-        $row['ready_now'] = false; // All editorial changes require human verification.
-        $row['evidence'] = mb_substr( (string) ( $row['evidence'] ?? '' ), 0, 300, 'UTF-8' );
+        $row = Priority::decorate( (array) $row );
+        $severity = $row['severity'];
+        $code = $row['code'];
+        $priority = $row['priority'];
+        $row['evidence'] = mb_substr( (string) ( $row['evidence'] ?? '' ), 0, 350, 'UTF-8' );
 
         $state['finding_count']++;
         $state['severity_counts'][ $severity ]++;
-        $state['rule_counts'][ $code ] = (int) ( $state['rule_counts'][ $code ] ?? 0 ) + 1;
+        $state['rule_counts'][ $code ] = absint( $state['rule_counts'][ $code ] ?? 0 ) + 1;
+        $state['priority_counts'][ $priority ] = absint( $state['priority_counts'][ $priority ] ?? 0 ) + 1;
         $state['findings'][] = $row;
     }
 
