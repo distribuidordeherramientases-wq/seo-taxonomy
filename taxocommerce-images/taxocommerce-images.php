@@ -27,8 +27,10 @@ require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-inve
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/legacy-optimizer-ajax.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-audit.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-actions.php';
+require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-thumbnails.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images.php';
 
+TaxoCommerce_Images_Thumbnails::boot();
 TaxoCommerce_Images::instance()->boot();
 
 register_activation_hook(
