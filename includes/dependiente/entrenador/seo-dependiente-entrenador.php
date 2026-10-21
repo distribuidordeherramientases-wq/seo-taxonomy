@@ -1743,8 +1743,10 @@ final class SEO_Dependiente_Entrenador {
      */
     public static function process_control_stop() {
         $state = self::auto_state();
-        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
-            return new WP_Error('academy_completed', 'La Academia ya está completada.');
+        // The initial curriculum may be complete while its continuous update is active.
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))
+            && !(class_exists('SEO_Dependiente_Actualizacion') && SEO_Dependiente_Actualizacion::is_running())) {
+            return array('stopped' => true, 'message' => 'No hay formación activa.');
         }
 
         if ('stopped' === sanitize_key((string) ($state['status'] ?? '')) && empty($state['enabled'])) {
