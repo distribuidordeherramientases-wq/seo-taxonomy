@@ -25,6 +25,7 @@ final class SEO_Dependiente_Actualizacion {
     const MAX_EXAM_ITEMS = 500;
     const ACTIVE_QUESTION_OPTION = 'seo_dependiente_academy_update_active_question';
     const SLOW_QUESTION_SECONDS = 300;
+    const MAX_FAQ_RETRIES = 3;
 
     private static $active_question = null;
     private static $question_started = 0.0;
@@ -33,6 +34,7 @@ final class SEO_Dependiente_Actualizacion {
 
     public static function init() {
         add_action('wp_ajax_seo_dependiente_actualizacion_start', array(__CLASS__, 'ajax_start'));
+        add_action('wp_ajax_seo_dependiente_actualizacion_stop', array(__CLASS__, 'ajax_stop'));
         add_action('wp_ajax_seo_dependiente_actualizacion_export', array(__CLASS__, 'ajax_export'));
     }
 
@@ -58,6 +60,8 @@ final class SEO_Dependiente_Actualizacion {
             'merge'          => array(),
             'last_message'   => '',
             'last_error'     => '',
+            'faq_failures'  => array(),
+            'unlearned_faqs' => array(),
         );
         $state = get_option(self::STATE_OPTION, array());
         return wp_parse_args(is_array($state) ? $state : array(), $defaults);
@@ -265,6 +269,7 @@ final class SEO_Dependiente_Actualizacion {
                 </div>
                 <div class="seo-dependiente-trainer__update-actions">
                     <button type="button" class="button button-primary" data-trainer-update-start <?php disabled(!$available || $running); ?>><?php echo $running ? 'Actualización en curso…' : 'Actualizar conocimiento'; ?></button>
+                    <button type="button" class="button" data-trainer-update-stop <?php disabled(!$running); ?>>Detener actualización</button>
                     <button type="button" class="button" data-trainer-update-export <?php disabled(empty($state['run_id'])); ?>>Descargar informe JSON</button>
                     <span class="description">El informe incluye el detalle real de fallos, diagnóstico y fuente formativa para poder revisar qué necesita aprender mejor.</span>
                 </div>
@@ -282,6 +287,10 @@ final class SEO_Dependiente_Actualizacion {
                     <span><strong>Frecuencia recomendada</strong><?php echo $next_recommended ? 'Próxima: ' . esc_html($next_recommended) : 'Una vez por semana'; ?></span>
                     <?php if (!empty($state['run_id'])) : ?><span><strong>Run</strong><code><?php echo esc_html((string) $state['run_id']); ?></code></span><?php endif; ?>
                 </div>
+
+                <?php if (!empty($state['unlearned_faqs'])) : ?>
+                    <p class="description"><strong>FAQs sin aprender:</strong> <?php echo esc_html(number_format_i18n(count((array) $state['unlearned_faqs']))); ?>. Permanecen pendientes para una futura revisión.</p>
+                <?php endif; ?>
 
                 <?php if ($delta) : ?>
                     <div class="seo-dependiente-trainer__update-delta">
@@ -320,6 +329,31 @@ final class SEO_Dependiente_Actualizacion {
             <?php endif; ?>
         </section>
         <?php
+    }
+
+    public static function ajax_stop() {
+        self::guard_ajax();
+        if (!self::is_running()) {
+            wp_send_json_success(self::payload());
+        }
+        // First stop the scheduler; work already inside PHP may finish one atomic operation.
+        if (class_exists('SEO_Dependiente_Entrenador')) {
+            $result = SEO_Dependiente_Entrenador::process_control_stop();
+            if (is_wp_error($result)) {
+                wp_send_json_error(array('message' => $result->get_error_message()), 409);
+            }
+        }
+        $state = self::state();
+        if (!empty($state['lesson_key'])) {
+            SEO_Dependiente_Entrenador::update_clear_staged_rules((string) $state['lesson_key']);
+        }
+        self::save_state(array(
+            'status' => 'stopped',
+            'phase' => 'stopped',
+            'last_message' => 'Actualización detenida manualmente. El conocimiento activo no se ha modificado. Puedes iniciar una nueva revisión.',
+            'last_error' => '',
+        ));
+        wp_send_json_success(self::payload());
     }
 
     public static function ajax_start() {
@@ -394,8 +428,10 @@ final class SEO_Dependiente_Actualizacion {
             'delta'          => array(),
             'modules'        => $modules,
             'merge'          => array(),
-            'last_message'   => 'Actualización encolada. El Gestor de workers revisará las novedades.',
+            'last_message'   => 'Actualización encolada para revisar novedades.',
             'last_error'     => '',
+            'faq_failures'   => array(),
+            'unlearned_faqs' => array(),
         ));
 
         $queued = SEO_Dependiente_Entrenador::update_queue_worker('Actualización de conocimiento encolada.');
@@ -784,6 +820,9 @@ final class SEO_Dependiente_Actualizacion {
     public static function mark_error($message) {
         $message = sanitize_text_field((string) $message);
         $state = self::state();
+        if ('stopped' === (string) ($state['status'] ?? '')) {
+            return;
+        }
         if (!self::$question_exception_logged) {
             self::log_incident('error', 'academy_update_error', self::safe_error_message($message),
                 array('run_id' => (string) ($state['run_id'] ?? ''), 'module' => absint($state['module'] ?? 0), 'phase' => (string) ($state['phase'] ?? ''))
