@@ -24,7 +24,7 @@ final class SEO_Dependiente_Actualizacion {
     const RUN_BATCH = 3;
     const MAX_EXAM_ITEMS = 500;
     const ACTIVE_QUESTION_OPTION = 'seo_dependiente_academy_update_active_question';
-    const SLOW_QUESTION_SECONDS = 120;
+    const SLOW_QUESTION_SECONDS = 300;
 
     private static $active_question = null;
     private static $question_started = 0.0;
@@ -75,7 +75,6 @@ final class SEO_Dependiente_Actualizacion {
         return $state;
     }
 
-
     /**
      * Solo guarda identificadores, nunca el texto de preguntas o respuestas.
      * El checkpoint permite diagnosticar una petición que muere sin lanzar Throwable.
@@ -105,6 +104,12 @@ final class SEO_Dependiente_Actualizacion {
         if (function_exists('seo_process_supervisor_log')) {
             seo_process_supervisor_log($level, $event, $message, 'Academia', $context);
         }
+    }
+
+    private static function safe_error_message($raw) {
+        $message = sanitize_text_field(substr((string) $raw, 0, 240));
+        $message = preg_replace('~https?://\S+~i', '[URL]', $message);
+        return preg_replace('~(?:/home/|/var/|/tmp/)[^\s]+~i', '[ruta]', $message);
     }
 
     private static function question_context($checkpoint, $elapsed = 0) {
@@ -162,8 +167,7 @@ final class SEO_Dependiente_Actualizacion {
         $checkpoint = self::$active_question;
         $elapsed = max(0, (int) ceil(microtime(true) - self::$question_started));
         if ($error instanceof Throwable) {
-            $reason = sanitize_text_field(substr((string) $error->getMessage(), 0, 240));
-            $reason = preg_replace('~https?://\S+~i', '[URL]', $reason);
+            $reason = self::safe_error_message($error->getMessage());
             self::log_incident(
                 'error',
                 'academy_question_exception',
@@ -559,17 +563,17 @@ final class SEO_Dependiente_Actualizacion {
             self::begin_question($state, $module, $question);
             try {
                 $question_type = sanitize_key((string) ($question['question_type'] ?? ''));
-            if (2 === $module && 'product_identity' === $question_type) {
-                SEO_Dependiente_Entrenador::update_run_inventory_question($question, $batch_uuid);
-            } elseif (3 === $module && in_array($question_type, array('tipo','rol','type_role'), true)) {
-                SEO_Dependiente_Entrenador::update_run_type_role_question($question, $batch_uuid);
-            } elseif (4 === $module && 0 === strpos($question_type, 'features_')) {
-                SEO_Dependiente_Entrenador::update_run_feature_question($question, $batch_uuid);
-            } elseif (5 === $module && 'editorial_semantic' === $question_type) {
-                SEO_Dependiente_Entrenador::update_run_editorial_question($question, $batch_uuid);
-            } else {
-                SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
-            }
+                if (2 === $module && 'product_identity' === $question_type) {
+                    SEO_Dependiente_Entrenador::update_run_inventory_question($question, $batch_uuid);
+                } elseif (3 === $module && in_array($question_type, array('tipo','rol','type_role'), true)) {
+                    SEO_Dependiente_Entrenador::update_run_type_role_question($question, $batch_uuid);
+                } elseif (4 === $module && 0 === strpos($question_type, 'features_')) {
+                    SEO_Dependiente_Entrenador::update_run_feature_question($question, $batch_uuid);
+                } elseif (5 === $module && 'editorial_semantic' === $question_type) {
+                    SEO_Dependiente_Entrenador::update_run_editorial_question($question, $batch_uuid);
+                } else {
+                    SEO_Dependiente_Entrenador::update_run_question($question, $batch_uuid);
+                }
             } catch (Throwable $error) {
                 self::finish_question($error);
                 throw $error;
@@ -755,7 +759,7 @@ final class SEO_Dependiente_Actualizacion {
         $message = sanitize_text_field((string) $message);
         $state = self::state();
         if (!self::$question_exception_logged) {
-            self::log_incident('error', 'academy_update_error', substr($message, 0, 240),
+            self::log_incident('error', 'academy_update_error', self::safe_error_message($message),
                 array('run_id' => (string) ($state['run_id'] ?? ''), 'module' => absint($state['module'] ?? 0), 'phase' => (string) ($state['phase'] ?? ''))
             );
         }
