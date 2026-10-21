@@ -631,6 +631,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
         }
         seo_health_scan_maybe_upgrade();
 
+        if ( function_exists( 'taxocommerce_core' ) && in_array( $task, array( 'start', 'resume', 'cancel' ), true ) ) {
+            self::redirect_notice( $scope, 'Gestiona los trabajos desde TaxoCommerce Core → Procesos automáticos.', true );
+        }
         if ( 'start' === $task ) {
             $result = self::start( $scope );
             self::redirect_notice( $scope, is_wp_error( $result )
@@ -826,12 +829,16 @@ final class TaxoCommerce_System_Check_URL_Audit {
         echo '<p><strong>Cobertura histórica:</strong> ' . esc_html( number_format_i18n( $coverage, 1 ) ) . '% (' . esc_html( number_format_i18n( $checked ) ) . '/' . esc_html( number_format_i18n( $total ) ) . ')</p>';
 
         echo '<div class="tcs-actions">';
-        self::action_button( $scope, 'start', 'Iniciar chequeo de todas las URL', $busy, true );
-        self::action_button( $scope, 'sync', 'Actualizar inventario', $busy );
-        if ( $active && 'local' === (string) $active['mode'] ) {
-            self::action_button( $scope, 'resume', 'Reanudar trabajador', false );
-            self::action_button( $scope, 'cancel', 'Cancelar chequeo', false );
+        if ( function_exists( 'taxocommerce_core' ) ) {
+            echo '<a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-core-processes' ) ) . '">Gestionar proceso en Core</a>';
+        } else {
+            self::action_button( $scope, 'start', 'Iniciar chequeo de todas las URL', $busy, true );
+            if ( $active && 'local' === (string) $active['mode'] ) {
+                self::action_button( $scope, 'resume', 'Reanudar trabajador', false );
+                self::action_button( $scope, 'cancel', 'Cancelar chequeo', false );
+            }
         }
+        self::action_button( $scope, 'sync', 'Actualizar inventario', $busy );
         echo '</div>';
         if ( $active ) {
             echo '<p class="description"><strong>En curso:</strong> ' . esc_html( number_format_i18n( (int) $active['processed_items'] ) )

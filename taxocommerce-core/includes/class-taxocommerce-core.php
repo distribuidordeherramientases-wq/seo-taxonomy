@@ -126,6 +126,7 @@ final class TaxoCommerce_Core {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
 		add_filter( 'admin_body_class', array( $this, 'family_body_class' ) );
 		add_action( 'admin_post_taxocommerce_core_clear_logs', array( $this, 'clear_logs' ) );
+		add_action( 'admin_post_taxocommerce_core_process_action', array( $this, 'handle_process_action' ) );
 		add_action( 'admin_post_taxocommerce_core_activate_extension', array( $this, 'activate_extension' ) );
 		add_action( 'admin_post_taxocommerce_core_deactivate_extension', array( $this, 'deactivate_extension' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_CORE_BASENAME, array( $this, 'plugin_action_links' ) );
@@ -281,6 +282,7 @@ final class TaxoCommerce_Core {
 				'status'      => 'active',
 				'description' => '',
 				'admin_url'   => '',
+				'actions'     => array(),
 			)
 		);
 
@@ -529,10 +531,35 @@ final class TaxoCommerce_Core {
 			'module'      => sanitize_key( (string) $args['module'] ),
 			'status'      => $status,
 			'progress'    => max( 0, min( 100, absint( $args['progress'] ) ) ),
+			'actions'     => is_array( $args['actions'] ) ? $args['actions'] : array(),
 			'description' => sanitize_text_field( (string) $args['description'] ),
 			'admin_url'   => esc_url_raw( (string) $args['admin_url'] ),
 		);
 		return true;
+	}
+
+	/** Execute only actions registered by a trusted module. */
+	public function handle_process_action() {
+		$this->guard();
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'No autorizado.', 'taxocommerce-core' ) );
+		}
+		check_admin_referer( 'taxocommerce_core_process_action', 'taxocommerce_core_process_nonce' );
+		$process_id = isset( $_POST['process_id'] ) ? sanitize_key( wp_unslash( $_POST['process_id'] ) ) : '';
+		$command = isset( $_POST['command'] ) ? sanitize_key( wp_unslash( $_POST['command'] ) ) : '';
+		$process = isset( $this->processes[ $process_id ] ) ? $this->processes[ $process_id ] : array();
+		$callback = isset( $process['actions'][ $command ] ) ? $process['actions'][ $command ] : null;
+		if ( ! is_callable( $callback ) ) {
+			wp_die( esc_html__( 'Acción no disponible para este proceso.', 'taxocommerce-core' ) );
+		}
+		$result = call_user_func( $callback );
+		$url = add_query_arg( array(
+			'page' => 'taxocommerce-core-processes',
+			'tc_process_notice' => is_wp_error( $result ) ? 'error' : 'ok',
+			'tc_process_message' => is_wp_error( $result ) ? $result->get_error_message() : 'Acción enviada al trabajador.',
+		), admin_url( 'admin.php' ) );
+		wp_safe_redirect( $url );
+		exit;
 	}
 
 	/**
@@ -696,7 +723,19 @@ final class TaxoCommerce_Core {
 								<td><?php echo esc_html( $process['status'] ); ?></td>
 								<td><?php echo esc_html( (string) absint( $process['progress'] ?? 0 ) ); ?>%</td>
 								<td><?php echo esc_html( (string) ( $process['description'] ?? '' ) ); ?></td>
-								<td><?php if ( ! empty( $process['admin_url'] ) ) : ?><a class="button button-small" href="<?php echo esc_url( $process['admin_url'] ); ?>"><?php echo esc_html__( 'Abrir', 'taxocommerce-core' ); ?></a><?php else : ?>—<?php endif; ?></td>
+								<td>
+								<?php if ( ! empty( $process['admin_url'] ) ) : ?><a class="button button-small" href="<?php echo esc_url( $process['admin_url'] ); ?>"><?php echo esc_html__( 'Abrir', 'taxocommerce-core' ); ?></a><?php endif; ?>
+								<?php foreach ( (array) ( $process['actions'] ?? array() ) as $command => $callback ) : ?>
+									<?php if ( ! is_callable( $callback ) ) { continue; } ?>
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin:2px">
+										<input type="hidden" name="action" value="taxocommerce_core_process_action">
+										<input type="hidden" name="process_id" value="<?php echo esc_attr( $process['id'] ); ?>">
+										<input type="hidden" name="command" value="<?php echo esc_attr( $command ); ?>">
+										<?php wp_nonce_field( 'taxocommerce_core_process_action', 'taxocommerce_core_process_nonce' ); ?>
+										<button class="button button-small"><?php echo esc_html( ucfirst( $command ) ); ?></button>
+									</form>
+								<?php endforeach; ?>
+							</td>
 							</tr>
 						<?php endforeach; ?>
 					<?php endif; ?>
