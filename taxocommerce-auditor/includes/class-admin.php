@@ -209,8 +209,10 @@ final class Admin {
         }
         check_admin_referer( 'taxocommerce_auditor_action_' . $scope );
         if ( 'start' === $task ) {
-            Runner::start( $scope );
-            Runner::run_batch( $scope );
+            if ( ! Runner::start( $scope ) ) {
+                wp_die( esc_html__( 'Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote antes de reiniciarla.', 'taxocommerce-auditor' ), '', array( 'response' => 409 ) );
+            }
+            // WP-Cron ejecutará el primer lote fuera de esta petición.
         } elseif ( 'step' === $task ) {
             Runner::run_batch( $scope );
         } elseif ( 'pause' === $task ) {
