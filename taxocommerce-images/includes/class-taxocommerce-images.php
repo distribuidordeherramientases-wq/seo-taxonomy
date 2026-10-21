@@ -191,9 +191,9 @@ final class TaxoCommerce_Images {
 
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'summary'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		$tabs = array(
-			'summary'    => __( 'Resumen', 'taxocommerce-images' ),
-			'audit'      => __( 'Auditoría', 'taxocommerce-images' ),
-			'library'    => __( 'Biblioteca', 'taxocommerce-images' ),
+			'summary'    => __( 'Inventario', 'taxocommerce-images' ),
+			'audit'      => __( 'Anomalías', 'taxocommerce-images' ),
+			'library'    => __( 'Media local', 'taxocommerce-images' ),
 			'thumbnails' => __( 'Miniaturas', 'taxocommerce-images' ),
 			'settings'   => __( 'Ajustes', 'taxocommerce-images' ),
 		);
@@ -245,12 +245,30 @@ final class TaxoCommerce_Images {
 	 * @return void
 	 */
 	private function render_summary() {
+		$formats = TaxoCommerce_Images_Inventory::formats();
+		$sources = TaxoCommerce_Images_Inventory::external_sources();
+		?>
+		<h2><?php esc_html_e( 'Formatos en Media local', 'taxocommerce-images' ); ?></h2>
+		<div class="tcc-stat-grid">
+			<?php foreach ( array( 'jpeg' => 'JPEG', 'png' => 'PNG', 'webp' => 'WebP', 'avif' => 'AVIF', 'other' => __( 'Otros', 'taxocommerce-images' ) ) as $type => $label ) : ?>
+				<div class="card"><strong style="display:block;font-size:24px;"><?php echo esc_html( number_format_i18n( $formats[ $type ] ) ); ?></strong><?php echo esc_html( $label ); ?></div>
+			<?php endforeach; ?>
+		</div>
+		<h2><?php esc_html_e( 'Fuentes externas (integración opcional)', 'taxocommerce-images' ); ?></h2>
+		<p><?php esc_html_e( 'Las imágenes externas no son archivos locales. Su inventario es de solo lectura.', 'taxocommerce-images' ); ?></p>
+		<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Proveedor', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Imágenes', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Productos', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Sin producto', 'taxocommerce-images' ); ?></th></tr></thead><tbody>
+		<?php foreach ( $sources as $source ) : ?>
+			<tr><td><?php echo esc_html( $source['name'] ?? '' ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $source['images'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $source['products'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $source['unlinked'] ?? 0 ) ) ); ?></td></tr>
+		<?php endforeach; ?>
+		<?php if ( ! $sources ) : ?><tr><td colspan="4"><?php esc_html_e( 'No hay fuentes externas conectadas.', 'taxocommerce-images' ); ?></td></tr><?php endif; ?>
+		</tbody></table>
+		<?php
 		$total_images = $this->image_count();
 		$audit        = $this->audit->state();
 		$summary      = isset( $audit['summary'] ) && is_array( $audit['summary'] ) ? $audit['summary'] : array();
 		$cards        = array(
 			__( 'Imágenes en Media', 'taxocommerce-images' )       => $total_images,
-			__( 'Productos sin imagen', 'taxocommerce-images' )    => $this->products_without_featured_image_count(),
+			__( 'Productos sin imagen destacada', 'taxocommerce-images' )    => $this->products_without_featured_image_count(),
 			__( 'Sin ALT', 'taxocommerce-images' )                 => $summary['missing_alt'] ?? '—',
 			__( 'Sin asociación padre', 'taxocommerce-images' )    => $summary['unattached'] ?? '—',
 			__( 'Archivo físico ausente', 'taxocommerce-images' )  => $summary['missing_file'] ?? '—',
