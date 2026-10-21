@@ -1018,7 +1018,8 @@ final class SEO_Dependiente_Actualizacion {
         if (self::table_exists($faq)) {
             // A review is based on the last PASSED evaluation of each FAQ, not
             // on owner changes or the date of an unrelated global review.
-            // This includes newly created FAQs with no passing history.
+            // For historical FAQs without a passing run, use the course cutoff:
+            // old unchanged inventory must not trigger mass retraining.
             $questions_table = esc_sql(SEO_Dependiente_Entrenador::questions_table());
             $runs_table = esc_sql(SEO_Dependiente_Entrenador::runs_table());
             $faq_scope_select = $wpdb->get_var($wpdb->prepare(
@@ -1026,7 +1027,7 @@ final class SEO_Dependiente_Actualizacion {
             )) ? 'f.ambito' : "'' AS ambito";
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- All identifiers are internal table names.
             $pending_faqs = (array) $wpdb->get_results(
-                "SELECT f.id,f.object_type,f.object_id,f.question,f.answer,{$faq_scope_select},f.updated_at,learned.last_pass
+                "SELECT f.id,f.object_type,f.object_id,f.question,f.answer,{$faq_scope_select},f.created_at,f.updated_at,learned.last_pass
                  FROM {$faq} f
                  LEFT JOIN (
                      SELECT q.source_id, MAX(r.created_at) AS last_pass
@@ -1038,9 +1039,13 @@ final class SEO_Dependiente_Actualizacion {
                      GROUP BY q.source_id
                  ) learned ON learned.source_id=f.id
                  WHERE f.active=1 AND f.object_type IN (2,3)
-                   AND (learned.last_pass IS NULL OR f.updated_at > learned.last_pass)
+                   AND (
+                       (learned.last_pass IS NOT NULL AND f.updated_at > learned.last_pass)
+                       OR (learned.last_pass IS NULL AND (f.created_at > %s OR f.updated_at > %s))
+                   )
                  ORDER BY f.id ASC",
-                ARRAY_A
+                $cutoff_local, $cutoff_local
+            ), ARRAY_A
             );
             $previously_unlearned = get_option(self::UNLEARNED_FAQS_OPTION, array());
             $previously_unlearned = is_array($previously_unlearned) ? $previously_unlearned : array();
