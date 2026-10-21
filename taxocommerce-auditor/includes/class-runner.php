@@ -208,6 +208,18 @@ final class Runner {
         wp_clear_scheduled_hook( self::HOOK, array( $scope ) );
     }
 
+    public static function resume( $scope ) {
+        if ( ! self::valid_scope( $scope ) ) {
+            return;
+        }
+        $state = self::state( $scope );
+        if ( 'paused' === (string) ( $state['status'] ?? '' ) ) {
+            $state['status'] = 'queued';
+            update_option( self::option( $scope, 'state' ), $state, false );
+            self::enqueue( $scope );
+        }
+    }
+
     /**
      * Seek by post ID to avoid large OFFSET queries for 10k+ products.
      * The filter applies exclusively to this one WP_Query instance.
