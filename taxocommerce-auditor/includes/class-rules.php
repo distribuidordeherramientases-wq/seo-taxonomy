@@ -446,11 +446,9 @@ final class Rules {
         $title = trim( (string) $post->post_title );
         $slug = trim( (string) $post->post_name );
         $role = sanitize_key( (string) get_post_meta( $id, '_taxocommerce_core_seo_role', true ) );
-        $functional_slugs = array( 'carrito', 'cart', 'checkout', 'finalizar-compra', 'my-account', 'mi-cuenta', 'blog', 'shop', 'tienda' );
-        $corporate_slugs = array( 'inicio', 'contacto', 'quienes-somos', 'nosotros', 'politica-de-privacidad', 'terminos-y-condiciones', 'devoluciones-y-reembolsos' );
-
-        // Functional and corporate pages are not SEO editorial targets.
-        if ( 'page' === $type && ( in_array( $slug, $functional_slugs, true ) || in_array( $slug, $corporate_slugs, true ) || 'corporate_page' === $role ) ) {
+        // Preserve the comprehensive functional/corporate exclusions from
+        // the original editorial specialist; do not assess them as SEO content.
+        if ( 'page' === $type && in_array( Editorial_Specialist::page_kind( $post ), array( 'functional', 'corporate' ), true ) ) {
             return array( 'excluded' => true, 'reason' => 'Página funcional o corporativa.' );
         }
 
@@ -467,15 +465,13 @@ final class Rules {
             $findings[] = self::finding( 'editorial_missing_slug', 'high', $type, $id, $title, 'Slug vacío.', 'Comprobar la URL de esta publicación.' );
         }
         if ( mb_strlen( $body, 'UTF-8' ) < 120 ) {
-            $findings[] = self::finding( 'editorial_short_content_review', 'low', $type, $id, $title, 'Texto corto: ' . mb_strlen( $body, 'UTF-8' ) . ' caracteres.', 'Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras SEO.' );
+            $findings[] = self::finding( 'editorial_thin_content', 'low', $type, $id, $title, 'Texto corto: ' . mb_strlen( $body, 'UTF-8' ) . ' caracteres.', 'Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras SEO.' );
         }
         if ( 0 === $vocab && mb_strlen( $body, 'UTF-8' ) >= 120 ) {
             $findings[] = self::finding( 'editorial_without_native_vocabulary', 'low', $type, $id, $title, 'Sin etiquetas semánticas aprobadas.', 'Revisar Vocabulary y añadir solo términos pertinentes.' );
         }
         if ( 'page' === $type ) {
-            if ( '' === $role ) {
-                $findings[] = self::finding( 'page_role_review', 'low', $type, $id, $title, 'La página no tiene rol de Core.', 'Clasificar su función: estructural, landing o editorial.' );
-            }
+            // A missing role is evaluated once by Editorial_Specialist.
             $parent_meta = array(
                 'hub_primary'   => '_taxocommerce_core_parent_cluster',
                 'hub_secondary' => '_taxocommerce_core_parent_hub_primary',
@@ -485,6 +481,26 @@ final class Rules {
                 $findings[] = self::finding( 'page_missing_native_parent', 'medium', $type, $id, $title, 'Hub sin padre identificado en post_meta de Core.', 'Verificar el vínculo nativo con el nivel superior antes de modificar la jerarquía.' );
             }
         }
+        if ( $vocab > 0 ) {
+            $native_terms = wp_get_object_terms( $id, 'tc_semantic_tag', array( 'fields' => 'names' ) );
+            if ( ! is_wp_error( $native_terms ) ) {
+                $matched = false;
+                foreach ( (array) $native_terms as $name ) {
+                    if ( self::tag_supported( $name, $title . ' ' . $excerpt ) ) {
+                        $matched = true;
+                        break;
+                    }
+                }
+                if ( $native_terms && ! $matched ) {
+                    $findings[] = self::finding(
+                        'editorial_vocab_title_drift', 'low', $type, $id, $title,
+                        'Las etiquetas aprobadas no encuentran apoyo en el título o resumen.',
+                        'Revisar las etiquetas y la intención antes de modificar el contenido.'
+                    );
+                }
+            }
+        }
+
         $alignment = self::title_alignment( $title, $body );
         if ( null !== $alignment && mb_strlen( $body, 'UTF-8' ) >= 140 && $alignment < 0.1 ) {
             $findings[] = self::finding( 'editorial_title_content_drift', 'medium', $type, $id, $title, 'Poca coincidencia entre palabras específicas del título y texto.', 'Revisar si la publicación satisface su intención original.' );
@@ -493,6 +509,7 @@ final class Rules {
         return array(
             'findings'  => $findings,
             'title_key' => self::identity_key( $title ),
+            'template_key' => self::template_signature( $body, $title ),
             'quality'   => self::quality( $type, $title, $body, $excerpt, true, $has_structure, $vocab, $slug, array( 'technical' => '' !== $post->post_name ) ),
         );
     }
