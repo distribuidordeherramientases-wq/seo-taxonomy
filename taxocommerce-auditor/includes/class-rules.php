@@ -200,7 +200,8 @@ final class Rules {
         if ( $count > 0 && $count < 5 ) {
             $findings[] = self::finding( 'category_small_review', 'low', 'product_cat', $id, $title, 'Recuento nativo: ' . $count . ' productos.', 'Comprobar si conviene mantenerla o concentrarla con una categoría hermana.' );
         }
-        if ( $term->parent > 0 && ! get_term( $term->parent, 'product_cat' ) ) {
+        $parent_term = $term->parent > 0 ? get_term( $term->parent, 'product_cat' ) : null;
+        if ( $term->parent > 0 && ( ! $parent_term || is_wp_error( $parent_term ) ) ) {
             $findings[] = self::finding( 'category_parent_unavailable', 'high', 'product_cat', $id, $title, 'Categoría padre no encontrada.', 'Comprobar la jerarquía nativa de producto.' );
         }
         if ( $count > 0 && taxonomy_exists( 'tc_semantic_tag' ) && 0 === $vocab ) {
