@@ -15,6 +15,11 @@ jobs:
       - name: Checkout staging
         uses: actions/checkout@v4
 
+      - name: Validate Auditor PHP before any STAGING FTP upload
+        run: |
+          find taxocommerce-auditor -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php taxocommerce-auditor/tests/smoke.php
+
       - name: Deploy TaxoCommerce SEO to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -40,6 +45,7 @@ jobs:
             taxocommerce-import-export/**
             taxocommerce-system-check/**
             taxocommerce-templates/**
+            taxocommerce-auditor/**
             packages/**
             **/node_modules/**
             **/*.bak
@@ -174,6 +180,27 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Deploy TaxoCommerce Auditor to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-auditor/
+          server-dir: ./wp-content/plugins/taxocommerce-auditor/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
             **/*.bak
             **/*.md
             **/*.pot

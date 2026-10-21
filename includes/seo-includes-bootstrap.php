@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/class-seo-updater.php';
+require_once dirname( __DIR__ ) . '/includes/class-seo-updater.php';
 
 add_action(
     'plugins_loaded',
@@ -27,8 +27,8 @@ add_action(
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/seo-install.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-core.php';
+require_once dirname( __DIR__ ) . '/includes/seo-install.php';
+require_once dirname( __DIR__ ) . '/includes/seo-core.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -36,12 +36,12 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-core.php';
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'functions.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-file-uploads.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-text-utils.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-vocabulary-bridge.php';
-require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-health-scan.php';
-require_once SEO_SYSTEM_PATH . 'includes/procesos/class-seo-managed-service-process.php';
+require_once dirname( __DIR__ ) . '/functions.php';
+require_once dirname( __DIR__ ) . '/includes/seo-file-uploads.php';
+require_once dirname( __DIR__ ) . '/includes/seo-text-utils.php';
+require_once dirname( __DIR__ ) . '/includes/seo-vocabulary-bridge.php';
+require_once dirname( __DIR__ ) . '/includes/system-check/seo-health-scan.php';
+require_once dirname( __DIR__ ) . '/includes/procesos/class-seo-managed-service-process.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -49,13 +49,13 @@ require_once SEO_SYSTEM_PATH . 'includes/procesos/class-seo-managed-service-proc
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/template-loader.php';
-require_once SEO_SYSTEM_PATH . 'includes/template-manager.php';
-require_once SEO_SYSTEM_PATH . 'includes/template-mail.php';
-require_once SEO_SYSTEM_PATH . 'includes/pages-schema.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-page-vocabulary-editor.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-content-vocabulary.php';
-require_once SEO_SYSTEM_PATH . 'includes/pages-admin.php';
+require_once dirname( __DIR__ ) . '/includes/template-loader.php';
+require_once dirname( __DIR__ ) . '/includes/template-manager.php';
+require_once dirname( __DIR__ ) . '/includes/template-mail.php';
+require_once dirname( __DIR__ ) . '/includes/pages-schema.php';
+require_once dirname( __DIR__ ) . '/includes/seo-page-vocabulary-editor.php';
+require_once dirname( __DIR__ ) . '/includes/seo-content-vocabulary.php';
+require_once dirname( __DIR__ ) . '/includes/pages-admin.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -63,8 +63,8 @@ require_once SEO_SYSTEM_PATH . 'includes/pages-admin.php';
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/seo-image-inventory.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-images.php';
+require_once dirname( __DIR__ ) . '/includes/seo-image-inventory.php';
+require_once dirname( __DIR__ ) . '/includes/seo-images.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -74,7 +74,7 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-images.php';
 
 // Subsistema de productos centralizado.
 // Incluye clasificacion, atributos, alta/edicion, inventario, informes y administracion.
-require_once SEO_SYSTEM_PATH . 'includes/productos/product-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/productos/product-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -85,7 +85,7 @@ require_once SEO_SYSTEM_PATH . 'includes/productos/product-bootstrap.php';
 // Subsistema de categorias centralizado en includes/categorias/.
 // El bootstrap canonico carga clasificacion, informacion relacionada,
 // informes y administracion desde su propia carpeta.
-require_once SEO_SYSTEM_PATH . 'includes/categorias/category-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/categorias/category-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -95,16 +95,16 @@ require_once SEO_SYSTEM_PATH . 'includes/categorias/category-bootstrap.php';
 /**
  * Data Layer transaccional.
  */
-require_once SEO_SYSTEM_PATH . 'includes/data-layer/data-layer-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/data-layer/data-layer-bootstrap.php';
 
 // Clonador determinista PRO -> STAGING.
-require_once SEO_SYSTEM_PATH . 'includes/clonador/clonador-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/clonador/clonador-bootstrap.php';
 
-require_once SEO_SYSTEM_PATH . 'includes/seo-export.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-database-report.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-database-clean.php';
+require_once dirname( __DIR__ ) . '/includes/seo-export.php';
+require_once dirname( __DIR__ ) . '/includes/seo-database-report.php';
+require_once dirname( __DIR__ ) . '/includes/seo-database-clean.php';
 
-require_once SEO_SYSTEM_PATH . 'includes/ojeador/ojeador-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/ojeador/ojeador-bootstrap.php';
 
 
 
@@ -114,7 +114,7 @@ require_once SEO_SYSTEM_PATH . 'includes/ojeador/ojeador-bootstrap.php';
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/admin-redirects.php';
+require_once dirname( __DIR__ ) . '/includes/admin-redirects.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -122,10 +122,10 @@ require_once SEO_SYSTEM_PATH . 'includes/admin-redirects.php';
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/seo-search.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-marketing.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-faq.php';
-require_once SEO_SYSTEM_PATH . 'includes/comentarista/comentarista-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/seo-search.php';
+require_once dirname( __DIR__ ) . '/includes/seo-marketing.php';
+require_once dirname( __DIR__ ) . '/includes/seo-faq.php';
+require_once dirname( __DIR__ ) . '/includes/comentarista/comentarista-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -133,7 +133,7 @@ require_once SEO_SYSTEM_PATH . 'includes/comentarista/comentarista-bootstrap.php
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/dependiente/seo-dependiente-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/dependiente/seo-dependiente-bootstrap.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -141,28 +141,28 @@ require_once SEO_SYSTEM_PATH . 'includes/dependiente/seo-dependiente-bootstrap.p
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/seo-reports.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-report-classification.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-dashboard.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
-require_once SEO_SYSTEM_PATH . 'includes/analista/analista-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/seo-reports.php';
+require_once dirname( __DIR__ ) . '/includes/seo-report-classification.php';
+require_once dirname( __DIR__ ) . '/includes/seo-dashboard.php';
+require_once dirname( __DIR__ ) . '/includes/seo-google-info.php';
+require_once dirname( __DIR__ ) . '/includes/analista/analista-bootstrap.php';
 
 // Comparador: inteligencia comparativa persistente por categoria y contrato para Solucionador.
-require_once SEO_SYSTEM_PATH . 'includes/comparador/comparador-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/comparador/comparador-bootstrap.php';
 
 // Solucionador: convierte senales de cliente/mercado en propuestas de posts y borradores clasificados.
-require_once SEO_SYSTEM_PATH . 'includes/solucionador/solucionador-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/solucionador/solucionador-bootstrap.php';
 
 // API neutral de cobertura editorial compartida por procesos especializados.
-require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-coverage.php';
+require_once dirname( __DIR__ ) . '/includes/editorial/class-seo-editorial-coverage.php';
 
 // Ingeniero: servicio técnico/editorial independiente de Dependiente.
-require_once SEO_SYSTEM_PATH . 'includes/ingeniero/ingeniero-bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/ingeniero/ingeniero-bootstrap.php';
 
 // Unified, snapshot-driven editorial proposal bridge. Both services share the landing inventory.
-require_once SEO_SYSTEM_PATH . 'includes/seo-landing-pages.php';
-require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-opportunities.php';
-require_once SEO_SYSTEM_PATH . 'includes/editorial/class-seo-editorial-landings.php';
+require_once dirname( __DIR__ ) . '/includes/seo-landing-pages.php';
+require_once dirname( __DIR__ ) . '/includes/editorial/class-seo-editorial-opportunities.php';
+require_once dirname( __DIR__ ) . '/includes/editorial/class-seo-editorial-landings.php';
 SEO_Editorial_Opportunities::init();
 SEO_Editorial_Landings::init();
 
@@ -172,12 +172,12 @@ SEO_Editorial_Landings::init();
 |--------------------------------------------------------------------------
 */
 
-require_once SEO_SYSTEM_PATH . 'includes/seo-menu-admin.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-tags-vocabulary-admin.php';
-require_once SEO_SYSTEM_PATH . 'includes/procesos/bootstrap.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-logistica.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-transporte.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
+require_once dirname( __DIR__ ) . '/includes/seo-menu-admin.php';
+require_once dirname( __DIR__ ) . '/includes/seo-tags-vocabulary-admin.php';
+require_once dirname( __DIR__ ) . '/includes/procesos/bootstrap.php';
+require_once dirname( __DIR__ ) . '/includes/seo-logistica.php';
+require_once dirname( __DIR__ ) . '/includes/seo-transporte.php';
+require_once dirname( __DIR__ ) . '/includes/seo-admin.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -185,6 +185,6 @@ require_once SEO_SYSTEM_PATH . 'includes/seo-admin.php';
 |--------------------------------------------------------------------------
 */
 
-//require_once SEO_SYSTEM_PATH . 'includes/seo-server-status.php';
-require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-core-validation.php';
-require_once SEO_SYSTEM_PATH . 'includes/system-check/seo-system-diagnostics-reporting.php';
+//require_once dirname( __DIR__ ) . '/includes/seo-server-status.php';
+require_once dirname( __DIR__ ) . '/includes/system-check/seo-core-validation.php';
+require_once dirname( __DIR__ ) . '/includes/system-check/seo-system-diagnostics-reporting.php';

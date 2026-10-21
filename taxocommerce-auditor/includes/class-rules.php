@@ -1,0 +1,326 @@
+<?php
+/**
+ * Native, read-only content checks adapted from the legacy five-block Auditor.
+ *
+ * Findings are review signals, not automatic editorial changes or Google scores.
+ */
+
+namespace TaxoCommerce\Auditor;
+
+defined( 'ABSPATH' ) || exit;
+
+final class Rules {
+    const DIMENSIONS = array(
+        'utility'         => 25,
+        'trust'           => 20,
+        'differentiation' => 20,
+        'architecture'    => 20,
+        'technical'       => 15,
+    );
+
+    public static function band( $score ) {
+        if ( null === $score ) {
+            return 'no_aplica';
+        }
+        if ( $score >= 85 ) {
+            return 'fuerte';
+        }
+        if ( $score >= 70 ) {
+            return 'correcta';
+        }
+        return $score >= 55 ? 'mejorable' : 'debil';
+    }
+
+    /**
+     * Consistent exact-intent key for cross-object duplicate review.
+     */
+    public static function identity_key( $title ) {
+        $title = mb_strtolower( remove_accents( wp_strip_all_tags( (string) $title ) ), 'UTF-8' );
+        $title = preg_replace( '/[^\p{L}\p{N}]+/u', ' ', $title );
+        return trim( preg_replace( '/\s+/u', ' ', (string) $title ) );
+    }
+
+    private static function text( $value ) {
+        return trim( wp_strip_all_tags( strip_shortcodes( (string) $value ) ) );
+    }
+
+    private static function tokens( $value ) {
+        $stop = array( 'para', 'como', 'con', 'sin', 'sobre', 'este', 'esta', 'estos', 'estas', 'producto', 'productos', 'herramientas', 'herramienta', 'the', 'and', 'for', 'with', 'und', 'der', 'die', 'das', 'pour', 'avec', 'voor' );
+        $words = preg_split( '/\s+/u', self::identity_key( $value ) );
+        $out = array();
+        foreach ( (array) $words as $word ) {
+            if ( mb_strlen( $word, 'UTF-8' ) >= 4 && ! in_array( $word, $stop, true ) ) {
+                $out[ $word ] = true;
+                if ( count( $out ) >= 25 ) {
+                    break;
+                }
+            }
+        }
+        return array_keys( $out );
+    }
+
+    /**
+     * Measures how much of the specific title is supported by a description.
+     * It is a heuristic only: weak alignment requires human verification.
+     */
+    public static function title_alignment( $title, $description ) {
+        $a = self::tokens( $title );
+        $b = self::tokens( $description );
+        if ( count( $a ) < 2 || ! $b ) {
+            return null;
+        }
+        return count( array_intersect( $a, $b ) ) / count( $a );
+    }
+
+    private static function finding( $code, $severity, $type, $id, $title, $evidence, $recommendation ) {
+        return array(
+            'code'           => $code,
+            'severity'       => $severity,
+            'entity_type'    => $type,
+            'entity_id'      => absint( $id ),
+            'title'          => (string) $title,
+            'evidence'       => (string) $evidence,
+            'recommendation' => (string) $recommendation,
+        );
+    }
+
+    /**
+     * The new Vocabulary owns tc_semantic_tag assignments. A missing plugin is
+     * unavailable evidence, never treated as a missing assignment.
+     */
+    private static function vocabulary_count( $type, $id ) {
+        if ( ! taxonomy_exists( 'tc_semantic_tag' ) ) {
+            return null;
+        }
+        if ( 'product_cat' === $type || 'category' === $type ) {
+            $ids = get_term_meta( $id, '_taxocommerce_vocabulary_semantic_terms', true );
+            return is_array( $ids ) ? count( array_filter( array_map( 'absint', $ids ) ) ) : 0;
+        }
+        $ids = wp_get_object_terms( $id, 'tc_semantic_tag', array( 'fields' => 'ids' ) );
+        return is_wp_error( $ids ) ? null : count( (array) $ids );
+    }
+
+    private static function quality( $type, $title, $body, $excerpt, $has_identity, $has_structure, $vocab_count, $slug, $extra = array() ) {
+        $len = mb_strlen( (string) $body, 'UTF-8' );
+        $excerpt_len = mb_strlen( (string) $excerpt, 'UTF-8' );
+        $alignment = self::title_alignment( $title, $excerpt ?: $body );
+        $utility = ( $title !== '' ? 5 : 0 ) + ( $excerpt_len >= 45 ? 5 : ( $excerpt_len > 0 ? 3 : 0 ) )
+            + ( $len >= 250 ? 10 : ( $len >= 100 ? 7 : ( $len > 0 ? 3 : 0 ) ) )
+            + ( count( self::tokens( $body ) ) >= 12 ? 5 : ( $len >= 100 ? 2 : 0 ) );
+        if ( in_array( $type, array( 'post', 'page' ), true ) && $excerpt_len === 0 && $len >= 120 ) {
+            $utility += 3; // Native post excerpts are optional.
+        }
+        $trust = ( $has_identity ? 10 : 3 ) + ( null === $alignment ? 5 : ( $alignment >= 0.2 ? 10 : ( $alignment >= 0.1 ? 6 : 2 ) ) );
+        $architecture = ( $has_structure ? 12 : 4 ) + ( null === $vocab_count ? 8 : ( $vocab_count > 0 ? 8 : 3 ) );
+        $dimensions = array(
+            'utility'         => min( 25, $utility ),
+            'trust'           => min( 20, $trust ),
+            'differentiation' => 15, // Exact duplication is scored separately as a finding.
+            'architecture'    => min( 20, $architecture ),
+            'technical'       => ( $slug !== '' ? 12 : 2 ) + ( ! empty( $extra['technical'] ) ? 3 : 0 ),
+        );
+        $score = array_sum( $dimensions );
+        return array(
+            'score'      => $score,
+            'band'       => self::band( $score ),
+            'dimensions' => $dimensions,
+        );
+    }
+
+    private static function inspect_product( \WP_Post $post ) {
+        $id = $post->ID;
+        $title = trim( (string) $post->post_title );
+        $findings = array();
+        $product = function_exists( 'wc_get_product' ) ? wc_get_product( $id ) : false;
+
+        if ( ! $product ) {
+            $findings[] = self::finding( 'product_unreadable', 'high', 'product', $id, $title, 'WooCommerce no pudo cargar el producto.', 'Revisar integridad del producto antes de editar sus datos.' );
+            return array( 'findings' => $findings, 'quality' => null, 'title_key' => self::identity_key( $title ) );
+        }
+
+        $excerpt = self::text( $product->get_short_description() );
+        $body = self::text( $product->get_description() );
+        $slug = trim( (string) $post->post_name );
+        $cats = $product->get_category_ids();
+        $sku = trim( (string) $product->get_sku() );
+        $vocab = self::vocabulary_count( 'product', $id );
+
+        if ( '' === $title ) {
+            $findings[] = self::finding( 'product_missing_title', 'critical', 'product', $id, $title, 'Título vacío.', 'Asignar un título identificativo.' );
+        }
+        if ( '' === $slug ) {
+            $findings[] = self::finding( 'product_missing_slug', 'high', 'product', $id, $title, 'Slug vacío.', 'Revisar la URL canónica.' );
+        }
+        if ( ! $cats ) {
+            $findings[] = self::finding( 'product_without_category', 'high', 'product', $id, $title, 'Ninguna categoría WooCommerce asignada.', 'Asignar una categoría existente apropiada.' );
+        }
+        if ( '' === $excerpt ) {
+            $findings[] = self::finding( 'product_missing_excerpt', 'medium', 'product', $id, $title, 'Descripción corta vacía.', 'Redactar un resumen específico del producto.' );
+        }
+        if ( '' === $body ) {
+            $findings[] = self::finding( 'product_missing_description', 'medium', 'product', $id, $title, 'Descripción larga vacía.', 'Añadir datos técnicos y comerciales comprobables.' );
+        }
+        $alignment = self::title_alignment( $title, $excerpt );
+        if ( null !== $alignment && mb_strlen( $excerpt, 'UTF-8' ) >= 40 && $alignment < 0.1 ) {
+            $findings[] = self::finding( 'product_excerpt_identity_drift', 'high', 'product', $id, $title, 'Muy pocas palabras del título aparecen en el resumen.', 'Contrastar título y resumen con la fuente original; posible desplazamiento de contenido.' );
+        }
+        if ( '' === $sku ) {
+            $findings[] = self::finding( 'product_no_stable_sku', 'low', 'product', $id, $title, 'SKU vacío; puede ser legítimo para algunos productos.', 'Comprobar si existe otro identificador estable en el proveedor.' );
+        }
+        if ( 0 === $vocab ) {
+            $findings[] = self::finding( 'product_without_native_vocabulary', 'low', 'product', $id, $title, 'No hay términos tc_semantic_tag aprobados asignados.', 'Revisar las propuestas del Clasificador sin asignar etiquetas automáticamente.' );
+        }
+
+        return array(
+            'findings'  => $findings,
+            'title_key' => self::identity_key( $title ),
+            'quality'   => self::quality( 'product', $title, $body, $excerpt, '' !== $sku, (bool) $cats, $vocab, $slug, array( 'technical' => $product->get_image_id() > 0 ) ),
+        );
+    }
+
+    private static function inspect_category( \WP_Term $term ) {
+        $id = $term->term_id;
+        $title = trim( (string) $term->name );
+        $body = self::text( $term->description );
+        $slug = trim( (string) $term->slug );
+        $count = absint( $term->count );
+        $findings = array();
+        $parents = array_filter( array_map( 'absint', (array) get_term_meta( $id, '_taxocommerce_core_parent_hub_secondary', false ) ) );
+        $vocab = self::vocabulary_count( 'product_cat', $id );
+
+        if ( $count > 0 && $body === '' ) {
+            $findings[] = self::finding( 'category_missing_description', 'medium', 'product_cat', $id, $title, 'Categoría con productos y sin descripción.', 'Explicar qué productos comprende y cuáles no.' );
+        }
+        if ( 0 === $count ) {
+            $findings[] = self::finding( 'category_empty', 'low', 'product_cat', $id, $title, 'Recuento nativo de productos: 0.', 'Revisar si está reservada, debe poblarse o retirarse con redirección.' );
+        }
+        if ( $count >= 300 ) {
+            $findings[] = self::finding( 'category_large_review', 'low', 'product_cat', $id, $title, 'Recuento nativo: ' . $count . ' productos.', 'Revisar una posible división por conceptos coherentes; el tamaño por sí solo no la justifica.' );
+        }
+        if ( $count > 0 && $count < 5 ) {
+            $findings[] = self::finding( 'category_small_review', 'low', 'product_cat', $id, $title, 'Recuento nativo: ' . $count . ' productos.', 'Comprobar si conviene mantenerla o concentrarla con una categoría hermana.' );
+        }
+        $parent_term = $term->parent > 0 ? get_term( $term->parent, 'product_cat' ) : null;
+        if ( $term->parent > 0 && ( ! $parent_term || is_wp_error( $parent_term ) ) ) {
+            $findings[] = self::finding( 'category_parent_unavailable', 'high', 'product_cat', $id, $title, 'Categoría padre no encontrada.', 'Comprobar la jerarquía nativa de producto.' );
+        }
+        if ( $count > 0 && taxonomy_exists( 'tc_semantic_tag' ) && 0 === $vocab ) {
+            $findings[] = self::finding( 'category_without_native_vocabulary', 'low', 'product_cat', $id, $title, 'Sin términos semánticos asignados.', 'Revisar asignaciones aprobadas en Vocabulary.' );
+        }
+        if ( $count > 0 && ! $parents && defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+            $findings[] = self::finding( 'category_no_native_secondary_hub', 'low', 'product_cat', $id, $title, 'No consta un Hub secundario en term_meta de Core.', 'Comprobar si el vínculo existe en el modelo nativo o la categoría es deliberadamente independiente.' );
+        }
+
+        return array(
+            'findings'  => $findings,
+            'title_key' => self::identity_key( $title ),
+            'quality'   => self::quality( 'product_cat', $title, $body, '', $count > 0, $count > 0 || $term->parent > 0, $vocab, $slug ),
+        );
+    }
+
+    private static function inspect_editorial( \WP_Post $post, $scope ) {
+        $type = 'pages' === $scope ? 'page' : 'post';
+        $id = $post->ID;
+        $title = trim( (string) $post->post_title );
+        $slug = trim( (string) $post->post_name );
+        $role = sanitize_key( (string) get_post_meta( $id, '_taxocommerce_core_seo_role', true ) );
+        $functional_slugs = array( 'carrito', 'cart', 'checkout', 'finalizar-compra', 'my-account', 'mi-cuenta', 'blog', 'shop', 'tienda' );
+        $corporate_slugs = array( 'inicio', 'contacto', 'quienes-somos', 'nosotros', 'politica-de-privacidad', 'terminos-y-condiciones', 'devoluciones-y-reembolsos' );
+
+        // Functional and corporate pages are not SEO editorial targets.
+        if ( 'page' === $type && ( in_array( $slug, $functional_slugs, true ) || in_array( $slug, $corporate_slugs, true ) || 'corporate_page' === $role ) ) {
+            return array( 'excluded' => true, 'reason' => 'Página funcional o corporativa.' );
+        }
+
+        $body = self::text( $post->post_content );
+        $excerpt = self::text( $post->post_excerpt );
+        $findings = array();
+        $vocab = self::vocabulary_count( $type, $id );
+        $has_structure = true;
+
+        if ( '' === $title ) {
+            $findings[] = self::finding( 'editorial_missing_title', 'critical', $type, $id, $title, 'Título vacío.', 'Definir un título útil para la intención real.' );
+        }
+        if ( '' === $slug ) {
+            $findings[] = self::finding( 'editorial_missing_slug', 'high', $type, $id, $title, 'Slug vacío.', 'Comprobar la URL de esta publicación.' );
+        }
+        if ( mb_strlen( $body, 'UTF-8' ) < 120 ) {
+            $findings[] = self::finding( 'editorial_short_content_review', 'low', $type, $id, $title, 'Texto corto: ' . mb_strlen( $body, 'UTF-8' ) . ' caracteres.', 'Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras SEO.' );
+        }
+        if ( 0 === $vocab && mb_strlen( $body, 'UTF-8' ) >= 120 ) {
+            $findings[] = self::finding( 'editorial_without_native_vocabulary', 'low', $type, $id, $title, 'Sin etiquetas semánticas aprobadas.', 'Revisar Vocabulary y añadir solo términos pertinentes.' );
+        }
+        if ( 'page' === $type ) {
+            if ( '' === $role ) {
+                $findings[] = self::finding( 'page_role_review', 'low', $type, $id, $title, 'La página no tiene rol de Core.', 'Clasificar su función: estructural, landing o editorial.' );
+            }
+            $parent_meta = array(
+                'hub_primary'   => '_taxocommerce_core_parent_cluster',
+                'hub_secondary' => '_taxocommerce_core_parent_hub_primary',
+            );
+            if ( isset( $parent_meta[ $role ] ) && ! array_filter( array_map( 'absint', (array) get_post_meta( $id, $parent_meta[ $role ], false ) ) ) ) {
+                $has_structure = false;
+                $findings[] = self::finding( 'page_missing_native_parent', 'medium', $type, $id, $title, 'Hub sin padre identificado en post_meta de Core.', 'Verificar el vínculo nativo con el nivel superior antes de modificar la jerarquía.' );
+            }
+        }
+        $alignment = self::title_alignment( $title, $body );
+        if ( null !== $alignment && mb_strlen( $body, 'UTF-8' ) >= 140 && $alignment < 0.1 ) {
+            $findings[] = self::finding( 'editorial_title_content_drift', 'medium', $type, $id, $title, 'Poca coincidencia entre palabras específicas del título y texto.', 'Revisar si la publicación satisface su intención original.' );
+        }
+
+        return array(
+            'findings'  => $findings,
+            'title_key' => self::identity_key( $title ),
+            'quality'   => self::quality( $type, $title, $body, $excerpt, true, $has_structure, $vocab, $slug, array( 'technical' => '' !== $post->post_name ) ),
+        );
+    }
+
+    /**
+     * No universal FAQ CPT exists in WordPress. Owner mapping is explicit and
+     * filterable; an unknown schema must not be reported as a broken owner.
+     */
+    private static function inspect_faq( \WP_Post $post ) {
+        $title = trim( (string) $post->post_title );
+        $answer = self::text( $post->post_content );
+        $findings = array();
+        $id = $post->ID;
+        if ( '' === $title ) {
+            $findings[] = self::finding( 'faq_empty_question', 'high', 'faq', $id, $title, 'FAQ sin pregunta.', 'Completar o retirar la pregunta.' );
+        }
+        if ( mb_strlen( $answer, 'UTF-8' ) < 30 ) {
+            $findings[] = self::finding( 'faq_thin_answer', 'medium', 'faq', $id, $title, 'Respuesta ausente o demasiado escueta.', 'Aportar una respuesta concreta y verificable.' );
+        }
+        $owner = apply_filters( 'taxocommerce_auditor_faq_owner', null, $post );
+        if ( is_array( $owner ) && isset( $owner['type'], $owner['id'] ) ) {
+            $type = sanitize_key( (string) $owner['type'] );
+            $owner_id = absint( $owner['id'] );
+            $valid = 'product' === $type
+                ? 'product' === get_post_type( $owner_id )
+                : ( 'product_cat' === $type && term_exists( $owner_id, 'product_cat' ) );
+            if ( ! $valid ) {
+                $findings[] = self::finding( 'faq_orphan_owner', 'critical', 'faq', $id, $title, 'Owner de FAQ no encontrado o de tipo incorrecto.', 'Reasignar al producto o categoría nativa válida; no inferir dueño por similitud.' );
+            }
+        }
+        return array(
+            'findings'  => $findings,
+            'title_key' => self::identity_key( $title ),
+            'quality'   => self::quality( 'faq', $title, $answer, '', true, true, null, trim( (string) $post->post_name ) ),
+        );
+    }
+
+    public static function inspect( $scope, $object ) {
+        if ( 'products' === $scope && $object instanceof \WP_Post ) {
+            return self::inspect_product( $object );
+        }
+        if ( 'categories' === $scope && $object instanceof \WP_Term ) {
+            return self::inspect_category( $object );
+        }
+        if ( in_array( $scope, array( 'posts', 'pages' ), true ) && $object instanceof \WP_Post ) {
+            return self::inspect_editorial( $object, $scope );
+        }
+        if ( 'faqs' === $scope && $object instanceof \WP_Post ) {
+            return self::inspect_faq( $object );
+        }
+        return array( 'excluded' => true, 'reason' => 'Tipo de objeto no reconocido.' );
+    }
+}
