@@ -10,8 +10,21 @@ defined( 'ABSPATH' ) || exit;
 final class Admin {
     public static function register() {
         add_action( 'admin_menu', array( __CLASS__, 'register_menu' ), 70 );
+        add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
         add_action( 'admin_post_taxocommerce_auditor_action', array( __CLASS__, 'handle_action' ) );
         add_action( 'admin_post_taxocommerce_auditor_export', array( __CLASS__, 'handle_export' ) );
+    }
+
+    public static function enqueue( $hook ) {
+        if ( false === strpos( (string) $hook, Plugin::MENU_SLUG ) ) {
+            return;
+        }
+        wp_enqueue_style(
+            'taxocommerce-auditor-admin',
+            plugins_url( 'assets/admin.css', dirname( __DIR__ ) . '/taxocommerce-auditor.php' ),
+            array(),
+            Plugin::VERSION
+        );
     }
 
     private static function guard() {
@@ -81,6 +94,7 @@ final class Admin {
         echo '<p>Auditoría independiente y de solo lectura. Los resultados son señales de revisión humana, no una puntuación de Google. Ninguna auditoría publica, borra, mueve ni redirige contenidos.</p>';
         echo '<p><strong>Fuentes:</strong> WordPress post/term/meta, WooCommerce CRUD, términos y asignaciones del nuevo Vocabulary. No consulta tablas del plugin antiguo.</p>';
 
+        echo '<div class="taxocommerce-auditor-grid">';
         foreach ( Runner::scopes() as $scope => $label ) {
             $state  = Runner::state( $scope );
             $report = Runner::report( $scope );
@@ -88,7 +102,7 @@ final class Admin {
             $count = isset( $state['processed'] ) ? absint( $state['processed'] ) : 0;
             $expected = isset( $state['total'] ) ? absint( $state['total'] ) : null;
 
-            echo '<div class="card"><h2>' . esc_html( $label ) . '</h2>';
+            echo '<div class="card taxocommerce-auditor-card"><h2>' . esc_html( $label ) . '</h2>';
             echo '<p><strong>Estado:</strong> ' . esc_html( self::state_label( $status ) );
             if ( in_array( $status, array( 'queued', 'running', 'paused' ), true ) ) {
                 echo ' · ' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? 'sin recuento disponible' : (string) $expected );
@@ -120,6 +134,8 @@ final class Admin {
             }
             echo '</div>';
         }
+
+        echo '</div>';
 
         if ( $selected ) {
             self::render_report( $selected );
@@ -163,7 +179,7 @@ final class Admin {
             echo '<p>Sin hallazgos en este bloque.</p>';
             return;
         }
-        echo '<table class="widefat striped"><thead><tr><th>Prioridad</th><th>Entidad</th><th>Regla</th><th>Evidencia</th><th>Recomendación</th></tr></thead><tbody>';
+        echo '<div class="taxocommerce-auditor-table"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Entidad</th><th>Regla</th><th>Evidencia</th><th>Recomendación</th></tr></thead><tbody>';
         foreach ( array_slice( $rows, 0, 150 ) as $row ) {
             $type = sanitize_key( (string) ( $row['entity_type'] ?? '' ) );
             $id = absint( $row['entity_id'] ?? 0 );
