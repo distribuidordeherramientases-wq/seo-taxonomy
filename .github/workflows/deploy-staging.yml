@@ -122,6 +122,29 @@ jobs:
             **/*.pot
 
 
+      - name: Validate System Check PHP syntax
+        run: find taxocommerce-system-check -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Deploy TaxoCommerce System Check to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-system-check/
+          server-dir: ./wp-content/plugins/taxocommerce-system-check/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
       - name: Prepare TaxoCommerce Vocabulary package
         run: |
           rm -rf .deploy-vocabulary .deploy-vocabulary.zip
