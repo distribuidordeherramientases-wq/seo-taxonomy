@@ -37,6 +37,7 @@
     const labRunBody = root.querySelector('[data-trainer-lab-run-body]');
     const updateRoot = root.querySelector('[data-trainer-update]');
     const updateStartButton = root.querySelector('[data-trainer-update-start]');
+    const updateStopButton = root.querySelector('[data-trainer-update-stop]');
     const updateExportButton = root.querySelector('[data-trainer-update-export]');
     const updateStatus = root.querySelector('[data-trainer-update-status]');
 
@@ -44,7 +45,7 @@
     let autoRunning = root.dataset.autoRunning === '1';
     let labBatchKey = labRoot ? (labRoot.dataset.labBatchKey || '') : '';
     const baseDisabled = new WeakMap();
-    [prepareButton, runModuleButton, autoButton, manualButton, stopButton, labImportButton, labRescanButton, labExportButton, exportCourseButton, updateStartButton, updateExportButton]
+    [prepareButton, runModuleButton, autoButton, manualButton, stopButton, labImportButton, labRescanButton, labExportButton, exportCourseButton, updateStartButton, updateStopButton, updateExportButton]
         .concat(exportLessonButtons, exportProgressButtons)
         .forEach(function (button) {
             if (button) baseDisabled.set(button, !!button.disabled);
@@ -153,6 +154,7 @@
 
     function setBusy(value) {
         busy = !!value;
+        if (updateStopButton) updateStopButton.disabled = busy || !!baseDisabled.get(updateStopButton);
         if (prepareButton) prepareButton.disabled = busy || autoRunning || !!baseDisabled.get(prepareButton);
         if (runModuleButton) runModuleButton.disabled = busy || autoRunning || !!baseDisabled.get(runModuleButton);
         exportLessonButtons.forEach(function (button) { button.disabled = busy || !!baseDisabled.get(button); });
@@ -733,6 +735,20 @@
         }
     }
 
+    async function stopKnowledgeUpdate() {
+        if (busy || !updateStopButton) return;
+        if (!window.confirm('¿Detener la actualización? Se conserva lo aprendido y no se procesarán más preguntas.')) return;
+        setBusy(true);
+        if (updateStatus) updateStatus.textContent = 'Deteniendo la actualización…';
+        try {
+            await post('seo_dependiente_actualizacion_stop', {});
+            window.location.reload();
+        } catch (error) {
+            if (updateStatus) updateStatus.textContent = 'No se pudo detener: ' + error.message;
+            setBusy(false);
+        }
+    }
+
     async function exportKnowledgeUpdate() {
         if (busy || !updateExportButton) return;
         setBusy(true);
@@ -865,6 +881,7 @@
     labReportButtons.forEach(function (button) { button.addEventListener('click', showLabLearningReport); });
     labRowExportButtons.forEach(function (button) { button.addEventListener('click', exportLabBatchByKey); });
     updateStartButton && updateStartButton.addEventListener('click', startKnowledgeUpdate);
+    updateStopButton && updateStopButton.addEventListener('click', stopKnowledgeUpdate);
     updateExportButton && updateExportButton.addEventListener('click', exportKnowledgeUpdate);
 
     setBusy(false);
