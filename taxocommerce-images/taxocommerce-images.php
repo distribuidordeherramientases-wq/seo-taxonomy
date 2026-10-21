@@ -29,10 +29,12 @@ require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-audi
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-actions.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-thumbnails.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-references.php';
+require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-http.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images.php';
 
 TaxoCommerce_Images_Thumbnails::boot();
 TaxoCommerce_Images_References::boot();
+TaxoCommerce_Images_HTTP::boot();
 TaxoCommerce_Images::instance()->boot();
 
 register_activation_hook(
