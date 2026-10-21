@@ -784,13 +784,12 @@ final class SEO_Dependiente_Actualizacion {
 
         // Unlearned FAQs are recorded and excluded from the gate denominator;
         // they do not count as passed and cannot stall the following modules.
-        $total = max(1, absint($summary['total'] ?? 0) - (6 === $module ? absint($summary['unlearned'] ?? 0) : 0));
-        $pass_ratio = absint($summary['passed'] ?? 0) / $total;
-        if (6 === $module && absint($summary['unlearned'] ?? 0) >= absint($summary['total'] ?? 0)) {
-            $pass_ratio = 1.0; // No evaluable FAQ remains; all are explicitly listed as unlearned.
-        }
+        $evaluable = max(0, absint($summary['total'] ?? 0) - (6 === $module ? absint($summary['unlearned'] ?? 0) : 0));
+        $pass_ratio = $evaluable > 0 ? absint($summary['passed'] ?? 0) / $evaluable : 0.0;
         $min_pass = SEO_Dependiente_Entrenador::update_module_min_pass($module);
-        if (absint($summary['errors'] ?? 0) > 0 || $pass_ratio < $min_pass) {
+        // A module with only unresolved FAQs finishes as 0 learned, not 100% passed.
+        $no_evaluable_faqs = 6 === $module && 0 === $evaluable;
+        if (absint($summary['errors'] ?? 0) > 0 || (!$no_evaluable_faqs && $pass_ratio < $min_pass)) {
             SEO_Dependiente_Entrenador::update_clear_staged_rules($lesson_key);
             $module_state['status'] = 'failed';
             $module_state['pass_ratio'] = round($pass_ratio, 4);
