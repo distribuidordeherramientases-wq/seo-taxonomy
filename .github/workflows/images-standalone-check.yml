@@ -1,0 +1,32 @@
+name: TaxoCommerce Images standalone validation
+
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-images/**'
+      - '.github/workflows/images-standalone-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  images-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax check (Images only)
+        run: find taxocommerce-images -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Ensure standalone package has no monolith includes
+        run: |
+          ! grep -R -nE 'require(_once)? .*seo-taxonomy|include(_once)? .*seo-taxonomy|SEO_SYSTEM_PATH|SEO_SYSTEM_URL|seo_images_[a-zA-Z0-9_]+\\(' taxocommerce-images --include='*.php'
+          test -f taxocommerce-images/taxocommerce-images.php
+      - name: WordPress Plugin Check for standalone Images package
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './taxocommerce-images'
+          slug: taxocommerce-images
+          wp-version: latest
+          ignore-warnings: false
+          ignore-errors: false

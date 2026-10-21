@@ -1,25 +1,28 @@
 <?php
 /**
- * Media-library audit for TaxoCommerce Images.
+ * Read-only, resumable audit of WordPress Media images.
+ *
+ * Based on the checks from the historic SEO Images panel, without any
+ * dependency on TaxoCommerce SEO tables, services or workers.
  *
  * @package TaxoCommerceImages
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+defined( 'ABSPATH' ) || exit;
 
 /**
- * Audits images in bounded admin batches without custom tables.
+ * Bounded Media audit. No writes to attachments or image files.
  */
 final class TaxoCommerce_Images_Audit {
 
 	const STATE_OPTION = 'taxocommerce_images_audit_state';
-	const BATCH_SIZE   = 150;
-	const FINDING_CAP  = 500;
+	const LOCK_OPTION  = 'taxocommerce_images_audit_lock';
+	const SCHEMA       = 3;
+	const BATCH_SIZE   = 75;
+	const FINDING_CAP  = 300;
 
 	/**
-	 * Register audit actions.
+	 * Register authenticated entry points.
 	 *
 	 * @return void
 	 */
@@ -27,10 +30,11 @@ final class TaxoCommerce_Images_Audit {
 		add_action( 'admin_post_taxocommerce_images_start_audit', array( $this, 'handle_start' ) );
 		add_action( 'admin_post_taxocommerce_images_continue_audit', array( $this, 'handle_continue' ) );
 		add_action( 'admin_post_taxocommerce_images_reset_audit', array( $this, 'handle_reset' ) );
+		add_action( 'wp_ajax_taxocommerce_images_audit_step', array( $this, 'handle_ajax_step' ) );
 	}
 
 	/**
-	 * Returns current state.
+	 * Read the persisted snapshot.
 	 *
 	 * @return array
 	 */
@@ -40,203 +44,335 @@ final class TaxoCommerce_Images_Audit {
 	}
 
 	/**
-	 * Start a new audit and process the first batch.
+	 * Names are shared by the dashboard and the audit report.
+	 *
+	 * @return array
+	 */
+	public static function labels() {
+		return array(
+			'unattached'       => __( 'Sin asociación padre (no implica falta de uso)', 'taxocommerce-images' ),
+			'missing_alt'      => __( 'Sin texto ALT', 'taxocommerce-images' ),
+			'missing_file'     => __( 'Archivo físico ausente o ilegible', 'taxocommerce-images' ),
+			'missing_metadata' => __( 'Metadatos de dimensiones ausentes', 'taxocommerce-images' ),
+			'oversized_dims'   => __( 'Dimensiones superiores al límite', 'taxocommerce-images' ),
+			'oversized_bytes'  => __( 'Peso superior al límite', 'taxocommerce-images' ),
+			'missing_sizes'    => __( 'Miniaturas ausentes (en disco o metadatos)', 'taxocommerce-images' ),
+			'generic_title'    => __( 'Título equivalente al nombre del archivo', 'taxocommerce-images' ),
+		);
+	}
+
+	/**
+	 * Begin a fresh scan only after acquiring its lock.
 	 *
 	 * @return void
 	 */
 	public function handle_start() {
 		$this->guard();
 		check_admin_referer( 'taxocommerce_images_start_audit', 'taxocommerce_images_nonce' );
-
-		update_option( self::STATE_OPTION, $this->new_state(), false );
-		$this->process_batch();
+		if ( $this->acquire_lock() ) {
+			try {
+				update_option( self::STATE_OPTION, $this->new_state(), false );
+				$this->process_batch();
+			} finally {
+				$this->release_lock();
+			}
+		}
 		$this->redirect();
 	}
 
 	/**
-	 * Continue current audit.
+	 * Manual fallback if JavaScript is disabled.
 	 *
 	 * @return void
 	 */
 	public function handle_continue() {
 		$this->guard();
 		check_admin_referer( 'taxocommerce_images_continue_audit', 'taxocommerce_images_nonce' );
-
-		$this->process_batch();
+		if ( $this->acquire_lock() ) {
+			try {
+				$this->process_batch();
+			} finally {
+				$this->release_lock();
+			}
+		}
 		$this->redirect();
 	}
 
 	/**
-	 * Reset audit.
+	 * Remove derived audit data, never media files.
 	 *
 	 * @return void
 	 */
 	public function handle_reset() {
 		$this->guard();
 		check_admin_referer( 'taxocommerce_images_reset_audit', 'taxocommerce_images_nonce' );
-		delete_option( self::STATE_OPTION );
+		if ( $this->acquire_lock() ) {
+			try {
+				delete_option( self::STATE_OPTION );
+			} finally {
+				$this->release_lock();
+			}
+		}
 		$this->redirect();
 	}
 
 	/**
-	 * New empty state.
+	 * One authenticated batch per HTTP request.
+	 *
+	 * @return void
+	 */
+	public function handle_ajax_step() {
+		$this->guard();
+		check_ajax_referer( 'taxocommerce_images_audit', 'nonce' );
+		if ( ! $this->acquire_lock() ) {
+			wp_send_json_error( array( 'message' => __( 'Hay otro lote en ejecución.', 'taxocommerce-images' ) ), 409 );
+		}
+		try {
+			$state = $this->process_batch();
+		} finally {
+			$this->release_lock();
+		}
+		wp_send_json_success(
+			array(
+				'status' => sanitize_key( $state['status'] ?? '' ),
+				'scanned' => absint( $state['scanned'] ?? 0 ),
+				'total' => absint( $state['total'] ?? 0 ),
+				'last_id' => absint( $state['last_id'] ?? 0 ),
+			)
+		);
+	}
+
+	/**
+	 * Detect and replace locks orphaned by PHP timeouts.
+	 *
+	 * @return bool
+	 */
+	private function acquire_lock() {
+		$now = time();
+		if ( add_option( self::LOCK_OPTION, $now, '', false ) ) {
+			return true;
+		}
+		$previous = absint( get_option( self::LOCK_OPTION, 0 ) );
+		if ( $previous && $previous < $now - 120 ) {
+			delete_option( self::LOCK_OPTION );
+			return add_option( self::LOCK_OPTION, $now, '', false );
+		}
+		return false;
+	}
+
+	/**
+	 * Release the current batch lock.
+	 *
+	 * @return void
+	 */
+	private function release_lock() {
+		delete_option( self::LOCK_OPTION );
+	}
+
+	/**
+	 * Freeze the largest attachment ID at scan start. Files created later will
+	 * be included in the next run, not injected into this one.
 	 *
 	 * @return array
 	 */
 	private function new_state() {
-		$query = new WP_Query(
-			array(
-				'post_type'      => 'attachment',
-				'post_status'    => 'inherit',
-				'post_mime_type' => 'image',
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'no_found_rows'  => false,
-			)
+		global $wpdb;
+		$counts = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT COUNT(*) AS total, COALESCE(MAX(ID),0) AS max_id
+				 FROM %i
+				 WHERE post_type = %s AND post_status = %s AND post_mime_type LIKE %s',
+				$wpdb->posts,
+				'attachment',
+				'inherit',
+				$wpdb->esc_like( 'image/' ) . '%'
+			),
+			ARRAY_A
 		);
-
+		$labels = array_keys( self::labels() );
+		$summary = array_fill_keys( $labels, 0 );
+		$summary['jpeg_png'] = 0;
+		$summary['webp_avif'] = 0;
 		return array(
-			'status'     => 'running',
-			'page'       => 1,
-			'total'      => absint( $query->found_posts ),
-			'scanned'    => 0,
+			'schema' => self::SCHEMA,
+			'status' => 'running',
+			'last_id' => 0,
+			'max_id' => absint( $counts['max_id'] ?? 0 ),
+			'total' => absint( $counts['total'] ?? 0 ),
+			'scanned' => 0,
 			'started_at' => current_time( 'mysql' ),
 			'updated_at' => current_time( 'mysql' ),
-			'summary'    => array(
-				'unattached'       => 0,
-				'missing_alt'      => 0,
-				'missing_file'     => 0,
-				'oversized_dims'   => 0,
-				'oversized_bytes'  => 0,
-				'missing_sizes'    => 0,
-				'generic_title'    => 0,
-				'jpeg_png'         => 0,
-				'webp_avif'        => 0,
-			),
-			'findings'   => array(
-				'unattached'      => array(),
-				'missing_alt'     => array(),
-				'missing_file'    => array(),
-				'oversized_dims'  => array(),
-				'oversized_bytes' => array(),
-				'missing_sizes'   => array(),
-				'generic_title'   => array(),
-			),
+			'summary' => $summary,
+			'findings' => array_fill_keys( $labels, array() ),
 		);
 	}
 
 	/**
-	 * Process one bounded page of attachments.
+	 * Scan at most BATCH_SIZE image IDs, without OFFSET pagination.
 	 *
-	 * @return void
+	 * @return array
 	 */
 	private function process_batch() {
+		global $wpdb;
 		$state = $this->state();
-		if ( empty( $state ) || 'completed' === ( $state['status'] ?? '' ) ) {
+		if ( self::SCHEMA !== absint( $state['schema'] ?? 0 ) ) {
 			$state = $this->new_state();
 		}
+		if ( 'completed' === ( $state['status'] ?? '' ) ) {
+			return $state;
+		}
 
-		$page  = max( 1, absint( $state['page'] ?? 1 ) );
-		$query = new WP_Query(
-			array(
-				'post_type'              => 'attachment',
-				'post_status'            => 'inherit',
-				'post_mime_type'         => 'image',
-				'posts_per_page'         => self::BATCH_SIZE,
-				'paged'                  => $page,
-				'fields'                 => 'ids',
-				'orderby'                => 'ID',
-				'order'                  => 'ASC',
-				'no_found_rows'          => false,
-				'update_post_meta_cache' => true,
-				'update_post_term_cache' => false,
+		$last_id = absint( $state['last_id'] ?? 0 );
+		$max_id = absint( $state['max_id'] ?? 0 );
+		$ids = $max_id > $last_id
+			? (array) $wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT ID FROM %i
+					 WHERE post_type = %s AND post_status = %s
+					 AND post_mime_type LIKE %s AND ID > %d AND ID <= %d
+					 ORDER BY ID ASC LIMIT %d',
+					$wpdb->posts,
+					'attachment',
+					'inherit',
+					$wpdb->esc_like( 'image/' ) . '%',
+					$last_id,
+					$max_id,
+					self::BATCH_SIZE
+				)
 			)
-		);
+			: array();
 
 		$settings = TaxoCommerce_Images_Actions::settings();
-		foreach ( (array) $query->posts as $attachment_id ) {
-			$this->audit_attachment( absint( $attachment_id ), $state, $settings );
+		$sizes = wp_get_registered_image_subsizes();
+		foreach ( $ids as $id ) {
+			$id = absint( $id );
+			if ( $id <= $last_id ) {
+				continue;
+			}
+			$this->audit_attachment( $id, $state, $settings, $sizes );
+			$state['last_id'] = $id;
+			++$state['scanned'];
 		}
 
-		$state['scanned']    = absint( $state['scanned'] ?? 0 ) + count( $query->posts );
-		$state['total']      = absint( $query->found_posts );
 		$state['updated_at'] = current_time( 'mysql' );
-
-		if ( $page >= max( 1, absint( $query->max_num_pages ) ) || empty( $query->posts ) ) {
-			$state['status']       = 'completed';
+		if ( empty( $ids ) || count( $ids ) < self::BATCH_SIZE || absint( $state['last_id'] ) >= $max_id ) {
+			$state['status'] = 'completed';
 			$state['completed_at'] = current_time( 'mysql' );
-		} else {
-			$state['status'] = 'running';
-			$state['page']   = $page + 1;
 		}
-
 		update_option( self::STATE_OPTION, $state, false );
+		return $state;
 	}
 
 	/**
-	 * Audit one attachment.
+	 * Audit native metadata and files. post_parent is only an association;
+	 * it must never be interpreted as proof of an unused image.
 	 *
-	 * @param int   $attachment_id Attachment ID.
-	 * @param array $state         Audit state by reference.
-	 * @param array $settings      Settings.
+	 * @param int   $id Image ID.
+	 * @param array $state Mutable report.
+	 * @param array $settings Optimization thresholds.
+	 * @param array $sizes Registered sub-sizes, loaded once per batch.
 	 * @return void
 	 */
-	private function audit_attachment( $attachment_id, &$state, $settings ) {
-		$post = get_post( $attachment_id );
-		if ( ! $post instanceof WP_Post ) {
+	private function audit_attachment( $id, &$state, $settings, $sizes ) {
+		$post = get_post( $id );
+		if ( ! $post instanceof WP_Post || ! wp_attachment_is_image( $id ) ) {
 			return;
 		}
 
-		$file      = get_attached_file( $attachment_id );
-		$file_ok   = $file && file_exists( $file );
-		$metadata  = wp_get_attachment_metadata( $attachment_id );
-		$metadata  = is_array( $metadata ) ? $metadata : array();
-		$alt       = trim( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) );
-		$width     = absint( $metadata['width'] ?? 0 );
-		$height    = absint( $metadata['height'] ?? 0 );
+		$file = get_attached_file( $id );
+		$file_ok = is_string( $file ) && '' !== $file && is_file( $file ) && is_readable( $file );
+		$metadata = wp_get_attachment_metadata( $id );
+		$metadata = is_array( $metadata ) ? $metadata : array();
+		$width = absint( $metadata['width'] ?? 0 );
+		$height = absint( $metadata['height'] ?? 0 );
 		$max_width = max( 320, absint( $settings['max_width'] ?? 2000 ) );
-		$max_height= max( 320, absint( $settings['max_height'] ?? 2000 ) );
+		$max_height = max( 320, absint( $settings['max_height'] ?? 2000 ) );
 		$max_bytes = max( 100000, absint( $settings['max_bytes'] ?? 1572864 ) );
-		$bytes     = $file_ok ? (int) filesize( $file ) : 0;
-		$filename  = $file ? pathinfo( $file, PATHINFO_FILENAME ) : '';
-		$title     = trim( (string) $post->post_title );
-		$mime      = strtolower( (string) $post->post_mime_type );
 
 		if ( 0 === absint( $post->post_parent ) ) {
-			$this->flag( $state, 'unattached', $attachment_id );
+			$this->flag( $state, 'unattached', $id );
 		}
-		if ( '' === $alt ) {
-			$this->flag( $state, 'missing_alt', $attachment_id );
+		if ( '' === trim( (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) ) ) {
+			$this->flag( $state, 'missing_alt', $id );
 		}
 		if ( ! $file_ok ) {
-			$this->flag( $state, 'missing_file', $attachment_id );
+			$this->flag( $state, 'missing_file', $id );
+		}
+		if ( 0 === $width || 0 === $height ) {
+			$this->flag( $state, 'missing_metadata', $id );
 		}
 		if ( $width > $max_width || $height > $max_height ) {
-			$this->flag( $state, 'oversized_dims', $attachment_id );
+			$this->flag( $state, 'oversized_dims', $id );
 		}
-		if ( $bytes > $max_bytes ) {
-			$this->flag( $state, 'oversized_bytes', $attachment_id );
+		if ( $file_ok ) {
+			$bytes = filesize( $file );
+			if ( false !== $bytes && $bytes > $max_bytes ) {
+				$this->flag( $state, 'oversized_bytes', $id );
+			}
 		}
-		if ( $this->has_missing_expected_sizes( $metadata ) ) {
-			$this->flag( $state, 'missing_sizes', $attachment_id );
+		if ( $file_ok && $this->has_missing_expected_sizes( $file, $metadata, $sizes ) ) {
+			$this->flag( $state, 'missing_sizes', $id );
 		}
+		$filename = $file_ok ? pathinfo( $file, PATHINFO_FILENAME ) : '';
+		$title = trim( (string) $post->post_title );
 		if ( '' !== $filename && sanitize_title( $filename ) === sanitize_title( $title ) ) {
-			$this->flag( $state, 'generic_title', $attachment_id );
+			$this->flag( $state, 'generic_title', $id );
 		}
 
+		$mime = strtolower( (string) $post->post_mime_type );
 		if ( in_array( $mime, array( 'image/jpeg', 'image/png' ), true ) ) {
-			$state['summary']['jpeg_png'] = absint( $state['summary']['jpeg_png'] ?? 0 ) + 1;
+			++$state['summary']['jpeg_png'];
 		} elseif ( in_array( $mime, array( 'image/webp', 'image/avif' ), true ) ) {
-			$state['summary']['webp_avif'] = absint( $state['summary']['webp_avif'] ?? 0 ) + 1;
+			++$state['summary']['webp_avif'];
 		}
 	}
 
 	/**
-	 * Add one finding and increment its counter.
+	 * Detect absent metadata entries and missing actual thumbnails.
 	 *
-	 * @param array  $state Audit state.
-	 * @param string $key   Finding key.
-	 * @param int    $id    Attachment ID.
+	 * @param string $file Full image path.
+	 * @param array $metadata Native WP attachment metadata.
+	 * @param array $sizes Registered WordPress image sizes.
+	 * @return bool
+	 */
+	private function has_missing_expected_sizes( $file, $metadata, $sizes ) {
+		$width = absint( $metadata['width'] ?? 0 );
+		$height = absint( $metadata['height'] ?? 0 );
+		if ( ! $width || ! $height ) {
+			return false;
+		}
+		$generated = isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) ? $metadata['sizes'] : array();
+
+		// A recorded file is only useful when it physically exists.
+		foreach ( $generated as $entry ) {
+			$name = isset( $entry['file'] ) && is_string( $entry['file'] ) ? $entry['file'] : '';
+			if ( '' === $name || wp_basename( $name ) !== $name || ! is_file( dirname( $file ) . '/' . $name ) ) {
+				return true;
+			}
+		}
+
+		foreach ( $sizes as $name => $size ) {
+			if ( isset( $generated[ $name ] ) ) {
+				continue;
+			}
+			$target_width = absint( $size['width'] ?? 0 );
+			$target_height = absint( $size['height'] ?? 0 );
+			if ( ! $target_width && ! $target_height ) {
+				continue;
+			}
+			if ( image_resize_dimensions( $width, $height, $target_width, $target_height, $size['crop'] ?? false ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Record total occurrences and a bounded sample of IDs.
+	 *
+	 * @param array $state Mutable audit state.
+	 * @param string $key Issue key.
+	 * @param int $id Attachment ID.
 	 * @return void
 	 */
 	private function flag( &$state, $key, $id ) {
@@ -247,53 +383,18 @@ final class TaxoCommerce_Images_Audit {
 	}
 
 	/**
-	 * Check whether registered image sizes that could exist are missing.
-	 *
-	 * @param array $metadata Attachment metadata.
-	 * @return bool
-	 */
-	private function has_missing_expected_sizes( $metadata ) {
-		$width  = absint( $metadata['width'] ?? 0 );
-		$height = absint( $metadata['height'] ?? 0 );
-		if ( ! $width || ! $height ) {
-			return false;
-		}
-
-		$created = isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) ? $metadata['sizes'] : array();
-		foreach ( wp_get_registered_image_subsizes() as $name => $size ) {
-			if ( isset( $created[ $name ] ) ) {
-				continue;
-			}
-
-			$target_width  = absint( $size['width'] ?? 0 );
-			$target_height = absint( $size['height'] ?? 0 );
-			$crop          = $size['crop'] ?? false;
-
-			if ( ! $target_width && ! $target_height ) {
-				continue;
-			}
-
-			if ( image_resize_dimensions( $width, $height, $target_width, $target_height, $crop ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Capability guard.
+	 * Require administrator rights for site-wide scans.
 	 *
 	 * @return void
 	 */
 	private function guard() {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'No tienes permisos para ejecutar la auditoría de imágenes.', 'taxocommerce-images' ) );
+			wp_die( esc_html__( 'No tienes permisos para auditar imágenes.', 'taxocommerce-images' ) );
 		}
 	}
 
 	/**
-	 * Redirect back to audit screen.
+	 * Return to the non-destructive report.
 	 *
 	 * @return void
 	 */

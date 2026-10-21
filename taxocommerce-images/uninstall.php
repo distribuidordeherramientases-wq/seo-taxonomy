@@ -16,3 +16,4 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 delete_option( 'taxocommerce_images_version' );
 delete_option( 'taxocommerce_images_settings' );
 delete_option( 'taxocommerce_images_audit_state' );
+delete_option( 'taxocommerce_images_audit_lock' );

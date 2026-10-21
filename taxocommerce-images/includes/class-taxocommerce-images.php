@@ -307,13 +307,14 @@ final class TaxoCommerce_Images {
 		$state = $this->audit->state();
 		?>
 		<h2><?php echo esc_html__( 'Auditoría de Biblioteca de Medios', 'taxocommerce-images' ); ?></h2>
-		<p><?php echo esc_html__( 'La auditoría trabaja por lotes de 150 imágenes para evitar una operación larga. No borra ni modifica archivos.', 'taxocommerce-images' ); ?></p>
+		<p><?php echo esc_html__( 'La auditoría comprueba archivos originales, metadatos y miniaturas reales por lotes de 75. No borra ni modifica imágenes.', 'taxocommerce-images' ); ?></p>
 
 		<?php if ( empty( $state ) ) : ?>
 			<?php $this->audit_button( 'taxocommerce_images_start_audit', 'taxocommerce_images_start_audit', __( 'Iniciar auditoría', 'taxocommerce-images' ), true ); ?>
 		<?php else : ?>
 			<p><strong><?php echo esc_html__( 'Estado:', 'taxocommerce-images' ); ?></strong> <?php echo esc_html( 'completed' === ( $state['status'] ?? '' ) ? __( 'Completada', 'taxocommerce-images' ) : __( 'En curso', 'taxocommerce-images' ) ); ?> · <?php echo esc_html( absint( $state['scanned'] ?? 0 ) . ' / ' . absint( $state['total'] ?? 0 ) ); ?></p>
 			<?php if ( 'completed' !== ( $state['status'] ?? '' ) ) : ?>
+				<p id="tc-images-audit-progress" aria-live="polite"></p>
 				<?php $this->audit_button( 'taxocommerce_images_continue_audit', 'taxocommerce_images_continue_audit', __( 'Continuar siguiente lote', 'taxocommerce-images' ), true ); ?>
 			<?php endif; ?>
 			<?php $this->audit_button( 'taxocommerce_images_start_audit', 'taxocommerce_images_start_audit', __( 'Reiniciar desde cero', 'taxocommerce-images' ), false ); ?>
@@ -329,6 +330,7 @@ final class TaxoCommerce_Images {
 				'oversized_dims'  => __( 'Dimensiones excesivas', 'taxocommerce-images' ),
 				'oversized_bytes' => __( 'Peso excesivo', 'taxocommerce-images' ),
 				'missing_sizes'   => __( 'Miniaturas incompletas', 'taxocommerce-images' ),
+				'missing_metadata' => __( 'Metadatos de dimensiones ausentes', 'taxocommerce-images' ),
 				'generic_title'   => __( 'Título igual al nombre de archivo', 'taxocommerce-images' ),
 			);
 			?>
@@ -358,6 +360,37 @@ final class TaxoCommerce_Images {
 					</details>
 				<?php endif; ?>
 			<?php endforeach; ?>
+		<?php endif; ?>
+		<?php if ( ! empty( $state ) && 'completed' !== ( $state['status'] ?? '' ) ) : ?>
+		<script>
+		(function () {
+			'use strict';
+			var progress = document.getElementById('tc-images-audit-progress');
+			if (!progress || typeof window.fetch !== 'function') { return; }
+			var endpoint = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+			var token = <?php echo wp_json_encode( wp_create_nonce( 'taxocommerce_images_audit' ) ); ?>;
+			var remaining = true;
+			function step() {
+				if (!remaining) { return; }
+				var params = new URLSearchParams();
+				params.set('action', 'taxocommerce_images_audit_step');
+				params.set('nonce', token);
+				fetch(endpoint, { method: 'POST', credentials: 'same-origin', body: params })
+				.then(function (response) { if (!response.ok) { throw new Error('HTTP ' + response.status); } return response.json(); })
+				.then(function (reply) {
+					if (!reply.success || !reply.data) { throw new Error('Auditoría en pausa'); }
+					progress.textContent = reply.data.scanned + ' / ' + reply.data.total + ' imágenes revisadas';
+					remaining = reply.data.status !== 'completed';
+					if (remaining) { step(); } else { window.location.reload(); }
+				})
+				.catch(function () {
+					remaining = false;
+					progress.textContent = 'Proceso interrumpido; utiliza Continuar siguiente lote para reanudar.';
+				});
+			}
+			step();
+		}());
+		</script>
 		<?php endif; ?>
 		<?php
 	}
