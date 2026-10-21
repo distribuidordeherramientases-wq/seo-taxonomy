@@ -375,11 +375,10 @@ final class Rules {
         if ( 0 === $count ) {
             $findings[] = self::finding( 'category_empty', 'low', 'product_cat', $id, $title, 'Recuento nativo de productos: 0.', 'Revisar si está reservada, debe poblarse o retirarse con redirección.' );
         }
-        if ( $count >= 300 ) {
-            $findings[] = self::finding( 'category_large_review', 'low', 'product_cat', $id, $title, 'Recuento nativo: ' . $count . ' productos.', 'Revisar una posible división por conceptos coherentes; el tamaño por sí solo no la justifica.' );
-        }
-        if ( $count > 0 && $count < 5 ) {
-            $findings[] = self::finding( 'category_small_review', 'low', 'product_cat', $id, $title, 'Recuento nativo: ' . $count . ' productos.', 'Comprobar si conviene mantenerla o concentrarla con una categoría hermana.' );
+        // Category counts and semantically supported split/merge proposals are
+        // assessed in Category_Review, not duplicated as unrelated rules here.
+        if ( 1 === $count ) {
+            $findings[] = self::finding( 'category_single_product', 'low', 'product_cat', $id, $title, 'Una única referencia publicada.', 'Revisar si la categoría aporta navegación o merece una familia más amplia.' );
         }
         $parent_term = $term->parent > 0 ? get_term( $term->parent, 'product_cat' ) : null;
         if ( $term->parent > 0 && ( ! $parent_term || is_wp_error( $parent_term ) ) ) {
@@ -388,6 +387,47 @@ final class Rules {
         if ( $count > 0 && taxonomy_exists( 'tc_semantic_tag' ) && 0 === $vocab ) {
             $findings[] = self::finding( 'category_without_native_vocabulary', 'low', 'product_cat', $id, $title, 'Sin términos semánticos asignados.', 'Revisar asignaciones aprobadas en Vocabulary.' );
         }
+        // A WordPress term has no standard excerpt field. A registered
+        // native-meta provider can supply one; absence is unknown, not empty.
+        $excerpt = apply_filters( 'taxocommerce_auditor_category_excerpt', null, $term );
+        if ( is_string( $excerpt ) ) {
+            $excerpt = self::text( $excerpt );
+            if ( $count > 0 && '' === $excerpt ) {
+                $findings[] = self::finding(
+                    'category_missing_excerpt', 'low', 'product_cat', $id, $title,
+                    'El campo de resumen nativo suministrado está vacío.',
+                    'Redactar un resumen específico para esta familia.'
+                );
+            }
+            $excerpt_alignment = self::title_alignment( $title, $excerpt );
+            if ( mb_strlen( $excerpt, 'UTF-8' ) >= 35 && null !== $excerpt_alignment && $excerpt_alignment < 0.16 ) {
+                $findings[] = self::finding(
+                    'category_excerpt_identity_drift', 'medium', 'product_cat', $id, $title,
+                    'El resumen no parece corresponder al nombre de la categoría.',
+                    'Contrastar el resumen con la familia correcta.'
+                );
+            }
+        } else {
+            $excerpt = '';
+        }
+
+        $description_alignment = self::title_alignment( $title, $body );
+        if ( mb_strlen( $body, 'UTF-8' ) >= 80 && null !== $description_alignment && $description_alignment < 0.08 ) {
+            $findings[] = self::finding(
+                'category_description_alignment_weak', 'low', 'product_cat', $id, $title,
+                'La descripción está poco alineada literalmente con el título.',
+                'Verificar su pertinencia; una explicación técnica válida puede no repetir el título.'
+            );
+        }
+        $slug_alignment = self::title_alignment( $title, str_replace( '-', ' ', $slug ) );
+        if ( null !== $slug_alignment && $slug_alignment < 0.34 ) {
+            $findings[] = self::finding(
+                'category_name_slug_drift', 'low', 'product_cat', $id, $title,
+                'Nombre y slug describen términos distintos.',
+                'Revisar si el slug sigue representando la categoría.'
+            );
+        }
+
         if ( $count > 0 && ! $parents && defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
             $findings[] = self::finding( 'category_no_native_secondary_hub', 'low', 'product_cat', $id, $title, 'No consta un Hub secundario en term_meta de Core.', 'Comprobar si el vínculo existe en el modelo nativo o la categoría es deliberadamente independiente.' );
         }
@@ -395,7 +435,8 @@ final class Rules {
         return array(
             'findings'  => $findings,
             'title_key' => self::identity_key( $title ),
-            'quality'   => self::quality( 'product_cat', $title, $body, '', $count > 0, $count > 0 || $term->parent > 0, $vocab, $slug ),
+            'template_key' => self::template_signature( $body, $title ),
+            'quality'   => self::quality( 'product_cat', $title, $body, $excerpt, $count > 0, $count > 0 || $term->parent > 0, $vocab, $slug ),
         );
     }
 
