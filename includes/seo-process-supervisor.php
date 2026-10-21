@@ -663,6 +663,280 @@ if (!function_exists('seo_process_supervisor_managed_update')) {
     }
 }
 
+
+/**
+ * Foto ligera del progreso real de Academia. Solo lee opciones WordPress;
+ * nunca toca preguntas ni fuerza el arranque de un worker.
+ */
+if (!function_exists('seo_process_supervisor_academy_snapshot')) {
+    function seo_process_supervisor_academy_snapshot() {
+        if (!class_exists('SEO_Dependiente_Entrenador')) {
+            return array();
+        }
+        $runtime = get_option(SEO_Dependiente_Entrenador::AUTO_STATE_OPTION, array());
+        $runtime = is_array($runtime) ? $runtime : array();
+        $update = class_exists('SEO_Dependiente_Actualizacion')
+            ? (array) SEO_Dependiente_Actualizacion::state()
+            : array();
+        $update_status = sanitize_key((string) ($update['status'] ?? ''));
+        $update_pending = in_array($update_status, array('queued', 'running'), true);
+        $module = absint($update['module'] ?? 0);
+        $modules = is_array($update['modules'] ?? null) ? $update['modules'] : array();
+        $module_data = is_array($modules[$module] ?? null) ? $modules[$module] : array();
+        $run_id = sanitize_text_field((string) ($update['run_id'] ?? ''));
+        $answered = absint($module_data['answered'] ?? 0);
+        $total = absint($module_data['total'] ?? 0);
+        $now = time();
+
+        $controller_ts = absint($runtime['controller_heartbeat_ts'] ?? 0);
+        $controller_pid = absint($runtime['controller_pid'] ?? 0);
+        $controller_flag = !empty($runtime['controller_active']);
+        $controller_alive = $controller_flag && $controller_ts && ($now - $controller_ts) <= 120;
+        if ($controller_alive && $controller_pid) {
+            $pid_alive = seo_process_supervisor_pid_alive($controller_pid);
+            if (false === $pid_alive) {
+                $controller_alive = false;
+            }
+        }
+        $worker_ts = absint($runtime['worker_heartbeat_ts'] ?? 0);
+        $worker_flag = !empty($runtime['worker_active']);
+        $worker_alive = $worker_flag && $worker_ts && ($now - $worker_ts) <= 90;
+        $worker_pid = absint($runtime['worker_pid'] ?? 0);
+        if ($worker_alive && $worker_pid) {
+            $pid_alive = seo_process_supervisor_pid_alive($worker_pid);
+            if (false === $pid_alive) {
+                $worker_alive = false;
+            }
+        }
+
+        $active_question = $update_pending
+            && class_exists('SEO_Dependiente_Actualizacion')
+            && is_callable(array('SEO_Dependiente_Actualizacion', 'active_question_status'))
+            ? SEO_Dependiente_Actualizacion::active_question_status()
+            : array();
+        $auto_pending = !empty($runtime['enabled'])
+            && 'auto' === (string) ($runtime['mode'] ?? '')
+            && 'running' === (string) ($runtime['status'] ?? '');
+
+        return array(
+            'run_id'             => $run_id,
+            'module'             => $module,
+            'answered'           => $answered,
+            'total'              => $total,
+            'progress_marker'    => $update_pending && $run_id
+                ? $run_id . ':' . $module . ':' . $answered
+                : '',
+            'update_pending'     => $update_pending,
+            'auto_pending'       => $auto_pending,
+            'worker_runs'        => absint($runtime['worker_runs'] ?? 0),
+            'worker_heartbeat'   => $worker_ts,
+            'worker_pid'         => $worker_pid,
+            'worker_alive'       => (bool) $worker_alive,
+            'worker_lost'        => $worker_flag && !$worker_alive,
+            'controller_heartbeat' => $controller_ts,
+            'controller_pid'     => $controller_pid,
+            'controller_alive'   => (bool) $controller_alive,
+            'controller_lost'    => $controller_flag && !$controller_alive,
+            'active_question'    => is_array($active_question) ? $active_question : array(),
+        );
+    }
+}
+
+/** Registra una pérdida real de señal del worker, aunque ninguna pregunta llegue a empezar. */
+if (!function_exists('seo_process_supervisor_academy_log_lost_runtime')) {
+    function seo_process_supervisor_academy_log_lost_runtime($snapshot) {
+        if (empty($snapshot['auto_pending'])) {
+            return;
+        }
+        $kind = !empty($snapshot['controller_lost'])
+            ? 'controller'
+            : (!empty($snapshot['worker_lost']) ? 'worker' : '');
+        if ('' === $kind) {
+            return;
+        }
+        $pid = absint($snapshot[$kind . '_pid'] ?? 0);
+        $heartbeat = absint($snapshot[$kind . '_heartbeat'] ?? 0);
+        $fingerprint = hash('sha256', implode(':', array(
+            sanitize_text_field((string) ($snapshot['run_id'] ?? '')),
+            $kind,
+            $pid,
+            $heartbeat,
+        )));
+        $previous = get_option('seo_process_supervisor_academy_runtime_alert', array());
+        $previous = is_array($previous) ? $previous : array();
+        if ($fingerprint === (string) ($previous['fingerprint'] ?? '')
+            && (time() - absint($previous['at'] ?? 0)) < 900) {
+            return;
+        }
+        update_option('seo_process_supervisor_academy_runtime_alert', array(
+            'fingerprint' => $fingerprint,
+            'at' => time(),
+        ), false);
+        seo_process_supervisor_log(
+            'warning',
+            'academy_runtime_lost',
+            'Academia conserva una señal de proceso activo, pero el heartbeat o el PID ya no confirman que siga vivo.',
+            'Academia',
+            array(
+                'kind' => $kind,
+                'run_id' => sanitize_text_field((string) ($snapshot['run_id'] ?? '')),
+                'module' => absint($snapshot['module'] ?? 0),
+                'pid' => $pid,
+                'heartbeat_age' => $heartbeat ? max(0, time() - $heartbeat) : 0,
+                'answered' => absint($snapshot['answered'] ?? 0),
+                'total' => absint($snapshot['total'] ?? 0),
+            )
+        );
+    }
+}
+
+
+/**
+ * Fallos fatales entre el inicio de una ventana y el primer ejercicio.
+ * No reemplaza el registro PHP del hosting; tampoco garantiza capturar OOM/SIGKILL.
+ */
+if (!function_exists('seo_process_supervisor_academy_window_guard')) {
+    function seo_process_supervisor_academy_window_guard($checkpoint = null) {
+        static $active = array();
+        static $registered = false;
+        if (is_array($checkpoint)) {
+            $active = $checkpoint;
+            if (!$registered) {
+                register_shutdown_function('seo_process_supervisor_academy_window_fatal_shutdown');
+                $registered = true;
+            }
+        } elseif (false === $checkpoint) {
+            $active = array();
+        }
+        return $active;
+    }
+}
+
+if (!function_exists('seo_process_supervisor_academy_window_fatal_shutdown')) {
+    function seo_process_supervisor_academy_window_fatal_shutdown() {
+        $checkpoint = seo_process_supervisor_academy_window_guard();
+        if (empty($checkpoint)) {
+            return;
+        }
+        $last_error = error_get_last();
+        $fatal_types = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR);
+        if (!is_array($last_error) || !in_array(absint($last_error['type'] ?? 0), $fatal_types, true)) {
+            return;
+        }
+        seo_process_supervisor_log(
+            'error',
+            'academy_window_php_fatal',
+            'PHP ha terminado la ventana de Academia con un error fatal. Consultar los errores PHP del hosting para el detalle.',
+            'Academia',
+            array(
+                'run_id' => sanitize_text_field((string) ($checkpoint['run_id'] ?? '')),
+                'module' => absint($checkpoint['module'] ?? 0),
+                'answered' => absint($checkpoint['answered'] ?? 0),
+                'fatal_type' => absint($last_error['type'] ?? 0),
+            )
+        );
+    }
+}
+
+/**
+ * Contrasta dos ventanas reales: entrar en el gestor no equivale a aprender.
+ * Limita a un warning de estancamiento cada diez minutos.
+ */
+if (!function_exists('seo_process_supervisor_academy_window_report')) {
+    function seo_process_supervisor_academy_window_report($before, $after, $prior) {
+        $before = is_array($before) ? $before : array();
+        $after = is_array($after) ? $after : array();
+        $prior = is_array($prior) ? $prior : array();
+        $now = time();
+        $marker = (string) ($after['progress_marker'] ?? '');
+        $previous_marker = (string) ($prior['academy_progress_marker'] ?? '');
+        $same_run = '' !== (string) ($before['run_id'] ?? '')
+            && (string) ($before['run_id'] ?? '') === (string) ($after['run_id'] ?? '');
+        $progressed = $same_run && (
+            absint($after['module'] ?? 0) > absint($before['module'] ?? 0)
+            || (
+                absint($after['module'] ?? 0) === absint($before['module'] ?? 0)
+                && absint($after['answered'] ?? 0) > absint($before['answered'] ?? 0)
+            )
+        );
+        $last_progress = absint($prior['academy_progress_at'] ?? 0);
+        $last_warning = absint($prior['academy_no_progress_warn_at'] ?? 0);
+        $has_confirmed_progress = !empty($prior['academy_progress_confirmed']);
+        $previous_run = (string) ($prior['academy_run_id'] ?? '');
+        $current_run = (string) ($after['run_id'] ?? '');
+        if ($previous_run !== $current_run) {
+            $has_confirmed_progress = false;
+        }
+        if (!$last_progress || $previous_marker !== $marker) {
+            $last_progress = $now;
+            $last_warning = 0;
+            if ($previous_run === $current_run && '' !== $previous_marker && '' !== $marker) {
+                $has_confirmed_progress = true;
+            }
+        }
+        if ($progressed) {
+            $has_confirmed_progress = true;
+        }
+        $age = max(0, $now - $last_progress);
+        $pending = !empty($after['update_pending']);
+        $stalled = $pending && '' !== $marker && $age >= 300;
+        if ($stalled && (!$last_warning || ($now - $last_warning) >= 600)) {
+            $last_warning = $now;
+            $active_question = is_array($after['active_question'] ?? null)
+                ? $after['active_question']
+                : array();
+            seo_process_supervisor_log(
+                'warning',
+                'academy_update_no_progress',
+                'La actualización de Dependiente sigue pendiente, pero no completa nuevos ejercicios. Verificar si hay evaluación lenta, bloqueo de PHP o disputa de lock.',
+                'Academia',
+                array(
+                    'run_id' => sanitize_text_field((string) ($after['run_id'] ?? '')),
+                    'module' => absint($after['module'] ?? 0),
+                    'answered' => absint($after['answered'] ?? 0),
+                    'total' => absint($after['total'] ?? 0),
+                    'stalled_seconds' => $age,
+                    'worker_runs' => absint($after['worker_runs'] ?? 0),
+                    'worker_heartbeat_age' => !empty($after['worker_heartbeat'])
+                        ? max(0, $now - absint($after['worker_heartbeat']))
+                        : 0,
+                    'question_id' => absint($active_question['question_id'] ?? 0),
+                    'question_elapsed_seconds' => absint($active_question['elapsed_seconds'] ?? 0),
+                )
+            );
+        }
+        $live = !empty($after['worker_alive']) || !empty($after['controller_alive']);
+        $recent_progress = $pending && $has_confirmed_progress && $last_progress && $age <= 120;
+        $healthy = $progressed || $live || $recent_progress;
+        $worker_attempts = max(0, absint($after['worker_runs'] ?? 0) - absint($before['worker_runs'] ?? 0));
+        $detail = $pending
+            ? sprintf(
+                'Actualización M%d: %d/%d evaluadas. %s Último avance observado hace %d s; worker ejecutado %d veces en esta ventana.',
+                absint($after['module'] ?? 0),
+                absint($after['answered'] ?? 0),
+                absint($after['total'] ?? 0),
+                $progressed ? 'Avance confirmado.' : 'Sin nuevas respuestas completadas.',
+                $age,
+                $worker_attempts
+            )
+            : 'Ventana de Academia finalizada; no hay actualización continua pendiente.';
+        if ($stalled) {
+            $detail .= ' AVISO: lleva más de cinco minutos sin progreso confirmado.';
+        }
+        return array(
+            'academy_progress_marker' => $marker,
+            'academy_run_id' => $current_run,
+            'academy_progress_confirmed' => $has_confirmed_progress ? 1 : 0,
+            'academy_progress_at' => $last_progress,
+            'academy_no_progress_warn_at' => $last_warning,
+            'healthy' => $healthy ? 1 : 0,
+            'last_result' => $progressed ? 'processed' : ($live ? 'evaluating' : 'no_progress'),
+            'last_error' => $stalled ? 'Sin avance confirmado durante ' . $age . ' segundos.' : '',
+            'detail' => $detail,
+        );
+    }
+}
+
 if (!function_exists('seo_process_supervisor_backoff_ready')) {
     function seo_process_supervisor_backoff_ready($key, $base_cooldown) {
         $state = seo_process_supervisor_state();
@@ -1251,22 +1525,33 @@ if (!function_exists('seo_process_supervisor_run_manager_window')) {
                         seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
                     }
                 } elseif ('academy' === $target['type']) {
+                    $academy_before = seo_process_supervisor_academy_snapshot();
+                    // El detector se ejecuta aquí, no en el antiguo check_academy()
+                    // que no participa en el ciclo activo del Gestor.
+                    seo_process_supervisor_academy_log_lost_runtime($academy_before);
+                    $current_managed = (array) (seo_process_supervisor_state()['managed']['academy'] ?? array());
                     seo_process_supervisor_managed_update('academy', array(
-                        'name' => 'Academia', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
-                        'last_attempt_at' => time(), 'last_result' => 'running', 'last_error' => '',
-                        'detail' => 'El gestor está ejecutando una ventana de Academia.'
+                        'name' => 'Academia', 'pending' => 1,
+                        'healthy' => (!empty($academy_before['controller_alive']) || !empty($academy_before['worker_alive'])) ? 1 : 0,
+                        'last_checked' => time(), 'last_attempt_at' => time(),
+                        'last_result' => 'window_open',
+                        'detail' => 'Gestor: ventana abierta. El avance se comprobará al finalizar.'
                     ));
                     seo_process_supervisor_log('info', 'process_window_started', 'Academia entra en una ventana del gestor.', 'Academia', array('seconds' => $budget));
-                    $ok = SEO_Dependiente_Entrenador::process_manager_slice($budget, $source);
+                    seo_process_supervisor_academy_window_guard($academy_before);
+                    try {
+                        $ok = SEO_Dependiente_Entrenador::process_manager_slice($budget, $source);
+                    } finally {
+                        seo_process_supervisor_academy_window_guard(false);
+                    }
                     $still = seo_process_supervisor_academy_pending();
-                    seo_process_supervisor_managed_update('academy', array(
+                    $academy_after = seo_process_supervisor_academy_snapshot();
+                    seo_process_supervisor_academy_log_lost_runtime($academy_after);
+                    $progress = seo_process_supervisor_academy_window_report($academy_before, $academy_after, $current_managed);
+                    seo_process_supervisor_managed_update('academy', array_merge($progress, array(
                         'pending' => $still ? 1 : 0,
-                        'healthy' => 1,
                         'last_checked' => time(),
-                        'last_result' => $ok ? 'processed' : 'waiting',
-                        'last_error' => '',
-                        'detail' => $still ? 'Ventana completada; continuará en el siguiente ciclo.' : 'Academia terminada o sin trabajo pendiente.'
-                    ));
+                    )));
                     if ($ok) {
                         $state = seo_process_supervisor_state();
                         seo_process_supervisor_save_state(array('launch_count' => absint($state['launch_count'] ?? 0) + 1, 'last_launch_at' => time()));
@@ -1844,6 +2129,7 @@ if (!function_exists('seo_process_supervisor_control_action')) {
             delete_option(SEO_PROCESS_SUPERVISOR_LOG_OPTION);
             delete_option(SEO_PROCESS_SUPERVISOR_INCIDENTS_OPTION);
             delete_option('seo_process_supervisor_academy_last_stall_alert');
+            delete_option('seo_process_supervisor_academy_runtime_alert');
             $message = 'Log vaciado.';
         }
 
