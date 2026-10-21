@@ -72,6 +72,117 @@ final class Rules {
         return count( array_intersect( $a, $b ) ) / count( $a );
     }
 
+    /**
+     * Preserve the legacy Auditor's content-template fingerprint. Differences
+     * in the title do not conceal mechanically duplicated long descriptions.
+     */
+    public static function template_signature( $body, $title = '' ) {
+        $body = self::identity_key( self::text( $body ) );
+        if ( '' === $body ) {
+            return '';
+        }
+        $title_tokens = array_filter( explode( ' ', self::identity_key( $title ) ) );
+        $tokens = array_values(
+            array_filter(
+                explode( ' ', $body ),
+                static function ( $token ) use ( $title_tokens ) {
+                    return mb_strlen( (string) $token, 'UTF-8' ) >= 3
+                        && ! in_array( $token, $title_tokens, true )
+                        && ! preg_match( '/^[0-9]+(?:[.,][0-9]+)?$/', $token );
+                }
+            )
+        );
+        return count( $tokens ) < 10 ? '' : implode( ' ', array_slice( $tokens, 0, 28 ) );
+    }
+
+    /**
+     * Copy legacy checks for malformed attribute values and conflicting
+     * numeric technical specifications without altering WooCommerce data.
+     */
+    private static function suspicious_attribute( $value ) {
+        $value = trim( (string) $value );
+        return $value !== ''
+            && (
+                mb_strlen( $value, 'UTF-8' ) > 240
+                || false !== stripos( $value, '<html' )
+                || false !== stripos( $value, '<div' )
+                || false !== stripos( $value, 'http://' )
+                || false !== stripos( $value, 'https://' )
+                || preg_match( '/(^|[^a-z])(array|object|serialized)\s*[:(]/i', $value )
+                || substr_count( $value, ';' ) >= 6
+                || substr_count( $value, '|' ) >= 8
+            );
+    }
+
+    private static function numeric_specs( $value ) {
+        $out = array();
+        $text = mb_strtolower( str_replace( ',', '.', remove_accents( self::text( $value ) ) ), 'UTF-8' );
+        if ( ! preg_match_all( '/\b([0-9]+(?:\.[0-9]+)?)\s*(kw|w|v|ah|mah|bar|psi|mpa|rpm|nm|kg|t)\b/i', $text, $matches, PREG_SET_ORDER ) ) {
+            return $out;
+        }
+        foreach ( $matches as $match ) {
+            $unit = strtolower( $match[2] );
+            $num = (float) $match[1];
+            if ( 'kw' === $unit ) {
+                $unit = 'w';
+                $num *= 1000;
+            } elseif ( 'mah' === $unit ) {
+                $unit = 'ah';
+                $num /= 1000;
+            }
+            $out[ $unit ][] = round( $num, 4 );
+        }
+        foreach ( $out as $unit => $values ) {
+            $out[ $unit ] = array_values( array_unique( $values, SORT_REGULAR ) );
+        }
+        return $out;
+    }
+
+    private static function attribute_conflicts( $title, $attribute_text ) {
+        $title_specs = self::numeric_specs( $title );
+        $attr_specs = self::numeric_specs( $attribute_text );
+        $conflicts = array();
+        foreach ( $title_specs as $unit => $expected ) {
+            if ( empty( $attr_specs[ $unit ] ) ) {
+                continue;
+            }
+            $found_match = false;
+            foreach ( $expected as $title_num ) {
+                foreach ( $attr_specs[ $unit ] as $attr_num ) {
+                    if ( abs( $title_num - $attr_num ) <= max( 0.01, abs( $title_num ) * 0.01 ) ) {
+                        $found_match = true;
+                        break 2;
+                    }
+                }
+            }
+            if ( ! $found_match ) {
+                $conflicts[] = $unit . ': título ' . implode( '/', $expected ) . ', atributos ' . implode( '/', $attr_specs[ $unit ] );
+            }
+        }
+        return array_slice( $conflicts, 0, 6 );
+    }
+
+    private static function tag_supported( $tag, $identity ) {
+        $normalized_tag = self::identity_key( $tag );
+        $normalized_identity = self::identity_key( $identity );
+        if ( '' === $normalized_tag || '' === $normalized_identity ) {
+            return true;
+        }
+        if ( mb_strlen( $normalized_tag, 'UTF-8' ) < 3
+            || in_array( $normalized_tag, array( 'vevor', 'satkit', 'herramienta', 'herramientas', 'accesorio', 'accesorios', 'producto', 'productos' ), true ) ) {
+            return true;
+        }
+        if ( false !== strpos( ' ' . $normalized_identity . ' ', ' ' . $normalized_tag . ' ' ) ) {
+            return true;
+        }
+        foreach ( self::tokens( $tag ) as $token ) {
+            if ( false !== strpos( ' ' . $normalized_identity . ' ', ' ' . $token . ' ' ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static function finding( $code, $severity, $type, $id, $title, $evidence, $recommendation ) {
         return array(
             'code'           => $code,
