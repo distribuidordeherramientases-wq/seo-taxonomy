@@ -55,6 +55,19 @@ final class Runner {
         return self::valid_scope( $scope ) ? (array) get_option( self::option( $scope, 'report' ), array() ) : array();
     }
 
+    public static function history( $scope ) {
+        return self::valid_scope( $scope )
+            ? (array) get_option( self::option( $scope, 'history' ), array() )
+            : array();
+    }
+
+    private static function persisted_decision_context( $scope ) {
+        // Optional integration; other services must pass an already-persisted
+        // snapshot. Never initiate remote queries from a content audit.
+        $context = apply_filters( 'taxocommerce_auditor_decision_context', null, $scope );
+        return is_array( $context ) && $context ? array_slice( $context, 0, 10, true ) : null;
+    }
+
     public static function register() {
         add_action( self::HOOK, array( __CLASS__, 'run_batch' ), 10, 1 );
         add_action( 'admin_init', array( __CLASS__, 'ensure_scheduled' ) );
@@ -327,6 +340,7 @@ final class Runner {
             'severity_counts' => $state['severity_counts'],
             'rule_counts'     => $state['rule_counts'],
             'priority_counts' => $state['priority_counts'],
+            'decision_context' => self::persisted_decision_context( $scope ),
             'category_rebalance' => 'categories' === $scope
                 ? array(
                     'summary' => $state['rebalance_summary'],
