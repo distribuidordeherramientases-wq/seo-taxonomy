@@ -1409,12 +1409,13 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
         $state = isset($payload['state']) && is_array($payload['state']) ? $payload['state'] : array();
         $queue = isset($payload['queue']) && is_array($payload['queue']) ? $payload['queue'] : array();
         $queue_pending = absint($queue['pending_batches'] ?? 0) > 0;
-        $pending = $queue_pending || (
+        $auto_pending = (
             !empty($payload['current'])
             && !empty($state['enabled'])
             && 'auto' === (string) ($state['mode'] ?? '')
             && 'completed' !== (string) ($state['status'] ?? '')
         );
+        $pending = $queue_pending || $auto_pending;
         $heartbeat = absint($state['controller_heartbeat_ts'] ?? 0);
         $controller = !empty($state['controller_active']) && $heartbeat && (time() - $heartbeat) <= 120;
         if ($controller && !empty($state['controller_pid'])) {
@@ -1451,7 +1452,11 @@ if (!function_exists('seo_process_supervisor_check_academy')) {
             ));
             seo_process_supervisor_log('success', 'process_running_confirmed', 'Academia confirmó heartbeat; el proceso está realmente ejecutándose.', 'Academia');
         }
-        if ($queue_pending) {
+        // A Lab-only queue is handled by the shared process manager and must
+        // not start an automatic Academy course. However, when an automatic
+        // course is also pending, the Lab queue must not prevent recovery of
+        // a stale worker/controller.
+        if ($queue_pending && !$auto_pending) {
             return;
         }
         if (!$pending || $healthy || !seo_process_supervisor_backoff_ready($key, $settings['restart_cooldown'])) {

@@ -3,7 +3,7 @@ Plugin Name: TaxoCommerce System Check
 Description: Diagnostico de WordPress, servidor, integridad del plugin e informes voluntarios.
 Requires at least: 5.8
 Requires PHP: 7.4
-Stable tag: 0.2.2
+Stable tag: 0.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,3 +39,5 @@ El envio de correos no se habilita automaticamente.
 Los chequeos HTTP arrancan de forma manual y se procesan por lotes pequenos.
 Usan Action Scheduler si existe y WP-Cron en caso contrario; si el Cron no se ejecuta, usa Reanudar.
 La medicion HTTP local desde hosting no certifica accesibilidad desde Internet.
+
+Version 0.2.3: las cuatro auditorias HTTP se registran como procesos Core. El gestor central permite iniciar, pausar, reanudar y cancelar. La vista HTTP conserva sus KPIs y detalle. Sin Core se mantienen los controles locales.
