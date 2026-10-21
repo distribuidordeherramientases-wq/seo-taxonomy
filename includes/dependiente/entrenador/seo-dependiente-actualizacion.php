@@ -855,8 +855,17 @@ final class SEO_Dependiente_Actualizacion {
             throw $error;
         }
 
-        $snapshot = SEO_Dependiente_Entrenador::update_publish_snapshot();
         $modules = (array) ($state['modules'] ?? array());
+        $passed_any = 0;
+        foreach ($modules as $module_number => $module_result) {
+            if (absint($module_number) <= 8 && is_array($module_result)) {
+                $passed_any += absint($module_result['passed'] ?? 0);
+            }
+        }
+        // Skipped/unlearned FAQs are never promoted as new knowledge.
+        $snapshot = ($passed_any > 0 || $merged > 0)
+            ? SEO_Dependiente_Entrenador::update_publish_snapshot()
+            : absint(get_option(SEO_Dependiente_Entrenador::KNOWLEDGE_SNAPSHOT_OPTION, 0));
         $module9 = is_array($modules[9] ?? null) ? $modules[9] : array();
         $module9['status'] = 'completed';
         $module9['total'] = absint($merge['staged'] ?? 0);
