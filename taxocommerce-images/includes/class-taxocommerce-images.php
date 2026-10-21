@@ -213,6 +213,7 @@ final class TaxoCommerce_Images {
 			'summary'    => __( 'Inventario', 'taxocommerce-images' ),
 			'audit'      => __( 'Anomalías', 'taxocommerce-images' ),
 			'references' => __( 'Sin uso y duplicadas', 'taxocommerce-images' ),
+			'http'       => __( 'Disponibilidad HTTP', 'taxocommerce-images' ),
 			'library'    => __( 'Media local', 'taxocommerce-images' ),
 			'thumbnails' => __( 'Miniaturas', 'taxocommerce-images' ),
 			'settings'   => __( 'Ajustes', 'taxocommerce-images' ),
@@ -240,6 +241,9 @@ final class TaxoCommerce_Images {
 			switch ( $tab ) {
 				case 'audit':
 					$this->render_audit();
+					break;
+				case 'http':
+					$this->render_http();
 					break;
 				case 'references':
 					$this->render_references();
@@ -415,6 +419,42 @@ final class TaxoCommerce_Images {
 			step();
 		}());
 		</script>
+		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * On-demand HTTP availability for images linked from published content.
+	 *
+	 * @return void
+	 */
+	private function render_http() {
+		$report = TaxoCommerce_Images_HTTP::report();
+		$page = max( 1, absint( $report['page'] ?? 0 ) );
+		$pages = absint( $report['pages'] ?? 0 );
+		$next = empty( $report ) || ( $pages && $page >= $pages ) ? 1 : $page + 1;
+		?>
+		<h2><?php esc_html_e( 'Comprobar disponibilidad de imágenes publicadas', 'taxocommerce-images' ); ?></h2>
+		<p><?php esc_html_e( 'Chequeo HTTP independiente del plugin antiguo. Revisa imágenes destacadas y etiquetas IMG de posts, páginas y productos publicados. Por seguridad, cada petición comprueba como máximo dos contenidos y cuatro imágenes por contenido, con tiempos de espera limitados.', 'taxocommerce-images' ); ?></p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="taxocommerce_images_http_scan">
+			<input type="hidden" name="scan_page" value="<?php echo esc_attr( (string) $next ); ?>">
+			<?php wp_nonce_field( 'taxocommerce_images_http_scan', 'taxocommerce_images_nonce' ); ?>
+			<?php submit_button( 1 === $next ? __( 'Empezar comprobación HTTP', 'taxocommerce-images' ) : __( 'Comprobar siguiente lote HTTP', 'taxocommerce-images' ) ); ?>
+		</form>
+		<?php if ( ! empty( $report ) ) : ?>
+			<p><?php esc_html_e( 'Último lote', 'taxocommerce-images' ); ?> <?php echo esc_html( (string) $page ); ?> / <?php echo esc_html( (string) $pages ); ?>.</p>
+			<table class="widefat striped"><thead><tr>
+				<th><?php esc_html_e( 'Contenido', 'taxocommerce-images' ); ?></th>
+				<th><?php esc_html_e( 'Imagen', 'taxocommerce-images' ); ?></th>
+				<th><?php esc_html_e( 'Estado HTTP', 'taxocommerce-images' ); ?></th>
+			</tr></thead><tbody>
+			<?php foreach ( (array) ( $report['items'] ?? array() ) as $item ) : ?>
+				<tr><td><?php echo esc_html( get_the_title( absint( $item['post_id'] ?? 0 ) ) ); ?></td>
+					<td><a href="<?php echo esc_url( $item['url'] ?? '' ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( wp_basename( (string) wp_parse_url( $item['url'] ?? '', PHP_URL_PATH ) ) ); ?></a></td>
+					<td><?php echo esc_html( (string) absint( $item['status'] ?? 0 ) ); ?> — <?php echo esc_html( (string) ( $item['description'] ?? '' ) ); ?></td></tr>
+			<?php endforeach; ?>
+			</tbody></table>
 		<?php endif; ?>
 		<?php
 	}
