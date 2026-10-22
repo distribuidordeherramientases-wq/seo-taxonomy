@@ -156,7 +156,11 @@ final class Assisted_Delete {
         } elseif ( isset( $actions['delete'] ) ) {
             $actions['delete'] = $link;
         }
-        $actions['tc_redirects_delete'] = $link;
+        if ( ! isset( $actions['trash'] ) && ! isset( $actions['delete'] ) ) {
+            if ( ! isset( $actions['delete'] ) ) {
+                $actions['tc_redirects_delete'] = $link;
+            }
+        }
         return $actions;
     }
 
@@ -361,13 +365,21 @@ final class Assisted_Delete {
             }
         }
 
-        $origin = Store::normalize_origin( $data['origin'] );
-        if ( is_wp_error( $origin ) ) {
-            wp_die( esc_html( $origin->get_error_message() ), '', array( 'response' => 409 ) );
-        }
-        $existing = Store::find_origin( $origin );
-        if ( $existing ) {
-            wp_die( 'La URL ya tiene una redireccion. Modifica o elimina esa regla antes de continuar con el borrado.', '', array( 'response' => 409 ) );
+        // A trashed object can already have a redirect created on the first
+        // trash action. Its permanent deletion must NOT remove/block that rule.
+        // For ordinary deletion, only touch the redirect table if this is a
+        // currently public URL. No-redirect deletion never requires permalink
+        // rewrite rules or a valid public-facing origin.
+        $origin = null;
+        if ( 'redirect' === $mode || ( 'publish' === $data['status'] && 'product_cat' === $type ) ) {
+            $origin = Store::normalize_origin( $data['origin'] );
+            if ( is_wp_error( $origin ) ) {
+                wp_die( esc_html( $origin->get_error_message() ), '', array( 'response' => 409 ) );
+            }
+            $existing = Store::find_origin( $origin );
+            if ( $existing ) {
+                wp_die( 'La URL ya tiene una redireccion. Modifica o elimina esa regla antes de continuar con el borrado.', '', array( 'response' => 409 ) );
+            }
         }
         if ( 'redirect' === $mode && 'publish' !== $data['status'] ) {
             wp_die( 'Solo se pueden crear redirects al eliminar contenido publicado.', '', array( 'response' => 409 ) );
