@@ -1,0 +1,54 @@
+name: Build and Deploy TaxoCommerce Google Bing to STAGING
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-google-bing/**'
+      - '.github/workflows/taxocommerce-google-bing.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+      - name: PHP syntax
+        run: find taxocommerce-google-bing -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Check plugin independence
+        run: |
+          test -s taxocommerce-google-bing/taxocommerce-google-bing.php
+          test -s taxocommerce-google-bing/includes/class-taxocommerce-google-bing-connections.php
+          if grep -R 'SEO_SYSTEM_PATH\|SEO_SYSTEM_FILE\|require_once.*seo-taxonomy' taxocommerce-google-bing --include='*.php'; then exit 1; fi
+      - name: Package ZIP
+        run: zip -qr taxocommerce-google-bing.zip taxocommerce-google-bing
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-google-bing-${{ github.sha }}
+          path: taxocommerce-google-bing.zip
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload only this plugin to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-google-bing/
+          server-dir: ./wp-content/plugins/taxocommerce-google-bing/
+          dry-run: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/node_modules/**
+            **/*.bak
