@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
- * Version: 0.2.6
+ * Version: 0.2.7
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.6' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.7' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -72,7 +72,6 @@ function taxocommerce_system_check_boot() {
         }
     }
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-php.php';
-    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-web-server.php';
     $url_audit_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-url-audit.php';
     if ( is_readable( $url_audit_module ) ) {
         require_once $url_audit_module;
@@ -152,12 +151,12 @@ function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
 function taxocommerce_system_check_active_tab() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
     $tab = isset( $_GET['tcs_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : 'system';
-    return in_array( $tab, array( 'system', 'webserver', 'plugin', 'http' ), true ) ? $tab : 'system';
+    return in_array( $tab, array( 'system', 'plugin', 'http' ), true ) ? $tab : 'system';
 }
 
 function taxocommerce_system_check_render_tabs( $active ) {
     echo '<nav class="nav-tab-wrapper" aria-label="Chequeos de System Check">';
-    foreach ( array( 'system' => 'Sistema', 'webserver' => 'Servidor web', 'plugin' => 'Plugin Validation', 'http' => 'HTTP' ) as $tab => $label ) {
+    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP' ) as $tab => $label ) {
         echo '<a class="nav-tab' . ( $active === $tab ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( taxocommerce_system_check_tab_url( $tab ) ) . '">'
             . esc_html( $label ) . '</a>';
@@ -249,9 +248,8 @@ function taxocommerce_system_check_home() {
     taxocommerce_system_check_render_tabs( $tab );
     // Each tab downloads its stored results. No scan is started here.
     $exports = array(
-        'system'    => array( 'seo_system_diagnostics_download_server_json', 'Descargar JSON de Sistema' ),
-        'webserver' => array( 'taxocommerce_system_check_web_server_json', 'Descargar JSON de Servidor web' ),
-        'plugin'    => array( 'taxocommerce_system_check_modules_json', 'Descargar JSON de comprobación básica' ),
+        'system' => array( 'seo_system_diagnostics_download_server_json', 'Descargar JSON de Sistema' ),
+        'plugin' => array( 'taxocommerce_system_check_modules_json', 'Descargar JSON de comprobación básica' ),
         'http'   => array( 'taxocommerce_system_check_http_json', 'Descargar JSON de HTTP' ),
     );
     if ( isset( $exports[ $tab ] ) ) {
@@ -275,9 +273,7 @@ function taxocommerce_system_check_home() {
         }
     }
     echo '</div>';
-    if ( 'webserver' === $tab ) {
-        TaxoCommerce_System_Check_Web_Server::render();
-    } elseif ( 'plugin' === $tab ) {
+    if ( 'plugin' === $tab ) {
         taxocommerce_system_check_validation_screen();
     } elseif ( 'http' === $tab ) {
         taxocommerce_system_check_url_audit_screen();
@@ -419,21 +415,3 @@ function taxocommerce_system_check_deactivate() {
     wp_clear_scheduled_hook( 'seo_system_diagnostics_after_update_report' );
 }
 register_deactivation_hook( __FILE__, 'taxocommerce_system_check_deactivate' );
-
-
-function taxocommerce_system_check_web_server_json() {
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
-    }
-    check_admin_referer( 'taxocommerce_system_check_web_server_json' );
-    nocache_headers();
-    header( 'Content-Type: application/json; charset=UTF-8' );
-    header( 'X-Content-Type-Options: nosniff' );
-    header( 'Content-Disposition: attachment; filename="taxocommerce-web-server.json"' );
-    echo wp_json_encode(
-        TaxoCommerce_System_Check_Web_Server::report(),
-        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
-    ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download.
-    exit;
-}
-add_action( 'admin_post_taxocommerce_system_check_web_server_json', 'taxocommerce_system_check_web_server_json' );
