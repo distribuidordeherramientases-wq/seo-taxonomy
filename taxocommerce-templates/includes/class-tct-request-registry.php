@@ -136,10 +136,16 @@ final class TCT_Request_Registry {
         } elseif (function_exists('is_embed') && is_embed()) {
             self::add($keys, 'embed');
             self::add($keys, 'single');
-        } elseif (is_front_page() && !is_home()) {
+        } elseif (is_front_page()) {
             self::add($keys, 'front_page');
-            self::add($keys, 'page');
-            self::add($keys, 'singular');
+            if (is_home()) {
+                self::add($keys, 'blog_index');
+            } else {
+                $id = absint(get_queried_object_id());
+                self::add($keys, self::role_for_object('page', $id));
+                self::add($keys, 'page');
+                self::add($keys, 'singular');
+            }
         } elseif (is_home()) {
             self::add($keys, 'blog_index');
         } elseif (function_exists('is_order_received_page') && is_order_received_page()) {
