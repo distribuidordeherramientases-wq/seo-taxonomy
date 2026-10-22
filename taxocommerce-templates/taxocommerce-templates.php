@@ -19,6 +19,7 @@ require_once TCT_DIR . 'includes/class-tct-request-admin.php';
 require_once TCT_DIR . 'includes/class-tct-template-editor.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
 require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
+require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
 
 final class TaxoCommerce_Templates {
     const ROLE_OPTION = 'taxocommerce_templates_custom_roles';
