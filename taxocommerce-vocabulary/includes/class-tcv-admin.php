@@ -7,6 +7,8 @@ final class TCV_Admin {
         add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
         add_action( 'admin_post_tcv_analyze_product', array( __CLASS__, 'analyze_product' ) );
+        add_action( 'admin_post_tcv_analyze_filtered', array( __CLASS__, 'analyze_filtered' ) );
+        add_action( 'admin_post_tcv_export_classifier_json', array( __CLASS__, 'export_classifier_json' ) );
         add_action( 'admin_post_tcv_analyze_category', array( __CLASS__, 'analyze_category' ) );
         add_action( 'admin_post_tcv_create_term', array( __CLASS__, 'create_term' ) );
     }
@@ -98,12 +100,65 @@ final class TCV_Admin {
     }
 
     private static function classifier() {
-        echo '<div class="tcv-grid"><div class="tcv-panel"><h2>Clasificar producto</h2><p>Analiza título, extracto, contenido y categorías. Propone semántica y atributos sin aplicar cambios.</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_analyze_product">';
-        wp_nonce_field( 'tcv_analyze_product' );
-        echo '<label>Producto ID <input type="number" name="product_id" min="1" required></label> <button class="button button-primary">Analizar producto</button></form></div>';
-        echo '<div class="tcv-panel"><h2>Clasificar categoría</h2><p>Analiza nombre, descripción y una muestra de hasta 50 productos publicados de la categoría.</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_analyze_category">';
-        wp_nonce_field( 'tcv_analyze_category' );
-        echo '<label>Categoría ID <input type="number" name="term_id" min="1" required></label> <button class="button button-primary">Analizar categoría</button></form></div></div>';
+        $filters = TCV_Classifier::sanitize_filters(
+            array(
+                'search'      => isset( $_GET['search'] ) ? wp_unslash( $_GET['search'] ) : '',
+                'category_id' => isset( $_GET['category_id'] ) ? wp_unslash( $_GET['category_id'] ) : 0,
+                'coverage'    => isset( $_GET['coverage'] ) ? wp_unslash( $_GET['coverage'] ) : 'missing_any',
+                'priority'    => isset( $_GET['priority'] ) ? wp_unslash( $_GET['priority'] ) : 'all',
+                'rows'        => isset( $_GET['rows'] ) ? wp_unslash( $_GET['rows'] ) : 25,
+            )
+        );
+        $categories = get_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false, 'number'=>250, 'orderby'=>'name', 'order'=>'ASC' ) );
+        if ( is_wp_error( $categories ) ) {
+            $categories = array();
+        }
+
+        echo '<div class="tcv-panel"><h2>Clasificador</h2><p>El análisis es correctivo y limitado. No recorre todo el catálogo: primero filtra y después analiza como máximo el número de filas seleccionado.</p>';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="tcv-filter">';
+        echo '<input type="hidden" name="action" value="tcv_analyze_filtered">';
+        wp_nonce_field( 'tcv_analyze_filtered' );
+        echo '<label>Buscar<input type="text" name="search" value="' . esc_attr( $filters['search'] ) . '" placeholder="Producto, SKU o ID"></label>';
+        echo '<label>Categoría<select name="category_id"><option value="0">Todas</option>';
+        foreach ( $categories as $category ) {
+            echo '<option value="' . esc_attr( $category->term_id ) . '" ' . selected( $filters['category_id'], $category->term_id, false ) . '>' . esc_html( $category->name ) . '</option>';
+        }
+        echo '</select></label>';
+        $coverage_labels = array(
+            'missing_any'=>'Cobertura incompleta (falta alguna)',
+            'without_any'=>'Sin etiquetas semánticas',
+            'without_type'=>'Sin TIPO',
+            'without_role'=>'Sin ROL',
+            'without_application'=>'Sin APLICACIÓN',
+            'without_platform'=>'Sin PLATAFORMA',
+            'without_subtype'=>'Sin SUBTIPO',
+        );
+        echo '<label>Cobertura<select name="coverage">';
+        foreach ( $coverage_labels as $value=>$label ) {
+            echo '<option value="' . esc_attr( $value ) . '" ' . selected( $filters['coverage'], $value, false ) . '>' . esc_html( $label ) . '</option>';
+        }
+        echo '</select></label>';
+        $priority_labels = array( 'all'=>'Todas las anomalías','p1'=>'P1 · falta TIPO','p2'=>'P2 · falta ROL','p3'=>'P3 · falta APLICACIÓN','p4'=>'P4 · falta SUBTIPO','p5'=>'P5 · falta PLATAFORMA' );
+        echo '<label>Prioridad<select name="priority">';
+        foreach ( $priority_labels as $value=>$label ) {
+            echo '<option value="' . esc_attr( $value ) . '" ' . selected( $filters['priority'], $value, false ) . '>' . esc_html( $label ) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<label>Filas<select name="rows">';
+        foreach ( array(10,25,50,100) as $n ) {
+            echo '<option value="' . esc_attr( $n ) . '" ' . selected( $filters['rows'], $n, false ) . '>' . esc_html( $n ) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<div class="tcv-filter-actions"><button class="button button-primary">Analizar filtro</button></div>';
+        echo '</form></div>';
+
+        $report = TCV_Classifier::last_report();
+        if ( $report ) {
+            $export = wp_nonce_url( admin_url( 'admin-post.php?action=tcv_export_classifier_json' ), 'tcv_export_classifier_json' );
+            echo '<div class="tcv-panel"><h2>Último análisis filtrado</h2><p>Procesados: <strong>' . esc_html( absint( $report['processed'] ?? 0 ) ) . '</strong> · Generado: ' . esc_html( (string) ( $report['generated_gmt'] ?? '' ) ) . ' UTC.</p>';
+            echo '<p><a class="button" href="' . esc_url( $export ) . '">Exportar JSON del análisis</a></p>';
+            echo '<pre class="tcv-json">' . esc_html( wp_json_encode( (array) ( $report['filters'] ?? array() ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) ) . '</pre></div>';
+        }
 
         $rows = TCV_Classifier::recent_proposals( 100 );
         echo '<div class="tcv-panel"><h2>Propuestas recientes</h2><table class="widefat striped"><thead><tr><th>Producto</th><th>Grupo</th><th>Propuesta</th><th>Estado</th><th>Confianza</th><th>Actualizado</th></tr></thead><tbody>';
@@ -112,6 +167,10 @@ final class TCV_Admin {
             echo '<tr><td><a href="' . esc_url( $edit ) . '">#' . esc_html( $r['product_id'] ) . '</a></td><td>' . esc_html( $r['semantic_group'] ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td>' . esc_html( $r['state'] ) . '</td><td>' . esc_html( number_format_i18n( (float) $r['confidence'] * 100, 1 ) ) . '%</td><td>' . esc_html( $r['updated_at'] ) . '</td></tr>';
         }
         echo '</tbody></table></div>';
+
+        echo '<div class="tcv-panel"><h2>Análisis puntual de categoría</h2><p>Para revisar una categoría concreta sin recorrer el catálogo completo.</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_analyze_category">';
+        wp_nonce_field( 'tcv_analyze_category' );
+        echo '<label>Categoría ID <input type="number" name="term_id" min="1" required></label> <button class="button">Analizar categoría</button></form></div>';
 
         $cats = TCV_Classifier::recent_category_proposals( 100 );
         echo '<div class="tcv-panel"><h2>Propuestas recientes de categorías</h2><table class="widefat striped"><thead><tr><th>Categoría</th><th>Grupo</th><th>Propuesta</th><th>Estado</th><th>Confianza</th></tr></thead><tbody>';
@@ -157,6 +216,41 @@ final class TCV_Admin {
             echo '<tr><td><code>' . esc_html( $table ) . '</code></td><td>' . ( $exists === $table ? 'OK' : 'Falta' ) . '</td><td>' . esc_html( number_format_i18n( $count ) ) . '</td></tr>';
         }
         echo '</tbody></table></div>';
+    }
+
+    public static function analyze_filtered() {
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Sin permisos.' );
+        }
+        check_admin_referer( 'tcv_analyze_filtered' );
+        $filters = TCV_Classifier::sanitize_filters( array(
+            'search'      => isset( $_POST['search'] ) ? wp_unslash( $_POST['search'] ) : '',
+            'category_id' => isset( $_POST['category_id'] ) ? wp_unslash( $_POST['category_id'] ) : 0,
+            'coverage'    => isset( $_POST['coverage'] ) ? wp_unslash( $_POST['coverage'] ) : 'missing_any',
+            'priority'    => isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : 'all',
+            'rows'        => isset( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : 25,
+        ) );
+        $report = TCV_Classifier::analyze_filtered_products( $filters );
+        $args = array_merge( array( 'page'=>'taxocommerce-vocabulary','tab'=>'classifier','tcv_status'=>'success','tcv_message'=>rawurlencode( sprintf( 'Análisis completado: %d productos procesados.', absint( $report['processed'] ?? 0 ) ) ) ), $filters );
+        wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
+    public static function export_classifier_json() {
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Sin permisos.' );
+        }
+        check_admin_referer( 'tcv_export_classifier_json' );
+        $report = TCV_Classifier::last_report();
+        if ( ! $report ) {
+            wp_die( 'No existe un análisis del Clasificador para exportar.', '', array( 'response'=>404 ) );
+        }
+        nocache_headers();
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce_clasificador.json"' );
+        echo wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE );
+        exit;
     }
 
     public static function analyze_product() {
