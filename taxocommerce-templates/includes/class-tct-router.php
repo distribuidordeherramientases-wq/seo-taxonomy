@@ -107,18 +107,26 @@ final class TCT_Router {
         return $roles;
     }
 
+    public static function library_dir() {
+        // Persiste fuera de plugins: las actualizaciones y despliegues FTP
+        // no deben borrar las plantillas subidas por el administrador.
+        return trailingslashit(WP_CONTENT_DIR) . 'taxocommerce-templates-library/';
+    }
+
     public static function available_files($include_variants = false) {
         $result = array();
-        foreach ((array) glob(TCT_DIR . 'templates/*.php') as $path) {
-            $name = basename($path);
-            if (!self::valid_filename($name) || !is_file($path) || is_link($path)) {
-                continue;
+        foreach (array(TCT_DIR . 'templates/', self::library_dir()) as $directory) {
+            foreach ((array) glob($directory . '*.php') as $path) {
+                $name = basename($path);
+                if (!self::valid_filename($name) || !is_file($path) || is_link($path)) {
+                    continue;
+                }
+                if (!$include_variants && (preg_match('/-(mobile|desktop)\.php$/i', $name) ||
+                        in_array($name, array('index.php', 'template-helpers.php'), true))) {
+                    continue;
+                }
+                $result[$name] = $name;
             }
-            if (!$include_variants && (preg_match('/-(mobile|desktop)\.php$/i', $name) ||
-                    in_array($name, array('index.php', 'template-helpers.php'), true))) {
-                continue;
-            }
-            $result[$name] = $name;
         }
         natcasesort($result);
         return $result;
@@ -134,8 +142,13 @@ final class TCT_Router {
         if (!self::valid_filename($file)) {
             return '';
         }
-        $path = TCT_DIR . 'templates/' . $file;
-        return is_file($path) && is_readable($path) && !is_link($path) ? $path : '';
+        foreach (array(self::library_dir(), TCT_DIR . 'templates/') as $directory) {
+            $path = $directory . $file;
+            if (is_file($path) && is_readable($path) && !is_link($path)) {
+                return $path;
+            }
+        }
+        return '';
     }
 
     public static function variant_name($file, $device) {
