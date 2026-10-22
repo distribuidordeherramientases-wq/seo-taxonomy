@@ -157,9 +157,7 @@ final class Assisted_Delete {
             $actions['delete'] = $link;
         }
         if ( ! isset( $actions['trash'] ) && ! isset( $actions['delete'] ) ) {
-            if ( ! isset( $actions['delete'] ) ) {
-                $actions['tc_redirects_delete'] = $link;
-            }
+            $actions['tc_redirects_delete'] = $link;
         }
         return $actions;
     }
@@ -169,8 +167,9 @@ final class Assisted_Delete {
             $link = '<a href="' . esc_url( self::confirmation_url( 'product_cat', $term->term_id ) ) . '">Eliminar con Redirects</a>';
             if ( isset( $actions['delete'] ) ) {
                 $actions['delete'] = $link;
+            } else {
+                $actions['tc_redirects_delete'] = $link;
             }
-            $actions['tc_redirects_delete'] = $link;
         }
         return $actions;
     }
@@ -226,14 +225,20 @@ final class Assisted_Delete {
             Plugin::VERSION,
             true
         );
+        $post_type_obj = get_post_type_object( $post->post_type );
+        $rest_base = $post_type_obj && ! empty( $post_type_obj->rest_base )
+            ? sanitize_key( $post_type_obj->rest_base )
+            : ( 'page' === $post->post_type ? 'pages' : ( 'product' === $post->post_type ? 'products' : 'posts' ) );
+        $namespace = $post_type_obj && ! empty( $post_type_obj->rest_namespace )
+            ? trim( (string) $post_type_obj->rest_namespace, '/' ) : 'wp/v2';
         wp_localize_script(
             'taxocommerce-redirects-block-button',
             'tcRedirectsBlockEditor',
             array(
                 'confirmUrl' => self::confirmation_url( $post->post_type, $post->ID ),
                 'restIds' => array(
-                    '/wp/v2/' . ( 'post' === $post->post_type ? 'posts' : ( 'page' === $post->post_type ? 'pages' : 'product' ) ) . '/' . $post->ID,
-                    '/wc/v3/products/' . $post->ID,
+                    '/' . $namespace . '/' . $rest_base . '/' . absint( $post->ID ),
+                    '/wc/v3/products/' . absint( $post->ID ),
                 ),
             )
         );
