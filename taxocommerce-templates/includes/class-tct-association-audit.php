@@ -257,6 +257,14 @@ final class TCT_Association_Audit {
     public static function takeover_blockers() {
         $rows = self::templates_report();
         $mails = self::mail_report($rows);
+        $native = TCT_Request_Registry::definitions(false);
+        $legacy_loader_keys = array_fill_keys(array(
+            'cluster', 'hub_primary', 'hub_secondary', 'landing',
+            'corporate_page', 'shop', 'front_page', 'blog_index',
+            'taxonomy_category', 'thankyou', 'checkout', 'cart',
+            'search', 'taxonomy_product_cat', 'single_post',
+            'single_product', 'myaccount', 'error_404'
+        ), true);
         $blockers = array();
         foreach ($rows as $row) {
             if ($row['orphan'] && $row['object_count'] > 0) {
@@ -264,6 +272,14 @@ final class TCT_Association_Audit {
                 continue;
             }
             if (!$row['active'] || $row['file'] === '') {
+                continue;
+            }
+            // Claves optativas que se sembraron en 0.3.0, sin objetos ni
+            // mecanismo de carga activo, no deben impedir la sustitucion.
+            // Los correos habilitados se comprueban independientemente.
+            if (!$row['modern'] && $row['object_count'] === 0 &&
+                !isset($native[$row['key']]) &&
+                !isset($legacy_loader_keys[$row['key']])) {
                 continue;
             }
             if (!$row['modern']) {
