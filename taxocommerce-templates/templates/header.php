@@ -14,10 +14,10 @@ require_once __DIR__ . '/template-pilot-country-switcher.php';
  * Hoja base y ajustes de cabecera mediante la API de estilos de WordPress.
  * La URL se resuelve desde la constante del plugin para que sea portable.
  */
-$dht_template_style_url = defined('SEO_SYSTEM_URL')
-    ? SEO_SYSTEM_URL . 'seo-system/templates/styles-template.css'
-    : '';
-$dht_template_style_ver = defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null;
+$dht_template_style_url = defined('TCT_URL')
+    ? TCT_URL . 'templates/styles-template.css'
+    : (defined('SEO_SYSTEM_URL') ? SEO_SYSTEM_URL . 'seo-system/templates/styles-template.css' : '');
+$dht_template_style_ver = defined('TCT_VERSION') ? TCT_VERSION : (defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null);
 
 wp_register_style(
     'dht-template-styles',
