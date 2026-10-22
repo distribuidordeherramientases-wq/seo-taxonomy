@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
- * Version: 0.2.3
+ * Version: 0.2.4
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.3' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.4' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -88,6 +88,9 @@ function taxocommerce_system_check_boot() {
     if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
         taxocommerce_system_check_register_with_core( taxocommerce_core() );
     }
+    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-tcs-catalog-parity.php';
+    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-tcs-catalog-parity-admin.php';
+    add_action( 'admin_post_tcs_catalog_parity_download', array('TCS_Catalog_Parity_Admin','download') );
     add_action( 'admin_post_taxocommerce_system_check_modules_json', 'taxocommerce_system_check_modules_json' );
     add_action( 'admin_menu', 'taxocommerce_system_check_register_menu', 60 );
     add_action( 'admin_enqueue_scripts', 'taxocommerce_system_check_enqueue_assets' );
@@ -151,12 +154,12 @@ function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
 function taxocommerce_system_check_active_tab() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
     $tab = isset( $_GET['tcs_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : 'system';
-    return in_array( $tab, array( 'system', 'plugin', 'http' ), true ) ? $tab : 'system';
+    return in_array( $tab, array( 'system', 'plugin', 'http', 'catalog' ), true ) ? $tab : 'system';
 }
 
 function taxocommerce_system_check_render_tabs( $active ) {
     echo '<nav class="nav-tab-wrapper" aria-label="Chequeos de System Check">';
-    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP' ) as $tab => $label ) {
+    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'catalog' => 'Paridad catálogo' ) as $tab => $label ) {
         echo '<a class="nav-tab' . ( $active === $tab ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( taxocommerce_system_check_tab_url( $tab ) ) . '">'
             . esc_html( $label ) . '</a>';
@@ -275,6 +278,8 @@ function taxocommerce_system_check_home() {
     echo '</div>';
     if ( 'plugin' === $tab ) {
         taxocommerce_system_check_validation_screen();
+    } elseif ( 'catalog' === $tab ) {
+        TCS_Catalog_Parity_Admin::render();
     } elseif ( 'http' === $tab ) {
         taxocommerce_system_check_url_audit_screen();
     } else {
