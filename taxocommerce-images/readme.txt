@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.2
+Stable tag: 0.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,15 @@ Current functionality includes:
 * Optional integration into TaxoCommerce Core.
 
 == Changelog ==
+
+= 0.2.3 =
+* Products only reuse their own gallery; missing product images stay reported.
+* 25-row reports, full KPIs, and resumable cursors past unresolved rows.
+* Replaced HTTP inspection with local ALT, title and dimensions review.
+* Full-library duplicate/unused scan, persistent results and exact original hashes.
+* No new permanent JPG backups or administrator history.
+* Automatic deletion/consolidation is not enabled; cleanup remains read-only.
+
 
 = 0.2.1 =
 * Four separately paginated reports: Pages, Posts, Categories and Products without assigned images.

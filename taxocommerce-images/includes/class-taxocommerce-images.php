@@ -214,7 +214,7 @@ final class TaxoCommerce_Images {
 			'audit'      => __( 'Anomalías', 'taxocommerce-images' ),
 			'assignment' => __( 'Asignación', 'taxocommerce-images' ),
 			'references' => __( 'Sin uso y duplicadas', 'taxocommerce-images' ),
-			'http'       => __( 'Disponibilidad HTTP', 'taxocommerce-images' ),
+			'labels'     => __( 'Etiquetas y atributos', 'taxocommerce-images' ),
 			'library'    => __( 'Media local', 'taxocommerce-images' ),
 			'thumbnails' => __( 'Miniaturas', 'taxocommerce-images' ),
 			'settings'   => __( 'Ajustes', 'taxocommerce-images' ),
@@ -246,8 +246,8 @@ final class TaxoCommerce_Images {
 				case 'assignment':
 					$this->render_assignment();
 					break;
-				case 'http':
-					$this->render_http();
+				case 'labels':
+					$this->render_labels();
 					break;
 				case 'references':
 					$this->render_references();
@@ -278,6 +278,7 @@ final class TaxoCommerce_Images {
 	 * @return void
 	 */
 	private function render_assignment() {
+		echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Productos: solo se propone una imagen de su propia galería. Nunca la de otro producto. Los informes muestran 25 filas y los contadores incluyen todos los pendientes.', 'taxocommerce-images' ) . '</p></div>';
 		?>
 		<h2><?php esc_html_e( 'Asignación de imágenes por categorías relacionadas', 'taxocommerce-images' ); ?></h2>
 		<p><?php esc_html_e( 'Primero se propone la imagen asociada a la categoría; después, imágenes de productos o entradas pertenecientes a esa categoría. No se utiliza una imagen aleatoria de Media ni se descargan imágenes de proveedores.', 'taxocommerce-images' ); ?></p>
@@ -415,6 +416,12 @@ final class TaxoCommerce_Images {
 	 * @return void
 	 */
 	private function render_summary() {
+		echo '<h2>' . esc_html__( 'Todos los elementos sin imagen asignada', 'taxocommerce-images' ) . '</h2><div class="tcc-stat-grid">';
+		foreach ( TaxoCommerce_Images_Assignment::scopes() as $scope => $label ) {
+			$pending = TaxoCommerce_Images_Assignment::missing( $scope, 1, 1 );
+			echo '<div class="card"><strong>' . esc_html( number_format_i18n( $pending['total'] ) ) . '</strong> ' . esc_html( $label ) . '</div>';
+		}
+		echo '</div>';
 		$formats = TaxoCommerce_Images_Inventory::formats();
 		?>
 		<h2><?php esc_html_e( 'Formatos en Media local', 'taxocommerce-images' ); ?></h2>
@@ -571,36 +578,7 @@ final class TaxoCommerce_Images {
 	 *
 	 * @return void
 	 */
-	private function render_http() {
-		$report = TaxoCommerce_Images_HTTP::report();
-		$page = max( 1, absint( $report['page'] ?? 0 ) );
-		$pages = absint( $report['pages'] ?? 0 );
-		$next = empty( $report ) || ( $pages && $page >= $pages ) ? 1 : $page + 1;
-		?>
-		<h2><?php esc_html_e( 'Comprobar disponibilidad de imágenes publicadas', 'taxocommerce-images' ); ?></h2>
-		<p><?php esc_html_e( 'Chequeo HTTP independiente del plugin antiguo. Revisa imágenes destacadas y etiquetas IMG de posts, páginas y productos publicados. Por seguridad, cada petición comprueba como máximo dos contenidos y cuatro imágenes por contenido, con tiempos de espera limitados.', 'taxocommerce-images' ); ?></p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="taxocommerce_images_http_scan">
-			<input type="hidden" name="scan_page" value="<?php echo esc_attr( (string) $next ); ?>">
-			<?php wp_nonce_field( 'taxocommerce_images_http_scan', 'taxocommerce_images_nonce' ); ?>
-			<?php submit_button( 1 === $next ? __( 'Empezar comprobación HTTP', 'taxocommerce-images' ) : __( 'Comprobar siguiente lote HTTP', 'taxocommerce-images' ) ); ?>
-		</form>
-		<?php if ( ! empty( $report ) ) : ?>
-			<p><?php esc_html_e( 'Último lote', 'taxocommerce-images' ); ?> <?php echo esc_html( (string) $page ); ?> / <?php echo esc_html( (string) $pages ); ?>.</p>
-			<table class="widefat striped"><thead><tr>
-				<th><?php esc_html_e( 'Contenido', 'taxocommerce-images' ); ?></th>
-				<th><?php esc_html_e( 'Imagen', 'taxocommerce-images' ); ?></th>
-				<th><?php esc_html_e( 'Estado HTTP', 'taxocommerce-images' ); ?></th>
-			</tr></thead><tbody>
-			<?php foreach ( (array) ( $report['items'] ?? array() ) as $item ) : ?>
-				<tr><td><?php echo esc_html( get_the_title( absint( $item['post_id'] ?? 0 ) ) ); ?></td>
-					<td><a href="<?php echo esc_url( $item['url'] ?? '' ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( wp_basename( (string) wp_parse_url( $item['url'] ?? '', PHP_URL_PATH ) ) ); ?></a></td>
-					<td><?php echo esc_html( (string) absint( $item['status'] ?? 0 ) ); ?> — <?php echo esc_html( (string) ( $item['description'] ?? '' ) ); ?></td></tr>
-			<?php endforeach; ?>
-			</tbody></table>
-		<?php endif; ?>
-		<?php
-	}
+	private function render_labels() { TaxoCommerce_Images_Maintenance::render( 'labels' ); }
 
 	/**
 	 * Deep native-reference report, using the exact detection functions copied
@@ -608,46 +586,7 @@ final class TaxoCommerce_Images {
 	 *
 	 * @return void
 	 */
-	private function render_references() {
-		$report = TaxoCommerce_Images_References::report();
-		$page = max( 1, absint( $report['page'] ?? 0 ) );
-		$next = empty( $report ) ? 1 : $page + 1;
-		$pages = absint( $report['pages'] ?? 0 );
-		?>
-		<h2><?php esc_html_e( 'Imágenes sin referencias conocidas y duplicados exactos', 'taxocommerce-images' ); ?></h2>
-		<p><?php esc_html_e( 'Este chequeo reutiliza la detección de referencias del antiguo plugin: imágenes destacadas, galerías, contenido, bloques, categorías, opciones del tema y otros metadatos. Una imagen sin referencias encontradas es solamente candidata a revisión; no se borra nada.', 'taxocommerce-images' ); ?></p>
-		<p><?php esc_html_e( 'Para no bloquear la tienda, cada petición revisa 20 imágenes. La comparación de archivos idénticos conserva temporalmente las huellas de los lotes ya inspeccionados; archivos mayores de 8 MB no se comparan por hash.', 'taxocommerce-images' ); ?></p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="taxocommerce_images_check_references">
-			<input type="hidden" name="media_page" value="<?php echo esc_attr( (string) ( $pages && $next > $pages ? 1 : $next ) ); ?>">
-			<?php wp_nonce_field( 'taxocommerce_images_check_references', 'taxocommerce_images_nonce' ); ?>
-			<?php submit_button( empty( $report ) || ( $pages && $next > $pages ) ? __( 'Iniciar revisión desde el principio', 'taxocommerce-images' ) : __( 'Revisar siguiente lote', 'taxocommerce-images' ) ); ?>
-		</form>
-		<?php if ( ! empty( $report['items'] ) ) : ?>
-			<p><?php esc_html_e( 'Lote', 'taxocommerce-images' ); ?> <?php echo esc_html( (string) $page ); ?> / <?php echo esc_html( (string) $pages ); ?> · <?php echo esc_html( (string) absint( $report['checked'] ?? 0 ) ); ?> <?php esc_html_e( 'imágenes revisadas', 'taxocommerce-images' ); ?></p>
-			<table class="widefat striped">
-				<thead><tr><th><?php esc_html_e( 'Archivo', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Usos conocidos', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Coincidencias', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Revisión', 'taxocommerce-images' ); ?></th></tr></thead>
-				<tbody>
-				<?php foreach ( $report['items'] as $item ) : ?>
-				<?php
-					$id = absint( $item['id'] ?? 0 );
-					$used = absint( $item['known_references'] ?? 0 );
-					$duplicate = absint( $item['duplicate_of'] ?? 0 );
-				?>
-				<tr>
-					<td><?php echo esc_html( (string) ( $item['title'] ?? '' ) ); ?> <code>#<?php echo esc_html( (string) $id ); ?></code></td>
-					<td><?php echo esc_html( (string) $used ); ?><?php echo 0 === $used ? ' — ' . esc_html__( 'posible desuso; revisar', 'taxocommerce-images' ) : ''; ?></td>
-					<td><?php echo $duplicate ? esc_html( 'SHA-256 = #' . $duplicate ) : esc_html__( 'Sin coincidencia exacta en lotes inspeccionados', 'taxocommerce-images' ); ?></td>
-					<td><a href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-images', 'tab' => 'library', 'image_id' => $id ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Revisar imagen', 'taxocommerce-images' ); ?></a></td>
-				</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
-		<?php else : ?>
-			<p><?php esc_html_e( 'Sin informe aún. Pulsa iniciar para analizar el primer lote.', 'taxocommerce-images' ); ?></p>
-		<?php endif; ?>
-		<?php
-	}
+	private function render_references() { TaxoCommerce_Images_Maintenance::render( 'cleanup' ); }
 
 	/**
 	 * Library and metadata editor.

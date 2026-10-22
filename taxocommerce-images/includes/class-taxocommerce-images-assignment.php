@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class TaxoCommerce_Images_Assignment {
 
-	const PAGE_SIZE  = 8;
+	const PAGE_SIZE  = 25;
 	const BULK_LIMIT = 25;
 
 	/**
@@ -423,6 +423,17 @@ final class TaxoCommerce_Images_Assignment {
 			return array();
 		}
 		$limit = max( 1, min( 8, absint( $limit ) ) );
+		// A product never borrows the image of another product or a category.
+		if ( 'product' === $scope ) {
+			$own = array();
+			foreach ( array_unique( array_map( 'absint', explode( ',', (string) get_post_meta( $id, '_product_image_gallery', true ) ) ) ) as $image ) {
+				if ( self::valid_media( $image ) ) {
+					$own[] = array( 'id' => $image, 'label' => __( 'Imagen de este mismo producto', 'taxocommerce-images' ), 'term_id' => 0 );
+					if ( count( $own ) >= $limit ) { break; }
+				}
+			}
+			return $own;
+		}
 		$terms = self::related_terms( $scope, $id );
 		$found = array();
 
@@ -616,31 +627,55 @@ final class TaxoCommerce_Images_Assignment {
 	 *
 	 * @return void
 	 */
+	public static function process_assignment_batch( $scope, $after_id = 0 ) {
+		if ( ! current_user_can( 'manage_options' ) || ! self::valid_scope( $scope ) ) { return new WP_Error( 'permission', 'Sin permisos o tipo no válido.' ); }
+		$after_id = absint( $after_id );
+		$post_filter = static function ( $where, $query ) use ( $scope, $after_id ) {
+			global $wpdb;
+			if ( $scope === $query->get( 'post_type' ) && $query->get( 'meta_query' ) ) { $where .= $wpdb->prepare( " AND {$wpdb->posts}.ID > %d", $after_id ); }
+			return $where;
+		};
+		$term_args = static function ( $args, $taxonomies ) use ( $scope ) {
+			if ( in_array( $scope, (array) $taxonomies, true ) && ! empty( $args['meta_query'] ) ) { $args['orderby'] = 'term_id'; $args['order'] = 'ASC'; }
+			return $args;
+		};
+		$term_filter = static function ( $clauses, $taxonomies, $args ) use ( $scope, $after_id ) {
+			global $wpdb;
+			if ( in_array( $scope, (array) $taxonomies, true ) && ! empty( $args['meta_query'] ) ) { $clauses['where'] .= $wpdb->prepare( ' AND t.term_id > %d', $after_id ); }
+			return $clauses;
+		};
+		add_filter( 'posts_where', $post_filter, 10, 2 );
+		add_filter( 'get_terms_args', $term_args, 10, 2 );
+		add_filter( 'terms_clauses', $term_filter, 10, 3 );
+		try { $report = self::missing( $scope, 1, self::BULK_LIMIT ); }
+		finally {
+			remove_filter( 'posts_where', $post_filter, 10 );
+			remove_filter( 'get_terms_args', $term_args, 10 );
+			remove_filter( 'terms_clauses', $term_filter, 10 );
+		}
+		$assigned = 0;
+		foreach ( $report['items'] as $item ) {
+			$after_id = max( $after_id, absint( $item['id'] ) );
+			$candidates = self::candidates( $scope, $item['id'], 1 );
+			if ( $candidates && self::apply( $scope, $item['id'], $candidates[0]['id'] ) ) { ++$assigned; }
+		}
+		$all = self::missing( $scope, 1, 1 );
+		return array( 'seen' => count( $report['items'] ), 'assigned' => $assigned, 'cursor' => $after_id, 'remaining' => $all['total'], 'done' => count( $report['items'] ) < self::BULK_LIMIT || 0 === $all['total'] );
+	}
+
 	public static function handle_assign_auto() {
 		$data = self::guard( 'taxocommerce_images_assign_auto' );
-		$scope = $data['scope'];
-		$report = self::missing( $scope, 1, self::BULK_LIMIT );
-		$assigned = 0;
-		$skipped = 0;
-		foreach ( $report['items'] as $item ) {
-			$id = absint( $item['id'] );
-			$candidates = self::candidates( $scope, $id, 2 );
-			if ( $candidates && self::apply( $scope, $id, absint( $candidates[0]['id'] ) ) ) {
-				++$assigned;
-			} else {
-				++$skipped;
-			}
-		}
-		self::redirect(
-			$scope,
-			$assigned ? 'ok' : 'error',
-			sprintf(
-				/* translators: 1: successfully assigned content; 2: items without an eligible image. */
-				__( 'Asignadas: %1$d. Pendientes de revisión: %2$d. Se buscaron imágenes únicamente en las categorías asociadas.', 'taxocommerce-images' ),
-				$assigned,
-				$skipped
-			)
+		$key = 'taxocommerce_images_assign_cursor_' . get_current_user_id() . '_' . $data['scope'];
+		$result = self::process_assignment_batch( $data['scope'], absint( get_transient( $key ) ) );
+		if ( is_wp_error( $result ) ) { self::redirect( $data['scope'], 'error', $result->get_error_message() ); }
+		if ( $result['done'] ) { delete_transient( $key ); } else { set_transient( $key, $result['cursor'], DAY_IN_SECONDS ); }
+		$message = sprintf(
+			/* translators: 1: reviewed objects, 2: assigned images, 3: all remaining objects. */
+			__( 'Revisados: %1$d. Asignados: %2$d. Pendientes totales: %3$d.', 'taxocommerce-images' ),
+			$result['seen'], $result['assigned'], $result['remaining']
 		);
+		$message .= $result['done'] ? ' Pasada terminada; los casos sin imagen propia siguen pendientes.' : ' El siguiente clic continúa con el siguiente lote.';
+		self::redirect( $data['scope'], 'ok', $message );
 	}
 
 	/**

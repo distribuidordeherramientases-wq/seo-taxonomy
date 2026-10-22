@@ -1,0 +1,67 @@
+name: Images functional contract
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-images/**'
+      - '.github/workflows/images-contract-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: images-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testroot
+          MYSQL_ROOT_HOST: '%'
+          MYSQL_DATABASE: images_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -ptestroot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, gd, exif
+          tools: wp-cli
+      - name: PHP syntax
+        run: find taxocommerce-images -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Prepare isolated WordPress
+        run: |
+          mkdir -p /tmp/images-wp
+          wp core download --path=/tmp/images-wp --quiet
+          wp config create --path=/tmp/images-wp --dbname=images_test --dbuser=root --dbpass=testroot --dbhost=127.0.0.1:3306 --quiet
+          wp core install --path=/tmp/images-wp --url=http://images.test --title=Images --admin_user=imagesadmin --admin_password=local-test-password --admin_email=images@example.test --skip-email --quiet
+          ln -s "$GITHUB_WORKSPACE/taxocommerce-images" /tmp/images-wp/wp-content/plugins/taxocommerce-images
+          wp plugin activate taxocommerce-images --path=/tmp/images-wp
+      - name: Acceptance tests in real WordPress
+        env:
+          IMAGES_CONTRACT_TEST: '1'
+        run: |
+          set -o pipefail
+          test -f taxocommerce-images/tests/functional-contract.php
+          wp eval-file "$GITHUB_WORKSPACE/taxocommerce-images/tests/functional-contract.php" --path=/tmp/images-wp 2>&1 | tee /tmp/images-contract-results.txt
+          grep -F 'Images functional contract passed in isolated WordPress' /tmp/images-contract-results.txt
+          grep -F 'PASS: real JPEG converts to WebP' /tmp/images-contract-results.txt
+      - name: Package tested standalone Images
+        run: |
+          mkdir -p build-images
+          zip -qr build-images/images_source.zip taxocommerce-images -x 'taxocommerce-images/tests/*'
+          git rev-parse HEAD > build-images/commit.txt
+          cp /tmp/images-contract-results.txt build-images/tests.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: images-contract-package
+          path: build-images/
+          retention-days: 7
