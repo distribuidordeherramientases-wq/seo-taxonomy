@@ -265,12 +265,26 @@ final class TCD_Academy {
     private static function run_one($state){
         $cpu=TCD_CPU::measure();
         self::save(array('cpu_last'=>$cpu));
-        if(empty($cpu['available']) || (float)$cpu['percent']>=TCD_CPU::limit()){
-            $message=empty($cpu['available'])?'Esperando una lectura de CPU válida.':'CPU '.(string)$cpu['percent'].' %: límite '.TCD_CPU::limit().' % alcanzado.';
+        if(!empty($cpu['available']) && (float)$cpu['percent']>=TCD_CPU::limit()){
+            $message='CPU '.(string)$cpu['percent'].' %: límite '.TCD_CPU::limit().' % alcanzado.';
             self::save(array('last_message'=>$message));
-            self::log('cpu_paused',array('reason'=>$message));
+            self::log('cpu_paused',array('reason'=>$message,'source'=>$cpu['source']??''));
             self::queue(self::CPU_RETRY_SECONDS);
             return;
+        }
+        if(empty($cpu['available'])){
+            // Shared hosting may expose CPU only in its control panel and not via
+            // /proc/stat. Lack of a reliable metric must not deadlock learning.
+            // Work remains bounded by the worker budget and fixed batch sizes.
+            $reason=(string)($cpu['reason']??'CPU no medible en este hosting.');
+            self::log('cpu_unavailable_continue',array(
+                'reason'=>$reason,
+                'source'=>$cpu['source']??'unavailable',
+                'warmup'=>!empty($cpu['warmup'])?'1':'0',
+            ));
+            self::save(array(
+                'last_message'=>'CPU sin métrica fiable; Dependiente continúa con lotes conservadores. '.($reason?:''),
+            ));
         }
         $lesson=absint($state['lesson']);
         if($lesson>10){

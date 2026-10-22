@@ -16,6 +16,8 @@ $checks=array(
     strpos($academy,'self::clear_learning_tables();')!==false,
     strpos($academy,"add_filter('seo_process_supervisor_manager_targets'")!==false,
     strpos($academy,'manager_target_callback')!==false,
+    strpos($academy,'cpu_unavailable_continue')!==false,
+    strpos($academy,"if(!empty($cpu['available']) && (float)$cpu['percent']>=TCD_CPU::limit())")!==false,
     strpos($sources,'public static function source_total')!==false,
     strpos($admin,'fuentes analizadas')!==false,
     strpos($academy,'export_json')!==false,
