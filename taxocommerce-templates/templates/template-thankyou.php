@@ -156,7 +156,7 @@ if (!empty($gcr_payload)) {
     $gcr_handle = 'taxocommerce-google-customer-reviews';
     $gcr_src = 'https://apis.google.com/js/platform.js?onload=renderOptIn';
 
-    wp_register_script($gcr_handle, $gcr_src, array(), SEO_SYSTEM_VERSION, true);
+    wp_register_script($gcr_handle, $gcr_src, array(), TCT_VERSION, true);
     wp_enqueue_script($gcr_handle);
 
     $gcr_inline = "window.___gcfg = { lang: 'es' };\n"
