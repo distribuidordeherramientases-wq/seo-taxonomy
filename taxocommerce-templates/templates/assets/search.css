@@ -1,0 +1,206 @@
+.dht-search-template .dht-search-heading {
+    margin-bottom: 18px;
+}
+.dht-search-template .dht-search-count {
+    margin: 8px 0 0;
+    color: #64748b;
+    font-size: 14px;
+}
+.dht-search-template .dht-search-form-wrap {
+    margin-bottom: 24px;
+}
+.dht-search-template .dht-search-product-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+.dht-search-template .dht-search-product-card {
+    position: relative;
+    display: flex !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    height: 100%;
+    margin: 0 !important;
+    padding: 12px !important;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, .05) !important;
+}
+.dht-search-template .dht-search-product-link {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    color: inherit;
+    text-decoration: none;
+}
+.dht-search-template .dht-search-product-image {
+    display: grid;
+    height: 190px;
+    place-items: center;
+    margin-bottom: 10px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fff;
+}
+.dht-search-template .dht-search-product-image img {
+    width: 100% !important;
+    height: 190px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    object-fit: contain !important;
+    background: #fff !important;
+}
+.dht-search-template .dht-search-product-title {
+    min-height: 3.8em;
+    margin: 0 0 8px !important;
+    color: #0f172a;
+    font-size: 14px !important;
+    font-weight: 750;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.dht-search-template .dht-search-product-description {
+    display: -webkit-box;
+    min-height: 4.2em;
+    margin: 0 0 10px;
+    overflow: hidden;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+.dht-search-template .dht-search-product-price {
+    margin-top: auto;
+    margin-bottom: 10px;
+    color: #b12704;
+    font-size: 17px;
+    font-weight: 850;
+}
+.dht-search-template .dht-search-product-price del {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+.dht-search-template .dht-search-product-price ins {
+    text-decoration: none;
+}
+.dht-search-template .dht-search-product-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: auto;
+}
+.dht-search-template .dht-search-product-actions .button,
+.dht-search-template .dht-search-compare-toggle {
+    display: inline-flex !important;
+    width: 100% !important;
+    min-height: 38px !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 8px 9px !important;
+    border-radius: 8px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1.2;
+    text-align: center;
+}
+.dht-search-template .dht-search-product-actions .button {
+    border: 1px solid #f2b705 !important;
+    background: #f2b705 !important;
+    color: #111827 !important;
+}
+.dht-search-template .dht-search-compare-toggle {
+    border: 1px solid #cbd5e1 !important;
+    background: #fff !important;
+    color: #0f172a !important;
+}
+.dht-search-template .dht-search-compare-toggle[aria-pressed="true"] {
+    border-color: #0f5f8f !important;
+    background: #eef7fb !important;
+    color: #0f5f8f !important;
+}
+.dht-search-template .dht-search-live-compare {
+    margin-top: 18px;
+}
+.dht-search-template .dht-search-pagination {
+    margin-top: 28px;
+}
+.dht-search-template .dht-search-pagination .nav-links {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+.dht-search-template .dht-search-pagination .page-numbers {
+    display: grid;
+    min-width: 42px;
+    min-height: 42px;
+    place-items: center;
+    padding: 8px 11px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    text-decoration: none;
+}
+.dht-search-template .dht-search-pagination .page-numbers.current {
+    border-color: #0f5f8f;
+    background: #0f5f8f;
+    color: #fff;
+}
+@media (max-width: 1023px) {
+    .dht-search-template .dht-search-product-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+}
+@media (max-width: 768px) {
+    .dht-search-template .dht-search-product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 9px !important;
+    }
+    .dht-search-template .dht-search-product-card {
+        padding: 9px !important;
+        border-radius: 10px !important;
+    }
+    .dht-search-template .dht-search-product-image,
+    .dht-search-template .dht-search-product-image img {
+        height: 138px !important;
+    }
+    .dht-search-template .dht-search-product-title {
+        min-height: 3.7em;
+        font-size: 12px !important;
+        line-height: 1.32;
+    }
+    .dht-search-template .dht-search-product-description {
+        min-height: 3.9em;
+        font-size: 10.5px;
+        -webkit-line-clamp: 3;
+    }
+    .dht-search-template .dht-search-product-price {
+        font-size: 15px;
+    }
+    .dht-search-template .dht-search-product-actions {
+        grid-template-columns: 1fr;
+    }
+    .dht-search-template .dht-search-product-actions .button,
+    .dht-search-template .dht-search-compare-toggle {
+        min-height: 35px !important;
+        padding: 7px 5px !important;
+        font-size: 10px !important;
+    }
+}
+@media (max-width: 380px) {
+    .dht-search-template .dht-search-product-image,
+    .dht-search-template .dht-search-product-image img {
+        height: 122px !important;
+    }
+}

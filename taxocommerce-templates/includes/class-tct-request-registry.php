@@ -268,6 +268,10 @@ final class TCT_Request_Registry {
         if (in_array($legacy, array('template-pilot-vevor.php', 'template-category-fr.php', 'template-product-fr.php'), true)) {
             return $original;
         }
+        $pilot = TCT_Pilot_Router::resolve();
+        if ($pilot !== '') {
+            return $pilot;
+        }
         $candidates = self::candidates();
         if (!is_array($candidates) || !$candidates) {
             return $original;

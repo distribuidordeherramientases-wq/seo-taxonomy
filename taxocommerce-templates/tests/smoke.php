@@ -113,4 +113,45 @@ tct_assert(
     'Cada plantilla interna WooCommerce debe tener su propia clave.'
 );
 
+
+/* Las plantillas originales se incorporan junto con sus secundarias
+   y recursos; no se aceptan sustitutos visuales genericos. */
+$required_files = array(
+    'template-helpers.php','header.php','footer.php','styles-template.css',
+    'template-cluster.php','template-cluster-mobile.php','template-cluster-desktop.php',
+    'template-hub-primary.php','template-hub-primary-mobile.php','template-hub-primary-desktop.php',
+    'template-hub-secondary.php','template-hub-secondary-mobile.php','template-hub-secondary-desktop.php',
+    'template-landing.php','template-landing-mobile.php','template-landing-desktop.php',
+    'template-front.php','template-front-mobile.php','template-front-desktop.php',
+    'template-page.php','template-page-mobile.php','template-page-desktop.php',
+    'template-post.php','template-post-mobile.php','template-post-desktop.php',
+    'template-product.php','template-product-mobile.php','template-product-desktop.php',
+    'template-category.php','template-category-mobile.php','template-category-desktop.php',
+    'template-shop.php','template-shop-mobile.php','template-shop-desktop.php',
+    'template-cart.php','template-cart-mobile.php','template-cart-desktop.php',
+    'template-checkout.php','template-thankyou.php','template-myaccount.php',
+    'template-blog.php','template-blog-mobile.php','template-blog-desktop.php',
+    'template-blog-category.php','template-404.php',
+    'email-processing.php','email-completed.php','email-refunded.php','email-cancelled.php',
+    'assets/blog.css','assets/cart-mobile.css','assets/cart-desktop.css'
+);
+foreach ($required_files as $file) {
+    tct_assert(is_file(TCT_DIR . 'templates/' . $file), 'La biblioteca nueva carece de ' . $file);
+}
+tct_assert(count((array)glob(TCT_DIR . 'templates/*.php')) >= 75,
+    'Falta parte de la biblioteca PHP del plugin original.');
+$routes = TCT_Router::catalog();
+foreach (array(
+    'cluster'=>'template-cluster.php', 'hub_primary'=>'template-hub-primary.php',
+    'hub_secondary'=>'template-hub-secondary.php', 'landing'=>'template-landing.php',
+    'single_product'=>'template-product.php', 'taxonomy_product_cat'=>'template-category.php',
+    'shop'=>'template-shop.php', 'cart'=>'template-cart.php',
+    'checkout'=>'template-checkout.php', 'thankyou'=>'template-thankyou.php',
+    'blog_index'=>'template-blog.php', 'single_post'=>'template-post.php',
+    'front_page'=>'template-front.php'
+) as $key=>$file) {
+    tct_assert(isset($routes[$key]) && $routes[$key][1] === $file,
+        'Ruta antigua no conserva archivo: ' . $key);
+}
+
 echo "OK: Smoke tests TaxoCommerce Templates\n";

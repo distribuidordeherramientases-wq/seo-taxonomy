@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Roles editoriales, registro de plantillas y asignación automática, independiente de TaxoCommerce Core.
- * Version: 0.3.0
+ * Version: 0.3.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.3.0');
+define('TCT_VERSION','0.3.2');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -17,6 +17,9 @@ require_once TCT_DIR . 'includes/class-tct-router.php';
 require_once TCT_DIR . 'includes/class-tct-request-registry.php';
 require_once TCT_DIR . 'includes/class-tct-request-admin.php';
 require_once TCT_DIR . 'includes/class-tct-template-editor.php';
+require_once TCT_DIR . 'includes/class-tct-association-audit.php';
+require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
+require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
 
 final class TaxoCommerce_Templates {
     const ROLE_OPTION = 'taxocommerce_templates_custom_roles';
@@ -85,6 +88,12 @@ final class TaxoCommerce_Templates {
         TCT_Router::seed_catalog();
     }
     public static function boot() {
+        // Mantener el filtrado de escaparate ES del anterior cargador. No
+        // declarar funciones duplicadas si ambos plugins estan activos.
+        if (get_option(self::ENABLE_OPTION, 0) &&
+            !function_exists('seo_front_es_international_category_ids')) {
+            require_once TCT_DIR . 'includes/seo-front-es-catalog.php';
+        }
         add_action('admin_menu',array(__CLASS__,'menu'),65);
         add_action('admin_post_tct_save_role',array(__CLASS__,'save_role'));
         add_action('admin_post_tct_save_template',array(__CLASS__,'save_template'));
@@ -96,10 +105,13 @@ final class TaxoCommerce_Templates {
         add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
         add_filter('wc_get_template_part',array('TCT_Request_Registry','resolve_woocommerce_part'),40,3);
         add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
+        add_filter('woocommerce_email_classes',array('TCT_Legacy_Email_Compat','apply'),999);
         add_action('admin_post_tct_save_device_mode',array(__CLASS__,'save_device_mode'));
         add_action('admin_post_tct_assign_page',array(__CLASS__,'assign_page'));
         add_action('admin_post_tct_unassign_page',array(__CLASS__,'unassign_page'));
         add_action('admin_post_tct_download_template',array(__CLASS__,'download_template'));
+        add_action('admin_post_tct_export_associations',array('TCT_Association_Audit','export_csv'));
+        add_action('admin_post_tct_restore_missing_roles',array('TCT_Association_Audit','restore_missing_roles'));
         add_action('admin_init',array('TCT_Router','seed_catalog'));
         add_action('add_meta_boxes_page',array(__CLASS__,'page_metabox'));
         add_action('save_post_page',array(__CLASS__,'save_metabox'),25,2);
@@ -367,14 +379,15 @@ final class TaxoCommerce_Templates {
             wp_die('Acceso denegado.');
         }
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'requests';
-        if (!in_array($tab, array('requests','roles','editor'), true)) {
+        if (!in_array($tab, array('requests','roles','editor','audit'), true)) {
             $tab = 'requests';
         }
         echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><nav class="nav-tab-wrapper">';
         $tabs = array(
             'requests' => 'Tipos de peticion WordPress / WooCommerce',
             'roles'    => 'Jerarquia y roles propios',
-            'editor'   => 'Editor de archivos PHP'
+            'editor'   => 'Editor de archivos PHP',
+            'audit'    => 'Auditoria de asociaciones'
         );
         foreach ($tabs as $key=>$label) {
             $url = TCT_Request_Admin::admin_url($key);
@@ -390,6 +403,8 @@ final class TaxoCommerce_Templates {
             TCT_Request_Admin::render();
         } elseif ($tab === 'editor') {
             TCT_Template_Editor::render();
+        } elseif ($tab === 'audit') {
+            TCT_Association_Audit::render();
         } else {
             self::render_roles_screen();
         }
