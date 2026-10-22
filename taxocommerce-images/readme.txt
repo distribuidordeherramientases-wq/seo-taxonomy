@@ -35,11 +35,13 @@ Current functionality includes:
 
 == Changelog ==
 
+= 0.2.5 =
+* Removed the hosting-dependent CPU checker and /proc/stat gating.
+* Long-running audits use bounded batches, persistent cursors, request pacing and mutation locks.
+* Image anomaly, label/attribute and unused/duplicate scans register in TaxoCommerce Core Processes.
+
 = 0.2.4 =
-* Added an administrator-configurable CPU ceiling for long image jobs (50% by default).
-* Audit, metadata/attribute scan, unused/duplicate scan, optimizer and WebP conversion pause between batches when CPU is unavailable or reaches the configured ceiling.
-* Long jobs keep their cursor and stored results while paused and automatically recheck before continuing.
-* CPU percentage is based on a two-sample /proc/stat utilization delta or a hosting integration filter; load average is never treated as CPU percentage.
+* Previous CPU checker release; superseded by 0.2.5 because hosting-level CPU metrics are not portable from WordPress.
 
 
 = 0.2.3 =
