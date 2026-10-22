@@ -454,9 +454,9 @@ $grid_posts = ($paged === 1) ? array_slice($posts, 5) : $posts;
 <?php
 wp_enqueue_style(
     'dht-blog-template',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/blog.css',
+    TCT_URL . 'templates/assets/blog.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 if (did_action('wp_head')) {
     wp_print_styles('dht-blog-template');
