@@ -19,6 +19,8 @@ final class TCD_Academy {
     const SNAPSHOT_BATCH=25;
     const CPU_RETRY_SECONDS=30;
     const LOCK='tcd_learning_tick_lock';
+    const SCHEMA_OPTION='tcd_learning_schema_version';
+    const SCHEMA_VERSION='2.0.0';
 
     public static function knowledge_table(){global $wpdb;return $wpdb->prefix.'tcd_knowledge';}
     public static function snapshots_table(){global $wpdb;return $wpdb->prefix.'tcd_lesson_snapshots';}
@@ -91,6 +93,11 @@ final class TCD_Academy {
         }else{
             self::save(self::state());
         }
+        update_option(self::SCHEMA_OPTION,self::SCHEMA_VERSION,false);
+    }
+
+    private static function maybe_upgrade(){
+        if(self::SCHEMA_VERSION!==(string)get_option(self::SCHEMA_OPTION,''))self::install();
     }
 
     private static function initial_state(){
@@ -146,6 +153,7 @@ final class TCD_Academy {
     public static function logs(){return (array)get_option(self::LOG,array());}
 
     public static function boot(){
+        self::maybe_upgrade();
         add_action(self::CRON_HOOK,array(__CLASS__,'tick'));
         add_action('admin_post_tcd_academy_control',array(__CLASS__,'control'));
         add_action('admin_post_tcd_dependiente_export_json',array(__CLASS__,'export_json'));
@@ -169,17 +177,18 @@ final class TCD_Academy {
             self::log('stopped',array('lesson'=>$state['lesson'],'phase'=>$state['phase']));
         }elseif('start'===$action && in_array($state['status'],array('idle','stopped','error'),true)){
             $run=(string)($state['run_id']??'');
-            if(!$run)$run=wp_generate_uuid4();
+            if(!$run){
+                self::clear_learning_tables();
+                $run=wp_generate_uuid4();
+                $state=self::initial_state();
+                self::save($state);
+            }
             delete_option('tcd_learning_stop');
             self::save(array('run_id'=>$run,'status'=>'running','last_error'=>'','last_message'=>'Dependiente iniciado. Primero analizará la lección y cerrará su foto fija.'));
             self::queue();
             self::log('started',array('lesson'=>$state['lesson'],'phase'=>$state['phase'],'run'=>$run));
         }elseif('restart'===$action && in_array($state['status'],array('idle','stopped','error','completed'),true)){
-            global $wpdb;
-            foreach(array(self::knowledge_table(),self::items_table(),self::snapshots_table()) as $table){
-                // Internal plugin tables and explicit administrator reset.
-                $wpdb->query("DELETE FROM {$table}");
-            }
+            self::clear_learning_tables();
             delete_option('tcd_learning_stop');
             self::save(array_merge(self::initial_state(),array('status'=>'running','run_id'=>wp_generate_uuid4())));
             self::queue();
@@ -187,6 +196,14 @@ final class TCD_Academy {
         }
         wp_safe_redirect(admin_url('admin.php?page=taxocommerce-dependiente'));
         exit;
+    }
+
+    private static function clear_learning_tables(){
+        global $wpdb;
+        foreach(array(self::knowledge_table(),self::items_table(),self::snapshots_table()) as $table){
+            // Internal plugin tables. This never touches WooCommerce/WordPress source content.
+            $wpdb->query("DELETE FROM {$table}");
+        }
     }
 
     private static function queue($delay=3){
