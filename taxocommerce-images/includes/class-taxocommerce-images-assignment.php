@@ -157,7 +157,12 @@ final class TaxoCommerce_Images_Assignment {
 	 * @return array<string,int[]> Term IDs keyed by taxonomy.
 	 */
 	public static function related_terms( $scope, $id ) {
+		static $cache = array();
 		$id = absint( $id );
+		$cache_key = sanitize_key( $scope ) . ':' . $id;
+		if ( isset( $cache[ $cache_key ] ) ) {
+			return $cache[ $cache_key ];
+		}
 		$terms = array( 'product_cat' => array(), 'category' => array() );
 		if ( ! $id ) {
 			return $terms;
@@ -199,6 +204,7 @@ final class TaxoCommerce_Images_Assignment {
 				}
 			}
 		}
+		$cache[ $cache_key ] = $validated;
 		return $validated;
 	}
 
@@ -231,7 +237,11 @@ final class TaxoCommerce_Images_Assignment {
 			return array();
 		}
 		$table = $wpdb->prefix . 'seo_relations';
-		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+		static $has_table = null;
+		if ( null === $has_table ) {
+			$has_table = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+		}
+		if ( ! $has_table ) {
 			return array();
 		}
 		if ( 'post' === $scope ) {
