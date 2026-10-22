@@ -39,7 +39,7 @@ final class TaxoCommerce_Images_Assignment {
 		return array(
 			'page'                             => __( 'Páginas', 'taxocommerce-images' ),
 			'post'                             => __( 'Entradas', 'taxocommerce-images' ),
-			taxonomy_exists( 'product_cat' ) ? 'product_cat' : 'category' => __( 'Categorías', 'taxocommerce-images' ),
+			( taxonomy_exists( 'product_cat' ) ? 'product_cat' : 'category' ) => __( 'Categorías', 'taxocommerce-images' ),
 			'product'                          => __( 'Productos', 'taxocommerce-images' ),
 		);
 	}
@@ -118,7 +118,7 @@ final class TaxoCommerce_Images_Assignment {
 		$query = new WP_Query(
 			array(
 				'post_type' => $scope,
-				'post_status' => array( 'publish', 'future', 'private' ),
+				'post_status' => array( 'publish', 'future', 'private', 'draft', 'pending' ),
 				'posts_per_page' => $limit,
 				'paged' => $page,
 				'fields' => 'ids',
@@ -174,6 +174,13 @@ final class TaxoCommerce_Images_Assignment {
 			// Current Core uses native parent meta for the SEO hierarchy.
 			if ( 'page' === $scope ) {
 				$terms['product_cat'] = array_merge( $terms['product_cat'], self::core_categories( $id ) );
+			}
+
+			// Canonical product categories outrank ordinary blog categories, including
+			// generic "Uncategorized". Never propose that unrelated blog image when
+			// the editorial content is linked to a definite WooCommerce category.
+			if ( array_filter( $terms['product_cat'] ) ) {
+				$terms['category'] = array();
 			}
 		}
 
