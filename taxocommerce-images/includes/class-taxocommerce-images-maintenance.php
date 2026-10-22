@@ -205,7 +205,6 @@ final class TaxoCommerce_Images_Maintenance {
 		$labels = array( 'missing_alt' => 'Sin ALT informativo', 'decorative_alt' => 'Decorativa con ALT', 'missing_title' => 'Sin título', 'review_title' => 'Revisar título descriptivo', 'missing_dimensions' => 'Sin dimensiones registradas', 'missing_file' => 'Archivo ausente', 'ok' => 'Sin incidencias', 'unused' => 'Sin referencias conocidas', 'duplicate' => 'Duplicadas exactas', 'keeper' => 'Conservadas hasta consolidar', 'used' => 'En uso', 'review' => 'Revisión necesaria' );
 		?>
 		<section data-tci-maintenance="<?php echo esc_attr( $mode ); ?>">
-		<?php TaxoCommerce_Images_CPU::render_control(); ?>
 		<h2><?php echo esc_html( 'labels' === $mode ? 'Etiquetas y atributos de imágenes' : 'Liberar espacio: sin uso y duplicadas' ); ?></h2>
 		<p><?php echo esc_html( 'labels' === $mode ? 'Revisa ALT, título y dimensiones de Media, sin peticiones HTTP. Leyenda y descripción son opcionales. No se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador; el contenido HTML ya publicado se revisa aparte.' : 'Analiza toda la biblioteca sin límite de 8 MB para comparar archivos. Informa de originales idénticos y medios sin referencias conocidas. Borrado y consolidación automáticos no habilitados en esta entrega; no se elimina ninguna imagen durante el análisis.' ); ?></p>
 		<div class="tcc-stat-grid">
