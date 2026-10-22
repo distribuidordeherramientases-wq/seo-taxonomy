@@ -116,6 +116,8 @@ final class TCS_Catalog_Parity_Admin {
             'custom_attr_assigned_products' => 'Productos con atributos propios',
             'custom_attr_orphan_rows' => 'Asignaciones sin producto WordPress',
             'wc_global_attribute_definitions' => 'Definiciones globales WooCommerce',
+            'custom_defs_without_matching_wc_global' => 'Definiciones propias activas sin pa_* global equivalente',
+            'custom_terms_without_matching_wc_term' => 'Terminos propios activos sin termino pa_* de igual slug',
             'wc_product_attribute_taxonomies' => 'Taxonomias de atributos pa_* presentes',
             'wc_product_attribute_terms' => 'Terminos en taxonomias pa_*',
             'wc_attr_meta_products' => 'Productos con _product_attributes',
@@ -140,6 +142,7 @@ final class TCS_Catalog_Parity_Admin {
         echo '</tbody></table>';
         echo '<h3>Comparacion de atributos por producto</h3>';
         echo '<p>Examina como maximo 100 productos por peticion para minimizar la carga. Solo se procesan los productos que tienen filas en las tablas propias. El informe de etiquetas semanticas se limita a este mismo conjunto.</p>';
+        echo '<p class="description">Las etiquetas product_tag y el vocabulary semantico no son equivalentes por definicion: una diferencia entre ambos no demuestra necesariamente un error de migracion. Los atributos se cotejan por slug y valor normalizado, lo que puede requerir revisar alias, unidades, nombres distintos y variaciones.</p>';
         $nonce = wp_create_nonce('tcs_catalog_parity');
         echo '<div id="tcs-parity-audit" data-nonce="' . esc_attr($nonce) . '" data-endpoint="' . esc_url(admin_url('admin-ajax.php')) . '">';
         echo '<button id="tcs-parity-start" class="button button-primary" type="button">Iniciar auditoria de solo lectura</button> ';
