@@ -31,18 +31,10 @@
                             throw new Error(result.data && result.data.message ? result.data.message : 'No se pudo ejecutar el lote.');
                         }
                         var state = result.data.state || {};
-                        if (result.data.paused) {
-                            operation = 'scan';
-                            var seconds = Math.max(1, Number(result.data.retry_after || 10));
-                            var cpuMessage = result.data.cpu && result.data.cpu.message ? result.data.cpu.message : 'CPU no disponible para continuar.';
-                            output.textContent = cpuMessage + ' Progreso guardado: ' + (state.scanned || 0) + ' / ' + (state.total || 0) + '. Reintentando en ' + seconds + ' s.';
-                            await new Promise(function (resolve) { window.setTimeout(resolve, seconds * 1000); });
-                            continue;
-                        }
                         output.textContent = 'Analizadas: ' + (state.scanned || 0) + ' / ' + (state.total || 0) + '. El progreso está guardado.';
                         if (result.data.done) { window.location.reload(); return; }
                         operation = 'scan';
-                        await new Promise(function (resolve) { window.setTimeout(resolve, 200); });
+                        await new Promise(function (resolve) { window.setTimeout(resolve, 500); });
                     }
                     output.textContent += ' Pausado al finalizar el lote. Puedes continuar sin repetir lo analizado.';
                 } catch (error) {
