@@ -160,40 +160,19 @@ final class TaxoCommerce_Images_Maintenance {
 		if ( $statuses ) { $args['meta_query'][] = array( 'key' => '_taxocommerce_images_' . $mode . '_status', 'value' => $statuses, 'compare' => 'IN' ); }
 		return new WP_Query( $args );
 	}
-	public static function resolve() {
-		if ( ! current_user_can( 'manage_options' ) ) { return new WP_Error( 'permission', 'Sin permisos.' ); }
-		$state = self::state( 'cleanup' );
-		if ( ( $state['status'] ?? '' ) !== 'complete' ) { return new WP_Error( 'scan_first', 'Completa antes el análisis.' ); }
-		$q = self::rows( 'cleanup', array( 'duplicate' ), 1, 1 );
-		if ( ! $q->posts ) { $q = self::rows( 'cleanup', array( 'unused', 'keeper' ), 1, 1 ); }
-		if ( ! $q->posts ) { return array( 'done' => true, 'state' => $state ); }
-		$id = $q->posts[0]->ID;
-		$row = get_post_meta( $id, self::row_key( 'cleanup' ), true );
-		$result = TaxoCommerce_Images_Deduplicate::remove( $id, (int) ( $row['duplicate'] ?? 0 ) );
-		if ( is_wp_error( $result ) ) {
-			$row['status'] = 'review'; $row['message'] = $result->get_error_message(); self::record( 'cleanup', $id, $row );
-		} else {
-			$state = self::state( 'cleanup' );
-			$state['counts'][ $row['status'] ] = max( 0, (int) ( $state['counts'][ $row['status'] ] ?? 0 ) - 1 );
-			++$state['removed']; $state['saved_bytes'] += (int) $result; self::save_state( 'cleanup', $state );
-		}
-		return array( 'done' => false, 'state' => self::state( 'cleanup' ) );
-	}
 	public static function ajax() {
 		if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( array( 'message' => 'Sin permisos.' ), 403 ); }
 		check_ajax_referer( 'taxocommerce_images_maintenance', 'nonce' );
 		$mode = isset( $_POST['mode'] ) && is_string( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : '';
 		$operation = isset( $_POST['operation'] ) && is_string( $_POST['operation'] ) ? sanitize_key( wp_unslash( $_POST['operation'] ) ) : '';
-		if ( ! in_array( $mode, array( 'labels', 'cleanup' ), true ) || ! in_array( $operation, array( 'start', 'scan', 'resolve' ), true ) ) { wp_send_json_error( array( 'message' => 'Operación no válida.' ), 400 ); }
-		if ( ! self::lock() ) { wp_send_json_error( array( 'message' => 'Otro lote está en curso. Reintenta cuando termine.' ), 409 ); }
+		if ( ! in_array( $mode, array( 'labels', 'cleanup' ), true ) || ! in_array( $operation, array( 'start', 'scan' ), true ) ) {
+			wp_send_json_error( array( 'message' => 'Operación no válida.' ), 400 );
+		}
+		if ( ! self::lock() ) { wp_send_json_error( array( 'message' => 'Otro lote está en curso.' ), 409 ); }
 		try {
-			if ( 'resolve' === $operation ) {
-				if ( 'cleanup' !== $mode || empty( $_POST['confirmed'] ) ) { $result = new WP_Error( 'confirmation', 'Falta confirmación de borrado.' ); }
-				else { $result = self::resolve(); }
-			} else {
-				if ( 'start' === $operation ) { self::begin( $mode ); }
-				$state = self::scan( $mode ); $result = is_wp_error( $state ) ? $state : array( 'done' => ( $state['status'] ?? '' ) === 'complete', 'state' => $state );
-			}
+			if ( 'start' === $operation ) { self::begin( $mode ); }
+			$state = self::scan( $mode );
+			$result = is_wp_error( $state ) ? $state : array( 'done' => ( $state['status'] ?? '' ) === 'complete', 'state' => $state );
 		} catch ( Throwable $error ) { $result = new WP_Error( 'exception', sanitize_text_field( $error->getMessage() ) ); }
 		finally { self::unlock(); }
 		if ( is_wp_error( $result ) ) { wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 ); }
@@ -220,7 +199,7 @@ final class TaxoCommerce_Images_Maintenance {
 		?>
 		<section data-tci-maintenance="<?php echo esc_attr( $mode ); ?>">
 		<h2><?php echo esc_html( 'labels' === $mode ? 'Etiquetas y atributos de imágenes' : 'Liberar espacio: sin uso y duplicadas' ); ?></h2>
-		<p><?php echo esc_html( 'labels' === $mode ? 'Revisa ALT, título y dimensiones de Media, sin peticiones HTTP. Leyenda y descripción son opcionales. No se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador; el contenido HTML ya publicado se revisa aparte.' : 'Analiza toda la biblioteca. Al resolver, las duplicadas idénticas se consolidan cuando sus referencias pueden trasladarse con seguridad. Las imágenes sin uso se vuelven a comprobar y se borran. No se conservan copias permanentes ni se añade un historial de cambios.' ); ?></p>
+		<p><?php echo esc_html( 'labels' === $mode ? 'Revisa ALT, título y dimensiones de Media, sin peticiones HTTP. Leyenda y descripción son opcionales. No se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador; el contenido HTML ya publicado se revisa aparte.' : 'Analiza toda la biblioteca sin límite de 8 MB para comparar archivos. Informa de originales idénticos y medios sin referencias conocidas. Borrado y consolidación automáticos no habilitados en esta entrega; no se elimina ninguna imagen durante el análisis.' ); ?></p>
 		<div class="tcc-stat-grid">
 		<?php foreach ( (array) ( $state['counts'] ?? array() ) as $flag => $count ) : ?>
 		<div class="card"><strong><?php echo esc_html( number_format_i18n( $count ) ); ?></strong> <?php echo esc_html( $labels[ $flag ] ?? $flag ); ?></div>
@@ -228,7 +207,7 @@ final class TaxoCommerce_Images_Maintenance {
 		</div>
 		<p><?php echo esc_html( 'Analizadas: ' . (int) ( $state['scanned'] ?? 0 ) . ' / ' . (int) ( $state['total'] ?? 0 ) . '. Los contadores incluyen todos los lotes examinados, no solo las 25 filas visibles.' ); ?></p>
 		<p><button class="button button-primary" data-tci-operation="start">Analizar todas</button> <button class="button" data-tci-operation="scan" <?php disabled( ! $state || 'running' !== $state['status'] ); ?>>Continuar</button> <button class="button" data-tci-pause>Pausar</button>
-		<?php if ( 'cleanup' === $mode ) : ?><button class="button" data-tci-operation="resolve" <?php disabled( ( $state['status'] ?? '' ) !== 'complete' ); ?>>Resolver sin uso y duplicadas</button><?php endif; ?></p>
+		<?php if ( 'cleanup' === $mode ) : ?><a class="button" href="<?php echo esc_url( admin_url( 'upload.php?mode=list' ) ); ?>">Revisar en Media</a><?php endif; ?></p>
 		<p data-tci-progress role="status" aria-live="polite"><?php echo esc_html( 'Eliminadas: ' . (int) ( $state['removed'] ?? 0 ) . '. Espacio liberado comprobado: ' . size_format( (int) ( $state['saved_bytes'] ?? 0 ) ) ); ?></p>
 		<?php
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
