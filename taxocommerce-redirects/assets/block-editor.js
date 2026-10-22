@@ -13,7 +13,10 @@
             const deleting = method === 'DELETE' || method === 'POST' && options.data && options.data.status === 'trash';
             const ids = cfg.restIds || [];
             const hits = ids.some(function (route) {
-                return path.indexOf(route) !== -1;
+                const pos = path.indexOf(route);
+                if (pos < 0) return false;
+                const nextChar = path.charAt(pos + route.length);
+                return nextChar === '' || nextChar === '/' || nextChar === '?' || nextChar === '#';
             });
             if (deleting && hits) {
                 window.location.assign(cfg.confirmUrl);
