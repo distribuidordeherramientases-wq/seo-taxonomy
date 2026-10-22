@@ -7,7 +7,6 @@
 define( 'ABSPATH', __DIR__ );
 define( 'DAY_IN_SECONDS', 86400 );
 define( 'MINUTE_IN_SECONDS', 60 );
-define( 'UPLOAD_ERR_NO_FILE', 4 );
 
 class WP_Error {
     private $code;
