@@ -1,0 +1,42 @@
+name: TaxoCommerce Modular Architecture CI
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-core/**'
+      - 'taxocommerce-images/**'
+      - 'taxocommerce-vocabulary/**'
+      - 'taxocommerce-system-check/**'
+      - '.github/workflows/ci-taxocommerce-modular-architecture.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-core/**'
+      - 'taxocommerce-images/**'
+      - 'taxocommerce-vocabulary/**'
+      - 'taxocommerce-system-check/**'
+      - '.github/workflows/ci-taxocommerce-modular-architecture.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
+    runs-on: ubuntu-latest
+    name: PHP ${{ matrix.php }} modular smoke
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: PHP syntax
+        run: |
+          find taxocommerce-core taxocommerce-images taxocommerce-vocabulary taxocommerce-system-check -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Verify decentralized architecture
+        run: php taxocommerce-core/tests/modular-architecture-smoke.php

@@ -222,14 +222,14 @@ jobs:
 
       - name: Build TaxoCommerce Vocabulary ZIP
         run: |
-          rm -f taxocommerce-vocabulary-0.3.0.zip
-          zip -qr taxocommerce-vocabulary-0.3.0.zip taxocommerce-vocabulary
+          rm -f taxocommerce-vocabulary-0.3.1.zip
+          zip -qr taxocommerce-vocabulary-0.3.1.zip taxocommerce-vocabulary
 
       - name: Upload TaxoCommerce Vocabulary package
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-vocabulary-0.3.0
-          path: taxocommerce-vocabulary-0.3.0.zip
+          name: taxocommerce-vocabulary-0.3.1
+          path: taxocommerce-vocabulary-0.3.1.zip
           retention-days: 30
           if-no-files-found: error
 

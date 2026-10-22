@@ -20,14 +20,12 @@ final class TaxoCommerce_Core_Dashboard {
 	 * Render the Core dashboard with live module/service counts.
 	 *
 	 * @param array $modules     Registered modules.
-	 * @param array $processes   Registered processes.
 	 * @param bool  $legacy      Whether TaxoCommerce SEO is loaded.
 	 * @param bool  $woocommerce Whether WooCommerce is loaded.
 	 * @return void
 	 */
-	public static function render( $modules, $processes, $legacy, $woocommerce ) {
+	public static function render( $modules, $legacy, $woocommerce ) {
 		$modules     = is_array( $modules ) ? $modules : array();
-		$processes   = is_array( $processes ) ? $processes : array();
 		$legacy      = (bool) $legacy;
 		$woocommerce = (bool) $woocommerce;
 
@@ -54,12 +52,6 @@ final class TaxoCommerce_Core_Dashboard {
 				'icon'  => 'dashicons-admin-plugins',
 				'label' => __( 'Extensiones registradas', 'taxocommerce-core' ),
 				'value' => number_format_i18n( count( $modules ) ),
-				'tone'  => 'neutral',
-			),
-			array(
-				'icon'  => 'dashicons-database',
-				'label' => __( 'Procesos registrados', 'taxocommerce-core' ),
-				'value' => number_format_i18n( count( $processes ) ),
 				'tone'  => 'neutral',
 			),
 		);
@@ -90,14 +82,6 @@ final class TaxoCommerce_Core_Dashboard {
 				'slug'        => 'taxocommerce-core-menu',
 			),
 			array(
-				'title'       => __( 'Procesos automáticos', 'taxocommerce-core' ),
-				'icon'        => 'dashicons-admin-settings',
-				'description' => __( 'Supervisa los procesos registrados; la migración de los motores existentes continúa por fases.', 'taxocommerce-core' ),
-				'state'       => __( 'Motores pendientes', 'taxocommerce-core' ),
-				'tone'        => 'warning',
-				'slug'        => 'taxocommerce-core-processes',
-			),
-			array(
 				'title'       => __( 'Extensiones', 'taxocommerce-core' ),
 				'icon'        => 'dashicons-admin-plugins',
 				'description' => __( 'Descubre y administra los módulos de la familia TaxoCommerce de forma independiente.', 'taxocommerce-core' ),
@@ -126,12 +110,6 @@ final class TaxoCommerce_Core_Dashboard {
 				'old'  => __( 'Menu Manager, jerarquía SEO y menús nativos de WordPress.', 'taxocommerce-core' ),
 				'state'=> __( 'Migrado al Core', 'taxocommerce-core' ),
 				'tone' => 'info',
-			),
-			array(
-				'name' => __( 'Procesos automáticos', 'taxocommerce-core' ),
-				'old'  => __( 'Supervisor, Gestor de procesos, WP-Cron, cursores, colas y recuperación.', 'taxocommerce-core' ),
-				'state'=> __( 'Contrato creado; motores pendientes', 'taxocommerce-core' ),
-				'tone' => 'warning',
 			),
 			array(
 				'name' => __( 'Extensiones', 'taxocommerce-core' ),
