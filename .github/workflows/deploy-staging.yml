@@ -46,6 +46,7 @@ jobs:
             taxocommerce-system-check/**
             taxocommerce-templates/**
             taxocommerce-auditor/**
+            taxocommerce-redirects/**
             taxocommerce-dependiente/**
             taxocommerce-faqs/**
             packages/**
