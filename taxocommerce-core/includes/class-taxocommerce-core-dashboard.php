@@ -105,14 +105,7 @@ final class TaxoCommerce_Core_Dashboard {
 				'tone'        => 'purple',
 				'slug'        => 'taxocommerce-core-modules',
 			),
-			array(
-				'title'       => __( 'Registro técnico', 'taxocommerce-core' ),
-				'icon'        => 'dashicons-media-text',
-				'description' => __( 'Consulta eventos y diagnósticos del Core desde un único punto de acceso.', 'taxocommerce-core' ),
-				'state'       => __( 'Base funcional', 'taxocommerce-core' ),
-				'tone'        => 'muted',
-				'slug'        => 'taxocommerce-core-logs',
-			),
+
 		);
 
 		$migration = array(
@@ -146,12 +139,7 @@ final class TaxoCommerce_Core_Dashboard {
 				'state'=> __( 'Sistema modular', 'taxocommerce-core' ),
 				'tone' => 'purple',
 			),
-			array(
-				'name' => __( 'Registro técnico', 'taxocommerce-core' ),
-				'old'  => __( 'Logs y diagnósticos repartidos entre servicios y pantallas.', 'taxocommerce-core' ),
-				'state'=> __( 'Base funcional', 'taxocommerce-core' ),
-				'tone' => 'muted',
-			),
+
 		);
 		?>
 		<div class="wrap tcc-dashboard" id="taxocommerce-core-dashboard">

@@ -103,7 +103,7 @@ final class TaxoCommerce_Core {
 				'name'        => 'TaxoCommerce Core',
 				'version'     => TAXOCOMMERCE_CORE_VERSION,
 				'status'      => 'active',
-				'description' => 'Servicios comunes de contenidos, jerarquía, procesos, registro técnico y extensiones.',
+				'description' => 'Servicios comunes de contenidos, jerarquía y extensiones.',
 			)
 		);
 
@@ -125,7 +125,6 @@ final class TaxoCommerce_Core {
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
 		add_filter( 'admin_body_class', array( $this, 'family_body_class' ) );
-		add_action( 'admin_post_taxocommerce_core_clear_logs', array( $this, 'clear_logs' ) );
 		add_action( 'admin_post_taxocommerce_core_process_action', array( $this, 'handle_process_action' ) );
 		add_action( 'admin_post_taxocommerce_core_activate_extension', array( $this, 'activate_extension' ) );
 		add_action( 'admin_post_taxocommerce_core_deactivate_extension', array( $this, 'deactivate_extension' ) );
@@ -231,14 +230,6 @@ final class TaxoCommerce_Core {
 			array( $this, 'render_modules' )
 		);
 
-		add_submenu_page(
-			'taxocommerce-core',
-			__( 'Registro técnico', 'taxocommerce-core' ),
-			__( 'Registro técnico', 'taxocommerce-core' ),
-			$capability,
-			'taxocommerce-core-logs',
-			array( $this, 'render_logs' )
-		);
 	}
 
 	/**
@@ -887,60 +878,4 @@ final class TaxoCommerce_Core {
 		<?php
 	}
 
-	/**
-	 * Logs page.
-	 *
-	 * @return void
-	 */
-	public function render_logs() {
-		$this->guard();
-		$entries = $this->logger ? $this->logger->all() : array();
-		$url     = wp_nonce_url(
-			admin_url( 'admin-post.php?action=taxocommerce_core_clear_logs' ),
-			'taxocommerce_core_clear_logs'
-		);
-		?>
-		<div class="wrap tcc-family-screen">
-			<header class="tcc-page-header">
-				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-media-text"></span></span>
-				<div class="tcc-page-header__content">
-					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
-					<h1><?php echo esc_html__( 'Registro técnico', 'taxocommerce-core' ); ?></h1>
-					<p><?php echo esc_html__( 'Registro común de avisos, errores y sucesos del Core y, más adelante, de todas sus extensiones.', 'taxocommerce-core' ); ?></p>
-				</div>
-			</header>
-			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'los logs y diagnósticos que ahora están repartidos entre procesos, servicios y herramientas del plugin actual.', 'taxocommerce-core' ); ?></p></div>
-			<p><a class="button" href="<?php echo esc_url( $url ); ?>"><?php echo esc_html__( 'Vaciar registro técnico', 'taxocommerce-core' ); ?></a></p>
-			<table class="widefat striped">
-				<thead><tr><th><?php echo esc_html__( 'Hora UTC', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Nivel', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Mensaje', 'taxocommerce-core' ); ?></th></tr></thead>
-				<tbody>
-					<?php if ( empty( $entries ) ) : ?>
-						<tr><td colspan="3"><?php echo esc_html__( 'No hay registros técnicos.', 'taxocommerce-core' ); ?></td></tr>
-					<?php else : ?>
-						<?php foreach ( $entries as $entry ) : ?>
-							<tr><td><?php echo esc_html( (string) $entry['time'] ); ?></td><td><?php echo esc_html( (string) $entry['level'] ); ?></td><td><?php echo esc_html( (string) $entry['message'] ); ?></td></tr>
-						<?php endforeach; ?>
-					<?php endif; ?>
-				</tbody>
-			</table>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Clears logs.
-	 *
-	 * @return void
-	 */
-	public function clear_logs() {
-		$this->guard();
-		check_admin_referer( 'taxocommerce_core_clear_logs' );
-
-		if ( $this->logger ) {
-			$this->logger->clear();
-		}
-
-		wp_safe_redirect( admin_url( 'admin.php?page=taxocommerce-core-logs' ) );
-		exit;
-	}
 }

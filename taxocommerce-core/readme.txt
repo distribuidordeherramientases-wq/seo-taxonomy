@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.10
+Stable tag: 0.4.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,9 @@ Esta ayuda es de solo lectura; no genera ni modifica contenido automáticamente
 y no cambia el plugin TaxoCommerce SEO.
 
 == Changelog ==
+
+= 0.4.11 =
+* Removed the unused technical log administration page, its menu shortcut and associated clear-log endpoint. Internal diagnostic logging remains available for dependent components.
 
 = 0.4.10 =
 * Gestor de procesos con acciones autenticadas, estado real y callbacks de extensiones, comenzando por auditorias HTTP System Check.
