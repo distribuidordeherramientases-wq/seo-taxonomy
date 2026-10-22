@@ -370,6 +370,7 @@ final class TaxoCommerce_Core {
 				'org_slug'      => 'taxocommerce-vocabulary',
 				'search_term'   => 'TaxoCommerce Vocabulary',
 				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-vocabulary' ),
 				'description'   => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático gestionado por Procesos.', 'taxocommerce-core' ),
 			),
 			'google_bing' => array(
@@ -835,7 +836,9 @@ final class TaxoCommerce_Core {
 						$active      = $installed && $this->extension_is_active( $plugin_file );
 						$runtime     = isset( $this->modules[ $extension_id ] ) ? $this->modules[ $extension_id ] : array();
 						$version     = ! empty( $runtime['version'] ) ? $runtime['version'] : ( $plugin_data['Version'] ?? '' );
-						$admin_url   = ! empty( $runtime['admin_url'] ) ? $runtime['admin_url'] : '';
+						$admin_url   = ! empty( $runtime['admin_url'] )
+							? $runtime['admin_url']
+							: ( ! empty( $extension['admin_url'] ) ? esc_url_raw( (string) $extension['admin_url'] ) : '' );
 						$search_term   = sanitize_text_field( (string) ( $extension['search_term'] ?? $extension['name'] ?? '' ) );
 						$wordpress_org = ! isset( $extension['wordpress_org'] ) || (bool) $extension['wordpress_org'];
 						$search_url  = add_query_arg(
