@@ -4,7 +4,9 @@ final class TCD_Academy {
     const CRON_HOOK='tcd_academy_tick';
     const STATE='tcd_academy_state';
     const LOG='tcd_academy_log';
-    const BATCH=8;
+    const BATCH=1;
+    const CPU_RETRY_SECONDS=30;
+    const LOCK='tcd_academy_tick_lock';
     public static function knowledge_table() {global $wpdb;return $wpdb->prefix.'tcd_knowledge';}
     public static function install() {
         global $wpdb;
@@ -27,7 +29,7 @@ final class TCD_Academy {
         ) ".$wpdb->get_charset_collate().";");
         if(false===get_option(self::STATE,false))add_option(self::STATE,self::initial_state(),'',false);
     }
-    private static function initial_state(){return array('status'=>'idle','lesson'=>1,'cursor'=>0,'processed'=>0,'learned'=>0,'unlearned'=>0,'run_id'=>'','last_error'=>'','last_message'=>'Preparado para estudiar L1–L10.','updated_at'=>'');}
+    private static function initial_state(){return array('status'=>'idle','lesson'=>1,'cursor'=>0,'processed'=>0,'learned'=>0,'unlearned'=>0,'run_id'=>'','last_error'=>'','last_message'=>'Preparado para estudiar L1–L10.','updated_at'=>'','cpu_last'=>array());}
     public static function state(){return wp_parse_args((array)get_option(self::STATE,array()),self::initial_state());}
     public static function save($changes){
         $state=self::state();
@@ -54,7 +56,12 @@ final class TCD_Academy {
         check_admin_referer('tcd_academy_control');
         $action=isset($_POST['tcd_action'])?sanitize_key(wp_unslash($_POST['tcd_action'])):'';
         $state=self::state();
-        if('stop'===$action){
+        if('cpu_limit'===$action){
+            $limit=isset($_POST['cpu_limit'])?wp_unslash($_POST['cpu_limit']):'';
+            $updated=TCD_CPU::set_limit($limit);
+            if(is_wp_error($updated))self::log('cpu_limit_invalid',array('error'=>$updated->get_error_message()));
+            else self::log('cpu_limit_saved',array('percent'=>$updated));
+        }elseif('stop'===$action){
             update_option('tcd_academy_stop',(string)$state['run_id'],false);
             self::save(array('status'=>'stopped','last_message'=>'Detenido: no se iniciarán más lotes.'));
             wp_clear_scheduled_hook(self::CRON_HOOK);
@@ -79,13 +86,33 @@ final class TCD_Academy {
         wp_safe_redirect(admin_url('admin.php?page=taxocommerce-dependiente'));
         exit;
     }
-    private static function queue(){
+    private static function queue($delay=3){
         if('running'!==self::state()['status'])return;
-        if(!wp_next_scheduled(self::CRON_HOOK))wp_schedule_single_event(time()+3,self::CRON_HOOK);
+        if(!wp_next_scheduled(self::CRON_HOOK))wp_schedule_single_event(time()+max(1,absint($delay)),self::CRON_HOOK);
     }
     public static function tick(){
         $state=self::state();
         if('running'!==$state['status'] || get_option('tcd_academy_stop','')===$state['run_id'])return;
+        // A short-lived atomic lock prevents overlapping cron invocations.
+        $lock=get_option(self::LOCK,0);
+        if($lock && (time()-absint($lock))<120){self::queue(15);return;}
+        if(!add_option(self::LOCK,time(),'',false)){
+            if($lock && time()-absint($lock)>=120){delete_option(self::LOCK);self::queue(3);}
+            else self::queue(15);
+            return;
+        }
+        try {self::run_one($state);} finally {delete_option(self::LOCK);}
+    }
+    private static function run_one($state){
+        $cpu=TCD_CPU::measure();
+        self::save(array('cpu_last'=>$cpu));
+        if(empty($cpu['available']) || (float)$cpu['percent']>=TCD_CPU::limit()){
+            $message=empty($cpu['available'])?'Esperando una lectura de CPU válida.':'CPU '.(string)$cpu['percent'].' %: límite '.TCD_CPU::limit().' % alcanzado.';
+            self::save(array('last_message'=>$message));
+            self::log('cpu_paused',array('reason'=>$message));
+            self::queue(self::CPU_RETRY_SECONDS);
+            return;
+        }
         $lesson=absint($state['lesson']);
         if($lesson>10){self::save(array('status'=>'completed','last_message'=>'Diez lecciones completadas.'));return;}
         $run=$state['run_id'];

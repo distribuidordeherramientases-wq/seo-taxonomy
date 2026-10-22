@@ -26,6 +26,15 @@ final class TCD_Admin {
         }
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente · Academia</h1>';
         echo '<p>Plugin independiente. Solo las diez lecciones iniciales; no hay aprendizaje continuo ni worker del sistema antiguo.</p>';
+        echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="padding:14px;background:#fff;border:1px solid #c3c4c7;margin:12px 0 20px">';
+        wp_nonce_field('tcd_academy_control');
+        echo '<input type="hidden" name="action" value="tcd_academy_control"><input type="hidden" name="tcd_action" value="cpu_limit">';
+        echo '<label for="tcd-cpu-limit"><strong>Límite máximo de CPU para Dependiente (%)</strong></label> ';
+        echo '<input id="tcd-cpu-limit" name="cpu_limit" type="number" min="1" max="100" step="1" required style="width:85px" value="'.esc_attr((string)TCD_CPU::limit()).'"> ';
+        echo '<button type="submit" class="button button-primary">Guardar límite</button>';
+        $sample=(array)($state['cpu_last']??array());
+        echo '<p class="description">CPU: '.(isset($sample['percent']) && null!==$sample['percent'] ? esc_html((string)$sample['percent']).' %' : 'sin medición').'; fuente: '.esc_html((string)($sample['source']??'pendiente')).'. '.esc_html((string)($sample['reason']??'')).'</p>';
+        echo '<p class="description">El control de /proc/stat mide la CPU total del servidor, no necesariamente tu cuota de hosting. Si no existe una métrica fiable, Dependiente pausa y vuelve a comprobar.</p></form>';
         echo '<h2>Estado: '.esc_html((string)$state['status']).'</h2>';
         echo '<p>Lección: '.esc_html((string)$state['lesson']).' / 10 · Cursor: '.esc_html((string)$state['cursor']).' · Aprendidos: '.esc_html((string)$state['learned']).' · No aprendidos: '.esc_html((string)$state['unlearned']).'</p>';
         echo '<p>'.esc_html((string)$state['last_message']).'</p>';
