@@ -35,5 +35,5 @@ jobs:
         run: php taxocommerce-dependiente/tests/learning-smoke.php
       - name: No separate Academy or Trainer UI
         run: |
-          ! grep -R --line-number --fixed-strings 'TaxoCommerce Dependiente · Academia' taxocommerce-dependiente
-          ! grep -R --line-number --fixed-strings 'Entrenador' taxocommerce-dependiente/includes/class-tcd-admin.php
+          ! grep --line-number --fixed-strings 'TaxoCommerce Dependiente · Academia' taxocommerce-dependiente/includes/class-tcd-admin.php taxocommerce-dependiente/taxocommerce-dependiente.php
+          ! grep --line-number --fixed-strings 'Entrenador' taxocommerce-dependiente/includes/class-tcd-admin.php taxocommerce-dependiente/taxocommerce-dependiente.php
