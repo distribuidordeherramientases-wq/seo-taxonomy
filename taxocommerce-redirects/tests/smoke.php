@@ -113,10 +113,9 @@ class FakeDB {
 $GLOBALS['wpdb'] = new FakeDB();
 $GLOBALS['tc_options'] = array( 'tc_redirects_schema_ready' => '1' );
 
-require dirname( __DIR__ ) . '/includes/class-store.php';
-require dirname( __DIR__ ) . '/includes/class-engine.php';
-require dirname( __DIR__ ) . '/includes/class-admin.php';
-require dirname( __DIR__ ) . '/includes/class-assisted-delete.php';
+// Load the real plugin entry point, not only the included service classes.
+function register_activation_hook( $file, $callback ) { $GLOBALS['tc_activation_hook'] = $callback; }
+require dirname( __DIR__ ) . '/taxocommerce-redirects.php';
 
 use TaxoCommerce\Redirects\Store;
 use TaxoCommerce\Redirects\Engine;
@@ -129,6 +128,8 @@ function expect( $condition, $message ) {
     }
 }
 
+expect( isset( $GLOBALS['tc_activation_hook'] ), 'Plugin activation installs legacy-compatible schema' );
+expect( class_exists( 'TaxoCommerce\\Redirects\\Plugin' ), 'Independent WordPress plugin entry point loads' );
 expect( Store::same_host( 'www.example.test', 'example.test' ), 'www equivalent host' );
 expect( Store::normalize_origin( 'https://www.example.test/antigua/' ) === '/antigua', 'Normalize absolute local origin' );
 expect( Store::normalize_origin( '/antigua/' ) === '/antigua', 'Trailing slash normalize' );
