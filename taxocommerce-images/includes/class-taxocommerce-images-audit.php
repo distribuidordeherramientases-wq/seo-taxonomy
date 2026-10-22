@@ -132,16 +132,13 @@ final class TaxoCommerce_Images_Audit {
 		} finally {
 			$this->release_lock();
 		}
-		$cpu = isset( $state['cpu_last'] ) && is_array( $state['cpu_last'] ) ? $state['cpu_last'] : array();
 		wp_send_json_success(
 			array(
 				'status' => sanitize_key( $state['status'] ?? '' ),
 				'scanned' => absint( $state['scanned'] ?? 0 ),
 				'total' => absint( $state['total'] ?? 0 ),
 				'last_id' => absint( $state['last_id'] ?? 0 ),
-				'paused' => ! empty( $state['cpu_paused'] ),
-				'retry_after' => absint( $cpu['retry_after'] ?? TaxoCommerce_Images_CPU::RETRY_SECONDS ),
-				'cpu' => $cpu,
+				'paused' => false,
 			)
 		);
 	}
@@ -226,15 +223,6 @@ final class TaxoCommerce_Images_Audit {
 			return $state;
 		}
 
-		$cpu = TaxoCommerce_Images_CPU::decision( 'audit' );
-		$state['cpu_last'] = $cpu;
-		$state['cpu_paused'] = empty( $cpu['allowed'] );
-		if ( empty( $cpu['allowed'] ) ) {
-			$state['updated_at'] = current_time( 'mysql' );
-			update_option( self::STATE_OPTION, $state, false );
-			return $state;
-		}
-
 		$last_id = absint( $state['last_id'] ?? 0 );
 		$max_id = absint( $state['max_id'] ?? 0 );
 		$ids = $max_id > $last_id
@@ -270,7 +258,6 @@ final class TaxoCommerce_Images_Audit {
 			++$state['scanned'];
 		}
 
-		$state['cpu_paused'] = false;
 		$state['updated_at'] = current_time( 'mysql' );
 		if ( empty( $ids ) || count( $ids ) < self::BATCH_SIZE || absint( $state['last_id'] ) >= $max_id ) {
 			$state['status'] = 'completed';
