@@ -1,0 +1,38 @@
+name: TaxoCommerce Redirects quality checks
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-redirects/**'
+      - '.github/workflows/ci-taxocommerce-redirects.yml'
+  push:
+    branches:
+      - 'feature/taxocommerce-redirects-standalone-20261022'
+    paths:
+      - 'taxocommerce-redirects/**'
+      - '.github/workflows/ci-taxocommerce-redirects.yml'
+
+jobs:
+  redirect-plugin:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Validate all Redirects PHP source syntax
+        run: |
+          test -s taxocommerce-redirects/taxocommerce-redirects.php
+          find taxocommerce-redirects -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Redirects storage and integration smoke tests
+        run: php -d error_reporting=E_ALL taxocommerce-redirects/tests/smoke.php
+      - name: Validate frontend editor JavaScript syntax
+        run: |
+          node --check taxocommerce-redirects/assets/core.js
+          node --check taxocommerce-redirects/assets/block-editor.js
