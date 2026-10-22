@@ -177,6 +177,17 @@ final class TaxoCommerce_Templates {
         $custom=get_option(self::ROLE_OPTION,array());if(!is_array($custom))$custom=array();
         if(isset(self::base_roles()[$role]))self::redirect('Este rol pertenece a la estructura principal.');
         $custom[$role]=$name;update_option(self::ROLE_OPTION,$custom,false);
+        global $wpdb;
+        $table=self::templates();
+        $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE template_key=%s",$role));
+        if(!$exists) {
+            $wpdb->insert($table,array(
+                'template_key'=>$role,'template_name'=>$name,'template_file'=>'',
+                'template_type'=>'page','assignment_mode'=>'multiple','is_assignable'=>1,
+                'is_active'=>0,'is_public'=>1,'created_at'=>current_time('mysql'),
+                'updated_at'=>current_time('mysql')
+            ));
+        }
         self::redirect('Rol creado.');
     }
     public static function save_template() {
@@ -184,13 +195,13 @@ final class TaxoCommerce_Templates {
         global $wpdb;
         $role=isset($_POST['role'])?sanitize_key(wp_unslash($_POST['role'])):'';
         $file=isset($_POST['file'])?sanitize_file_name(wp_unslash($_POST['file'])):'';
-        if(!$role||!isset(self::roles()[$role])||!preg_match('/^[a-zA-Z0-9._-]+\.php$/D',$file))self::redirect('Rol o plantilla no válidos.');
-        $path=TCT_Router::path($file);
-        if(!$path)self::redirect('El archivo no existe en la biblioteca instalada.');
         $table=self::templates();
         $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE template_key=%s",$role));
-        $fields=array('template_name'=>self::roles()[$role],'template_file'=>$file,'is_active'=>1,'updated_at'=>current_time('mysql'));
-        $saved=$exists ? $wpdb->update($table,$fields,array('id'=>(int)$exists)) : $wpdb->insert($table,array_merge(array('template_key'=>$role),$fields));
+        if(!$role||!$exists||!TCT_Router::valid_filename($file))self::redirect('Ruta o plantilla no validas.');
+        $path=TCT_Router::path($file);
+        if(!$path)self::redirect('El archivo no existe en la biblioteca instalada.');
+        $fields=array('template_file'=>$file,'is_active'=>1,'updated_at'=>current_time('mysql'));
+        $saved=$wpdb->update($table,$fields,array('id'=>(int)$exists));
         self::redirect(false===$saved?'No se pudo guardar la asignación.':'Plantilla asociada.');
     }
     public static function settings() {
