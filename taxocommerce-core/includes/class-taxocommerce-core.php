@@ -354,6 +354,15 @@ final class TaxoCommerce_Core {
 				'wordpress_org' => false,
 				'description'   => 'Roles editoriales, asignación automática y gestión de plantillas.',
 			),
+			'dependiente' => array(
+				'id'            => 'dependiente',
+				'name'          => 'TaxoCommerce Dependiente',
+				'plugin_file'   => 'taxocommerce-dependiente/taxocommerce-dependiente.php',
+				'org_slug'      => 'taxocommerce-dependiente',
+				'search_term'   => 'TaxoCommerce Dependiente',
+				'wordpress_org' => false,
+				'description'   => __( 'Academia independiente de diez lecciones y asistente de catálogo, sin reciclado automático.', 'taxocommerce-core' ),
+			),
 			'vocabulary' => array(
 				'id'            => 'vocabulary',
 				'name'          => 'TaxoCommerce Vocabulary',
