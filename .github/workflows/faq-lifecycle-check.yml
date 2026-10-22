@@ -1,0 +1,35 @@
+name: TaxoCommerce FAQs lifecycle QA
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-faqs/**'
+      - '.github/workflows/faq-lifecycle-check.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-faqs/**'
+      - '.github/workflows/faq-lifecycle-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        php: ['7.4', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Syntax and isolated lifecycle tests
+        run: |
+          find taxocommerce-faqs -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php taxocommerce-faqs/tests/admin-hook-smoke.php
+          php taxocommerce-faqs/tests/lifecycle-smoke.php
+          php taxocommerce-faqs/tests/lifecycle-smoke.php --cold-uninstall
+          output=$(php -r "include 'taxocommerce-faqs/uninstall.php'; echo 'GUARD_FAILED';")
+          test -z "$output"
