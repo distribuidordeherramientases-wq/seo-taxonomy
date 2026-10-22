@@ -41,6 +41,29 @@ function wp_doing_cron() { return false; }
 function sanitize_key( $s ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $s ) ); }
 function current_user_can( $cap, $id = 0 ) { return true; }
 function get_post_type( $id ) { return 1 === $id ? 'post' : ( 2 === $id ? 'page' : ( 3 === $id ? 'product' : false ) ); }
+function get_post( $id ) {
+    $type = get_post_type( $id );
+    return $type ? new WP_Post( $id, $type ) : null;
+}
+$GLOBALS['tc_meta'] = array();
+function update_post_meta( $id, $key, $value ) {
+    $GLOBALS['tc_meta'][ $id ][ $key ] = $value;
+    return true;
+}
+function get_post_meta( $id, $key, $single = false ) {
+    return $GLOBALS['tc_meta'][ $id ][ $key ] ?? '';
+}
+function delete_post_meta( $id, $key ) {
+    unset( $GLOBALS['tc_meta'][ $id ][ $key ] );
+    return true;
+}
+function get_post_type_object( $type ) {
+    return (object) array(
+        'rest_base' => 'post' === $type ? 'posts' : ( 'page' === $type ? 'pages' : 'products' ),
+        'rest_namespace' => 'wp/v2',
+    );
+}
+
 function get_term( $id, $taxonomy ) { return 'product_cat' === $taxonomy && 4 === $id ? new WP_Term( $id ) : null; }
 function get_taxonomy( $taxonomy ) { return 'product_cat' === $taxonomy ? (object) array( 'cap' => (object) array( 'delete_terms' => 'delete_product_terms' ) ) : null; }
 function add_action( $name, $callback, $priority = 10, $arguments = 1 ) { $GLOBALS['tc_actions'][ $name ][] = $callback; }
@@ -171,5 +194,29 @@ expect( isset( $GLOBALS['tc_actions']['admin_post_taxocommerce_core_save_content
 expect( isset( $GLOBALS['tc_actions']['post_submitbox_misc_actions'] ), 'Classic editor button registered' );
 expect( isset( $GLOBALS['tc_actions']['product_cat_edit_form_fields'] ), 'Native product category button registered' );
 expect( isset( $GLOBALS['tc_actions']['enqueue_block_editor_assets'] ), 'Block editor extension registered' );
+
+$restore_id = Store::save( '/restaurar', '/destino', 301 );
+expect( is_int( $restore_id ), 'Create redirect before Trash restore' );
+update_post_meta(
+    1,
+    '_tc_redirects_assisted_rule',
+    array( 'id' => $restore_id, 'origin' => '/restaurar', 'target' => '/destino' )
+);
+Assisted_Delete::restore_original_route( 1 );
+expect( null === Store::get( $restore_id ), 'Untrash removes only its exact, unchanged 301' );
+expect( '' === get_post_meta( 1, '_tc_redirects_assisted_rule', true ), 'Untrash clears its marker' );
+
+$edited_id = Store::save( '/restaurar-otro', '/destino', 301 );
+update_post_meta(
+    2,
+    '_tc_redirects_assisted_rule',
+    array( 'id' => $edited_id, 'origin' => '/restaurar-otro', 'target' => '/destino' )
+);
+expect( $edited_id === Store::save( '/restaurar-otro', '/destino-cambiado', 301, $edited_id ), 'Operator may edit the rule' );
+Assisted_Delete::restore_original_route( 2 );
+expect( null !== Store::get( $edited_id ), 'Untrash never deletes a rule manually edited later' );
+
+Store::install();
+expect( '1' === get_option( 'tc_redirects_schema_ready' ), 'Existing legacy table reused without migration' );
 
 echo "TaxoCommerce Redirects rules/integration smoke tests passed.\n";
