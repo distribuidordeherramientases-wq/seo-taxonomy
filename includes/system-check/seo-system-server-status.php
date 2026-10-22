@@ -15,8 +15,6 @@ if (is_readable($seo_mysql_audit_file)) {
 }
 unset($seo_mysql_audit_file);
 
-// Monitor externo: GitHub Actions mide la portada y WordPress recibe/almacena los resultados firmados.
-add_action('rest_api_init', 'seo_server_status_register_external_monitor_route');
 
 /**
  * Renderiza la pantalla principal Server Status.
@@ -65,7 +63,6 @@ function seo_server_status() {
     echo '<p>Panel de diagnóstico de solo lectura del servidor, WordPress, seguridad, base de datos, WooCommerce, rendimiento y logs.</p>';
 
     seo_server_status_render_styles();
-    seo_server_status_render_response_monitor($snapshot);
     seo_server_status_render_run_button($snapshot);
     seo_server_status_render_tabs($active_tab);
 
