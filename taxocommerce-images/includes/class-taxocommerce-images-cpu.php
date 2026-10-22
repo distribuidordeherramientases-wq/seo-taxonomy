@@ -193,11 +193,14 @@ final class TaxoCommerce_Images_CPU {
 	}
 
 	private static function proc_stat_sample() {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- /proc/stat is a Linux runtime pseudo-file, not WordPress-managed content.
 		$handle = @fopen( '/proc/stat', 'r' );
 		if ( false === $handle ) {
 			return null;
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fgets -- Single bounded read from the Linux runtime pseudo-file.
 		$line = @fgets( $handle, 512 );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Matching close for the bounded /proc/stat read.
 		@fclose( $handle );
 		if ( ! is_string( $line ) || ! preg_match( '/^cpu\s+((?:\d+\s+){7}\d+)/', trim( $line ), $matches ) ) {
 			return null;
