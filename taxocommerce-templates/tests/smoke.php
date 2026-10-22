@@ -28,7 +28,7 @@ function sanitize_key($key) {
 function apply_filters($name, $value) {
     return $value;
 }
-function is_404() { return $GLOBALS['scenario'] === '404'; }
+function is_404() { return $GLOBALS['scenario'] === 'not_found'; }
 function is_front_page() { return $GLOBALS['scenario'] === 'front' || $GLOBALS['scenario'] === 'front_posts'; }
 function is_home() { return $GLOBALS['scenario'] === 'home' || $GLOBALS['scenario'] === 'front_posts'; }
 function is_search() { return $GLOBALS['scenario'] === 'search'; }
@@ -85,7 +85,7 @@ foreach (array('front_page','blog_index','single_post','page','taxonomy_category
 }
 
 $cases = array(
-    '404'         => array('error_404','404'),
+    'not_found'   => array('error_404','404'),
     'front'       => array('front_page','page'),
     'front_posts' => array('front_page','blog_index'),
     'home'        => array('blog_index'),
