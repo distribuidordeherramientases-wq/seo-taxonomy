@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
- * Version: 0.2.3
+ * Version: 0.2.4
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.3' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.4' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -72,6 +72,8 @@ function taxocommerce_system_check_boot() {
         }
     }
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-php.php';
+    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-browser-probe.php';
+    TaxoCommerce_System_Check_Browser_Probe::boot();
     $url_audit_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-url-audit.php';
     if ( is_readable( $url_audit_module ) ) {
         require_once $url_audit_module;
@@ -278,6 +280,7 @@ function taxocommerce_system_check_home() {
     } elseif ( 'http' === $tab ) {
         taxocommerce_system_check_url_audit_screen();
     } else {
+        TaxoCommerce_System_Check_Browser_Probe::render();
         taxocommerce_system_check_server_screen();
     }
 }
