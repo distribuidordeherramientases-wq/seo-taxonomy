@@ -20,13 +20,18 @@ final class Store {
         return $wpdb->prefix . 'seo_redirects';
     }
 
-    public static function table_exists() {
+    public static function table_exists( $refresh = false ) {
+        static $cached = null;
+        if ( null !== $cached && ! $refresh ) {
+            return $cached;
+        }
         global $wpdb;
         $name = self::table();
         $result = $wpdb->get_var(
             $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) )
         );
-        return (string) $result === $name;
+        $cached = (string) $result === $name;
+        return $cached;
     }
 
     /**
@@ -55,7 +60,7 @@ final class Store {
             KEY status_code (status_code)
         ) {$charset};";
         dbDelta( $sql );
-        if ( self::table_exists() ) {
+        if ( self::table_exists( true ) ) {
             update_option( 'tc_redirects_schema_ready', '1', false );
         }
     }
