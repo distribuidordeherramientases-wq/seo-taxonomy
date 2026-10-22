@@ -31,6 +31,8 @@ final class TCT_Request_Registry {
             'search'            => array('Resultados de busqueda', 'WordPress', 'search.php'),
             'error_404'         => array('Pagina no encontrada (404)', 'WordPress', '404.php'),
             'index'             => array('Plantilla final de respaldo', 'WordPress', 'index.php'),
+            'comments'          => array('Comentarios de entradas', 'WordPress - fragmentos', 'comments.php'),
+            'paged'             => array('Listado paginado', 'WordPress', 'paged.php'),
             'shop'              => array('Archivo / tienda WooCommerce', 'WooCommerce - paginas', 'archive-product.php'),
             'taxonomy_product_cat' => array('Categoria de producto', 'WooCommerce - paginas', 'taxonomy-product_cat.php'),
             'taxonomy_product_tag' => array('Etiqueta de producto', 'WooCommerce - paginas', 'taxonomy-product_tag.php'),
@@ -234,6 +236,9 @@ final class TCT_Request_Registry {
             self::add($keys, 'archive');
         }
 
+        if (function_exists('is_paged') && is_paged()) {
+            self::add($keys, 'paged');
+        }
         self::add($keys, 'index');
         return apply_filters('tct_request_candidates', $keys);
     }
@@ -286,6 +291,32 @@ final class TCT_Request_Registry {
             }
         }
         return $original; // Respeta la plantilla resuelta por el tema.
+    }
+
+    public static function resolve_comments($original) {
+        if (!get_option(TaxoCommerce_Templates::ENABLE_OPTION, 0) || !TaxoCommerce_Templates::installed()) {
+            return $original;
+        }
+        global $wpdb;
+        $table = TaxoCommerce_Templates::templates();
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT template_file,is_active,device_variants_enabled FROM {$table} WHERE template_key = %s LIMIT 1",
+            'comments'
+        ));
+        $custom = self::usable_plan($row);
+        return $custom !== '' ? $custom : $original;
+    }
+
+    public static function resolve_woocommerce_part($original, $slug, $name = '') {
+        $slug = trim((string)$slug);
+        $name = trim((string)$name);
+        if (!preg_match('#^[a-zA-Z0-9][a-zA-Z0-9/_-]*$#D', $slug) ||
+            ($name !== '' && !preg_match('/^[a-zA-Z0-9_-]+$/D', $name)) ||
+            false !== strpos($slug, '..')) {
+            return $original;
+        }
+        $file = $slug . ($name ? '-' . $name : '') . '.php';
+        return self::resolve_woocommerce_partial($original, $file);
     }
 
     public static function resolve_woocommerce_partial($path, $template_name, $args = array(), $template_path = '', $default_path = '') {
