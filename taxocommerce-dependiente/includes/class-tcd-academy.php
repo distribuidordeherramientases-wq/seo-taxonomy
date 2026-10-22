@@ -112,6 +112,17 @@ final class TCD_Academy {
                 self::log('batch_stopped',array('lesson'=>$lesson,'cursor'=>$cursor));return;
             }
             $more=!empty($batch['more']);
+            if(!$more){
+                // Never certify an empty or wholly failed lesson.
+                $table=self::knowledge_table();
+                $learned_count=absint($wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$table} WHERE lesson=%d AND status=%s",
+                    $lesson,'learned'
+                )));
+                if(0===$learned_count){
+                    throw new RuntimeException('L'.$lesson.' no tiene fuentes aprendidas válidas. La lección no se da por completada.');
+                }
+            }
             $next_lesson=$more?$lesson:$lesson+1;
             $next_cursor=$more?absint($batch['cursor']):0;
             $status=$next_lesson>10?'completed':'running';
