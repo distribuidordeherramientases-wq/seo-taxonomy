@@ -33,7 +33,7 @@ final class TCD_Search {
             }
         }
         $queries=get_posts(array('post_type'=>array('product','post','page'),'post_status'=>'publish','s'=>$q,
-            'posts_per_page'=>15,'no_found_rows'=>true,'suppress_filters'=>true));
+            'posts_per_page'=>15,'no_found_rows'=>true,'suppress_filters'=>false));
         foreach($queries as $p){
             $score=0;$title=mb_strtolower((string)$p->post_title);
             foreach($terms as $word){if(false!==mb_strpos($title,$word))$score++;}
