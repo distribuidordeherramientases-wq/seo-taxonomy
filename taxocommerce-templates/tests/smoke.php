@@ -4,6 +4,8 @@
  * Ejecutar: php taxocommerce-templates/tests/smoke.php
  */
 define('ABSPATH', __DIR__);
+define('WP_CONTENT_DIR', __DIR__);
+function trailingslashit($path) { return rtrim($path, '/\\') . '/'; }
 
 class WP_Error {
     private $code;
