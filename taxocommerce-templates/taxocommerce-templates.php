@@ -2,17 +2,18 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Roles editoriales, registro de plantillas y asignación automática, independiente de TaxoCommerce Core.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.1.0');
+define('TCT_VERSION','0.2.0');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
+require_once TCT_DIR . 'includes/class-tct-router.php';
 
 final class TaxoCommerce_Templates {
     const ROLE_OPTION = 'taxocommerce_templates_custom_roles';
@@ -21,7 +22,7 @@ final class TaxoCommerce_Templates {
     public static function nodes() { global $wpdb; return $wpdb->prefix.'seo_nodes'; }
     public static function templates() { global $wpdb; return $wpdb->prefix.'seo_templates'; }
     public static function base_roles() {
-        return array('cluster'=>'Cluster','hub_primary'=>'Hub primario','hub_secondary'=>'Hub secundario','landing'=>'Landing','corporate_page'=>'Página corporativa','guide'=>'Guía','news'=>'Noticias','offer'=>'Oferta');
+        return TCT_Router::page_roles();
     }
     public static function roles() {
         $custom=get_option(self::ROLE_OPTION,array());
@@ -78,6 +79,7 @@ final class TaxoCommerce_Templates {
             KEY template_type (template_type)
         ) {$charset};");
         add_option(self::ENABLE_OPTION,0,'',false);
+        TCT_Router::seed_catalog();
     }
     public static function boot() {
         add_action('admin_menu',array(__CLASS__,'menu'),65);
@@ -85,9 +87,13 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_save_template',array(__CLASS__,'save_template'));
         add_action('admin_post_tct_settings',array(__CLASS__,'settings'));
         add_action('admin_post_tct_save_page_role',array(__CLASS__,'save_page_role'));
+        add_action('admin_post_tct_upload_template',array(__CLASS__,'upload_template'));
+        add_action('admin_post_tct_save_device_mode',array(__CLASS__,'save_device_mode'));
+        add_action('admin_post_tct_assign_page',array(__CLASS__,'assign_page'));
+        add_action('admin_init',array('TCT_Router','seed_catalog'));
         add_action('add_meta_boxes_page',array(__CLASS__,'page_metabox'));
         add_action('save_post_page',array(__CLASS__,'save_metabox'),25,2);
-        add_filter('template_include',array(__CLASS__,'resolve'),95);
+        add_filter('template_include',array('TCT_Router','resolve'),PHP_INT_MAX);
         add_action('taxocommerce_core_register_modules',array(__CLASS__,'register_core'));
         if(function_exists('taxocommerce_core')&&did_action('taxocommerce_core_loaded')) self::register_core(taxocommerce_core());
     }
@@ -179,11 +185,11 @@ final class TaxoCommerce_Templates {
         $role=isset($_POST['role'])?sanitize_key(wp_unslash($_POST['role'])):'';
         $file=isset($_POST['file'])?sanitize_file_name(wp_unslash($_POST['file'])):'';
         if(!$role||!isset(self::roles()[$role])||!preg_match('/^[a-zA-Z0-9._-]+\.php$/D',$file))self::redirect('Rol o plantilla no válidos.');
-        $path=TCT_DIR.'templates/'.$file;
-        if(!is_file($path)||!is_readable($path))self::redirect('El archivo no existe en la biblioteca instalada.');
+        $path=TCT_Router::path($file);
+        if(!$path)self::redirect('El archivo no existe en la biblioteca instalada.');
         $table=self::templates();
         $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE template_key=%s",$role));
-        $fields=array('template_name'=>self::roles()[$role],'template_file'=>$file,'is_active'=>1,'template_type'=>'page','is_public'=>1,'is_assignable'=>1,'assignment_mode'=>'multiple','updated_at'=>current_time('mysql'));
+        $fields=array('template_name'=>self::roles()[$role],'template_file'=>$file,'is_active'=>1,'updated_at'=>current_time('mysql'));
         $saved=$exists ? $wpdb->update($table,$fields,array('id'=>(int)$exists)) : $wpdb->insert($table,array_merge(array('template_key'=>$role),$fields));
         self::redirect(false===$saved?'No se pudo guardar la asignación.':'Plantilla asociada.');
     }
@@ -193,52 +199,227 @@ final class TaxoCommerce_Templates {
         self::redirect('Configuración guardada.');
     }
     public static function available_files() {
-        $files=glob(TCT_DIR.'templates/*.php');$result=array();
-        foreach((array)$files as $file){$name=basename($file);if(strpos($name,'template-')===0)$result[$name]=$name;}
-        ksort($result);return $result;
+        return TCT_Router::available_files();
     }
-    public static function resolve($original) {
-        if(!get_option(self::ENABLE_OPTION,0)||!is_singular('page')||!self::installed())return $original;
-        global $wpdb;$role=self::page_role(get_queried_object_id());if(!$role)return $original;
-        $table=self::templates();
-        $file=$wpdb->get_var($wpdb->prepare("SELECT template_file FROM {$table} WHERE template_key=%s AND is_active=1 LIMIT 1",$role));
-        if(!$file)return $original;
-        $file=basename((string)$file);$path=TCT_DIR.'templates/'.$file;
-        // Do not load legacy PHP from the monolithic plugin, even if files remain there.
-        return is_readable($path)?$path:$original;
-    }
-    public static function screen() {
-        if(!current_user_can('manage_options'))wp_die('Acceso denegado.');
+
+    public static function save_device_mode() {
+        self::guard('tct_save_device_mode');
         global $wpdb;
-        echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><p>Roles y plantillas independientes. La jerarquía permanece en Core.</p>';
-        if(!self::installed()){echo '<div class="notice notice-error"><p>Faltan tablas. Reactiva Templates.</p></div></div>';return;}
-        if(isset($_GET['tct_notice']))echo '<div class="notice notice-info"><p>'.esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))).'</p></div>';
-        $enabled=(bool)get_option(self::ENABLE_OPTION,0);$files=self::available_files();$roles=self::roles();$table=self::templates();
-        $templates=$wpdb->get_results("SELECT template_key,template_name,template_file,is_active FROM {$table} ORDER BY template_key");
-        $by_key=array();foreach((array)$templates as $t)$by_key[$t->template_key]=$t;
-        echo '<h2>Configuración de presentación</h2><form method="post" action="'.esc_url(admin_url('admin-post.php')).'">';
-        wp_nonce_field('tct_settings');echo '<input type="hidden" name="action" value="tct_settings"><label><input type="checkbox" name="enable" value="1" '.checked($enabled,true,false).'> Aplicar plantillas de TaxoCommerce Templates en la web</label>';
-        echo '<p class="description">Desactivado por defecto: revisa archivos y asignaciones antes de habilitarlo.</p>';submit_button('Guardar configuración');echo '</form>';
-        echo '<h2>Roles y asignaciones</h2><table class="widefat striped"><thead><tr><th>Rol</th><th>Plantilla</th><th>Asignar</th></tr></thead><tbody>';
-        foreach($roles as $role=>$name){
-            $current=isset($by_key[$role])?$by_key[$role]->template_file:'';
-            echo '<tr><td><strong>'.esc_html($name).'</strong><br><code>'.esc_html($role).'</code></td><td>'.esc_html($current?:'Sin plantilla').'</td><td>';
-            echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'">';
-            wp_nonce_field('tct_save_template');echo '<input type="hidden" name="action" value="tct_save_template"><input type="hidden" name="role" value="'.esc_attr($role).'">';
-            echo '<select name="file"><option value="">Seleccionar archivo</option>';
-            foreach($files as $file)echo '<option value="'.esc_attr($file).'" '.selected($current,$file,false).'>'.esc_html($file).'</option>';
-            echo '</select> ';submit_button('Asignar','secondary','submit',false);echo '</form></td></tr>';
+        $key = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
+        $table = self::templates();
+        $row = $wpdb->get_row($wpdb->prepare("SELECT template_file FROM {$table} WHERE template_key=%s", $key));
+        if (!$row) {
+            self::redirect('Ruta desconocida.');
         }
-        echo '</tbody></table>';
-        echo '<h2>Crear rol</h2><form method="post" action="'.esc_url(admin_url('admin-post.php')).'">';
-        wp_nonce_field('tct_save_role');echo '<input type="hidden" name="action" value="tct_save_role"><input name="role" placeholder="clave_rol" required> <input name="name" placeholder="Nombre del rol" required> ';
-        submit_button('Crear rol','secondary','submit',false);echo '</form>';
-        echo '<h2>Asignar rol a una página</h2><form method="post" action="'.esc_url(admin_url('admin-post.php')).'">';
-        wp_nonce_field('tct_page_role_admin');echo '<input type="hidden" name="action" value="tct_save_page_role"><label>ID de página <input type="number" min="1" name="page_id" required></label> <select name="role"><option value="">Sin rol</option>';
-        foreach($roles as $role=>$name)echo '<option value="'.esc_attr($role).'">'.esc_html($name).'</option>';
-        echo '</select> ';submit_button('Guardar rol','secondary','submit',false);echo '</form>';
-        echo '<p class="description">La biblioteca admite archivos PHP dentro de <code>taxocommerce-templates/templates/</code>. No se cargan archivos del plugin antiguo.</p></div>';
+        $plan = TCT_Router::plan((object)array('template_file'=>$row->template_file, 'device_variants_enabled'=>0), 'mobile');
+        $enabled = !empty($_POST['enabled']) ? 1 : 0;
+        if (!$enabled && $plan['dispatcher']) {
+            self::redirect('La principal es un dispatcher y necesita sus variantes.');
+        }
+        $saved = $wpdb->update($table, array('device_variants_enabled'=>$enabled, 'updated_at'=>current_time('mysql')), array('template_key'=>$key));
+        self::redirect(false === $saved ? 'Error guardando el modo por dispositivo.' : 'Modo por dispositivo actualizado.');
     }
+
+    public static function assign_page() {
+        self::guard('tct_assign_page');
+        $id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
+        $key = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
+        if (!$id || !$key || !isset(self::roles()[$key])) {
+            self::redirect('Pagina o rol incorrecto.');
+        }
+        global $wpdb;
+        $table = self::templates();
+        $mode = $wpdb->get_var($wpdb->prepare(
+            "SELECT assignment_mode FROM {$table} WHERE template_key=%s AND is_assignable=1", $key
+        ));
+        if (!in_array($mode, array('multiple','single'), true)) {
+            self::redirect('Esta ruta se asigna automaticamente.');
+        }
+        if ('single' === $mode) {
+            $nodes = self::nodes();
+            $occupied = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$nodes} WHERE seo_role=%s AND object_type='page' AND object_id<>%d AND status=1",
+                $key, $id
+            ));
+            if ($occupied) {
+                self::redirect('Esta ruta ya tiene una pagina. Desasignala antes.');
+            }
+        }
+        $result = self::set_role($id,$key);
+        self::redirect(is_wp_error($result) ? $result->get_error_message() : 'Pagina asignada correctamente.');
+    }
+
+    public static function upload_template() {
+        if (!current_user_can('manage_options') || !current_user_can('update_plugins')) {
+            wp_die('Permisos insuficientes para subir codigo PHP.');
+        }
+        self::guard('tct_upload_template');
+        $files = isset($_FILES['template_file']) ? $_FILES['template_file'] : null;
+        if (!is_array($files) || !isset($files['error']) || UPLOAD_ERR_OK !== (int) $files['error']) {
+            self::redirect('Error en la subida del archivo.');
+        }
+        $name = isset($files['name']) ? sanitize_file_name($files['name']) : '';
+        if (!TCT_Router::valid_filename($name) || empty($files['tmp_name']) ||
+            !is_uploaded_file($files['tmp_name'])) {
+            self::redirect('Nombre o subida no valida. Solo PHP.');
+        }
+        $size = isset($files['size']) ? (int) $files['size'] : 0;
+        if ($size < 8 || $size > 1024 * 1024) {
+            self::redirect('Archivo vacio o mayor de 1 MB.');
+        }
+        $handle = fopen($files['tmp_name'], 'rb');
+        $head = $handle ? fread($handle, 256) : '';
+        if ($handle) {
+            fclose($handle);
+        }
+        if (!is_string($head) || !preg_match('/^\s*<\?php\b/', $head)) {
+            self::redirect('El archivo debe contener codigo PHP valido.');
+        }
+        $directory = TCT_Router::library_dir();
+        if (!is_dir($directory) && !wp_mkdir_p($directory)) {
+            self::redirect('No se pudo crear la biblioteca de plantillas.');
+        }
+        // Evitar acceso directo por HTTP a los scripts en hosts Apache.
+        $deny = $directory . '.htaccess';
+        if (!file_exists($deny)) {
+            file_put_contents($deny, "Require all denied\nDeny from all\n");
+        }
+        $index = $directory . 'index.php';
+        if (!file_exists($index)) {
+            file_put_contents($index, "<?php\n// Silence is golden.\n");
+        }
+        $target = $directory . $name;
+        if (is_link($target)) {
+            self::redirect('No se permiten enlaces simbolicos.');
+        }
+        if (is_file(TCT_DIR . 'templates/' . $name)) {
+            self::redirect('El nombre coincide con una plantilla integrada. Usa otro nombre.');
+        }
+        if (is_file($target)) {
+            if (empty($_POST['replace'])) {
+                self::redirect('El archivo ya existe. Marca reemplazar para confirmarlo.');
+            }
+            $backup = $target . '.' . gmdate('YmdHis') . '.bak';
+            if (!copy($target,$backup)) {
+                self::redirect('No se pudo guardar copia de seguridad.');
+            }
+        }
+        if (!move_uploaded_file($files['tmp_name'],$target)) {
+            self::redirect('No se pudo guardar el archivo en la biblioteca.');
+        }
+        @chmod($target,0640);
+        self::redirect('Archivo incorporado a la biblioteca. Ya puedes asociarlo.');
+    }
+
+    public static function screen() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Acceso denegado.');
+        }
+        if (!self::installed()) {
+            echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><p>Faltan tablas; reactiva el modulo.</p></div>';
+            return;
+        }
+        global $wpdb;
+        $rows = TCT_Router::rows();
+        $files = TCT_Router::available_files();
+        $node_table = self::nodes();
+        $associations = $wpdb->get_results("SELECT object_id, seo_role FROM {$node_table} WHERE object_type='page' AND status=1");
+        $by_role = array();
+        $occupied = array();
+        foreach ((array)$associations as $entry) {
+            $by_role[$entry->seo_role][] = (int)$entry->object_id;
+            $occupied[(int)$entry->object_id] = $entry->seo_role;
+        }
+        $pages = get_posts(array('post_type'=>'page','post_status'=>'publish','posts_per_page'=>-1,'orderby'=>'title','order'=>'ASC','fields'=>'ids'));
+        echo '<div class="wrap"><h1>Gestor de Plantillas</h1>';
+        echo '<p>Rutas migradas del gestor original. No se incluyen ni ejecutan archivos PHP del plugin antiguo.</p>';
+        if (isset($_GET['tct_notice'])) {
+            echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
+        }
+        $enabled = (bool)get_option(self::ENABLE_OPTION,0);
+        echo '<h2>Disponibilidad y activacion</h2><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        wp_nonce_field('tct_settings');
+        echo '<input type="hidden" name="action" value="tct_settings"><label><input type="checkbox" name="enable" value="1" ' . checked($enabled,true,false) . '> Activar el enrutador del nuevo modulo</label>';
+        echo '<p class="description">Desactivado por defecto; activa solo cuando todos los archivos de las rutas utilizadas esten migrados y probados.</p>';
+        submit_button('Guardar activacion','secondary');
+        echo '</form><h2>Archivos de plantilla</h2>';
+        echo '<p>Sube archivos .php propios. Quedan en wp-content/taxocommerce-templates-library/, fuera de los despliegues del plugin.</p>';
+        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        wp_nonce_field('tct_upload_template');
+        echo '<input type="hidden" name="action" value="tct_upload_template"><input type="file" name="template_file" accept=".php" required> ';
+        echo '<label><input type="checkbox" name="replace" value="1"> Reemplazar archivo existente (con copia)</label> ';
+        submit_button('Subir plantilla','secondary','submit',false);
+        echo '</form>';
+        echo '<h2>Asignacion a paginas y rutas automaticas</h2>';
+        echo '<p>Las rutas automaticas se resuelven por tipo de peticion. Las rutas asignables admiten paginas existentes; las variantes no son roles independientes.</p>';
+        echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">';
+        foreach ($rows as $row) {
+            $key = $row->template_key;
+            $principal = TCT_Router::path($row->template_file);
+            $is_assignable = (int)$row->is_assignable && in_array($row->assignment_mode,array('single','multiple'),true);
+            echo '<section style="background:#fff;border:1px solid #c3c4c7;padding:15px;min-width:0">';
+            echo '<h3 style="margin:0 0 5px">' . esc_html($row->template_name) . '</h3>';
+            echo '<p><code>' . esc_html($key) . '</code> · ' . esc_html($row->template_type) . ' · ';
+            echo $is_assignable ? esc_html('Asignable: ' . $row->assignment_mode) : 'Automatica';
+            echo '</p><p><strong>Principal:</strong> <code>' . esc_html($row->template_file) . '</code> — ';
+            echo $principal ? 'Archivo disponible' : '<strong style="color:#a00">Archivo pendiente</strong>';
+            echo '</p>';
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            wp_nonce_field('tct_save_template');
+            echo '<input type="hidden" name="action" value="tct_save_template"><input type="hidden" name="role" value="' . esc_attr($key) . '">';
+            echo '<select name="file" style="max-width:100%"><option value="">Elegir archivo principal</option>';
+            foreach ($files as $file) {
+                echo '<option value="' . esc_attr($file) . '" ' . selected($file,$row->template_file,false) . '>' . esc_html($file) . '</option>';
+            }
+            echo '</select> ';
+            submit_button('Asociar archivo','secondary','submit',false);
+            echo '</form>';
+            if ('email' !== $row->template_type) {
+                $mobile = TCT_Router::plan($row,'mobile');
+                $desktop = TCT_Router::plan($row,'desktop');
+                echo '<details style="margin-top:10px"><summary>Variantes telefono / ordenador</summary>';
+                echo '<p>Telefono: <code>' . esc_html($mobile['variant']) . '</code> — ' . esc_html($mobile['source']) . '</p>';
+                echo '<p>Ordenador: <code>' . esc_html($desktop['variant']) . '</code> — ' . esc_html($desktop['source']) . '</p>';
+                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+                wp_nonce_field('tct_save_device_mode');
+                echo '<input type="hidden" name="action" value="tct_save_device_mode"><input type="hidden" name="template_key" value="' . esc_attr($key) . '">';
+                echo '<label><input type="checkbox" name="enabled" value="1" ' . checked($mobile['enabled'],true,false) . ($mobile['dispatcher']?' disabled':'') . '> Usar variantes</label> ';
+                submit_button('Guardar','secondary','submit',false);
+                echo '</form></details>';
+            }
+            if ($is_assignable) {
+                echo '<h4>Paginas asignadas</h4>';
+                $assigned = isset($by_role[$key]) ? $by_role[$key] : array();
+                if (!$assigned) {
+                    echo '<p>Ninguna pagina asignada.</p>';
+                }
+                foreach ($assigned as $id) {
+                    echo '<p>' . esc_html(get_the_title($id)) . ' <code>#' . esc_html($id) . '</code></p>';
+                }
+                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+                wp_nonce_field('tct_assign_page');
+                echo '<input type="hidden" name="action" value="tct_assign_page"><input type="hidden" name="template_key" value="' . esc_attr($key) . '">';
+                echo '<select name="page_id" required style="max-width:100%"><option value="">Seleccionar pagina libre</option>';
+                foreach ($pages as $id) {
+                    if (isset($occupied[$id])) {
+                        continue;
+                    }
+                    echo '<option value="' . esc_attr($id) . '">' . esc_html(get_the_title($id)) . ' (#' . esc_html($id) . ')</option>';
+                }
+                echo '</select> ';
+                submit_button('Asignar pagina','secondary','submit',false);
+                echo '</form>';
+            }
+            echo '</section>';
+        }
+        echo '</div>';
+        echo '<h2>Crear un rol adicional</h2><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        wp_nonce_field('tct_save_role');
+        echo '<input type="hidden" name="action" value="tct_save_role"><input name="role" placeholder="clave_rol" required> <input name="name" placeholder="Nombre del rol" required> ';
+        submit_button('Crear rol','secondary','submit',false);
+        echo '</form></div>';
+    }
+
 }
 register_activation_hook(__FILE__,array('TaxoCommerce_Templates','activate'));
 add_action('plugins_loaded',array('TaxoCommerce_Templates','boot'),30);
