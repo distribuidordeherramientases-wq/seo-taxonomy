@@ -829,14 +829,10 @@ final class TaxoCommerce_System_Check_URL_Audit {
         echo '<p><strong>Cobertura histórica:</strong> ' . esc_html( number_format_i18n( $coverage, 1 ) ) . '% (' . esc_html( number_format_i18n( $checked ) ) . '/' . esc_html( number_format_i18n( $total ) ) . ')</p>';
 
         echo '<div class="tcs-actions">';
-        if ( function_exists( 'taxocommerce_core' ) ) {
-            echo '<a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=taxocommerce-core-processes' ) ) . '">Gestionar proceso en Core</a>';
-        } else {
-            self::action_button( $scope, 'start', 'Iniciar chequeo de todas las URL', $busy, true );
-            if ( $active && 'local' === (string) $active['mode'] ) {
-                self::action_button( $scope, 'resume', 'Reanudar trabajador', false );
-                self::action_button( $scope, 'cancel', 'Cancelar chequeo', false );
-            }
+        self::action_button( $scope, 'start', 'Iniciar chequeo de todas las URL', $busy, true );
+        if ( $active && 'local' === (string) $active['mode'] ) {
+            self::action_button( $scope, 'resume', 'Reanudar trabajador', false );
+            self::action_button( $scope, 'cancel', 'Cancelar chequeo', false );
         }
         self::action_button( $scope, 'sync', 'Actualizar inventario', $busy );
         echo '</div>';

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Core - Catalog & Content Management for WooCommerce
- * Description: Modular core for catalog hierarchy, unified content editing, processes, logs, and extensions in WooCommerce stores.
- * Version: 0.4.12
+ * Description: Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.
+ * Version: 0.4.13
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.12' );
+define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.13' );
 define( 'TAXOCOMMERCE_CORE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_CORE_BASENAME', plugin_basename( __FILE__ ) );

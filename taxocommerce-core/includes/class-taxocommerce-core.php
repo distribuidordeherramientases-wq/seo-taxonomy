@@ -64,13 +64,6 @@ final class TaxoCommerce_Core {
 	private $modules = array();
 
 	/**
-	 * Runtime process registry.
-	 *
-	 * @var array
-	 */
-	private $processes = array();
-
-	/**
 	 * Returns singleton.
 	 *
 	 * @return TaxoCommerce_Core
@@ -114,18 +107,11 @@ final class TaxoCommerce_Core {
 		 */
 		do_action( 'taxocommerce_core_register_modules', $this );
 
-		/**
-		 * Lets extensions register background processes.
-		 *
-		 * @param TaxoCommerce_Core $core Core instance.
-		 */
-		do_action( 'taxocommerce_core_register_processes', $this );
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
 		add_filter( 'admin_body_class', array( $this, 'family_body_class' ) );
-		add_action( 'admin_post_taxocommerce_core_process_action', array( $this, 'handle_process_action' ) );
 		add_action( 'admin_post_taxocommerce_core_activate_extension', array( $this, 'activate_extension' ) );
 		add_action( 'admin_post_taxocommerce_core_deactivate_extension', array( $this, 'deactivate_extension' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_CORE_BASENAME, array( $this, 'plugin_action_links' ) );
@@ -212,14 +198,6 @@ final class TaxoCommerce_Core {
 			array( $this->menu, 'render' )
 		);
 
-		add_submenu_page(
-			'taxocommerce-core',
-			__( 'Procesos automáticos', 'taxocommerce-core' ),
-			__( 'Procesos automáticos', 'taxocommerce-core' ),
-			$capability,
-			'taxocommerce-core-processes',
-			array( $this, 'render_processes' )
-		);
 
 		add_submenu_page(
 			'taxocommerce-core',
@@ -371,7 +349,7 @@ final class TaxoCommerce_Core {
 				'search_term'   => 'TaxoCommerce Vocabulary',
 				'wordpress_org' => false,
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-vocabulary' ),
-				'description'   => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático gestionado por Procesos.', 'taxocommerce-core' ),
+				'description'   => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local.', 'taxocommerce-core' ),
 			),
 			'google_bing' => array(
 				'id'            => 'google_bing',
@@ -515,74 +493,6 @@ final class TaxoCommerce_Core {
 	}
 
 	/**
-	 * Registers one background process descriptor.
-	 *
-	 * @param string $id   Process ID.
-	 * @param array  $args Process metadata.
-	 * @return bool
-	 */
-	public function register_process( $id, $args = array() ) {
-		$id = sanitize_key( $id );
-		if ( '' === $id || isset( $this->processes[ $id ] ) ) {
-			return false;
-		}
-
-		$args = wp_parse_args(
-			$args,
-			array(
-				'name'        => $id,
-				'module'      => '',
-				'status'      => 'idle',
-				'progress'    => 0,
-				'description' => '',
-				'admin_url'   => '',
-				'actions'     => array(),
-			)
-		);
-
-		$status = sanitize_key( (string) $args['status'] );
-		if ( ! in_array( $status, array( 'idle', 'queued', 'running', 'paused', 'completed', 'error' ), true ) ) {
-			$status = 'idle';
-		}
-
-		$this->processes[ $id ] = array(
-			'id'          => $id,
-			'name'        => sanitize_text_field( (string) $args['name'] ),
-			'module'      => sanitize_key( (string) $args['module'] ),
-			'status'      => $status,
-			'progress'    => max( 0, min( 100, absint( $args['progress'] ) ) ),
-			'actions'     => isset( $args['actions'] ) && is_array( $args['actions'] ) ? $args['actions'] : array(),
-			'description' => sanitize_text_field( (string) $args['description'] ),
-			'admin_url'   => esc_url_raw( (string) $args['admin_url'] ),
-		);
-		return true;
-	}
-
-	/** Execute only actions registered by a trusted module. */
-	public function handle_process_action() {
-		$this->guard();
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'No autorizado.', 'taxocommerce-core' ) );
-		}
-		check_admin_referer( 'taxocommerce_core_process_action', 'taxocommerce_core_process_nonce' );
-		$process_id = isset( $_POST['process_id'] ) ? sanitize_key( wp_unslash( $_POST['process_id'] ) ) : '';
-		$command = isset( $_POST['command'] ) ? sanitize_key( wp_unslash( $_POST['command'] ) ) : '';
-		$process = isset( $this->processes[ $process_id ] ) ? $this->processes[ $process_id ] : array();
-		$callback = isset( $process['actions'][ $command ] ) ? $process['actions'][ $command ] : null;
-		if ( ! is_callable( $callback ) ) {
-			wp_die( esc_html__( 'Acción no disponible para este proceso.', 'taxocommerce-core' ) );
-		}
-		$result = call_user_func( $callback );
-		$url = add_query_arg( array(
-			'page' => 'taxocommerce-core-processes',
-			'tc_process_notice' => is_wp_error( $result ) ? 'error' : 'ok',
-			'tc_process_message' => is_wp_error( $result ) ? $result->get_error_message() : 'Acción enviada al trabajador.',
-		), admin_url( 'admin.php' ) );
-		wp_safe_redirect( $url );
-		exit;
-	}
-
-	/**
 	 * Returns logger.
 	 *
 	 * @return TaxoCommerce_Core_Logger|null
@@ -706,65 +616,10 @@ final class TaxoCommerce_Core {
 		$this->guard();
 		TaxoCommerce_Core_Dashboard::render(
 			$this->modules,
-			$this->processes,
 			$this->legacy_detected(),
 			$this->woocommerce_detected()
 		);
 	}
-
-	/**
-	 * Processes page.
-	 *
-	 * @return void
-	 */
-	public function render_processes() {
-		$this->guard();
-		?>
-		<div class="wrap tcc-family-screen">
-			<header class="tcc-page-header">
-				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-admin-settings"></span></span>
-				<div class="tcc-page-header__content">
-					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
-					<h1><?php echo esc_html__( 'Procesos automáticos', 'taxocommerce-core' ); ?></h1>
-					<p><?php echo esc_html__( 'Aquí se registrarán y controlarán los trabajos automáticos de las extensiones.', 'taxocommerce-core' ); ?></p>
-				</div>
-			</header>
-			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Equivalente actual:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Supervisor, Gestor de procesos, workers, WP-Cron, colas, cursores y mecanismos de recuperación. Todavía no se han trasladado al nuevo Core.', 'taxocommerce-core' ); ?></p></div>
-			<table class="widefat striped">
-				<thead><tr><th><?php echo esc_html__( 'Proceso', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Extensión', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Progreso', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Detalle', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acciones', 'taxocommerce-core' ); ?></th></tr></thead>
-				<tbody>
-					<?php if ( empty( $this->processes ) ) : ?>
-						<tr><td colspan="6"><?php echo esc_html__( 'Todavía no hay procesos del nuevo Core registrados.', 'taxocommerce-core' ); ?></td></tr>
-					<?php else : ?>
-						<?php foreach ( $this->processes as $process ) : ?>
-							<tr>
-								<td><strong><?php echo esc_html( $process['name'] ); ?></strong></td>
-								<td><?php echo esc_html( $process['module'] ); ?></td>
-								<td><?php echo esc_html( $process['status'] ); ?></td>
-								<td><?php echo esc_html( (string) absint( $process['progress'] ?? 0 ) ); ?>%</td>
-								<td><?php echo esc_html( (string) ( $process['description'] ?? '' ) ); ?></td>
-								<td>
-								<?php if ( ! empty( $process['admin_url'] ) ) : ?><a class="button button-small" href="<?php echo esc_url( $process['admin_url'] ); ?>"><?php echo esc_html__( 'Abrir', 'taxocommerce-core' ); ?></a><?php endif; ?>
-								<?php foreach ( (array) ( $process['actions'] ?? array() ) as $command => $callback ) : ?>
-									<?php if ( ! is_callable( $callback ) ) { continue; } ?>
-									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin:2px">
-										<input type="hidden" name="action" value="taxocommerce_core_process_action">
-										<input type="hidden" name="process_id" value="<?php echo esc_attr( $process['id'] ); ?>">
-										<input type="hidden" name="command" value="<?php echo esc_attr( $command ); ?>">
-										<?php wp_nonce_field( 'taxocommerce_core_process_action', 'taxocommerce_core_process_nonce' ); ?>
-										<button class="button button-small"><?php echo esc_html( ucfirst( $command ) ); ?></button>
-									</form>
-								<?php endforeach; ?>
-							</td>
-							</tr>
-						<?php endforeach; ?>
-					<?php endif; ?>
-				</tbody>
-			</table>
-		</div>
-		<?php
-	}
-
 
 	/**
 	 * Redirect old Ampliar familia bookmarks to the single Extensiones page.
@@ -894,7 +749,7 @@ final class TaxoCommerce_Core {
 			</table>
 
 			<h2><?php echo esc_html__( 'Extensiones activas registradas', 'taxocommerce-core' ); ?></h2>
-			<p><?php echo esc_html__( 'Cuando una extensión está activa puede registrar nuevas páginas del menú, procesos automáticos, KPIs y otros servicios del Core.', 'taxocommerce-core' ); ?></p>
+			<p><?php echo esc_html__( 'Cuando una extensión está activa puede registrar nuevas páginas del menú, KPIs y otros servicios del Core. Cada extensión gestiona localmente sus propios procesos.', 'taxocommerce-core' ); ?></p>
 		</div>
 		<?php
 	}

@@ -14,7 +14,27 @@ final class TCV_Admin {
     }
 
     public static function menu() {
-        add_menu_page( 'TaxoCommerce Vocabulary', 'Vocabulary', 'manage_woocommerce', 'taxocommerce-vocabulary', array( __CLASS__, 'render' ), 'dashicons-tag', 56 );
+        if ( function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+            add_submenu_page(
+                'taxocommerce-core',
+                'TaxoCommerce Vocabulary',
+                'Vocabulary',
+                'manage_woocommerce',
+                'taxocommerce-vocabulary',
+                array( __CLASS__, 'render' )
+            );
+            return;
+        }
+
+        add_menu_page(
+            'TaxoCommerce Vocabulary',
+            'Vocabulary',
+            'manage_woocommerce',
+            'taxocommerce-vocabulary',
+            array( __CLASS__, 'render' ),
+            'dashicons-tag',
+            56
+        );
     }
 
     public static function assets( $hook ) {

@@ -60,7 +60,6 @@ final class TaxoCommerce_Images {
 		$this->actions->register_hooks();
 
 		add_action( 'taxocommerce_core_register_modules', array( $this, 'register_with_core' ) );
-		add_action( 'taxocommerce_core_register_processes', array( $this, 'register_processes_with_core' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ), 60 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_admin_styles' ) );
 		add_filter( 'admin_body_class', array( $this, 'family_admin_body_class' ) );
