@@ -1,0 +1,272 @@
+<?php
+
+defined( 'ABSPATH' ) || exit;
+
+final class TCV_IO {
+    public static function boot() {
+        add_action( 'admin_post_tcv_export_labels', array( __CLASS__, 'export_labels' ) );
+        add_action( 'admin_post_tcv_export_attributes', array( __CLASS__, 'export_attributes' ) );
+        add_action( 'admin_post_tcv_import', array( __CLASS__, 'import' ) );
+    }
+
+    private static function guard() {
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para gestionar Vocabulary.', 'taxocommerce-vocabulary' ) );
+        }
+    }
+
+    private static function csv_headers( $filename, $headers ) {
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename=' . $filename );
+        $fh = fopen( 'php://output', 'w' );
+        fwrite( $fh, "\xEF\xBB\xBF" );
+        fputcsv( $fh, $headers, ';' );
+        return $fh;
+    }
+
+    public static function export_labels() {
+        self::guard();
+        check_admin_referer( 'tcv_export_labels' );
+        global $wpdb;
+        $t = TCV_Schema::tables();
+        $headers = array( 'row_type','source_id','semantic_group','slug','label','parent_source_id','source','active','type_slug','role_slug','confidence' );
+        $fh = self::csv_headers( 'taxocommerce_vocabulary_etiquetas.csv', $headers );
+        $rows = $wpdb->get_results( "SELECT id,semantic_group,slug,label,parent_id,source,active FROM {$t['vocabulary']} ORDER BY semantic_group,label", ARRAY_A );
+        foreach ( (array) $rows as $r ) {
+            fputcsv( $fh, array( 'term',$r['id'],$r['semantic_group'],$r['slug'],$r['label'],$r['parent_id'],$r['source'],$r['active'],'','','' ), ';' );
+        }
+        $maps = $wpdb->get_results( "SELECT tv.slug type_slug,rv.slug role_slug,m.confidence FROM {$t['type_role']} m INNER JOIN {$t['vocabulary']} tv ON tv.id=m.type_vocabulary_id INNER JOIN {$t['vocabulary']} rv ON rv.id=m.role_vocabulary_id WHERE m.active=1", ARRAY_A );
+        foreach ( (array) $maps as $r ) {
+            fputcsv( $fh, array( 'type_role','','','','','','','',$r['type_slug'],$r['role_slug'],$r['confidence'] ), ';' );
+        }
+        fclose( $fh );
+        exit;
+    }
+
+    public static function export_attributes() {
+        self::guard();
+        check_admin_referer( 'tcv_export_attributes' );
+        global $wpdb;
+        $t = TCV_Schema::tables();
+        $headers = array( 'row_type','attribute_slug','attribute_name','group','type','unit_type','unit_base','multiple','filterable','visible','seo','sort','active','term_slug','term_name','term_sort','term_active','alias' );
+        $fh = self::csv_headers( 'taxocommerce_vocabulary_atributos.csv', $headers );
+        $attrs = $wpdb->get_results( "SELECT * FROM {$t['attributes']} ORDER BY orden,nombre", ARRAY_A );
+        foreach ( (array) $attrs as $a ) {
+            fputcsv( $fh, array( 'attribute',$a['slug'],$a['nombre'],$a['grupo'],$a['tipo'],$a['unidad_tipo'],$a['unidad_base'],$a['multiple'],$a['filtrable'],$a['visible'],$a['seo'],$a['orden'],$a['activo'],'','','','','' ), ';' );
+        }
+        $terms = $wpdb->get_results( "SELECT a.slug attribute_slug,t.slug term_slug,t.nombre,t.orden,t.activo FROM {$t['terms']} t INNER JOIN {$t['attributes']} a ON a.id=t.atributo_id ORDER BY a.slug,t.orden,t.nombre", ARRAY_A );
+        foreach ( (array) $terms as $r ) {
+            fputcsv( $fh, array( 'term',$r['attribute_slug'],'','','','','','','','','','','',$r['term_slug'],$r['nombre'],$r['orden'],$r['activo'],'' ), ';' );
+        }
+        $aliases = $wpdb->get_results( "SELECT a.slug attribute_slug,t.slug term_slug,x.alias FROM {$t['aliases']} x INNER JOIN {$t['attributes']} a ON a.id=x.atributo_id LEFT JOIN {$t['terms']} t ON t.id=x.termino_id ORDER BY a.slug,t.slug,x.alias", ARRAY_A );
+        foreach ( (array) $aliases as $r ) {
+            fputcsv( $fh, array( 'alias',$r['attribute_slug'],'','','','','','','','','','','',$r['term_slug'],'','','',$r['alias'] ), ';' );
+        }
+        fclose( $fh );
+        exit;
+    }
+
+    private static function read_csv( $tmp ) {
+        $fh = fopen( $tmp, 'r' );
+        if ( ! $fh ) {
+            return new WP_Error( 'tcv_csv_open', 'No se pudo abrir el CSV.' );
+        }
+        $bom = fread( $fh, 3 );
+        if ( "\xEF\xBB\xBF" !== $bom ) {
+            rewind( $fh );
+        }
+        $headers = fgetcsv( $fh, 0, ';' );
+        if ( ! is_array( $headers ) ) {
+            fclose( $fh );
+            return new WP_Error( 'tcv_csv_header', 'El CSV no contiene cabecera.' );
+        }
+        $headers = array_map( 'sanitize_key', $headers );
+        $rows = array();
+        while ( ( $values = fgetcsv( $fh, 0, ';' ) ) !== false ) {
+            if ( count( $values ) !== count( $headers ) ) {
+                continue;
+            }
+            $rows[] = array_combine( $headers, $values );
+            if ( count( $rows ) > 50000 ) {
+                fclose( $fh );
+                return new WP_Error( 'tcv_csv_limit', 'El CSV supera el límite de 50.000 filas.' );
+            }
+        }
+        fclose( $fh );
+        return $rows;
+    }
+
+    public static function import() {
+        self::guard();
+        check_admin_referer( 'tcv_import' );
+        $domain = isset( $_POST['domain'] ) ? sanitize_key( wp_unslash( $_POST['domain'] ) ) : '';
+        if ( empty( $_FILES['csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['csv']['tmp_name'] ) ) {
+            self::redirect( 'error', 'No se ha recibido ningún CSV.' );
+        }
+        $rows = self::read_csv( $_FILES['csv']['tmp_name'] );
+        if ( is_wp_error( $rows ) ) {
+            self::redirect( 'error', $rows->get_error_message() );
+        }
+        $result = 'labels' === $domain ? self::import_labels( $rows ) : ( 'attributes' === $domain ? self::import_attributes( $rows ) : new WP_Error( 'tcv_domain', 'Dominio de importación no válido.' ) );
+        if ( is_wp_error( $result ) ) {
+            self::redirect( 'error', $result->get_error_message() );
+        }
+        self::redirect( 'success', sprintf( 'Importación completada: %d creados, %d actualizados.', $result['created'], $result['updated'] ) );
+    }
+
+    private static function import_labels( $rows ) {
+        global $wpdb;
+        $t = TCV_Schema::tables();
+        $created = 0;
+        $updated = 0;
+        $wpdb->query( 'START TRANSACTION' );
+        try {
+            foreach ( $rows as $r ) {
+                if ( 'term' !== ( $r['row_type'] ?? '' ) ) {
+                    continue;
+                }
+                $group = sanitize_key( $r['semantic_group'] ?? '' );
+                $slug = sanitize_title( $r['slug'] ?? '' );
+                $label = sanitize_text_field( $r['label'] ?? '' );
+                if ( ! in_array( $group, TCV_Classifier::GROUPS, true ) || ! $slug || ! $label ) {
+                    continue;
+                }
+                $id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['vocabulary']} WHERE semantic_group=%s AND slug=%s", $group, $slug ) );
+                $data = array(
+                    'label' => $label,
+                    'source' => sanitize_key( $r['source'] ?: 'import' ),
+                    'active' => empty( $r['active'] ) ? 0 : 1,
+                    'updated_at' => current_time( 'mysql', true ),
+                );
+                if ( $id ) {
+                    $wpdb->update( $t['vocabulary'], $data, array( 'id' => absint( $id ) ) );
+                    $updated++;
+                } else {
+                    $data['semantic_group'] = $group;
+                    $data['slug'] = $slug;
+                    $data['created_at'] = current_time( 'mysql', true );
+                    $wpdb->insert( $t['vocabulary'], $data );
+                    $created++;
+                }
+            }
+            foreach ( $rows as $r ) {
+                if ( 'term' !== ( $r['row_type'] ?? '' ) || empty( $r['parent_source_id'] ) ) {
+                    continue;
+                }
+                $child_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['vocabulary']} WHERE semantic_group=%s AND slug=%s", sanitize_key( $r['semantic_group'] ?? '' ), sanitize_title( $r['slug'] ?? '' ) ) );
+                $parent_row = null;
+                foreach ( $rows as $candidate ) {
+                    if ( 'term' === ( $candidate['row_type'] ?? '' ) && (string) ( $candidate['source_id'] ?? '' ) === (string) $r['parent_source_id'] ) {
+                        $parent_row = $candidate;
+                        break;
+                    }
+                }
+                if ( $child_id && $parent_row ) {
+                    $parent_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['vocabulary']} WHERE semantic_group=%s AND slug=%s", sanitize_key( $parent_row['semantic_group'] ?? '' ), sanitize_title( $parent_row['slug'] ?? '' ) ) );
+                    if ( $parent_id ) {
+                        $wpdb->update( $t['vocabulary'], array( 'parent_id' => absint( $parent_id ) ), array( 'id' => absint( $child_id ) ) );
+                    }
+                }
+            }
+            foreach ( $rows as $r ) {
+                if ( 'type_role' !== ( $r['row_type'] ?? '' ) ) {
+                    continue;
+                }
+                $type_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['vocabulary']} WHERE semantic_group='tipo' AND slug=%s", sanitize_title( $r['type_slug'] ?? '' ) ) );
+                $role_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['vocabulary']} WHERE semantic_group='rol' AND slug=%s", sanitize_title( $r['role_slug'] ?? '' ) ) );
+                if ( $type_id && $role_id ) {
+                    $wpdb->query( $wpdb->prepare( "INSERT INTO {$t['type_role']} (type_vocabulary_id,role_vocabulary_id,confidence,source,active) VALUES (%d,%d,%f,'import',1) ON DUPLICATE KEY UPDATE role_vocabulary_id=VALUES(role_vocabulary_id),confidence=VALUES(confidence),source='import',active=1", $type_id, $role_id, max( 0, min( 1, (float) ( $r['confidence'] ?: 1 ) ) ) ) );
+                }
+            }
+            $wpdb->query( 'COMMIT' );
+        } catch ( Throwable $e ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'tcv_import_labels', $e->getMessage() );
+        }
+        return array( 'created' => $created, 'updated' => $updated );
+    }
+
+    private static function import_attributes( $rows ) {
+        global $wpdb;
+        $t = TCV_Schema::tables();
+        $created = 0;
+        $updated = 0;
+        $wpdb->query( 'START TRANSACTION' );
+        try {
+            foreach ( $rows as $r ) {
+                if ( 'attribute' !== ( $r['row_type'] ?? '' ) ) {
+                    continue;
+                }
+                $slug = sanitize_title( $r['attribute_slug'] ?? '' );
+                $name = sanitize_text_field( $r['attribute_name'] ?? '' );
+                if ( ! $slug || ! $name ) {
+                    continue;
+                }
+                $id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['attributes']} WHERE slug=%s", $slug ) );
+                $type = in_array( $r['type'] ?? '', array( 'texto','numero','boolean','termino','rango' ), true ) ? $r['type'] : 'texto';
+                $data = array(
+                    'nombre' => $name,
+                    'grupo' => sanitize_text_field( $r['group'] ?? '' ),
+                    'tipo' => $type,
+                    'unidad_tipo' => sanitize_text_field( $r['unit_type'] ?? '' ),
+                    'unidad_base' => sanitize_text_field( $r['unit_base'] ?? '' ),
+                    'multiple' => empty( $r['multiple'] ) ? 0 : 1,
+                    'filtrable' => empty( $r['filterable'] ) ? 0 : 1,
+                    'visible' => empty( $r['visible'] ) ? 0 : 1,
+                    'seo' => empty( $r['seo'] ) ? 0 : 1,
+                    'orden' => intval( $r['sort'] ?? 0 ),
+                    'activo' => empty( $r['active'] ) ? 0 : 1,
+                );
+                if ( $id ) {
+                    $wpdb->update( $t['attributes'], $data, array( 'id' => absint( $id ) ) );
+                    $updated++;
+                } else {
+                    $data['slug'] = $slug;
+                    $wpdb->insert( $t['attributes'], $data );
+                    $created++;
+                }
+            }
+            foreach ( $rows as $r ) {
+                if ( ! in_array( $r['row_type'] ?? '', array( 'term','alias' ), true ) ) {
+                    continue;
+                }
+                $aid = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['attributes']} WHERE slug=%s", sanitize_title( $r['attribute_slug'] ?? '' ) ) );
+                if ( ! $aid ) {
+                    continue;
+                }
+                if ( 'term' === $r['row_type'] ) {
+                    $slug = sanitize_title( $r['term_slug'] ?? '' );
+                    $name = sanitize_text_field( $r['term_name'] ?? '' );
+                    if ( ! $slug || ! $name ) {
+                        continue;
+                    }
+                    $wpdb->query( $wpdb->prepare( "INSERT INTO {$t['terms']} (atributo_id,slug,nombre,orden,activo) VALUES (%d,%s,%s,%d,%d) ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),orden=VALUES(orden),activo=VALUES(activo)", $aid, $slug, $name, intval( $r['term_sort'] ?? 0 ), empty( $r['term_active'] ) ? 0 : 1 ) );
+                } else {
+                    $alias = sanitize_text_field( $r['alias'] ?? '' );
+                    if ( ! $alias ) {
+                        continue;
+                    }
+                    $term_id = null;
+                    if ( ! empty( $r['term_slug'] ) ) {
+                        $term_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['terms']} WHERE atributo_id=%d AND slug=%s", $aid, sanitize_title( $r['term_slug'] ) ) );
+                    }
+                    $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['aliases']} WHERE atributo_id=%d AND COALESCE(termino_id,0)=%d AND alias=%s", $aid, absint( $term_id ), $alias ) );
+                    if ( ! $exists ) {
+                        $wpdb->insert( $t['aliases'], array( 'atributo_id' => $aid, 'termino_id' => $term_id ?: null, 'alias' => $alias ) );
+                    }
+                }
+            }
+            $wpdb->query( 'COMMIT' );
+        } catch ( Throwable $e ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'tcv_import_attributes', $e->getMessage() );
+        }
+        return array( 'created' => $created, 'updated' => $updated );
+    }
+
+    private static function redirect( $status, $message ) {
+        wp_safe_redirect( add_query_arg( array( 'page'=>'taxocommerce-vocabulary','tab'=>'io','tcv_status'=>$status,'tcv_message'=>rawurlencode( $message ) ), admin_url( 'admin.php' ) ) );
+        exit;
+    }
+}
