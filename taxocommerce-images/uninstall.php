@@ -18,3 +18,6 @@ delete_option( 'taxocommerce_images_settings' );
 delete_option( 'taxocommerce_images_audit_state' );
 delete_option( 'taxocommerce_images_audit_lock' );
 delete_option( 'taxocommerce_images_disabled_thumbnail_sizes' );
+delete_option( 'taxocommerce_images_cpu_limit' );
+delete_option( 'taxocommerce_images_cpu_sample' );
+delete_option( 'taxocommerce_images_cpu_last' );

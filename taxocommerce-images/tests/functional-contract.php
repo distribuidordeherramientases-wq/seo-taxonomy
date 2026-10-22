@@ -29,6 +29,18 @@ function taxocommerce_images_test_image( $name, $seed, $bytes = null, $mime = 'i
 
 $admin = get_user_by( 'login', 'imagesadmin' );
 wp_set_current_user( $admin->ID );
+
+TaxoCommerce_Images_CPU::set_limit( 50 );
+$cpu_high_filter = static function () { return 80; };
+add_filter( 'taxocommerce_images_cpu_percent', $cpu_high_filter );
+$cpu_high = TaxoCommerce_Images_CPU::decision( 'test_high' );
+remove_filter( 'taxocommerce_images_cpu_percent', $cpu_high_filter );
+taxocommerce_images_test_assert( empty( $cpu_high['allowed'] ) && 80.0 === (float) $cpu_high['percent'], 'CPU guard pauses a long job above the configured threshold' );
+$cpu_low_filter = static function () { return 20; };
+add_filter( 'taxocommerce_images_cpu_percent', $cpu_low_filter );
+$cpu_low = TaxoCommerce_Images_CPU::decision( 'test_low' );
+remove_filter( 'taxocommerce_images_cpu_percent', $cpu_low_filter );
+taxocommerce_images_test_assert( ! empty( $cpu_low['allowed'] ) && 20.0 === (float) $cpu_low['percent'], 'CPU guard allows a long job below the configured threshold' );
 register_post_type( 'product', array( 'public' => true, 'supports' => array( 'title', 'thumbnail' ) ) );
 register_taxonomy( 'product_cat', array( 'product', 'page', 'post' ), array( 'hierarchical' => true, 'public' => true ) );
 add_theme_support( 'post-thumbnails' );

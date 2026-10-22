@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.3
+Stable tag: 0.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,13 @@ Current functionality includes:
 * Optional integration into TaxoCommerce Core.
 
 == Changelog ==
+
+= 0.2.4 =
+* Added an administrator-configurable CPU ceiling for long image jobs (50% by default).
+* Audit, metadata/attribute scan, unused/duplicate scan, optimizer and WebP conversion pause between batches when CPU is unavailable or reaches the configured ceiling.
+* Long jobs keep their cursor and stored results while paused and automatically recheck before continuing.
+* CPU percentage is based on a two-sample /proc/stat utilization delta or a hosting integration filter; load average is never treated as CPU percentage.
+
 
 = 0.2.3 =
 * Products only reuse their own gallery; missing product images stay reported.
