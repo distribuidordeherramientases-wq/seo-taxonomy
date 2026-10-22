@@ -207,6 +207,47 @@ final class TaxoCommerce_Google_Bing_Connections {
         self::redirect( 'bing_saved', 'success' );
     }
 
+    public static function google_analytics_report( $request ) {
+        $settings = self::google_settings();
+        $property = preg_replace( '/\D+/', '', (string) ( $settings['analytics_property_id'] ?? '' ) );
+        if ( '' === $property ) {
+            return new WP_Error( 'tgb_google_no_analytics_property', 'No hay propiedad de Google Analytics configurada.' );
+        }
+
+        $token = self::google_access_token( $settings );
+        if ( is_wp_error( $token ) ) {
+            return $token;
+        }
+
+        $response = wp_remote_post(
+            'https://analyticsdata.googleapis.com/v1beta/properties/' . rawurlencode( $property ) . ':runReport',
+            array(
+                'timeout' => 30,
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type'  => 'application/json',
+                    'Accept'        => 'application/json',
+                ),
+                'body' => wp_json_encode( is_array( $request ) ? $request : array() ),
+            )
+        );
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $code = (int) wp_remote_retrieve_response_code( $response );
+        $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+        if ( $code < 200 || $code >= 300 ) {
+            $message = 'Google Analytics respondió HTTP ' . $code . '.';
+            if ( is_array( $data ) && ! empty( $data['error']['message'] ) ) {
+                $message .= ' ' . sanitize_text_field( (string) $data['error']['message'] );
+            }
+            return new WP_Error( 'tgb_google_analytics_error', $message, array( 'status' => $code ) );
+        }
+
+        return is_array( $data ) ? $data : array();
+    }
+
     public static function test_google() {
         self::guard( 'tgb_test_google' );
         $settings = self::google_settings();
