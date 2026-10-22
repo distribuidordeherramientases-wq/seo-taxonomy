@@ -20,6 +20,11 @@ final class Engine {
 
     public static function disable_legacy_runtime() {
         // Runtime-only coordination. NEVER edit the monolith's source files.
+        // If new storage is unavailable, leave the working legacy redirect
+        // handler active instead of silently disabling live redirects.
+        if ( '1' !== (string) get_option( 'tc_redirects_schema_ready', '' ) || ! Store::table_exists() ) {
+            return;
+        }
         if ( false !== has_action( 'send_headers', 'interceptar_redireccion_antes_de_wordpress' ) ) {
             remove_action( 'send_headers', 'interceptar_redireccion_antes_de_wordpress', 1 );
         }
