@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Google/Bing
  * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,12 +12,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.2.0' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
 
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
@@ -81,7 +82,7 @@ function taxocommerce_google_bing_screen() {
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
     $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : 'connections';
-    if ( 'connections' !== $tab ) {
+    if ( ! in_array( $tab, array( 'connections', 'reports' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -89,10 +90,27 @@ function taxocommerce_google_bing_screen() {
     echo '<h1>TaxoCommerce Google / Bing</h1>';
     echo '<p>Fuente central de conexiones externas para Analista, Ojeador, Ingeniero, Mercado e informes.</p>';
     echo '<nav class="nav-tab-wrapper" aria-label="Google / Bing">';
-    echo '<a class="nav-tab nav-tab-active" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections' ), admin_url( 'admin.php' ) ) ) . '">Conexiones</a>';
+    $tabs = array(
+        'connections' => 'Conexiones',
+        'reports'     => 'Informes',
+    );
+    foreach ( $tabs as $key => $label ) {
+        $url = add_query_arg(
+            array(
+                'page'    => 'taxocommerce-google-bing',
+                'tgb_tab' => $key,
+            ),
+            admin_url( 'admin.php' )
+        );
+        echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+    }
     echo '</nav>';
 
-    TaxoCommerce_Google_Bing_Connections::render();
+    if ( 'reports' === $tab ) {
+        TaxoCommerce_Google_Bing_Reports::render();
+    } else {
+        TaxoCommerce_Google_Bing_Connections::render();
+    }
 
     echo '</div>';
 }
