@@ -1,0 +1,26 @@
+name: Validate TaxoCommerce Templates PR
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-templates/**'
+      - '.github/workflows/taxocommerce-templates-pr.yml'
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+      - name: Syntax-check each PHP file
+        run: find taxocommerce-templates -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Run routing and editor smoke tests
+        run: php taxocommerce-templates/tests/smoke.php
+      - name: Enforce plugin independence
+        run: |
+          test -s taxocommerce-templates/taxocommerce-templates.php
+          test -s taxocommerce-templates/includes/class-tct-router.php
+          if grep -R 'SEO_SYSTEM_PATH\|SEO_SYSTEM_FILE\|require_once.*seo-taxonomy' taxocommerce-templates --include='*.php'; then exit 1; fi
