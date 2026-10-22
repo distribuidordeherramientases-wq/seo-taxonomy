@@ -218,14 +218,20 @@ final class Assisted_Delete {
         wp_enqueue_script(
             'taxocommerce-redirects-block-button',
             plugins_url( 'assets/block-editor.js', dirname( __DIR__ ) . '/taxocommerce-redirects.php' ),
-            array( 'wp-plugins', 'wp-element', 'wp-edit-post', 'wp-components' ),
+            array( 'wp-plugins', 'wp-element', 'wp-edit-post', 'wp-components', 'wp-api-fetch' ),
             Plugin::VERSION,
             true
         );
         wp_localize_script(
             'taxocommerce-redirects-block-button',
             'tcRedirectsBlockEditor',
-            array( 'confirmUrl' => self::confirmation_url( $post->post_type, $post->ID ) )
+            array(
+                'confirmUrl' => self::confirmation_url( $post->post_type, $post->ID ),
+                'restIds' => array(
+                    '/wp/v2/' . ( 'post' === $post->post_type ? 'posts' : ( 'page' === $post->post_type ? 'pages' : 'product' ) ) . '/' . $post->ID,
+                    '/wc/v3/products/' . $post->ID,
+                ),
+            )
         );
     }
 
@@ -273,6 +279,7 @@ final class Assisted_Delete {
         }
         $can_redirect = 'publish' === $data['status'];
         $warning = 'product_cat' === $type ? self::category_preflight( $id ) : true;
+        $permanent = 'trash' === $data['status'];
         ?>
         <div class="wrap tc-rd tc-rd-confirm">
             <h1>Eliminar <?php echo esc_html( self::ALLOWED[ $type ] ); ?></h1>
@@ -281,7 +288,11 @@ final class Assisted_Delete {
             <div class="tc-rd-panel">
                 <h2>¿Quieres añadir una redirección antes de eliminar?</h2>
                 <?php if ( 'product_cat' !== $type ) : ?>
-                    <p>El contenido se mueve primero a la papelera. El borrado definitivo se realiza mediante WordPress y no se ejecuta en este formulario.</p>
+                    <?php if ( $permanent ) : ?>
+                        <p><strong>Atención: el contenido ya está en la papelera y esta operación lo eliminaría definitivamente.</strong></p>
+                    <?php else : ?>
+                        <p>Se moverá el contenido a la papelera. Este paso no lo elimina definitivamente.</p>
+                    <?php endif; ?>
                 <?php else : ?>
                     <p>Las categorías de productos no tienen papelera. Este borrado es definitivo.</p>
                 <?php endif; ?>
@@ -304,8 +315,11 @@ final class Assisted_Delete {
                     <?php endif; ?>
                     <label class="tc-rd-choice"><input type="radio" name="mode" value="delete" <?php checked( ! $can_redirect ); ?>> Eliminar sin redirección</label>
                     <p class="description">Al borrar sin redirección, la antigua URL podrá responder 404. Si ya hay un redirect para ese origen, debes gestionarlo primero.</p>
+                    <?php if ( $permanent ) : ?>
+                        <p><label><input type="checkbox" name="confirm_permanent" value="1" required> Confirmo que deseo eliminar definitivamente este elemento de la papelera.</label></p>
+                    <?php endif; ?>
                     <div class="tc-rd-button-row">
-                        <button type="submit" class="button button-primary" <?php disabled( is_wp_error( $warning ) ); ?>>Confirmar eliminación</button>
+                        <button type="submit" class="button button-primary" <?php disabled( is_wp_error( $warning ) ); ?>><?php echo $permanent ? 'Eliminar definitivamente' : 'Confirmar eliminación'; ?></button>
                         <a class="button" href="<?php echo esc_url( wp_get_referer() ?: admin_url( 'index.php' ) ); ?>">Cancelar</a>
                     </div>
                 </form>
@@ -357,6 +371,9 @@ final class Assisted_Delete {
         }
         if ( 'redirect' === $mode && 'publish' !== $data['status'] ) {
             wp_die( 'Solo se pueden crear redirects al eliminar contenido publicado.', '', array( 'response' => 409 ) );
+        }
+        if ( 'trash' === $data['status'] && 'product_cat' !== $type && empty( $_POST['confirm_permanent'] ) ) {
+            wp_die( 'Confirma expresamente el borrado permanente antes de continuar.', '', array( 'response' => 409 ) );
         }
 
         $created = 0;
