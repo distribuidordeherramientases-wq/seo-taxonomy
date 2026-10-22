@@ -25,7 +25,7 @@ final class TCD_Academy {
             UNIQUE KEY unique_source (lesson,source_type,source_id),
             KEY lesson_status (lesson,status)
         ) ".$wpdb->get_charset_collate().";");
-        if(false===get_option(self::STATE,false))add_option(self::STATE,self::initial_state(),' ',false);
+        if(false===get_option(self::STATE,false))add_option(self::STATE,self::initial_state(),'',false);
     }
     private static function initial_state(){return array('status'=>'idle','lesson'=>1,'cursor'=>0,'processed'=>0,'learned'=>0,'unlearned'=>0,'run_id'=>'','last_error'=>'','last_message'=>'Preparado para estudiar L1–L10.','updated_at'=>'');}
     public static function state(){return wp_parse_args((array)get_option(self::STATE,array()),self::initial_state());}
@@ -68,7 +68,9 @@ final class TCD_Academy {
         }elseif('restart'===$action && in_array($state['status'],array('idle','stopped','error','completed'),true)){
             // Explicit restart never deletes source content; the course snapshot is rebuilt.
             global $wpdb;
-            $wpdb->query('DELETE FROM '.self::knowledge_table());
+            $knowledge_table = esc_sql( self::knowledge_table() );
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- The internal table name is fixed; reset was explicitly requested by an authorized administrator.
+            $wpdb->query( "DELETE FROM {$knowledge_table}" );
             delete_option('tcd_academy_stop');
             self::save(array_merge(self::initial_state(),array('status'=>'running','run_id'=>wp_generate_uuid4())));
             self::queue();
