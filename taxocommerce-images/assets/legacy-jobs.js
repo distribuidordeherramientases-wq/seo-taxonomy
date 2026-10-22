@@ -52,6 +52,12 @@
 					throw new Error(packet.data && packet.data.message ? packet.data.message : 'El servidor ha rechazado el lote.');
 				}
 				var current = packet.data;
+				if (current.paused) {
+					var seconds = Math.max(1, Number(current.retry_after || 10));
+					status.textContent = (current.message || 'CPU no disponible para continuar.') + ' Reintentando en ' + seconds + ' s; el cursor permanece guardado.';
+					await new Promise(function (resolve) { window.setTimeout(resolve, seconds * 1000); });
+					continue;
+				}
 				var nextId = Number(current.next_after_id || 0);
 				if (nextId <= afterId && !current.done) {
 					throw new Error('El lote no ha avanzado. Operación detenida para evitar repeticiones.');
