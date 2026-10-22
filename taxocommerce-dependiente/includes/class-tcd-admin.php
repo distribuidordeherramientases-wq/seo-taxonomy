@@ -69,20 +69,22 @@ final class TCD_Admin {
         echo '</div>';
 
         echo '<h2>Las diez lecciones</h2>';
-        echo '<table class="widefat striped"><thead><tr><th>Lección</th><th>Qué aprende</th><th>Foto fija</th><th>Aprendidos</th><th>No aprendidos</th><th>Auditoría</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th>Lección</th><th>Qué aprende</th><th>Foto fija / progreso</th><th>Aprendidos</th><th>No aprendidos</th><th>Auditoría</th></tr></thead><tbody>';
         foreach($syllabus as $no=>$lesson){
             $snapshot=TCD_Academy::snapshot_for_lesson($no);
             $status=$snapshot?(string)$snapshot['status']:'Pendiente';
             $sources=$snapshot?absint($snapshot['source_count']):0;
             $signature=$snapshot?(string)$snapshot['source_signature']:'';
+            $planned=TCD_Sources::source_total($no);
+            $analysed=$snapshot ? ($sources>0 ? $sources : ($no===absint($state['lesson']) ? absint($state['snapshot_cursor']??0) : 0)) : ($no===absint($state['lesson']) ? absint($state['snapshot_cursor']??0) : 0);
+            $percent=$planned>0 ? min(100,round(($analysed/$planned)*100)) : 0;
             echo '<tr>';
             echo '<td><strong>L'.esc_html((string)$no).'</strong> '.esc_html((string)$lesson['name']).'<div class="description"><code>'.esc_html((string)$lesson['key']).'</code></div></td>';
             echo '<td>'.esc_html((string)$lesson['objective']).'<div class="description">Fuente: '.esc_html((string)$lesson['source']).'</div></td>';
             echo '<td><strong>'.esc_html($status).'</strong>';
-            if($snapshot){
-                echo '<div>'.esc_html(number_format_i18n($sources)).' fuentes</div>';
-                if($signature)echo '<div class="description"><code>'.esc_html(substr($signature,0,12)).'…</code></div>';
-            }
+            echo '<div>'.esc_html(number_format_i18n($analysed)).' / '.esc_html(number_format_i18n($planned)).' fuentes analizadas · '.esc_html((string)$percent).'%</div>';
+            echo '<div style="max-width:220px;height:8px;background:#dcdcde;margin:5px 0"><span style="display:block;height:8px;background:currentColor;width:'.esc_attr((string)$percent).'%"></span></div>';
+            if($snapshot && $signature)echo '<div class="description">Foto sellada: <code>'.esc_html(substr($signature,0,12)).'…</code></div>';
             echo '</td>';
             echo '<td>'.esc_html(number_format_i18n(absint($counts[$no]['learned']??0))).'</td>';
             echo '<td>'.esc_html(number_format_i18n(absint($counts[$no]['unlearned']??0))).'</td>';

@@ -81,6 +81,60 @@ final class TCD_Sources {
         return array_values( array_filter( self::GROUP_TAXONOMIES, 'taxonomy_exists' ) );
     }
 
+    public static function source_total( $lesson ) {
+        global $wpdb;
+        $lesson = absint( $lesson );
+        if ( 1 === $lesson ) {
+            $count = wp_count_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false ) );
+            return is_wp_error( $count ) ? 0 : absint( $count );
+        }
+        if ( in_array( $lesson, array( 2, 4, 9 ), true ) ) {
+            $counts = wp_count_posts( 'product' );
+            return isset( $counts->publish ) ? absint( $counts->publish ) : 0;
+        }
+        if ( 3 === $lesson ) {
+            $voc = $wpdb->prefix . 'seo_vocabulary';
+            if ( ! self::table_exists( $voc ) ) return 0;
+            return absint( $wpdb->get_var(
+                "SELECT COUNT(*) FROM {$voc} WHERE active=1 AND semantic_group IN ('tipo','rol')"
+            ) );
+        }
+        if ( 5 === $lesson ) {
+            $posts = wp_count_posts( 'post' );
+            $pages = wp_count_posts( 'page' );
+            return absint( $posts->publish ?? 0 ) + absint( $pages->publish ?? 0 );
+        }
+        if ( 6 === $lesson ) {
+            $faq = $wpdb->prefix . 'seo_faq';
+            if ( ! self::table_exists( $faq ) ) return 0;
+            return absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$faq} WHERE active=1" ) );
+        }
+        if ( 7 === $lesson ) {
+            $voc=$wpdb->prefix.'seo_vocabulary';
+            $rel=$wpdb->prefix.'seo_object_vocabulary';
+            if(!self::table_exists($voc)||!self::table_exists($rel))return 0;
+            return absint($wpdb->get_var(
+                "SELECT COUNT(*) FROM (
+                    SELECT v.id
+                    FROM {$voc} v INNER JOIN {$rel} r ON r.vocabulary_id=v.id
+                    WHERE v.active=1
+                    GROUP BY v.id
+                    HAVING SUM(r.object_type='product' AND r.status=1)>0
+                       AND SUM(r.object_type IN ('post','page') AND r.status=1)>0
+                ) tc_cross"
+            ));
+        }
+        if ( in_array( $lesson, array( 8, 10 ), true ) ) {
+            $table = TCD_Academy::knowledge_table();
+            $max_lesson = 8 === $lesson ? 7 : 9;
+            return absint( $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE lesson BETWEEN 1 AND %d",
+                $max_lesson
+            ) ) );
+        }
+        return 0;
+    }
+
     public static function batch( $lesson, $cursor, $limit ) {
         $lesson = absint( $lesson );
         $cursor = max( 0, absint( $cursor ) );
