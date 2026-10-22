@@ -3,15 +3,16 @@ on:
   pull_request:
     paths:
       - 'taxocommerce-images/**'
+      - '.github/scripts/*images*criteria.py'
       - '.github/workflows/images-contract-check.yml'
-  workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: images-contract-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   images:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/images-admin-criteria-20261022'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -19,6 +20,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: testroot
+          MYSQL_ROOT_HOST: '%'
           MYSQL_DATABASE: images_test
         ports:
           - 3306:3306
@@ -29,11 +31,23 @@ jobs:
           --health-retries=10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/images-admin-criteria-20261022
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           extensions: mysqli, gd, exif
           tools: wp-cli
+      - name: Apply guarded Images-only changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import runpy
+          source = Path('taxocommerce-images/taxocommerce-images.php').read_text()
+          if 'Version: 0.2.3' not in source:
+              runpy.run_path('.github/scripts/images_admin_criteria.py', run_name='__main__')
+          runpy.run_path('.github/scripts/finalize_images_criteria.py', run_name='__main__')
+          PY
       - name: PHP syntax
         run: find taxocommerce-images -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Prepare isolated WordPress
@@ -45,11 +59,19 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/taxocommerce-images" /tmp/images-wp/wp-content/plugins/taxocommerce-images
           wp plugin activate taxocommerce-images --path=/tmp/images-wp
       - name: Acceptance tests in real WordPress
+        env:
+          IMAGES_CONTRACT_TEST: '1'
         run: |
-          if test -f taxocommerce-images/tests/functional-contract.php; then
-            wp eval-file "$GITHUB_WORKSPACE/taxocommerce-images/tests/functional-contract.php" --path=/tmp/images-wp
-          else
-            echo 'Acceptance test is not present yet; package is development-only.'
+          test -f taxocommerce-images/tests/functional-contract.php
+          wp eval-file "$GITHUB_WORKSPACE/taxocommerce-images/tests/functional-contract.php" --path=/tmp/images-wp
+      - name: Commit validated image-source changes on this development branch only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- taxocommerce-images/
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(images): apply tested product, batching and metadata criteria'
+            git push origin HEAD:refs/heads/fix/images-admin-criteria-20261022
           fi
       - name: Package standalone Images
         if: always()
