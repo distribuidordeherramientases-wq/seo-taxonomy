@@ -61,7 +61,7 @@ final class TaxoCommerce_FAQs {
         return true;
     }
 
-    private static function ensure_category() {
+    public static function ensure_category() {
         if ( '1' !== get_option( 'taxocommerce_faqs_category_schema', '' ) ) {
             self::upgrade_category();
         }
