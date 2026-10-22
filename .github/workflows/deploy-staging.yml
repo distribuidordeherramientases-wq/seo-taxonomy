@@ -49,6 +49,7 @@ jobs:
             taxocommerce-redirects/**
             taxocommerce-dependiente/**
             taxocommerce-faqs/**
+            taxocommerce-vocabulary/**
             packages/**
             **/node_modules/**
             **/*.bak
@@ -214,14 +215,23 @@ jobs:
             **/*.md
             **/*.pot
 
-      - name: Prepare TaxoCommerce Vocabulary package
+      - name: Validate TaxoCommerce Vocabulary source
         run: |
-          rm -rf .deploy-vocabulary .deploy-vocabulary.zip
-          mkdir -p .deploy-vocabulary
-          cat packages/vocabulary-0.2.0-bin/part_*.bin > .deploy-vocabulary.zip
-          echo "73868282759831e438881c063b2621311a561a5c99278fa70b64aca51049f24e  .deploy-vocabulary.zip" | sha256sum -c -
-          unzip -q .deploy-vocabulary.zip -d .deploy-vocabulary
-          test -f .deploy-vocabulary/taxocommerce-vocabulary/taxocommerce-vocabulary.php
+          test -f taxocommerce-vocabulary/taxocommerce-vocabulary.php
+          find taxocommerce-vocabulary -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Build TaxoCommerce Vocabulary ZIP
+        run: |
+          rm -f taxocommerce-vocabulary-0.3.0.zip
+          zip -qr taxocommerce-vocabulary-0.3.0.zip taxocommerce-vocabulary
+
+      - name: Upload TaxoCommerce Vocabulary package
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-vocabulary-0.3.0
+          path: taxocommerce-vocabulary-0.3.0.zip
+          retention-days: 30
+          if-no-files-found: error
 
       - name: Deploy TaxoCommerce Vocabulary to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
@@ -229,16 +239,12 @@ jobs:
           server: ${{ secrets.STAGING_FTP_SERVER }}
           username: ${{ secrets.STAGING_FTP_USERNAME }}
           password: ${{ secrets.STAGING_FTP_PASSWORD }}
-
           protocol: ftps
           port: 21
-
-          local-dir: ./.deploy-vocabulary/taxocommerce-vocabulary/
+          local-dir: ./taxocommerce-vocabulary/
           server-dir: ./wp-content/plugins/taxocommerce-vocabulary/
-
           dry-run: false
           log-level: verbose
-
           exclude: |
             **/.git*
             **/.git*/**

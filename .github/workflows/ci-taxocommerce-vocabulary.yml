@@ -1,0 +1,47 @@
+name: TaxoCommerce Vocabulary QA
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-vocabulary/**'
+      - '.github/workflows/ci-taxocommerce-vocabulary.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-vocabulary/**'
+      - '.github/workflows/ci-taxocommerce-vocabulary.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vocabulary-php:
+    name: Vocabulary PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring
+          coverage: none
+      - name: Check plugin PHP syntax
+        run: find taxocommerce-vocabulary -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - name: Check canonical storage contract
+        run: |
+          grep -q "seo_vocabulary" taxocommerce-vocabulary/includes/class-tcv-schema.php
+          grep -q "seo_object_vocabulary" taxocommerce-vocabulary/includes/class-tcv-schema.php
+          grep -q "sql_atributos" taxocommerce-vocabulary/includes/class-tcv-schema.php
+          ! grep -R "register_taxonomy.*tc_semantic_tag" taxocommerce-vocabulary
+      - name: Build and inspect plugin ZIP
+        run: |
+          zip -qr taxocommerce-vocabulary.zip taxocommerce-vocabulary
+          unzip -t taxocommerce-vocabulary.zip
+          unzip -Z1 taxocommerce-vocabulary.zip | grep -Fx 'taxocommerce-vocabulary/taxocommerce-vocabulary.php'

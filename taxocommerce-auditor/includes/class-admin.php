@@ -82,6 +82,35 @@ final class Admin {
         echo '</form>';
     }
 
+    private static function filter_form( $scope, $label ) {
+        $state = Runner::state( $scope );
+        $filters = Runner::sanitize_filters( $scope, (array) ( $state['filters'] ?? array() ) );
+        echo '<form class="taxocommerce-auditor-filter" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="taxocommerce_auditor_action">';
+        echo '<input type="hidden" name="scope" value="' . esc_attr( $scope ) . '">';
+        echo '<input type="hidden" name="task" value="start">';
+        wp_nonce_field( 'taxocommerce_auditor_action_' . $scope );
+        echo '<label>Buscar <input type="text" name="search" value="' . esc_attr( $filters['search'] ) . '" placeholder="Título o ID"></label>';
+        if ( 'products' === $scope ) {
+            $categories = get_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false, 'number'=>250, 'orderby'=>'name', 'order'=>'ASC' ) );
+            if ( is_wp_error( $categories ) ) {
+                $categories = array();
+            }
+            echo '<label>Categoría <select name="category_id"><option value="0">Todas</option>';
+            foreach ( $categories as $category ) {
+                echo '<option value="' . esc_attr( $category->term_id ) . '" ' . selected( $filters['category_id'], $category->term_id, false ) . '>' . esc_html( $category->name ) . '</option>';
+            }
+            echo '</select></label>';
+        }
+        echo '<label>Máximo <select name="rows">';
+        foreach ( array(10,25,50,100,250) as $n ) {
+            echo '<option value="' . esc_attr( $n ) . '" ' . selected( $filters['rows'], $n, false ) . '>' . esc_html( $n ) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<button type="submit" class="button button-primary">' . esc_html( $label ) . '</button>';
+        echo '</form>';
+    }
+
     public static function render() {
         self::guard();
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only scope selection.
@@ -125,7 +154,7 @@ final class Admin {
                 echo '<a class="button" href="' . esc_url( $export ) . '">JSON</a></p>';
             }
 
-            self::action_form( $scope, 'start', $report ? 'Repetir auditoría' : 'Auditar', true );
+            self::filter_form( $scope, $report ? 'Repetir auditoría filtrada' : 'Auditar filtro' );
             if ( in_array( $status, array( 'queued', 'running' ), true ) ) {
                 self::action_form( $scope, 'step', 'Procesar siguiente lote' );
                 self::action_form( $scope, 'pause', 'Pausar' );
@@ -474,7 +503,12 @@ final class Admin {
         }
         check_admin_referer( 'taxocommerce_auditor_action_' . $scope );
         if ( 'start' === $task ) {
-            if ( ! Runner::start( $scope ) ) {
+            $filters = Runner::sanitize_filters( $scope, array(
+                'search'      => isset( $_POST['search'] ) ? wp_unslash( $_POST['search'] ) : '',
+                'category_id' => isset( $_POST['category_id'] ) ? wp_unslash( $_POST['category_id'] ) : 0,
+                'rows'        => isset( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : 25,
+            ) );
+            if ( ! Runner::start( $scope, $filters ) ) {
                 wp_die( esc_html__( 'Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote antes de reiniciarla.', 'taxocommerce-auditor' ), '', array( 'response' => 409 ) );
             }
             // WP-Cron ejecutará el primer lote fuera de esta petición.
