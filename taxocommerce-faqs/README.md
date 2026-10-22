@@ -29,3 +29,7 @@ Esta primera version gestiona FAQs de hubs/paginas, categorias y productos;
 no reimplementa el frontend, la telemetria detallada ni los informes
 avanzados del monolito. La eliminacion es manual y permanente con confirmacion.
 Verificar en STAGING los roles reales de hubs antes de cargar CSV masivos.
+
+## Versión 0.1.1: categoría obligatoria
+
+El campo `product_cat_id` señala una categoría real de WooCommerce. Se añade de manera incremental a la tabla histórica `seo_faq`. Solo se asignan automáticamente las preguntas que ya tienen un destino de tipo 2 y una categoría válida; el resto se conserva sin alterar y se refleja como 'Sin categoría'. Cada nueva creación o edición exige una categoría válida. El CSV añade la columna `product_cat_id`; las filas sin categoría válida se rechazan. La interfaz permite filtrar por categoría y ofrece KPIs de categorías cubiertas y FAQs sin clasificar.
