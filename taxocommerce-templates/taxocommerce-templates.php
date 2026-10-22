@@ -98,6 +98,8 @@ final class TaxoCommerce_Templates {
         add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
         add_action('admin_post_tct_save_device_mode',array(__CLASS__,'save_device_mode'));
         add_action('admin_post_tct_assign_page',array(__CLASS__,'assign_page'));
+        add_action('admin_post_tct_unassign_page',array(__CLASS__,'unassign_page'));
+        add_action('admin_post_tct_download_template',array(__CLASS__,'download_template'));
         add_action('admin_init',array('TCT_Router','seed_catalog'));
         add_action('add_meta_boxes_page',array(__CLASS__,'page_metabox'));
         add_action('save_post_page',array(__CLASS__,'save_metabox'),25,2);
@@ -268,6 +270,40 @@ final class TaxoCommerce_Templates {
         self::redirect(is_wp_error($result) ? $result->get_error_message() : 'Pagina asignada correctamente.');
     }
 
+    public static function unassign_page() {
+        self::guard('tct_unassign_page');
+        $id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
+        if (!$id || !current_user_can('edit_page', $id)) {
+            self::redirect('Pagina no valida o sin permisos.');
+        }
+        $existing = self::page_role($id);
+        $role = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
+        if (!$existing || $existing !== $role) {
+            self::redirect('La pagina ya no tiene esa asignacion.');
+        }
+        $result = self::set_role($id, '');
+        self::redirect(is_wp_error($result) ? $result->get_error_message() : 'Pagina desasignada.');
+    }
+
+    public static function download_template() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Acceso denegado.');
+        }
+        $filename = isset($_GET['file']) ? sanitize_file_name(wp_unslash($_GET['file'])) : '';
+        check_admin_referer('tct_download_' . $filename);
+        $path = TCT_Router::path($filename);
+        if (!$path) {
+            wp_die('Plantilla no encontrada.');
+        }
+        nocache_headers();
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
+    }
+
     public static function upload_template() {
         if (!current_user_can('manage_options') || !current_user_can('update_plugins') ||
             !TCT_Template_Editor::can_edit()) {
@@ -435,6 +471,11 @@ final class TaxoCommerce_Templates {
                 submit_button('Guardar','secondary','submit',false);
                 echo '</form></details>';
             }
+            if ($principal) {
+                $download_url = wp_nonce_url(admin_url('admin-post.php?action=tct_download_template&file=' . rawurlencode($row->template_file)), 'tct_download_' . $row->template_file);
+                echo '<p><a href="' . esc_url($download_url) . '">Descargar principal</a> · ';
+                echo '<a href="' . esc_url(TCT_Request_Admin::admin_url('editor',array('tct_source'=>$row->template_file))) . '">Ver / editar codigo</a></p>';
+            }
             if ($is_assignable) {
                 echo '<h4>Paginas asignadas</h4>';
                 $assigned = isset($by_role[$key]) ? $by_role[$key] : array();
@@ -442,7 +483,14 @@ final class TaxoCommerce_Templates {
                     echo '<p>Ninguna pagina asignada.</p>';
                 }
                 foreach ($assigned as $id) {
-                    echo '<p>' . esc_html(get_the_title($id)) . ' <code>#' . esc_html($id) . '</code></p>';
+                    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:5px 0">';
+                    wp_nonce_field('tct_unassign_page');
+                    echo '<input type="hidden" name="action" value="tct_unassign_page">';
+                    echo '<input type="hidden" name="template_key" value="' . esc_attr($key) . '">';
+                    echo '<input type="hidden" name="page_id" value="' . (int)$id . '">';
+                    echo esc_html(get_the_title($id)) . ' <code>#' . (int)$id . '</code> ';
+                    submit_button('Desasignar','secondary','submit',false);
+                    echo '</form>';
                 }
                 echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
                 wp_nonce_field('tct_assign_page');
