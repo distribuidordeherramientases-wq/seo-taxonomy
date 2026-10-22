@@ -45,7 +45,7 @@ final class TaxoCommerce_Images_CPU {
 		}
 		check_admin_referer( 'taxocommerce_images_cpu_limit', 'taxocommerce_images_nonce' );
 		$raw = isset( $_POST['cpu_limit'] ) && is_scalar( $_POST['cpu_limit'] )
-			? wp_unslash( $_POST['cpu_limit'] )
+			? sanitize_text_field( wp_unslash( $_POST['cpu_limit'] ) )
 			: '';
 		$result = self::set_limit( $raw );
 		$url = add_query_arg(
