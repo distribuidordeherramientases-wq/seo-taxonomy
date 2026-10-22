@@ -246,9 +246,9 @@ if (function_exists('dht_template_render_header')) {
 <?php
 wp_enqueue_style(
     'dht-search-template',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/search.css',
+    TCT_URL . 'templates/assets/search.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 if (did_action('wp_head')) {
     wp_print_styles('dht-search-template');
