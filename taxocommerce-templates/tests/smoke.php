@@ -48,6 +48,8 @@ function is_shop() { return $GLOBALS['scenario'] === 'shop'; }
 function is_account_page() { return $GLOBALS['scenario'] === 'account'; }
 function is_paged() { return false; }
 function get_option($key, $default = false) { return false; }
+function absint($number) { return abs((int)$number); }
+function get_queried_object_id() { return 5; }
 function get_queried_object() { return (object)array('term_id'=>1); }
 function get_query_var($name) { return ''; }
 
