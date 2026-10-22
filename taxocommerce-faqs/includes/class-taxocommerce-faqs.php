@@ -1,0 +1,393 @@
+<?php
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Independent FAQ editor. Keeps the existing seo_faq table as source of truth.
+ * Does not load seo-faq.php from the monolith or declare conflicting seo_* APIs.
+ */
+final class TaxoCommerce_FAQs {
+    const PAGE = 'taxocommerce-faqs';
+    const GROUPS = array( 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo' );
+
+    private static function table( $suffix ) {
+        global $wpdb;
+        return esc_sql( $wpdb->prefix . $suffix );
+    }
+
+    public static function install() {
+        global $wpdb;
+        $faq = self::table( 'seo_faq' );
+        if ( self::exists( 'seo_faq' ) ) {
+            return; // Never rewrite a working legacy FAQ schema.
+        }
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $collation = $wpdb->get_charset_collate();
+        dbDelta( "CREATE TABLE {$faq} (
+            id bigint unsigned NOT NULL AUTO_INCREMENT,
+            object_type smallint unsigned NOT NULL,
+            object_id bigint unsigned NOT NULL,
+            question varchar(255) NOT NULL,
+            answer longtext NOT NULL,
+            sort_order int unsigned NOT NULL DEFAULT 0,
+            active tinyint(1) NOT NULL DEFAULT 1,
+            load_count bigint unsigned NOT NULL DEFAULT 0,
+            open_count bigint unsigned NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY object_lookup (object_type,object_id,active),
+            KEY sort_order (sort_order),
+            KEY updated_at (updated_at)
+        ) {$collation};" );
+    }
+
+    private static function exists( $suffix ) {
+        global $wpdb;
+        $table = self::table( $suffix );
+        return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+    }
+
+    public static function boot() {
+        add_action( 'admin_menu', array( __CLASS__, 'menu' ), 60 );
+        add_action( 'admin_post_taxocommerce_faqs_save', array( __CLASS__, 'save' ) );
+        add_action( 'admin_post_taxocommerce_faqs_delete', array( __CLASS__, 'delete' ) );
+        add_action( 'admin_post_taxocommerce_faqs_export', array( __CLASS__, 'export' ) );
+        add_action( 'admin_post_taxocommerce_faqs_import', array( __CLASS__, 'import' ) );
+    }
+
+    public static function register_core( $core ) {
+        if ( is_object( $core ) && method_exists( $core, 'register_module' ) ) {
+            $core->register_module( 'faqs', array(
+                'name' => 'TaxoCommerce FAQs',
+                'version' => TAXOCOMMERCE_FAQS_VERSION,
+                'status' => 'active',
+                'description' => 'Preguntas frecuentes, etiquetas, CSV e indicadores.',
+                'admin_url' => admin_url( 'admin.php?page=taxocommerce-core-content&tc_type=faqs' ),
+            ) );
+        }
+    }
+
+    public static function menu() {
+        if ( ! function_exists( 'taxocommerce_core' ) ) {
+            add_menu_page( 'TaxoCommerce FAQs', 'TaxoCommerce FAQs', 'manage_options', self::PAGE, array( __CLASS__, 'render' ), 'dashicons-editor-help', 59 );
+        } else {
+            // Hidden compatibility route: Core -> Contenidos -> FAQs is canonical.
+            add_submenu_page( null, 'TaxoCommerce FAQs', 'FAQs', 'manage_options', self::PAGE, array( __CLASS__, 'render' ) );
+        }
+    }
+
+    public static function url( $args = array() ) {
+        $core = function_exists( 'taxocommerce_core' );
+        return add_query_arg( array_merge( $core
+            ? array( 'page' => 'taxocommerce-core-content', 'tc_type' => 'faqs' )
+            : array( 'page' => self::PAGE ), $args ), admin_url( 'admin.php' ) );
+    }
+
+    private static function guard() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para gestionar FAQs.', 'taxocommerce-faqs' ) );
+        }
+    }
+
+    private static function notice( $text, $error = false ) {
+        set_transient( 'taxocommerce_faqs_notice_' . get_current_user_id(), array( sanitize_text_field( $text ), $error ), 60 );
+        wp_safe_redirect( self::url() );
+        exit;
+    }
+
+    private static function target_exists( $type, $id ) {
+        $id = absint( $id );
+        if ( ! $id ) { return false; }
+        if ( 2 === $type ) {
+            $term = get_term( $id, 'product_cat' );
+            return $term && ! is_wp_error( $term );
+        }
+        $post = get_post( $id );
+        if ( ! $post ) { return false; }
+        return 1 === $type ? in_array( $post->post_type, array( 'page', 'seo_landing' ), true ) : ( 3 === $type && 'product' === $post->post_type );
+    }
+
+    private static function tags_available() {
+        return self::exists( 'seo_vocabulary' ) && self::exists( 'seo_object_vocabulary' );
+    }
+
+    private static function tags( $faq_id ) {
+        global $wpdb;
+        $data = array();
+        foreach ( self::GROUPS as $group ) { $data[ $group ] = array(); }
+        if ( ! self::tags_available() || ! $faq_id ) { return $data; }
+        $voc = self::table( 'seo_vocabulary' );
+        $rel = self::table( 'seo_object_vocabulary' );
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT v.id,v.label,v.slug,v.semantic_group,r.source FROM {$rel} r
+             INNER JOIN {$voc} v ON v.id=r.vocabulary_id
+             WHERE r.object_type='faq' AND r.object_id=%d AND r.status=1 AND v.active=1",
+            $faq_id
+        ), ARRAY_A );
+        foreach ( (array) $rows as $row ) {
+            if ( isset( $data[ $row['semantic_group'] ] ) ) { $data[ $row['semantic_group'] ][] = $row; }
+        }
+        return $data;
+    }
+
+    private static function save_tags( $faq_id, $posted ) {
+        global $wpdb;
+        if ( ! self::tags_available() ) { return; }
+        $voc = self::table( 'seo_vocabulary' );
+        $rel = self::table( 'seo_object_vocabulary' );
+        foreach ( self::GROUPS as $group ) {
+            $requested = isset( $posted[ $group ] ) && is_array( $posted[ $group ] )
+                ? array_values( array_unique( array_filter( array_map( 'absint', $posted[ $group ] ) ) ) ) : array();
+            $requested = array_slice( $requested, 0, 50 );
+            $valid = array();
+            if ( $requested ) {
+                $ph = implode( ',', array_fill( 0, count( $requested ), '%d' ) );
+                $valid = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+                    "SELECT id FROM {$voc} WHERE active=1 AND semantic_group=%s AND id IN ({$ph})",
+                    array_merge( array( $group ), $requested )
+                ) ) );
+            }
+            $existing = self::tags( $faq_id )[ $group ];
+            foreach ( $existing as $row ) {
+                if ( 'manual' === $row['source'] && ! in_array( (int) $row['id'], $valid, true ) ) {
+                    $wpdb->update( $rel, array( 'status' => 0, 'updated_at' => current_time( 'mysql', true ) ), array(
+                        'object_type' => 'faq', 'object_id' => $faq_id, 'vocabulary_id' => (int) $row['id'], 'source' => 'manual',
+                    ), array( '%d', '%s' ), array( '%s', '%d', '%d', '%s' ) );
+                }
+            }
+            foreach ( $valid as $id ) {
+                $already = $wpdb->get_row( $wpdb->prepare(
+                    "SELECT source,status FROM {$rel} WHERE object_type='faq' AND object_id=%d AND vocabulary_id=%d", $faq_id, $id
+                ), ARRAY_A );
+                if ( $already && 'manual' !== $already['source'] ) { continue; }
+                if ( $already ) {
+                    $wpdb->update( $rel, array( 'status' => 1, 'updated_at' => current_time( 'mysql', true ) ), array(
+                        'object_type' => 'faq', 'object_id' => $faq_id, 'vocabulary_id' => $id,
+                    ), array( '%d', '%s' ), array( '%s', '%d', '%d' ) );
+                } else {
+                    $wpdb->insert( $rel, array( 'object_type' => 'faq', 'object_id' => $faq_id, 'vocabulary_id' => $id,
+                        'source' => 'manual', 'confidence' => 1, 'status' => 1, 'updated_at' => current_time( 'mysql', true ) ),
+                        array( '%s', '%d', '%d', '%s', '%f', '%d', '%s' ) );
+                }
+            }
+        }
+    }
+
+    public static function save() {
+        self::guard();
+        check_admin_referer( 'taxocommerce_faqs_save' );
+        global $wpdb;
+        $id = isset( $_POST['faq_id'] ) ? absint( wp_unslash( $_POST['faq_id'] ) ) : 0;
+        $type = isset( $_POST['object_type'] ) ? absint( wp_unslash( $_POST['object_type'] ) ) : 0;
+        $target = isset( $_POST['object_id'] ) ? absint( wp_unslash( $_POST['object_id'] ) ) : 0;
+        $question = isset( $_POST['question'] ) ? sanitize_text_field( wp_unslash( $_POST['question'] ) ) : '';
+        $answer = isset( $_POST['answer'] ) ? wp_kses_post( wp_unslash( $_POST['answer'] ) ) : '';
+        $question = function_exists( 'mb_substr' ) ? mb_substr( $question, 0, 255 ) : substr( $question, 0, 255 );
+        if ( ! in_array( $type, array( 1, 2, 3 ), true ) || ! self::target_exists( $type, $target )
+            || '' === $question || '' === trim( wp_strip_all_tags( $answer ) ) ) {
+            self::notice( 'Revisa la pregunta, la respuesta y el ID del destino.', true );
+        }
+        $table = self::table( 'seo_faq' );
+        $data = array( 'object_type' => $type, 'object_id' => $target, 'question' => $question, 'answer' => $answer,
+            'sort_order' => isset( $_POST['sort_order'] ) ? absint( wp_unslash( $_POST['sort_order'] ) ) : 0,
+            'active' => empty( $_POST['active'] ) ? 0 : 1, 'updated_at' => current_time( 'mysql', true ) );
+        if ( $id ) {
+            $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE id=%d", $id ) );
+            if ( ! $exists ) { self::notice( 'FAQ inexistente.', true ); }
+            $ok = $wpdb->update( $table, $data, array( 'id' => $id ) );
+        } else {
+            $data['created_at'] = current_time( 'mysql', true );
+            $ok = $wpdb->insert( $table, $data );
+            $id = (int) $wpdb->insert_id;
+        }
+        if ( false === $ok || ! $id ) { self::notice( 'Error guardando FAQ.', true ); }
+        if ( isset( $_POST['vocab_present'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked above.
+            $groups = isset( $_POST['vocab'] ) && is_array( $_POST['vocab'] ) ? wp_unslash( $_POST['vocab'] ) : array();
+            self::save_tags( $id, $groups );
+        }
+        if ( function_exists( 'seo_faq_clear_cache' ) ) { seo_faq_clear_cache( $type, $target ); }
+        self::notice( 'FAQ guardada.' );
+    }
+
+    public static function delete() {
+        self::guard();
+        check_admin_referer( 'taxocommerce_faqs_delete' );
+        global $wpdb;
+        $id = isset( $_POST['faq_id'] ) ? absint( wp_unslash( $_POST['faq_id'] ) ) : 0;
+        $faq = $wpdb->get_row( $wpdb->prepare( 'SELECT id,object_type,object_id FROM ' . self::table( 'seo_faq' ) . ' WHERE id=%d', $id ) );
+        if ( ! $faq ) { self::notice( 'FAQ inexistente.', true ); }
+        if ( false === $wpdb->delete( self::table( 'seo_faq' ), array( 'id' => $id ), array( '%d' ) ) ) { self::notice( 'Error eliminando FAQ.', true ); }
+        if ( self::tags_available() ) {
+            $wpdb->delete( self::table( 'seo_object_vocabulary' ), array( 'object_type' => 'faq', 'object_id' => $id ), array( '%s', '%d' ) );
+        }
+        if ( function_exists( 'seo_faq_clear_cache' ) ) { seo_faq_clear_cache( (int) $faq->object_type, (int) $faq->object_id ); }
+        self::notice( 'FAQ eliminada.' );
+    }
+
+    public static function export() {
+        self::guard();
+        check_admin_referer( 'taxocommerce_faqs_export' );
+        global $wpdb;
+        $table = self::table( 'seo_faq' );
+        $filename = 'taxocommerce_faqs_' . gmdate( 'Ymd_His' ) . '.csv';
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        $out = fopen( 'php://output', 'w' );
+        if ( ! $out ) { exit; }
+        fputcsv( $out, array( 'id', 'object_type', 'object_id', 'question', 'answer', 'sort_order', 'active', 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo' ) );
+        $cursor = 0;
+        do {
+            $rows = $wpdb->get_results( $wpdb->prepare(
+                "SELECT id,object_type,object_id,question,answer,sort_order,active FROM {$table} WHERE id>%d ORDER BY id ASC LIMIT 200", $cursor
+            ), ARRAY_A );
+            foreach ( (array) $rows as $row ) {
+                $cursor = (int) $row['id'];
+                $tags = self::tags( $cursor );
+                $values = array_values( $row );
+                foreach ( self::GROUPS as $group ) {
+                    $values[] = implode( '|', array_map( static function ( $t ) { return $t['slug']; }, $tags[ $group ] ) );
+                }
+                $values = array_map( static function ( $x ) {
+                    $x = (string) $x;
+                    return preg_match( '/^[=+@\x2d]/', $x ) ? "'" . $x : $x;
+                }, $values );
+                fputcsv( $out, $values );
+            }
+        } while ( count( (array) $rows ) === 200 );
+        fclose( $out );
+        exit;
+    }
+
+    public static function import() {
+        self::guard();
+        check_admin_referer( 'taxocommerce_faqs_import' );
+        if ( empty( $_FILES['faqs_csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['faqs_csv']['tmp_name'] )
+            || (int) $_FILES['faqs_csv']['size'] > 2 * MB_IN_BYTES ) {
+            self::notice( 'Selecciona un CSV válido de hasta 2 MB.', true );
+        }
+        $file = fopen( $_FILES['faqs_csv']['tmp_name'], 'r' );
+        if ( ! $file ) { self::notice( 'No se pudo abrir el CSV.', true ); }
+        $header = fgetcsv( $file );
+        $needed = array( 'id', 'object_type', 'object_id', 'question', 'answer', 'sort_order', 'active' );
+        $header = is_array( $header ) ? array_map( 'trim', $header ) : array();
+        if ( array_diff( $needed, $header ) ) { fclose( $file ); self::notice( 'Faltan columnas CSV requeridas.', true ); }
+        global $wpdb;
+        $table = self::table( 'seo_faq' );
+        $created = 0; $updated = 0; $errors = 0; $seen = 0;
+        while ( ( $row = fgetcsv( $file ) ) !== false && $seen < 500 ) {
+            $seen++;
+            if ( count( $row ) !== count( $header ) ) { $errors++; continue; }
+            $data = array_combine( $header, $row );
+            $type = absint( $data['object_type'] );
+            $target = absint( $data['object_id'] );
+            $question = sanitize_text_field( $data['question'] );
+            $answer = wp_kses_post( $data['answer'] );
+            if ( ! in_array( $type, array( 1,2,3 ), true ) || ! self::target_exists( $type, $target )
+                || '' === trim( $question ) || '' === trim( wp_strip_all_tags( $answer ) ) || strlen( $question ) > 255 ) { $errors++; continue; }
+            $payload = array( 'object_type' => $type, 'object_id' => $target, 'question' => $question,
+                'answer' => $answer, 'sort_order' => absint( $data['sort_order'] ),
+                'active' => (int) ( '1' === trim( $data['active'] ) ), 'updated_at' => current_time( 'mysql', true ) );
+            $id = absint( $data['id'] );
+            $existing = $id ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE id=%d", $id ) ) : 0;
+            if ( $existing ) {
+                $ok = $wpdb->update( $table, $payload, array( 'id' => $existing ) );
+                if ( false === $ok ) { $errors++; continue; }
+                $updated++; $id = $existing;
+            } else {
+                $payload['created_at'] = current_time( 'mysql', true );
+                $ok = $wpdb->insert( $table, $payload );
+                if ( false === $ok ) { $errors++; continue; }
+                $id = (int) $wpdb->insert_id; $created++;
+            }
+            if ( self::tags_available() ) {
+                $groups = array();
+                foreach ( self::GROUPS as $group ) {
+                    $slugs = empty( $data[ $group ] ) ? array() : array_slice( array_filter( array_map( 'sanitize_title', explode( '|', $data[ $group ] ) ) ), 0, 50 );
+                    if ( ! $slugs ) { $groups[ $group ] = array(); continue; }
+                    $voc = self::table( 'seo_vocabulary' );
+                    $ph = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
+                    $groups[ $group ] = $wpdb->get_col( $wpdb->prepare(
+                        "SELECT id FROM {$voc} WHERE active=1 AND semantic_group=%s AND slug IN ({$ph})",
+                        array_merge( array( $group ), $slugs )
+                    ) );
+                }
+                self::save_tags( $id, $groups );
+            }
+        }
+        fclose( $file );
+        self::notice( sprintf( 'Importación: %d creadas, %d actualizadas, %d errores. Máximo 500 filas por archivo.', $created, $updated, $errors ), $errors > 0 );
+    }
+
+    public static function render() {
+        self::guard();
+        if ( ! self::exists( 'seo_faq' ) ) { echo '<div class="wrap"><h1>FAQs</h1><p>Falta la tabla de FAQs; desactiva y reactiva TaxoCommerce FAQs para instalarla.</p></div>'; return; }
+        global $wpdb;
+        $table = self::table( 'seo_faq' );
+        $id = isset( $_GET['faq_id'] ) ? absint( wp_unslash( $_GET['faq_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $editing = $id ? $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d", $id ), ARRAY_A ) : null;
+        $summary = $wpdb->get_row( "SELECT COUNT(*) total, SUM(active=1) active_count,SUM(active=0) inactive_count,COUNT(DISTINCT CONCAT(object_type,':',object_id)) destinations,SUM(open_count) opens FROM {$table}", ARRAY_A );
+        $page = isset( $_GET['faq_paged'] ) ? max( 1, absint( wp_unslash( $_GET['faq_paged'] ) ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $search = isset( $_GET['faq_search'] ) ? sanitize_text_field( wp_unslash( $_GET['faq_search'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $where = $search ? $wpdb->prepare( 'WHERE question LIKE %s', '%' . $wpdb->esc_like( $search ) . '%' ) : '';
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY id DESC LIMIT 25 OFFSET %d", ( $page - 1 ) * 25 ), ARRAY_A );
+        $notice = get_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() );
+        echo '<div class="wrap"><h2>FAQs</h2><p>Preguntas frecuentes asociadas a hubs, categorías o productos. Datos compartidos con TaxoCommerce SEO.</p>';
+        if ( $notice ) { delete_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() ); echo '<div class="notice notice-' . ( $notice[1] ? 'error' : 'success' ) . '"><p>' . esc_html( $notice[0] ) . '</p></div>'; }
+        echo '<div style="display:flex;gap:10px;flex-wrap:wrap">';
+        foreach ( array( 'Total' => $summary['total'], 'Activas' => $summary['active_count'], 'Desactivadas' => $summary['inactive_count'], 'Destinos' => $summary['destinations'], 'Aperturas' => $summary['opens'] ) as $label => $value ) {
+            echo '<div class="card" style="padding:12px;min-width:120px;margin:0"><strong style="font-size:22px">' . esc_html( number_format_i18n( absint( $value ) ) ) . '</strong><br>' . esc_html( $label ) . '</div>';
+        }
+        echo '</div><h2>' . ( $editing ? 'Editar FAQ #' . absint( $id ) : 'Nueva FAQ' ) . '</h2>';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_faqs_save"><input type="hidden" name="faq_id" value="' . absint( $id ) . '">';
+        wp_nonce_field( 'taxocommerce_faqs_save' );
+        echo '<table class="form-table"><tr><th>Destino</th><td><select name="object_type">';
+        foreach ( array( 1 => 'Hub / Página', 2 => 'Categoría', 3 => 'Producto' ) as $type => $label ) { echo '<option value="' . absint( $type ) . '" ' . selected( (int) ( $editing['object_type'] ?? 1 ), $type, false ) . '>' . esc_html( $label ) . '</option>'; }
+        echo '</select> <label>ID del destino <input type="number" min="1" name="object_id" required value="' . esc_attr( (string) ( $editing['object_id'] ?? '' ) ) . '"></label></td></tr>';
+        echo '<tr><th>Pregunta</th><td><input class="large-text" maxlength="255" name="question" required value="' . esc_attr( (string) ( $editing['question'] ?? '' ) ) . '"></td></tr>';
+        echo '<tr><th>Respuesta</th><td><textarea class="large-text" rows="5" name="answer" required>' . esc_textarea( (string) ( $editing['answer'] ?? '' ) ) . '</textarea></td></tr>';
+        echo '<tr><th>Orden</th><td><input type="number" name="sort_order" min="0" value="' . absint( $editing['sort_order'] ?? 0 ) . '"></td></tr>';
+        echo '<tr><th>Publicación</th><td><label><input type="checkbox" name="active" value="1" ' . checked( (int) ( $editing['active'] ?? 1 ), 1, false ) . '> FAQ activa</label></td></tr>';
+        echo '</table>';
+        if ( self::tags_available() ) {
+            $selected = $editing ? self::tags( $id ) : array();
+            echo '<h3>Etiquetas de Vocabulary</h3><input type="hidden" name="vocab_present" value="1"><p>Selecciona las etiquetas existentes. No se crean etiquetas nuevas.</p>';
+            $voc = self::table( 'seo_vocabulary' );
+            foreach ( self::GROUPS as $group ) {
+                $options = $wpdb->get_results( $wpdb->prepare( "SELECT id,label FROM {$voc} WHERE active=1 AND semantic_group=%s ORDER BY label ASC LIMIT 300", $group ), ARRAY_A );
+                $ids = array_map( 'intval', array_column( $selected[ $group ] ?? array(), 'id' ) );
+                echo '<p><label><strong>' . esc_html( strtoupper( $group ) ) . '</strong><br><select multiple name="vocab[' . esc_attr( $group ) . '][]" style="min-width:300px;max-width:100%;" size="4">';
+                foreach ( (array) $options as $option ) {
+                    echo '<option value="' . absint( $option['id'] ) . '"' . selected( in_array( (int) $option['id'], $ids, true ), true, false ) . '>' . esc_html( $option['label'] ) . '</option>';
+                }
+                echo '</select></label></p>';
+            }
+        } else {
+            echo '<p class="notice notice-info">Vocabulary no está disponible; se conservarán las etiquetas existentes.</p>';
+        }
+        submit_button( $editing ? 'Guardar FAQ' : 'Crear FAQ' );
+        echo '</form><hr><h2>Inventario</h2><form method="get"><input type="hidden" name="page" value="' . esc_attr( function_exists( 'taxocommerce_core' ) ? 'taxocommerce-core-content' : self::PAGE ) . '">';
+        if ( function_exists( 'taxocommerce_core' ) ) { echo '<input type="hidden" name="tc_type" value="faqs">'; }
+        echo '<input type="search" name="faq_search" value="' . esc_attr( $search ) . '" placeholder="Buscar pregunta"> <button class="button">Buscar</button></form>';
+        echo '<table class="widefat striped"><thead><tr><th>ID</th><th>Pregunta</th><th>Destino</th><th>Activa</th><th>Aperturas</th><th>Acciones</th></tr></thead><tbody>';
+        foreach ( (array) $rows as $row ) {
+            echo '<tr><td>' . absint( $row['id'] ) . '</td><td>' . esc_html( $row['question'] ) . '</td><td>' . absint( $row['object_type'] ) . ':' . absint( $row['object_id'] ) . '</td><td>' . ( $row['active'] ? 'Sí' : 'No' ) . '</td><td>' . absint( $row['open_count'] ) . '</td><td>';
+            echo '<a class="button button-small" href="' . esc_url( self::url( array( 'faq_id' => absint( $row['id'] ) ) ) ) . '">Editar</a> ';
+            echo '<form style="display:inline" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\'¿Eliminar esta FAQ definitivamente?\')"><input type="hidden" name="action" value="taxocommerce_faqs_delete"><input type="hidden" name="faq_id" value="' . absint( $row['id'] ) . '">';
+            wp_nonce_field( 'taxocommerce_faqs_delete' );
+            echo '<button class="button button-small">Eliminar</button></form></td></tr>';
+        }
+        echo '</tbody></table>';
+        if ( count( (array) $rows ) === 25 || $page > 1 ) {
+            echo '<p><a class="button" href="' . esc_url( self::url( array( 'faq_paged' => max( 1, $page - 1 ), 'faq_search' => $search ) ) ) . '">Anterior</a> <a class="button" href="' . esc_url( self::url( array( 'faq_paged' => $page + 1, 'faq_search' => $search ) ) ) . '">Siguiente</a></p>';
+        }
+        echo '<hr><h2>Importar / Exportar CSV</h2><p>CSV UTF-8; hasta 500 filas y 2 MB por importación. Solo se actualiza un ID existente; las nuevas filas reciben ID nuevo.</p>';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_faqs_export">';
+        wp_nonce_field( 'taxocommerce_faqs_export' ); submit_button( 'Exportar FAQs CSV', 'secondary', 'submit', false ); echo '</form><br>';
+        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_faqs_import">';
+        wp_nonce_field( 'taxocommerce_faqs_import' );
+        echo '<input type="file" accept=".csv,text/csv" name="faqs_csv" required> ';
+        submit_button( 'Importar CSV', 'primary', 'submit', false ); echo '</form></div>';
+    }
+}

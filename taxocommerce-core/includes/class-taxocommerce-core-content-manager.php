@@ -57,6 +57,13 @@ final class TaxoCommerce_Core_Content_Manager {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only editor routing.
         $item_id = isset( $_GET['item_id'] ) ? absint( $_GET['item_id'] ) : 0;
 
+        if ( 'faqs' === $content_type && class_exists( 'TaxoCommerce_FAQs' ) ) {
+            echo '<div class="wrap tc-content-overview tcc-family-screen">';
+            $this->render_tabs( $content_type );
+            TaxoCommerce_FAQs::render();
+            echo '</div>';
+            return;
+        }
         if ( 'edit' === $action && $item_id ) {
             echo '<div class="wrap tc-content-editor-wrap">';
             $this->render_editor( $content_type, $item_id );
@@ -167,7 +174,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function request_content_type() {
 		$type = isset( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : 'products'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-		return in_array( $type, array( 'products', 'categories', 'posts', 'pages' ), true ) ? $type : 'products';
+		return in_array( $type, array( 'products', 'categories', 'posts', 'pages', 'faqs' ), true ) ? $type : 'products';
 	}
 
 	/**
@@ -182,10 +189,11 @@ final class TaxoCommerce_Core_Content_Manager {
 			'categories' => __( 'Categorías de producto', 'taxocommerce-core' ),
 			'posts'      => __( 'Posts', 'taxocommerce-core' ),
 			'pages'      => __( 'Páginas', 'taxocommerce-core' ),
+            'faqs'       => class_exists( 'TaxoCommerce_FAQs' ) ? __( 'FAQs', 'taxocommerce-core' ) : '',
 		);
 		?>
 		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Tipos de contenido', 'taxocommerce-core' ); ?>">
-			<?php foreach ( $tabs as $type => $label ) : ?>
+			<?php foreach ( $tabs as $type => $label ) : if ( '' === $label ) { continue; } ?>
 				<?php
 				$url   = add_query_arg( array( 'page' => self::PAGE_SLUG, 'tc_type' => $type ), admin_url( 'admin.php' ) );
 				$class = 'nav-tab' . ( $current === $type ? ' nav-tab-active' : '' );

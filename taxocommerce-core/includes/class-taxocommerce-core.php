@@ -354,6 +354,15 @@ final class TaxoCommerce_Core {
 				'wordpress_org' => false,
 				'description'   => __( 'Academia independiente de diez lecciones y asistente de catálogo, sin reciclado automático.', 'taxocommerce-core' ),
 			),
+			'faqs' => array(
+				'id'            => 'faqs',
+				'name'          => 'TaxoCommerce FAQs',
+				'plugin_file'   => 'taxocommerce-faqs/taxocommerce-faqs.php',
+				'org_slug'      => 'taxocommerce-faqs',
+				'search_term'   => 'TaxoCommerce FAQs',
+				'wordpress_org' => false,
+				'description'   => 'Preguntas frecuentes, edición manual, CSV, indicadores y Vocabulary.',
+			),
 			'vocabulary' => array(
 				'id'            => 'vocabulary',
 				'name'          => 'TaxoCommerce Vocabulary',
