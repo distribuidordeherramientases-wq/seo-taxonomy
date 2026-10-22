@@ -25,6 +25,9 @@ final class Engine {
         if ( '1' !== (string) get_option( 'tc_redirects_schema_ready', '' ) || ! Store::table_exists() ) {
             return;
         }
+        if ( '1' !== (string) get_option( 'tc_redirects_schema_ready', '' ) ) {
+            return;
+        }
         if ( false !== has_action( 'send_headers', 'interceptar_redireccion_antes_de_wordpress' ) ) {
             remove_action( 'send_headers', 'interceptar_redireccion_antes_de_wordpress', 1 );
         }
