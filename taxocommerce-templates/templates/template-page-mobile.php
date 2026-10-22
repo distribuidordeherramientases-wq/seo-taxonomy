@@ -423,9 +423,9 @@ if (!function_exists('dht_page_related_products_by_category_mobile')) {
 <?php
 wp_enqueue_style(
     'dht-page-mobile',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/page-mobile.css',
+    TCT_URL . 'templates/assets/page-mobile.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 if (did_action('wp_head')) {
     wp_print_styles('dht-page-mobile');
