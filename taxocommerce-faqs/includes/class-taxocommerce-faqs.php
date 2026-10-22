@@ -18,7 +18,8 @@ final class TaxoCommerce_FAQs {
         global $wpdb;
         $faq = self::table( 'seo_faq' );
         if ( self::exists( 'seo_faq' ) ) {
-            return; // Never rewrite a working legacy FAQ schema.
+            self::upgrade_category();
+            return;
         }
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $collation = $wpdb->get_charset_collate();
@@ -26,6 +27,7 @@ final class TaxoCommerce_FAQs {
             id bigint unsigned NOT NULL AUTO_INCREMENT,
             object_type smallint unsigned NOT NULL,
             object_id bigint unsigned NOT NULL,
+            product_cat_id bigint unsigned NOT NULL DEFAULT 0,
             question varchar(255) NOT NULL,
             answer longtext NOT NULL,
             sort_order int unsigned NOT NULL DEFAULT 0,
@@ -36,9 +38,39 @@ final class TaxoCommerce_FAQs {
             updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
             KEY object_lookup (object_type,object_id,active),
+            KEY product_cat (product_cat_id),
             KEY sort_order (sort_order),
             KEY updated_at (updated_at)
         ) {$collation};" );
+        update_option( 'taxocommerce_faqs_category_schema', '1', false );
+    }
+
+    public static function upgrade_category() {
+        global $wpdb;
+        if ( ! self::exists( 'seo_faq' ) ) { return false; }
+        $table = self::table( 'seo_faq' );
+        $column = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'product_cat_id' ) );
+        if ( ! $column ) {
+            $updated = $wpdb->query( "ALTER TABLE {$table} ADD COLUMN product_cat_id bigint unsigned NOT NULL DEFAULT 0, ADD INDEX product_cat (product_cat_id)" );
+            if ( false === $updated ) { return false; }
+        }
+        // Only unambiguous existing category relationships are migrated automatically.
+        $wpdb->query( "UPDATE {$table} SET product_cat_id=object_id WHERE object_type=2 AND product_cat_id=0 AND EXISTS
+            (SELECT 1 FROM {$wpdb->term_taxonomy} tt WHERE tt.term_id={$table}.object_id AND tt.taxonomy='product_cat')" );
+        update_option( 'taxocommerce_faqs_category_schema', '1', false );
+        return true;
+    }
+
+    private static function ensure_category() {
+        if ( '1' !== get_option( 'taxocommerce_faqs_category_schema', '' ) ) {
+            self::upgrade_category();
+        }
+    }
+
+    private static function valid_category( $category_id ) {
+        if ( ! absint( $category_id ) ) { return false; }
+        $term = get_term( absint( $category_id ), 'product_cat' );
+        return $term && ! is_wp_error( $term );
     }
 
     private static function exists( $suffix ) {
@@ -48,6 +80,7 @@ final class TaxoCommerce_FAQs {
     }
 
     public static function boot() {
+        add_action( 'admin_init', array( __CLASS__, 'ensure_category' ) );
         add_action( 'admin_menu', array( __CLASS__, 'menu' ), 60 );
         add_action( 'admin_post_taxocommerce_faqs_save', array( __CLASS__, 'save' ) );
         add_action( 'admin_post_taxocommerce_faqs_delete', array( __CLASS__, 'delete' ) );
@@ -180,15 +213,17 @@ final class TaxoCommerce_FAQs {
         $id = isset( $_POST['faq_id'] ) ? absint( wp_unslash( $_POST['faq_id'] ) ) : 0;
         $type = isset( $_POST['object_type'] ) ? absint( wp_unslash( $_POST['object_type'] ) ) : 0;
         $target = isset( $_POST['object_id'] ) ? absint( wp_unslash( $_POST['object_id'] ) ) : 0;
+        $category = isset( $_POST['product_cat_id'] ) ? absint( wp_unslash( $_POST['product_cat_id'] ) ) : 0;
+        if ( 2 === $type && ! $target ) { $target = $category; }
         $question = isset( $_POST['question'] ) ? sanitize_text_field( wp_unslash( $_POST['question'] ) ) : '';
         $answer = isset( $_POST['answer'] ) ? wp_kses_post( wp_unslash( $_POST['answer'] ) ) : '';
         $question = function_exists( 'mb_substr' ) ? mb_substr( $question, 0, 255 ) : substr( $question, 0, 255 );
-        if ( ! in_array( $type, array( 1, 2, 3 ), true ) || ! self::target_exists( $type, $target )
+        if ( ! self::valid_category( $category ) || ! in_array( $type, array( 1, 2, 3 ), true ) || ! self::target_exists( $type, $target )
             || '' === $question || '' === trim( wp_strip_all_tags( $answer ) ) ) {
             self::notice( 'Revisa la pregunta, la respuesta y el ID del destino.', true );
         }
         $table = self::table( 'seo_faq' );
-        $data = array( 'object_type' => $type, 'object_id' => $target, 'question' => $question, 'answer' => $answer,
+        $data = array( 'object_type' => $type, 'object_id' => $target, 'product_cat_id' => $category, 'question' => $question, 'answer' => $answer,
             'sort_order' => isset( $_POST['sort_order'] ) ? absint( wp_unslash( $_POST['sort_order'] ) ) : 0,
             'active' => empty( $_POST['active'] ) ? 0 : 1, 'updated_at' => current_time( 'mysql', true ) );
         if ( $id ) {
@@ -236,11 +271,11 @@ final class TaxoCommerce_FAQs {
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
         $out = fopen( 'php://output', 'w' );
         if ( ! $out ) { exit; }
-        fputcsv( $out, array( 'id', 'object_type', 'object_id', 'question', 'answer', 'sort_order', 'active', 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo' ) );
+        fputcsv( $out, array( 'id', 'object_type', 'object_id', 'product_cat_id', 'question', 'answer', 'sort_order', 'active', 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo' ) );
         $cursor = 0;
         do {
             $rows = $wpdb->get_results( $wpdb->prepare(
-                "SELECT id,object_type,object_id,question,answer,sort_order,active FROM {$table} WHERE id>%d ORDER BY id ASC LIMIT 200", $cursor
+                "SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM {$table} WHERE id>%d ORDER BY id ASC LIMIT 200", $cursor
             ), ARRAY_A );
             foreach ( (array) $rows as $row ) {
                 $cursor = (int) $row['id'];
@@ -270,7 +305,7 @@ final class TaxoCommerce_FAQs {
         $file = fopen( $_FILES['faqs_csv']['tmp_name'], 'r' );
         if ( ! $file ) { self::notice( 'No se pudo abrir el CSV.', true ); }
         $header = fgetcsv( $file );
-        $needed = array( 'id', 'object_type', 'object_id', 'question', 'answer', 'sort_order', 'active' );
+        $needed = array( 'id', 'object_type', 'object_id', 'product_cat_id', 'question', 'answer', 'sort_order', 'active' );
         $header = is_array( $header ) ? array_map( 'trim', $header ) : array();
         if ( array_diff( $needed, $header ) ) { fclose( $file ); self::notice( 'Faltan columnas CSV requeridas.', true ); }
         global $wpdb;
@@ -282,11 +317,13 @@ final class TaxoCommerce_FAQs {
             $data = array_combine( $header, $row );
             $type = absint( $data['object_type'] );
             $target = absint( $data['object_id'] );
+            $category = absint( $data['product_cat_id'] );
+            if ( 2 === $type && ! $target ) { $target = $category; }
             $question = sanitize_text_field( $data['question'] );
             $answer = wp_kses_post( $data['answer'] );
-            if ( ! in_array( $type, array( 1,2,3 ), true ) || ! self::target_exists( $type, $target )
+            if ( ! self::valid_category( $category ) || ! in_array( $type, array( 1,2,3 ), true ) || ! self::target_exists( $type, $target )
                 || '' === trim( $question ) || '' === trim( wp_strip_all_tags( $answer ) ) || strlen( $question ) > 255 ) { $errors++; continue; }
-            $payload = array( 'object_type' => $type, 'object_id' => $target, 'question' => $question,
+            $payload = array( 'object_type' => $type, 'object_id' => $target, 'product_cat_id' => $category, 'question' => $question,
                 'answer' => $answer, 'sort_order' => absint( $data['sort_order'] ),
                 'active' => (int) ( '1' === trim( $data['active'] ) ), 'updated_at' => current_time( 'mysql', true ) );
             $id = absint( $data['id'] );
@@ -320,31 +357,48 @@ final class TaxoCommerce_FAQs {
         self::notice( sprintf( 'Importación: %d creadas, %d actualizadas, %d errores. Máximo 500 filas por archivo.', $created, $updated, $errors ), $errors > 0 );
     }
 
+    private static function category_name( $id ) {
+        $term = $id ? get_term( $id, 'product_cat' ) : null;
+        return $term && ! is_wp_error( $term ) ? $term->name : 'Sin categoría';
+    }
+
     public static function render() {
         self::guard();
         if ( ! self::exists( 'seo_faq' ) ) { echo '<div class="wrap"><h1>FAQs</h1><p>Falta la tabla de FAQs; desactiva y reactiva TaxoCommerce FAQs para instalarla.</p></div>'; return; }
         global $wpdb;
+        self::ensure_category();
         $table = self::table( 'seo_faq' );
         $id = isset( $_GET['faq_id'] ) ? absint( wp_unslash( $_GET['faq_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $editing = $id ? $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d", $id ), ARRAY_A ) : null;
-        $summary = $wpdb->get_row( "SELECT COUNT(*) total, SUM(active=1) active_count,SUM(active=0) inactive_count,COUNT(DISTINCT CONCAT(object_type,':',object_id)) destinations,SUM(open_count) opens FROM {$table}", ARRAY_A );
+        $summary = $wpdb->get_row( "SELECT COUNT(*) total, SUM(active=1) active_count,SUM(active=0) inactive_count,COUNT(DISTINCT CONCAT(object_type,':',object_id)) destinations,SUM(open_count) opens,
+            COUNT(DISTINCT NULLIF(product_cat_id,0)) categories,SUM(product_cat_id=0) uncategorized FROM {$table}", ARRAY_A );
         $page = isset( $_GET['faq_paged'] ) ? max( 1, absint( wp_unslash( $_GET['faq_paged'] ) ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $search = isset( $_GET['faq_search'] ) ? sanitize_text_field( wp_unslash( $_GET['faq_search'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $where = $search ? $wpdb->prepare( 'WHERE question LIKE %s', '%' . $wpdb->esc_like( $search ) . '%' ) : '';
+        $filter_category = isset( $_GET['faq_category'] ) ? absint( wp_unslash( $_GET['faq_category'] ) ) : 0;
+        $conditions = array();
+        $values = array();
+        if ( $search ) { $conditions[] = 'question LIKE %s'; $values[] = '%' . $wpdb->esc_like( $search ) . '%'; }
+        if ( $filter_category ) { $conditions[] = 'product_cat_id=%d'; $values[] = $filter_category; }
+        $where = $conditions ? 'WHERE ' . implode( ' AND ', $conditions ) : '';
+        if ( $values ) { $where = $wpdb->prepare( $where, $values ); }
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY id DESC LIMIT 25 OFFSET %d", ( $page - 1 ) * 25 ), ARRAY_A );
         $notice = get_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() );
         echo '<div class="wrap"><h2>FAQs</h2><p>Preguntas frecuentes asociadas a hubs, categorías o productos. Datos compartidos con TaxoCommerce SEO.</p>';
         if ( $notice ) { delete_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() ); echo '<div class="notice notice-' . ( $notice[1] ? 'error' : 'success' ) . '"><p>' . esc_html( $notice[0] ) . '</p></div>'; }
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap">';
-        foreach ( array( 'Total' => $summary['total'], 'Activas' => $summary['active_count'], 'Desactivadas' => $summary['inactive_count'], 'Destinos' => $summary['destinations'], 'Aperturas' => $summary['opens'] ) as $label => $value ) {
+        foreach ( array( 'Total' => $summary['total'], 'Activas' => $summary['active_count'], 'Desactivadas' => $summary['inactive_count'], 'Destinos' => $summary['destinations'], 'Categorías' => $summary['categories'], 'Sin categoría' => $summary['uncategorized'], 'Aperturas' => $summary['opens'] ) as $label => $value ) {
             echo '<div class="card" style="padding:12px;min-width:120px;margin:0"><strong style="font-size:22px">' . esc_html( number_format_i18n( absint( $value ) ) ) . '</strong><br>' . esc_html( $label ) . '</div>';
         }
         echo '</div><h2>' . ( $editing ? 'Editar FAQ #' . absint( $id ) : 'Nueva FAQ' ) . '</h2>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_faqs_save"><input type="hidden" name="faq_id" value="' . absint( $id ) . '">';
         wp_nonce_field( 'taxocommerce_faqs_save' );
-        echo '<table class="form-table"><tr><th>Destino</th><td><select name="object_type">';
-        foreach ( array( 1 => 'Hub / Página', 2 => 'Categoría', 3 => 'Producto' ) as $type => $label ) { echo '<option value="' . absint( $type ) . '" ' . selected( (int) ( $editing['object_type'] ?? 1 ), $type, false ) . '>' . esc_html( $label ) . '</option>'; }
-        echo '</select> <label>ID del destino <input type="number" min="1" name="object_id" required value="' . esc_attr( (string) ( $editing['object_id'] ?? '' ) ) . '"></label></td></tr>';
+        echo '<table class="form-table"><tr><th>Categoría de producto *</th><td>';
+        wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'name' => 'product_cat_id',
+            'selected' => absint( $editing['product_cat_id'] ?? 0 ), 'show_option_none' => 'Seleccionar categoría',
+            'option_none_value' => '0', 'hide_empty' => false, 'hierarchical' => true, 'required' => true ) );
+        echo '<p class="description">Obligatoria. Las FAQs anteriores sin categoría aparecen en el KPI correspondiente.</p></td></tr><tr><th>Destino</th><td><select name="object_type">';
+        foreach ( array( 2 => 'Categoría', 1 => 'Hub / Página', 3 => 'Producto' ) as $type => $label ) { echo '<option value="' . absint( $type ) . '" ' . selected( (int) ( $editing['object_type'] ?? 2 ), $type, false ) . '>' . esc_html( $label ) . '</option>'; }
+        echo '</select> <label>ID del destino (opcional para categoría) <input type="number" min="1" name="object_id" value="' . esc_attr( (string) ( $editing['object_id'] ?? '' ) ) . '"></label></td></tr>';
         echo '<tr><th>Pregunta</th><td><input class="large-text" maxlength="255" name="question" required value="' . esc_attr( (string) ( $editing['question'] ?? '' ) ) . '"></td></tr>';
         echo '<tr><th>Respuesta</th><td><textarea class="large-text" rows="5" name="answer" required>' . esc_textarea( (string) ( $editing['answer'] ?? '' ) ) . '</textarea></td></tr>';
         echo '<tr><th>Orden</th><td><input type="number" name="sort_order" min="0" value="' . absint( $editing['sort_order'] ?? 0 ) . '"></td></tr>';
@@ -369,10 +423,13 @@ final class TaxoCommerce_FAQs {
         submit_button( $editing ? 'Guardar FAQ' : 'Crear FAQ' );
         echo '</form><hr><h2>Inventario</h2><form method="get"><input type="hidden" name="page" value="' . esc_attr( function_exists( 'taxocommerce_core' ) ? 'taxocommerce-core-content' : self::PAGE ) . '">';
         if ( function_exists( 'taxocommerce_core' ) ) { echo '<input type="hidden" name="tc_type" value="faqs">'; }
-        echo '<input type="search" name="faq_search" value="' . esc_attr( $search ) . '" placeholder="Buscar pregunta"> <button class="button">Buscar</button></form>';
-        echo '<table class="widefat striped"><thead><tr><th>ID</th><th>Pregunta</th><th>Destino</th><th>Activa</th><th>Aperturas</th><th>Acciones</th></tr></thead><tbody>';
+        echo '<input type="search" name="faq_search" value="' . esc_attr( $search ) . '" placeholder="Buscar pregunta"> ';
+        wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'name' => 'faq_category', 'selected' => $filter_category,
+            'show_option_all' => 'Todas las categorías', 'hide_empty' => false, 'hierarchical' => true ) );
+        echo ' <button class="button">Buscar</button></form>';
+        echo '<table class="widefat striped"><thead><tr><th>ID</th><th>Pregunta</th><th>Destino</th><th>Categoría</th><th>Activa</th><th>Aperturas</th><th>Acciones</th></tr></thead><tbody>';
         foreach ( (array) $rows as $row ) {
-            echo '<tr><td>' . absint( $row['id'] ) . '</td><td>' . esc_html( $row['question'] ) . '</td><td>' . absint( $row['object_type'] ) . ':' . absint( $row['object_id'] ) . '</td><td>' . ( $row['active'] ? 'Sí' : 'No' ) . '</td><td>' . absint( $row['open_count'] ) . '</td><td>';
+            echo '<tr><td>' . absint( $row['id'] ) . '</td><td>' . esc_html( $row['question'] ) . '</td><td>' . absint( $row['object_type'] ) . ':' . absint( $row['object_id'] ) . '</td><td>' . esc_html( self::category_name( absint( $row['product_cat_id'] ?? 0 ) ) ) . '</td><td>' . ( $row['active'] ? 'Sí' : 'No' ) . '</td><td>' . absint( $row['open_count'] ) . '</td><td>';
             echo '<a class="button button-small" href="' . esc_url( self::url( array( 'faq_id' => absint( $row['id'] ) ) ) ) . '">Editar</a> ';
             echo '<form style="display:inline" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\'¿Eliminar esta FAQ definitivamente?\')"><input type="hidden" name="action" value="taxocommerce_faqs_delete"><input type="hidden" name="faq_id" value="' . absint( $row['id'] ) . '">';
             wp_nonce_field( 'taxocommerce_faqs_delete' );
