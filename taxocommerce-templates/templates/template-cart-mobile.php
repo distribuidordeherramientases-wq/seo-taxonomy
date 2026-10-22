@@ -17,15 +17,15 @@ require_once __DIR__ . '/template-cart.php';
 
 wp_enqueue_style(
     'dht-cart-mobile',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/cart-mobile.css',
+    TCT_URL . 'templates/assets/cart-mobile.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 wp_enqueue_script(
     'dht-cart-mobile',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/cart-mobile.js',
+    TCT_URL . 'templates/assets/cart-mobile.js',
     array(),
-    SEO_SYSTEM_VERSION,
+    TCT_VERSION,
     true
 );
 
