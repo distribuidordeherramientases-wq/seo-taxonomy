@@ -22,6 +22,8 @@ jobs:
         run: |
           ! grep -R -nE 'require(_once)? .*seo-taxonomy|include(_once)? .*seo-taxonomy|SEO_SYSTEM_PATH|SEO_SYSTEM_URL|seo_images_[a-zA-Z0-9_]+\\(' taxocommerce-images --include='*.php'
           test -f taxocommerce-images/taxocommerce-images.php
+      - name: Category-related Media assignment smoke test
+        run: php .github/tests/taxocommerce-images-assignment-smoke.php
       - name: WordPress Plugin Check for standalone Images package
         uses: wordpress/plugin-check-action@v1
         with:
