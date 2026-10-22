@@ -372,6 +372,15 @@ final class TaxoCommerce_Core {
 				'wordpress_org' => false,
 				'description'   => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático gestionado por Procesos.', 'taxocommerce-core' ),
 			),
+			'google_bing' => array(
+				'id'            => 'google_bing',
+				'name'          => 'TaxoCommerce Google / Bing',
+				'plugin_file'   => 'taxocommerce-google-bing/taxocommerce-google-bing.php',
+				'org_slug'      => 'taxocommerce-google-bing',
+				'search_term'   => 'TaxoCommerce Google Bing',
+				'wordpress_org' => false,
+				'description'   => __( 'Conexiones centralizadas y futuras fuentes de datos de Google y Microsoft Bing.', 'taxocommerce-core' ),
+			),
 		);
 
 		/**
