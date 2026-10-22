@@ -761,7 +761,6 @@ final class TaxoCommerce_Images {
 	private function render_settings() {
 		$s = TaxoCommerce_Images_Actions::settings();
 		?>
-		<?php TaxoCommerce_Images_CPU::render_control(); ?>
 		<h2><?php echo esc_html__( 'Límites y optimización', 'taxocommerce-images' ); ?></h2>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="taxocommerce_images_save_settings">
