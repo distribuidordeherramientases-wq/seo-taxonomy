@@ -1,0 +1,54 @@
+/* Isolated TaxoCommerce Redirects admin styles. */
+.tc-rd { max-width: 1500px; }
+.tc-rd * { box-sizing: border-box; }
+.tc-rd-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+}
+.tc-rd-kpi, .tc-rd-panel {
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    background: #fff;
+    padding: 16px;
+}
+.tc-rd-kpi strong {
+    display: block;
+    font-size: 24px;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+    color: #1d2327;
+}
+.tc-rd-kpi span { color: #50575e; font-size: 12px; }
+.tc-rd-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 22px 0; }
+.tc-rd-panel h2 { margin: 0 0 15px; }
+.tc-rd-panel label { display: block; font-weight: 600; margin-bottom: 7px; }
+.tc-rd-panel input[type=checkbox] { display: inline-block; }
+.tc-rd-panel form { margin-bottom: 15px; }
+.tc-rd-panel form:last-child { margin-bottom: 0; }
+.tc-rd-button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; }
+.tc-rd-button-row form { margin: 0; }
+.tc-rd-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 13px; }
+.tc-rd-search { display: flex; gap: 7px; align-items: center; }
+.tc-rd-table { overflow-x: auto; margin: 15px 0; }
+.tc-rd-table table { min-width: 960px; }
+.tc-rd-table th, .tc-rd-table td { vertical-align: top; word-break: break-word; }
+.tc-rd-actions { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.tc-rd-actions form { margin: 0; }
+.tc-rd-issue { font-size: 12px; color: #8b2727; margin-top: 6px; }
+.tc-rd-badge { display: inline-block; padding: 2px 8px; border-radius: 14px; background: #f0f0f1; font-size: 12px; }
+.tc-rd-error { background: #fce8e6; color: #981b1b; }
+.tc-rd-warning { background: #fff4d4; color: #6b4b00; }
+.tc-rd-ok { background: #ebf6ef; color: #1c663e; }
+.tc-rd-confirm { max-width: 800px; }
+.tc-rd-confirm .tc-rd-panel { padding: 24px; }
+.tc-rd-choice { display: block; padding: 12px 0; font-weight: 500 !important; }
+.tc-rd-destination { border-left: 3px solid #2271b1; padding: 8px 0 8px 14px; margin: 4px 0 15px 21px; }
+.tc-rd-confirm .tc-rd-button-row { margin-top: 24px; }
+@media (max-width: 860px) {
+    .tc-rd-columns { grid-template-columns: 1fr; }
+    .tc-rd-panel { padding: 14px; }
+    .tc-rd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tc-rd-confirm .tc-rd-panel { padding: 16px; }
+}
