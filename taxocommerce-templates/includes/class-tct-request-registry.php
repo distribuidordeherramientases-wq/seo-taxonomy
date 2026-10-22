@@ -133,6 +133,7 @@ final class TCT_Request_Registry {
 
         if (is_404()) {
             self::add($keys, 'error_404');
+            self::add($keys, '404');
         } elseif (function_exists('is_embed') && is_embed()) {
             self::add($keys, 'embed');
             self::add($keys, 'single');
@@ -189,6 +190,7 @@ final class TCT_Request_Registry {
             }
             if ('product_cat' === $tax) {
                 self::add($keys, 'taxonomy_product_cat');
+                self::add($keys, 'category');
             } elseif ('product_tag' === $tax) {
                 self::add($keys, 'taxonomy_product_tag');
             }
@@ -224,6 +226,7 @@ final class TCT_Request_Registry {
                     self::add($keys, 'single_post');
                 } elseif ('product' === $type) {
                     self::add($keys, 'single_product');
+                    self::add($keys, 'product');
                 }
                 self::add($keys, 'single_type_' . $type);
                 self::add($keys, 'single');
