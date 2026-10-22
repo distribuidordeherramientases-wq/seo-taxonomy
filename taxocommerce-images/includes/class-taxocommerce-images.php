@@ -60,6 +60,7 @@ final class TaxoCommerce_Images {
 		$this->actions->register_hooks();
 
 		add_action( 'taxocommerce_core_register_modules', array( $this, 'register_with_core' ) );
+		add_action( 'taxocommerce_core_register_processes', array( $this, 'register_processes_with_core' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ), 60 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_admin_styles' ) );
 		add_filter( 'admin_body_class', array( $this, 'family_admin_body_class' ) );
@@ -430,7 +431,6 @@ final class TaxoCommerce_Images {
 				<div class="card"><strong style="display:block;font-size:24px;"><?php echo esc_html( number_format_i18n( $formats[ $type ] ) ); ?></strong><?php echo esc_html( $label ); ?></div>
 			<?php endforeach; ?>
 		</div>
-		<?php TaxoCommerce_Images_CPU::render_control(); ?>
 		<h2><?php esc_html_e( 'Optimización de Media', 'taxocommerce-images' ); ?></h2>
 		<p><?php esc_html_e( 'Conservamos la recompresión y conversión WebP del sistema anterior. Los lotes pequeños solo comienzan tras confirmación; la conversión modifica archivos y enlaces y requiere copia de seguridad.', 'taxocommerce-images' ); ?></p>
 		<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -485,9 +485,8 @@ final class TaxoCommerce_Images {
 	private function render_audit() {
 		$state = $this->audit->state();
 		?>
-		<?php TaxoCommerce_Images_CPU::render_control(); ?>
 		<h2><?php echo esc_html__( 'Auditoría de Biblioteca de Medios', 'taxocommerce-images' ); ?></h2>
-		<p><?php echo esc_html__( 'La auditoría comprueba archivos originales, metadatos y miniaturas reales por lotes de 75. Antes de cada lote verifica la CPU y pausa automáticamente si no hay margen seguro.', 'taxocommerce-images' ); ?></p>
+		<p><?php echo esc_html__( 'La auditoría comprueba archivos originales, metadatos y miniaturas reales por lotes de 75. Cada lote guarda el cursor y libera la petición antes de continuar.', 'taxocommerce-images' ); ?></p>
 
 		<?php if ( empty( $state ) ) : ?>
 			<?php $this->audit_button( 'taxocommerce_images_start_audit', 'taxocommerce_images_start_audit', __( 'Iniciar auditoría', 'taxocommerce-images' ), true ); ?>
