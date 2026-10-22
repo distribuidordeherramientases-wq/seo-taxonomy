@@ -89,7 +89,7 @@ final class TCD_Sources {
         $query = new WP_Query( array(
             'post_type'=>$types, 'post_status'=>'publish', 'fields'=>'ids',
             'posts_per_page'=>$limit + 1, 'offset'=>$cursor, 'orderby'=>'ID',
-            'order'=>'ASC', 'no_found_rows'=>true, 'suppress_filters'=>true,
+            'order'=>'ASC', 'no_found_rows'=>true, 'suppress_filters'=>false,
             'ignore_sticky_posts'=>true,
         ) );
         $ids = array_map( 'absint', (array) $query->posts );
