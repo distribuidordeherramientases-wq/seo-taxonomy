@@ -558,16 +558,9 @@ final class TaxoCommerce_Images {
 				.then(function (response) { if (!response.ok) { throw new Error('HTTP ' + response.status); } return response.json(); })
 				.then(function (reply) {
 					if (!reply.success || !reply.data) { throw new Error('Auditoría en pausa'); }
-					if (reply.data.paused) {
-						var seconds = Math.max(1, Number(reply.data.retry_after || 10));
-						var message = reply.data.cpu && reply.data.cpu.message ? reply.data.cpu.message : 'CPU no disponible para continuar.';
-						progress.textContent = message + ' Progreso guardado: ' + reply.data.scanned + ' / ' + reply.data.total + '. Reintentando en ' + seconds + ' s.';
-						window.setTimeout(step, seconds * 1000);
-						return;
-					}
 					progress.textContent = reply.data.scanned + ' / ' + reply.data.total + ' imágenes revisadas';
 					remaining = reply.data.status !== 'completed';
-					if (remaining) { window.setTimeout(step, 200); } else { window.location.reload(); }
+					if (remaining) { window.setTimeout(step, 500); } else { window.location.reload(); }
 				})
 				.catch(function () {
 					remaining = false;
