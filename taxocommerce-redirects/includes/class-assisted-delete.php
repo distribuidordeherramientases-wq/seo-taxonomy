@@ -258,12 +258,29 @@ final class Assisted_Delete {
         if ( $children ) {
             return new \WP_Error( 'tc_redirects_children', 'La categoria contiene subcategorias. Reubicalas antes de eliminar.' );
         }
-        $objects = get_objects_in_term( $id, 'product_cat' );
-        if ( is_wp_error( $objects ) ) {
-            return $objects;
-        }
+        // Bounded native check: never materialize tens of thousands of
+        // product IDs merely to reject deletion of a populated category.
+        // Include Trash: otherwise a restored product could lose its category.
+        $objects = get_posts(
+            array(
+                'post_type'           => 'product',
+                'post_status'         => array_keys( get_post_stati() ),
+                'posts_per_page'      => 1,
+                'fields'              => 'ids',
+                'no_found_rows'       => true,
+                'suppress_filters'    => true,
+                'tax_query'           => array(
+                    array(
+                        'taxonomy'         => 'product_cat',
+                        'field'            => 'term_id',
+                        'terms'            => array( $id ),
+                        'include_children' => false,
+                    ),
+                ),
+            )
+        );
         if ( $objects ) {
-            return new \WP_Error( 'tc_redirects_products', 'La categoria contiene productos. Reasignalos antes de eliminarla.' );
+            return new \WP_Error( 'tc_redirects_products', 'La categoria contiene productos, incluso en papelera. Reasignalos antes de eliminarla.' );
         }
         $core_parents = get_term_meta( $id, '_taxocommerce_core_parent_hub_secondary', false );
         if ( $core_parents && array_filter( array_map( 'absint', (array) $core_parents ) ) ) {
