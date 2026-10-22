@@ -423,9 +423,9 @@ if (!function_exists('dht_page_related_products_by_category')) {
 <?php
 wp_enqueue_style(
     'dht-page-desktop',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/page-desktop.css',
+    TCT_URL . 'templates/assets/page-desktop.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 if (did_action('wp_head')) {
     wp_print_styles('dht-page-desktop');
