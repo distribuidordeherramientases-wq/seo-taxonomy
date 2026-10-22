@@ -28,17 +28,6 @@ final class TaxoCommerce_Images_Maintenance {
 		if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( array( 'message' => 'Sin permisos.' ), 403 ); }
 		$is_webp = doing_action( 'wp_ajax_tci_webp_batch' );
 		check_ajax_referer( $is_webp ? 'tci_webp_run' : 'tci_optimizer_run', 'nonce' );
-		$cpu = TaxoCommerce_Images_CPU::decision( $is_webp ? 'webp' : 'optimizer' );
-		if ( empty( $cpu['allowed'] ) ) {
-			wp_send_json_success(
-				array(
-					'paused' => true,
-					'retry_after' => absint( $cpu['retry_after'] ?? TaxoCommerce_Images_CPU::RETRY_SECONDS ),
-					'cpu' => $cpu,
-					'message' => (string) ( $cpu['message'] ?? '' ),
-				)
-			);
-		}
 		if ( ! self::lock() ) { wp_send_json_error( array( 'message' => 'Otro proceso está modificando imágenes.' ), 409 ); }
 		register_shutdown_function( array( __CLASS__, 'unlock' ) );
 	}
@@ -183,27 +172,14 @@ final class TaxoCommerce_Images_Maintenance {
 		if ( ! self::lock() ) { wp_send_json_error( array( 'message' => 'Otro lote está en curso.' ), 409 ); }
 		try {
 			if ( 'start' === $operation ) { self::begin( $mode ); }
-			$cpu = TaxoCommerce_Images_CPU::decision( 'maintenance_' . $mode );
-			if ( empty( $cpu['allowed'] ) ) {
-				$state = self::state( $mode );
-				$state['cpu_last'] = $cpu;
-				$state['message'] = (string) ( $cpu['message'] ?? '' );
-				self::save_state( $mode, $state );
-				$result = array(
-					'done' => false,
-					'paused' => true,
-					'retry_after' => absint( $cpu['retry_after'] ?? TaxoCommerce_Images_CPU::RETRY_SECONDS ),
-					'cpu' => $cpu,
-					'state' => $state,
+			$state = self::scan( $mode );
+			$result = is_wp_error( $state )
+				? $state
+				: array(
+					'done'   => ( $state['status'] ?? '' ) === 'complete',
+					'paused' => false,
+					'state'  => $state,
 				);
-			} else {
-				$state = self::scan( $mode );
-				if ( ! is_wp_error( $state ) ) {
-					$state['cpu_last'] = $cpu;
-					self::save_state( $mode, $state );
-				}
-				$result = is_wp_error( $state ) ? $state : array( 'done' => ( $state['status'] ?? '' ) === 'complete', 'paused' => false, 'cpu' => $cpu, 'state' => $state );
-			}
 		} catch ( Throwable $error ) { $result = new WP_Error( 'exception', sanitize_text_field( $error->getMessage() ) ); }
 		finally { self::unlock(); }
 		if ( is_wp_error( $result ) ) { wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 ); }
