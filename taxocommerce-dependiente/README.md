@@ -1,16 +1,55 @@
-# TaxoCommerce Dependiente 0.1.0
+# TaxoCommerce Dependiente 0.2.0
 
-Plugin independiente para WooCommerce con Academia inicial de diez lecciones: L1 jerarquía, L2 inventario, L3 TIPO/ROL, L4 atributos, L5 posts y páginas, L6 FAQs contextualizadas, L7 relaciones cruzadas, L8 examen, L9 necesidades y productos y L10 consolidación/deuda. **No incluye actualización continua ni reciclado.**
+Plugin de la familia TaxoCommerce que conserva el diseño de las diez primeras lecciones del Dependiente anterior, simplificando la arquitectura: **un único servicio Dependiente**, sin presentar Academia ni Entrenador como servicios separados.
 
-## Instalación
-Instalar carpeta taxocommerce-dependiente desde el ZIP del plugin y activarlo con WooCommerce. Aparece en la familia TaxoCommerce Core y en el administrador. Las tablas nuevas se crean en la activación.
+## Flujo de cada lección
 
-## Datos y ejecución
-WordPress/WooCommerce como fuentes de verdad. No se utilizan las tablas antiguas seo_faq, seo_vocabulary, seo_object_vocabulary, seo_nodes ni la Academia monolítica. Se leen product_cat, posts, páginas, productos, etiquetas y taxonomías nativas tc_tipo, tc_rol, tc_semantic_tag cuando existen.
+Cada L1-L10 tiene dos fases obligatorias:
 
-L6 requiere un CPT FAQ registrado (tc_faq, taxocommerce_faq o faq) y propietario producto/categoría identificable en postmeta o mediante filtro taxocommerce_dependiente_faq_owner. Si falta, muestra error y no inventa aprendizaje.
+1. **Análisis / foto fija**: se recorren las fuentes que la lección debe estudiar y se copian a `tcd_lesson_items`. Al terminar se sella la foto con número de fuentes y firma SHA-256 global.
+2. **Aprendizaje**: Dependiente estudia exclusivamente los elementos congelados. Cada fila termina como `learned` o `unlearned`, con motivo y fecha.
 
-Los lotes son de 8 elementos, con cursor guardado en wp_options, parada explícita por formulario admin-post y registro persistente. La tabla propia wp_tcd_knowledge contiene fuentes y evidencia de aprendizaje. WP-Cron debe ejecutarse para avanzar. Reiniciar borra exclusivamente la memoria de este plugin; nunca productos o FAQs.
+Una modificación posterior del catálogo no cambia silenciosamente una lección ya iniciada. Detener/reanudar conserva el mismo snapshot. Reiniciar es explícito y solo vacía tablas propias de aprendizaje.
 
-## Estado actual y límites
-Primera versión funcional del recorrido y administración, **no equivalencia completa con el motor V3**. L8 y L10 realizan revisión estructural, no las evaluaciones complejas del motor antiguo. La interfaz de cara al cliente es por ahora un buscador de WordPress con resultados atribuibles, no un chat conversacional. Sin migración automática desde Dependiente antiguo. Comprobar las 10 lecciones, fuentes, parada y reanudación en staging antes de instalar en producción.
+## Las diez lecciones
+
+- **L1 Mapa del catálogo**: categorías, jerarquía y Vocabulary de categoría.
+- **L2 Inventario y producto**: qué es cada producto, SKU, marca, categorías y Vocabulary.
+- **L3 TIPO y ROL**: conceptos canónicos y productos asociados.
+- **L4 Características y necesidades**: atributos, aplicación, plataforma, subtipo y etiquetas.
+- **L5 Posts y páginas**: contenido editorial y Vocabulary compartido.
+- **L6 FAQs contextualizadas**: tabla canónica `seo_faq`, categoría/propietario, pregunta, respuesta y Vocabulary.
+- **L7 Relaciones cruzadas**: conceptos compartidos entre catálogo y contenido editorial.
+- **L8 Examen integrado**: revisión del conocimiento L1-L7.
+- **L9 Necesidades y productos**: lenguaje natural construido desde productos reales y sus dimensiones semánticas.
+- **L10 Consolidación y deuda**: revisión L1-L9 para localizar conocimiento pendiente/incoherente.
+
+## Auditoría y JSON
+
+La pantalla Dependiente muestra por lección: fase, estado de foto fija, número de fuentes, firma, aprendidos y no aprendidos.
+
+Se puede descargar:
+- JSON de una lección.
+- JSON completo del run.
+
+Cada JSON contiene el temario, metadatos del snapshot, material exacto estudiado y el resultado de cada elemento. La exportación se transmite por lotes para no cargar miles de productos en memoria de una sola vez.
+
+## Datos
+
+Tablas propias:
+- `tcd_knowledge`: conocimiento final.
+- `tcd_lesson_snapshots`: cabecera y firma de la foto fija de cada lección.
+- `tcd_lesson_items`: copia inmutable del material y resultado.
+
+Fuentes canónicas del ecosistema:
+- WordPress/WooCommerce para productos, categorías, posts y páginas.
+- `seo_vocabulary` / `seo_object_vocabulary` para semántica.
+- `seo_faq` para FAQs.
+
+## Qué se ha eliminado
+
+No se recuperan como servicios independientes: Academia, Entrenador, Laboratorio, Actualización continua ni reciclado automático. Tampoco se copia el enorme controlador histórico. Se conserva lo útil: currículo, preparación previa, separación preparación/ejecución, trazabilidad, control de CPU y exportación.
+
+## Límite actual
+
+El motor público del plugin independiente todavía debe seguir acercándose al Dependiente V3 antiguo. Esta versión corrige primero la **calidad y auditabilidad del aprendizaje**, para que el motor pueda consumir conocimiento fiable y reproducible.

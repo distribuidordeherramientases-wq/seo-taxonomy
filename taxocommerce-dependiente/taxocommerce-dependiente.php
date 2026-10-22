@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: TaxoCommerce Dependiente - Academia y Asistente
- * Description: Dependiente autónomo para WooCommerce con diez lecciones iniciales, fuentes nativas de WordPress y parada real por lote. Sin reciclado continuo.
- * Version: 0.1.1
+ * Plugin Name: TaxoCommerce Dependiente
+ * Description: Dependiente para WooCommerce con diez lecciones auditables, foto fija previa, aprendizaje semántico y exportación JSON.
+ * Version: 0.2.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.1.1' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.2.0' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 
@@ -36,7 +36,7 @@ add_action( 'taxocommerce_core_register_modules', static function ( $core ) {
             'name' => 'TaxoCommerce Dependiente',
             'version' => TAXOCOMMERCE_DEPENDIENTE_VERSION,
             'status' => 'active',
-            'description' => 'Academia de diez lecciones y búsqueda WooCommerce con datos nativos.',
+            'description' => 'Dependiente con diez lecciones auditables, foto fija previa y aprendizaje semántico.',
             'admin_url' => admin_url( 'admin.php?page=taxocommerce-dependiente' ),
         ) );
     }
