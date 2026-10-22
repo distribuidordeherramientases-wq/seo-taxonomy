@@ -3,7 +3,7 @@ Contributors: davidperezmartorell
 Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.2
 License: GPLv2 or later
 
 Gestor de plantillas independientes para WordPress y WooCommerce.
@@ -40,3 +40,12 @@ find taxocommerce-templates -type f -name '*.php' -print0 | xargs -0 -r -n1 php 
 apply_filters('tct_request_definitions', $definitions) para exponer nuevos tipos con nombre, grupo y archivo de referencia.
 apply_filters('tct_request_candidates', $keys) para determinar la precedencia de resolucion para una peticion del frontend.
 Los tipos que no pasan por template_include ni wc_get_template necesitan su propio filtro/gancho de integracion.
+
+== Compatibilidad de las asociaciones de produccion ==
+- Mantiene literalmente las asociaciones de seo_templates, seo_nodes y seo_mail_templates al utilizar la misma base de datos de WordPress.
+- Incorpora una copia independiente de los archivos y recursos publicos de seo-system/templates para evitar depender de que el plugin antiguo siga activado.
+- El cargador nuevo da prioridad a la misma clave de rol/solicitud y conserva las variantes mobile/desktop.
+- La pestaña Auditoria de asociaciones permite comparar registros, ubicacion de archivo antiguo/nuevo, roles sin plantilla, variantes ausentes, asignaciones de correo y descargar un inventario CSV.
+- No se ejecuta ninguna migracion que reasigne IDs de paginas ni modifique seo_nodes.
+- El nuevo motor permanece apagado de forma predeterminada; antes de apagar el plugin antiguo deben validarse sus dependencias funcionales y assets en STAGING.
+- El inventario de archivos demuestra la copia y el PHP lint demuestra la sintaxis, pero ninguno certifica por si solo la equivalencia visual, las integraciones con servicios del plugin antiguo o la paridad de datos PRO y STAGING.
