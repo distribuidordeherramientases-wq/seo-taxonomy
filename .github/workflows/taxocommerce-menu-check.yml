@@ -1,0 +1,36 @@
+name: TaxoCommerce Core Menu QA
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-core/includes/class-taxocommerce-core-menu*.php'
+      - 'taxocommerce-core/assets/menu-editor.*'
+      - 'taxocommerce-core/tests/menu-editor-smoke.php'
+      - '.github/workflows/taxocommerce-menu-check.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-core/includes/class-taxocommerce-core-menu*.php'
+      - 'taxocommerce-core/assets/menu-editor.*'
+      - 'taxocommerce-core/tests/menu-editor-smoke.php'
+      - '.github/workflows/taxocommerce-menu-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  menu-regression:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['7.4', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: PHP syntax
+        run: find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Menu behavior and callback regression
+        run: php taxocommerce-core/tests/menu-editor-smoke.php
+      - name: JavaScript syntax
+        run: node --check taxocommerce-core/assets/menu-editor.js
