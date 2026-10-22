@@ -72,8 +72,6 @@ function taxocommerce_system_check_boot() {
         }
     }
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-php.php';
-    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-browser-probe.php';
-    TaxoCommerce_System_Check_Browser_Probe::boot();
     $url_audit_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-url-audit.php';
     if ( is_readable( $url_audit_module ) ) {
         require_once $url_audit_module;
@@ -280,7 +278,6 @@ function taxocommerce_system_check_home() {
     } elseif ( 'http' === $tab ) {
         taxocommerce_system_check_url_audit_screen();
     } else {
-        TaxoCommerce_System_Check_Browser_Probe::render();
         taxocommerce_system_check_server_screen();
     }
 }
