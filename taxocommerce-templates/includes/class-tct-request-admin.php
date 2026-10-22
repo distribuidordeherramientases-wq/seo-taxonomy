@@ -159,9 +159,10 @@ final class TCT_Request_Admin {
             echo '</form>';
             if ($selected !== '') {
                 echo '<small>' . ($exists ? 'Archivo disponible' : 'Sin archivo: se mantiene el respaldo del tema') . '</small> ';
-                echo '<a href="' . esc_url(self::admin_url('editor',array('tct_source'=>$selected,'tct_assign'=>$key))) . '">Abrir en editor</a>';
+                echo '<a href="' . esc_url(self::admin_url('editor',array('tct_source'=>$exists ? $selected : '', 'tct_assign'=>$key))) . '">Editar codigo PHP</a>';
             } else {
-                echo '<small>Sin asignar: usa la plantilla del tema, si existe; en ultimo termino, index.</small>';
+                echo '<small>Sin asignar: usa la plantilla del tema, si existe; en ultimo termino, index.</small> ';
+                echo '<a href="' . esc_url(self::admin_url('editor',array('tct_assign'=>$key))) . '">Crear desde archivo original / editor de texto</a>';
             }
             echo '</td></tr>';
         }
