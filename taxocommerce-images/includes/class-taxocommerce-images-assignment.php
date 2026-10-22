@@ -231,46 +231,69 @@ final class TaxoCommerce_Images_Assignment {
 			return array();
 		}
 		$table = $wpdb->prefix . 'seo_relations';
-		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
-		if ( $table !== $exists ) {
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
 			return array();
 		}
-		$source_types = 'post' === $scope ? array( 'post' ) : array( 'page', 'landing', 'hub_secondary', 'hub_primary', 'cluster' );
-		$placeholders = implode( ', ', array_fill( 0, count( $source_types ), '%s' ) );
-		$sql = $wpdb->prepare(
-			"SELECT DISTINCT target_id FROM %i
-			 WHERE source_id = %d AND source_type IN ($placeholders)
-			 AND target_type = %s AND relation_type IN ('post_to_category','landing_to_category','hub_secondary_to_category','page_to_category')
-			 LIMIT 20",
-			array_merge( array( $table, $id ), $source_types, array( 'product_cat' ) )
-		);
-		$ids = array_map( 'absint', (array) $wpdb->get_col( $sql ) );
-
-		// Hubs and clusters: follow their canonical hierarchy to categories.
-		if ( 'page' === $scope ) {
-			$roles = array(
-				'hub_primary' => array(
-					"SELECT DISTINCT c.target_id FROM %i h JOIN %i c ON c.source_type='hub_secondary' AND c.source_id=h.target_id
-					 AND c.target_type='product_cat' AND c.relation_type='hub_secondary_to_category'
-					 WHERE h.source_type='hub_primary' AND h.source_id=%d AND h.target_type='hub_secondary' AND h.relation_type='hub_primary_to_hub_secondary' LIMIT 20",
-					array( $table, $table, $id ),
-				),
-				'cluster' => array(
-					"SELECT DISTINCT c.target_id FROM %i cp JOIN %i hs ON hs.source_type='hub_primary'
-					 AND hs.source_id=cp.target_id AND hs.target_type='hub_secondary'
-					 AND hs.relation_type='hub_primary_to_hub_secondary'
-					 JOIN %i c ON c.source_type='hub_secondary' AND c.source_id=hs.target_id
-					 AND c.target_type='product_cat' AND c.relation_type='hub_secondary_to_category'
-					 WHERE cp.source_type='cluster' AND cp.source_id=%d
-					 AND cp.target_type='hub_primary' AND cp.relation_type='cluster_to_primary' LIMIT 20",
-					array( $table, $table, $table, $id ),
-				),
+		if ( 'post' === $scope ) {
+			$ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT DISTINCT target_id FROM %i
+					WHERE source_type = 'post' AND source_id = %d
+					AND target_type = 'product_cat' AND relation_type = 'post_to_category'
+					LIMIT 20",
+					$table,
+					$id
+				)
 			);
-			foreach ( $roles as $definition ) {
-				$ids = array_merge( $ids, array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( $definition[0], $definition[1] ) ) ) );
-			}
+			return array_values( array_unique( array_filter( array_map( 'absint', (array) $ids ) ) ) );
 		}
-		return array_values( array_unique( array_filter( $ids ) ) );
+
+		// Legacy canonical direct mappings, including editorial landing pages.
+		$ids = (array) $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT target_id FROM %i
+				WHERE source_id = %d AND source_type IN ('page','landing','hub_secondary','hub_primary','cluster')
+				AND target_type = 'product_cat'
+				AND relation_type IN ('landing_to_category','hub_secondary_to_category','page_to_category')
+				LIMIT 20",
+				$table,
+				$id
+			)
+		);
+
+		// Primary hub -> secondary hub -> product category.
+		$primary_ids = (array) $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT c.target_id FROM %i h
+				JOIN %i c ON c.source_type = 'hub_secondary' AND c.source_id = h.target_id
+					AND c.target_type = 'product_cat' AND c.relation_type = 'hub_secondary_to_category'
+				WHERE h.source_type = 'hub_primary' AND h.source_id = %d
+					AND h.target_type = 'hub_secondary' AND h.relation_type = 'hub_primary_to_hub_secondary'
+				LIMIT 20",
+				$table,
+				$table,
+				$id
+			)
+		);
+
+		// Cluster -> primary hub -> secondary hub -> product category.
+		$cluster_ids = (array) $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT c.target_id FROM %i cp
+				JOIN %i hs ON hs.source_type = 'hub_primary' AND hs.source_id = cp.target_id
+					AND hs.target_type = 'hub_secondary' AND hs.relation_type = 'hub_primary_to_hub_secondary'
+				JOIN %i c ON c.source_type = 'hub_secondary' AND c.source_id = hs.target_id
+					AND c.target_type = 'product_cat' AND c.relation_type = 'hub_secondary_to_category'
+				WHERE cp.source_type = 'cluster' AND cp.source_id = %d
+					AND cp.target_type = 'hub_primary' AND cp.relation_type = 'cluster_to_primary'
+				LIMIT 20",
+				$table,
+				$table,
+				$table,
+				$id
+			)
+		);
+		return array_values( array_unique( array_filter( array_map( 'absint', array_merge( $ids, $primary_ids, $cluster_ids ) ) ) ) );
 	}
 
 	/**
