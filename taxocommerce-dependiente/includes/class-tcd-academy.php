@@ -155,6 +155,8 @@ final class TCD_Academy {
     public static function boot(){
         self::maybe_upgrade();
         add_action(self::CRON_HOOK,array(__CLASS__,'tick'));
+        add_filter('seo_process_supervisor_has_pending_work',array(__CLASS__,'filter_pending_work'),40,1);
+        add_filter('seo_process_supervisor_manager_targets',array(__CLASS__,'filter_manager_targets'),40,3);
         add_action('admin_post_tcd_academy_control',array(__CLASS__,'control'));
         add_action('admin_post_tcd_dependiente_export_json',array(__CLASS__,'export_json'));
     }
@@ -186,12 +188,14 @@ final class TCD_Academy {
             delete_option('tcd_learning_stop');
             self::save(array('run_id'=>$run,'status'=>'running','last_error'=>'','last_message'=>'Dependiente iniciado. Primero analizará la lección y cerrará su foto fija.'));
             self::queue();
+            self::nudge_manager();
             self::log('started',array('lesson'=>$state['lesson'],'phase'=>$state['phase'],'run'=>$run));
         }elseif('restart'===$action && in_array($state['status'],array('idle','stopped','error','completed'),true)){
             self::clear_learning_tables();
             delete_option('tcd_learning_stop');
             self::save(array_merge(self::initial_state(),array('status'=>'running','run_id'=>wp_generate_uuid4())));
             self::queue();
+            self::nudge_manager();
             self::log('restarted');
         }
         wp_safe_redirect(admin_url('admin.php?page=taxocommerce-dependiente'));
@@ -209,6 +213,40 @@ final class TCD_Academy {
     private static function queue($delay=3){
         if('running'!==self::state()['status'])return;
         if(!wp_next_scheduled(self::CRON_HOOK))wp_schedule_single_event(time()+max(1,absint($delay)),self::CRON_HOOK);
+        self::nudge_manager($delay);
+    }
+
+    private static function nudge_manager($delay=0){
+        if(function_exists('seo_process_supervisor_nudge')){
+            seo_process_supervisor_nudge(max(0,absint($delay)),'dependiente');
+        }
+    }
+
+    public static function filter_pending_work($pending){
+        return $pending || 'running'===(string)(self::state()['status']??'');
+    }
+
+    public static function filter_manager_targets($targets,$settings,$source){
+        if('running'!==(string)(self::state()['status']??''))return $targets;
+        $targets[]=array(
+            'type'=>'dependiente',
+            'data'=>array(),
+            'callback'=>array(__CLASS__,'manager_target_callback'),
+        );
+        return $targets;
+    }
+
+    public static function manager_target_callback($budget,$source,$target){
+        $started=microtime(true);
+        $budget=max(3,min(15,absint($budget)));
+        $worked=false;
+        do{
+            if('running'!==(string)(self::state()['status']??''))break;
+            self::tick();
+            $worked=true;
+            if((microtime(true)-$started)>=max(1,$budget-1))break;
+        }while(false);
+        return $worked;
     }
 
     public static function tick(){
