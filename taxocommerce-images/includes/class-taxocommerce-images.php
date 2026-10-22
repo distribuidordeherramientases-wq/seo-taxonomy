@@ -315,7 +315,7 @@ final class TaxoCommerce_Images {
 							<?php
 							$id = absint( $item['id'] );
 							$related = TaxoCommerce_Images_Assignment::related_terms( $scope, $id );
-							$candidates = TaxoCommerce_Images_Assignment::candidates( $scope, $id, 4 );
+							$candidates = TaxoCommerce_Images_Assignment::candidates( $scope, $id, 6 );
 							$names = array();
 							foreach ( $related as $taxonomy => $ids ) {
 								foreach ( $ids as $term_id ) {
