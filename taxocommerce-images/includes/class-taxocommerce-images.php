@@ -212,6 +212,7 @@ final class TaxoCommerce_Images {
 		$tabs = array(
 			'summary'    => __( 'Inventario', 'taxocommerce-images' ),
 			'audit'      => __( 'Anomalías', 'taxocommerce-images' ),
+			'assignment' => __( 'Asignación', 'taxocommerce-images' ),
 			'references' => __( 'Sin uso y duplicadas', 'taxocommerce-images' ),
 			'http'       => __( 'Disponibilidad HTTP', 'taxocommerce-images' ),
 			'library'    => __( 'Media local', 'taxocommerce-images' ),
@@ -242,6 +243,9 @@ final class TaxoCommerce_Images {
 				case 'audit':
 					$this->render_audit();
 					break;
+				case 'assignment':
+					$this->render_assignment();
+					break;
 				case 'http':
 					$this->render_http();
 					break;
@@ -264,6 +268,145 @@ final class TaxoCommerce_Images {
 			?>
 		</div>
 		<?php
+	}
+
+
+	/**
+	 * Four independently paged reports, restricted to related categories.
+	 * Every action is a real nonce-verified, administrator-only handler.
+	 *
+	 * @return void
+	 */
+	private function render_assignment() {
+		?>
+		<h2><?php esc_html_e( 'Asignación de imágenes por categorías relacionadas', 'taxocommerce-images' ); ?></h2>
+		<p><?php esc_html_e( 'Primero se propone la imagen asociada a la categoría; después, imágenes de productos o entradas pertenecientes a esa categoría. No se utiliza una imagen aleatoria de Media ni se descargan imágenes de proveedores.', 'taxocommerce-images' ); ?></p>
+		<p><?php esc_html_e( 'Puedes asignar individualmente una imagen sugerida, asignar automáticamente hasta 25 elementos por grupo o subir un archivo desde tu equipo. Si no hay categoría vinculada ni imágenes válidas, el elemento permanece pendiente.', 'taxocommerce-images' ); ?></p>
+		<?php
+		foreach ( TaxoCommerce_Images_Assignment::scopes() as $scope => $heading ) {
+			$param = 'tc_assign_' . sanitize_key( $scope ) . '_page';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only read-only navigation page.
+			$current = isset( $_GET[ $param ] ) && is_scalar( $_GET[ $param ] )
+				? max( 1, absint( wp_unslash( $_GET[ $param ] ) ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
+				: 1;
+			$report = TaxoCommerce_Images_Assignment::missing( $scope, $current );
+			?>
+			<section class="tci-assign-section" id="tc-assign-<?php echo esc_attr( $scope ); ?>">
+				<h2><?php echo esc_html( $heading ); ?> <small>(<?php echo esc_html( number_format_i18n( absint( $report['total'] ) ) ); ?> <?php esc_html_e( 'sin imagen', 'taxocommerce-images' ); ?>)</small></h2>
+				<?php if ( 'product' === $scope && ! post_type_exists( 'product' ) ) : ?>
+					<p><?php esc_html_e( 'No hay un tipo de producto registrado. Este apartado se activa con WooCommerce.', 'taxocommerce-images' ); ?></p>
+				<?php elseif ( empty( $report['total'] ) ) : ?>
+					<p><?php esc_html_e( 'No hay elementos sin imagen asignada.', 'taxocommerce-images' ); ?></p>
+				<?php else : ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tci-assign-bulk">
+						<input type="hidden" name="action" value="taxocommerce_images_assign_auto">
+						<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
+						<?php wp_nonce_field( 'taxocommerce_images_assign_auto', 'taxocommerce_images_nonce' ); ?>
+						<?php submit_button( __( 'Asignar automáticamente hasta 25', 'taxocommerce-images' ), 'primary', 'submit', false ); ?>
+						<span class="description"><?php esc_html_e( 'Solo se asigna si hay un candidato de la categoría relacionada; no se cambia ninguna imagen existente.', 'taxocommerce-images' ); ?></span>
+					</form>
+					<div class="tci-assign-scroll">
+					<table class="widefat striped">
+						<thead>
+							<tr><th><?php esc_html_e( 'Elemento sin imagen', 'taxocommerce-images' ); ?></th><th><?php esc_html_e( 'Imágenes relacionadas y asignación', 'taxocommerce-images' ); ?></th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ( $report['items'] as $item ) : ?>
+							<?php
+							$id = absint( $item['id'] );
+							$related = TaxoCommerce_Images_Assignment::related_terms( $scope, $id );
+							$candidates = TaxoCommerce_Images_Assignment::candidates( $scope, $id, 6 );
+							$names = array();
+							foreach ( $related as $taxonomy => $ids ) {
+								foreach ( $ids as $term_id ) {
+									$term = get_term( $term_id, $taxonomy );
+									if ( $term instanceof WP_Term ) {
+										$names[] = $term->name;
+									}
+								}
+							}
+							$edit_url = in_array( $scope, array( 'category', 'product_cat' ), true )
+								? get_edit_term_link( $id, $scope )
+								: get_edit_post_link( $id );
+							?>
+							<tr>
+								<td class="tci-assign-object">
+									<strong><?php echo esc_html( (string) $item['title'] ); ?></strong> <code>#<?php echo esc_html( (string) $id ); ?></code>
+									<?php if ( $edit_url ) : ?>
+										<p><a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Editar elemento', 'taxocommerce-images' ); ?></a></p>
+									<?php endif; ?>
+									<p class="description">
+										<?php if ( $names ) : ?>
+											<?php esc_html_e( 'Categorías:', 'taxocommerce-images' ); ?> <?php echo esc_html( implode( ', ', $names ) ); ?>
+										<?php else : ?>
+											<?php esc_html_e( 'Sin categoría relacionada verificable.', 'taxocommerce-images' ); ?>
+										<?php endif; ?>
+									</p>
+								</td>
+								<td>
+									<?php if ( $candidates ) : ?>
+										<div class="tci-assign-candidates">
+										<?php foreach ( $candidates as $candidate ) : ?>
+											<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tci-assign-candidate">
+												<input type="hidden" name="action" value="taxocommerce_images_assign_one">
+												<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
+												<input type="hidden" name="object_id" value="<?php echo esc_attr( (string) $id ); ?>">
+												<input type="hidden" name="attachment_id" value="<?php echo esc_attr( (string) absint( $candidate['id'] ) ); ?>">
+												<?php wp_nonce_field( 'taxocommerce_images_assign_one', 'taxocommerce_images_nonce' ); ?>
+												<?php echo wp_get_attachment_image( absint( $candidate['id'] ), 'thumbnail', false, array( 'loading' => 'lazy', 'class' => 'tci-assign-preview' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image HTML generated by the WordPress Media API. ?>
+												<small><?php echo esc_html( $candidate['label'] ); ?></small>
+												<button type="submit" class="button button-secondary"><?php esc_html_e( 'Asignar esta imagen', 'taxocommerce-images' ); ?></button>
+											</form>
+										<?php endforeach; ?>
+										</div>
+									<?php else : ?>
+										<p class="description"><?php esc_html_e( 'No hay imágenes válidas en las categorías relacionadas. Puedes subir una propia.', 'taxocommerce-images' ); ?></p>
+									<?php endif; ?>
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="tci-assign-upload">
+										<input type="hidden" name="action" value="taxocommerce_images_assign_upload">
+										<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
+										<input type="hidden" name="object_id" value="<?php echo esc_attr( (string) $id ); ?>">
+										<?php wp_nonce_field( 'taxocommerce_images_assign_upload', 'taxocommerce_images_nonce' ); ?>
+										<label for="tci-upload-<?php echo esc_attr( $scope . '-' . $id ); ?>"><?php echo esc_html( sprintf(
+										/* translators: %s: maximum WordPress upload size. */
+										__( 'Subir imagen desde el equipo (límite: %s)', 'taxocommerce-images' ),
+										size_format( wp_max_upload_size() )
+									) ); ?></label>
+										<input id="tci-upload-<?php echo esc_attr( $scope . '-' . $id ); ?>" type="file" name="manual_image" accept="image/*" required>
+										<button type="submit" class="button"><?php esc_html_e( 'Subir y asignar', 'taxocommerce-images' ); ?></button>
+									</form>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+					</div>
+					<?php if ( $report['pages'] > 1 ) : ?>
+						<div class="tci-assign-pagination">
+						<?php
+						$base = admin_url( 'admin.php' );
+						$args = array( 'page' => 'taxocommerce-images', 'tab' => 'assignment', $param => $current - 1 );
+						if ( $current > 1 ) :
+							?>
+							<a class="button" href="<?php echo esc_url( add_query_arg( $args, $base ) . '#tc-assign-' . $scope ); ?>"><?php esc_html_e( 'Anterior', 'taxocommerce-images' ); ?></a>
+							<?php
+						endif;
+						?>
+						<span><?php echo esc_html( sprintf(
+							/* translators: 1: current page; 2: total number of pages. */
+							__( 'Página %1$d de %2$d', 'taxocommerce-images' ),
+							$current,
+							absint( $report['pages'] )
+						) ); ?></span>
+						<?php if ( $current < $report['pages'] ) : ?>
+							<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-images', 'tab' => 'assignment', $param => $current + 1 ), $base ) . '#tc-assign-' . $scope ); ?>"><?php esc_html_e( 'Siguiente', 'taxocommerce-images' ); ?></a>
+						<?php endif; ?>
+						</div>
+					<?php endif; ?>
+				<?php endif; ?>
+			</section>
+			<?php
+		}
 	}
 
 	/**
