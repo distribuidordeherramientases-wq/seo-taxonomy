@@ -1,0 +1,80 @@
+name: One-time cleanup of misplaced Redirects files (STAGING only)
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - '.github/workflows/cleanup-redirects-nested-staging-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  remove-misplaced-redirects:
+    name: Remove only nested Redirects files from legacy plugin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove known misplaced files via secure FTPS
+        env:
+          FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import ftplib
+          import ssl
+          import posixpath
+
+          expected = '/wp-content/plugins/seo-taxonomy/taxocommerce-redirects'
+          known_files = [
+              'taxocommerce-redirects.php',
+              'readme.txt',
+              'assets/admin.css',
+              'assets/block-editor.js',
+              'assets/core.js',
+              'includes/class-admin.php',
+              'includes/class-assisted-delete.php',
+              'includes/class-engine.php',
+              'includes/class-store.php',
+              'tests/smoke.php',
+          ]
+          # Remove only files accidentally nested in the legacy plugin.
+          # Standalone /wp-content/plugins/taxocommerce-redirects is untouched.
+          ftp = ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=30)
+          try:
+              ftp.connect(os.environ['FTP_HOST'], 21)
+              ftp.login(os.environ['FTP_USER'], os.environ['FTP_PASS'])
+              ftp.prot_p()
+              try:
+                  ftp.cwd(expected)
+              except ftplib.error_perm as exc:
+                  if str(exc).startswith('550'):
+                      print('Nested folder already absent.')
+                      raise SystemExit(0)
+                  raise
+              actual = posixpath.normpath(ftp.pwd())
+              if actual != expected:
+                  raise RuntimeError('Unexpected FTP directory; abort: ' + actual)
+              for name in known_files:
+                  try:
+                      ftp.delete(name)
+                      print('Removed misplaced file: ' + name)
+                  except ftplib.error_perm as exc:
+                      if str(exc).startswith('550'):
+                          print('Already absent: ' + name)
+                      else:
+                          raise
+              for folder in ('assets', 'includes', 'tests'):
+                  ftp.rmd(folder)
+              ftp.cwd('..')
+              if posixpath.normpath(ftp.pwd()) != '/wp-content/plugins/seo-taxonomy':
+                  raise RuntimeError('Parent FTP path mismatch; aborting.')
+              ftp.rmd('taxocommerce-redirects')
+              print('Nested copy removed. Independent plugin not touched.')
+          finally:
+              try:
+                  ftp.quit()
+              except Exception:
+                  ftp.close()
+          PY
