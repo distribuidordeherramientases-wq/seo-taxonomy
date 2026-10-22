@@ -494,9 +494,9 @@ $main_image = dht_landing_v6_main_image_mobile($post_id, $related_cat_ids, 'larg
 <?php
 wp_enqueue_style(
     'dht-landing-template',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/landing.css',
+    TCT_URL . 'templates/assets/landing.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 if (did_action('wp_head')) {
     wp_print_styles('dht-landing-template');
