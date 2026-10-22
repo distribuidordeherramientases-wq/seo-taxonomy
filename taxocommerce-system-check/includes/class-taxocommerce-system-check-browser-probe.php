@@ -149,6 +149,6 @@ final class TaxoCommerce_System_Check_Browser_Probe {
             echo '</tbody></table>';
         }
         echo '</section>';
-        echo '<style>.tcs-browser-probe{padding:18px 20px;margin:16px 0;background:#fff;border:1px solid #c3c4c7;border-left:4px solid #2271b1;border-radius:5px;max-width:1300px}.tcs-browser-probe h2{margin-top:0}.tcs-browser-probe-result{margin:12px 0;font-size:15px}.tcs-system-wrapper .seo-response-monitor{display:none!important}</style>';
+        echo '<style>.tcs-browser-probe{padding:18px 20px;margin:16px 0;background:#fff;border:1px solid #c3c4c7;border-left:4px solid #2271b1;border-radius:5px;max-width:1300px}.tcs-browser-probe h2{margin-top:0}.tcs-browser-probe-result{margin:12px 0;font-size:15px}body:has([data-tcs-browser-probe]) .seo-server-status-wrap .seo-response-monitor{display:none!important}</style>';
     }
 }
