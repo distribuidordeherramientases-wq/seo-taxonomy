@@ -3,7 +3,7 @@ Contributors: davidperezmartorell
 Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 
 Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
@@ -23,7 +23,8 @@ Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
 * When legacy SEO plugin is active, disables only the old send_headers callback
   for this request, to prevent two runtime engines acting on the same rule.
 * Honors stored 301 AND 302; resolves internal relative destinations correctly.
-* Old admin can still inspect shared rows. Deactivation never deletes rules.
+* Old admin can still inspect shared rows. Deactivation and updates never delete rules.
+* Removing the plugin from WordPress deletes the shared seo_redirects table and its rules. Export before uninstalling.
 * Manager has add/edit/delete, live-use hits, most-recent hit, search, pagination,
   warnings on cycles/duplicates/chains, target link and rule test link.
 * Compatible JSON backup/import (redirects array), analysis export, optional
@@ -71,6 +72,9 @@ retired and all native relationships have been verified.
 * This code is only for STAGING until manually approved for production release.
 
 == Changelog ==
+
+= 0.1.1 =
+* Verified activation lifecycle and explicit uninstall cleanup for seo_redirects.
 
 = 0.1.0 =
 * Independent runtime, administration, import/export and 4+4 assisted deletion.
