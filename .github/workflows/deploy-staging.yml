@@ -49,6 +49,7 @@ jobs:
             taxocommerce-redirects/**
             taxocommerce-dependiente/**
             taxocommerce-faqs/**
+            taxocommerce-vocabulary/**
             packages/**
             **/node_modules/**
             **/*.bak
