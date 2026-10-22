@@ -49,12 +49,13 @@ jobs:
             --exclude='/taxocommerce-faqs/' \
             --exclude='/taxocommerce-auditor/' \
             --exclude='/taxocommerce-templates/' \
+            --exclude='/taxocommerce-vocabulary/' \
             --exclude='/packages/' \
             --exclude='node_modules/' \
             ./ build/taxocommerce-seo/
           # Sibling plugins have independent headers and translation domains.
           # They are deployed separately, never inside the taxocommerce-seo ZIP.
-          for sibling in taxocommerce-core taxocommerce-images taxocommerce-import-export taxocommerce-system-check taxocommerce-faqs taxocommerce-auditor taxocommerce-templates packages; do
+          for sibling in taxocommerce-core taxocommerce-images taxocommerce-import-export taxocommerce-system-check taxocommerce-faqs taxocommerce-auditor taxocommerce-templates taxocommerce-vocabulary packages; do
             test ! -e "build/taxocommerce-seo/$sibling"
           done
 
