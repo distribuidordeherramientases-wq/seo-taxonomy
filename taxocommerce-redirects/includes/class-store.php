@@ -80,7 +80,13 @@ final class Store {
     }
 
     public static function normalize_origin( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return new \WP_Error( 'tc_redirects_origin_type', 'La ruta de origen no es valida.' );
+        }
         $value = trim( (string) $value );
+        if ( preg_match( '#^[a-z][a-z0-9+.-]*://#i', $value ) && ! preg_match( '#^https?://#i', $value ) ) {
+            return new \WP_Error( 'tc_redirects_origin_protocol', 'Solo se admiten URLs HTTP o HTTPS.' );
+        }
         if ( '' === $value || false !== strpos( $value, '?' ) ) {
             return new \WP_Error( 'tc_redirects_origin', 'El origen debe ser una ruta y no puede contener parametros.' );
         }
@@ -108,7 +114,13 @@ final class Store {
     }
 
     public static function normalize_target( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return new \WP_Error( 'tc_redirects_target_type', 'La URL destino no es valida.' );
+        }
         $value = trim( (string) $value );
+        if ( preg_match( '#^[a-z][a-z0-9+.-]*://#i', $value ) && ! preg_match( '#^https?://#i', $value ) ) {
+            return new \WP_Error( 'tc_redirects_target_protocol', 'Solo se admiten URLs HTTP o HTTPS.' );
+        }
         if ( '' === $value ) {
             return new \WP_Error( 'tc_redirects_target', 'Selecciona una URL de destino.' );
         }
@@ -143,6 +155,9 @@ final class Store {
     }
 
     public static function effective_path( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return null;
+        }
         $value = trim( (string) $value );
         if ( '' === $value ) {
             return null;
