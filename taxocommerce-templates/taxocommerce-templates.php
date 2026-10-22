@@ -2,18 +2,21 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Roles editoriales, registro de plantillas y asignación automática, independiente de TaxoCommerce Core.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.2.0');
+define('TCT_VERSION','0.3.0');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
 require_once TCT_DIR . 'includes/class-tct-router.php';
+require_once TCT_DIR . 'includes/class-tct-request-registry.php';
+require_once TCT_DIR . 'includes/class-tct-request-admin.php';
+require_once TCT_DIR . 'includes/class-tct-template-editor.php';
 
 final class TaxoCommerce_Templates {
     const ROLE_OPTION = 'taxocommerce_templates_custom_roles';
@@ -88,12 +91,17 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_settings',array(__CLASS__,'settings'));
         add_action('admin_post_tct_save_page_role',array(__CLASS__,'save_page_role'));
         add_action('admin_post_tct_upload_template',array(__CLASS__,'upload_template'));
+        add_action('admin_post_tct_save_request',array('TCT_Request_Admin','save_request'));
+        add_action('admin_post_tct_save_code',array('TCT_Template_Editor','save'));
+        add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
+        add_filter('wc_get_template_part',array('TCT_Request_Registry','resolve_woocommerce_part'),40,3);
+        add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
         add_action('admin_post_tct_save_device_mode',array(__CLASS__,'save_device_mode'));
         add_action('admin_post_tct_assign_page',array(__CLASS__,'assign_page'));
         add_action('admin_init',array('TCT_Router','seed_catalog'));
         add_action('add_meta_boxes_page',array(__CLASS__,'page_metabox'));
         add_action('save_post_page',array(__CLASS__,'save_metabox'),25,2);
-        add_filter('template_include',array('TCT_Router','resolve'),PHP_INT_MAX);
+        add_filter('template_include',array('TCT_Request_Registry','resolve'),PHP_INT_MAX);
         add_action('taxocommerce_core_register_modules',array(__CLASS__,'register_core'));
         if(function_exists('taxocommerce_core')&&did_action('taxocommerce_core_loaded')) self::register_core(taxocommerce_core());
     }
@@ -261,8 +269,9 @@ final class TaxoCommerce_Templates {
     }
 
     public static function upload_template() {
-        if (!current_user_can('manage_options') || !current_user_can('update_plugins')) {
-            wp_die('Permisos insuficientes para subir codigo PHP.');
+        if (!current_user_can('manage_options') || !current_user_can('update_plugins') ||
+            !TCT_Template_Editor::can_edit()) {
+            wp_die('La subida de PHP requiere permisos para editar plugins y que WordPress permita editar codigo.');
         }
         self::guard('tct_upload_template');
         $files = isset($_FILES['template_file']) ? $_FILES['template_file'] : null;
@@ -286,18 +295,13 @@ final class TaxoCommerce_Templates {
         if (!is_string($head) || !preg_match('/^\s*<\?php\b/', $head)) {
             self::redirect('El archivo debe contener codigo PHP valido.');
         }
-        $directory = TCT_Router::library_dir();
-        if (!is_dir($directory) && !wp_mkdir_p($directory)) {
-            self::redirect('No se pudo crear la biblioteca de plantillas.');
+        $valid = TCT_Template_Editor::validate_php(file_get_contents($files['tmp_name']));
+        if (is_wp_error($valid)) {
+            self::redirect($valid->get_error_message());
         }
-        // Evitar acceso directo por HTTP a los scripts en hosts Apache.
-        $deny = $directory . '.htaccess';
-        if (!file_exists($deny)) {
-            file_put_contents($deny, "Require all denied\nDeny from all\n");
-        }
-        $index = $directory . 'index.php';
-        if (!file_exists($index)) {
-            file_put_contents($index, "<?php\n// Silence is golden.\n");
+        $directory = TCT_Template_Editor::prepare_directory();
+        if (is_wp_error($directory)) {
+            self::redirect($directory->get_error_message());
         }
         $target = $directory . $name;
         if (is_link($target)) {
@@ -323,6 +327,39 @@ final class TaxoCommerce_Templates {
     }
 
     public static function screen() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Acceso denegado.');
+        }
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'requests';
+        if (!in_array($tab, array('requests','roles','editor'), true)) {
+            $tab = 'requests';
+        }
+        echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><nav class="nav-tab-wrapper">';
+        $tabs = array(
+            'requests' => 'Tipos de peticion WordPress / WooCommerce',
+            'roles'    => 'Jerarquia y roles propios',
+            'editor'   => 'Editor de archivos PHP'
+        );
+        foreach ($tabs as $key=>$label) {
+            $url = TCT_Request_Admin::admin_url($key);
+            echo '<a class="nav-tab ' . ($key === $tab ? 'nav-tab-active' : '') . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+        }
+        echo '</nav>';
+        if (isset($_GET['tct_notice'])) {
+            echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
+        }
+        echo '</div>';
+
+        if ($tab === 'requests') {
+            TCT_Request_Admin::render();
+        } elseif ($tab === 'editor') {
+            TCT_Template_Editor::render();
+        } else {
+            self::render_roles_screen();
+        }
+    }
+
+    public static function render_roles_screen() {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
         }
