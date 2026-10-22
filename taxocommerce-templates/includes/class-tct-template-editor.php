@@ -88,6 +88,13 @@ final class TCT_Template_Editor {
         $source = isset($_POST['source_filename']) ? self::safe_name(wp_unslash($_POST['source_filename'])) : '';
         $raw = isset($_POST['code']) ? wp_unslash($_POST['code']) : '';
         $code = is_string($raw) ? $raw : '';
+        // Recuperacion en caso de validacion fallida: un error PHP no debe
+        // provocar que el usuario pierda los cambios escritos en el editor.
+        if (strlen($code) <= self::MAX_SIZE) {
+            set_transient('tct_editor_pending_' . get_current_user_id(), array(
+                'filename' => $name, 'source' => $source, 'code' => $code
+            ), 10 * MINUTE_IN_SECONDS);
+        }
         if ($name === '') {
             self::redirect('Nombre PHP no valido.');
         }
@@ -132,6 +139,7 @@ final class TCT_Template_Editor {
             @unlink($temp);
             self::redirect('Error al sustituir el archivo. Conservado el original.', $source);
         }
+        delete_transient('tct_editor_pending_' . get_current_user_id());
         self::redirect('Plantilla guardada y sintaxis PHP validada.', $name);
     }
 
@@ -199,6 +207,13 @@ final class TCT_Template_Editor {
             $code .= "<?php while (have_posts()) : the_post(); the_title('<h1>', '</h1>'); the_content(); endwhile; ?></main><?php get_footer();\n";
         }
 
+        $pending = get_transient('tct_editor_pending_' . get_current_user_id());
+        if (is_array($pending) && isset($_GET['tct_notice']) && isset($pending['code']) &&
+            isset($pending['source']) && (string)$pending['source'] === $source) {
+            $filename = isset($pending['filename']) ? (string)$pending['filename'] : $filename;
+            $code = (string)$pending['code'];
+            delete_transient('tct_editor_pending_' . get_current_user_id());
+        }
         echo '<div class="wrap"><h1>Editor de archivos de plantilla PHP</h1>';
         echo '<p>Selecciona cualquier archivo de la biblioteca para ver su contenido, duplicarlo o editarlo. ';
         echo 'Los archivos integrados en el plugin son de <strong>solo lectura</strong>: se guardan como una copia independiente en wp-content.</p>';
