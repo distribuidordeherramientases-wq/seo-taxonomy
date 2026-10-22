@@ -21,15 +21,15 @@ if (!$dht_campaigns) {
 
 wp_enqueue_style(
     'dht-campaign-mobile',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/campaign-mobile.css',
+    TCT_URL . 'templates/assets/campaign-mobile.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 wp_enqueue_script(
     'dht-campaign-mobile',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/campaign-mobile.js',
+    TCT_URL . 'templates/assets/campaign-mobile.js',
     array(),
-    SEO_SYSTEM_VERSION,
+    TCT_VERSION,
     true
 );
 if (did_action('wp_head')) {
