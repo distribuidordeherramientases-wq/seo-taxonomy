@@ -250,6 +250,48 @@ final class TCT_Association_Audit {
         return $count;
     }
 
+    /**
+     * La presencia de las filas en la base de datos no acredita la
+     * compatibilidad funcional de los PHP heredados.
+     */
+    public static function takeover_blockers() {
+        $rows = self::templates_report();
+        $mails = self::mail_report($rows);
+        $blockers = array();
+        foreach ($rows as $row) {
+            if ($row['orphan'] && $row['object_count'] > 0) {
+                $blockers[] = $row['key'] . ': hay objetos vinculados pero falta la ficha del rol.';
+                continue;
+            }
+            if (!$row['active'] || $row['file'] === '') {
+                continue;
+            }
+            if (!$row['modern']) {
+                $blockers[] = $row['key'] . ': falta ' . $row['file'] . ' en el modulo nuevo.';
+            }
+            foreach ($row['missing_variants'] as $variant) {
+                $blockers[] = $row['key'] . ': falta secundaria ' . $variant . '.';
+            }
+        }
+        foreach ($mails as $mail) {
+            if ($mail['enabled'] && !$mail['modern']) {
+                $blockers[] = 'Correo ' . $mail['mail_key'] . ': plantilla heredada no disponible en el modulo nuevo.';
+            }
+        }
+        return array_values(array_unique($blockers));
+    }
+
+    public static function takeover_report() {
+        $blockers = self::takeover_blockers();
+        return array(
+            'file_blockers' => $blockers,
+            'files_present' => count($blockers) === 0,
+            // Una comprobacion de existencia NO implica equivalencia visual o
+            // funcional, sobre todo con dependencias antiguas y assets externos.
+            'functional_equivalence_verified' => false
+        );
+    }
+
     public static function sample_objects($role, $limit = 6) {
         global $wpdb;
         $limit = min(10, max(1, absint($limit)));
@@ -381,6 +423,20 @@ final class TCT_Association_Audit {
             ' · <strong>Archivos pendientes:</strong> ' . (int)$totals['missing_new'] .
             ' · <strong>Solo en plugin antiguo:</strong> ' . (int)$totals['present_old_only'] .
             ' · <strong>Roles sin registro:</strong> ' . (int)$totals['orphan_roles'] . '</p>';
+        $takeover = self::takeover_report();
+        echo '<h2>Comprobacion de cambio de plugin</h2>';
+        if (!$takeover['files_present']) {
+            echo '<div class="notice notice-error inline"><p><strong>No desactives todavia el gestor antiguo:</strong> hay ' .
+                (int)count($takeover['file_blockers']) . ' incidencias de archivos o relaciones pendientes.</p>';
+            echo '<details><summary>Ver incidencias de sustitucion</summary><ul>';
+            foreach ($takeover['file_blockers'] as $blocker) {
+                echo '<li>' . esc_html($blocker) . '</li>';
+            }
+            echo '</ul></details></div>';
+        } else {
+            echo '<div class="notice notice-warning inline"><p>Se han localizado todos los archivos activos registrados, ';
+            echo 'pero no se ha verificado la equivalencia funcional ni los recursos. Mantener el motor nuevo desactivado.</p></div>';
+        }
         echo '<div class="notice notice-warning inline"><p>Una asociacion guardada NO confirma que su PHP funcione sin el plugin antiguo. ';
         echo 'Las funciones, assets y dependencias deben migrarse y probarse antes de activar el motor de plantillas.</p></div>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
