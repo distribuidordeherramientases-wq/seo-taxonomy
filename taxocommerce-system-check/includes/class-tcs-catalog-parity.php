@@ -87,6 +87,25 @@ final class TCS_Catalog_Parity {
         }
         $counts['wc_global_attribute_definitions'] = $exists['wc_definitions']
             ? self::scalar("SELECT COUNT(*) FROM {$table['wc_definitions']}") : null;
+        $counts['custom_defs_without_matching_wc_global'] = $exists['wc_definitions'] && $exists['definitions']
+            ? self::scalar(
+                "SELECT COUNT(*) FROM {$table['definitions']} a
+                 LEFT JOIN {$table['wc_definitions']} wc
+                   ON wc.attribute_name = a.slug
+                 WHERE a.activo=1 AND wc.attribute_id IS NULL"
+            ) : null;
+        $counts['custom_terms_without_matching_wc_term'] = $exists['definitions'] && $exists['terms']
+            ? self::scalar(
+                "SELECT COUNT(*) FROM {$table['terms']} source_term
+                 INNER JOIN {$table['definitions']} attr ON attr.id=source_term.atributo_id
+                 WHERE source_term.activo=1 AND attr.activo=1
+                   AND NOT EXISTS (
+                     SELECT 1 FROM {$wpdb->term_taxonomy} tt
+                     INNER JOIN {$wpdb->terms} native_term ON native_term.term_id=tt.term_id
+                     WHERE tt.taxonomy=CONCAT('pa_',attr.slug)
+                       AND native_term.slug=source_term.slug
+                   )"
+            ) : null;
         $counts['custom_attr_assigned_products'] = $exists['values']
             ? self::scalar(
                 "SELECT COUNT(DISTINCT a.product_id)
