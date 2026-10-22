@@ -19,6 +19,10 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: find taxocommerce-templates -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Routing and editor regression tests
+        run: |
+          php taxocommerce-templates/tests/smoke.php
+          php taxocommerce-templates/tests/relations.php
       - name: Check plugin independence
         run: |
           test -s taxocommerce-templates/taxocommerce-templates.php

@@ -18,7 +18,9 @@ jobs:
       - name: Syntax-check each PHP file
         run: find taxocommerce-templates -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
       - name: Run routing and editor smoke tests
-        run: php taxocommerce-templates/tests/smoke.php
+        run: |
+          php taxocommerce-templates/tests/smoke.php
+          php taxocommerce-templates/tests/relations.php
       - name: Enforce plugin independence
         run: |
           test -s taxocommerce-templates/taxocommerce-templates.php

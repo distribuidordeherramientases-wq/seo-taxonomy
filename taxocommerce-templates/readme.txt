@@ -3,7 +3,7 @@ Contributors: davidperezmartorell
 Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 
 Gestor de plantillas independientes para WordPress y WooCommerce.
@@ -34,6 +34,7 @@ Tres areas independientes:
 
 == Pruebas ==
 php taxocommerce-templates/tests/smoke.php
+php taxocommerce-templates/tests/relations.php
 find taxocommerce-templates -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
 == Extension ==

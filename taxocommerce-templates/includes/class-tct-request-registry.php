@@ -220,6 +220,7 @@ final class TCT_Request_Registry {
             }
             self::add($keys, self::role_for_object($type, $id));
             if ('page' === $type) {
+                self::add($keys, 'single_type_page');
                 self::add($keys, 'page');
             } else {
                 if ('post' === $type) {

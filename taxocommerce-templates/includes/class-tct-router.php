@@ -182,7 +182,32 @@ final class TCT_Router {
         }
         $head = fread($handle, 8192);
         fclose($handle);
-        return is_string($head) && false !== strpos($head, 'dht_template_device_variant_file(');
+        if (!is_string($head)) {
+            return false;
+        }
+        // Ignore comments and strings: merely mentioning the helper must not
+        // turn a complete template into a dispatcher.
+        $tokens = token_get_all($head);
+        $require = false;
+        foreach ($tokens as $token) {
+            if (is_array($token)) {
+                if (in_array($token[0], array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), true)) {
+                    continue;
+                }
+                if (in_array($token[0], array(T_REQUIRE, T_REQUIRE_ONCE), true)) {
+                    $require = true;
+                    continue;
+                }
+                if ($require && $token[0] === T_STRING &&
+                    $token[1] === 'dht_template_device_variant_file') {
+                    return true;
+                }
+            } elseif ($require && $token === '(') {
+                continue;
+            }
+            $require = false;
+        }
+        return false;
     }
 
     public static function plan($row, $device) {

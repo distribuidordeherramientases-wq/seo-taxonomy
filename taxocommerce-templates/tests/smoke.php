@@ -4,7 +4,7 @@
  * Ejecutar: php taxocommerce-templates/tests/smoke.php
  */
 define('ABSPATH', __DIR__);
-define('WP_CONTENT_DIR', __DIR__);
+define('WP_CONTENT_DIR', sys_get_temp_dir() . '/tct-tests-' . uniqid());
 function trailingslashit($path) { return rtrim($path, '/\\') . '/'; }
 
 class WP_Error {
@@ -34,9 +34,12 @@ function is_home() { return $GLOBALS['scenario'] === 'home' || $GLOBALS['scenari
 function is_search() { return $GLOBALS['scenario'] === 'search'; }
 function is_category() { return $GLOBALS['scenario'] === 'category'; }
 function is_tag() { return false; }
-function is_tax() { return false; }
+function is_tax() { return in_array($GLOBALS['scenario'], array('product_cat','product_tag'), true); }
 function is_attachment() { return false; }
-function is_singular() { return false; }
+function is_singular() { return in_array($GLOBALS['scenario'], array('page','post','product','dependiente'), true); }
+function get_post_type($id) { return $GLOBALS['scenario'] === 'dependiente' ? 'page' : $GLOBALS['scenario']; }
+function get_post_field($field, $id) { return $GLOBALS['scenario']; }
+function wp_is_mobile() { return !empty($GLOBALS['mobile']); }
 function is_author() { return false; }
 function is_date() { return false; }
 function is_post_type_archive() { return false; }
@@ -47,15 +50,17 @@ function is_cart() { return $GLOBALS['scenario'] === 'cart'; }
 function is_shop() { return $GLOBALS['scenario'] === 'shop'; }
 function is_account_page() { return $GLOBALS['scenario'] === 'account'; }
 function is_paged() { return false; }
-function get_option($key, $default = false) { return false; }
+function get_option($key, $default = false) { return isset($GLOBALS['options'][$key]) ? $GLOBALS['options'][$key] : $default; }
 function absint($number) { return abs((int)$number); }
 function get_queried_object_id() { return 5; }
-function get_queried_object() { return (object)array('term_id'=>1); }
+function get_queried_object() { return (object)array('term_id'=>1, 'taxonomy'=>$GLOBALS['scenario']); }
 function get_query_var($name) { return ''; }
 
 class TaxoCommerce_Templates {
     const ENABLE_OPTION = 'tct_test_enabled';
-    public static function installed() { return false; }
+    public static function installed() { return !empty($GLOBALS['installed']); }
+    public static function templates() { return 'test_templates'; }
+    public static function nodes() { return 'test_nodes'; }
 }
 
 define('TCT_DIR', dirname(__DIR__) . '/');
@@ -113,4 +118,6 @@ tct_assert(
     'Cada plantilla interna WooCommerce debe tener su propia clave.'
 );
 
-echo "OK: Smoke tests TaxoCommerce Templates\n";
+require __DIR__ . '/routing-regressions.php';
+require __DIR__ . '/editor-regressions.php';
+echo "OK: Smoke and routing regression tests TaxoCommerce Templates\n";

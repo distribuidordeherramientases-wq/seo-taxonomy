@@ -149,7 +149,7 @@ final class TCT_Request_Admin {
             echo '<select name="template_file" style="max-width:220px;width:100%">';
             echo '<option value="">— Predeterminada: WordPress / tema —</option>';
             if ($selected !== '' && !isset($files[$selected])) {
-                echo '<option value="' . esc_attr($selected) . '" selected disabled>' . esc_html($selected . ' (archivo pendiente)') . '</option>';
+                echo '<option value="' . esc_attr($selected) . '" selected>' . esc_html($selected . ' (archivo pendiente)') . '</option>';
             }
             foreach ($files as $name) {
                 echo '<option value="' . esc_attr($name) . '" ' . selected($selected,$name,false) . '>' . esc_html($name) . '</option>';

@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Roles editoriales, registro de plantillas y asignación automática, independiente de TaxoCommerce Core.
- * Version: 0.3.0
+ * Version: 0.3.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.3.0');
+define('TCT_VERSION','0.3.1');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -137,7 +137,7 @@ final class TaxoCommerce_Templates {
         // Roles used in live hierarchy must not be silently reassigned.
         $relations=$wpdb->prefix.'seo_relations';
         if($current&&$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($relations)))===$relations) {
-            $count=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$relations} WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$id,$id));
+            $count=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$relations} WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page','landing')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page','landing'))",$id,$id));
             if($count>0) return new WP_Error('tct_hierarchy_linked','La página tiene relaciones jerárquicas: desvincúlala en Core antes de cambiar su rol.');
         }
         $now=current_time('mysql');$wpdb->query('START TRANSACTION');
