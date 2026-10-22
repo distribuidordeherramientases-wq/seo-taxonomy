@@ -88,6 +88,12 @@ final class TaxoCommerce_Templates {
         TCT_Router::seed_catalog();
     }
     public static function boot() {
+        // Mantener el filtrado de escaparate ES del anterior cargador. No
+        // declarar funciones duplicadas si ambos plugins estan activos.
+        if (get_option(self::ENABLE_OPTION, 0) &&
+            !function_exists('seo_front_es_international_category_ids')) {
+            require_once TCT_DIR . 'includes/seo-front-es-catalog.php';
+        }
         add_action('admin_menu',array(__CLASS__,'menu'),65);
         add_action('admin_post_tct_save_role',array(__CLASS__,'save_role'));
         add_action('admin_post_tct_save_template',array(__CLASS__,'save_template'));
