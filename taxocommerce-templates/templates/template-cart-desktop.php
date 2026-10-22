@@ -17,15 +17,15 @@ require_once __DIR__ . '/template-cart.php';
 
 wp_enqueue_style(
     'dht-cart-desktop',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/cart-desktop.css',
+    TCT_URL . 'templates/assets/cart-desktop.css',
     array(),
-    defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+    defined('TCT_VERSION') ? TCT_VERSION : null
 );
 wp_enqueue_script(
     'dht-cart-desktop',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/cart-desktop.js',
+    TCT_URL . 'templates/assets/cart-desktop.js',
     array(),
-    defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null,
+    defined('TCT_VERSION') ? TCT_VERSION : null,
     true
 );
 
