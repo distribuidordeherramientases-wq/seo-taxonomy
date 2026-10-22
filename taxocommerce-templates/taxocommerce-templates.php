@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Roles editoriales, registro de plantillas y asignación automática, independiente de TaxoCommerce Core.
- * Version: 0.3.1
+ * Version: 0.3.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.3.1');
+define('TCT_VERSION','0.3.2');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -18,6 +18,7 @@ require_once TCT_DIR . 'includes/class-tct-request-registry.php';
 require_once TCT_DIR . 'includes/class-tct-request-admin.php';
 require_once TCT_DIR . 'includes/class-tct-template-editor.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
+require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
 
 final class TaxoCommerce_Templates {
     const ROLE_OPTION = 'taxocommerce_templates_custom_roles';
@@ -97,6 +98,7 @@ final class TaxoCommerce_Templates {
         add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
         add_filter('wc_get_template_part',array('TCT_Request_Registry','resolve_woocommerce_part'),40,3);
         add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
+        add_filter('woocommerce_email_classes',array('TCT_Legacy_Email_Compat','apply'),999);
         add_action('admin_post_tct_save_device_mode',array(__CLASS__,'save_device_mode'));
         add_action('admin_post_tct_assign_page',array(__CLASS__,'assign_page'));
         add_action('admin_post_tct_unassign_page',array(__CLASS__,'unassign_page'));
