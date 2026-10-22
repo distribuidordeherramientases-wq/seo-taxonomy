@@ -11,12 +11,13 @@ defined('ABSPATH') || exit;
 final class TCT_Association_Audit {
     public static function legacy_directory() {
         $directories = array();
-        if (defined('SEO_SYSTEM_PATH')) {
-            $directories[] = trailingslashit(SEO_SYSTEM_PATH) . 'seo-system/templates/';
-        }
         if (defined('WP_PLUGIN_DIR')) {
-            $directories[] = trailingslashit(WP_PLUGIN_DIR) . 'seo-taxonomy/seo-system/templates/';
-            $directories[] = trailingslashit(WP_PLUGIN_DIR) . 'taxocommerce-seo/seo-system/templates/';
+            $base = trailingslashit(WP_PLUGIN_DIR);
+            $directories[] = $base . 'seo-taxonomy/seo-system/templates/';
+            $directories[] = $base . 'taxocommerce-seo/seo-system/templates/';
+            foreach ((array)glob($base . '*/seo-system/templates/', GLOB_ONLYDIR) as $dir) {
+                $directories[] = $dir;
+            }
         }
         foreach (array_unique($directories) as $candidate) {
             if (is_dir($candidate) && is_readable($candidate)) {
