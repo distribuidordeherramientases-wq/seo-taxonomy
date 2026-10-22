@@ -367,8 +367,12 @@ final class TaxoCommerce_Images {
 										<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
 										<input type="hidden" name="object_id" value="<?php echo esc_attr( (string) $id ); ?>">
 										<?php wp_nonce_field( 'taxocommerce_images_assign_upload', 'taxocommerce_images_nonce' ); ?>
-										<label for="tci-upload-<?php echo esc_attr( $scope . '-' . $id ); ?>"><?php esc_html_e( 'Subir imagen desde el equipo (hasta 10 MB)', 'taxocommerce-images' ); ?></label>
-										<input id="tci-upload-<?php echo esc_attr( $scope . '-' . $id ); ?>" type="file" name="manual_image" accept="image/jpeg,image/png,image/gif,image/webp,image/avif" required>
+										<label for="tci-upload-<?php echo esc_attr( $scope . '-' . $id ); ?>"><?php echo esc_html( sprintf(
+										/* translators: %s: maximum WordPress upload size. */
+										__( 'Subir imagen desde el equipo (límite: %s)', 'taxocommerce-images' ),
+										size_format( wp_max_upload_size() )
+									) ); ?></label>
+										<input id="tci-upload-<?php echo esc_attr( $scope . '-' . $id ); ?>" type="file" name="manual_image" accept="image/*" required>
 										<button type="submit" class="button"><?php esc_html_e( 'Subir y asignar', 'taxocommerce-images' ); ?></button>
 									</form>
 								</td>
