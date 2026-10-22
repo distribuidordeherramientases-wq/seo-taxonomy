@@ -1,6 +1,5 @@
 """Finalize the non-destructive delivery; never leave placeholder delete actions."""
 from pathlib import Path
-import re
 p = Path('taxocommerce-images/includes/class-taxocommerce-images-maintenance.php')
 s = p.read_text()
 start = s.find('\tpublic static function resolve()')
@@ -30,6 +29,11 @@ s = s[:start] + r'''	public static function ajax() {
 ''' + s[end:]
 assert 'TaxoCommerce_Images_Deduplicate' not in s
 assert 'data-tci-operation="resolve"' not in s
+p.write_text(s)
+# Confirmed inherited typo; do not edit any other plugin.
+p = Path('taxocommerce-images/includes/legacy-reference-audit.php')
+s = p.read_text()
+s = s.replace('wp_wp_parse_url(', 'wp_parse_url(')
 p.write_text(s)
 marker = Path('taxocommerce-images/includes/.criteria_applied')
 if marker.exists():
