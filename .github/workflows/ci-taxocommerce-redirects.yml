@@ -25,7 +25,9 @@ jobs:
       - name: Check PHP syntax
         run: find taxocommerce-redirects -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
       - name: Test native and Core integration contracts
-        run: php taxocommerce-redirects/tests/smoke.php
+        run: |
+          php taxocommerce-redirects/tests/smoke.php
+          php taxocommerce-redirects/tests/lifecycle-smoke.php
       - name: Check editor integration JavaScript
         run: |
           node --check taxocommerce-redirects/assets/core.js

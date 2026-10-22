@@ -40,7 +40,7 @@ final class Store {
     public static function install() {
         if ( self::table_exists() ) {
             update_option( 'tc_redirects_schema_ready', '1', false );
-            return;
+            return true;
         }
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -62,7 +62,10 @@ final class Store {
         dbDelta( $sql );
         if ( self::table_exists( true ) ) {
             update_option( 'tc_redirects_schema_ready', '1', false );
+            return true;
         }
+        delete_option( 'tc_redirects_schema_ready' );
+        return new \WP_Error( 'tc_redirects_install', 'No se ha podido crear la tabla de redirecciones. Revisa los permisos CREATE de la base de datos.' );
     }
 
     public static function same_host( $left, $right ) {
