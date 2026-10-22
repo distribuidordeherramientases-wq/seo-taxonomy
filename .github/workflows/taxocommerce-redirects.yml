@@ -1,0 +1,78 @@
+name: TaxoCommerce Redirects standalone - STAGING
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-redirects/**'
+      - '.github/workflows/taxocommerce-redirects.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-redirects/**'
+      - '.github/workflows/taxocommerce-redirects.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: PHP and JS validation
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Prepare PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+
+      - name: Validate each PHP file
+        run: |
+          set -euo pipefail
+          find taxocommerce-redirects -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Exercise safe redirect and editor hooks
+        run: php taxocommerce-redirects/tests/smoke.php
+
+      - name: Validate Core and block-editor JavaScript syntax
+        run: |
+          node --check taxocommerce-redirects/assets/core.js
+          node --check taxocommerce-redirects/assets/block-editor.js
+
+  deploy-staging:
+    name: Deploy Redirects only to STAGING
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy independent plugin to STAGING with FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-redirects/
+          server-dir: ./wp-content/plugins/taxocommerce-redirects/
+          dry-run: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
