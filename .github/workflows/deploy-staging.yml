@@ -46,6 +46,7 @@ jobs:
             taxocommerce-system-check/**
             taxocommerce-templates/**
             taxocommerce-auditor/**
+            taxocommerce-dependiente/**
             packages/**
             **/node_modules/**
             **/*.bak
@@ -143,6 +144,44 @@ jobs:
           server-dir: ./wp-content/plugins/taxocommerce-system-check/
           dry-run: false
           log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Validate and package TaxoCommerce Dependiente
+        run: |
+          set -euo pipefail
+          test -s taxocommerce-dependiente/taxocommerce-dependiente.php
+          find taxocommerce-dependiente -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          rm -f taxocommerce-dependiente-0.1.0.zip
+          zip -q -r taxocommerce-dependiente-0.1.0.zip taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.DS_Store"
+          unzip -t taxocommerce-dependiente-0.1.0.zip
+          unzip -Z1 taxocommerce-dependiente-0.1.0.zip | grep -Fx 'taxocommerce-dependiente/taxocommerce-dependiente.php'
+
+      - name: Publish Dependiente installable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-dependiente-0.1.0
+          path: taxocommerce-dependiente-0.1.0.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Deploy TaxoCommerce Dependiente to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-dependiente/
+          server-dir: ./wp-content/plugins/taxocommerce-dependiente/
+          dry-run: false
+          log-level: standard
           exclude: |
             **/.git*
             **/.git*/**
