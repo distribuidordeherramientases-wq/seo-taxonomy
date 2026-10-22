@@ -135,7 +135,7 @@ final class TaxoCommerce_Images {
 					'name'        => 'TaxoCommerce Images',
 					'version'     => TAXOCOMMERCE_IMAGES_VERSION,
 					'status'      => 'active',
-					'description' => __( 'Gestión, auditoría, miniaturas, metadatos y optimización de imágenes.', 'taxocommerce-images' ),
+					'description' => 'Gestión, auditoría, miniaturas, metadatos y optimización de imágenes.',
 					'admin_url'   => admin_url( 'admin.php?page=taxocommerce-images' ),
 				)
 			);

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce FAQs
  * Description: Gestión de preguntas frecuentes, CSV, KPIs y etiquetas semánticas para la familia TaxoCommerce.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
