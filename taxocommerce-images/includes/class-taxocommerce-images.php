@@ -430,6 +430,7 @@ final class TaxoCommerce_Images {
 				<div class="card"><strong style="display:block;font-size:24px;"><?php echo esc_html( number_format_i18n( $formats[ $type ] ) ); ?></strong><?php echo esc_html( $label ); ?></div>
 			<?php endforeach; ?>
 		</div>
+		<?php TaxoCommerce_Images_CPU::render_control(); ?>
 		<h2><?php esc_html_e( 'Optimización de Media', 'taxocommerce-images' ); ?></h2>
 		<p><?php esc_html_e( 'Conservamos la recompresión y conversión WebP del sistema anterior. Los lotes pequeños solo comienzan tras confirmación; la conversión modifica archivos y enlaces y requiere copia de seguridad.', 'taxocommerce-images' ); ?></p>
 		<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -484,8 +485,9 @@ final class TaxoCommerce_Images {
 	private function render_audit() {
 		$state = $this->audit->state();
 		?>
+		<?php TaxoCommerce_Images_CPU::render_control(); ?>
 		<h2><?php echo esc_html__( 'Auditoría de Biblioteca de Medios', 'taxocommerce-images' ); ?></h2>
-		<p><?php echo esc_html__( 'La auditoría comprueba archivos originales, metadatos y miniaturas reales por lotes de 75. No borra ni modifica imágenes.', 'taxocommerce-images' ); ?></p>
+		<p><?php echo esc_html__( 'La auditoría comprueba archivos originales, metadatos y miniaturas reales por lotes de 75. Antes de cada lote verifica la CPU y pausa automáticamente si no hay margen seguro.', 'taxocommerce-images' ); ?></p>
 
 		<?php if ( empty( $state ) ) : ?>
 			<?php $this->audit_button( 'taxocommerce_images_start_audit', 'taxocommerce_images_start_audit', __( 'Iniciar auditoría', 'taxocommerce-images' ), true ); ?>
@@ -557,9 +559,16 @@ final class TaxoCommerce_Images {
 				.then(function (response) { if (!response.ok) { throw new Error('HTTP ' + response.status); } return response.json(); })
 				.then(function (reply) {
 					if (!reply.success || !reply.data) { throw new Error('Auditoría en pausa'); }
+					if (reply.data.paused) {
+						var seconds = Math.max(1, Number(reply.data.retry_after || 10));
+						var message = reply.data.cpu && reply.data.cpu.message ? reply.data.cpu.message : 'CPU no disponible para continuar.';
+						progress.textContent = message + ' Progreso guardado: ' + reply.data.scanned + ' / ' + reply.data.total + '. Reintentando en ' + seconds + ' s.';
+						window.setTimeout(step, seconds * 1000);
+						return;
+					}
 					progress.textContent = reply.data.scanned + ' / ' + reply.data.total + ' imágenes revisadas';
 					remaining = reply.data.status !== 'completed';
-					if (remaining) { step(); } else { window.location.reload(); }
+					if (remaining) { window.setTimeout(step, 200); } else { window.location.reload(); }
 				})
 				.catch(function () {
 					remaining = false;
@@ -753,6 +762,7 @@ final class TaxoCommerce_Images {
 	private function render_settings() {
 		$s = TaxoCommerce_Images_Actions::settings();
 		?>
+		<?php TaxoCommerce_Images_CPU::render_control(); ?>
 		<h2><?php echo esc_html__( 'Límites y optimización', 'taxocommerce-images' ); ?></h2>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="taxocommerce_images_save_settings">
