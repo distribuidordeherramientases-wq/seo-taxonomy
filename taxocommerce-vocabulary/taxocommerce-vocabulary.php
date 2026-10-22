@@ -31,3 +31,24 @@ add_action(
         }
     }
 );
+
+
+add_action(
+    'taxocommerce_core_register_modules',
+    static function ( $core ) {
+        if ( ! is_object( $core ) || ! method_exists( $core, 'register_module' ) ) {
+            return;
+        }
+
+        $core->register_module(
+            'vocabulary',
+            array(
+                'name'        => 'TaxoCommerce Vocabulary',
+                'version'     => TAXOCOMMERCE_VOCABULARY_VERSION,
+                'status'      => 'active',
+                'description' => 'Inventario transversal de etiquetas y atributos con Clasificador automático gestionado por Procesos.',
+                'admin_url'   => admin_url( 'admin.php?page=taxocommerce-vocabulary' ),
+            )
+        );
+    }
+);
