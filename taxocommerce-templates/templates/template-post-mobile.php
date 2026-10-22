@@ -483,9 +483,9 @@ while (have_posts()) :
 <?php
 wp_enqueue_style(
     'dht-post-mobile',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/post-mobile.css',
+    TCT_URL . 'templates/assets/post-mobile.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 if (did_action('wp_head')) {
     wp_print_styles('dht-post-mobile');
