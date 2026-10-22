@@ -92,6 +92,7 @@ final class TaxoCommerce_Images_Assignment {
 			$args = array(
 				'taxonomy' => $scope,
 				'hide_empty' => false,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Required native termmeta test, paginated output.
 				'meta_query' => array(
 					'relation' => 'OR',
 					array( 'key' => 'thumbnail_id', 'compare' => 'NOT EXISTS' ),
@@ -128,6 +129,7 @@ final class TaxoCommerce_Images_Assignment {
 				'no_found_rows' => false,
 				'update_post_meta_cache' => false,
 				'update_post_term_cache' => false,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Native thumbnail metadata, bounded result set.
 				'meta_query' => array(
 					'relation' => 'OR',
 					array( 'key' => '_thumbnail_id', 'compare' => 'NOT EXISTS' ),
@@ -239,12 +241,14 @@ final class TaxoCommerce_Images_Assignment {
 		$table = $wpdb->prefix . 'seo_relations';
 		static $has_table = null;
 		if ( null === $has_table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only presence lookup, cached statically per request.
 			$has_table = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 		}
 		if ( ! $has_table ) {
 			return array();
 		}
 		if ( 'post' === $scope ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared lookup max 20 IDs, related_terms memoized.
 			$ids = $wpdb->get_col(
 				$wpdb->prepare(
 					"SELECT DISTINCT target_id FROM %i
@@ -259,6 +263,7 @@ final class TaxoCommerce_Images_Assignment {
 		}
 
 		// Legacy canonical direct mappings, including editorial landing pages.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared lookup max 20, memoized for this request.
 		$ids = (array) $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT DISTINCT target_id FROM %i
@@ -272,6 +277,7 @@ final class TaxoCommerce_Images_Assignment {
 		);
 
 		// Primary hub -> secondary hub -> product category.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed SQL, prepared identifiers and ID, max 20.
 		$primary_ids = (array) $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT DISTINCT c.target_id FROM %i h
@@ -287,6 +293,7 @@ final class TaxoCommerce_Images_Assignment {
 		);
 
 		// Cluster -> primary hub -> secondary hub -> product category.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed SQL, prepared identifiers and ID, max 20.
 		$cluster_ids = (array) $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT DISTINCT c.target_id FROM %i cp
@@ -336,6 +343,7 @@ final class TaxoCommerce_Images_Assignment {
 					'hide_empty' => false,
 					'number' => 20,
 					'fields' => 'ids',
+					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Native Core term relation, limited to 20 IDs.
 					'meta_query' => array(
 						array(
 							'key' => '_taxocommerce_core_parent_hub_secondary',
@@ -373,6 +381,7 @@ final class TaxoCommerce_Images_Assignment {
 				'posts_per_page' => 20,
 				'fields' => 'ids',
 				'no_found_rows' => true,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Core parent relation, bounded to 20 pages.
 				'meta_query' => array(
 					array( 'key' => $key, 'value' => array_map( 'strval', $parents ), 'compare' => 'IN' ),
 				),
@@ -464,6 +473,7 @@ final class TaxoCommerce_Images_Assignment {
 						'no_found_rows' => true,
 						'update_post_meta_cache' => true,
 						'update_post_term_cache' => false,
+						// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Only verified related product categories, max 150 IDs.
 						'tax_query' => array(
 							array(
 								'taxonomy' => $taxonomy,
@@ -567,8 +577,10 @@ final class TaxoCommerce_Images_Assignment {
 			wp_die( esc_html__( 'No tienes permisos para asignar imágenes.', 'taxocommerce-images' ) );
 		}
 		check_admin_referer( $action, 'taxocommerce_images_nonce' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- check_admin_referer() already completed at start of guard().
 		$scope = isset( $_POST['scope'] ) && is_string( $_POST['scope'] )
 			? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by guard() before POST access.
 		$id = isset( $_POST['object_id'] ) && is_scalar( $_POST['object_id'] )
 			? absint( $_POST['object_id'] ) : 0;
 		if ( ! self::valid_scope( $scope ) ) {
@@ -586,6 +598,7 @@ final class TaxoCommerce_Images_Assignment {
 		$data = self::guard( 'taxocommerce_images_assign_one' );
 		$scope = $data['scope'];
 		$id = $data['id'];
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by guard() before POST access.
 		$attachment_id = isset( $_POST['attachment_id'] ) && is_scalar( $_POST['attachment_id'] )
 			? absint( $_POST['attachment_id'] ) : 0;
 		$allowed = wp_list_pluck( self::candidates( $scope, $id, 8 ), 'id' );
@@ -643,6 +656,7 @@ final class TaxoCommerce_Images_Assignment {
 		if ( ! current_user_can( 'upload_files' ) || ! self::editable_target( $scope, $id ) || self::has_image( $scope, $id ) ) {
 			self::redirect( $scope, 'error', __( 'No tienes permisos o el contenido ya tiene imagen.', 'taxocommerce-images' ) );
 		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce checked by guard(); raw upload metadata is validated and passed to native Media API.
 		$file = isset( $_FILES['manual_image'] ) && is_array( $_FILES['manual_image'] ) ? $_FILES['manual_image'] : array();
 		if ( ! isset( $file['error'], $file['size'], $file['name'] ) ||
 			UPLOAD_ERR_OK !== (int) $file['error'] || (int) $file['size'] < 1 || (int) $file['size'] > 10485760 ||
