@@ -1,0 +1,18 @@
+<?php
+/**
+ * Plugin Name: TaxoCommerce FAQs
+ * Description: Gestión de preguntas frecuentes, CSV, KPIs y etiquetas semánticas para la familia TaxoCommerce.
+ * Version: 0.1.0
+ * Requires at least: 6.5
+ * Requires PHP: 7.4
+ * Author: David Perez
+ * License: GPLv2 or later
+ * Text Domain: taxocommerce-faqs
+ */
+defined( 'ABSPATH' ) || exit;
+define( 'TAXOCOMMERCE_FAQS_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_FAQS_PATH', plugin_dir_path( __FILE__ ) );
+require_once TAXOCOMMERCE_FAQS_PATH . 'includes/class-taxocommerce-faqs.php';
+register_activation_hook( __FILE__, array( 'TaxoCommerce_FAQs', 'install' ) );
+add_action( 'plugins_loaded', array( 'TaxoCommerce_FAQs', 'boot' ), 25 );
+add_action( 'taxocommerce_core_register_modules', array( 'TaxoCommerce_FAQs', 'register_core' ) );

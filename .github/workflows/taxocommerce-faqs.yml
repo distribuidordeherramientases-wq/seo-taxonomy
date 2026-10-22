@@ -1,0 +1,50 @@
+name: TaxoCommerce FAQs package and deployment
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-faqs/**'
+      - '.github/workflows/taxocommerce-faqs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+      - name: Syntax checks
+        run: |
+          test -f taxocommerce-faqs/taxocommerce-faqs.php
+          find taxocommerce-faqs -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Build ZIP
+        run: zip -qr taxocommerce-faqs.zip taxocommerce-faqs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-faqs-${{ github.sha }}
+          path: taxocommerce-faqs.zip
+          retention-days: 30
+  deploy:
+    needs: package
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-faqs/
+          server-dir: ./wp-content/plugins/taxocommerce-faqs/
+          dry-run: false
+          log-level: verbose
