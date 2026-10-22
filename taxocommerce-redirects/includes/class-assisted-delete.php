@@ -23,6 +23,7 @@ final class Assisted_Delete {
         add_action( 'admin_menu', array( __CLASS__, 'confirmation_page' ), 45 );
         add_action( 'admin_init', array( __CLASS__, 'intercept_native' ), 3 );
         add_action( 'admin_post_tc_redirects_assisted_delete', array( __CLASS__, 'handle_delete' ) );
+        add_action( 'untrashed_post', array( __CLASS__, 'restore_original_route' ), 10, 1 );
         add_action( 'admin_post_taxocommerce_core_save_content', array( __CLASS__, 'intercept_core_trash' ), 0 );
         add_filter( 'post_row_actions', array( __CLASS__, 'post_row_actions' ), 20, 2 );
         add_filter( 'page_row_actions', array( __CLASS__, 'post_row_actions' ), 20, 2 );
@@ -354,6 +355,32 @@ final class Assisted_Delete {
         <?php
     }
 
+    /**
+     * Restore the original public URL safely: a 301 created by this form must
+     * not keep intercepting a post or product restored from WordPress Trash.
+     * Never remove rules which have since been edited by an administrator.
+     */
+    public static function restore_original_route( $post_id ) {
+        $post_id = absint( $post_id );
+        $marker = get_post_meta( $post_id, '_tc_redirects_assisted_rule', true );
+        if ( ! is_array( $marker ) ) {
+            return;
+        }
+        $id = absint( $marker['id'] ?? 0 );
+        $origin = (string) ( $marker['origin'] ?? '' );
+        $target = (string) ( $marker['target'] ?? '' );
+        if ( $id && '' !== $origin && Store::table_exists() ) {
+            $rule = Store::get( $id );
+            $post = get_post( $post_id );
+            if ( $rule && $post instanceof \WP_Post
+                && (string) $rule->target_url === $target
+                && Store::effective_path( $rule->origin_url ) === Store::effective_path( $origin ) ) {
+                Store::remove( $id );
+            }
+        }
+        delete_post_meta( $post_id, '_tc_redirects_assisted_rule' );
+    }
+
     public static function handle_delete() {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified below.
         $type = isset( $_POST['tc_type'] ) ? sanitize_key( wp_unslash( $_POST['tc_type'] ) ) : '';
@@ -423,8 +450,18 @@ final class Assisted_Delete {
         if ( 'product_cat' === $type ) {
             $removed = wp_delete_term( $id, 'product_cat' );
             $success = ! is_wp_error( $removed ) && (bool) $removed;
+        } elseif ( 'trash' === $data['status'] ) {
+            // An explicit permanent deletion is handled by WordPress itself.
+            // WooCommerce product deletion is performed through its CRUD API.
+            if ( 'product' === $type && function_exists( 'wc_get_product' ) ) {
+                $product = wc_get_product( $id );
+                $removed = $product ? $product->delete( true ) : false;
+            } else {
+                $removed = wp_delete_post( $id, true );
+            }
+            $success = (bool) $removed;
         } else {
-            $removed = 'trash' === $data['status'] ? wp_delete_post( $id, true ) : wp_trash_post( $id );
+            $removed = wp_trash_post( $id );
             $success = (bool) $removed;
         }
 
@@ -436,6 +473,15 @@ final class Assisted_Delete {
             wp_die( esc_html( $reason ), '', array( 'response' => 409 ) );
         }
 
+        // A future "Restore from Trash" must remove this rule only if it
+        // still matches the exact redirect created by this operation.
+        if ( $created && 'product_cat' !== $type && 'trash' !== $data['status'] ) {
+            update_post_meta(
+                $id,
+                '_tc_redirects_assisted_rule',
+                array( 'id' => absint( $created ), 'origin' => $origin, 'target' => Store::get( $created )->target_url )
+            );
+        }
         update_option(
             'tc_redirects_last_assisted_action',
             array( 'type' => $type, 'id' => $id, 'mode' => $mode, 'time_gmt' => current_time( 'mysql', true ) ),
