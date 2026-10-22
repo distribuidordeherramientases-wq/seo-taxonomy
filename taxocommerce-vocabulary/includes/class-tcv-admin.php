@@ -19,7 +19,7 @@ final class TCV_Admin {
                 'taxocommerce-core',
                 'TaxoCommerce Vocabulary',
                 'Vocabulary',
-                'manage_woocommerce',
+                'manage_options',
                 'taxocommerce-vocabulary',
                 array( __CLASS__, 'render' )
             );
@@ -29,7 +29,7 @@ final class TCV_Admin {
         add_menu_page(
             'TaxoCommerce Vocabulary',
             'Vocabulary',
-            'manage_woocommerce',
+            'manage_options',
             'taxocommerce-vocabulary',
             array( __CLASS__, 'render' ),
             'dashicons-tag',
