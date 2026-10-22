@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,15 @@ Current functionality includes:
 * Optional integration into TaxoCommerce Core.
 
 == Changelog ==
+
+= 0.2.1 =
+* Four separately paginated reports: Pages, Posts, Categories and Products without assigned images.
+* Each candidate is restricted to an actual category relation: first its category thumbnail, then local Media belonging to products in that category.
+* Assign a selected Media image individually or apply the first valid category candidate automatically to up to 25 missing items.
+* Upload a local image through WordPress Media and associate it with one chosen item.
+* Preserve the existing images and avoid all supplier-image catalogs, remote imports and random global Media suggestions.
+* Works standalone, with WooCommerce categories and products when that plugin is active.
+
 
 = 0.2.0 =
 * Restored isolated image reference audit from the historical plugin (review only; no deletion).
