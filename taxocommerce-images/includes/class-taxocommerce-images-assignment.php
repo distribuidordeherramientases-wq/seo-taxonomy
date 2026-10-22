@@ -658,21 +658,21 @@ final class TaxoCommerce_Images_Assignment {
 		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce checked by guard(); raw upload metadata is validated and passed to native Media API.
 		$file = isset( $_FILES['manual_image'] ) && is_array( $_FILES['manual_image'] ) ? $_FILES['manual_image'] : array();
+		$limit = wp_max_upload_size();
 		if ( ! isset( $file['error'], $file['size'], $file['name'] ) ||
-			UPLOAD_ERR_OK !== (int) $file['error'] || (int) $file['size'] < 1 || (int) $file['size'] > 10485760 ||
-			! is_string( $file['name'] ) ) {
-			self::redirect( $scope, 'error', __( 'Selecciona una imagen válida de 10 MB como máximo.', 'taxocommerce-images' ) );
+			UPLOAD_ERR_OK !== (int) $file['error'] || (int) $file['size'] < 1 ||
+			( $limit > 0 && (int) $file['size'] > $limit ) || ! is_string( $file['name'] ) ) {
+			self::redirect( $scope, 'error', __( 'El archivo no es válido o supera el límite de subida de WordPress.', 'taxocommerce-images' ) );
 		}
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 
-		$allowed_mimes = array(
-			'jpg|jpeg|jpe' => 'image/jpeg',
-			'png' => 'image/png',
-			'gif' => 'image/gif',
-			'webp' => 'image/webp',
-			'avif' => 'image/avif',
+		$allowed_mimes = array_filter(
+			get_allowed_mime_types(),
+			static function ( $mime ) {
+				return 0 === strpos( (string) $mime, 'image/' ) && 'image/svg+xml' !== $mime;
+			}
 		);
 		$attachment_id = media_handle_upload(
 			'manual_image',
