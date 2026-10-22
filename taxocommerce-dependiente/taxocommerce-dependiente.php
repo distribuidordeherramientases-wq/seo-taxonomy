@@ -29,19 +29,6 @@ add_action( 'plugins_loaded', static function () {
     TCD_Admin::boot();
 }, 30 );
 
-add_filter( 'taxocommerce_core_register_modules', static function ( $core ) {
-    if ( is_object( $core ) && method_exists( $core, 'register_module' ) ) {
-        $core->register_module( 'dependiente', array(
-            'name' => 'TaxoCommerce Dependiente',
-            'version' => TAXOCOMMERCE_DEPENDIENTE_VERSION,
-            'status' => 'active',
-            'description' => 'Academia inicial L1-L10 y asistente, sin actualización continua.',
-            'admin_url' => admin_url( 'admin.php?page=taxocommerce-dependiente' ),
-        ) );
-    }
-    return $core;
-}, 10, 1 );
-
 add_action( 'taxocommerce_core_register_modules', static function ( $core ) {
     if ( method_exists( $core, 'register_module' ) ) {
         $core->register_module( 'dependiente', array(
