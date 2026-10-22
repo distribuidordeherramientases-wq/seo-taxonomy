@@ -435,9 +435,9 @@ $grid_posts    = ($paged === 1) ? array_slice($landing_posts, 5) : $landing_post
 <?php
 wp_enqueue_style(
     'dht-soluciones-desktop',
-    SEO_SYSTEM_URL . 'seo-system/templates/assets/soluciones-desktop.css',
+    TCT_URL . 'templates/assets/soluciones-desktop.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TCT_VERSION
 );
 if (did_action('wp_head')) {
     wp_print_styles('dht-soluciones-desktop');
