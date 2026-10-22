@@ -393,7 +393,7 @@ final class Assisted_Delete {
         // currently public URL. No-redirect deletion never requires permalink
         // rewrite rules or a valid public-facing origin.
         $origin = null;
-        if ( 'redirect' === $mode || ( 'publish' === $data['status'] && 'product_cat' === $type ) ) {
+        if ( 'publish' === $data['status'] || 'redirect' === $mode ) {
             $origin = Store::normalize_origin( $data['origin'] );
             if ( is_wp_error( $origin ) ) {
                 wp_die( esc_html( $origin->get_error_message() ), '', array( 'response' => 409 ) );
