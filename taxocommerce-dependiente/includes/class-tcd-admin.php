@@ -41,15 +41,27 @@ final class TCD_Admin {
 
         echo '<p><a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar aprendizaje completo · JSON</a></p>';
 
+        $priority=TCD_Load::priority();
+        $sample=TCD_Load::last_sample();
         echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="padding:14px;background:#fff;border:1px solid #c3c4c7;margin:12px 0 20px">';
         wp_nonce_field('tcd_academy_control');
-        echo '<input type="hidden" name="action" value="tcd_academy_control"><input type="hidden" name="tcd_action" value="cpu_limit">';
-        echo '<label for="tcd-cpu-limit"><strong>Límite máximo de CPU para Dependiente (%)</strong></label> ';
-        echo '<input id="tcd-cpu-limit" name="cpu_limit" type="number" min="1" max="100" step="1" required style="width:85px" value="'.esc_attr((string)TCD_CPU::limit()).'"> ';
-        echo '<button type="submit" class="button button-primary">Guardar límite</button>';
-        $sample=(array)($state['cpu_last']??array());
-        echo '<p class="description">CPU: '.(isset($sample['percent']) && null!==$sample['percent'] ? esc_html((string)$sample['percent']).' %' : 'sin medición').'; fuente: '.esc_html((string)($sample['source']??'pendiente')).'. '.esc_html((string)($sample['reason']??'')).'</p>';
-        echo '<p class="description">Si no existe una métrica fiable, Dependiente pausa y vuelve a comprobar. El aprendizaje y la foto fija permanecen guardados.</p></form>';
+        echo '<input type="hidden" name="action" value="tcd_academy_control"><input type="hidden" name="tcd_action" value="priority">';
+        echo '<label for="tcd-priority"><strong>Prioridad de Dependiente</strong></label>';
+        echo '<div style="display:flex;align-items:center;gap:12px;max-width:620px;margin-top:8px">';
+        echo '<span>1 · Suave</span>';
+        echo '<input id="tcd-priority" name="priority" type="range" min="1" max="5" step="1" value="'.esc_attr((string)$priority).'" style="flex:1" aria-describedby="tcd-priority-help tcd-priority-value">';
+        echo '<span>5 · Máxima</span>';
+        echo '<output id="tcd-priority-value" for="tcd-priority"><strong>'.esc_html((string)$priority).' · '.esc_html(TCD_Load::label($priority)).'</strong></output>';
+        echo '</div>';
+        echo '<p id="tcd-priority-help" class="description">1 trabaja suavemente a largo plazo; 3 es el equilibrio recomendado; 5 prioriza terminar cuanto antes. Dependiente ajusta automáticamente el tamaño del lote según el coste real de sus peticiones.</p>';
+        echo '<button type="submit" class="button button-primary">Guardar prioridad</button>';
+        if($sample){
+            $cpu=null!==($sample['cpu_percent']??null) ? number_format_i18n((float)$sample['cpu_percent'],1).' % CPU petición' : 'CPU petición no disponible';
+            $memory=isset($sample['memory_peak']) ? size_format(absint($sample['memory_peak'])) : '—';
+            echo '<p class="description" style="margin-top:10px">Último lote: '.esc_html(number_format_i18n(absint($sample['items']??0))).' elementos · '.esc_html($cpu).' · '.esc_html(number_format_i18n((float)($sample['elapsed']??0),2)).' s · pico '.esc_html($memory).' · siguiente lote '.esc_html(number_format_i18n(absint($sample['next_batch']??TCD_Load::batch_size()))).'.</p>';
+        }
+        echo '<script>(function(){var s=document.getElementById("tcd-priority"),o=document.getElementById("tcd-priority-value");if(!s||!o)return;var l={1:"Suave",2:"Baja",3:"Normal",4:"Alta",5:"Máxima"};s.addEventListener("input",function(){o.innerHTML="<strong>"+s.value+" · "+l[s.value]+"</strong>";});})();</script>';
+        echo '</form>';
 
         echo '<div style="background:#fff;border:1px solid #c3c4c7;padding:14px;margin-bottom:16px">';
         echo '<h2 style="margin-top:0">Estado: '.esc_html((string)$state['status']).'</h2>';

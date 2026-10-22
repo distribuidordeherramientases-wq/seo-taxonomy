@@ -15,9 +15,6 @@ final class TCD_Academy {
     const CRON_HOOK='tcd_learning_tick';
     const STATE='tcd_learning_state';
     const LOG='tcd_learning_log';
-    const BATCH=8;
-    const SNAPSHOT_BATCH=25;
-    const CPU_RETRY_SECONDS=30;
     const LOCK='tcd_learning_tick_lock';
     const SCHEMA_OPTION='tcd_learning_schema_version';
     const SCHEMA_VERSION='2.0.0';
@@ -115,7 +112,7 @@ final class TCD_Academy {
             'last_error'=>'',
             'last_message'=>'Preparado para analizar y aprender L1-L10.',
             'updated_at'=>'',
-            'cpu_last'=>array(),
+            'load_last'=>array(),
         );
     }
 
@@ -167,11 +164,11 @@ final class TCD_Academy {
         $action=isset($_POST['tcd_action'])?sanitize_key(wp_unslash($_POST['tcd_action'])):'';
         $state=self::state();
 
-        if('cpu_limit'===$action){
-            $limit=isset($_POST['cpu_limit'])?wp_unslash($_POST['cpu_limit']):'';
-            $updated=TCD_CPU::set_limit($limit);
-            if(is_wp_error($updated))self::log('cpu_limit_invalid',array('error'=>$updated->get_error_message()));
-            else self::log('cpu_limit_saved',array('percent'=>$updated));
+        if('priority'===$action){
+            $priority=isset($_POST['priority'])?wp_unslash($_POST['priority']):'';
+            $updated=TCD_Load::set_priority($priority);
+            if(is_wp_error($updated))self::log('priority_invalid',array('error'=>$updated->get_error_message()));
+            else self::log('priority_saved',array('priority'=>$updated,'label'=>TCD_Load::label($updated)));
         }elseif('stop'===$action){
             update_option('tcd_learning_stop',(string)$state['run_id'],false);
             self::save(array('status'=>'stopped','last_message'=>'Detenido: no se iniciarán más lotes; se conserva la foto fija y el progreso.'));
@@ -210,9 +207,10 @@ final class TCD_Academy {
         }
     }
 
-    private static function queue($delay=3){
+    private static function queue($delay=null){
         if('running'!==self::state()['status'])return;
-        if(!wp_next_scheduled(self::CRON_HOOK))wp_schedule_single_event(time()+max(1,absint($delay)),self::CRON_HOOK);
+        $delay=null===$delay ? TCD_Load::delay() : max(1,absint($delay));
+        if(!wp_next_scheduled(self::CRON_HOOK))wp_schedule_single_event(time()+$delay,self::CRON_HOOK);
         self::nudge_manager($delay);
     }
 
@@ -263,28 +261,32 @@ final class TCD_Academy {
     }
 
     private static function run_one($state){
-        $cpu=TCD_CPU::measure();
-        self::save(array('cpu_last'=>$cpu));
-        if(empty($cpu['available']) || (float)$cpu['percent']>=TCD_CPU::limit()){
-            $message=empty($cpu['available'])?'Esperando una lectura de CPU válida.':'CPU '.(string)$cpu['percent'].' %: límite '.TCD_CPU::limit().' % alcanzado.';
-            self::save(array('last_message'=>$message));
-            self::log('cpu_paused',array('reason'=>$message));
-            self::queue(self::CPU_RETRY_SECONDS);
-            return;
-        }
         $lesson=absint($state['lesson']);
         if($lesson>10){
             self::save(array('status'=>'completed','last_message'=>'Las diez lecciones han terminado y el conocimiento es exportable.'));
             return;
         }
+        $measure=TCD_Load::begin();
+        $processed=0;
         try{
             if('snapshot'===(string)$state['phase']){
-                self::build_snapshot($state);
+                $processed=self::build_snapshot($state);
             }else{
-                self::learn_snapshot($state);
+                $processed=self::learn_snapshot($state);
             }
+            $load=TCD_Load::finish($measure,$processed);
+            self::save(array('load_last'=>$load));
+            self::log('load_sample',array(
+                'priority'=>$load['priority']??0,
+                'batch'=>$load['batch']??0,
+                'next_batch'=>$load['next_batch']??0,
+                'cpu_percent'=>null===$load['cpu_percent']?'n/a':$load['cpu_percent'],
+                'elapsed'=>$load['elapsed']??0,
+                'memory_percent'=>null===$load['memory_percent']?'n/a':$load['memory_percent'],
+            ));
         }catch(Throwable $e){
-            self::save(array('status'=>'error','last_error'=>substr($e->getMessage(),0,400),'last_message'=>'Dependiente detenido por error. La foto fija y el progreso se conservan.'));
+            $load=TCD_Load::finish($measure,$processed);
+            self::save(array('status'=>'error','load_last'=>$load,'last_error'=>substr($e->getMessage(),0,400),'last_message'=>'Dependiente detenido por error. La foto fija y el progreso se conservan.'));
             self::log('learning_error',array('lesson'=>$lesson,'phase'=>$state['phase'],'error'=>substr($e->getMessage(),0,240)));
             error_log('[TaxoCommerce Dependiente] '.substr($e->getMessage(),0,400));
         }
@@ -318,11 +320,11 @@ final class TCD_Academy {
         global $wpdb;
         $lesson=absint($state['lesson']);
         $run=(string)$state['run_id'];
-        if(get_option('tcd_learning_stop','')===$run)return;
+        if(get_option('tcd_learning_stop','')===$run)return 0;
         $snapshot_id=self::ensure_snapshot($state);
         $state=self::state();
         $cursor=absint($state['snapshot_cursor']);
-        $batch=TCD_Sources::batch($lesson,$cursor,self::SNAPSHOT_BATCH);
+        $batch=TCD_Sources::batch($lesson,$cursor,TCD_Load::batch_size());
         if(is_wp_error($batch))throw new RuntimeException($batch->get_error_message());
 
         $sequence=$cursor;
@@ -353,7 +355,7 @@ final class TCD_Academy {
         ));
         self::log('snapshot_batch',array('lesson'=>$lesson,'cursor'=>$next_cursor,'items'=>count((array)$batch['items'])));
 
-        if($more){self::queue();return;}
+        if($more){self::queue();return count((array)$batch['items']);}
 
         $items=self::items_table();
         $count=absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$items} WHERE snapshot_id=%d",$snapshot_id)));
@@ -369,6 +371,7 @@ final class TCD_Academy {
         ));
         self::log('snapshot_sealed',array('lesson'=>$lesson,'snapshot_id'=>$snapshot_id,'sources'=>$count,'signature'=>$signature));
         self::queue();
+        return count((array)$batch['items']);
     }
 
     private static function learn_snapshot($state){
@@ -380,14 +383,14 @@ final class TCD_Academy {
         $items=self::items_table();
         $rows=$wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$items} WHERE snapshot_id=%d AND status='pending' ORDER BY sequence_no ASC,id ASC LIMIT %d",
-            $snapshot_id,self::BATCH
+            $snapshot_id,TCD_Load::batch_size()
         ),ARRAY_A);
 
-        if(!$rows){self::complete_lesson($state);return;}
+        if(!$rows){self::complete_lesson($state);return 0;}
 
         $learned=0;$unlearned=0;$last=absint($state['learning_cursor']);
         foreach($rows as $row){
-            if(get_option('tcd_learning_stop','')===$run)return;
+            if(get_option('tcd_learning_stop','')===$run)return $learned+$unlearned;
             $item=json_decode((string)$row['payload_json'],true);
             $item=is_array($item)?$item:array();
             $reason=TCD_Sources::validate_snapshot($item);
@@ -425,6 +428,7 @@ final class TCD_Academy {
         ));
         self::log('learning_batch',array('lesson'=>$lesson,'snapshot_id'=>$snapshot_id,'cursor'=>$last,'learned'=>$learned,'unlearned'=>$unlearned));
         self::queue();
+        return count($rows);
     }
 
     private static function complete_lesson($state){

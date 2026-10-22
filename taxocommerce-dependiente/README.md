@@ -1,4 +1,4 @@
-# TaxoCommerce Dependiente 0.2.0
+# TaxoCommerce Dependiente 0.2.1
 
 Plugin de la familia TaxoCommerce que conserva el diseño de las diez primeras lecciones del Dependiente anterior, simplificando la arquitectura: **un único servicio Dependiente**, sin presentar Academia ni Entrenador como servicios separados.
 
@@ -53,3 +53,15 @@ No se recuperan como servicios independientes: Academia, Entrenador, Laboratorio
 ## Límite actual
 
 El motor público del plugin independiente todavía debe seguir acercándose al Dependiente V3 antiguo. Esta versión corrige primero la **calidad y auditabilidad del aprendizaje**, para que el motor pueda consumir conocimiento fiable y reproducible.
+
+
+## Prioridad de trabajo
+
+El usuario controla la presión sobre el servidor con un único deslizador de **Prioridad 1–5**:
+- 1: Suave.
+- 2: Baja.
+- 3: Normal (recomendada).
+- 4: Alta.
+- 5: Máxima.
+
+No se exige una métrica global del hosting. Cada lote mide su propio tiempo, CPU de proceso mediante `getrusage()` cuando está disponible, pico de memoria y consultas. El tamaño del siguiente lote se adapta en una escalera discreta; si el coste sube, se reduce aproximadamente a la mitad. Si `getrusage()` no está disponible, el proceso no se bloquea y usa el perfil estático de prioridad.

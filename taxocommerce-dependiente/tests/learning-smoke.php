@@ -6,7 +6,7 @@ $admin=file_get_contents($root.'/includes/class-tcd-admin.php');
 $main=file_get_contents($root.'/taxocommerce-dependiente.php');
 
 $checks=array(
-    strpos($main,'Version: 0.2.0')!==false,
+    strpos($main,'Version: 0.2.1')!==false,
     strpos($academy,'CREATE TABLE {$snapshots}')!==false,
     strpos($academy,'CREATE TABLE {$items}')!==false,
     strpos($academy,"'phase'=>'snapshot'")!==false,
@@ -16,6 +16,11 @@ $checks=array(
     strpos($academy,'self::clear_learning_tables();')!==false,
     strpos($academy,"add_filter('seo_process_supervisor_manager_targets'")!==false,
     strpos($academy,'manager_target_callback')!==false,
+    strpos($academy,'TCD_Load::begin()')!==false,
+    strpos($academy,'TCD_Load::batch_size()')!==false,
+    strpos($admin,'Prioridad de Dependiente')!==false,
+    strpos($admin,'type="range" min="1" max="5"')!==false,
+    strpos($admin,'Límite máximo de CPU para Dependiente')===false,
     strpos($sources,'public static function source_total')!==false,
     strpos($admin,'fuentes analizadas')!==false,
     strpos($academy,'export_json')!==false,
