@@ -37,7 +37,7 @@ final class TCD_Admin {
         }
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
-        echo '<p>Dependiente aprende el catálogo en diez lecciones. Cada lección se analiza primero y se congela en una <strong>foto fija auditable</strong>; después el aprendizaje se realiza exclusivamente sobre esa foto. No hay servicios separados de Academia o Entrenador.</p>';
+        echo '<p>Dependiente aprende el catálogo en diez lecciones. Cada lección se analiza primero y se congela en una <strong>foto fija auditable</strong>; después el aprendizaje se realiza exclusivamente sobre esa foto.</p>';
 
         echo '<p><a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar aprendizaje completo · JSON</a></p>';
 
