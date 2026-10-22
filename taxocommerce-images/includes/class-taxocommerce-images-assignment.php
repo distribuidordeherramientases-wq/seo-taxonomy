@@ -457,7 +457,7 @@ final class TaxoCommerce_Images_Assignment {
 					array(
 						'post_type' => $kind,
 						'post_status' => 'publish',
-						'posts_per_page' => 18,
+						'posts_per_page' => 150,
 						'fields' => 'ids',
 						'orderby' => 'ID',
 						'order' => 'DESC',
