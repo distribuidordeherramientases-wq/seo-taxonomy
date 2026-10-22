@@ -6,7 +6,7 @@
 defined('ABSPATH') || exit;
 
 final class TCT_Router {
-    const CATALOG_VERSION = '0.2.0';
+    const CATALOG_VERSION = '0.3.0';
 
     /**
      * Rutas confirmadas en template-loader.php / template-manager.php y en
@@ -36,7 +36,17 @@ final class TCT_Router {
             'single_post'          => array('Entrada individual', 'template-post.php', 'content', 'automatic'),
             'single_product'       => array('Producto individual', 'template-product.php', 'content', 'automatic'),
             'myaccount'            => array('Mi cuenta', 'template-myaccount.php', 'system', 'automatic'),
-            'error_404'            => array('Pagina 404', 'template-404.php', 'system', 'automatic')
+            'error_404'            => array('Pagina 404', 'template-404.php', 'system', 'automatic'),
+            '404'                  => array('Pagina 404 (alias legacy)', 'template-404.php', 'system', 'automatic'),
+            'category'             => array('Categoria de producto (alias legacy)', 'template-category.php', 'taxonomy', 'automatic'),
+            'product'              => array('Producto (alias legacy)', 'template-product.php', 'content', 'automatic'),
+            'login'                => array('Acceso WordPress (registro legacy)', 'template-login.php', 'system', 'automatic'),
+            'register'             => array('Registro WordPress (registro legacy)', 'template-register.php', 'system', 'automatic'),
+            'lost_password'        => array('Recuperar contrasena (registro legacy)', 'template-lost-password.php', 'system', 'automatic'),
+            'email_processing'     => array('Email pedido procesando (legacy)', 'email-processing.php', 'email', 'automatic'),
+            'email_completed'      => array('Email pedido completado (legacy)', 'email-completed.php', 'email', 'automatic'),
+            'email_refunded'       => array('Email pedido reembolsado (legacy)', 'email-refunded.php', 'email', 'automatic'),
+            'email_cancelled'      => array('Email pedido cancelado (legacy)', 'email-cancelled.php', 'email', 'automatic')
         );
     }
 
