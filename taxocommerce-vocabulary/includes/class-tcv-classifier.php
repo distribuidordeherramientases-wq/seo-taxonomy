@@ -308,6 +308,117 @@ final class TCV_Classifier {
         ) );
     }
 
+    public static function sanitize_filters( $filters ) {
+        $coverage_allowed = array( 'missing_any','without_any','without_type','without_role','without_application','without_platform','without_subtype' );
+        $priority_allowed = array( 'all','p1','p2','p3','p4','p5' );
+        $coverage = sanitize_key( (string) ( $filters['coverage'] ?? 'missing_any' ) );
+        $priority = sanitize_key( (string) ( $filters['priority'] ?? 'all' ) );
+        $rows = absint( $filters['rows'] ?? 25 );
+        if ( ! in_array( $rows, array( 10,25,50,100 ), true ) ) {
+            $rows = 25;
+        }
+        return array(
+            'search'      => sanitize_text_field( (string) ( $filters['search'] ?? '' ) ),
+            'category_id' => absint( $filters['category_id'] ?? 0 ),
+            'coverage'    => in_array( $coverage, $coverage_allowed, true ) ? $coverage : 'missing_any',
+            'priority'    => in_array( $priority, $priority_allowed, true ) ? $priority : 'all',
+            'rows'        => $rows,
+        );
+    }
+
+    private static function missing_groups_for_product( $product_id ) {
+        $current = self::current_groups( $product_id );
+        $missing = array();
+        foreach ( self::GROUPS as $group ) {
+            if ( empty( $current[ $group ] ) ) {
+                $missing[] = $group;
+            }
+        }
+        return $missing;
+    }
+
+    private static function product_matches_filters( $product_id, $filters ) {
+        $missing = self::missing_groups_for_product( $product_id );
+        $coverage = $filters['coverage'];
+        if ( 'missing_any' === $coverage && ! $missing ) {
+            return false;
+        }
+        if ( 'without_any' === $coverage && count( $missing ) < count( self::GROUPS ) ) {
+            return false;
+        }
+        $coverage_group = array(
+            'without_type' => 'tipo',
+            'without_role' => 'rol',
+            'without_application' => 'aplicacion',
+            'without_platform' => 'plataforma',
+            'without_subtype' => 'subtipo',
+        );
+        if ( isset( $coverage_group[ $coverage ] ) && ! in_array( $coverage_group[ $coverage ], $missing, true ) ) {
+            return false;
+        }
+        $priority_group = array( 'p1'=>'tipo','p2'=>'rol','p3'=>'aplicacion','p4'=>'subtipo','p5'=>'plataforma' );
+        if ( isset( $priority_group[ $filters['priority'] ] ) && ! in_array( $priority_group[ $filters['priority'] ], $missing, true ) ) {
+            return false;
+        }
+        return true;
+    }
+
+    public static function analyze_filtered_products( $filters ) {
+        $filters = self::sanitize_filters( $filters );
+        $query_args = array(
+            'post_type'      => 'product',
+            'post_status'    => 'publish',
+            'fields'         => 'ids',
+            'posts_per_page' => min( 500, max( $filters['rows'] * 8, 50 ) ),
+            'orderby'        => 'ID',
+            'order'          => 'ASC',
+            'no_found_rows'  => true,
+        );
+        if ( '' !== $filters['search'] ) {
+            $query_args['s'] = $filters['search'];
+        }
+        if ( $filters['category_id'] ) {
+            $query_args['tax_query'] = array(
+                array(
+                    'taxonomy' => 'product_cat',
+                    'field'    => 'term_id',
+                    'terms'    => array( $filters['category_id'] ),
+                ),
+            );
+        }
+        $query = new WP_Query( $query_args );
+        $results = array();
+        foreach ( (array) $query->posts as $product_id ) {
+            $product_id = absint( $product_id );
+            if ( ! self::product_matches_filters( $product_id, $filters ) ) {
+                continue;
+            }
+            $analysis = self::analyze_product( $product_id );
+            if ( is_wp_error( $analysis ) ) {
+                $results[] = array( 'product_id'=>$product_id, 'error'=>$analysis->get_error_message() );
+            } else {
+                $results[] = $analysis;
+            }
+            if ( count( $results ) >= $filters['rows'] ) {
+                break;
+            }
+        }
+        $report = array(
+            'schema'       => 'taxocommerce_vocabulary_classifier_v1',
+            'version'      => self::VERSION,
+            'generated_gmt'=> current_time( 'mysql', true ),
+            'filters'      => $filters,
+            'processed'    => count( $results ),
+            'results'      => $results,
+        );
+        update_option( 'taxocommerce_vocabulary_classifier_last_report', $report, false );
+        return $report;
+    }
+
+    public static function last_report() {
+        return (array) get_option( 'taxocommerce_vocabulary_classifier_last_report', array() );
+    }
+
     public static function recent_category_proposals( $limit = 100 ) {
         global $wpdb;
         $t = TCV_Schema::tables();
