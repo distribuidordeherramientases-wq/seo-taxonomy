@@ -144,6 +144,37 @@ final class TCT_Template_Editor {
         exit;
     }
 
+    public static function original_for_request($request_key) {
+        $definitions = TCT_Request_Registry::definitions();
+        if (!$request_key || !isset($definitions[$request_key])) {
+            return '';
+        }
+        $ref = (string) $definitions[$request_key][2];
+        if (!preg_match('#^[a-zA-Z0-9][a-zA-Z0-9/_\.-]*\.php$#D', $ref) ||
+            false !== strpos($ref, '..')) {
+            return '';
+        }
+        $group = (string)$definitions[$request_key][1];
+        if (strpos($group, 'WooCommerce -') === 0) {
+            if (function_exists('WC') && WC() && method_exists(WC(), 'plugin_path')) {
+                $path = trailingslashit(WC()->plugin_path()) . 'templates/' . $ref;
+                if (is_file($path) && is_readable($path)) {
+                    return $path;
+                }
+            }
+            return '';
+        }
+        if (function_exists('get_stylesheet_directory') && function_exists('get_template_directory')) {
+            foreach (array(get_stylesheet_directory(), get_template_directory()) as $dir) {
+                $path = trailingslashit($dir) . $ref;
+                if (is_file($path) && is_readable($path)) {
+                    return $path;
+                }
+            }
+        }
+        return '';
+    }
+
     public static function render() {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
@@ -152,12 +183,16 @@ final class TCT_Template_Editor {
         $source = isset($_GET['tct_source']) ? self::safe_name(wp_unslash($_GET['tct_source'])) : '';
         $assign = isset($_GET['tct_assign']) ? sanitize_key(wp_unslash($_GET['tct_assign'])) : '';
         $path = self::source($source);
-        $code = $path ? file_get_contents($path) : '';
+        $original_path = (!$path && $assign) ? self::original_for_request($assign) : '';
+        $code = $path ? file_get_contents($path) : ($original_path ? file_get_contents($original_path) : '');
         if (false === $code) {
             $code = '';
         }
         $bundled = $path && strpos($path, trailingslashit(TCT_DIR . 'templates')) === 0;
         $filename = $bundled ? ('custom-' . $source) : $source;
+        if (!$filename && $assign && $original_path) {
+            $filename = 'custom-' . sanitize_file_name($assign) . '.php';
+        }
         if (!$filename) {
             $filename = 'custom-template.php';
             $code = "<?php\n/**\n * Plantilla independiente TaxoCommerce.\n */\ndefined('ABSPATH') || exit;\nget_header();\n?><main class=\"site-main\">";
@@ -168,6 +203,9 @@ final class TCT_Template_Editor {
         echo '<p>Selecciona cualquier archivo de la biblioteca para ver su contenido, duplicarlo o editarlo. ';
         echo 'Los archivos integrados en el plugin son de <strong>solo lectura</strong>: se guardan como una copia independiente en wp-content.</p>';
         echo '<p>Esta pantalla edita codigo ejecutable. El codigo no se publica si no supera el analizador de sintaxis de PHP; aun asi, puede producir errores en tiempo de ejecucion.</p>';
+        if ($original_path) {
+            echo '<p>Codigo inicial tomado de la plantilla original de WordPress/WooCommerce: <code>' . esc_html(basename($original_path)) . '</code>. Se guardara una copia independiente.</p>';
+        }
         if (!$can_edit) {
             echo '<div class="notice notice-warning"><p>La edicion PHP esta deshabilitada por la configuracion de seguridad o por los permisos del usuario. Puedes consultar archivos, pero no guardarlos.</p></div>';
         }
