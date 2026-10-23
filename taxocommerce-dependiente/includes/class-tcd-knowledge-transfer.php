@@ -227,6 +227,106 @@ final class TCD_Knowledge_Transfer {
 		);
 	}
 
+
+	public static function render_admin_section() {
+		$stats       = self::stats();
+		$report      = self::last_report();
+		$last_import = self::last_import();
+		$learning    = TCD_Academy::state();
+		$busy        = 'running' === (string) ( $learning['status'] ?? '' );
+		?>
+		<section id="tcd-portable-knowledge" style="margin-top:28px;padding:18px;background:#fff;border:1px solid #c3c4c7">
+			<h2 style="margin-top:0"><?php esc_html_e( 'Conocimiento portable · Exportar / Importar', 'taxocommerce-dependiente' ); ?></h2>
+			<p><?php esc_html_e( 'Esta herramienta mueve el conocimiento consolidado de Dependiente sin copiar el índice del catálogo, búsquedas de clientes ni estados temporales. Acepta tanto el export antiguo como el formato del plugin moderno.', 'taxocommerce-dependiente' ); ?></p>
+
+			<div style="display:flex;gap:12px;flex-wrap:wrap;margin:14px 0">
+				<div class="card" style="min-width:155px"><strong style="display:block;font-size:22px"><?php echo esc_html( number_format_i18n( $stats['modern_knowledge'] ) ); ?></strong><?php esc_html_e( 'Conocimiento moderno', 'taxocommerce-dependiente' ); ?></div>
+				<div class="card" style="min-width:155px"><strong style="display:block;font-size:22px"><?php echo esc_html( number_format_i18n( $stats['portable_rules'] ) ); ?></strong><?php esc_html_e( 'Reglas semánticas portables', 'taxocommerce-dependiente' ); ?></div>
+				<div class="card" style="min-width:155px"><strong style="display:block;font-size:22px"><?php echo esc_html( number_format_i18n( $stats['l9_memory'] ) ); ?></strong><?php esc_html_e( 'Señales L9 importadas', 'taxocommerce-dependiente' ); ?></div>
+				<div class="card" style="min-width:155px"><strong style="display:block;font-size:22px"><?php echo esc_html( number_format_i18n( $stats['legacy_lessons'] ) ); ?></strong><?php esc_html_e( 'Lecciones antiguas conservadas', 'taxocommerce-dependiente' ); ?></div>
+			</div>
+
+			<p>
+				<a class="button button-primary" href="<?php echo esc_url( self::export_url() ); ?>"><?php esc_html_e( 'Descargar todo el conocimiento portable', 'taxocommerce-dependiente' ); ?></a>
+				<span class="description"><?php echo esc_html( sprintf( 'Brain ID: %s', self::brain_id() ) ); ?></span>
+			</p>
+
+			<h3><?php esc_html_e( 'Correspondencia antiguo → moderno', 'taxocommerce-dependiente' ); ?></h3>
+			<table class="widefat striped">
+				<thead><tr><th><?php esc_html_e( 'Export antiguo', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Destino moderno', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Tratamiento', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Observación', 'taxocommerce-dependiente' ); ?></th></tr></thead>
+				<tbody>
+				<?php foreach ( self::compatibility_map() as $map ) : ?>
+					<tr>
+						<td><code><?php echo esc_html( $map['legacy'] ); ?></code></td>
+						<td><code><?php echo esc_html( $map['new'] ); ?></code></td>
+						<td><?php echo esc_html( $map['mode'] ); ?></td>
+						<td><?php echo esc_html( $map['note'] ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:18px">
+				<div>
+					<h3><?php esc_html_e( '1. Analizar un export antes de importarlo', 'taxocommerce-dependiente' ); ?></h3>
+					<p><?php esc_html_e( 'No escribe datos. Identifica el formato, cuenta reglas/lecciones/memoria y muestra cómo se transformaría.', 'taxocommerce-dependiente' ); ?></p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
+						<input type="hidden" name="action" value="tcd_knowledge_analyze">
+						<?php wp_nonce_field( 'tcd_knowledge_analyze' ); ?>
+						<p><input type="file" name="knowledge_file" accept=".json,.gz,.json.gz,application/json,application/gzip" required></p>
+						<?php submit_button( __( 'Analizar compatibilidad', 'taxocommerce-dependiente' ), 'secondary', 'submit', false ); ?>
+					</form>
+				</div>
+				<div>
+					<h3><?php esc_html_e( '2. Importar y fusionar', 'taxocommerce-dependiente' ); ?></h3>
+					<p><?php esc_html_e( 'Añade lo que falta y conserva la versión local cuando detecta un conflicto. No elimina conocimiento existente.', 'taxocommerce-dependiente' ); ?></p>
+					<?php if ( $busy ) : ?>
+						<div class="notice notice-warning inline"><p><?php esc_html_e( 'Dependiente está aprendiendo. Detén el proceso antes de importar para mantener una foto coherente.', 'taxocommerce-dependiente' ); ?></p></div>
+					<?php endif; ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
+						<input type="hidden" name="action" value="tcd_knowledge_import">
+						<?php wp_nonce_field( 'tcd_knowledge_import' ); ?>
+						<p><input type="file" name="knowledge_file" accept=".json,.gz,.json.gz,application/json,application/gzip" required <?php disabled( $busy ); ?>></p>
+						<p><label><input type="checkbox" name="confirm_merge" value="1" required <?php disabled( $busy ); ?>> <?php esc_html_e( 'Confirmo que quiero fusionar este conocimiento con el existente.', 'taxocommerce-dependiente' ); ?></label></p>
+						<?php submit_button( __( 'Importar y fusionar conocimiento', 'taxocommerce-dependiente' ), 'primary', 'submit', false, $busy ? array( 'disabled' => 'disabled' ) : array() ); ?>
+					</form>
+				</div>
+			</div>
+
+			<?php if ( $report ) : ?>
+				<h3><?php esc_html_e( 'Resultado de la última comprobación/importación', 'taxocommerce-dependiente' ); ?></h3>
+				<?php if ( ! empty( $report['error'] ) ) : ?>
+					<div class="notice notice-error inline"><p><?php echo esc_html( (string) $report['error'] ); ?></p></div>
+				<?php else : ?>
+					<p><strong><?php esc_html_e( 'Formato:', 'taxocommerce-dependiente' ); ?></strong> <?php echo esc_html( (string) ( $report['schema'] ?? '' ) ); ?>
+					<?php if ( ! empty( $report['source_brain_id'] ) ) : ?> · <strong>Brain ID:</strong> <code><?php echo esc_html( (string) $report['source_brain_id'] ); ?></code><?php endif; ?></p>
+					<table class="widefat striped" style="max-width:900px">
+						<thead><tr><th><?php esc_html_e( 'Bloque', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Filas', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Compatibilidad', 'taxocommerce-dependiente' ); ?></th></tr></thead>
+						<tbody>
+						<?php foreach ( (array) ( $report['counts'] ?? array() ) as $key => $value ) : ?>
+							<tr><td><code><?php echo esc_html( (string) $key ); ?></code></td><td><?php echo esc_html( number_format_i18n( absint( $value ) ) ); ?></td><td><?php echo esc_html( (string) ( $report['compatibility'][ $key ] ?? '—' ) ); ?></td></tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+					<?php if ( ! empty( $report['warning'] ) ) : ?><p class="description"><?php echo esc_html( (string) $report['warning'] ); ?></p><?php endif; ?>
+					<?php if ( ! empty( $report['import'] ) && is_array( $report['import'] ) ) : ?>
+						<h4><?php esc_html_e( 'Fusión realizada', 'taxocommerce-dependiente' ); ?></h4>
+						<table class="widefat striped" style="max-width:900px"><thead><tr><th><?php esc_html_e( 'Almacén', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Insertados', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Idénticos', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Conflictos', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Ignorados', 'taxocommerce-dependiente' ); ?></th></tr></thead><tbody>
+						<?php foreach ( $report['import'] as $store => $values ) : if ( ! is_array( $values ) ) continue; ?>
+							<tr><td><?php echo esc_html( (string) $store ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $values['inserted'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $values['identical'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $values['conflicts'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $values['ignored'] ?? 0 ) ) ); ?></td></tr>
+						<?php endforeach; ?>
+						</tbody></table>
+					<?php endif; ?>
+				<?php endif; ?>
+			<?php endif; ?>
+
+			<?php if ( $last_import ) : ?>
+				<p class="description" style="margin-top:14px"><?php echo esc_html( sprintf( 'Última importación: %s · %s', (string) ( $last_import['imported_at'] ?? '' ), (string) ( $last_import['source_schema'] ?? '' ) ) ); ?></p>
+			<?php endif; ?>
+		</section>
+		<?php
+	}
+
 	public static function export() {
 		if ( ! self::can_manage() ) {
 			wp_die( 'Permisos insuficientes.' );
@@ -305,14 +405,14 @@ final class TCD_Knowledge_Transfer {
 		do {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i WHERE {$id_column} > %d ORDER BY {$id_column} ASC LIMIT 250",
+					"SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT 250",
 					$table,
 					$last
 				),
 				ARRAY_A
 			);
 			foreach ( (array) $rows as $row ) {
-				$last = absint( $row[ $id_column ] ?? 0 );
+				$last = absint( $row['id'] ?? 0 );
 				$out  = call_user_func( $mapper, $row );
 				if ( ! is_array( $out ) ) {
 					continue;
