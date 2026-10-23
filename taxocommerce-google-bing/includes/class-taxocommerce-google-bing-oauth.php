@@ -3,11 +3,16 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TaxoCommerce_Google_Bing_OAuth {
-    const SETTINGS_OPTION = 'seo_google_intelligence_settings';
-    const TOKENS_OPTION   = 'seo_google_intelligence_tokens';
-    const SCOPE           = 'https://www.googleapis.com/auth/webmasters.readonly';
+    const SETTINGS_OPTION        = 'taxocommerce_google_bing_oauth_settings';
+    const TOKENS_OPTION          = 'taxocommerce_google_bing_oauth_tokens';
+    const MIGRATION_OPTION       = 'taxocommerce_google_bing_oauth_migration_v1';
+    const LEGACY_SETTINGS_OPTION = 'seo_google_intelligence_settings';
+    const LEGACY_TOKENS_OPTION   = 'seo_google_intelligence_tokens';
+    const SCOPE                  = 'https://www.googleapis.com/auth/webmasters.readonly';
 
     public static function register() {
+        self::migrate_legacy_oauth();
+
         add_action( 'admin_post_tgb_google_oauth_save', array( __CLASS__, 'save' ) );
         add_action( 'admin_post_tgb_google_oauth_connect', array( __CLASS__, 'connect' ) );
         add_action( 'admin_post_tgb_google_oauth_disconnect', array( __CLASS__, 'disconnect' ) );
@@ -15,6 +20,74 @@ final class TaxoCommerce_Google_Bing_OAuth {
 
         // Keep the historical callback URI so Google Cloud does not need a new redirect URI.
         add_action( 'admin_post_seo_google_oauth_callback', array( __CLASS__, 'callback' ), 0 );
+    }
+
+    /**
+     * Copies the legacy OAuth client configuration and tokens once the modern
+     * plugin is loaded. Existing modern values are never overwritten.
+     */
+    public static function migrate_legacy_oauth() {
+        $copied = array();
+
+        self::copy_legacy_option(
+            self::LEGACY_SETTINGS_OPTION,
+            self::SETTINGS_OPTION,
+            'oauth_settings',
+            $copied
+        );
+        self::copy_legacy_option(
+            self::LEGACY_TOKENS_OPTION,
+            self::TOKENS_OPTION,
+            'oauth_tokens',
+            $copied
+        );
+
+        if ( $copied ) {
+            update_option(
+                self::MIGRATION_OPTION,
+                array(
+                    'version'     => 1,
+                    'copied'      => array_values( $copied ),
+                    'migrated_at' => current_time( 'mysql' ),
+                ),
+                false
+            );
+        }
+    }
+
+    private static function copy_legacy_option( $legacy_name, $modern_name, $label, &$copied ) {
+        $sentinel = '__taxocommerce_missing_option__';
+        $modern = get_option( $modern_name, $sentinel );
+
+        if ( $sentinel !== $modern && ! self::connection_value_is_empty( $modern ) ) {
+            return;
+        }
+
+        $legacy = get_option( $legacy_name, $sentinel );
+        if ( $sentinel === $legacy || self::connection_value_is_empty( $legacy ) ) {
+            return;
+        }
+
+        if ( $sentinel === $modern ) {
+            add_option( $modern_name, $legacy, '', false );
+        } else {
+            update_option( $modern_name, $legacy, false );
+        }
+
+        $copied[] = $label;
+    }
+
+    private static function connection_value_is_empty( $value ) {
+        if ( is_array( $value ) ) {
+            foreach ( $value as $item ) {
+                if ( ! self::connection_value_is_empty( $item ) ) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return null === $value || false === $value || '' === trim( (string) $value );
     }
 
     public static function settings() {
@@ -79,6 +152,11 @@ final class TaxoCommerce_Google_Bing_OAuth {
         echo '<span class="tgb-badge tgb-' . esc_attr( $label[1] ) . '">' . esc_html( $label[0] ) . '</span></div>';
 
         self::notice();
+
+        $migration = get_option( self::MIGRATION_OPTION, array() );
+        if ( is_array( $migration ) && ! empty( $migration['copied'] ) ) {
+            echo '<div class="notice notice-success inline"><p><strong>OAuth antiguo migrado al plugin moderno.</strong></p></div>';
+        }
 
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_google_oauth_save">';
