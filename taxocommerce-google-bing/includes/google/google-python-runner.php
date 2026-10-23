@@ -232,7 +232,7 @@ if ( ! function_exists( 'seo_google_python_runner_save_settings' ) ) {
             if ( ! is_array( $decoded ) || empty( $decoded['client_email'] ) || empty( $decoded['private_key'] ) ) {
                 wp_safe_redirect(
                     add_query_arg(
-                        [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'conexiones-proveedores', 'google_python_error' => 'credentials' ],
+                        [ 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections', 'google_python_error' => 'credentials' ],
                         admin_url( 'admin.php' )
                     )
                 );
@@ -244,7 +244,7 @@ if ( ! function_exists( 'seo_google_python_runner_save_settings' ) ) {
         if ( '' === $project || '' === $region || '' === $job ) {
             wp_safe_redirect(
                 add_query_arg(
-                    [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'conexiones-proveedores', 'google_python_error' => 'fields' ],
+                    [ 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections', 'google_python_error' => 'fields' ],
                     admin_url( 'admin.php' )
                 )
             );
@@ -265,7 +265,7 @@ if ( ! function_exists( 'seo_google_python_runner_save_settings' ) ) {
 
         wp_safe_redirect(
             add_query_arg(
-                [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'conexiones-proveedores', 'google_python_saved' => '1' ],
+                [ 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections', 'google_python_saved' => '1' ],
                 admin_url( 'admin.php' )
             )
         );
@@ -427,7 +427,7 @@ if ( ! function_exists( 'seo_google_python_runner_handle_launch' ) ) {
 
         wp_safe_redirect(
             add_query_arg(
-                [ 'page' => 'seo-import-export', 'seo_ie_tab' => 'conexiones-proveedores' ],
+                [ 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections' ],
                 admin_url( 'admin.php' )
             )
         );
