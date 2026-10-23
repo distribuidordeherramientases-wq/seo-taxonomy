@@ -99,21 +99,49 @@ final class TaxoCommerce_Google_Bing_Reports {
             delete_transient( $notice_key );
         }
 
+        $snapshots = self::saved_reports( $source );
         $snapshot = self::get_saved_snapshot( $source, $ranges['current']['start'], $ranges['current']['end'] );
+        if ( null === $snapshot && ! empty( $snapshots ) ) {
+            $snapshot = end( $snapshots );
+            echo '<div class="notice notice-info inline"><p>No hay un informe guardado para las fechas solicitadas. Se muestra la última copia disponible, sin descargar datos nuevos.</p></div>';
+        }
+
+        if ( ! empty( $snapshots ) ) {
+            echo '<div class="tgb-history"><strong>Informes guardados:</strong> ';
+            foreach ( array_reverse( $snapshots, true ) as $saved ) {
+                $saved_current = (array) $saved['current'];
+                $link = add_query_arg(
+                    array(
+                        'page' => 'taxocommerce-google-bing',
+                        'tgb_tab' => $source,
+                        'period' => 'custom',
+                        'start' => $saved_current['start'],
+                        'end' => $saved_current['end'],
+                    ),
+                    admin_url( 'admin.php' )
+                );
+                echo '<a class="button button-small" href="' . esc_url( $link ) . '">' . esc_html( $saved_current['start'] . ' / ' . $saved_current['end'] ) . '</a> ';
+            }
+            echo '</div>';
+        }
+
         if ( null === $snapshot ) {
-            echo '<div class="notice notice-info inline"><p>Todavía no hay datos descargados para estas fechas. Pulsa «Descargar informe» para consultar la API y guardar una copia.</p></div>';
+            echo '<div class="notice notice-info inline"><p>Todavía no hay datos guardados. Pulsa «Descargar informe» para consultar la API.</p></div>';
             self::styles();
             echo '</div>';
             return;
         }
 
-        echo '<p class="description">Informe guardado el ' . esc_html( wp_date( 'd/m/Y H:i', (int) $snapshot['downloaded_at'] ) ) . '. Estos datos se muestran sin conexiones externas.</p>';
+        echo '<p class="description">Informe del ' . esc_html( $snapshot['current']['label'] )
+            . ', comparado con ' . esc_html( $snapshot['previous']['label'] )
+            . '. Descargado el ' . esc_html( wp_date( 'd/m/Y H:i', (int) $snapshot['downloaded_at'] ) )
+            . '. Copia local, sin conexiones externas.</p>';
         $args = array(
             'action'  => 'tgb_export_report',
             'source'  => $source,
-            'period'  => $selection['period'],
-            'start'   => $ranges['current']['start'],
-            'end'     => $ranges['current']['end'],
+            'period'  => 'custom',
+            'start'   => $snapshot['current']['start'],
+            'end'     => $snapshot['current']['end'],
         );
         $export = wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), 'tgb_export_report_' . $source );
         echo '<p><a class="button" href="' . esc_url( $export ) . '">Exportar copia JSON</a></p>';
@@ -1343,6 +1371,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         .tgb-custom-range{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 10px}
         .tgb-custom-range label{display:inline-flex;align-items:center;gap:6px}
         .tgb-download-form{margin:14px 0}
+        .tgb-history{margin:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:5px}
         .tgb-rank-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}
         .tgb-rank-card h3{margin:0 0 10px;font-size:15px}
         .tgb-table-scroll{max-width:100%;overflow-x:auto}
