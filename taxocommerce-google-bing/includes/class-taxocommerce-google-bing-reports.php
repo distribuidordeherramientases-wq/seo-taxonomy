@@ -22,6 +22,16 @@ final class TaxoCommerce_Google_Bing_Reports {
         add_action( 'admin_post_tgb_export_report', array( __CLASS__, 'export_report' ) );
     }
 
+    private static function source_tab( $source ) {
+        if ( 'search' === $source ) {
+            return 'google_search';
+        }
+        if ( 'analytics' === $source ) {
+            return 'google_analytics';
+        }
+        return 'bing';
+    }
+
     public static function saved_reports( $source ) {
         if ( ! in_array( $source, array( 'analytics', 'search', 'bing' ), true ) ) {
             return array();
@@ -64,7 +74,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         echo '<div class="tgb-periods">';
         foreach ( array( 7 => '7 días', 30 => '30 días', 90 => '90 días' ) as $period => $label ) {
             $url = add_query_arg(
-                array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => $source, 'period' => $period ),
+                array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => self::source_tab( $source ), 'period' => $period ),
                 admin_url( 'admin.php' )
             );
             echo '<a class="button ' . ( (string) $period === $selection['period'] ? 'button-primary' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
@@ -72,7 +82,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         echo '</div></div>';
         echo '<form class="tgb-custom-range" method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '">';
         echo '<input type="hidden" name="page" value="taxocommerce-google-bing">';
-        echo '<input type="hidden" name="tgb_tab" value="' . esc_attr( $source ) . '">';
+        echo '<input type="hidden" name="tgb_tab" value="' . esc_attr( self::source_tab( $source ) ) . '">';
         echo '<input type="hidden" name="period" value="custom">';
         echo '<label>Desde <input type="date" name="start" value="' . esc_attr( $ranges['current']['start'] ) . '" required></label>';
         echo '<label>Hasta <input type="date" name="end" value="' . esc_attr( $ranges['current']['end'] ) . '" required></label>';
@@ -113,7 +123,7 @@ final class TaxoCommerce_Google_Bing_Reports {
                 $link = add_query_arg(
                     array(
                         'page' => 'taxocommerce-google-bing',
-                        'tgb_tab' => $source,
+                        'tgb_tab' => self::source_tab( $source ),
                         'period' => 'custom',
                         'start' => $saved_current['start'],
                         'end' => $saved_current['end'],
@@ -248,7 +258,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         );
         $params = array(
             'page'    => 'taxocommerce-google-bing',
-            'tgb_tab' => $source,
+            'tgb_tab' => self::source_tab( $source ),
             'period'  => $selection['period'] ?? '30',
         );
         if ( 'custom' === $params['period'] ) {
