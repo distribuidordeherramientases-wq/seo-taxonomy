@@ -57,6 +57,10 @@ final class TaxoCommerce_Google_Bing_Connections {
         return $settings;
     }
 
+    public static function bing_api_key_value() {
+        return self::bing_api_key( self::bing_settings() );
+    }
+
     public static function merchant_account() {
         $id = trim( (string) get_option( self::MERCHANT_ACCOUNT_OPTION, '' ) );
         return preg_match( '/^[0-9]{5,20}$/', $id ) ? $id : '';
