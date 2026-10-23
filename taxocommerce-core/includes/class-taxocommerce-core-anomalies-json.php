@@ -359,7 +359,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_set_notice')) {
 
 if (!function_exists('taxocommerce_core_anomalies_json_redirect')) {
     function taxocommerce_core_anomalies_json_redirect() {
-        wp_safe_redirect(admin_url('admin.php?page=taxocommerce-core-anomalies'));
+        wp_safe_redirect(admin_url('admin.php?page=taxocommerce-core-content&tc_type=anomalies'));
         exit;
     }
 }
