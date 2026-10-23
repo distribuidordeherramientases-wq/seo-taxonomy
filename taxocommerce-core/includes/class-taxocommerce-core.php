@@ -163,17 +163,20 @@ final class TaxoCommerce_Core {
 			58
 		);
 
+		// Keep a single visible entry in the WordPress sidebar. The dashboard
+		// cards are the navigation for Core modules.
 		add_submenu_page(
 			'taxocommerce-core',
-			__( 'Inicio', 'taxocommerce-core' ),
-			__( 'Inicio', 'taxocommerce-core' ),
+			__( 'TaxoCommerce Core', 'taxocommerce-core' ),
+			__( 'TaxoCommerce Core', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core',
 			array( $this, 'render_dashboard' )
 		);
 
+		// Register module screens without showing duplicate sidebar entries.
 		add_submenu_page(
-			'taxocommerce-core',
+			null,
 			__( 'Contenidos', 'taxocommerce-core' ),
 			__( 'Contenidos', 'taxocommerce-core' ),
 			$capability,
@@ -182,7 +185,7 @@ final class TaxoCommerce_Core {
 		);
 
 		add_submenu_page(
-			'taxocommerce-core',
+			null,
 			__( 'Jerarquía SEO', 'taxocommerce-core' ),
 			__( 'Jerarquía SEO', 'taxocommerce-core' ),
 			$capability,
@@ -191,7 +194,7 @@ final class TaxoCommerce_Core {
 		);
 
 		add_submenu_page(
-			'taxocommerce-core',
+			null,
 			__( 'Gestor de menús', 'taxocommerce-core' ),
 			__( 'Gestor de menús', 'taxocommerce-core' ),
 			$capability,
@@ -199,16 +202,14 @@ final class TaxoCommerce_Core {
 			array( $this->menu, 'render' )
 		);
 
-
 		add_submenu_page(
-			'taxocommerce-core',
+			null,
 			__( 'Extensiones', 'taxocommerce-core' ),
 			__( 'Extensiones', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core-modules',
 			array( $this, 'render_modules' )
 		);
-
 	}
 
 	/**
