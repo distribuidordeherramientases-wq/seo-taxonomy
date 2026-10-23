@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Google/Bing
  * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
- * Version: 0.6.2
+ * Version: 0.7.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.6.2' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.7.0' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -22,12 +22,18 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-market-sources.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-market.php';
+
+register_activation_hook( __FILE__, array( 'TaxoCommerce_Google_Bing_Market', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'TaxoCommerce_Google_Bing_Market', 'deactivate' ) );
 
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
     TaxoCommerce_Google_Bing_OAuth::register();
     TaxoCommerce_Google_Bing_Reports::register();
     TaxoCommerce_Google_Bing_Trends::register();
+    TaxoCommerce_Google_Bing_Market::register();
 
     add_action( 'taxocommerce_core_register_modules', 'taxocommerce_google_bing_register_with_core' );
     if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
@@ -49,7 +55,7 @@ function taxocommerce_google_bing_register_with_core( $core ) {
             'name'        => 'TaxoCommerce Google/Bing',
             'version'     => TAXOCOMMERCE_GOOGLE_BING_VERSION,
             'status'      => 'active',
-            'description' => 'Conexiones e informes manuales de Google Analytics, Search Console, Bing Webmaster y Google Trends.',
+            'description' => 'Conexiones, informes manuales de Google/Bing y Mercado independiente por categorías.',
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-google-bing' ),
         )
     );
@@ -93,7 +99,7 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'google_search', 'google_analytics', 'bing', 'google_trends' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'google_search', 'google_analytics', 'bing', 'google_trends', 'mercado' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -107,6 +113,7 @@ function taxocommerce_google_bing_screen() {
             'google_analytics' => 'Google Analytics',
             'bing'             => 'Bing',
             'google_trends'    => 'Google Trends',
+            'mercado'          => 'Mercado',
         ) as $key => $label
     ) {
         $url = add_query_arg(
@@ -125,6 +132,8 @@ function taxocommerce_google_bing_screen() {
         TaxoCommerce_Google_Bing_Connections::render();
     } elseif ( 'google_trends' === $tab ) {
         TaxoCommerce_Google_Bing_Trends::render();
+    } elseif ( 'mercado' === $tab ) {
+        TaxoCommerce_Google_Bing_Market::render();
     } else {
         $source = 'google_search' === $tab ? 'search' : ( 'google_analytics' === $tab ? 'analytics' : 'bing' );
         TaxoCommerce_Google_Bing_Reports::render( $source );
