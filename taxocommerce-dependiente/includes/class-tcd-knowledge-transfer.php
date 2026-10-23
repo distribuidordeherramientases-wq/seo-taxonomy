@@ -173,12 +173,12 @@ final class TCD_Knowledge_Transfer {
 		$lessons   = self::legacy_lessons_table();
 
 		return array(
-			'modern_knowledge' => absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$knowledge}" ) ),
-			'modern_learned'   => absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$knowledge} WHERE status='learned'" ) ),
-			'modern_unlearned' => absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$knowledge} WHERE status='unlearned'" ) ),
-			'portable_rules'   => absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$rules} WHERE active=1" ) ),
-			'l9_memory'        => absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$l9} WHERE active=1" ) ),
-			'legacy_lessons'   => absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$lessons}" ) ),
+			'modern_knowledge' => absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $knowledge ) ) ),
+			'modern_learned'   => absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status='learned'", $knowledge ) ) ),
+			'modern_unlearned' => absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status='unlearned'", $knowledge ) ) ),
+			'portable_rules'   => absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE active=1', $rules ) ) ),
+			'l9_memory'        => absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE active=1', $l9 ) ) ),
+			'legacy_lessons'   => absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $lessons ) ) ),
 		);
 	}
 
@@ -190,6 +190,66 @@ final class TCD_Knowledge_Transfer {
 	public static function last_import() {
 		$value = get_option( self::LAST_IMPORT, array() );
 		return is_array( $value ) ? $value : array();
+	}
+
+
+	public static function field_map() {
+		return array(
+			'Reglas semánticas' => array(
+				'rule_key'              => 'tcd_portable_rules.rule_key',
+				'rule_type'             => 'tcd_portable_rules.rule_type',
+				'expression'            => 'tcd_portable_rules.expression',
+				'normalized_expression' => 'tcd_portable_rules.normalized_expression',
+				'canonical_expression'  => 'tcd_portable_rules.canonical_expression',
+				'match_type'            => 'tcd_portable_rules.match_type',
+				'semantic_role'         => 'tcd_portable_rules.semantic_role',
+				'source_group'          => 'tcd_portable_rules.source_group',
+				'source_slug'           => 'tcd_portable_rules.source_slug',
+				'context_group'         => 'tcd_portable_rules.context_group',
+				'context_slug'          => 'tcd_portable_rules.context_slug',
+				'target_group'          => 'tcd_portable_rules.target_group',
+				'target_slug'           => 'tcd_portable_rules.target_slug',
+				'relation_type'         => 'tcd_portable_rules.relation_type',
+				'result_role'           => 'tcd_portable_rules.result_role',
+				'weight'                => 'tcd_portable_rules.weight',
+				'priority'              => 'tcd_portable_rules.priority',
+				'confidence'            => 'tcd_portable_rules.confidence',
+				'language'              => 'tcd_portable_rules.language',
+				'source'                => 'tcd_portable_rules.source',
+				'metadata'              => 'tcd_portable_rules.metadata (limpiada de sesión/IP/email/usuario/log)',
+				'active'                => 'tcd_portable_rules.active',
+				'created_at'            => 'tcd_portable_rules.created_at',
+				'updated_at'            => 'tcd_portable_rules.updated_at (fecha de fusión)',
+				'rule_hash'             => 'tcd_portable_rules.rule_hash (recalculado para detectar equivalencias/conflictos)',
+			),
+			'Memoria L9' => array(
+				'lesson_key'        => 'tcd_l9_memory.lesson_key',
+				'product_id'        => 'tcd_l9_memory.product_id',
+				'signal_type'       => 'tcd_l9_memory.signal_type',
+				'signal_text'       => 'tcd_l9_memory.signal_text',
+				'normalized_signal' => 'tcd_l9_memory.normalized_signal',
+				'semantic_group'    => 'tcd_l9_memory.semantic_group',
+				'vocabulary_id'     => 'tcd_l9_memory.vocabulary_id',
+				'weight'            => 'tcd_l9_memory.weight',
+				'source_hash'       => 'tcd_l9_memory.source_hash',
+				'metadata'          => 'tcd_l9_memory.metadata (limpiada de datos privados)',
+				'active'            => 'tcd_l9_memory.active',
+			),
+			'Lecciones antiguas completadas' => array(
+				'lesson_key'      => 'tcd_legacy_lessons.lesson_key',
+				'lesson_order'    => 'tcd_legacy_lessons.lesson_order',
+				'title'           => 'tcd_legacy_lessons.title',
+				'status'          => 'tcd_legacy_lessons.status',
+				'module_size'     => 'tcd_legacy_lessons.module_size',
+				'module_count'    => 'tcd_legacy_lessons.module_count',
+				'item_count'      => 'tcd_legacy_lessons.item_count',
+				'completed_items' => 'tcd_legacy_lessons.completed_items',
+				'snapshot_before' => 'tcd_legacy_lessons.snapshot_before',
+				'snapshot_after'  => 'tcd_legacy_lessons.snapshot_after',
+				'metadata'        => 'tcd_legacy_lessons.metadata',
+				'completed_at'    => 'tcd_legacy_lessons.completed_at',
+			),
+		);
 	}
 
 	public static function compatibility_map() {
@@ -265,6 +325,21 @@ final class TCD_Knowledge_Transfer {
 				<?php endforeach; ?>
 				</tbody>
 			</table>
+
+			<details style="margin:14px 0">
+				<summary><strong><?php esc_html_e( 'Ver correspondencia campo por campo', 'taxocommerce-dependiente' ); ?></strong></summary>
+				<?php foreach ( self::field_map() as $group => $fields ) : ?>
+					<h4><?php echo esc_html( $group ); ?></h4>
+					<table class="widefat striped" style="max-width:1000px">
+						<thead><tr><th><?php esc_html_e( 'Campo antiguo', 'taxocommerce-dependiente' ); ?></th><th><?php esc_html_e( 'Destino / transformación moderna', 'taxocommerce-dependiente' ); ?></th></tr></thead>
+						<tbody>
+						<?php foreach ( $fields as $old_field => $new_field ) : ?>
+							<tr><td><code><?php echo esc_html( $old_field ); ?></code></td><td><code><?php echo esc_html( $new_field ); ?></code></td></tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				<?php endforeach; ?>
+			</details>
 
 			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:18px">
 				<div>
@@ -1037,7 +1112,9 @@ final class TCD_Knowledge_Transfer {
 	}
 
 	private static function normalize_phrase( $value ) {
-		$value = remove_accents( mb_strtolower( trim( wp_strip_all_tags( (string) $value ) ), 'UTF-8' ) );
+		$value = trim( wp_strip_all_tags( (string) $value ) );
+		$value = function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value );
+		$value = remove_accents( $value );
 		$value = preg_replace( '/[^\p{L}\p{N}]+/u', ' ', $value );
 		return trim( preg_replace( '/\s+/u', ' ', (string) $value ) );
 	}
