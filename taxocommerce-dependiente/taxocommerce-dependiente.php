@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Dependiente
  * Description: Dependiente para WooCommerce con diez lecciones auditables, foto fija previa, aprendizaje semántico y exportación JSON.
- * Version: 0.2.1
+ * Version: 0.2.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,13 +11,14 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.2.1' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.2.2' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-load.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-sources.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-academy.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-knowledge-transfer.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-search.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-admin.php';
 
@@ -26,6 +27,7 @@ add_action( 'plugins_loaded', static function () {
         return;
     }
     TCD_Academy::boot();
+    TCD_Knowledge_Transfer::boot();
     TCD_Search::boot();
     TCD_Admin::boot();
 }, 30 );
@@ -44,6 +46,7 @@ add_action( 'taxocommerce_core_register_modules', static function ( $core ) {
 
 register_activation_hook( __FILE__, static function () {
     TCD_Academy::install();
+    TCD_Knowledge_Transfer::install();
 } );
 register_deactivation_hook( __FILE__, static function () {
     wp_clear_scheduled_hook( TCD_Academy::CRON_HOOK );
