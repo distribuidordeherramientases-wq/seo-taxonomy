@@ -13,6 +13,7 @@
     const results = document.getElementById('tgb-trends-results');
     const link = document.getElementById('tgb-trends-open-google');
     const errorBox = document.getElementById('tgb-trends-validation');
+    const emptyBox = document.getElementById('tgb-trends-empty');
     if (!form || !results || !link || !errorBox) {
         return;
     }
@@ -190,6 +191,7 @@
             'Si Google no permite mostrar alguno o limita las consultas, utiliza el enlace a Google Trends; ' +
             'el plugin no genera datos sustitutivos ni consulta el RSS genérico.');
         results.replaceChildren(header, ...widgets, warning);
+        if (emptyBox) { emptyBox.hidden = true; }
         results.hidden = false;
         link.href = sourceLink.href;
         if (typeof results.scrollIntoView === 'function') {
