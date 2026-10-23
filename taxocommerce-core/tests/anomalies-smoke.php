@@ -25,7 +25,11 @@ $checks = array(
     strpos($report, 'Categorías de producto con 0 productos') !== false,
     strpos($report, 'FAQs sin elemento relacionado') !== false,
     strpos($json, "'seo-anomalias-contenidos'") !== false,
-    strpos($json, 'taxocommerce_core_anomalies_content_json_import_handler') !== false,
+    strpos($json, 'taxocommerce_core_anomalies_content_json_import_handler') === false,
+    strpos($json, 'admin_post_taxocommerce_core_anomalies_content_json_import') === false,
+    strpos($json, 'Importar JSON') === false,
+    strpos($json, 'taxocommerce_core_anomalies_content_json_export_handler') !== false,
+    strpos($json, 'Descargar JSON') !== false,
     strpos($original, 'function seo_render_anomalies_report()') !== false,
 );
 foreach ($checks as $index => $ok) {
