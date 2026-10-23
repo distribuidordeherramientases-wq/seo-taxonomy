@@ -221,6 +221,9 @@ final class TCD_Knowledge_Transfer {
 				'created_at'            => 'tcd_portable_rules.created_at',
 				'updated_at'            => 'tcd_portable_rules.updated_at (fecha de fusión)',
 				'rule_hash'             => 'tcd_portable_rules.rule_hash (recalculado para detectar equivalencias/conflictos)',
+				'source_vocabulary_id'  => 'No se copia: el export antiguo ya lo sustituía por source_group + source_slug',
+				'context_vocabulary_id' => 'No se copia: se transporta por context_group + context_slug',
+				'target_vocabulary_id'  => 'No se copia: se transporta por target_group + target_slug',
 			),
 			'Memoria L9' => array(
 				'lesson_key'        => 'tcd_l9_memory.lesson_key',
