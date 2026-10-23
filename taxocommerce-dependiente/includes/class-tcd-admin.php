@@ -116,6 +116,8 @@ final class TCD_Admin {
 
         echo '<h2>Asistente</h2><p>El shortcode <code>[taxocommerce_dependiente]</code> ofrece la interfaz pública. El aprendizaje de L1-L10 alimenta el conocimiento propio del plugin y queda disponible para su motor de respuesta.</p>';
         echo '<p>L6 utiliza directamente las FAQs canónicas de TaxoCommerce FAQs (<code>seo_faq</code>) y su categoría/propietario; no exige un CPT FAQ artificial.</p>';
+
+        TCD_Knowledge_Transfer::render_admin_section();
         echo '</div>';
     }
 }
