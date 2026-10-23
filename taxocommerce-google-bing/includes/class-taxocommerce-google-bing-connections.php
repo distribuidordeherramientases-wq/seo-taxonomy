@@ -11,6 +11,8 @@ final class TaxoCommerce_Google_Bing_Connections {
         add_action( 'admin_post_tgb_test_google', array( __CLASS__, 'test_google' ) );
         add_action( 'admin_post_tgb_save_bing', array( __CLASS__, 'save_bing' ) );
         add_action( 'admin_post_tgb_test_bing', array( __CLASS__, 'test_bing' ) );
+        add_action( 'admin_post_tgb_google_python_save', array( __CLASS__, 'save_google_python' ) );
+        add_action( 'admin_post_tgb_google_python_test', array( __CLASS__, 'test_google_python' ) );
     }
 
     public static function google_settings() {
@@ -110,6 +112,39 @@ final class TaxoCommerce_Google_Bing_Connections {
         submit_button( 'Guardar Merchant', 'primary', 'submit', false );
         echo '</form>';
         echo '<p><a class="button" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'merchant' ), admin_url( 'admin.php' ) ) ) . '">Abrir informes Merchant</a></p>';
+        echo '</section>';
+
+        echo '<section class="tgb-card">';
+        echo '<div class="tgb-card-head"><div><h2>Google Cloud Run · Python Runner</h2><p>Conexión para ejecutar trabajos Python remotos y devolver resultados a TaxoCommerce.</p></div>';
+        $python = function_exists( 'seo_google_python_runner_settings' ) ? seo_google_python_runner_settings() : array();
+        $python_account = function_exists( 'seo_google_python_runner_service_account' ) ? seo_google_python_runner_service_account() : null;
+        $python_ready = ! empty( $python['enabled'] )
+            && ! empty( $python['project_id'] )
+            && ! empty( $python['region'] )
+            && ! empty( $python['job_name'] )
+            && ! is_wp_error( $python_account );
+        echo self::badge( $python_ready ? 'Configurado' : 'Sin configurar', $python_ready ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo '</div>';
+        if ( ! is_wp_error( $python_account ) && is_array( $python_account ) && ! empty( $python_account['client_email'] ) ) {
+            echo '<p><strong>Cuenta de servicio:</strong> <code>' . esc_html( (string) $python_account['client_email'] ) . '</code></p>';
+        }
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="tgb_google_python_save">';
+        wp_nonce_field( 'tgb_google_python_save' );
+        echo '<table class="form-table" role="presentation">';
+        echo '<tr><th>Estado</th><td><label><input type="checkbox" name="enabled" value="1" ' . checked( ! empty( $python['enabled'] ), true, false ) . '> Activar Google Python Runner</label></td></tr>';
+        echo '<tr><th><label for="tgb_python_project">Google Cloud Project ID</label></th><td><input id="tgb_python_project" type="text" class="regular-text" name="project_id" value="' . esc_attr( (string) ( $python['project_id'] ?? '' ) ) . '" placeholder="mi-proyecto-google"></td></tr>';
+        echo '<tr><th><label for="tgb_python_region">Región</label></th><td><input id="tgb_python_region" type="text" class="regular-text" name="region" value="' . esc_attr( (string) ( $python['region'] ?? 'europe-west1' ) ) . '" placeholder="europe-west1"></td></tr>';
+        echo '<tr><th><label for="tgb_python_job">Cloud Run Job</label></th><td><input id="tgb_python_job" type="text" class="regular-text" name="job_name" value="' . esc_attr( (string) ( $python['job_name'] ?? 'seo-supplier-scraper' ) ) . '" placeholder="seo-supplier-scraper"></td></tr>';
+        echo '<tr><th><label for="tgb_python_json">Cuenta de servicio JSON</label></th><td><textarea id="tgb_python_json" class="large-text code" rows="7" name="service_account_json" placeholder="' . esc_attr( ! empty( $python['service_account_json'] ) ? 'Credencial ya configurada. Déjala vacía para conservarla.' : 'Pega aquí el JSON de la cuenta de servicio de Cloud Run.' ) . '"></textarea></td></tr>';
+        echo '</table>';
+        submit_button( 'Guardar Google Cloud Run', 'primary', 'submit', false );
+        echo '</form>';
+        echo '<form class="tgb-test-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="tgb_google_python_test">';
+        wp_nonce_field( 'tgb_google_python_test' );
+        submit_button( 'Probar Google Cloud Run', 'secondary', 'submit', false );
+        echo '</form>';
         echo '</section>';
 
         echo '<section class="tgb-card">';
@@ -263,6 +298,71 @@ final class TaxoCommerce_Google_Bing_Connections {
         }
 
         return is_array( $data ) ? $data : array();
+    }
+
+    public static function save_google_python() {
+        self::guard( 'tgb_google_python_save' );
+
+        $current = function_exists( 'seo_google_python_runner_settings' )
+            ? seo_google_python_runner_settings()
+            : array();
+
+        $project = isset( $_POST['project_id'] ) ? sanitize_text_field( wp_unslash( $_POST['project_id'] ) ) : '';
+        $region  = isset( $_POST['region'] ) ? sanitize_key( wp_unslash( $_POST['region'] ) ) : '';
+        $job     = isset( $_POST['job_name'] ) ? sanitize_key( wp_unslash( $_POST['job_name'] ) ) : '';
+
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Service account JSON must preserve PEM newlines and is structurally validated.
+        $raw = isset( $_POST['service_account_json'] ) ? trim( (string) wp_unslash( $_POST['service_account_json'] ) ) : '';
+        $json = (string) ( $current['service_account_json'] ?? '' );
+        if ( '' !== $raw ) {
+            $decoded = json_decode( $raw, true );
+            if ( ! is_array( $decoded ) || empty( $decoded['client_email'] ) || empty( $decoded['private_key'] ) ) {
+                self::redirect( 'google_python_credentials_invalid', 'error' );
+            }
+            $json = wp_json_encode( $decoded, JSON_UNESCAPED_SLASHES );
+        }
+
+        if ( '' === $project || '' === $region || '' === $job ) {
+            self::redirect( 'google_python_fields_missing', 'error' );
+        }
+
+        update_option(
+            'seo_google_python_runner_settings',
+            array(
+                'enabled'              => ! empty( $_POST['enabled'] ) ? 1 : 0,
+                'project_id'           => $project,
+                'region'               => $region,
+                'job_name'             => $job,
+                'service_account_json' => $json,
+            ),
+            false
+        );
+
+        self::redirect( 'google_python_saved', 'success' );
+    }
+
+    public static function test_google_python() {
+        self::guard( 'tgb_google_python_test' );
+        if ( ! function_exists( 'seo_google_python_runner_test_connection' ) ) {
+            self::store_test_error( 'google_python', 'El servicio Google Python Runner no está cargado.' );
+            self::redirect( 'google_python_test_failed', 'error' );
+        }
+
+        $result = seo_google_python_runner_test_connection();
+        if ( empty( $result['ok'] ) ) {
+            self::store_test_error(
+                'google_python',
+                implode( ' ', array_map( 'sanitize_text_field', (array) ( $result['messages'] ?? array( 'Prueba fallida.' ) ) ) )
+            );
+            self::redirect( 'google_python_test_failed', 'error' );
+        }
+
+        set_transient(
+            'tgb_google_python_test_message_' . get_current_user_id(),
+            implode( ' ', array_map( 'sanitize_text_field', (array) ( $result['messages'] ?? array() ) ) ),
+            2 * MINUTE_IN_SECONDS
+        );
+        self::redirect( 'google_python_test_ok', 'success' );
     }
 
     public static function test_google() {
@@ -520,6 +620,11 @@ final class TaxoCommerce_Google_Bing_Connections {
             'google_measurement_invalid' => 'El Measurement ID no tiene un formato válido.',
             'google_credentials_invalid' => 'El JSON de la cuenta de servicio no es válido.',
             'google_test_failed'         => 'La prueba de Google ha fallado.',
+            'google_python_saved'         => 'Configuración de Google Cloud Run guardada.',
+            'google_python_test_ok'       => 'Conexión Google Cloud Run verificada.',
+            'google_python_test_failed'   => 'La prueba de Google Cloud Run ha fallado.',
+            'google_python_credentials_invalid' => 'El JSON de la cuenta de servicio de Google Cloud Run no es válido.',
+            'google_python_fields_missing' => 'Project ID, región y Cloud Run Job son obligatorios.',
             'bing_saved'                 => 'Configuración de Bing guardada.',
             'bing_test_ok'               => 'Conexión Bing verificada.',
             'bing_test_failed'           => 'La prueba de Bing ha fallado.',
@@ -533,6 +638,12 @@ final class TaxoCommerce_Google_Bing_Connections {
         if ( 'google_test_failed' === $code ) {
             $detail = (string) get_transient( 'tgb_google_test_error_' . get_current_user_id() );
             delete_transient( 'tgb_google_test_error_' . get_current_user_id() );
+        } elseif ( 'google_python_test_failed' === $code ) {
+            $detail = (string) get_transient( 'tgb_google_python_test_error_' . get_current_user_id() );
+            delete_transient( 'tgb_google_python_test_error_' . get_current_user_id() );
+        } elseif ( 'google_python_test_ok' === $code ) {
+            $detail = (string) get_transient( 'tgb_google_python_test_message_' . get_current_user_id() );
+            delete_transient( 'tgb_google_python_test_message_' . get_current_user_id() );
         } elseif ( 'bing_test_failed' === $code ) {
             $detail = (string) get_transient( 'tgb_bing_test_error_' . get_current_user_id() );
             delete_transient( 'tgb_bing_test_error_' . get_current_user_id() );
