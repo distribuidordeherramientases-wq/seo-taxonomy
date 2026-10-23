@@ -11,6 +11,17 @@
 defined( 'ABSPATH' ) || exit;
 
 /*
+ * Coexistence guard:
+ * while the legacy seo-taxonomy plugin is still active in STAGING it may have
+ * already loaded this adapter. Do not redeclare any of its functions.
+ */
+if ( function_exists( 'seo_landing_google_path_key' )
+    || function_exists( 'seo_landing_google_source_snapshot' )
+    || function_exists( 'seo_landing_google_similarity' ) ) {
+    return;
+}
+
+/*
  * Asegura que el servicio de Google Analytics esté disponible aunque estos
  * archivos se hayan instalado en la raíz del módulo o dentro de /includes.
  * No contiene credenciales: solo localiza y carga la capa de servicio que lee
