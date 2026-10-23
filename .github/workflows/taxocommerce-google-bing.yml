@@ -26,6 +26,8 @@ jobs:
         run: find taxocommerce-google-bing -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
       - name: Smoke test without network requests
         run: php taxocommerce-google-bing/tests/reporting-smoke.php
+      - name: Trends manual RSS smoke test
+        run: php taxocommerce-google-bing/tests/trends-smoke.php
       - name: Check plugin independence
         run: |
           test -s taxocommerce-google-bing/taxocommerce-google-bing.php
