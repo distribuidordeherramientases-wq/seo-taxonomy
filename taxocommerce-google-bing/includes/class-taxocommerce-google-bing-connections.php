@@ -93,6 +93,26 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '</section>';
 
         echo '<section class="tgb-card">';
+        echo '<div class="tgb-card-head"><div><h2>Google Merchant Center</h2><p>Informes de mercado mediante Merchant Reports API usando la misma cuenta de servicio de Google.</p></div>';
+        $merchant_account = TaxoCommerce_Google_Bing_Merchant::account();
+        echo self::badge( $merchant_account ? 'Configurado' : 'Sin configurar', $merchant_account ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo '</div>';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="tgb_google_merchant_settings">';
+        wp_nonce_field( 'seo_ojeador_merchant_settings' );
+        echo '<table class="form-table" role="presentation">';
+        echo '<tr><th><label for="tgb_merchant_account">ID de Merchant Center</label></th><td><input id="tgb_merchant_account" class="regular-text" type="text" name="merchant_account" value="' . esc_attr( $merchant_account ) . '" placeholder="ID numérico" pattern="[0-9]{5,20}"></td></tr>';
+        echo '<tr><th><label for="tgb_merchant_mode">Fuente de mercado</label></th><td><select id="tgb_merchant_mode" name="market_mode">';
+        echo '<option value="merchant_only" ' . selected( TaxoCommerce_Google_Bing_Merchant::mode(), 'merchant_only', false ) . '>Merchant solamente</option>';
+        echo '<option value="legacy" ' . selected( TaxoCommerce_Google_Bing_Merchant::mode(), 'legacy', false ) . '>Shopping tradicional</option>';
+        echo '</select><p class="description">La cuenta de servicio configurada arriba debe estar autorizada también en Merchant Center.</p></td></tr>';
+        echo '</table>';
+        submit_button( 'Guardar Merchant', 'primary', 'submit', false );
+        echo '</form>';
+        echo '<p><a class="button" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'merchant' ), admin_url( 'admin.php' ) ) ) . '">Abrir informes Merchant</a></p>';
+        echo '</section>';
+
+        echo '<section class="tgb-card">';
         echo '<div class="tgb-card-head"><div><h2>Microsoft Bing</h2><p>Conexión central de solo lectura con Bing Webmaster.</p></div>';
         echo self::badge( '' !== $bing_key ? 'Configurado' : 'Sin configurar', '' !== $bing_key ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
