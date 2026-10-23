@@ -2,17 +2,31 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Connection registry for Google, Merchant, Cloud Run and Bing.
+ *
+ * This class intentionally does not download business/reporting data.
+ * Connection tests are limited to authentication and account/property metadata.
+ */
 final class TaxoCommerce_Google_Bing_Connections {
-    const GOOGLE_OPTION = 'seo_google_search_settings';
-    const BING_OPTION   = 'seo_analista_bing_settings';
+
+    const GOOGLE_OPTION            = 'seo_google_search_settings';
+    const BING_OPTION              = 'seo_analista_bing_settings';
+    const MERCHANT_ACCOUNT_OPTION  = 'seo_ojeador_merchant_account_v1';
+    const PYTHON_OPTION            = 'seo_google_python_runner_settings';
 
     public static function register() {
         add_action( 'admin_post_tgb_save_google', array( __CLASS__, 'save_google' ) );
         add_action( 'admin_post_tgb_test_google', array( __CLASS__, 'test_google' ) );
-        add_action( 'admin_post_tgb_save_bing', array( __CLASS__, 'save_bing' ) );
-        add_action( 'admin_post_tgb_test_bing', array( __CLASS__, 'test_bing' ) );
+
+        add_action( 'admin_post_tgb_save_merchant', array( __CLASS__, 'save_merchant' ) );
+        add_action( 'admin_post_tgb_test_merchant', array( __CLASS__, 'test_merchant' ) );
+
         add_action( 'admin_post_tgb_google_python_save', array( __CLASS__, 'save_google_python' ) );
         add_action( 'admin_post_tgb_google_python_test', array( __CLASS__, 'test_google_python' ) );
+
+        add_action( 'admin_post_tgb_save_bing', array( __CLASS__, 'save_bing' ) );
+        add_action( 'admin_post_tgb_test_bing', array( __CLASS__, 'test_bing' ) );
     }
 
     public static function google_settings() {
@@ -37,163 +51,151 @@ final class TaxoCommerce_Google_Bing_Connections {
         $settings = wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
         $settings['enabled'] = ! empty( $settings['enabled'] );
         $settings['site_url'] = esc_url_raw( (string) $settings['site_url'] );
+        if ( '' === $settings['site_url'] ) {
+            $settings['site_url'] = home_url( '/' );
+        }
         return $settings;
+    }
+
+    public static function merchant_account() {
+        $id = trim( (string) get_option( self::MERCHANT_ACCOUNT_OPTION, '' ) );
+        return preg_match( '/^[0-9]{5,20}$/', $id ) ? $id : '';
+    }
+
+    public static function python_settings() {
+        $defaults = array(
+            'enabled'              => 0,
+            'project_id'           => '',
+            'region'               => 'europe-west1',
+            'job_name'             => 'seo-supplier-scraper',
+            'service_account_json' => '',
+        );
+        $saved = get_option( self::PYTHON_OPTION, array() );
+        return wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
+    }
+
+    /**
+     * Returns a Google service-account access token for an explicit scope.
+     * This is a connection primitive for future consumers; it does not query data.
+     */
+    public static function access_token( $scope = '', $force = false ) {
+        $settings = self::google_settings();
+        $account = self::decode_service_account( (string) $settings['service_account_json'] );
+        if ( is_wp_error( $account ) ) {
+            return $account;
+        }
+
+        if ( '' === trim( (string) $scope ) ) {
+            $scope = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly';
+        }
+
+        return self::service_account_access_token( $account, $scope, 'google', $force );
     }
 
     public static function render() {
         self::render_notice();
 
-        $google = self::google_settings();
-        $bing   = self::bing_settings();
+        echo '<div class="tgb-note"><strong>Modo conexión:</strong> este plugin únicamente guarda credenciales, obtiene/renueva tokens y verifica acceso mediante metadatos. No descarga visitas, búsquedas, consultas, rankings, ventas, productos ni informes.</div>';
 
-        $google_account = self::google_service_account( $google );
-        $google_ready   = ! is_wp_error( $google_account );
-        $bing_key       = self::bing_api_key( $bing );
-        if ( function_exists( 'seo_google_render_notices' ) ) {
-            seo_google_render_notices();
-        }
-        if ( function_exists( 'seo_google_render_settings' ) ) {
-            seo_google_render_settings();
-        } else {
-            TaxoCommerce_Google_Bing_OAuth::render();
-        }
+        TaxoCommerce_Google_Bing_OAuth::render();
+
+        $google = self::google_settings();
+        $google_account = self::decode_service_account( (string) $google['service_account_json'] );
+        $google_ready = ! is_wp_error( $google_account );
+
+        $merchant_account = self::merchant_account();
+
+        $python = self::python_settings();
+        $python_account = self::decode_service_account( (string) $python['service_account_json'] );
+        $python_ready = '' !== trim( (string) $python['project_id'] )
+            && '' !== trim( (string) $python['region'] )
+            && '' !== trim( (string) $python['job_name'] )
+            && ! is_wp_error( $python_account );
+
+        $bing = self::bing_settings();
+        $bing_key = self::bing_api_key( $bing );
 
         echo '<div class="tgb-grid">';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Google Analytics / Search Console · Cuenta de servicio</h2><p>Conexión por cuenta de servicio para GA4 Data API, Search Console y medición frontend.</p></div>';
+        echo '<div class="tgb-card-head"><div><h2>Google Analytics / Search Console · Cuenta de servicio</h2><p>Credencial compartida para APIs Google. La prueba consulta únicamente metadatos de acceso.</p></div>';
         echo self::badge( $google_ready ? 'Configurado' : 'Sin configurar', $google_ready ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
-
         if ( $google_ready ) {
-            echo '<p><strong>Cuenta de servicio:</strong> ' . esc_html( (string) $google_account['client_email'] ) . '</p>';
+            echo '<p><strong>Cuenta de servicio:</strong> <code>' . esc_html( (string) $google_account['client_email'] ) . '</code></p>';
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_save_google">';
         wp_nonce_field( 'tgb_save_google' );
-
         echo '<table class="form-table" role="presentation">';
-        echo '<tr><th>Medición GA4</th><td><label><input type="checkbox" name="tracking_enabled" value="1" ' . checked( ! empty( $google['tracking_enabled'] ), true, false ) . '> Activar medición GA4 en frontend</label></td></tr>';
-        echo '<tr><th><label for="tgb_gsc_site">Propiedad Search Console</label></th><td>';
-        echo '<input id="tgb_gsc_site" class="regular-text code" type="text" name="search_console_site_url" value="' . esc_attr( (string) $google['search_console_site_url'] ) . '" placeholder="https://www.ejemplo.es/ o sc-domain:ejemplo.es">';
-        echo '</td></tr>';
-
-        echo '<tr><th><label for="tgb_ga4_property">Propiedad GA4</label></th><td>';
-        echo '<input id="tgb_ga4_property" class="regular-text" type="text" inputmode="numeric" name="analytics_property_id" value="' . esc_attr( (string) $google['analytics_property_id'] ) . '" placeholder="123456789">';
-        echo '</td></tr>';
-
-        echo '<tr><th><label for="tgb_measurement">Measurement ID</label></th><td>';
-        echo '<input id="tgb_measurement" class="regular-text" type="text" name="measurement_id" value="' . esc_attr( (string) $google['measurement_id'] ) . '" placeholder="G-XXXXXXXXXX">';
-        echo '<p class="description">Se conserva porque ya lo utilizan componentes existentes, aunque no es necesario para consultar las APIs.</p></td></tr>';
-
-        echo '<tr><th><label for="tgb_google_service">Cuenta de servicio JSON</label></th><td>';
-        echo '<textarea id="tgb_google_service" class="large-text code" rows="7" name="service_account_json" placeholder="' . esc_attr( $google_ready ? 'Credencial ya configurada. Déjalo vacío para conservarla.' : 'Pega aquí el JSON de la cuenta de servicio.' ) . '"></textarea>';
-        echo '<p class="description">El JSON no se muestra de nuevo. Debe incluir client_email y private_key.</p></td></tr>';
+        echo '<tr><th><label for="tgb_gsc_site">Propiedad Search Console</label></th><td><input id="tgb_gsc_site" class="regular-text code" type="text" name="search_console_site_url" value="' . esc_attr( (string) $google['search_console_site_url'] ) . '" placeholder="https://www.ejemplo.es/ o sc-domain:ejemplo.es"></td></tr>';
+        echo '<tr><th><label for="tgb_ga4_property">Propiedad GA4</label></th><td><input id="tgb_ga4_property" class="regular-text" type="text" inputmode="numeric" name="analytics_property_id" value="' . esc_attr( (string) $google['analytics_property_id'] ) . '" placeholder="123456789"></td></tr>';
+        echo '<tr><th><label for="tgb_measurement">Measurement ID</label></th><td><input id="tgb_measurement" class="regular-text" type="text" name="measurement_id" value="' . esc_attr( (string) $google['measurement_id'] ) . '" placeholder="G-XXXXXXXXXX"><p class="description">Se guarda como identificador de configuración; este plugin no envía ni descarga eventos GA4.</p></td></tr>';
+        echo '<tr><th><label for="tgb_google_service">Cuenta de servicio JSON</label></th><td><textarea id="tgb_google_service" class="large-text code" rows="7" name="service_account_json" placeholder="' . esc_attr( $google_ready ? 'Credencial ya configurada. Déjala vacía para conservarla.' : 'Pega aquí el JSON de la cuenta de servicio.' ) . '"></textarea><p class="description">El secreto no se vuelve a mostrar. La prueba obtiene un token y consulta sólo metadatos de las propiedades indicadas.</p></td></tr>';
         echo '</table>';
-
         submit_button( 'Guardar Google', 'primary', 'submit', false );
         echo '</form>';
-
-        echo '<form class="tgb-test-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        echo '<input type="hidden" name="action" value="tgb_test_google">';
-        wp_nonce_field( 'tgb_test_google' );
-        submit_button( 'Probar conexión Google', 'secondary', 'submit', false );
-        echo '</form>';
+        self::test_form( 'tgb_test_google', 'tgb_test_google', 'Probar conexión Google' );
         echo '</section>';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Google Merchant Center</h2><p>Informes de mercado mediante Merchant Reports API usando la misma cuenta de servicio de Google.</p></div>';
-        $merchant_account = TaxoCommerce_Google_Bing_Merchant::account();
+        echo '<div class="tgb-card-head"><div><h2>Google Merchant Center</h2><p>Identificación de la cuenta Merchant. No se consultan benchmarks, productos ni ventas.</p></div>';
         echo self::badge( $merchant_account ? 'Configurado' : 'Sin configurar', $merchant_account ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        echo '<input type="hidden" name="action" value="tgb_google_merchant_settings">';
-        wp_nonce_field( 'seo_ojeador_merchant_settings' );
-        echo '<table class="form-table" role="presentation">';
-        echo '<tr><th><label for="tgb_merchant_account">ID de Merchant Center</label></th><td><input id="tgb_merchant_account" class="regular-text" type="text" name="merchant_account" value="' . esc_attr( $merchant_account ) . '" placeholder="ID numérico" pattern="[0-9]{5,20}"></td></tr>';
-        echo '<tr><th><label for="tgb_merchant_mode">Fuente de mercado</label></th><td><select id="tgb_merchant_mode" name="market_mode">';
-        echo '<option value="merchant_only" ' . selected( TaxoCommerce_Google_Bing_Merchant::mode(), 'merchant_only', false ) . '>Merchant solamente</option>';
-        echo '<option value="legacy" ' . selected( TaxoCommerce_Google_Bing_Merchant::mode(), 'legacy', false ) . '>Shopping tradicional</option>';
-        echo '</select><p class="description">La cuenta de servicio configurada arriba debe estar autorizada también en Merchant Center.</p></td></tr>';
-        echo '</table>';
+        echo '<input type="hidden" name="action" value="tgb_save_merchant">';
+        wp_nonce_field( 'tgb_save_merchant' );
+        echo '<table class="form-table" role="presentation"><tr><th><label for="tgb_merchant_account">ID de Merchant Center</label></th><td><input id="tgb_merchant_account" class="regular-text" type="text" name="merchant_account" value="' . esc_attr( $merchant_account ) . '" placeholder="ID numérico" pattern="[0-9]{5,20}"><p class="description">Usa la cuenta de servicio Google configurada arriba. La prueba sólo lee metadatos básicos de la cuenta.</p></td></tr></table>';
         submit_button( 'Guardar Merchant', 'primary', 'submit', false );
         echo '</form>';
-        echo '<p><a class="button" href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'merchant' ), admin_url( 'admin.php' ) ) ) . '">Abrir informes Merchant</a></p>';
+        self::test_form( 'tgb_test_merchant', 'tgb_test_merchant', 'Probar conexión Merchant' );
         echo '</section>';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Google Cloud Run · Python Runner</h2><p>Conexión para ejecutar trabajos Python remotos y devolver resultados a TaxoCommerce.</p></div>';
-        $python = function_exists( 'seo_google_python_runner_settings' ) ? seo_google_python_runner_settings() : array();
-        $python_account = function_exists( 'seo_google_python_runner_service_account' ) ? seo_google_python_runner_service_account() : null;
-        $python_ready = ! empty( $python['enabled'] )
-            && ! empty( $python['project_id'] )
-            && ! empty( $python['region'] )
-            && ! empty( $python['job_name'] )
-            && ! is_wp_error( $python_account );
+        echo '<div class="tgb-card-head"><div><h2>Google Cloud Run</h2><p>Credenciales y referencia del Job. El plugin no ejecuta el Job desde esta pantalla.</p></div>';
         echo self::badge( $python_ready ? 'Configurado' : 'Sin configurar', $python_ready ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
-        if ( ! is_wp_error( $python_account ) && is_array( $python_account ) && ! empty( $python_account['client_email'] ) ) {
+        if ( ! is_wp_error( $python_account ) && ! empty( $python_account['client_email'] ) ) {
             echo '<p><strong>Cuenta de servicio:</strong> <code>' . esc_html( (string) $python_account['client_email'] ) . '</code></p>';
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_google_python_save">';
         wp_nonce_field( 'tgb_google_python_save' );
         echo '<table class="form-table" role="presentation">';
-        echo '<tr><th>Estado</th><td><label><input type="checkbox" name="enabled" value="1" ' . checked( ! empty( $python['enabled'] ), true, false ) . '> Activar Google Python Runner</label></td></tr>';
-        echo '<tr><th><label for="tgb_python_project">Google Cloud Project ID</label></th><td><input id="tgb_python_project" type="text" class="regular-text" name="project_id" value="' . esc_attr( (string) ( $python['project_id'] ?? '' ) ) . '" placeholder="mi-proyecto-google"></td></tr>';
-        echo '<tr><th><label for="tgb_python_region">Región</label></th><td><input id="tgb_python_region" type="text" class="regular-text" name="region" value="' . esc_attr( (string) ( $python['region'] ?? 'europe-west1' ) ) . '" placeholder="europe-west1"></td></tr>';
-        echo '<tr><th><label for="tgb_python_job">Cloud Run Job</label></th><td><input id="tgb_python_job" type="text" class="regular-text" name="job_name" value="' . esc_attr( (string) ( $python['job_name'] ?? 'seo-supplier-scraper' ) ) . '" placeholder="seo-supplier-scraper"></td></tr>';
-        echo '<tr><th><label for="tgb_python_json">Cuenta de servicio JSON</label></th><td><textarea id="tgb_python_json" class="large-text code" rows="7" name="service_account_json" placeholder="' . esc_attr( ! empty( $python['service_account_json'] ) ? 'Credencial ya configurada. Déjala vacía para conservarla.' : 'Pega aquí el JSON de la cuenta de servicio de Cloud Run.' ) . '"></textarea></td></tr>';
+        echo '<tr><th><label for="tgb_python_project">Google Cloud Project ID</label></th><td><input id="tgb_python_project" type="text" class="regular-text" name="project_id" value="' . esc_attr( (string) $python['project_id'] ) . '" placeholder="mi-proyecto-google"></td></tr>';
+        echo '<tr><th><label for="tgb_python_region">Región</label></th><td><input id="tgb_python_region" type="text" class="regular-text" name="region" value="' . esc_attr( (string) $python['region'] ) . '" placeholder="europe-west1"></td></tr>';
+        echo '<tr><th><label for="tgb_python_job">Cloud Run Job</label></th><td><input id="tgb_python_job" type="text" class="regular-text" name="job_name" value="' . esc_attr( (string) $python['job_name'] ) . '" placeholder="seo-supplier-scraper"></td></tr>';
+        echo '<tr><th><label for="tgb_python_json">Cuenta de servicio JSON</label></th><td><textarea id="tgb_python_json" class="large-text code" rows="7" name="service_account_json" placeholder="' . esc_attr( ! is_wp_error( $python_account ) ? 'Credencial ya configurada. Déjala vacía para conservarla.' : 'Pega aquí el JSON de la cuenta de servicio de Cloud Run.' ) . '"></textarea><p class="description">La prueba sólo lee la configuración del Job; no lo ejecuta.</p></td></tr>';
         echo '</table>';
         submit_button( 'Guardar Google Cloud Run', 'primary', 'submit', false );
         echo '</form>';
-        echo '<form class="tgb-test-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        echo '<input type="hidden" name="action" value="tgb_google_python_test">';
-        wp_nonce_field( 'tgb_google_python_test' );
-        submit_button( 'Probar Google Cloud Run', 'secondary', 'submit', false );
-        echo '</form>';
+        self::test_form( 'tgb_google_python_test', 'tgb_google_python_test', 'Probar conexión Cloud Run' );
         echo '</section>';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Microsoft Bing</h2><p>Conexión central de solo lectura con Bing Webmaster.</p></div>';
+        echo '<div class="tgb-card-head"><div><h2>Microsoft Bing Webmaster</h2><p>API key y sitio verificado. La prueba sólo obtiene la lista de sitios autorizados.</p></div>';
         echo self::badge( '' !== $bing_key ? 'Configurado' : 'Sin configurar', '' !== $bing_key ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
-
         if ( defined( 'SEO_BING_WEBMASTER_API_KEY' ) && '' !== trim( (string) SEO_BING_WEBMASTER_API_KEY ) ) {
             echo '<p class="tgb-legacy"><strong>API key:</strong> definida mediante <code>SEO_BING_WEBMASTER_API_KEY</code> en wp-config.php.</p>';
         }
-
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_save_bing">';
         wp_nonce_field( 'tgb_save_bing' );
-
         echo '<table class="form-table" role="presentation">';
-        echo '<tr><th>Estado</th><td><label><input type="checkbox" name="enabled" value="1" ' . checked( ! empty( $bing['enabled'] ), true, false ) . '> Activar Bing Webmaster</label></td></tr>';
-        echo '<tr><th><label for="tgb_bing_site">Sitio de Bing Webmaster</label></th><td>';
-        echo '<input id="tgb_bing_site" class="regular-text code" type="url" name="site_url" value="' . esc_attr( (string) $bing['site_url'] ) . '" placeholder="https://www.ejemplo.es/">';
-        echo '</td></tr>';
-        echo '<tr><th><label for="tgb_bing_key">API key</label></th><td>';
-        echo '<input id="tgb_bing_key" class="regular-text" type="password" autocomplete="new-password" name="api_key" value="" placeholder="' . esc_attr( '' !== $bing_key ? 'Clave ya configurada. Déjala vacía para conservarla.' : 'API key de Bing Webmaster' ) . '">';
+        echo '<tr><th>Estado</th><td><label><input type="checkbox" name="enabled" value="1" ' . checked( ! empty( $bing['enabled'] ), true, false ) . '> Conexión Bing disponible para otros módulos</label></td></tr>';
+        echo '<tr><th><label for="tgb_bing_site">Sitio Bing Webmaster</label></th><td><input id="tgb_bing_site" class="regular-text code" type="url" name="site_url" value="' . esc_attr( (string) $bing['site_url'] ) . '" placeholder="https://www.ejemplo.es/"></td></tr>';
+        echo '<tr><th><label for="tgb_bing_key">API key</label></th><td><input id="tgb_bing_key" class="regular-text" type="password" autocomplete="new-password" name="api_key" value="" placeholder="' . esc_attr( '' !== $bing_key ? 'Clave ya configurada. Déjala vacía para conservarla.' : 'API key de Bing Webmaster' ) . '">';
         if ( '' !== $bing_key && ! defined( 'SEO_BING_WEBMASTER_API_KEY' ) ) {
             echo '<p><label><input type="checkbox" name="clear_api_key" value="1"> Eliminar la API key guardada</label></p>';
         }
-        echo '</td></tr>';
-        echo '</table>';
-
+        echo '</td></tr></table>';
         submit_button( 'Guardar Bing', 'primary', 'submit', false );
         echo '</form>';
-
-        echo '<form class="tgb-test-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        echo '<input type="hidden" name="action" value="tgb_test_bing">';
-        wp_nonce_field( 'tgb_test_bing' );
-        submit_button( 'Probar conexión Bing', 'secondary', 'submit', false );
-        echo '</form>';
+        self::test_form( 'tgb_test_bing', 'tgb_test_bing', 'Probar conexión Bing' );
         echo '</section>';
 
         echo '</div>';
-
-        echo '<div class="tgb-note"><strong>Compatibilidad:</strong> se conservan las opciones históricas de Google para que las credenciales y datos de PRO continúen funcionando al desactivar el monolito.</div>';
-
         self::styles();
     }
 
@@ -206,18 +208,23 @@ final class TaxoCommerce_Google_Bing_Connections {
             $site = esc_url_raw( $site );
         }
 
-        $property = isset( $_POST['analytics_property_id'] ) ? preg_replace( '/\D+/', '', sanitize_text_field( wp_unslash( $_POST['analytics_property_id'] ) ) ) : '';
-        $measurement = isset( $_POST['measurement_id'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['measurement_id'] ) ) ) : '';
+        $property = isset( $_POST['analytics_property_id'] )
+            ? preg_replace( '/\D+/', '', sanitize_text_field( wp_unslash( $_POST['analytics_property_id'] ) ) )
+            : '';
+
+        $measurement = isset( $_POST['measurement_id'] )
+            ? strtoupper( sanitize_text_field( wp_unslash( $_POST['measurement_id'] ) ) )
+            : '';
         if ( '' !== $measurement && ! preg_match( '/^G-[A-Z0-9]+$/', $measurement ) ) {
             self::redirect( 'google_measurement_invalid', 'error' );
         }
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON must preserve PEM newlines and is structurally validated below.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON must preserve PEM newlines and is structurally validated.
         $raw_service = isset( $_POST['service_account_json'] ) ? trim( (string) wp_unslash( $_POST['service_account_json'] ) ) : '';
         $service = (string) $current['service_account_json'];
         if ( '' !== $raw_service ) {
-            $decoded = json_decode( $raw_service, true );
-            if ( ! is_array( $decoded ) || empty( $decoded['client_email'] ) || empty( $decoded['private_key'] ) ) {
+            $decoded = self::decode_service_account( $raw_service );
+            if ( is_wp_error( $decoded ) ) {
                 self::redirect( 'google_credentials_invalid', 'error' );
             }
             $service = wp_json_encode( $decoded, JSON_UNESCAPED_SLASHES );
@@ -226,7 +233,8 @@ final class TaxoCommerce_Google_Bing_Connections {
         update_option(
             self::GOOGLE_OPTION,
             array(
-                'tracking_enabled'        => ! empty( $_POST['tracking_enabled'] ) ? 1 : 0,
+                // Preserve the historical flag but never toggle or use it here.
+                'tracking_enabled'        => ! empty( $current['tracking_enabled'] ) ? 1 : 0,
                 'measurement_id'          => $measurement,
                 'analytics_property_id'   => $property,
                 'search_console_site_url' => $site,
@@ -236,6 +244,225 @@ final class TaxoCommerce_Google_Bing_Connections {
         );
 
         self::redirect( 'google_saved', 'success' );
+    }
+
+    public static function test_google() {
+        self::guard( 'tgb_test_google' );
+
+        $settings = self::google_settings();
+        $token = self::access_token( '', true );
+        if ( is_wp_error( $token ) ) {
+            self::store_test_error( 'google', $token->get_error_message() );
+            self::redirect( 'google_test_failed', 'error' );
+        }
+
+        $messages = array( 'Autenticación de cuenta de servicio correcta.' );
+
+        $site = trim( (string) $settings['search_console_site_url'] );
+        if ( '' !== $site ) {
+            $response = wp_remote_get(
+                'https://www.googleapis.com/webmasters/v3/sites',
+                array(
+                    'timeout' => 20,
+                    'headers' => array(
+                        'Authorization' => 'Bearer ' . $token,
+                        'Accept'        => 'application/json',
+                    ),
+                )
+            );
+            if ( is_wp_error( $response ) ) {
+                self::test_failure( 'google', 'Search Console: ' . $response->get_error_message(), 'google_test_failed' );
+            }
+            $code = (int) wp_remote_retrieve_response_code( $response );
+            if ( $code < 200 || $code >= 300 ) {
+                self::test_failure( 'google', 'Search Console respondió HTTP ' . $code . '.', 'google_test_failed' );
+            }
+
+            $body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+            $found = false;
+            foreach ( (array) ( $body['siteEntry'] ?? array() ) as $entry ) {
+                if ( isset( $entry['siteUrl'] ) && (string) $entry['siteUrl'] === $site ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if ( ! $found ) {
+                self::test_failure( 'google', 'La cuenta se autentica, pero no aparece acceso a la propiedad Search Console indicada.', 'google_test_failed' );
+            }
+            $messages[] = 'Search Console: propiedad accesible.';
+        }
+
+        $property = preg_replace( '/\D+/', '', (string) $settings['analytics_property_id'] );
+        if ( '' !== $property ) {
+            $response = wp_remote_get(
+                'https://analyticsdata.googleapis.com/v1beta/properties/' . rawurlencode( $property ) . '/metadata',
+                array(
+                    'timeout'             => 20,
+                    'limit_response_size' => 65536,
+                    'headers' => array(
+                        'Authorization' => 'Bearer ' . $token,
+                        'Accept'        => 'application/json',
+                    ),
+                )
+            );
+            if ( is_wp_error( $response ) ) {
+                self::test_failure( 'google', 'Google Analytics: ' . $response->get_error_message(), 'google_test_failed' );
+            }
+            $code = (int) wp_remote_retrieve_response_code( $response );
+            if ( $code < 200 || $code >= 300 ) {
+                self::test_failure( 'google', 'Google Analytics respondió HTTP ' . $code . '.', 'google_test_failed' );
+            }
+            $messages[] = 'GA4: propiedad accesible.';
+        }
+
+        set_transient( 'tgb_google_test_message_' . get_current_user_id(), implode( ' ', $messages ), 2 * MINUTE_IN_SECONDS );
+        self::redirect( 'google_test_ok', 'success' );
+    }
+
+    public static function save_merchant() {
+        self::guard( 'tgb_save_merchant' );
+
+        $account = isset( $_POST['merchant_account'] )
+            ? sanitize_text_field( wp_unslash( $_POST['merchant_account'] ) )
+            : '';
+
+        if ( '' !== $account && ! preg_match( '/^[0-9]{5,20}$/', $account ) ) {
+            self::redirect( 'merchant_account_invalid', 'error' );
+        }
+
+        update_option( self::MERCHANT_ACCOUNT_OPTION, $account, false );
+        self::redirect( 'merchant_saved', 'success' );
+    }
+
+    public static function test_merchant() {
+        self::guard( 'tgb_test_merchant' );
+
+        $account = self::merchant_account();
+        if ( '' === $account ) {
+            self::test_failure( 'merchant', 'Falta el ID de Merchant Center.', 'merchant_test_failed' );
+        }
+
+        $settings = self::google_settings();
+        $service = self::decode_service_account( (string) $settings['service_account_json'] );
+        if ( is_wp_error( $service ) ) {
+            self::test_failure( 'merchant', 'Falta una cuenta de servicio Google válida.', 'merchant_test_failed' );
+        }
+
+        $token = self::service_account_access_token(
+            $service,
+            'https://www.googleapis.com/auth/content',
+            'merchant',
+            true
+        );
+        if ( is_wp_error( $token ) ) {
+            self::test_failure( 'merchant', $token->get_error_message(), 'merchant_test_failed' );
+        }
+
+        $response = wp_remote_get(
+            'https://merchantapi.googleapis.com/accounts/v1/accounts/' . rawurlencode( $account ),
+            array(
+                'timeout' => 20,
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $token,
+                    'Accept'        => 'application/json',
+                ),
+            )
+        );
+        if ( is_wp_error( $response ) ) {
+            self::test_failure( 'merchant', $response->get_error_message(), 'merchant_test_failed' );
+        }
+
+        $code = (int) wp_remote_retrieve_response_code( $response );
+        if ( $code < 200 || $code >= 300 ) {
+            self::test_failure( 'merchant', 'Merchant API respondió HTTP ' . $code . '.', 'merchant_test_failed' );
+        }
+
+        self::redirect( 'merchant_test_ok', 'success' );
+    }
+
+    public static function save_google_python() {
+        self::guard( 'tgb_google_python_save' );
+
+        $current = self::python_settings();
+        $project = isset( $_POST['project_id'] ) ? sanitize_text_field( wp_unslash( $_POST['project_id'] ) ) : '';
+        $region = isset( $_POST['region'] ) ? sanitize_key( wp_unslash( $_POST['region'] ) ) : '';
+        $job = isset( $_POST['job_name'] ) ? sanitize_key( wp_unslash( $_POST['job_name'] ) ) : '';
+
+        if ( '' === $project || '' === $region || '' === $job ) {
+            self::redirect( 'google_python_fields_missing', 'error' );
+        }
+
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON must preserve PEM newlines and is structurally validated.
+        $raw = isset( $_POST['service_account_json'] ) ? trim( (string) wp_unslash( $_POST['service_account_json'] ) ) : '';
+        $json = (string) $current['service_account_json'];
+        if ( '' !== $raw ) {
+            $decoded = self::decode_service_account( $raw );
+            if ( is_wp_error( $decoded ) ) {
+                self::redirect( 'google_python_credentials_invalid', 'error' );
+            }
+            $json = wp_json_encode( $decoded, JSON_UNESCAPED_SLASHES );
+        }
+
+        update_option(
+            self::PYTHON_OPTION,
+            array(
+                // Preserve legacy execution preference, but this plugin never executes the job.
+                'enabled'              => ! empty( $current['enabled'] ) ? 1 : 0,
+                'project_id'           => $project,
+                'region'               => $region,
+                'job_name'             => $job,
+                'service_account_json' => $json,
+            ),
+            false
+        );
+
+        self::redirect( 'google_python_saved', 'success' );
+    }
+
+    public static function test_google_python() {
+        self::guard( 'tgb_google_python_test' );
+
+        $settings = self::python_settings();
+        $service = self::decode_service_account( (string) $settings['service_account_json'] );
+        if ( is_wp_error( $service ) ) {
+            self::test_failure( 'google_python', 'Falta una cuenta de servicio válida para Cloud Run.', 'google_python_test_failed' );
+        }
+
+        $token = self::service_account_access_token(
+            $service,
+            'https://www.googleapis.com/auth/cloud-platform',
+            'cloud_run',
+            true
+        );
+        if ( is_wp_error( $token ) ) {
+            self::test_failure( 'google_python', $token->get_error_message(), 'google_python_test_failed' );
+        }
+
+        $url = 'https://run.googleapis.com/v2/projects/'
+            . rawurlencode( (string) $settings['project_id'] )
+            . '/locations/' . rawurlencode( (string) $settings['region'] )
+            . '/jobs/' . rawurlencode( (string) $settings['job_name'] );
+
+        $response = wp_remote_get(
+            $url,
+            array(
+                'timeout' => 20,
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $token,
+                    'Accept'        => 'application/json',
+                ),
+            )
+        );
+        if ( is_wp_error( $response ) ) {
+            self::test_failure( 'google_python', $response->get_error_message(), 'google_python_test_failed' );
+        }
+
+        $code = (int) wp_remote_retrieve_response_code( $response );
+        if ( $code < 200 || $code >= 300 ) {
+            self::test_failure( 'google_python', 'Cloud Run respondió HTTP ' . $code . '.', 'google_python_test_failed' );
+        }
+
+        self::redirect( 'google_python_test_ok', 'success' );
     }
 
     public static function save_bing() {
@@ -266,198 +493,21 @@ final class TaxoCommerce_Google_Bing_Connections {
         self::redirect( 'bing_saved', 'success' );
     }
 
-    public static function google_analytics_report( $request ) {
-        $settings = self::google_settings();
-        $property = preg_replace( '/\D+/', '', (string) ( $settings['analytics_property_id'] ?? '' ) );
-        if ( '' === $property ) {
-            return new WP_Error( 'tgb_google_no_analytics_property', 'No hay propiedad de Google Analytics configurada.' );
-        }
-
-        $token = self::google_access_token( $settings );
-        if ( is_wp_error( $token ) ) {
-            return $token;
-        }
-
-        $response = wp_remote_post(
-            'https://analyticsdata.googleapis.com/v1beta/properties/' . rawurlencode( $property ) . ':runReport',
-            array(
-                'timeout' => 30,
-                'headers' => array(
-                    'Authorization' => 'Bearer ' . $token,
-                    'Content-Type'  => 'application/json',
-                    'Accept'        => 'application/json',
-                ),
-                'body' => wp_json_encode( is_array( $request ) ? $request : array() ),
-            )
-        );
-        if ( is_wp_error( $response ) ) {
-            return $response;
-        }
-
-        $code = (int) wp_remote_retrieve_response_code( $response );
-        $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-        if ( $code < 200 || $code >= 300 ) {
-            $message = 'Google Analytics respondió HTTP ' . $code . '.';
-            if ( is_array( $data ) && ! empty( $data['error']['message'] ) ) {
-                $message .= ' ' . sanitize_text_field( (string) $data['error']['message'] );
-            }
-            return new WP_Error( 'tgb_google_analytics_error', $message, array( 'status' => $code ) );
-        }
-
-        return is_array( $data ) ? $data : array();
-    }
-
-    public static function save_google_python() {
-        self::guard( 'tgb_google_python_save' );
-
-        $current = function_exists( 'seo_google_python_runner_settings' )
-            ? seo_google_python_runner_settings()
-            : array();
-
-        $project = isset( $_POST['project_id'] ) ? sanitize_text_field( wp_unslash( $_POST['project_id'] ) ) : '';
-        $region  = isset( $_POST['region'] ) ? sanitize_key( wp_unslash( $_POST['region'] ) ) : '';
-        $job     = isset( $_POST['job_name'] ) ? sanitize_key( wp_unslash( $_POST['job_name'] ) ) : '';
-
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Service account JSON must preserve PEM newlines and is structurally validated.
-        $raw = isset( $_POST['service_account_json'] ) ? trim( (string) wp_unslash( $_POST['service_account_json'] ) ) : '';
-        $json = (string) ( $current['service_account_json'] ?? '' );
-        if ( '' !== $raw ) {
-            $decoded = json_decode( $raw, true );
-            if ( ! is_array( $decoded ) || empty( $decoded['client_email'] ) || empty( $decoded['private_key'] ) ) {
-                self::redirect( 'google_python_credentials_invalid', 'error' );
-            }
-            $json = wp_json_encode( $decoded, JSON_UNESCAPED_SLASHES );
-        }
-
-        if ( '' === $project || '' === $region || '' === $job ) {
-            self::redirect( 'google_python_fields_missing', 'error' );
-        }
-
-        update_option(
-            'seo_google_python_runner_settings',
-            array(
-                'enabled'              => ! empty( $_POST['enabled'] ) ? 1 : 0,
-                'project_id'           => $project,
-                'region'               => $region,
-                'job_name'             => $job,
-                'service_account_json' => $json,
-            ),
-            false
-        );
-
-        self::redirect( 'google_python_saved', 'success' );
-    }
-
-    public static function test_google_python() {
-        self::guard( 'tgb_google_python_test' );
-        if ( ! function_exists( 'seo_google_python_runner_test_connection' ) ) {
-            self::store_test_error( 'google_python', 'El servicio Google Python Runner no está cargado.' );
-            self::redirect( 'google_python_test_failed', 'error' );
-        }
-
-        $result = seo_google_python_runner_test_connection();
-        if ( empty( $result['ok'] ) ) {
-            self::store_test_error(
-                'google_python',
-                implode( ' ', array_map( 'sanitize_text_field', (array) ( $result['messages'] ?? array( 'Prueba fallida.' ) ) ) )
-            );
-            self::redirect( 'google_python_test_failed', 'error' );
-        }
-
-        set_transient(
-            'tgb_google_python_test_message_' . get_current_user_id(),
-            implode( ' ', array_map( 'sanitize_text_field', (array) ( $result['messages'] ?? array() ) ) ),
-            2 * MINUTE_IN_SECONDS
-        );
-        self::redirect( 'google_python_test_ok', 'success' );
-    }
-
-    public static function test_google() {
-        self::guard( 'tgb_test_google' );
-        $settings = self::google_settings();
-        $token = self::google_access_token( $settings, true );
-        if ( is_wp_error( $token ) ) {
-            self::store_test_error( 'google', $token->get_error_message() );
-            self::redirect( 'google_test_failed', 'error' );
-        }
-
-        $messages = array( 'Autenticación con Google correcta.' );
-
-        $site = trim( (string) $settings['search_console_site_url'] );
-        if ( '' !== $site ) {
-            $response = wp_remote_get(
-                'https://www.googleapis.com/webmasters/v3/sites',
-                array(
-                    'timeout' => 20,
-                    'headers' => array( 'Authorization' => 'Bearer ' . $token ),
-                )
-            );
-            if ( is_wp_error( $response ) ) {
-                self::store_test_error( 'google', 'Search Console: ' . $response->get_error_message() );
-                self::redirect( 'google_test_failed', 'error' );
-            }
-            $code = (int) wp_remote_retrieve_response_code( $response );
-            if ( $code < 200 || $code >= 300 ) {
-                self::store_test_error( 'google', 'Search Console respondió HTTP ' . $code . '.' );
-                self::redirect( 'google_test_failed', 'error' );
-            }
-            $messages[] = 'Search Console accesible.';
-        }
-
-        $property = trim( (string) $settings['analytics_property_id'] );
-        if ( '' !== $property ) {
-            $response = wp_remote_post(
-                'https://analyticsdata.googleapis.com/v1beta/properties/' . rawurlencode( $property ) . ':runReport',
-                array(
-                    'timeout' => 20,
-                    'headers' => array(
-                        'Authorization' => 'Bearer ' . $token,
-                        'Content-Type'  => 'application/json',
-                    ),
-                    'body' => wp_json_encode(
-                        array(
-                            'dateRanges' => array( array( 'startDate' => '7daysAgo', 'endDate' => 'yesterday' ) ),
-                            'metrics'    => array( array( 'name' => 'sessions' ) ),
-                            'limit'      => 1,
-                        )
-                    ),
-                )
-            );
-            if ( is_wp_error( $response ) ) {
-                self::store_test_error( 'google', 'Analytics: ' . $response->get_error_message() );
-                self::redirect( 'google_test_failed', 'error' );
-            }
-            $code = (int) wp_remote_retrieve_response_code( $response );
-            if ( $code < 200 || $code >= 300 ) {
-                self::store_test_error( 'google', 'Analytics respondió HTTP ' . $code . '.' );
-                self::redirect( 'google_test_failed', 'error' );
-            }
-            $messages[] = 'Google Analytics accesible.';
-        }
-
-        set_transient( 'tgb_google_test_message_' . get_current_user_id(), implode( ' ', $messages ), 2 * MINUTE_IN_SECONDS );
-        self::redirect( 'google_test_ok', 'success' );
-    }
-
     public static function test_bing() {
         self::guard( 'tgb_test_bing' );
+
         $settings = self::bing_settings();
         $key = self::bing_api_key( $settings );
         if ( '' === $key ) {
-            self::store_test_error( 'bing', 'Falta la API key de Bing Webmaster.' );
-            self::redirect( 'bing_test_failed', 'error' );
+            self::test_failure( 'bing', 'Falta la API key de Bing Webmaster.', 'bing_test_failed' );
         }
         if ( empty( $settings['enabled'] ) ) {
-            self::store_test_error( 'bing', 'Bing está desactivado.' );
-            self::redirect( 'bing_test_failed', 'error' );
+            self::test_failure( 'bing', 'La conexión Bing está desactivada.', 'bing_test_failed' );
         }
 
         $url = add_query_arg(
-            array(
-                'siteUrl' => (string) $settings['site_url'],
-                'apikey'  => $key,
-            ),
-            'https://ssl.bing.com/webmaster/api.svc/json/GetRankAndTrafficStats'
+            array( 'apikey' => $key ),
+            'https://ssl.bing.com/webmaster/api.svc/json/GetUserSites'
         );
 
         $response = wp_remote_get(
@@ -471,48 +521,56 @@ final class TaxoCommerce_Google_Bing_Connections {
         );
 
         if ( is_wp_error( $response ) ) {
-            self::store_test_error( 'bing', $response->get_error_message() );
-            self::redirect( 'bing_test_failed', 'error' );
+            self::test_failure( 'bing', $response->get_error_message(), 'bing_test_failed' );
         }
 
         $code = (int) wp_remote_retrieve_response_code( $response );
         if ( $code < 200 || $code >= 300 ) {
-            self::store_test_error( 'bing', 'Bing Webmaster respondió HTTP ' . $code . '.' );
-            self::redirect( 'bing_test_failed', 'error' );
+            self::test_failure( 'bing', 'Bing Webmaster respondió HTTP ' . $code . '.', 'bing_test_failed' );
+        }
+
+        $body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+        $target = untrailingslashit( strtolower( (string) $settings['site_url'] ) );
+        $found = false;
+        foreach ( (array) ( $body['d'] ?? array() ) as $site ) {
+            $url_value = untrailingslashit( strtolower( (string) ( $site['Url'] ?? '' ) ) );
+            if ( '' !== $target && $url_value === $target ) {
+                $found = true;
+                break;
+            }
+        }
+
+        if ( '' !== $target && ! $found ) {
+            self::test_failure( 'bing', 'La API key es válida, pero el sitio configurado no aparece entre los sitios autorizados.', 'bing_test_failed' );
         }
 
         self::redirect( 'bing_test_ok', 'success' );
     }
 
-    public static function access_token( $settings = null, $force = false ) {
-        if ( ! is_array( $settings ) ) {
-            $settings = self::google_settings();
-        }
-        return self::google_access_token( $settings, $force );
-    }
-
-    private static function google_service_account( $settings ) {
-        $raw = trim( (string) ( $settings['service_account_json'] ?? '' ) );
+    private static function decode_service_account( $raw ) {
+        $raw = trim( (string) $raw );
         if ( '' === $raw ) {
-            return new WP_Error( 'missing', 'No configurado.' );
+            return new WP_Error( 'tgb_missing_service_account', 'Cuenta de servicio no configurada.' );
         }
+
         $data = json_decode( $raw, true );
         if ( ! is_array( $data ) || empty( $data['client_email'] ) || empty( $data['private_key'] ) ) {
-            return new WP_Error( 'invalid', 'Credencial no válida.' );
+            return new WP_Error( 'tgb_invalid_service_account', 'El JSON de la cuenta de servicio no es válido.' );
         }
+
         return $data;
     }
 
-    private static function google_access_token( $settings, $force = false ) {
-        $account = self::google_service_account( $settings );
-        if ( is_wp_error( $account ) ) {
-            return $account;
+    private static function service_account_access_token( $account, $scope, $cache_prefix, $force = false ) {
+        if ( ! is_array( $account ) || empty( $account['client_email'] ) || empty( $account['private_key'] ) ) {
+            return new WP_Error( 'tgb_invalid_service_account', 'La cuenta de servicio no es válida.' );
         }
         if ( ! function_exists( 'openssl_sign' ) ) {
-            return new WP_Error( 'openssl', 'OpenSSL no está disponible en PHP.' );
+            return new WP_Error( 'tgb_openssl_missing', 'OpenSSL no está disponible en PHP.' );
         }
 
-        $cache_key = 'tgb_google_token_' . md5( (string) $account['client_email'] );
+        $scope = trim( (string) $scope );
+        $cache_key = 'tgb_token_' . sanitize_key( $cache_prefix ) . '_' . md5( (string) $account['client_email'] . '|' . $scope );
         if ( ! $force ) {
             $cached = get_transient( $cache_key );
             if ( is_string( $cached ) && '' !== $cached ) {
@@ -520,14 +578,18 @@ final class TaxoCommerce_Google_Bing_Connections {
             }
         }
 
+        $token_uri = ! empty( $account['token_uri'] )
+            ? esc_url_raw( (string) $account['token_uri'] )
+            : 'https://oauth2.googleapis.com/token';
+
         $now = time();
         $header = self::base64url( wp_json_encode( array( 'alg' => 'RS256', 'typ' => 'JWT' ) ) );
         $claims = self::base64url(
             wp_json_encode(
                 array(
                     'iss'   => (string) $account['client_email'],
-                    'scope' => 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly',
-                    'aud'   => ! empty( $account['token_uri'] ) ? (string) $account['token_uri'] : 'https://oauth2.googleapis.com/token',
+                    'scope' => $scope,
+                    'aud'   => $token_uri,
                     'iat'   => $now,
                     'exp'   => $now + 3500,
                 )
@@ -537,11 +599,11 @@ final class TaxoCommerce_Google_Bing_Connections {
         $unsigned = $header . '.' . $claims;
         $signature = '';
         if ( ! openssl_sign( $unsigned, $signature, (string) $account['private_key'], OPENSSL_ALGO_SHA256 ) ) {
-            return new WP_Error( 'sign', 'No se pudo firmar el token de Google.' );
+            return new WP_Error( 'tgb_token_sign_failed', 'No se pudo firmar la solicitud de token.' );
         }
 
         $response = wp_remote_post(
-            ! empty( $account['token_uri'] ) ? esc_url_raw( $account['token_uri'] ) : 'https://oauth2.googleapis.com/token',
+            $token_uri,
             array(
                 'timeout' => 20,
                 'body'    => array(
@@ -550,6 +612,7 @@ final class TaxoCommerce_Google_Bing_Connections {
                 ),
             )
         );
+
         if ( is_wp_error( $response ) ) {
             return $response;
         }
@@ -557,11 +620,15 @@ final class TaxoCommerce_Google_Bing_Connections {
         $code = (int) wp_remote_retrieve_response_code( $response );
         $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
         if ( $code < 200 || $code >= 300 || ! is_array( $data ) || empty( $data['access_token'] ) ) {
-            $message = is_array( $data ) && ! empty( $data['error_description'] ) ? (string) $data['error_description'] : 'Google no ha emitido un access token.';
-            return new WP_Error( 'token', $message );
+            $message = is_array( $data ) && ! empty( $data['error_description'] )
+                ? sanitize_text_field( (string) $data['error_description'] )
+                : 'El proveedor no ha emitido un access token.';
+            return new WP_Error( 'tgb_token_failed', $message );
         }
 
-        set_transient( $cache_key, (string) $data['access_token'], max( 300, min( 3300, (int) ( $data['expires_in'] ?? 3600 ) - 60 ) ) );
+        $ttl = max( 300, min( 3300, absint( $data['expires_in'] ?? 3600 ) - 60 ) );
+        set_transient( $cache_key, (string) $data['access_token'], $ttl );
+
         return (string) $data['access_token'];
     }
 
@@ -576,16 +643,12 @@ final class TaxoCommerce_Google_Bing_Connections {
         return trim( (string) ( $settings['api_key'] ?? '' ) );
     }
 
-    private static function legacy_google_oauth_status() {
-        $settings = get_option( 'seo_google_intelligence_settings', array() );
-        $tokens   = get_option( 'seo_google_intelligence_tokens', array() );
-        $configured = is_array( $settings ) && ! empty( $settings['client_id'] )
-            && is_array( $tokens ) && ( ! empty( $tokens['refresh_token'] ) || ! empty( $tokens['access_token'] ) );
-
-        return array(
-            'configured' => $configured,
-            'label'      => $configured ? 'Search Console autorizado' : 'No configurado',
-        );
+    private static function test_form( $action, $nonce, $label ) {
+        echo '<form class="tgb-test-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="' . esc_attr( $action ) . '">';
+        wp_nonce_field( $nonce );
+        submit_button( $label, 'secondary', 'submit', false );
+        echo '</form>';
     }
 
     private static function guard( $action ) {
@@ -595,12 +658,16 @@ final class TaxoCommerce_Google_Bing_Connections {
         check_admin_referer( $action );
     }
 
+    private static function test_failure( $provider, $message, $notice ) {
+        self::store_test_error( $provider, $message );
+        self::redirect( $notice, 'error' );
+    }
+
     private static function redirect( $code, $type ) {
         wp_safe_redirect(
             add_query_arg(
                 array(
                     'page'       => 'taxocommerce-google-bing',
-                    'tgb_tab'    => 'connections',
                     'tgb_notice' => sanitize_key( $code ),
                     'tgb_type'   => sanitize_key( $type ),
                 ),
@@ -611,46 +678,59 @@ final class TaxoCommerce_Google_Bing_Connections {
     }
 
     private static function store_test_error( $provider, $message ) {
-        set_transient( 'tgb_' . sanitize_key( $provider ) . '_test_error_' . get_current_user_id(), sanitize_text_field( (string) $message ), 2 * MINUTE_IN_SECONDS );
+        set_transient(
+            'tgb_' . sanitize_key( $provider ) . '_test_error_' . get_current_user_id(),
+            sanitize_text_field( (string) $message ),
+            2 * MINUTE_IN_SECONDS
+        );
     }
 
     private static function render_notice() {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status message after admin-post redirect.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect status.
         $code = isset( $_GET['tgb_notice'] ) ? sanitize_key( wp_unslash( $_GET['tgb_notice'] ) ) : '';
         if ( '' === $code ) {
             return;
         }
 
         $messages = array(
-            'google_saved'               => 'Configuración de Google guardada.',
-            'google_test_ok'             => 'Conexión Google verificada.',
-            'google_measurement_invalid' => 'El Measurement ID no tiene un formato válido.',
-            'google_credentials_invalid' => 'El JSON de la cuenta de servicio no es válido.',
-            'google_test_failed'         => 'La prueba de Google ha fallado.',
-            'google_python_saved'         => 'Configuración de Google Cloud Run guardada.',
-            'google_python_test_ok'       => 'Conexión Google Cloud Run verificada.',
-            'google_python_test_failed'   => 'La prueba de Google Cloud Run ha fallado.',
-            'google_python_credentials_invalid' => 'El JSON de la cuenta de servicio de Google Cloud Run no es válido.',
-            'google_python_fields_missing' => 'Project ID, región y Cloud Run Job son obligatorios.',
-            'bing_saved'                 => 'Configuración de Bing guardada.',
-            'bing_test_ok'               => 'Conexión Bing verificada.',
-            'bing_test_failed'           => 'La prueba de Bing ha fallado.',
+            'google_saved'                       => 'Configuración de Google guardada.',
+            'google_test_ok'                     => 'Conexión Google verificada sin descargar datos de informes.',
+            'google_measurement_invalid'         => 'El Measurement ID no tiene un formato válido.',
+            'google_credentials_invalid'         => 'El JSON de la cuenta de servicio no es válido.',
+            'google_test_failed'                 => 'La prueba de Google ha fallado.',
+
+            'merchant_saved'                     => 'Configuración de Merchant guardada.',
+            'merchant_test_ok'                   => 'Conexión Merchant verificada sin descargar datos de informes.',
+            'merchant_account_invalid'           => 'El ID de Merchant Center no es válido.',
+            'merchant_test_failed'               => 'La prueba de Merchant ha fallado.',
+
+            'google_python_saved'                => 'Configuración de Google Cloud Run guardada.',
+            'google_python_test_ok'              => 'Conexión Cloud Run verificada; el Job no se ha ejecutado.',
+            'google_python_test_failed'          => 'La prueba de Google Cloud Run ha fallado.',
+            'google_python_credentials_invalid'  => 'El JSON de la cuenta de servicio de Google Cloud Run no es válido.',
+            'google_python_fields_missing'       => 'Project ID, región y Cloud Run Job son obligatorios.',
+
+            'bing_saved'                         => 'Configuración de Bing guardada.',
+            'bing_test_ok'                       => 'Conexión Bing verificada sin descargar métricas.',
+            'bing_test_failed'                   => 'La prueba de Bing ha fallado.',
         );
+
         if ( ! isset( $messages[ $code ] ) ) {
             return;
         }
 
         $error = false !== strpos( $code, 'failed' ) || false !== strpos( $code, 'invalid' );
         $detail = '';
+
         if ( 'google_test_failed' === $code ) {
             $detail = (string) get_transient( 'tgb_google_test_error_' . get_current_user_id() );
             delete_transient( 'tgb_google_test_error_' . get_current_user_id() );
+        } elseif ( 'merchant_test_failed' === $code ) {
+            $detail = (string) get_transient( 'tgb_merchant_test_error_' . get_current_user_id() );
+            delete_transient( 'tgb_merchant_test_error_' . get_current_user_id() );
         } elseif ( 'google_python_test_failed' === $code ) {
             $detail = (string) get_transient( 'tgb_google_python_test_error_' . get_current_user_id() );
             delete_transient( 'tgb_google_python_test_error_' . get_current_user_id() );
-        } elseif ( 'google_python_test_ok' === $code ) {
-            $detail = (string) get_transient( 'tgb_google_python_test_message_' . get_current_user_id() );
-            delete_transient( 'tgb_google_python_test_message_' . get_current_user_id() );
         } elseif ( 'bing_test_failed' === $code ) {
             $detail = (string) get_transient( 'tgb_bing_test_error_' . get_current_user_id() );
             delete_transient( 'tgb_bing_test_error_' . get_current_user_id() );
@@ -675,15 +755,18 @@ final class TaxoCommerce_Google_Bing_Connections {
         .tgb-card-wide{margin-top:20px;max-width:none}
         .tgb-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid #f0f0f1}
         .tgb-actions form{margin:0}
-        .tgb-help{margin-top:18px;border-top:1px solid #dcdcde;padding-top:14px}.tgb-help summary{cursor:pointer;font-weight:600}
+        .tgb-help{margin-top:18px;border-top:1px solid #dcdcde;padding-top:14px}
+        .tgb-help summary{cursor:pointer;font-weight:600}
         .tgb-card-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;border-bottom:1px solid #f0f0f1;padding-bottom:12px;margin-bottom:10px}
-        .tgb-card-head h2{margin:0 0 5px}.tgb-card-head p{margin:0;color:#646970}
+        .tgb-card-head h2{margin:0 0 5px}
+        .tgb-card-head p{margin:0;color:#646970}
         .tgb-badge{display:inline-block;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-        .tgb-ok{background:#edfaef;color:#116329}.tgb-warning{background:#fff8e5;color:#755b00}
+        .tgb-ok{background:#edfaef;color:#116329}
+        .tgb-warning{background:#fff8e5;color:#755b00}
         .tgb-test-form{margin-top:10px;padding-top:12px;border-top:1px solid #f0f0f1}
         .tgb-legacy,.tgb-note{background:#f6f7f7;border-left:4px solid #72aee6;padding:10px 12px}
-        .tgb-note{margin-top:18px;max-width:1100px}
-        @media(max-width:782px){.tgb-grid{grid-template-columns:1fr}.tgb-card-head{flex-direction:column}}
+        .tgb-note{margin:18px 0;max-width:1200px}
+        @media (max-width:782px){.tgb-grid{grid-template-columns:1fr}.tgb-card{padding:15px}.tgb-card-head{flex-direction:column}.tgb-card input.regular-text,.tgb-card textarea{width:100%;max-width:100%}}
         </style>';
     }
 }
