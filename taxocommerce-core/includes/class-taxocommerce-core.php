@@ -108,7 +108,7 @@ final class TaxoCommerce_Core {
 		do_action( 'taxocommerce_core_register_modules', $this );
 
 
-		add_action( 'admin_menu', array( $this, 'register_menu' ) );
+		add_action( 'admin_menu', array( $this, 'register_menu' ), 5 );
 		add_action( 'admin_head', array( $this, 'hide_sidebar_submenu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_anomalies_page' ) );
