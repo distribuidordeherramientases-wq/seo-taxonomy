@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TaxoCommerce_Google_Bing_Connections {
-    const GOOGLE_OPTION = 'seo_google_search_settings';
+    const GOOGLE_OPTION = 'taxocommerce_google_bing_google_settings';
     const BING_OPTION   = 'seo_analista_bing_settings';
 
     public static function register() {
@@ -133,7 +133,7 @@ final class TaxoCommerce_Google_Bing_Connections {
 
         echo '</div>';
 
-        echo '<div class="tgb-note"><strong>Compatibilidad inicial:</strong> esta versión usa las mismas opciones que el plugin antiguo para que Analista, Ojeador, Ingeniero, Mercado e informes no pierdan sus credenciales mientras trasladamos progresivamente el consumo de datos a este plugin.</div>';
+        echo '<div class="tgb-note"><strong>Configuración independiente:</strong> Google usa opciones propias de TaxoCommerce Google / Bing. Las credenciales del plugin antiguo no se importan ni se leen automáticamente.</div>';
 
         self::styles();
     }
