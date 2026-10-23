@@ -10,8 +10,10 @@ $report = file_get_contents($root . '/includes/class-taxocommerce-core-anomalies
 $json = file_get_contents($root . '/includes/class-taxocommerce-core-anomalies-json.php');
 $original = file_get_contents(dirname($root) . '/includes/seo-reports.php');
 $checks = array(
-    strpos($core, "'taxocommerce-core-anomalies'") !== false,
-    strpos($core, "'taxocommerce_core_anomalies_render'") !== false,
+    strpos($core, "'taxocommerce-core-anomalies'") !== false, // Legacy bookmark redirect only.
+    strpos($core, "'taxocommerce_core_anomalies_render'") === false,
+    strpos(file_get_contents($root . '/includes/class-taxocommerce-core-content-manager.php'), "'anomalies'  => __( 'Anomalías'") !== false,
+    strpos($core, "'redirect_legacy_anomalies_page'") !== false,
     strpos($bootstrap, "class-taxocommerce-core-anomalies.php") !== false,
     strpos($bootstrap, "class-taxocommerce-core-anomalies-json.php") !== false,
     strpos($report, 'Clusters sin hubs primarios') !== false,
