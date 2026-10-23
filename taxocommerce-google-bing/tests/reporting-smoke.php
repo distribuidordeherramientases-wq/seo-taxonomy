@@ -58,7 +58,7 @@ $_GET = array(
 ob_start();
 TaxoCommerce_Google_Bing_Reports::render( 'search' );
 $html = ob_get_clean();
-if ( false === strpos( $html, '01/09/2026' ) || false === strpos( $html, '24/08/2026' ) ) {
+if ( false === strpos( $html, '01/09/2026' ) || false === strpos( $html, '25/08/2026' ) ) {
     fwrite( STDERR, "Custom date range comparison failed\n" );
     exit( 1 );
 }
