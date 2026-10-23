@@ -367,6 +367,12 @@ final class TaxoCommerce_Google_Bing_Reports {
         self::kpi( 'Sesiones', $current['sessions'], $previous['sessions'], 'number' );
         self::kpi( 'Vistas de página', $current['screenPageViews'], $previous['screenPageViews'], 'number' );
         self::kpi( 'Tasa de interacción', $current['engagementRate'], $previous['engagementRate'], 'percent' );
+        self::kpi( 'Tasa de rebote', $current['bounceRate'], $previous['bounceRate'], 'percent', true );
+        self::kpi( 'Duración media por sesión', $current['averageSessionDuration'], $previous['averageSessionDuration'], 'duration' );
+        self::kpi( 'Sesiones con interacción', $current['engagedSessions'], $previous['engagedSessions'] );
+        self::kpi( 'Eventos', $current['eventCount'], $previous['eventCount'] );
+        self::kpi( 'Eventos clave', $current['keyEvents'], $previous['keyEvents'] );
+        self::kpi( 'Compras registradas', $current['ecommercePurchases'], $previous['ecommercePurchases'] );
         echo '</div>';
 
         echo '<div class="tgb-report-grid">';
@@ -413,8 +419,47 @@ final class TaxoCommerce_Google_Bing_Reports {
                 ),
             )
         );
+        self::bar_card(
+            'Sesiones por canal de adquisición',
+            'Sesiones',
+            $data['channels']['labels'],
+            array(
+                array( 'label' => 'Actual', 'values' => $data['channels']['current'] ),
+                array( 'label' => 'Anterior', 'values' => $data['channels']['previous'], 'previous' => true ),
+            )
+        );
+        self::bar_card(
+            'Usuarios por dispositivo',
+            'Usuarios activos',
+            $data['devices']['labels'],
+            array(
+                array( 'label' => 'Actual', 'values' => $data['devices']['current'] ),
+                array( 'label' => 'Anterior', 'values' => $data['devices']['previous'], 'previous' => true ),
+            )
+        );
         echo '</div>';
+        self::render_ga4_pages( $data['pages'] );
+        echo '<p class="description">Las compras y los eventos clave sólo se muestran si GA4 recibe los eventos correspondientes.</p>';
         echo '</section>';
+    }
+
+    private static function render_ga4_pages( $pages ) {
+        echo '<div class="tgb-rank-card"><h3>Páginas más vistas (GA4)</h3>';
+        if ( empty( $pages ) ) {
+            echo '<p>No hay páginas registradas en este periodo.</p></div>';
+            return;
+        }
+        echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Ruta</th><th>Vistas actuales</th><th>Vistas anteriores</th><th>Variación</th></tr></thead><tbody>';
+        foreach ( array_slice( $pages, 0, 30 ) as $item ) {
+            $current = (int) $item['views'];
+            $previous = (int) $item['previous_views'];
+            $delta = self::delta( $current, $previous );
+            echo '<tr><td class="tgb-rank-label">' . esc_html( (string) $item['name'] ) . '</td>';
+            echo '<td>' . esc_html( number_format_i18n( $current ) ) . '</td>';
+            echo '<td>' . esc_html( number_format_i18n( $previous ) ) . '</td>';
+            echo '<td>' . esc_html( self::format_delta( $delta, $current, $previous ) ) . '</td></tr>';
+        }
+        echo '</tbody></table></div></div>';
     }
 
     private static function render_bing( $data ) {
@@ -492,7 +537,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             return $previous_reports;
         }
 
-        if ( count( $current_reports ) < 4 || count( $previous_reports ) < 4 ) {
+        if ( count( $current_reports ) < 7 || count( $previous_reports ) < 7 ) {
             return new WP_Error( 'tgb_ga4_incomplete', 'Google Analytics devolvió un lote de informes incompleto.' );
         }
 
@@ -538,6 +583,9 @@ final class TaxoCommerce_Google_Bing_Reports {
                 'current'  => $countries_current,
                 'previous' => $countries_previous,
             ),
+            'channels' => self::ga4_groups( $current_reports[4], $previous_reports[4] ),
+            'devices' => self::ga4_groups( $current_reports[5], $previous_reports[5] ),
+            'pages' => self::ga4_pages( $current_reports[6], $previous_reports[6] ),
             'daily' => array(
                 'labels'              => $axis_current['labels'],
                 'current_sessions'    => $daily_current['sessions'],
@@ -576,6 +624,10 @@ final class TaxoCommerce_Google_Bing_Reports {
                     array( 'name' => 'engagedSessions' ),
                     array( 'name' => 'engagementRate' ),
                     array( 'name' => 'eventCount' ),
+                    array( 'name' => 'bounceRate' ),
+                    array( 'name' => 'averageSessionDuration' ),
+                    array( 'name' => 'keyEvents' ),
+                    array( 'name' => 'ecommercePurchases' ),
                 ),
                 'limit' => 1,
             ),
@@ -611,6 +663,26 @@ final class TaxoCommerce_Google_Bing_Reports {
                         'desc'      => false,
                     ),
                 ),
+                'limit' => 100,
+            ),
+            array(
+                'dateRanges' => array( $date_range ),
+                'dimensions' => array( array( 'name' => 'sessionDefaultChannelGroup' ) ),
+                'metrics' => array( array( 'name' => 'sessions' ) ),
+                'orderBys' => array( array( 'metric' => array( 'metricName' => 'sessions' ), 'desc' => true ) ),
+                'limit' => 25,
+            ),
+            array(
+                'dateRanges' => array( $date_range ),
+                'dimensions' => array( array( 'name' => 'deviceCategory' ) ),
+                'metrics' => array( array( 'name' => 'activeUsers' ) ),
+                'limit' => 10,
+            ),
+            array(
+                'dateRanges' => array( $date_range ),
+                'dimensions' => array( array( 'name' => 'pagePath' ) ),
+                'metrics' => array( array( 'name' => 'screenPageViews' ) ),
+                'orderBys' => array( array( 'metric' => array( 'metricName' => 'screenPageViews' ), 'desc' => true ) ),
                 'limit' => 100,
             ),
         );
@@ -656,6 +728,10 @@ final class TaxoCommerce_Google_Bing_Reports {
             'engagedSessions'  => (int) self::row_metric( $row, 4 ),
             'engagementRate'   => (float) self::row_metric( $row, 5 ),
             'eventCount'       => (int) self::row_metric( $row, 6 ),
+            'bounceRate'       => (float) self::row_metric( $row, 7 ),
+            'averageSessionDuration' => (float) self::row_metric( $row, 8 ),
+            'keyEvents'        => (int) self::row_metric( $row, 9 ),
+            'ecommercePurchases' => (int) self::row_metric( $row, 10 ),
         );
     }
 
@@ -681,6 +757,35 @@ final class TaxoCommerce_Google_Bing_Reports {
                 $country = 'Sin identificar';
             }
             $out[ $country ] = (int) self::row_metric( $row, 0 );
+        }
+        return $out;
+    }
+
+    private static function ga4_groups( $current, $previous ) {
+        $now = self::ga4_country_map( $current );
+        $prior = self::ga4_country_map( $previous );
+        $combined = $now;
+        foreach ( $prior as $name => $value ) {
+            $combined[ $name ] = ( $combined[ $name ] ?? 0 ) + $value;
+        }
+        arsort( $combined );
+        $labels = array_slice( array_keys( $combined ), 0, 10 );
+        $current_values = array();
+        $previous_values = array();
+        foreach ( $labels as $label ) {
+            $current_values[] = (int) ( $now[ $label ] ?? 0 );
+            $previous_values[] = (int) ( $prior[ $label ] ?? 0 );
+        }
+        return array( 'labels' => $labels, 'current' => $current_values, 'previous' => $previous_values );
+    }
+
+    private static function ga4_pages( $current, $previous ) {
+        $now = self::ga4_country_map( $current );
+        $prior = self::ga4_country_map( $previous );
+        arsort( $now );
+        $out = array();
+        foreach ( array_slice( $now, 0, 100, true ) as $name => $views ) {
+            $out[] = array( 'name' => $name, 'views' => $views, 'previous_views' => (int) ( $prior[ $name ] ?? 0 ) );
         }
         return $out;
     }
@@ -1006,6 +1111,10 @@ final class TaxoCommerce_Google_Bing_Reports {
         }
         if ( 'decimal' === $format ) {
             return number_format_i18n( (float) $value, 1 );
+        }
+        if ( 'duration' === $format ) {
+            $seconds = max( 0, (int) round( (float) $value ) );
+            return sprintf( '%d:%02d', (int) floor( $seconds / 60 ), $seconds % 60 );
         }
         return number_format_i18n( (float) $value, 0 );
     }
