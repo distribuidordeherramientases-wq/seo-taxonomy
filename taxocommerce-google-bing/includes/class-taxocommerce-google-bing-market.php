@@ -178,7 +178,14 @@ final class TaxoCommerce_Google_Bing_Market {
             $walker = ( $parent && ! is_wp_error( $parent ) ) ? absint( $parent->parent ) : 0;
         }
         if ( '' === $locale ) {
-            $locale = str_replace( '_', '-', get_locale() );
+            // Prefer explicit term locale. For unambiguous pilot countries,
+            // use a country-appropriate search language rather than ES site locale.
+            $country_locales = array(
+                'ES' => 'es-ES', 'FR' => 'fr-FR', 'DE' => 'de-DE',
+                'NL' => 'nl-NL', 'US' => 'en-US',
+            );
+            $locale = $country && isset( $country_locales[ $country ] )
+                ? $country_locales[ $country ] : str_replace( '_', '-', get_locale() );
         }
         if ( '' === $country && preg_match( '/-([A-Za-z]{2})$/', $locale, $matches ) ) {
             $country = strtoupper( $matches[1] );
