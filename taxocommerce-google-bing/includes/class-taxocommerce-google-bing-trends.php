@@ -3,11 +3,12 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Google Trends: official Trending Now RSS, fetched only by explicit POST.
+ * Google Trends: user-directed Explore charts embedded in the admin UI.
  *
- * Google Trends' general-purpose official API remains restricted (alpha).
- * This module does not scrape Explore, call undocumented endpoints, schedule
- * jobs, or use the old SEO Google Trends worker.
+ * The historic official Trending Now RSS integration remains in the code for
+ * compatibility, but it is no longer shown on this screen. No old snapshots
+ * are deleted and there are no automatic searches or scheduled syncs.
+ * The official Trends API remains alpha-restricted.
  */
 final class TaxoCommerce_Google_Bing_Trends {
     const OPTION_PREFIX = 'tgb_trends_rss_snapshot_v1_';
@@ -180,35 +181,39 @@ final class TaxoCommerce_Google_Bing_Trends {
     }
 
     public static function render() {
-        // Filtering and opening a saved report are strictly local operations.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-        $geo = isset( $_GET['trends_geo'] ) ? self::valid_geo( wp_unslash( $_GET['trends_geo'] ) ) : 'ES';
-        $snapshot = self::saved_snapshot( $geo );
+        // Enqueue a local script only: no Google request occurs until a search.
+        wp_enqueue_script(
+            'taxocommerce-google-bing-trends',
+            TAXOCOMMERCE_GOOGLE_BING_URL . 'assets/trends-embed.js',
+            array(),
+            TAXOCOMMERCE_GOOGLE_BING_VERSION,
+            true
+        );
         $countries = self::countries();
 
         echo '<div class="tgb-trends">';
         echo '<h2>Google Trends</h2>';
-        echo '<p>Tendencias actuales del buscador mediante el <strong>RSS oficial de Google</strong>. Se descargan únicamente cuando pulsas el botón; cambiar de país o volver a esta pantalla no consulta Google.</p>';
-        echo '<p class="description">Esta fuente muestra búsquedas que han repuntado recientemente en el país seleccionado; no son las consultas recibidas por tu tienda ni el historial de interés de todas las palabras clave.</p>';
-
+        echo '<p>Consulta el interés de búsqueda de las palabras que elijas, en el país y periodo que indiques. <strong>Pulsa «Buscar tendencias» para mostrar los gráficos debajo.</strong></p>';
 
         echo '<section class="tgb-trends-query">';
-        echo '<h3>Consultar palabras o frases en Google Trends</h3>';
-        echo '<p>Escribe una frase por línea, hasta cinco. Puedes comparar su interés de búsqueda en todo el mundo o en un país concreto.</p>';
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" target="_blank" rel="noopener noreferrer">';
+        echo '<form id="tgb-trends-search-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" target="_blank" rel="noopener noreferrer">';
         echo '<input type="hidden" name="action" value="tgb_trends_explore">';
+        // Accessible no-JavaScript fallback: original handler opens Explore.
         wp_nonce_field( 'tgb_trends_explore' );
         echo '<label for="tgb-trends-terms"><strong>Palabras o frases a consultar</strong></label>';
-        echo '<textarea id="tgb-trends-terms" class="large-text" name="trends_terms" rows="3" maxlength="1500" required placeholder="taladros a batería&#10;amoladoras&#10;llaves de impacto"></textarea>';
+        echo '<textarea id="tgb-trends-terms" class="large-text" name="trends_terms" rows="4" maxlength="1500" required placeholder="taladros a batería&#10;Makita&#10;llaves de impacto"></textarea>';
+        echo '<p class="description">Escribe una palabra o frase por línea, hasta cinco. Se mostrarán resultados exclusivamente de esas búsquedas.</p>';
+
         echo '<div class="tgb-trends-controls">';
-        echo '<label for="tgb-trends-explore-geo">Zona:</label>';
+        echo '<label for="tgb-trends-explore-geo"><strong>Zona:</strong></label>';
         echo '<select id="tgb-trends-explore-geo" name="explore_geo">';
         echo '<option value="">Todo el mundo</option>';
         foreach ( $countries as $code => $label ) {
             echo '<option value="' . esc_attr( $code ) . '">' . esc_html( $label ) . '</option>';
         }
         echo '</select>';
-        echo '<label for="tgb-trends-explore-period">Periodo:</label>';
+
+        echo '<label for="tgb-trends-explore-period"><strong>Periodo:</strong></label>';
         echo '<select id="tgb-trends-explore-period" name="explore_period">';
         foreach ( array(
             'now 7-d' => 'Últimos 7 días',
@@ -220,85 +225,48 @@ final class TaxoCommerce_Google_Bing_Trends {
             echo '<option value="' . esc_attr( $value ) . '"' . ( 'today 12-m' === $value ? ' selected' : '' ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select>';
-        echo '<button class="button button-primary" type="submit">Consultar en Google Trends ↗</button>';
-        echo '</div></form>';
-        echo '<p class="description">La consulta se abre en la herramienta Explore de Google, en una pestaña nueva. Esta acción no descarga series por palabras en WordPress; la API oficial requiere acceso autorizado.</p>';
-        echo '</section>';
-
-        echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '" class="tgb-trends-controls">';
-        echo '<input type="hidden" name="page" value="taxocommerce-google-bing">';
-        echo '<input type="hidden" name="tgb_tab" value="google_trends">';
-        echo '<label for="tgb-trends-geo"><strong>País de tendencias actuales (RSS):</strong></label>';
-        echo '<select id="tgb-trends-geo" name="trends_geo">';
-        if ( ! isset( $countries[ $geo ] ) ) {
-            echo '<option selected value="' . esc_attr( $geo ) . '">' . esc_html( $geo ) . '</option>';
-        }
-        foreach ( $countries as $code => $label ) {
-            echo '<option value="' . esc_attr( $code ) . '"' . ( $code === $geo ? ' selected' : '' ) . '>' . esc_html( $label ) . '</option>';
-        }
-        echo '</select>';
-        echo '<button class="button" type="submit">Ver datos guardados</button>';
-        echo '</form>';
-
-        echo '<div class="tgb-trends-controls">';
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        echo '<input type="hidden" name="action" value="tgb_trends_download">';
-        echo '<input type="hidden" name="trends_geo" value="' . esc_attr( $geo ) . '">';
-        wp_nonce_field( 'tgb_trends_download_' . $geo );
-        echo '<button type="submit" class="button button-primary">Descargar tendencias actuales</button>';
-        echo '</form>';
-        echo '<a class="button" href="' . esc_url( self::trending_url( $geo ) ) . '" target="_blank" rel="noopener noreferrer">Abrir Google Trends</a>';
         echo '</div>';
 
-        $notice_key = 'tgb_trends_notice_' . get_current_user_id() . '_' . $geo;
-        $notice = get_transient( $notice_key );
-        if ( is_array( $notice ) ) {
-            echo '<div class="notice ' . ( ! empty( $notice['error'] ) ? 'notice-error' : 'notice-success' ) . ' inline"><p>' . esc_html( (string) ( $notice['message'] ?? '' ) ) . '</p></div>';
-            delete_transient( $notice_key );
-        }
+        echo '<div class="tgb-trends-actions">';
+        echo '<button class="button button-primary" type="submit">Buscar tendencias</button>';
+        echo '<a class="button" id="tgb-trends-open-google" href="https://trends.google.com/trends/explore" target="_blank" rel="noopener noreferrer">Abrir en Google Trends ↗</a>';
+        echo '</div>';
+        echo '<p id="tgb-trends-validation" class="notice notice-error inline" role="alert" hidden></p>';
+        echo '</form>';
+        echo '</section>';
 
-        if ( ! $snapshot ) {
-            echo '<div class="notice notice-info inline"><p>Sin datos descargados para ' . esc_html( self::geo_label( $geo ) ) . '. Pulsa «Descargar tendencias actuales» para obtener una copia.</p></div>';
-        } else {
-            echo '<p class="description"><strong>Copia local:</strong> ' . esc_html( wp_date( 'd/m/Y H:i', (int) $snapshot['downloaded_at'] ) );
-            echo ' · ' . esc_html( count( (array) $snapshot['items'] ) ) . ' tendencias · ' . esc_html( self::geo_label( $geo ) ) . '.</p>';
-            $export_url = wp_nonce_url(
-                add_query_arg(
-                    array( 'action' => 'tgb_trends_export', 'trends_geo' => $geo ),
-                    admin_url( 'admin-post.php' )
-                ),
-                'tgb_trends_export_' . $geo
-            );
-            echo '<p><a class="button" href="' . esc_url( $export_url ) . '">Exportar JSON guardado</a></p>';
-            echo '<div class="tgb-trends-table"><table class="widefat striped">';
-            echo '<thead><tr><th>Búsqueda en tendencia</th><th>Volumen aproximado indicado por Google</th><th>Fecha publicada</th><th>Explorar</th></tr></thead><tbody>';
-            foreach ( (array) $snapshot['items'] as $item ) {
-                $title = (string) ( $item['title'] ?? '' );
-                if ( '' === $title ) {
-                    continue;
-                }
-                $pub = (int) ( $item['published_at'] ?? 0 );
-                echo '<tr><td><strong>' . esc_html( $title ) . '</strong></td>';
-                echo '<td>' . esc_html( (string) ( $item['traffic_label'] ?? 'No disponible' ) ) . '</td>';
-                echo '<td>' . esc_html( $pub ? wp_date( 'd/m/Y H:i', $pub ) : 'Sin fecha' ) . '</td>';
-                echo '<td><a href="' . esc_url( self::explore_url( $title, $geo ) ) . '" target="_blank" rel="noopener noreferrer">Explorar</a></td></tr>';
-            }
-            echo '</tbody></table></div>';
-        }
+        echo '<section id="tgb-trends-results" class="tgb-trends-results" aria-label="Resultados de Google Trends" hidden></section>';
+        echo '<div id="tgb-trends-empty" class="tgb-trends-empty">';
+        echo '<strong>Todavía no hay resultados para esta consulta.</strong>';
+        echo '<p>Introduce las palabras, elige el país y el periodo, y pulsa «Buscar tendencias». No se realizan consultas automáticamente al abrir esta pestaña.</p>';
+        echo '</div>';
 
-        echo '<p class="description tgb-trends-api">La <a href="https://developers.google.com/search/apis/trends" target="_blank" rel="noopener noreferrer">API oficial de Google Trends</a> sigue teniendo acceso alfa restringido. Este informe usa sólo el RSS oficial de tendencias actuales: no realiza consultas automáticas, investigación de mercado ni análisis editorial.</p>';
+        echo '<p class="description tgb-trends-api"><strong>Fuente: </strong><a href="https://trends.google.com/trends/" target="_blank" rel="noopener noreferrer">Google Trends</a>. Los gráficos integrados muestran índices relativos de interés (0–100), no volúmenes absolutos ni visitas de tu tienda. Google puede limitar la integración de algunos gráficos. La <a href="https://developers.google.com/search/apis/trends" target="_blank" rel="noopener noreferrer">API oficial para descargar series</a> continúa en acceso alfa restringido.</p>';
         echo '<style>
-          .tgb-trends{margin-top:18px;max-width:1200px}
-          .tgb-trends-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0}
-          .tgb-trends-query{margin:18px 0;padding:16px;background:#fff;border:1px solid #dcdcde;border-radius:6px}
-          .tgb-trends-query textarea{display:block;margin:10px 0 14px;max-width:760px}
-          .tgb-trends-query p{max-width:780px}
-          .tgb-trends-controls form{margin:0}
+          .tgb-trends{margin-top:18px;max-width:1250px}
+          .tgb-trends-query{margin:18px 0;padding:18px;background:#fff;border:1px solid #dcdcde;border-radius:6px}
+          .tgb-trends-query textarea{display:block;margin:12px 0 8px;max-width:800px}
+          .tgb-trends-query p{max-width:830px}
+          .tgb-trends-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}
           .tgb-trends-controls select{max-width:230px}
-          .tgb-trends-table{overflow-x:auto;margin:14px 0}
-          .tgb-trends-table table{min-width:600px}
-          .tgb-trends-table th,.tgb-trends-table td{vertical-align:middle}
-          .tgb-trends-api{margin-top:18px}
+          .tgb-trends-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+          .tgb-trends-empty{padding:22px;background:#fff;border:1px solid #dcdcde;border-radius:6px;margin-top:18px}
+          .tgb-trends-results{margin-top:22px}
+          .tgb-trends-result-heading{margin-bottom:14px}
+          .tgb-trends-result-heading h3{font-size:18px;margin:0 0 8px}
+          .tgb-trends-result-heading a{margin:6px 0}
+          .tgb-trends-chart{background:#fff;border:1px solid #dcdcde;border-radius:6px;margin:14px 0;padding:14px;overflow:hidden}
+          .tgb-trends-chart h3{font-size:16px;margin:4px 0}
+          .tgb-trends-chart iframe{display:block;width:100%;max-width:100%;border:0;background:#fff;min-height:390px}
+          .tgb-trends-embed-notice{margin-top:14px}
+          .tgb-trends-api{margin:18px 0}
+          #tgb-trends-validation:not([hidden]){display:block;padding:10px;margin:12px 0}
+          @media(max-width:782px){
+            .tgb-trends-query{padding:12px}
+            .tgb-trends-controls{align-items:stretch}
+            .tgb-trends-controls select{max-width:100%}
+            .tgb-trends-chart{padding:8px}
+          }
         </style>';
         echo '</div>';
     }
