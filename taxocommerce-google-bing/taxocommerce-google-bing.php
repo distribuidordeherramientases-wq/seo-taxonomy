@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Google/Bing
  * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
- * Version: 0.3.2
+ * Version: 0.3.3
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.3.2' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.3.3' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -32,7 +32,8 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 if ( ! function_exists( 'seo_google_get_settings' ) ) {
     require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-google-info.php';
 }
-if ( ! function_exists( 'seo_landing_google_source_snapshot' ) ) {
+if ( ! function_exists( 'seo_landing_google_path_key' )
+    && ! function_exists( 'seo_landing_google_source_snapshot' ) ) {
     require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-landing-google-signals.php';
 }
 if ( ! function_exists( 'seo_google_python_runner_settings' ) ) {
