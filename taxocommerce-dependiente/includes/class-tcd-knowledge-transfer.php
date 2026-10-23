@@ -372,7 +372,6 @@ final class TCD_Knowledge_Transfer {
 		echo '"modern_knowledge":[';
 		self::stream_table(
 			TCD_Academy::knowledge_table(),
-			'id',
 			static function ( $row ) {
 				$context = json_decode( (string) ( $row['context_json'] ?? '' ), true );
 				return array(
@@ -389,16 +388,16 @@ final class TCD_Knowledge_Transfer {
 			}
 		);
 		echo '],"portable_rules":[';
-		self::stream_table( self::rules_table(), 'id', array( __CLASS__, 'portable_rule_for_export' ) );
+		self::stream_table( self::rules_table(), array( __CLASS__, 'portable_rule_for_export' ) );
 		echo '],"lesson9_memory":[';
-		self::stream_table( self::l9_table(), 'id', array( __CLASS__, 'l9_for_export' ) );
+		self::stream_table( self::l9_table(), array( __CLASS__, 'l9_for_export' ) );
 		echo '],"legacy_completed_lessons":[';
-		self::stream_table( self::legacy_lessons_table(), 'id', array( __CLASS__, 'legacy_lesson_for_export' ) );
+		self::stream_table( self::legacy_lessons_table(), array( __CLASS__, 'legacy_lesson_for_export' ) );
 		echo ']}';
 		exit;
 	}
 
-	private static function stream_table( $table, $id_column, $mapper ) {
+	private static function stream_table( $table, $mapper ) {
 		global $wpdb;
 		$last  = 0;
 		$first = true;
