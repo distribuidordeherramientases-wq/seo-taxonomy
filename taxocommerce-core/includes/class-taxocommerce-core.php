@@ -109,7 +109,7 @@ final class TaxoCommerce_Core {
 
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
-		add_action( 'admin_menu', array( $this, 'collapse_sidebar_menu' ), PHP_INT_MAX );
+		add_action( 'admin_head', array( $this, 'hide_sidebar_submenu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_anomalies_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
@@ -176,7 +176,7 @@ final class TaxoCommerce_Core {
 			array( $this, 'render_dashboard' )
 		);
 
-		// Register module screens without showing duplicate sidebar entries.
+		// Register module screens normally so WordPress keeps their routes and capabilities.
 		add_submenu_page(
 			'taxocommerce-core',
 			__( 'Contenidos', 'taxocommerce-core' ),
@@ -216,28 +216,15 @@ final class TaxoCommerce_Core {
 
 
 	/**
-	 * Keeps only the Core entry visible in the WordPress sidebar.
+	 * Hides the Core submenu only in the browser.
 	 *
-	 * Module pages remain registered under Core, so direct links and dashboard
-	 * cards keep their normal WordPress capability checks and page hooks.
+	 * The submenu remains registered in WordPress so direct links, capability
+	 * checks and page hooks continue to work normally.
 	 *
 	 * @return void
 	 */
-	public function collapse_sidebar_menu() {
-		global $submenu;
-
-		if ( empty( $submenu['taxocommerce-core'] ) || ! is_array( $submenu['taxocommerce-core'] ) ) {
-			return;
-		}
-
-		$visible = array();
-		foreach ( $submenu['taxocommerce-core'] as $item ) {
-			if ( isset( $item[2] ) && 'taxocommerce-core' === (string) $item[2] ) {
-				$visible[] = $item;
-			}
-		}
-
-		$submenu['taxocommerce-core'] = $visible;
+	public function hide_sidebar_submenu() {
+		echo '<style id="taxocommerce-core-sidebar">#toplevel_page_taxocommerce-core > ul.wp-submenu{display:none!important;}</style>';
 	}
 
 	/**
