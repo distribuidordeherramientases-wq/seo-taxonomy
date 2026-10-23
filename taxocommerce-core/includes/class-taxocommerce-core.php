@@ -201,6 +201,15 @@ final class TaxoCommerce_Core {
 
 		add_submenu_page(
 			'taxocommerce-core',
+			__( 'Anomalías', 'taxocommerce-core' ),
+			__( 'Anomalías', 'taxocommerce-core' ),
+			$capability,
+			'taxocommerce-core-anomalies',
+			'taxocommerce_core_anomalies_render'
+		);
+
+		add_submenu_page(
+			'taxocommerce-core',
 			__( 'Extensiones', 'taxocommerce-core' ),
 			__( 'Extensiones', 'taxocommerce-core' ),
 			$capability,
@@ -560,6 +569,7 @@ final class TaxoCommerce_Core {
 		// merely because its slug happens to contain "taxocommerce".
 		$slugs = array(
 			'taxocommerce-core',
+			'taxocommerce-core-anomalies',
 			'taxocommerce-images',
 			'taxocommerce-import-export',
 			'taxocommerce-system-check',
