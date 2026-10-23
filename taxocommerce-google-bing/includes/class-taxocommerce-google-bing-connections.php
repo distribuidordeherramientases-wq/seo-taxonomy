@@ -33,6 +33,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         add_action( 'admin_post_tgb_google_python_save', array( __CLASS__, 'save_google_python' ) );
         add_action( 'admin_post_tgb_google_python_test', array( __CLASS__, 'test_google_python' ) );
 
+        add_action( 'admin_post_tgb_save_market_providers', array( __CLASS__, 'save_market_providers' ) );
         add_action( 'admin_post_tgb_save_bing', array( __CLASS__, 'save_bing' ) );
         add_action( 'admin_post_tgb_test_bing', array( __CLASS__, 'test_bing' ) );
     }
@@ -289,6 +290,29 @@ final class TaxoCommerce_Google_Bing_Connections {
         submit_button( 'Guardar Bing', 'primary', 'submit', false );
         echo '</form>';
         self::test_form( 'tgb_test_bing', 'tgb_test_bing', 'Probar conexión Bing' );
+        echo '</section>';
+
+        echo '<section id="tgb-market-providers" class="tgb-card">';
+        echo '<div class="tgb-card-head"><div><h2>Proveedores de Mercado · YouTube y SerpApi</h2><p>Las credenciales se administran aquí; Mercado muestra sus estados y realiza los análisis.</p></div></div>';
+        echo '<p><strong>YouTube Data API v3:</strong> API de Google, pero requiere una clave propia habilitada en Google Cloud. La credencial de Google Analytics / Search Console no la sustituye.</p>';
+        echo '<p><strong>SerpApi:</strong> proveedor externo y opcional para búsquedas web y ofertas Shopping. Puede generar costes y está sujeto a las cuotas del proveedor.</p>';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="tgb_save_market_providers">';
+        wp_nonce_field( 'tgb_save_market_providers' );
+        echo '<table class="form-table" role="presentation">';
+        foreach ( array( 'youtube' => 'YouTube Data API v3', 'serpapi' => 'SerpApi · búsqueda web y Shopping' ) as $provider => $label ) {
+            $saved = '' !== (string) get_option( 'tgb_market_' . $provider . '_key', '' );
+            echo '<tr><th><label for="tgb-provider-' . esc_attr( $provider ) . '">' . esc_html( $label ) . '</label></th><td>';
+            echo self::badge( $saved ? 'Configurado' : 'Sin configurar', $saved ? 'ok' : 'warning' );
+            echo '<p><input class="regular-text" id="tgb-provider-' . esc_attr( $provider ) . '" type="password" name="' . esc_attr( $provider ) . '_key" autocomplete="new-password" value="" placeholder="' . esc_attr( $saved ? 'Dejar vacío para conservar la clave' : 'Introducir API key' ) . '"></p>';
+            if ( $saved ) {
+                echo '<label><input type="checkbox" name="clear_' . esc_attr( $provider ) . '" value="1"> Eliminar la clave existente</label>';
+            }
+            echo '</td></tr>';
+        }
+        echo '</table>';
+        submit_button( 'Guardar conexiones de Mercado', 'primary', 'submit', false );
+        echo '</form><p class="description">No se muestran las claves guardadas. Esta pantalla no efectúa consultas de mercado.</p>';
         echo '</section>';
 
         echo '</div>';
@@ -747,6 +771,25 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '</form>';
     }
 
+    public static function save_market_providers() {
+        self::guard( 'tgb_save_market_providers' );
+        foreach ( array( 'youtube', 'serpapi' ) as $provider ) {
+            $option = 'tgb_market_' . $provider . '_key';
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked above with self::guard().
+            if ( ! empty( $_POST[ 'clear_' . $provider ] ) ) {
+                delete_option( $option );
+                continue;
+            }
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked above with self::guard().
+            $raw = isset( $_POST[ $provider . '_key' ] )
+                ? sanitize_text_field( wp_unslash( $_POST[ $provider . '_key' ] ) ) : '';
+            if ( '' !== $raw && strlen( $raw ) <= 180 ) {
+                update_option( $option, $raw, false );
+            }
+        }
+        self::redirect( 'market_providers_saved', 'success' );
+    }
+
     private static function guard( $action ) {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
@@ -806,6 +849,7 @@ final class TaxoCommerce_Google_Bing_Connections {
             'google_python_credentials_invalid'  => 'El JSON de la cuenta de servicio de Google Cloud Run no es válido.',
             'google_python_fields_missing'       => 'Project ID, región y Cloud Run Job son obligatorios.',
 
+            'market_providers_saved'             => 'Conexiones de YouTube y SerpApi guardadas. Se conservan las claves que se han dejado en blanco.',
             'bing_saved'                         => 'Configuración de Bing guardada.',
             'bing_test_ok'                       => 'Conexión Bing verificada sin descargar métricas.',
             'bing_test_failed'                   => 'La prueba de Bing ha fallado.',

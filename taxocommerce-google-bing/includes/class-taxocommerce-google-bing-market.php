@@ -42,7 +42,6 @@ final class TaxoCommerce_Google_Bing_Market {
         add_action( 'admin_post_tgb_market_scan', array( __CLASS__, 'handle_scan' ) );
         add_action( 'admin_post_tgb_market_queue_start', array( __CLASS__, 'handle_queue_start' ) );
         add_action( 'admin_post_tgb_market_queue_stop', array( __CLASS__, 'handle_queue_stop' ) );
-        add_action( 'admin_post_tgb_market_keys', array( __CLASS__, 'handle_keys' ) );
         add_action( 'admin_post_tgb_market_mapping', array( __CLASS__, 'handle_mapping' ) );
         add_action( 'admin_post_tgb_market_export', array( __CLASS__, 'handle_export' ) );
         add_action( 'created_product_cat', array( __CLASS__, 'sync_term' ), 10, 1 );
@@ -483,21 +482,6 @@ final class TaxoCommerce_Google_Bing_Market {
                 $result['complete'] ? 'catálogo sincronizado' : 'quedan lotes por sincronizar' ), is_wp_error( $result ) );
     }
 
-    public static function handle_keys() {
-        self::require_admin( 'tgb_market_keys' );
-        foreach ( array( 'youtube' => 'tgb_market_youtube_key', 'serpapi' => 'tgb_market_serpapi_key' ) as $field => $option ) {
-            if ( ! empty( $_POST[ 'clear_' . $field ] ) ) {
-                delete_option( $option );
-            } elseif ( ! empty( $_POST[ $field . '_key' ] ) ) {
-                $key = sanitize_text_field( wp_unslash( $_POST[ $field . '_key' ] ) );
-                if ( strlen( $key ) <= 180 ) {
-                    update_option( $option, $key, false );
-                }
-            }
-        }
-        self::redirect( 'Configuración de proveedores actualizada. Las claves no se muestran en pantalla.' );
-    }
-
     public static function handle_mapping() {
         self::require_admin( 'tgb_market_mapping' );
         global $wpdb;
@@ -626,17 +610,9 @@ final class TaxoCommerce_Google_Bing_Market {
         echo '<h3>Fuentes de investigación</h3><p>YouTube: ' . esc_html( $youtube ? 'configurado' : 'sin API key' )
             . ' · SerpApi (web y ofertas): ' . esc_html( $serpapi ? 'configurado' : 'sin API key' )
             . ' · Merchant: ' . esc_html( $merchant ? 'ID configurado; requiere autorización y categoría Google' : 'sin cuenta' ) . '.</p>';
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        echo '<input type="hidden" name="action" value="tgb_market_keys">';
-        wp_nonce_field( 'tgb_market_keys' );
-        echo '<table class="form-table" role="presentation">';
-        foreach ( array( 'youtube' => 'YouTube Data API v3', 'serpapi' => 'SerpApi (búsqueda y Google Shopping)' ) as $key => $name ) {
-            echo '<tr><th><label for="market-' . esc_attr( $key ) . '">' . esc_html( $name ) . '</label></th><td>';
-            echo '<input id="market-' . esc_attr( $key ) . '" type="password" class="regular-text" name="' . esc_attr( $key ) . '_key" autocomplete="new-password" placeholder="Dejar vacío para conservar la clave">';
-            echo ' <label><input type="checkbox" name="clear_' . esc_attr( $key ) . '" value="1"> Borrar clave</label></td></tr>';
-        }
-        echo '</table><button type="submit" class="button">Guardar proveedores</button></form>';
-        echo '<p class="description">Estas claves se guardan solo en este plugin, sin mostrarse después. Merchant utiliza la cuenta de servicio y el ID de la pestaña Conexiones. No se realiza scraping. Google Search/Analytics/Bing no ofrecen reseñas genéricas por categoría.</p>';
+        $connections_url = add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections' ), admin_url( 'admin.php' ) ) . '#tgb-market-providers';
+        echo '<p><a class="button" href="' . esc_url( $connections_url ) . '">Configurar proveedores en Conexiones</a></p>';
+        echo '<p class="description">YouTube y SerpApi son opcionales. YouTube requiere una API key de su propia API de Google; SerpApi es un proveedor externo. No se consultan APIs al abrir esta pantalla.</p>';
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only listing pagination.
         $page = max( 1, absint( $_GET['market_page'] ?? 1 ) );
