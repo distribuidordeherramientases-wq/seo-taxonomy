@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Google/Bing
  * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
- * Version: 0.5.0
+ * Version: 0.6.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,17 +12,19 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.5.0' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.6.0' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
 
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-oauth.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
     TaxoCommerce_Google_Bing_OAuth::register();
+    TaxoCommerce_Google_Bing_Reports::register();
 
     add_action( 'taxocommerce_core_register_modules', 'taxocommerce_google_bing_register_with_core' );
     if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
@@ -44,7 +46,7 @@ function taxocommerce_google_bing_register_with_core( $core ) {
             'name'        => 'TaxoCommerce Google/Bing',
             'version'     => TAXOCOMMERCE_GOOGLE_BING_VERSION,
             'status'      => 'active',
-            'description' => 'Conexiones centralizadas y consultas bajo demanda de Google Analytics y Microsoft Bing.',
+            'description' => 'Conexiones e informes manuales de Google Analytics, Search Console y Bing Webmaster.',
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-google-bing' ),
         )
     );
@@ -83,14 +85,17 @@ function taxocommerce_google_bing_screen() {
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
     $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : 'connections';
-    if ( ! in_array( $tab, array( 'connections', 'reports' ), true ) ) {
+    if ( 'reports' === $tab ) {
+        $tab = 'analytics'; // Compatibilidad con los enlaces anteriores.
+    }
+    if ( ! in_array( $tab, array( 'connections', 'analytics', 'search', 'bing' ), true ) ) {
         $tab = 'connections';
     }
 
     echo '<div class="wrap tgb-wrap">';
     echo '<h1>TaxoCommerce Google / Bing</h1>';
     echo '<nav class="nav-tab-wrapper" aria-label="Google / Bing">';
-    foreach ( array( 'connections' => 'Conexiones', 'reports' => 'Informes' ) as $key => $label ) {
+    foreach ( array( 'connections' => 'Conexiones', 'analytics' => 'Google Analytics', 'search' => 'Google Search', 'bing' => 'Bing Webmaster' ) as $key => $label ) {
         $url = add_query_arg(
             array(
                 'page'    => 'taxocommerce-google-bing',
@@ -102,9 +107,8 @@ function taxocommerce_google_bing_screen() {
     }
     echo '</nav>';
 
-    if ( 'reports' === $tab ) {
-        require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
-        TaxoCommerce_Google_Bing_Reports::render();
+    if ( 'connections' !== $tab ) {
+        TaxoCommerce_Google_Bing_Reports::render( $tab );
     } else {
         echo '<p>Conexiones centralizadas. Guardar o probar una conexión no descarga métricas de negocio.</p>';
         TaxoCommerce_Google_Bing_Connections::render();
