@@ -147,6 +147,12 @@ final class FakeMarketDB {
 $GLOBALS['wpdb'] = new FakeMarketDB();
 final class TaxoCommerce_Google_Bing_Connections {
     public static function merchant_account() { return ''; }
+    public static function google_settings() { return array( 'search_console_site_url' => '', 'service_account_json' => '' ); }
+}
+
+final class TaxoCommerce_Google_Bing_OAuth {
+    public static function settings() { return array( 'property_id' => '' ); }
+    public static function tokens() { return array( 'access_token' => '', 'refresh_token' => '' ); }
 }
 
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-market-sources.php';

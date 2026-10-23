@@ -12,14 +12,28 @@ final class TaxoCommerce_Google_Bing_Market_Sources {
     const SERPAPI_MONTHLY_MAX = 200;
     const SERPAPI_USAGE_OPTION = 'tgb_market_serpapi_monthly_usage';
 
+    public static function google_available() {
+        $settings = TaxoCommerce_Google_Bing_Connections::google_settings();
+        $oauth = TaxoCommerce_Google_Bing_OAuth::settings();
+        $site = trim( (string) ( $settings['search_console_site_url'] ?? '' ) );
+        if ( '' === $site ) {
+            $site = trim( (string) ( $oauth['property_id'] ?? '' ) );
+        }
+        $tokens = TaxoCommerce_Google_Bing_OAuth::tokens();
+        return '' !== $site && ( ! empty( $settings['service_account_json'] )
+            || ! empty( $tokens['refresh_token'] ) || ! empty( $tokens['access_token'] ) );
+    }
+
     public static function any_global_provider() {
-        return '' !== (string) get_option( 'tgb_market_youtube_key', '' )
+        return self::google_available()
+            || '' !== (string) get_option( 'tgb_market_youtube_key', '' )
             || '' !== (string) get_option( 'tgb_market_serpapi_key', '' )
             || '' !== (string) TaxoCommerce_Google_Bing_Connections::merchant_account();
     }
 
     public static function any_available( $category ) {
-        return '' !== (string) get_option( 'tgb_market_youtube_key', '' )
+        return self::google_available()
+            || '' !== (string) get_option( 'tgb_market_youtube_key', '' )
             || '' !== (string) get_option( 'tgb_market_serpapi_key', '' )
             || ( ! empty( $category['google_category_id'] )
                 && '' !== (string) TaxoCommerce_Google_Bing_Connections::merchant_account() );
@@ -89,15 +103,28 @@ final class TaxoCommerce_Google_Bing_Market_Sources {
     public static function collect( $category ) {
         $all = array( 'items' => array(), 'providers' => array(), 'errors' => array() );
         $tasks = array();
+        if ( self::google_available() ) {
+            $tasks['google_search'] = self::google_category_search( $category );
+        } else {
+            $all['providers']['google_search'] = array( 'status' => 'skipped', 'reason' => 'Search Console sin autorización o propiedad', 'count' => 0 );
+        }
         if ( '' !== (string) get_option( 'tgb_market_youtube_key', '' ) ) {
             $tasks['youtube'] = self::youtube( $category );
+        } else {
+            $all['providers']['youtube'] = array( 'status' => 'skipped', 'reason' => 'Sin API key', 'count' => 0 );
         }
         if ( '' !== (string) get_option( 'tgb_market_serpapi_key', '' ) ) {
             $tasks['web'] = self::serpapi( $category, 'google' );
             $tasks['shopping'] = self::serpapi( $category, 'google_shopping' );
+        } else {
+            foreach ( array( 'web', 'shopping' ) as $name ) {
+                $all['providers'][ $name ] = array( 'status' => 'skipped', 'reason' => 'SerpApi sin API key', 'count' => 0 );
+            }
         }
         if ( ! empty( $category['google_category_id'] ) && TaxoCommerce_Google_Bing_Connections::merchant_account() ) {
             $tasks['merchant'] = self::merchant_best_sellers( $category );
+        } else {
+            $all['providers']['merchant'] = array( 'status' => 'skipped', 'reason' => 'Falta cuenta o categoría Google validada', 'count' => 0 );
         }
         foreach ( $tasks as $provider => $result ) {
             if ( is_wp_error( $result ) ) {
@@ -106,10 +133,85 @@ final class TaxoCommerce_Google_Bing_Market_Sources {
             } else {
                 $items = (array) ( $result['items'] ?? array() );
                 $all['items'] = array_merge( $all['items'], $items );
-                $all['providers'][ $provider ] = array( 'status' => 'ok', 'count' => count( $items ) );
+                $all['providers'][ $provider ] = array( 'status' => $items ? 'ok' : 'empty', 'count' => count( $items ) );
             }
         }
         return $all;
+    }
+
+    /**
+     * Search Console reports searches reaching our OWN category URL.
+     * This is not a web-wide search and never represents consumer reviews.
+     */
+    private static function google_category_search( $category ) {
+        $term = get_term( absint( $category['term_id'] ), 'product_cat' );
+        if ( ! $term || is_wp_error( $term ) ) {
+            return new WP_Error( 'market_category_missing', 'Categoría WooCommerce no encontrada.' );
+        }
+        $link = get_term_link( $term );
+        if ( is_wp_error( $link ) ) {
+            return $link;
+        }
+        $settings = TaxoCommerce_Google_Bing_Connections::google_settings();
+        $oauth = TaxoCommerce_Google_Bing_OAuth::settings();
+        $site = trim( (string) ( $settings['search_console_site_url'] ?? '' ) );
+        if ( '' === $site ) {
+            $site = trim( (string) ( $oauth['property_id'] ?? '' ) );
+        }
+        $token = new WP_Error( 'market_google_auth', 'Sin acceso a Google Search Console.' );
+        if ( ! empty( $settings['service_account_json'] ) ) {
+            $token = TaxoCommerce_Google_Bing_Connections::access_token( 'https://www.googleapis.com/auth/webmasters.readonly' );
+        }
+        if ( is_wp_error( $token ) ) {
+            $token = TaxoCommerce_Google_Bing_OAuth::access_token();
+        }
+        if ( is_wp_error( $token ) ) {
+            return new WP_Error( 'market_google_auth', 'No se pudo autorizar Search Console.' );
+        }
+        $request = array(
+            'startDate' => gmdate( 'Y-m-d', time() - 32 * DAY_IN_SECONDS ),
+            'endDate' => gmdate( 'Y-m-d', time() - 3 * DAY_IN_SECONDS ),
+            'dimensions' => array( 'query' ),
+            'dimensionFilterGroups' => array( array( 'filters' => array( array(
+                'dimension' => 'page', 'operator' => 'equals', 'expression' => $link,
+            ) ) ) ),
+            'rowLimit' => 100,
+            'type' => 'web',
+            'dataState' => 'final',
+        );
+        $result = self::request_json(
+            'https://www.googleapis.com/webmasters/v3/sites/' . rawurlencode( $site ) . '/searchAnalytics/query',
+            'POST', $request,
+            array( 'Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json',
+                'Content-Type' => 'application/json' )
+        );
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+        $items = array();
+        foreach ( array_slice( (array) ( $result['rows'] ?? array() ), 0, 100 ) as $row ) {
+            $term_text = self::clean( $row['keys'][0] ?? '', 350 );
+            if ( '' === $term_text ) {
+                continue;
+            }
+            $items[] = array(
+                'provider' => 'google_search',
+                'type' => 'search_query',
+                'key' => $term_text . '|' . gmdate( 'Y-m' ),
+                'url' => self::safe_url( $link ),
+                'title' => $term_text,
+                'level' => 'own_site_metrics',
+                'snippet' => 'Consulta que generó visibilidad de nuestra categoría, no opinión externa.',
+                'metadata' => array(
+                    'clicks' => absint( $row['clicks'] ?? 0 ),
+                    'impressions' => absint( $row['impressions'] ?? 0 ),
+                    'ctr' => (float) ( $row['ctr'] ?? 0 ),
+                    'position' => (float) ( $row['position'] ?? 0 ),
+                    'scope' => 'own_site',
+                ),
+            );
+        }
+        return array( 'items' => $items );
     }
 
     /**
