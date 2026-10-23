@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TaxoCommerce_Google_Bing_Connections {
-    const GOOGLE_OPTION = 'taxocommerce_google_bing_google_settings';
+    const GOOGLE_OPTION = 'seo_google_search_settings';
     const BING_OPTION   = 'seo_analista_bing_settings';
 
     public static function register() {
@@ -47,27 +47,24 @@ final class TaxoCommerce_Google_Bing_Connections {
         $google_account = self::google_service_account( $google );
         $google_ready   = ! is_wp_error( $google_account );
         $bing_key       = self::bing_api_key( $bing );
-        $legacy_oauth   = self::legacy_google_oauth_status();
+        TaxoCommerce_Google_Bing_OAuth::render();
 
         echo '<div class="tgb-grid">';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Google</h2><p>Conexión central para Search Console, Google Analytics y futuras APIs de Google.</p></div>';
+        echo '<div class="tgb-card-head"><div><h2>Google Analytics / Search Console · Cuenta de servicio</h2><p>Conexión por cuenta de servicio para GA4 Data API, Search Console y medición frontend.</p></div>';
         echo self::badge( $google_ready ? 'Configurado' : 'Sin configurar', $google_ready ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
 
         if ( $google_ready ) {
             echo '<p><strong>Cuenta de servicio:</strong> ' . esc_html( (string) $google_account['client_email'] ) . '</p>';
         }
-        if ( $legacy_oauth['configured'] ) {
-            echo '<p class="tgb-legacy"><strong>OAuth heredado detectado:</strong> ' . esc_html( $legacy_oauth['label'] ) . '. Se conserva para compatibilidad mientras migremos los consumidores.</p>';
-        }
-
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_save_google">';
         wp_nonce_field( 'tgb_save_google' );
 
         echo '<table class="form-table" role="presentation">';
+        echo '<tr><th>Medición GA4</th><td><label><input type="checkbox" name="tracking_enabled" value="1" ' . checked( ! empty( $google['tracking_enabled'] ), true, false ) . '> Activar medición GA4 en frontend</label></td></tr>';
         echo '<tr><th><label for="tgb_gsc_site">Propiedad Search Console</label></th><td>';
         echo '<input id="tgb_gsc_site" class="regular-text code" type="text" name="search_console_site_url" value="' . esc_attr( (string) $google['search_console_site_url'] ) . '" placeholder="https://www.ejemplo.es/ o sc-domain:ejemplo.es">';
         echo '</td></tr>';
@@ -133,7 +130,7 @@ final class TaxoCommerce_Google_Bing_Connections {
 
         echo '</div>';
 
-        echo '<div class="tgb-note"><strong>Configuración independiente:</strong> Google usa opciones propias de TaxoCommerce Google / Bing. Las credenciales del plugin antiguo no se importan ni se leen automáticamente.</div>';
+        echo '<div class="tgb-note"><strong>Compatibilidad:</strong> se conservan las opciones históricas de Google para que las credenciales y datos de PRO continúen funcionando al desactivar el monolito.</div>';
 
         self::styles();
     }
@@ -167,7 +164,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         update_option(
             self::GOOGLE_OPTION,
             array(
-                'tracking_enabled'        => ! empty( $current['tracking_enabled'] ) ? 1 : 0,
+                'tracking_enabled'        => ! empty( $_POST['tracking_enabled'] ) ? 1 : 0,
                 'measurement_id'          => $measurement,
                 'analytics_property_id'   => $property,
                 'search_console_site_url' => $site,
@@ -537,6 +534,10 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '<style>
         .tgb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;margin-top:20px}
         .tgb-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;min-width:0}
+        .tgb-card-wide{margin-top:20px;max-width:none}
+        .tgb-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid #f0f0f1}
+        .tgb-actions form{margin:0}
+        .tgb-help{margin-top:18px;border-top:1px solid #dcdcde;padding-top:14px}.tgb-help summary{cursor:pointer;font-weight:600}
         .tgb-card-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;border-bottom:1px solid #f0f0f1;padding-bottom:12px;margin-bottom:10px}
         .tgb-card-head h2{margin:0 0 5px}.tgb-card-head p{margin:0;color:#646970}
         .tgb-badge{display:inline-block;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
