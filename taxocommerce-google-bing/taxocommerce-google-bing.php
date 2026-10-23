@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Google/Bing
  * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
- * Version: 0.2.2
+ * Version: 0.3.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,16 +12,34 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.2.2' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.3.0' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
 
-require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';\nrequire_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-google-service.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-oauth.php';
+
+if ( ! function_exists( 'seo_google_search_settings' ) ) {
+    require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/google-search.php';
+}
+
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-google-service.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
+
+if ( ! function_exists( 'seo_google_get_settings' ) ) {
+    require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-google-info.php';
+}
+if ( ! function_exists( 'seo_landing_google_source_snapshot' ) ) {
+    require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-landing-google-signals.php';
+}
+if ( ! function_exists( 'seo_google_python_runner_settings' ) ) {
+    require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/google-python-runner.php';
+}
 
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
+    TaxoCommerce_Google_Bing_OAuth::register();
 
     add_action( 'taxocommerce_core_register_modules', 'taxocommerce_google_bing_register_with_core' );
     if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
@@ -81,8 +99,12 @@ function taxocommerce_google_bing_screen() {
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
-    $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : 'connections';
-    if ( ! in_array( $tab, array( 'connections', 'reports' ), true ) ) {
+    $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Legacy Google forms carry google_view.
+    if ( '' === $tab && isset( $_GET['google_view'] ) ) {
+        $tab = 'intelligence';
+    }
+    if ( ! in_array( $tab, array( 'connections', 'sync', 'reports', 'intelligence' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -91,8 +113,10 @@ function taxocommerce_google_bing_screen() {
     echo '<p>Fuente central de conexiones externas para Analista, Ojeador, Ingeniero, Mercado e informes.</p>';
     echo '<nav class="nav-tab-wrapper" aria-label="Google / Bing">';
     $tabs = array(
-        'connections' => 'Conexiones',
-        'reports'     => 'Informes',
+        'connections'  => 'Conexiones',
+        'sync'         => 'Sincronización',
+        'reports'      => 'Informes',
+        'intelligence' => 'Google Intelligence',
     );
     foreach ( $tabs as $key => $label ) {
         $url = add_query_arg(
@@ -108,6 +132,18 @@ function taxocommerce_google_bing_screen() {
 
     if ( 'reports' === $tab ) {
         TaxoCommerce_Google_Bing_Reports::render();
+    } elseif ( 'sync' === $tab ) {
+        if ( function_exists( 'seo_google_render_sync_status' ) ) {
+            seo_google_render_sync_status();
+        } else {
+            echo '<div class="notice notice-error inline"><p>No está disponible el motor de sincronización de Search Console.</p></div>';
+        }
+    } elseif ( 'intelligence' === $tab ) {
+        if ( function_exists( 'seo_google_intelligence_page' ) ) {
+            seo_google_intelligence_page();
+        } else {
+            echo '<div class="notice notice-error inline"><p>No está disponible Google Intelligence.</p></div>';
+        }
     } else {
         TaxoCommerce_Google_Bing_Connections::render();
     }
