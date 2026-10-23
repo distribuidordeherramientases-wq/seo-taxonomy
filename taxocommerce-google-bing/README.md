@@ -134,3 +134,15 @@ Indicadores:
 - evolución diaria de impresiones y clics.
 
 No se muestran queries ni páginas concretas.
+
+
+## Pestañas 0.5.1
+
+La interfaz queda separada por fuente:
+
+- **Conexiones**: credenciales, OAuth/tokens y pruebas de acceso.
+- **Google Search**: área propia para Search Console. No consulta datos todavía hasta definir sus informes.
+- **Google Analytics**: informes GA4 bajo demanda, con periodos 7/30/90 días y comparación contra el periodo anterior.
+- **Bing**: informes Bing Webmaster bajo demanda, con periodos 7/30/90 días y comparación contra el periodo anterior.
+
+Abrir Google Analytics no ejecuta consultas Bing. Abrir Bing no ejecuta consultas GA4. Abrir Google Search no ejecuta consultas Search Console por ahora.
