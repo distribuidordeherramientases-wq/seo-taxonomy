@@ -1,136 +1,51 @@
 # TaxoCommerce Google / Bing
 
-Plugin independiente de la familia TaxoCommerce dedicado **exclusivamente a conexiones** con Google y Microsoft Bing.
+Módulo autónomo de conexiones e informes para Google Analytics 4, Google Search Console y Microsoft Bing Webmaster. Usa las credenciales que ya mantiene el módulo y no altera los datos históricos de TaxoCommerce SEO.
 
-## Responsabilidad
+## Pestañas
 
-Este plugin:
+- **Conexiones:** Google OAuth, cuenta de servicio Google, propiedades GA4/Search Console, Bing Webmaster API, Merchant Center y Cloud Run. Guardar y probar conexión son acciones explícitas, sin sincronización de informes.
+- **Google Analytics:** sesiones, usuarios (nuevos y recurrentes), vistas, eventos, tasa de interacción y rebote, duración, eventos clave y compras registradas por GA4. Gráficos de tráfico por día, canales, países, dispositivos y tabla de páginas más vistas.
+- **Google Search:** clics, impresiones, CTR, posición media; gráficos diarios, países y dispositivos; principales consultas y páginas. Usa Search Analytics para búsqueda web y muestra como máximo 1.000 filas principales por tabla. No equivale al informe completo de indexación de Search Console.
+- **Bing Webmaster:** clics, impresiones, CTR, gráficos diarios, principales búsquedas y páginas; respuestas de rastreo, errores, robots, URLs en índice y enlaces entrantes. Si Bing no permite GetQueryStats o GetPageStats, se conserva el resto del informe y se señala el error.
 
-- guarda credenciales y configuración de conexión;
-- gestiona OAuth, access tokens y refresh tokens;
-- conserva identificadores de propiedades/cuentas;
-- permite pruebas explícitas de conexión mediante autenticación y metadatos;
-- expone las conexiones para que otros módulos puedan utilizarlas más adelante.
+## Descarga manual, nunca en segundo plano
 
-Este plugin **no**:
+Entrar a cualquier pestaña, cambiar el periodo y navegar por informes almacenados **no solicita datos a Google ni Bing**. El único punto de descarga es el formulario WordPress admin-post.php?action=tgb_download_report (POST, usuario administrador y nonce específico por fuente).
 
-- descarga consultas, clics, impresiones, posiciones ni páginas de Search Console;
-- descarga sesiones, usuarios, visitas, compras ni eventos de GA4;
-- descarga benchmarks, productos populares ni informes de Merchant;
-- descarga métricas de Bing Webmaster;
-- ejecuta Cloud Run Jobs;
-- ejecuta Google Trends;
-- programa sincronizaciones o crons de extracción;
-- actualiza tablas o snapshots de datos de negocio.
+Los botones permiten elegir **7, 30 o 90 días** o cualquier rango personalizado de hasta 90 días, siempre con días completos anteriores a hoy. El periodo anterior es inmediatamente precedente y tiene la misma duración. El informe de cada fuente se solicita por separado, sólo al pulsar **Descargar informe**.
 
-Los datos históricos ya existentes no se eliminan.
+La descarga almacena una copia con los periodos consultados, la fecha de extracción y sus datos en opciones de WordPress sin autoload. Se conservan como máximo 10 rangos recientes por proveedor. Si todavía no existe el rango seleccionado, se muestra la última copia disponible con sus **fechas reales**, sin consultar la API. La sección de informes guardados permite abrir una copia concreta.
 
-## Conexiones
+El enlace **Exportar copia JSON** descarga únicamente la copia almacenada (sin llamadas externas).
 
-### Google Search Console OAuth
+## API local para Analista y otros módulos
 
-- Client ID.
-- Client Secret.
-- URI de redirección.
-- Propiedad Search Console.
-- OAuth 2.0.
-- Access token y refresh token.
-- Prueba explícita mediante listado de propiedades accesibles.
+Lectura local:
 
-### Google Analytics / Search Console · cuenta de servicio
+    $reports = TaxoCommerce_Google_Bing_Reports::saved_reports( 'search' );
+    // analytics | search | bing
+    $report = TaxoCommerce_Google_Bing_Reports::get_saved_snapshot(
+        'search', '2026-10-01', '2026-10-07'
+    );
+    // $report['downloaded_at'], ['current'], ['previous'], ['data']
 
-- Cuenta de servicio JSON.
-- Propiedad Search Console.
-- Propiedad GA4.
-- Measurement ID.
-- Prueba explícita mediante token y metadatos de propiedad.
+Hook posterior a descarga satisfactoria:
 
-Se conserva la opción histórica `seo_google_search_settings`.
+    add_action( 'tgb_manual_report_saved', function( $source, $ranges, $report ) {
+        // Procesar el snapshot sin conocer credenciales.
+    }, 10, 3 );
 
-### Google Merchant Center
+Ninguna lectura local inicia sincronización, OAuth ni acceso de red. Las APIs sólo se solicitan a través de formularios autenticados.
 
-- ID de Merchant Center.
-- Usa la cuenta de servicio Google.
-- Prueba explícita mediante metadatos básicos de la cuenta.
-- No consulta Merchant Reports.
+## Consideraciones
 
-Se conserva la opción histórica `seo_ojeador_merchant_account_v1`.
+- Los datos de GA4 no representan peticiones HTTP y dependen de la instrumentación real del sitio.
+- Search Console no garantiza todas las consultas, omite datos anonimizados y puede tardar en consolidar los últimos días.
+- Los informes de Bing pueden actualizarse semanalmente y no necesariamente ofrecer las mismas dimensiones o fechas que Google.
+- Las credenciales no se incluyen en los snapshots ni en los archivos JSON.
+- Search Console admite conexión OAuth o cuenta de servicio Google; GA4 usa la cuenta de servicio configurada.
 
-### Google Cloud Run
+## Validación
 
-- Project ID.
-- Región.
-- Nombre del Job.
-- Cuenta de servicio JSON.
-- Prueba explícita mediante lectura de la configuración del Job.
-- La prueba no ejecuta el Job.
-
-Se conserva la opción histórica `seo_google_python_runner_settings`.
-
-### Microsoft Bing Webmaster
-
-- Activación/desactivación de la conexión.
-- Sitio de Bing Webmaster.
-- API key.
-- Compatibilidad con `SEO_BING_WEBMASTER_API_KEY` en `wp-config.php`.
-- Prueba explícita mediante `GetUserSites`.
-- No consulta tráfico, queries, páginas ni crawl stats.
-
-Se conserva la opción histórica `seo_analista_bing_settings`.
-
-## Arquitectura futura
-
-Las futuras pestañas o módulos de informes decidirán:
-
-1. qué fuente utilizar;
-2. qué dataset solicitar;
-3. qué periodo consultar;
-4. qué dimensiones y métricas descargar;
-5. qué caché o persistencia aplicar.
-
-La capa de conexiones no decide ninguno de esos puntos.
-
-
-## Informes bajo demanda
-
-La pestaña **Informes** es independiente de **Conexiones**.
-
-- No se ejecuta desde Conexiones.
-- No tiene cron ni sincronización automática.
-- Sólo consulta APIs al abrir Informes.
-- Usa caché transitoria de 15 minutos.
-- Compara 7, 30 o 90 días con el período inmediatamente anterior.
-
-### Google Analytics 4
-
-Indicadores:
-
-- usuarios activos;
-- usuarios nuevos;
-- usuarios recurrentes;
-- sesiones;
-- vistas de página;
-- tasa de interacción;
-- evolución diaria de sesiones;
-- evolución diaria de vistas;
-- usuarios por país;
-- comparación nuevos/recurrentes.
-
-Search Console no forma parte de esta pestaña.
-
-### Microsoft Bing Webmaster
-
-Indicadores:
-
-- impresiones;
-- clics;
-- CTR;
-- páginas rastreadas;
-- respuestas 2xx, 4xx y 5xx;
-- errores de rastreo;
-- bloqueos por robots.txt;
-- URLs en índice;
-- enlaces entrantes;
-- evolución diaria de impresiones y clics.
-
-No se muestran queries ni páginas concretas.
+El workflow de GitHub Actions taxocommerce-google-bing.yml comprueba sintaxis PHP, independencia del módulo y ejecuta el test de no-descarga reporting-smoke.php. Las PR se prueban sin despliegue: sólo el push a staging activa el FTP tras las comprobaciones.
