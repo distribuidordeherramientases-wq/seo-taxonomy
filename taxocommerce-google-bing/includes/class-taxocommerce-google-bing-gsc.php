@@ -23,7 +23,8 @@ final class TaxoCommerce_Google_Bing_GSC {
 
         // Prefer an authorized service account, otherwise use the OAuth connection.
         $token = new WP_Error( 'tgb_gsc_credentials', 'Faltan credenciales de Search Console.' );
-        if ( ! empty( $settings['service_account_json'] ) ) {
+        $using_service_account = ! empty( $settings['service_account_json'] );
+        if ( $using_service_account ) {
             $token = TaxoCommerce_Google_Bing_Connections::access_token(
                 'https://www.googleapis.com/auth/webmasters.readonly'
             );
@@ -49,6 +50,17 @@ final class TaxoCommerce_Google_Bing_GSC {
         $results = array();
         foreach ( $specs as $name => $spec ) {
             $result = self::request( $site, $token, $ranges[ $spec[0] ], $spec[1], $spec[2] );
+            if ( is_wp_error( $result ) && $using_service_account && 'current_total' === $name
+                && in_array( (int) $result->get_error_data( 'status' ), array( 401, 403 ), true ) ) {
+                // The service account may be authorized for GA4 but not this Search
+                // Console property. Retry once with the explicitly linked OAuth user.
+                $oauth_token = TaxoCommerce_Google_Bing_OAuth::access_token();
+                if ( ! is_wp_error( $oauth_token ) ) {
+                    $token = $oauth_token;
+                    $using_service_account = false;
+                    $result = self::request( $site, $token, $ranges[ $spec[0] ], $spec[1], $spec[2] );
+                }
+            }
             if ( is_wp_error( $result ) ) {
                 return new WP_Error(
                     'tgb_gsc_incomplete',
@@ -112,7 +124,7 @@ final class TaxoCommerce_Google_Bing_GSC {
             if ( is_array( $body ) && ! empty( $body['error']['message'] ) ) {
                 $message .= ' ' . sanitize_text_field( (string) $body['error']['message'] );
             }
-            return new WP_Error( 'tgb_gsc_http', $message );
+            return new WP_Error( 'tgb_gsc_http', $message, array( 'status' => $code ) );
         }
         return $body;
     }
