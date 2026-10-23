@@ -334,7 +334,8 @@ final class TaxoCommerce_Google_Bing_Reports {
             $ctr = isset( $item['ctr'] ) ? (float) $item['ctr'] : ( $impressions > 0 ? $clicks / $impressions : 0 );
             $position = (float) ( $item['position'] ?? 0 );
             echo '<tr><td class="tgb-rank-label">';
-            if ( $is_url && wp_http_validate_url( $label ) ) {
+            if ( $is_url && filter_var( $label, FILTER_VALIDATE_URL )
+                && in_array( strtolower( (string) wp_parse_url( $label, PHP_URL_SCHEME ) ), array( 'http', 'https' ), true ) ) {
                 echo '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $label ) . '">' . esc_html( $label ) . '</a>';
             } else {
                 echo esc_html( $label );
@@ -464,7 +465,7 @@ final class TaxoCommerce_Google_Bing_Reports {
 
     private static function render_bing( $data ) {
         echo '<section class="tgb-report-section">';
-        echo '<div class="tgb-section-head"><div><h2>Microsoft Bing Webmaster</h2><p>Visibilidad en Bing y salud técnica de rastreo. No se muestran consultas ni páginas concretas.</p></div><span class="tgb-source-badge">Bing</span></div>';
+        echo '<div class="tgb-section-head"><div><h2>Microsoft Bing Webmaster</h2><p>Tráfico orgánico, términos de búsqueda, principales páginas, indexación y salud del rastreo.</p></div><span class="tgb-source-badge">Bing</span></div>';
 
         if ( is_wp_error( $data ) ) {
             echo '<div class="notice notice-warning inline"><p>' . esc_html( $data->get_error_message() ) . '</p></div>';
@@ -506,6 +507,13 @@ final class TaxoCommerce_Google_Bing_Reports {
             )
         );
         echo '</div>';
+        self::render_rank_table( 'Principales búsquedas en Bing', (array) ( $data['queries'] ?? array() ) );
+        self::render_rank_table( 'Principales páginas en Bing', (array) ( $data['pages'] ?? array() ), true );
+        if ( ! empty( $data['warnings'] ) ) {
+            foreach ( (array) $data['warnings'] as $warning ) {
+                echo '<p class="notice notice-warning inline" style="padding:10px">' . esc_html( $warning ) . '</p>';
+            }
+        }
 
         echo '<div class="tgb-crawl-strip">';
         echo '<span><strong>2xx:</strong> ' . esc_html( number_format_i18n( $crawl_current['code2xx'] ) ) . '</span>';
@@ -829,6 +837,20 @@ final class TaxoCommerce_Google_Bing_Reports {
             return $crawl_rows;
         }
 
+        // Older Bing endpoints may be unavailable for a site. Preserve the
+        // successful traffic/crawl report and flag each unavailable breakdown.
+        $warnings = array();
+        $queries_raw = self::bing_request( 'GetQueryStats', $settings, $key );
+        if ( is_wp_error( $queries_raw ) ) {
+            $warnings[] = 'Búsquedas: ' . $queries_raw->get_error_message();
+            $queries_raw = array();
+        }
+        $pages_raw = self::bing_request( 'GetPageStats', $settings, $key );
+        if ( is_wp_error( $pages_raw ) ) {
+            $warnings[] = 'Páginas: ' . $pages_raw->get_error_message();
+            $pages_raw = array();
+        }
+
         $axis_current  = self::axis_iso( $ranges['current']['start'], $days );
         $axis_previous = self::axis_iso( $ranges['previous']['start'], $days, false );
 
@@ -887,13 +909,16 @@ final class TaxoCommerce_Google_Bing_Reports {
                 'current'  => $crawl_current,
                 'previous' => $crawl_previous,
             ),
+            'queries' => self::bing_rank_rows( $queries_raw, $ranges['current'], false ),
+            'pages' => self::bing_rank_rows( $pages_raw, $ranges['current'], true ),
+            'warnings' => $warnings,
         );
 
         return $out;
     }
 
     private static function bing_request( $method, $settings, $key ) {
-        $allowed = array( 'GetRankAndTrafficStats', 'GetCrawlStats' );
+        $allowed = array( 'GetRankAndTrafficStats', 'GetCrawlStats', 'GetQueryStats', 'GetPageStats' );
         if ( ! in_array( $method, $allowed, true ) ) {
             return new WP_Error( 'tgb_bing_method', 'Método Bing no permitido para este informe.' );
         }
@@ -928,6 +953,55 @@ final class TaxoCommerce_Google_Bing_Reports {
         }
 
         return array_values( (array) ( $body['d'] ?? array() ) );
+    }
+
+    private static function bing_rank_rows( $rows, $range, $pages ) {
+        $items = array();
+        foreach ( (array) $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $date = self::bing_date( $row['Date'] ?? '' );
+            if ( '' === $date || $date < $range['start'] || $date > $range['end'] ) {
+                continue;
+            }
+
+            // GetPageStats historically returns the page URL in "Query".
+            $name = $pages
+                ? (string) ( $row['PageURL'] ?? $row['PageUrl'] ?? $row['Page'] ?? $row['Url'] ?? $row['Query'] ?? '' )
+                : (string) ( $row['Query'] ?? '' );
+            $name = sanitize_text_field( $name );
+            if ( '' === $name ) {
+                continue;
+            }
+            $clicks = max( 0, (int) ( $row['Clicks'] ?? 0 ) );
+            $impressions = max( 0, (int) ( $row['Impressions'] ?? 0 ) );
+            $position = (float) ( $row['AvgImpressionPosition'] ?? $row['AvgClickPosition'] ?? 0 );
+            if ( ! isset( $items[ $name ] ) ) {
+                $items[ $name ] = array(
+                    'name' => $name,
+                    'clicks' => 0,
+                    'impressions' => 0,
+                    'position_weighted' => 0,
+                );
+            }
+            $items[ $name ]['clicks'] += $clicks;
+            $items[ $name ]['impressions'] += $impressions;
+            $items[ $name ]['position_weighted'] += $position * $impressions;
+        }
+
+        $out = array_values( $items );
+        foreach ( $out as &$item ) {
+            $impressions = $item['impressions'];
+            $item['ctr'] = $impressions > 0 ? $item['clicks'] / $impressions : 0.0;
+            $item['position'] = $impressions > 0 ? $item['position_weighted'] / $impressions : 0.0;
+            unset( $item['position_weighted'] );
+        }
+        unset( $item );
+        usort( $out, static function ( $left, $right ) {
+            return $right['clicks'] <=> $left['clicks'];
+        } );
+        return array_slice( $out, 0, 100 );
     }
 
     private static function bing_crawl_period( $rows, $range ) {
