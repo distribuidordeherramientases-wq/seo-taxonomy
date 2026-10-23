@@ -1,4 +1,4 @@
-# TaxoCommerce Dependiente 0.2.1
+# TaxoCommerce Dependiente 0.2.2
 
 Plugin de la familia TaxoCommerce que conserva el diseño de las diez primeras lecciones del Dependiente anterior, simplificando la arquitectura: **un único servicio Dependiente**, sin presentar Academia ni Entrenador como servicios separados.
 
@@ -37,9 +37,12 @@ Cada JSON contiene el temario, metadatos del snapshot, material exacto estudiado
 ## Datos
 
 Tablas propias:
-- `tcd_knowledge`: conocimiento final.
+- `tcd_knowledge`: conocimiento final moderno L1-L10.
 - `tcd_lesson_snapshots`: cabecera y firma de la foto fija de cada lección.
 - `tcd_lesson_items`: copia inmutable del material y resultado.
+- `tcd_portable_rules`: reglas semánticas consolidadas importadas/exportadas, incluida compatibilidad con el Dependiente antiguo.
+- `tcd_l9_memory`: memoria de lenguaje natural/producto de L9 preservada del sistema anterior.
+- `tcd_legacy_lessons`: estado histórico de lecciones antiguas importadas; nunca sustituye snapshots L1-L10 modernos.
 
 Fuentes canónicas del ecosistema:
 - WordPress/WooCommerce para productos, categorías, posts y páginas.
@@ -65,3 +68,17 @@ El usuario controla la presión sobre el servidor con un único deslizador de **
 - 5: Máxima.
 
 No se exige una métrica global del hosting. Cada lote mide su propio tiempo, CPU de proceso mediante `getrusage()` cuando está disponible, pico de memoria y consultas. El tamaño del siguiente lote se adapta en una escalera discreta; si el coste sube, se reduce aproximadamente a la mitad. Si `getrusage()` no está disponible, el proceso no se bloquea y usa el perfil estático de prioridad.
+
+
+## Conocimiento portable
+
+La versión 0.2.2 recupera el flujo de exportación/importación del Dependiente antiguo con una capa de compatibilidad explícita.
+
+- **Analizar compatibilidad** abre un export antiguo o moderno sin escribir datos y muestra el mapeo.
+- **Importar y fusionar** mantiene el conocimiento local, inserta lo nuevo, identifica duplicados y conserva la copia local ante conflictos.
+- Los exports antiguos `seo_dependiente_knowledge` v1 se aceptan directamente.
+- `semantic_rules` se conserva en `tcd_portable_rules`.
+- `academy.lesson9_memory` se conserva en `tcd_l9_memory`.
+- `academy.completed_lessons` se guarda como histórico en `tcd_legacy_lessons`: no se marcan las nuevas L1-L10 como completadas sin sus fotos fijas.
+- El export moderno `taxocommerce_dependiente_knowledge` incluye conocimiento L1-L10, reglas portables, memoria L9 e histórico migrado.
+- No se importan índices de catálogo, búsquedas/sesiones ni estados temporales.

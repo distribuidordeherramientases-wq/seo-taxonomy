@@ -6,7 +6,7 @@ $admin=file_get_contents($root.'/includes/class-tcd-admin.php');
 $main=file_get_contents($root.'/taxocommerce-dependiente.php');
 
 $checks=array(
-    strpos($main,'Version: 0.2.1')!==false,
+    strpos($main,'Version: 0.2.2')!==false,
     strpos($academy,'CREATE TABLE {$snapshots}')!==false,
     strpos($academy,'CREATE TABLE {$items}')!==false,
     strpos($academy,"'phase'=>'snapshot'")!==false,
