@@ -109,6 +109,7 @@ final class TaxoCommerce_Core {
 
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
+		add_action( 'admin_menu', array( $this, 'collapse_sidebar_menu' ), PHP_INT_MAX );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_anomalies_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
@@ -177,7 +178,7 @@ final class TaxoCommerce_Core {
 
 		// Register module screens without showing duplicate sidebar entries.
 		add_submenu_page(
-			null,
+			'taxocommerce-core',
 			__( 'Contenidos', 'taxocommerce-core' ),
 			__( 'Contenidos', 'taxocommerce-core' ),
 			$capability,
@@ -186,7 +187,7 @@ final class TaxoCommerce_Core {
 		);
 
 		add_submenu_page(
-			null,
+			'taxocommerce-core',
 			__( 'Jerarquía SEO', 'taxocommerce-core' ),
 			__( 'Jerarquía SEO', 'taxocommerce-core' ),
 			$capability,
@@ -195,7 +196,7 @@ final class TaxoCommerce_Core {
 		);
 
 		add_submenu_page(
-			null,
+			'taxocommerce-core',
 			__( 'Gestor de menús', 'taxocommerce-core' ),
 			__( 'Gestor de menús', 'taxocommerce-core' ),
 			$capability,
@@ -204,13 +205,39 @@ final class TaxoCommerce_Core {
 		);
 
 		add_submenu_page(
-			null,
+			'taxocommerce-core',
 			__( 'Extensiones', 'taxocommerce-core' ),
 			__( 'Extensiones', 'taxocommerce-core' ),
 			$capability,
 			'taxocommerce-core-modules',
 			array( $this, 'render_modules' )
 		);
+	}
+
+
+	/**
+	 * Keeps only the Core entry visible in the WordPress sidebar.
+	 *
+	 * Module pages remain registered under Core, so direct links and dashboard
+	 * cards keep their normal WordPress capability checks and page hooks.
+	 *
+	 * @return void
+	 */
+	public function collapse_sidebar_menu() {
+		global $submenu;
+
+		if ( empty( $submenu['taxocommerce-core'] ) || ! is_array( $submenu['taxocommerce-core'] ) ) {
+			return;
+		}
+
+		$visible = array();
+		foreach ( $submenu['taxocommerce-core'] as $item ) {
+			if ( isset( $item[2] ) && 'taxocommerce-core' === (string) $item[2] ) {
+				$visible[] = $item;
+			}
+		}
+
+		$submenu['taxocommerce-core'] = $visible;
 	}
 
 	/**
