@@ -275,6 +275,78 @@ final class TaxoCommerce_Google_Bing_Reports {
         );
     }
 
+    private static function render_gsc( $data ) {
+        $current = (array) ( $data['summary']['current'] ?? array() );
+        $previous = (array) ( $data['summary']['previous'] ?? array() );
+        echo '<section class="tgb-report-section">';
+        echo '<div class="tgb-section-head"><div><h2>Rendimiento de búsqueda en Google</h2>';
+        echo '<p>Resultados web: evolución, búsquedas, páginas, países y dispositivos.</p></div><span class="tgb-source-badge">Search Console</span></div>';
+        echo '<div class="tgb-kpi-grid">';
+        self::kpi( 'Clics', $current['clicks'], $previous['clicks'] );
+        self::kpi( 'Impresiones', $current['impressions'], $previous['impressions'] );
+        self::kpi( 'CTR', $current['ctr'], $previous['ctr'], 'percent' );
+        self::kpi( 'Posición media', $current['position'], $previous['position'], 'decimal', true );
+        echo '</div><div class="tgb-report-grid">';
+        self::line_card(
+            'Evolución de clics',
+            'Clics',
+            $data['daily']['labels'],
+            array(
+                array( 'label' => 'Actual', 'values' => $data['daily']['current_clicks'] ),
+                array( 'label' => 'Anterior', 'values' => $data['daily']['previous_clicks'], 'previous' => true ),
+            )
+        );
+        self::line_card(
+            'Evolución de impresiones',
+            'Impresiones',
+            $data['daily']['labels'],
+            array(
+                array( 'label' => 'Actual', 'values' => $data['daily']['current_impressions'] ),
+                array( 'label' => 'Anterior', 'values' => $data['daily']['previous_impressions'], 'previous' => true ),
+            )
+        );
+        foreach ( array( 'countries' => 'Clics por país', 'devices' => 'Clics por dispositivo' ) as $type => $title ) {
+            $slice = array_slice( (array) ( $data[ $type ] ?? array() ), 0, 10 );
+            $labels = array_column( $slice, 'name' );
+            $values = array_column( $slice, 'clicks' );
+            self::bar_card( $title, 'Clics', $labels, array( array( 'label' => 'Actual', 'values' => $values ) ) );
+        }
+        echo '</div>';
+        self::render_rank_table( 'Principales búsquedas', (array) ( $data['queries'] ?? array() ) );
+        self::render_rank_table( 'Principales páginas', (array) ( $data['pages'] ?? array() ), true );
+        echo '<p class="description">' . esc_html( (string) ( $data['note'] ?? '' ) ) . '</p>';
+        echo '</section>';
+    }
+
+    private static function render_rank_table( $title, $rows, $is_url = false ) {
+        echo '<div class="tgb-rank-card"><h3>' . esc_html( $title ) . '</h3>';
+        if ( empty( $rows ) ) {
+            echo '<p>No hay registros en este periodo.</p></div>';
+            return;
+        }
+        echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr>';
+        echo '<th>Búsqueda / página</th><th>Clics</th><th>Impresiones</th><th>CTR</th><th>Posición media</th>';
+        echo '</tr></thead><tbody>';
+        foreach ( array_slice( $rows, 0, 30 ) as $item ) {
+            $label = (string) ( $item['name'] ?? '' );
+            $clicks = (int) ( $item['clicks'] ?? 0 );
+            $impressions = (int) ( $item['impressions'] ?? 0 );
+            $ctr = isset( $item['ctr'] ) ? (float) $item['ctr'] : ( $impressions > 0 ? $clicks / $impressions : 0 );
+            $position = (float) ( $item['position'] ?? 0 );
+            echo '<tr><td class="tgb-rank-label">';
+            if ( $is_url && wp_http_validate_url( $label ) ) {
+                echo '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $label ) . '">' . esc_html( $label ) . '</a>';
+            } else {
+                echo esc_html( $label );
+            }
+            echo '</td><td>' . esc_html( number_format_i18n( $clicks ) ) . '</td>';
+            echo '<td>' . esc_html( number_format_i18n( $impressions ) ) . '</td>';
+            echo '<td>' . esc_html( number_format_i18n( $ctr * 100, 1 ) ) . '%</td>';
+            echo '<td>' . esc_html( number_format_i18n( $position, 1 ) ) . '</td></tr>';
+        }
+        echo '</tbody></table></div></div>';
+    }
+
     private static function render_ga4( $data ) {
         echo '<section class="tgb-report-section">';
         echo '<div class="tgb-section-head"><div><h2>Google Analytics 4</h2><p>Tráfico, usuarios, recurrencia, participación y procedencia geográfica.</p></div><span class="tgb-source-badge">GA4</span></div>';
@@ -932,6 +1004,9 @@ final class TaxoCommerce_Google_Bing_Reports {
         if ( 'percent' === $format ) {
             return number_format_i18n( (float) $value * 100, 1 ) . '%';
         }
+        if ( 'decimal' === $format ) {
+            return number_format_i18n( (float) $value, 1 );
+        }
         return number_format_i18n( (float) $value, 0 );
     }
 
@@ -1082,6 +1157,13 @@ final class TaxoCommerce_Google_Bing_Reports {
         .tgb-chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#50575e}.tgb-chart-legend span{display:inline-flex;align-items:center;gap:5px}.tgb-chart-legend i{display:inline-block;width:16px;height:3px;border-radius:2px}
         .tgb-crawl-strip{display:flex;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin-top:14px;font-size:12px}
         .tgb-report-note{margin-top:16px}
+        .tgb-custom-range{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 10px}
+        .tgb-custom-range label{display:inline-flex;align-items:center;gap:6px}
+        .tgb-download-form{margin:14px 0}
+        .tgb-rank-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}
+        .tgb-rank-card h3{margin:0 0 10px;font-size:15px}
+        .tgb-table-scroll{max-width:100%;overflow-x:auto}
+        .tgb-rank-label{min-width:200px;word-break:break-word;max-width:550px}
         @media(max-width:1250px){.tgb-kpi-grid{grid-template-columns:repeat(3,minmax(130px,1fr))}}
         @media(max-width:1000px){.tgb-report-grid{grid-template-columns:1fr}}
         @media(max-width:782px){.tgb-report-toolbar,.tgb-section-head{align-items:flex-start;flex-direction:column}.tgb-kpi-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}}
