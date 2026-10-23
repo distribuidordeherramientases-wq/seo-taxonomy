@@ -64,7 +64,7 @@ final class TaxoCommerce_Core_Content_Manager {
             echo '</div>';
             return;
         }
-        if ( 'edit' === $action && $item_id ) {
+        if ( 'anomalies' !== $content_type && 'edit' === $action && $item_id ) {
             echo '<div class="wrap tc-content-editor-wrap">';
             $this->render_editor( $content_type, $item_id );
             echo '</div>';
@@ -81,6 +81,9 @@ final class TaxoCommerce_Core_Content_Manager {
                 </div>
             </header>
             <?php $this->render_tabs( $content_type ); ?>
+            <?php if ( 'anomalies' === $content_type ) : ?>
+                <?php taxocommerce_core_anomalies_render(); ?>
+            <?php else : ?>
             <?php TaxoCommerce_Core_Editorial_Guide::render( $content_type, 'overview' ); ?>
 
             <?php if ( isset( $_GET['updated'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['updated'] ) ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only confirmation. ?>
@@ -92,6 +95,7 @@ final class TaxoCommerce_Core_Content_Manager {
             $this->render_filters( $content_type );
             $this->render_list( $content_type );
             ?>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -174,7 +178,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function request_content_type() {
 		$type = isset( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : 'products'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-		return in_array( $type, array( 'products', 'categories', 'posts', 'pages', 'faqs' ), true ) ? $type : 'products';
+		return in_array( $type, array( 'products', 'categories', 'posts', 'pages', 'faqs', 'anomalies' ), true ) ? $type : 'products';
 	}
 
 	/**
@@ -190,9 +194,10 @@ final class TaxoCommerce_Core_Content_Manager {
 			'posts'      => __( 'Posts', 'taxocommerce-core' ),
 			'pages'      => __( 'Páginas', 'taxocommerce-core' ),
             'faqs'       => class_exists( 'TaxoCommerce_FAQs' ) ? __( 'FAQs', 'taxocommerce-core' ) : '',
+            'anomalies'  => __( 'Anomalías', 'taxocommerce-core' ),
 		);
 		?>
-		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Tipos de contenido', 'taxocommerce-core' ); ?>">
+		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Opciones de contenidos', 'taxocommerce-core' ); ?>">
 			<?php foreach ( $tabs as $type => $label ) : if ( '' === $label ) { continue; } ?>
 				<?php
 				$url   = add_query_arg( array( 'page' => self::PAGE_SLUG, 'tc_type' => $type ), admin_url( 'admin.php' ) );
