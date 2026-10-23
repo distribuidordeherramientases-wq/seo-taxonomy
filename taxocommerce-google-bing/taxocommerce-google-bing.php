@@ -25,7 +25,7 @@ if ( ! function_exists( 'seo_google_search_settings' ) ) {
 }
 
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-google-service.php';
-require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';\nrequire_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-merchant.php';
 
 if ( ! function_exists( 'seo_google_get_settings' ) ) {
     require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-google-info.php';
@@ -40,6 +40,7 @@ if ( ! function_exists( 'seo_google_python_runner_settings' ) ) {
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
     TaxoCommerce_Google_Bing_OAuth::register();
+    TaxoCommerce_Google_Bing_Merchant::init();
 
     add_action( 'taxocommerce_core_register_modules', 'taxocommerce_google_bing_register_with_core' );
     if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
@@ -116,6 +117,7 @@ function taxocommerce_google_bing_screen() {
         'connections'  => 'Conexiones',
         'sync'         => 'Sincronización',
         'reports'      => 'Informes',
+        'merchant'     => 'Merchant',
         'intelligence' => 'Google Intelligence',
     );
     foreach ( $tabs as $key => $label ) {
@@ -138,6 +140,8 @@ function taxocommerce_google_bing_screen() {
         } else {
             echo '<div class="notice notice-error inline"><p>No está disponible el motor de sincronización de Search Console.</p></div>';
         }
+    } elseif ( 'merchant' === $tab ) {
+        TaxoCommerce_Google_Bing_Merchant::render();
     } elseif ( 'intelligence' === $tab ) {
         if ( function_exists( 'seo_google_intelligence_page' ) ) {
             seo_google_intelligence_page();
