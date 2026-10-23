@@ -65,11 +65,6 @@ final class TaxoCommerce_Google_Bing_OAuth {
         $settings = self::settings();
         $tokens   = self::tokens();
         $status   = self::status();
-        $properties = array();
-
-        if ( ! empty( $tokens['refresh_token'] ) || ! empty( $tokens['access_token'] ) ) {
-            $properties = self::properties();
-        }
 
         $labels = array(
             'missing_credentials' => array( 'Faltan credenciales', 'warning' ),
@@ -80,7 +75,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
         $label = $labels[ $status ] ?? array( 'Estado desconocido', 'warning' );
 
         echo '<section class="tgb-card tgb-card-wide">';
-        echo '<div class="tgb-card-head"><div><h2>Google Search Console · OAuth</h2><p>Conexión OAuth completa trasladada desde Google Intelligence.</p></div>';
+        echo '<div class="tgb-card-head"><div><h2>Google Search Console · OAuth</h2><p>Credenciales, autorización y tokens. No descarga consultas, clics, impresiones ni posiciones.</p></div>';
         echo '<span class="tgb-badge tgb-' . esc_attr( $label[1] ) . '">' . esc_html( $label[0] ) . '</span></div>';
 
         self::notice();
@@ -103,31 +98,9 @@ final class TaxoCommerce_Google_Bing_OAuth {
         echo '<p class="description">Debe coincidir exactamente con la URI autorizada en Google Cloud.</p></td></tr>';
 
         echo '<tr><th><label for="tgb-google-oauth-property">Propiedad de Search Console</label></th><td>';
-        if ( is_wp_error( $properties ) ) {
-            echo '<input type="text" id="tgb-google-oauth-property" name="property_id" value="' . esc_attr( (string) $settings['property_id'] ) . '" class="regular-text">';
-            echo '<p class="description" style="color:#b32d2e;">No se pudo cargar la lista: ' . esc_html( $properties->get_error_message() ) . '</p>';
-        } elseif ( ! empty( $properties ) ) {
-            echo '<select id="tgb-google-oauth-property" name="property_id" style="min-width:420px;max-width:100%;">';
-            echo '<option value="">Selecciona una propiedad</option>';
-            foreach ( $properties as $property ) {
-                $site = (string) ( $property['site_url'] ?? '' );
-                $permission = (string) ( $property['permission_level'] ?? '' );
-                $text = $site . ( $permission ? ' — ' . $permission : '' );
-                echo '<option value="' . esc_attr( $site ) . '" ' . selected( $settings['property_id'], $site, false ) . '>' . esc_html( $text ) . '</option>';
-            }
-            echo '</select>';
-        } else {
-            echo '<input type="text" id="tgb-google-oauth-property" name="property_id" value="' . esc_attr( (string) $settings['property_id'] ) . '" class="regular-text" placeholder="https://www.ejemplo.es/ o sc-domain:ejemplo.es">';
-            echo '<p class="description">Después de autorizar Google se cargará la lista de propiedades accesibles.</p>';
-        }
+        echo '<input type="text" id="tgb-google-oauth-property" name="property_id" value="' . esc_attr( (string) $settings['property_id'] ) . '" class="regular-text" placeholder="https://www.ejemplo.es/ o sc-domain:ejemplo.es">';
+        echo '<p class="description">Abrir esta pantalla no consulta Search Console. La propiedad sólo se valida cuando pulsas Probar conexión.</p>';
         echo '</td></tr>';
-
-        echo '<tr><th><label for="tgb-google-frequency">Frecuencia</label></th><td>';
-        echo '<select id="tgb-google-frequency" name="sync_frequency">';
-        foreach ( array( 'manual' => 'Manual', 'daily' => 'Diaria', 'weekly' => 'Semanal' ) as $value => $text ) {
-            echo '<option value="' . esc_attr( $value ) . '" ' . selected( $settings['sync_frequency'], $value, false ) . '>' . esc_html( $text ) . '</option>';
-        }
-        echo '</select></td></tr>';
 
         echo '</tbody></table>';
         submit_button( 'Guardar configuración', 'primary', 'submit', false );
@@ -182,9 +155,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
         $property = isset( $_POST['property_id'] ) ? sanitize_text_field( wp_unslash( $_POST['property_id'] ) ) : '';
         $settings['property_id'] = 0 === strpos( $property, 'sc-domain:' ) ? $property : esc_url_raw( $property );
 
-        $frequency = isset( $_POST['sync_frequency'] ) ? sanitize_key( wp_unslash( $_POST['sync_frequency'] ) ) : 'manual';
-        $settings['sync_frequency'] = in_array( $frequency, array( 'manual', 'daily', 'weekly' ), true ) ? $frequency : 'manual';
-
+        // Preserve the historical sync_frequency value. This connection-only plugin does not schedule synchronization.
         self::update_option( self::SETTINGS_OPTION, $settings );
         self::redirect( 'oauth_saved' );
     }
