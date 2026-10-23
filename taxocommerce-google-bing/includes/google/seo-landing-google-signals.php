@@ -23,17 +23,8 @@ if ( ! function_exists( 'seo_landing_google_load_analytics_service' ) ) {
         }
 
         $candidates = [
-            __DIR__ . '/import-export/suppliers/google-search.php',
-            dirname( __DIR__ ) . '/import-export/suppliers/google-search.php',
             __DIR__ . '/google-search.php',
         ];
-
-        if ( defined( 'SEO_SYSTEM_DIR' ) ) {
-            $candidates[] = rtrim( (string) SEO_SYSTEM_DIR, '/\\' ) . '/import-export/suppliers/google-search.php';
-        }
-        if ( defined( 'SEO_SYSTEM_PATH' ) ) {
-            $candidates[] = rtrim( (string) SEO_SYSTEM_PATH, '/\\' ) . '/import-export/suppliers/google-search.php';
-        }
 
         $checked = [];
         foreach ( array_unique( $candidates ) as $candidate ) {
