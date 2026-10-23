@@ -33,20 +33,19 @@ function taxocommerce_core_anomalies_inline_script($script) {
     wp_add_inline_script($handle, (string) $script);
 }
 
-/** Vista independiente en el menú Core. */
+/** Informe integrado en la pestaña Anomalías de Core > Contenidos. */
 function taxocommerce_core_anomalies_render() {
     if (!current_user_can(apply_filters('taxocommerce_core_manage_capability', 'manage_options'))) {
         wp_die(esc_html__('No tienes permisos para ver Anomalías.', 'taxocommerce-core'));
     }
-    echo '<div class="wrap tcc-family-screen tc-anomalies">';
-    echo '<h1>Anomalías</h1>';
+    echo '<section class="tc-anomalies" aria-label="' . esc_attr__('Anomalías', 'taxocommerce-core') . '">';
     if (!taxocommerce_core_anomalies_table_exists('seo_nodes') ||
         !taxocommerce_core_anomalies_table_exists('seo_relations')) {
-        echo '<div class="notice notice-error inline"><p>No existen las tablas originales seo_nodes / seo_relations. No es posible realizar los chequeos estructurales.</p></div></div>';
+        echo '<div class="notice notice-error inline"><p>No existen las tablas originales seo_nodes / seo_relations. No es posible realizar los chequeos estructurales.</p></div></section>';
         return;
     }
     taxocommerce_core_anomalies_render_report();
-    echo '</div>';
+    echo '</section>';
 }
 
 function taxocommerce_core_anomalies_faq_table() {
@@ -199,7 +198,8 @@ function taxocommerce_core_anomalies_delete_orphan_category_faqs() {
 
     $redirect_url = add_query_arg(
         array(
-            'page' => 'taxocommerce-core-anomalies',
+            'page' => 'taxocommerce-core-content',
+            'tc_type' => 'anomalies',
             
             'faq_category_orphans_deleted' => (int) $deleted,
         ),
@@ -257,7 +257,8 @@ function taxocommerce_core_anomalies_delete_orphan_product_faqs() {
 
     $redirect_url = add_query_arg(
         array(
-            'page' => 'taxocommerce-core-anomalies',
+            'page' => 'taxocommerce-core-content',
+            'tc_type' => 'anomalies',
             
             'faq_product_orphans_deleted' => (int) $deleted,
         ),
@@ -674,7 +675,8 @@ function taxocommerce_core_anomalies_delete_empty_categories() {
 
     $redirect_url = add_query_arg(
         array(
-            'page' => 'taxocommerce-core-anomalies',
+            'page' => 'taxocommerce-core-content',
+            'tc_type' => 'anomalies',
             
             'empty_categories_deleted'     => $deleted,
             'empty_categories_skipped'     => $skipped,
@@ -736,7 +738,8 @@ function taxocommerce_core_anomalies_recount_categories() {
 
     $redirect_url = add_query_arg(
         array(
-            'page' => 'taxocommerce-core-anomalies',
+            'page' => 'taxocommerce-core-content',
+            'tc_type' => 'anomalies',
             
             'product_categories_recounted' => count($term_taxonomy_ids),
         ),
