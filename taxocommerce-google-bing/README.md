@@ -89,3 +89,48 @@ Las futuras pestañas o módulos de informes decidirán:
 5. qué caché o persistencia aplicar.
 
 La capa de conexiones no decide ninguno de esos puntos.
+
+
+## Informes bajo demanda
+
+La pestaña **Informes** es independiente de **Conexiones**.
+
+- No se ejecuta desde Conexiones.
+- No tiene cron ni sincronización automática.
+- Sólo consulta APIs al abrir Informes.
+- Usa caché transitoria de 15 minutos.
+- Compara 7, 30 o 90 días con el período inmediatamente anterior.
+
+### Google Analytics 4
+
+Indicadores:
+
+- usuarios activos;
+- usuarios nuevos;
+- usuarios recurrentes;
+- sesiones;
+- vistas de página;
+- tasa de interacción;
+- evolución diaria de sesiones;
+- evolución diaria de vistas;
+- usuarios por país;
+- comparación nuevos/recurrentes.
+
+Search Console no forma parte de esta pestaña.
+
+### Microsoft Bing Webmaster
+
+Indicadores:
+
+- impresiones;
+- clics;
+- CTR;
+- páginas rastreadas;
+- respuestas 2xx, 4xx y 5xx;
+- errores de rastreo;
+- bloqueos por robots.txt;
+- URLs en índice;
+- enlaces entrantes;
+- evolución diaria de impresiones y clics.
+
+No se muestran queries ni páginas concretas.
