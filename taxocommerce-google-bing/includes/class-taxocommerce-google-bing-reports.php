@@ -13,67 +13,377 @@ final class TaxoCommerce_Google_Bing_Reports {
 
     const CACHE_TTL = 900;
 
-    public static function render_search() {
-        echo '<div class="tgb-reports">';
-        echo '<div class="tgb-report-toolbar">';
-        echo '<div><h2>Google Search</h2><p>Espacio independiente para los informes de Google Search Console.</p></div>';
-        echo '</div>';
-        echo '<div class="tgb-search-placeholder">';
-        echo '<h3>Google Search Console</h3>';
-        echo '<p>La conexión está disponible, pero esta pestaña no descarga datos todavía. Aquí definiremos de forma separada las métricas de búsqueda que queramos consultar.</p>';
-        echo '<p class="description">No se ejecutan consultas de Search Console al abrir esta pestaña.</p>';
-        echo '</div>';
-        self::styles();
-        echo '</div>';
+    // Public contract for consumers (Analista, etc.): read only, no API request.
+    // Individual snapshots are private WordPress options with autoload disabled.
+    const STORE_PREFIX = 'tgb_manual_report_v1_';
+
+    public static function register() {
+        add_action( 'admin_post_tgb_download_report', array( __CLASS__, 'download_report' ) );
+        add_action( 'admin_post_tgb_export_report', array( __CLASS__, 'export_report' ) );
     }
 
-    public static function render_google_analytics() {
-        $days   = self::period_days();
-        $ranges = self::ranges( $days );
-
-        echo '<div class="tgb-reports">';
-        self::toolbar( 'Google Analytics', 'Tráfico, usuarios, recurrencia, participación y países.', 'google_analytics', $days, $ranges );
-
-        $ga4 = self::ga4_data( $days, $ranges );
-        self::render_ga4( $ga4 );
-
-        echo '<p class="description tgb-report-note">Las “vistas” de GA4 son <code>screenPageViews</code>; no equivalen a peticiones HTTP del servidor. Los datos sólo se solicitan al abrir esta pestaña y no se sincronizan en segundo plano.</p>';
-        self::styles();
-        echo '</div>';
+    private static function source_tab( $source ) {
+        if ( 'search' === $source ) {
+            return 'google_search';
+        }
+        if ( 'analytics' === $source ) {
+            return 'google_analytics';
+        }
+        return 'bing';
     }
 
-    public static function render_bing_reports() {
-        $days   = self::period_days();
-        $ranges = self::ranges( $days );
-
-        echo '<div class="tgb-reports">';
-        self::toolbar( 'Bing', 'Visibilidad y salud de rastreo en Bing Webmaster.', 'bing', $days, $ranges );
-
-        $bing = self::bing_data( $days, $ranges );
-        self::render_bing( $bing );
-
-        echo '<p class="description tgb-report-note">Los datos sólo se solicitan al abrir esta pestaña y no se sincronizan en segundo plano.</p>';
-        self::styles();
-        echo '</div>';
+    public static function saved_reports( $source ) {
+        if ( ! in_array( $source, array( 'analytics', 'search', 'bing' ), true ) ) {
+            return array();
+        }
+        $value = get_option( self::STORE_PREFIX . $source, array() );
+        return is_array( $value ) ? $value : array();
     }
 
-    private static function toolbar( $title, $subtitle, $tab, $days, $ranges ) {
-        echo '<div class="tgb-report-toolbar">';
-        echo '<div><h2>' . esc_html( $title ) . '</h2><p>' . esc_html( $subtitle ) . '</p></div>';
+    public static function get_saved_snapshot( $source, $start, $end ) {
+        $entries = self::saved_reports( $source );
+        $key = md5( $start . '|' . $end );
+        return isset( $entries[ $key ] ) && is_array( $entries[ $key ] ) ? $entries[ $key ] : null;
+    }
+
+    public static function render( $source = 'analytics' ) {
+        if ( ! in_array( $source, array( 'analytics', 'search', 'bing' ), true ) ) {
+            return;
+        }
+
+        // GET is strictly a local read. All external API calls are in download_report().
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filters do not mutate anything.
+        $input = wp_unslash( $_GET );
+        $selection = self::selection( $input );
+        echo '<div class="tgb-reports">';
+        if ( is_wp_error( $selection ) ) {
+            echo '<div class="notice notice-error inline"><p>' . esc_html( $selection->get_error_message() ) . '</p></div>';
+            $selection = self::selection( array( 'period' => '30' ) );
+        }
+        $days = $selection['days'];
+        $ranges = $selection['ranges'];
+
+        $names = array(
+            'analytics' => 'Google Analytics 4',
+            'search'    => 'Google Search Console',
+            'bing'      => 'Microsoft Bing Webmaster',
+        );
+
+        echo '<div class="tgb-report-toolbar"><div><h2>' . esc_html( $names[ $source ] ) . '</h2>';
+        echo '<p>Los gráficos se generan con los últimos datos guardados. Abrir o cambiar el periodo no consulta las APIs.</p></div>';
         echo '<div class="tgb-periods">';
-        foreach ( array( 7 => '1 semana', 30 => '1 mes', 90 => '3 meses' ) as $value => $label ) {
+        foreach ( array( 7 => '7 días', 30 => '30 días', 90 => '90 días' ) as $period => $label ) {
             $url = add_query_arg(
-                array(
-                    'page'    => 'taxocommerce-google-bing',
-                    'tgb_tab' => $tab,
-                    'period'  => $value,
-                ),
+                array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => self::source_tab( $source ), 'period' => $period ),
                 admin_url( 'admin.php' )
             );
-            echo '<a class="button ' . ( $days === $value ? 'button-primary' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+            echo '<a class="button ' . ( (string) $period === $selection['period'] ? 'button-primary' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
         }
         echo '</div></div>';
-        echo '<p class="description tgb-report-range">Actual: ' . esc_html( $ranges['current']['label'] ) . ' · Anterior: ' . esc_html( $ranges['previous']['label'] ) . ' · Caché: 15 min.</p>';
+        echo '<form class="tgb-custom-range" method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '">';
+        echo '<input type="hidden" name="page" value="taxocommerce-google-bing">';
+        echo '<input type="hidden" name="tgb_tab" value="' . esc_attr( self::source_tab( $source ) ) . '">';
+        echo '<input type="hidden" name="period" value="custom">';
+        echo '<label>Desde <input type="date" name="start" value="' . esc_attr( $ranges['current']['start'] ) . '" required></label>';
+        echo '<label>Hasta <input type="date" name="end" value="' . esc_attr( $ranges['current']['end'] ) . '" required></label>';
+        echo '<button type="submit" class="button">Aplicar fechas (sin descargar)</button>';
+        echo '</form>';
+        echo '<p class="description tgb-report-range">Periodo: ' . esc_html( $ranges['current']['label'] ) . ' · Comparación: ' . esc_html( $ranges['previous']['label'] ) . '. Días naturales completos; el periodo comparativo tiene la misma duración.</p>';
+
+        echo '<form method="post" class="tgb-download-form" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="tgb_download_report">';
+        echo '<input type="hidden" name="source" value="' . esc_attr( $source ) . '">';
+        echo '<input type="hidden" name="period" value="' . esc_attr( $selection['period'] ) . '">';
+        if ( 'custom' === $selection['period'] ) {
+            echo '<input type="hidden" name="start" value="' . esc_attr( $ranges['current']['start'] ) . '">';
+            echo '<input type="hidden" name="end" value="' . esc_attr( $ranges['current']['end'] ) . '">';
+        }
+        wp_nonce_field( 'tgb_download_report_' . $source );
+        echo '<button type="submit" class="button button-primary">Descargar informe de ' . esc_html( $names[ $source ] ) . '</button>';
+        echo '</form>';
+
+        $notice_key = 'tgb_download_notice_' . get_current_user_id();
+        $notice = get_transient( $notice_key );
+        if ( is_array( $notice ) && ( $notice['source'] ?? '' ) === $source ) {
+            echo '<div class="notice ' . ( ! empty( $notice['error'] ) ? 'notice-error' : 'notice-success' ) . ' inline"><p>' . esc_html( (string) ( $notice['message'] ?? '' ) ) . '</p></div>';
+            delete_transient( $notice_key );
+        }
+
+        $snapshots = self::saved_reports( $source );
+        $snapshot = self::get_saved_snapshot( $source, $ranges['current']['start'], $ranges['current']['end'] );
+        if ( null === $snapshot && ! empty( $snapshots ) ) {
+            $snapshot = end( $snapshots );
+            echo '<div class="notice notice-info inline"><p>No hay un informe guardado para las fechas solicitadas. Se muestra la última copia disponible, sin descargar datos nuevos.</p></div>';
+        }
+
+        if ( ! empty( $snapshots ) ) {
+            echo '<div class="tgb-history"><strong>Informes guardados:</strong> ';
+            foreach ( array_reverse( $snapshots, true ) as $saved ) {
+                $saved_current = (array) $saved['current'];
+                $link = add_query_arg(
+                    array(
+                        'page' => 'taxocommerce-google-bing',
+                        'tgb_tab' => self::source_tab( $source ),
+                        'period' => 'custom',
+                        'start' => $saved_current['start'],
+                        'end' => $saved_current['end'],
+                    ),
+                    admin_url( 'admin.php' )
+                );
+                echo '<a class="button button-small" href="' . esc_url( $link ) . '">' . esc_html( $saved_current['start'] . ' / ' . $saved_current['end'] ) . '</a> ';
+            }
+            echo '</div>';
+        }
+
+        if ( null === $snapshot ) {
+            echo '<div class="notice notice-info inline"><p>Todavía no hay datos guardados. Pulsa «Descargar informe» para consultar la API.</p></div>';
+            self::styles();
+            echo '</div>';
+            return;
+        }
+
+        echo '<p class="description">Informe del ' . esc_html( $snapshot['current']['label'] )
+            . ', comparado con ' . esc_html( $snapshot['previous']['label'] )
+            . '. Descargado el ' . esc_html( wp_date( 'd/m/Y H:i', (int) $snapshot['downloaded_at'] ) )
+            . '. Copia local, sin conexiones externas.</p>';
+        $args = array(
+            'action'  => 'tgb_export_report',
+            'source'  => $source,
+            'period'  => 'custom',
+            'start'   => $snapshot['current']['start'],
+            'end'     => $snapshot['current']['end'],
+        );
+        $export = wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), 'tgb_export_report_' . $source );
+        echo '<p><a class="button" href="' . esc_url( $export ) . '">Exportar copia JSON</a></p>';
+
+        $data = $snapshot['data'];
+        if ( 'analytics' === $source ) {
+            self::render_ga4( $data );
+        } elseif ( 'search' === $source ) {
+            self::render_gsc( $data );
+        } else {
+            self::render_bing( $data );
+        }
+        echo '<p class="description tgb-report-note">GA4 registra eventos y sesiones, no peticiones HTTP. Search Console y Bing muestran tráfico de buscadores, no visitas totales. Los periodos pueden estar incompletos por el retraso de procesamiento de cada servicio.</p>';
+        self::styles();
+        echo '</div>';
+    }
+
+    public static function download_report() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified below with source-specific nonce.
+        $source = isset( $_POST['source'] ) ? sanitize_key( wp_unslash( $_POST['source'] ) ) : '';
+        if ( ! in_array( $source, array( 'analytics', 'search', 'bing' ), true ) ) {
+            wp_die( esc_html__( 'Informe no válido.', 'taxocommerce-google-bing' ) );
+        }
+        check_admin_referer( 'tgb_download_report_' . $source );
+        $selection = self::selection( wp_unslash( $_POST ) );
+        if ( is_wp_error( $selection ) ) {
+            self::finish_download( $source, array( 'period' => '30' ), $selection->get_error_message(), true );
+        }
+
+        $lock = 'tgb_report_running_' . get_current_blog_id() . '_' . $source;
+        if ( get_transient( $lock ) ) {
+            self::finish_download( $source, $selection, 'Hay otra descarga de esta fuente en curso.', true );
+        }
+        set_transient( $lock, 1, 2 * MINUTE_IN_SECONDS );
+        $ranges = $selection['ranges'];
+        $days = $selection['days'];
+        if ( 'analytics' === $source ) {
+            $data = self::ga4_data( $days, $ranges );
+        } elseif ( 'search' === $source ) {
+            $data = TaxoCommerce_Google_Bing_GSC::download( $days, $ranges );
+        } else {
+            $data = self::bing_data( $days, $ranges );
+        }
+        delete_transient( $lock );
+
+        if ( is_wp_error( $data ) ) {
+            self::finish_download( $source, $selection, $data->get_error_message(), true );
+        }
+        if ( ! is_array( $data ) ) {
+            self::finish_download( $source, $selection, 'La API no devolvió un informe válido.', true );
+        }
+
+        $entries = self::saved_reports( $source );
+        $key = md5( $ranges['current']['start'] . '|' . $ranges['current']['end'] );
+        unset( $entries[ $key ] );
+        $entries = array_slice( $entries, -9, null, true );
+        $entries[ $key ] = array(
+            'source'        => $source,
+            'schema'        => 1,
+            'downloaded_at' => time(),
+            'current'       => $ranges['current'],
+            'previous'      => $ranges['previous'],
+            'data'          => $data,
+        );
+        update_option( self::STORE_PREFIX . $source, $entries, false );
+        do_action( 'tgb_manual_report_saved', $source, $ranges, $entries[ $key ] );
+        self::finish_download( $source, $selection, 'Informe descargado y guardado correctamente.', false );
+    }
+
+    public static function export_report() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified below.
+        $source = isset( $_GET['source'] ) ? sanitize_key( wp_unslash( $_GET['source'] ) ) : '';
+        if ( ! in_array( $source, array( 'analytics', 'search', 'bing' ), true ) ) {
+            wp_die( esc_html__( 'Informe no válido.', 'taxocommerce-google-bing' ) );
+        }
+        check_admin_referer( 'tgb_export_report_' . $source );
+        $selection = self::selection( wp_unslash( $_GET ) );
+        if ( is_wp_error( $selection ) ) {
+            wp_die( esc_html( $selection->get_error_message() ) );
+        }
+        $range = $selection['ranges']['current'];
+        $snapshot = self::get_saved_snapshot( $source, $range['start'], $range['end'] );
+        if ( null === $snapshot ) {
+            wp_die( esc_html__( 'Informe no disponible. Descárgalo primero.', 'taxocommerce-google-bing' ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce_' . $source . '_' . $range['start'] . '_' . $range['end'] . '.json"' );
+        echo wp_json_encode( $snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Explicit JSON download.
+        exit;
+    }
+
+    private static function finish_download( $source, $selection, $message, $error ) {
+        set_transient(
+            'tgb_download_notice_' . get_current_user_id(),
+            array( 'source' => $source, 'error' => (bool) $error, 'message' => sanitize_text_field( $message ) ),
+            2 * MINUTE_IN_SECONDS
+        );
+        $params = array(
+            'page'    => 'taxocommerce-google-bing',
+            'tgb_tab' => self::source_tab( $source ),
+            'period'  => $selection['period'] ?? '30',
+        );
+        if ( 'custom' === $params['period'] ) {
+            $params['start'] = $selection['ranges']['current']['start'];
+            $params['end']   = $selection['ranges']['current']['end'];
+        }
+        wp_safe_redirect( add_query_arg( $params, admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
+    private static function selection( $input ) {
+        $period = isset( $input['period'] ) && is_scalar( $input['period'] )
+            ? sanitize_text_field( (string) $input['period'] ) : '30';
+
+        if ( 'custom' !== $period ) {
+            $days = in_array( (int) $period, array( 7, 30, 90 ), true ) ? (int) $period : 30;
+            return array( 'period' => (string) $days, 'days' => $days, 'ranges' => self::ranges( $days ) );
+        }
+
+        $start = isset( $input['start'] ) && is_scalar( $input['start'] ) ? sanitize_text_field( (string) $input['start'] ) : '';
+        $end = isset( $input['end'] ) && is_scalar( $input['end'] ) ? sanitize_text_field( (string) $input['end'] ) : '';
+        $tz = wp_timezone();
+        $from = DateTimeImmutable::createFromFormat( '!Y-m-d', $start, $tz );
+        $until = DateTimeImmutable::createFromFormat( '!Y-m-d', $end, $tz );
+        $max = ( new DateTimeImmutable( 'today', $tz ) )->modify( '-1 day' );
+
+        if ( ! $from || ! $until || $from->format( 'Y-m-d' ) !== $start
+            || $until->format( 'Y-m-d' ) !== $end || $until > $max || $from > $until ) {
+            return new WP_Error( 'tgb_range_invalid', 'Selecciona fechas válidas, sin incluir hoy ni días futuros.' );
+        }
+        $days = (int) $from->diff( $until )->days + 1;
+        if ( $days > 90 ) {
+            return new WP_Error( 'tgb_range_large', 'El intervalo máximo por descarga es de 90 días.' );
+        }
+        $previous_end = $from->modify( '-1 day' );
+        $previous_start = $previous_end->modify( '-' . ( $days - 1 ) . ' days' );
+        return array(
+            'period' => 'custom',
+            'days' => $days,
+            'ranges' => array(
+                'current' => self::date_range( $from, $until ),
+                'previous' => self::date_range( $previous_start, $previous_end ),
+            ),
+        );
+    }
+
+    private static function date_range( $from, $until ) {
+        return array(
+            'start' => $from->format( 'Y-m-d' ),
+            'end' => $until->format( 'Y-m-d' ),
+            'label' => $from->format( 'd/m/Y' ) . ' – ' . $until->format( 'd/m/Y' ),
+        );
+    }
+
+    private static function render_gsc( $data ) {
+        $current = (array) ( $data['summary']['current'] ?? array() );
+        $previous = (array) ( $data['summary']['previous'] ?? array() );
+        echo '<section class="tgb-report-section">';
+        echo '<div class="tgb-section-head"><div><h2>Rendimiento de búsqueda en Google</h2>';
+        echo '<p>Resultados web: evolución, búsquedas, páginas, países y dispositivos.</p></div><span class="tgb-source-badge">Search Console</span></div>';
+        echo '<div class="tgb-kpi-grid">';
+        self::kpi( 'Clics', $current['clicks'], $previous['clicks'] );
+        self::kpi( 'Impresiones', $current['impressions'], $previous['impressions'] );
+        self::kpi( 'CTR', $current['ctr'], $previous['ctr'], 'percent' );
+        self::kpi( 'Posición media', $current['position'], $previous['position'], 'decimal', true );
+        echo '</div><div class="tgb-report-grid">';
+        self::line_card(
+            'Evolución de clics',
+            'Clics',
+            $data['daily']['labels'],
+            array(
+                array( 'label' => 'Actual', 'values' => $data['daily']['current_clicks'] ),
+                array( 'label' => 'Anterior', 'values' => $data['daily']['previous_clicks'], 'previous' => true ),
+            )
+        );
+        self::line_card(
+            'Evolución de impresiones',
+            'Impresiones',
+            $data['daily']['labels'],
+            array(
+                array( 'label' => 'Actual', 'values' => $data['daily']['current_impressions'] ),
+                array( 'label' => 'Anterior', 'values' => $data['daily']['previous_impressions'], 'previous' => true ),
+            )
+        );
+        foreach ( array( 'countries' => 'Clics por país', 'devices' => 'Clics por dispositivo' ) as $type => $title ) {
+            $slice = array_slice( (array) ( $data[ $type ] ?? array() ), 0, 10 );
+            $labels = array_column( $slice, 'name' );
+            $values = array_column( $slice, 'clicks' );
+            self::bar_card( $title, 'Clics', $labels, array( array( 'label' => 'Actual', 'values' => $values ) ) );
+        }
+        echo '</div>';
+        self::render_rank_table( 'Principales búsquedas', (array) ( $data['queries'] ?? array() ) );
+        self::render_rank_table( 'Principales páginas', (array) ( $data['pages'] ?? array() ), true );
+        echo '<p class="description">' . esc_html( (string) ( $data['note'] ?? '' ) ) . '</p>';
+        echo '</section>';
+    }
+
+    private static function render_rank_table( $title, $rows, $is_url = false ) {
+        echo '<div class="tgb-rank-card"><h3>' . esc_html( $title ) . '</h3>';
+        if ( empty( $rows ) ) {
+            echo '<p>No hay registros en este periodo.</p></div>';
+            return;
+        }
+        echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr>';
+        echo '<th>Búsqueda / página</th><th>Clics</th><th>Impresiones</th><th>CTR</th><th>Posición media</th>';
+        echo '</tr></thead><tbody>';
+        foreach ( array_slice( $rows, 0, 30 ) as $item ) {
+            $label = (string) ( $item['name'] ?? '' );
+            $clicks = (int) ( $item['clicks'] ?? 0 );
+            $impressions = (int) ( $item['impressions'] ?? 0 );
+            $ctr = isset( $item['ctr'] ) ? (float) $item['ctr'] : ( $impressions > 0 ? $clicks / $impressions : 0 );
+            $position = (float) ( $item['position'] ?? 0 );
+            echo '<tr><td class="tgb-rank-label">';
+            if ( $is_url && filter_var( $label, FILTER_VALIDATE_URL )
+                && in_array( strtolower( (string) wp_parse_url( $label, PHP_URL_SCHEME ) ), array( 'http', 'https' ), true ) ) {
+                echo '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $label ) . '">' . esc_html( $label ) . '</a>';
+            } else {
+                echo esc_html( $label );
+            }
+            echo '</td><td>' . esc_html( number_format_i18n( $clicks ) ) . '</td>';
+            echo '<td>' . esc_html( number_format_i18n( $impressions ) ) . '</td>';
+            echo '<td>' . esc_html( number_format_i18n( $ctr * 100, 1 ) ) . '%</td>';
+            echo '<td>' . esc_html( number_format_i18n( $position, 1 ) ) . '</td></tr>';
+        }
+        echo '</tbody></table></div></div>';
     }
 
     private static function render_ga4( $data ) {
@@ -96,6 +406,12 @@ final class TaxoCommerce_Google_Bing_Reports {
         self::kpi( 'Sesiones', $current['sessions'], $previous['sessions'], 'number' );
         self::kpi( 'Vistas de página', $current['screenPageViews'], $previous['screenPageViews'], 'number' );
         self::kpi( 'Tasa de interacción', $current['engagementRate'], $previous['engagementRate'], 'percent' );
+        self::kpi( 'Tasa de rebote', $current['bounceRate'], $previous['bounceRate'], 'percent', true );
+        self::kpi( 'Duración media por sesión', $current['averageSessionDuration'], $previous['averageSessionDuration'], 'duration' );
+        self::kpi( 'Sesiones con interacción', $current['engagedSessions'], $previous['engagedSessions'] );
+        self::kpi( 'Eventos', $current['eventCount'], $previous['eventCount'] );
+        self::kpi( 'Eventos clave', $current['keyEvents'], $previous['keyEvents'] );
+        self::kpi( 'Compras registradas', $current['ecommercePurchases'], $previous['ecommercePurchases'] );
         echo '</div>';
 
         echo '<div class="tgb-report-grid">';
@@ -142,13 +458,52 @@ final class TaxoCommerce_Google_Bing_Reports {
                 ),
             )
         );
+        self::bar_card(
+            'Sesiones por canal de adquisición',
+            'Sesiones',
+            $data['channels']['labels'],
+            array(
+                array( 'label' => 'Actual', 'values' => $data['channels']['current'] ),
+                array( 'label' => 'Anterior', 'values' => $data['channels']['previous'], 'previous' => true ),
+            )
+        );
+        self::bar_card(
+            'Usuarios por dispositivo',
+            'Usuarios activos',
+            $data['devices']['labels'],
+            array(
+                array( 'label' => 'Actual', 'values' => $data['devices']['current'] ),
+                array( 'label' => 'Anterior', 'values' => $data['devices']['previous'], 'previous' => true ),
+            )
+        );
         echo '</div>';
+        self::render_ga4_pages( $data['pages'] );
+        echo '<p class="description">Las compras y los eventos clave sólo se muestran si GA4 recibe los eventos correspondientes.</p>';
         echo '</section>';
+    }
+
+    private static function render_ga4_pages( $pages ) {
+        echo '<div class="tgb-rank-card"><h3>Páginas más vistas (GA4)</h3>';
+        if ( empty( $pages ) ) {
+            echo '<p>No hay páginas registradas en este periodo.</p></div>';
+            return;
+        }
+        echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Ruta</th><th>Vistas actuales</th><th>Vistas anteriores</th><th>Variación</th></tr></thead><tbody>';
+        foreach ( array_slice( $pages, 0, 30 ) as $item ) {
+            $current = (int) $item['views'];
+            $previous = (int) $item['previous_views'];
+            $delta = self::delta( $current, $previous );
+            echo '<tr><td class="tgb-rank-label">' . esc_html( (string) $item['name'] ) . '</td>';
+            echo '<td>' . esc_html( number_format_i18n( $current ) ) . '</td>';
+            echo '<td>' . esc_html( number_format_i18n( $previous ) ) . '</td>';
+            echo '<td>' . esc_html( self::format_delta( $delta, $current, $previous ) ) . '</td></tr>';
+        }
+        echo '</tbody></table></div></div>';
     }
 
     private static function render_bing( $data ) {
         echo '<section class="tgb-report-section">';
-        echo '<div class="tgb-section-head"><div><h2>Microsoft Bing Webmaster</h2><p>Visibilidad en Bing y salud técnica de rastreo. No se muestran consultas ni páginas concretas.</p></div><span class="tgb-source-badge">Bing</span></div>';
+        echo '<div class="tgb-section-head"><div><h2>Microsoft Bing Webmaster</h2><p>Tráfico orgánico, términos de búsqueda, principales páginas, indexación y salud del rastreo.</p></div><span class="tgb-source-badge">Bing</span></div>';
 
         if ( is_wp_error( $data ) ) {
             echo '<div class="notice notice-warning inline"><p>' . esc_html( $data->get_error_message() ) . '</p></div>';
@@ -190,6 +545,13 @@ final class TaxoCommerce_Google_Bing_Reports {
             )
         );
         echo '</div>';
+        self::render_rank_table( 'Principales búsquedas en Bing', (array) ( $data['queries'] ?? array() ) );
+        self::render_rank_table( 'Principales páginas en Bing', (array) ( $data['pages'] ?? array() ), true );
+        if ( ! empty( $data['warnings'] ) ) {
+            foreach ( (array) $data['warnings'] as $warning ) {
+                echo '<p class="notice notice-warning inline" style="padding:10px">' . esc_html( $warning ) . '</p>';
+            }
+        }
 
         echo '<div class="tgb-crawl-strip">';
         echo '<span><strong>2xx:</strong> ' . esc_html( number_format_i18n( $crawl_current['code2xx'] ) ) . '</span>';
@@ -211,12 +573,6 @@ final class TaxoCommerce_Google_Bing_Reports {
             return new WP_Error( 'tgb_ga4_not_configured', 'Google Analytics no está configurado. Completa primero la conexión GA4.' );
         }
 
-        $cache_key = 'tgb_ga4_dashboard_v2_' . get_current_blog_id() . '_' . $days;
-        $cached = get_transient( $cache_key );
-        if ( is_array( $cached ) ) {
-            return $cached;
-        }
-
         $current_reports = self::ga4_batch( $property, $ranges['current'] );
         if ( is_wp_error( $current_reports ) ) {
             return $current_reports;
@@ -227,7 +583,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             return $previous_reports;
         }
 
-        if ( count( $current_reports ) < 4 || count( $previous_reports ) < 4 ) {
+        if ( count( $current_reports ) < 7 || count( $previous_reports ) < 7 ) {
             return new WP_Error( 'tgb_ga4_incomplete', 'Google Analytics devolvió un lote de informes incompleto.' );
         }
 
@@ -273,6 +629,9 @@ final class TaxoCommerce_Google_Bing_Reports {
                 'current'  => $countries_current,
                 'previous' => $countries_previous,
             ),
+            'channels' => self::ga4_groups( $current_reports[4], $previous_reports[4] ),
+            'devices' => self::ga4_groups( $current_reports[5], $previous_reports[5] ),
+            'pages' => self::ga4_pages( $current_reports[6], $previous_reports[6] ),
             'daily' => array(
                 'labels'              => $axis_current['labels'],
                 'current_sessions'    => $daily_current['sessions'],
@@ -284,7 +643,6 @@ final class TaxoCommerce_Google_Bing_Reports {
             ),
         );
 
-        set_transient( $cache_key, $out, self::CACHE_TTL );
         return $out;
     }
 
@@ -312,6 +670,10 @@ final class TaxoCommerce_Google_Bing_Reports {
                     array( 'name' => 'engagedSessions' ),
                     array( 'name' => 'engagementRate' ),
                     array( 'name' => 'eventCount' ),
+                    array( 'name' => 'bounceRate' ),
+                    array( 'name' => 'averageSessionDuration' ),
+                    array( 'name' => 'keyEvents' ),
+                    array( 'name' => 'ecommercePurchases' ),
                 ),
                 'limit' => 1,
             ),
@@ -347,6 +709,26 @@ final class TaxoCommerce_Google_Bing_Reports {
                         'desc'      => false,
                     ),
                 ),
+                'limit' => 100,
+            ),
+            array(
+                'dateRanges' => array( $date_range ),
+                'dimensions' => array( array( 'name' => 'sessionDefaultChannelGroup' ) ),
+                'metrics' => array( array( 'name' => 'sessions' ) ),
+                'orderBys' => array( array( 'metric' => array( 'metricName' => 'sessions' ), 'desc' => true ) ),
+                'limit' => 25,
+            ),
+            array(
+                'dateRanges' => array( $date_range ),
+                'dimensions' => array( array( 'name' => 'deviceCategory' ) ),
+                'metrics' => array( array( 'name' => 'activeUsers' ) ),
+                'limit' => 10,
+            ),
+            array(
+                'dateRanges' => array( $date_range ),
+                'dimensions' => array( array( 'name' => 'pagePath' ) ),
+                'metrics' => array( array( 'name' => 'screenPageViews' ) ),
+                'orderBys' => array( array( 'metric' => array( 'metricName' => 'screenPageViews' ), 'desc' => true ) ),
                 'limit' => 100,
             ),
         );
@@ -392,6 +774,10 @@ final class TaxoCommerce_Google_Bing_Reports {
             'engagedSessions'  => (int) self::row_metric( $row, 4 ),
             'engagementRate'   => (float) self::row_metric( $row, 5 ),
             'eventCount'       => (int) self::row_metric( $row, 6 ),
+            'bounceRate'       => (float) self::row_metric( $row, 7 ),
+            'averageSessionDuration' => (float) self::row_metric( $row, 8 ),
+            'keyEvents'        => (int) self::row_metric( $row, 9 ),
+            'ecommercePurchases' => (int) self::row_metric( $row, 10 ),
         );
     }
 
@@ -417,6 +803,35 @@ final class TaxoCommerce_Google_Bing_Reports {
                 $country = 'Sin identificar';
             }
             $out[ $country ] = (int) self::row_metric( $row, 0 );
+        }
+        return $out;
+    }
+
+    private static function ga4_groups( $current, $previous ) {
+        $now = self::ga4_country_map( $current );
+        $prior = self::ga4_country_map( $previous );
+        $combined = $now;
+        foreach ( $prior as $name => $value ) {
+            $combined[ $name ] = ( $combined[ $name ] ?? 0 ) + $value;
+        }
+        arsort( $combined );
+        $labels = array_slice( array_keys( $combined ), 0, 10 );
+        $current_values = array();
+        $previous_values = array();
+        foreach ( $labels as $label ) {
+            $current_values[] = (int) ( $now[ $label ] ?? 0 );
+            $previous_values[] = (int) ( $prior[ $label ] ?? 0 );
+        }
+        return array( 'labels' => $labels, 'current' => $current_values, 'previous' => $previous_values );
+    }
+
+    private static function ga4_pages( $current, $previous ) {
+        $now = self::ga4_country_map( $current );
+        $prior = self::ga4_country_map( $previous );
+        arsort( $now );
+        $out = array();
+        foreach ( array_slice( $now, 0, 100, true ) as $name => $views ) {
+            $out[] = array( 'name' => $name, 'views' => $views, 'previous_views' => (int) ( $prior[ $name ] ?? 0 ) );
         }
         return $out;
     }
@@ -450,12 +865,6 @@ final class TaxoCommerce_Google_Bing_Reports {
             return new WP_Error( 'tgb_bing_not_configured', 'Bing Webmaster no está configurado o está desactivado.' );
         }
 
-        $cache_key = 'tgb_bing_dashboard_v2_' . get_current_blog_id() . '_' . $days;
-        $cached = get_transient( $cache_key );
-        if ( is_array( $cached ) ) {
-            return $cached;
-        }
-
         $traffic_rows = self::bing_request( 'GetRankAndTrafficStats', $settings, $key );
         if ( is_wp_error( $traffic_rows ) ) {
             return $traffic_rows;
@@ -464,6 +873,20 @@ final class TaxoCommerce_Google_Bing_Reports {
         $crawl_rows = self::bing_request( 'GetCrawlStats', $settings, $key );
         if ( is_wp_error( $crawl_rows ) ) {
             return $crawl_rows;
+        }
+
+        // Older Bing endpoints may be unavailable for a site. Preserve the
+        // successful traffic/crawl report and flag each unavailable breakdown.
+        $warnings = array();
+        $queries_raw = self::bing_request( 'GetQueryStats', $settings, $key );
+        if ( is_wp_error( $queries_raw ) ) {
+            $warnings[] = 'Búsquedas: ' . $queries_raw->get_error_message();
+            $queries_raw = array();
+        }
+        $pages_raw = self::bing_request( 'GetPageStats', $settings, $key );
+        if ( is_wp_error( $pages_raw ) ) {
+            $warnings[] = 'Páginas: ' . $pages_raw->get_error_message();
+            $pages_raw = array();
         }
 
         $axis_current  = self::axis_iso( $ranges['current']['start'], $days );
@@ -524,14 +947,16 @@ final class TaxoCommerce_Google_Bing_Reports {
                 'current'  => $crawl_current,
                 'previous' => $crawl_previous,
             ),
+            'queries' => self::bing_rank_rows( $queries_raw, $ranges['current'], false ),
+            'pages' => self::bing_rank_rows( $pages_raw, $ranges['current'], true ),
+            'warnings' => $warnings,
         );
 
-        set_transient( $cache_key, $out, self::CACHE_TTL );
         return $out;
     }
 
     private static function bing_request( $method, $settings, $key ) {
-        $allowed = array( 'GetRankAndTrafficStats', 'GetCrawlStats' );
+        $allowed = array( 'GetRankAndTrafficStats', 'GetCrawlStats', 'GetQueryStats', 'GetPageStats' );
         if ( ! in_array( $method, $allowed, true ) ) {
             return new WP_Error( 'tgb_bing_method', 'Método Bing no permitido para este informe.' );
         }
@@ -566,6 +991,55 @@ final class TaxoCommerce_Google_Bing_Reports {
         }
 
         return array_values( (array) ( $body['d'] ?? array() ) );
+    }
+
+    private static function bing_rank_rows( $rows, $range, $pages ) {
+        $items = array();
+        foreach ( (array) $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+            $date = self::bing_date( $row['Date'] ?? '' );
+            if ( '' === $date || $date < $range['start'] || $date > $range['end'] ) {
+                continue;
+            }
+
+            // GetPageStats historically returns the page URL in "Query".
+            $name = $pages
+                ? (string) ( $row['PageURL'] ?? $row['PageUrl'] ?? $row['Page'] ?? $row['Url'] ?? $row['Query'] ?? '' )
+                : (string) ( $row['Query'] ?? '' );
+            $name = sanitize_text_field( $name );
+            if ( '' === $name ) {
+                continue;
+            }
+            $clicks = max( 0, (int) ( $row['Clicks'] ?? 0 ) );
+            $impressions = max( 0, (int) ( $row['Impressions'] ?? 0 ) );
+            $position = (float) ( $row['AvgImpressionPosition'] ?? $row['AvgClickPosition'] ?? 0 );
+            if ( ! isset( $items[ $name ] ) ) {
+                $items[ $name ] = array(
+                    'name' => $name,
+                    'clicks' => 0,
+                    'impressions' => 0,
+                    'position_weighted' => 0,
+                );
+            }
+            $items[ $name ]['clicks'] += $clicks;
+            $items[ $name ]['impressions'] += $impressions;
+            $items[ $name ]['position_weighted'] += $position * $impressions;
+        }
+
+        $out = array_values( $items );
+        foreach ( $out as &$item ) {
+            $impressions = $item['impressions'];
+            $item['ctr'] = $impressions > 0 ? $item['clicks'] / $impressions : 0.0;
+            $item['position'] = $impressions > 0 ? $item['position_weighted'] / $impressions : 0.0;
+            unset( $item['position_weighted'] );
+        }
+        unset( $item );
+        usort( $out, static function ( $left, $right ) {
+            return $right['clicks'] <=> $left['clicks'];
+        } );
+        return array_slice( $out, 0, 100 );
     }
 
     private static function bing_crawl_period( $rows, $range ) {
@@ -747,6 +1221,13 @@ final class TaxoCommerce_Google_Bing_Reports {
         if ( 'percent' === $format ) {
             return number_format_i18n( (float) $value * 100, 1 ) . '%';
         }
+        if ( 'decimal' === $format ) {
+            return number_format_i18n( (float) $value, 1 );
+        }
+        if ( 'duration' === $format ) {
+            $seconds = max( 0, (int) round( (float) $value ) );
+            return sprintf( '%d:%02d', (int) floor( $seconds / 60 ), $seconds % 60 );
+        }
         return number_format_i18n( (float) $value, 0 );
     }
 
@@ -897,7 +1378,14 @@ final class TaxoCommerce_Google_Bing_Reports {
         .tgb-chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#50575e}.tgb-chart-legend span{display:inline-flex;align-items:center;gap:5px}.tgb-chart-legend i{display:inline-block;width:16px;height:3px;border-radius:2px}
         .tgb-crawl-strip{display:flex;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin-top:14px;font-size:12px}
         .tgb-report-note{margin-top:16px}
-        .tgb-search-placeholder{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;margin-top:18px;max-width:900px}.tgb-search-placeholder h3{margin-top:0}
+        .tgb-custom-range{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 10px}
+        .tgb-custom-range label{display:inline-flex;align-items:center;gap:6px}
+        .tgb-download-form{margin:14px 0}
+        .tgb-history{margin:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+        .tgb-rank-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}
+        .tgb-rank-card h3{margin:0 0 10px;font-size:15px}
+        .tgb-table-scroll{max-width:100%;overflow-x:auto}
+        .tgb-rank-label{min-width:200px;word-break:break-word;max-width:550px}
         @media(max-width:1250px){.tgb-kpi-grid{grid-template-columns:repeat(3,minmax(130px,1fr))}}
         @media(max-width:1000px){.tgb-report-grid{grid-template-columns:1fr}}
         @media(max-width:782px){.tgb-report-toolbar,.tgb-section-head{align-items:flex-start;flex-direction:column}.tgb-kpi-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}}

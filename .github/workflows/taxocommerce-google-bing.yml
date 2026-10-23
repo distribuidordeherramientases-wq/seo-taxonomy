@@ -5,6 +5,11 @@ on:
     paths:
       - 'taxocommerce-google-bing/**'
       - '.github/workflows/taxocommerce-google-bing.yml'
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-google-bing/**'
+      - '.github/workflows/taxocommerce-google-bing.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,6 +24,8 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: find taxocommerce-google-bing -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Smoke test without network requests
+        run: php taxocommerce-google-bing/tests/reporting-smoke.php
       - name: Check plugin independence
         run: |
           test -s taxocommerce-google-bing/taxocommerce-google-bing.php
@@ -33,7 +40,7 @@ jobs:
   deploy:
     needs: verify
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
     steps:
       - uses: actions/checkout@v4
       - name: Upload only this plugin to STAGING
