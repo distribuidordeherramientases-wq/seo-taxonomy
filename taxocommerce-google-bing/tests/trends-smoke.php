@@ -44,4 +44,10 @@ if ( function_exists( 'simplexml_load_string' ) ) {
     fwrite( STDERR, "Missing SimpleXML should return an error\n" );
     exit( 1 );
 }
+$terms = TaxoCommerce_Google_Bing_Trends::parse_terms( "taladros a batería\namoladoras\ntaladros a batería" );
+if ( is_wp_error( $terms ) || count( $terms ) !== 2 ) { fwrite( STDERR, "Terms parsing failed\n" ); exit( 1 ); }
+$link = TaxoCommerce_Google_Bing_Trends::explore_link( $terms, '', 'today 12-m' );
+if ( strpos( $link, 'geo=' ) !== false || strpos( $link, 'trends/explore' ) === false ) { fwrite( STDERR, "Worldwide explore failed\n" ); exit( 1 ); }
+$over = TaxoCommerce_Google_Bing_Trends::parse_terms( "a,b,c,d,e,f" );
+if ( ! is_wp_error( $over ) ) { fwrite( STDERR, "Limit failed\n" ); exit( 1 ); }
 echo "Trends smoke: OK - no remote call on rendering\n";
