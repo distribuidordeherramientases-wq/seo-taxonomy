@@ -1,6 +1,6 @@
 # TaxoCommerce Google / Bing
 
-Módulo autónomo de conexiones e informes para Google Analytics 4, Google Search Console y Microsoft Bing Webmaster. Usa las credenciales que ya mantiene el módulo y no altera los datos históricos de TaxoCommerce SEO.
+Módulo autónomo de conexiones e informes para Google Analytics 4, Google Search Console y Microsoft Bing Webmaster, con servicio Mercado para categorías de WooCommerce. Usa las credenciales que ya mantiene el módulo y no altera los datos históricos de TaxoCommerce SEO.
 
 ## Pestañas
 
@@ -37,6 +37,29 @@ Hook posterior a descarga satisfactoria:
     }, 10, 3 );
 
 Ninguna lectura local inicia sincronización, OAuth ni acceso de red. Las APIs sólo se solicitan a través de formularios autenticados.
+
+
+## Mercado · fuentes y expedientes por categoría (v0.7.0)
+
+La pestaña **Mercado** vive dentro del mismo plugin. **No depende de TaxoCommerce Core ni de los módulos antiguos de Ojeador/Comparador.** Comparte la cuenta Google/Merchant existente, y admite claves opcionales de YouTube Data API v3 y SerpApi en su propio formulario.
+
+Al activar el plugin (y al actualizar una instalación activa), se crean tres tablas nuevas con prefijo WordPress:
+- **tgb_market_categories**: una fila por categoría de WooCommerce (product_cat, incluso vacías); nombre, slug, padre, idioma, país, categoría Google opcional, estado y último análisis.
+- **tgb_market_sources**: resultados web, vídeos, comentarios públicos, ofertas observadas y señales Merchant; URL cuando exista, proveedor, fecha, fiabilidad de la fuente y metadatos. Deduplicación por categoría y referencia. Los comentarios de YouTube se eliminan a los 28 días si se visita el panel de administración.
+- **tgb_market_runs**: historial de escaneos por categoría, resultados de cada fuente y errores.
+
+La sincronización local inicial de categorías se hace en lotes de hasta **150 categorías por solicitud administrativa**, sin llamadas externas, y continúa en posteriores visitas. Los cambios en categorías marcan fuentes anteriores como antiguas; al borrar una categoría se archiva su historial. Si WooCommerce no está activo, Google/Bing sigue funcionando.
+
+**Escaneo:** categoría individual manual o cola propia con WP-Cron, una categoría por ejecución. Protección por defecto: **10 categorías con llamadas externas por día** y **200 llamadas SerpApi por mes**. La cola se inicia y detiene mediante botones y NO empieza al instalar. Si WP-Cron no ejecuta, los escaneos automáticos se retrasan; se mantiene el control manual. La vista nunca consulta las APIs.
+
+- **YouTube:** busca vídeos y recupera comentarios públicos sobre la categoría. Requiere una API key propia de YouTube Data API (no sirve la credencial GA4/Search automáticamente). La búsqueda suele costar 100 unidades de cuota.
+- **Web:** búsquedas de Google mediante SerpApi opcional. Un resultado y su snippet son un enlace descubierto, no una opinión contrastada.
+- **Ofertas:** resultados Google Shopping de SerpApi; ofertas individuales, no promedios de productos dispares. Requiere comprobar equivalencia técnica antes de comparar precios.
+- **Merchant:** best-sellers agrupados por ID oficial de categoría de Google y país; requiere Market Insights y una correspondencia de categoría validada. No entrega comentarios ni una lista de precios individualizados de competidores.
+
+El expediente por categoría permite ver fuentes, errores, fechas y **exportar dossier JSON** destinado al futuro Editor. No se importan correcciones JSON genéricas, no se crean borradores WordPress ni se publican posts automáticamente. Las conclusiones editoriales necesitan análisis y verificación posterior; los datos encontrados no autorizan inventar experiencias o promedios.
+
+Nota: deben respetarse las condiciones de reutilización, almacenamiento y cacheado de YouTube, Merchant, SerpApi y cada fuente original.
 
 ## Consideraciones
 
