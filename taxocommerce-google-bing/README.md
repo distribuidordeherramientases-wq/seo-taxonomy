@@ -1,34 +1,91 @@
 # TaxoCommerce Google / Bing
 
-Plugin independiente de la familia TaxoCommerce para centralizar conexiones y, progresivamente, la extracción de datos de Google y Microsoft Bing.
+Plugin independiente de la familia TaxoCommerce dedicado **exclusivamente a conexiones** con Google y Microsoft Bing.
 
-## 0.1.0
+## Responsabilidad
 
-Primera fase: **Conexiones**.
+Este plugin:
 
-### Google
+- guarda credenciales y configuración de conexión;
+- gestiona OAuth, access tokens y refresh tokens;
+- conserva identificadores de propiedades/cuentas;
+- permite pruebas explícitas de conexión mediante autenticación y metadatos;
+- expone las conexiones para que otros módulos puedan utilizarlas más adelante.
+
+Este plugin **no**:
+
+- descarga consultas, clics, impresiones, posiciones ni páginas de Search Console;
+- descarga sesiones, usuarios, visitas, compras ni eventos de GA4;
+- descarga benchmarks, productos populares ni informes de Merchant;
+- descarga métricas de Bing Webmaster;
+- ejecuta Cloud Run Jobs;
+- ejecuta Google Trends;
+- programa sincronizaciones o crons de extracción;
+- actualiza tablas o snapshots de datos de negocio.
+
+Los datos históricos ya existentes no se eliminan.
+
+## Conexiones
+
+### Google Search Console OAuth
+
+- Client ID.
+- Client Secret.
+- URI de redirección.
+- Propiedad Search Console.
+- OAuth 2.0.
+- Access token y refresh token.
+- Prueba explícita mediante listado de propiedades accesibles.
+
+### Google Analytics / Search Console · cuenta de servicio
 
 - Cuenta de servicio JSON.
-- Propiedad de Google Search Console.
-- Propiedad de Google Analytics 4.
-- Measurement ID existente.
-- Prueba real de autenticación.
-- Prueba de acceso a Search Console cuando hay propiedad configurada.
-- Prueba de acceso a Google Analytics cuando hay propiedad GA4 configurada.
-- Detección informativa del OAuth heredado de Google Intelligence.
+- Propiedad Search Console.
+- Propiedad GA4.
+- Measurement ID.
+- Prueba explícita mediante token y metadatos de propiedad.
 
-La primera versión conserva la opción existente `seo_google_search_settings` para no romper los consumidores actuales.
+Se conserva la opción histórica `seo_google_search_settings`.
 
-### Microsoft Bing
+### Google Merchant Center
 
-- Activación/desactivación.
+- ID de Merchant Center.
+- Usa la cuenta de servicio Google.
+- Prueba explícita mediante metadatos básicos de la cuenta.
+- No consulta Merchant Reports.
+
+Se conserva la opción histórica `seo_ojeador_merchant_account_v1`.
+
+### Google Cloud Run
+
+- Project ID.
+- Región.
+- Nombre del Job.
+- Cuenta de servicio JSON.
+- Prueba explícita mediante lectura de la configuración del Job.
+- La prueba no ejecuta el Job.
+
+Se conserva la opción histórica `seo_google_python_runner_settings`.
+
+### Microsoft Bing Webmaster
+
+- Activación/desactivación de la conexión.
 - Sitio de Bing Webmaster.
 - API key.
 - Compatibilidad con `SEO_BING_WEBMASTER_API_KEY` en `wp-config.php`.
-- Prueba real contra Bing Webmaster API.
+- Prueba explícita mediante `GetUserSites`.
+- No consulta tráfico, queries, páginas ni crawl stats.
 
-La primera versión conserva la opción existente `seo_analista_bing_settings`.
+Se conserva la opción histórica `seo_analista_bing_settings`.
 
-## Arquitectura prevista
+## Arquitectura futura
 
-El plugin será la fuente común para Analista, Ojeador, Ingeniero, Mercado e informes. Las siguientes pestañas se añadirán por fuente/dataset; no se implementan todavía para mantener separada la fase de conexiones.
+Las futuras pestañas o módulos de informes decidirán:
+
+1. qué fuente utilizar;
+2. qué dataset solicitar;
+3. qué periodo consultar;
+4. qué dimensiones y métricas descargar;
+5. qué caché o persistencia aplicar.
+
+La capa de conexiones no decide ninguno de esos puntos.
