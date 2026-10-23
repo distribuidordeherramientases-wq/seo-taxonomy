@@ -49,7 +49,14 @@ final class TaxoCommerce_Google_Bing_Connections {
         $google_account = self::google_service_account( $google );
         $google_ready   = ! is_wp_error( $google_account );
         $bing_key       = self::bing_api_key( $bing );
-        TaxoCommerce_Google_Bing_OAuth::render();
+        if ( function_exists( 'seo_google_render_notices' ) ) {
+            seo_google_render_notices();
+        }
+        if ( function_exists( 'seo_google_render_settings' ) ) {
+            seo_google_render_settings();
+        } else {
+            TaxoCommerce_Google_Bing_OAuth::render();
+        }
 
         echo '<div class="tgb-grid">';
 
