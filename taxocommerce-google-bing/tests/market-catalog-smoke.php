@@ -38,6 +38,7 @@ function sanitize_key( $v ) { return strtolower( preg_replace( '/[^a-z0-9_-]/i',
 function sanitize_title( $v ) { return strtolower( trim( (string) $v ) ); }
 function esc_url_raw( $v ) { return trim( (string) $v ); }
 function wp_json_encode( $v, $flags = 0 ) { return json_encode( $v, $flags ); }
+function add_query_arg( $params, $url ) { return $url . '?' . http_build_query( $params ); }
 function get_terms( $args ) {
     $ids = range( 1, 10 );
     return array_slice( $ids, $args['offset'], $args['number'] );
