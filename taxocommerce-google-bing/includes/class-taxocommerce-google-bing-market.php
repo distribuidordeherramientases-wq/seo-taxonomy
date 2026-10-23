@@ -120,15 +120,39 @@ final class TaxoCommerce_Google_Bing_Market {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
-        if ( (int) get_option( self::SCHEMA_OPTION, 0 ) !== self::SCHEMA_VERSION && ! self::install() ) {
-            return;
+        if ( (int) get_option( self::SCHEMA_OPTION, 0 ) !== self::SCHEMA_VERSION ) {
+            if ( ! self::install() ) {
+                return;
+            }
+            // Also run after automatic plugin upgrades, when activation does not fire.
+            update_option( self::BOOTSTRAP_OPTION, 1, false );
         }
+        self::purge_expired_youtube_data();
         if ( get_option( self::BOOTSTRAP_OPTION, 0 ) && taxonomy_exists( 'product_cat' ) ) {
             $result = self::sync_categories_batch();
             if ( ! is_wp_error( $result ) && ! empty( $result['complete'] ) ) {
                 update_option( self::BOOTSTRAP_OPTION, 0, false );
             }
         }
+    }
+
+    /**
+     * YouTube API-derived data must be refreshed or removed within 30 days.
+     * Retain only the latest 28 days, purge on an infrequent local admin load.
+     */
+    private static function purge_expired_youtube_data() {
+        global $wpdb;
+        $last = absint( get_option( 'tgb_market_last_youtube_purge', 0 ) );
+        if ( time() - $last < DAY_IN_SECONDS ) {
+            return;
+        }
+        $t = self::tables();
+        $expiry = gmdate( 'Y-m-d H:i:s', time() - 28 * DAY_IN_SECONDS );
+        $wpdb->query( $wpdb->prepare(
+            "DELETE FROM {$t['sources']} WHERE provider = %s AND updated_at < %s",
+            'youtube', $expiry
+        ) );
+        update_option( 'tgb_market_last_youtube_purge', time(), false );
     }
 
     private static function get_locale_country( $term_id ) {
@@ -186,16 +210,27 @@ final class TaxoCommerce_Google_Bing_Market {
             'updated_at'     => $now,
         );
         $t = self::tables();
-        $id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$t['categories']} WHERE term_id = %d", absint( $term_id )
-        ) );
-        if ( $id ) {
-            $data['scan_status'] = ( 'archived' === (string) $wpdb->get_var( $wpdb->prepare(
-                "SELECT scan_status FROM {$t['categories']} WHERE id = %d", absint( $id )
-            ) ) ) ? 'pending' : (string) $wpdb->get_var( $wpdb->prepare(
-                "SELECT scan_status FROM {$t['categories']} WHERE id = %d", absint( $id )
-            ) );
-            $wpdb->update( $t['categories'], $data, array( 'id' => absint( $id ) ) );
+        $existing = $wpdb->get_row( $wpdb->prepare(
+            "SELECT id,name,slug,parent_term_id,country,locale,scan_status FROM {$t['categories']} WHERE term_id = %d",
+            absint( $term_id )
+        ), ARRAY_A );
+        if ( $existing ) {
+            $changed = false;
+            foreach ( array( 'name', 'slug', 'parent_term_id', 'country', 'locale' ) as $field ) {
+                if ( (string) $data[ $field ] !== (string) $existing[ $field ] ) {
+                    $changed = true;
+                    break;
+                }
+            }
+            $id = absint( $existing['id'] );
+            $data['scan_status'] = ( $changed || 'archived' === $existing['scan_status'] )
+                ? 'pending' : $existing['scan_status'];
+            $wpdb->update( $t['categories'], $data, array( 'id' => $id ) );
+            if ( $changed ) {
+                $wpdb->query( $wpdb->prepare(
+                    "UPDATE {$t['sources']} SET evidence_level = 'stale' WHERE category_id = %d", $id
+                ) );
+            }
         } else {
             $data['term_id']    = absint( $term_id );
             $data['created_at'] = $now;
@@ -345,7 +380,7 @@ final class TaxoCommerce_Google_Bing_Market {
                 }
             }
             $problems = (array) ( $result['errors'] ?? array() );
-            $status = $problems ? ( $created ? 'partial' : 'error' ) : 'complete';
+            $status = $problems ? ( $created ? 'partial' : 'error' ) : ( $created ? 'complete' : 'empty' );
             $wpdb->update( $t['runs'], array(
                 'run_status' => $status,
                 'collected_count' => $created,
@@ -366,8 +401,11 @@ final class TaxoCommerce_Google_Bing_Market {
     private static function next_pending_category() {
         global $wpdb;
         $t = self::tables();
+        $merchant_only = '' === (string) get_option( 'tgb_market_youtube_key', '' )
+            && '' === (string) get_option( 'tgb_market_serpapi_key', '' );
+        $mapping = $merchant_only ? ' AND google_category_id > 0' : '';
         return (int) $wpdb->get_var(
-            "SELECT id FROM {$t['categories']} WHERE scan_status = 'pending' ORDER BY id ASC LIMIT 1"
+            "SELECT id FROM {$t['categories']} WHERE scan_status = 'pending'" . $mapping . " ORDER BY id ASC LIMIT 1"
         );
     }
 
@@ -463,8 +501,15 @@ final class TaxoCommerce_Google_Bing_Market {
         }
         $value = absint( $_POST['google_category_id'] ?? 0 );
         $t = self::tables();
-        $wpdb->update( $t['categories'], array( 'google_category_id' => $value ),
-            array( 'id' => $id ) );
+        if ( $value !== absint( $cat['google_category_id'] ) ) {
+            $wpdb->update( $t['categories'],
+                array( 'google_category_id' => $value, 'scan_status' => 'pending' ),
+                array( 'id' => $id ) );
+            $wpdb->query( $wpdb->prepare(
+                "UPDATE {$t['sources']} SET evidence_level = 'stale' WHERE category_id = %d AND provider = %s",
+                $id, 'merchant'
+            ) );
+        }
         self::redirect( 'Categoría Google guardada. La asociación debe estar verificada en la taxonomía oficial.', false, $id );
     }
 
