@@ -28,7 +28,7 @@ foreach ( array( 'ES', 'DE', 'FR', 'NL', 'US' ) as $geo ) {
     ob_start();
     TaxoCommerce_Google_Bing_Trends::render();
     $output = ob_get_clean();
-    if ( false === strpos( $output, 'Descargar tendencias actuales' ) || false === strpos( $output, 'Sin datos descargados' ) ) {
+    if ( false === strpos( $output, 'Buscar tendencias' ) || false === strpos( $output, 'tgb-trends-results' ) || false !== strpos( $output, 'Búsqueda en tendencia' ) ) {
         fwrite( STDERR, "Trends tab failed: $geo\n" );
         exit( 1 );
     }
