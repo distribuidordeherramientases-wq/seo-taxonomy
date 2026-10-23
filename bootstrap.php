@@ -149,7 +149,9 @@ require_once SEO_SYSTEM_PATH . 'includes/dependiente/seo-dependiente-bootstrap.p
 require_once SEO_SYSTEM_PATH . 'includes/seo-reports.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-report-classification.php';
 require_once SEO_SYSTEM_PATH . 'includes/seo-dashboard.php';
-require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
+if ( ! function_exists( 'seo_google_get_settings' ) ) {
+    require_once SEO_SYSTEM_PATH . 'includes/seo-google-info.php';
+}
 
 /*
 |--------------------------------------------------------------------------
