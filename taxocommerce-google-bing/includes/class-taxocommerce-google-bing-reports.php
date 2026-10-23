@@ -156,7 +156,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         if ( 'analytics' === $source ) {
             $data = self::ga4_data( $days, $ranges );
         } elseif ( 'search' === $source ) {
-            $data = self::gsc_data( $days, $ranges );
+            $data = TaxoCommerce_Google_Bing_GSC::download( $days, $ranges );
         } else {
             $data = self::bing_data( $days, $ranges );
         }
