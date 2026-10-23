@@ -357,9 +357,8 @@ final class TaxoCommerce_Google_Bing_Market {
         if ( ! class_exists( 'TaxoCommerce_Google_Bing_Market_Sources' ) ) {
             return new WP_Error( 'market_missing_sources', 'Falta el recolector de Mercado.' );
         }
-        if ( ! TaxoCommerce_Google_Bing_Market_Sources::any_available( $cat ) ) {
-            return new WP_Error( 'market_no_provider', 'No hay fuentes configuradas para esta categoría. Activa YouTube, SerpApi o la categoría Merchant equivalente.' );
-        }
+        // An absent provider is not a fatal error: collect() records every
+        // optional provider as skipped and runs whichever connection is usable.
         if ( 0 === self::today_budget() ) {
             return new WP_Error( 'market_daily_budget', 'Límite de seguridad de 10 categorías consultadas al día alcanzado.' );
         }
@@ -407,11 +406,8 @@ final class TaxoCommerce_Google_Bing_Market {
     private static function next_pending_category() {
         global $wpdb;
         $t = self::tables();
-        $merchant_only = '' === (string) get_option( 'tgb_market_youtube_key', '' )
-            && '' === (string) get_option( 'tgb_market_serpapi_key', '' );
-        $mapping = $merchant_only ? ' AND google_category_id > 0' : '';
         return (int) $wpdb->get_var(
-            "SELECT id FROM {$t['categories']} WHERE scan_status = 'pending'" . $mapping . " ORDER BY id ASC LIMIT 1"
+            "SELECT id FROM {$t['categories']} WHERE scan_status = 'pending' ORDER BY id ASC LIMIT 1"
         );
     }
 
@@ -436,10 +432,6 @@ final class TaxoCommerce_Google_Bing_Market {
         }
         $result = self::scan_category( $id, 'queue' );
         if ( is_wp_error( $result ) ) {
-            if ( 'market_no_provider' === $result->get_error_code() ) {
-                update_option( self::QUEUE_OPTION, 0, false );
-                return;
-            }
             if ( 'market_daily_budget' === $result->get_error_code() ) {
                 self::queue_schedule( DAY_IN_SECONDS );
                 return;
@@ -515,9 +507,7 @@ final class TaxoCommerce_Google_Bing_Market {
 
     public static function handle_queue_start() {
         self::require_admin( 'tgb_market_queue_start' );
-        if ( ! TaxoCommerce_Google_Bing_Market_Sources::any_global_provider() ) {
-            self::redirect( 'Configura YouTube, SerpApi o Merchant antes de iniciar la cola.', true );
-        }
+        // Queued categories can be processed without optional provider keys.
         update_option( self::QUEUE_OPTION, 1, false );
         self::queue_schedule( 60 );
         self::redirect( 'Cola de Mercado activada. Procesa una categoría por ejecución mediante WP-Cron; máximo 10 categorías al día.' );
@@ -607,7 +597,8 @@ final class TaxoCommerce_Google_Bing_Market {
         $youtube = '' !== (string) get_option( 'tgb_market_youtube_key', '' );
         $serpapi = '' !== (string) get_option( 'tgb_market_serpapi_key', '' );
         $merchant = TaxoCommerce_Google_Bing_Connections::merchant_account();
-        echo '<h3>Fuentes de investigación</h3><p>YouTube: ' . esc_html( $youtube ? 'configurado' : 'sin API key' )
+        $google = TaxoCommerce_Google_Bing_Market_Sources::google_available();
+        echo '<h3>Fuentes de investigación</h3><p>Google Search Console: ' . esc_html( $google ? 'configurado' : 'sin acceso configurado' ) . ' · YouTube: ' . esc_html( $youtube ? 'configurado' : 'sin API key' )
             . ' · SerpApi (web y ofertas): ' . esc_html( $serpapi ? 'configurado' : 'sin API key' )
             . ' · Merchant: ' . esc_html( $merchant ? 'ID configurado; requiere autorización y categoría Google' : 'sin cuenta' ) . '.</p>';
         $connections_url = add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections' ), admin_url( 'admin.php' ) ) . '#tgb-market-providers';
