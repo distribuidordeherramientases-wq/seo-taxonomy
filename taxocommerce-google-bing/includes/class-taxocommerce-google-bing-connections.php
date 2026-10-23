@@ -10,12 +10,20 @@ defined( 'ABSPATH' ) || exit;
  */
 final class TaxoCommerce_Google_Bing_Connections {
 
-    const GOOGLE_OPTION            = 'seo_google_search_settings';
-    const BING_OPTION              = 'seo_analista_bing_settings';
-    const MERCHANT_ACCOUNT_OPTION  = 'seo_ojeador_merchant_account_v1';
-    const PYTHON_OPTION            = 'seo_google_python_runner_settings';
+    const GOOGLE_OPTION            = 'taxocommerce_google_bing_google_settings';
+    const BING_OPTION              = 'taxocommerce_google_bing_bing_settings';
+    const MERCHANT_ACCOUNT_OPTION  = 'taxocommerce_google_bing_merchant_account';
+    const PYTHON_OPTION            = 'taxocommerce_google_bing_cloud_run_settings';
+    const MIGRATION_OPTION         = 'taxocommerce_google_bing_connections_migration_v1';
+
+    const LEGACY_GOOGLE_OPTION            = 'seo_google_search_settings';
+    const LEGACY_BING_OPTION              = 'seo_analista_bing_settings';
+    const LEGACY_MERCHANT_ACCOUNT_OPTION  = 'seo_ojeador_merchant_account_v1';
+    const LEGACY_PYTHON_OPTION            = 'seo_google_python_runner_settings';
 
     public static function register() {
+        self::migrate_legacy_connections();
+
         add_action( 'admin_post_tgb_save_google', array( __CLASS__, 'save_google' ) );
         add_action( 'admin_post_tgb_test_google', array( __CLASS__, 'test_google' ) );
 
@@ -27,6 +35,86 @@ final class TaxoCommerce_Google_Bing_Connections {
 
         add_action( 'admin_post_tgb_save_bing', array( __CLASS__, 'save_bing' ) );
         add_action( 'admin_post_tgb_test_bing', array( __CLASS__, 'test_bing' ) );
+    }
+
+    /**
+     * Copies connection credentials from the legacy monolith to options owned by
+     * this plugin. Existing modern values always win and are never overwritten.
+     */
+    public static function migrate_legacy_connections() {
+        $copied = array();
+
+        self::copy_legacy_option(
+            self::LEGACY_GOOGLE_OPTION,
+            self::GOOGLE_OPTION,
+            'google_service_account',
+            $copied
+        );
+        self::copy_legacy_option(
+            self::LEGACY_BING_OPTION,
+            self::BING_OPTION,
+            'bing',
+            $copied
+        );
+        self::copy_legacy_option(
+            self::LEGACY_MERCHANT_ACCOUNT_OPTION,
+            self::MERCHANT_ACCOUNT_OPTION,
+            'merchant',
+            $copied
+        );
+        self::copy_legacy_option(
+            self::LEGACY_PYTHON_OPTION,
+            self::PYTHON_OPTION,
+            'cloud_run',
+            $copied
+        );
+
+        if ( $copied ) {
+            update_option(
+                self::MIGRATION_OPTION,
+                array(
+                    'version'     => 1,
+                    'copied'      => array_values( $copied ),
+                    'migrated_at' => current_time( 'mysql' ),
+                ),
+                false
+            );
+        }
+    }
+
+    private static function copy_legacy_option( $legacy_name, $modern_name, $label, &$copied ) {
+        $sentinel = '__taxocommerce_missing_option__';
+        $modern = get_option( $modern_name, $sentinel );
+
+        if ( $sentinel !== $modern && ! self::connection_value_is_empty( $modern ) ) {
+            return;
+        }
+
+        $legacy = get_option( $legacy_name, $sentinel );
+        if ( $sentinel === $legacy || self::connection_value_is_empty( $legacy ) ) {
+            return;
+        }
+
+        if ( $sentinel === $modern ) {
+            add_option( $modern_name, $legacy, '', false );
+        } else {
+            update_option( $modern_name, $legacy, false );
+        }
+
+        $copied[] = $label;
+    }
+
+    private static function connection_value_is_empty( $value ) {
+        if ( is_array( $value ) ) {
+            foreach ( $value as $item ) {
+                if ( ! self::connection_value_is_empty( $item ) ) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return null === $value || false === $value || '' === trim( (string) $value );
     }
 
     public static function google_settings() {
@@ -100,6 +188,10 @@ final class TaxoCommerce_Google_Bing_Connections {
         self::render_notice();
 
         echo '<div class="tgb-note"><strong>Modo conexión:</strong> este plugin únicamente guarda credenciales, obtiene/renueva tokens y verifica acceso mediante metadatos. No descarga visitas, búsquedas, consultas, rankings, ventas, productos ni informes.</div>';
+        $migration = get_option( self::MIGRATION_OPTION, array() );
+        if ( is_array( $migration ) && ! empty( $migration['copied'] ) ) {
+            echo '<div class="notice notice-success inline"><p><strong>Credenciales antiguas migradas al plugin moderno.</strong> Conexiones copiadas: ' . esc_html( implode( ', ', array_map( 'sanitize_text_field', (array) $migration['copied'] ) ) ) . '.</p></div>';
+        }
 
         TaxoCommerce_Google_Bing_OAuth::render();
 
