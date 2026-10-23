@@ -13,19 +13,59 @@ final class TaxoCommerce_Google_Bing_Reports {
 
     const CACHE_TTL = 900;
 
-    public static function render() {
+    public static function render_search() {
+        echo '<div class="tgb-reports">';
+        echo '<div class="tgb-report-toolbar">';
+        echo '<div><h2>Google Search</h2><p>Espacio independiente para los informes de Google Search Console.</p></div>';
+        echo '</div>';
+        echo '<div class="tgb-search-placeholder">';
+        echo '<h3>Google Search Console</h3>';
+        echo '<p>La conexión está disponible, pero esta pestaña no descarga datos todavía. Aquí definiremos de forma separada las métricas de búsqueda que queramos consultar.</p>';
+        echo '<p class="description">No se ejecutan consultas de Search Console al abrir esta pestaña.</p>';
+        echo '</div>';
+        self::styles();
+        echo '</div>';
+    }
+
+    public static function render_google_analytics() {
         $days   = self::period_days();
         $ranges = self::ranges( $days );
 
         echo '<div class="tgb-reports">';
+        self::toolbar( 'Google Analytics', 'Tráfico, usuarios, recurrencia, participación y países.', 'google_analytics', $days, $ranges );
+
+        $ga4 = self::ga4_data( $days, $ranges );
+        self::render_ga4( $ga4 );
+
+        echo '<p class="description tgb-report-note">Las “vistas” de GA4 son <code>screenPageViews</code>; no equivalen a peticiones HTTP del servidor. Los datos sólo se solicitan al abrir esta pestaña y no se sincronizan en segundo plano.</p>';
+        self::styles();
+        echo '</div>';
+    }
+
+    public static function render_bing_reports() {
+        $days   = self::period_days();
+        $ranges = self::ranges( $days );
+
+        echo '<div class="tgb-reports">';
+        self::toolbar( 'Bing', 'Visibilidad y salud de rastreo en Bing Webmaster.', 'bing', $days, $ranges );
+
+        $bing = self::bing_data( $days, $ranges );
+        self::render_bing( $bing );
+
+        echo '<p class="description tgb-report-note">Los datos sólo se solicitan al abrir esta pestaña y no se sincronizan en segundo plano.</p>';
+        self::styles();
+        echo '</div>';
+    }
+
+    private static function toolbar( $title, $subtitle, $tab, $days, $ranges ) {
         echo '<div class="tgb-report-toolbar">';
-        echo '<div><h2>Informes de tráfico y servicio</h2><p>Google Analytics 4 y Bing Webmaster. Search Console queda fuera de esta pestaña.</p></div>';
+        echo '<div><h2>' . esc_html( $title ) . '</h2><p>' . esc_html( $subtitle ) . '</p></div>';
         echo '<div class="tgb-periods">';
         foreach ( array( 7 => '1 semana', 30 => '1 mes', 90 => '3 meses' ) as $value => $label ) {
             $url = add_query_arg(
                 array(
                     'page'    => 'taxocommerce-google-bing',
-                    'tgb_tab' => 'reports',
+                    'tgb_tab' => $tab,
                     'period'  => $value,
                 ),
                 admin_url( 'admin.php' )
@@ -33,18 +73,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             echo '<a class="button ' . ( $days === $value ? 'button-primary' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
         }
         echo '</div></div>';
-
         echo '<p class="description tgb-report-range">Actual: ' . esc_html( $ranges['current']['label'] ) . ' · Anterior: ' . esc_html( $ranges['previous']['label'] ) . ' · Caché: 15 min.</p>';
-
-        $ga4  = self::ga4_data( $days, $ranges );
-        $bing = self::bing_data( $days, $ranges );
-
-        self::render_ga4( $ga4 );
-        self::render_bing( $bing );
-
-        echo '<p class="description tgb-report-note">Las “vistas” de GA4 son <code>screenPageViews</code>; no equivalen a peticiones HTTP del servidor. Los datos sólo se solicitan al abrir esta pestaña y no se sincronizan en segundo plano.</p>';
-        self::styles();
-        echo '</div>';
     }
 
     private static function render_ga4( $data ) {
@@ -868,6 +897,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         .tgb-chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#50575e}.tgb-chart-legend span{display:inline-flex;align-items:center;gap:5px}.tgb-chart-legend i{display:inline-block;width:16px;height:3px;border-radius:2px}
         .tgb-crawl-strip{display:flex;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin-top:14px;font-size:12px}
         .tgb-report-note{margin-top:16px}
+        .tgb-search-placeholder{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;margin-top:18px;max-width:900px}.tgb-search-placeholder h3{margin-top:0}
         @media(max-width:1250px){.tgb-kpi-grid{grid-template-columns:repeat(3,minmax(130px,1fr))}}
         @media(max-width:1000px){.tgb-report-grid{grid-template-columns:1fr}}
         @media(max-width:782px){.tgb-report-toolbar,.tgb-section-head{align-items:flex-start;flex-direction:column}.tgb-kpi-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}}
