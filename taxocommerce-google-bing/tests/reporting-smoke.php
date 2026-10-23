@@ -14,6 +14,7 @@ class WP_Error {
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function wp_timezone() { return new DateTimeZone( 'Europe/Madrid' ); }
 function wp_unslash( $value ) { return $value; }
+function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function wp_date( $format, $timestamp ) { return gmdate( $format, $timestamp ); }
 function get_current_blog_id() { return 1; }
 function get_current_user_id() { return 1; }
