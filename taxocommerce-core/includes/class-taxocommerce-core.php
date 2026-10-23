@@ -110,6 +110,7 @@ final class TaxoCommerce_Core {
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
+		add_action( 'admin_init', array( $this, 'redirect_legacy_anomalies_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
 		add_filter( 'admin_body_class', array( $this, 'family_body_class' ) );
 		add_action( 'admin_post_taxocommerce_core_activate_extension', array( $this, 'activate_extension' ) );
@@ -198,15 +199,6 @@ final class TaxoCommerce_Core {
 			array( $this->menu, 'render' )
 		);
 
-
-		add_submenu_page(
-			'taxocommerce-core',
-			__( 'Anomalías', 'taxocommerce-core' ),
-			__( 'Anomalías', 'taxocommerce-core' ),
-			$capability,
-			'taxocommerce-core-anomalies',
-			'taxocommerce_core_anomalies_render'
-		);
 
 		add_submenu_page(
 			'taxocommerce-core',
@@ -569,7 +561,6 @@ final class TaxoCommerce_Core {
 		// merely because its slug happens to contain "taxocommerce".
 		$slugs = array(
 			'taxocommerce-core',
-			'taxocommerce-core-anomalies',
 			'taxocommerce-images',
 			'taxocommerce-import-export',
 			'taxocommerce-system-check',
@@ -646,6 +637,31 @@ final class TaxoCommerce_Core {
 			wp_die( esc_html__( 'No tienes permisos para gestionar extensiones.', 'taxocommerce-core' ) );
 		}
 		wp_safe_redirect( admin_url( 'admin.php?page=taxocommerce-core-modules' ) );
+		exit;
+	}
+
+	/**
+	 * Redirect links to the former dedicated Anomalías screen to Contenidos.
+	 *
+	 * @return void
+	 */
+	public function redirect_legacy_anomalies_page() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( 'taxocommerce-core-anomalies' !== $page ) {
+			return;
+		}
+
+		$this->guard();
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'    => TaxoCommerce_Core_Content_Manager::PAGE_SLUG,
+					'tc_type' => 'anomalies',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 
