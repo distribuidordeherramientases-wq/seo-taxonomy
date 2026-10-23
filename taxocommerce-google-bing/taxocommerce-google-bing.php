@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Google/Bing
  * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
- * Version: 0.3.0
+ * Version: 0.3.1
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.3.0' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.3.1' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -25,7 +25,8 @@ if ( ! function_exists( 'seo_google_search_settings' ) ) {
 }
 
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-google-service.php';
-require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';\nrequire_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-merchant.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-merchant.php';
 
 if ( ! function_exists( 'seo_google_get_settings' ) ) {
     require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-google-info.php';
@@ -105,7 +106,7 @@ function taxocommerce_google_bing_screen() {
     if ( '' === $tab && isset( $_GET['google_view'] ) ) {
         $tab = 'intelligence';
     }
-    if ( ! in_array( $tab, array( 'connections', 'sync', 'reports', 'intelligence' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'sync', 'reports', 'merchant', 'intelligence' ), true ) ) {
         $tab = 'connections';
     }
 
