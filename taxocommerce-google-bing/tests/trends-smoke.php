@@ -18,6 +18,7 @@ function get_transient( $key ) { return false; }
 function delete_transient( $key ) { return true; }
 function wp_unslash( $v ) { return $v; }
 function wp_date( $format, $timestamp ) { return gmdate( $format, $timestamp ); }
+function wp_enqueue_script( $handle, $src, $deps, $version, $footer ) { return true; }
 function wp_nonce_field( $v ) { echo '<input type="hidden" name="_wpnonce" value="test">'; }
 function wp_remote_get() { throw new RuntimeException( 'Unexpected remote request' ); }
 function wp_safe_remote_get() { throw new RuntimeException( 'Unexpected remote request' ); }
@@ -28,7 +29,7 @@ foreach ( array( 'ES', 'DE', 'FR', 'NL', 'US' ) as $geo ) {
     ob_start();
     TaxoCommerce_Google_Bing_Trends::render();
     $output = ob_get_clean();
-    if ( false === strpos( $output, 'Descargar tendencias actuales' ) || false === strpos( $output, 'Sin datos descargados' ) ) {
+    if ( false === strpos( $output, 'Buscar tendencias' ) || false === strpos( $output, 'tgb-trends-results' ) || false !== strpos( $output, 'Búsqueda en tendencia' ) ) {
         fwrite( STDERR, "Trends tab failed: $geo\n" );
         exit( 1 );
     }
