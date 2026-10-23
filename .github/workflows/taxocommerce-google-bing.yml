@@ -30,6 +30,8 @@ jobs:
         run: php taxocommerce-google-bing/tests/trends-smoke.php
       - name: Mercado standalone smoke test
         run: php taxocommerce-google-bing/tests/market-smoke.php
+      - name: Mercado category storage integration test
+        run: php taxocommerce-google-bing/tests/market-catalog-smoke.php
       - name: Check plugin independence
         run: |
           test -s taxocommerce-google-bing/taxocommerce-google-bing.php
