@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/class-taxocommerce-core-menu-editor.php';
+
 /**
  * Builds a native WordPress menu from the TaxoCommerce SEO hierarchy.
  */
@@ -44,6 +46,7 @@ final class TaxoCommerce_Core_Menu {
 		add_action( 'admin_post_taxocommerce_core_sync_menu', array( $this, 'handle_sync_menu' ) );
 		add_action( 'admin_post_taxocommerce_core_activate_menu', array( $this, 'handle_activate_menu' ) );
 		add_action( 'admin_post_taxocommerce_core_restore_menu', array( $this, 'handle_restore_menu' ) );
+		TaxoCommerce_Core_Menu_Editor::register_hooks();
 	}
 
 	/**
@@ -56,9 +59,6 @@ final class TaxoCommerce_Core_Menu {
 
 		$tree       = $this->build_tree();
 		$menu_id    = $this->get_menu_id();
-		$menu       = $menu_id ? wp_get_nav_menu_object( $menu_id ) : false;
-		$locations  = get_registered_nav_menus();
-		$active_map = get_theme_mod( 'nav_menu_locations', array() );
 		$result     = isset( $_GET['tc_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		?>
@@ -78,49 +78,18 @@ final class TaxoCommerce_Core_Menu {
 				<div class="notice notice-error"><p><?php echo esc_html( $message ); ?></p></div>
 			<?php endif; ?>
 
+			<?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'top' ); ?>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Fuente:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría de producto. La jerarquía sigue siendo la fuente de la propuesta; WordPress conserva el menú publicado.', 'taxocommerce-core' ); ?></p></div>
 
 			<?php $this->render_kpis( $tree, $menu_id ); ?>
+			<?php TaxoCommerce_Core_Menu_Editor::render( $menu_id ); ?>
 
-			<h2><?php echo esc_html__( 'Propuesta automática', 'taxocommerce-core' ); ?></h2>
-			<p><?php echo esc_html__( 'Esta vista no modifica nada. Muestra lo que se generará al sincronizar.', 'taxocommerce-core' ); ?></p>
-			<?php $this->render_tree( $tree ); ?>
-
-			<h2><?php echo esc_html__( 'Publicación del menú', 'taxocommerce-core' ); ?></h2>
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-right:8px;">
-				<input type="hidden" name="action" value="taxocommerce_core_sync_menu">
-				<?php wp_nonce_field( 'taxocommerce_core_sync_menu', 'taxocommerce_core_nonce' ); ?>
-				<button class="button button-primary"><?php echo $menu ? esc_html__( 'Sincronizar propuesta', 'taxocommerce-core' ) : esc_html__( 'Crear menú desde la jerarquía', 'taxocommerce-core' ); ?></button>
-			</form>
-
-			<?php if ( $menu ) : ?>
-				<a class="button" href="<?php echo esc_url( admin_url( 'nav-menus.php?action=edit&menu=' . absint( $menu_id ) ) ); ?>"><?php echo esc_html__( 'Editar manualmente en WordPress', 'taxocommerce-core' ); ?></a>
-			<?php endif; ?>
-
-			<?php if ( $menu && ! empty( $locations ) ) : ?>
-				<hr>
-				<h3><?php echo esc_html__( 'Ubicación en el tema', 'taxocommerce-core' ); ?></h3>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-					<input type="hidden" name="action" value="taxocommerce_core_activate_menu">
-					<?php wp_nonce_field( 'taxocommerce_core_activate_menu', 'taxocommerce_core_nonce' ); ?>
-					<select name="menu_location">
-						<?php foreach ( $locations as $location => $label ) : ?>
-							<option value="<?php echo esc_attr( $location ); ?>" <?php selected( isset( $active_map[ $location ] ) && absint( $active_map[ $location ] ) === absint( $menu_id ) ); ?>><?php echo esc_html( $label ); ?></option>
-						<?php endforeach; ?>
-					</select>
-					<button class="button"><?php echo esc_html__( 'Activar en esta ubicación', 'taxocommerce-core' ); ?></button>
-				</form>
-			<?php endif; ?>
-
-			<?php if ( get_option( self::BACKUP_OPTION, false ) ) : ?>
-				<p style="margin-top:12px;">
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="taxocommerce_core_restore_menu">
-						<?php wp_nonce_field( 'taxocommerce_core_restore_menu', 'taxocommerce_core_nonce' ); ?>
-						<button class="button"><?php echo esc_html__( 'Restaurar menú anterior del tema', 'taxocommerce-core' ); ?></button>
-					</form>
-				</p>
-			<?php endif; ?>
+			<details class="tc-menu-proposal">
+				<summary><?php echo esc_html__( 'Propuesta automática', 'taxocommerce-core' ); ?></summary>
+				<p><?php echo esc_html__( 'Esta vista no modifica nada. Muestra lo que se generará al sincronizar.', 'taxocommerce-core' ); ?></p>
+				<?php $this->render_tree( $tree ); ?>
+			</details>
+			<?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'bottom' ); ?>
 		</div>
 		<?php
 	}

@@ -138,6 +138,7 @@ final class TaxoCommerce_Images_Audit {
 				'scanned' => absint( $state['scanned'] ?? 0 ),
 				'total' => absint( $state['total'] ?? 0 ),
 				'last_id' => absint( $state['last_id'] ?? 0 ),
+				'paused' => false,
 			)
 		);
 	}

@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,33 @@ Current functionality includes:
 * Optional integration into TaxoCommerce Core.
 
 == Changelog ==
+
+= 0.2.5 =
+* Removed the hosting-dependent CPU checker and /proc/stat gating.
+* Long-running audits use bounded batches, persistent cursors, request pacing and mutation locks.
+* Image anomaly, label/attribute and unused/duplicate scans register in TaxoCommerce Core Processes.
+
+= 0.2.4 =
+* Previous CPU checker release; superseded by 0.2.5 because hosting-level CPU metrics are not portable from WordPress.
+
+
+= 0.2.3 =
+* Products only reuse their own gallery; missing product images stay reported.
+* 25-row reports, full KPIs, and resumable cursors past unresolved rows.
+* Replaced HTTP inspection with local ALT, title and dimensions review.
+* Full-library duplicate/unused scan, persistent results and exact original hashes.
+* No new permanent JPG backups or administrator history.
+* Automatic deletion/consolidation is not enabled; cleanup remains read-only.
+
+
+= 0.2.1 =
+* Four separately paginated reports: Pages, Posts, Categories and Products without assigned images.
+* Each candidate is restricted to an actual category relation: first its category thumbnail, then local Media belonging to products in that category.
+* Assign a selected Media image individually or apply the first valid category candidate automatically to up to 25 missing items.
+* Upload a local image through WordPress Media and associate it with one chosen item.
+* Preserve the existing images and avoid all supplier-image catalogs, remote imports and random global Media suggestions.
+* Works standalone, with WooCommerce categories and products when that plugin is active.
+
 
 = 0.2.0 =
 * Restored isolated image reference audit from the historical plugin (review only; no deletion).

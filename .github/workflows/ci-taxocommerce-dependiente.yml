@@ -1,0 +1,39 @@
+name: TaxoCommerce Dependiente CI
+
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-dependiente/**'
+      - '.github/workflows/ci-taxocommerce-dependiente.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-dependiente/**'
+      - '.github/workflows/ci-taxocommerce-dependiente.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
+    runs-on: ubuntu-latest
+    name: PHP ${{ matrix.php }} lint and learning smoke
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: PHP syntax
+        run: find taxocommerce-dependiente -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
+      - name: Auditable learning regression guards
+        run: php taxocommerce-dependiente/tests/learning-smoke.php
+      - name: No separate Academy or Trainer UI
+        run: |
+          ! grep --line-number --fixed-strings 'TaxoCommerce Dependiente · Academia' taxocommerce-dependiente/includes/class-tcd-admin.php taxocommerce-dependiente/taxocommerce-dependiente.php
+          ! grep --line-number --fixed-strings 'Entrenador' taxocommerce-dependiente/includes/class-tcd-admin.php taxocommerce-dependiente/taxocommerce-dependiente.php

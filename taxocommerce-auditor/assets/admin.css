@@ -119,3 +119,5 @@
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
     }
 }
+
+.taxocommerce-auditor-filter{display:grid;grid-template-columns:minmax(160px,2fr) minmax(130px,1.5fr) minmax(90px,.7fr) auto;gap:8px;align-items:end;margin-top:12px}.taxocommerce-auditor-filter label{display:flex;flex-direction:column;gap:4px;font-weight:600}.taxocommerce-auditor-filter input,.taxocommerce-auditor-filter select{width:100%}@media(max-width:900px){.taxocommerce-auditor-filter{grid-template-columns:1fr 1fr}}@media(max-width:560px){.taxocommerce-auditor-filter{grid-template-columns:1fr}}

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
- * Version: 0.2.3
+ * Version: 0.2.8
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.3' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.8' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -78,10 +78,6 @@ function taxocommerce_system_check_boot() {
         TaxoCommerce_System_Check_URL_Audit::register_hooks();
     }
 
-    add_action( 'taxocommerce_core_register_processes', 'taxocommerce_system_check_register_processes' );
-    if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
-        taxocommerce_system_check_register_processes( taxocommerce_core() );
-    }
     add_action( 'taxocommerce_core_register_modules', 'taxocommerce_system_check_register_with_core' );
     // Core registers at plugins_loaded:20; this plugin boots at priority 100.
     // Register immediately if Core has already completed its bootstrap.
@@ -98,12 +94,6 @@ function taxocommerce_system_check_boot() {
     }
 }
 add_action( 'plugins_loaded', 'taxocommerce_system_check_boot', 100 );
-
-function taxocommerce_system_check_register_processes( $core ) {
-    if ( class_exists( 'TaxoCommerce_System_Check_URL_Audit' ) && method_exists( 'TaxoCommerce_System_Check_URL_Audit', 'register_with_core' ) ) {
-        TaxoCommerce_System_Check_URL_Audit::register_with_core( $core );
-    }
-}
 
 function taxocommerce_system_check_register_with_core( $core ) {
     if ( is_object( $core ) && method_exists( $core, 'register_module' ) ) {

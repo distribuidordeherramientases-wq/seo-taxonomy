@@ -397,7 +397,7 @@ if (!function_exists('tci_refs_get_reference_filenames')) {
         }
 
         if ($attachment_url) {
-            $filenames[] = basename((string) wp_wp_parse_url($attachment_url, PHP_URL_PATH));
+            $filenames[] = basename((string) wp_parse_url($attachment_url, PHP_URL_PATH));
         }
 
         tci_refs_collect_metadata_filenames(
@@ -745,6 +745,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         ));
 
         foreach ($option_rows as $row) {
+            if (in_array($row->option_name, array('taxocommerce_images_cleanup_report_v2','taxocommerce_images_labels_report_v2','taxocommerce_images_mutation_lock','taxocommerce_images_audit_state'), true)) { continue; }
             $option_ids = tci_refs_extract_ids(
                 $row->option_value,
                 $id_lookup,

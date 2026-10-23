@@ -66,7 +66,7 @@
 					status.textContent += ' Proceso finalizado. Actualiza la página para refrescar el inventario.';
 					break;
 				}
-				await new Promise(function (resolve) { window.setTimeout(resolve, 200); });
+				await new Promise(function (resolve) { window.setTimeout(resolve, 750); });
 			}
 		} catch (error) {
 			status.textContent += ' Proceso detenido: ' + error.message + ' Puedes volver a iniciarlo cuando se resuelva.';

@@ -3,7 +3,7 @@ Plugin Name: TaxoCommerce System Check
 Description: Diagnostico de WordPress, servidor, integridad del plugin e informes voluntarios.
 Requires at least: 5.8
 Requires PHP: 7.4
-Stable tag: 0.2.3
+Stable tag: 0.2.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 

@@ -11,7 +11,11 @@
 defined('ABSPATH') || exit;
 
 $seo_landing_google_adapter = __DIR__ . '/seo-landing-google-signals.php';
-if (is_readable($seo_landing_google_adapter)) {
+if (
+    ! function_exists( 'seo_landing_google_path_key' )
+    && ! function_exists( 'seo_landing_google_source_snapshot' )
+    && is_readable( $seo_landing_google_adapter )
+) {
     require_once $seo_landing_google_adapter;
 }
 

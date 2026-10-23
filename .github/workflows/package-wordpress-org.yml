@@ -28,6 +28,8 @@ jobs:
             --exclude='/taxocommerce-images/' \
             --exclude='/taxocommerce-import-export/' \
             --exclude='/taxocommerce-system-check/' \
+            --exclude='/taxocommerce-faqs/' \
+            --exclude='/taxocommerce-vocabulary/' \
             --exclude='/packages/' \
             --exclude='docs/' \
             --exclude='CONTRIBUTING.md' \

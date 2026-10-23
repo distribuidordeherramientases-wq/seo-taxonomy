@@ -144,7 +144,9 @@ require_once dirname( __DIR__ ) . '/includes/dependiente/seo-dependiente-bootstr
 require_once dirname( __DIR__ ) . '/includes/seo-reports.php';
 require_once dirname( __DIR__ ) . '/includes/seo-report-classification.php';
 require_once dirname( __DIR__ ) . '/includes/seo-dashboard.php';
-require_once dirname( __DIR__ ) . '/includes/seo-google-info.php';
+if ( ! function_exists( 'seo_google_get_settings' ) ) {
+	require_once dirname( __DIR__ ) . '/includes/seo-google-info.php';
+}
 require_once dirname( __DIR__ ) . '/includes/analista/analista-bootstrap.php';
 
 // Comparador: inteligencia comparativa persistente por categoria y contrato para Solucionador.

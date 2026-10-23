@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - taxocommerce-core-staging
+      - staging
     paths:
       - 'taxocommerce-core/**'
       - '.github/workflows/deploy-taxocommerce-core-staging.yml'

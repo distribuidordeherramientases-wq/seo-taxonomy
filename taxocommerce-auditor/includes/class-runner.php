@@ -100,6 +100,18 @@ final class Runner {
         }
     }
 
+    public static function sanitize_filters( $scope, $filters ) {
+        $rows = absint( $filters['rows'] ?? 25 );
+        if ( ! in_array( $rows, array( 10,25,50,100,250 ), true ) ) {
+            $rows = 25;
+        }
+        return array(
+            'search'      => sanitize_text_field( (string) ( $filters['search'] ?? '' ) ),
+            'category_id' => 'products' === $scope ? absint( $filters['category_id'] ?? 0 ) : 0,
+            'rows'        => $rows,
+        );
+    }
+
     private static function count_objects( $scope ) {
         if ( 'categories' === $scope ) {
             $count = wp_count_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) );
@@ -124,7 +136,7 @@ final class Runner {
         return '';
     }
 
-    public static function start( $scope ) {
+    public static function start( $scope, $filters = array() ) {
         if ( ! self::valid_scope( $scope ) ) {
             return false;
         }
@@ -134,6 +146,7 @@ final class Runner {
         }
         wp_clear_scheduled_hook( self::HOOK, array( $scope ) );
 
+        $filters = self::sanitize_filters( $scope, $filters );
         $unavailable = self::unavailable_reason( $scope );
         $state = array(
             'status'           => $unavailable ? 'unavailable' : 'queued',
@@ -143,7 +156,8 @@ final class Runner {
             'completed_gmt'    => null,
             'processed'        => 0,
             'excluded'         => 0,
-            'total'            => $unavailable ? null : self::count_objects( $scope ),
+            'total'            => $unavailable ? null : $filters['rows'],
+            'filters'          => $filters,
             'cursor'           => 0,
             'finding_count'    => 0,
             'severity_counts'  => array( 'critical' => 0, 'high' => 0, 'medium' => 0, 'low' => 0, 'info' => 0 ),
@@ -172,6 +186,7 @@ final class Runner {
             'notes'            => array(
                 'Auditoria de solo lectura: no altera contenido, terminos ni relaciones.',
                 'La puntuacion de calidad es interna, no una metrica ni una prediccion de Google.',
+                'La ejecucion esta limitada por filtros y numero maximo de entidades para evitar sobrecarga.',
             ),
         );
         if ( ! empty( $state['editorial_map']['partial'] ) ) {
@@ -218,14 +233,17 @@ final class Runner {
      * Seek by post ID to avoid large OFFSET queries for 10k+ products.
      * The filter applies exclusively to this one WP_Query instance.
      */
-    private static function batch( $scope, $cursor ) {
+    private static function batch( $scope, $cursor, $filters = array(), $remaining = null ) {
+        $filters = self::sanitize_filters( $scope, $filters );
+        $batch_size = min( self::BATCH_SIZE, null === $remaining ? self::BATCH_SIZE : max( 1, absint( $remaining ) ) );
         if ( 'categories' === $scope ) {
             $terms = get_terms(
                 array(
                     'taxonomy'   => 'product_cat',
                     'hide_empty' => false,
-                    'number'     => self::BATCH_SIZE,
+                    'number'     => $batch_size,
                     'offset'     => absint( $cursor ),
+                    'search'     => $filters['search'],
                     'orderby'    => 'term_id',
                     'order'      => 'ASC',
                 )
@@ -247,12 +265,11 @@ final class Runner {
         };
         add_filter( 'posts_where', $filter, 10, 2 );
         try {
-            $query = new \WP_Query(
-                array(
+            $query_args = array(
                     'post_type'              => $post_type,
                     'post_status'            => 'publish',
                     'fields'                 => 'ids',
-                    'posts_per_page'         => self::BATCH_SIZE,
+                    'posts_per_page'         => $batch_size,
                     'orderby'                => 'ID',
                     'order'                  => 'ASC',
                     'no_found_rows'          => true,
@@ -260,8 +277,22 @@ final class Runner {
                     'taxocommerce_auditor_seek' => 1,
                     'update_post_meta_cache' => true,
                     'update_post_term_cache' => true,
-                )
-            );
+                    's'                       => $filters['search'],
+                );
+            if ( 'products' === $scope && $filters['category_id'] ) {
+                $query_args['tax_query'] = array(
+                    array(
+                        'taxonomy' => 'product_cat',
+                        'field'    => 'term_id',
+                        'terms'    => array( $filters['category_id'] ),
+                    ),
+                );
+            }
+            if ( ctype_digit( $filters['search'] ) ) {
+                $query_args['p'] = absint( $filters['search'] );
+                unset( $query_args['s'] );
+            }
+            $query = new \WP_Query( $query_args );
         } finally {
             remove_filter( 'posts_where', $filter, 10 );
         }
@@ -384,6 +415,7 @@ final class Runner {
             'processed'   => $state['processed'],
             'excluded'    => $state['excluded'],
             'expected'    => $state['total'],
+            'filters'     => (array) ( $state['filters'] ?? array() ),
             'finding_count' => $state['finding_count'],
             'severity_counts' => $state['severity_counts'],
             'rule_counts'     => $state['rule_counts'],
@@ -468,7 +500,13 @@ final class Runner {
         try {
             self::load_indexes( $state );
             $state['status'] = 'running';
-            $objects = self::batch( $scope, absint( $state['cursor'] ) );
+            $limit = absint( $state['filters']['rows'] ?? 25 );
+            $remaining = max( 0, $limit - absint( $state['processed'] ) );
+            if ( 0 === $remaining ) {
+                self::complete( $scope, $state );
+                return;
+            }
+            $objects = self::batch( $scope, absint( $state['cursor'] ), (array) ( $state['filters'] ?? array() ), $remaining );
             foreach ( $objects as $object ) {
                 $analysis = Rules::inspect( $scope, $object );
                 $state['processed']++;
@@ -656,7 +694,9 @@ final class Runner {
             }
 
             self::trim_samples( $state );
-            if ( count( $objects ) < self::BATCH_SIZE ) {
+            $limit_reached = absint( $state['processed'] ) >= absint( $state['filters']['rows'] ?? 25 );
+            $effective_batch = min( self::BATCH_SIZE, max( 1, absint( $state['filters']['rows'] ?? 25 ) - ( absint( $state['processed'] ) - count( $objects ) ) ) );
+            if ( $limit_reached || count( $objects ) < $effective_batch ) {
                 self::complete( $scope, $state );
             } else {
                 self::save_indexes( $state );
