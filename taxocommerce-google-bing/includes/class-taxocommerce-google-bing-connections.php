@@ -360,6 +360,13 @@ final class TaxoCommerce_Google_Bing_Connections {
         self::redirect( 'bing_test_ok', 'success' );
     }
 
+    public static function access_token( $settings = null, $force = false ) {
+        if ( ! is_array( $settings ) ) {
+            $settings = self::google_settings();
+        }
+        return self::google_access_token( $settings, $force );
+    }
+
     private static function google_service_account( $settings ) {
         $raw = trim( (string) ( $settings['service_account_json'] ?? '' ) );
         if ( '' === $raw ) {
