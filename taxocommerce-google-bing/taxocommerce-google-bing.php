@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Google/Bing
  * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
- * Version: 0.3.1
+ * Version: 0.3.2
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,13 +12,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.3.1' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.3.2' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
 
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-oauth.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-bing-service.php';
 
 if ( ! function_exists( 'seo_google_search_settings' ) ) {
     require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/google-search.php';
@@ -42,6 +43,9 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
     TaxoCommerce_Google_Bing_OAuth::register();
     TaxoCommerce_Google_Bing_Merchant::init();
+    if ( function_exists( 'seo_analista_bing_save_settings_handler' ) ) {
+        add_action( 'admin_post_seo_analista_save_bing_settings', 'seo_analista_bing_save_settings_handler' );
+    }
 
     add_action( 'taxocommerce_core_register_modules', 'taxocommerce_google_bing_register_with_core' );
     if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {
