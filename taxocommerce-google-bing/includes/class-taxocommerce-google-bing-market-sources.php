@@ -27,13 +27,25 @@ final class TaxoCommerce_Google_Bing_Market_Sources {
 
     private static function region( $category ) {
         $code = strtoupper( (string) ( $category['country'] ?? 'ES' ) );
-        return in_array( $code, array( 'ES', 'DE', 'FR', 'NL', 'US' ), true ) ? $code : 'ES';
+        return preg_match( '/^[A-Z]{2}$/', $code ) ? $code : 'ES';
     }
 
     private static function language( $category ) {
         $locale = (string) ( $category['locale'] ?? 'es-ES' );
         $lang = strtolower( substr( $locale, 0, 2 ) );
         return preg_match( '/^[a-z]{2}$/', $lang ) ? $lang : 'es';
+    }
+
+    private static function search_vocabulary( $category ) {
+        $language = self::language( $category );
+        $words = array(
+            'es' => 'opiniones experiencias problemas consejos comparativa',
+            'en' => 'user reviews experiences problems buying advice comparison',
+            'de' => 'Erfahrungen Bewertungen Probleme Kaufberatung Vergleich',
+            'fr' => 'avis utilisateurs expériences problèmes conseils comparatif',
+            'nl' => 'ervaringen reviews problemen kooptips vergelijking',
+        );
+        return $words[ $language ] ?? $words['en'];
     }
 
     private static function clean( $value, $limit = 500 ) {
@@ -106,7 +118,7 @@ final class TaxoCommerce_Google_Bing_Market_Sources {
      */
     private static function youtube( $category ) {
         $key = (string) get_option( 'tgb_market_youtube_key', '' );
-        $q = trim( (string) $category['name'] . ' opiniones experiencia uso problemas comparativa' );
+        $q = trim( (string) $category['name'] . ' ' . self::search_vocabulary( $category ) );
         $params = array(
             'part' => 'snippet', 'type' => 'video', 'maxResults' => 5,
             'q' => $q, 'regionCode' => self::region( $category ),
@@ -195,7 +207,7 @@ final class TaxoCommerce_Google_Bing_Market_Sources {
         $key = (string) get_option( 'tgb_market_serpapi_key', '' );
         $query = (string) $category['name'];
         if ( 'google' === $engine ) {
-            $query .= ' opiniones usuarios problemas consejos foro experiencias';
+            $query .= ' ' . self::search_vocabulary( $category ) . ' forum';
         }
         $params = array(
             'engine' => $engine, 'q' => $query,
