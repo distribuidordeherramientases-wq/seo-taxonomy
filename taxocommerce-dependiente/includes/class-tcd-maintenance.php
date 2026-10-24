@@ -51,6 +51,9 @@ final class TCD_Maintenance {
             'editorial_updated'=>0,
             'faqs_updated'=>0,
             'vocabulary_updated'=>0,
+            'feedback_checked'=>0,
+            'feedback_promoted'=>0,
+            'feedback_active'=>0,
             'last_error'=>'',
             'updated_at'=>'',
         ) );
@@ -150,14 +153,18 @@ final class TCD_Maintenance {
             self::refresh_recent_faqs( $since_local, $until_local );
             self::refresh_recent_vocabulary( $since_local, $until_local );
             self::refresh_recent_assignments( $since_local, $until_local );
+            $feedback = class_exists( 'TCD_Feedback', false ) ? TCD_Feedback::consolidate( 200 ) : array();
             $state = self::state();
+            $state['feedback_checked'] = absint( $feedback['checked'] ?? 0 );
+            $state['feedback_promoted'] = absint( $feedback['promoted'] ?? 0 );
+            $state['feedback_active'] = absint( $feedback['stats']['active'] ?? 0 );
             $after_total = absint( $state['products_updated'] ?? 0 )
                 + absint( $state['categories_updated'] ?? 0 )
                 + absint( $state['editorial_updated'] ?? 0 )
                 + absint( $state['faqs_updated'] ?? 0 )
                 + absint( $state['vocabulary_updated'] ?? 0 );
             $interpreter_error = '';
-            if ( $after_total > $before_total ) {
+            if ( $after_total > $before_total || ! empty( $state['feedback_promoted'] ) ) {
                 $validation = TCD_Intelligence::build_interpreter();
                 if ( is_wp_error( $validation ) ) $interpreter_error = $validation->get_error_message();
             }
