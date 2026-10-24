@@ -52,8 +52,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lftp zip
 
-      - name: Leer plugins TaxoCommerce activos en PRO
-        id: active
+      - name: Leer plugins TaxoCommerce instalados en PRO
+        id: installed
         shell: bash
         run: |
           set -euo pipefail
@@ -67,60 +67,47 @@ jobs:
           payload = json.loads(sys.argv[1])
           modules = payload.get("modules", [])
           if not isinstance(modules, list):
-              raise SystemExit("La lista de módulos activos no es válida.")
+              raise SystemExit("La lista de módulos instalados no es válida.")
 
-          eligible = [
-              str(module)
-              for module in modules
-              if str(module) != "taxocommerce-dependiente"
-          ]
-          print(json.dumps(eligible, separators=(",", ":")))
+          print(json.dumps([str(module) for module in modules], separators=(",", ":")))
           PY
           )"
 
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
-          echo "Plugins TaxoCommerce elegibles para sincronizar en PRO: $modules"
-          echo "Dependiente moderno queda excluido: PRO conserva el Dependiente antiguo durante la comparación."
+          echo "Plugins TaxoCommerce instalados para sincronizar en PRO: $modules"
 
-      - name: Sincronizar solo cambios de plugins TaxoCommerce activos
+      - name: Sincronizar cambios de todos los plugins TaxoCommerce instalados
         shell: bash
         env:
-          ACTIVE_MODULES_JSON: ${{ steps.active.outputs.modules }}
+          INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           set -euo pipefail
 
-          mapfile -t active_modules < <(
+          mapfile -t installed_modules < <(
             python3 - <<'PY'
           import json
           import os
 
-          for module in json.loads(os.environ.get("ACTIVE_MODULES_JSON", "[]")):
-              # Durante la comparación, PRO conserva deliberadamente el
-              # Dependiente del plugin antiguo. El moderno se valida solo en
-              # STAGING y no se sincroniza a producción.
-              if module == "taxocommerce-dependiente":
-                  continue
+          for module in json.loads(os.environ.get("INSTALLED_MODULES_JSON", "[]")):
               print(module)
           PY
           )
 
-          if [ "${#active_modules[@]}" -eq 0 ]; then
-            echo "No hay plugins TaxoCommerce modulares elegibles para sincronizar en PRO."
-            echo "TaxoCommerce Dependiente moderno queda excluido mientras se compara con el Dependiente antiguo."
+          if [ "${#installed_modules[@]}" -eq 0 ]; then
+            echo "No hay plugins TaxoCommerce modulares instalados para sincronizar en PRO."
             exit 0
           fi
-
-          echo "Protección de comparación: taxocommerce-dependiente moderno NO se despliega en PRO."
-
           allowed_modules=(
             taxocommerce-core
             taxocommerce-images
             taxocommerce-import-export
+            taxocommerce-database
             taxocommerce-system-check
             taxocommerce-templates
+            taxocommerce-dependiente
             taxocommerce-faqs
             taxocommerce-vocabulary
             taxocommerce-google-bing
@@ -139,14 +126,14 @@ jobs:
             return 1
           }
 
-          for module in "${active_modules[@]}"; do
+          for module in "${installed_modules[@]}"; do
             if ! is_allowed "$module"; then
               echo "::error::PRO devolvió un módulo no permitido: $module"
               exit 1
             fi
 
             if [ ! -f "$module/$module.php" ]; then
-              echo "::error::El módulo activo $module no existe correctamente en MAIN."
+              echo "::error::El módulo instalado $module no existe correctamente en MAIN."
               exit 1
             fi
           done
@@ -179,7 +166,7 @@ jobs:
           bye
           EOF
 
-          for module in "${active_modules[@]}"; do
+          for module in "${installed_modules[@]}"; do
             package="/tmp/$module.zip"
             rm -f "$package"
 
@@ -228,7 +215,7 @@ jobs:
           import re
           from pathlib import Path
 
-          active = json.loads(os.environ.get("ACTIVE_MODULES_JSON", "[]"))
+          installed = json.loads(os.environ.get("INSTALLED_MODULES_JSON", "[]"))
           payload = json.loads(os.environ["DEPLOY_RESPONSE"])
           updated = payload.get("updated", [])
 
@@ -238,13 +225,13 @@ jobs:
               if isinstance(item, dict)
           }
 
-          if set(updated_by_slug) != set(active):
+          if set(updated_by_slug) != set(installed):
               raise SystemExit(
-                  "PRO no confirmó exactamente los plugins activos. "
-                  f"Activos={active}; actualizados={sorted(updated_by_slug)}"
+                  "PRO no confirmó exactamente los plugins instalados. "
+                  f"Instalados={installed}; actualizados={sorted(updated_by_slug)}"
               )
 
-          for slug in active:
+          for slug in installed:
               main_file = Path(slug) / f"{slug}.php"
               text = main_file.read_text(encoding="utf-8", errors="replace")
               match = re.search(r"^\s*\*\s*Version:\s*([^\r\n]+)", text, re.MULTILINE)
