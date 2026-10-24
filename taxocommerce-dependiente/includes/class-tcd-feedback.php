@@ -67,7 +67,7 @@ final class TCD_Feedback {
                 query_hash char(64) NOT NULL,
                 normalized_query varchar(255) NOT NULL,
                 target_type varchar(20) NOT NULL,
-                target_key varchar(191) NOT NULL,
+                target_key char(64) NOT NULL,
                 product_id bigint(20) unsigned NULL,
                 semantic_group varchar(50) NULL,
                 semantic_slug varchar(190) NULL,
@@ -236,14 +236,15 @@ final class TCD_Feedback {
         $depth = min( 2, absint( $args['depth'] ) );
         $confidence = max( 0, min( 100, (float) $args['confidence'] ) );
 
-        $target_key = 'none';
+        $target_raw = 'none';
         if ( $product_id ) {
-            $target_key = 'product:' . $product_id;
+            $target_raw = 'product:' . $product_id;
         } elseif ( $semantic_group && $semantic_slug ) {
-            $target_key = 'semantic:' . $semantic_group . ':' . $semantic_slug;
+            $target_raw = 'semantic:' . $semantic_group . ':' . $semantic_slug;
         } elseif ( $semantic_label ) {
-            $target_key = 'text:' . hash( 'sha256', self::normalize_query( $semantic_label ) );
+            $target_raw = 'text:' . self::normalize_query( $semantic_label );
         }
+        $target_key = hash( 'sha256', $target_raw );
 
         // Same session + same query + same target + same event/depth counts once.
         $event_hash = hash( 'sha256', implode( '|', array(
@@ -333,7 +334,7 @@ final class TCD_Feedback {
             ) ) );
             $clarification_sessions = 0;
             $total_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(DISTINCT session_hash) FROM {$events}
+                "SELECT COUNT(*) FROM {$events}
                  WHERE query_hash=%s AND event_type='click'",
                 $query_hash
             ) ) );
@@ -346,7 +347,7 @@ final class TCD_Feedback {
                 $query_hash, $group, $slug
             ) ) );
             $total_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(DISTINCT session_hash) FROM {$events}
+                "SELECT COUNT(*) FROM {$events}
                  WHERE query_hash=%s AND event_type='clarification'",
                 $query_hash
             ) ) );
