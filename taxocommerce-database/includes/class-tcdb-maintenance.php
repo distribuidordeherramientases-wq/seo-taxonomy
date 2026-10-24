@@ -63,6 +63,7 @@ final class TCDB_Maintenance {
         if ( $old_lock_timeout > 0 ) {
             $changed_timeout = false !== $wpdb->query( 'SET SESSION lock_wait_timeout = 5' );
         }
+        $notice = 'maintenance_error';
         try {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified physical table name in live inventory.
             $result = $wpdb->get_results( ( 'analyze' === $mode ? 'ANALYZE TABLE ' : 'OPTIMIZE TABLE ' ) . chr(96) . $table . chr(96), ARRAY_A );
@@ -91,7 +92,7 @@ final class TCDB_Maintenance {
             );
             update_option( self::LAST_OPTION, $record, false );
             TCDB_Storage::log( 'maintenance', array( 'table' => $table, 'mode' => $mode, 'success' => ! $failed ) );
-            TCDB_Storage::redirect( 'optimize', $failed ? 'maintenance_error' : 'maintenance_ok' );
+            $notice = $failed ? 'maintenance_error' : 'maintenance_ok';
         } catch ( Throwable $error ) {
             update_option( self::LAST_OPTION, array(
                 'at' => current_time( 'mysql' ),
@@ -100,11 +101,12 @@ final class TCDB_Maintenance {
                 'success' => false,
                 'messages' => array( array( 'level' => 'error', 'message' => sanitize_text_field( $error->getMessage() ) ) ),
             ), false );
-            TCDB_Storage::redirect( 'optimize', 'maintenance_error' );
+            $notice = 'maintenance_error';
         } finally {
             if ( $changed_timeout ) {
                 $wpdb->query( $wpdb->prepare( 'SET SESSION lock_wait_timeout = %d', $old_lock_timeout ) );
             }
         }
+        TCDB_Storage::redirect( 'optimize', $notice );
     }
 }
