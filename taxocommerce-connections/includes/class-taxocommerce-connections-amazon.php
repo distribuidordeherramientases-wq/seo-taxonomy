@@ -160,7 +160,7 @@ final class TaxoCommerce_Connections_Amazon {
 		if ( ! self::creators_ready() ) {
 			return new WP_Error(
 				'amazon_credentials_missing',
-				__( 'Creators API no está configurada. Los enlaces afiliados pueden seguir funcionando solo con Partner Tag.', 'taxocommerce-connections' )
+				__( 'Creators API is not configured. Affiliate links can still work with only a Partner Tag.', 'taxocommerce-connections' )
 			);
 		}
 
@@ -195,7 +195,7 @@ final class TaxoCommerce_Connections_Amazon {
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( $code < 200 || $code >= 300 || empty( $data['access_token'] ) ) {
-			$message = $data['error_description'] ?? ( $data['error'] ?? __( 'Amazon no devolvió un access_token.', 'taxocommerce-connections' ) );
+			$message = $data['error_description'] ?? ( $data['error'] ?? __( 'Amazon did not return an access_token.', 'taxocommerce-connections' ) );
 			return new WP_Error( 'amazon_token_error', 'Amazon OAuth HTTP ' . $code . ': ' . sanitize_text_field( (string) $message ) );
 		}
 
@@ -260,7 +260,7 @@ final class TaxoCommerce_Connections_Amazon {
 
 		$keywords = trim( wp_strip_all_tags( (string) $keywords ) );
 		if ( '' === $keywords ) {
-			return new WP_Error( 'amazon_keywords_missing', __( 'Indica una búsqueda para consultar Amazon.', 'taxocommerce-connections' ) );
+			return new WP_Error( 'amazon_keywords_missing', __( 'Enter a search query for Amazon.', 'taxocommerce-connections' ) );
 		}
 
 		return self::api_post(
