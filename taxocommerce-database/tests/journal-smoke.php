@@ -165,7 +165,8 @@ $wpdb->update( 'wp_seo_redirects', array( 'target_url' => '/c' ), array( 'id' =>
 check_journal( ! TCDB_Journal::preview( 1 )['allowed'], 'later modification causes conflict' );
 check_journal( is_wp_error( TCDB_Journal::execute( 1 ) ), 'rollback refuses conflict' );
 $wpdb->update( 'wp_seo_redirects', array( 'target_url' => '/b' ), array( 'id' => 1 ) );
-check_journal( ! is_wp_error( TCDB_Journal::execute( 1 ) ), 'insert rollback executes' );
+$rollback_insert = TCDB_Journal::execute( 1 );
+check_journal( ! is_wp_error( $rollback_insert ), 'insert rollback executes: ' . ( is_wp_error( $rollback_insert ) ? $rollback_insert->get_error_message() : 'OK' ) );
 check_journal( ! isset( $wpdb->data['wp_seo_redirects'][1] ), 'insert removed on rollback' );
 
 $wpdb->insert( 'wp_seo_redirects', array( 'id' => 9, 'origin_url' => '/old', 'target_url' => '/original' ) );
