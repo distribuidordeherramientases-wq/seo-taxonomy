@@ -1525,26 +1525,3 @@ function tcdist_sitemap_ensure_initial_sitemap_generation()
 }
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('init', 'tcdist_sitemap_ensure_initial_sitemap_generation', 30); }
 
-/* ========================================================================
- * Inventario + auditoria externa por lotes (GitHub Actions + Python)
- * ===================================================================== */
-
-if (!defined('SEO_MARKETING_SCAN_SCHEMA_VERSION')) {
-    define('SEO_MARKETING_SCAN_SCHEMA_VERSION', 3);
-}
-if (!defined('SEO_MARKETING_SCAN_BATCH_LIMIT')) {
-    define('SEO_MARKETING_SCAN_BATCH_LIMIT', 500);
-}
-
-function tcdist_sitemap_scan_tables()
-{
-    global $wpdb;
-
-    return array(
-        'scans'     => esc_sql( $wpdb->prefix . 'tcdist_sitemap_scans' ),
-        'urls'      => esc_sql( $wpdb->prefix . 'tcdist_sitemap_scan_urls' ),
-        'inventory' => esc_sql( $wpdb->prefix . 'tcdist_sitemap_inventory' ),
-    );
-}
-
-/**
