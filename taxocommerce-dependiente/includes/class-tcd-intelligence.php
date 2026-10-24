@@ -238,7 +238,8 @@ final class TCD_Intelligence {
         $facts = (array) ( $item['facts'] ?? array() );
         $signals = array();
         self::add_signal( $signals, 'title', (string) ( $item['title'] ?? '' ), 240, 'title', 0, true );
-        self::add_signal( $signals, 'need', (string) ( $facts['customer_need'] ?? '' ), 220, 'need', 0, true );
+        // customer_need is an independent evaluation query. Never store it as
+        // product memory or M11 would be testing a sentence L9 memorised verbatim.
 
         foreach ( (array) ( $facts['vocabulary'] ?? array() ) as $group => $rows ) {
             $weight = array( 'tipo'=>195, 'aplicacion'=>185, 'subtipo'=>165, 'plataforma'=>145, 'rol'=>75 )[ sanitize_key( (string) $group ) ] ?? 130;
