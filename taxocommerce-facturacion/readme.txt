@@ -1,4 +1,4 @@
-=== TaxoCommerce Facturación ===
+=== TaxoCommerce Billing ===
 Contributors: davidperezmartorell
 Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
@@ -11,7 +11,7 @@ WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
 
 == Description ==
 
-TaxoCommerce Facturación keeps the existing document workflow while moving it into an independent plugin.
+TaxoCommerce Billing keeps the existing document workflow while moving it into an independent plugin.
 
 Features:
 
