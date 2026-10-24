@@ -14,12 +14,12 @@ if ( false === $start || false === $end ) {
 }
 $section = substr( $csv, $start, $end - $start );
 $required = array(
-    "$product->is_type( 'external' )",
-    "$product->get_sku( 'edit' )",
-    "$product->set_short_description( $excerpt )",
-    "$product->set_description( $description )",
-    "$product->set_status( 'publish' )",
-    "$product->save()",
+    "\$product->is_type( 'external' )",
+    "\$product->get_sku( 'edit' )",
+    "\$product->set_short_description( \$excerpt )",
+    "\$product->set_description( \$description )",
+    "\$product->set_status( 'publish' )",
+    "\$product->save()",
 );
 $forbidden = array(
     'new WC_Product_External',
@@ -49,7 +49,7 @@ foreach ( $forbidden as $needle ) {
     }
 }
 if ( false === strpos( $batch, "'product_editorial' => array(" ) ||
-    false === strpos( $csv, "if ( 'product_editorial' === $type )" ) ) {
+    false === strpos( $csv, "if ( 'product_editorial' === \$type )" ) ) {
     fwrite( STDERR, "Editorial importer is not registered for single and queued imports.\n" );
     exit( 1 );
 }
