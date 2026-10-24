@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.12
+Stable tag: 0.4.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,6 +30,13 @@ The pilot also includes:
 * A bounded technical log.
 * A hierarchy shell for the future Cluster -> Primary Hub -> Secondary Hub -> Category -> Product model.
 * Extension hooks for KPIs and future modules.
+
+## Informe de arquitectura SEO en Contenidos
+
+La pestaña «Arquitectura SEO» recupera el informe de distribución de clusters, hubs,
+categorías y productos publicados. Consulta exclusivamente las relaciones gestionadas
+por Core y WordPress/WooCommerce, sin cargar el plugin antiguo. Recuentos únicos,
+actualización manual y caché local de 15 minutos; sin escaneos ni procesos periódicos.
 
 ## Guías de edición en Contenidos
 

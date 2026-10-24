@@ -41,6 +41,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	public function register_hooks() {
 		add_action( 'admin_post_taxocommerce_core_save_content', array( $this, 'save_content' ) );
         TaxoCommerce_Core_Editor_UI::register_hooks();
+        TaxoCommerce_Core_Architecture_Report::register_hooks();
 	}
 
 	/**
@@ -64,7 +65,7 @@ final class TaxoCommerce_Core_Content_Manager {
             echo '</div>';
             return;
         }
-        if ( 'anomalies' !== $content_type && 'edit' === $action && $item_id ) {
+        if ( ! in_array( $content_type, array( 'anomalies', 'architecture' ), true ) && 'edit' === $action && $item_id ) {
             echo '<div class="wrap tc-content-editor-wrap">';
             $this->render_editor( $content_type, $item_id );
             echo '</div>';
@@ -83,6 +84,8 @@ final class TaxoCommerce_Core_Content_Manager {
             <?php $this->render_tabs( $content_type ); ?>
             <?php if ( 'anomalies' === $content_type ) : ?>
                 <?php taxocommerce_core_anomalies_render(); ?>
+            <?php elseif ( 'architecture' === $content_type ) : ?>
+                <?php TaxoCommerce_Core_Architecture_Report::render(); ?>
             <?php else : ?>
             <?php TaxoCommerce_Core_Editorial_Guide::render( $content_type, 'overview' ); ?>
 
@@ -178,7 +181,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function request_content_type() {
 		$type = isset( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : 'products'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-		return in_array( $type, array( 'products', 'categories', 'posts', 'pages', 'faqs', 'anomalies' ), true ) ? $type : 'products';
+		return in_array( $type, array( 'products', 'categories', 'posts', 'pages', 'faqs', 'anomalies', 'architecture' ), true ) ? $type : 'products';
 	}
 
 	/**
@@ -193,6 +196,7 @@ final class TaxoCommerce_Core_Content_Manager {
 			'categories' => __( 'Categorías de producto', 'taxocommerce-core' ),
 			'posts'      => __( 'Posts', 'taxocommerce-core' ),
 			'pages'      => __( 'Páginas', 'taxocommerce-core' ),
+            'architecture' => __( 'Arquitectura SEO', 'taxocommerce-core' ),
             'faqs'       => class_exists( 'TaxoCommerce_FAQs' ) ? __( 'FAQs', 'taxocommerce-core' ) : '',
             'anomalies'  => __( 'Anomalías', 'taxocommerce-core' ),
 		);

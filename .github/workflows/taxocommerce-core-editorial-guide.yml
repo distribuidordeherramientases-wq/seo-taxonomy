@@ -41,3 +41,6 @@ jobs:
 
       - name: Verify four guides in overview and editor
         run: php taxocommerce-core/tests/editorial-guide-smoke.php
+
+      - name: Verify SEO architecture distribution
+        run: php taxocommerce-core/tests/architecture-report-smoke.php
