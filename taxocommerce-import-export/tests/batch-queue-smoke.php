@@ -4,10 +4,32 @@ $main = file_get_contents( $root . '/taxocommerce-import-export.php' );
 $core = file_get_contents( $root . '/includes/class-taxocommerce-import-export.php' );
 $csv = file_get_contents( $root . '/includes/class-taxocommerce-import-export-csv.php' );
 $batch = file_get_contents( $root . '/includes/class-taxocommerce-import-export-batch.php' );
+$exporter = file_get_contents( $root . '/includes/class-taxocommerce-import-export-exporter.php' );
+$exporter_js = file_get_contents( $root . '/assets/exporter.js' );
 
 $checks = array(
-    strpos( $main, "Version: 0.3.1" ) !== false,
+    strpos( $main, "Version: 0.4.0" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-batch.php" ) !== false,
+    strpos( $main, "class-taxocommerce-import-export-exporter.php" ) !== false,
+    strpos( $core, "Exportación" ) !== false,
+    strpos( $core, "new TaxoCommerce_Import_Export_Exporter" ) !== false,
+    strpos( $exporter, "Exportación por bloques" ) !== false,
+    strpos( $exporter, "'products_reduced'" ) !== false,
+    strpos( $exporter, "taxocommerce_ie_export_start" ) !== false,
+    strpos( $exporter, "taxocommerce_ie_export_step" ) !== false,
+    strpos( $exporter, "taxocommerce_ie_export_status" ) !== false,
+    strpos( $exporter, "taxocommerce_ie_export_cancel" ) !== false,
+    strpos( $exporter, "taxocommerce_import_export_export_rows_per_block" ) !== false,
+    strpos( $exporter, "taxocommerce_import_export_export_runtime_seconds" ) !== false,
+    strpos( $exporter, "_taxocommerce_core_parent_hub_secondary" ) !== false,
+    strpos( $exporter, "category_scope_active" ) !== false,
+    strpos( $csv, "export_header_for_job" ) !== false,
+    strpos( $csv, "export_row_for_job" ) !== false,
+    strpos( $csv, "product_inventory_reduced" ) !== false,
+    strpos( $csv, "product_vocabulary_export_payload" ) !== false,
+    strpos( $csv, "product_seo_attributes_export_payload" ) !== false,
+    strpos( $exporter_js, "Generando por bloques" ) !== false,
+    strpos( $exporter_js, "Reintentar bloque" ) === false || strpos( $exporter, "Reintentar bloque" ) !== false,
     strpos( $core, "Importación por lotes" ) !== false,
     strpos( $core, "new TaxoCommerce_Import_Export_Batch" ) !== false,
     strpos( $csv, "import_row_for_batch" ) !== false,
