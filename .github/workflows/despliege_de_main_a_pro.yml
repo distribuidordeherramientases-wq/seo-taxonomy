@@ -76,7 +76,7 @@ jobs:
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           echo "Plugins TaxoCommerce activos en PRO: $modules"
 
-      - name: Actualizar únicamente plugins TaxoCommerce activos en PRO
+      - name: Sincronizar únicamente plugins TaxoCommerce activos mediante WordPress
         shell: bash
         env:
           ACTIVE_MODULES_JSON: ${{ steps.active.outputs.modules }}
@@ -132,37 +132,103 @@ jobs:
               exit 1
             fi
 
-            if [ ! -d "$module" ]; then
-              echo "::error::El módulo activo $module no existe en MAIN."
+            if [ ! -f "$module/$module.php" ]; then
+              echo "::error::El módulo activo $module no existe correctamente en MAIN."
               exit 1
             fi
+          done
 
-            echo "Comprobando que $module ya existe como plugin hermano en PRO..."
+          deploy_token="$(openssl rand -hex 32)"
+          token_hash="$(printf '%s' "$deploy_token" | sha256sum | awk '{print $1}')"
+          handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"
 
-            if ! lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
+          cleanup_handoff() {
+            lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF || true
+          set cmd:fail-exit no
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          rm -r "$handoff"
+          bye
+          EOF
+          }
+          trap cleanup_handoff EXIT
+
+          : > /tmp/taxocommerce-deploy-marker
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
           set cmd:fail-exit yes
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
-          cd ../$module
-          cls "$module.php"
+          mkdir -p "$handoff"
+          put /tmp/taxocommerce-deploy-marker -o "$handoff/.token-$token_hash"
           bye
           EOF
-            then
-              echo "::error::$module está activo según WordPress, pero su carpeta/archivo principal no existe o no es accesible en PRO. No se crea automáticamente."
-              exit 1
-            fi
 
-            echo "Actualizando $module porque está activo en PRO..."
-
+          for module in "${active_modules[@]}"; do
+            echo "Preparando $module para WordPress PRO..."
             lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
           set cmd:fail-exit yes
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
-          mirror -R --delete --verbose --parallel=4             --exclude-glob .git             --exclude-glob .git/**             --exclude-glob node_modules             --exclude-glob node_modules/**             --exclude-glob '*.bak'             --exclude-glob '*.md'             "$module/" "../$module/"
+          mirror -R --delete --verbose --parallel=4 \
+            --exclude-glob .git \
+            --exclude-glob .git/** \
+            --exclude-glob node_modules \
+            --exclude-glob node_modules/** \
+            --exclude-glob '*.bak' \
+            --exclude-glob '*.md' \
+            "$module/" "$handoff/$module/"
           bye
           EOF
           done
 
-          echo "Despliegue modular terminado. Solo se han actualizado plugins activos previamente en PRO."
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            -X POST \
+            -H "X-Taxocommerce-Deploy-Token: $deploy_token" \
+            "$PRO_SITE_URL/wp-json/taxocommerce/v1/deploy-active-modules?run_id=$GITHUB_RUN_ID")"
+
+          export DEPLOY_RESPONSE="$response"
+
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          active = json.loads(os.environ.get("ACTIVE_MODULES_JSON", "[]"))
+          payload = json.loads(os.environ["DEPLOY_RESPONSE"])
+          updated = payload.get("updated", [])
+
+          updated_by_slug = {
+              str(item.get("slug", "")): str(item.get("version", ""))
+              for item in updated
+              if isinstance(item, dict)
+          }
+
+          if set(updated_by_slug) != set(active):
+              raise SystemExit(
+                  "PRO no confirmó exactamente los plugins activos. "
+                  f"Activos={active}; actualizados={sorted(updated_by_slug)}"
+              )
+
+          for slug in active:
+              main_file = Path(slug) / f"{slug}.php"
+              text = main_file.read_text(encoding="utf-8", errors="replace")
+              match = re.search(r"^\s*\*\s*Version:\s*([^\r\n]+)", text, re.MULTILINE)
+              expected = match.group(1).strip() if match else ""
+              received = updated_by_slug.get(slug, "")
+              if not expected or received != expected:
+                  raise SystemExit(
+                      f"Versión remota incorrecta para {slug}: "
+                      f"esperada={expected!r}; recibida={received!r}"
+                  )
+              print(f"{slug}: PRO actualizado y verificado en versión {received}")
+          PY
+
+          trap - EXIT
+          cleanup_handoff
+
+          echo "Despliegue modular terminado y verificado contra WP_PLUGIN_DIR real."
