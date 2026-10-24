@@ -51,6 +51,8 @@ assert_tcdb( TCDB_Storage::family_table_name( 'wp_tcd_knowledge' ), 'modern fami
 assert_tcdb( TCDB_Storage::family_table_name( 'wp_taxocommerce_data' ), 'new family tables included' );
 assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_tcdb_operations' ), 'retired journal table excluded from editable family' );
 assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_tcdb_changes' ), 'retired journal changes excluded from editable family' );
+assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_seo_operations' ), 'legacy operations never considered importable' );
+assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_seo_operation_changes' ), 'legacy change journal never considered importable' );
 assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_posts' ), 'WordPress tables not editable' );
 assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_users' ), 'user table not editable' );
 assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_2_seo_nodes' ), 'cross-blog table not editable' );
