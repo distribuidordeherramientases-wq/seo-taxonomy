@@ -46,6 +46,8 @@ $checks=array(
     strpos($maintenance,'woocommerce_update_product')!==false,
     strpos($maintenance,'created_product_cat')!==false,
     strpos($maintenance,'refresh_recent_faqs')!==false,
+    strpos($maintenance,'refresh_recent_assignments')!==false,
+    strpos($maintenance,'seo_object_vocabulary')!==false,
     strpos($maintenance,'TCD_Intelligence::build_interpreter')!==false,
     strpos($search,'TCD_Intelligence::interpret')!==false,
     strpos($search,'TCD_Intelligence::decision')!==false,
