@@ -424,11 +424,14 @@ final class TCD_Feedback {
         $weighted = $click_sessions + ( 3 * $clarification_sessions );
 
         $status = 'staged';
-        if ( $clarification_sessions >= 2 && $share >= 0.60 ) {
+        $interpreter = class_exists( 'TCD_Intelligence', false ) ? TCD_Intelligence::interpreter_state() : array();
+        $can_promote = in_array( (string) ( $interpreter['status'] ?? '' ), array( 'ready', 'degraded' ), true );
+
+        if ( $can_promote && $clarification_sessions >= 2 && $share >= 0.60 ) {
             $status = 'active';
-        } elseif ( $click_sessions >= 4 && $share >= 0.65 ) {
+        } elseif ( $can_promote && $click_sessions >= 4 && $share >= 0.65 ) {
             $status = 'active';
-        } elseif ( $weighted >= 6 && ( $click_sessions + $clarification_sessions ) >= 3 && $share >= 0.60 ) {
+        } elseif ( $can_promote && $weighted >= 6 && ( $click_sessions + $clarification_sessions ) >= 3 && $share >= 0.60 ) {
             $status = 'active';
         } elseif ( $clarification_sessions >= 1 || $click_sessions >= 2 ) {
             $status = 'validated';
