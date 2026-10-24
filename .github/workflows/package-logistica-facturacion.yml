@@ -80,6 +80,7 @@ jobs:
           build-dir: './build/taxocommerce-facturacion'
           slug: taxocommerce-facturacion
           wp-version: latest
+          exclude-dirs: 'includes/dompdf/vendor'
           ignore-warnings: true
           ignore-errors: false
 
