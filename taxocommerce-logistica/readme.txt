@@ -7,24 +7,26 @@ Requires PHP: 7.4
 Stable tag: 0.1.0
 License: MIT
 
-Migración 1:1 del módulo Logística de TaxoCommerce SEO.
+WooCommerce order, supplier and shipping management migrated from TaxoCommerce SEO.
 
 == Description ==
 
-Conserva el comportamiento del módulo histórico:
+TaxoCommerce Logística keeps the existing logistics workflow while moving it into an independent plugin.
 
-* Gestión de pedidos activos.
-* Cruce de líneas WooCommerce con la tabla existente seo_proveedores_productos.
-* Enlaces de compra y catálogo de proveedores.
-* Gestor de transporte con reglas por zona, importe, peso y dimensiones.
-* Importación y exportación JSON de transporte.
-* Integración con el cálculo de transporte de WooCommerce.
-* Compatibilidad opcional con TaxoCommerce Core.
+Features:
 
-No crea una segunda tabla de proveedores y reutiliza la opción histórica seo_transporte_costes_settings.
-No incluye una rutina de desinstalación destructiva.
+* Active WooCommerce order management.
+* Supplier matching through the existing seo_proveedores_productos table.
+* Supplier purchase and catalog links.
+* Shipping rules by region, order amount, weight and dimensions.
+* JSON import and export for shipping rules.
+* WooCommerce shipping rate integration.
+* Optional integration with TaxoCommerce Core.
+
+The plugin reuses the historical seo_transporte_costes_settings option and does not create a parallel supplier table.
+It does not include a destructive uninstall routine.
 
 == Changelog ==
 
 = 0.1.0 =
-* Migración 1:1 de Gestión de pedidos y Transporte desde el monolito.
+* Migrated the existing Order Management and Shipping modules into an independent TaxoCommerce plugin.
