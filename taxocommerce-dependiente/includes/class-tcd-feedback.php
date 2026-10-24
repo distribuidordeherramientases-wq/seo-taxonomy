@@ -120,6 +120,7 @@ final class TCD_Feedback {
     }
 
     public static function record_search( $query, $session_id, $depth, $decision, $ranked, $clarification = array() ) {
+        self::remember_search_context( $query, $session_id, $depth, $decision, $ranked, $clarification );
         $context = array(
             'decision'=>(array) $decision,
             'ranked_ids'=>array_values( array_filter( array_map( static function ( $row ) {
@@ -143,6 +144,9 @@ final class TCD_Feedback {
         if ( ! $product_id || 'publish' !== get_post_status( $product_id ) || 'product' !== get_post_type( $product_id ) ) {
             return new WP_Error( 'tcd_feedback_product', 'El producto indicado no es válido.' );
         }
+        if ( ! self::was_product_shown( $query, $session_id, $depth, $product_id ) ) {
+            return new WP_Error( 'tcd_feedback_product_context', 'El producto no pertenece a los resultados mostrados en esta sesión.' );
+        }
 
         return self::record_event( array(
             'query'=>$query,
@@ -163,6 +167,9 @@ final class TCD_Feedback {
         if ( ! $group || ! $slug || ! $label ) {
             return new WP_Error( 'tcd_feedback_clarification', 'La opción de aclaración no es válida.' );
         }
+        if ( ! self::was_clarification_offered( $query, $session_id, max( 0, absint( $depth ) - 1 ), $group, $slug ) ) {
+            return new WP_Error( 'tcd_feedback_clarification_context', 'La aclaración no pertenece a las opciones ofrecidas en esta sesión.' );
+        }
 
         return self::record_event( array(
             'query'=>$query,
@@ -181,6 +188,9 @@ final class TCD_Feedback {
         if ( strlen( $text ) < 2 ) {
             return new WP_Error( 'tcd_feedback_other', 'La aclaración está vacía.' );
         }
+        if ( ! self::had_clarification_step( $query, $session_id, max( 0, absint( $depth ) - 1 ) ) ) {
+            return new WP_Error( 'tcd_feedback_other_context', 'No hay una aclaración abierta para esta sesión.' );
+        }
 
         return self::record_event( array(
             'query'=>$query,
@@ -190,6 +200,62 @@ final class TCD_Feedback {
             'depth'=>$depth,
             'context'=>array( 'free_text'=>$text ),
         ) );
+    }
+
+    private static function remember_search_context( $query, $session_id, $depth, $decision, $ranked, $clarification ) {
+        $session_hash = self::session_hash( $session_id );
+        if ( ! $session_hash ) return;
+
+        $products = array_values( array_filter( array_map( static function ( $row ) {
+            return absint( is_array( $row ) ? ( $row['id'] ?? 0 ) : 0 );
+        }, array_slice( (array) $ranked, 0, 24 ) ) ) );
+
+        $options = array();
+        foreach ( (array) ( $clarification['options'] ?? array() ) as $option ) {
+            if ( ! is_array( $option ) ) continue;
+            $group = sanitize_key( (string) ( $option['group'] ?? $clarification['group'] ?? '' ) );
+            $slug = sanitize_title( (string) ( $option['slug'] ?? '' ) );
+            if ( $group && $slug ) $options[] = $group . ':' . $slug;
+        }
+
+        set_transient(
+            self::context_key( $query, $session_hash, $depth ),
+            array(
+                'products'=>$products,
+                'options'=>array_values( array_unique( $options ) ),
+                'allow_other'=>! empty( $clarification['allow_other'] ),
+                'confidence'=>(float) ( $decision['confidence'] ?? 0 ),
+                'created_at'=>time(),
+            ),
+            30 * MINUTE_IN_SECONDS
+        );
+    }
+
+    private static function was_product_shown( $query, $session_id, $depth, $product_id ) {
+        $context = self::search_context( $query, $session_id, $depth );
+        return in_array( absint( $product_id ), array_map( 'absint', (array) ( $context['products'] ?? array() ) ), true );
+    }
+
+    private static function was_clarification_offered( $query, $session_id, $depth, $group, $slug ) {
+        $context = self::search_context( $query, $session_id, $depth );
+        $needle = sanitize_key( $group ) . ':' . sanitize_title( $slug );
+        return in_array( $needle, (array) ( $context['options'] ?? array() ), true );
+    }
+
+    private static function had_clarification_step( $query, $session_id, $depth ) {
+        $context = self::search_context( $query, $session_id, $depth );
+        return ! empty( $context['allow_other'] );
+    }
+
+    private static function search_context( $query, $session_id, $depth ) {
+        $session_hash = self::session_hash( $session_id );
+        if ( ! $session_hash ) return array();
+        $context = get_transient( self::context_key( $query, $session_hash, $depth ) );
+        return is_array( $context ) ? $context : array();
+    }
+
+    private static function context_key( $query, $session_hash, $depth ) {
+        return 'tcd_fb_ctx_' . substr( $session_hash, 0, 16 ) . '_' . substr( self::query_hash( $query ), 0, 16 ) . '_' . min( 2, absint( $depth ) );
     }
 
     private static function record_event( $args ) {
