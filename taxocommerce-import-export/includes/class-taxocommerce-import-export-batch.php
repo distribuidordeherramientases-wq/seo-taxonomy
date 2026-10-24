@@ -575,6 +575,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			return new WP_Error( 'tc_ie_batch_detect_open', __( 'No se pudo abrir el CSV para detectar su tipo.', 'taxocommerce-import-export' ) );
 		}
 		$raw_header = fgetcsv( $handle );
+		$data_offset = ftell( $handle );
 		$first      = fgetcsv( $handle );
 		if ( ! is_array( $raw_header ) || ! is_array( $first ) ) {
 			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
@@ -585,7 +586,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		$first  = array_pad( $first, count( $header ), '' );
 		$data   = array_combine( $header, array_slice( $first, 0, count( $header ) ) );
 		$type   = is_array( $data ) ? sanitize_key( (string) ( $data['record_type'] ?? '' ) ) : '';
-		$offset = ftell( $handle );
+		$offset = $data_offset;
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
 		if ( ! isset( $this->importers()[ $type ] ) ) {
