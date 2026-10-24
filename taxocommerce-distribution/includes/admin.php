@@ -306,10 +306,10 @@ function taxocommerce_distribution_render_automation() {
 
         <table class="widefat striped">
             <tbody>
-                <tr><th><?php esc_html_e( 'Feed worker', 'taxocommerce-distribution' ); ?></th><td><?php echo $legacy_feed ? esc_html__( 'Automation antigua prioritaria durante convivencia; manual disponible aquí.', 'taxocommerce-distribution' ) : esc_html__( 'Owned by Distribution', 'taxocommerce-distribution' ); ?></td></tr>
+                <tr><th><?php esc_html_e( 'Feed worker', 'taxocommerce-distribution' ); ?></th><td><?php echo $legacy_feed ? esc_html__( 'Legacy automation has priority during coexistence; manual execution is available here.', 'taxocommerce-distribution' ) : esc_html__( 'Owned by Distribution', 'taxocommerce-distribution' ); ?></td></tr>
                 <tr><th><?php esc_html_e( 'Daily regeneration', 'taxocommerce-distribution' ); ?></th><td><?php echo ! empty( $settings['auto_refresh'] ) ? esc_html( (string) ( $settings['daily_time'] ?? '03:30' ) ) : esc_html__( 'Disabled', 'taxocommerce-distribution' ); ?></td></tr>
                 <tr><th><?php esc_html_e( 'Last batch', 'taxocommerce-distribution' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $feed['last_batch_rows'] ?? 0 ) ) ); ?> <?php esc_html_e( 'products', 'taxocommerce-distribution' ); ?> · <?php echo esc_html( number_format_i18n( (float) ( $feed['last_batch_duration'] ?? 0 ), 2 ) ); ?> s</td></tr>
-                <tr><th><?php esc_html_e( 'Automatic sitemaps', 'taxocommerce-distribution' ); ?></th><td><?php echo $legacy_sitemap ? esc_html__( 'Temporarily managed by the legacy plugin', 'taxocommerce-distribution' ) : esc_html__( 'Distribution regenera tras cambios de products, páginas, posts y categorías', 'taxocommerce-distribution' ); ?></td></tr>
+                <tr><th><?php esc_html_e( 'Automatic sitemaps', 'taxocommerce-distribution' ); ?></th><td><?php echo $legacy_sitemap ? esc_html__( 'Temporarily managed by the legacy plugin', 'taxocommerce-distribution' ) : esc_html__( 'Distribution regenerates after product, page, post, and category changes', 'taxocommerce-distribution' ); ?></td></tr>
             </tbody>
         </table>
 
