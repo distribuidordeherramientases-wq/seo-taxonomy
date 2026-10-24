@@ -666,7 +666,7 @@ final class TCD_Intelligence {
 
         if ( '' === $title ) {
             $issues[] = self::data_issue( 'titulo_vacio', 'title', '', 'El contenido no tiene título identificable.', 'Completar el título antes de volver a evaluar.' );
-        } elseif ( mb_strlen( $title ) < 4 ) {
+        } elseif ( strlen( self::normalize( $title ) ) < 4 ) {
             $issues[] = self::data_issue( 'titulo_demasiado_corto', 'title', $title, 'El título aporta muy poca identidad.', 'Revisar si el título identifica realmente el elemento.' );
         }
 
