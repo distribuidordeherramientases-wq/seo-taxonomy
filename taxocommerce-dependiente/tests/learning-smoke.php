@@ -88,7 +88,7 @@ $checks=array(
     strpos($intelligence,'is_hard_data_issue')!==false,
     strpos($intelligence,"'lesson_meta'")!==false,
     strpos($intelligence,"'version'=>2")!==false,
-    strpos($intelligence,"), ';', '"', '' );")!==false,
+    strpos($intelligence, '\';\', \'"\', \'\'')!==false,
     strpos($intelligence,'self::add_signal( $signals, \'need\'')===false,
     strpos($intelligence,'public static function decision')!==false,
     strpos($intelligence,'suggestions_from_products')!==false,
