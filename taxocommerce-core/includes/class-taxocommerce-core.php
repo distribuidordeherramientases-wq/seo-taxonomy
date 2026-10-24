@@ -393,6 +393,16 @@ final class TaxoCommerce_Core {
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-vocabulary' ),
 				'description'   => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local.', 'taxocommerce-core' ),
 			),
+			'distribution' => array(
+				'id'            => 'distribution',
+				'name'          => 'TaxoCommerce Distribution',
+				'plugin_file'   => 'taxocommerce-distribution/taxocommerce-distribution.php',
+				'org_slug'      => 'taxocommerce-distribution',
+				'search_term'   => 'TaxoCommerce Distribution',
+				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-distribution' ),
+				'description'   => __( 'Feeds comerciales y sitemaps XML con publicación por bloques.', 'taxocommerce-core' ),
+			),
 			'google_bing' => array(
 				'id'            => 'google_bing',
 				'name'          => 'TaxoCommerce Google / Bing',
