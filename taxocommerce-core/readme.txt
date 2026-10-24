@@ -4,13 +4,15 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.21
+Stable tag: 0.4.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 A modular WordPress/WooCommerce core for catalog hierarchy, unified content editing, processes, logs, and future TaxoCommerce extensions.
 
 == Description ==
+
+Version 0.4.22 registers the optional, independent TaxoCommerce Database plugin in the extensions catalog. Installing Core does not install or activate Database. If Database is active, it registers its native submenu under Core; without Core it uses its own top-level menu.
 
 TaxoCommerce Core is the clean modular foundation for the next TaxoCommerce architecture. The 0.2.0 pilot is validated and deployed independently to STAGING.
 

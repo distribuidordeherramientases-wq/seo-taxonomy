@@ -20,6 +20,13 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
           php taxocommerce-core/tests/architecture-report-smoke.php
 
+      - name: Validate independent Database before any STAGING FTP upload
+        run: |
+          find taxocommerce-database -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php taxocommerce-database/tests/smoke.php
+          php taxocommerce-database/tests/menu-smoke.php alone
+          php taxocommerce-database/tests/menu-smoke.php core
+
       - name: Validate Auditor PHP before any STAGING FTP upload
         run: |
           find taxocommerce-auditor -type f -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -46,6 +53,8 @@ jobs:
             **/.git*/**
             **/.github/**
             taxocommerce-core/**
+            taxocommerce-database/**
+            taxocommerce-google-bing/**
             taxocommerce-images/**
             taxocommerce-import-export/**
             taxocommerce-system-check/**
@@ -86,6 +95,27 @@ jobs:
             **/*.md
             **/*.pot
 
+
+      - name: Deploy TaxoCommerce Database to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-database/
+          server-dir: ./wp-content/plugins/taxocommerce-database/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
 
       - name: Deploy TaxoCommerce Images to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
