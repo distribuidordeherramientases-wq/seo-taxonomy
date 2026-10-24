@@ -36,6 +36,13 @@ final class TaxoCommerce_Import_Export {
 	private $media = null;
 
 	/**
+	 * Batch queue.
+	 *
+	 * @var TaxoCommerce_Import_Export_Batch|null
+	 */
+	private $batch = null;
+
+	/**
 	 * Returns singleton.
 	 *
 	 * @return TaxoCommerce_Import_Export
@@ -55,6 +62,8 @@ final class TaxoCommerce_Import_Export {
 	public function boot() {
 		$this->csv   = new TaxoCommerce_Import_Export_CSV();
 		$this->media = new TaxoCommerce_Import_Export_Media();
+		$this->batch = new TaxoCommerce_Import_Export_Batch( $this->csv );
+		$this->batch->boot();
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 40 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_admin_styles' ) );
@@ -182,7 +191,12 @@ final class TaxoCommerce_Import_Export {
 		$result = isset( $_GET['tc_ie_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
 		$count  = isset( $_GET['tc_ie_count'] ) ? absint( $_GET['tc_ie_count'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
 		$error  = isset( $_GET['tc_ie_error'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_ie_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
-		$kind   = isset( $_GET['tc_ie_kind'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_kind'] ) ) : 'csv'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
+		$kind    = isset( $_GET['tc_ie_kind'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_kind'] ) ) : 'csv'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
+		$tab     = isset( $_GET['tc_ie_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_tab'] ) ) : 'individual'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
+		$message = isset( $_GET['tc_ie_message'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['tc_ie_message'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
+		if ( ! in_array( $tab, array( 'individual', 'batch' ), true ) ) {
+			$tab = 'individual';
+		}
 		?>
 		<div class="wrap tcc-family-screen">
 			<header class="tcc-page-header">
@@ -194,7 +208,22 @@ final class TaxoCommerce_Import_Export {
 				</div>
 			</header>
 
-			<?php if ( 'ok' === $result ) : ?>
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Secciones de Import-Export', 'taxocommerce-import-export' ); ?>">
+				<a class="nav-tab <?php echo 'individual' === $tab ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'individual' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Importación individual', 'taxocommerce-import-export' ); ?></a>
+				<a class="nav-tab <?php echo 'batch' === $tab ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'batch' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Importación por lotes', 'taxocommerce-import-export' ); ?></a>
+			</nav>
+
+			<?php if ( $message ) : ?>
+				<div class="notice <?php echo 'error' === $result ? 'notice-error' : 'notice-success'; ?> is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+			<?php endif; ?>
+
+			<?php if ( 'batch' === $tab && $this->batch ) : ?>
+				<?php $this->batch->render(); ?>
+				</div>
+				<?php return; ?>
+			<?php endif; ?>
+
+			<?php if ( 'ok' === $result && ! $message ) : ?>
 				<div class="notice notice-success is-dismissible"><p>
 					<?php
 					if ( 'media' === $kind ) {
