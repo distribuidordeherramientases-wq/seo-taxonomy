@@ -141,6 +141,8 @@ final class TCDB_Admin {
         echo '<table class="widefat striped"><thead><tr><th>Control</th><th>Detectados</th></tr></thead><tbody>';
         $checks = array(
             'orphan_page_nodes' => 'Nodos SEO de páginas sin objeto',
+            'duplicate_nodes' => 'Nodos SEO duplicados',
+            'broken_product_category_parents' => 'Categorías WooCommerce con padre inexistente',
             'duplicate_relations' => 'Relaciones SEO duplicadas',
             'as_overdue_pending' => 'Acciones pendientes vencidas (Action Scheduler)',
         );
