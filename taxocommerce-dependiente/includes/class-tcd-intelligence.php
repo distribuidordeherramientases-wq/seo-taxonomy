@@ -459,7 +459,14 @@ final class TCD_Intelligence {
     public static function interpret( $query, $include_stage = '' ) {
         global $wpdb;
         $normalized = self::normalize( $query );
-        $result = array( 'raw'=>(string) $query, 'normalized'=>$normalized, 'groups'=>array(), 'semantic_hits'=>array(), 'ignored'=>array() );
+        $result = array(
+            'raw'=>(string) $query,
+            'normalized'=>$normalized,
+            'groups'=>array(),
+            'semantic_hits'=>array(),
+            'actions'=>self::detect_actions( $normalized ),
+            'ignored'=>array(),
+        );
         if ( ! $normalized ) return $result;
         $ngrams = self::ngrams( $normalized, 5 );
         if ( ! $ngrams ) return $result;
@@ -679,6 +686,12 @@ final class TCD_Intelligence {
         }
 
         uasort( $candidates, static function ( $a, $b ) {
+            $coverage_a = count( (array) ( $a['semantic_groups'] ?? array() ) );
+            $coverage_b = count( (array) ( $b['semantic_groups'] ?? array() ) );
+            $cmp = $coverage_b <=> $coverage_a;
+            if ( 0 !== $cmp ) return $cmp;
+            $cmp = absint( $b['l9_matched'] ?? 0 ) <=> absint( $a['l9_matched'] ?? 0 );
+            if ( 0 !== $cmp ) return $cmp;
             $cmp = (float) ( $b['score'] ?? 0 ) <=> (float) ( $a['score'] ?? 0 );
             if ( 0 !== $cmp ) return $cmp;
             return absint( $b['id'] ?? 0 ) <=> absint( $a['id'] ?? 0 );
@@ -695,6 +708,10 @@ final class TCD_Intelligence {
                 'title'=>$product->get_name(),
                 'url'=>get_permalink( $product->get_id() ),
                 'score'=>round( (float) ( $candidate['score'] ?? 0 ), 2 ),
+                'coverage'=>count( (array) ( $candidate['semantic_groups'] ?? array() ) ),
+                'semantic_groups'=>array_keys( (array) ( $candidate['semantic_groups'] ?? array() ) ),
+                'l9_strength'=>absint( $candidate['l9_strength'] ?? 0 ),
+                'l9_matched'=>absint( $candidate['l9_matched'] ?? 0 ),
                 'sources'=>array_values( array_unique( (array) ( $candidate['sources'] ?? array() ) ) ),
                 'evidence'=>(array) ( $candidate['evidence'] ?? array() ),
             );
@@ -705,10 +722,153 @@ final class TCD_Intelligence {
     private static function candidate_add( &$candidates, $id, $score, $source, $evidence ) {
         $id = absint( $id );
         if ( ! $id ) return;
-        if ( ! isset( $candidates[ $id ] ) ) $candidates[ $id ] = array( 'id'=>$id, 'score'=>0, 'sources'=>array(), 'evidence'=>array() );
+        if ( ! isset( $candidates[ $id ] ) ) {
+            $candidates[ $id ] = array(
+                'id'=>$id,
+                'score'=>0,
+                'sources'=>array(),
+                'evidence'=>array(),
+                'semantic_groups'=>array(),
+                'l9_strength'=>0,
+                'l9_matched'=>0,
+            );
+        }
         $candidates[ $id ]['score'] += (float) $score;
-        $candidates[ $id ]['sources'][] = sanitize_key( $source );
+        $source = sanitize_key( $source );
+        $candidates[ $id ]['sources'][] = $source;
+        if ( 'semantic' === $source && is_array( $evidence ) ) {
+            $group = sanitize_key( (string) ( $evidence['group'] ?? '' ) );
+            $slug = sanitize_title( (string) ( $evidence['slug'] ?? '' ) );
+            if ( $group && $slug ) $candidates[ $id ]['semantic_groups'][ $group . ':' . $slug ] = true;
+        }
+        if ( 'lesson9' === $source && is_array( $evidence ) ) {
+            $candidates[ $id ]['l9_strength'] = max( absint( $candidates[ $id ]['l9_strength'] ), absint( $evidence['score'] ?? 0 ) );
+            $candidates[ $id ]['l9_matched'] = max( absint( $candidates[ $id ]['l9_matched'] ), absint( $evidence['matched_count'] ?? 0 ) );
+        }
         if ( $evidence ) $candidates[ $id ]['evidence'][] = $evidence;
+    }
+
+    public static function decision( $query, $interpretation, $results ) {
+        $results = array_values( (array) $results );
+        if ( ! $results ) {
+            return array(
+                'confidence'=>0,
+                'level'=>'low',
+                'show_products'=>false,
+                'needs_choice'=>true,
+                'reason'=>'no_candidates',
+                'message'=>'No tengo evidencia suficiente para elegir productos. Describe con algo más de detalle qué necesitas hacer o qué equipo tienes.',
+            );
+        }
+
+        $top = (array) $results[0];
+        $second = isset( $results[1] ) ? (array) $results[1] : array();
+        $sources = array_values( array_unique( (array) ( $top['sources'] ?? array() ) ) );
+        $group_total = count( (array) ( $interpretation['groups'] ?? array() ) );
+        $coverage = absint( $top['coverage'] ?? 0 );
+        $l9_strength = absint( $top['l9_strength'] ?? 0 );
+        $l9_matched = absint( $top['l9_matched'] ?? 0 );
+        $top_score = (float) ( $top['score'] ?? 0 );
+        $second_score = (float) ( $second['score'] ?? 0 );
+        $margin = $top_score > 0 ? max( 0, ( $top_score - $second_score ) / $top_score ) : 0;
+        $has_semantic = in_array( 'semantic', $sources, true );
+        $has_l9 = in_array( 'lesson9', $sources, true );
+        $text_only = ! $has_semantic && ! $has_l9;
+        $has_action = ! empty( $interpretation['actions'] );
+
+        $confidence = 15;
+        if ( $has_semantic ) $confidence += 28;
+        if ( $has_l9 ) $confidence += 32;
+        if ( $group_total > 0 && $coverage >= $group_total ) $confidence += 18;
+        elseif ( $coverage >= 2 ) $confidence += 12;
+        elseif ( $coverage >= 1 ) $confidence += 7;
+        if ( $l9_matched >= 3 ) $confidence += 12;
+        elseif ( $l9_matched >= 2 ) $confidence += 8;
+        if ( $l9_strength >= 300 ) $confidence += 8;
+        if ( $margin >= 0.20 ) $confidence += 10;
+        elseif ( $margin >= 0.08 ) $confidence += 5;
+        if ( $top_score >= 700 ) $confidence += 8;
+        elseif ( $top_score >= 450 ) $confidence += 4;
+
+        if ( $text_only ) $confidence = min( $confidence, 52 );
+        if ( $has_action && ! $has_l9 && $coverage < 2 ) $confidence = min( $confidence, 58 );
+        if ( $group_total >= 2 && $coverage > 0 && $coverage < $group_total && ! $has_l9 ) $confidence = min( $confidence, 62 );
+
+        $confidence = max( 0, min( 100, (int) round( $confidence ) ) );
+        $show = $confidence >= 68;
+        $reason = $show ? 'strong_evidence' : ( $has_action ? 'task_needs_confirmation' : 'ambiguous_match' );
+        $message = $show
+            ? 'He encontrado evidencia semántica suficiente para ordenar estas opciones.'
+            : ( $has_action
+                ? 'Entiendo parte de la tarea, pero no tengo evidencia suficiente para elegir el producto por ti. Elige una familia o concreta un poco más.'
+                : 'Hay varias interpretaciones posibles. Elige la familia que mejor encaja o concreta un poco más.' );
+
+        return array(
+            'confidence'=>$confidence,
+            'level'=>$show ? 'high' : ( $confidence >= 50 ? 'medium' : 'low' ),
+            'show_products'=>$show,
+            'needs_choice'=>! $show,
+            'reason'=>$reason,
+            'message'=>$message,
+            'signals'=>array(
+                'semantic_groups'=>$group_total,
+                'coverage'=>$coverage,
+                'l9_strength'=>$l9_strength,
+                'l9_matched'=>$l9_matched,
+                'margin'=>round( $margin, 3 ),
+                'actions'=>(array) ( $interpretation['actions'] ?? array() ),
+                'sources'=>$sources,
+            ),
+        );
+    }
+
+    public static function suggestions_from_products( $results, $limit = 8 ) {
+        $limit = min( 8, max( 1, absint( $limit ) ) );
+        $map = array();
+        foreach ( array_slice( (array) $results, 0, 24 ) as $position => $result ) {
+            $id = absint( $result['id'] ?? 0 );
+            if ( ! $id ) continue;
+            $terms = wp_get_post_terms( $id, 'product_cat' );
+            if ( is_wp_error( $terms ) ) continue;
+            foreach ( (array) $terms as $term ) {
+                if ( ! $term instanceof WP_Term ) continue;
+                $slug = sanitize_title( $term->slug ?: $term->name );
+                if ( ! $slug ) continue;
+                if ( ! isset( $map[ $slug ] ) ) {
+                    $map[ $slug ] = array(
+                        'kind'=>'category',
+                        'id'=>absint( $term->term_id ),
+                        'name'=>(string) $term->name,
+                        'slug'=>$slug,
+                        'count'=>0,
+                        'first_rank'=>absint( $position ),
+                    );
+                }
+                $map[ $slug ]['count']++;
+                $map[ $slug ]['first_rank'] = min( absint( $map[ $slug ]['first_rank'] ), absint( $position ) );
+            }
+        }
+        $items = array_values( $map );
+        usort( $items, static function ( $a, $b ) {
+            $cmp = absint( $a['first_rank'] ?? 0 ) <=> absint( $b['first_rank'] ?? 0 );
+            if ( 0 !== $cmp ) return $cmp;
+            return absint( $b['count'] ?? 0 ) <=> absint( $a['count'] ?? 0 );
+        } );
+        return array_slice( $items, 0, $limit );
+    }
+
+    private static function detect_actions( $normalized ) {
+        $actions = array(
+            'reparar','cortar','soldar','taladrar','perforar','lijar','pulir','pintar','elevar','levantar',
+            'aflojar','apretar','desmontar','montar','limpiar','medir','diagnosticar','cargar','arrancar',
+            'transportar','fijar','doblar','curvar','prensar','sellar','calentar','enfriar','extraer'
+        );
+        $found = array();
+        $words = array_values( array_filter( explode( ' ', self::normalize( $normalized ) ) ) );
+        foreach ( $words as $word ) {
+            if ( in_array( $word, $actions, true ) ) $found[] = $word;
+        }
+        return array_values( array_unique( $found ) );
     }
 
     private static function l9_matches( $query, $include_stage = '' ) {
