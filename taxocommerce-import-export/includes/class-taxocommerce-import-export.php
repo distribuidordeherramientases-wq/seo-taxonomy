@@ -214,7 +214,7 @@ final class TaxoCommerce_Import_Export {
 			</nav>
 
 			<?php if ( $message ) : ?>
-				<div class="notice <?php echo 'error' === $result ? 'notice-error' : 'notice-success'; ?> is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+				<div class="notice <?php echo esc_attr( 'error' === $result ? 'notice-error' : 'notice-success' ); ?> is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
 			<?php endif; ?>
 
 			<?php if ( 'batch' === $tab && $this->batch ) : ?>
