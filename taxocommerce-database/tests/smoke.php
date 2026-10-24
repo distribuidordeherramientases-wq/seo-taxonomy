@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 define( 'ABSPATH', __DIR__ );
 define( 'MINUTE_IN_SECONDS', 60 );
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.2.0' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.2.1' );
 class WP_Error {
     private $code;
     private $message;
@@ -49,6 +49,8 @@ assert_tcdb( ! TCDB_Storage::identifier( "wp_posts\`" ), 'quoted SQL identifier 
 assert_tcdb( TCDB_Storage::family_table_name( 'wp_seo_relations' ), 'legacy family tables included' );
 assert_tcdb( TCDB_Storage::family_table_name( 'wp_tcd_knowledge' ), 'modern family tables included' );
 assert_tcdb( TCDB_Storage::family_table_name( 'wp_taxocommerce_data' ), 'new family tables included' );
+assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_tcdb_operations' ), 'retired journal table excluded from editable family' );
+assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_tcdb_changes' ), 'retired journal changes excluded from editable family' );
 assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_posts' ), 'WordPress tables not editable' );
 assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_users' ), 'user table not editable' );
 assert_tcdb( ! TCDB_Storage::family_table_name( 'wp_2_seo_nodes' ), 'cross-blog table not editable' );
@@ -88,16 +90,22 @@ $php_files = glob( $root . '/includes/*.php' );
 $php_files[] = $root . '/taxocommerce-database.php';
 foreach ( $php_files as $path ) {
     $source = file_get_contents( $path );
-    assert_tcdb( false === strpos( $source, 'SEO_Data_Rollback::' ), 'legacy rollback engine never loaded' );
-    assert_tcdb( false === strpos( $source, 'seo_data_handle_rollback_operation' ), 'Data Table rollback never copied' );
-    assert_tcdb( false === strpos( $source, 'seo_clean_db_handle_rollback_action' ), 'Clean DB rollback never copied' );
+    assert_tcdb( false === strpos( $source, 'TCDB_Journal' ), 'no journal loader or database cross-plugin adapter' );
+    assert_tcdb( false === strpos( $source, 'tcdb_rollback_supported_tables' ), 'no optional rollback filter' );
+    assert_tcdb( false === strpos( $source, 'tcdb_reversible_csv_import' ), 'no cross-plugin CSV contract' );
+    assert_tcdb( false === strpos( $source, 'admin_post_tcdb_rollback' ), 'no rollback endpoint' );
     assert_tcdb( false === strpos( $source, 'eval(' ), 'no dynamic code execution' );
 }
+assert_tcdb( ! file_exists( $root . '/includes/class-tcdb-journal.php' ), 'historical journal implementation removed' );
 $entry = file_get_contents( $root . '/taxocommerce-database.php' );
 assert_tcdb( false === strpos( $entry, "require_once TAXOCOMMERCE_CORE" ), 'Core is optional' );
 assert_tcdb( false !== strpos( $entry, "add_submenu_page(" ), 'nested menu with Core' );
 assert_tcdb( false !== strpos( $entry, "add_menu_page(" ), 'standalone menu without Core' );
-assert_tcdb( false !== strpos( $entry, "register_activation_hook( __FILE__, array( 'TCDB_Journal', 'install' ) )" ), 'dedicated rollback tables installed on activation' );
-assert_tcdb( false === strpos( $entry, 'SEO_Data_Rollback::' ), 'legacy rollback engine remains separate' );
+assert_tcdb( false === strpos( $entry, "register_activation_hook" ), 'plugin no longer creates journal tables' );
 
-echo "TaxoCommerce Database smoke OK: CSV, identifiers, family independence, rollback separation.\n";
+$import = file_get_contents( $root . '/includes/class-tcdb-import.php' );
+assert_tcdb( false !== strpos( $import, "'START TRANSACTION'" ), 'CSV import starts atomic transaction' );
+assert_tcdb( false !== strpos( $import, "'COMMIT'" ), 'CSV import commits on success' );
+assert_tcdb( false !== strpos( $import, "'ROLLBACK'" ), 'CSV import aborts failed transaction' );
+
+echo "TaxoCommerce Database smoke OK: MySQL, CSV atomicity, family independence, no historical journal.\n";
