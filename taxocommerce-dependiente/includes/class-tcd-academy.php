@@ -299,6 +299,23 @@ final class TCD_Academy {
         $measure=TCD_Load::begin();
         $processed=0;
         try{
+            $backfill=TCD_Intelligence::backfill_next_missing($lesson);
+            if(is_wp_error($backfill))throw new RuntimeException($backfill->get_error_message());
+            if(is_array($backfill)){
+                $processed=absint($backfill['count']??0);
+                $load=TCD_Load::finish($measure,$processed);
+                self::save(array(
+                    'load_last'=>$load,
+                    'last_message'=>sprintf('Migración interna: L%d existente reevaluada y consolidada antes de continuar.',absint($backfill['lesson']??0))
+                ));
+                self::log('lesson_backfilled',array(
+                    'lesson'=>absint($backfill['lesson']??0),
+                    'count'=>$processed,
+                    'pass_any_ratio'=>(float)($backfill['quality']['pass_any_ratio']??0),
+                ));
+                self::queue();
+                return;
+            }
             if('snapshot'===(string)$state['phase']){
                 $processed=self::build_snapshot($state);
             }else{
