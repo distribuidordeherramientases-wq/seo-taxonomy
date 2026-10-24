@@ -44,7 +44,8 @@ final class TCD_Maintenance {
             'status'=>'idle',
             'activated_at'=>'',
             'last_run'=>'',
-            'last_cursor'=>'',
+            'last_cursor_gmt'=>'',
+            'last_cursor_local'=>'',
             'products_updated'=>0,
             'editorial_updated'=>0,
             'faqs_updated'=>0,
@@ -62,6 +63,9 @@ final class TCD_Maintenance {
         if ( ! self::ready() ) return;
         $product_id = absint( $product_id );
         if ( ! $product_id || 'publish' !== get_post_status( $product_id ) ) return;
+        $lock_key = 'tcd_product_refresh_' . $product_id;
+        if ( get_transient( $lock_key ) ) return;
+        set_transient( $lock_key, 1, 30 );
         foreach ( array( 2, 4, 9 ) as $lesson ) {
             $item = TCD_Sources::product_item( $lesson, $product_id );
             if ( is_array( $item ) ) TCD_Academy::upsert_maintenance_item( $lesson, $item );
@@ -99,7 +103,12 @@ final class TCD_Maintenance {
 
     public static function category_changed( $term_id ) {
         if ( ! self::ready() ) return;
-        $item = TCD_Sources::category_item( absint( $term_id ) );
+        $term_id = absint( $term_id );
+        if ( ! $term_id ) return;
+        $lock_key = 'tcd_category_refresh_' . $term_id;
+        if ( get_transient( $lock_key ) ) return;
+        set_transient( $lock_key, 1, 30 );
+        $item = TCD_Sources::category_item( $term_id );
         if ( ! is_array( $item ) ) return;
         TCD_Academy::upsert_maintenance_item( 1, $item );
         TCD_Intelligence::refresh_category( $term_id );
@@ -117,15 +126,18 @@ final class TCD_Maintenance {
     public static function run() {
         if ( ! self::ready() ) return;
         $state = self::state();
-        $since = $state['last_cursor'] ?: gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
-        $until = current_time( 'mysql', true );
+        $since_gmt = $state['last_cursor_gmt'] ?: gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
+        $since_local = $state['last_cursor_local'] ?: gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - DAY_IN_SECONDS );
+        $until_gmt = current_time( 'mysql', true );
+        $until_local = current_time( 'mysql' );
         try {
-            self::refresh_recent_posts( $since, $until );
-            self::refresh_recent_faqs( $since, $until );
+            self::refresh_recent_posts( $since_gmt, $until_gmt );
+            self::refresh_recent_faqs( $since_local, $until_local );
             $state = self::state();
             $state['status'] = 'active';
             $state['last_run'] = current_time( 'mysql' );
-            $state['last_cursor'] = $until;
+            $state['last_cursor_gmt'] = $until_gmt;
+            $state['last_cursor_local'] = $until_local;
             $state['last_error'] = '';
             $state['updated_at'] = current_time( 'mysql' );
             update_option( self::STATE, $state, false );
