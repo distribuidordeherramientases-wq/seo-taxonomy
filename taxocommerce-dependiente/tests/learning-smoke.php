@@ -4,9 +4,14 @@ $academy=file_get_contents($root.'/includes/class-tcd-academy.php');
 $sources=file_get_contents($root.'/includes/class-tcd-sources.php');
 $admin=file_get_contents($root.'/includes/class-tcd-admin.php');
 $main=file_get_contents($root.'/taxocommerce-dependiente.php');
+$header_match=array();
+$constant_match=array();
+preg_match('/\*\s*Version:\s*([0-9]+\.[0-9]+\.[0-9]+)/',$main,$header_match);
+preg_match("/define\s*\(\s*'TAXOCOMMERCE_DEPENDIENTE_VERSION'\s*,\s*'([0-9]+\.[0-9]+\.[0-9]+)'/",$main,$constant_match);
+
 
 $checks=array(
-    strpos($main,'Version: 0.2.2')!==false,
+    !empty($header_match[1]) && isset($constant_match[1]) && $header_match[1]===$constant_match[1],
     strpos($academy,'CREATE TABLE {$snapshots}')!==false,
     strpos($academy,'CREATE TABLE {$items}')!==false,
     strpos($academy,"'phase'=>'snapshot'")!==false,
