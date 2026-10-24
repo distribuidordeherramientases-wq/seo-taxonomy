@@ -204,7 +204,9 @@ final class TaxoCommerce_Import_Export_Batch {
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : ( $state['status'] ?? 'processing' );
 			$state['message']          = sprintf( _n( '%d archivo añadido. Cola iniciada.', '%d archivos añadidos. Cola iniciada.', $added, 'taxocommerce-import-export' ), $added );
 			$this->store_state( $state );
-			$this->schedule( 1 );
+			// Process the first bounded block immediately so starting a queue does
+			// not depend on an Action Scheduler backlog or the next WP-Cron tick.
+			$this->worker();
 		}
 
 		$this->redirect( 'ok', sprintf( _n( '%d archivo añadido a la cola.', '%d archivos añadidos a la cola.', $added, 'taxocommerce-import-export' ), $added ) );
@@ -229,7 +231,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : 'processing';
 			$state['message']          = __( 'Cola iniciada o reanudada.', 'taxocommerce-import-export' );
 			$this->store_state( $state );
-			$this->schedule( 1 );
+			$this->worker();
 		} elseif ( 'pause' === $action ) {
 			$state['pause_after_file'] = true;
 			$state['message']          = __( 'La cola se pausará al terminar el archivo actual.', 'taxocommerce-import-export' );
