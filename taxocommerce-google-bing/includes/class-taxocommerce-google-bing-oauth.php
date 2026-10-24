@@ -268,7 +268,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
 
     public static function callback() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para completar esta conexión.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'You do not have permission to complete this connection.', 'taxocommerce-google-bing' ) );
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth callback validates state below.
@@ -441,7 +441,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
 
     private static function guard( $nonce ) {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'Unauthorized access.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( $nonce );
     }
@@ -495,16 +495,16 @@ final class TaxoCommerce_Google_Bing_OAuth {
         }
 
         $messages = array(
-            'oauth_saved'               => 'Configuración OAuth guardada.',
-            'oauth_connected'           => 'Google Search Console autorizado correctamente.',
-            'oauth_disconnected'        => 'Autorización OAuth eliminada.',
-            'oauth_test_ok'             => 'Conexión OAuth correcta.',
-            'oauth_missing_credentials' => 'Faltan Client ID o Client Secret.',
-            'oauth_invalid_state'       => 'La validación de seguridad OAuth ha fallado.',
-            'oauth_missing_code'        => 'Google no devolvió el código de autorización.',
-            'oauth_token_failed'        => 'No se pudo completar la autorización OAuth.',
-            'oauth_test_failed'         => 'La prueba OAuth ha fallado.',
-            'oauth_access_denied'       => 'Google ha denegado la autorización.',
+            'oauth_saved'               => 'OAuth settings saved.',
+            'oauth_connected'           => 'Google Search Console authorized successfully.',
+            'oauth_disconnected'        => 'OAuth authorization removed.',
+            'oauth_test_ok'             => 'OAuth connection verified.',
+            'oauth_missing_credentials' => 'Client ID or Client Secret is missing.',
+            'oauth_invalid_state'       => 'OAuth state validation failed.',
+            'oauth_missing_code'        => 'Google did not return an authorization code.',
+            'oauth_token_failed'        => 'OAuth authorization could not be completed.',
+            'oauth_test_failed'         => 'OAuth test failed.',
+            'oauth_access_denied'       => 'Google denied authorization.',
         );
         $message = $messages[ $code ] ?? $code;
         $detail = '';
@@ -515,7 +515,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
             $count = get_transient( 'tgb_google_oauth_test_' . get_current_user_id() );
             delete_transient( 'tgb_google_oauth_test_' . get_current_user_id() );
             if ( false !== $count ) {
-                $detail = 'Propiedades accesibles: ' . absint( $count ) . '.';
+                $detail = 'Accessible properties: ' . absint( $count ) . '.';
             }
         }
 
