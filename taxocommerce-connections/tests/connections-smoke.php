@@ -3,10 +3,11 @@ $root = dirname( __DIR__ );
 $main = file_get_contents( $root . '/taxocommerce-connections.php' );
 $amazon = file_get_contents( $root . '/includes/class-taxocommerce-connections-amazon.php' );
 $pinterest = file_get_contents( $root . '/includes/class-taxocommerce-connections-pinterest.php' );
+$google_bing = file_get_contents( $root . '/includes/class-taxocommerce-connections-google-bing.php' );
 $admin = file_get_contents( $root . '/includes/class-taxocommerce-connections-admin.php' );
 
 $checks = array(
-    strpos( $main, 'Version: 0.1.0' ) !== false,
+    strpos( $main, 'Version: 0.2.0' ) !== false,
     strpos( $main, 'TaxoCommerce Connections' ) !== false,
     strpos( $main, 'TaxoCommerce_Connections_Amazon::boot' ) !== false,
     strpos( $main, 'TaxoCommerce_Connections_Pinterest::boot' ) !== false,
@@ -25,6 +26,10 @@ $checks = array(
     strpos( $admin, 'TaxoCommerce Insights' ) !== false,
     strpos( $admin, 'Google · Search Console / Analytics / Merchant' ) !== false,
     strpos( $admin, 'Microsoft Bing Webmaster' ) !== false,
+    strpos( $google_bing, "const GOOGLE_OPTION           = 'taxocommerce_google_bing_google_settings'" ) !== false,
+    strpos( $google_bing, "const BING_OPTION             = 'taxocommerce_google_bing_bing_settings'" ) !== false,
+    strpos( $google_bing, 'taxocommerce_connections_test_google' ) !== false,
+    strpos( $google_bing, 'taxocommerce_connections_test_bing' ) !== false,
     strpos( $admin, 'Cloudflare' ) !== false,
 );
 foreach ( $checks as $i => $ok ) {
