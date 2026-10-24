@@ -49,6 +49,7 @@ final class TCD_Maintenance {
             'products_updated'=>0,
             'editorial_updated'=>0,
             'faqs_updated'=>0,
+            'vocabulary_updated'=>0,
             'last_error'=>'',
             'updated_at'=>'',
         ) );
@@ -120,6 +121,7 @@ final class TCD_Maintenance {
         $item = TCD_Sources::content_item( absint( $post_id ) );
         if ( ! is_array( $item ) ) return;
         TCD_Academy::upsert_maintenance_item( 5, $item );
+        TCD_Intelligence::refresh_semantic_item( 5, $item, 'editorial-' . absint( $post_id ) );
         self::bump( 'editorial_updated' );
     }
 
@@ -133,6 +135,7 @@ final class TCD_Maintenance {
         try {
             self::refresh_recent_posts( $since_gmt, $until_gmt );
             self::refresh_recent_faqs( $since_local, $until_local );
+            self::refresh_recent_vocabulary( $since_local, $until_local );
             $state = self::state();
             $state['status'] = 'active';
             $state['last_run'] = current_time( 'mysql' );
@@ -179,7 +182,47 @@ final class TCD_Maintenance {
             $item = TCD_Sources::faq_item( absint( $id ) );
             if ( ! is_array( $item ) ) continue;
             TCD_Academy::upsert_maintenance_item( 6, $item );
+            TCD_Intelligence::refresh_semantic_item( 6, $item, 'faq-' . absint( $id ) );
             self::bump( 'faqs_updated' );
+        }
+    }
+
+    private static function refresh_recent_vocabulary( $since, $until ) {
+        global $wpdb;
+        $voc = $wpdb->prefix . 'seo_vocabulary';
+        $rel = $wpdb->prefix . 'seo_object_vocabulary';
+        if ( ! self::table_exists( $voc ) ) return;
+        $ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
+            "SELECT id FROM {$voc}
+             WHERE active=1 AND updated_at>%s AND updated_at<=%s
+             ORDER BY updated_at ASC,id ASC LIMIT 120",
+            $since, $until
+        ) ) );
+        if ( ! $ids ) return;
+
+        $products = array();
+        foreach ( $ids as $id ) {
+            $item = TCD_Sources::vocabulary_item( $id );
+            if ( ! is_array( $item ) ) continue;
+            TCD_Academy::upsert_maintenance_item( 3, $item );
+            TCD_Intelligence::refresh_semantic_item( 3, $item, 'vocabulary-' . $id );
+            self::bump( 'vocabulary_updated' );
+
+            if ( self::table_exists( $rel ) && count( $products ) < 120 ) {
+                $affected = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
+                    "SELECT object_id FROM {$rel}
+                     WHERE object_type='product' AND vocabulary_id=%d AND status=1
+                     ORDER BY object_id ASC LIMIT 40",
+                    $id
+                ) ) );
+                foreach ( $affected as $product_id ) {
+                    $products[ $product_id ] = true;
+                    if ( count( $products ) >= 120 ) break;
+                }
+            }
+        }
+        foreach ( array_keys( $products ) as $product_id ) {
+            self::product_changed( $product_id );
         }
     }
 
