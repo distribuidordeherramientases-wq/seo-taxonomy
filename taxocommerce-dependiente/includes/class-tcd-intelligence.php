@@ -487,9 +487,17 @@ final class TCD_Intelligence {
             $result['semantic_hits'][] = $hit;
             $group = $hit['target_group'] ?: $hit['source_group'] ?: $hit['role'];
             $slug = $hit['target_slug'] ?: $hit['source_slug'];
+            if ( ! $slug && $group ) {
+                $slug = sanitize_title( (string) ( $hit['canonical'] ?: $hit['expression'] ) );
+            }
             if ( $group && $slug ) {
                 $key = $group . ':' . $slug;
-                $result['groups'][ $key ] = array( 'group'=>$group, 'slug'=>$slug, 'label'=>$hit['canonical'], 'weight'=>$hit['weight'] );
+                $result['groups'][ $key ] = array(
+                    'group'=>$group,
+                    'slug'=>$slug,
+                    'label'=>$hit['canonical'] ?: $hit['expression'],
+                    'weight'=>$hit['weight'],
+                );
             }
         }
         self::apply_vocabulary_direct( $result, $ngrams );
@@ -890,10 +898,11 @@ final class TCD_Intelligence {
     }
 
     public static function normalize( $value ) {
-        $value = trim( wp_strip_all_tags( (string) $value ) );
-        $value = function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value );
+        $value = html_entity_decode( wp_strip_all_tags( (string) $value ), ENT_QUOTES, get_bloginfo( 'charset' ) ?: 'UTF-8' );
         $value = remove_accents( $value );
-        $value = preg_replace( '/[^\p{L}\p{N}]+/u', ' ', $value );
+        $value = function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value );
+        $value = preg_replace( '/(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)/u', ' ', $value );
+        $value = preg_replace( '/[^a-z0-9]+/u', ' ', $value );
         return trim( preg_replace( '/\s+/u', ' ', (string) $value ) );
     }
 
@@ -909,14 +918,34 @@ final class TCD_Intelligence {
 
     private static function token_variants( $token ) {
         $token = self::normalize( $token );
+        if ( ! $token ) return array();
         $out = array( $token );
-        if ( strlen( $token ) > 5 && substr( $token, -2 ) === 'es' ) $out[] = substr( $token, 0, -2 );
-        if ( strlen( $token ) > 4 && substr( $token, -1 ) === 's' ) $out[] = substr( $token, 0, -1 );
+        if ( false === strpos( $token, ' ' ) && strlen( $token ) >= 4 ) {
+            $last = substr( $token, -1 );
+            $last2 = substr( $token, -2 );
+            if ( 'z' === $last && strlen( $token ) > 4 ) {
+                $out[] = substr( $token, 0, -1 ) . 'ces';
+            } elseif ( preg_match( '/[aeiou]$/', $token ) ) {
+                $out[] = $token . 's';
+            } elseif ( 's' === $last && strlen( $token ) > 4 ) {
+                $out[] = substr( $token, 0, -1 );
+                if ( 'es' === $last2 && strlen( $token ) > 5 ) $out[] = substr( $token, 0, -2 );
+            } else {
+                $out[] = $token . 'es';
+            }
+        }
         return array_values( array_unique( array_filter( $out ) ) );
     }
 
     private static function without_stopwords( $text ) {
-        $stop = array( 'a','al','de','del','el','la','las','los','un','una','unos','unas','y','o','para','por','con','sin','sobre','que','quiero','necesito','busco','buscar','dame','mostrar','muestra','algo','producto','productos' );
+        $stop = array(
+            'a','al','algo','algun','alguna','algunas','algunos','ante','bajo','cada','como','con','contra','cual','cuando',
+            'de','del','desde','donde','e','el','ella','ellas','ellos','en','entre','era','es','esa','esas','ese','eso','esos',
+            'esta','estas','este','esto','estos','ha','hacia','hasta','hay','la','las','le','les','lo','los','me','mi','mis',
+            'muy','nos','o','para','pero','por','porque','que','se','sin','sobre','su','sus','te','tu','tus','un','una','unas',
+            'uno','unos','y','ya','yo','quiero','queremos','necesito','necesitamos','busco','buscar','dame','mostrar','muestra',
+            'producto','productos'
+        );
         return implode( ' ', array_values( array_filter( explode( ' ', self::normalize( $text ) ), static function ( $word ) use ( $stop ) {
             return ! in_array( $word, $stop, true );
         } ) ) );
