@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Connections
- * Description: Conexiones compartidas para la familia TaxoCommerce: Amazon Afiliados/Creators y Pinterest Business/OAuth.
+ * Description: Conexiones compartidas para la familia TaxoCommerce: Google, Bing, Amazon y Pinterest.
  * Version: 0.1.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -19,6 +19,7 @@ define( 'TAXOCOMMERCE_CONNECTIONS_PATH', plugin_dir_path( __FILE__ ) );
 
 require_once TAXOCOMMERCE_CONNECTIONS_PATH . 'includes/class-taxocommerce-connections-amazon.php';
 require_once TAXOCOMMERCE_CONNECTIONS_PATH . 'includes/class-taxocommerce-connections-pinterest.php';
+require_once TAXOCOMMERCE_CONNECTIONS_PATH . 'includes/class-taxocommerce-connections-google-bing.php';
 require_once TAXOCOMMERCE_CONNECTIONS_PATH . 'includes/class-taxocommerce-connections-admin.php';
 
 add_action(
@@ -26,6 +27,7 @@ add_action(
 	static function () {
 		TaxoCommerce_Connections_Amazon::boot();
 		TaxoCommerce_Connections_Pinterest::boot();
+		TaxoCommerce_Connections_Google_Bing::boot();
 		TaxoCommerce_Connections_Admin::boot();
 	},
 	60
@@ -45,7 +47,7 @@ add_filter(
 			'search_term'   => 'TaxoCommerce Connections',
 			'wordpress_org' => false,
 			'admin_url'     => admin_url( 'admin.php?page=taxocommerce-connections' ),
-			'description'   => __( 'Conexiones compartidas de la familia TaxoCommerce; Amazon Afiliados/Creators y Pinterest Business/OAuth.', 'taxocommerce-connections' ),
+			'description'   => __( 'Conexiones compartidas de la familia TaxoCommerce; Google, Bing, Amazon y Pinterest.', 'taxocommerce-connections' ),
 		);
 		return $extensions;
 	}
