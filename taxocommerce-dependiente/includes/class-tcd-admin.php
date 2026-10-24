@@ -130,7 +130,7 @@ final class TCD_Admin {
         $maintenance=TCD_Maintenance::state();
         echo '<h2>M11 · Intérprete y M12 · Actualización</h2>';
         echo '<table class="widefat striped"><thead><tr><th>Módulo</th><th>Estado</th><th>Resultado</th></tr></thead><tbody>';
-        echo '<tr><td><strong>M11 · Intérprete</strong></td><td>'.esc_html((string)($interpreter['status']??'Pendiente')).'</td><td>';
+        echo '<tr><td><strong>M11 · Creación / actualización del Intérprete</strong></td><td>'.esc_html((string)($interpreter['status']??'Pendiente')).'</td><td>';
         if($interpreter){
             echo esc_html(number_format_i18n(absint($interpreter['rules']??0))).' reglas · ';
             echo esc_html(number_format_i18n(absint($interpreter['l9_memory']??0))).' señales L9 · ';
@@ -139,6 +139,7 @@ final class TCD_Admin {
         echo '</td></tr>';
         echo '<tr><td><strong>M12 · Actualización continua</strong></td><td>'.esc_html((string)($maintenance['status']??'Pendiente')).'</td><td>';
         echo 'Productos actualizados: '.esc_html(number_format_i18n(absint($maintenance['products_updated']??0))).' · ';
+        echo 'categorías: '.esc_html(number_format_i18n(absint($maintenance['categories_updated']??0))).' · ';
         echo 'editorial: '.esc_html(number_format_i18n(absint($maintenance['editorial_updated']??0))).' · ';
         echo 'FAQs: '.esc_html(number_format_i18n(absint($maintenance['faqs_updated']??0))).' · ';
         echo 'Vocabulary: '.esc_html(number_format_i18n(absint($maintenance['vocabulary_updated']??0)));
