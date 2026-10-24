@@ -962,7 +962,7 @@ final class TaxoCommerce_Core {
 	}
 
 	/**
-	 * Redirect links to the former dedicated Anomalías screen to Content.
+	 * Redirect links from the former dedicated Anomalies screen to Content.
 	 *
 	 * @return void
 	 */
