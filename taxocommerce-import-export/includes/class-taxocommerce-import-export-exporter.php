@@ -757,14 +757,25 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( ! $parents ) {
 			return array();
 		}
-		global $wpdb;
-		$placeholders = implode( ',', array_fill( 0, count( $parents ), '%d' ) );
-		$sql = "SELECT DISTINCT post_id FROM {$wpdb->postmeta}
-			WHERE meta_key=%s AND CAST(meta_value AS UNSIGNED) IN ({$placeholders})
-			ORDER BY post_id ASC";
-		$params = array_merge( array( $meta_key ), $parents );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholder list is generated internally.
-		return array_values( array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( $sql, $params ) ) ) );
+		$ids = get_posts(
+			array(
+				'post_type'      => 'page',
+				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'meta_query'     => array(
+					array(
+						'key'     => sanitize_key( $meta_key ),
+						'value'   => $parents,
+						'compare' => 'IN',
+						'type'    => 'NUMERIC',
+					),
+				),
+			)
+		);
+		return array_values( array_map( 'absint', (array) $ids ) );
 	}
 
 	/**
@@ -778,14 +789,24 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( ! $secondary_ids ) {
 			return array();
 		}
-		global $wpdb;
-		$placeholders = implode( ',', array_fill( 0, count( $secondary_ids ), '%d' ) );
-		$sql = "SELECT DISTINCT term_id FROM {$wpdb->termmeta}
-			WHERE meta_key=%s AND CAST(meta_value AS UNSIGNED) IN ({$placeholders})
-			ORDER BY term_id ASC";
-		$params = array_merge( array( '_taxocommerce_core_parent_hub_secondary' ), $secondary_ids );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholder list is generated internally.
-		return array_values( array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( $sql, $params ) ) ) );
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'product_cat',
+				'hide_empty' => false,
+				'fields'     => 'ids',
+				'orderby'    => 'id',
+				'order'      => 'ASC',
+				'meta_query' => array(
+					array(
+						'key'     => '_taxocommerce_core_parent_hub_secondary',
+						'value'   => $secondary_ids,
+						'compare' => 'IN',
+						'type'    => 'NUMERIC',
+					),
+				),
+			)
+		);
+		return is_wp_error( $terms ) ? array() : array_values( array_map( 'absint', (array) $terms ) );
 	}
 
 	/**
