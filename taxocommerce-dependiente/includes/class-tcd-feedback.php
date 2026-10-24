@@ -520,7 +520,8 @@ final class TCD_Feedback {
 
         $table = TCD_Knowledge_Transfer::l9_table();
         $product_id = absint( $row['product_id'] ?? 0 );
-        $query = self::normalize_query( $row['normalized_query'] ?? '' );
+        $full_query = self::normalize_query( $row['normalized_query'] ?? '' );
+        $query = self::portable_phrase( $full_query );
         if ( ! $product_id || ! $query ) return;
 
         $hash = hash( 'sha256', 'customer_feedback|' . (string) ( $row['query_hash'] ?? '' ) . '|product:' . $product_id );
@@ -544,6 +545,7 @@ final class TCD_Feedback {
             'click_sessions'=>absint( $row['click_sessions'] ?? 0 ),
             'evidence_share'=>round( (float) ( $row['evidence_share'] ?? 0 ), 4 ),
             'confidence'=>round( $confidence, 4 ),
+            'normalized_query'=>$full_query,
         );
 
         $wpdb->replace( $table, array(
@@ -567,7 +569,8 @@ final class TCD_Feedback {
         global $wpdb;
 
         $table = TCD_Knowledge_Transfer::rules_table();
-        $query = self::normalize_query( $row['normalized_query'] ?? '' );
+        $full_query = self::normalize_query( $row['normalized_query'] ?? '' );
+        $query = self::portable_phrase( $full_query );
         $group = sanitize_key( (string) ( $row['semantic_group'] ?? '' ) );
         $slug = sanitize_title( (string) ( $row['semantic_slug'] ?? '' ) );
         $label = trim( sanitize_text_field( (string) ( $row['semantic_label'] ?? '' ) ) );
@@ -588,6 +591,7 @@ final class TCD_Feedback {
             'clarification_sessions'=>absint( $row['clarification_sessions'] ?? 0 ),
             'evidence_share'=>round( (float) ( $row['evidence_share'] ?? 0 ), 4 ),
             'confidence'=>round( $confidence, 4 ),
+            'normalized_query'=>$full_query,
         );
         $rule_hash = hash( 'sha256', wp_json_encode( array(
             'alias',$query,$group,$slug,$weight,$priority,round( $confidence, 4 )
@@ -924,6 +928,22 @@ final class TCD_Feedback {
         if ( $count >= self::MAX_EVENTS_PER_SESSION_HOUR ) return false;
         set_transient( $key, $count + 1, HOUR_IN_SECONDS );
         return true;
+    }
+
+    private static function portable_phrase( $query ) {
+        $normalized = self::normalize_query( $query );
+        if ( ! $normalized ) return '';
+
+        $stop = array(
+            'a','al','algo','de','del','el','la','las','los','un','una','unos','unas','y','o',
+            'para','por','con','sobre','que','quiero','necesito','busco','buscar','dame','mostrar',
+            'muestra','producto','productos'
+        );
+        $words = array_values( array_filter( explode( ' ', $normalized ), static function ( $word ) use ( $stop ) {
+            return strlen( $word ) >= 2 && ! in_array( $word, $stop, true );
+        } ) );
+        if ( ! $words ) $words = array_values( array_filter( explode( ' ', $normalized ) ) );
+        return implode( ' ', array_slice( $words, 0, 5 ) );
     }
 
     private static function prompt_for_group( $group ) {
