@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Connections
- * Description: Conexiones compartidas para la familia TaxoCommerce: Google, Bing, Amazon y Pinterest.
+ * Description: Shared connection layer for Google, Bing, Amazon, Pinterest, and future TaxoCommerce integrations.
  * Version: 0.1.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -47,7 +47,7 @@ add_filter(
 			'search_term'   => 'TaxoCommerce Connections',
 			'wordpress_org' => false,
 			'admin_url'     => admin_url( 'admin.php?page=taxocommerce-connections' ),
-			'description'   => __( 'Conexiones compartidas de la familia TaxoCommerce; Google, Bing, Amazon y Pinterest.', 'taxocommerce-connections' ),
+			'description'   => __( 'Shared TaxoCommerce connection layer for Google, Bing, Amazon, Pinterest, and future integrations.', 'taxocommerce-connections' ),
 		);
 		return $extensions;
 	}
