@@ -67,7 +67,7 @@ function tcdist_feed_admin_save_settings() {
         'auto_refresh'                => empty( $_POST['auto_refresh'] ) ? 0 : 1,
         'daily_time'                  => tcdist_feed_sanitize_daily_time( $daily_time ),
         'refresh_after_supplier_sync' => empty( $_POST['refresh_after_supplier_sync'] ) ? 0 : 1,
-        'batch_size'                  => absint( tcdist_feed_settings()['batch_size'] ?? TCDIST_FEED_BATCH_SIZE ), // Legacy: el lote real lo regula Procesos.
+        'batch_size'                  => absint( tcdist_feed_settings()['batch_size'] ?? TCDIST_FEED_BATCH_SIZE ), // Legacy: actual batch size is regulated by Processes.
     ];
 
     update_option( TCDIST_FEED_SETTINGS_OPTION, $settings, false );
@@ -113,7 +113,7 @@ function tcdist_feed_admin_regenerate() {
             wp_safe_redirect(
                 tcdist_feed_admin_redirect_url(
                     array(
-                        'cf_error' => rawurlencode( 'El generador antiguo de inventarios está trabajando. Espera a que termine o detenlo antes de iniciar una prueba desde Distribution.' ),
+                        'cf_error' => rawurlencode( 'The legacy inventory generator is running. Wait for it to finish or stop it before starting a Distribution test.' ),
                     )
                 )
             );
@@ -153,7 +153,7 @@ function tcdist_feed_admin_stop() {
 }
 
 /**
- * Pulso administrativo. No ejecuta productos: solo despierta el Gestor de
+ * Admin pulse. It does not process products; it only wakes the worker
  * workers central para que este reparta la siguiente ventana de trabajo.
  */
 function tcdist_feed_admin_ajax_tick() {
@@ -207,7 +207,7 @@ function tcdist_feed_admin_local_datetime( $utc_mysql ) {
 function tcdist_feed_admin_origin_label( $origin ) {
     $labels = [
         'manual'          => 'Manual',
-        'manual_processes'=> 'Manual desde Procesos',
+        'manual_processes'=> 'Manual from Processes',
         'supplier_sync' => 'Fin de sincronizacion de proveedores',
         'daily_safety'  => 'Regeneracion diaria de seguridad',
         'scheduled'     => 'Programada',
@@ -249,7 +249,7 @@ function tcdist_feed_render_admin() {
     }
 
     if ( $is_staging ) {
-        echo '<div class="notice notice-warning inline"><p><strong>STAGING:</strong> esta generacion usa los productos y URLs de este entorno y sirve solo para pruebas. No se programan actualizaciones comerciales ni deben registrarse estas URLs en Google, Microsoft o Pinterest.</p></div>';
+        echo '<div class="notice notice-warning inline"><p><strong>STAGING:</strong> this generation uses products and URLs from this environment and is for testing only. No commercial refresh is scheduled and these URLs must not be registered with Google, Microsoft, or Pinterest.</p></div>';
     } else {
         echo '<div class="notice notice-success inline"><p><strong>PRODUCCION:</strong> este entorno genera los inventarios comerciales reales. Las plataformas descargan desde estas URLs; no existe un envio directo desde WordPress.</p></div>';
     }
@@ -263,7 +263,7 @@ function tcdist_feed_render_admin() {
     }
 
     if ( ! $manager_enabled ) {
-        echo '<div class="notice notice-error inline"><p><strong>worker propio de Distribution:</strong> Inventarios comerciales no esta habilitado en Procesos &gt; worker propio de Distribution. Puedes iniciar una generacion, pero no avanzara hasta habilitar ese proceso.</p></div>';
+        echo '<div class="notice notice-error inline"><p><strong>Distribution worker:</strong> Inventarios comerciales no esta habilitado en Procesos &gt; worker propio de Distribution. Puedes iniciar una generacion, pero no avanzara hasta habilitar ese proceso.</p></div>';
     }
 
     $status = (string) ( $state['status'] ?? 'never' );
@@ -276,8 +276,8 @@ function tcdist_feed_render_admin() {
     <div style="max-width:1220px;">
         <h2>Inventarios comerciales</h2>
         <p>
-            Genera fuentes publicas de productos para plataformas que descargan el catalogo por URL.
-            No sustituye los sitemaps: aqui se publica inventario comercial con precio, stock, imagen,
+            Generates public product feeds for platforms that download the catalog by URL.
+            It does not replace sitemaps: this publishes commercial inventory with price, stock, image,
             GTIN/MPN, marca y categoria.
         </p>
 
@@ -324,18 +324,18 @@ function tcdist_feed_render_admin() {
                             <input type="text" name="country" value="<?php echo esc_attr( $settings['country'] ); ?>" maxlength="2" size="5">
                         </label>
                         <label>
-                            <strong>Idioma</strong><br>
+                            <strong>Language</strong><br>
                             <input type="text" name="language" value="<?php echo esc_attr( $settings['language'] ); ?>" maxlength="2" size="5">
                         </label>
                         <span>
                             <strong>Lote</strong><br>
-                            <span class="description">Adaptativo · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>">ver en Automatización</a></span>
+                            <span class="description">Adaptive · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>">view Automation</a></span>
                         </span>
                     </p>
 
                     <label style="display:block;margin:16px 0 8px;">
                         <input type="checkbox" name="refresh_after_supplier_sync" value="1" <?php checked( ! empty( $settings['refresh_after_supplier_sync'] ) ); ?>>
-                        Regenerar al terminar una sincronizacion de proveedores que haya modificado productos
+                        Regenerate after a supplier synchronization that changed products
                     </label>
                     <p class="description">En PRODUCCION se programa una regeneracion aproximadamente 2 minutos despues de terminar la sincronizacion. En STAGING no se agenda.</p>
 
@@ -349,7 +349,7 @@ function tcdist_feed_render_admin() {
                     </label>
                     <p class="description">Hora local de WordPress. Sirve como respaldo aunque no haya habido sincronizacion de proveedores.</p>
 
-                    <p><button type="submit" class="button button-primary">Guardar configuracion</button></p>
+                    <p><button type="submit" class="button button-primary">Save settings</button></p>
                 </form>
             </div>
 
@@ -368,7 +368,7 @@ function tcdist_feed_render_admin() {
                     <?php endif; ?>
                 </p>
                 <?php if ( ! empty( $state['last_batch_rows'] ) ) : ?>
-                    <p class="description"><strong>Ultimo lote:</strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> productos en <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
+                    <p class="description"><strong>Last batch:</strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> products in <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
                 <?php else : ?>
                     <p class="description">Pendiente de la primera ventana del worker propio de Distribution.</p>
                 <?php endif; ?>
@@ -407,7 +407,7 @@ function tcdist_feed_render_admin() {
                         <button type="submit" class="button" <?php disabled( 'running' !== $status ); ?> onclick="return confirm('¿Parar la generacion actual? Los archivos parciales no se publicaran.');">Parar generacion</button>
                     </form>
                 </div>
-                <p class="description">Iniciar crea una generacion nueva y la entrega al <strong>worker propio de Distribution</strong>. Parar invalida la ejecucion actual sin sustituir el ultimo feed valido. El tamaño del lote, la pausa, la presión y la recuperacion se gobiernan desde Procesos; este plugin mantiene un único worker propio por bloques.</p>
+                <p class="description">Start creates a new generation and hands it to the <strong>Distribution worker</strong>. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker.</p>
                 <p class="description">Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo.</p>
 
                 <?php if ( ! empty( $state['excluded_reasons'] ) ) : ?>
@@ -423,7 +423,7 @@ function tcdist_feed_render_admin() {
 
                 <?php if ( ! empty( $state['errors'] ) ) : ?>
                     <details open>
-                        <summary>Errores tecnicos</summary>
+                        <summary>Technical errors</summary>
                         <ul style="margin-left:20px;">
                             <?php foreach ( array_slice( (array) $state['errors'], -10 ) as $message ) : ?>
                                 <li><?php echo esc_html( (string) $message ); ?></li>
@@ -460,7 +460,7 @@ function tcdist_feed_render_admin() {
                     <tr>
                         <td><strong><?php echo esc_html( $config['label'] ); ?></strong><br><span class="description"><?php echo esc_html( $config['description'] ); ?></span></td>
                         <td><code><?php echo esc_html( $filename ); ?></code><?php if ( $exists ) : ?><br><span class="description"><?php echo esc_html( tcdist_feed_admin_bytes( filesize( $path ) ) ); ?></span><?php endif; ?></td>
-                        <td><?php echo $enabled ? ( $exists ? '<span style="color:#1d6b43;">Listo</span>' : '<span style="color:#996800;">Pendiente de generar</span>' ) : '<span style="color:#646970;">Desactivado</span>'; ?></td>
+                        <td><?php echo $enabled ? ( $exists ? '<span style="color:#1d6b43;">Ready</span>' : '<span style="color:#996800;">Pending generation</span>' ) : '<span style="color:#646970;">Disabled</span>'; ?></td>
                         <td>
                             <?php if ( $enabled && $url ) : ?>
                                 <code style="word-break:break-all;"><?php echo esc_html( $url ); ?></code>
@@ -511,9 +511,9 @@ function tcdist_feed_render_admin() {
 
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
             <h3 style="margin-top:0;">Alta inicial en las plataformas</h3>
-            <p><strong>Google Merchant Center:</strong> crea una fuente de productos desde archivo y registra la URL de <code>google-merchant.xml</code>.</p>
+            <p><strong>Google Merchant Center:</strong> creates a product data source from a file and registers the URL of <code>google-merchant.xml</code>.</p>
             <p><strong>Microsoft Merchant Center:</strong> crea un feed con descarga automatica desde URL y registra <code>microsoft-merchant.txt</code>.</p>
-            <p><strong>Pinterest Catalogs:</strong> agrega una fuente de datos alojada por URL y registra <code>pinterest-catalog.csv</code>.</p>
+            <p><strong>Pinterest Catalogs:</strong> adds a hosted data source by URL and registers <code>pinterest-catalog.csv</code>.</p>
             <p><strong>Otros receptores:</strong> usa <code>catalogo-universal.csv</code> o <code>catalogo-universal.json</code>. El JSON conserva la estructura completa del registro canonico, incluidas las imagenes adicionales como array. Tambien puedes registrar un nuevo canal mediante el filtro <code>tcdist_commercial_feed_channels</code>.</p>
             <p class="description">Esta version usa el modelo mas estable para el catalogo completo: la tienda publica el feed y cada plataforma lo descarga. Las APIs quedan reservadas para actualizaciones incrementales casi en tiempo real si mas adelante hacen falta.</p>
         </div>
