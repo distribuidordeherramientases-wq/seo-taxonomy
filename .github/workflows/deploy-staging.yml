@@ -70,6 +70,8 @@ jobs:
             taxocommerce-dependiente/**
             taxocommerce-faqs/**
             taxocommerce-vocabulary/**
+            taxocommerce-logistica/**
+            taxocommerce-facturacion/**
             packages/**
             **/node_modules/**
             **/*.bak
@@ -172,6 +174,64 @@ jobs:
             **/*.md
             **/*.pot
 
+
+      - name: Validate TaxoCommerce Logística
+        run: |
+          test -f taxocommerce-logistica/taxocommerce-logistica.php
+          find taxocommerce-logistica -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-logistica/tests/smoke.php
+
+      - name: Deploy TaxoCommerce Logística to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-logistica/
+          server-dir: ./wp-content/plugins/taxocommerce-logistica/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Prepare and validate TaxoCommerce Facturación
+        run: |
+          test -f taxocommerce-facturacion/taxocommerce-facturacion.php
+          test -f includes/facturas/dompdf/autoload.inc.php
+          rm -rf taxocommerce-facturacion/includes/dompdf
+          cp -a includes/facturas/dompdf taxocommerce-facturacion/includes/dompdf
+          find taxocommerce-facturacion -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-facturacion/tests/smoke.php
+          test -f taxocommerce-facturacion/includes/dompdf/vendor/autoload.php
+
+      - name: Deploy TaxoCommerce Facturación to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-facturacion/
+          server-dir: ./wp-content/plugins/taxocommerce-facturacion/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
 
       - name: Validate TaxoCommerce FAQs
         run: |

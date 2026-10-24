@@ -1,0 +1,18 @@
+.seo-logistica-wrap .nav-tab-wrapper { margin-bottom: 14px; }
+        .seo-logistica-summary { display:grid; grid-template-columns:repeat(4,minmax(140px,1fr)); gap:12px; margin:18px 0; max-width:980px; }
+        .seo-logistica-summary > div { background:#fff; border:1px solid #dcdcde; border-radius:4px; padding:14px 16px; }
+        .seo-logistica-summary strong { display:block; font-size:24px; line-height:1.1; margin-bottom:5px; }
+        .seo-logistica-summary span { color:#646970; }
+        .seo-logistica-table-scroll { overflow-x:auto; margin-top:16px; }
+        .seo-logistica-table { min-width:1220px; }
+        .seo-logistica-table th { white-space:nowrap; }
+        .seo-logistica-table td { vertical-align:top; }
+        .seo-logistica-table code { white-space:nowrap; }
+        .seo-logistica-actions { white-space:nowrap; }
+        .seo-logistica-missing td { background:#fff8e5 !important; }
+        .seo-logistica-order-status { display:inline-block; border-radius:999px; padding:3px 9px; background:#f0f0f1; white-space:nowrap; }
+        .seo-logistica-order-status--processing { background:#e7f5ee; }
+        .seo-logistica-order-status--on-hold { background:#fff8e5; }
+        .seo-logistica-order-status--pending { background:#f0f0f1; }
+        .seo-logistica-no-url { display:inline-block; margin:5px 6px 5px 0; color:#8a2424; }
+        @media (max-width: 900px) { .seo-logistica-summary { grid-template-columns:repeat(2,minmax(140px,1fr)); } }
