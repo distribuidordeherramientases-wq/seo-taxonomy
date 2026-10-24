@@ -396,6 +396,9 @@ final class TaxoCommerce_Import_Export_CSV {
 		if ( 'product' === $type ) {
 			return $this->import_product( $data );
 		}
+		if ( 'product_editorial' === $type ) {
+			return $this->import_product_editorial( $data );
+		}
 		if ( 'product_category' === $type ) {
 			return $this->import_product_category( $data );
 		}
@@ -404,6 +407,57 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 
 		return new WP_Error( 'taxocommerce_ie_record_type', __( 'record_type no reconocido.', 'taxocommerce-import-export' ) );
+	}
+
+	/**
+	 * Update editorial content of an existing external product without touching
+	 * its affiliate URL, button, taxonomies, prices, stock, images or metadata.
+	 *
+	 * Dedicated CSV schema: record_type,id,sku,status,short_description,description.
+	 * This operation never creates products. ID and SKU must both match.
+	 *
+	 * @param array $data CSV row.
+	 * @return true|WP_Error
+	 */
+	private function import_product_editorial( $data ) {
+		$id     = absint( $data['id'] ?? 0 );
+		$sku    = sanitize_text_field( (string) ( $data['sku'] ?? '' ) );
+		$status = sanitize_key( (string) ( $data['status'] ?? '' ) );
+
+		if ( ! $id || '' === $sku || ! array_key_exists( 'short_description', $data ) || ! array_key_exists( 'description', $data ) ) {
+			return new WP_Error( 'tc_ie_editorial_columns', __( 'La actualización editorial requiere ID, SKU y ambas descripciones.', 'taxocommerce-import-export' ) );
+		}
+		if ( 'publish' !== $status ) {
+			return new WP_Error( 'tc_ie_editorial_status', __( 'El importador editorial solo admite publish.', 'taxocommerce-import-export' ) );
+		}
+
+		$product = wc_get_product( $id );
+		if ( ! $product || ! $product->is_type( 'external' ) ) {
+			return new WP_Error( 'tc_ie_editorial_external', __( 'El ID no corresponde a un producto externo existente.', 'taxocommerce-import-export' ) );
+		}
+		if ( $sku !== (string) $product->get_sku( 'edit' ) ) {
+			return new WP_Error( 'tc_ie_editorial_sku', __( 'El SKU no coincide con el producto existente. No se ha modificado.', 'taxocommerce-import-export' ) );
+		}
+		if ( ! in_array( $product->get_status( 'edit' ), array( 'draft', 'publish' ), true ) ) {
+			return new WP_Error( 'tc_ie_editorial_current_status', __( 'El estado actual del producto no permite esta actualización editorial.', 'taxocommerce-import-export' ) );
+		}
+
+		$excerpt     = wp_kses_post( (string) $data['short_description'] );
+		$description = wp_kses_post( (string) $data['description'] );
+		if ( strlen( trim( wp_strip_all_tags( $excerpt ) ) ) < 30 || strlen( trim( wp_strip_all_tags( $description ) ) ) < 140 ) {
+			return new WP_Error( 'tc_ie_editorial_content', __( 'El extracto o la descripción resultan demasiado breves para publicar.', 'taxocommerce-import-export' ) );
+		}
+
+		try {
+			$product->set_short_description( $excerpt );
+			$product->set_description( $description );
+			$product->set_status( 'publish' );
+			$product->save();
+		} catch ( Exception $exception ) {
+			return new WP_Error( 'tc_ie_editorial_save', sanitize_text_field( $exception->getMessage() ) );
+		}
+
+		return true;
 	}
 
 	/**
