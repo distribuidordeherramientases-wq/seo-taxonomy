@@ -5,6 +5,7 @@ $learning_log=file_get_contents($root.'/includes/class-tcd-learning-log.php');
 $sources=file_get_contents($root.'/includes/class-tcd-sources.php');
 $intelligence=file_get_contents($root.'/includes/class-tcd-intelligence.php');
 $maintenance=file_get_contents($root.'/includes/class-tcd-maintenance.php');
+$feedback=file_get_contents($root.'/includes/class-tcd-feedback.php');
 $search=file_get_contents($root.'/includes/class-tcd-search.php');
 $admin=file_get_contents($root.'/includes/class-tcd-admin.php');
 $knowledge=file_get_contents($root.'/includes/class-tcd-knowledge-transfer.php');
@@ -16,7 +17,7 @@ preg_match("/define\s*\(\s*'TAXOCOMMERCE_DEPENDIENTE_VERSION'\s*,\s*'([0-9]+\.[0
 
 $checks=array(
     !empty($header_match[1]) && isset($constant_match[1]) && $header_match[1]===$constant_match[1],
-    isset($header_match[1]) && version_compare($header_match[1],'0.3.2','>='),
+    isset($header_match[1]) && version_compare($header_match[1],'0.3.3','>='),
     strpos($academy,'CREATE TABLE {$snapshots}')!==false,
     strpos($academy,'CREATE TABLE {$items}')!==false,
     strpos($academy,"'phase'=>'snapshot'")!==false,
@@ -60,9 +61,25 @@ $checks=array(
     strpos($maintenance,'refresh_recent_assignments')!==false,
     strpos($maintenance,'seo_object_vocabulary')!==false,
     strpos($maintenance,'TCD_Intelligence::build_interpreter')!==false,
+    strpos($maintenance,'TCD_Feedback::consolidate')!==false,
+    strpos($feedback,'CREATE TABLE {$events}')!==false,
+    strpos($feedback,'CREATE TABLE {$learning}')!==false,
+    strpos($feedback,"'click_sessions'")!==false,
+    strpos($feedback,"'clarification_sessions'")!==false,
+    strpos($feedback,"'feedback_promoted'")!==false,
+    strpos($feedback,'clarification_options')!==false,
+    strpos($feedback,'active_product_scores')!==false,
+    strpos($feedback,'active_semantic_hints')!==false,
+    strpos($feedback,"'product_cat'")!==false,
     strpos($search,'TCD_Intelligence::interpret')!==false,
     strpos($search,'TCD_Intelligence::decision')!==false,
     strpos($search,'TCD_Intelligence::search_products')!==false,
+    strpos($search,"'/feedback'")!==false,
+    strpos($search,'TCD_Feedback::record_click')!==false,
+    strpos($search,'TCD_Feedback::record_clarification')!==false,
+    strpos($search,'max_depth')!==false,
+    strpos($search,'tcd-clarify')!==false,
+    strpos($search,'keepalive:true')!==false,
     strpos($search,"add_shortcode( 'taxocommerce_dependiente_moderno'")!==false,
     strpos($search,"'staging' === wp_get_environment_type()")!==false,
     strpos($search,"return ! defined( 'SEO_DEPENDIENTE_VERSION' );")!==false,
@@ -94,6 +111,8 @@ $checks=array(
     strpos($admin,'La foto permanece congelada durante esta lección.')!==false,
     strpos($admin,'[taxocommerce_dependiente_moderno]')!==false,
     strpos($admin,"shortcode_exists( 'taxocommerce_dependiente_moderno' )")!==false,
+    strpos($admin,'M12 · Feedback de clientes')!==false,
+    strpos($admin,'Un clic aislado no enseña una regla.')!==false,
     strpos($admin,"if('knowledge'===\$tab)")!==false,
     substr_count($admin,'TCD_Knowledge_Transfer::render_admin_section();')===1,
     strpos($knowledge,"page=taxocommerce-dependiente&tab=knowledge")!==false,
