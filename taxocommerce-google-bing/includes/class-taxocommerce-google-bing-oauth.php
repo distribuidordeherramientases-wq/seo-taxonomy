@@ -211,7 +211,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
         echo '<li>Google Auth Platform → Clients.</li>';
         echo '<li>Create or open an OAuth 2.0 client of type Web application.</li>';
         echo '<li>Add exactly the Redirect URI shown above.</li>';
-        echo '<li>Copia Client ID y Client Secret, guarda y pulsa Connect Google.</li>';
+        echo '<li>Copy the Client ID and Client Secret, save them, then click Connect Google.</li>';
         echo '</ol></details>';
 
         echo '</section>';
