@@ -31,12 +31,12 @@ $checks = array(
     strpos( $sitemaps, "tcdist_sitemap_get_sitemap_report" ) !== false,
     strpos( $sitemaps, "tcdist_sitemap_publish_sitemap_file" ) !== false,
     strpos( $sitemaps, "TCDIST_LEGACY_SITEMAP_ACTIVE" ) !== false,
-    strpos( $admin, "Feeds comerciales" ) !== false,
+    strpos( $admin, "Commercial Feeds" ) !== false,
     strpos( $admin, "Sitemaps" ) !== false,
-    strpos( $admin, "Automatización" ) !== false,
+    strpos( $admin, "Automation" ) !== false,
     strpos( file_get_contents( $root . '/includes/feeds/admin.php' ), "TCDIST_LEGACY_FEED_ACTIVE" ) !== false,
     strpos( file_get_contents( $root . '/includes/feeds/admin.php' ), "seo_ie_cf_state" ) !== false,
-    strpos( file_get_contents( $root . '/includes/feeds/admin.php' ), "generador antiguo de inventarios está trabajando" ) !== false,
+    strpos( file_get_contents( $root . '/includes/feeds/admin.php' ), "legacy inventory generator is running" ) !== false,
 );
 
 foreach ( $checks as $index => $ok ) {
