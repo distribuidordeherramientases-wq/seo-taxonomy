@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.4
+Stable tag: 0.2.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,15 @@ Current functionality includes:
 * Optional integration into TaxoCommerce Core.
 
 == Changelog ==
+
+= 0.2.8 =
+* Added independent adaptive workload control for bounded local image scans.
+* Added request-local CPU, memory and query observations without hosting-level CPU dependencies.
+* Kept Images workload priority independent from Dependiente and other modules.
+
+= 0.2.7 =
+* Added explicit WordPress Media selection for individual image assignment.
+* Preserved the rule that products never borrow another product's image automatically.
 
 = 0.2.5 =
 * Removed the hosting-dependent CPU checker and /proc/stat gating.
