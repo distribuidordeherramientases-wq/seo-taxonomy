@@ -48,7 +48,7 @@ add_action( 'taxocommerce_core_register_modules', static function ( $core ) {
             'name' => 'TaxoCommerce Dependiente',
             'version' => TAXOCOMMERCE_DEPENDIENTE_VERSION,
             'status' => 'active',
-            'description' => 'Dependiente con L1-L10, Intérprete semántico, memoria L9 y actualización continua.',
+            'description' => 'Catalog Assistant with L1-L10, semantic interpretation, L9 memory, and continuous updates.',
             'admin_url' => admin_url( 'admin.php?page=taxocommerce-dependiente' ),
         ) );
     }
