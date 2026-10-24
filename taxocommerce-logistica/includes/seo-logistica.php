@@ -400,7 +400,8 @@ if (!function_exists('seo_logistica_page')) {
     }
 }
 
-add_action('admin_head', static function () {
+if (!function_exists('seo_logistica_enqueue_admin_assets')) {
+    function seo_logistica_enqueue_admin_assets() {
     if (!is_admin()) {
         return;
     }
@@ -423,4 +424,7 @@ if (did_action('admin_print_styles')) {
 }
 ?>
     <?php
-});
+
+    }
+}
+add_action('admin_head', 'seo_logistica_enqueue_admin_assets');
