@@ -3,7 +3,7 @@ Contributors: davidperezmartorell
 Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 
 Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
@@ -71,26 +71,17 @@ retired and all native relationships have been verified.
   requires separate authenticated wp-admin or WP-CLI access.
 * This code is only for STAGING until manually approved for production release.
 
-== Optional TaxoCommerce Database integration ==
-
-If TaxoCommerce Database 0.2.0+ is installed and its journal is ready, redirects
-created, updated or deleted with the Store API record before/after state in
-one InnoDB transaction. The Database administrator can preview and revert
-only the compatible rule row when no later changes are detected.
-
-With Database absent, Redirects continues to work identically, without a
-central rollback log. Assisted deletion of posts/pages/products and physical
-files is NOT made reversible by this integration. Do not restore arbitrary
-WooCommerce entities by directly editing SQL from this plugin.
-
 == Changelog ==
 
+= 0.1.4 =
+* Retirada la integracion opcional del motor historico de rollback de Database. CRUD de redirecciones vuelve al flujo autonomo original, sin dependencia ni comprobaciones de Database.
+* Conservado el boton Abrir y la navegacion por Core cuando esta instalado.
+
 = 0.1.3 =
-* Optional Database journal for individual rule INSERT/UPDATE/DELETE.
-* No mandatory Database or Core dependency.
+* Version experimental retirada de la integracion de rollback.
 
 = 0.1.2 =
-* Consistent extension navigation with Core, including Abrir shortcut.
+* Integracion de menu y accion Abrir en el catalogo Core.
 
 
 = 0.1.1 =

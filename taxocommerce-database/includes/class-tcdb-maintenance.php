@@ -2,7 +2,7 @@
 /**
  * Explicit, bounded MySQL table maintenance. No cron and no automatic DDL.
  *
- * OPTIMIZE TABLE may rebuild an InnoDB table; it is NEVER SQL-rollbackable.
+ * OPTIMIZE TABLE may rebuild an InnoDB table and require a maintenance window.
  * Only small, own TaxoCommerce tables are accepted. This is not a repair tool.
  */
 defined( 'ABSPATH' ) || exit;
@@ -18,9 +18,6 @@ final class TCDB_Maintenance {
         if ( ! is_string( $table ) || ! isset( $tables[ $table ] ) || ! $tables[ $table ]['family']
             || 'InnoDB' !== $tables[ $table ]['engine'] ) {
             return new WP_Error( 'tcdb_maintenance_table', 'Solo se admiten tablas InnoDB propias de TaxoCommerce.' );
-        }
-        if ( in_array( $table, array( TCDB_Journal::operations_table(), TCDB_Journal::changes_table() ), true ) ) {
-            return new WP_Error( 'tcdb_maintenance_history', 'El historial de rollback no se modifica desde el optimizador.' );
         }
         $bytes = $tables[ $table ]['data'] + $tables[ $table ]['indexes'];
         if ( 'analyze' === $mode ) {

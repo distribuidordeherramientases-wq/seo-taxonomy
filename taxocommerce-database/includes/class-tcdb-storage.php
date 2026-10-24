@@ -47,7 +47,17 @@ final class TCDB_Storage {
             return false;
         }
         $short = substr( $table, strlen( $wpdb->prefix ) );
-        return (bool) preg_match( '/^(seo_|tcdb_|tcd_|tcv_|tcf_|tct_|tgb_|tci_|tcr_|tca_|taxocommerce_)/i', $short );
+        // Archived operation journals are inventory-only: never import to,
+        // optimize or treat them as managed data tables.
+        if ( in_array( $short, array(
+            'seo_operations',
+            'seo_operation_changes',
+            'tcdb_operations',
+            'tcdb_changes',
+        ), true ) ) {
+            return false;
+        }
+        return (bool) preg_match( '/^(seo_|tcd_|tcv_|tcf_|tct_|tgb_|tci_|tcr_|tca_|taxocommerce_)/i', $short );
     }
 
     private static function current_site_name( $table ) {

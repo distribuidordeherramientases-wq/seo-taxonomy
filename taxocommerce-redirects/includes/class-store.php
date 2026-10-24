@@ -292,23 +292,6 @@ final class Store {
         return array( 'origin_url' => $origin, 'target_url' => $target );
     }
 
-    /**
-     * Opt in explicitly to a single physical table: redirects only.
-     * Assisted deletion of WordPress content is NOT registered as reversible.
-     */
-    public static function register_rollback_table( $tables ) {
-        $tables = is_array( $tables ) ? $tables : array();
-        $tables['redirects'] = array( self::table() );
-        return $tables;
-    }
-
-    /** Standalone plugin keeps its native write path when Database is absent. */
-    private static function journal_available() {
-        return class_exists( '\TCDB_Journal' )
-            && \TCDB_Journal::ready()
-            && \TCDB_Journal::supports( self::table(), 'redirects' );
-    }
-
     public static function save( $origin, $target, $code = 301, $id = 0 ) {
         global $wpdb;
         if ( ! self::table_exists() ) {
@@ -329,48 +312,27 @@ final class Store {
             'status_code' => $code,
             'updated_at' => current_time( 'mysql', true ),
         );
-        $write = static function () use ( $wpdb, $fields, $id ) {
-            if ( $id ) {
-                $ok = $wpdb->update( Store::table(), $fields, array( 'id' => $id ), array( '%s', '%s', '%d', '%s' ), array( '%d' ) );
-                return false === $ok ? new \WP_Error( 'tc_redirects_db_update', 'Error al modificar la regla.' ) : $id;
-            }
-            $insert = $fields;
-            $insert['hits'] = 0;
-            $insert['last_hit'] = null;
-            $insert['created_at'] = current_time( 'mysql', true );
-            $ok = $wpdb->insert( Store::table(), $insert, array( '%s', '%s', '%d', '%s', '%d', '%s', '%s' ) );
-            return false === $ok ? new \WP_Error( 'tc_redirects_db_insert', 'Error al insertar la regla.' ) : absint( $wpdb->insert_id );
-        };
-
-        if ( self::journal_available() ) {
-            return \TCDB_Journal::mutate(
-                'redirects',
-                $id ? 'Modificar redirección #' . $id : 'Crear redirección',
-                self::table(),
-                $id ? 'update' : 'insert',
-                $id,
-                $write
-            );
+        if ( $id ) {
+            $ok = $wpdb->update( self::table(), $fields, array( 'id' => $id ), array( '%s', '%s', '%d', '%s' ), array( '%d' ) );
+            return false === $ok ? new \WP_Error( 'tc_redirects_db_update', 'Error al modificar la regla.' ) : $id;
         }
-        return $write();
+        $fields['hits'] = 0;
+        $fields['last_hit'] = null;
+        $fields['created_at'] = current_time( 'mysql', true );
+        $ok = $wpdb->insert(
+            self::table(),
+            $fields,
+            array( '%s', '%s', '%d', '%s', '%d', '%s', '%s' )
+        );
+        return false === $ok ? new \WP_Error( 'tc_redirects_db_insert', 'Error al insertar la regla.' ) : absint( $wpdb->insert_id );
     }
 
     public static function remove( $id ) {
         global $wpdb;
-        $id = absint( $id );
         if ( ! self::table_exists() || ! self::get( $id ) ) {
             return false;
         }
-        $write = static function () use ( $wpdb, $id ) {
-            return 1 === (int) $wpdb->delete( Store::table(), array( 'id' => $id ), array( '%d' ) );
-        };
-        if ( self::journal_available() ) {
-            // Keep the historic bool signature for Assisted_Delete consumers.
-            return true === \TCDB_Journal::mutate(
-                'redirects', 'Eliminar redirección #' . $id, self::table(), 'delete', $id, $write
-            );
-        }
-        return $write();
+        return 1 === (int) $wpdb->delete( self::table(), array( 'id' => absint( $id ) ), array( '%d' ) );
     }
 
     public static function record_hit( $id ) {
