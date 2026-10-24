@@ -29,7 +29,7 @@ final class TaxoCommerce_Google_Bing_Trends {
             'DE' => 'Alemania',
             'FR' => 'Francia',
             'NL' => 'Netherlands',
-            'US' => 'Estados Unidos',
+            'US' => 'United States',
         );
         $additional = array();
         if ( function_exists( 'WC' ) ) {
