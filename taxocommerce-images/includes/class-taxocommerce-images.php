@@ -94,6 +94,20 @@ final class TaxoCommerce_Images {
 				'webpNonce' => wp_create_nonce( 'tci_webp_run' ),
 			)
 		);
+
+		// Native Media modal for explicit assignment of an existing local image.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'summary';
+		if ( 'assignment' === $tab ) {
+			wp_enqueue_media();
+			wp_enqueue_script(
+				'taxocommerce-images-media-picker',
+				plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/assignment-media.js',
+				array( 'media-editor' ),
+				TAXOCOMMERCE_IMAGES_VERSION,
+				true
+			);
+		}
 		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) || false === strpos( (string) $hook, 'taxocommerce-images' ) ) {
 			return;
 		}
@@ -361,8 +375,20 @@ final class TaxoCommerce_Images {
 										<?php endforeach; ?>
 										</div>
 									<?php else : ?>
-										<p class="description"><?php esc_html_e( 'No hay imágenes válidas en las categorías relacionadas. Puedes subir una propia.', 'taxocommerce-images' ); ?></p>
+										<p class="description"><?php esc_html_e( 'No hay imágenes válidas en las categorías relacionadas. Puedes elegir una existente de Media o subir una propia.', 'taxocommerce-images' ); ?></p>
 									<?php endif; ?>
+
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tci-assign-media" data-tci-media-picker>
+										<input type="hidden" name="action" value="taxocommerce_images_assign_media">
+										<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
+										<input type="hidden" name="object_id" value="<?php echo esc_attr( (string) $id ); ?>">
+										<input type="hidden" name="attachment_id" value="" data-tci-media-id>
+										<?php wp_nonce_field( 'taxocommerce_images_assign_media', 'taxocommerce_images_nonce' ); ?>
+										<button type="button" class="button button-secondary" data-tci-media-open><?php esc_html_e( 'Buscar en Media', 'taxocommerce-images' ); ?></button>
+										<span class="tci-assign-media-selection" data-tci-media-selection><?php esc_html_e( 'Ninguna imagen seleccionada.', 'taxocommerce-images' ); ?></span>
+										<button type="submit" class="button" data-tci-media-submit disabled><?php esc_html_e( 'Asignar desde Media', 'taxocommerce-images' ); ?></button>
+									</form>
+
 									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="tci-assign-upload">
 										<input type="hidden" name="action" value="taxocommerce_images_assign_upload">
 										<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
