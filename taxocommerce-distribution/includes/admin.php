@@ -241,7 +241,10 @@ function taxocommerce_distribution_render_sitemaps() {
         <?php endif; ?>
 
         <?php if ( ! empty( $report['main_valid'] ) ) : ?>
-            <div class="notice notice-success inline"><p><strong><?php esc_html_e( 'Índice principal válido.', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( sprintf( __( '%s URLs publicadas.', 'taxocommerce-distribution' ), number_format_i18n( absint( $report['total_urls'] ?? 0 ) ) ) ); ?></p></div>
+            <div class="notice notice-success inline"><p><strong><?php esc_html_e( 'Índice principal válido.', 'taxocommerce-distribution' ); ?></strong> <?php
+            /* translators: %s: number of URLs published in the sitemap. */
+            echo esc_html( sprintf( __( '%s URLs publicadas.', 'taxocommerce-distribution' ), number_format_i18n( absint( $report['total_urls'] ?? 0 ) ) ) );
+            ?></p></div>
         <?php else : ?>
             <div class="notice notice-warning inline"><p><strong><?php esc_html_e( 'El índice principal no existe o no es válido.', 'taxocommerce-distribution' ); ?></strong></p></div>
         <?php endif; ?>
