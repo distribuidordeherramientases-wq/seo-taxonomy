@@ -765,7 +765,13 @@ final class TCD_Intelligence {
         $top = (array) $results[0];
         $second = isset( $results[1] ) ? (array) $results[1] : array();
         $sources = array_values( array_unique( (array) ( $top['sources'] ?? array() ) ) );
-        $group_total = count( (array) ( $interpretation['groups'] ?? array() ) );
+        $required_groups = array( 'tipo','rol','aplicacion','plataforma','subtipo' );
+        $group_total = 0;
+        foreach ( (array) ( $interpretation['groups'] ?? array() ) as $group ) {
+            if ( in_array( sanitize_key( (string) ( $group['group'] ?? '' ) ), $required_groups, true ) ) {
+                $group_total++;
+            }
+        }
         $coverage = absint( $top['coverage'] ?? 0 );
         $l9_strength = absint( $top['l9_strength'] ?? 0 );
         $l9_matched = absint( $top['l9_matched'] ?? 0 );
