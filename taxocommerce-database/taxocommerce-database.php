@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Auditoría MySQL, exploración de tablas, copias SQL/CSV y mantenimiento controlado. Independiente de TaxoCommerce Core.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,13 +13,12 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.2.0' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.2.1' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
 
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-storage.php';
-require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-journal.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-export.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-import.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-cleanup.php';
@@ -29,7 +28,6 @@ require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-admin.php';
 
 final class TaxoCommerce_Database {
     public static function boot() {
-        add_action( 'admin_init', array( 'TCDB_Journal', 'maybe_install' ) );
         add_action( 'admin_menu', array( __CLASS__, 'menu' ), 60 );
         add_action( 'admin_enqueue_scripts', array( 'TCDB_Admin', 'register_styles' ) );
         add_action( 'admin_post_tcdb_audit', array( 'TCDB_Storage', 'handle_audit' ) );
@@ -40,7 +38,6 @@ final class TaxoCommerce_Database {
         add_action( 'admin_post_tcdb_advanced_audit', array( 'TCDB_Diagnostics', 'handle_audit' ) );
         add_action( 'admin_post_tcdb_advanced_cleanup', array( 'TCDB_Diagnostics', 'handle_cleanup' ) );
         add_action( 'admin_post_tcdb_maintenance', array( 'TCDB_Maintenance', 'handle' ) );
-        add_action( 'admin_post_tcdb_rollback', array( 'TCDB_Journal', 'handle_rollback' ) );
         add_action( 'taxocommerce_core_register_modules', array( __CLASS__, 'register_core' ) );
 
         // Core may have completed its plugins_loaded hook already.
@@ -79,11 +76,10 @@ final class TaxoCommerce_Database {
                 'name'        => 'TaxoCommerce Database',
                 'version'     => TAXOCOMMERCE_DATABASE_VERSION,
                 'status'      => 'active',
-                'description' => 'Administración de MySQL, copias y rollback opcional para plugins compatibles.',
+                'description' => 'Administración de MySQL, copias, importaciones y mantenimiento independiente.',
                 'admin_url'   => admin_url( 'admin.php?page=taxocommerce-database' ),
             ) );
         }
     }
 }
-register_activation_hook( __FILE__, array( 'TCDB_Journal', 'install' ) );
 add_action( 'plugins_loaded', array( 'TaxoCommerce_Database', 'boot' ), 40 );
