@@ -51,6 +51,8 @@ final class TCD_Intelligence {
         if ( self::DB_VERSION !== (string) get_option( self::DB_OPTION, '' ) ) {
             self::install();
         }
+        add_action( 'admin_post_tcd_quality_csv', array( __CLASS__, 'download_quality_csv' ) );
+        add_action( 'admin_post_tcd_quality_data_csv', array( __CLASS__, 'download_quality_data_csv' ) );
     }
 
     public static function reset_modern_generated() {
@@ -78,6 +80,9 @@ final class TCD_Intelligence {
             foreach ( self::rules_from_item( $lesson, $item ) as $rule ) {
                 self::stage_rule( $lesson, $item, $rule, $stage );
             }
+        }
+        if ( 2 === $lesson ) {
+            self::stage_l2_identity( $item, $stage );
         }
         if ( 9 === $lesson ) {
             self::stage_l9_item( $item, $stage );
@@ -198,6 +203,77 @@ final class TCD_Intelligence {
             'updated_at'=>$now,
         );
         $wpdb->replace( $table, $payload );
+    }
+
+    private static function stage_l2_identity( $item, $stage ) {
+        global $wpdb;
+        $table = TCD_Knowledge_Transfer::l9_table();
+        $product_id = absint( $item['source_id'] ?? 0 );
+        if ( ! $product_id ) return;
+
+        $facts = (array) ( $item['facts'] ?? array() );
+        $title = trim( (string) ( $item['title'] ?? '' ) );
+        $normalized_title = self::normalize( $title );
+        $compact = self::without_stopwords( $normalized_title );
+        $signals = array();
+
+        if ( $normalized_title ) {
+            self::put_signal( $signals, 'identity_title', $title, $normalized_title, 'identity', 0, 320 );
+            if ( $compact && $compact !== $normalized_title ) {
+                self::put_signal( $signals, 'identity_title', $title, $compact, 'identity', 0, 300 );
+            }
+            $identity_ngrams = self::ngrams( $compact ?: $normalized_title, 5 );
+            foreach ( array_slice( $identity_ngrams, 0, 18 ) as $phrase ) {
+                $words = count( array_filter( explode( ' ', $phrase ) ) );
+                if ( $words < 2 && strlen( $phrase ) < 5 ) continue;
+                $weight = $words >= 4 ? 260 : ( $words >= 2 ? 220 : 170 );
+                self::put_signal( $signals, 'identity_title', $title, $phrase, 'identity', 0, $weight );
+            }
+        }
+
+        $sku = trim( (string) ( $facts['sku'] ?? '' ) );
+        if ( self::valid_identity_value( $sku ) ) {
+            $normalized_sku = self::normalize( $sku );
+            if ( $normalized_sku ) self::put_signal( $signals, 'identity_sku', $sku, $normalized_sku, 'identity', 0, 420 );
+        }
+
+        foreach ( array_slice( array_values( $signals ), 0, 20 ) as $signal ) {
+            $normalized = self::normalize( (string) ( $signal['normalized_signal'] ?? '' ) );
+            if ( ! $normalized ) continue;
+            $hash = hash( 'sha256', implode( '|', array(
+                'v2_l2_identity',
+                $product_id,
+                sanitize_key( (string) ( $signal['signal_type'] ?? 'identity' ) ),
+                $normalized,
+            ) ) );
+            $wpdb->replace( $table, array(
+                'lesson_key'=>'v2_l2_identity',
+                'product_id'=>$product_id,
+                'signal_type'=>sanitize_key( (string) ( $signal['signal_type'] ?? 'identity' ) ),
+                'signal_text'=>self::shorten( (string) ( $signal['signal_text'] ?? $normalized ), 250 ),
+                'normalized_signal'=>self::shorten( $normalized, 250 ),
+                'semantic_group'=>'identity',
+                'vocabulary_id'=>null,
+                'weight'=>min( 500, max( 1, absint( $signal['weight'] ?? 100 ) ) ),
+                'source_hash'=>$hash,
+                'metadata'=>wp_json_encode( array(
+                    'origin'=>'modern_learning',
+                    'lesson'=>2,
+                    'purpose'=>'product_identity',
+                    'stage'=>$stage,
+                ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+                'active'=>0,
+                'source_brain_id'=>$stage,
+                'updated_at'=>current_time( 'mysql' ),
+            ) );
+        }
+    }
+
+    private static function valid_identity_value( $value ) {
+        $value = trim( (string) $value );
+        if ( '' === $value ) return false;
+        $normalized = strtoupper( preg_replace( '/\s+/u', '', $value ) );
+        return ! in_array( $normalized, array( '#¡VALOR!', '#VALOR!', '#VALUE!', 'N/A', 'NA', 'NULL', 'NONE', '-' ), true );
     }
 
     private static function stage_l9_item( $item, $stage ) {
@@ -360,24 +436,79 @@ final class TCD_Intelligence {
     private static function evaluate_lesson( $lesson, $snapshot_id ) {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
-        $rows = (array) $wpdb->get_results( $wpdb->prepare(
-            "SELECT source_type,source_id,title,context_json,status FROM {$table} WHERE lesson=%d ORDER BY id ASC LIMIT 180",
+        $all_rows = (array) $wpdb->get_results( $wpdb->prepare(
+            "SELECT id,source_type,source_id,title,context_json,status FROM {$table} WHERE lesson=%d AND status='learned' ORDER BY id ASC",
             $lesson
         ), ARRAY_A );
-        $result = array( 'evaluated'=>0, 'pass_top1'=>0, 'pass_top3'=>0, 'pass_top8'=>0, 'failed'=>0, 'pass_any_ratio'=>0, 'sample'=>array() );
+        $rows = self::representative_sample( $all_rows, 180 );
+        $result = array(
+            'evaluated'=>0,
+            'pass_top1'=>0,
+            'pass_top3'=>0,
+            'pass_top8'=>0,
+            'failed'=>0,
+            'pass_any_ratio'=>0,
+            'sample'=>array(),
+            'failures'=>array(),
+            'failure_origins'=>array(
+                'datos_fuente'=>0,
+                'ambiguedad'=>0,
+                'dependiente'=>0,
+                'sin_diagnostico'=>0,
+            ),
+            'data_issue_counts'=>array(),
+            'recommendations'=>array(),
+            'sample_method'=>'distributed_deterministic',
+            'population'=>count( $all_rows ),
+        );
         $stage = self::stage_id( $lesson, $snapshot_id );
+
         foreach ( $rows as $row ) {
-            if ( 'learned' !== (string) ( $row['status'] ?? '' ) ) continue;
             $evaluation = self::evaluate_row( $lesson, $row, $stage );
+            $evaluation['source_type'] = sanitize_key( (string) ( $evaluation['source_type'] ?? $row['source_type'] ?? '' ) );
+            $evaluation['source_id'] = absint( $evaluation['source_id'] ?? $row['source_id'] ?? 0 );
+            $evaluation['title'] = (string) ( $evaluation['title'] ?? $row['title'] ?? '' );
+            $evaluation['diagnosis'] = self::diagnose_evaluation( $lesson, $row, $evaluation );
             $result['evaluated']++;
             if ( ! empty( $evaluation['top1'] ) ) $result['pass_top1']++;
             if ( ! empty( $evaluation['top3'] ) ) $result['pass_top3']++;
             if ( ! empty( $evaluation['top8'] ) ) $result['pass_top8']++;
-            if ( empty( $evaluation['top8'] ) ) $result['failed']++;
+            if ( empty( $evaluation['top8'] ) ) {
+                $result['failed']++;
+                $result['failures'][] = $evaluation;
+                $origin = sanitize_key( (string) ( $evaluation['diagnosis']['origin'] ?? 'sin_diagnostico' ) );
+                if ( ! isset( $result['failure_origins'][ $origin ] ) ) $origin = 'sin_diagnostico';
+                $result['failure_origins'][ $origin ]++;
+                foreach ( (array) ( $evaluation['diagnosis']['data_issues'] ?? array() ) as $issue ) {
+                    $code = sanitize_key( (string) ( $issue['code'] ?? '' ) );
+                    if ( ! $code ) continue;
+                    $result['data_issue_counts'][ $code ] = absint( $result['data_issue_counts'][ $code ] ?? 0 ) + 1;
+                }
+            }
             if ( count( $result['sample'] ) < 12 ) $result['sample'][] = $evaluation;
         }
+
         $result['pass_any_ratio'] = $result['evaluated'] ? $result['pass_top8'] / $result['evaluated'] : 0;
+        $result['recommendations'] = self::quality_recommendations( $lesson, $result );
         return $result;
+    }
+
+    private static function representative_sample( $rows, $limit ) {
+        $rows = array_values( (array) $rows );
+        $count = count( $rows );
+        $limit = min( max( 1, absint( $limit ) ), $count ?: 1 );
+        if ( $count <= $limit ) return $rows;
+
+        $out = array();
+        $seen = array();
+        for ( $i = 0; $i < $limit; $i++ ) {
+            $index = (int) floor( ( $i + 0.5 ) * $count / $limit );
+            $index = min( $count - 1, max( 0, $index ) );
+            if ( isset( $seen[ $index ] ) ) continue;
+            $seen[ $index ] = true;
+            $out[] = $rows[ $index ];
+        }
+        return $out;
     }
 
     private static function evaluate_row( $lesson, $row, $stage ) {
@@ -439,7 +570,324 @@ final class TCD_Intelligence {
 
         $pos = array_search( $id, $ids, true );
         $rank = false === $pos ? 0 : $pos + 1;
-        return array( 'source_id'=>$id, 'query'=>$query, 'rank'=>$rank, 'top1'=>1 === $rank, 'top3'=>$rank > 0 && $rank <= 3, 'top8'=>$rank > 0 && $rank <= 8 );
+        return array(
+            'source_type'=>sanitize_key( (string) ( $row['source_type'] ?? '' ) ),
+            'source_id'=>$id,
+            'title'=>$title,
+            'query'=>$query,
+            'rank'=>$rank,
+            'top1'=>1 === $rank,
+            'top3'=>$rank > 0 && $rank <= 3,
+            'top8'=>$rank > 0 && $rank <= 8,
+            'observed_ids'=>array_values( array_slice( $ids, 0, 8 ) ),
+            'observed'=>self::observed_labels( (string) ( $row['source_type'] ?? '' ), $ids ),
+        );
+    }
+
+    private static function observed_labels( $source_type, $ids ) {
+        $out = array();
+        foreach ( array_slice( array_values( array_unique( array_map( 'absint', (array) $ids ) ) ), 0, 8 ) as $id ) {
+            if ( ! $id ) continue;
+            $label = '';
+            if ( in_array( $source_type, array( 'product','post','page','seo_faq' ), true ) ) {
+                $label = (string) get_the_title( $id );
+            } elseif ( false !== strpos( $source_type, 'term' ) || 'product_cat' === $source_type ) {
+                $term = get_term( $id );
+                if ( $term instanceof WP_Term ) $label = (string) $term->name;
+            }
+            $out[] = array( 'id'=>$id, 'title'=>$label );
+        }
+        return $out;
+    }
+
+    private static function diagnose_evaluation( $lesson, $row, $evaluation ) {
+        global $wpdb;
+        $facts = json_decode( (string) ( $row['context_json'] ?? '' ), true );
+        $facts = is_array( $facts ) ? $facts : array();
+        $source_type = sanitize_key( (string) ( $row['source_type'] ?? '' ) );
+        $source_id = absint( $row['source_id'] ?? 0 );
+        $title = trim( (string) ( $row['title'] ?? '' ) );
+        $issues = self::data_issues_for_row( $lesson, $row );
+
+        $origin = 'dependiente';
+        $reason = 'Los datos básicos están presentes; el producto/contenido no quedó dentro del Top-8. Debe mejorarse memoria, interpretación o ranking.';
+        $action = 'No modificar el contenido solo para hacer pasar el examen. Revisar la evidencia que utilizó Dependiente y reforzar su aprendizaje/ranking.';
+        $correctable = false;
+
+        if ( '' === $title || empty( $facts ) ) {
+            $origin = 'datos_fuente';
+            $reason = 'Faltan datos estructurales necesarios para identificar este elemento.';
+            $action = 'Corregir los campos indicados en WordPress y volver a evaluar.';
+            $correctable = true;
+        } else {
+            $normalized_title = self::normalize( $title );
+            $duplicates = 0;
+            if ( $normalized_title && in_array( $source_type, array( 'product','post','page' ), true ) ) {
+                $duplicates = absint( $wpdb->get_var( $wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type=%s AND post_status='publish' AND post_title=%s",
+                    $source_type,
+                    $title
+                ) ) );
+            }
+            if ( $duplicates > 1 ) {
+                $origin = 'ambiguedad';
+                $reason = 'Hay varios elementos publicados con el mismo título exacto; el título por sí solo no distingue la referencia.';
+                $action = 'Revisar duplicados y reforzar identidad con SKU/referencia/atributos diferenciadores.';
+                $correctable = true;
+            } elseif ( $issues ) {
+                $hard = array_filter( $issues, static function ( $issue ) {
+                    return in_array( (string) ( $issue['code'] ?? '' ), array( 'titulo_vacio','titulo_demasiado_corto','sin_categoria_producto','sin_tipo','sin_rol' ), true );
+                } );
+                if ( $hard ) {
+                    $origin = 'datos_fuente';
+                    $reason = 'El examen ha fallado y además existen carencias estructurales en los datos de origen.';
+                    $action = 'Corregir primero los campos señalados y después reevaluar. Si sigue fallando, revisar Dependiente.';
+                    $correctable = true;
+                }
+            }
+        }
+
+        return array(
+            'origin'=>$origin,
+            'correctable'=>$correctable,
+            'reason'=>$reason,
+            'action'=>$action,
+            'data_issues'=>array_values( $issues ),
+        );
+    }
+
+    private static function data_issues_for_row( $lesson, $row ) {
+        $lesson = absint( $lesson );
+        $facts = json_decode( (string) ( $row['context_json'] ?? '' ), true );
+        $facts = is_array( $facts ) ? $facts : array();
+        $source_type = sanitize_key( (string) ( $row['source_type'] ?? '' ) );
+        $title = trim( (string) ( $row['title'] ?? '' ) );
+        $issues = array();
+
+        if ( '' === $title ) {
+            $issues[] = self::data_issue( 'titulo_vacio', 'title', '', 'El contenido no tiene título identificable.', 'Completar el título antes de volver a evaluar.' );
+        } elseif ( strlen( self::normalize( $title ) ) < 4 ) {
+            $issues[] = self::data_issue( 'titulo_demasiado_corto', 'title', $title, 'El título aporta muy poca identidad.', 'Revisar si el título identifica realmente el elemento.' );
+        }
+
+        if ( 1 === $lesson || 0 === strpos( $source_type, 'termproduct_cat' ) ) {
+            $slug = trim( (string) ( $facts['slug'] ?? '' ) );
+            if ( ! $slug ) $issues[] = self::data_issue( 'categoria_sin_slug', 'slug', '', 'La categoría no tiene slug utilizable.', 'Revisar el slug de la categoría.' );
+            $products = absint( $facts['products'] ?? 0 );
+            $vocabulary = (array) ( $facts['vocabulary'] ?? array() );
+            if ( $products > 0 && ! $vocabulary ) {
+                $issues[] = self::data_issue( 'categoria_con_productos_sin_vocabulary', 'vocabulary', '', 'La categoría tiene productos pero no tiene clasificación Vocabulary.', 'Revisar la clasificación semántica de la categoría.' );
+            }
+            if ( $products > 0 && empty( $vocabulary['tipo'] ) && empty( $vocabulary['aplicacion'] ) ) {
+                $issues[] = self::data_issue( 'categoria_sin_tipo_aplicacion', 'vocabulary', '', 'La categoría con productos no tiene TIPO ni APLICACIÓN.', 'Asignar al menos el concepto semántico que describa correctamente la familia.' );
+            }
+        }
+
+        if ( in_array( $lesson, array( 2, 4, 9 ), true ) || 'product' === $source_type ) {
+            $sku = trim( (string) ( $facts['sku'] ?? '' ) );
+            if ( ! self::valid_identity_value( $sku ) ) {
+                $issues[] = self::data_issue( 'sku_invalido_o_vacio', 'sku', $sku, 'SKU vacío o con un valor de error/no utilizable.', 'Asignar un SKU válido si el producto debe tenerlo.' );
+            }
+            $categories = array_values( array_filter( array_map( 'absint', (array) ( $facts['categories']['product_cat'] ?? array() ) ) ) );
+            if ( ! $categories ) {
+                $issues[] = self::data_issue( 'sin_categoria_producto', 'product_cat', '', 'El producto no tiene categoría de producto en la foto fija.', 'Asignar la categoría correcta.' );
+            }
+            $vocabulary = (array) ( $facts['vocabulary'] ?? array() );
+            if ( empty( $vocabulary['tipo'] ) ) {
+                $issues[] = self::data_issue( 'sin_tipo', 'vocabulary.tipo', '', 'Falta TIPO canónico.', 'Revisar/asignar TIPO en Vocabulary.' );
+            }
+            if ( empty( $vocabulary['rol'] ) ) {
+                $issues[] = self::data_issue( 'sin_rol', 'vocabulary.rol', '', 'Falta ROL canónico.', 'Revisar/asignar ROL en Vocabulary.' );
+            }
+            if ( empty( $facts['short_description'] ) ) {
+                $issues[] = self::data_issue( 'sin_resumen', 'short_description', '', 'Falta resumen/short description.', 'Completar un resumen específico del producto.' );
+            }
+            $brand_ids = array();
+            foreach ( (array) ( $facts['brands'] ?? array() ) as $ids ) {
+                $brand_ids = array_merge( $brand_ids, array_map( 'absint', (array) $ids ) );
+            }
+            if ( ! array_filter( $brand_ids ) && preg_match( '/\bVEVOR\b/ui', $title ) ) {
+                $issues[] = self::data_issue( 'vevor_sin_marca_asignada', 'product_brand', '', 'El título identifica VEVOR pero no aparece una marca asignada en la foto fija.', 'Revisar la taxonomía de marca del producto.' );
+            }
+        }
+
+        if ( 3 === $lesson || 'vocabulary' === $source_type ) {
+            if ( empty( $facts['group'] ) ) $issues[] = self::data_issue( 'vocabulary_sin_grupo', 'semantic_group', '', 'El término Vocabulary no tiene grupo semántico.', 'Asignar el grupo canónico correcto.' );
+            if ( empty( $facts['slug'] ) ) $issues[] = self::data_issue( 'vocabulary_sin_slug', 'slug', '', 'El término Vocabulary no tiene slug.', 'Revisar el término Vocabulary.' );
+            if ( 0 === absint( $facts['product_count'] ?? 0 ) ) $issues[] = self::data_issue( 'vocabulary_sin_productos', 'product_ids', '', 'El término no está asignado a ningún producto del catálogo.', 'Confirmar si debe existir o si falta asignación.' );
+        }
+
+        if ( 5 === $lesson && in_array( $source_type, array( 'post','page' ), true ) ) {
+            if ( empty( $facts['vocabulary'] ) ) {
+                $issues[] = self::data_issue( 'editorial_sin_vocabulary', 'vocabulary', '', 'El contenido editorial no tiene Vocabulary común con catálogo.', 'Asignar Vocabulary solo si existe una relación semántica real con el catálogo.' );
+            }
+        }
+
+        if ( 6 === $lesson || 'faq' === $source_type ) {
+            if ( '' === trim( (string) ( $facts['answer'] ?? '' ) ) ) {
+                $issues[] = self::data_issue( 'faq_sin_respuesta', 'answer', '', 'La FAQ no tiene respuesta utilizable.', 'Completar la respuesta de la FAQ.' );
+            }
+            if ( ! absint( $facts['owner_id'] ?? 0 ) ) {
+                $issues[] = self::data_issue( 'faq_sin_propietario', 'owner_id', '', 'La FAQ no está vinculada a una categoría o producto propietario.', 'Asignar el propietario/contexto correcto.' );
+            }
+        }
+
+        return array_values( $issues );
+    }
+
+    private static function data_issue( $code, $field, $current, $reason, $action ) {
+        return array(
+            'code'=>sanitize_key( $code ),
+            'field'=>(string) $field,
+            'current'=>self::shorten( (string) $current, 500 ),
+            'reason'=>(string) $reason,
+            'action'=>(string) $action,
+        );
+    }
+
+    private static function quality_recommendations( $lesson, $report ) {
+        $recommendations = array();
+        $origins = (array) ( $report['failure_origins'] ?? array() );
+        if ( absint( $origins['datos_fuente'] ?? 0 ) ) {
+            $recommendations[] = 'Corregir primero las incidencias clasificadas como datos_fuente y reevaluar la misma foto fija.';
+        }
+        if ( absint( $origins['ambiguedad'] ?? 0 ) ) {
+            $recommendations[] = 'Revisar títulos/identificadores duplicados o demasiado similares; no eliminar variantes válidas solo para mejorar el porcentaje.';
+        }
+        if ( absint( $origins['dependiente'] ?? 0 ) ) {
+            $recommendations[] = 'Los casos dependiente no deben corregirse en WordPress: hay que reforzar memoria, señales de identidad o ranking.';
+        }
+        if ( 2 === absint( $lesson ) ) {
+            $recommendations[] = 'L2 debe demostrar identidad de producto mediante título/SKU/categoría; L9 seguirá aprendiendo necesidades y lenguaje del cliente más adelante.';
+        }
+        return array_values( array_unique( $recommendations ) );
+    }
+
+    public static function quality_csv_url( $lesson ) {
+        return wp_nonce_url(
+            add_query_arg(
+                array(
+                    'action'=>'tcd_quality_csv',
+                    'lesson'=>absint( $lesson ),
+                ),
+                admin_url( 'admin-post.php' )
+            ),
+            'tcd_quality_csv_' . absint( $lesson )
+        );
+    }
+
+    public static function download_quality_csv() {
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) wp_die( 'Sin permiso.' );
+        $lesson = absint( $_GET['lesson'] ?? 0 );
+        check_admin_referer( 'tcd_quality_csv_' . $lesson );
+        $quality = self::quality_for_lesson( $lesson );
+        $report = json_decode( (string) ( $quality['report_json'] ?? '' ), true );
+        $report = is_array( $report ) ? $report : array();
+
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=UTF-8' );
+        header( 'Content-Disposition: attachment; filename="dependiente_L' . $lesson . '_incidencias_' . gmdate( 'Ymd_His' ) . '.csv"' );
+        $out = fopen( 'php://output', 'w' );
+        fwrite( $out, "\xEF\xBB\xBF" );
+        fputcsv( $out, array(
+            'lesson','source_type','source_id','title','query','rank','top8','origin','correctable',
+            'issue_codes','fields','current_values','reason','recommended_action','observed_ids','observed_titles'
+        ), ';' );
+
+        foreach ( (array) ( $report['failures'] ?? array() ) as $failure ) {
+            $diagnosis = (array) ( $failure['diagnosis'] ?? array() );
+            $issues = (array) ( $diagnosis['data_issues'] ?? array() );
+            $codes = array();
+            $fields = array();
+            $values = array();
+            foreach ( $issues as $issue ) {
+                $codes[] = (string) ( $issue['code'] ?? '' );
+                $fields[] = (string) ( $issue['field'] ?? '' );
+                $values[] = (string) ( $issue['current'] ?? '' );
+            }
+            $observed = (array) ( $failure['observed'] ?? array() );
+            fputcsv( $out, array(
+                $lesson,
+                (string) ( $failure['source_type'] ?? '' ),
+                absint( $failure['source_id'] ?? 0 ),
+                (string) ( $failure['title'] ?? '' ),
+                (string) ( $failure['query'] ?? '' ),
+                absint( $failure['rank'] ?? 0 ),
+                ! empty( $failure['top8'] ) ? 1 : 0,
+                (string) ( $diagnosis['origin'] ?? 'sin_diagnostico' ),
+                ! empty( $diagnosis['correctable'] ) ? 1 : 0,
+                implode( '|', array_filter( $codes ) ),
+                implode( '|', array_filter( $fields ) ),
+                implode( ' || ', $values ),
+                (string) ( $diagnosis['reason'] ?? '' ),
+                (string) ( $diagnosis['action'] ?? '' ),
+                implode( '|', array_map( static function ( $item ) { return absint( $item['id'] ?? 0 ); }, $observed ) ),
+                implode( ' || ', array_map( static function ( $item ) { return (string) ( $item['title'] ?? '' ); }, $observed ) )
+            ), ';' );
+        }
+        fclose( $out );
+        exit;
+    }
+
+    public static function quality_data_csv_url( $lesson ) {
+        return wp_nonce_url(
+            add_query_arg(
+                array(
+                    'action'=>'tcd_quality_data_csv',
+                    'lesson'=>absint( $lesson ),
+                ),
+                admin_url( 'admin-post.php' )
+            ),
+            'tcd_quality_data_csv_' . absint( $lesson )
+        );
+    }
+
+    public static function download_quality_data_csv() {
+        global $wpdb;
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) wp_die( 'Sin permiso.' );
+        $lesson = absint( $_GET['lesson'] ?? 0 );
+        check_admin_referer( 'tcd_quality_data_csv_' . $lesson );
+
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=UTF-8' );
+        header( 'Content-Disposition: attachment; filename="dependiente_L' . $lesson . '_datos_a_revisar_' . gmdate( 'Ymd_His' ) . '.csv"' );
+        $out = fopen( 'php://output', 'w' );
+        fwrite( $out, "\xEF\xBB\xBF" );
+        fputcsv( $out, array(
+            'lesson','source_type','source_id','title','issue_code','field','current_value','reason','recommended_action'
+        ), ';' );
+
+        $table = TCD_Academy::knowledge_table();
+        $last = 0;
+        do {
+            $rows = (array) $wpdb->get_results( $wpdb->prepare(
+                "SELECT id,source_type,source_id,title,context_json,status
+                 FROM {$table}
+                 WHERE lesson=%d AND status='learned' AND id>%d
+                 ORDER BY id ASC LIMIT 250",
+                $lesson,
+                $last
+            ), ARRAY_A );
+            foreach ( $rows as $row ) {
+                $last = absint( $row['id'] ?? 0 );
+                foreach ( self::data_issues_for_row( $lesson, $row ) as $issue ) {
+                    fputcsv( $out, array(
+                        $lesson,
+                        (string) ( $row['source_type'] ?? '' ),
+                        absint( $row['source_id'] ?? 0 ),
+                        (string) ( $row['title'] ?? '' ),
+                        (string) ( $issue['code'] ?? '' ),
+                        (string) ( $issue['field'] ?? '' ),
+                        (string) ( $issue['current'] ?? '' ),
+                        (string) ( $issue['reason'] ?? '' ),
+                        (string) ( $issue['action'] ?? '' )
+                    ), ';' );
+                }
+            }
+        } while ( count( $rows ) === 250 );
+
+        fclose( $out );
+        exit;
     }
 
     private static function activate_stage( $stage ) {

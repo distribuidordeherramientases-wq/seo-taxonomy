@@ -110,6 +110,67 @@ final class TCD_Admin {
         echo '</div>';
     }
 
+    private static function quality_report($quality){
+        $report=json_decode((string)($quality['report_json']??''),true);
+        return is_array($report)?$report:array();
+    }
+
+    private static function render_quality_diagnosis($lesson,$quality){
+        $report=self::quality_report($quality);
+        if(!$report || 'failed'!==(string)($quality['status']??''))return;
+
+        $origins=(array)($report['failure_origins']??array());
+        $failures=(array)($report['failures']??array());
+        $recommendations=(array)($report['recommendations']??array());
+
+        echo '<div style="background:#fff;border:1px solid #d63638;border-left-width:4px;padding:14px;margin:18px 0">';
+        echo '<h2 style="margin-top:0">Diagnóstico de L'.esc_html((string)$lesson).'</h2>';
+        echo '<p><strong>La fuente sí se aprendió.</strong> El fallo corresponde al examen de recuperación/interpretación. ';
+        echo 'Se evaluaron '.esc_html(number_format_i18n(absint($report['evaluated']??0))).' casos y ';
+        echo esc_html(number_format_i18n(absint($report['failed']??0))).' quedaron fuera del Top-8.</p>';
+
+        echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0">';
+        foreach(array(
+            'datos_fuente'=>'Datos fuente',
+            'ambiguedad'=>'Ambigüedad',
+            'dependiente'=>'Dependiente/ranking',
+            'sin_diagnostico'=>'Sin diagnóstico',
+        ) as $key=>$label){
+            echo '<span style="padding:6px 10px;border:1px solid #c3c4c7;background:#f6f7f7"><strong>'.esc_html($label).':</strong> '.esc_html(number_format_i18n(absint($origins[$key]??0))).'</span>';
+        }
+        echo '</div>';
+
+        echo '<p><a class="button button-primary" href="'.esc_url(TCD_Intelligence::quality_csv_url($lesson)).'">CSV · fallos del examen</a> ';
+        echo '<a class="button" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($lesson)).'">CSV · datos a revisar</a></p>';
+        echo '<p class="description">El primer CSV contiene solo los casos que Dependiente no recuperó bien. El segundo recorre toda la lección y lista anomalías de datos fuente aunque el elemento haya pasado el examen.</p>';
+
+        if($recommendations){
+            echo '<h3>Qué hacer</h3><ul style="list-style:disc;padding-left:22px">';
+            foreach($recommendations as $recommendation)echo '<li>'.esc_html((string)$recommendation).'</li>';
+            echo '</ul>';
+        }
+
+        if($failures){
+            echo '<h3>Primeros casos que fallaron</h3>';
+            echo '<table class="widefat striped"><thead><tr><th>Tipo / ID</th><th>Esperado</th><th>Posición</th><th>Origen</th><th>Por qué</th><th>Qué hacer</th></tr></thead><tbody>';
+            foreach(array_slice($failures,0,12) as $failure){
+                $diagnosis=(array)($failure['diagnosis']??array());
+                echo '<tr>';
+                echo '<td><code>'.esc_html((string)($failure['source_type']??'')).':'.esc_html((string)absint($failure['source_id']??0)).'</code></td>';
+                echo '<td>'.esc_html((string)($failure['title']??$failure['query']??'' )).'</td>';
+                $rank=absint($failure['rank']??0);
+                echo '<td>'.esc_html($rank?(string)$rank:'Fuera Top-8').'</td>';
+                echo '<td><strong>'.esc_html((string)($diagnosis['origin']??'sin_diagnostico')).'</strong></td>';
+                echo '<td>'.esc_html((string)($diagnosis['reason']??'')).'</td>';
+                echo '<td>'.esc_html((string)($diagnosis['action']??'')).'</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+            if(count($failures)>12)echo '<p class="description">Mostrando 12 de '.esc_html(number_format_i18n(count($failures))).' fallos. El CSV contiene todos.</p>';
+        }
+        echo '</div>';
+    }
+
     public static function render(){
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
@@ -222,17 +283,31 @@ final class TCD_Admin {
             $quality=TCD_Intelligence::quality_for_lesson($no);
             echo '<td>';
             if($quality){
-                echo '<strong>'.esc_html('passed'===(string)($quality['status']??'')?'OK':'NO').'</strong>';
-                echo '<div>'.esc_html(number_format_i18n(100*(float)($quality['pass_any_ratio']??0),1)).'% pass_any</div>';
-                echo '<div class="description">Top1 '.esc_html(number_format_i18n(absint($quality['pass_top1']??0))).' · Top3 '.esc_html(number_format_i18n(absint($quality['pass_top3']??0))).' · evaluadas '.esc_html(number_format_i18n(absint($quality['evaluated']??0))).'</div>';
+                $quality_report=self::quality_report($quality);
+                $passed='passed'===(string)($quality['status']??'');
+                echo '<strong>'.esc_html($passed?'OK':'NO').'</strong>';
+                echo '<div>'.esc_html(number_format_i18n(100*(float)($quality['pass_any_ratio']??0),1)).'% Top8 · mínimo '.esc_html(number_format_i18n(100*(float)($quality['threshold']??0),1)).'%</div>';
+                echo '<div class="description">Top1 '.esc_html(number_format_i18n(absint($quality['pass_top1']??0))).' · Top3 '.esc_html(number_format_i18n(absint($quality['pass_top3']??0))).' · Top8 '.esc_html(number_format_i18n(absint($quality['pass_top8']??0))).' · fallos '.esc_html(number_format_i18n(absint($quality['failed']??0))).' · evaluadas '.esc_html(number_format_i18n(absint($quality['evaluated']??0))).'</div>';
+                if(!$passed){
+                    $origins=(array)($quality_report['failure_origins']??array());
+                    echo '<div class="description">Datos '.esc_html(number_format_i18n(absint($origins['datos_fuente']??0))).' · ambigüedad '.esc_html(number_format_i18n(absint($origins['ambiguedad']??0))).' · Dependiente '.esc_html(number_format_i18n(absint($origins['dependiente']??0))).'</div>';
+                    echo '<div style="margin-top:5px"><a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_csv_url($no)).'">CSV incidencias</a></div>';
+                }
             }else echo '—';
             echo '</td>';
             echo '<td>';
-            if($snapshot)echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON</a>';
-            else echo '—';
+            if($snapshot){
+                echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON</a> ';
+                echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($no)).'">CSV datos</a>';
+            }else echo '—';
             echo '</td></tr>';
         }
         echo '</tbody></table>';
+
+        $current_quality=TCD_Intelligence::quality_for_lesson(absint($state['lesson']??0));
+        if($current_quality && 'failed'===(string)($current_quality['status']??'')){
+            self::render_quality_diagnosis(absint($state['lesson']??0),$current_quality);
+        }
 
         $interpreter=TCD_Intelligence::interpreter_state();
         $maintenance=TCD_Maintenance::state();

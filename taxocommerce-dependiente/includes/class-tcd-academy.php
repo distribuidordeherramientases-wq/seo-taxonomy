@@ -755,7 +755,7 @@ final class TCD_Academy {
         header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="'.$filename.'"');
 
-        echo '{"schema":{"name":"taxocommerce_dependiente_learning","version":1},';
+        echo '{"schema":{"name":"taxocommerce_dependiente_learning","version":2},';
         echo '"exported_at":'.wp_json_encode(gmdate('c')).',';
         echo '"run_id":'.wp_json_encode((string)($state['run_id']??'')).',';
         echo '"state":'.wp_json_encode($state,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',';
@@ -770,7 +770,17 @@ final class TCD_Academy {
             $syllabus=json_decode((string)$snapshot['syllabus_json'],true);
             echo '{"lesson":'.$no.',"syllabus":'.wp_json_encode($syllabus,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',';
             $meta=$snapshot;unset($meta['syllabus_json']);
-            echo '"snapshot":'.wp_json_encode($meta,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',"items":[';
+            $quality=class_exists('TCD_Intelligence',false)?TCD_Intelligence::quality_for_lesson($no):array();
+            $quality_report=array();
+            if($quality){
+                $quality_report=json_decode((string)($quality['report_json']??''),true);
+                $quality_report=is_array($quality_report)?$quality_report:array();
+            }
+            echo '"snapshot":'.wp_json_encode($meta,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',';
+            echo '"quality":'.wp_json_encode(array(
+                'summary'=>$quality,
+                'report'=>$quality_report,
+            ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',"items":[';
             self::stream_snapshot_items(absint($snapshot['id']));
             echo ']}';
         }
