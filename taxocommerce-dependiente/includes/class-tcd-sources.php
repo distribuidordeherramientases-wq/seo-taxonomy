@@ -187,6 +187,34 @@ final class TCD_Sources {
         return is_array( $row ) ? self::faq_row_item( $row ) : null;
     }
 
+    public static function vocabulary_item( $id ) {
+        global $wpdb;
+        $voc = $wpdb->prefix . 'seo_vocabulary';
+        $rel = $wpdb->prefix . 'seo_object_vocabulary';
+        if ( ! self::table_exists( $voc ) ) return null;
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT id,semantic_group,slug,label FROM {$voc} WHERE id=%d AND active=1 LIMIT 1",
+            absint( $id )
+        ), ARRAY_A );
+        if ( ! is_array( $row ) ) return null;
+        $product_ids = array();
+        if ( self::table_exists( $rel ) ) {
+            $product_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
+                "SELECT object_id FROM {$rel}
+                 WHERE object_type='product' AND vocabulary_id=%d AND status=1
+                 ORDER BY object_id ASC LIMIT 200",
+                absint( $row['id'] ?? 0 )
+            ) ) );
+        }
+        $facts = array(
+            'group'=>sanitize_key( (string) ( $row['semantic_group'] ?? '' ) ),
+            'slug'=>sanitize_title( (string) ( $row['slug'] ?? '' ) ),
+            'product_ids'=>$product_ids,
+            'product_count'=>count( $product_ids ),
+        );
+        return self::item( 3, 'vocabulary', absint( $row['id'] ?? 0 ), (string) ( $row['label'] ?? '' ), '', $facts );
+    }
+
     private static function category_batch( $cursor, $limit ) {
         $terms = get_terms( array(
             'taxonomy'=>'product_cat','hide_empty'=>false,'number'=>$limit + 1,
