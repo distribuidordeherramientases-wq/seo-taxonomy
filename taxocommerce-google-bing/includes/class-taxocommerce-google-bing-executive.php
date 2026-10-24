@@ -3,7 +3,7 @@
  * Consolidated executive report for TaxoCommerce Google/Bing.
  *
  * This layer never downloads external data. It combines the latest local
- * snapshots from Search Console, GA4, Bing, Trends and Mercado and exposes a
+ * snapshots from Search Console, GA4, Bing, Trends, and Market and exposes a
  * stable read-only contract for Analista and other modules.
  *
  * @package TaxoCommerceGoogleBing
@@ -71,10 +71,10 @@ final class TaxoCommerce_Google_Bing_Executive {
 				'market' => $market,
 			),
 			'notes'         => array(
-				'No se realizan llamadas externas al abrir o exportar este informe.',
-				'Las métricas de distintas fuentes sólo se comparan cuando representan conceptos equivalentes.',
-				'Search Console puede omitir consultas anonimizadas y GA4 depende de la instrumentación del sitio.',
-				'Las oportunidades son una priorización interna; no son una métrica oficial de Google ni una predicción de ranking.',
+				'No external calls are made when opening or exporting this report.',
+				'Metrics from different sources are compared only when they represent equivalent concepts.',
+				'Search Console may omit anonymized queries, and GA4 depends on site instrumentation.',
+				'Opportunities are an internal prioritization, not an official Google metric or a ranking prediction.',
 			),
 		);
 	}
@@ -84,9 +84,9 @@ final class TaxoCommerce_Google_Bing_Executive {
 		echo '<div class="tgb-executive">';
 
 		echo '<section class="tgb-executive-head">';
-		echo '<div><h2>Informe ejecutivo Google / Bing</h2>';
-		echo '<p>Resumen único de las señales disponibles. Las pestañas de cada proveedor conservan el detalle y sus gráficos; aquí sólo se combinan los indicadores y análisis que aportan una lectura distinta.</p></div>';
-		echo '<a class="button" href="' . esc_url( self::export_url() ) . '">Exportar informe JSON</a>';
+		echo '<div><h2>Executive Report</h2>';
+		echo '<p>A consolidated view of available signals. Provider tabs retain detailed charts; this report combines only indicators and analyses that add a distinct executive perspective.</p></div>';
+		echo '<a class="button" href="' . esc_url( self::export_url() ) . '">Export JSON report</a>';
 		echo '</section>';
 
 		self::render_source_status( $report['sources'] );
@@ -95,13 +95,13 @@ final class TaxoCommerce_Google_Bing_Executive {
 		self::render_content( $report['content'] );
 		self::render_demand( $report['demand'] );
 
-		echo '<p class="description tgb-executive-note">Este informe es el contrato de lectura para Analista. Analista puede resumir, priorizar y generar visualizaciones a partir de estos datos sin conocer credenciales ni consultar APIs.</p>';
+		echo '<p class="description tgb-executive-note">This report is the read contract for downstream analysis. Consumers can summarize, prioritize, and visualize these data without accessing credentials or querying APIs.</p>';
 		echo '</div>';
 	}
 
 	public static function export() {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'No tienes permisos para exportar este informe.', 'taxocommerce-google-bing' ) );
+			wp_die( esc_html__( 'You do not have permission to export this report.', 'taxocommerce-google-bing' ) );
 		}
 		check_admin_referer( 'tgb_export_executive_report' );
 
@@ -253,7 +253,7 @@ final class TaxoCommerce_Google_Bing_Executive {
 		if ( ! $pages ) {
 			return array(
 				'available' => false,
-				'reason'    => 'No hay páginas guardadas en el último snapshot de Search Console.',
+				'reason'    => 'No pages are stored in the latest Search Console snapshot.',
 				'summary'   => array(),
 				'rows'      => array(),
 			);
@@ -309,10 +309,10 @@ final class TaxoCommerce_Google_Bing_Executive {
 
 			$action = 'Mantener y vigilar.';
 			if ( $position >= 4 && $position <= 20 && $impressions >= 20 ) {
-				$action = 'Reforzar: Google ya sitúa la URL cerca de posiciones de alta visibilidad.';
+				$action = 'Strengthen: Google already places the URL near high-visibility positions.';
 			}
 			if ( $bucket_ctr > 0 && $ctr_gap <= -0.20 && $impressions >= 20 ) {
-				$action = 'Revisar título y snippet: CTR inferior a URLs propias en posiciones parecidas.';
+				$action = 'Review title and snippet: CTR is lower than similar-position pages on the same site.';
 			}
 			if ( $content_score < 65 && ! empty( $content['advice'][0] ) ) {
 				$action = (string) $content['advice'][0];
@@ -369,8 +369,8 @@ final class TaxoCommerce_Google_Bing_Executive {
 			),
 			'rows' => array_slice( $rows, 0, 50 ),
 			'limitations' => array(
-				'El snapshot actual no conserva la relación consulta→URL, por lo que no se inventa fan-out por página.',
-				'El snapshot actual no conserva el periodo anterior por URL, por lo que movimiento por página queda sin calcular.',
+				'The current snapshot does not preserve query→URL relationships, so page-level fan-out is not inferred.',
+				'The current snapshot does not preserve the previous period by URL, so page-level movement is left uncalculated.',
 			),
 		);
 	}
@@ -446,7 +446,7 @@ final class TaxoCommerce_Google_Bing_Executive {
 				'rows'    => array_slice( $group_rows, 0, 30 ),
 			);
 		}
-		$out['coverage_note'] = 'GA4 conserva las 100 rutas más vistas y Search Console hasta 1.000 páginas en cada snapshot; la cobertura por contenido es observada, no un censo de URLs sin tráfico.';
+		$out['coverage_note'] = 'GA4 keeps the top 100 viewed paths and Search Console up to 1,000 pages per snapshot; content coverage is observed traffic, not a census of zero-traffic URLs.';
 		return $out;
 	}
 
@@ -640,19 +640,19 @@ final class TaxoCommerce_Google_Bing_Executive {
 
 		$advice = array();
 		if ( $word_count < 350 ) {
-			$advice[] = 'Ampliar la respuesta: faltan detalles para cubrir mejor la intención.';
+			$advice[] = 'Expand the answer: more detail is needed to better cover intent.';
 		}
 		if ( $h2_count < 2 ) {
 			$advice[] = 'Separar subtemas con H2 claros.';
 		}
 		if ( $internal_links < 2 ) {
-			$advice[] = 'Añadir enlaces internos hacia categorías, productos o contenidos relacionados.';
+			$advice[] = 'Add internal links to related categories, products, or content.';
 		}
 		if ( null !== $freshness && $freshness > 365 ) {
-			$advice[] = 'Revisar actualidad: lleva más de un año sin actualizarse.';
+			$advice[] = 'Review freshness: this content has not been updated for more than a year.';
 		}
 		if ( ! $advice ) {
-			$advice[] = 'La base editorial es razonable; priorizar según demanda, CTR y posición.';
+			$advice[] = 'The editorial baseline is reasonable; prioritize by demand, CTR, and position.';
 		}
 
 		return array(
@@ -762,7 +762,7 @@ final class TaxoCommerce_Google_Bing_Executive {
 
 	private static function render_source_status( $sources ) {
 		echo '<section class="tgb-executive-section">';
-		echo '<div class="tgb-executive-section-head"><div><h3>Fuentes y frescura</h3><p>El informe sólo utiliza información ya guardada. Una fuente ausente no bloquea las demás.</p></div></div>';
+		echo '<div class="tgb-executive-section-head"><div><h3>Sources and freshness</h3><p>The report only uses already-saved information. A missing source does not block the others.</p></div></div>';
 		echo '<div class="tgb-source-grid">';
 		foreach (
 			array(
@@ -770,14 +770,14 @@ final class TaxoCommerce_Google_Bing_Executive {
 				'analytics' => array( 'Google Analytics', 'google_analytics' ),
 				'bing'      => array( 'Bing', 'bing' ),
 				'trends'    => array( 'Google Trends', 'google_trends' ),
-				'market'    => array( 'Mercado / Merchant', 'mercado' ),
+				'market'    => array( 'Market / Merchant', 'mercado' ),
 			) as $key => $definition
 		) {
 			$source = (array) ( $sources[ $key ] ?? array() );
 			$available = ! empty( $source['available'] );
 			$stamp = absint( $source['downloaded_at'] ?? 0 );
 			$updated = (string) ( $source['updated_at'] ?? '' );
-			$when = $stamp ? wp_date( 'd/m/Y H:i', $stamp ) : ( $updated ? $updated : 'Sin datos' );
+			$when = $stamp ? wp_date( 'd/m/Y H:i', $stamp ) : ( $updated ? $updated : 'No data' );
 			echo '<a class="tgb-source-card ' . ( $available ? 'is-ready' : 'is-empty' ) . '" href="' . esc_url( self::tab_url( $definition[1] ) ) . '">';
 			echo '<strong>' . esc_html( $definition[0] ) . '</strong><span>' . esc_html( $available ? $when : 'Sin snapshot' ) . '</span>';
 			echo '</a>';
@@ -792,16 +792,16 @@ final class TaxoCommerce_Google_Bing_Executive {
 		$market = (array) $overview['market'];
 
 		echo '<section class="tgb-executive-section">';
-		echo '<div class="tgb-executive-section-head"><div><h3>Visión ejecutiva</h3><p>Indicadores principales sin repetir las tablas y gráficos detallados de cada proveedor.</p></div></div>';
+		echo '<div class="tgb-executive-section-head"><div><h3>Executive view</h3><p>Key indicators without repeating provider-level detailed tables and charts.</p></div></div>';
 		echo '<div class="tgb-kpi-grid tgb-kpi-grid--executive">';
-		self::kpi( 'Clics Google', $gsc['available'] ? $gsc['clicks'] : null, $gsc['previous']['clicks'] ?? null );
-		self::kpi( 'Impresiones Google', $gsc['available'] ? $gsc['impressions'] : null, $gsc['previous']['impressions'] ?? null );
-		self::kpi( 'Posición Google', $gsc['available'] ? $gsc['position'] : null, $gsc['previous']['position'] ?? null, 'decimal', true );
-		self::kpi( 'Sesiones GA4', $ga4['available'] ? $ga4['sessions'] : null, $ga4['previous']['sessions'] ?? null );
-		self::kpi( 'Usuarios GA4', $ga4['available'] ? $ga4['users'] : null, $ga4['previous']['users'] ?? null );
-		self::kpi( 'Compras GA4', $ga4['available'] ? $ga4['purchases'] : null, $ga4['previous']['purchases'] ?? null );
-		self::kpi( 'Clics Bing', $bing['available'] ? $bing['clicks'] : null, $bing['previous']['clicks'] ?? null );
-		self::kpi( 'Evidencias de mercado', $market['available'] ? $market['evidence'] : null, null );
+		self::kpi( 'Google clicks', $gsc['available'] ? $gsc['clicks'] : null, $gsc['previous']['clicks'] ?? null );
+		self::kpi( 'Google impressions', $gsc['available'] ? $gsc['impressions'] : null, $gsc['previous']['impressions'] ?? null );
+		self::kpi( 'Google position', $gsc['available'] ? $gsc['position'] : null, $gsc['previous']['position'] ?? null, 'decimal', true );
+		self::kpi( 'GA4 sessions', $ga4['available'] ? $ga4['sessions'] : null, $ga4['previous']['sessions'] ?? null );
+		self::kpi( 'GA4 users', $ga4['available'] ? $ga4['users'] : null, $ga4['previous']['users'] ?? null );
+		self::kpi( 'GA4 purchases', $ga4['available'] ? $ga4['purchases'] : null, $ga4['previous']['purchases'] ?? null );
+		self::kpi( 'Bing clicks', $bing['available'] ? $bing['clicks'] : null, $bing['previous']['clicks'] ?? null );
+		self::kpi( 'Market evidence', $market['available'] ? $market['evidence'] : null, null );
 		echo '</div>';
 		echo '<div class="tgb-executive-links">';
 		echo '<a href="' . esc_url( self::tab_url( 'google_search' ) ) . '">Detalle Google Search →</a>';
@@ -812,9 +812,9 @@ final class TaxoCommerce_Google_Bing_Executive {
 
 	private static function render_opportunities( $data ) {
 		echo '<section class="tgb-executive-section">';
-		echo '<div class="tgb-executive-section-head"><div><h3>Oportunidades de contenido</h3><p>Conserva lo mejor del antiguo informe de posicionamiento: demanda, posición, CTR y preparación editorial, sin inventar métricas que el snapshot actual no guarda.</p></div></div>';
+		echo '<div class="tgb-executive-section-head"><div><h3>Content opportunities</h3><p>Preserves the most useful parts of the previous ranking report: demand, position, CTR, and editorial readiness, without inventing metrics not stored in the current snapshot.</p></div></div>';
 		if ( empty( $data['available'] ) ) {
-			echo '<p class="description">' . esc_html( (string) ( $data['reason'] ?? 'Sin datos.' ) ) . '</p></section>';
+			echo '<p class="description">' . esc_html( (string) ( $data['reason'] ?? 'No data.' ) ) . '</p></section>';
 			return;
 		}
 		$summary = (array) $data['summary'];
@@ -822,32 +822,32 @@ final class TaxoCommerce_Google_Bing_Executive {
 		foreach (
 			array(
 				'URLs analizadas' => $summary['pages'] ?? 0,
-				'Prioridad alta' => $summary['high_priority'] ?? 0,
+				'Priority alta' => $summary['high_priority'] ?? 0,
 				'CTR mejorable' => $summary['low_ctr'] ?? 0,
-				'Contenido débil' => $summary['weak_content'] ?? 0,
-				'Preparación media' => ( $summary['preparation_avg'] ?? 0 ) . '/100',
+				'Weak content' => $summary['weak_content'] ?? 0,
+				'Average readiness' => ( $summary['preparation_avg'] ?? 0 ) . '/100',
 			) as $label => $value
 		) {
 			echo '<div><strong>' . esc_html( (string) $value ) . '</strong><span>' . esc_html( $label ) . '</span></div>';
 		}
 		echo '</div>';
-		echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Página</th><th>Google</th><th>GA4</th><th>Preparación</th><th>Acción</th></tr></thead><tbody>';
+		echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Priority</th><th>Page</th><th>Google</th><th>GA4</th><th>Readiness</th><th>Action</th></tr></thead><tbody>';
 		foreach ( array_slice( (array) $data['rows'], 0, 15 ) as $row ) {
 			echo '<tr><td><strong>' . esc_html( (string) $row['priority'] ) . '/100</strong></td>';
 			echo '<td><a href="' . esc_url( (string) $row['url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( (string) $row['title'] ) . '</a></td>';
-			echo '<td>' . esc_html( number_format_i18n( (int) $row['impressions'] ) ) . ' imp. · ' . esc_html( number_format_i18n( (int) $row['clicks'] ) ) . ' clics<br><small>CTR ' . esc_html( number_format_i18n( (float) $row['ctr'] * 100, 1 ) ) . '% · pos. ' . esc_html( number_format_i18n( (float) $row['position'], 1 ) ) . '</small></td>';
+			echo '<td>' . esc_html( number_format_i18n( (int) $row['impressions'] ) ) . ' imp. · ' . esc_html( number_format_i18n( (int) $row['clicks'] ) ) . ' clicks<br><small>CTR ' . esc_html( number_format_i18n( (float) $row['ctr'] * 100, 1 ) ) . '% · pos. ' . esc_html( number_format_i18n( (float) $row['position'], 1 ) ) . '</small></td>';
 			echo '<td>' . esc_html( number_format_i18n( (int) $row['views_ga4'] ) ) . ' vistas</td>';
 			echo '<td>' . esc_html( (string) $row['preparation'] ) . '/100</td>';
 			echo '<td>' . esc_html( (string) $row['action'] ) . '</td></tr>';
 		}
 		echo '</tbody></table></div>';
-		echo '<p class="description">Movimiento por URL y fan-out consulta→URL quedan deliberadamente sin calcular hasta que esos datos formen parte del snapshot moderno.</p>';
+		echo '<p class="description">URL movement and query→URL fan-out are deliberately left uncalculated until those data are part of the modern snapshot.</p>';
 		echo '</section>';
 	}
 
 	private static function render_content( $content ) {
 		echo '<section class="tgb-executive-section">';
-		echo '<div class="tgb-executive-section-head"><div><h3>Rendimiento por tipo de contenido</h3><p>Recupera la utilidad de los antiguos informes de Posts y Landing Pages sin crear dos informes separados.</p></div></div>';
+		echo '<div class="tgb-executive-section-head"><div><h3>Performance by content type</h3><p>Recovers the usefulness of previous Posts and Landing Page reports without creating two separate reports.</p></div></div>';
 		foreach ( array( 'posts' => 'Posts', 'landings' => 'Landing Pages' ) as $key => $label ) {
 			$group = (array) ( $content[ $key ] ?? array() );
 			$summary = (array) ( $group['summary'] ?? array() );
@@ -856,10 +856,10 @@ final class TaxoCommerce_Google_Bing_Executive {
 			foreach (
 				array(
 					'Total' => $summary['total'] ?? 0,
-					'Con señal' => $summary['with_signal'] ?? 0,
-					'Vistas GA4' => $summary['views'] ?? 0,
-					'Clics Google' => $summary['clicks'] ?? 0,
-					'Impresiones Google' => $summary['impressions'] ?? 0,
+					'With signal' => $summary['with_signal'] ?? 0,
+					'GA4 views' => $summary['views'] ?? 0,
+					'Google clicks' => $summary['clicks'] ?? 0,
+					'Google impressions' => $summary['impressions'] ?? 0,
 				) as $metric => $value
 			) {
 				echo '<div><strong>' . esc_html( number_format_i18n( (int) $value ) ) . '</strong><span>' . esc_html( $metric ) . '</span></div>';
@@ -867,7 +867,7 @@ final class TaxoCommerce_Google_Bing_Executive {
 			echo '</div>';
 			$rows = (array) ( $group['rows'] ?? array() );
 			if ( $rows ) {
-				echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Contenido</th><th>Vistas GA4</th><th>Clics</th><th>Impresiones</th><th>Posición</th></tr></thead><tbody>';
+				echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Content</th><th>GA4 views</th><th>Clics</th><th>Impressions</th><th>Position</th></tr></thead><tbody>';
 				foreach ( array_slice( $rows, 0, 10 ) as $row ) {
 					echo '<tr><td><a href="' . esc_url( (string) $row['url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( (string) $row['title'] ) . '</a></td>';
 					echo '<td>' . esc_html( number_format_i18n( (int) $row['views'] ) ) . '</td>';
@@ -887,9 +887,9 @@ final class TaxoCommerce_Google_Bing_Executive {
 		$trends = (array) ( $demand['trends'] ?? array() );
 		$market = (array) ( $demand['market'] ?? array() );
 		echo '<section class="tgb-executive-section">';
-		echo '<div class="tgb-executive-section-head"><div><h3>Demanda y mercado</h3><p>Señales externas para contexto. No se mezclan con tráfico del sitio ni se convierten en una puntuación SEO.</p></div></div>';
+		echo '<div class="tgb-executive-section-head"><div><h3>Demand and market</h3><p>External signals for context. They are not mixed with site traffic or converted into an SEO score.</p></div></div>';
 		echo '<div class="tgb-demand-grid">';
-		echo '<div class="tgb-demand-card"><h4>Google Trends · España</h4>';
+		echo '<div class="tgb-demand-card"><h4>Google Trends · Spain</h4>';
 		if ( ! empty( $trends['available'] ) ) {
 			echo '<ol>';
 			foreach ( array_slice( (array) $trends['items'], 0, 8 ) as $item ) {
@@ -906,9 +906,9 @@ final class TaxoCommerce_Google_Bing_Executive {
 		echo '<p><a href="' . esc_url( self::tab_url( 'google_trends' ) ) . '">Abrir Trends →</a></p></div>';
 
 		$summary = (array) ( $market['summary'] ?? array() );
-		echo '<div class="tgb-demand-card"><h4>Mercado / Merchant</h4>';
+		echo '<div class="tgb-demand-card"><h4>Market / Merchant</h4>';
 		if ( ! empty( $market['meta']['available'] ) ) {
-			echo '<p><strong>' . esc_html( number_format_i18n( (int) ( $summary['analyzed_categories'] ?? 0 ) ) ) . '</strong> categorías analizadas de ' . esc_html( number_format_i18n( (int) ( $summary['categories'] ?? 0 ) ) ) . '.</p>';
+			echo '<p><strong>' . esc_html( number_format_i18n( (int) ( $summary['analyzed_categories'] ?? 0 ) ) ) . '</strong> categories analyzed out of ' . esc_html( number_format_i18n( (int) ( $summary['categories'] ?? 0 ) ) ) . '.</p>';
 			echo '<p><strong>' . esc_html( number_format_i18n( (int) ( $summary['evidence'] ?? 0 ) ) ) . '</strong> evidencias guardadas · <strong>' . esc_html( number_format_i18n( (int) ( $summary['merchant_evidence'] ?? 0 ) ) ) . '</strong> procedentes de Merchant.</p>';
 			$providers = array();
 			foreach ( (array) ( $market['providers'] ?? array() ) as $provider ) {
@@ -918,9 +918,9 @@ final class TaxoCommerce_Google_Bing_Executive {
 				echo '<p class="description">' . esc_html( implode( ' · ', $providers ) ) . '</p>';
 			}
 		} else {
-			echo '<p>Sin datos de Mercado todavía.</p>';
+			echo '<p>No data de Mercado todavía.</p>';
 		}
-		echo '<p><a href="' . esc_url( self::tab_url( 'mercado' ) ) . '">Abrir Mercado →</a></p></div>';
+		echo '<p><a href="' . esc_url( self::tab_url( 'mercado' ) ) . '">Open Market →</a></p></div>';
 		echo '</div></section>';
 	}
 
@@ -928,7 +928,7 @@ final class TaxoCommerce_Google_Bing_Executive {
 		echo '<div class="tgb-kpi">';
 		echo '<span class="tgb-kpi-label">' . esc_html( $label ) . '</span>';
 		if ( null === $current ) {
-			echo '<strong>—</strong><small>Sin datos</small></div>';
+			echo '<strong>—</strong><small>No data</small></div>';
 			return;
 		}
 		$display = 'decimal' === $format
@@ -938,9 +938,9 @@ final class TaxoCommerce_Google_Bing_Executive {
 		if ( null !== $previous && is_numeric( $previous ) && (float) $previous != 0.0 ) {
 			$delta = ( ( (float) $current - (float) $previous ) / abs( (float) $previous ) ) * 100;
 			$good = $lower_better ? $delta < 0 : $delta > 0;
-			echo '<small class="' . esc_attr( $good ? 'is-positive' : ( 0.0 === $delta ? '' : 'is-negative' ) ) . '">' . esc_html( ( $delta > 0 ? '+' : '' ) . number_format_i18n( $delta, 1 ) . '%' ) . ' vs. periodo anterior</small>';
+			echo '<small class="' . esc_attr( $good ? 'is-positive' : ( 0.0 === $delta ? '' : 'is-negative' ) ) . '">' . esc_html( ( $delta > 0 ? '+' : '' ) . number_format_i18n( $delta, 1 ) . '%' ) . ' vs. previous period</small>';
 		} else {
-			echo '<small>Último snapshot</small>';
+			echo '<small>Latest snapshot</small>';
 		}
 		echo '</div>';
 	}
