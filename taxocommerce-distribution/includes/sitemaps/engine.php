@@ -779,35 +779,66 @@ function tcdist_sitemap_get_node_page_ids_by_roles($roles)
         return array();
     }
 
-    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
+    /*
+     * Modular Core is the preferred source. It stores the SEO role directly
+     * on the WordPress page, so Distribution does not require any legacy
+     * TaxoCommerce table in a clean installation.
+     */
+    $ids = array();
+    foreach ($roles as $role) {
+        $role_ids = get_posts(
+            array(
+                'post_type'              => 'page',
+                'post_status'            => 'publish',
+                'posts_per_page'         => -1,
+                'fields'                 => 'ids',
+                'orderby'                => 'ID',
+                'order'                  => 'ASC',
+                'no_found_rows'          => true,
+                'update_post_meta_cache' => false,
+                'update_post_term_cache' => false,
+                'meta_key'               => '_taxocommerce_core_seo_role',
+                'meta_value'             => $role,
+            )
+        );
+        $ids = array_merge($ids, array_map('absint', (array) $role_ids));
+    }
+
+    if (!empty($ids)) {
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    /*
+     * Compatibility fallback while the monolithic plugin still owns
+     * seo_nodes. Query one role at a time so table and values remain fully
+     * prepared and the fallback disappears naturally on clean installs.
+     */
+    $nodes_table = $wpdb->prefix . 'seo_nodes';
     $table_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $nodes_table)
     );
-
     if ($table_exists !== $nodes_table) {
         return array();
     }
 
-    $placeholders = implode(', ', array_fill(0, count($roles), '%s'));
-    $sql = "
-        SELECT DISTINCT object_id
-        FROM {$nodes_table}
-        WHERE object_type = 'page'
-          AND seo_role IN ({$placeholders})
-          AND status = 1
-          AND object_id > 0
-        ORDER BY object_id ASC
-    ";
+    foreach ($roles as $role) {
+        $legacy_ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT DISTINCT object_id
+                 FROM %i
+                 WHERE object_type = 'page'
+                   AND seo_role = %s
+                   AND status = 1
+                   AND object_id > 0
+                 ORDER BY object_id ASC",
+                $nodes_table,
+                $role
+            )
+        );
+        $ids = array_merge($ids, array_map('absint', (array) $legacy_ids));
+    }
 
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template/table; role values remain placeholders.
-    $prepared = $wpdb->prepare($sql, $roles);
-
-    return array_values(
-        array_unique(
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
-            array_filter(array_map('absint', (array) $wpdb->get_col($prepared)))
-        )
-    );
+    return array_values(array_unique(array_filter($ids)));
 }
 
 /**
