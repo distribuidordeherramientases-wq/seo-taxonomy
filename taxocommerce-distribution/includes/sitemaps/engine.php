@@ -238,8 +238,8 @@ function tcdist_sitemap_add_sitemap_to_robots($output, $public)
             $sitemap_path = (string) wp_parse_url(trim($matches[1]), PHP_URL_PATH);
             $basename     = strtolower(basename($sitemap_path));
 
-            // Elimina únicamente nuestros alias y el sitemap nativo para no
-            // publicar dos índices distintos en robots.txt.
+            // Remove only our aliases and the native sitemap so robots.txt does not
+            // publish two different indexes.
             if (in_array(
                 $basename,
                 array('wp-sitemap.xml', 'sitemap.xml', 'sitemap-index.xml', 'sitemap_index.xml'),
@@ -1283,8 +1283,8 @@ function tcdist_sitemap_create_sitemaps()
             }
         }
 
-        // Los hijos se publican antes que el índice para que este nunca apunte
-        // a un archivo todavía inexistente. sitemap.xml se publica el último.
+        // Child sitemaps are published before the index so it never points
+        // to a file that does not yet exist. sitemap.xml is published last.
         $publish_order = array();
         foreach ($files as $file) {
             $publish_order[] = $file['filename'];
