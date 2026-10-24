@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 define( 'ABSPATH', __DIR__ );
 define( 'MINUTE_IN_SECONDS', 60 );
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.2.0' );
 class WP_Error {
     private $code;
     private $message;
@@ -28,9 +28,12 @@ class TCDB_Test_WPDB {
 $wpdb = new TCDB_Test_WPDB();
 
 require dirname( __DIR__ ) . '/includes/class-tcdb-storage.php';
+require dirname( __DIR__ ) . '/includes/class-tcdb-journal.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-export.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-import.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-cleanup.php';
+require dirname( __DIR__ ) . '/includes/class-tcdb-diagnostics.php';
+require dirname( __DIR__ ) . '/includes/class-tcdb-maintenance.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-admin.php';
 
 function assert_tcdb( $ok, $message ) {
@@ -94,6 +97,7 @@ $entry = file_get_contents( $root . '/taxocommerce-database.php' );
 assert_tcdb( false === strpos( $entry, "require_once TAXOCOMMERCE_CORE" ), 'Core is optional' );
 assert_tcdb( false !== strpos( $entry, "add_submenu_page(" ), 'nested menu with Core' );
 assert_tcdb( false !== strpos( $entry, "add_menu_page(" ), 'standalone menu without Core' );
-assert_tcdb( false === strpos( $entry, "register_activation_hook" ), 'no new data tables created or deleted' );
+assert_tcdb( false !== strpos( $entry, "register_activation_hook( __FILE__, array( 'TCDB_Journal', 'install' ) )" ), 'dedicated rollback tables installed on activation' );
+assert_tcdb( false === strpos( $entry, 'SEO_Data_Rollback::' ), 'legacy rollback engine remains separate' );
 
 echo "TaxoCommerce Database smoke OK: CSV, identifiers, family independence, rollback separation.\n";
