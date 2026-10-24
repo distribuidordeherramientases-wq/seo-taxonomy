@@ -349,7 +349,7 @@ final class TaxoCommerce_Google_Bing_Trends {
         }
         $code = (int) wp_remote_retrieve_response_code( $response );
         if ( $code < 200 || $code >= 300 ) {
-            return new WP_Error( 'tgb_trends_http', 'Google Trends ha respondido HTTP ' . $code . '. No se ha modificado la copia guardada.' );
+            return new WP_Error( 'tgb_trends_http', 'Google Trends returned HTTP ' . $code . '. The saved snapshot was not modified.' );
         }
         $items = self::parse_rss( wp_remote_retrieve_body( $response ) );
         if ( is_wp_error( $items ) ) {
