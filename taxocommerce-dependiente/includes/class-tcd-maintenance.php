@@ -154,6 +154,7 @@ final class TCD_Maintenance {
             self::refresh_recent_vocabulary( $since_local, $until_local );
             self::refresh_recent_assignments( $since_local, $until_local );
             $feedback = class_exists( 'TCD_Feedback', false ) ? TCD_Feedback::consolidate( 200 ) : array();
+            $feedback_dirty = absint( get_option( 'tcd_feedback_dirty', 0 ) );
             $state = self::state();
             $state['feedback_checked'] = absint( $feedback['checked'] ?? 0 );
             $state['feedback_promoted'] = absint( $feedback['promoted'] ?? 0 );
@@ -164,9 +165,10 @@ final class TCD_Maintenance {
                 + absint( $state['faqs_updated'] ?? 0 )
                 + absint( $state['vocabulary_updated'] ?? 0 );
             $interpreter_error = '';
-            if ( $after_total > $before_total || ! empty( $state['feedback_promoted'] ) ) {
+            if ( $after_total > $before_total || $feedback_dirty ) {
                 $validation = TCD_Intelligence::build_interpreter();
                 if ( is_wp_error( $validation ) ) $interpreter_error = $validation->get_error_message();
+                delete_option( 'tcd_feedback_dirty' );
             }
             $state['status'] = $interpreter_error ? 'warning' : 'active';
             $state['last_run'] = current_time( 'mysql' );
