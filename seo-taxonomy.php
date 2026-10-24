@@ -63,5 +63,8 @@ if ( ! defined( 'SEO_SYSTEM_BASENAME' ) ) {
     define( 'SEO_SYSTEM_BASENAME', plugin_basename( __FILE__ ) );
 }
 
+// Deployment status is intentionally independent from the legacy bootstrap.
+require_once __DIR__ . '/includes/seo-deploy-status.php';
+
 // Do not resolve this file through a global path belonging to another plugin.
 require_once __DIR__ . '/includes/seo-includes-bootstrap.php';
