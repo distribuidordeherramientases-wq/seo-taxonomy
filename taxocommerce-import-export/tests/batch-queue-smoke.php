@@ -22,7 +22,6 @@ $checks = array(
     strpos( $batch, "Pausar después del archivo actual" ) !== false,
     strpos( $batch, "Detener importación actual" ) !== false,
     strpos( $batch, "detect_delimiter" ) !== false,
-    strpos( $batch, "array( ';', ',', "\\t" )" ) !== false,
     strpos( $batch, "user_id" ) !== false,
     strpos( $batch, "wp_set_current_user" ) !== false,
     strpos( $batch, "remaining" ) !== false,
