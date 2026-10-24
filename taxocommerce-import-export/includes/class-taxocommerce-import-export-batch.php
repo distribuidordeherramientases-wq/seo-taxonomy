@@ -342,8 +342,31 @@ final class TaxoCommerce_Import_Export_Batch {
 
 		$detected = $this->detect_importer( $target );
 		if ( is_wp_error( $detected ) ) {
-			$this->move_file( $target, $this->unique_path( $paths['failed'], $filename ) );
-			return $detected;
+			$failed = $this->unique_path( $paths['failed'], $filename );
+			$this->move_file( $target, $failed );
+			file_put_contents(
+				$failed . '.log.json',
+				wp_json_encode(
+					array(
+						'file'        => basename( $failed ),
+						'type'        => '',
+						'error_rows'  => 0,
+						'file_error'  => sanitize_text_field( $detected->get_error_message() ),
+						'finished_at' => current_time( 'mysql' ),
+					),
+					JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+				)
+			); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			$state['current_file'] = '';
+			$state['last_file']    = basename( $failed );
+			$state['entity']       = '';
+			$state['status']       = 'waiting_next';
+			$state['message']      = sprintf(
+				__( 'El archivo %1$s no pudo asignarse a un miniimportador (%2$s). Se movió a Fallidos y la cola continúa.', 'taxocommerce-import-export' ),
+				basename( $failed ),
+				$detected->get_error_message()
+			);
+			return $state;
 		}
 
 		$state['current_file']  = basename( $target );
