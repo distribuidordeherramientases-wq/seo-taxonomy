@@ -1,0 +1,62 @@
+/* Architecture distribution report; scoped to Core -> Contenidos only. */
+.tc-architecture-report{color:#17243b;margin:16px 0 26px;max-width:1500px}
+.tc-architecture-report *{box-sizing:border-box}
+.tc-architecture-heading,.tc-architecture-section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.tc-architecture-heading h2{font-size:22px;margin:4px 0 5px}
+.tc-architecture-heading p{margin:0;color:#61718b}
+.tc-architecture-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tc-architecture-tools form{margin:0}
+.tc-architecture-tools .description{font-size:12px}
+.tc-architecture-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:20px 0 27px}
+.tc-architecture-kpi{display:flex;flex-direction:column;gap:9px;min-width:0;background:#fff;border:1px solid #dfe6ef;border-top:3px solid #1769de;border-radius:10px;padding:14px 16px;box-shadow:0 3px 9px rgba(21,50,100,.04)}
+.tc-architecture-kpi--violet{border-top-color:#7746f6}
+.tc-architecture-kpi--amber{border-top-color:#ed9b10}
+.tc-architecture-kpi--green{border-top-color:#14a67a}
+.tc-architecture-kpi>span{text-transform:uppercase;letter-spacing:.065em;color:#60728f;font-size:10px;font-weight:750}
+.tc-architecture-kpi>strong{font-size:27px;line-height:1.12;color:#10213a}
+.tc-architecture-kpi>small{font-size:11px;color:#5c6d88;line-height:1.5}
+.tc-architecture-section{margin-top:23px}
+.tc-architecture-section-heading{margin-bottom:12px}
+.tc-architecture-section-heading span,.tc-architecture-cluster-head span{text-transform:uppercase;letter-spacing:.085em;font-size:10px;font-weight:750;color:#1769de}
+.tc-architecture-section-heading h3{font-size:19px;margin:3px 0}
+.tc-architecture-section-heading>p{color:#677791;max-width:440px;font-size:12px;text-align:right;line-height:1.6;margin:0}
+.tc-architecture-panel,.tc-architecture-cluster{background:#fff;border:1px solid #dfe6ef;border-radius:11px;box-shadow:0 3px 10px rgba(21,50,100,.045)}
+.tc-architecture-panel{padding:16px;margin-bottom:16px}
+.tc-architecture-panel h4{font-size:14px;margin:0 0 12px}
+.tc-architecture-table-wrap{overflow:auto;width:100%;-webkit-overflow-scrolling:touch}
+.tc-architecture-table-wrap table{width:100%;margin:0;min-width:500px}
+.tc-architecture-table-wrap th,.tc-architecture-table-wrap td{font-size:12px;vertical-align:middle!important}
+.tc-architecture-table-wrap tbody th{font-weight:600}
+.tc-architecture-cluster{overflow:hidden;margin:0 0 16px}
+.tc-architecture-cluster-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px}
+.tc-architecture-cluster-head h4{margin:3px 0 0;font-size:16px}
+.tc-architecture-cluster-head>strong{font-size:19px;white-space:nowrap;color:#079264}
+.tc-architecture-cluster-head>strong small{font-weight:500;font-size:10px;color:#65758c}
+.tc-architecture-cluster-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#f8fafd;border-top:1px solid #e8edf4;border-bottom:1px solid #e8edf4}
+.tc-architecture-cluster-stats>div{display:flex;flex-direction:column;padding:11px 16px;gap:3px;border-right:1px solid #e8edf4}
+.tc-architecture-cluster-stats>div:last-child{border-right:0}
+.tc-architecture-cluster-stats strong{font-size:17px}
+.tc-architecture-cluster-stats span{font-size:10px;color:#5f718b}
+.tc-architecture-cluster-detail{display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,1.9fr);gap:25px;padding:17px}
+.tc-architecture-bars{min-width:0}
+.tc-architecture-bars h5{font-size:12px;margin:0 0 13px}
+.tc-architecture-bar{margin:0 0 12px}
+.tc-architecture-bar>div{display:flex;justify-content:space-between;gap:6px;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.tc-architecture-bar>div strong{flex-shrink:0}
+.tc-architecture-bar progress{display:block;width:100%;height:8px;accent-color:#1769de}
+.tc-architecture-no-data{padding:6px 18px 18px;color:#6b7787}
+@media(max-width:1024px){
+.tc-architecture-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tc-architecture-cluster-detail{grid-template-columns:1fr}
+.tc-architecture-section-heading>p{text-align:left}
+}
+@media(max-width:600px){
+.tc-architecture-kpis{grid-template-columns:1fr 1fr;gap:9px}
+.tc-architecture-kpi{padding:11px}
+.tc-architecture-kpi>strong{font-size:23px}
+.tc-architecture-cluster-head{padding:13px}
+.tc-architecture-cluster-stats>div{padding:9px}
+.tc-architecture-cluster-stats strong{font-size:15px}
+.tc-architecture-cluster-detail{padding:10px}
+.tc-architecture-panel{padding:10px}
+}
