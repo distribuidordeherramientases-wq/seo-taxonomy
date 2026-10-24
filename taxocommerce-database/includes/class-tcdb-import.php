@@ -104,6 +104,9 @@ final class TCDB_Import {
         if ( ! isset( $tables[ $table ] ) || ! $tables[ $table ]['family'] ) {
             wp_die( 'Solo se admiten tablas existentes de la familia TaxoCommerce.' );
         }
+        if ( in_array( $table, array( TCDB_Journal::operations_table(), TCDB_Journal::changes_table() ), true ) ) {
+            wp_die( 'Las tablas del historial de rollback están protegidas frente a importaciones.' );
+        }
         if ( 'InnoDB' !== $tables[ $table ]['engine'] ) {
             wp_die( 'Por seguridad, la importación requiere una tabla InnoDB.' );
         }
@@ -163,6 +166,9 @@ final class TCDB_Import {
         if ( ! isset( $tables[ $table ] ) || ! $tables[ $table ]['family'] || 'InnoDB' !== $tables[ $table ]['engine'] ) {
             wp_die( 'La tabla ya no es válida para esta importación.' );
         }
+        if ( in_array( $table, array( TCDB_Journal::operations_table(), TCDB_Journal::changes_table() ), true ) ) {
+            wp_die( 'No es posible importar filas en el historial de rollback.' );
+        }
         $columns = TCDB_Storage::columns( $table );
         if ( hash( 'sha256', wp_json_encode( $columns ) ) !== $data['column_hash']
             || is_wp_error( self::validate_column_set( $data['headers'], $columns ) ) ) {
@@ -170,6 +176,15 @@ final class TCDB_Import {
         }
 
         $owner = TCDB_Journal::ready() ? TCDB_Journal::owner_for_table( $table ) : '';
+        // A plugin approves reversible bulk import only after validating
+        // every row according to its own invariants (URLs, relations, etc.).
+        // Ownership of a table alone does not make raw SQL safe.
+        $validated = $owner && true === apply_filters(
+            'tcdb_reversible_csv_import', false, $table, $data['rows'], $owner
+        );
+        if ( ! $validated ) {
+            $owner = '';
+        }
         $operation_id = 0;
         if ( $owner ) {
             // Imported INSERTs become one atomic reversible operation only
