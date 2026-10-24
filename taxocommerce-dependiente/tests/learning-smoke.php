@@ -60,6 +60,8 @@ $checks=array(
     strpos($sources,'TaxoCommerce FAQs no está disponible: falta la tabla seo_faq.')!==false,
     strpos($sources,"semantic_group IN ('tipo','rol')")!==false,
     strpos($sources,'validate_snapshot')!==false,
+    strpos($sources,'review_source_total')!==false,
+    strpos($sources,'LIMIT 110')!==false,
     strpos($admin,'Prioridad de Dependiente')!==false,
     strpos($admin,'type="range" min="1" max="5"')!==false,
     strpos($admin,'Límite máximo de CPU para Dependiente')===false,
