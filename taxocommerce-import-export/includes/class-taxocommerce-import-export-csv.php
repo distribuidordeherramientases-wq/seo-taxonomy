@@ -91,9 +91,13 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 
 		$headers = array_map( array( $this, 'normalize_header' ), $headers );
+		$implicit_record_type = '';
 		if ( ! in_array( 'record_type', $headers, true ) ) {
-			$this->stream_close( $handle );
-			$this->redirect_error( __( 'El CSV no parece generado por TaxoCommerce Import-Export.', 'taxocommerce-import-export' ) );
+			$implicit_record_type = $this->infer_record_type_from_headers( $headers );
+			if ( ! $implicit_record_type ) {
+				$this->stream_close( $handle );
+				$this->redirect_error( __( 'No se puede identificar con seguridad el tipo de contenido del CSV. Añade record_type o usa cabeceras específicas del tipo.', 'taxocommerce-import-export' ) );
+			}
 		}
 
 		$count = 0;
@@ -105,6 +109,10 @@ final class TaxoCommerce_Import_Export_CSV {
 			$data = array_combine( $headers, array_slice( $row, 0, count( $headers ) ) );
 			if ( ! is_array( $data ) ) {
 				continue;
+			}
+			if ( $implicit_record_type ) {
+				$data['record_type']    = $implicit_record_type;
+				$data['_partial_update'] = '1';
 			}
 
 			$result = $this->import_row( $data );
@@ -673,7 +681,74 @@ final class TaxoCommerce_Import_Export_CSV {
 	 */
 	private function normalize_header( $header ) {
 		$header = preg_replace( '/^\xEF\xBB\xBF/', '', (string) $header );
-		return sanitize_key( trim( $header ) );
+		$key    = sanitize_key( trim( $header ) );
+
+		$aliases = array(
+			'product_id'            => 'id',
+			'producto_id'           => 'id',
+			'post_id'               => 'id',
+			'titulo'                => 'name',
+			'nombre'                => 'name',
+			'title'                 => 'name',
+			'estado'                => 'status',
+			'tipo_producto'         => 'product_type',
+			'precio_normal'         => 'regular_price',
+			'precio_rebajado'       => 'sale_price',
+			'estado_stock'          => 'stock_status',
+			'gestionar_stock'       => 'manage_stock',
+			'cantidad_stock'        => 'stock_quantity',
+			'excerpt'               => 'short_description',
+			'resumen'               => 'short_description',
+			'categories_json'       => 'categories_json',
+			'etiquetas_json'        => 'tags_json',
+			'atributos_wc_json'     => 'attributes_json',
+			'url_externa'           => 'external_url',
+			'texto_boton'           => 'button_text',
+			'marca_taxonomia'       => 'brand_taxonomy',
+			'marca_ids'             => 'brand_ids',
+			'marca'                 => 'brand',
+			'fabricante'            => 'manufacturer',
+			'proveedor'             => 'supplier',
+			'proveedor_id_externo'  => 'supplier_external_id',
+			'proveedor_catalogo_id' => 'supplier_catalog_id',
+			'categoria_proveedor'   => 'supplier_category',
+			'precio_proveedor'      => 'supplier_price',
+		);
+
+		return isset( $aliases[ $key ] ) ? $aliases[ $key ] : $key;
+	}
+
+	/**
+	 * Infer a safe record type from distinctive headers.
+	 *
+	 * Only unambiguous correction CSVs are accepted without record_type.
+	 *
+	 * @param string[] $headers Normalized headers.
+	 * @return string
+	 */
+	private function infer_record_type_from_headers( $headers ) {
+		$headers = array_values( array_unique( array_map( 'sanitize_key', (array) $headers ) ) );
+
+		$product_markers = array(
+			'sku', 'product_type', 'regular_price', 'sale_price', 'stock_status',
+			'manage_stock', 'stock_quantity', 'short_description', 'categories_json',
+			'tags_json', 'attributes_json', 'external_url', 'button_text',
+			'brand_taxonomy', 'brand_ids', 'brand', 'manufacturer', 'supplier',
+			'supplier_external_id', 'supplier_catalog_id', 'supplier_category', 'supplier_price',
+		);
+		if ( array_intersect( $headers, $product_markers ) ) {
+			return 'product';
+		}
+
+		if ( in_array( 'parent_id', $headers, true ) || in_array( 'image_id', $headers, true ) ) {
+			return 'product_category';
+		}
+
+		if ( in_array( 'author_id', $headers, true ) || in_array( 'date_gmt', $headers, true ) || in_array( 'content', $headers, true ) ) {
+			return 'post';
+		}
+
+		return '';
 	}
 
 	/**
