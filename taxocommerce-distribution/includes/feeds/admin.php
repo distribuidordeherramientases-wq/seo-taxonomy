@@ -341,7 +341,7 @@ function tcdist_feed_render_admin() {
 
                     <label style="display:block;margin:16px 0 8px;">
                         <input type="checkbox" name="auto_refresh" value="1" <?php checked( ! empty( $settings['auto_refresh'] ) ); ?>>
-                        Daily safety regeneration en PRODUCCION
+                        Daily safety regeneration en PRODUCTION
                     </label>
                     <label style="display:block;margin:0 0 8px;">
                         <strong>Hora diaria</strong><br>
