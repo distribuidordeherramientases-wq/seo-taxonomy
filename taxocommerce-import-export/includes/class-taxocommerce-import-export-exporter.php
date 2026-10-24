@@ -109,7 +109,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 			<div class="notice notice-info inline"><p><?php esc_html_e( 'Los filtros se combinan. Si no seleccionas ningún estado, categoría ni nivel jerárquico, se exportan todos los registros de ese tipo.', 'taxocommerce-import-export' ); ?></p></div>
 
 			<form id="tc-ie-export-form" method="post" action="#">
-				<div style="display:grid;grid-template-columns:minmax(280px,420px) minmax(340px,1fr);gap:24px;align-items:start;">
+				<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start;">
 					<div>
 						<label for="tc-ie-export-type"><strong><?php esc_html_e( 'Tipo de dato', 'taxocommerce-import-export' ); ?></strong></label>
 						<select id="tc-ie-export-type" name="content_type" style="width:100%;margin-top:6px;">
@@ -264,6 +264,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( is_wp_error( $dir ) ) {
 			wp_send_json_error( array( 'message' => $dir->get_error_message() ), 500 );
 		}
+		$this->cleanup_export_dir( $dir );
 
 		$filename = 'taxocommerce_' . $type . '_' . gmdate( 'Ymd_His' ) . '.csv';
 		$path     = trailingslashit( $dir ) . get_current_user_id() . '-' . sanitize_file_name( $job_id ) . '.csv';
@@ -809,7 +810,37 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( ! file_exists( $htaccess ) ) {
 			file_put_contents( $htaccess, "Options -Indexes\n<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		}
+		$webconfig = trailingslashit( $dir ) . 'web.config';
+		if ( ! file_exists( $webconfig ) ) {
+			file_put_contents( $webconfig, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><configuration><system.webServer><authorization><deny users=\"*\" /></authorization></system.webServer></configuration>" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
 		return $dir;
+	}
+
+	/**
+	 * Remove abandoned CSV files after one day.
+	 *
+	 * Job state itself expires after two hours; keeping completed files a little
+	 * longer allows a download retry while preventing indefinite disk growth.
+	 *
+	 * @param string $dir Export directory.
+	 * @return void
+	 */
+	private function cleanup_export_dir( $dir ) {
+		$paths = glob( trailingslashit( (string) $dir ) . '*.csv' );
+		if ( ! is_array( $paths ) ) {
+			return;
+		}
+		$cutoff = time() - DAY_IN_SECONDS;
+		foreach ( $paths as $path ) {
+			if ( ! is_file( $path ) ) {
+				continue;
+			}
+			$modified = filemtime( $path );
+			if ( $modified && $modified < $cutoff ) {
+				wp_delete_file( $path );
+			}
+		}
 	}
 
 	/**
