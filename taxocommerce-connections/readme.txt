@@ -4,7 +4,7 @@ Tags: integrations, api, amazon, pinterest, oauth
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,8 +14,12 @@ Shared external connections for the TaxoCommerce plugin family.
 
 TaxoCommerce Connections centralizes credentials and OAuth that are consumed by more than one TaxoCommerce module.
 
-Version 0.1.0 includes:
+Version 0.2.0 includes:
 
+* Google Search Console / GA4 service-account settings.
+* Google Merchant Center account settings.
+* Microsoft Bing Webmaster API settings.
+* Google OAuth presentation and callback compatibility with Insights.
 * Amazon Associates Partner Tag.
 * Optional Amazon Creators API client.
 * Backward-compatible helpers used by Templates and Dependiente.
@@ -29,9 +33,16 @@ Connections does not own reports, feeds, campaigns or social publication workflo
 
 Cloudflare is intentionally not migrated in 0.1.0 because the current installation has it disabled and no required modular consumer depends on it.
 
-Google and Microsoft Bing connections are candidates for a later migration to this shared layer. Their reports, Trends and market analysis should remain in a reporting/insights module rather than Connections.
 
 == Changelog ==
+
+= 0.2.0 =
+* Added shared Google Search Console / GA4 service-account settings.
+* Added Google Merchant Center account settings and connection tests.
+* Added Microsoft Bing Webmaster settings and connection tests.
+* Moved the visible connection ownership away from Insights while preserving the existing option names and OAuth callback contracts.
+* Standardized the base UI language to English.
+
 
 = 0.1.0 =
 * Added shared Amazon Associates / Creators connection.
