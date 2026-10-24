@@ -30,7 +30,7 @@ Después de L10, Dependiente construye y valida su Intérprete. El runtime combi
 - catálogo WooCommerce publicado;
 - búsqueda textual únicamente como red de seguridad.
 
-El módulo ejecuta regresión sobre necesidades aprendidas de L9. Si no alcanza el umbral, el Intérprete queda degradado y el proceso no se considera listo.
+El módulo ejecuta regresión sobre necesidades construidas de forma independiente a la memoria L9: la frase de examen no se guarda como señal y no incluye el título exacto del producto. Si no alcanza el umbral, el Intérprete queda degradado y el proceso no se considera listo.
 
 Las reglas y señales importadas desde el Dependiente antiguo también forman parte del runtime; no se guardan como un archivo muerto de compatibilidad.
 
@@ -44,16 +44,17 @@ Se actualizan:
 - cambios de estado de productos;
 - categorías nuevas o editadas;
 - posts y páginas publicados/modificados;
-- FAQs activas modificadas.
+- FAQs activas modificadas;
+- Vocabulary y asignaciones semánticas que afecten al catálogo.
 
-Los hooks de WordPress/WooCommerce realizan actualizaciones inmediatas y una revisión periódica incremental funciona como red de seguridad.
+Los hooks de WordPress/WooCommerce realizan actualizaciones inmediatas y una revisión periódica incremental funciona como red de seguridad. Cuando M12 cambia conocimiento, vuelve a ejecutar la regresión de M11: el Intérprete se crea una vez, pero se revalida y actualiza durante toda la vida del catálogo.
 
 ## Las diez lecciones
 
 - **L1 Mapa del catálogo**: categorías, jerarquía, nombres y Vocabulary de categoría.
 - **L2 Inventario y producto**: identidad, SKU, marca, categorías y clasificación semántica.
 - **L3 TIPO y ROL**: conceptos canónicos y asociaciones con productos.
-- **L4 Características y necesidades**: aplicaciones, plataformas, subtipos, tags y atributos.
+- **L4 Características y necesidades**: aplicaciones, plataformas, subtipos, tags y atributos; consolida conceptos semánticos globales sin duplicar una regla por producto.
 - **L5 Posts y páginas**: contenido editorial y Vocabulary compartido.
 - **L6 FAQs contextualizadas**: pregunta, respuesta, propietario y Vocabulary.
 - **L7 Relaciones cruzadas**: conceptos que conectan catálogo y contenido.
@@ -66,7 +67,6 @@ Los hooks de WordPress/WooCommerce realizan actualizaciones inmediatas y una rev
 L9 no guarda una única frase por producto. Construye múltiples señales ponderadas a partir de datos reales:
 
 - título;
-- necesidad construida;
 - TIPO;
 - aplicación;
 - subtipo;
@@ -78,7 +78,7 @@ L9 no guarda una única frase por producto. Construye múltiples señales ponder
 - atributos;
 - frases útiles de descripción.
 
-Las señales genéricas aisladas no deben bastar para recomendar un producto. El ranking exige evidencia suficiente o una frase fuerte.
+Las señales genéricas aisladas no deben bastar para recomendar un producto. El ranking exige evidencia suficiente o una frase fuerte. La necesidad usada para evaluar L9/M11 se construye aparte con categoría, semántica y atributos y no se memoriza como atajo.
 
 ## Evaluación y quality gates
 
@@ -124,7 +124,7 @@ El aprendizaje mantiene el gestor por lotes, prioridad 1-5, snapshots y adaptaci
 - reglas generales para conceptos/rutas;
 - señales L9 específicas de producto.
 
-Esto evita duplicar miles de reglas generales por cada producto.
+Esto evita duplicar miles de reglas generales por cada producto. El runtime añade además una decisión de confianza: si solo hay coincidencia textual débil o una tarea ambigua sin evidencia semántica suficiente, no muestra productos como si la interpretación fuera segura; devuelve familias candidatas para concretar.
 
 ## Exportación
 
