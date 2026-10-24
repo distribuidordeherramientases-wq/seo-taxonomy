@@ -156,3 +156,54 @@ El log registra, entre otros:
 El fichero activo se guarda en una carpeta privada bajo uploads, protegida frente a acceso web directo, y rota conservando únicamente la parte reciente. **Nunca debe superar 1 MiB**. La pestaña permite visualizarlo, autoactualizarlo, descargarlo y vaciarlo sin modificar el aprendizaje.
 
 Durante la fase `learning` la barra de progreso usa el tamaño de la **foto fija sellada**, no el tamaño actual del catálogo. Si el catálogo cambia después del sellado, ambos tamaños se muestran por separado para evitar interpretar como bloqueo una foto fija que, por diseño, ya no debe crecer.
+
+
+## Feedback real de clientes
+
+Desde 0.3.3 Dependiente incorpora dos vías de feedback anónimo que alimentan M11/M12 sin permitir que una interacción aislada se convierta directamente en conocimiento canónico.
+
+### Feedback implícito: clic en producto
+
+Cuando Dependiente muestra productos y el cliente pulsa uno:
+
+1. se registra la consulta normalizada;
+2. se registra el producto pulsado;
+3. se guarda únicamente un hash de una sesión aleatoria del navegador;
+4. no se almacena IP ni identidad personal;
+5. clics repetidos de la misma sesión sobre la misma consulta/producto no suman evidencia adicional;
+6. la asociación queda inicialmente en `staged`;
+7. solo se activa cuando distintas sesiones repiten de forma suficientemente dominante la misma relación.
+
+Umbral base: al menos 4 sesiones y al menos 65 % de la evidencia de clics para esa consulta.
+
+Las asociaciones de producto activas aportan una señal adicional de ranking, nunca sustituyen por sí solas a Vocabulary/L9.
+
+### Feedback explícito: aclaraciones cerradas
+
+Si M11 determina que la consulta es ambigua:
+
+1. Dependiente analiza los productos candidatos;
+2. selecciona un eje semántico útil —preferentemente aplicación, TIPO, subtipo, plataforma o ROL—;
+3. muestra entre 3 y 5 opciones cerradas y una alternativa `Otro`;
+4. la opción elegida se aplica inmediatamente como hint de la consulta;
+5. Dependiente vuelve a interpretar y buscar;
+6. puede hacer como máximo dos aclaraciones;
+7. la elección queda como evidencia semántica para consultas futuras.
+
+Las aclaraciones pesan más que los clics, pero una sola respuesta tampoco activa conocimiento. El umbral base exige al menos 2 sesiones coherentes y 60 % de la evidencia explícita.
+
+Si no existen opciones semánticas suficientes, Dependiente puede preguntar por una familia de producto. Las aclaraciones de texto libre mediante `Otro` se conservan para análisis, pero no se promueven automáticamente como regla.
+
+### Consolidación M12
+
+M12 revisa periódicamente las asociaciones `staged` y `validated`, recalcula su evidencia y activa únicamente patrones repetidos. Antes de que M11 exista, la evidencia puede acumularse pero no se promociona a `active`.
+
+Estados:
+
+- `staged`: evidencia insuficiente;
+- `validated`: existe repetición, pero no alcanza el umbral de activación;
+- `active`: evidencia repetida y dominante; puede influir en M11/runtime.
+
+Cuando una asociación llega a `active`, se materializa en los almacenes portables: consulta→producto como señal L9 y consulta→concepto como regla semántica. Por tanto, el export de conocimiento conserva el aprendizaje consolidado sin exportar eventos, sesiones ni clics individuales.
+
+Los eventos de feedback no activos se conservan durante 180 días y se limpian después. El administrador muestra búsquedas, clics, aclaraciones y asociaciones activas. El log de aprendizaje registra también `feedback_event` y `feedback_promoted`.

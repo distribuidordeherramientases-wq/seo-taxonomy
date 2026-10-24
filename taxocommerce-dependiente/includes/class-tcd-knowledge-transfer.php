@@ -284,8 +284,8 @@ final class TCD_Knowledge_Transfer {
 			array(
 				'legacy' => 'búsquedas, sesiones, candidatos pendientes/rechazados',
 				'new'    => 'No aplicable',
-				'mode'   => 'No venían en el export antiguo',
-				'note'   => 'El export histórico ya los excluía deliberadamente.',
+				'mode'   => 'No se exportan eventos brutos',
+				'note'   => 'Sesiones, clics individuales y búsquedas de clientes quedan fuera. Solo el feedback moderno ya consolidado se materializa como reglas semánticas o señales L9 portables.',
 			),
 		);
 	}
@@ -300,7 +300,7 @@ final class TCD_Knowledge_Transfer {
 		?>
 		<section id="tcd-portable-knowledge" style="padding:18px;background:#fff;border:1px solid #c3c4c7">
 			<h2 style="margin-top:0"><?php esc_html_e( 'Conocimiento portable · Exportar / Importar', 'taxocommerce-dependiente' ); ?></h2>
-			<p><?php esc_html_e( 'Esta herramienta mueve el conocimiento consolidado de Dependiente sin copiar el índice del catálogo, búsquedas de clientes ni estados temporales. Acepta tanto el export antiguo como el formato del plugin moderno.', 'taxocommerce-dependiente' ); ?></p>
+			<p><?php esc_html_e( 'Esta herramienta mueve el conocimiento consolidado de Dependiente sin copiar el índice del catálogo, sesiones, búsquedas ni clics individuales. El feedback de clientes que ya haya superado los umbrales se transporta únicamente como regla semántica o señal L9 consolidada. Acepta tanto el export antiguo como el formato del plugin moderno.', 'taxocommerce-dependiente' ); ?></p>
 
 			<div style="display:flex;gap:12px;flex-wrap:wrap;margin:14px 0">
 				<div class="card" style="min-width:155px"><strong style="display:block;font-size:22px"><?php echo esc_html( number_format_i18n( $stats['modern_knowledge'] ) ); ?></strong><?php esc_html_e( 'Conocimiento moderno', 'taxocommerce-dependiente' ); ?></div>
