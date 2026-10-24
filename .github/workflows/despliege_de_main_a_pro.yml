@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar versión de producción desde MAIN
+      - name: Checkout production version from MAIN
         uses: actions/checkout@v6
         with:
           ref: main
@@ -173,7 +173,7 @@ jobs:
             rm -f "$package"
 
             if [ "$module" = "taxocommerce-facturacion" ]; then
-              echo "Incorporando el mismo Dompdf del módulo histórico a Facturación..."
+              echo "Including the same Dompdf bundle from the historical module in Billing..."
               test -f includes/facturas/dompdf/autoload.inc.php
               rm -rf "$module/includes/dompdf"
               cp -a includes/facturas/dompdf "$module/includes/dompdf"

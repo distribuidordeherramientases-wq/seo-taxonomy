@@ -22,7 +22,7 @@ function tcdist_sitemap_sitemap_storage()
 }
 
 /**
- * Nombres admitidos para evitar traversal y servir únicamente XML generados.
+ * Allowed names to prevent path traversal and serve only generated XML files.
  *
  * @param string $filename
  * @return bool
@@ -36,7 +36,7 @@ function tcdist_sitemap_sitemap_filename_is_allowed($filename)
 }
 
 /**
- * URL pública canónica de un sitemap.
+ * Canonical public URL for a sitemap.
  *
  * @param string $filename
  * @return string
@@ -53,11 +53,11 @@ function tcdist_sitemap_sitemap_public_url($filename)
 }
 
 /**
- * Registra las URLs públicas de los sitemaps.
+ * Registers public sitemap URLs.
  */
 function tcdist_sitemap_register_sitemap_rewrite_rules()
 {
-    // Índice principal, alias históricos y sitemaps hijos generados.
+    // Main index, historical aliases, and generated child sitemaps.
     add_rewrite_rule(
         '^(wp-sitemap\.xml|sitemap(?:[_-][a-z0-9-]+)?\.xml)$',
         'index.php?tcdist_sitemap_sitemap=$matches[1]',
@@ -67,8 +67,8 @@ function tcdist_sitemap_register_sitemap_rewrite_rules()
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('init', 'tcdist_sitemap_register_sitemap_rewrite_rules', 1); }
 
 /**
- * Desactiva el sitemap nativo de WordPress. Este módulo es la única fuente
- * pública de sitemaps y mantiene /wp-sitemap.xml como alias compatible.
+ * Disables the native WordPress sitemap. This module is the only public
+ * sitemap source and keeps /wp-sitemap.xml as a compatible alias.
  *
  * @return bool
  */
@@ -90,7 +90,7 @@ function tcdist_sitemap_register_sitemap_query_var($query_vars)
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_filter('query_vars', 'tcdist_sitemap_register_sitemap_query_var'); }
 
 /**
- * Actualiza las reglas una sola vez cuando cambia la versión del endpoint.
+ * Updates rewrite rules once when the endpoint version changes.
  */
 function tcdist_sitemap_maybe_flush_sitemap_rewrite_rules()
 {
@@ -111,7 +111,7 @@ function tcdist_sitemap_maybe_flush_sitemap_rewrite_rules()
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('admin_init', 'tcdist_sitemap_maybe_flush_sitemap_rewrite_rules', 20); }
 
 /**
- * Obtiene el nombre solicitado incluso si las reglas todavía no se han
+ * Gets the requested name even when rewrite rules have not yet
  * refrescado. Esto evita que /sitemap.xml dependa de una visita previa al admin.
  *
  * @return string
@@ -215,7 +215,7 @@ function tcdist_sitemap_maybe_serve_sitemap()
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('template_redirect', 'tcdist_sitemap_maybe_serve_sitemap', 0); }
 
 /**
- * Declara el índice principal en robots.txt sin duplicarlo.
+ * Declares the main index in robots.txt without duplication.
  *
  * @param string $output
  * @param bool   $public
@@ -238,8 +238,8 @@ function tcdist_sitemap_add_sitemap_to_robots($output, $public)
             $sitemap_path = (string) wp_parse_url(trim($matches[1]), PHP_URL_PATH);
             $basename     = strtolower(basename($sitemap_path));
 
-            // Elimina únicamente nuestros alias y el sitemap nativo para no
-            // publicar dos índices distintos en robots.txt.
+            // Remove only our aliases and the native sitemap so robots.txt does not
+            // publish two different indexes.
             if (in_array(
                 $basename,
                 array('wp-sitemap.xml', 'sitemap.xml', 'sitemap-index.xml', 'sitemap_index.xml'),
@@ -291,7 +291,7 @@ function tcdist_sitemap_xml_escape($value)
 }
 
 /**
- * Normaliza una URL del sitio y descarta hosts externos o esquemas inválidos.
+ * Normalizes a site URL and rejects external hosts or invalid schemes.
  *
  * @param string $url
  * @return string
@@ -486,7 +486,7 @@ function tcdist_sitemap_build_sitemap_index_xml($files)
 }
 
 /**
- * Valida XML, raíz y namespace. También cuenta las entradas publicadas.
+ * Validates XML, root element, and namespace. Also counts published entries.
  *
  * @param string $xml
  * @param string $expected_root
@@ -502,7 +502,7 @@ function tcdist_sitemap_validate_xml_string($xml, $expected_root = '')
     );
 
     if (!is_string($xml) || trim($xml) === '') {
-        $result['error'] = 'El archivo está vacío.';
+        $result['error'] = 'The file is empty.';
         return $result;
     }
 
@@ -534,7 +534,7 @@ function tcdist_sitemap_validate_xml_string($xml, $expected_root = '')
         $namespace = $dom->documentElement->namespaceURI;
 
         if ($expected_root !== '' && $root !== $expected_root) {
-            $result['error'] = 'Raíz inesperada: ' . $root . '.';
+            $result['error'] = 'Unexpected root element: ' . $root . '.';
             return $result;
         }
 
@@ -557,7 +557,7 @@ function tcdist_sitemap_validate_xml_string($xml, $expected_root = '')
     );
 
     if ($root === '' || ($expected_root !== '' && $root !== $expected_root)) {
-        $result['error'] = 'No se pudo confirmar la raíz XML.';
+        $result['error'] = 'The XML root element could not be confirmed.';
         return $result;
     }
 
@@ -597,7 +597,7 @@ function tcdist_sitemap_validate_xml_file($file_path, $expected_root = '')
 }
 
 /**
- * Escribe y valida un XML dentro del directorio temporal de construcción.
+ * Writes and validates an XML file inside the temporary build directory.
  *
  * @param string $file_path
  * @param string $xml
@@ -605,10 +605,10 @@ function tcdist_sitemap_validate_xml_file($file_path, $expected_root = '')
  * @return array|WP_Error
  */
 /**
- * Conserva los permisos explícitos usados por los artefactos locales de sitemap.
+ * Preserves explicit permissions used by local sitemap artifacts.
  *
- * Se mantiene como operación local directa porque WP_Filesystem puede usar un
- * transporte remoto y cambiar la semántica del flujo atómico de publicación.
+ * This remains a direct local operation because WP_Filesystem may use a
+ * remote transport and change the semantics of the atomic publishing flow.
  *
  * @param string $file_path Ruta local.
  * @param int    $mode      Permisos POSIX.
@@ -621,10 +621,10 @@ function tcdist_sitemap_set_file_permissions($file_path, $mode)
 }
 
 /**
- * Renombra de forma atómica un artefacto local de sitemap.
+ * Atomically renames a local sitemap artifact.
  *
- * WP_Filesystem::move() puede degradar a copia+borrado según el transporte;
- * aquí se necesita rename() local para no publicar XML parciales.
+ * WP_Filesystem::move() may degrade to copy+delete depending on transport;
+ * local rename() is required here so partial XML files are never published.
  *
  * @param string $source Origen local.
  * @param string $target Destino local.
@@ -637,7 +637,7 @@ function tcdist_sitemap_atomic_rename($source, $target)
 }
 
 /**
- * Elimina un directorio local ya vacío tras limpiar su contenido.
+ * Removes an already-empty local directory after cleaning its contents.
  *
  * @param string $dir Directorio local.
  * @return bool
@@ -704,7 +704,7 @@ function tcdist_sitemap_write_validated_xml($file_path, $xml, $expected_root)
 }
 
 /**
- * Publica un archivo de forma atómica para no dejar XML parciales visibles.
+ * Publishes a file atomically so partial XML files are never visible.
  *
  * @param string $source
  * @param string $target
@@ -840,7 +840,7 @@ function tcdist_sitemap_get_published_post_ids($post_type)
 }
 
 /**
- * Páginas de sistema que no deben enviarse al índice de búsqueda.
+ * System pages that must not be submitted to the search index.
  *
  * @return int[]
  */
@@ -868,8 +868,8 @@ function tcdist_sitemap_get_excluded_page_ids_for_sitemap()
 }
 
 /**
- * Convierte posts a entradas de sitemap. Los productos pueden incorporar su
- * imagen destacada mediante la extensión oficial de imágenes.
+ * Converts posts into sitemap entries. Products may include their featured
+ * image through the official image extension.
  *
  * @param array $ids
  * @param bool  $include_images
@@ -948,8 +948,8 @@ function tcdist_sitemap_posts_to_sitemap_urls($ids, $include_images = false)
 }
 
 /**
- * Calcula en una única consulta la modificación más reciente de los productos
- * directamente asociados a cada categoría.
+ * Calculates the most recent modification time of products directly associated
+ * with each category in a single query.
  *
  * @return array<int,string>
  */
@@ -1063,7 +1063,7 @@ function tcdist_sitemap_filter_generic_page_ids_for_sitemap($ids)
 }
 
 /**
- * Crea uno o varios archivos de un grupo, respetando el tamaño de lote.
+ * Creates one or more files for a group while respecting the batch size.
  *
  * @param string $build_dir
  * @param string $group_slug
@@ -1112,7 +1112,7 @@ function tcdist_sitemap_create_sitemap_group($build_dir, $group_slug, $urls, &$f
 }
 
 /**
- * Escribe un manifiesto administrativo sin exponer datos sensibles.
+ * Writes an administrative manifest without exposing sensitive data.
  *
  * @param string $dir
  * @param array  $manifest
@@ -1147,7 +1147,7 @@ function tcdist_sitemap_write_sitemap_manifest($dir, $manifest)
 }
 
 /**
- * Lee el último manifiesto de generación.
+ * Reads the latest generation manifest.
  *
  * @return array
  */
@@ -1169,7 +1169,7 @@ function tcdist_sitemap_get_sitemap_manifest()
 
 /**
  * Genera todos los sitemaps en staging, los valida y solo entonces sustituye
- * la versión pública. Nunca borra primero los XML válidos existentes.
+ * the public version. Existing valid XML files are never deleted first.
  *
  * @return array
  */
@@ -1192,7 +1192,7 @@ function tcdist_sitemap_create_sitemaps()
         if (is_resource($lock)) {
             tcdist_sitemap_lock_stream_close($lock);
         }
-        return array('type' => 'error', 'message' => 'Ya existe otra generación de sitemaps en curso.');
+        return array('type' => 'error', 'message' => 'Another sitemap generation is already running.');
     }
 
     $build_dir = $dir . '.build-' . wp_generate_uuid4() . '/';
@@ -1202,7 +1202,7 @@ function tcdist_sitemap_create_sitemaps()
 
     try {
         if (!wp_mkdir_p($build_dir)) {
-            throw new RuntimeException('No se pudo crear el directorio temporal de generación.');
+            throw new RuntimeException('The temporary generation directory could not be created.');
         }
 
         $product_ids = tcdist_sitemap_get_published_post_ids('product');
@@ -1265,7 +1265,7 @@ function tcdist_sitemap_create_sitemaps()
         }
 
         if (empty($files)) {
-            throw new RuntimeException('No se encontraron URLs públicas para generar los sitemaps.');
+            throw new RuntimeException('No public URLs were found for sitemap generation.');
         }
 
         $index_xml = tcdist_sitemap_build_sitemap_index_xml($files);
@@ -1283,8 +1283,8 @@ function tcdist_sitemap_create_sitemaps()
             }
         }
 
-        // Los hijos se publican antes que el índice para que este nunca apunte
-        // a un archivo todavía inexistente. sitemap.xml se publica el último.
+        // Child sitemaps are published before the index so it never points
+        // to a file that does not yet exist. sitemap.xml is published last.
         $publish_order = array();
         foreach ($files as $file) {
             $publish_order[] = $file['filename'];
@@ -1317,7 +1317,7 @@ function tcdist_sitemap_create_sitemaps()
         );
         if (!$main_validation['valid']) {
             throw new RuntimeException(
-                'El índice principal publicado no superó la validación: ' . $main_validation['error']
+                'The published main index failed validation: ' . $main_validation['error']
             );
         }
 
@@ -1339,7 +1339,7 @@ function tcdist_sitemap_create_sitemaps()
         return array(
             'type'    => 'success',
             'message' => sprintf(
-                'Sitemaps generados y validados: <strong>%1$s URLs</strong> en <strong>%2$s archivos</strong>. Índice principal: <a href="%3$s" target="_blank" rel="noopener noreferrer">%3$s</a>.',
+                'Sitemaps generated and validated: <strong>%1$s URLs</strong> in <strong>%2$s files</strong>. Main index: <a href="%3$s" target="_blank" rel="noopener noreferrer">%3$s</a>.',
                 number_format_i18n($total_urls),
                 number_format_i18n(count($files)),
                 esc_url(tcdist_sitemap_sitemap_public_url('sitemap.xml'))
@@ -1362,7 +1362,7 @@ function tcdist_sitemap_create_sitemaps()
 }
 
 /**
- * Informe local de validez, tamaño y número de entradas.
+ * Local report of validity, size, and entry count.
  *
  * @return array
  */
@@ -1452,7 +1452,7 @@ function tcdist_sitemap_get_existing_sitemaps()
 }
 
 /**
- * Programa una única regeneración diferida después de cambios de contenido.
+ * Schedules a single delayed regeneration after content changes.
  */
 function tcdist_sitemap_schedule_sitemap_regeneration($post_id = 0)
 {
@@ -1477,7 +1477,7 @@ if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTI
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('save_post_post', 'tcdist_sitemap_schedule_sitemap_regeneration', 20, 1); }
 
 /**
- * Los hooks de términos entregan un term_id, no un post_id.
+ * Term hooks provide a term_id, not a post_id.
  */
 function tcdist_sitemap_schedule_sitemap_regeneration_for_term()
 {
@@ -1488,7 +1488,7 @@ if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTI
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('delete_product_cat', 'tcdist_sitemap_schedule_sitemap_regeneration_for_term', 20, 0); }
 
 /**
- * Regeneración silenciosa para WP-Cron.
+ * Silent regeneration for WP-Cron.
  */
 function tcdist_sitemap_regenerate_sitemaps_silent()
 {
@@ -1499,7 +1499,7 @@ function tcdist_sitemap_regenerate_sitemaps_silent()
             ? wp_strip_all_tags($result['message'])
             : 'Resultado desconocido.';
         if (function_exists('seo_system_private_log')) {
-            seo_system_private_log('error', '[SEO Marketing] Regeneración automática de sitemaps: ' . $message);
+            seo_system_private_log('error', '[SEO Marketing] Automatic sitemap regeneration: ' . $message);
         }
     }
 }
@@ -1507,7 +1507,7 @@ if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTI
 
 
 /**
- * Garantiza una primera generación sin bloquear la carga pública.
+ * Ensures an initial generation without blocking public requests.
  */
 function tcdist_sitemap_ensure_initial_sitemap_generation()
 {

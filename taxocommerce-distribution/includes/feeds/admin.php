@@ -1,6 +1,6 @@
 <?php
 /**
- * TaxoCommerce SEO - Administracion de catalogos comerciales.
+ * TaxoCommerce Distribution - Commercial feed administration.
  *
  * @package SEOSystem
  * @subpackage ImportExport\CommercialFeeds
@@ -28,7 +28,7 @@ function tcdist_feed_admin_redirect_url( array $args = [] ) {
 
 function tcdist_feed_admin_save_settings() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para configurar los inventarios comerciales.', 'taxocommerce-distribution' ) );
+        wp_die( esc_html__( 'You do not have permission to configure commercial feeds.', 'taxocommerce-distribution' ) );
     }
     check_admin_referer( 'tcdist_feed_save_settings' );
 
@@ -67,12 +67,12 @@ function tcdist_feed_admin_save_settings() {
         'auto_refresh'                => empty( $_POST['auto_refresh'] ) ? 0 : 1,
         'daily_time'                  => tcdist_feed_sanitize_daily_time( $daily_time ),
         'refresh_after_supplier_sync' => empty( $_POST['refresh_after_supplier_sync'] ) ? 0 : 1,
-        'batch_size'                  => absint( tcdist_feed_settings()['batch_size'] ?? TCDIST_FEED_BATCH_SIZE ), // Legacy: el lote real lo regula Procesos.
+        'batch_size'                  => absint( tcdist_feed_settings()['batch_size'] ?? TCDIST_FEED_BATCH_SIZE ), // Legacy: actual batch size is regulated by Processes.
     ];
 
     update_option( TCDIST_FEED_SETTINGS_OPTION, $settings, false );
 
-    // Si se desactiva un receptor, elimina su archivo estable para evitar que
+    // If a receiver is disabled, remove its stable file so
     // una plataforma siga leyendo indefinidamente un inventario obsoleto.
     $storage = tcdist_feed_storage();
     if ( ! is_wp_error( $storage ) ) {
@@ -99,7 +99,7 @@ function tcdist_feed_admin_save_settings() {
 
 function tcdist_feed_admin_regenerate() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para regenerar los inventarios comerciales.', 'taxocommerce-distribution' ) );
+        wp_die( esc_html__( 'You do not have permission to regenerate commercial feeds.', 'taxocommerce-distribution' ) );
     }
     check_admin_referer( 'tcdist_feed_regenerate' );
 
@@ -113,7 +113,7 @@ function tcdist_feed_admin_regenerate() {
             wp_safe_redirect(
                 tcdist_feed_admin_redirect_url(
                     array(
-                        'cf_error' => rawurlencode( 'El generador antiguo de inventarios está trabajando. Espera a que termine o detenlo antes de iniciar una prueba desde Distribution.' ),
+                        'cf_error' => rawurlencode( 'The legacy inventory generator is running. Wait for it to finish or stop it before starting a Distribution test.' ),
                     )
                 )
             );
@@ -139,11 +139,11 @@ function tcdist_feed_admin_regenerate() {
 
 
 /**
- * Detiene la ejecucion actual sin publicar archivos parciales.
+ * Stops the current run without publishing partial files.
  */
 function tcdist_feed_admin_stop() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para detener los inventarios comerciales.', 'taxocommerce-distribution' ) );
+        wp_die( esc_html__( 'You do not have permission to stop commercial feeds.', 'taxocommerce-distribution' ) );
     }
     check_admin_referer( 'tcdist_feed_stop' );
 
@@ -153,8 +153,8 @@ function tcdist_feed_admin_stop() {
 }
 
 /**
- * Pulso administrativo. No ejecuta productos: solo despierta el Gestor de
- * workers central para que este reparta la siguiente ventana de trabajo.
+ * Admin pulse. It does not process products; it only wakes the worker
+ * central worker so it can schedule the next work window.
  */
 function tcdist_feed_admin_ajax_tick() {
     if ( ! current_user_can( 'manage_options' ) ) {
@@ -202,14 +202,14 @@ function tcdist_feed_admin_local_datetime( $utc_mysql ) {
 }
 
 /**
- * Etiqueta legible del origen de una generacion.
+ * Human-readable generation source label.
  */
 function tcdist_feed_admin_origin_label( $origin ) {
     $labels = [
         'manual'          => 'Manual',
-        'manual_processes'=> 'Manual desde Procesos',
-        'supplier_sync' => 'Fin de sincronizacion de proveedores',
-        'daily_safety'  => 'Regeneracion diaria de seguridad',
+        'manual_processes'=> 'Manual from Processes',
+        'supplier_sync' => 'Supplier synchronization completed',
+        'daily_safety'  => 'Daily safety regeneration',
         'scheduled'     => 'Programada',
     ];
     $origin = sanitize_key( (string) $origin );
@@ -236,22 +236,22 @@ function tcdist_feed_render_admin() {
     $manager_enabled = ! empty( $supervisor_settings['enabled'] ) && ! empty( $supervisor_settings['commercial_feeds'] );
 
     if ( isset( $_GET['cf_saved'] ) ) {
-        echo '<div class="notice notice-success inline"><p>Configuracion guardada.</p></div>';
+        echo '<div class="notice notice-success inline"><p>Settings saved.</p></div>';
     }
     if ( isset( $_GET['cf_started'] ) ) {
-        echo '<div class="notice notice-info inline"><p>Generacion iniciada y entregada al worker propio de Distribution. El lote se adapta automaticamente al tiempo real de respuesta y a la carga observada.</p></div>';
+        echo '<div class="notice notice-info inline"><p>Generation started and handed to the Distribution worker. Batch size adapts automatically to actual response time and observed load.</p></div>';
     }
     if ( isset( $_GET['cf_stopped'] ) ) {
-        echo '<div class="notice notice-warning inline"><p>Generacion detenida por el usuario. No se ha publicado ningun archivo parcial.</p></div>';
+        echo '<div class="notice notice-warning inline"><p>Generation stopped by the user. No partial file was published.</p></div>';
     }
     if ( isset( $_GET['cf_error'] ) ) {
         echo '<div class="notice notice-error inline"><p>' . esc_html( rawurldecode( sanitize_text_field( wp_unslash( $_GET['cf_error'] ) ) ) ) . '</p></div>';
     }
 
     if ( $is_staging ) {
-        echo '<div class="notice notice-warning inline"><p><strong>STAGING:</strong> esta generacion usa los productos y URLs de este entorno y sirve solo para pruebas. No se programan actualizaciones comerciales ni deben registrarse estas URLs en Google, Microsoft o Pinterest.</p></div>';
+        echo '<div class="notice notice-warning inline"><p><strong>STAGING:</strong> this generation uses products and URLs from this environment and is for testing only. No commercial refresh is scheduled and these URLs must not be registered with Google, Microsoft, or Pinterest.</p></div>';
     } else {
-        echo '<div class="notice notice-success inline"><p><strong>PRODUCCION:</strong> este entorno genera los inventarios comerciales reales. Las plataformas descargan desde estas URLs; no existe un envio directo desde WordPress.</p></div>';
+        echo '<div class="notice notice-success inline"><p><strong>PRODUCTION:</strong> this environment generates the live commercial feeds. Platforms download from these URLs; WordPress does not push the feed directly.</p></div>';
     }
 
     if ( ! empty( $environment['mismatch'] ) ) {
@@ -259,11 +259,11 @@ function tcdist_feed_render_admin() {
             . esc_html( strtoupper( (string) ( $environment['reported'] ?? '' ) ) )
             . '</code>, pero la deteccion efectiva por hostname es <code>'
             . esc_html( strtoupper( (string) ( $environment['effective'] ?? '' ) ) )
-            . '</code>. Revisa <code>WP_ENVIRONMENT_TYPE</code> en la configuracion del entorno.</p></div>';
+            . '</code>. Review <code>WP_ENVIRONMENT_TYPE</code> in the environment configuration.</p></div>';
     }
 
     if ( ! $manager_enabled ) {
-        echo '<div class="notice notice-error inline"><p><strong>worker propio de Distribution:</strong> Inventarios comerciales no esta habilitado en Procesos &gt; worker propio de Distribution. Puedes iniciar una generacion, pero no avanzara hasta habilitar ese proceso.</p></div>';
+        echo '<div class="notice notice-error inline"><p><strong>Distribution worker:</strong> Commercial feeds are not enabled in Processes &gt; Distribution worker. You can start a generation, but it will not progress until that process is enabled.</p></div>';
     }
 
     $status = (string) ( $state['status'] ?? 'never' );
@@ -274,11 +274,11 @@ function tcdist_feed_render_admin() {
     $idle_seconds = $updated_ts ? max( 0, time() - $updated_ts ) : 0;
     ?>
     <div style="max-width:1220px;">
-        <h2>Inventarios comerciales</h2>
+        <h2>Commercial Feeds</h2>
         <p>
-            Genera fuentes publicas de productos para plataformas que descargan el catalogo por URL.
-            No sustituye los sitemaps: aqui se publica inventario comercial con precio, stock, imagen,
-            GTIN/MPN, marca y categoria.
+            Generates public product feeds for platforms that download the catalog by URL.
+            It does not replace sitemaps: this publishes commercial inventory with price, stock, image,
+            GTIN/MPN, brand, and category.
         </p>
 
         <div class="card" style="max-width:none;padding:16px 20px;margin-top:16px;">
@@ -291,7 +291,7 @@ function tcdist_feed_render_admin() {
             <?php if ( ! is_wp_error( $storage ) ) : ?>
                 &nbsp;·&nbsp; <strong>Host de feeds:</strong> <code><?php echo esc_html( (string) wp_parse_url( $storage['url'], PHP_URL_HOST ) ); ?></code>
             <?php endif; ?>
-            &nbsp;·&nbsp; <strong>Origen de la deteccion:</strong>
+            &nbsp;·&nbsp; <strong>Source de la deteccion:</strong>
             <code><?php echo esc_html( (string) ( $environment['source'] ?? '' ) ); ?></code>
             <?php if ( ! is_wp_error( $storage ) && ! empty( $storage['url_corrected'] ) ) : ?>
                 <p class="description" style="margin-bottom:0;">Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING.</p>
@@ -300,7 +300,7 @@ function tcdist_feed_render_admin() {
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px;margin-top:18px;">
             <div class="card" style="max-width:none;padding:20px;">
-                <h3 style="margin-top:0;">Configuracion</h3>
+                <h3 style="margin-top:0;">Settings</h3>
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                     <input type="hidden" name="action" value="tcdist_feed_save_settings">
                     <?php wp_nonce_field( 'tcdist_feed_save_settings' ); ?>
@@ -320,57 +320,57 @@ function tcdist_feed_render_admin() {
 
                     <p style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;">
                         <label>
-                            <strong>Pais</strong><br>
+                            <strong>Country</strong><br>
                             <input type="text" name="country" value="<?php echo esc_attr( $settings['country'] ); ?>" maxlength="2" size="5">
                         </label>
                         <label>
-                            <strong>Idioma</strong><br>
+                            <strong>Language</strong><br>
                             <input type="text" name="language" value="<?php echo esc_attr( $settings['language'] ); ?>" maxlength="2" size="5">
                         </label>
                         <span>
                             <strong>Lote</strong><br>
-                            <span class="description">Adaptativo · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>">ver en Automatización</a></span>
+                            <span class="description">Adaptive · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>">view Automation</a></span>
                         </span>
                     </p>
 
                     <label style="display:block;margin:16px 0 8px;">
                         <input type="checkbox" name="refresh_after_supplier_sync" value="1" <?php checked( ! empty( $settings['refresh_after_supplier_sync'] ) ); ?>>
-                        Regenerar al terminar una sincronizacion de proveedores que haya modificado productos
+                        Regenerate after a supplier synchronization that changed products
                     </label>
-                    <p class="description">En PRODUCCION se programa una regeneracion aproximadamente 2 minutos despues de terminar la sincronizacion. En STAGING no se agenda.</p>
+                    <p class="description">In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it.</p>
 
                     <label style="display:block;margin:16px 0 8px;">
                         <input type="checkbox" name="auto_refresh" value="1" <?php checked( ! empty( $settings['auto_refresh'] ) ); ?>>
-                        Regeneracion diaria de seguridad en PRODUCCION
+                        Daily safety regeneration en PRODUCTION
                     </label>
                     <label style="display:block;margin:0 0 8px;">
                         <strong>Hora diaria</strong><br>
                         <input type="time" name="daily_time" value="<?php echo esc_attr( $settings['daily_time'] ); ?>" step="60">
                     </label>
-                    <p class="description">Hora local de WordPress. Sirve como respaldo aunque no haya habido sincronizacion de proveedores.</p>
+                    <p class="description">WordPress local time. This acts as a fallback even when no supplier synchronization has occurred.</p>
 
-                    <p><button type="submit" class="button button-primary">Guardar configuracion</button></p>
+                    <p><button type="submit" class="button button-primary">Save settings</button></p>
                 </form>
             </div>
 
             <div class="card" style="max-width:none;padding:20px;">
-                <h3 style="margin-top:0;">Generacion</h3>
-                <p><strong>Estado:</strong> <?php echo esc_html( $status ); ?></p>
-                <p><strong>Origen:</strong> <?php echo esc_html( tcdist_feed_admin_origin_label( $state['origin'] ?? '' ) ); ?></p>
-                <p><strong>Candidatos:</strong> <?php echo esc_html( number_format_i18n( $total ) ); ?></p>
-                <p><strong>Procesados:</strong> <?php echo esc_html( number_format_i18n( $processed ) ); ?> · <strong>publicados:</strong> <?php echo esc_html( number_format_i18n( absint( $state['written'] ?? 0 ) ) ); ?> · <strong>excluidos:</strong> <?php echo esc_html( number_format_i18n( absint( $state['excluded'] ?? 0 ) ) ); ?></p>
+                <h3 style="margin-top:0;">Generation</h3>
+                <p><strong>Status:</strong> <?php echo esc_html( $status ); ?></p>
+                <p><strong>Source:</strong> <?php echo esc_html( tcdist_feed_admin_origin_label( $state['origin'] ?? '' ) ); ?></p>
+                <p><strong>Candidates:</strong> <?php echo esc_html( number_format_i18n( $total ) ); ?></p>
+                <p><strong>Processed:</strong> <?php echo esc_html( number_format_i18n( $processed ) ); ?> · <strong>published:</strong> <?php echo esc_html( number_format_i18n( absint( $state['written'] ?? 0 ) ) ); ?> · <strong>excluded:</strong> <?php echo esc_html( number_format_i18n( absint( $state['excluded'] ?? 0 ) ) ); ?></p>
 
                 <p><strong>Regulador:</strong>
-                    siguiente lote <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? TCDIST_FEED_BATCH_SIZE ) ) ); ?>
+                    next batch <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? TCDIST_FEED_BATCH_SIZE ) ) ); ?>
                     · presion <?php echo esc_html( (string) ( $state['adaptive_pressure'] ?? 'baja' ) ); ?>
                     <?php if ( ! empty( $state['adaptive_next_delay'] ) ) : ?>
                         · pausa <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_delay'] ) ) ); ?> s
                     <?php endif; ?>
                 </p>
                 <?php if ( ! empty( $state['last_batch_rows'] ) ) : ?>
-                    <p class="description"><strong>Ultimo lote:</strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> productos en <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
+                    <p class="description"><strong>Last batch:</strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> products in <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
                 <?php else : ?>
-                    <p class="description">Pendiente de la primera ventana del worker propio de Distribution.</p>
+                    <p class="description">Waiting for the first Distribution worker window.</p>
                 <?php endif; ?>
 
                 <?php if ( 'running' === $status ) : ?>
@@ -381,13 +381,13 @@ function tcdist_feed_render_admin() {
                 <?php endif; ?>
 
                 <?php if ( ! empty( $state['started_at'] ) ) : ?>
-                    <p class="description">Inicio: <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['started_at'] ) ); ?><?php if ( ! empty( $state['completed_at'] ) ) : ?> · Fin: <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['completed_at'] ) ); ?><?php endif; ?></p>
+                    <p class="description">Inicio: <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['started_at'] ) ); ?><?php if ( ! empty( $state['completed_at'] ) ) : ?> · End: <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['completed_at'] ) ); ?><?php endif; ?></p>
                 <?php endif; ?>
 
                 <?php if ( tcdist_feed_is_production() && ! empty( $settings['auto_refresh'] ) ) : ?>
-                    <p><strong>Proxima regeneracion diaria:</strong> <?php echo $next_daily ? esc_html( wp_date( 'd/m/Y H:i', $next_daily, wp_timezone() ) ) : '<span style="color:#b32d2e;">pendiente de programar</span>'; ?></p>
+                    <p><strong>Next daily regeneration:</strong> <?php echo $next_daily ? esc_html( wp_date( 'd/m/Y H:i', $next_daily, wp_timezone() ) ) : '<span style="color:#b32d2e;">pending scheduling</span>'; ?></p>
                 <?php else : ?>
-                    <p class="description">La regeneracion automatica no esta activa en este entorno.</p>
+                    <p class="description">Automatic regeneration is not active in this environment.</p>
                 <?php endif; ?>
 
                 <?php if ( ! empty( $state['updated_at'] ) ) : ?>
@@ -398,16 +398,16 @@ function tcdist_feed_render_admin() {
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0;">
                         <input type="hidden" name="action" value="tcdist_feed_regenerate">
                         <?php wp_nonce_field( 'tcdist_feed_regenerate' ); ?>
-                        <button type="submit" class="button button-primary" <?php disabled( 'running' === $status ); ?>>Iniciar generacion</button>
+                        <button type="submit" class="button button-primary" <?php disabled( 'running' === $status ); ?>>Start generation</button>
                     </form>
 
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0;">
                         <input type="hidden" name="action" value="tcdist_feed_stop">
                         <?php wp_nonce_field( 'tcdist_feed_stop' ); ?>
-                        <button type="submit" class="button" <?php disabled( 'running' !== $status ); ?> onclick="return confirm('¿Parar la generacion actual? Los archivos parciales no se publicaran.');">Parar generacion</button>
+                        <button type="submit" class="button" <?php disabled( 'running' !== $status ); ?> onclick="return confirm('Stop the current generation? Partial files will not be published.');">Stop generation</button>
                     </form>
                 </div>
-                <p class="description">Iniciar crea una generacion nueva y la entrega al <strong>worker propio de Distribution</strong>. Parar invalida la ejecucion actual sin sustituir el ultimo feed valido. El tamaño del lote, la pausa, la presión y la recuperacion se gobiernan desde Procesos; este plugin mantiene un único worker propio por bloques.</p>
+                <p class="description">Start creates a new generation and hands it to the <strong>Distribution worker</strong>. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker.</p>
                 <p class="description">Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo.</p>
 
                 <?php if ( ! empty( $state['excluded_reasons'] ) ) : ?>
@@ -423,7 +423,7 @@ function tcdist_feed_render_admin() {
 
                 <?php if ( ! empty( $state['errors'] ) ) : ?>
                     <details open>
-                        <summary>Errores tecnicos</summary>
+                        <summary>Technical errors</summary>
                         <ul style="margin-left:20px;">
                             <?php foreach ( array_slice( (array) $state['errors'], -10 ) as $message ) : ?>
                                 <li><?php echo esc_html( (string) $message ); ?></li>
@@ -436,15 +436,15 @@ function tcdist_feed_render_admin() {
 
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
             <h3 style="margin-top:0;">URLs de inventario</h3>
-            <p>Estas son las URLs estables que se registran una sola vez en cada plataforma. Despues la plataforma vuelve a descargarlas segun su propia programacion.</p>
-            <p class="description">El plugin registra la generacion del feed, no cada descarga remota: estos archivos se sirven directamente por el servidor web.</p>
+            <p>These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule.</p>
+            <p class="description">The plugin records feed generation, not each remote download: these files are served directly by the web server.</p>
 
             <table class="widefat striped" style="max-width:1180px;">
                 <thead>
                     <tr>
                         <th>Canal</th>
                         <th>Archivo</th>
-                        <th>Estado</th>
+                        <th>Status</th>
                         <th>URL</th>
                     </tr>
                 </thead>
@@ -460,7 +460,7 @@ function tcdist_feed_render_admin() {
                     <tr>
                         <td><strong><?php echo esc_html( $config['label'] ); ?></strong><br><span class="description"><?php echo esc_html( $config['description'] ); ?></span></td>
                         <td><code><?php echo esc_html( $filename ); ?></code><?php if ( $exists ) : ?><br><span class="description"><?php echo esc_html( tcdist_feed_admin_bytes( filesize( $path ) ) ); ?></span><?php endif; ?></td>
-                        <td><?php echo $enabled ? ( $exists ? '<span style="color:#1d6b43;">Listo</span>' : '<span style="color:#996800;">Pendiente de generar</span>' ) : '<span style="color:#646970;">Desactivado</span>'; ?></td>
+                        <td><?php echo $enabled ? ( $exists ? '<span style="color:#1d6b43;">Ready</span>' : '<span style="color:#996800;">Pending generation</span>' ) : '<span style="color:#646970;">Disabled</span>'; ?></td>
                         <td>
                             <?php if ( $enabled && $url ) : ?>
                                 <code style="word-break:break-all;"><?php echo esc_html( $url ); ?></code>
@@ -474,14 +474,14 @@ function tcdist_feed_render_admin() {
         </div>
 
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
-            <h3 style="margin-top:0;">Historial de generaciones</h3>
+            <h3 style="margin-top:0;">Generation history</h3>
             <p class="description">Se conservan las ultimas 20 ejecuciones completadas o fallidas en este entorno.</p>
             <?php if ( empty( $history ) ) : ?>
                 <p>Aun no hay ejecuciones finalizadas registradas.</p>
             <?php else : ?>
                 <div style="overflow:auto;">
                     <table class="widefat striped">
-                        <thead><tr><th>Fin</th><th>Origen</th><th>Estado</th><th>Candidatos</th><th>Publicados</th><th>Excluidos</th><th>Archivos</th></tr></thead>
+                        <thead><tr><th>End</th><th>Source</th><th>Status</th><th>Candidates</th><th>Published</th><th>Excluded</th><th>Files</th></tr></thead>
                         <tbody>
                         <?php foreach ( array_slice( $history, 0, 20 ) as $entry ) : ?>
                             <?php
@@ -511,11 +511,11 @@ function tcdist_feed_render_admin() {
 
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
             <h3 style="margin-top:0;">Alta inicial en las plataformas</h3>
-            <p><strong>Google Merchant Center:</strong> crea una fuente de productos desde archivo y registra la URL de <code>google-merchant.xml</code>.</p>
+            <p><strong>Google Merchant Center:</strong> creates a product data source from a file and registers the URL of <code>google-merchant.xml</code>.</p>
             <p><strong>Microsoft Merchant Center:</strong> crea un feed con descarga automatica desde URL y registra <code>microsoft-merchant.txt</code>.</p>
-            <p><strong>Pinterest Catalogs:</strong> agrega una fuente de datos alojada por URL y registra <code>pinterest-catalog.csv</code>.</p>
-            <p><strong>Otros receptores:</strong> usa <code>catalogo-universal.csv</code> o <code>catalogo-universal.json</code>. El JSON conserva la estructura completa del registro canonico, incluidas las imagenes adicionales como array. Tambien puedes registrar un nuevo canal mediante el filtro <code>tcdist_commercial_feed_channels</code>.</p>
-            <p class="description">Esta version usa el modelo mas estable para el catalogo completo: la tienda publica el feed y cada plataforma lo descarga. Las APIs quedan reservadas para actualizaciones incrementales casi en tiempo real si mas adelante hacen falta.</p>
+            <p><strong>Pinterest Catalogs:</strong> adds a hosted data source by URL and registers <code>pinterest-catalog.csv</code>.</p>
+            <p><strong>Other receivers:</strong> use <code>catalogo-universal.csv</code> or <code>catalogo-universal.json</code>. JSON preserves the full canonical record structure, including additional images as an array. New channels can also be registered through the <code>tcdist_commercial_feed_channels</code> filter.</p>
+            <p class="description">This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later.</p>
         </div>
     </div>
 

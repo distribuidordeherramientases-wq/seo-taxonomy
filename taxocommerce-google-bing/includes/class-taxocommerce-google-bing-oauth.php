@@ -140,22 +140,22 @@ final class TaxoCommerce_Google_Bing_OAuth {
         $status   = self::status();
 
         $labels = array(
-            'missing_credentials' => array( 'Faltan credenciales', 'warning' ),
-            'not_authorized'      => array( 'Credenciales guardadas; falta autorizar Google', 'warning' ),
-            'missing_property'    => array( 'Google conectado; falta seleccionar propiedad', 'warning' ),
-            'connected'           => array( 'Conectado', 'ok' ),
+            'missing_credentials' => array( 'Missing credentials', 'warning' ),
+            'not_authorized'      => array( 'Credentials saved; Google authorization required', 'warning' ),
+            'missing_property'    => array( 'Google connected; select a property', 'warning' ),
+            'connected'           => array( 'Connected', 'ok' ),
         );
-        $label = $labels[ $status ] ?? array( 'Estado desconocido', 'warning' );
+        $label = $labels[ $status ] ?? array( 'Unknown status', 'warning' );
 
         echo '<section class="tgb-card tgb-card-wide">';
-        echo '<div class="tgb-card-head"><div><h2>Google Search Console · OAuth</h2><p>Credenciales, autorización y tokens. No descarga consultas, clics, impresiones ni posiciones.</p></div>';
+        echo '<div class="tgb-card-head"><div><h2>Google Search Console · OAuth</h2><p>Credentials, authorization, and tokens. It does not download queries, clicks, impressions, or positions.</p></div>';
         echo '<span class="tgb-badge tgb-' . esc_attr( $label[1] ) . '">' . esc_html( $label[0] ) . '</span></div>';
 
         self::notice();
 
         $migration = get_option( self::MIGRATION_OPTION, array() );
         if ( is_array( $migration ) && ! empty( $migration['copied'] ) ) {
-            echo '<div class="notice notice-success inline"><p><strong>OAuth antiguo migrado al plugin moderno.</strong></p></div>';
+            echo '<div class="notice notice-success inline"><p><strong>Legacy OAuth migrated to the modern plugin.</strong></p></div>';
         }
 
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -165,53 +165,53 @@ final class TaxoCommerce_Google_Bing_OAuth {
 
         echo '<tr><th><label for="tgb-google-client-id">Client ID</label></th><td>';
         echo '<input type="text" id="tgb-google-client-id" name="client_id" value="' . esc_attr( (string) $settings['client_id'] ) . '" class="regular-text" autocomplete="off">';
-        echo '<p class="description">Cliente OAuth 2.0 de tipo Aplicación web.</p></td></tr>';
+        echo '<p class="description">OAuth 2.0 client of type Web application.</p></td></tr>';
 
         echo '<tr><th><label for="tgb-google-client-secret">Client Secret</label></th><td>';
-        echo '<input type="password" id="tgb-google-client-secret" name="client_secret" value="" class="regular-text" autocomplete="new-password" placeholder="' . esc_attr( ! empty( $settings['client_secret'] ) ? 'Guardado; déjalo vacío para conservarlo' : '' ) . '">';
-        echo '<p class="description">Se guarda en WordPress y no se vuelve a mostrar.</p></td></tr>';
+        echo '<input type="password" id="tgb-google-client-secret" name="client_secret" value="" class="regular-text" autocomplete="new-password" placeholder="' . esc_attr( ! empty( $settings['client_secret'] ) ? 'Stored; leave blank to keep it' : '' ) . '">';
+        echo '<p class="description">Stored in WordPress and never displayed again.</p></td></tr>';
 
-        echo '<tr><th>URI de redirección</th><td>';
+        echo '<tr><th>Redirect URI</th><td>';
         echo '<input type="text" readonly value="' . esc_attr( self::redirect_uri() ) . '" class="large-text code" onclick="this.select();">';
-        echo '<p class="description">Debe coincidir exactamente con la URI autorizada en Google Cloud.</p></td></tr>';
+        echo '<p class="description">Must exactly match the authorized URI in Google Cloud.</p></td></tr>';
 
-        echo '<tr><th><label for="tgb-google-oauth-property">Propiedad de Search Console</label></th><td>';
-        echo '<input type="text" id="tgb-google-oauth-property" name="property_id" value="' . esc_attr( (string) $settings['property_id'] ) . '" class="regular-text" placeholder="https://www.ejemplo.es/ o sc-domain:ejemplo.es">';
-        echo '<p class="description">Abrir esta pantalla no consulta Search Console. La propiedad sólo se valida cuando pulsas Probar conexión.</p>';
+        echo '<tr><th><label for="tgb-google-oauth-property">Search Console property</label></th><td>';
+        echo '<input type="text" id="tgb-google-oauth-property" name="property_id" value="' . esc_attr( (string) $settings['property_id'] ) . '" class="regular-text" placeholder="https://www.example.com/ or sc-domain:example.com">';
+        echo '<p class="description">Opening this screen does not query Search Console. The property is validated only when you click Test connection.</p>';
         echo '</td></tr>';
 
         echo '</tbody></table>';
-        submit_button( 'Guardar configuración', 'primary', 'submit', false );
+        submit_button( 'Save settings', 'primary', 'submit', false );
         echo '</form>';
 
         echo '<div class="tgb-actions">';
         if ( 'missing_credentials' !== $status ) {
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tgb_google_oauth_connect">';
             wp_nonce_field( 'tgb_google_oauth_connect' );
-            submit_button( in_array( $status, array( 'missing_property', 'connected' ), true ) ? 'Volver a autorizar Google' : 'Conectar con Google', 'primary', 'submit', false );
+            submit_button( in_array( $status, array( 'missing_property', 'connected' ), true ) ? 'Reauthorize Google' : 'Connect Google', 'primary', 'submit', false );
             echo '</form>';
         }
 
         if ( ! empty( $tokens['refresh_token'] ) || ! empty( $tokens['access_token'] ) ) {
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tgb_google_oauth_test">';
             wp_nonce_field( 'tgb_google_oauth_test' );
-            submit_button( 'Probar conexión', 'secondary', 'submit', false );
+            submit_button( 'Test connection', 'secondary', 'submit', false );
             echo '</form>';
 
-            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\'Se eliminará la autorización OAuth de Google almacenada. ¿Continuar?\');"><input type="hidden" name="action" value="tgb_google_oauth_disconnect">';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\'The stored Google OAuth authorization will be removed. Continue?\');"><input type="hidden" name="action" value="tgb_google_oauth_disconnect">';
             wp_nonce_field( 'tgb_google_oauth_disconnect' );
-            submit_button( 'Desconectar', 'delete', 'submit', false );
+            submit_button( 'Disconnect', 'delete', 'submit', false );
             echo '</form>';
         }
         echo '</div>';
 
-        echo '<details class="tgb-help"><summary>Cómo obtener estas credenciales</summary><ol>';
-        echo '<li>Google Cloud Console → proyecto correspondiente.</li>';
-        echo '<li>Activa Google Search Console API.</li>';
-        echo '<li>Google Auth Platform → Clientes.</li>';
-        echo '<li>Crea o abre un cliente OAuth 2.0 de tipo Aplicación web.</li>';
-        echo '<li>Añade exactamente la URI de redirección mostrada arriba.</li>';
-        echo '<li>Copia Client ID y Client Secret, guarda y pulsa Conectar con Google.</li>';
+        echo '<details class="tgb-help"><summary>How to obtain these credentials</summary><ol>';
+        echo '<li>Google Cloud Console → the corresponding project.</li>';
+        echo '<li>Enable the Google Search Console API.</li>';
+        echo '<li>Google Auth Platform → Clients.</li>';
+        echo '<li>Create or open an OAuth 2.0 client of type Web application.</li>';
+        echo '<li>Add exactly the Redirect URI shown above.</li>';
+        echo '<li>Copy the Client ID and Client Secret, save them, then click Connect Google.</li>';
         echo '</ol></details>';
 
         echo '</section>';
@@ -268,7 +268,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
 
     public static function callback() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para completar esta conexión.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'You do not have permission to complete this connection.', 'taxocommerce-google-bing' ) );
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth callback validates state below.
@@ -319,7 +319,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
             $message = is_array( $body )
                 ? sanitize_text_field( (string) ( $body['error_description'] ?? $body['error']['message'] ?? $body['error'] ?? '' ) )
                 : '';
-            self::store_error( $message ?: 'Google devolvió HTTP ' . $status . ' al intercambiar el código.' );
+            self::store_error( $message ?: 'Google returned HTTP ' . $status . ' while exchanging the authorization code.' );
             self::redirect( 'oauth_token_failed', 'error' );
         }
 
@@ -368,7 +368,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
             return (string) $tokens['access_token'];
         }
         if ( empty( $tokens['refresh_token'] ) || empty( $settings['client_id'] ) || empty( $settings['client_secret'] ) ) {
-            return new WP_Error( 'tgb_google_oauth_not_authorized', 'Google OAuth no está autorizado o faltan credenciales.' );
+            return new WP_Error( 'tgb_google_oauth_not_authorized', 'Google OAuth is not authorized or credentials are missing.' );
         }
 
         $response = wp_remote_post(
@@ -425,7 +425,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
         if ( $status < 200 || $status >= 300 ) {
             $message = is_array( $body ) && ! empty( $body['error']['message'] )
                 ? sanitize_text_field( (string) $body['error']['message'] )
-                : 'Search Console respondió HTTP ' . $status . '.';
+                : 'Search Console returned HTTP ' . $status . '.';
             return new WP_Error( 'tgb_google_oauth_sites_failed', $message );
         }
 
@@ -441,7 +441,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
 
     private static function guard( $nonce ) {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'Unauthorized access.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( $nonce );
     }
@@ -459,6 +459,20 @@ final class TaxoCommerce_Google_Bing_OAuth {
     }
 
     private static function redirect( $notice, $type = 'success' ) {
+        if ( defined( 'TAXOCOMMERCE_CONNECTIONS_VERSION' ) ) {
+            wp_safe_redirect(
+                add_query_arg(
+                    array(
+                        'page'           => 'taxocommerce-connections',
+                        'tc_conn_notice' => 'google_oauth_' . sanitize_key( $notice ),
+                        'tc_conn_type'   => sanitize_key( $type ),
+                    ),
+                    admin_url( 'admin.php' )
+                )
+            );
+            exit;
+        }
+
         wp_safe_redirect(
             add_query_arg(
                 array(
@@ -481,16 +495,16 @@ final class TaxoCommerce_Google_Bing_OAuth {
         }
 
         $messages = array(
-            'oauth_saved'               => 'Configuración OAuth guardada.',
-            'oauth_connected'           => 'Google Search Console autorizado correctamente.',
-            'oauth_disconnected'        => 'Autorización OAuth eliminada.',
-            'oauth_test_ok'             => 'Conexión OAuth correcta.',
-            'oauth_missing_credentials' => 'Faltan Client ID o Client Secret.',
-            'oauth_invalid_state'       => 'La validación de seguridad OAuth ha fallado.',
-            'oauth_missing_code'        => 'Google no devolvió el código de autorización.',
-            'oauth_token_failed'        => 'No se pudo completar la autorización OAuth.',
-            'oauth_test_failed'         => 'La prueba OAuth ha fallado.',
-            'oauth_access_denied'       => 'Google ha denegado la autorización.',
+            'oauth_saved'               => 'OAuth settings saved.',
+            'oauth_connected'           => 'Google Search Console authorized successfully.',
+            'oauth_disconnected'        => 'OAuth authorization removed.',
+            'oauth_test_ok'             => 'OAuth connection verified.',
+            'oauth_missing_credentials' => 'Client ID or Client Secret is missing.',
+            'oauth_invalid_state'       => 'OAuth state validation failed.',
+            'oauth_missing_code'        => 'Google did not return an authorization code.',
+            'oauth_token_failed'        => 'OAuth authorization could not be completed.',
+            'oauth_test_failed'         => 'OAuth test failed.',
+            'oauth_access_denied'       => 'Google denied authorization.',
         );
         $message = $messages[ $code ] ?? $code;
         $detail = '';
@@ -501,7 +515,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
             $count = get_transient( 'tgb_google_oauth_test_' . get_current_user_id() );
             delete_transient( 'tgb_google_oauth_test_' . get_current_user_id() );
             if ( false !== $count ) {
-                $detail = 'Propiedades accesibles: ' . absint( $count ) . '.';
+                $detail = 'Accessible properties: ' . absint( $count ) . '.';
             }
         }
 

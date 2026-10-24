@@ -1,6 +1,6 @@
 <?php
 /**
- * Mercado smoke test: the UI must not call external services, and the new
+ * Market smoke test: the UI must not call external services, and the new
  * module must load with no WooCommerce, Core, or legacy Ojeador installed.
  * Run: php taxocommerce-google-bing/tests/market-smoke.php
  */

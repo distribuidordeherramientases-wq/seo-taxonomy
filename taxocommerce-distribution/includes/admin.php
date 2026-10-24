@@ -14,7 +14,7 @@ function taxocommerce_distribution_capability() {
 
 function taxocommerce_distribution_guard() {
     if ( ! current_user_can( taxocommerce_distribution_capability() ) && ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'No tienes permisos para gestionar TaxoCommerce Distribution.', 'taxocommerce-distribution' ) );
+        wp_die( esc_html__( 'You do not have permission to manage TaxoCommerce Distribution.', 'taxocommerce-distribution' ) );
     }
 }
 
@@ -24,8 +24,8 @@ function taxocommerce_distribution_register_menu() {
     if ( function_exists( 'taxocommerce_core' ) ) {
         add_submenu_page(
             'taxocommerce-core',
-            __( 'Distribución', 'taxocommerce-distribution' ),
-            __( 'Distribución', 'taxocommerce-distribution' ),
+            __( 'Distribution', 'taxocommerce-distribution' ),
+            __( 'Distribution', 'taxocommerce-distribution' ),
             $capability,
             'taxocommerce-distribution',
             'taxocommerce_distribution_render_page'
@@ -85,16 +85,16 @@ function taxocommerce_distribution_render_page() {
     ?>
     <div class="wrap">
         <h1><?php esc_html_e( 'TaxoCommerce Distribution', 'taxocommerce-distribution' ); ?></h1>
-        <p><?php esc_html_e( 'Publicación técnica del catálogo: feeds comerciales y sitemaps XML mediante procesos seguros por bloques.', 'taxocommerce-distribution' ); ?></p>
+        <p><?php esc_html_e( 'Technical catalog publishing: commercial feeds and XML sitemaps through safe bounded processes.', 'taxocommerce-distribution' ); ?></p>
 
         <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Secciones de Distribution', 'taxocommerce-distribution' ); ?>">
             <?php
             foreach (
                 array(
-                    'overview'   => __( 'Resumen', 'taxocommerce-distribution' ),
-                    'feeds'      => __( 'Feeds comerciales', 'taxocommerce-distribution' ),
+                    'overview'   => __( 'Overview', 'taxocommerce-distribution' ),
+                    'feeds'      => __( 'Commercial Feeds', 'taxocommerce-distribution' ),
                     'sitemaps'   => __( 'Sitemaps', 'taxocommerce-distribution' ),
-                    'automation' => __( 'Automatización', 'taxocommerce-distribution' ),
+                    'automation' => __( 'Automation', 'taxocommerce-distribution' ),
                 ) as $key => $label
             ) :
                 ?>
@@ -126,7 +126,7 @@ function taxocommerce_distribution_render_compatibility_notice() {
     $legacy_sitemap = defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) && TCDIST_LEGACY_SITEMAP_ACTIVE;
 
     if ( $legacy_feed || $legacy_sitemap ) {
-        echo '<div class="notice notice-info inline" style="margin-top:18px"><p><strong>Migración segura:</strong> se ha detectado el plugin antiguo. Distribution utiliza sus propios estados y worker, pero conserva los mismos archivos públicos. Mientras conviven, la automatización periódica del componente antiguo sigue teniendo prioridad para evitar dobles ejecuciones; puedes probar las regeneraciones manuales desde este plugin.</p></div>';
+        echo '<div class="notice notice-info inline" style="margin-top:18px"><p><strong>Safe migration:</strong> the legacy plugin was detected. Distribution uses its own state and worker while preserving the same public files. While both plugins coexist, the legacy scheduled automation keeps priority to avoid duplicate execution; manual regeneration can be tested from this plugin.</p></div>';
     }
 }
 
@@ -139,15 +139,15 @@ function taxocommerce_distribution_render_overview() {
     ?>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;max-width:1200px;">
         <div class="card" style="padding:18px;max-width:none;">
-            <h2 style="margin-top:0;"><?php esc_html_e( 'Feeds comerciales', 'taxocommerce-distribution' ); ?></h2>
-            <p><strong><?php esc_html_e( 'Estado:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( (string) ( $feed_state['status'] ?? 'never' ) ); ?></p>
-            <p><strong><?php esc_html_e( 'Procesados:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $feed_state['processed'] ?? 0 ) ) ); ?></p>
-            <p><strong><?php esc_html_e( 'Publicados:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $feed_state['written'] ?? 0 ) ) ); ?></p>
-            <p><a class="button" href="<?php echo esc_url( taxocommerce_distribution_url( 'feeds' ) ); ?>"><?php esc_html_e( 'Abrir feeds', 'taxocommerce-distribution' ); ?></a></p>
+            <h2 style="margin-top:0;"><?php esc_html_e( 'Commercial Feeds', 'taxocommerce-distribution' ); ?></h2>
+            <p><strong><?php esc_html_e( 'Status:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( (string) ( $feed_state['status'] ?? 'never' ) ); ?></p>
+            <p><strong><?php esc_html_e( 'Processed:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $feed_state['processed'] ?? 0 ) ) ); ?></p>
+            <p><strong><?php esc_html_e( 'Published:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $feed_state['written'] ?? 0 ) ) ); ?></p>
+            <p><a class="button" href="<?php echo esc_url( taxocommerce_distribution_url( 'feeds' ) ); ?>"><?php esc_html_e( 'Open feeds', 'taxocommerce-distribution' ); ?></a></p>
         </div>
 
         <div class="card" style="padding:18px;max-width:none;">
-            <h2 style="margin-top:0;"><?php esc_html_e( 'Canales activos', 'taxocommerce-distribution' ); ?></h2>
+            <h2 style="margin-top:0;"><?php esc_html_e( 'Active channels', 'taxocommerce-distribution' ); ?></h2>
             <p style="font-size:28px;margin:8px 0;"><strong><?php echo esc_html( number_format_i18n( count( $enabled ) ) ); ?></strong></p>
             <p><?php
             $labels = array();
@@ -162,18 +162,18 @@ function taxocommerce_distribution_render_overview() {
 
         <div class="card" style="padding:18px;max-width:none;">
             <h2 style="margin-top:0;"><?php esc_html_e( 'Sitemaps', 'taxocommerce-distribution' ); ?></h2>
-            <p><strong><?php esc_html_e( 'Índice:', 'taxocommerce-distribution' ); ?></strong> <?php echo ! empty( $sitemap['main_valid'] ) ? '<span style="color:#1d6b43">Válido</span>' : '<span style="color:#b32d2e">Revisar</span>'; ?></p>
-            <p><strong><?php esc_html_e( 'URLs publicadas:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $sitemap['total_urls'] ?? 0 ) ) ); ?></p>
-            <p><strong><?php esc_html_e( 'Archivos:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( count( (array) ( $sitemap['files'] ?? array() ) ) ) ); ?></p>
-            <p><a class="button" href="<?php echo esc_url( taxocommerce_distribution_url( 'sitemaps' ) ); ?>"><?php esc_html_e( 'Abrir sitemaps', 'taxocommerce-distribution' ); ?></a></p>
+            <p><strong><?php esc_html_e( 'Index:', 'taxocommerce-distribution' ); ?></strong> <?php echo ! empty( $sitemap['main_valid'] ) ? '<span style="color:#1d6b43">Valid</span>' : '<span style="color:#b32d2e">Review</span>'; ?></p>
+            <p><strong><?php esc_html_e( 'Published URLs:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $sitemap['total_urls'] ?? 0 ) ) ); ?></p>
+            <p><strong><?php esc_html_e( 'Files:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( count( (array) ( $sitemap['files'] ?? array() ) ) ) ); ?></p>
+            <p><a class="button" href="<?php echo esc_url( taxocommerce_distribution_url( 'sitemaps' ) ); ?>"><?php esc_html_e( 'Open sitemaps', 'taxocommerce-distribution' ); ?></a></p>
         </div>
     </div>
 
     <div class="card" style="padding:20px;max-width:1200px;margin-top:18px;">
-        <h2 style="margin-top:0;"><?php esc_html_e( 'Responsabilidad del plugin', 'taxocommerce-distribution' ); ?></h2>
-        <p><?php esc_html_e( 'Distribution publica el catálogo hacia sistemas externos. No edita plantillas, campañas, redes sociales ni contenido editorial.', 'taxocommerce-distribution' ); ?></p>
-        <p><strong><?php esc_html_e( 'Feeds:', 'taxocommerce-distribution' ); ?></strong> Google Merchant Center, Microsoft/Bing Shopping, Pinterest y formatos universales.</p>
-        <p><strong><?php esc_html_e( 'Sitemaps:', 'taxocommerce-distribution' ); ?></strong> productos, categorías, entradas, páginas, clusters y hubs con índice XML estable.</p>
+        <h2 style="margin-top:0;"><?php esc_html_e( 'Plugin responsibility', 'taxocommerce-distribution' ); ?></h2>
+        <p><?php esc_html_e( 'Distribution publishes the catalog to external systems. It does not edit templates, campaigns, social media, or editorial content.', 'taxocommerce-distribution' ); ?></p>
+        <p><strong><?php esc_html_e( 'Feeds:', 'taxocommerce-distribution' ); ?></strong> Google Merchant Center, Microsoft/Bing Shopping, Pinterest, and universal formats.</p>
+        <p><strong><?php esc_html_e( 'Sitemaps:', 'taxocommerce-distribution' ); ?></strong> products, categories, posts, pages, clusters, and hubs with a stable XML index.</p>
     </div>
     <?php
 }
@@ -232,34 +232,34 @@ function taxocommerce_distribution_render_sitemaps() {
     $message = isset( $_GET['tcdist_sitemap_message'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['tcdist_sitemap_message'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
     ?>
     <div class="card" style="max-width:1220px;padding:20px;">
-        <h2 style="margin-top:0;"><?php esc_html_e( 'Sitemaps XML', 'taxocommerce-distribution' ); ?></h2>
-        <p><?php esc_html_e( 'Se conserva el mismo motor probado: publicación atómica, validación XML previa, lotes de productos y URLs estables en la raíz del dominio.', 'taxocommerce-distribution' ); ?></p>
-        <p><?php esc_html_e( 'Índice profesional:', 'taxocommerce-distribution' ); ?> <a href="<?php echo esc_url( $main_url ); ?>" target="_blank" rel="noopener noreferrer"><code><?php echo esc_html( $main_url ); ?></code></a></p>
+        <h2 style="margin-top:0;"><?php esc_html_e( 'XML Sitemaps', 'taxocommerce-distribution' ); ?></h2>
+        <p><?php esc_html_e( 'The same proven engine is preserved: atomic publishing, pre-publication XML validation, product batching, and stable root-domain URLs.', 'taxocommerce-distribution' ); ?></p>
+        <p><?php esc_html_e( 'Professional index:', 'taxocommerce-distribution' ); ?> <a href="<?php echo esc_url( $main_url ); ?>" target="_blank" rel="noopener noreferrer"><code><?php echo esc_html( $main_url ); ?></code></a></p>
 
         <?php if ( $message ) : ?>
             <div class="notice <?php echo esc_attr( 'ok' === $result ? 'notice-success' : 'notice-error' ); ?> inline"><p><?php echo esc_html( $message ); ?></p></div>
         <?php endif; ?>
 
         <?php if ( ! empty( $report['main_valid'] ) ) : ?>
-            <div class="notice notice-success inline"><p><strong><?php esc_html_e( 'Índice principal válido.', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( sprintf( __( '%s URLs publicadas.', 'taxocommerce-distribution' ), number_format_i18n( absint( $report['total_urls'] ?? 0 ) ) ) ); ?></p></div>
+            <div class="notice notice-success inline"><p><strong><?php esc_html_e( 'Main index is valid.', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( sprintf( __( '%s URLs published.', 'taxocommerce-distribution' ), number_format_i18n( absint( $report['total_urls'] ?? 0 ) ) ) ); ?></p></div>
         <?php else : ?>
-            <div class="notice notice-warning inline"><p><strong><?php esc_html_e( 'El índice principal no existe o no es válido.', 'taxocommerce-distribution' ); ?></strong></p></div>
+            <div class="notice notice-warning inline"><p><strong><?php esc_html_e( 'The main index does not exist or is invalid.', 'taxocommerce-distribution' ); ?></strong></p></div>
         <?php endif; ?>
 
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:18px 0;">
             <input type="hidden" name="action" value="tcdist_sitemap_regenerate">
             <?php wp_nonce_field( 'tcdist_sitemap_regenerate' ); ?>
-            <?php submit_button( __( 'Regenerar y validar sitemaps', 'taxocommerce-distribution' ), 'primary', 'submit', false ); ?>
+            <?php submit_button( __( 'Regenerate and validate sitemaps', 'taxocommerce-distribution' ), 'primary', 'submit', false ); ?>
         </form>
 
         <details style="margin:16px 0;">
-            <summary><strong><?php esc_html_e( 'Qué hace esta generación', 'taxocommerce-distribution' ); ?></strong></summary>
-            <p><?php esc_html_e( 'Separa productos, categorías, entradas, páginas, clusters y hubs. Solo incluye contenido publicado y sin contraseña; excluye carrito, checkout y cuenta. Cada XML se valida antes de sustituir el archivo público anterior.', 'taxocommerce-distribution' ); ?></p>
-            <p><?php esc_html_e( 'Los productos se dividen en bloques para evitar XML excesivamente grandes. La generación utiliza un lock y publicación atómica para no exponer archivos parciales.', 'taxocommerce-distribution' ); ?></p>
+            <summary><strong><?php esc_html_e( 'What this generation does', 'taxocommerce-distribution' ); ?></strong></summary>
+            <p><?php esc_html_e( 'Separates products, categories, posts, pages, clusters, and hubs. Only published, non-password-protected content is included; cart, checkout, and account pages are excluded. Each XML file is validated before replacing the previous public file.', 'taxocommerce-distribution' ); ?></p>
+            <p><?php esc_html_e( 'Products are split into bounded groups to avoid oversized XML files. Generation uses a lock and atomic publishing so partial files are never exposed.', 'taxocommerce-distribution' ); ?></p>
         </details>
 
         <table class="widefat striped">
-            <thead><tr><th><?php esc_html_e( 'Archivo', 'taxocommerce-distribution' ); ?></th><th>XML</th><th>URLs</th><th><?php esc_html_e( 'Auditadas', 'taxocommerce-distribution' ); ?></th><th>OK</th><th><?php esc_html_e( 'Avisos', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Errores', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Cobertura', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Tamaño', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Modificado', 'taxocommerce-distribution' ); ?></th></tr></thead>
+            <thead><tr><th><?php esc_html_e( 'File', 'taxocommerce-distribution' ); ?></th><th>XML</th><th>URLs</th><th><?php esc_html_e( 'Audited', 'taxocommerce-distribution' ); ?></th><th>OK</th><th><?php esc_html_e( 'Warnings', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Errors', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Coverage', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Size', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Modified', 'taxocommerce-distribution' ); ?></th></tr></thead>
             <tbody>
             <?php foreach ( (array) ( $report['files'] ?? array() ) as $file ) : ?>
                 <?php
@@ -270,7 +270,7 @@ function taxocommerce_distribution_render_sitemaps() {
                 ?>
                 <tr>
                     <td><a href="<?php echo esc_url( (string) $file['url'] ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( (string) $file['filename'] ); ?></code></a></td>
-                    <td><?php echo ! empty( $file['valid'] ) ? '<span style="color:#1d6b43;font-weight:700">Válido</span>' : '<span style="color:#b32d2e;font-weight:700">Inválido</span>'; ?></td>
+                    <td><?php echo ! empty( $file['valid'] ) ? '<span style="color:#1d6b43;font-weight:700">Valid</span>' : '<span style="color:#b32d2e;font-weight:700">Invalid</span>'; ?></td>
                     <td><?php echo esc_html( number_format_i18n( $count ) ); ?></td>
                     <?php if ( $is_index ) : ?>
                         <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
@@ -301,19 +301,19 @@ function taxocommerce_distribution_render_automation() {
     $legacy_sitemap = defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) && TCDIST_LEGACY_SITEMAP_ACTIVE;
     ?>
     <div class="card" style="max-width:1000px;padding:20px;">
-        <h2 style="margin-top:0;"><?php esc_html_e( 'Automatización y carga', 'taxocommerce-distribution' ); ?></h2>
-        <p><?php esc_html_e( 'Los feeds conservan el regulador adaptativo del sistema anterior, pero ahora el trabajo lo ejecuta un worker propio de Distribution. Cada ventana usa cursor, lock y límite temporal; no existe dependencia del antiguo gestor central.', 'taxocommerce-distribution' ); ?></p>
+        <h2 style="margin-top:0;"><?php esc_html_e( 'Automation y carga', 'taxocommerce-distribution' ); ?></h2>
+        <p><?php esc_html_e( 'Feeds keep the adaptive regulator from the previous system, but work now runs through Distribution's own worker. Each window uses a cursor, lock, and execution deadline; there is no dependency on the legacy central manager.', 'taxocommerce-distribution' ); ?></p>
 
         <table class="widefat striped">
             <tbody>
-                <tr><th><?php esc_html_e( 'Worker de feeds', 'taxocommerce-distribution' ); ?></th><td><?php echo $legacy_feed ? esc_html__( 'Automatización antigua prioritaria durante convivencia; manual disponible aquí.', 'taxocommerce-distribution' ) : esc_html__( 'Propio de Distribution', 'taxocommerce-distribution' ); ?></td></tr>
-                <tr><th><?php esc_html_e( 'Regeneración diaria', 'taxocommerce-distribution' ); ?></th><td><?php echo ! empty( $settings['auto_refresh'] ) ? esc_html( (string) ( $settings['daily_time'] ?? '03:30' ) ) : esc_html__( 'Desactivada', 'taxocommerce-distribution' ); ?></td></tr>
-                <tr><th><?php esc_html_e( 'Último lote', 'taxocommerce-distribution' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $feed['last_batch_rows'] ?? 0 ) ) ); ?> <?php esc_html_e( 'productos', 'taxocommerce-distribution' ); ?> · <?php echo esc_html( number_format_i18n( (float) ( $feed['last_batch_duration'] ?? 0 ), 2 ) ); ?> s</td></tr>
-                <tr><th><?php esc_html_e( 'Sitemaps automáticos', 'taxocommerce-distribution' ); ?></th><td><?php echo $legacy_sitemap ? esc_html__( 'Gestionados temporalmente por el plugin antiguo', 'taxocommerce-distribution' ) : esc_html__( 'Distribution regenera tras cambios de productos, páginas, posts y categorías', 'taxocommerce-distribution' ); ?></td></tr>
+                <tr><th><?php esc_html_e( 'Feed worker', 'taxocommerce-distribution' ); ?></th><td><?php echo $legacy_feed ? esc_html__( 'Legacy automation has priority during coexistence; manual execution is available here.', 'taxocommerce-distribution' ) : esc_html__( 'Owned by Distribution', 'taxocommerce-distribution' ); ?></td></tr>
+                <tr><th><?php esc_html_e( 'Daily regeneration', 'taxocommerce-distribution' ); ?></th><td><?php echo ! empty( $settings['auto_refresh'] ) ? esc_html( (string) ( $settings['daily_time'] ?? '03:30' ) ) : esc_html__( 'Disabled', 'taxocommerce-distribution' ); ?></td></tr>
+                <tr><th><?php esc_html_e( 'Last batch', 'taxocommerce-distribution' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $feed['last_batch_rows'] ?? 0 ) ) ); ?> <?php esc_html_e( 'products', 'taxocommerce-distribution' ); ?> · <?php echo esc_html( number_format_i18n( (float) ( $feed['last_batch_duration'] ?? 0 ), 2 ) ); ?> s</td></tr>
+                <tr><th><?php esc_html_e( 'Automatic sitemaps', 'taxocommerce-distribution' ); ?></th><td><?php echo $legacy_sitemap ? esc_html__( 'Temporarily managed by the legacy plugin', 'taxocommerce-distribution' ) : esc_html__( 'Distribution regenerates after product, page, post, and category changes', 'taxocommerce-distribution' ); ?></td></tr>
             </tbody>
         </table>
 
-        <p class="description"><?php esc_html_e( 'Durante la migración evitamos dos cron paralelos escribiendo sobre los mismos archivos públicos. Cuando se retire el módulo antiguo, Distribution asumirá automáticamente la programación.', 'taxocommerce-distribution' ); ?></p>
+        <p class="description"><?php esc_html_e( 'During migration, two parallel cron jobs are prevented from writing to the same public files. Once the legacy module is removed, Distribution automatically takes over scheduling.', 'taxocommerce-distribution' ); ?></p>
     </div>
     <?php
 }

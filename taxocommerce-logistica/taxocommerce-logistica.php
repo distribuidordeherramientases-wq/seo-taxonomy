@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: TaxoCommerce Logística
- * Description: Gestión de pedidos, proveedores y transporte para WooCommerce, migrada 1:1 desde TaxoCommerce SEO.
+ * Plugin Name: TaxoCommerce Logistics
+ * Description: WooCommerce order, supplier, and shipping management migrated 1:1 from TaxoCommerce SEO.
  * Version: 0.1.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -27,8 +27,8 @@ function taxocommerce_logistica_register_menu() {
     if ( function_exists( 'taxocommerce_core' ) ) {
         add_submenu_page(
             'taxocommerce-core',
-            'Logística',
-            'Logística',
+            'Logistics',
+            'Logistics',
             $capability,
             'seo-logistica',
             'seo_logistica_page'
@@ -37,8 +37,8 @@ function taxocommerce_logistica_register_menu() {
     }
 
     add_menu_page(
-        'TaxoCommerce Logística',
-        'TaxoCommerce Logística',
+        'TaxoCommerce Logistics',
+        'TaxoCommerce Logistics',
         $capability,
         'seo-logistica',
         'seo_logistica_page',
@@ -56,7 +56,7 @@ function taxocommerce_logistica_register_core( $core ) {
     $core->register_module(
         'logistica',
         array(
-            'name'        => 'TaxoCommerce Logística',
+            'name'        => 'TaxoCommerce Logistics',
             'version'     => TAXOCOMMERCE_LOGISTICA_VERSION,
             'status'      => 'active',
             'description' => 'Pedidos, proveedores y transporte WooCommerce.',
@@ -73,10 +73,10 @@ function taxocommerce_logistica_family_catalog( $extensions ) {
     $extensions = is_array( $extensions ) ? $extensions : array();
     $extensions['logistica'] = array(
         'id'            => 'logistica',
-        'name'          => 'TaxoCommerce Logística',
+        'name'          => 'TaxoCommerce Logistics',
         'plugin_file'   => 'taxocommerce-logistica/taxocommerce-logistica.php',
         'org_slug'      => 'taxocommerce-logistica',
-        'search_term'   => 'TaxoCommerce Logística',
+        'search_term'   => 'TaxoCommerce Logistics',
         'wordpress_org' => false,
         'admin_url'     => admin_url( 'admin.php?page=seo-logistica' ),
         'description'   => 'Pedidos, proveedores y transporte WooCommerce.',
