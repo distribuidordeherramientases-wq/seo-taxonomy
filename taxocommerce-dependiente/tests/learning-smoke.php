@@ -9,6 +9,7 @@ $feedback=file_get_contents($root.'/includes/class-tcd-feedback.php');
 $search=file_get_contents($root.'/includes/class-tcd-search.php');
 $admin=file_get_contents($root.'/includes/class-tcd-admin.php');
 $knowledge=file_get_contents($root.'/includes/class-tcd-knowledge-transfer.php');
+$backup=file_get_contents($root.'/includes/class-tcd-backup.php');
 $main=file_get_contents($root.'/taxocommerce-dependiente.php');
 $header_match=array();
 $constant_match=array();
@@ -17,7 +18,7 @@ preg_match("/define\s*\(\s*'TAXOCOMMERCE_DEPENDIENTE_VERSION'\s*,\s*'([0-9]+\.[0
 
 $checks=array(
     !empty($header_match[1]) && isset($constant_match[1]) && $header_match[1]===$constant_match[1],
-    isset($header_match[1]) && version_compare($header_match[1],'0.3.6','>='),
+    isset($header_match[1]) && version_compare($header_match[1],'0.3.7','>='),
     strpos($academy,'CREATE TABLE {$snapshots}')!==false,
     strpos($academy,'CREATE TABLE {$items}')!==false,
     strpos($academy,"'phase'=>'snapshot'")!==false,
@@ -160,6 +161,18 @@ $checks=array(
     strpos($admin,'M12 · Actualización continua')!==false,
     strpos($admin,'nav-tab-wrapper')!==false,
     strpos($admin,'Conocimiento / Importar–Exportar')!==false,
+    strpos($admin,'Backup / Restaurar')!==false,
+    strpos($admin,"if('backup'===\$tab)")!==false,
+    strpos($backup,"const SCHEMA_NAME = 'taxocommerce_dependiente_backup'")!==false,
+    strpos($backup,"'learning_snapshots'")!==false,
+    strpos($backup,"'feedback_events'")!==false,
+    strpos($backup,'Descargar backup completo')!==false,
+    strpos($backup,'Analizar backup sin modificar datos')!==false,
+    strpos($backup,'Restaurar backup completo')!==false,
+    strpos($backup,'replace_preserve_ids')!==false,
+    strpos($backup,"'START TRANSACTION'")!==false,
+    strpos($backup,"'ROLLBACK'")!==false,
+    strpos($backup,'productos, categorías, posts, páginas, FAQs y Vocabulary')!==false,
     strpos($admin,'Log de aprendizaje')!==false,
     strpos($admin,"if('learning-log'===\$tab)")!==false,
     strpos($admin,'Autoactualizar cada 10 s')!==false,

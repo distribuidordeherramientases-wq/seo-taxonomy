@@ -46,6 +46,7 @@ final class TCD_Admin {
         echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px">';
         echo '<a class="nav-tab '.esc_attr('overview'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('overview')).'">Dependiente</a>';
         echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
+        echo '<a class="nav-tab '.esc_attr('backup'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('backup')).'">Backup / Restaurar</a>';
         echo '<a class="nav-tab '.esc_attr('learning-log'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('learning-log')).'">Log de aprendizaje</a>';
         echo '</nav>';
     }
@@ -176,13 +177,18 @@ final class TCD_Admin {
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
-        if(!in_array($tab,array('overview','knowledge','learning-log'),true))$tab='overview';
+        if(!in_array($tab,array('overview','knowledge','backup','learning-log'),true))$tab='overview';
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         self::tabs($tab);
 
         if('knowledge'===$tab){
             TCD_Knowledge_Transfer::render_admin_section();
+            echo '</div>';
+            return;
+        }
+        if('backup'===$tab){
+            TCD_Backup::render_admin_section();
             echo '</div>';
             return;
         }
@@ -204,8 +210,9 @@ final class TCD_Admin {
         echo '<p style="display:flex;gap:8px;flex-wrap:wrap">';
         echo '<a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar aprendizaje completo · JSON</a>';
         echo '<a class="button" href="'.esc_url(self::tab_url('knowledge')).'">Gestionar conocimiento portable</a>';
+        echo '<a class="button" href="'.esc_url(self::tab_url('backup')).'">Backup / Restaurar Dependiente</a>';
         echo '</p>';
-        echo '<p class="description">El aprendizaje completo sirve para auditar las diez lecciones. La exportación/importación de conocimiento portable está separada en su propia pestaña para que no quede oculta al final de esta pantalla.</p>';
+        echo '<p class="description">El aprendizaje completo sirve para auditar las diez lecciones. El conocimiento portable sirve para fusionar reglas y memoria; Backup / Restaurar protege y recupera el estado persistente completo de Dependiente.</p>';
 
         $priority=TCD_Load::priority();
         $sample=TCD_Load::last_sample();
