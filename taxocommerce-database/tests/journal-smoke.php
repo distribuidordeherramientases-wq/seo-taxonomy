@@ -18,6 +18,7 @@ function get_option( $k, $def = false ) { return $GLOBALS['options'][ $k ] ?? $d
 function update_option( $k, $v, $autoload = false ) { $GLOBALS['options'][ $k ] = $v; return true; }
 function current_time( $type, $gmt = false ) { return '2026-10-24 18:35:00'; }
 function get_current_user_id() { return 7; }
+function sanitize_key( $v ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $v ) ); }
 function do_action() {}
 function apply_filters( $name, $fallback ) {
     return 'tcdb_rollback_supported_tables' === $name
