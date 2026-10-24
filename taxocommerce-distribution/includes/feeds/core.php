@@ -436,7 +436,7 @@ function tcdist_feed_mark_failed( array $state, $message = '' ) {
 }
 
 /**
- * Calcula la siguiente hora diaria en la zona horaria configurada en WordPress.
+ * Calculates the next daily run time in the WordPress-configured timezone.
  */
 function tcdist_feed_next_daily_timestamp( $daily_time = '03:30' ) {
     $daily_time = tcdist_feed_sanitize_daily_time( $daily_time );
@@ -476,7 +476,7 @@ function tcdist_feed_unschedule_daily() {
 
 /**
  * Agenda una ejecucion diaria a una hora visible y estable en hora local.
- * Se usa una accion unica y, al ejecutarse, se agenda la del dia siguiente;
+ * A single event is used; when it runs, the next day's event is scheduled;
  * asi no deriva una hora por los cambios de horario de verano/invierno.
  */
 function tcdist_feed_maybe_schedule_daily( $force = false ) {
@@ -515,7 +515,7 @@ function tcdist_feed_daily_refresh() {
     }
 
     tcdist_feed_start_build( 'daily_safety' );
-    // La accion diaria es unica: programa la siguiente respetando la hora local.
+    // The daily event is unique: it schedules the next run using local time.
     tcdist_feed_maybe_schedule_daily( true );
 }
 
@@ -928,7 +928,7 @@ function tcdist_feed_supervisor_manager_targets( $targets, $settings, $source ) 
                     'last_checked' => time(),
                     'last_result'  => 'waiting',
                     'last_error'   => '',
-                    'detail'       => 'En pausa adaptativa antes del siguiente lote.',
+                    'detail'       => 'Adaptive pause before the next batch.',
                 ]
             );
         }
@@ -976,7 +976,7 @@ function tcdist_feed_supervisor_run_target( $budget, $source, $target ) {
     $pending = 'running' === sanitize_key( (string) ( $after['status'] ?? '' ) );
     $healthy = ! in_array( sanitize_key( (string) ( $after['status'] ?? '' ) ), [ 'failed' ], true );
     $detail = $pending
-        ? 'Ventana completada; continuara en el siguiente ciclo del gestor.'
+        ? 'Window completed; processing will continue in the next manager cycle.'
         : ( 'completed' === ( $after['status'] ?? '' ) ? 'Generacion finalizada.' : 'Generacion parada o sin trabajo pendiente.' );
     $after_errors = array_values( (array) ( $after['errors'] ?? [] ) );
     $last_error = $after_errors ? sanitize_text_field( (string) $after_errors[ count( $after_errors ) - 1 ] ) : '';
@@ -1322,7 +1322,7 @@ function tcdist_feed_processes_monitor_items( $items ) {
 
     $load = 'Motor: gestor periodico';
     if ( $next_batch > 0 ) {
-        $load .= ' · siguiente lote ' . number_format_i18n( $next_batch );
+        $load .= ' · next batch ' . number_format_i18n( $next_batch );
     }
     if ( $delay > 0 ) {
         $load .= ' · pausa propia ' . number_format_i18n( $delay ) . ' s';
