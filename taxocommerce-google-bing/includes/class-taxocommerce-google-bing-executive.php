@@ -109,7 +109,7 @@ final class TaxoCommerce_Google_Bing_Executive {
 		nocache_headers();
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Content-Type: application/json; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="taxocommerce-google-bing-informe-' . gmdate( 'Ymd-His' ) . '.json"' );
+		header( 'Content-Disposition: attachment; filename="taxocommerce-insights-report-' . gmdate( 'Ymd-His' ) . '.json"' );
 		echo wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Explicit JSON download.
 		exit;
 	}
@@ -867,7 +867,7 @@ final class TaxoCommerce_Google_Bing_Executive {
 			echo '</div>';
 			$rows = (array) ( $group['rows'] ?? array() );
 			if ( $rows ) {
-				echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Content</th><th>GA4 views</th><th>Clics</th><th>Impressions</th><th>Position</th></tr></thead><tbody>';
+				echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Content</th><th>GA4 views</th><th>Clicks</th><th>Impressions</th><th>Position</th></tr></thead><tbody>';
 				foreach ( array_slice( $rows, 0, 10 ) as $row ) {
 					echo '<tr><td><a href="' . esc_url( (string) $row['url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( (string) $row['title'] ) . '</a></td>';
 					echo '<td>' . esc_html( number_format_i18n( (int) $row['views'] ) ) . '</td>';
