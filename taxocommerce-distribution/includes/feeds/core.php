@@ -30,8 +30,8 @@ function tcdist_feed_register_runtime() {
     add_action( TCDIST_FEED_QUEUED_HOOK, 'tcdist_feed_run_queued_refresh', 10, 1 );
     add_action( 'seo_supplier_sync_products_changed', 'tcdist_feed_on_supplier_sync_products_changed', 10, 1 );
 
-    // Cualquier alta/cambio/borrado real de WooCommerce puede modificar precio,
-    // oferta, stock, titulo o disponibilidad del feed. La regeneracion se
+    // Any real WooCommerce create/update/delete can change price,
+    // sale price, stock, title, or feed availability. Regeneration is
     // agrupa mediante la cola diferida, por lo que una importacion masiva no
     // creates one action per product.
     add_action( 'woocommerce_new_product', 'tcdist_feed_on_woocommerce_product_changed', 20, 1 );
@@ -58,8 +58,8 @@ function tcdist_feed_default_settings() {
         }
     }
 
-    // No uses determine_locale(): en wp-admin puede devolver el idioma
-    // personal del administrador y no el idioma comercial de la tienda.
+    // Do not use determine_locale(): in wp-admin it may return the administrator's
+    // personal locale instead of the store's commercial locale.
     // Para la tienda espanola, ES implica por defecto catalogo en castellano.
     if ( 'ES' === $country ) {
         $language = 'es';
@@ -1330,7 +1330,7 @@ function tcdist_feed_processes_monitor_items( $items ) {
     $load .= ' · presion ' . ( $pressure ?: 'baja' );
 
     $response = $duration > 0.0
-        ? number_format_i18n( $duration, 2 ) . ' s last batch · ' . number_format_i18n( $rows ) . ' productos'
+        ? number_format_i18n( $duration, 2 ) . ' s last batch · ' . number_format_i18n( $rows ) . ' products'
         : 'Sin lote medido';
     $detail = number_format_i18n( absint( $state['written'] ?? 0 ) ) . ' publicados · ' . number_format_i18n( absint( $state['excluded'] ?? 0 ) ) . ' excluidos.';
     if ( ! empty( $state['adaptive_reason'] ) ) {
@@ -1454,8 +1454,8 @@ function tcdist_feed_product_images( $product, $limit = 6 ) {
 
     /*
      * Single source for Merchant/feeds and structured data.
-     * El núcleo de imágenes prioriza Media y proveedor y sólo permite
-     * logo/site icon cuando el producto no tiene ninguna imagen real.
+     * The image core prioritizes Media and supplier images and only allows
+     * logo/site icon when the product has no real image.
      */
     if ( function_exists( 'seo_images_get_public_product_urls' ) ) {
         return array_values(
@@ -1784,8 +1784,8 @@ function tcdist_feed_product_record( $product_id ) {
     $sale_price_effective_date = '';
 
     if ( tcdist_feed_sale_price_is_publishable( $product, $regular_price, $sale_display ) ) {
-        // En todos los receptores price significa precio habitual y sale_price
-        // el precio rebajado. Esto tambien permite anunciar una oferta futura
+        // For every receiver, price means regular price and sale_price means
+        // discounted price. This also allows advertising a future sale
         // antes de que WooCommerce la active en la ficha.
         $price      = $regular_price;
         $sale_price = wc_format_decimal( $sale_display, wc_get_price_decimals() ) . ' ' . $currency;
