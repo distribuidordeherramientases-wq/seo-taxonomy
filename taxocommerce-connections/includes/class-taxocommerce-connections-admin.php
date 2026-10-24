@@ -224,7 +224,7 @@ final class TaxoCommerce_Connections_Admin {
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_google">
 						<?php wp_nonce_field( 'taxocommerce_connections_save_google' ); ?>
-						<p><label><strong>Search Console property</strong><br><input class="large-text code" type="text" name="search_console_site_url" value="<?php echo esc_attr( (string) ( $google['search_console_site_url'] ?? '' ) ); ?>" placeholder="sc-domain:ejemplo.es o https://www.ejemplo.es/"></label></p>
+						<p><label><strong>Search Console property</strong><br><input class="large-text code" type="text" name="search_console_site_url" value="<?php echo esc_attr( (string) ( $google['search_console_site_url'] ?? '' ) ); ?>" placeholder="sc-domain:example.com or https://www.example.com/"></label></p>
 						<p><label><strong>GA4 property</strong><br><input class="regular-text" inputmode="numeric" type="text" name="analytics_property_id" value="<?php echo esc_attr( (string) ( $google['analytics_property_id'] ?? '' ) ); ?>" placeholder="123456789"></label></p>
 						<p><label><strong>Measurement ID</strong><br><input class="regular-text" type="text" name="measurement_id" value="<?php echo esc_attr( (string) ( $google['measurement_id'] ?? '' ) ); ?>" placeholder="G-XXXXXXXXXX"></label></p>
 						<p><label><strong>Service account JSON</strong><br><textarea class="large-text code" rows="6" name="service_account_json" placeholder="<?php echo esc_attr( ! empty( $google['service_account_json'] ) ? 'Credential already stored; leave blank to keep it' : 'Paste the service account JSON' ); ?>"></textarea></label></p>
@@ -262,7 +262,7 @@ final class TaxoCommerce_Connections_Admin {
 						<?php wp_nonce_field( 'taxocommerce_connections_save_bing' ); ?>
 						<p><label><input type="checkbox" name="enabled" value="1" <?php checked( ! empty( $bing['enabled'] ) ); ?>> Enable Bing as a data source</label></p>
 						<p><label><strong>Verified URL</strong><br><input class="large-text code" type="url" name="site_url" value="<?php echo esc_attr( (string) ( $bing['site_url'] ?? home_url( '/' ) ) ); ?>"></label></p>
-						<p><label><strong>API key Bing Webmaster</strong><br><input class="regular-text" type="password" name="api_key" value="" placeholder="<?php echo esc_attr( ! empty( $bing['api_key'] ) ? 'Key already stored; leave blank to keep it' : 'Paste the API key' ); ?>"></label></p>
+						<p><label><strong>Bing Webmaster API key</strong><br><input class="regular-text" type="password" name="api_key" value="" placeholder="<?php echo esc_attr( ! empty( $bing['api_key'] ) ? 'Key already stored; leave blank to keep it' : 'Paste the API key' ); ?>"></label></p>
 						<?php if ( ! empty( $bing['api_key'] ) && ! defined( 'SEO_BING_WEBMASTER_API_KEY' ) ) : ?>
 							<p><label><input type="checkbox" name="clear_api_key" value="1"> Remove the stored API key.</label></p>
 						<?php endif; ?>
@@ -308,7 +308,7 @@ final class TaxoCommerce_Connections_Admin {
 						<?php wp_nonce_field( 'taxocommerce_connections_save_pinterest' ); ?>
 						<p><label><strong>Pinterest App ID</strong><br><input class="regular-text" type="text" name="app_id" value="<?php echo esc_attr( (string) ( $pinterest['app_id'] ?? '' ) ); ?>"></label></p>
 						<p><label><strong>App Secret</strong><br><input class="regular-text" type="password" name="app_secret" value="" placeholder="<?php echo esc_attr( ! empty( $pinterest['app_secret_enc'] ) ? 'Stored; leave blank to keep it' : '' ); ?>"></label></p>
-						<p><label><strong>Manual Access Token</strong><br><input class="regular-text" type="password" name="access_token" value="" placeholder="<?php echo esc_attr( ! empty( $pinterest['access_token_enc'] ) ? 'Stored; leave blank to keep it' : 'Optional; OAuth recomendado' ); ?>"></label></p>
+						<p><label><strong>Manual Access Token</strong><br><input class="regular-text" type="password" name="access_token" value="" placeholder="<?php echo esc_attr( ! empty( $pinterest['access_token_enc'] ) ? 'Stored; leave blank to keep it' : 'Optional; OAuth recommended' ); ?>"></label></p>
 						<?php if ( ! empty( $pinterest['boards'] ) ) : ?>
 							<p><label><strong>Destination board</strong><br><select name="board_id">
 								<option value="">Select board</option>
