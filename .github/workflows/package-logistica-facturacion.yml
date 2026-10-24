@@ -1,4 +1,4 @@
-name: Package Logística and Facturación
+name: Package Logistics and Billing
 
 on:
   pull_request:
@@ -26,12 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate Logística
+      - name: Validate Logistics
         run: |
           find taxocommerce-logistica -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           php taxocommerce-logistica/tests/smoke.php
 
-      - name: Validate Facturación
+      - name: Validate Billing
         run: |
           find taxocommerce-facturacion -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           php taxocommerce-facturacion/tests/smoke.php
