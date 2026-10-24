@@ -22,7 +22,7 @@ Version 0.2.0 includes:
 * Google OAuth presentation and callback compatibility with Insights.
 * Amazon Associates Partner Tag.
 * Optional Amazon Creators API client.
-* Backward-compatible helpers used by Templates and Dependiente.
+* Backward-compatible helpers used by Templates and Assistant.
 * Pinterest Business App ID / App Secret.
 * Pinterest OAuth with the existing stable callback URL.
 * Pinterest board selection and API test.
@@ -31,8 +31,12 @@ Version 0.2.0 includes:
 
 Connections does not own reports, feeds, campaigns or social publication workflows. Those remain in the functional modules that consume each connection.
 
-Cloudflare is intentionally not migrated in 0.1.0 because the current installation has it disabled and no required modular consumer depends on it.
+Cloudflare is intentionally not migrated in 0.2.0 because the current installation has it disabled and no required modular consumer depends on it.
 
+
+== Language ==
+
+English is the base source and UI language. Future localization should use standard WordPress gettext translations without changing technical slugs or option keys.
 
 == Changelog ==
 

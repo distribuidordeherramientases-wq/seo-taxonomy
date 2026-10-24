@@ -37,6 +37,10 @@ The plugin directory, option names, internal tab keys, and callback contracts re
 
 Opening report tabs never downloads business data automatically. External requests happen only through explicit download, refresh, or research actions.
 
+## Language
+
+English is the base source and UI language. Future localization should use standard WordPress gettext translations while preserving historical technical slugs and option names.
+
 ## Validation
 
 The GitHub Actions workflow validates PHP syntax, local-only report rendering, executive aggregation, Trends behavior, Market independence, and package deployment to STAGING.

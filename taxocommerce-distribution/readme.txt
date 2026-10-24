@@ -43,6 +43,10 @@ Public filenames and storage remain compatible with the existing installation:
 
 When the legacy plugin is active, it retains scheduled ownership to avoid duplicate workers. Manual generation from Distribution remains available for parity testing. Once the legacy owner is removed, Distribution schedules its own feeds and sitemap updates.
 
+== Language ==
+
+English is the base source and UI language. Future localization should use standard WordPress gettext translations without changing public feed filenames or compatibility keys.
+
 == Changelog ==
 
 = 0.1.0 =
