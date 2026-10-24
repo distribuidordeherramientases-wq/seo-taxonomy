@@ -154,7 +154,7 @@ function tcdist_feed_admin_stop() {
 
 /**
  * Admin pulse. It does not process products; it only wakes the worker
- * workers central para que este reparta la siguiente ventana de trabajo.
+ * central worker so it can schedule the next work window.
  */
 function tcdist_feed_admin_ajax_tick() {
     if ( ! current_user_can( 'manage_options' ) ) {
@@ -361,7 +361,7 @@ function tcdist_feed_render_admin() {
                 <p><strong>Procesados:</strong> <?php echo esc_html( number_format_i18n( $processed ) ); ?> · <strong>publicados:</strong> <?php echo esc_html( number_format_i18n( absint( $state['written'] ?? 0 ) ) ); ?> · <strong>excluidos:</strong> <?php echo esc_html( number_format_i18n( absint( $state['excluded'] ?? 0 ) ) ); ?></p>
 
                 <p><strong>Regulador:</strong>
-                    siguiente lote <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? TCDIST_FEED_BATCH_SIZE ) ) ); ?>
+                    next batch <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? TCDIST_FEED_BATCH_SIZE ) ) ); ?>
                     · presion <?php echo esc_html( (string) ( $state['adaptive_pressure'] ?? 'baja' ) ); ?>
                     <?php if ( ! empty( $state['adaptive_next_delay'] ) ) : ?>
                         · pausa <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_delay'] ) ) ); ?> s
