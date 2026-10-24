@@ -113,6 +113,8 @@ jobs:
             taxocommerce-google-bing
             taxocommerce-auditor
             taxocommerce-redirects
+            taxocommerce-logistica
+            taxocommerce-facturacion
           )
 
           is_allowed() {
@@ -169,6 +171,13 @@ jobs:
           for module in "${installed_modules[@]}"; do
             package="/tmp/$module.zip"
             rm -f "$package"
+
+            if [ "$module" = "taxocommerce-facturacion" ]; then
+              echo "Incorporando el mismo Dompdf del módulo histórico a Facturación..."
+              test -f includes/facturas/dompdf/autoload.inc.php
+              rm -rf "$module/includes/dompdf"
+              cp -a includes/facturas/dompdf "$module/includes/dompdf"
+            fi
 
             echo "Empaquetando $module sin tests ni documentación..."
             (
