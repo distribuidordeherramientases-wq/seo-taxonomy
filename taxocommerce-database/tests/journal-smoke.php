@@ -191,6 +191,18 @@ $rows = TCDB_Journal::insert_batch( 'redirects', 'Batch', 'wp_seo_redirects', ar
     array( 'origin_url' => '/p', 'target_url' => '/q' ),
 ) );
 check_journal( is_array( $rows ) && 2 === $rows['rows'], 'multiple inserted and recorded as single operation' );
+$ids = array();
+foreach ( $wpdb->data['wp_seo_redirects'] as $id => $row ) {
+    if ( '/x' === $row['origin_url'] || '/p' === $row['origin_url'] ) {
+        $ids[] = $id;
+    }
+}
+check_journal( count( $ids ) === 2, 'two inserted rows identified' );
+$wpdb->update( 'wp_seo_redirects', array( 'target_url' => '/external-edit' ), array( 'id' => $ids[0] ) );
+check_journal( ! TCDB_Journal::preview( $rows['operation_id'] )['allowed'], 'conflict blocks entire batch' );
+check_journal( is_wp_error( TCDB_Journal::execute( $rows['operation_id'] ) ), 'no partial rollback on conflict' );
+check_journal( isset( $wpdb->data['wp_seo_redirects'][ $ids[1] ] ), 'untouched row preserved when batch conflicts' );
+$wpdb->update( 'wp_seo_redirects', array( 'target_url' => '/y' ), array( 'id' => $ids[0] ) );
 check_journal( ! is_wp_error( TCDB_Journal::execute( $rows['operation_id'] ) ), 'bulk inserts reverted atomically' );
 check_journal( 1 === count( $wpdb->data['wp_seo_redirects'] ), 'existing old record preserved' );
 
