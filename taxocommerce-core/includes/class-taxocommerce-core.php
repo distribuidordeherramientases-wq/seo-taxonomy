@@ -225,6 +225,20 @@ final class TaxoCommerce_Core {
 	 * @return void
 	 */
 	public function hide_sidebar_submenu() {
+		// When Core runs alone, keep the compact dashboard navigation.
+		// As soon as an active extension adds a real submenu, reveal the native
+		// WordPress flyout, including Core's own pages and that extension.
+		global $submenu;
+		$items = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
+		$core_pages = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-modules' );
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) || ! isset( $item[2] ) ) {
+				continue;
+			}
+			if ( ! in_array( (string) $item[2], $core_pages, true ) ) {
+				return;
+			}
+		}
 		echo '<style id="taxocommerce-core-sidebar">#toplevel_page_taxocommerce-core > ul.wp-submenu{display:none!important;}</style>';
 	}
 
