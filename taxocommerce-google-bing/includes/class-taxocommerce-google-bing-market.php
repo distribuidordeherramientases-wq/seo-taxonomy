@@ -501,7 +501,7 @@ final class TaxoCommerce_Google_Bing_Market {
         $id = absint( $_POST['market_id'] ?? 0 );
         $result = self::scan_category( $id );
         self::redirect( is_wp_error( $result ) ? $result->get_error_message()
-            : 'Escaneo finalizado: ' . $result['status'] . ' · ' . $result['received'] . ' evidencias guardadas o actualizadas.',
+            : 'Scan completed: ' . $result['status'] . ' · ' . $result['received'] . ' evidence records saved or updated.',
             is_wp_error( $result ), $id );
     }
 
@@ -517,7 +517,7 @@ final class TaxoCommerce_Google_Bing_Market {
         self::require_admin( 'tgb_market_queue_stop' );
         update_option( self::QUEUE_OPTION, 0, false );
         wp_clear_scheduled_hook( 'tgb_market_queue_tick' );
-        self::redirect( 'Cola detenida sin borrar resultados.' );
+        self::redirect( 'Queue stopped without deleting results.' );
     }
 
     public static function handle_export() {
@@ -579,9 +579,9 @@ final class TaxoCommerce_Google_Bing_Market {
         echo '<h2>Market · Category Research</h2>';
         echo '<p>Works with real WooCommerce categories without depending on SKU, EAN, or GTIN. Results are stored only in plugin-owned tables and do not create drafts or publications.</p>';
         echo '<p><strong>Categories:</strong> ' . esc_html( $total )
-            . ' · <strong>Analizadas:</strong> ' . esc_html( $complete )
+            . ' · <strong>Analyzed:</strong> ' . esc_html( $complete )
             . ' · <strong>Pending:</strong> ' . esc_html( $pending )
-            . ' · <strong>Sources guardadas:</strong> ' . esc_html( $evidence )
+            . ' · <strong>Saved sources:</strong> ' . esc_html( $evidence )
             . ' · <strong>Queries allowed today:</strong> ' . esc_html( self::today_budget() ) . '</p>';
         if ( ! taxonomy_exists( 'product_cat' ) ) {
             echo '<div class="notice notice-warning inline"><p>The product_cat taxonomy does not exist: install or activate WooCommerce to discover categories.</p></div>';
@@ -617,9 +617,9 @@ final class TaxoCommerce_Google_Bing_Market {
         foreach ( $rows as $row ) {
             $link = add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'mercado', 'market_term' => $row['id'] ), admin_url( 'admin.php' ) );
             echo '<tr><td>' . esc_html( $row['term_id'] ) . '</td><td><a href="' . esc_url( $link ) . '">' . esc_html( $row['name'] ) . '</a></td><td>'
-                . esc_html( $row['country'] . ' / ' . $row['locale'] ) . '</td><td>' . esc_html( $row['google_category_id'] ?: 'Sin asignar' )
+                . esc_html( $row['country'] . ' / ' . $row['locale'] ) . '</td><td>' . esc_html( $row['google_category_id'] ?: 'Unassigned' )
                 . '</td><td>' . esc_html( $row['scan_status'] ) . '</td><td>' . esc_html( $row['last_scanned_at'] ?: '-' ) . '</td><td>';
-            self::action_form( 'tgb_market_scan', 'tgb_market_scan', 'Analizar', array( 'market_id' => $row['id'] ) );
+            self::action_form( 'tgb_market_scan', 'tgb_market_scan', 'Analyze', array( 'market_id' => $row['id'] ) );
             echo ' <a class="button" href="' . esc_url( $link ) . '">Sources</a></td></tr>';
         }
         if ( ! $rows ) {
@@ -655,7 +655,7 @@ final class TaxoCommerce_Google_Bing_Market {
         $runs = $wpdb->get_results( $wpdb->prepare(
             "SELECT run_status,collected_count,provider_report,error_message,started_at FROM {$t['runs']} WHERE category_id = %d ORDER BY id DESC LIMIT 5", $id
         ), ARRAY_A );
-        echo '<hr><h2>Expediente: ' . esc_html( $cat['name'] ) . '</h2>';
+        echo '<hr><h2>Dossier: ' . esc_html( $cat['name'] ) . '</h2>';
         echo '<p>Country ' . esc_html( $cat['country'] ) . ', language ' . esc_html( $cat['locale'] ) . '. Links to discovered pages do not equal verified reviews; Merchant shows popularity signals, not individual competitor prices.</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_market_mapping"><input type="hidden" name="market_id" value="' . esc_attr( $id ) . '">';
@@ -673,7 +673,7 @@ final class TaxoCommerce_Google_Bing_Market {
             }
             echo '</p>';
         }
-        echo '<h3>Sources obtenidas (' . esc_html( count( $sources ) ) . ' mostradas)</h3>';
+        echo '<h3>Sources collected (' . esc_html( count( $sources ) ) . ' shown)</h3>';
         echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr><th>Type / provider</th><th>Source</th><th>Excerpt</th><th>Status</th><th>Collected</th></tr></thead><tbody>';
         foreach ( $sources as $row ) {
             echo '<tr><td>' . esc_html( $row['source_type'] . ' / ' . $row['provider'] ) . '</td><td>';
