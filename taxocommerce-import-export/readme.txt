@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.2.1
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Import and export catalog, content and Media for WordPress/WooCommerce.
 
 TaxoCommerce Import-Export is an independent member of the TaxoCommerce family.
 
-Version 0.2.0 includes:
+Version 0.3.0 includes:
 
 * Products CSV import/export.
 * Product categories CSV import/export.
@@ -27,6 +27,10 @@ Version 0.2.0 includes:
 * WordPress-generated thumbnails are rebuilt on import instead of transported.
 * Optional integration into TaxoCommerce Core.
 * No direct SQL.
+* Sequential multi-file batch queue with natural filename ordering.
+* Independent bounded worker owned by Import-Export, without the legacy central process manager.
+* Pause after current file, safe stop/resume from byte offset, imported/failed buckets and JSON sidecar diagnostics.
+* Extensible mini-importer registry so FAQs, Redirects, suppliers or other modules can register their own CSV handlers.
 
 == Media package ==
 
@@ -39,6 +43,14 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.3.0 =
+* Migrated the sequential multi-file CSV queue into the modular Import-Export plugin.
+* Added the Importación por lotes tab with multi-upload, start, pause, stop/resume and manual next-block controls.
+* Added an independent bounded Action Scheduler/WP-Cron worker with no dependency on the legacy central process manager.
+* Added built-in mini-importers for products, product categories, posts and pages.
+* Added extension hooks for other TaxoCommerce plugins to register detectors and mini-importers.
+* Added imported/failed file buckets and JSON sidecar diagnostics.
 
 = 0.2.0 =
 * Added Media image ZIP import/export.

@@ -33,14 +33,14 @@ final class TaxoCommerce_Import_Export_Media {
 			wp_die( esc_html__( 'No se pudieron crear los archivos temporales.', 'taxocommerce-import-export' ) );
 		}
 
-		$csv = fopen( $temp_csv, 'w' );
+		$csv = $this->stream_open( $temp_csv, 'w' );
 		if ( false === $csv ) {
 			wp_delete_file( $temp_zip );
 			wp_delete_file( $temp_csv );
 			wp_die( esc_html__( 'No se pudo crear media.csv.', 'taxocommerce-import-export' ) );
 		}
 
-		fwrite( $csv, "\xEF\xBB\xBF" );
+		$this->stream_write( $csv, "\xEF\xBB\xBF" );
 		fputcsv(
 			$csv,
 			array(
@@ -64,7 +64,7 @@ final class TaxoCommerce_Import_Export_Media {
 		$zip       = new ZipArchive();
 		$opened    = $zip->open( $temp_zip, ZipArchive::CREATE | ZipArchive::OVERWRITE );
 		if ( true !== $opened ) {
-			fclose( $csv );
+			$this->stream_close( $csv );
 			wp_delete_file( $temp_zip );
 			wp_delete_file( $temp_csv );
 			wp_die( esc_html__( 'No se pudo crear el ZIP de Media.', 'taxocommerce-import-export' ) );
@@ -123,7 +123,7 @@ final class TaxoCommerce_Import_Export_Media {
 			wp_reset_postdata();
 		} while ( $page <= $max_pages );
 
-		fclose( $csv );
+		$this->stream_close( $csv );
 		$zip->addFile( $temp_csv, 'media.csv' );
 		$zip->addFromString(
 			'manifest.json',
@@ -192,7 +192,7 @@ final class TaxoCommerce_Import_Export_Media {
 
 		$headers = fgetcsv( $csv );
 		if ( ! is_array( $headers ) ) {
-			fclose( $csv );
+			$this->stream_close( $csv );
 			$zip->close();
 			$this->redirect_error( __( 'media.csv no contiene cabecera.', 'taxocommerce-import-export' ) );
 		}
@@ -201,7 +201,7 @@ final class TaxoCommerce_Import_Export_Media {
 		$required = array( 'record_type', 'old_attachment_id', 'original_filename', 'package_file' );
 		foreach ( $required as $required_header ) {
 			if ( ! in_array( $required_header, $headers, true ) ) {
-				fclose( $csv );
+				$this->stream_close( $csv );
 				$zip->close();
 				$this->redirect_error( __( 'El paquete de Media no tiene el formato esperado.', 'taxocommerce-import-export' ) );
 			}
@@ -228,7 +228,7 @@ final class TaxoCommerce_Import_Export_Media {
 
 			$package_file = ltrim( str_replace( '\\', '/', (string) $data['package_file'] ), '/' );
 			if ( 0 !== strpos( $package_file, 'files/' ) || false !== strpos( $package_file, '../' ) ) {
-				fclose( $csv );
+				$this->stream_close( $csv );
 				$zip->close();
 				$this->redirect_error( __( 'El ZIP contiene una ruta de archivo no válida.', 'taxocommerce-import-export' ) );
 			}
@@ -240,32 +240,32 @@ final class TaxoCommerce_Import_Export_Media {
 
 			$original_name = sanitize_file_name( (string) $data['original_filename'] );
 			if ( ! $original_name ) {
-				fclose( $stream );
+				$this->stream_close( $stream );
 				continue;
 			}
 
 			$tmp = wp_tempnam( $original_name );
 			if ( ! $tmp ) {
-				fclose( $stream );
+				$this->stream_close( $stream );
 				continue;
 			}
 
-			$out = fopen( $tmp, 'w' );
+			$out = $this->stream_open( $tmp, 'w' );
 			if ( false === $out ) {
-				fclose( $stream );
+				$this->stream_close( $stream );
 				wp_delete_file( $tmp );
 				continue;
 			}
 
 			while ( ! feof( $stream ) ) {
-				$chunk = fread( $stream, 1048576 );
+				$chunk = $this->stream_read( $stream, 1048576 );
 				if ( false === $chunk ) {
 					break;
 				}
-				fwrite( $out, $chunk );
+				$this->stream_write( $out, $chunk );
 			}
-			fclose( $out );
-			fclose( $stream );
+			$this->stream_close( $out );
+			$this->stream_close( $stream );
 
 			$parent_id = $this->resolve_parent(
 				absint( isset( $data['post_parent_id'] ) ? $data['post_parent_id'] : 0 ),
@@ -289,7 +289,7 @@ final class TaxoCommerce_Import_Export_Media {
 			$new_id = media_handle_sideload( $file_array, $parent_id, null, $post_data );
 			if ( is_wp_error( $new_id ) ) {
 				wp_delete_file( $tmp );
-				fclose( $csv );
+				$this->stream_close( $csv );
 				$zip->close();
 				$this->redirect_error( $new_id->get_error_message() );
 			}
@@ -313,7 +313,7 @@ final class TaxoCommerce_Import_Export_Media {
 			$count++;
 		}
 
-		fclose( $csv );
+		$this->stream_close( $csv );
 		$zip->close();
 
 		foreach ( $relations as $relation_set ) {
@@ -535,6 +535,53 @@ final class TaxoCommerce_Import_Export_Media {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Open a native stream for incremental Media package I/O.
+	 *
+	 * @param string $path Path.
+	 * @param string $mode Mode.
+	 * @return resource|false
+	 */
+	private function stream_open( $path, $mode ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Incremental ZIP/CSV transport requires native stream resources to keep memory bounded.
+		return fopen( $path, $mode );
+	}
+
+	/**
+	 * Write bytes to a native stream.
+	 *
+	 * @param resource $handle Stream.
+	 * @param string   $data Data.
+	 * @return int|false
+	 */
+	private function stream_write( $handle, $data ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Same bounded native stream returned by stream_open().
+		return fwrite( $handle, $data );
+	}
+
+	/**
+	 * Read a bounded chunk from a native stream.
+	 *
+	 * @param resource $handle Stream.
+	 * @param int      $length Bytes.
+	 * @return string|false
+	 */
+	private function stream_read( $handle, $length ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Bounded 1 MB chunks avoid loading Media files into memory.
+		return fread( $handle, $length );
+	}
+
+	/**
+	 * Close a native stream.
+	 *
+	 * @param resource $handle Stream.
+	 * @return bool
+	 */
+	private function stream_close( $handle ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Explicit close of the native bounded stream.
+		return fclose( $handle );
 	}
 
 	/**
