@@ -56,7 +56,7 @@ final class SEO_Facturas_PDF {
         if (!class_exists('Dompdf\\Dompdf')) {
             return new WP_Error(
                 'seo_facturas_pdf_engine_missing',
-                'Dompdf no esta disponible. Instala Composer en includes/facturas/vendor/ o sube el paquete manual a includes/facturas/dompdf/.'
+                'Dompdf no esta disponible dentro de TaxoCommerce Facturación.'
             );
         }
 
@@ -136,9 +136,6 @@ final class SEO_Facturas_PDF {
             SEO_FACTURAS_PATH . 'dompdf/vendor/autoload.php',
         );
 
-        if (defined('SEO_SYSTEM_PATH')) {
-            $autoloaders[] = SEO_SYSTEM_PATH . 'vendor/autoload.php';
-        }
 
         foreach ($autoloaders as $autoload) {
             if (is_readable($autoload)) {
