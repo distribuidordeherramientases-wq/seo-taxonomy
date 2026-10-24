@@ -600,10 +600,10 @@ final class TaxoCommerce_Google_Bing_Market {
         $google = TaxoCommerce_Google_Bing_Market_Sources::google_available();
         echo '<h3>Research sources</h3><p>Google Search Console: ' . esc_html( $google ? 'configured' : 'sin acceso configured' ) . ' · YouTube: ' . esc_html( $youtube ? 'configured' : 'no API key' )
             . ' · SerpApi (web y ofertas): ' . esc_html( $serpapi ? 'configured' : 'no API key' )
-            . ' · Merchant: ' . esc_html( $merchant ? 'ID configured; requiere autorización y categoría Google' : 'no account' ) . '.</p>';
+            . ' · Merchant: ' . esc_html( $merchant ? 'ID configured; requires authorization and a Google category' : 'no account' ) . '.</p>';
         $connections_url = add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections' ), admin_url( 'admin.php' ) ) . '#tgb-market-providers';
-        echo '<p><a class="button" href="' . esc_url( $connections_url ) . '">Configurar proveedores en Conexiones</a></p>';
-        echo '<p class="description">YouTube y SerpApi son opcionales. YouTube requiere una API key de su propia API de Google; SerpApi es un proveedor externo. No se consultan APIs al abrir esta pantalla.</p>';
+        echo '<p><a class="button" href="' . esc_url( $connections_url ) . '">Configure providers in Connections</a></p>';
+        echo '<p class="description">YouTube and SerpApi are optional. YouTube requires its own Google API key; SerpApi is an external provider. No APIs are queried when opening this screen.</p>';
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only listing pagination.
         $page = max( 1, absint( $_GET['market_page'] ?? 1 ) );
