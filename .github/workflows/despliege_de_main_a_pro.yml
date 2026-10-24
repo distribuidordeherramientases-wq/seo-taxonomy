@@ -1,6 +1,17 @@
 name: Despliegue MAIN (staging) a producción (hosting)
+
 on:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taxocommerce-production-deploy
+  cancel-in-progress: false
+
+env:
+  PRO_SITE_URL: https://www.distribuidordeherramientas.es
 
 jobs:
   deploy:
@@ -12,22 +23,18 @@ jobs:
         with:
           ref: main
 
-      - name: Subir TaxoCommerce SEO a producción por FTPS
+      - name: Subir TaxoCommerce SEO antiguo a producción por FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-
           protocol: ftps
           port: 21
-
           local-dir: ./
           server-dir: ./
-
           dry-run: false
           security: strict
-
           exclude: |
             **/.git*
             **/.git*/**
@@ -36,3 +43,129 @@ jobs:
             **/*.bak
             **/*.md
             **/*.pot
+            taxocommerce-*/**
+            packages/**
+
+      - name: Instalar cliente FTPS
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      - name: Leer plugins TaxoCommerce activos en PRO
+        id: active
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2             "$PRO_SITE_URL/wp-admin/admin-ajax.php?action=taxocommerce_deploy_active_modules")"
+
+          modules="$(python3 - "$response" <<'PY'
+          import json
+          import sys
+
+          payload = json.loads(sys.argv[1])
+          if payload.get("success") is not True:
+              raise SystemExit("PRO no devolvió un estado de despliegue válido.")
+
+          modules = payload.get("data", {}).get("modules", [])
+          if not isinstance(modules, list):
+              raise SystemExit("La lista de módulos activos no es válida.")
+
+          print(json.dumps([str(module) for module in modules], separators=(",", ":")))
+          PY
+          )"
+
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+          echo "Plugins TaxoCommerce activos en PRO: $modules"
+
+      - name: Actualizar únicamente plugins TaxoCommerce activos en PRO
+        shell: bash
+        env:
+          ACTIVE_MODULES_JSON: ${{ steps.active.outputs.modules }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t active_modules < <(
+            python3 - <<'PY'
+          import json
+          import os
+
+          for module in json.loads(os.environ.get("ACTIVE_MODULES_JSON", "[]")):
+              print(module)
+          PY
+          )
+
+          if [ "${#active_modules[@]}" -eq 0 ]; then
+            echo "No hay plugins TaxoCommerce activos en PRO. No se actualiza ningún plugin modular."
+            exit 0
+          fi
+
+          allowed_modules=(
+            taxocommerce-core
+            taxocommerce-images
+            taxocommerce-import-export
+            taxocommerce-system-check
+            taxocommerce-templates
+            taxocommerce-dependiente
+            taxocommerce-faqs
+            taxocommerce-vocabulary
+            taxocommerce-google-bing
+            taxocommerce-auditor
+            taxocommerce-redirects
+          )
+
+          is_allowed() {
+            local candidate="$1"
+            local allowed
+            for allowed in "${allowed_modules[@]}"; do
+              if [ "$candidate" = "$allowed" ]; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          for module in "${active_modules[@]}"; do
+            if ! is_allowed "$module"; then
+              echo "::error::PRO devolvió un módulo no permitido: $module"
+              exit 1
+            fi
+
+            if [ ! -d "$module" ]; then
+              echo "::error::El módulo activo $module no existe en MAIN."
+              exit 1
+            fi
+
+            echo "Comprobando que $module ya existe como plugin hermano en PRO..."
+
+            if ! lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          cd ../$module
+          cls "$module.php"
+          bye
+          EOF
+            then
+              echo "::error::$module está activo según WordPress, pero su carpeta/archivo principal no existe o no es accesible en PRO. No se crea automáticamente."
+              exit 1
+            fi
+
+            echo "Actualizando $module porque está activo en PRO..."
+
+            lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          mirror -R --delete --verbose --parallel=4             --exclude-glob .git             --exclude-glob .git/**             --exclude-glob node_modules             --exclude-glob node_modules/**             --exclude-glob '*.bak'             --exclude-glob '*.md'             "$module/" "../$module/"
+          bye
+          EOF
+          done
+
+          echo "Despliegue modular terminado. Solo se han actualizado plugins activos previamente en PRO."

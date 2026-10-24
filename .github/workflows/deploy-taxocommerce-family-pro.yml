@@ -1,150 +1,18 @@
-name: Deploy TaxoCommerce Family ONLY to PRO
+name: Deploy TaxoCommerce Family ONLY to PRO (deprecated)
 
-# This workflow NEVER uploads seo-taxonomy, seo-system, or the SEO monolith.
-# It deploys four independent sibling plugins, after validating PHP and CSS.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/deploy-taxocommerce-family-pro.yml'
 
 permissions:
   contents: read
 
-concurrency:
-  group: taxocommerce-family-production
-  cancel-in-progress: false
-
 jobs:
-  validate:
-    name: Validate independent TaxoCommerce plugins
+  deprecated:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout approved staging family
-        uses: actions/checkout@v4
-        with:
-          ref: staging
-
-      - name: Prepare PHP 7.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.4'
-          coverage: none
-
-      - name: Check plugin files and PHP syntax
+      - name: Use the controlled MAIN to PRO deployment
         shell: bash
         run: |
-          set -euo pipefail
-          for module in taxocommerce-core taxocommerce-images taxocommerce-import-export taxocommerce-system-check; do
-            test -s "$module/$module.php"
-            test -s "$module/assets/admin.css"
-            find "$module" -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-          done
-          for module in taxocommerce-images taxocommerce-import-export taxocommerce-system-check; do
-            cmp "taxocommerce-core/assets/admin.css" "$module/assets/admin.css"
-          done
-
-
-      - name: Verify single Extensiones menu in Core
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          source = Path("taxocommerce-core/includes/class-taxocommerce-core.php").read_text()
-          marker = "public function register_menu()"
-          start = source.index(marker)
-          end = source.index("\n\t/**", start)
-          menu = source[start:end]
-          assert menu.count("'taxocommerce-core-modules'") == 1, "Extensiones must be a single menu item"
-          assert "'taxocommerce-core-family'" not in menu, "Ampliar familia must not be a second menu item"
-          assert "public function redirect_legacy_family_page()" in source, "Existing bookmarks must redirect"
-          PY
-
-      - name: Verify editorial guidance for all four content types
-        shell: bash
-        run: |
-          set -euo pipefail
-          php taxocommerce-core/tests/editorial-guide-smoke.php
-          grep -Fq "TaxoCommerce_Core_Editorial_Guide::render( \$content_type, 'overview' )" taxocommerce-core/includes/class-taxocommerce-core-content-manager.php
-          grep -Fq "TaxoCommerce_Core_Editorial_Guide::render( \$type, 'editor' )" taxocommerce-core/includes/class-taxocommerce-core-editor-ui.php
-
-  deploy:
-    name: Deploy family plugins without SEO
-    runs-on: ubuntu-latest
-    needs: validate
-    steps:
-      - name: Checkout approved staging family
-        uses: actions/checkout@v4
-        with:
-          ref: staging
-
-      - name: Deploy TaxoCommerce Core ONLY
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-core/
-          server-dir: ./wp-content/plugins/taxocommerce-core/
-          dry-run: false
-          log-level: standard
-          exclude: |
-            **/.git*
-            **/node_modules/**
-            **/*.bak
-
-      - name: Deploy TaxoCommerce Images ONLY
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-images/
-          server-dir: ./wp-content/plugins/taxocommerce-images/
-          dry-run: false
-          log-level: standard
-          exclude: |
-            **/.git*
-            **/node_modules/**
-            **/*.bak
-
-      - name: Deploy TaxoCommerce Import-Export ONLY
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-import-export/
-          server-dir: ./wp-content/plugins/taxocommerce-import-export/
-          dry-run: false
-          log-level: standard
-          exclude: |
-            **/.git*
-            **/node_modules/**
-            **/*.bak
-
-      - name: Deploy TaxoCommerce System Check ONLY
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-system-check/
-          server-dir: ./wp-content/plugins/taxocommerce-system-check/
-          dry-run: false
-          log-level: standard
-          exclude: |
-            **/.git*
-            **/node_modules/**
-            **/*.bak
+          echo "Este workflow ya no despliega plugins a producción."
+          echo "Usa 'Despliegue MAIN (staging) a producción (hosting)'."
+          echo "Ese proceso actualiza únicamente plugins TaxoCommerce que ya están activos en PRO."
