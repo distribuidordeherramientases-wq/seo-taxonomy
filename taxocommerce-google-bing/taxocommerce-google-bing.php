@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: TaxoCommerce Google/Bing
- * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
+ * Plugin Name: TaxoCommerce Insights
+ * Description: Informes, tendencias, mercado y oportunidades a partir de Google, Bing y otras fuentes conectadas.
  * Version: 0.7.3
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -54,10 +54,10 @@ function taxocommerce_google_bing_register_with_core( $core ) {
     $core->register_module(
         'google_bing',
         array(
-            'name'        => 'TaxoCommerce Google/Bing',
+            'name'        => 'TaxoCommerce Insights',
             'version'     => TAXOCOMMERCE_GOOGLE_BING_VERSION,
             'status'      => 'active',
-            'description' => 'Conexiones, informes manuales de Google/Bing y Mercado independiente por categorías.',
+            'description' => 'Informes de Search, Analytics y Bing, Trends, Mercado, oportunidades e informe ejecutivo.',
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-google-bing' ),
         )
     );
@@ -69,8 +69,8 @@ function taxocommerce_google_bing_register_menu() {
     if ( $in_core ) {
         add_submenu_page(
             'taxocommerce-core',
-            'Google / Bing',
-            'Google / Bing',
+            'TaxoCommerce Insights',
+            'Insights',
             'manage_options',
             'taxocommerce-google-bing',
             'taxocommerce_google_bing_screen'
@@ -79,8 +79,8 @@ function taxocommerce_google_bing_register_menu() {
     }
 
     add_menu_page(
-        'TaxoCommerce Google / Bing',
-        'Google / Bing',
+        'TaxoCommerce Insights',
+        'Insights',
         'manage_options',
         'taxocommerce-google-bing',
         'taxocommerce_google_bing_screen',
@@ -95,22 +95,25 @@ function taxocommerce_google_bing_screen() {
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
-    $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : 'connections';
+    $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : 'informe';
     if ( 'reports' === $tab || 'analytics' === $tab ) {
         $tab = 'google_analytics';
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'informe', 'google_search', 'google_analytics', 'bing', 'google_trends', 'mercado' ), true ) ) {
-        $tab = 'connections';
+    if ( 'connections' === $tab ) {
+        wp_safe_redirect( admin_url( 'admin.php?page=taxocommerce-connections' ) );
+        exit;
+    }
+    if ( ! in_array( $tab, array( 'informe', 'google_search', 'google_analytics', 'bing', 'google_trends', 'mercado' ), true ) ) {
+        $tab = 'informe';
     }
 
     echo '<div class="wrap tgb-wrap">';
-    echo '<h1>TaxoCommerce Google / Bing</h1>';
-    echo '<nav class="nav-tab-wrapper" aria-label="Google / Bing">';
+    echo '<h1>TaxoCommerce Insights</h1>';
+    echo '<nav class="nav-tab-wrapper" aria-label="TaxoCommerce Insights">';
     foreach (
         array(
-            'connections'      => 'Conexiones',
             'informe'          => 'Informe',
             'google_search'    => 'Google Search',
             'google_analytics' => 'Google Analytics',
@@ -130,10 +133,7 @@ function taxocommerce_google_bing_screen() {
     }
     echo '</nav>';
 
-    if ( 'connections' === $tab ) {
-        echo '<p>Conexiones centralizadas. Guardar o probar una conexión no descarga métricas de negocio.</p>';
-        TaxoCommerce_Google_Bing_Connections::render();
-    } elseif ( 'informe' === $tab ) {
+    if ( 'informe' === $tab ) {
         TaxoCommerce_Google_Bing_Executive::render();
     } elseif ( 'google_trends' === $tab ) {
         TaxoCommerce_Google_Bing_Trends::render();
