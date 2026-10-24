@@ -65,7 +65,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 			TaxoCommerce_Google_Bing_OAuth::render();
 			return;
 		}
-		echo '<div class="notice notice-info inline"><p>OAuth de Google se migrará en la siguiente fase. La cuenta de servicio, Search Console, GA4, Merchant y Bing ya se gestionan desde Connections.</p></div>';
+		echo '<div class="notice notice-info inline"><p>Google OAuth will be migrated in the next phase. Service account, Search Console, GA4, Merchant, and Bing settings are already managed by Connections.</p></div>';
 	}
 
 	public static function save_google() {
@@ -112,15 +112,15 @@ final class TaxoCommerce_Connections_Google_Bing {
 			if ( is_wp_error( $token ) ) {
 				self::test_result( 'google', false, $token->get_error_message() );
 			}
-			self::test_result( 'google', true, 'Cuenta de servicio Google autenticada correctamente.' );
+			self::test_result( 'google', true, 'Google service account authenticated successfully.' );
 		}
 
 		$settings = self::google_settings();
 		$account = json_decode( (string) ( $settings['service_account_json'] ?? '' ), true );
 		if ( ! is_array( $account ) || empty( $account['client_email'] ) || empty( $account['private_key'] ) ) {
-			self::test_result( 'google', false, 'Falta una cuenta de servicio Google válida.' );
+			self::test_result( 'google', false, 'A valid Google service account is required.' );
 		}
-		self::test_result( 'google', true, 'Configuración Google válida. La prueba de token completa requiere TaxoCommerce Insights activo durante esta fase de transición.' );
+		self::test_result( 'google', true, 'Google configuration is valid. Full token testing requires TaxoCommerce Insights during this transition phase.' );
 	}
 
 	public static function save_merchant() {
@@ -137,7 +137,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 		self::guard( 'taxocommerce_connections_test_merchant' );
 		$id = self::merchant_account();
 		if ( '' === $id ) {
-			self::test_result( 'merchant', false, 'Falta el ID de Google Merchant Center.' );
+			self::test_result( 'merchant', false, 'Google Merchant Center ID is required.' );
 		}
 
 		if ( class_exists( 'TaxoCommerce_Google_Bing_Connections' ) && method_exists( 'TaxoCommerce_Google_Bing_Connections', 'access_token' ) ) {
@@ -145,10 +145,10 @@ final class TaxoCommerce_Connections_Google_Bing {
 			if ( is_wp_error( $token ) ) {
 				self::test_result( 'merchant', false, $token->get_error_message() );
 			}
-			self::test_result( 'merchant', true, 'Credencial Google válida para Merchant Center.' );
+			self::test_result( 'merchant', true, 'Google credentials are valid for Merchant Center.' );
 		}
 
-		self::test_result( 'merchant', true, 'ID Merchant configurado. La validación API completa requiere TaxoCommerce Insights activo durante la transición.' );
+		self::test_result( 'merchant', true, 'Merchant ID is configured. Full API validation requires TaxoCommerce Insights during the transition.' );
 	}
 
 	public static function save_bing() {
@@ -189,10 +189,10 @@ final class TaxoCommerce_Connections_Google_Bing {
 			: trim( (string) ( $settings['api_key'] ?? '' ) );
 
 		if ( '' === $key ) {
-			self::test_result( 'bing', false, 'Falta la API key de Bing Webmaster.' );
+			self::test_result( 'bing', false, 'Bing Webmaster API key is required.' );
 		}
 		if ( empty( $settings['enabled'] ) ) {
-			self::test_result( 'bing', false, 'Bing está desactivado.' );
+			self::test_result( 'bing', false, 'Bing is disabled.' );
 		}
 
 		$url = add_query_arg(
@@ -213,7 +213,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 		}
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		if ( $code < 200 || $code >= 300 ) {
-			self::test_result( 'bing', false, 'Bing Webmaster respondió HTTP ' . $code . '.' );
+			self::test_result( 'bing', false, 'Bing Webmaster returned HTTP ' . $code . '.' );
 		}
 		$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 		$target = untrailingslashit( strtolower( (string) $settings['site_url'] ) );
@@ -226,9 +226,9 @@ final class TaxoCommerce_Connections_Google_Bing {
 			}
 		}
 		if ( $target && ! $found ) {
-			self::test_result( 'bing', false, 'La clave Bing funciona, pero el sitio configurado no figura entre los sitios autorizados.' );
+			self::test_result( 'bing', false, 'The Bing key works, but the configured site is not listed among the authorized sites.' );
 		}
-		self::test_result( 'bing', true, 'Conexión Bing Webmaster verificada.' );
+		self::test_result( 'bing', true, 'Bing Webmaster connection verified.' );
 	}
 
 	public static function consume_test_result( $provider ) {
@@ -250,7 +250,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 
 	private static function guard( $nonce ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'No tienes permisos para gestionar conexiones.', 'taxocommerce-connections' ) );
+			wp_die( esc_html__( 'You do not have permission to manage connections.', 'taxocommerce-connections' ) );
 		}
 		check_admin_referer( $nonce );
 	}
