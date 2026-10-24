@@ -918,7 +918,7 @@ final class TaxoCommerce_Google_Bing_Executive {
 				echo '<p class="description">' . esc_html( implode( ' · ', $providers ) ) . '</p>';
 			}
 		} else {
-			echo '<p>No data de Mercado todavía.</p>';
+			echo '<p>No Market data yet.</p>';
 		}
 		echo '<p><a href="' . esc_url( self::tab_url( 'mercado' ) ) . '">Open Market →</a></p></div>';
 		echo '</div></section>';
