@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Dependiente
- * Description: Dependiente para WooCommerce con diez lecciones auditables, foto fija previa, aprendizaje semántico y exportación JSON.
- * Version: 0.2.2
+ * Description: Dependiente para WooCommerce con diez lecciones auditables, foto fija previa, aprendizaje semántico y exportación portable de conocimiento.
+ * Version: 0.2.3
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.2.2' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.2.3' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 
