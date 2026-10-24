@@ -94,6 +94,19 @@ final class TaxoCommerce_Images {
 				'webpNonce' => wp_create_nonce( 'tci_webp_run' ),
 			)
 		);
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'summary';
+		if ( 'assignment' === $tab ) {
+			wp_enqueue_media();
+			wp_enqueue_script(
+				'taxocommerce-images-media-picker',
+				plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/assignment-media.js',
+				array( 'media-editor' ),
+				TAXOCOMMERCE_IMAGES_VERSION,
+				true
+			);
+		}
 		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) || false === strpos( (string) $hook, 'taxocommerce-images' ) ) {
 			return;
 		}
@@ -282,7 +295,7 @@ final class TaxoCommerce_Images {
 		?>
 		<h2><?php esc_html_e( 'Asignación de imágenes por categorías relacionadas', 'taxocommerce-images' ); ?></h2>
 		<p><?php esc_html_e( 'Primero se propone la imagen asociada a la categoría; después, imágenes de productos o entradas pertenecientes a esa categoría. No se utiliza una imagen aleatoria de Media ni se descargan imágenes de proveedores.', 'taxocommerce-images' ); ?></p>
-		<p><?php esc_html_e( 'Puedes asignar individualmente una imagen sugerida, asignar automáticamente hasta 25 elementos por grupo o subir un archivo desde tu equipo. Si no hay categoría vinculada ni imágenes válidas, el elemento permanece pendiente.', 'taxocommerce-images' ); ?></p>
+		<p><?php esc_html_e( 'Puedes asignar individualmente una imagen sugerida, elegir una imagen existente en Media, asignar automáticamente hasta 25 elementos por grupo o subir un archivo desde tu equipo. Si no hay categoría vinculada ni imágenes válidas, el elemento permanece pendiente.', 'taxocommerce-images' ); ?></p>
 		<?php
 		foreach ( TaxoCommerce_Images_Assignment::scopes() as $scope => $heading ) {
 			$param = 'tc_assign_' . sanitize_key( $scope ) . '_page';
@@ -361,8 +374,18 @@ final class TaxoCommerce_Images {
 										<?php endforeach; ?>
 										</div>
 									<?php else : ?>
-										<p class="description"><?php esc_html_e( 'No hay imágenes válidas en las categorías relacionadas. Puedes subir una propia.', 'taxocommerce-images' ); ?></p>
+										<p class="description"><?php esc_html_e( 'No hay imágenes válidas en las categorías relacionadas. Puedes elegir una existente de Media o subir una propia.', 'taxocommerce-images' ); ?></p>
 									<?php endif; ?>
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tci-assign-media" data-tci-media-picker>
+										<input type="hidden" name="action" value="taxocommerce_images_assign_media">
+										<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
+										<input type="hidden" name="object_id" value="<?php echo esc_attr( (string) $id ); ?>">
+										<input type="hidden" name="attachment_id" value="" data-tci-media-id>
+										<?php wp_nonce_field( 'taxocommerce_images_assign_media', 'taxocommerce_images_nonce' ); ?>
+										<button type="button" class="button button-secondary" data-tci-media-open><?php esc_html_e( 'Buscar en Media', 'taxocommerce-images' ); ?></button>
+										<span class="tci-assign-media-selection" data-tci-media-selection><?php esc_html_e( 'Ninguna imagen seleccionada.', 'taxocommerce-images' ); ?></span>
+										<button type="submit" class="button" data-tci-media-submit disabled><?php esc_html_e( 'Asignar desde Media', 'taxocommerce-images' ); ?></button>
+									</form>
 									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="tci-assign-upload">
 										<input type="hidden" name="action" value="taxocommerce_images_assign_upload">
 										<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
