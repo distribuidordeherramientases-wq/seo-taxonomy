@@ -517,7 +517,7 @@ final class TCD_Feedback {
         $limit = min( 5, max( 3, absint( $limit ) ) );
         $ids = array_values( array_unique( array_filter( array_map( static function ( $row ) {
             return absint( is_array( $row ) ? ( $row['id'] ?? 0 ) : 0 );
-        }, array_slice( (array) $ranked, 0, 24 ) ) ) );
+        }, array_slice( (array) $ranked, 0, 24 ) ) ) ) );
 
         if ( ! $ids ) return array();
 
