@@ -148,10 +148,11 @@ jobs:
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
           cd ../$module
+          cls "$module.php"
           bye
           EOF
             then
-              echo "::error::$module está activo según WordPress, pero su carpeta no existe o no es accesible en PRO. No se crea automáticamente."
+              echo "::error::$module está activo según WordPress, pero su carpeta/archivo principal no existe o no es accesible en PRO. No se crea automáticamente."
               exit 1
             fi
 
