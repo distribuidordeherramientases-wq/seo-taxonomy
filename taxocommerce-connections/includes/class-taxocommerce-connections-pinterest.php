@@ -144,7 +144,7 @@ final class TaxoCommerce_Connections_Pinterest {
 			return '';
 		}
 		if ( ! function_exists( 'openssl_encrypt' ) || ! function_exists( 'openssl_random_pseudo_bytes' ) ) {
-			return new WP_Error( 'openssl_missing', __( 'OpenSSL no está disponible.', 'taxocommerce-connections' ) );
+			return new WP_Error( 'openssl_missing', __( 'OpenSSL is not available.', 'taxocommerce-connections' ) );
 		}
 		$method = 'aes-256-gcm';
 		$key = hash( 'sha256', wp_salt( 'auth' ), true );
@@ -152,7 +152,7 @@ final class TaxoCommerce_Connections_Pinterest {
 		$tag = '';
 		$cipher = openssl_encrypt( $plain, $method, $key, OPENSSL_RAW_DATA, $iv, $tag );
 		if ( ! is_string( $cipher ) || '' === $cipher || '' === $tag ) {
-			return new WP_Error( 'encrypt_failed', __( 'No se pudo cifrar el secreto.', 'taxocommerce-connections' ) );
+			return new WP_Error( 'encrypt_failed', __( 'The secret could not be encrypted.', 'taxocommerce-connections' ) );
 		}
 		return 'enc1:' . base64_encode( $iv . $tag . $cipher );
 	}
@@ -210,7 +210,7 @@ final class TaxoCommerce_Connections_Pinterest {
 
 	private static function apply_token_data( $config, $data ) {
 		if ( empty( $data['access_token'] ) ) {
-			return new WP_Error( 'pinterest_missing_access_token', __( 'Pinterest no devolvió Access Token.', 'taxocommerce-connections' ) );
+			return new WP_Error( 'pinterest_missing_access_token', __( 'Pinterest did not return an Access Token.', 'taxocommerce-connections' ) );
 		}
 		$access = self::encrypt_secret( (string) $data['access_token'] );
 		if ( is_wp_error( $access ) ) {
@@ -249,7 +249,7 @@ final class TaxoCommerce_Connections_Pinterest {
 		$secret  = self::decrypt_secret( $config['app_secret_enc'] ?? '' );
 		$app_id  = trim( (string) ( $config['app_id'] ?? '' ) );
 		if ( '' === $refresh || '' === $secret || '' === $app_id ) {
-			return new WP_Error( 'pinterest_token_expired', __( 'El token de Pinterest ha caducado; vuelve a autorizar la cuenta.', 'taxocommerce-connections' ) );
+			return new WP_Error( 'pinterest_token_expired', __( 'The Pinterest token has expired; authorize the account again.', 'taxocommerce-connections' ) );
 		}
 
 		$response = wp_remote_post(
@@ -322,7 +322,7 @@ final class TaxoCommerce_Connections_Pinterest {
 		$config = self::settings();
 		$board_id = preg_replace( '/[^0-9]/', '', (string) ( $config['board_id'] ?? '' ) );
 		if ( '' === $board_id ) {
-			return new WP_Error( 'pinterest_board_missing', __( 'Selecciona un tablero antes de probar Pinterest.', 'taxocommerce-connections' ) );
+			return new WP_Error( 'pinterest_board_missing', __( 'Select a board before testing Pinterest.', 'taxocommerce-connections' ) );
 		}
 		$token = self::access_token( $config );
 		if ( is_wp_error( $token ) ) {
@@ -338,7 +338,7 @@ final class TaxoCommerce_Connections_Pinterest {
 
 	public static function oauth_start() {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'No tienes permisos para conectar Pinterest.', 'taxocommerce-connections' ) );
+			wp_die( esc_html__( 'You do not have permission to connect Pinterest.', 'taxocommerce-connections' ) );
 		}
 		check_admin_referer( 'taxocommerce_connections_pinterest_oauth_start' );
 
@@ -392,10 +392,10 @@ final class TaxoCommerce_Connections_Pinterest {
 		$state = sanitize_text_field( (string) $request->get_param( 'state' ) );
 		$data = $state ? get_transient( 'seo_pi_state_' . substr( hash( 'sha256', $state ), 0, 32 ) ) : false;
 		if ( ! is_array( $data ) || empty( $data['user_id'] ) ) {
-			return new WP_Error( 'pinterest_oauth_state_invalid', __( 'Estado OAuth inválido o caducado.', 'taxocommerce-connections' ), array( 'status' => 403 ) );
+			return new WP_Error( 'pinterest_oauth_state_invalid', __( 'The OAuth state is invalid or expired.', 'taxocommerce-connections' ), array( 'status' => 403 ) );
 		}
 		$user = get_user_by( 'id', absint( $data['user_id'] ) );
-		return $user && user_can( $user, 'manage_options' ) ? true : new WP_Error( 'pinterest_oauth_user_forbidden', __( 'Usuario OAuth sin permisos.', 'taxocommerce-connections' ), array( 'status' => 403 ) );
+		return $user && user_can( $user, 'manage_options' ) ? true : new WP_Error( 'pinterest_oauth_user_forbidden', __( 'The OAuth user does not have permission.', 'taxocommerce-connections' ), array( 'status' => 403 ) );
 	}
 
 	public static function oauth_callback( WP_REST_Request $request ) {
@@ -407,7 +407,7 @@ final class TaxoCommerce_Connections_Pinterest {
 			delete_transient( $key );
 		}
 		if ( ! is_array( $data ) || empty( $data['user_id'] ) || '' === $code ) {
-			return new WP_REST_Response( array( 'error' => 'OAuth Pinterest inválido.' ), 400 );
+			return new WP_REST_Response( array( 'error' => 'Invalid Pinterest OAuth response.' ), 400 );
 		}
 
 		$config = self::settings();
@@ -478,7 +478,7 @@ final class TaxoCommerce_Connections_Pinterest {
 		$code = self::extract_domain_verify( (string) ( $input['domain_verify_code'] ?? '' ) );
 		$enabled = ! empty( $input['domain_verify_enabled'] ) ? 1 : 0;
 		if ( $enabled && '' === $code ) {
-			return new WP_Error( 'pinterest_verify_code', __( 'Código de verificación de dominio inválido.', 'taxocommerce-connections' ) );
+			return new WP_Error( 'pinterest_verify_code', __( 'Invalid domain verification code.', 'taxocommerce-connections' ) );
 		}
 		$config['domain_verify_enabled'] = $enabled;
 		$config['domain_verify_code'] = $code;
