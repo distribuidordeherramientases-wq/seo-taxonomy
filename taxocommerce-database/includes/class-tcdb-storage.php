@@ -194,6 +194,23 @@ final class TCDB_Storage {
                  WHERE n.object_type='page' AND p.ID IS NULL"
             );
         }
+        if ( isset( $tables[ $nodes ] ) ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Inventory-verified table, fixed predicates.
+            $integrity['duplicate_nodes'] = (int) $wpdb->get_var(
+                "SELECT COUNT(*) FROM (
+                    SELECT object_type,object_id,seo_role FROM " . chr(96) . $nodes . chr(96) .
+                    " GROUP BY object_type,object_id,seo_role HAVING COUNT(*) > 1
+                ) d"
+            );
+        }
+        // Broken parent links in the WordPress-native product category tree.
+        $integrity['broken_product_category_parents'] = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} t
+                LEFT JOIN {$wpdb->term_taxonomy} p
+                  ON p.term_id=t.parent AND p.taxonomy='product_cat'
+              WHERE t.taxonomy='product_cat' AND t.parent<>0 AND p.term_id IS NULL"
+        );
+
         $relations = $wpdb->prefix . 'seo_relations';
         if ( isset( $tables[ $relations ] ) ) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only an existing Core relation table is addressed.
