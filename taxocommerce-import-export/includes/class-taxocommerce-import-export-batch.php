@@ -250,6 +250,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			$this->store_state( $state );
 		} elseif ( 'tick' === $action ) {
 			$state['enabled']        = true;
+			$state['user_id']        = get_current_user_id();
 			$state['stop_requested'] = false;
 			$this->store_state( $state );
 			$this->worker();
@@ -278,6 +279,19 @@ final class TaxoCommerce_Import_Export_Batch {
 			if ( $worker_user > 0 && $worker_user !== $previous_user ) {
 				wp_set_current_user( $worker_user );
 			}
+
+			$capability = (string) apply_filters( 'taxocommerce_import_export_capability', 'manage_woocommerce' );
+			if ( $worker_user < 1 || ( ! current_user_can( $capability ) && ! current_user_can( 'manage_options' ) ) ) {
+				$this->store_state(
+					array(
+						'enabled' => false,
+						'status'  => 'failed',
+						'message' => __( 'El usuario que inició la cola ya no tiene permisos para importar.', 'taxocommerce-import-export' ),
+					)
+				);
+				return;
+			}
+
 			if ( ! empty( $state['stop_requested'] ) ) {
 				$state['status']  = 'paused';
 				$state['enabled'] = false;
