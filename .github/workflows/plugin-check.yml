@@ -1,4 +1,5 @@
 name: WordPress Plugin Check
+# Release 2.4.1.6 diagnostic/fix branch.
 
 on:
   pull_request:
