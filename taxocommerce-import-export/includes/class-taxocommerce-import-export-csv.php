@@ -34,11 +34,11 @@ final class TaxoCommerce_Import_Export_CSV {
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 		header( 'X-Content-Type-Options: nosniff' );
 
-		$output = fopen( 'php://output', 'w' );
+		$output = $this->stream_open( 'php://output', 'w' );
 		if ( false === $output ) {
 			wp_die( esc_html__( 'No se pudo iniciar la exportación.', 'taxocommerce-import-export' ) );
 		}
-		fwrite( $output, "\xEF\xBB\xBF" );
+		$this->stream_write( $output, "\xEF\xBB\xBF" );
 
 		if ( 'products' === $type ) {
 			$this->export_products( $output );
@@ -48,7 +48,7 @@ final class TaxoCommerce_Import_Export_CSV {
 			$this->export_posts( $output, 'pages' === $type ? 'page' : 'post' );
 		}
 
-		fclose( $output );
+		$this->stream_close( $output );
 		exit;
 	}
 
@@ -79,20 +79,20 @@ final class TaxoCommerce_Import_Export_CSV {
 			$this->redirect_error( __( 'El archivo debe tener extensión .csv.', 'taxocommerce-import-export' ) );
 		}
 
-		$handle = fopen( $file['tmp_name'], 'r' );
+		$handle = $this->stream_open( $file['tmp_name'], 'r' );
 		if ( false === $handle ) {
 			$this->redirect_error( __( 'No se pudo abrir el CSV.', 'taxocommerce-import-export' ) );
 		}
 
 		$headers = fgetcsv( $handle );
 		if ( ! is_array( $headers ) ) {
-			fclose( $handle );
+			$this->stream_close( $handle );
 			$this->redirect_error( __( 'El CSV no contiene cabecera.', 'taxocommerce-import-export' ) );
 		}
 
 		$headers = array_map( array( $this, 'normalize_header' ), $headers );
 		if ( ! in_array( 'record_type', $headers, true ) ) {
-			fclose( $handle );
+			$this->stream_close( $handle );
 			$this->redirect_error( __( 'El CSV no parece generado por TaxoCommerce Import-Export.', 'taxocommerce-import-export' ) );
 		}
 
@@ -109,7 +109,7 @@ final class TaxoCommerce_Import_Export_CSV {
 
 			$result = $this->import_row( $data );
 			if ( is_wp_error( $result ) ) {
-				fclose( $handle );
+				$this->stream_close( $handle );
 				$this->redirect_error(
 					sprintf(
 						/* translators: 1: row number, 2: error message. */
@@ -121,7 +121,7 @@ final class TaxoCommerce_Import_Export_CSV {
 			}
 			$count++;
 		}
-		fclose( $handle );
+		$this->stream_close( $handle );
 
 		$url = add_query_arg(
 			array(
@@ -628,6 +628,41 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Open a native stream required by fgetcsv/fputcsv incremental processing.
+	 *
+	 * @param string $path Path or PHP stream.
+	 * @param string $mode Open mode.
+	 * @return resource|false
+	 */
+	private function stream_open( $path, $mode ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV streaming requires a native resource and avoids loading large files into memory.
+		return fopen( $path, $mode );
+	}
+
+	/**
+	 * Write bytes to an incremental CSV stream.
+	 *
+	 * @param resource $handle Stream.
+	 * @param string   $data Data.
+	 * @return int|false
+	 */
+	private function stream_write( $handle, $data ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Same native CSV stream returned by stream_open().
+		return fwrite( $handle, $data );
+	}
+
+	/**
+	 * Close an incremental CSV stream.
+	 *
+	 * @param resource $handle Stream.
+	 * @return bool
+	 */
+	private function stream_close( $handle ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Explicit close of the native incremental CSV stream.
+		return fclose( $handle );
 	}
 
 	/**
