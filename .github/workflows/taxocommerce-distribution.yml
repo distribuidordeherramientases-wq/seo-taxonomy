@@ -1,0 +1,67 @@
+name: TaxoCommerce Distribution CI
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-distribution/**'
+      - '.github/workflows/taxocommerce-distribution.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-distribution/**'
+      - '.github/workflows/taxocommerce-distribution.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP lint
+        run: |
+          find taxocommerce-distribution -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Distribution smoke
+        run: php taxocommerce-distribution/tests/distribution-smoke.php
+
+      - name: Build distributable package
+        run: |
+          set -euo pipefail
+          rm -rf build/taxocommerce-distribution
+          mkdir -p build/taxocommerce-distribution
+          rsync -a             --exclude='tests/'             --exclude='*.md'             --exclude='*.bak'             taxocommerce-distribution/ build/taxocommerce-distribution/
+          test -f build/taxocommerce-distribution/taxocommerce-distribution.php
+          test -f build/taxocommerce-distribution/includes/class-taxocommerce-distribution-batch.php
+          test -f build/taxocommerce-distribution/includes/class-taxocommerce-distribution-exporter.php
+          test -f build/taxocommerce-distribution/includes/feeds/channels.php
+          test ! -e build/taxocommerce-distribution/tests
+
+      - name: WordPress Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './build/taxocommerce-distribution'
+          slug: taxocommerce-distribution
+          wp-version: latest
+          ignore-warnings: true
+          ignore-errors: false
+
+      - name: Package ZIP
+        run: |
+          (
+            cd build
+            zip -qr ../taxocommerce-distribution.zip taxocommerce-distribution
+          )
+          unzip -t taxocommerce-distribution.zip
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-distribution-0.1.0
+          path: taxocommerce-distribution.zip
+          retention-days: 30
+          if-no-files-found: error
