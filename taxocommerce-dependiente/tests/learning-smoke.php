@@ -73,6 +73,8 @@ $checks=array(
     strpos($intelligence,'quality_target_hints')!==false,
     strpos($intelligence,"'quality_repair_identity'")!==false,
     strpos($intelligence,"'identity_exact'")!==false,
+    strpos($intelligence,'$terms = array( $normalized );')!==false,
+    strpos($intelligence,'$terms[] = $compact;')!==false,
     strpos($intelligence,"'review_source_id'")!==false,
     strpos($intelligence,'fresh_source_item')!==false,
     strpos($intelligence,'download_quality_csv')!==false,
