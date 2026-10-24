@@ -200,14 +200,14 @@ final class TaxoCommerce_Google_Bing_Trends {
         echo '<input type="hidden" name="action" value="tgb_trends_explore">';
         // Accessible no-JavaScript fallback: original handler opens Explore.
         wp_nonce_field( 'tgb_trends_explore' );
-        echo '<label for="tgb-trends-terms"><strong>Palabras o frases a consultar</strong></label>';
+        echo '<label for="tgb-trends-terms"><strong>Words or phrases to explore</strong></label>';
         echo '<textarea id="tgb-trends-terms" class="large-text" name="trends_terms" rows="4" maxlength="1500" required placeholder="cordless drills&#10;Makita&#10;impact wrenches"></textarea>';
         echo '<p class="description">Enter one word or phrase per line, up to five. Results are shown only for those searches.</p>';
 
         echo '<div class="tgb-trends-controls">';
-        echo '<label for="tgb-trends-explore-geo"><strong>Zona:</strong></label>';
+        echo '<label for="tgb-trends-explore-geo"><strong>Region:</strong></label>';
         echo '<select id="tgb-trends-explore-geo" name="explore_geo">';
-        echo '<option value="">Todo el mundo</option>';
+        echo '<option value="">Worldwide</option>';
         foreach ( $countries as $code => $label ) {
             echo '<option value="' . esc_attr( $code ) . '">' . esc_html( $label ) . '</option>';
         }
@@ -229,13 +229,13 @@ final class TaxoCommerce_Google_Bing_Trends {
 
         echo '<div class="tgb-trends-actions">';
         echo '<button class="button button-primary" type="submit">Search trends</button>';
-        echo '<a class="button" id="tgb-trends-open-google" href="https://trends.google.com/trends/explore" target="_blank" rel="noopener noreferrer">Abrir en Google Trends ↗</a>';
+        echo '<a class="button" id="tgb-trends-open-google" href="https://trends.google.com/trends/explore" target="_blank" rel="noopener noreferrer">Open in Google Trends ↗</a>';
         echo '</div>';
         echo '<p id="tgb-trends-validation" class="notice notice-error inline" role="alert" hidden></p>';
         echo '</form>';
         echo '</section>';
 
-        echo '<section id="tgb-trends-results" class="tgb-trends-results" aria-label="Resultados de Google Trends" hidden></section>';
+        echo '<section id="tgb-trends-results" class="tgb-trends-results" aria-label="Google Trends results" hidden></section>';
         echo '<div id="tgb-trends-empty" class="tgb-trends-empty">';
         echo '<strong>No results for this query yet.</strong>';
         echo '<p>Enter terms, choose a country and period, then click “Search trends”. No automatic query is made when opening this tab.</p>';
@@ -349,7 +349,7 @@ final class TaxoCommerce_Google_Bing_Trends {
         }
         $code = (int) wp_remote_retrieve_response_code( $response );
         if ( $code < 200 || $code >= 300 ) {
-            return new WP_Error( 'tgb_trends_http', 'Google Trends ha respondido HTTP ' . $code . '. No se ha modificado la copia guardada.' );
+            return new WP_Error( 'tgb_trends_http', 'Google Trends returned HTTP ' . $code . '. The saved snapshot was not modified.' );
         }
         $items = self::parse_rss( wp_remote_retrieve_body( $response ) );
         if ( is_wp_error( $items ) ) {

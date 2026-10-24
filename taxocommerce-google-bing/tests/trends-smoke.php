@@ -1,5 +1,7 @@
 <?php
 define( 'ABSPATH', __DIR__ );
+define( 'TAXOCOMMERCE_GOOGLE_BING_URL', 'https://example.test/plugin/' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', 'test' );
 class WP_Error {
     private $message;
     public function __construct( $code, $message ) { $this->message = $message; }
@@ -29,7 +31,7 @@ foreach ( array( 'ES', 'DE', 'FR', 'NL', 'US' ) as $geo ) {
     ob_start();
     TaxoCommerce_Google_Bing_Trends::render();
     $output = ob_get_clean();
-    if ( false === strpos( $output, 'Buscar tendencias' ) || false === strpos( $output, 'tgb-trends-results' ) || false !== strpos( $output, 'Búsqueda en tendencia' ) ) {
+    if ( false === strpos( $output, 'Search trends' ) || false === strpos( $output, 'tgb-trends-results' ) || false !== strpos( $output, 'Trending search' ) ) {
         fwrite( STDERR, "Trends tab failed: $geo\n" );
         exit( 1 );
     }
