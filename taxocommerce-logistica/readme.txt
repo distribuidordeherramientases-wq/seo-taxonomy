@@ -1,4 +1,4 @@
-=== TaxoCommerce Logística ===
+=== TaxoCommerce Logistics ===
 Contributors: davidperezmartorell
 Tags: woocommerce, logistics, shipping, suppliers, orders
 Requires at least: 6.5
@@ -11,7 +11,7 @@ WooCommerce order, supplier and shipping management migrated from TaxoCommerce S
 
 == Description ==
 
-TaxoCommerce Logística keeps the existing logistics workflow while moving it into an independent plugin.
+TaxoCommerce Logistics keeps the existing logistics workflow while moving it into an independent plugin.
 
 Features:
 
