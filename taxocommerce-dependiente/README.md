@@ -58,9 +58,9 @@ Los hooks de WordPress/WooCommerce realizan actualizaciones inmediatas y una rev
 - **L5 Posts y páginas**: contenido editorial y Vocabulary compartido.
 - **L6 FAQs contextualizadas**: pregunta, respuesta, propietario y Vocabulary.
 - **L7 Relaciones cruzadas**: conceptos que conectan catálogo y contenido.
-- **L8 Examen integrado y regresión**: revisión conjunta de L1-L7.
+- **L8 Examen integrado y regresión**: revisión conjunta de L1-L7 mediante una muestra determinista y acotada por lección, sin volver a duplicar todo el conocimiento.
 - **L9 Necesidades y productos**: memoria lingüística ponderada por producto.
-- **L10 Consolidación, deuda y regresión**: revisión global L1-L9.
+- **L10 Consolidación, deuda y regresión**: revisión global L1-L9 con el mismo muestreo reproducible y control de deuda.
 
 ## Memoria L9
 
