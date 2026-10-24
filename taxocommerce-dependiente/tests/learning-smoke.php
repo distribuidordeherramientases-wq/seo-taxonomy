@@ -164,7 +164,7 @@ $checks=array(
     strpos($admin,'type="range" min="1" max="5"')!==false,
     strpos($admin,'Límite máximo de CPU para Dependiente')===false,
     strpos($admin,'fuentes leídas para la foto fija')!==false,
-    strpos($admin,'Progreso del examen de calidad')!==false,
+    strpos($admin,'Progreso del examen de calidad')===false,
     strpos($admin,'casos evaluados del examen de calidad')!==false,
     strpos($admin,'window.location.reload()')!==false,
     strpos($academy,'evaluate_quality')!==false,

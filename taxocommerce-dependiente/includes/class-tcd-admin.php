@@ -255,27 +255,15 @@ final class TCD_Admin {
         echo ' · <strong>Aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['learned']??0))).' · <strong>No aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['unlearned']??0))).'</p>';
         echo '<p>'.esc_html((string)$state['last_message']).'</p>';
 
-        if('quality'===(string)($state['phase']??'') && $quality_progress){
-            $q_done=absint($quality_progress['done']??0);
-            $q_total=absint($quality_progress['total']??0);
-            $q_percent=(float)($quality_progress['percent']??0);
-            echo '<div style="margin:12px 0 14px;padding:12px;background:#f6f7f7;border:1px solid #c3c4c7">';
-            echo '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">';
-            echo '<strong>Progreso del examen de calidad · L'.esc_html((string)$module).'</strong>';
-            echo '<strong>'.esc_html(number_format_i18n($q_percent,1)).'%</strong>';
-            echo '</div>';
-            echo '<div style="height:14px;background:#dcdcde;margin:8px 0;overflow:hidden;border-radius:2px">';
-            echo '<span style="display:block;height:14px;background:#2271b1;width:'.esc_attr((string)min(100,max(0,$q_percent))).'%"></span></div>';
-            echo '<div>'.esc_html(number_format_i18n($q_done)).' / '.esc_html(number_format_i18n($q_total)).' casos · ';
-            echo 'Top1 provisional '.esc_html(number_format_i18n(absint($quality_progress['pass_top1']??0))).' · ';
-            echo 'Top3 '.esc_html(number_format_i18n(absint($quality_progress['pass_top3']??0))).' · ';
-            echo 'Top8 '.esc_html(number_format_i18n(absint($quality_progress['pass_top8']??0))).' · ';
-            echo 'fallos provisionales '.esc_html(number_format_i18n(absint($quality_progress['failed']??0))).'.</div>';
-            echo '<p class="description" style="margin-bottom:0">La barra representa el examen actual, no la foto fija. El progreso se guarda entre lotes y se puede reanudar.</p>';
-            echo '</div>';
-            if('running'===(string)($state['status']??'')){
-                echo '<script>window.setTimeout(function(){window.location.reload();},4000);</script>';
-            }
+        // La tabla L1-L10 ya muestra el progreso dinámico de la lección activa.
+        // Evitamos duplicar aquí una segunda barra; mantenemos solo la
+        // autoactualización para que la fila inferior avance en tiempo real.
+        if(
+            'quality'===(string)($state['phase']??'')
+            && $quality_progress
+            && 'running'===(string)($state['status']??'')
+        ){
+            echo '<script>window.setTimeout(function(){window.location.reload();},4000);</script>';
         }
 
         if(!empty($state['last_error']))echo '<div class="notice notice-error inline"><p>'.esc_html((string)$state['last_error']).'</p></div>';
