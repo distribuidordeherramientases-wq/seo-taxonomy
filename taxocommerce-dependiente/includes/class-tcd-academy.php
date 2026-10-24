@@ -259,7 +259,9 @@ final class TCD_Academy {
                     $lesson
                 )
                 : 'Dependiente iniciado. Primero analizará la lección y cerrará su foto fija.';
-            self::save(array('run_id'=>$run,'status'=>'running','last_error'=>'','last_message'=>$message));
+            $changes=array('run_id'=>$run,'status'=>'running','last_error'=>'','last_message'=>$message);
+            if($retry)$changes['phase']='quality';
+            self::save($changes);
             self::queue();
             self::nudge_manager();
             self::log('started',array('lesson'=>$state['lesson'],'phase'=>$state['phase'],'run'=>$run,'quality_retry'=>$retry));
@@ -439,6 +441,8 @@ final class TCD_Academy {
             }
             if('snapshot'===(string)$state['phase']){
                 $processed=self::build_snapshot($state);
+            }elseif('quality'===(string)$state['phase']){
+                $processed=self::evaluate_quality($state);
             }else{
                 $processed=self::learn_snapshot($state);
             }
@@ -591,7 +595,16 @@ final class TCD_Academy {
             'last_sequence'=>$rows?absint($rows[count($rows)-1]['sequence_no']??0):0,
         ));
 
-        if(!$rows){self::complete_lesson($state);return 0;}
+        if(!$rows){
+            TCD_Intelligence::reset_quality_progress($lesson,$snapshot_id);
+            self::save(array(
+                'phase'=>'quality',
+                'last_message'=>sprintf('L%d · aprendizaje terminado. Preparando examen de calidad.',$lesson),
+            ));
+            self::log('quality_started',array('lesson'=>$lesson,'snapshot_id'=>$snapshot_id));
+            self::queue();
+            return 0;
+        }
 
         $learned=0;$unlearned=0;$last=absint($state['learning_cursor']);
         foreach($rows as $row){
@@ -678,18 +691,45 @@ final class TCD_Academy {
         return count($rows);
     }
 
-    private static function complete_lesson($state){
+    private static function evaluate_quality($state){
         global $wpdb;
         $lesson=absint($state['lesson']);
         $snapshot_id=absint($state['snapshot_id']);
         $snapshot=self::snapshot($snapshot_id);
         $learned=absint($snapshot['learned_count']??0);
         if($learned<1)throw new RuntimeException('L'.$lesson.' no tiene ninguna fuente aprendida; no se considera completada.');
-        $quality=TCD_Intelligence::finalize_lesson($lesson,$snapshot_id);
-        if(is_wp_error($quality)){
-            $wpdb->update(self::snapshots_table(),array('status'=>'quality_failed'),array('id'=>$snapshot_id));
-            throw new RuntimeException($quality->get_error_message());
+
+        $step=TCD_Intelligence::quality_step($lesson,$snapshot_id);
+        if(is_wp_error($step))throw new RuntimeException($step->get_error_message());
+
+        if(empty($step['done'])){
+            $evaluated=absint($step['evaluated']??0);
+            $total=absint($step['total']??0);
+            $percent=(float)($step['percent']??0);
+            self::save(array(
+                'last_message'=>sprintf(
+                    'L%d · examen de calidad: %d / %d casos evaluados · %.1f%% · Top8 provisional %d · fallos provisionales %d.',
+                    $lesson,$evaluated,$total,$percent,absint($step['pass_top8']??0),absint($step['failed']??0)
+                ),
+            ));
+            self::log('quality_progress',array(
+                'lesson'=>$lesson,'snapshot_id'=>$snapshot_id,'evaluated'=>$evaluated,'total'=>$total,
+                'percent'=>$percent,'top1'=>absint($step['pass_top1']??0),'top3'=>absint($step['pass_top3']??0),
+                'top8'=>absint($step['pass_top8']??0),'failed'=>absint($step['failed']??0),
+            ));
+            self::queue();
+            return max(1,$evaluated);
         }
+
+        $quality=(array)($step['report']??array());
+        if(empty($step['passed'])){
+            $wpdb->update(self::snapshots_table(),array('status'=>'quality_failed'),array('id'=>$snapshot_id));
+            throw new RuntimeException(sprintf(
+                'L%d no supera el control de calidad: %.1f%%, mínimo %.1f%%.',
+                $lesson,100*(float)($quality['pass_any_ratio']??0),100*(float)($quality['threshold']??0)
+            ));
+        }
+
         $wpdb->update(self::snapshots_table(),array(
             'status'=>'completed','completed_at'=>current_time('mysql'),
         ),array('id'=>$snapshot_id));
@@ -709,6 +749,7 @@ final class TCD_Academy {
             'pass_top3'=>absint($quality['pass_top3']??0),
         ));
         self::queue();
+        return absint($step['evaluated']??0);
     }
 
     private static function snapshot($id){
