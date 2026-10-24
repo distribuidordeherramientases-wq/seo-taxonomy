@@ -269,6 +269,18 @@ final class TaxoCommerce_Import_Export_Batch {
 	 */
 	public function worker() {
 		$this->prepare_directories();
+		$paths = $this->paths();
+		if ( empty( $paths['base'] ) ) {
+			$this->store_state(
+				array(
+					'enabled' => false,
+					'status'  => 'failed',
+					'message' => __( 'WordPress no ha podido resolver el directorio uploads para ejecutar la cola.', 'taxocommerce-import-export' ),
+				)
+			);
+			return;
+		}
+
 		$token = $this->acquire_lock();
 		if ( '' === $token ) {
 			return;
