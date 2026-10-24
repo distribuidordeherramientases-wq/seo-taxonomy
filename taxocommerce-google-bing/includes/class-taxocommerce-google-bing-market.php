@@ -667,7 +667,7 @@ final class TaxoCommerce_Google_Bing_Market {
         self::action_form( 'tgb_market_export', 'tgb_market_export', 'Export dossier JSON', array( 'market_id' => $id ) );
         echo '<h3>Latest scans</h3>';
         foreach ( $runs as $run ) {
-            echo '<p>' . esc_html( $run['started_at'] . ' · ' . $run['run_status'] . ' · ' . $run['collected_count'] . ' fuentes' );
+            echo '<p>' . esc_html( $run['started_at'] . ' · ' . $run['run_status'] . ' · ' . $run['collected_count'] . ' sources' );
             if ( $run['error_message'] ) {
                 echo '<br><span class="description">' . esc_html( $run['error_message'] ) . '</span>';
             }
