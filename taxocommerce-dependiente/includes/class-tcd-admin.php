@@ -32,8 +32,37 @@ final class TCD_Admin {
         return 'Aprendiendo y evaluando la foto fija';
     }
 
+    private static function tab_url($tab){
+        return add_query_arg(
+            array(
+                'page'=>'taxocommerce-dependiente',
+                'tab'=>sanitize_key((string)$tab),
+            ),
+            admin_url('admin.php')
+        );
+    }
+
+    private static function tabs($active){
+        echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px">';
+        echo '<a class="nav-tab '.esc_attr('overview'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('overview')).'">Dependiente</a>';
+        echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
+        echo '</nav>';
+    }
+
     public static function render(){
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
+
+        $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
+        if(!in_array($tab,array('overview','knowledge'),true))$tab='overview';
+
+        echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
+        self::tabs($tab);
+
+        if('knowledge'===$tab){
+            TCD_Knowledge_Transfer::render_admin_section();
+            echo '</div>';
+            return;
+        }
 
         $state=TCD_Academy::state();
         $syllabus=TCD_Sources::syllabus();
@@ -42,14 +71,13 @@ final class TCD_Admin {
             $counts[absint($row['lesson'])][sanitize_key((string)$row['status'])]=absint($row['total']);
         }
 
-        echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         echo '<p>Dependiente utiliza un único flujo interno: <strong>L1-L10</strong> para aprender y evaluar el catálogo, <strong>M11</strong> para construir y validar el Intérprete y <strong>M12</strong> para mantener el conocimiento actualizado. Cada L1-L10 conserva una <strong>foto fija auditable</strong>; toda la formación queda integrada en Dependiente, sin servicios auxiliares separados.</p>';
 
         echo '<p style="display:flex;gap:8px;flex-wrap:wrap">';
         echo '<a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar aprendizaje completo · JSON</a>';
-        echo '<a class="button button-primary" href="'.esc_url(TCD_Knowledge_Transfer::export_url()).'">Exportar conocimientos · JSON</a>';
+        echo '<a class="button" href="'.esc_url(self::tab_url('knowledge')).'">Gestionar conocimiento portable</a>';
         echo '</p>';
-        echo '<p class="description">El aprendizaje completo sirve para auditar las diez lecciones. El export de conocimientos crea la copia portable destinada a migración, copia de seguridad o análisis externo y se genera por lotes para no cargar todo el contenido en memoria.</p>';
+        echo '<p class="description">El aprendizaje completo sirve para auditar las diez lecciones. La exportación/importación de conocimiento portable está separada en su propia pestaña para que no quede oculta al final de esta pantalla.</p>';
 
         $priority=TCD_Load::priority();
         $sample=TCD_Load::last_sample();
@@ -155,8 +183,6 @@ final class TCD_Admin {
 
         echo '<h2>Asistente</h2><p>El shortcode <code>[taxocommerce_dependiente]</code> usa el Intérprete moderno: reglas semánticas, Vocabulary, memoria L9 ponderada y catálogo publicado. La búsqueda textual queda únicamente como red de seguridad.</p>';
         echo '<p>L6 utiliza directamente las FAQs canónicas de TaxoCommerce FAQs (<code>seo_faq</code>) y su categoría/propietario; no exige un CPT FAQ artificial.</p>';
-
-        TCD_Knowledge_Transfer::render_admin_section();
         echo '</div>';
     }
 }
