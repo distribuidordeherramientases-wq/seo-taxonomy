@@ -140,9 +140,10 @@ final class TCD_Admin {
         }
         echo '</div>';
 
-        echo '<p><a class="button button-primary" href="'.esc_url(TCD_Intelligence::quality_csv_url($lesson)).'">CSV · fallos del examen</a> ';
+        echo '<p><a class="button button-primary" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($lesson)).'">JSON · auditoría y corrección</a> ';
+        echo '<a class="button" href="'.esc_url(TCD_Intelligence::quality_csv_url($lesson)).'">CSV · fallos del examen</a> ';
         echo '<a class="button" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($lesson)).'">CSV · datos a revisar</a></p>';
-        echo '<p class="description">El primer CSV contiene solo los casos que Dependiente no recuperó bien. El segundo recorre toda la lección y lista anomalías de datos fuente aunque el elemento haya pasado el examen.</p>';
+        echo '<p class="description">El JSON separa fallos corregibles, ambigüedades y fallos internos de Dependiente, e incluye las anomalías de datos detectadas en toda la lección. Los CSV sirven como vistas tabulares para revisión o corrección masiva.</p>';
 
         if($recommendations){
             echo '<h3>Qué hacer</h3><ul style="list-style:disc;padding-left:22px">';
@@ -240,10 +241,18 @@ final class TCD_Admin {
         echo ' · <strong>Aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['learned']??0))).' · <strong>No aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['unlearned']??0))).'</p>';
         echo '<p>'.esc_html((string)$state['last_message']).'</p>';
         if(!empty($state['last_error']))echo '<div class="notice notice-error inline"><p>'.esc_html((string)$state['last_error']).'</p></div>';
-        if('running'!==(string)$state['status'])self::control_button('start','Iniciar o reanudar','button button-primary');
+        $current_snapshot=TCD_Academy::snapshot_for_lesson(absint($state['lesson']??0));
+        $quality_failed='quality_failed'===(string)($current_snapshot['status']??'');
+        if('running'!==(string)$state['status']){
+            self::control_button(
+                'start',
+                $quality_failed?'Revisar correcciones y reevaluar':'Iniciar o reanudar',
+                'button button-primary'
+            );
+        }
         self::control_button('stop','Detener aprendizaje');
         if('running'!==(string)$state['status'])self::control_button('restart','Reiniciar aprendizaje completo');
-        echo '<p class="description"><strong>Detener</strong> conserva la foto fija y el progreso. <strong>Reiniciar</strong> borra únicamente las tablas de aprendizaje propias de Dependiente y crea un run nuevo; nunca modifica productos, categorías, FAQs o Vocabulary.</p>';
+        echo '<p class="description"><strong>Detener</strong> conserva la foto fija y el progreso. Si una lección falla calidad, <strong>Revisar correcciones y reevaluar</strong> vuelve a leer únicamente los casos fallidos y repite el examen, sin reiniciar L1-L10. <strong>Reiniciar</strong> borra únicamente las tablas de aprendizaje propias de Dependiente y crea un run nuevo; nunca modifica productos, categorías, FAQs o Vocabulary.</p>';
         echo '</div>';
 
         echo '<h2>Las diez lecciones</h2>';
@@ -291,7 +300,7 @@ final class TCD_Admin {
                 if(!$passed){
                     $origins=(array)($quality_report['failure_origins']??array());
                     echo '<div class="description">Datos '.esc_html(number_format_i18n(absint($origins['datos_fuente']??0))).' · ambigüedad '.esc_html(number_format_i18n(absint($origins['ambiguedad']??0))).' · Dependiente '.esc_html(number_format_i18n(absint($origins['dependiente']??0))).'</div>';
-                    echo '<div style="margin-top:5px"><a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_csv_url($no)).'">CSV incidencias</a></div>';
+                    echo '<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap"><a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($no)).'">JSON fallos</a><a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_csv_url($no)).'">CSV incidencias</a></div>';
                 }
             }else echo '—';
             echo '</td>';
