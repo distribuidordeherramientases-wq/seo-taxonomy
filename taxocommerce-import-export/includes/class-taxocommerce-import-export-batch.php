@@ -172,6 +172,9 @@ final class TaxoCommerce_Import_Export_Batch {
 		}
 
 		$pending = $this->paths()['pending'];
+		if ( '' === $pending ) {
+			$this->redirect( 'error', __( 'WordPress no ha podido resolver el directorio uploads para crear la cola.', 'taxocommerce-import-export' ) );
+		}
 		$added   = 0;
 		foreach ( $names as $index => $raw_name ) {
 			$name = sanitize_file_name( wp_unslash( (string) $raw_name ) );
@@ -718,9 +721,17 @@ final class TaxoCommerce_Import_Export_Batch {
 	 */
 	private function paths() {
 		$uploads = wp_upload_dir( null, false );
-		$base    = ! empty( $uploads['basedir'] )
-			? trailingslashit( wp_normalize_path( (string) $uploads['basedir'] ) ) . 'taxocommerce-import-export/queue'
-			: '';
+		if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) {
+			return array(
+				'base'       => '',
+				'pending'    => '',
+				'processing' => '',
+				'imported'   => '',
+				'failed'     => '',
+			);
+		}
+
+		$base = trailingslashit( wp_normalize_path( (string) $uploads['basedir'] ) ) . 'taxocommerce-import-export/queue';
 
 		return array(
 			'base'       => $base,
