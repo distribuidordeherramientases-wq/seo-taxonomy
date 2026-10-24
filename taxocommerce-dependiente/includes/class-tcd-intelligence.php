@@ -546,6 +546,7 @@ final class TCD_Intelligence {
         $batch_ids = array_slice( $sample_ids, $cursor, self::quality_batch_size() );
         $report = (array) ( $state['report'] ?? array() );
         $stage = self::stage_id( $lesson, $snapshot_id );
+        $batch_evaluated = 0;
 
         if ( $batch_ids ) {
             $table = TCD_Academy::knowledge_table();
@@ -588,7 +589,8 @@ final class TCD_Intelligence {
                 if ( count( (array) ( $report['sample'] ?? array() ) ) < 12 ) $report['sample'][] = $evaluation;
             }
 
-            $cursor += count( $batch_ids );
+            $batch_evaluated = count( $batch_ids );
+            $cursor += $batch_evaluated;
             $report['pass_any_ratio'] = absint( $report['evaluated'] ?? 0 )
                 ? absint( $report['pass_top8'] ?? 0 ) / absint( $report['evaluated'] )
                 : 0;
@@ -607,6 +609,7 @@ final class TCD_Intelligence {
                 'evaluated'=>$cursor,
                 'total'=>$total,
                 'percent'=>$total ? round( 100 * $cursor / $total, 1 ) : 0,
+                'batch_evaluated'=>$batch_evaluated,
                 'pass_top1'=>absint( $report['pass_top1'] ?? 0 ),
                 'pass_top3'=>absint( $report['pass_top3'] ?? 0 ),
                 'pass_top8'=>absint( $report['pass_top8'] ?? 0 ),
@@ -647,6 +650,7 @@ final class TCD_Intelligence {
             'evaluated'=>absint( $report['evaluated'] ?? 0 ),
             'total'=>$total,
             'percent'=>100,
+            'batch_evaluated'=>$batch_evaluated,
             'report'=>$report,
         );
     }
