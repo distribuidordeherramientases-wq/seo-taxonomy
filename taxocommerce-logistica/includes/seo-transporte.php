@@ -1,6 +1,6 @@
 <?php
 /**
- * TaxoCommerce SEO - Gestor propio de costes de transporte.
+ * TaxoCommerce Logística - Gestor propio de costes de transporte.
  *
  * WooCommerce conserva carrito, checkout, pedido e impuestos. Este modulo
  * reemplaza exclusivamente las tarifas de envio por reglas definidas aqui.
@@ -54,8 +54,8 @@ if (!class_exists('SEO_Transporte_Costes')) {
             $methods['seo_transporte_bridge'] = new class($settings) extends WC_Shipping_Method {
                 public function __construct($settings = array()) {
                     $this->id                 = 'seo_transporte_bridge';
-                    $this->method_title       = 'SEO Transporte (interno)';
-                    $this->method_description = 'Metodo tecnico interno. Las tarifas se gestionan desde TaxoCommerce SEO > Logistica > Transporte.';
+                    $this->method_title       = 'TaxoCommerce Transporte (interno)';
+                    $this->method_description = 'Metodo tecnico interno. Las tarifas se gestionan desde TaxoCommerce Logística > Transporte.';
                     $this->title              = 'Transporte';
                     $this->supports           = array();
                     $this->enabled            = !empty($settings['enabled']) ? 'yes' : 'no';
