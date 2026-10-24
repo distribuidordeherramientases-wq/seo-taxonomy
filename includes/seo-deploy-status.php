@@ -272,9 +272,9 @@ function seo_taxocommerce_deploy_remove_tree( $path ) {
 function seo_taxocommerce_deploy_sync_rest( $request ) {
 	$run_id  = seo_taxocommerce_deploy_run_id( $request->get_param( 'run_id' ) );
 	$handoff = seo_taxocommerce_deploy_handoff_root() . '/' . $run_id;
-	$known   = seo_taxocommerce_known_deploy_modules();
+	$known     = seo_taxocommerce_known_deploy_modules();
 	$installed = seo_taxocommerce_installed_deploy_modules();
-	$targets = array();
+	$targets   = array();
 
 	foreach ( $installed as $slug ) {
 		if ( ! isset( $known[ $slug ] ) ) {
