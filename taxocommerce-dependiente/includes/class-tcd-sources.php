@@ -463,11 +463,23 @@ final class TCD_Sources {
             if ( 9 === $lesson ) {
                 $category_names = wp_get_post_terms( $id, 'product_cat', array( 'fields'=>'names' ) );
                 $category_label = ! is_wp_error( $category_names ) && $category_names ? (string) $category_names[0] : 'herramientas';
-                $semantic=array();
-                foreach(array('tipo','rol','aplicacion','plataforma','subtipo') as $group){
-                    if(!empty($facts['vocabulary'][$group][0]['label']))$semantic[]=$facts['vocabulary'][$group][0]['label'];
+                $need_parts = array();
+                foreach ( array( 'tipo','aplicacion','plataforma','subtipo','rol' ) as $group ) {
+                    if ( ! empty( $facts['vocabulary'][ $group ][0]['label'] ) ) {
+                        $need_parts[] = (string) $facts['vocabulary'][ $group ][0]['label'];
+                    }
                 }
-                $facts['customer_need'] = 'Necesito ' . $category_label . ($semantic ? ' para '.implode(', ',array_slice($semantic,0,3)) : '') . ': ' . $title;
+                foreach ( array_slice( (array) ( $facts['features']['attribute_labels'] ?? array() ), 0, 2, true ) as $label => $values ) {
+                    $value = is_array( $values ) ? reset( $values ) : '';
+                    if ( '' !== trim( (string) $value ) ) {
+                        $need_parts[] = trim( (string) $label . ' ' . (string) $value );
+                    }
+                }
+                $need_parts = array_values( array_unique( array_filter( array_map( 'trim', $need_parts ) ) ) );
+                $facts['customer_need'] = trim(
+                    'Necesito ' . $category_label
+                    . ( $need_parts ? ' para ' . implode( ', ', array_slice( $need_parts, 0, 4 ) ) : '' )
+                );
             }
             $body = (string) $product->get_short_description() . ' ' . $body;
         }
