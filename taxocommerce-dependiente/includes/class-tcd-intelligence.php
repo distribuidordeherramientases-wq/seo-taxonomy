@@ -74,7 +74,7 @@ final class TCD_Intelligence {
             return;
         }
         $stage = self::stage_id( $lesson, $snapshot_id );
-        if ( in_array( $lesson, array( 1, 3, 5, 6, 7 ), true ) ) {
+        if ( in_array( $lesson, array( 1, 3, 4, 5, 6, 7 ), true ) ) {
             foreach ( self::rules_from_item( $lesson, $item ) as $rule ) {
                 self::stage_rule( $lesson, $item, $rule, $stage );
             }
@@ -160,7 +160,9 @@ final class TCD_Intelligence {
             $rule['relation_type'] ?? '',
         );
         $rule_hash = hash( 'sha256', wp_json_encode( $hash_payload ) );
-        $rule_key = sanitize_key( 'modern_l' . absint( $lesson ) . '_' . $source_type . '_' . $source_id . '_' . substr( $rule_hash, 0, 18 ) );
+        // The semantic rule is global knowledge, not product-specific memory.
+        // Deduplicate identical concepts across thousands of source products.
+        $rule_key = sanitize_key( 'modern_l' . absint( $lesson ) . '_' . substr( $rule_hash, 0, 40 ) );
         $now = current_time( 'mysql' );
         $payload = array(
             'rule_key'=>$rule_key,
@@ -873,20 +875,18 @@ final class TCD_Intelligence {
     }
 
     public static function refresh_category( $term_id ) {
-        global $wpdb;
         $term_id = absint( $term_id );
         if ( ! $term_id || ! method_exists( 'TCD_Sources', 'category_item' ) ) return;
         $item = TCD_Sources::category_item( $term_id );
         if ( ! is_array( $item ) ) return;
-        $rules = TCD_Knowledge_Transfer::rules_table();
-        $prefix = $wpdb->esc_like( sanitize_key( 'modern_l1_termproduct_cat_' . $term_id . '_' ) ) . '%';
-        $wpdb->query( $wpdb->prepare( "DELETE FROM {$rules} WHERE source='modern_learning' AND rule_key LIKE %s", $prefix ) );
+        // Previous names remain useful aliases; the current category adds or
+        // refreshes its canonical semantic rules without deleting history.
         self::refresh_semantic_item( 1, $item, 'category:' . $term_id );
     }
 
     public static function refresh_semantic_item( $lesson, $item, $maintenance_key ) {
         $lesson = absint( $lesson );
-        if ( ! is_array( $item ) || ! in_array( $lesson, array( 1, 3, 5, 6, 7 ), true ) ) return 0;
+        if ( ! is_array( $item ) || ! in_array( $lesson, array( 1, 3, 4, 5, 6, 7 ), true ) ) return 0;
         $stage = 'maintenance:' . sanitize_key( (string) $maintenance_key );
         $count = 0;
         foreach ( self::rules_from_item( $lesson, $item ) as $rule ) {
