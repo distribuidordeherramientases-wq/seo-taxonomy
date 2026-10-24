@@ -33,6 +33,13 @@ final class Plugin {
         Assisted_Delete::register();
         add_action( 'admin_notices', array( __NAMESPACE__ . '\\Lifecycle', 'removal_notice' ) );
         add_action( 'taxocommerce_core_register_modules', array( __CLASS__, 'register_core' ) );
+
+        // Core boots at plugins_loaded priority 20; Redirects boots at 30.
+        // Register now if Core already dispatched the registration hook.
+        // This is optional: Redirects still works without Core.
+        if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_register_modules' ) ) {
+            self::register_core( taxocommerce_core() );
+        }
     }
 
     public static function register_core( $core ) {
