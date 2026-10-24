@@ -2172,6 +2172,19 @@ final class TCD_Intelligence {
         $interpretation = self::interpret( $query, $include_stage, $runtime_hints );
         $candidates = array();
 
+        // Product identity is a separate retrieval channel from semantic/L9
+        // language matching. Exact title/SKU associations learned by L2 must
+        // never be discarded by fuzzy-language thresholds.
+        foreach ( self::identity_matches( $query, $include_stage ) as $product_id => $match ) {
+            self::candidate_add(
+                $candidates,
+                $product_id,
+                2200 + absint( $match['weight'] ?? 0 ),
+                'identity_exact',
+                $match
+            );
+        }
+
         foreach ( self::l9_matches( $query, $include_stage ) as $product_id => $match ) {
             if ( ! empty( $match['identity_exact'] ) ) {
                 $source = 'identity_exact';
@@ -2430,6 +2443,81 @@ final class TCD_Intelligence {
             if ( in_array( $word, $actions, true ) ) $found[] = $word;
         }
         return array_values( array_unique( $found ) );
+    }
+
+    /**
+     * Resolve exact product identity directly from L2 memory.
+     *
+     * This intentionally bypasses L9 fuzzy thresholds. The query still has to
+     * match a signal that Dependiente previously learned, so this does not
+     * consult the live product catalogue as an exam shortcut.
+     */
+    private static function identity_matches( $query, $include_stage = '' ) {
+        global $wpdb;
+
+        $normalized = self::normalize( $query );
+        if ( ! $normalized ) return array();
+
+        $compact = self::without_stopwords( $normalized );
+        $terms = array(
+            self::shorten( $normalized, 250 ),
+        );
+        if ( $compact ) $terms[] = self::shorten( $compact, 250 );
+        $terms = array_values( array_unique( array_filter( $terms ) ) );
+        if ( ! $terms ) return array();
+
+        $table = TCD_Knowledge_Transfer::l9_table();
+        $placeholders = implode( ',', array_fill( 0, count( $terms ), '%s' ) );
+        $params = $terms;
+        $active = 'active=1';
+        if ( $include_stage ) {
+            $active = '(active=1 OR source_brain_id=%s)';
+            array_unshift( $params, $include_stage );
+        }
+
+        $sql = "SELECT product_id,lesson_key,signal_type,signal_text,normalized_signal,weight,source_brain_id
+                FROM {$table}
+                WHERE {$active}
+                  AND lesson_key IN ('v2_l2_identity','quality_repair_l2')
+                  AND signal_type IN ('identity_title','identity_sku','quality_repair_identity')
+                  AND normalized_signal IN ({$placeholders})
+                ORDER BY
+                  CASE
+                    WHEN normalized_signal=%s THEN 0
+                    ELSE 1
+                  END,
+                  weight DESC,
+                  id ASC
+                LIMIT 100";
+
+        // The final ORDER BY placeholder represents the normalized full query.
+        $params[] = self::shorten( $normalized, 250 );
+        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+        if ( ! $rows ) return array();
+
+        $out = array();
+        foreach ( $rows as $row ) {
+            $product_id = absint( $row['product_id'] ?? 0 );
+            if ( ! $product_id ) continue;
+            $signal_normalized = self::normalize( (string) ( $row['normalized_signal'] ?? '' ) );
+            $exact = self::shorten( $normalized, 250 ) === $signal_normalized;
+            $score = absint( $row['weight'] ?? 0 ) + ( $exact ? 500 : 250 );
+
+            if ( ! isset( $out[ $product_id ] ) || $score > absint( $out[ $product_id ]['score'] ?? 0 ) ) {
+                $out[ $product_id ] = array(
+                    'product_id'=>$product_id,
+                    'score'=>$score,
+                    'weight'=>absint( $row['weight'] ?? 0 ),
+                    'identity_exact'=>$exact ? 1 : 0,
+                    'quality_repair'=>0 === strpos( sanitize_key( (string) ( $row['lesson_key'] ?? '' ) ), 'quality_repair_' ) ? 1 : 0,
+                    'signal_type'=>sanitize_key( (string) ( $row['signal_type'] ?? '' ) ),
+                    'signal'=>(string) ( $row['signal_text'] ?? '' ),
+                    'source_brain_id'=>(string) ( $row['source_brain_id'] ?? '' ),
+                );
+            }
+        }
+
+        return $out;
     }
 
     private static function l9_matches( $query, $include_stage = '' ) {
