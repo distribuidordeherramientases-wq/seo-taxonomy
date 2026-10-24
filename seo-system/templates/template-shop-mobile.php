@@ -574,7 +574,9 @@ if (!$shop_title) {
                     </div>
                 </div>
 
-                <?php if (shortcode_exists('seo_search_filters')) : ?>
+                <?php if (shortcode_exists('taxocommerce_advanced_search')) : ?>
+                    <?php echo do_shortcode('[taxocommerce_advanced_search class="shop-semantic-filters"]'); ?>
+                <?php elseif (shortcode_exists('seo_search_filters')) : ?>
                     <?php echo do_shortcode('[seo_search_filters class="shop-semantic-filters"]'); ?>
                 <?php endif; ?>
 
