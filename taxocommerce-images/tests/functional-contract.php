@@ -47,6 +47,11 @@ update_post_meta( $product, '_product_image_gallery', (string) $own_image );
 $choices = wp_list_pluck( TaxoCommerce_Images_Assignment::candidates( 'product', $product ), 'id' );
 taxocommerce_images_test_assert( array( $own_image ) === $choices, 'a product can reuse its own gallery only' );
 taxocommerce_images_test_assert( ! TaxoCommerce_Images_Assignment::has_image( 'product', $product ), 'missing featured product image stays reported' );
+$manual_image = taxocommerce_images_test_image( 'manual-media-choice.png', 27 );
+$manual_result = TaxoCommerce_Images_Assignment::assign_from_media( 'product', $product, $manual_image );
+taxocommerce_images_test_assert( true === $manual_result && $manual_image === (int) get_post_thumbnail_id( $product ), 'administrator can explicitly assign any valid existing Media image' );
+$manual_second = TaxoCommerce_Images_Assignment::assign_from_media( 'product', $product, $cat_image );
+taxocommerce_images_test_assert( is_wp_error( $manual_second ) && $manual_image === (int) get_post_thumbnail_id( $product ), 'manual Media assignment never overwrites an existing image' );
 
 $baseline = TaxoCommerce_Images_Assignment::missing( 'page', 1, 1 )['total'];
 $pages = array();
