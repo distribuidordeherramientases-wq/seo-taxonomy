@@ -19,6 +19,7 @@ function seo_taxocommerce_known_deploy_modules() {
 		'taxocommerce-core'          => 'taxocommerce-core/taxocommerce-core.php',
 		'taxocommerce-images'        => 'taxocommerce-images/taxocommerce-images.php',
 		'taxocommerce-import-export' => 'taxocommerce-import-export/taxocommerce-import-export.php',
+		'taxocommerce-database'      => 'taxocommerce-database/taxocommerce-database.php',
 		'taxocommerce-system-check'  => 'taxocommerce-system-check/taxocommerce-system-check.php',
 		'taxocommerce-templates'     => 'taxocommerce-templates/taxocommerce-templates.php',
 		'taxocommerce-dependiente'   => 'taxocommerce-dependiente/taxocommerce-dependiente.php',
