@@ -31,7 +31,7 @@ $checks=array(
     strpos($academy,'TCD_Load::begin()')!==false,
     strpos($academy,'TCD_Load::batch_size()')!==false,
     strpos($academy,'TCD_Intelligence::learn_item')!==false,
-    strpos($academy,'TCD_Intelligence::finalize_lesson')!==false,
+    strpos($academy,'TCD_Intelligence::quality_step')!==false,
     strpos($academy,'TCD_Intelligence::prepare_quality_retry')!==false,
     strpos($academy,'Correcciones revisadas:')!==false,
     strpos($academy,'TCD_Intelligence::build_interpreter')!==false,
