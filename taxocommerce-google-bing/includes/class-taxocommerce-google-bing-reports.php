@@ -186,7 +186,7 @@ final class TaxoCommerce_Google_Bing_Reports {
 
         $lock = 'tgb_report_running_' . get_current_blog_id() . '_' . $source;
         if ( get_transient( $lock ) ) {
-            self::finish_download( $source, $selection, 'Hay otra descarga de esta fuente en curso.', true );
+            self::finish_download( $source, $selection, 'Another download for this source is already running.', true );
         }
         set_transient( $lock, 1, 2 * MINUTE_IN_SECONDS );
         $ranges = $selection['ranges'];
