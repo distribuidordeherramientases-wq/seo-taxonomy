@@ -61,6 +61,10 @@ final class TaxoCommerce_Import_Export_CSV {
 		$this->guard();
 		check_admin_referer( 'taxocommerce_import_export_import', 'taxocommerce_import_export_nonce' );
 
+		if ( class_exists( 'TaxoCommerce_Import_Export_Batch' ) && TaxoCommerce_Import_Export_Batch::is_running() ) {
+			wp_die( esc_html__( 'Hay una importación por lotes en curso. Páusala o detenla antes de iniciar una importación individual.', 'taxocommerce-import-export' ) );
+		}
+
 		if ( empty( $_FILES['csv_file'] ) || ! is_array( $_FILES['csv_file'] ) ) {
 			$this->redirect_error( __( 'No se ha recibido ningún CSV.', 'taxocommerce-import-export' ) );
 		}
@@ -310,6 +314,37 @@ final class TaxoCommerce_Import_Export_CSV {
 			$max_pages = (int) $query->max_num_pages;
 			wp_reset_postdata();
 		} while ( $page <= $max_pages );
+	}
+
+	/**
+	 * Public row adapter used by the modular batch queue.
+	 *
+	 * @param array $data Row.
+	 * @param array $context Queue context.
+	 * @return true|WP_Error
+	 */
+	public function import_row_for_batch( $data, $context = array() ) {
+		$type     = sanitize_key( (string) ( $data['record_type'] ?? '' ) );
+		$expected = sanitize_key( (string) ( $context['type'] ?? '' ) );
+
+		if ( $expected && $type !== $expected ) {
+			return new WP_Error(
+				'taxocommerce_ie_batch_record_type',
+				__( 'La fila no coincide con el miniimportador asignado al archivo.', 'taxocommerce-import-export' )
+			);
+		}
+
+		return $this->import_row( $data );
+	}
+
+	/**
+	 * Normalize a CSV header for the batch coordinator.
+	 *
+	 * @param array $headers Raw headers.
+	 * @return array
+	 */
+	public function normalize_headers_for_batch( $headers ) {
+		return array_map( array( $this, 'normalize_header' ), (array) $headers );
 	}
 
 	/**
