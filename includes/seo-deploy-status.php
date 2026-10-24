@@ -48,17 +48,32 @@ function seo_taxocommerce_active_deploy_modules() {
 }
 
 /**
- * Public read-only endpoint used by the production GitHub deployment.
+ * Register the read-only deployment status endpoint.
  *
  * @return void
  */
-function seo_taxocommerce_deploy_status_ajax() {
-	nocache_headers();
-	wp_send_json_success(
+function seo_taxocommerce_register_deploy_status_route() {
+	register_rest_route(
+		'taxocommerce/v1',
+		'/deploy-active-modules',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'seo_taxocommerce_deploy_status_rest',
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+add_action( 'rest_api_init', 'seo_taxocommerce_register_deploy_status_route' );
+
+/**
+ * REST callback used by the production GitHub deployment.
+ *
+ * @return WP_REST_Response
+ */
+function seo_taxocommerce_deploy_status_rest() {
+	return rest_ensure_response(
 		array(
 			'modules' => seo_taxocommerce_active_deploy_modules(),
 		)
 	);
 }
-add_action( 'wp_ajax_taxocommerce_deploy_active_modules', 'seo_taxocommerce_deploy_status_ajax' );
-add_action( 'wp_ajax_nopriv_taxocommerce_deploy_active_modules', 'seo_taxocommerce_deploy_status_ajax' );
