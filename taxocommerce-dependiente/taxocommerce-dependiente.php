@@ -45,7 +45,7 @@ add_action( 'plugins_loaded', static function () {
 add_action( 'taxocommerce_core_register_modules', static function ( $core ) {
     if ( method_exists( $core, 'register_module' ) ) {
         $core->register_module( 'dependiente', array(
-            'name' => 'TaxoCommerce Dependiente',
+            'name' => 'TaxoCommerce Assistant',
             'version' => TAXOCOMMERCE_DEPENDIENTE_VERSION,
             'status' => 'active',
             'description' => 'Catalog Assistant with L1-L10, semantic interpretation, L9 memory, and continuous updates.',
