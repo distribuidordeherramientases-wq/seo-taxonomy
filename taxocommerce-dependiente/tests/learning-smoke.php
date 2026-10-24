@@ -1,6 +1,7 @@
 <?php
 $root=dirname(__DIR__);
 $academy=file_get_contents($root.'/includes/class-tcd-academy.php');
+$learning_log=file_get_contents($root.'/includes/class-tcd-learning-log.php');
 $sources=file_get_contents($root.'/includes/class-tcd-sources.php');
 $intelligence=file_get_contents($root.'/includes/class-tcd-intelligence.php');
 $maintenance=file_get_contents($root.'/includes/class-tcd-maintenance.php');
@@ -15,7 +16,7 @@ preg_match("/define\s*\(\s*'TAXOCOMMERCE_DEPENDIENTE_VERSION'\s*,\s*'([0-9]+\.[0
 
 $checks=array(
     !empty($header_match[1]) && isset($constant_match[1]) && $header_match[1]===$constant_match[1],
-    isset($header_match[1]) && version_compare($header_match[1],'0.3.0','>='),
+    isset($header_match[1]) && version_compare($header_match[1],'0.3.1','>='),
     strpos($academy,'CREATE TABLE {$snapshots}')!==false,
     strpos($academy,'CREATE TABLE {$items}')!==false,
     strpos($academy,"'phase'=>'snapshot'")!==false,
@@ -31,6 +32,15 @@ $checks=array(
     strpos($academy,'TCD_Intelligence::finalize_lesson')!==false,
     strpos($academy,'TCD_Intelligence::build_interpreter')!==false,
     strpos($academy,'TCD_Maintenance::activate')!==false,
+    strpos($academy,"'source_batch_request'")!==false,
+    strpos($academy,"'knowledge_write'")!==false,
+    strpos($academy,"'tick_locked'")!==false,
+    strpos($academy,"'learning_exception'")!==false,
+    strpos($learning_log,'const MAX_BYTES = 1048576')!==false,
+    strpos($learning_log,'const KEEP_BYTES = 786432')!==false,
+    strpos($learning_log,"'php_fatal'")!==false,
+    strpos($learning_log,'LOCK_EX')!==false,
+    strpos($learning_log,"admin_post_tcd_learning_log_download")!==false,
     strpos($intelligence,'CREATE TABLE {$table}')!==false,
     strpos($intelligence,"'pass_top1'")!==false,
     strpos($intelligence,"'pass_top3'")!==false,
@@ -74,6 +84,11 @@ $checks=array(
     strpos($admin,'M12 · Actualización continua')!==false,
     strpos($admin,'nav-tab-wrapper')!==false,
     strpos($admin,'Conocimiento / Importar–Exportar')!==false,
+    strpos($admin,'Log de aprendizaje')!==false,
+    strpos($admin,"if('learning-log'===\$tab)")!==false,
+    strpos($admin,'Autoactualizar cada 10 s')!==false,
+    strpos($admin,'elementos procesados de la foto fija')!==false,
+    strpos($admin,'La foto permanece congelada durante esta lección.')!==false,
     strpos($admin,"if('knowledge'===\$tab)")!==false,
     substr_count($admin,'TCD_Knowledge_Transfer::render_admin_section();')===1,
     strpos($knowledge,"page=taxocommerce-dependiente&tab=knowledge")!==false,
