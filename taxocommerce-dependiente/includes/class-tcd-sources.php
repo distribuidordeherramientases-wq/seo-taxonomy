@@ -125,12 +125,7 @@ final class TCD_Sources {
             ));
         }
         if ( in_array( $lesson, array( 8, 10 ), true ) ) {
-            $table = TCD_Academy::knowledge_table();
-            $max_lesson = 8 === $lesson ? 7 : 9;
-            return absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table} WHERE lesson BETWEEN 1 AND %d",
-                $max_lesson
-            ) ) );
+            return self::review_source_total( $lesson );
         }
         return 0;
     }
@@ -561,19 +556,44 @@ final class TCD_Sources {
         return $features;
     }
 
+    private static function review_source_lessons( $lesson ) {
+        return 8 === absint( $lesson ) ? range( 1, 7 ) : range( 1, 9 );
+    }
+
+    private static function review_source_total( $lesson ) {
+        global $wpdb;
+        $table = TCD_Academy::knowledge_table();
+        $total = 0;
+        foreach ( self::review_source_lessons( $lesson ) as $source_lesson ) {
+            $count = absint( $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE lesson=%d",
+                absint( $source_lesson )
+            ) ) );
+            $total += min( 110, $count );
+        }
+        return $total;
+    }
+
     private static function review_batch( $lesson, $cursor, $limit ) {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
-        $source_lessons = 8 === $lesson ? '1,2,3,4,5,6,7' : '1,2,3,4,5,6,7,8,9';
-        // Table name and allowed source lesson numbers are internal constants.
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id,lesson,source_type,source_id,title,context_json,status FROM {$table}
-             WHERE id > %d AND lesson IN ({$source_lessons}) ORDER BY id ASC LIMIT %d",
-            $cursor, $limit + 1
-        ), ARRAY_A );
-        $more = count( (array) $rows ) > $limit;
-        $rows = array_slice( (array) $rows, 0, $limit );
+        $parts = array();
+        foreach ( self::review_source_lessons( $lesson ) as $source_lesson ) {
+            $source_lesson = absint( $source_lesson );
+            $parts[] = "(SELECT id,lesson,source_type,source_id,title,context_json,status
+                         FROM {$table}
+                         WHERE lesson={$source_lesson}
+                         ORDER BY id ASC
+                         LIMIT 110)";
+        }
+        if ( ! $parts ) return array( 'items'=>array(), 'cursor'=>$cursor, 'more'=>false );
+
+        $sql = "SELECT * FROM (" . implode( " UNION ALL ", $parts ) . ") tcd_review_sample
+                ORDER BY lesson ASC,id ASC LIMIT %d OFFSET %d";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table and lesson numbers are internal; only limit/offset are mutable and bound.
+        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $limit + 1, $cursor ), ARRAY_A );
+        $more = count( $rows ) > $limit;
+        $rows = array_slice( $rows, 0, $limit );
         $items = array();
         foreach ( $rows as $row ) {
             $snapshot = json_decode( (string) $row['context_json'], true );
@@ -585,8 +605,11 @@ final class TCD_Sources {
                 'original_context'=>is_array( $snapshot ) ? $snapshot : array(),
             ) );
         }
-        $last = $rows ? absint( $rows[ count( $rows ) - 1 ]['id'] ) : $cursor;
-        return array( 'items'=>$items, 'cursor'=>$last, 'more'=>$more );
+        return array(
+            'items'=>$items,
+            'cursor'=>$cursor + count( $rows ),
+            'more'=>$more,
+        );
     }
 
     private static function item( $lesson, $type, $id, $title, $body, $facts ) {
