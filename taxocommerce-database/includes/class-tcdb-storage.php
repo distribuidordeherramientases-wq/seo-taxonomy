@@ -6,6 +6,8 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TCDB_Storage {
+    private static $table_cache = null;
+
     const AUDIT_OPTION   = 'tcdb_last_audit_v1';
     const HISTORY_OPTION = 'tcdb_audit_history_v1';
     const EVENT_OPTION   = 'tcdb_operations_v1';
@@ -64,19 +66,23 @@ final class TCDB_Storage {
 
     /** A single metadata query, never SELECT COUNT(*) on every table. */
     public static function tables() {
+        if ( is_array( self::$table_cache ) ) {
+            return self::$table_cache;
+        }
         global $wpdb;
         $like = $wpdb->esc_like( $wpdb->prefix ) . '%';
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT TABLE_NAME, ENGINE, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH, DATA_FREE, TABLE_COLLATION
                    FROM information_schema.TABLES
-                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE %s
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE %s AND TABLE_TYPE = 'BASE TABLE'
                   ORDER BY TABLE_NAME ASC',
                 $like
             ),
             ARRAY_A
         );
         if ( ! is_array( $rows ) ) {
+            self::$table_cache = array();
             return array();
         }
 
@@ -97,6 +103,7 @@ final class TCDB_Storage {
                 'collation'   => (string) ( $row['TABLE_COLLATION'] ?? '' ),
             );
         }
+        self::$table_cache = $tables;
         return $tables;
     }
 
