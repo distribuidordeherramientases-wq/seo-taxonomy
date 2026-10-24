@@ -89,7 +89,7 @@ final class TCDB_Journal {
         return get_option( self::SCHEMA_OPTION ) === self::SCHEMA_VERSION;
     }
 
-    public static function supports( $table ) {
+    public static function supports( $table, $source = '' ) {
         $tables = TCDB_Storage::tables();
         if ( ! self::ready() || ! is_string( $table ) || ! isset( $tables[ $table ] )
             || ! $tables[ $table ]['family'] || 'InnoDB' !== $tables[ $table ]['engine']
@@ -100,12 +100,19 @@ final class TCDB_Journal {
         $primaries = array_values( array_filter( $columns, static function ( $column ) {
             return 'PRI' === (string) ( $column['Key'] ?? '' );
         } ) );
-        return 1 === count( $primaries )
-            && TCDB_Storage::identifier( (string) $primaries[0]['Field'] );
+        if ( 1 !== count( $primaries )
+            || ! TCDB_Storage::identifier( (string) $primaries[0]['Field'] ) ) {
+            return false;
+        }
+        // The owner explicitly registers its own SQL table. Installing this
+        // module does NOT make arbitrary WooCommerce/WordPress tables reversible.
+        $registered = apply_filters( 'tcdb_rollback_supported_tables', array() );
+        return is_string( $source ) && isset( $registered[ $source ] )
+            && in_array( $table, (array) $registered[ $source ], true );
     }
 
-    public static function primary( $table ) {
-        if ( ! self::supports( $table ) ) {
+    public static function primary( $table, $source = '' ) {
+        if ( ! self::supports( $table, $source ) ) {
             return '';
         }
         return TCDB_Storage::primary_key( $table );
@@ -163,7 +170,7 @@ final class TCDB_Journal {
         }
         $ok = $wpdb->insert( self::operations_table(), array(
             'source'       => $source,
-            'label'        => mb_substr( $label, 0, 190 ),
+            'label'        => function_exists( 'mb_substr' ) ? mb_substr( $label, 0, 190 ) : substr( $label, 0, 190 ),
             'status'       => 'completed',
             'change_count' => (int) $count,
             'user_id'      => get_current_user_id(),
@@ -212,13 +219,13 @@ final class TCDB_Journal {
      * @return mixed|WP_Error
      */
     public static function mutate( $source, $label, $table, $action, $identity, $callback ) {
-        if ( ! self::supports( $table ) || ! is_callable( $callback )
+        if ( ! self::supports( $table, $source ) || ! is_callable( $callback )
             || ! in_array( $action, array( 'insert', 'update', 'delete' ), true ) ) {
             return new WP_Error( 'tcdb_unsupported', 'Esta operación no admite un rollback seguro.' );
         }
 
         global $wpdb;
-        $primary = self::primary( $table );
+        $primary = self::primary( $table, $source );
         $value = $identity;
         try {
             self::begin_transaction();
@@ -270,12 +277,12 @@ final class TCDB_Journal {
      * Existing rows are not overwritten.
      */
     public static function insert_batch( $source, $label, $table, $rows ) {
-        if ( ! self::supports( $table ) || ! is_array( $rows )
+        if ( ! self::supports( $table, $source ) || ! is_array( $rows )
             || ! $rows || count( $rows ) > self::MAX_BATCH ) {
             return new WP_Error( 'tcdb_unsupported_batch', 'Esta tabla o el lote no admite importación reversible.' );
         }
         global $wpdb;
-        $pk = self::primary( $table );
+        $pk = self::primary( $table, $source );
         $changed = array();
         try {
             self::begin_transaction();
@@ -355,16 +362,20 @@ final class TCDB_Journal {
         return $data;
     }
 
-    private static function check_change( $change, $lock = false ) {
+    private static function check_change( $change, $source, $lock = false ) {
         $table = (string) $change['table_name'];
         $action = (string) $change['action_type'];
         $pk = (string) $change['primary_column'];
-        if ( ! self::supports( $table ) || self::primary( $table ) !== $pk
+        if ( ! self::supports( $table, $source ) || self::primary( $table, $source ) !== $pk
             || self::schema_hash( $table ) !== (string) $change['schema_hash'] ) {
             throw new RuntimeException( 'La tabla, su clave primaria o su esquema han cambiado.' );
         }
         $before = self::decode( $change['before_json'] );
         $after = self::decode( $change['after_json'] );
+        if ( self::hash_row( $before ) !== $change['before_hash']
+            || self::hash_row( $after ) !== $change['after_hash'] ) {
+            throw new RuntimeException( 'La integridad del snapshot del historial ha fallado.' );
+        }
         $current = self::read_row( $table, $pk, (string) $change['primary_value'], $lock );
         if ( 'insert' === $action && ( null !== $before || null === $after ) ) {
             throw new RuntimeException( 'Snapshot de inserción incompleto.' );
@@ -403,7 +414,7 @@ final class TCDB_Journal {
             }
             foreach ( $changes as $change ) {
                 try {
-                    $detail = self::check_change( $change, false );
+                    $detail = self::check_change( $change, (string) $operation['source'], false );
                     $items[] = array( 'action' => $detail['action'], 'table' => $detail['table'], 'status' => 'reversible' );
                 } catch ( Throwable $exception ) {
                     $items[] = array( 'action' => (string) $change['action_type'], 'table' => (string) $change['table_name'], 'status' => 'conflict' );
@@ -435,7 +446,7 @@ final class TCDB_Journal {
             }
             $actions = array();
             foreach ( $changes as $change ) {
-                $actions[] = self::check_change( $change, true );
+                $actions[] = self::check_change( $change, (string) $operation['source'], true );
             }
             foreach ( $actions as $action ) {
                 $table = $action['table'];
