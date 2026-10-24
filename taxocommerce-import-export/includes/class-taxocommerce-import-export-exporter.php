@@ -479,6 +479,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 	 */
 	private function next_ids( $type, $cursor, $limit, $filters ) {
 		if ( 'product_categories' === $type ) {
+			if ( ! empty( $filters['category_scope_active'] ) && empty( $filters['category_scope'] ) ) {
+				return array();
+			}
 			$ids = get_terms(
 				array(
 					'taxonomy'   => 'product_cat',
@@ -635,6 +638,33 @@ final class TaxoCommerce_Import_Export_Exporter {
 
 		if ( ! $has_hierarchy ) {
 			return array( 'active' => ! empty( $explicit ), 'ids' => $explicit );
+		}
+
+		if ( $primary && $cluster ) {
+			$parents = array_values( array_filter( array_map( 'absint', (array) get_post_meta( $primary, '_taxocommerce_core_parent_cluster', false ) ) ) );
+			if ( ! in_array( $cluster, $parents, true ) ) {
+				return new WP_Error( 'tc_ie_export_hierarchy_primary', __( 'El Hub primario seleccionado no pertenece al Cluster indicado.', 'taxocommerce-import-export' ) );
+			}
+		}
+		if ( $secondary && $primary ) {
+			$parents = array_values( array_filter( array_map( 'absint', (array) get_post_meta( $secondary, '_taxocommerce_core_parent_hub_primary', false ) ) ) );
+			if ( ! in_array( $primary, $parents, true ) ) {
+				return new WP_Error( 'tc_ie_export_hierarchy_secondary', __( 'El Hub secundario seleccionado no pertenece al Hub primario indicado.', 'taxocommerce-import-export' ) );
+			}
+		}
+		if ( $secondary && $cluster && ! $primary ) {
+			$secondary_parents = array_values( array_filter( array_map( 'absint', (array) get_post_meta( $secondary, '_taxocommerce_core_parent_hub_primary', false ) ) ) );
+			$valid = false;
+			foreach ( $secondary_parents as $candidate_primary ) {
+				$clusters = array_values( array_filter( array_map( 'absint', (array) get_post_meta( $candidate_primary, '_taxocommerce_core_parent_cluster', false ) ) ) );
+				if ( in_array( $cluster, $clusters, true ) ) {
+					$valid = true;
+					break;
+				}
+			}
+			if ( ! $valid ) {
+				return new WP_Error( 'tc_ie_export_hierarchy_secondary_cluster', __( 'El Hub secundario seleccionado no pertenece al Cluster indicado.', 'taxocommerce-import-export' ) );
+			}
 		}
 
 		$secondary_ids = array();
