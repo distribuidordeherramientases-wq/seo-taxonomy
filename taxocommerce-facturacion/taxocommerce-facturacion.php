@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: TaxoCommerce Facturación
- * Description: Facturas, proformas y presupuestos PDF para WooCommerce, migrados 1:1 desde TaxoCommerce SEO.
+ * Plugin Name: TaxoCommerce Billing
+ * Description: WooCommerce invoices, proformas, and PDF quotations migrated 1:1 from TaxoCommerce SEO.
  * Version: 0.1.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -43,7 +43,7 @@ function taxocommerce_facturacion_register_menu() {
         add_submenu_page(
             'taxocommerce-core',
             'Facturas y presupuestos',
-            'Facturación',
+            'Billing',
             'manage_options',
             'seo-facturas',
             array( 'SEO_Facturas_Admin', 'render_page' )
@@ -53,7 +53,7 @@ function taxocommerce_facturacion_register_menu() {
 
     add_menu_page(
         'Facturas y presupuestos',
-        'TaxoCommerce Facturación',
+        'TaxoCommerce Billing',
         'manage_options',
         'seo-facturas',
         array( 'SEO_Facturas_Admin', 'render_page' ),
@@ -71,7 +71,7 @@ function taxocommerce_facturacion_register_core( $core ) {
     $core->register_module(
         'facturacion',
         array(
-            'name'        => 'TaxoCommerce Facturación',
+            'name'        => 'TaxoCommerce Billing',
             'version'     => TAXOCOMMERCE_FACTURACION_VERSION,
             'status'      => 'active',
             'description' => 'Facturas, proformas y presupuestos PDF conectados a WooCommerce.',
@@ -88,10 +88,10 @@ function taxocommerce_facturacion_family_catalog( $extensions ) {
     $extensions = is_array( $extensions ) ? $extensions : array();
     $extensions['facturacion'] = array(
         'id'            => 'facturacion',
-        'name'          => 'TaxoCommerce Facturación',
+        'name'          => 'TaxoCommerce Billing',
         'plugin_file'   => 'taxocommerce-facturacion/taxocommerce-facturacion.php',
         'org_slug'      => 'taxocommerce-facturacion',
-        'search_term'   => 'TaxoCommerce Facturación',
+        'search_term'   => 'TaxoCommerce Billing',
         'wordpress_org' => false,
         'admin_url'     => admin_url( 'admin.php?page=seo-facturas' ),
         'description'   => 'Facturas, proformas y presupuestos PDF conectados a WooCommerce.',
