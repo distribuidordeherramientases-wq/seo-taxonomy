@@ -65,6 +65,7 @@ $checks=array(
     strpos($intelligence,"'ambiguity_queue'")!==false,
     strpos($intelligence,"'data_audit'")!==false,
     strpos($intelligence,'prepare_quality_retry')!==false,
+    strpos($intelligence,"'review_source_id'")!==false,
     strpos($intelligence,'fresh_source_item')!==false,
     strpos($intelligence,'download_quality_csv')!==false,
     strpos($intelligence,"admin_post_tcd_quality_csv")!==false,
