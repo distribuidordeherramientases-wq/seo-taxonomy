@@ -141,7 +141,7 @@ final class TCD_Search {
         $interpreter = TCD_Intelligence::interpreter_state();
         $state = TCD_Academy::state();
 
-        TCD_Feedback::record_search( $q, $session, $depth, $decision, $ranked, $clarification );
+        TCD_Feedback::record_search( $q, $session, $depth, $decision, $results, $clarification );
 
         return rest_ensure_response( array(
             'session'=>$session,
