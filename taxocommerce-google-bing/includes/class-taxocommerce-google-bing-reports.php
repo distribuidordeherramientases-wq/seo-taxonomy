@@ -154,7 +154,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             'end'     => $snapshot['current']['end'],
         );
         $export = wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), 'tgb_export_report_' . $source );
-        echo '<p><a class="button" href="' . esc_url( $export ) . '">Exportar copia JSON</a></p>';
+        echo '<p><a class="button" href="' . esc_url( $export ) . '">Export JSON copy</a></p>';
 
         $data = $snapshot['data'];
         if ( 'analytics' === $source ) {
