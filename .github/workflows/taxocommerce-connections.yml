@@ -1,0 +1,69 @@
+name: TaxoCommerce Connections CI
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-connections/**'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
+      - '.github/workflows/taxocommerce-connections.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-connections/**'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
+      - '.github/workflows/taxocommerce-connections.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP lint
+        run: |
+          find taxocommerce-connections -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Connections smoke
+        run: php taxocommerce-connections/tests/connections-smoke.php
+
+      - name: Build distributable package
+        run: |
+          set -euo pipefail
+          rm -rf build/taxocommerce-connections
+          mkdir -p build/taxocommerce-connections
+          rsync -a             --exclude='tests/'             --exclude='*.md'             --exclude='*.bak'             taxocommerce-connections/ build/taxocommerce-connections/
+          test -f build/taxocommerce-connections/taxocommerce-connections.php
+          test -f build/taxocommerce-connections/includes/class-taxocommerce-connections-amazon.php
+          test -f build/taxocommerce-connections/includes/class-taxocommerce-connections-pinterest.php
+          test -f build/taxocommerce-connections/includes/class-taxocommerce-connections-admin.php
+          test ! -e build/taxocommerce-connections/tests
+
+      - name: WordPress Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './build/taxocommerce-connections'
+          slug: taxocommerce-connections
+          wp-version: latest
+          ignore-warnings: true
+          ignore-errors: false
+
+      - name: Package ZIP
+        run: |
+          (
+            cd build
+            zip -qr ../taxocommerce-connections.zip taxocommerce-connections
+          )
+          unzip -t taxocommerce-connections.zip
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-connections-0.1.0
+          path: taxocommerce-connections.zip
+          retention-days: 30
+          if-no-files-found: error
