@@ -91,7 +91,7 @@ function taxocommerce_google_bing_register_menu() {
 
 function taxocommerce_google_bing_screen() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
+        wp_die( esc_html__( 'Unauthorized access.', 'taxocommerce-google-bing' ) );
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
