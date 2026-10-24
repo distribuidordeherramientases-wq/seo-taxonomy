@@ -634,7 +634,11 @@ final class TaxoCommerce_Import_Export_CSV {
 			if ( ! $term || is_wp_error( $term ) ) {
 				return new WP_Error(
 					'taxocommerce_ie_brand_id',
-					sprintf( __( 'La marca ID %d no existe en la taxonomía indicada.', 'taxocommerce-import-export' ), $id )
+					sprintf(
+						/* translators: %d: existing brand term ID from the CSV. */
+						__( 'La marca ID %d no existe en la taxonomía indicada.', 'taxocommerce-import-export' ),
+						$id
+					)
 				);
 			}
 			$ids[] = $id;
@@ -654,7 +658,11 @@ final class TaxoCommerce_Import_Export_CSV {
 				if ( ! $term || is_wp_error( $term ) ) {
 					return new WP_Error(
 						'taxocommerce_ie_brand_name',
-						sprintf( __( 'La marca «%s» no existe; el importador parcial no crea marcas nuevas.', 'taxocommerce-import-export' ), $name )
+						sprintf(
+							/* translators: %s: brand name from the CSV. */
+							__( 'La marca «%s» no existe; el importador parcial no crea marcas nuevas.', 'taxocommerce-import-export' ),
+							$name
+						)
 					);
 				}
 				$ids[] = absint( $term->term_id );
