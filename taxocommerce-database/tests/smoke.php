@@ -61,6 +61,9 @@ assert_tcdb( is_wp_error( TCDB_Import::validate_column_set( array( 'id', 'missin
 assert_tcdb( is_wp_error( TCDB_Import::validate_column_set( array( 'title', 'title' ), $columns ) ), 'duplicate column rejected' );
 assert_tcdb( is_wp_error( TCDB_Import::validate_column_set( array( 'computed' ), $columns ) ), 'generated column rejected' );
 assert_tcdb( 'NULL' === TCDB_Export::sql_literal( null ), 'SQL null preserved' );
+assert_tcdb( '[oculto: campo sensible]' === TCDB_Admin::safe_display_cell( 'access_token', 'secret' ), 'token hidden in data viewer' );
+assert_tcdb( '[oculto: contiene credenciales]' === TCDB_Admin::safe_display_cell( 'context_json', '{"access_token":"secret"}' ), 'nested credential hidden' );
+assert_tcdb( 'categoría' === TCDB_Admin::safe_display_cell( 'title', 'categoría' ), 'normal title visible' );
 
 $csv = tempnam( sys_get_temp_dir(), 'tcdb_' );
 file_put_contents( $csv, "\xEF\xBB\xBFid,title\n1,\"Taladro, percutor\"\n2,Amoladora\n" );
