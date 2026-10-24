@@ -457,7 +457,7 @@ final class TCD_Intelligence {
         return is_array( $row ) ? $row : array();
     }
 
-    public static function interpret( $query, $include_stage = '' ) {
+    public static function interpret( $query, $include_stage = '', $runtime_hints = array() ) {
         global $wpdb;
         $normalized = self::normalize( $query );
         $result = array(
@@ -511,6 +511,8 @@ final class TCD_Intelligence {
             }
         }
         self::apply_vocabulary_direct( $result, $ngrams );
+        $feedback_hints = class_exists( 'TCD_Feedback', false ) ? TCD_Feedback::active_semantic_hints( $normalized ) : array();
+        self::apply_runtime_hints( $result, array_merge( (array) $feedback_hints, (array) $runtime_hints ) );
         self::apply_routes( $result, $include_stage );
         $result['groups'] = array_values( $result['groups'] );
         return $result;
@@ -557,6 +559,37 @@ final class TCD_Intelligence {
                 'target_slug'=>$slug,
                 'weight'=>130,
                 'source'=>'vocabulary',
+            );
+        }
+    }
+
+    private static function apply_runtime_hints( &$result, $hints ) {
+        foreach ( (array) $hints as $hint ) {
+            if ( ! is_array( $hint ) ) continue;
+            $group = sanitize_key( (string) ( $hint['group'] ?? '' ) );
+            $slug = sanitize_title( (string) ( $hint['slug'] ?? '' ) );
+            if ( ! $group || ! $slug ) continue;
+            $label = trim( (string) ( $hint['label'] ?? str_replace( '-', ' ', $slug ) ) );
+            $weight = absint( $hint['weight'] ?? 220 );
+            $key = $group . ':' . $slug;
+            $result['groups'][ $key ] = array(
+                'group'=>$group,
+                'slug'=>$slug,
+                'label'=>$label,
+                'weight'=>$weight,
+                'via'=>(string) ( $hint['source'] ?? 'runtime_hint' ),
+            );
+            $result['semantic_hits'][] = array(
+                'id'=>0,
+                'expression'=>$label,
+                'canonical'=>$label,
+                'role'=>$group,
+                'source_group'=>$group,
+                'source_slug'=>$slug,
+                'target_group'=>$group,
+                'target_slug'=>$slug,
+                'weight'=>$weight,
+                'source'=>(string) ( $hint['source'] ?? 'runtime_hint' ),
             );
         }
     }
@@ -656,17 +689,28 @@ final class TCD_Intelligence {
         return false;
     }
 
-    public static function search_products( $query, $limit = 8, $include_stage = '' ) {
+    public static function search_products( $query, $limit = 8, $include_stage = '', $runtime_hints = array() ) {
         $limit = min( 36, max( 1, absint( $limit ) ) );
-        $interpretation = self::interpret( $query, $include_stage );
+        $interpretation = self::interpret( $query, $include_stage, $runtime_hints );
         $candidates = array();
 
         foreach ( self::l9_matches( $query, $include_stage ) as $product_id => $match ) {
             self::candidate_add( $candidates, $product_id, 300 + absint( $match['score'] ?? 0 ), 'lesson9', $match );
         }
 
+        if ( class_exists( 'TCD_Feedback', false ) ) {
+            foreach ( TCD_Feedback::active_product_scores( $query ) as $product_id => $feedback ) {
+                self::candidate_add( $candidates, $product_id, absint( $feedback['score'] ?? 0 ), 'feedback_click', $feedback );
+            }
+        }
+
         foreach ( (array) ( $interpretation['groups'] ?? array() ) as $group ) {
-            foreach ( self::products_for_vocabulary( (string) ( $group['group'] ?? '' ), (string) ( $group['slug'] ?? '' ), 160 ) as $product_id ) {
+            $group_name = sanitize_key( (string) ( $group['group'] ?? '' ) );
+            $slug = sanitize_title( (string) ( $group['slug'] ?? '' ) );
+            $ids = 'product_cat' === $group_name
+                ? self::products_for_category( $slug, 160 )
+                : self::products_for_vocabulary( $group_name, $slug, 160 );
+            foreach ( $ids as $product_id ) {
                 self::candidate_add( $candidates, $product_id, 190 + absint( $group['weight'] ?? 0 ), 'semantic', $group );
             }
         }
@@ -780,12 +824,14 @@ final class TCD_Intelligence {
         $margin = $top_score > 0 ? max( 0, ( $top_score - $second_score ) / $top_score ) : 0;
         $has_semantic = in_array( 'semantic', $sources, true );
         $has_l9 = in_array( 'lesson9', $sources, true );
-        $text_only = ! $has_semantic && ! $has_l9;
+        $has_feedback = in_array( 'feedback_click', $sources, true );
+        $text_only = ! $has_semantic && ! $has_l9 && ! $has_feedback;
         $has_action = ! empty( $interpretation['actions'] );
 
         $confidence = 15;
         if ( $has_semantic ) $confidence += 28;
         if ( $has_l9 ) $confidence += 32;
+        if ( $has_feedback ) $confidence += 22;
         if ( $group_total > 0 && $coverage >= $group_total ) $confidence += 18;
         elseif ( $coverage >= 2 ) $confidence += 12;
         elseif ( $coverage >= 1 ) $confidence += 7;
@@ -825,6 +871,7 @@ final class TCD_Intelligence {
                 'margin'=>round( $margin, 3 ),
                 'actions'=>(array) ( $interpretation['actions'] ?? array() ),
                 'sources'=>$sources,
+                'customer_feedback'=>$has_feedback ? 1 : 0,
             ),
         );
     }
@@ -927,6 +974,28 @@ final class TCD_Intelligence {
         }
         unset( $item );
         return $products;
+    }
+
+    private static function products_for_category( $slug, $limit ) {
+        $slug = sanitize_title( $slug );
+        if ( ! $slug ) return array();
+        $term = get_term_by( 'slug', $slug, 'product_cat' );
+        if ( ! $term instanceof WP_Term ) return array();
+        return array_map( 'absint', get_posts( array(
+            'post_type'=>'product',
+            'post_status'=>'publish',
+            'posts_per_page'=>min( 200, max( 1, absint( $limit ) ) ),
+            'fields'=>'ids',
+            'no_found_rows'=>true,
+            'tax_query'=>array(
+                array(
+                    'taxonomy'=>'product_cat',
+                    'field'=>'term_id',
+                    'terms'=>array( absint( $term->term_id ) ),
+                    'include_children'=>true,
+                ),
+            ),
+        ) ) );
     }
 
     private static function products_for_vocabulary( $group, $slug, $limit ) {
