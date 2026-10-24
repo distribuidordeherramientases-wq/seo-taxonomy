@@ -53,6 +53,7 @@ final class TCD_Intelligence {
         }
         add_action( 'admin_post_tcd_quality_csv', array( __CLASS__, 'download_quality_csv' ) );
         add_action( 'admin_post_tcd_quality_data_csv', array( __CLASS__, 'download_quality_data_csv' ) );
+        add_action( 'admin_post_tcd_quality_audit_json', array( __CLASS__, 'download_quality_audit_json' ) );
     }
 
     public static function reset_modern_generated() {
@@ -888,6 +889,267 @@ final class TCD_Intelligence {
 
         fclose( $out );
         exit;
+    }
+
+    public static function quality_audit_json_url( $lesson ) {
+        return wp_nonce_url(
+            add_query_arg(
+                array(
+                    'action'=>'tcd_quality_audit_json',
+                    'lesson'=>absint( $lesson ),
+                ),
+                admin_url( 'admin-post.php' )
+            ),
+            'tcd_quality_audit_json_' . absint( $lesson )
+        );
+    }
+
+    public static function download_quality_audit_json() {
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Sin permiso.' );
+        }
+
+        $lesson = absint( $_GET['lesson'] ?? 0 );
+        if ( $lesson < 1 || $lesson > 10 ) wp_die( 'Lección inválida.' );
+        check_admin_referer( 'tcd_quality_audit_json_' . $lesson );
+
+        $payload = self::quality_audit_payload( $lesson );
+
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="dependiente_L' . $lesson . '_auditoria_correccion_' . gmdate( 'Ymd_His' ) . '.json"' );
+        echo wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download.
+        exit;
+    }
+
+    public static function quality_audit_payload( $lesson ) {
+        global $wpdb;
+
+        $lesson = absint( $lesson );
+        $quality = self::quality_for_lesson( $lesson );
+        $report = json_decode( (string) ( $quality['report_json'] ?? '' ), true );
+        $report = is_array( $report ) ? $report : array();
+        $failures = array_values( (array) ( $report['failures'] ?? array() ) );
+
+        $correctable = array();
+        $internal = array();
+        $ambiguous = array();
+        foreach ( $failures as $failure ) {
+            $diagnosis = (array) ( $failure['diagnosis'] ?? array() );
+            $origin = sanitize_key( (string) ( $diagnosis['origin'] ?? 'sin_diagnostico' ) );
+            if ( 'dependiente' === $origin ) {
+                $internal[] = $failure;
+            } elseif ( 'ambiguedad' === $origin ) {
+                $ambiguous[] = $failure;
+                if ( ! empty( $diagnosis['correctable'] ) ) $correctable[] = $failure;
+            } elseif ( ! empty( $diagnosis['correctable'] ) || 'datos_fuente' === $origin ) {
+                $correctable[] = $failure;
+            }
+        }
+
+        $data_audit = array();
+        $issue_counts = array();
+        $entity_counts = array();
+        $table = TCD_Academy::knowledge_table();
+        $last = 0;
+        do {
+            $rows = (array) $wpdb->get_results( $wpdb->prepare(
+                "SELECT id,source_type,source_id,title,context_json,status
+                 FROM {$table}
+                 WHERE lesson=%d AND status='learned' AND id>%d
+                 ORDER BY id ASC LIMIT 250",
+                $lesson,
+                $last
+            ), ARRAY_A );
+
+            foreach ( $rows as $row ) {
+                $last = absint( $row['id'] ?? 0 );
+                $issues = self::data_issues_for_row( $lesson, $row );
+                if ( ! $issues ) continue;
+
+                $source_type = sanitize_key( (string) ( $row['source_type'] ?? '' ) );
+                $entity_type = self::audit_entity_type( $source_type, $lesson );
+                $entity_counts[ $entity_type ] = absint( $entity_counts[ $entity_type ] ?? 0 ) + 1;
+
+                foreach ( $issues as $issue ) {
+                    $code = sanitize_key( (string) ( $issue['code'] ?? '' ) );
+                    if ( $code ) $issue_counts[ $code ] = absint( $issue_counts[ $code ] ?? 0 ) + 1;
+                }
+
+                $data_audit[] = array(
+                    'lesson'=>$lesson,
+                    'entity_type'=>$entity_type,
+                    'source_type'=>$source_type,
+                    'source_id'=>absint( $row['source_id'] ?? 0 ),
+                    'title'=>(string) ( $row['title'] ?? '' ),
+                    'issues'=>array_values( $issues ),
+                );
+            }
+        } while ( count( $rows ) === 250 );
+
+        return array(
+            'schema'=>array(
+                'name'=>'taxocommerce_dependiente_quality_audit',
+                'version'=>1,
+            ),
+            'exported_at'=>gmdate( 'c' ),
+            'lesson'=>$lesson,
+            'quality'=>array(
+                'status'=>(string) ( $quality['status'] ?? 'unknown' ),
+                'evaluated'=>absint( $quality['evaluated'] ?? $report['evaluated'] ?? 0 ),
+                'pass_top1'=>absint( $quality['pass_top1'] ?? $report['pass_top1'] ?? 0 ),
+                'pass_top3'=>absint( $quality['pass_top3'] ?? $report['pass_top3'] ?? 0 ),
+                'pass_top8'=>absint( $quality['pass_top8'] ?? $report['pass_top8'] ?? 0 ),
+                'failed'=>absint( $quality['failed'] ?? $report['failed'] ?? 0 ),
+                'ratio'=>(float) ( $quality['pass_any_ratio'] ?? $report['pass_any_ratio'] ?? 0 ),
+                'threshold'=>(float) ( $quality['threshold'] ?? $report['threshold'] ?? 0 ),
+                'population'=>absint( $report['population'] ?? 0 ),
+                'sample_method'=>(string) ( $report['sample_method'] ?? '' ),
+            ),
+            'summary'=>array(
+                'failure_origins'=>(array) ( $report['failure_origins'] ?? array() ),
+                'failure_data_issue_counts'=>(array) ( $report['data_issue_counts'] ?? array() ),
+                'audit_issue_counts'=>$issue_counts,
+                'audit_entities_with_issues'=>$entity_counts,
+                'correctable_failures'=>count( $correctable ),
+                'internal_dependiente_failures'=>count( $internal ),
+                'ambiguous_failures'=>count( $ambiguous ),
+                'data_audit_items'=>count( $data_audit ),
+            ),
+            'correction_policy'=>array(
+                'datos_fuente'=>'Corregir el contenido/campo indicado en WordPress y después reevaluar la lección.',
+                'ambiguedad'=>'Revisar solo si existe un problema real de identidad o duplicado. No eliminar variantes válidas para mejorar el porcentaje.',
+                'dependiente'=>'NO modificar el contenido para forzar el examen. Este caso debe corregirse en memoria, señales o ranking de Dependiente.',
+            ),
+            'recommendations'=>array_values( (array) ( $report['recommendations'] ?? array() ) ),
+            'quality_failures'=>$failures,
+            'correction_queue'=>$correctable,
+            'dependiente_internal_queue'=>$internal,
+            'ambiguity_queue'=>$ambiguous,
+            'data_audit'=>$data_audit,
+        );
+    }
+
+    private static function audit_entity_type( $source_type, $lesson ) {
+        $source_type = sanitize_key( (string) $source_type );
+        if ( 'product' === $source_type || in_array( absint( $lesson ), array( 2, 4, 9 ), true ) ) return 'product';
+        if ( 'post' === $source_type ) return 'post';
+        if ( 'page' === $source_type ) return 'page';
+        if ( in_array( $source_type, array( 'faq','seo_faq' ), true ) || 6 === absint( $lesson ) ) return 'faq';
+        if ( 'vocabulary' === $source_type || 3 === absint( $lesson ) ) return 'vocabulary';
+        if ( false !== strpos( $source_type, 'product_cat' ) || 1 === absint( $lesson ) ) return 'category';
+        return $source_type ?: 'unknown';
+    }
+
+    public static function prepare_quality_retry( $lesson, $snapshot_id ) {
+        global $wpdb;
+
+        $lesson = absint( $lesson );
+        $snapshot_id = absint( $snapshot_id );
+        $quality = self::quality_for_lesson( $lesson );
+        $report = json_decode( (string) ( $quality['report_json'] ?? '' ), true );
+        $report = is_array( $report ) ? $report : array();
+        $failures = array_values( (array) ( $report['failures'] ?? array() ) );
+        if ( ! $failures ) return array( 'refreshed'=>0, 'relearned'=>0, 'unavailable'=>0 );
+
+        $stage = self::stage_id( $lesson, $snapshot_id );
+        $refreshed = 0;
+        $relearned = 0;
+        $unavailable = 0;
+        $knowledge = TCD_Academy::knowledge_table();
+        $l9 = TCD_Knowledge_Transfer::l9_table();
+
+        foreach ( $failures as $failure ) {
+            $source_type = sanitize_key( (string) ( $failure['source_type'] ?? '' ) );
+            $source_id = absint( $failure['source_id'] ?? 0 );
+            if ( ! $source_id ) {
+                $unavailable++;
+                continue;
+            }
+
+            $fresh = self::fresh_source_item( $lesson, $source_type, $source_id );
+            if ( is_array( $fresh ) ) {
+                TCD_Academy::upsert_maintenance_item( $lesson, $fresh );
+                $item = $fresh;
+                $refreshed++;
+            } else {
+                $stored = $wpdb->get_row( $wpdb->prepare(
+                    "SELECT source_type,source_id,title,context_json
+                     FROM {$knowledge}
+                     WHERE lesson=%d AND source_type=%s AND source_id=%d LIMIT 1",
+                    $lesson, $source_type, $source_id
+                ), ARRAY_A );
+                if ( ! $stored ) {
+                    $unavailable++;
+                    continue;
+                }
+                $facts = json_decode( (string) ( $stored['context_json'] ?? '' ), true );
+                $item = array(
+                    'lesson'=>$lesson,
+                    'source_type'=>(string) ( $stored['source_type'] ?? $source_type ),
+                    'source_id'=>$source_id,
+                    'title'=>(string) ( $stored['title'] ?? '' ),
+                    'facts'=>is_array( $facts ) ? $facts : array(),
+                );
+            }
+
+            if ( 2 === $lesson ) {
+                $wpdb->delete( $l9, array(
+                    'lesson_key'=>'v2_l2_identity',
+                    'product_id'=>$source_id,
+                    'source_brain_id'=>$stage,
+                ) );
+            } elseif ( 9 === $lesson ) {
+                $wpdb->delete( $l9, array(
+                    'lesson_key'=>'v2_l9_product_language',
+                    'product_id'=>$source_id,
+                    'source_brain_id'=>$stage,
+                ) );
+            }
+
+            self::learn_item( $lesson, $item, $snapshot_id );
+            $relearned++;
+        }
+
+        if ( class_exists( 'TCD_Learning_Log', false ) ) {
+            TCD_Learning_Log::write( 'INFO', 'quality_retry_prepared', array(
+                'lesson'=>$lesson,
+                'snapshot_id'=>$snapshot_id,
+                'failures'=>count( $failures ),
+                'refreshed'=>$refreshed,
+                'relearned'=>$relearned,
+                'unavailable'=>$unavailable,
+            ) );
+        }
+
+        return array(
+            'refreshed'=>$refreshed,
+            'relearned'=>$relearned,
+            'unavailable'=>$unavailable,
+        );
+    }
+
+    private static function fresh_source_item( $lesson, $source_type, $source_id ) {
+        $lesson = absint( $lesson );
+        $source_type = sanitize_key( (string) $source_type );
+        $source_id = absint( $source_id );
+
+        if ( in_array( $lesson, array( 2, 4, 9 ), true ) || 'product' === $source_type ) {
+            return TCD_Sources::product_item( $lesson, $source_id );
+        }
+        if ( 1 === $lesson || false !== strpos( $source_type, 'product_cat' ) ) {
+            return TCD_Sources::category_item( $source_id );
+        }
+        if ( 3 === $lesson || 'vocabulary' === $source_type ) {
+            return TCD_Sources::vocabulary_item( $source_id );
+        }
+        if ( 5 === $lesson && in_array( $source_type, array( 'post','page' ), true ) ) {
+            return TCD_Sources::content_item( $source_id );
+        }
+        if ( 6 === $lesson || in_array( $source_type, array( 'faq','seo_faq' ), true ) ) {
+            return TCD_Sources::faq_item( $source_id );
+        }
+        return null;
     }
 
     private static function activate_stage( $stage ) {
