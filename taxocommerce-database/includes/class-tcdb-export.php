@@ -1,0 +1,201 @@
+<?php
+/**
+ * Manual, streamed SQL/CSV logical exports. No files or dumps are left inside
+ * the publicly accessible uploads directory. No restore/rollback endpoints.
+ */
+defined( 'ABSPATH' ) || exit;
+
+final class TCDB_Export {
+    const BATCH = 100;
+
+    public static function handle() {
+        TCDB_Storage::authorize( 'tcdb_export' );
+        $mode = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : '';
+        $format = isset( $_POST['format'] ) ? sanitize_key( wp_unslash( $_POST['format'] ) ) : '';
+        $table = isset( $_POST['table'] ) ? sanitize_text_field( wp_unslash( $_POST['table'] ) ) : '';
+        $tables = TCDB_Storage::tables();
+
+        if ( 'table' === $mode ) {
+            if ( ! isset( $tables[ $table ] ) || ! $tables[ $table ]['family'] || ! in_array( $format, array( 'csv', 'sql' ), true ) ) {
+                wp_die( 'Solo pueden exportarse tablas propias de la familia TaxoCommerce en CSV o SQL.' );
+            }
+            $selected = array( $table );
+        } elseif ( in_array( $mode, array( 'family', 'all' ), true ) && 'sql' === $format ) {
+            if ( 'all' === $mode ) {
+                $ack = isset( $_POST['confirm_sensitive'] ) ? sanitize_text_field( wp_unslash( $_POST['confirm_sensitive'] ) ) : '';
+                if ( 'EXPORTAR' !== $ack ) {
+                    wp_die( 'El backup completo incluye datos personales y credenciales; escribe EXPORTAR para confirmar.' );
+                }
+            }
+            $selected = array();
+            foreach ( $tables as $meta ) {
+                if ( 'all' === $mode || $meta['family'] ) {
+                    $selected[] = $meta['name'];
+                }
+            }
+        } else {
+            wp_die( 'Tipo de exportación no permitido.' );
+        }
+
+        if ( ! $selected ) {
+            wp_die( 'No se han encontrado tablas para exportar.' );
+        }
+        $name = 'taxocommerce_' . $mode . '_' . gmdate( 'Ymd_His' );
+        if ( 'table' === $mode ) {
+            $name = sanitize_file_name( $table . '_' . gmdate( 'Ymd_His' ) );
+        }
+        $filename = $name . '.' . $format;
+        TCDB_Storage::log( 'export', array( 'mode' => $mode, 'format' => $format, 'tables' => count( $selected ) ) );
+
+        if ( headers_sent() ) {
+            wp_die( 'No se pueden enviar los datos: ya se han emitido cabeceras HTTP.' );
+        }
+        nocache_headers();
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Type: ' . ( 'csv' === $format ? 'text/csv' : 'application/sql' ) . '; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        header( 'X-Robots-Tag: noindex, nofollow' );
+
+        if ( 'csv' === $format ) {
+            self::stream_csv( $selected[0] );
+        } else {
+            self::stream_sql( $selected, $mode );
+        }
+        exit;
+    }
+
+    /**
+     * Cursor pagination uses a single-column primary key when possible.
+     * For composite/no-PK tables it falls back to bounded OFFSET pages.
+     */
+    private static function rows( $table, $emit ) {
+        global $wpdb;
+        if ( ! TCDB_Storage::table_allowed( $table, false ) ) {
+            return false;
+        }
+        $columns = TCDB_Storage::columns( $table );
+        if ( ! $columns ) {
+            return false;
+        }
+        $primary = '';
+        $primary_count = 0;
+        foreach ( $columns as $column ) {
+            if ( 'PRI' === (string) ( $column['Key'] ?? '' ) ) {
+                $primary = (string) $column['Field'];
+                ++$primary_count;
+            }
+        }
+        $keyset = 1 === $primary_count && TCDB_Storage::identifier( $primary );
+        $cursor = null;
+        $offset = 0;
+        do {
+            if ( $keyset ) {
+                $condition = null === $cursor ? '' : $wpdb->prepare( "WHERE \`{$primary}\` > %s", (string) $cursor );
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Validated table and column names; cursor is prepared.
+                $query = "SELECT * FROM \`{$table}\` {$condition} ORDER BY \`{$primary}\` ASC LIMIT " . self::BATCH;
+            } else {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table is inventoried and limits are integers.
+                $query = $wpdb->prepare( "SELECT * FROM \`{$table}\` LIMIT %d OFFSET %d", self::BATCH, $offset );
+            }
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Verified schema identifiers, prepared values.
+            $rows = $wpdb->get_results( $query, ARRAY_A );
+            if ( ! is_array( $rows ) || '' !== $wpdb->last_error ) {
+                return false;
+            }
+            foreach ( $rows as $row ) {
+                call_user_func( $emit, $row, $columns );
+                if ( $keyset ) {
+                    $cursor = $row[ $primary ];
+                }
+            }
+            $offset += count( $rows );
+            if ( count( $rows ) === self::BATCH && 0 === $offset % 1000 ) {
+                flush();
+            }
+        } while ( count( $rows ) === self::BATCH && ! connection_aborted() );
+        return ! connection_aborted();
+    }
+
+    public static function sql_literal( $value ) {
+        if ( null === $value || ! is_scalar( $value ) ) {
+            return 'NULL';
+        }
+        $value = (string) $value;
+        if ( function_exists( 'mb_check_encoding' ) && ! mb_check_encoding( $value, 'UTF-8' ) ) {
+            return '0x' . bin2hex( $value );
+        }
+        global $wpdb;
+        return $wpdb->prepare( '%s', $value );
+    }
+
+    private static function stream_sql( $tables, $mode ) {
+        global $wpdb;
+        echo "-- TaxoCommerce Database v" . TAXOCOMMERCE_DATABASE_VERSION . "\n";
+        echo "-- Exportación lógica: " . gmdate( 'c' ) . "\n";
+        echo "-- Ámbito: " . ( 'all' === $mode ? 'tablas WordPress del sitio' : 'tablas propias TaxoCommerce' ) . "\n";
+        echo "-- IMPORTANTE: las exportaciones realizadas mientras la tienda recibe escrituras no son snapshots transaccionales.\n";
+        echo "-- Para restauración total usar una base vacía y la herramienta del hosting; este plugin NO ejecuta SQL importado.\n";
+        echo "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n";
+
+        $completed = 0;
+        foreach ( $tables as $table ) {
+            if ( ! TCDB_Storage::table_allowed( $table, false ) ) {
+                echo "-- ERROR: tabla no autorizada; exportación INCOMPLETA.\n";
+                return;
+            }
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table validated against current-site inventory.
+            $ddl = $wpdb->get_row( "SHOW CREATE TABLE \`{$table}\`", ARRAY_N );
+            if ( ! is_array( $ddl ) || ! isset( $ddl[1] ) ) {
+                echo "-- ERROR: no se ha podido leer el esquema de " . $table . "; exportación INCOMPLETA.\n";
+                return;
+            }
+            echo "-- Tabla: " . $table . "\n" . $ddl[1] . ";\n";
+            $ok = self::rows( $table, static function ( $row ) use ( $table ) {
+                $column_sql = array();
+                $value_sql = array();
+                foreach ( $row as $column => $value ) {
+                    if ( ! TCDB_Storage::identifier( (string) $column ) ) {
+                        continue;
+                    }
+                    $column_sql[] = chr(96) . $column . chr(96);
+                    $value_sql[] = TCDB_Export::sql_literal( $value );
+                }
+                if ( $column_sql ) {
+                    echo 'INSERT INTO ' . chr(96) . $table . chr(96) . ' (' . implode( ',', $column_sql ) . ') VALUES (' . implode( ',', $value_sql ) . ");\n";
+                }
+            } );
+            if ( ! $ok ) {
+                echo "-- ERROR: fallo al exportar " . $table . "; exportación INCOMPLETA.\n";
+                return;
+            }
+            echo "-- Fin de tabla: " . $table . "\n\n";
+            ++$completed;
+        }
+        echo "SET FOREIGN_KEY_CHECKS=1;\n-- EXPORTACIÓN COMPLETA: {$completed} tablas.\n";
+    }
+
+    private static function stream_csv( $table ) {
+        $columns = TCDB_Storage::columns( $table );
+        if ( ! $columns ) {
+            echo 'ERROR: tabla sin columnas';
+            return;
+        }
+        $stream = fopen( 'php://output', 'w' );
+        if ( ! $stream ) {
+            return;
+        }
+        fputcsv( $stream, array_column( $columns, 'Field' ) );
+        // CSV is an exact raw-data export, not a spreadsheet-formula-safe report.
+        $ok = self::rows( $table, static function ( $row ) use ( $stream, $columns ) {
+            $values = array();
+            foreach ( $columns as $column ) {
+                $values[] = $row[ $column['Field'] ] ?? '';
+            }
+            fputcsv( $stream, $values );
+        } );
+        if ( ! $ok ) {
+            fputcsv( $stream, array( '__TCDB_EXPORT_INCOMPLETO__' ) );
+        }
+        fclose( $stream );
+    }
+}
