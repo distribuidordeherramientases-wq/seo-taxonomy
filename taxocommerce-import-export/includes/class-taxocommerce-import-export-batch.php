@@ -699,6 +699,9 @@ final class TaxoCommerce_Import_Export_Batch {
 		$first  = array_pad( $first, count( $header ), '' );
 		$data   = array_combine( $header, array_slice( $first, 0, count( $header ) ) );
 		$type   = is_array( $data ) ? sanitize_key( (string) ( $data['record_type'] ?? '' ) ) : '';
+		if ( ! $type && method_exists( $this->csv, 'infer_record_type_from_headers' ) ) {
+			$type = sanitize_key( (string) $this->csv->infer_record_type_from_headers( $header ) );
+		}
 		$offset = $data_offset;
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 

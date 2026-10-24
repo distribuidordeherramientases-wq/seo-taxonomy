@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,9 +15,12 @@ Import and export catalog, content and Media for WordPress/WooCommerce.
 
 TaxoCommerce Import-Export is an independent member of the TaxoCommerce family.
 
-Version 0.3.0 includes:
+Version 0.3.1 includes:
 
 * Products CSV import/export.
+* Safe partial correction CSV imports: only present columns are updated.
+* Automatic delimiter detection and safe product-type inference for correction CSVs.
+* Brand/provider round-trip fields for products.
 * Product categories CSV import/export.
 * Posts CSV import/export.
 * Pages CSV import/export.
