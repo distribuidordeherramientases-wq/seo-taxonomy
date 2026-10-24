@@ -7,9 +7,13 @@ final class TCD_Admin {
     }
 
     public static function menu(){
-        $parent=class_exists('TaxoCommerce_Core')?'taxocommerce-core':'tools.php';
-        add_submenu_page($parent,'TaxoCommerce Dependiente','Dependiente','manage_woocommerce',
-            'taxocommerce-dependiente',array(__CLASS__,'render'));
+        if (function_exists('taxocommerce_core')) {
+            add_submenu_page('taxocommerce-core','TaxoCommerce Dependiente','Dependiente','manage_woocommerce',
+                'taxocommerce-dependiente',array(__CLASS__,'render'));
+        } else {
+            add_menu_page('TaxoCommerce Dependiente','Dependiente','manage_woocommerce',
+                'taxocommerce-dependiente',array(__CLASS__,'render'),'dashicons-store',59);
+        }
     }
 
     private static function control_button($action,$label,$class='button'){

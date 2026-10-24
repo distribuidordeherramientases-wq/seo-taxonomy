@@ -104,8 +104,8 @@ final class TaxoCommerce_FAQs {
         if ( ! function_exists( 'taxocommerce_core' ) ) {
             add_menu_page( 'TaxoCommerce FAQs', 'TaxoCommerce FAQs', 'manage_options', self::PAGE, array( __CLASS__, 'render' ), 'dashicons-editor-help', 59 );
         } else {
-            // Hidden compatibility route: Core -> Contenidos -> FAQs is canonical.
-            add_submenu_page( null, 'TaxoCommerce FAQs', 'FAQs', 'manage_options', self::PAGE, array( __CLASS__, 'render' ) );
+            // FAQs remains accessible from Contenidos and as its own Core submenu.
+            add_submenu_page( 'taxocommerce-core', 'TaxoCommerce FAQs', 'FAQs', 'manage_options', self::PAGE, array( __CLASS__, 'render' ) );
         }
     }
 

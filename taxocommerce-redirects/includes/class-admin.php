@@ -16,14 +16,11 @@ final class Admin {
     }
 
     public static function menu() {
-        add_menu_page(
-            'TaxoCommerce Redirects', 'Redirects', 'manage_options', Plugin::SLUG,
-            array( __CLASS__, 'render' ), 'dashicons-randomize', 62
-        );
-        add_submenu_page(
-            Plugin::SLUG, 'Gestor de Redirecciones SEO', 'Gestor de redirects',
-            'manage_options', Plugin::SLUG, array( __CLASS__, 'render' )
-        );
+        if ( function_exists( 'taxocommerce_core' ) ) {
+            add_submenu_page( 'taxocommerce-core', 'TaxoCommerce Redirects', 'Redirects', 'manage_options', Plugin::SLUG, array( __CLASS__, 'render' ) );
+            return;
+        }
+        add_menu_page( 'TaxoCommerce Redirects', 'Redirects', 'manage_options', Plugin::SLUG, array( __CLASS__, 'render' ), 'dashicons-randomize', 62 );
     }
 
     public static function assets( $hook ) {
