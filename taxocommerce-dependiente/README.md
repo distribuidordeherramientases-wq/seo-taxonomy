@@ -196,12 +196,14 @@ Si no existen opciones semánticas suficientes, Dependiente puede preguntar por 
 
 ### Consolidación M12
 
-M12 revisa periódicamente las asociaciones `staged` y `validated`, recalcula su evidencia y activa únicamente patrones repetidos.
+M12 revisa periódicamente las asociaciones `staged` y `validated`, recalcula su evidencia y activa únicamente patrones repetidos. Antes de que M11 exista, la evidencia puede acumularse pero no se promociona a `active`.
 
 Estados:
 
 - `staged`: evidencia insuficiente;
 - `validated`: existe repetición, pero no alcanza el umbral de activación;
 - `active`: evidencia repetida y dominante; puede influir en M11/runtime.
+
+Cuando una asociación llega a `active`, se materializa en los almacenes portables: consulta→producto como señal L9 y consulta→concepto como regla semántica. Por tanto, el export de conocimiento conserva el aprendizaje consolidado sin exportar eventos, sesiones ni clics individuales.
 
 Los eventos de feedback no activos se conservan durante 180 días y se limpian después. El administrador muestra búsquedas, clics, aclaraciones y asociaciones activas. El log de aprendizaje registra también `feedback_event` y `feedback_promoted`.
