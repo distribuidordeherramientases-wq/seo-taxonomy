@@ -456,12 +456,23 @@ final class TCD_Feedback {
         $promoted_at = (string) ( $existing['promoted_at'] ?? '' );
         if ( $newly_promoted ) {
             if ( ! $promoted_at ) $promoted_at = $now;
+            update_option( 'tcd_feedback_dirty', time(), false );
             self::trace( 'INFO', 'feedback_promoted', array(
                 'query'=>(string) ( $target['normalized_query'] ?? '' ),
                 'target_type'=>$target_type,
                 'target_key'=>$target_key,
                 'click_sessions'=>$click_sessions,
                 'clarification_sessions'=>$clarification_sessions,
+                'share'=>round( $share, 4 ),
+                'confidence'=>round( $confidence, 4 ),
+            ) );
+        } elseif ( 'active' === $previous_status && 'active' !== $status ) {
+            update_option( 'tcd_feedback_dirty', time(), false );
+            self::trace( 'WARN', 'feedback_demoted', array(
+                'query'=>(string) ( $target['normalized_query'] ?? '' ),
+                'target_type'=>$target_type,
+                'target_key'=>$target_key,
+                'new_status'=>$status,
                 'share'=>round( $share, 4 ),
                 'confidence'=>round( $confidence, 4 ),
             ) );
