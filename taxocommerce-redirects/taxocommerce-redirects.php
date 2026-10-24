@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Redirects - SEO Redirect Manager
  * Plugin URI: https://www.distribuidordeherramientas.es/
  * Description: Redirecciones 301/302 y borrado asistido de productos, categorias, posts y paginas. Funciona con o sin TaxoCommerce Core.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -23,7 +23,7 @@ require_once __DIR__ . '/includes/class-admin.php';
 require_once __DIR__ . '/includes/class-assisted-delete.php';
 
 final class Plugin {
-    const VERSION = '0.1.1';
+    const VERSION = '0.1.2';
     const SLUG = 'taxocommerce-redirects';
     const CONFIRM_SLUG = 'taxocommerce-redirects-confirm';
 
