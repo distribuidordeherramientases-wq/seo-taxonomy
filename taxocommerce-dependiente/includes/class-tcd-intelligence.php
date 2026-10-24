@@ -464,6 +464,9 @@ final class TCD_Intelligence {
 
         foreach ( $rows as $row ) {
             $evaluation = self::evaluate_row( $lesson, $row, $stage );
+            $evaluation['source_type'] = sanitize_key( (string) ( $evaluation['source_type'] ?? $row['source_type'] ?? '' ) );
+            $evaluation['source_id'] = absint( $evaluation['source_id'] ?? $row['source_id'] ?? 0 );
+            $evaluation['title'] = (string) ( $evaluation['title'] ?? $row['title'] ?? '' );
             $evaluation['diagnosis'] = self::diagnose_evaluation( $lesson, $row, $evaluation );
             $result['evaluated']++;
             if ( ! empty( $evaluation['top1'] ) ) $result['pass_top1']++;
