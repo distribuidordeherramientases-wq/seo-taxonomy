@@ -28,36 +28,22 @@ final class TCD_Search {
         }
 
         $interpretation = TCD_Intelligence::interpret( $q );
-        $results = TCD_Intelligence::search_products( $q, 8 );
+        $ranked = TCD_Intelligence::search_products( $q, 24 );
+        $decision = TCD_Intelligence::decision( $q, $interpretation, $ranked );
+        $suggestions = TCD_Intelligence::suggestions_from_products( $ranked, 8 );
+        $results = ! empty( $decision['show_products'] ) ? array_slice( $ranked, 0, 8 ) : array();
         $interpreter = TCD_Intelligence::interpreter_state();
         $state = TCD_Academy::state();
 
-        if ( $results ) {
-            $semantic = ! empty( $interpretation['semantic_hits'] );
-            $lesson9 = false;
-            foreach ( $results as $result ) {
-                if ( in_array( 'lesson9', (array) ( $result['sources'] ?? array() ), true ) ) {
-                    $lesson9 = true;
-                    break;
-                }
-            }
-            if ( $lesson9 ) {
-                $answer = 'He relacionado tu necesidad con el conocimiento aprendido del catálogo. Estas son las opciones con mayor evidencia.';
-            } elseif ( $semantic ) {
-                $answer = 'He interpretado los conceptos de tu consulta y los he relacionado con el catálogo.';
-            } else {
-                $answer = 'He encontrado estas referencias en el catálogo. La coincidencia textual se usa como red de seguridad cuando no hay suficiente evidencia semántica.';
-            }
-        } else {
-            $answer = 'No he encontrado una coincidencia con evidencia suficiente en el conocimiento y el catálogo actual.';
-        }
-
         return rest_ensure_response( array(
-            'answer'=>$answer,
+            'answer'=>(string) ( $decision['message'] ?? '' ),
             'results'=>$results,
+            'suggestions'=>$suggestions,
+            'decision'=>$decision,
             'interpretation'=>array(
                 'normalized'=>(string) ( $interpretation['normalized'] ?? '' ),
                 'concepts'=>array_values( (array) ( $interpretation['groups'] ?? array() ) ),
+                'actions'=>array_values( (array) ( $interpretation['actions'] ?? array() ) ),
                 'semantic_hits'=>count( (array) ( $interpretation['semantic_hits'] ?? array() ) ),
             ),
             'knowledge_ready'=>'completed' === (string) ( $state['status'] ?? '' ),
