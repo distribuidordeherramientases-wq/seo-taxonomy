@@ -75,7 +75,7 @@ final class TCDB_Storage {
             $wpdb->prepare(
                 'SELECT TABLE_NAME, ENGINE, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH, DATA_FREE, TABLE_COLLATION
                    FROM information_schema.TABLES
-                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE %s AND TABLE_TYPE = 'BASE TABLE'
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE %s AND TABLE_TYPE = \'BASE TABLE\'
                   ORDER BY TABLE_NAME ASC',
                 $like
             ),
