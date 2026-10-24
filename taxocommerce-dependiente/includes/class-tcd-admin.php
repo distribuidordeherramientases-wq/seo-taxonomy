@@ -140,8 +140,9 @@ final class TCD_Admin {
         }
         echo '</div>';
 
-        echo '<p><a class="button button-primary" href="'.esc_url(TCD_Intelligence::quality_csv_url($lesson)).'">Descargar CSV de incidencias</a> ';
-        echo '<span class="description">El CSV separa problemas corregibles en WordPress de problemas que debe corregir Dependiente.</span></p>';
+        echo '<p><a class="button button-primary" href="'.esc_url(TCD_Intelligence::quality_csv_url($lesson)).'">CSV · fallos del examen</a> ';
+        echo '<a class="button" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($lesson)).'">CSV · datos a revisar</a></p>';
+        echo '<p class="description">El primer CSV contiene solo los casos que Dependiente no recuperó bien. El segundo recorre toda la lección y lista anomalías de datos fuente aunque el elemento haya pasado el examen.</p>';
 
         if($recommendations){
             echo '<h3>Qué hacer</h3><ul style="list-style:disc;padding-left:22px">';
@@ -295,8 +296,10 @@ final class TCD_Admin {
             }else echo '—';
             echo '</td>';
             echo '<td>';
-            if($snapshot)echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON</a>';
-            else echo '—';
+            if($snapshot){
+                echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON</a> ';
+                echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($no)).'">CSV datos</a>';
+            }else echo '—';
             echo '</td></tr>';
         }
         echo '</tbody></table>';
