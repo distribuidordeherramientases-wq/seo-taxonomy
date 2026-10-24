@@ -120,6 +120,12 @@ final class TaxoCommerce_Connections_Admin {
 		}
 
 		$messages = array(
+			'google_saved'              => array( 'success', __( 'Configuración Google guardada.', 'taxocommerce-connections' ) ),
+			'google_invalid'            => array( 'error', __( 'El Measurement ID de Google no tiene un formato válido.', 'taxocommerce-connections' ) ),
+			'google_credentials_invalid'=> array( 'error', __( 'El JSON de la cuenta de servicio Google no es válido.', 'taxocommerce-connections' ) ),
+			'merchant_saved'            => array( 'success', __( 'Google Merchant Center guardado.', 'taxocommerce-connections' ) ),
+			'merchant_invalid'          => array( 'error', __( 'El ID de Google Merchant Center no es válido.', 'taxocommerce-connections' ) ),
+			'bing_saved'                => array( 'success', __( 'Configuración Bing Webmaster guardada.', 'taxocommerce-connections' ) ),
 			'amazon_saved'              => array( 'success', __( 'Configuración Amazon guardada.', 'taxocommerce-connections' ) ),
 			'amazon_error'              => array( 'error', __( 'No se pudo guardar Amazon.', 'taxocommerce-connections' ) ),
 			'pinterest_saved'           => array( 'success', __( 'Configuración Pinterest guardada.', 'taxocommerce-connections' ) ),
@@ -138,6 +144,17 @@ final class TaxoCommerce_Connections_Admin {
 			}
 			return;
 		}
+		foreach ( array( 'google', 'merchant', 'bing' ) as $provider ) {
+			if ( $provider . '_test' !== $notice ) {
+				continue;
+			}
+			$result = TaxoCommerce_Connections_Google_Bing::consume_test_result( $provider );
+			if ( is_array( $result ) && $result ) {
+				echo '<div class="notice notice-' . esc_attr( ! empty( $result['ok'] ) ? 'success' : 'error' ) . ' inline"><p>' . esc_html( (string) ( $result['message'] ?? '' ) ) . '</p></div>';
+			}
+			return;
+		}
+
 		if ( 'pinterest_test' === $notice ) {
 			$result = get_transient( 'tc_conn_pinterest_test_' . get_current_user_id() );
 			delete_transient( 'tc_conn_pinterest_test_' . get_current_user_id() );
@@ -153,6 +170,9 @@ final class TaxoCommerce_Connections_Admin {
 
 	public static function render() {
 		self::guard();
+		$google = TaxoCommerce_Connections_Google_Bing::google_settings();
+		$google_merchant = TaxoCommerce_Connections_Google_Bing::merchant_account();
+		$bing = TaxoCommerce_Connections_Google_Bing::bing_settings();
 		$amazon = TaxoCommerce_Connections_Amazon::settings();
 		$pinterest = TaxoCommerce_Connections_Pinterest::settings();
 		$merchant = TaxoCommerce_Connections_Pinterest::merchant_settings();
@@ -163,6 +183,63 @@ final class TaxoCommerce_Connections_Admin {
 			<?php self::notice(); ?>
 
 			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;max-width:1300px;">
+				<div class="card" style="max-width:none;padding:20px;">
+					<h2 style="margin-top:0;">Google · Search Console / Analytics / Merchant</h2>
+					<p>Connections guarda las credenciales; <strong>TaxoCommerce Insights</strong> consume los datos para informes. Se mantienen las mismas opciones internas para no perder ninguna configuración existente.</p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="taxocommerce_connections_save_google">
+						<?php wp_nonce_field( 'taxocommerce_connections_save_google' ); ?>
+						<p><label><strong>Propiedad Search Console</strong><br><input class="large-text code" type="text" name="search_console_site_url" value="<?php echo esc_attr( (string) ( $google['search_console_site_url'] ?? '' ) ); ?>" placeholder="sc-domain:ejemplo.es o https://www.ejemplo.es/"></label></p>
+						<p><label><strong>Propiedad GA4</strong><br><input class="regular-text" inputmode="numeric" type="text" name="analytics_property_id" value="<?php echo esc_attr( (string) ( $google['analytics_property_id'] ?? '' ) ); ?>" placeholder="123456789"></label></p>
+						<p><label><strong>Measurement ID</strong><br><input class="regular-text" type="text" name="measurement_id" value="<?php echo esc_attr( (string) ( $google['measurement_id'] ?? '' ) ); ?>" placeholder="G-XXXXXXXXXX"></label></p>
+						<p><label><strong>Cuenta de servicio JSON</strong><br><textarea class="large-text code" rows="6" name="service_account_json" placeholder="<?php echo esc_attr( ! empty( $google['service_account_json'] ) ? 'Credencial guardada; deja vacío para conservarla' : 'Pega el JSON de la cuenta de servicio' ); ?>"></textarea></label></p>
+						<?php submit_button( __( 'Guardar Google', 'taxocommerce-connections' ), 'primary', 'submit', false ); ?>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:10px;">
+						<input type="hidden" name="action" value="taxocommerce_connections_test_google">
+						<?php wp_nonce_field( 'taxocommerce_connections_test_google' ); ?>
+						<?php submit_button( __( 'Probar Google', 'taxocommerce-connections' ), 'secondary', 'submit', false ); ?>
+					</form>
+					<hr>
+					<h3>Google Merchant Center</h3>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="taxocommerce_connections_save_merchant">
+						<?php wp_nonce_field( 'taxocommerce_connections_save_merchant' ); ?>
+						<p><label><strong>ID Merchant Center</strong><br><input class="regular-text" type="text" name="merchant_account" value="<?php echo esc_attr( (string) $google_merchant ); ?>" pattern="[0-9]{5,20}"></label></p>
+						<?php submit_button( __( 'Guardar Merchant', 'taxocommerce-connections' ), 'secondary', 'submit', false ); ?>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:10px;">
+						<input type="hidden" name="action" value="taxocommerce_connections_test_merchant">
+						<?php wp_nonce_field( 'taxocommerce_connections_test_merchant' ); ?>
+						<?php submit_button( __( 'Probar Merchant', 'taxocommerce-connections' ), 'secondary', 'submit', false ); ?>
+					</form>
+					<div style="margin-top:18px;padding-top:14px;border-top:1px solid #ddd;">
+						<h3>Google OAuth</h3>
+						<?php TaxoCommerce_Connections_Google_Bing::google_oauth_render(); ?>
+					</div>
+				</div>
+
+				<div class="card" style="max-width:none;padding:20px;">
+					<h2 style="margin-top:0;">Microsoft Bing Webmaster</h2>
+					<p>Fuente complementaria de Search Console para consultas, páginas, rastreo e indexación. Insights usa esta conexión para sus informes.</p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="taxocommerce_connections_save_bing">
+						<?php wp_nonce_field( 'taxocommerce_connections_save_bing' ); ?>
+						<p><label><input type="checkbox" name="enabled" value="1" <?php checked( ! empty( $bing['enabled'] ) ); ?>> Activar Bing como fuente de datos</label></p>
+						<p><label><strong>URL verificada</strong><br><input class="large-text code" type="url" name="site_url" value="<?php echo esc_attr( (string) ( $bing['site_url'] ?? home_url( '/' ) ) ); ?>"></label></p>
+						<p><label><strong>API key Bing Webmaster</strong><br><input class="regular-text" type="password" name="api_key" value="" placeholder="<?php echo esc_attr( ! empty( $bing['api_key'] ) ? 'Clave guardada; deja vacío para conservarla' : 'Pega la API key' ); ?>"></label></p>
+						<?php if ( ! empty( $bing['api_key'] ) && ! defined( 'SEO_BING_WEBMASTER_API_KEY' ) ) : ?>
+							<p><label><input type="checkbox" name="clear_api_key" value="1"> Eliminar la API key guardada.</label></p>
+						<?php endif; ?>
+						<?php submit_button( __( 'Guardar Bing', 'taxocommerce-connections' ), 'primary', 'submit', false ); ?>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:10px;">
+						<input type="hidden" name="action" value="taxocommerce_connections_test_bing">
+						<?php wp_nonce_field( 'taxocommerce_connections_test_bing' ); ?>
+						<?php submit_button( __( 'Probar Bing', 'taxocommerce-connections' ), 'secondary', 'submit', false ); ?>
+					</form>
+				</div>
+
 				<div class="card" style="max-width:none;padding:20px;">
 					<h2 style="margin-top:0;">Amazon Afiliados</h2>
 					<p>El <strong>Partner Tag</strong> es suficiente para búsquedas y enlaces afiliados usados por Templates y Dependiente. Creators API solo enriquece con producto, imagen y precio.</p>
@@ -231,9 +308,11 @@ final class TaxoCommerce_Connections_Admin {
 			</div>
 
 			<div class="card" style="max-width:1300px;padding:20px;margin-top:18px;">
-				<h2 style="margin-top:0;">Siguiente migración</h2>
-				<p><strong>Google y Bing:</strong> sus credenciales/OAuth deberían migrarse a este mismo plugin. Los informes, Trends, Mercado e informe ejecutivo no deberían venir aquí; deberían quedarse en un módulo de análisis, que podemos renombrar después como <strong>TaxoCommerce Insights</strong>.</p>
-				<p><strong>Cloudflare:</strong> no se migra. Está deshabilitado y no tiene un consumidor operativo necesario en la arquitectura nueva.</p>
+				<h2 style="margin-top:0;">Separación de responsabilidades</h2>
+				<p><strong>Connections:</strong> Google, Bing, Amazon y Pinterest; credenciales, OAuth, tokens, cuentas y pruebas de conexión.</p>
+				<p><strong>Insights:</strong> Google Search, Analytics, Bing, Trends, Mercado, oportunidades e informe ejecutivo. No es propietario de credenciales.</p>
+				<p><strong>Distribution:</strong> feeds comerciales y sitemaps. Pinterest Catalogs se publica allí; Connections solo conserva su conexión y verificación.</p>
+				<p><strong>Cloudflare:</strong> no se migra. Está deshabilitado y no existe ahora un consumidor modular obligatorio.</p>
 			</div>
 		</div>
 		<?php
