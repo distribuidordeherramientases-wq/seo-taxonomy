@@ -542,7 +542,7 @@ final class TaxoCommerce_Google_Bing_Market {
         unset( $source );
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="mercado_categoria_' . $cat['term_id'] . '.json"' );
+        header( 'Content-Disposition: attachment; filename="market_category_' . $cat['term_id'] . '.json"' );
         echo wp_json_encode( array(
             'schema' => 'tgb-market-category-v1',
             'exported_at_utc' => gmdate( 'c' ),
@@ -580,7 +580,7 @@ final class TaxoCommerce_Google_Bing_Market {
         echo '<p>Works with real WooCommerce categories without depending on SKU, EAN, or GTIN. Results are stored only in plugin-owned tables and do not create drafts or publications.</p>';
         echo '<p><strong>Categories:</strong> ' . esc_html( $total )
             . ' · <strong>Analizadas:</strong> ' . esc_html( $complete )
-            . ' · <strong>Pendientes:</strong> ' . esc_html( $pending )
+            . ' · <strong>Pending:</strong> ' . esc_html( $pending )
             . ' · <strong>Sources guardadas:</strong> ' . esc_html( $evidence )
             . ' · <strong>Queries allowed today:</strong> ' . esc_html( self::today_budget() ) . '</p>';
         if ( ! taxonomy_exists( 'product_cat' ) ) {
@@ -590,7 +590,7 @@ final class TaxoCommerce_Google_Bing_Market {
         if ( get_option( self::QUEUE_OPTION, 0 ) ) {
             self::action_form( 'tgb_market_queue_stop', 'tgb_market_queue_stop', 'Stop category analysis' );
         } else {
-            self::action_form( 'tgb_market_queue_start', 'tgb_market_queue_start', 'Analizar pendientes en cola' );
+            self::action_form( 'tgb_market_queue_start', 'tgb_market_queue_start', 'Analyze queued pending categories' );
         }
         echo '<p class="description">Local synchronization reviews ' . esc_html( self::BATCH_SIZE ) . ' categories per batch; after installation it continues from the admin. The queue performs at most 10 external scans per day and requires site traffic or server cron to progress. Opening this screen never queries external APIs.</p>';
 
@@ -598,8 +598,8 @@ final class TaxoCommerce_Google_Bing_Market {
         $serpapi = '' !== (string) get_option( 'tgb_market_serpapi_key', '' );
         $merchant = TaxoCommerce_Google_Bing_Connections::merchant_account();
         $google = TaxoCommerce_Google_Bing_Market_Sources::google_available();
-        echo '<h3>Research sources</h3><p>Google Search Console: ' . esc_html( $google ? 'configured' : 'sin acceso configured' ) . ' · YouTube: ' . esc_html( $youtube ? 'configured' : 'no API key' )
-            . ' · SerpApi (web y ofertas): ' . esc_html( $serpapi ? 'configured' : 'no API key' )
+        echo '<h3>Research sources</h3><p>Google Search Console: ' . esc_html( $google ? 'configured' : 'no configured access' ) . ' · YouTube: ' . esc_html( $youtube ? 'configured' : 'no API key' )
+            . ' · SerpApi (web and offers): ' . esc_html( $serpapi ? 'configured' : 'no API key' )
             . ' · Merchant: ' . esc_html( $merchant ? 'ID configured; requires authorization and a Google category' : 'no account' ) . '.</p>';
         $connections_url = add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections' ), admin_url( 'admin.php' ) ) . '#tgb-market-providers';
         echo '<p><a class="button" href="' . esc_url( $connections_url ) . '">Configure providers in Connections</a></p>';
