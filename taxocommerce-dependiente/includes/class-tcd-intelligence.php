@@ -2214,9 +2214,17 @@ final class TCD_Intelligence {
         global $wpdb;
         $normalized = self::normalize( $query );
         if ( ! $normalized ) return array();
-        $terms = self::ngrams( $normalized, 5 );
+        // Always query the complete normalized expression first. Identity
+        // learning stores the full title/SKU, and quality repair may store the
+        // complete failed query. Limiting lookup to <=5-word n-grams makes
+        // those exact long signals unreachable even though they were learned.
+        $terms = array( $normalized );
+        $terms = array_merge( $terms, self::ngrams( $normalized, 5 ) );
         $compact = self::without_stopwords( $normalized );
-        if ( $compact ) $terms = array_merge( $terms, self::ngrams( $compact, 5 ) );
+        if ( $compact ) {
+            $terms[] = $compact;
+            $terms = array_merge( $terms, self::ngrams( $compact, 5 ) );
+        }
         foreach ( explode( ' ', $compact ?: $normalized ) as $token ) {
             if ( strlen( $token ) >= 3 ) $terms = array_merge( $terms, self::token_variants( $token ) );
         }
