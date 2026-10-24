@@ -39,7 +39,11 @@ final class TCD_Admin {
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         echo '<p>Dependiente aprende el catálogo en diez lecciones. Cada lección se analiza primero y se congela en una <strong>foto fija auditable</strong>; después el aprendizaje se realiza exclusivamente sobre esa foto.</p>';
 
-        echo '<p><a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar aprendizaje completo · JSON</a></p>';
+        echo '<p style="display:flex;gap:8px;flex-wrap:wrap">';
+        echo '<a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar aprendizaje completo · JSON</a>';
+        echo '<a class="button button-primary" href="'.esc_url(TCD_Knowledge_Transfer::export_url()).'">Exportar conocimientos · JSON</a>';
+        echo '</p>';
+        echo '<p class="description">El aprendizaje completo sirve para auditar las diez lecciones. El export de conocimientos crea la copia portable destinada a migración, copia de seguridad o análisis externo y se genera por lotes para no cargar todo el contenido en memoria.</p>';
 
         $priority=TCD_Load::priority();
         $sample=TCD_Load::last_sample();
