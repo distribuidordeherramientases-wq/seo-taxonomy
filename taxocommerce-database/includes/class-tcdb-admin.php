@@ -460,6 +460,13 @@ final class TCDB_Admin {
             self::form_start( 'tcdb_import_apply', 'tcdb_import_apply' );
             echo '<input type="hidden" name="tcdb_token" value="' . esc_attr( $token ) . '">';
             echo '<p><label><input type="checkbox" name="tcdb_backup" value="1" required> Confirmo que tengo un backup reciente y los IDs pertenecen a este WordPress.</label></p>';
+            $owner = TCDB_Journal::owner_for_table( $preview['table'] );
+            if ( $owner ) {
+                echo '<p><strong>Rollback disponible:</strong> el plugin ' . esc_html( $owner ) . ' ha registrado esta tabla como compatible. La importación se guardará como una operación reversible.</p>';
+            } else {
+                echo '<p><strong>Sin rollback:</strong> el propietario de esta tabla no ha registrado integración reversible.</p>';
+                echo '<p><label><input type="checkbox" name="tcdb_no_rollback_ack" value="1" required> Confirmo que acepto importar sin posibilidad de rollback centralizado.</label></p>';
+            }
             echo '<label class="tcdb-label">Escribe <strong>IMPORTAR</strong> para aplicar<input name="tcdb_confirm" type="text" autocomplete="off" required></label>';
             echo '<p><button class="button button-primary" type="submit">Importar solo nuevos registros</button></p></form></section>';
         }
