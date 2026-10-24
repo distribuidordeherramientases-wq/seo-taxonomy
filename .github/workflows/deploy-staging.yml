@@ -59,6 +59,7 @@ jobs:
             **/.git*/**
             **/.github/**
             taxocommerce-core/**
+            taxocommerce-connections/**
             taxocommerce-database/**
             taxocommerce-google-bing/**
             taxocommerce-images/**
@@ -174,6 +175,33 @@ jobs:
             **/*.md
             **/*.pot
 
+
+      - name: Validate TaxoCommerce Connections
+        run: |
+          test -f taxocommerce-connections/taxocommerce-connections.php
+          find taxocommerce-connections -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-connections/tests/connections-smoke.php
+
+      - name: Deploy TaxoCommerce Connections to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-connections/
+          server-dir: ./wp-content/plugins/taxocommerce-connections/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
 
       - name: Validate TaxoCommerce Distribution
         run: |
