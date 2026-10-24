@@ -2,8 +2,9 @@
 /**
  * Assign category-related WordPress Media to content missing a representative image.
  *
- * Uses WordPress terms, thumbnails and optional existing SEO relations. Does not
- * load TaxoCommerce SEO, import supplier images or search unrelated Media.
+ * Uses WordPress terms, thumbnails and optional existing SEO relations. Automatic
+ * suggestions stay category-related; administrators may also choose an existing
+ * local image explicitly from WordPress Media. Supplier images are never imported.
  *
  * @package TaxoCommerceImages
  */
@@ -27,6 +28,7 @@ final class TaxoCommerce_Images_Assignment {
 		add_action( 'admin_post_taxocommerce_images_assign_one', array( __CLASS__, 'handle_assign_one' ) );
 		add_action( 'admin_post_taxocommerce_images_assign_auto', array( __CLASS__, 'handle_assign_auto' ) );
 		add_action( 'admin_post_taxocommerce_images_assign_upload', array( __CLASS__, 'handle_assign_upload' ) );
+		add_action( 'admin_post_taxocommerce_images_assign_media', array( __CLASS__, 'handle_assign_media' ) );
 	}
 
 	/**
@@ -557,6 +559,39 @@ final class TaxoCommerce_Images_Assignment {
 	}
 
 	/**
+	 * Assign an explicitly chosen existing WordPress Media image.
+	 *
+	 * This path is deliberately manual: unlike automatic suggestions, the image
+	 * does not need to belong to a related category because the administrator is
+	 * choosing it consciously from Media. It must still be a valid local image,
+	 * the target must be editable, and an existing image is never overwritten.
+	 *
+	 * @param string $scope Object kind.
+	 * @param int    $id Object ID.
+	 * @param int    $attachment_id Existing Media attachment ID.
+	 * @return true|WP_Error
+	 */
+	public static function assign_from_media( $scope, $id, $attachment_id ) {
+		$scope = sanitize_key( (string) $scope );
+		$id = absint( $id );
+		$attachment_id = absint( $attachment_id );
+
+		if ( ! self::editable_target( $scope, $id ) ) {
+			return new WP_Error( 'taxocommerce_images_media_target', __( 'El elemento no existe o no se puede editar.', 'taxocommerce-images' ) );
+		}
+		if ( self::has_image( $scope, $id ) ) {
+			return new WP_Error( 'taxocommerce_images_media_existing', __( 'El elemento ya tiene una imagen asignada.', 'taxocommerce-images' ) );
+		}
+		if ( ! self::valid_media( $attachment_id ) ) {
+			return new WP_Error( 'taxocommerce_images_media_invalid', __( 'La imagen seleccionada ya no está disponible en Media o su archivo local no existe.', 'taxocommerce-images' ) );
+		}
+		if ( ! self::apply( $scope, $id, $attachment_id ) ) {
+			return new WP_Error( 'taxocommerce_images_media_assign', __( 'No se pudo asignar la imagen seleccionada.', 'taxocommerce-images' ) );
+		}
+		return true;
+	}
+
+	/**
 	 * Save navigation and operation results without leaking filesystem paths.
 	 *
 	 * @param string $scope Group.
@@ -620,6 +655,24 @@ final class TaxoCommerce_Images_Assignment {
 			self::redirect( $scope, 'ok', __( 'Imagen relacionada asignada correctamente.', 'taxocommerce-images' ) );
 		}
 		self::redirect( $scope, 'error', __( 'No se pudo asignar la imagen o el contenido ya tenía una imagen.', 'taxocommerce-images' ) );
+	}
+
+	/**
+	 * Assign an image explicitly selected from the native WordPress Media modal.
+	 *
+	 * @return void
+	 */
+	public static function handle_assign_media() {
+		$data = self::guard( 'taxocommerce_images_assign_media' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by guard() before POST access.
+		$attachment_id = isset( $_POST['attachment_id'] ) && is_scalar( $_POST['attachment_id'] )
+			? absint( $_POST['attachment_id'] ) : 0;
+
+		$result = self::assign_from_media( $data['scope'], $data['id'], $attachment_id );
+		if ( is_wp_error( $result ) ) {
+			self::redirect( $data['scope'], 'error', $result->get_error_message() );
+		}
+		self::redirect( $data['scope'], 'ok', __( 'Imagen existente de Media asignada correctamente.', 'taxocommerce-images' ) );
 	}
 
 	/**
