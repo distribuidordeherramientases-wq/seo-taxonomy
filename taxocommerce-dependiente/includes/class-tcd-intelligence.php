@@ -52,6 +52,7 @@ final class TCD_Intelligence {
             self::install();
         }
         add_action( 'admin_post_tcd_quality_csv', array( __CLASS__, 'download_quality_csv' ) );
+        add_action( 'admin_post_tcd_quality_data_csv', array( __CLASS__, 'download_quality_data_csv' ) );
     }
 
     public static function reset_modern_generated() {
@@ -606,34 +607,7 @@ final class TCD_Intelligence {
         $source_type = sanitize_key( (string) ( $row['source_type'] ?? '' ) );
         $source_id = absint( $row['source_id'] ?? 0 );
         $title = trim( (string) ( $row['title'] ?? '' ) );
-        $issues = array();
-
-        if ( '' === $title ) {
-            $issues[] = self::data_issue( 'titulo_vacio', 'title', '', 'El contenido no tiene título identificable.', 'Completar el título antes de volver a evaluar.' );
-        } elseif ( mb_strlen( $title ) < 4 ) {
-            $issues[] = self::data_issue( 'titulo_demasiado_corto', 'title', $title, 'El título aporta muy poca identidad.', 'Revisar si el título identifica realmente el elemento.' );
-        }
-
-        if ( 2 === absint( $lesson ) || 'product' === $source_type ) {
-            $sku = trim( (string) ( $facts['sku'] ?? '' ) );
-            if ( ! self::valid_identity_value( $sku ) ) {
-                $issues[] = self::data_issue( 'sku_invalido_o_vacio', 'sku', $sku, 'SKU vacío o con un valor de error/no utilizable.', 'Asignar un SKU válido si el producto debe tenerlo.' );
-            }
-            $categories = array_values( array_filter( array_map( 'absint', (array) ( $facts['categories']['product_cat'] ?? array() ) ) ) );
-            if ( ! $categories ) {
-                $issues[] = self::data_issue( 'sin_categoria_producto', 'product_cat', '', 'El producto no tiene categoría de producto en la foto fija.', 'Asignar la categoría correcta.' );
-            }
-            $vocabulary = (array) ( $facts['vocabulary'] ?? array() );
-            if ( empty( $vocabulary['tipo'] ) ) {
-                $issues[] = self::data_issue( 'sin_tipo', 'vocabulary.tipo', '', 'Falta TIPO canónico.', 'Revisar/asignar TIPO en Vocabulary.' );
-            }
-            if ( empty( $vocabulary['rol'] ) ) {
-                $issues[] = self::data_issue( 'sin_rol', 'vocabulary.rol', '', 'Falta ROL canónico.', 'Revisar/asignar ROL en Vocabulary.' );
-            }
-            if ( empty( $facts['short_description'] ) ) {
-                $issues[] = self::data_issue( 'sin_resumen', 'short_description', '', 'Falta resumen/short description.', 'Completar un resumen específico del producto.' );
-            }
-        }
+        $issues = self::data_issues_for_row( $lesson, $row );
 
         $origin = 'dependiente';
         $reason = 'Los datos básicos están presentes; el producto/contenido no quedó dentro del Top-8. Debe mejorarse memoria, interpretación o ranking.';
@@ -680,6 +654,85 @@ final class TCD_Intelligence {
             'action'=>$action,
             'data_issues'=>array_values( $issues ),
         );
+    }
+
+    private static function data_issues_for_row( $lesson, $row ) {
+        $lesson = absint( $lesson );
+        $facts = json_decode( (string) ( $row['context_json'] ?? '' ), true );
+        $facts = is_array( $facts ) ? $facts : array();
+        $source_type = sanitize_key( (string) ( $row['source_type'] ?? '' ) );
+        $title = trim( (string) ( $row['title'] ?? '' ) );
+        $issues = array();
+
+        if ( '' === $title ) {
+            $issues[] = self::data_issue( 'titulo_vacio', 'title', '', 'El contenido no tiene título identificable.', 'Completar el título antes de volver a evaluar.' );
+        } elseif ( mb_strlen( $title ) < 4 ) {
+            $issues[] = self::data_issue( 'titulo_demasiado_corto', 'title', $title, 'El título aporta muy poca identidad.', 'Revisar si el título identifica realmente el elemento.' );
+        }
+
+        if ( 1 === $lesson || 0 === strpos( $source_type, 'termproduct_cat' ) ) {
+            $slug = trim( (string) ( $facts['slug'] ?? '' ) );
+            if ( ! $slug ) $issues[] = self::data_issue( 'categoria_sin_slug', 'slug', '', 'La categoría no tiene slug utilizable.', 'Revisar el slug de la categoría.' );
+            $products = absint( $facts['products'] ?? 0 );
+            $vocabulary = (array) ( $facts['vocabulary'] ?? array() );
+            if ( $products > 0 && ! $vocabulary ) {
+                $issues[] = self::data_issue( 'categoria_con_productos_sin_vocabulary', 'vocabulary', '', 'La categoría tiene productos pero no tiene clasificación Vocabulary.', 'Revisar la clasificación semántica de la categoría.' );
+            }
+            if ( $products > 0 && empty( $vocabulary['tipo'] ) && empty( $vocabulary['aplicacion'] ) ) {
+                $issues[] = self::data_issue( 'categoria_sin_tipo_aplicacion', 'vocabulary', '', 'La categoría con productos no tiene TIPO ni APLICACIÓN.', 'Asignar al menos el concepto semántico que describa correctamente la familia.' );
+            }
+        }
+
+        if ( in_array( $lesson, array( 2, 4, 9 ), true ) || 'product' === $source_type ) {
+            $sku = trim( (string) ( $facts['sku'] ?? '' ) );
+            if ( ! self::valid_identity_value( $sku ) ) {
+                $issues[] = self::data_issue( 'sku_invalido_o_vacio', 'sku', $sku, 'SKU vacío o con un valor de error/no utilizable.', 'Asignar un SKU válido si el producto debe tenerlo.' );
+            }
+            $categories = array_values( array_filter( array_map( 'absint', (array) ( $facts['categories']['product_cat'] ?? array() ) ) ) );
+            if ( ! $categories ) {
+                $issues[] = self::data_issue( 'sin_categoria_producto', 'product_cat', '', 'El producto no tiene categoría de producto en la foto fija.', 'Asignar la categoría correcta.' );
+            }
+            $vocabulary = (array) ( $facts['vocabulary'] ?? array() );
+            if ( empty( $vocabulary['tipo'] ) ) {
+                $issues[] = self::data_issue( 'sin_tipo', 'vocabulary.tipo', '', 'Falta TIPO canónico.', 'Revisar/asignar TIPO en Vocabulary.' );
+            }
+            if ( empty( $vocabulary['rol'] ) ) {
+                $issues[] = self::data_issue( 'sin_rol', 'vocabulary.rol', '', 'Falta ROL canónico.', 'Revisar/asignar ROL en Vocabulary.' );
+            }
+            if ( empty( $facts['short_description'] ) ) {
+                $issues[] = self::data_issue( 'sin_resumen', 'short_description', '', 'Falta resumen/short description.', 'Completar un resumen específico del producto.' );
+            }
+            $brand_ids = array();
+            foreach ( (array) ( $facts['brands'] ?? array() ) as $ids ) {
+                $brand_ids = array_merge( $brand_ids, array_map( 'absint', (array) $ids ) );
+            }
+            if ( ! array_filter( $brand_ids ) && preg_match( '/\bVEVOR\b/ui', $title ) ) {
+                $issues[] = self::data_issue( 'vevor_sin_marca_asignada', 'product_brand', '', 'El título identifica VEVOR pero no aparece una marca asignada en la foto fija.', 'Revisar la taxonomía de marca del producto.' );
+            }
+        }
+
+        if ( 3 === $lesson || 'vocabulary' === $source_type ) {
+            if ( empty( $facts['group'] ) ) $issues[] = self::data_issue( 'vocabulary_sin_grupo', 'semantic_group', '', 'El término Vocabulary no tiene grupo semántico.', 'Asignar el grupo canónico correcto.' );
+            if ( empty( $facts['slug'] ) ) $issues[] = self::data_issue( 'vocabulary_sin_slug', 'slug', '', 'El término Vocabulary no tiene slug.', 'Revisar el término Vocabulary.' );
+            if ( 0 === absint( $facts['product_count'] ?? 0 ) ) $issues[] = self::data_issue( 'vocabulary_sin_productos', 'product_ids', '', 'El término no está asignado a ningún producto del catálogo.', 'Confirmar si debe existir o si falta asignación.' );
+        }
+
+        if ( 5 === $lesson && in_array( $source_type, array( 'post','page' ), true ) ) {
+            if ( empty( $facts['vocabulary'] ) ) {
+                $issues[] = self::data_issue( 'editorial_sin_vocabulary', 'vocabulary', '', 'El contenido editorial no tiene Vocabulary común con catálogo.', 'Asignar Vocabulary solo si existe una relación semántica real con el catálogo.' );
+            }
+        }
+
+        if ( 6 === $lesson || 'faq' === $source_type ) {
+            if ( '' === trim( (string) ( $facts['answer'] ?? '' ) ) ) {
+                $issues[] = self::data_issue( 'faq_sin_respuesta', 'answer', '', 'La FAQ no tiene respuesta utilizable.', 'Completar la respuesta de la FAQ.' );
+            }
+            if ( ! absint( $facts['owner_id'] ?? 0 ) ) {
+                $issues[] = self::data_issue( 'faq_sin_propietario', 'owner_id', '', 'La FAQ no está vinculada a una categoría o producto propietario.', 'Asignar el propietario/contexto correcto.' );
+            }
+        }
+
+        return array_values( $issues );
     }
 
     private static function data_issue( $code, $field, $current, $reason, $action ) {
@@ -772,6 +825,67 @@ final class TCD_Intelligence {
                 implode( ' || ', array_map( static function ( $item ) { return (string) ( $item['title'] ?? '' ); }, $observed ) )
             ), ';' );
         }
+        fclose( $out );
+        exit;
+    }
+
+    public static function quality_data_csv_url( $lesson ) {
+        return wp_nonce_url(
+            add_query_arg(
+                array(
+                    'action'=>'tcd_quality_data_csv',
+                    'lesson'=>absint( $lesson ),
+                ),
+                admin_url( 'admin-post.php' )
+            ),
+            'tcd_quality_data_csv_' . absint( $lesson )
+        );
+    }
+
+    public static function download_quality_data_csv() {
+        global $wpdb;
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) wp_die( 'Sin permiso.' );
+        $lesson = absint( $_GET['lesson'] ?? 0 );
+        check_admin_referer( 'tcd_quality_data_csv_' . $lesson );
+
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=UTF-8' );
+        header( 'Content-Disposition: attachment; filename="dependiente_L' . $lesson . '_datos_a_revisar_' . gmdate( 'Ymd_His' ) . '.csv"' );
+        $out = fopen( 'php://output', 'w' );
+        fwrite( $out, "\xEF\xBB\xBF" );
+        fputcsv( $out, array(
+            'lesson','source_type','source_id','title','issue_code','field','current_value','reason','recommended_action'
+        ), ';' );
+
+        $table = TCD_Academy::knowledge_table();
+        $last = 0;
+        do {
+            $rows = (array) $wpdb->get_results( $wpdb->prepare(
+                "SELECT id,source_type,source_id,title,context_json,status
+                 FROM {$table}
+                 WHERE lesson=%d AND status='learned' AND id>%d
+                 ORDER BY id ASC LIMIT 250",
+                $lesson,
+                $last
+            ), ARRAY_A );
+            foreach ( $rows as $row ) {
+                $last = absint( $row['id'] ?? 0 );
+                foreach ( self::data_issues_for_row( $lesson, $row ) as $issue ) {
+                    fputcsv( $out, array(
+                        $lesson,
+                        (string) ( $row['source_type'] ?? '' ),
+                        absint( $row['source_id'] ?? 0 ),
+                        (string) ( $row['title'] ?? '' ),
+                        (string) ( $issue['code'] ?? '' ),
+                        (string) ( $issue['field'] ?? '' ),
+                        (string) ( $issue['current'] ?? '' ),
+                        (string) ( $issue['reason'] ?? '' ),
+                        (string) ( $issue['action'] ?? '' )
+                    ), ';' );
+                }
+            }
+        } while ( count( $rows ) === 250 );
+
         fclose( $out );
         exit;
     }
