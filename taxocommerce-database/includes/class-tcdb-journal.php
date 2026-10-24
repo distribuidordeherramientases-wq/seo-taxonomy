@@ -74,6 +74,19 @@ final class TCDB_Journal {
         if ( $ops_exists !== $operations || $changes_exists !== $changes ) {
             return false;
         }
+        // Both journal tables must be transactional, not merely present.
+        $engine_rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN (%s,%s)',
+            $operations,
+            $changes
+        ), ARRAY_A );
+        $engines = array();
+        foreach ( (array) $engine_rows as $row ) {
+            $engines[ $row['TABLE_NAME'] ] = $row['ENGINE'];
+        }
+        if ( ( $engines[ $operations ] ?? '' ) !== 'InnoDB' || ( $engines[ $changes ] ?? '' ) !== 'InnoDB' ) {
+            return false;
+        }
         update_option( self::SCHEMA_OPTION, self::SCHEMA_VERSION, false );
         return true;
     }
