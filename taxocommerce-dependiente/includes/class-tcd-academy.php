@@ -143,11 +143,66 @@ final class TCD_Academy {
         foreach((array)$context as $key=>$value){
             $clean[sanitize_key((string)$key)]=is_scalar($value)?sanitize_text_field((string)$value):wp_json_encode($value);
         }
-        $rows[]=array('at'=>gmdate('c'),'event'=>sanitize_key($event),'context'=>$clean);
+        $event=sanitize_key($event);
+        $rows[]=array('at'=>gmdate('c'),'event'=>$event,'context'=>$clean);
         update_option(self::LOG,array_slice($rows,-150),false);
+
+        $level=(false!==strpos($event,'error') || false!==strpos($event,'fatal'))?'ERROR':'INFO';
+        self::trace($level,$event,$context);
     }
 
     public static function logs(){return (array)get_option(self::LOG,array());}
+
+    private static function trace($level,$event,$context=array()){
+        if(class_exists('TCD_Learning_Log',false))TCD_Learning_Log::write($level,$event,$context);
+    }
+
+    private static function trace_item($event,$item,$extra=array()){
+        $item=is_array($item)?$item:array();
+        $facts=(array)($item['facts']??array());
+        $vocabulary=array();
+        foreach((array)($facts['vocabulary']??array()) as $group=>$rows){
+            $labels=array();
+            foreach(array_slice((array)$rows,0,5) as $row){
+                if(is_array($row))$labels[]=trim((string)($row['label']??$row['name']??$row['slug']??''));
+            }
+            $vocabulary[sanitize_key((string)$group)]=array_values(array_filter($labels));
+        }
+        $context=array(
+            'source_type'=>sanitize_key((string)($item['source_type']??'')),
+            'source_id'=>absint($item['source_id']??0),
+            'source_key'=>sanitize_text_field((string)($item['source_key']??'')),
+            'title'=>sanitize_text_field((string)($item['title']??'')),
+            'signature'=>substr((string)($item['signature']??''),0,16),
+            'fact_keys'=>array_keys($facts),
+            'vocabulary'=>$vocabulary,
+            'sku'=>(string)($facts['sku']??''),
+            'categories'=>$facts['categories']??array(),
+            'brands'=>$facts['brands']??array(),
+            'body_bytes'=>strlen((string)($item['body']??'')),
+        );
+        self::trace('DEBUG',$event,array_merge($context,(array)$extra));
+    }
+
+    private static function exception_context($e){
+        return array(
+            'exception'=>is_object($e)?get_class($e):'unknown',
+            'error'=>is_object($e)?substr((string)$e->getMessage(),0,1000):'',
+            'file'=>is_object($e)?wp_basename((string)$e->getFile()):'',
+            'line'=>is_object($e)?absint($e->getLine()):0,
+            'trace'=>is_object($e)?substr((string)$e->getTraceAsString(),0,5000):'',
+        );
+    }
+
+    private static function trace_db_error($operation,$table=''){
+        global $wpdb;
+        self::trace('ERROR','db_error',array(
+            'operation'=>sanitize_key((string)$operation),
+            'table'=>(string)$table,
+            'db_error'=>substr((string)$wpdb->last_error,0,2000),
+            'last_query'=>substr((string)$wpdb->last_query,0,3000),
+        ));
+    }
 
     public static function boot(){
         self::maybe_upgrade();
@@ -212,13 +267,23 @@ final class TCD_Academy {
     private static function queue($delay=null){
         if('running'!==self::state()['status'])return;
         $delay=null===$delay ? TCD_Load::delay() : max(1,absint($delay));
-        if(!wp_next_scheduled(self::CRON_HOOK))wp_schedule_single_event(time()+$delay,self::CRON_HOOK);
+        $existing=wp_next_scheduled(self::CRON_HOOK);
+        if(!$existing)wp_schedule_single_event(time()+$delay,self::CRON_HOOK);
+        $next=wp_next_scheduled(self::CRON_HOOK);
+        self::trace('DEBUG','queue_scheduled',array(
+            'delay'=>$delay,
+            'already_scheduled'=>$existing?1:0,
+            'next_tick'=>$next?gmdate('c',$next):'none',
+        ));
         self::nudge_manager($delay);
     }
 
     private static function nudge_manager($delay=0){
         if(function_exists('seo_process_supervisor_nudge')){
+            self::trace('DEBUG','manager_nudge',array('delay'=>max(0,absint($delay))));
             seo_process_supervisor_nudge(max(0,absint($delay)),'dependiente');
+        }else{
+            self::trace('WARN','manager_nudge_unavailable');
         }
     }
 
@@ -239,6 +304,7 @@ final class TCD_Academy {
     public static function manager_target_callback($budget,$source,$target){
         $started=microtime(true);
         $budget=max(3,min(15,absint($budget)));
+        self::trace('DEBUG','manager_callback',array('budget'=>$budget,'source'=>(string)$source));
         $worked=false;
         do{
             if('running'!==(string)(self::state()['status']??''))break;
@@ -251,15 +317,41 @@ final class TCD_Academy {
 
     public static function tick(){
         $state=self::state();
-        if('running'!==$state['status'] || get_option('tcd_learning_stop','')===$state['run_id'])return;
-        $lock=get_option(self::LOCK,0);
-        if($lock && (time()-absint($lock))<120){self::queue(15);return;}
-        if(!add_option(self::LOCK,time(),'',false)){
-            if($lock && time()-absint($lock)>=120){delete_option(self::LOCK);self::queue(3);}
-            else self::queue(15);
+        if('running'!==$state['status'] || get_option('tcd_learning_stop','')===$state['run_id']){
+            self::trace('DEBUG','tick_skipped_state',array('status'=>$state['status']??'','stop'=>get_option('tcd_learning_stop','')?1:0));
             return;
         }
-        try{self::run_one($state);}finally{delete_option(self::LOCK);}
+        self::trace('DEBUG','tick_enter',array(
+            'lesson'=>absint($state['lesson']??0),
+            'phase'=>(string)($state['phase']??''),
+            'snapshot_cursor'=>absint($state['snapshot_cursor']??0),
+            'learning_cursor'=>absint($state['learning_cursor']??0),
+        ));
+        $lock=get_option(self::LOCK,0);
+        $lock_age=$lock?max(0,time()-absint($lock)):0;
+        if($lock && $lock_age<120){
+            self::trace('WARN','tick_locked',array('lock_age'=>$lock_age,'retry_in'=>15));
+            self::queue(15);
+            return;
+        }
+        if(!add_option(self::LOCK,time(),'',false)){
+            if($lock && $lock_age>=120){
+                self::trace('WARN','stale_lock_recovered',array('lock_age'=>$lock_age));
+                delete_option(self::LOCK);
+                self::queue(3);
+            }else{
+                self::trace('WARN','lock_acquire_failed',array('lock_age'=>$lock_age,'retry_in'=>15));
+                self::queue(15);
+            }
+            return;
+        }
+        self::trace('DEBUG','lock_acquired');
+        try{
+            self::run_one($state);
+        }finally{
+            delete_option(self::LOCK);
+            self::trace('DEBUG','lock_released');
+        }
     }
 
     private static function run_one($state){
@@ -298,6 +390,14 @@ final class TCD_Academy {
         }
         $measure=TCD_Load::begin();
         $processed=0;
+        self::trace('INFO','run_one_begin',array(
+            'lesson'=>$lesson,
+            'phase'=>(string)($state['phase']??''),
+            'snapshot_id'=>absint($state['snapshot_id']??0),
+            'snapshot_cursor'=>absint($state['snapshot_cursor']??0),
+            'learning_cursor'=>absint($state['learning_cursor']??0),
+            'batch'=>TCD_Load::batch_size(),
+        ));
         try{
             $backfill=TCD_Intelligence::backfill_next_missing($lesson);
             if(is_wp_error($backfill))throw new RuntimeException($backfill->get_error_message());
@@ -334,6 +434,10 @@ final class TCD_Academy {
         }catch(Throwable $e){
             $load=TCD_Load::finish($measure,$processed);
             self::save(array('status'=>'error','load_last'=>$load,'last_error'=>substr($e->getMessage(),0,400),'last_message'=>'Dependiente detenido por error. La foto fija y el progreso se conservan.'));
+            self::trace('ERROR','learning_exception',array_merge(
+                array('lesson'=>$lesson,'phase'=>$state['phase'],'processed'=>$processed,'load'=>$load),
+                self::exception_context($e)
+            ));
             self::log('learning_error',array('lesson'=>$lesson,'phase'=>$state['phase'],'error'=>substr($e->getMessage(),0,240)));
             error_log('[TaxoCommerce Dependiente] '.substr($e->getMessage(),0,400));
         }
@@ -356,7 +460,10 @@ final class TCD_Academy {
             'syllabus_json'=>wp_json_encode($definition,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
             'created_at'=>current_time('mysql'),
         );
-        if(false===$wpdb->insert(self::snapshots_table(),$row))throw new RuntimeException('No se pudo crear la foto fija de L'.$lesson.'.');
+        if(false===$wpdb->insert(self::snapshots_table(),$row)){
+            self::trace_db_error('snapshot_create',self::snapshots_table());
+            throw new RuntimeException('No se pudo crear la foto fija de L'.$lesson.'.');
+        }
         $id=(int)$wpdb->insert_id;
         self::save(array('snapshot_id'=>$id,'snapshot_cursor'=>0,'learning_cursor'=>0,'last_message'=>'L'.$lesson.': analizando fuentes para construir la foto fija.'));
         self::log('snapshot_started',array('lesson'=>$lesson,'snapshot_id'=>$id));
@@ -371,13 +478,24 @@ final class TCD_Academy {
         $snapshot_id=self::ensure_snapshot($state);
         $state=self::state();
         $cursor=absint($state['snapshot_cursor']);
-        $batch=TCD_Sources::batch($lesson,$cursor,TCD_Load::batch_size());
-        if(is_wp_error($batch))throw new RuntimeException($batch->get_error_message());
+        $limit=TCD_Load::batch_size();
+        self::trace('INFO','source_batch_request',array('lesson'=>$lesson,'cursor'=>$cursor,'limit'=>$limit));
+        $batch=TCD_Sources::batch($lesson,$cursor,$limit);
+        if(is_wp_error($batch)){
+            self::trace('ERROR','source_batch_error',array('lesson'=>$lesson,'cursor'=>$cursor,'limit'=>$limit,'error'=>$batch->get_error_message()));
+            throw new RuntimeException($batch->get_error_message());
+        }
+        self::trace('INFO','source_batch_read',array(
+            'lesson'=>$lesson,'cursor'=>$cursor,'limit'=>$limit,
+            'returned'=>count((array)($batch['items']??array())),
+            'next_cursor'=>absint($batch['cursor']??0),'more'=>!empty($batch['more'])?1:0,
+        ));
 
         $sequence=$cursor;
         foreach((array)$batch['items'] as $item){
             if(get_option('tcd_learning_stop','')===$run)return;
             $sequence++;
+            self::trace_item('source_read',$item,array('sequence'=>$sequence,'snapshot_id'=>$snapshot_id));
             $payload=wp_json_encode($item,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
             $row=array(
                 'snapshot_id'=>$snapshot_id,
@@ -391,7 +509,15 @@ final class TCD_Academy {
                 'payload_json'=>$payload,
                 'status'=>'pending',
             );
-            if(false===$wpdb->replace(self::items_table(),$row))throw new RuntimeException('No se pudo guardar una fuente en la foto fija de L'.$lesson.'.');
+            if(false===$wpdb->replace(self::items_table(),$row)){
+                self::trace_db_error('snapshot_item_write',self::items_table());
+                throw new RuntimeException('No se pudo guardar una fuente en la foto fija de L'.$lesson.'.');
+            }
+            self::trace('DEBUG','snapshot_write',array(
+                'snapshot_id'=>$snapshot_id,'sequence'=>$sequence,
+                'source_type'=>$row['source_type'],'source_id'=>$row['source_id'],
+                'title'=>$row['title'],'payload_bytes'=>strlen($payload),'status'=>'pending',
+            ));
         }
 
         $more=!empty($batch['more']);
@@ -428,10 +554,21 @@ final class TCD_Academy {
         if(!$snapshot_id)throw new RuntimeException('Falta la foto fija de L'.$lesson.'.');
         $run=(string)$state['run_id'];
         $items=self::items_table();
+        $limit=TCD_Load::batch_size();
+        self::trace('INFO','knowledge_batch_request',array(
+            'snapshot_id'=>$snapshot_id,'lesson'=>$lesson,'limit'=>$limit,
+            'after_sequence'=>absint($state['learning_cursor']??0),
+        ));
         $rows=$wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$items} WHERE snapshot_id=%d AND status='pending' ORDER BY sequence_no ASC,id ASC LIMIT %d",
-            $snapshot_id,TCD_Load::batch_size()
+            $snapshot_id,$limit
         ),ARRAY_A);
+        if($wpdb->last_error)self::trace_db_error('knowledge_batch_read',$items);
+        self::trace('INFO','knowledge_batch_read',array(
+            'snapshot_id'=>$snapshot_id,'lesson'=>$lesson,'returned'=>count((array)$rows),
+            'first_sequence'=>$rows?absint($rows[0]['sequence_no']??0):0,
+            'last_sequence'=>$rows?absint($rows[count($rows)-1]['sequence_no']??0):0,
+        ));
 
         if(!$rows){self::complete_lesson($state);return 0;}
 
@@ -440,8 +577,19 @@ final class TCD_Academy {
             if(get_option('tcd_learning_stop','')===$run)return $learned+$unlearned;
             $item=json_decode((string)$row['payload_json'],true);
             $item=is_array($item)?$item:array();
+            self::trace_item('learning_item_read',$item,array(
+                'snapshot_row_id'=>absint($row['id']??0),
+                'sequence'=>absint($row['sequence_no']??0),
+                'payload_bytes'=>strlen((string)($row['payload_json']??'')),
+            ));
             $reason=TCD_Sources::validate_snapshot($item);
             $status=$reason?'unlearned':'learned';
+            self::trace($reason?'WARN':'DEBUG','learning_validation',array(
+                'sequence'=>absint($row['sequence_no']??0),
+                'source_type'=>(string)($row['source_type']??''),
+                'source_id'=>absint($row['source_id']??0),
+                'status'=>$status,'reason'=>$reason,
+            ));
             $knowledge=array(
                 'lesson'=>$lesson,
                 'source_type'=>sanitize_key((string)$row['source_type']),
@@ -453,19 +601,49 @@ final class TCD_Academy {
                 'reason'=>$reason,
                 'learned_at'=>current_time('mysql'),
             );
-            if(false===$wpdb->replace(self::knowledge_table(),$knowledge))throw new RuntimeException('Error al guardar conocimiento de L'.$lesson.'.');
-            if('learned'===$status && class_exists('TCD_Intelligence'))TCD_Intelligence::learn_item($lesson,$item,$snapshot_id);
-            $wpdb->update($items,array('status'=>$status,'reason'=>$reason,'learned_at'=>current_time('mysql')),array('id'=>absint($row['id'])));
+            if(false===$wpdb->replace(self::knowledge_table(),$knowledge)){
+                self::trace_db_error('knowledge_write',self::knowledge_table());
+                throw new RuntimeException('Error al guardar conocimiento de L'.$lesson.'.');
+            }
+            self::trace('INFO','knowledge_write',array(
+                'lesson'=>$lesson,'sequence'=>absint($row['sequence_no']??0),
+                'source_type'=>$knowledge['source_type'],'source_id'=>$knowledge['source_id'],
+                'title'=>$knowledge['title'],'status'=>$status,'reason'=>$reason,
+                'context_bytes'=>strlen((string)$knowledge['context_json']),
+            ));
+            if('learned'===$status && class_exists('TCD_Intelligence')){
+                self::trace('DEBUG','intelligence_learn_begin',array(
+                    'lesson'=>$lesson,'source_type'=>$knowledge['source_type'],'source_id'=>$knowledge['source_id'],
+                ));
+                TCD_Intelligence::learn_item($lesson,$item,$snapshot_id);
+                self::trace('DEBUG','intelligence_learn_end',array(
+                    'lesson'=>$lesson,'source_type'=>$knowledge['source_type'],'source_id'=>$knowledge['source_id'],
+                ));
+            }
+            if(false===$wpdb->update($items,array('status'=>$status,'reason'=>$reason,'learned_at'=>current_time('mysql')),array('id'=>absint($row['id'])))){
+                self::trace_db_error('snapshot_item_mark',$items);
+            }
             $last=absint($row['sequence_no']);
             if($reason)$unlearned++;else $learned++;
         }
 
         $snapshot=self::snapshot($snapshot_id);
-        $wpdb->update(self::snapshots_table(),array(
+        $new_learned=absint($snapshot['learned_count']??0)+$learned;
+        $new_unlearned=absint($snapshot['unlearned_count']??0)+$unlearned;
+        if(false===$wpdb->update(self::snapshots_table(),array(
             'status'=>'learning',
-            'learned_count'=>absint($snapshot['learned_count']??0)+$learned,
-            'unlearned_count'=>absint($snapshot['unlearned_count']??0)+$unlearned,
-        ),array('id'=>$snapshot_id));
+            'learned_count'=>$new_learned,
+            'unlearned_count'=>$new_unlearned,
+        ),array('id'=>$snapshot_id))){
+            self::trace_db_error('snapshot_progress_write',self::snapshots_table());
+        }
+        self::trace('INFO','learning_progress',array(
+            'snapshot_id'=>$snapshot_id,'lesson'=>$lesson,
+            'batch_learned'=>$learned,'batch_unlearned'=>$unlearned,
+            'learned_total'=>$new_learned,'unlearned_total'=>$new_unlearned,
+            'snapshot_total'=>absint($snapshot['source_count']??0),
+            'cursor'=>$last,
+        ));
 
         self::save(array(
             'learning_cursor'=>$last,

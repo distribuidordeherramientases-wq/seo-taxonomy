@@ -134,3 +134,25 @@ Se mantienen dos exports distintos:
 - **Conocimientos · JSON**: paquete portable para copia, migración o análisis externo.
 
 La exportación se transmite por lotes para evitar construir documentos enormes en memoria.
+
+
+## Log de aprendizaje
+
+Desde 0.3.1 Dependiente dispone de una pestaña **Log de aprendizaje** orientada a diagnóstico operativo.
+
+El log registra, entre otros:
+
+- entrada y salida de cada tick;
+- adquisición, espera y recuperación de locks;
+- programación del siguiente tick y nudges al gestor;
+- petición y resultado de cada lote de fuentes;
+- fuente concreta leída y resumen de sus hechos/Vocabulary;
+- escritura de cada fila en la foto fija;
+- lectura, validación y escritura de cada conocimiento;
+- llamada al motor semántico;
+- progreso de cada lote;
+- errores de base de datos, excepciones y fatales PHP.
+
+El fichero activo se guarda en una carpeta privada bajo uploads, protegida frente a acceso web directo, y rota conservando únicamente la parte reciente. **Nunca debe superar 1 MiB**. La pestaña permite visualizarlo, autoactualizarlo, descargarlo y vaciarlo sin modificar el aprendizaje.
+
+Durante la fase `learning` la barra de progreso usa el tamaño de la **foto fija sellada**, no el tamaño actual del catálogo. Si el catálogo cambia después del sellado, ambos tamaños se muestran por separado para evitar interpretar como bloqueo una foto fija que, por diseño, ya no debe crecer.

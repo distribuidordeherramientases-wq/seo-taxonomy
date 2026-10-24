@@ -46,20 +46,86 @@ final class TCD_Admin {
         echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px">';
         echo '<a class="nav-tab '.esc_attr('overview'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('overview')).'">Dependiente</a>';
         echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
+        echo '<a class="nav-tab '.esc_attr('learning-log'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('learning-log')).'">Log de aprendizaje</a>';
         echo '</nav>';
+    }
+
+    private static function render_learning_log(){
+        $state=TCD_Academy::state();
+        $snapshot=TCD_Academy::snapshot_for_lesson(absint($state['lesson']??0));
+        $log=TCD_Learning_Log::read();
+        $size=TCD_Learning_Log::size();
+        $modified=TCD_Learning_Log::modified_at();
+        $lock=absint(get_option(TCD_Academy::LOCK,0));
+        $lock_age=$lock?max(0,time()-$lock):0;
+        $next=wp_next_scheduled(TCD_Academy::CRON_HOOK);
+        $auto=isset($_GET['auto']) && '1'===sanitize_text_field(wp_unslash((string)$_GET['auto']));
+        $warnings=substr_count($log,' WARN ');
+        $errors=substr_count($log,' ERROR ');
+        $processed=absint($snapshot['learned_count']??0)+absint($snapshot['unlearned_count']??0);
+        $total=absint($snapshot['source_count']??0);
+
+        echo '<p>Traza detallada del aprendizaje. Registra lecturas de fuentes, creación de foto fija, validación, escrituras en conocimiento, llamadas al motor semántico, locks, reprogramaciones, métricas y errores. El fichero activo rota automáticamente y nunca debe superar 1 MiB.</p>';
+
+        echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:12px 0 16px">';
+        self::log_card('Estado',(string)($state['status']??'—'),'L'.absint($state['lesson']??0).' · '.(string)($state['phase']??''));
+        self::log_card('Última actividad',(string)($state['updated_at']??'—'),$modified?'Fichero: '.$modified:'Fichero aún vacío');
+        self::log_card('Progreso actual',$total?number_format_i18n($processed).' / '.number_format_i18n($total):'—',$total?number_format_i18n(100*$processed/max(1,$total),1).'% de la foto fija':'Sin foto sellada');
+        self::log_card('Lock',$lock?($lock_age.' s'):'Libre',$lock_age>=120?'Posible lock obsoleto; el siguiente tick intenta recuperarlo.':'Protege contra dos lotes simultáneos.');
+        self::log_card('Próximo tick',$next?gmdate('Y-m-d H:i:s',$next).' UTC':'No programado',$next?'En '.max(0,$next-time()).' s':'Si está running, el gestor también puede ejecutar Dependiente.');
+        self::log_card('Log',size_format($size).' / 1 MiB','WARN: '.number_format_i18n($warnings).' · ERROR: '.number_format_i18n($errors));
+        echo '</div>';
+
+        $sample=TCD_Load::last_sample();
+        if($sample){
+            echo '<div class="notice notice-info inline"><p><strong>Último lote:</strong> ';
+            echo esc_html(number_format_i18n(absint($sample['items']??0))).' elementos · ';
+            echo esc_html(number_format_i18n((float)($sample['elapsed']??0),3)).' s · ';
+            echo 'CPU petición '.esc_html(null===($sample['cpu_percent']??null)?'n/d':number_format_i18n((float)$sample['cpu_percent'],1).'%').' · ';
+            echo 'memoria '.esc_html(size_format(absint($sample['memory_peak']??0))).' · ';
+            echo 'consultas '.esc_html(number_format_i18n(absint($sample['queries']??0))).'.</p></div>';
+        }
+        if(!empty($state['last_error'])){
+            echo '<div class="notice notice-error inline"><p><strong>Último error del estado:</strong> '.esc_html((string)$state['last_error']).'</p></div>';
+        }
+
+        $auto_url=add_query_arg('auto','1',self::tab_url('learning-log'));
+        echo '<p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
+        echo '<a class="button button-primary" href="'.esc_url(self::tab_url('learning-log')).'">Actualizar ahora</a>';
+        echo '<a class="button '.esc_attr($auto?'button-primary':'').'" href="'.esc_url($auto?self::tab_url('learning-log'):$auto_url).'">'.esc_html($auto?'Detener autoactualización':'Autoactualizar cada 10 s').'</a>';
+        echo '<a class="button" href="'.esc_url(TCD_Learning_Log::download_url()).'">Descargar TXT</a>';
+        echo '<a class="button" href="'.esc_url(TCD_Learning_Log::clear_url()).'" onclick="return confirm(\'¿Vaciar el log de aprendizaje? El aprendizaje y el conocimiento no se modifican.\')">Vaciar log</a>';
+        echo '</p>';
+
+        echo '<textarea id="tcd-learning-log" readonly spellcheck="false" style="width:100%;height:68vh;min-height:480px;background:#111;color:#e6e6e6;font:12px/1.45 Consolas,Monaco,monospace;white-space:pre;overflow:auto;padding:12px">'.esc_textarea($log).'</textarea>';
+        echo '<p class="description">El log es diagnóstico, no una copia del conocimiento. Los materiales completos y las fotos fijas siguen estando en los exports JSON de auditoría.</p>';
+        echo '<script>(function(){var e=document.getElementById("tcd-learning-log");if(e)e.scrollTop=e.scrollHeight;'.($auto?'window.setTimeout(function(){window.location.reload();},10000);':''). '})();</script>';
+    }
+
+    private static function log_card($title,$value,$description=''){
+        echo '<div style="background:#fff;border:1px solid #c3c4c7;padding:12px">';
+        echo '<div style="font-size:12px;color:#50575e">'.esc_html($title).'</div>';
+        echo '<div style="font-size:18px;font-weight:600;margin:4px 0">'.esc_html($value).'</div>';
+        if($description)echo '<div class="description">'.esc_html($description).'</div>';
+        echo '</div>';
     }
 
     public static function render(){
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
-        if(!in_array($tab,array('overview','knowledge'),true))$tab='overview';
+        if(!in_array($tab,array('overview','knowledge','learning-log'),true))$tab='overview';
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         self::tabs($tab);
 
         if('knowledge'===$tab){
             TCD_Knowledge_Transfer::render_admin_section();
+            echo '</div>';
+            return;
+        }
+        if('learning-log'===$tab){
+            self::render_learning_log();
             echo '</div>';
             return;
         }
@@ -127,15 +193,29 @@ final class TCD_Admin {
             $sources=$snapshot?absint($snapshot['source_count']):0;
             $signature=$snapshot?(string)$snapshot['source_signature']:'';
             $planned=TCD_Sources::source_total($no);
-            $analysed=$snapshot ? ($sources>0 ? $sources : ($no===absint($state['lesson']) ? absint($state['snapshot_cursor']??0) : 0)) : ($no===absint($state['lesson']) ? absint($state['snapshot_cursor']??0) : 0);
-            $percent=$planned>0 ? min(100,round(($analysed/$planned)*100)) : 0;
+            $is_current=$no===absint($state['lesson']);
+            $building=$is_current && 'snapshot'===(string)($state['phase']??'');
+            if($building || !$sources){
+                $progress_value=$is_current?absint($state['snapshot_cursor']??0):0;
+                $progress_total=$planned;
+                $progress_text='fuentes leídas para la foto fija';
+            }else{
+                $progress_value=absint($snapshot['learned_count']??0)+absint($snapshot['unlearned_count']??0);
+                if('completed'===$status)$progress_value=$sources;
+                $progress_total=$sources;
+                $progress_text='elementos procesados de la foto fija';
+            }
+            $percent=$progress_total>0 ? min(100,round(($progress_value/$progress_total)*100)) : 0;
             echo '<tr>';
             echo '<td><strong>L'.esc_html((string)$no).'</strong> '.esc_html((string)$lesson['name']).'<div class="description"><code>'.esc_html((string)$lesson['key']).'</code></div></td>';
             echo '<td>'.esc_html((string)$lesson['objective']).'<div class="description">Fuente: '.esc_html((string)$lesson['source']).'</div></td>';
             echo '<td><strong>'.esc_html($status).'</strong>';
-            echo '<div>'.esc_html(number_format_i18n($analysed)).' / '.esc_html(number_format_i18n($planned)).' fuentes analizadas · '.esc_html((string)$percent).'%</div>';
+            echo '<div>'.esc_html(number_format_i18n($progress_value)).' / '.esc_html(number_format_i18n($progress_total)).' '.esc_html($progress_text).' · '.esc_html((string)$percent).'%</div>';
             echo '<div style="max-width:220px;height:8px;background:#dcdcde;margin:5px 0"><span style="display:block;height:8px;background:currentColor;width:'.esc_attr((string)$percent).'%"></span></div>';
             if($snapshot && $signature)echo '<div class="description">Foto sellada: <code>'.esc_html(substr($signature,0,12)).'…</code></div>';
+            if($sources>0 && $planned>0 && $planned!==$sources){
+                echo '<div class="description">Foto fija: '.esc_html(number_format_i18n($sources)).' · fuente actual: '.esc_html(number_format_i18n($planned)).'. La foto permanece congelada durante esta lección.</div>';
+            }
             echo '</td>';
             echo '<td>'.esc_html(number_format_i18n(absint($counts[$no]['learned']??0))).'</td>';
             echo '<td>'.esc_html(number_format_i18n(absint($counts[$no]['unlearned']??0))).'</td>';
