@@ -87,6 +87,7 @@ final class TCD_Search {
         $other = trim( sanitize_text_field( (string) $request->get_param( 'other' ) ) );
 
         $effective_query = $q;
+        $feedback_query = $q;
         $runtime_hints = array();
 
         if ( $hint_group && $hint_slug && $hint_label ) {
@@ -97,6 +98,7 @@ final class TCD_Search {
                 'weight'=>280,
                 'source'=>'customer_clarification',
             );
+            $feedback_query = trim( $q . ' ' . $hint_label );
             TCD_Feedback::record_clarification(
                 $q,
                 $session,
@@ -106,6 +108,7 @@ final class TCD_Search {
             );
         } elseif ( $other ) {
             $effective_query = trim( $q . ' ' . $other );
+            $feedback_query = $effective_query;
             TCD_Feedback::record_other( $q, $session, $other, $depth );
         }
 
@@ -144,6 +147,7 @@ final class TCD_Search {
             'session'=>$session,
             'query'=>$q,
             'effective_query'=>$effective_query,
+            'feedback_query'=>$feedback_query,
             'answer'=>(string) ( $decision['message'] ?? '' ),
             'results'=>$results,
             'suggestions'=>$suggestions,
@@ -224,6 +228,7 @@ final class TCD_Search {
                 try{sessionStorage.setItem(storageKey,session);}catch(e){}
             }
             var currentQuery='';
+            var currentFeedbackQuery='';
             var currentDepth=0;
             var lastConfidence=0;
 
@@ -268,6 +273,7 @@ final class TCD_Search {
                     try{sessionStorage.setItem(storageKey,session);}catch(e){}
                 }
                 lastConfidence=data.decision&&data.decision.confidence?Number(data.decision.confidence):0;
+                currentFeedbackQuery=data.feedback_query||currentQuery;
                 status.innerHTML='<strong>'+esc(data.answer||'')+'</strong>';
 
                 var c=data.clarification||{};
@@ -318,7 +324,7 @@ final class TCD_Search {
                     results.querySelectorAll('.tcd-product-link').forEach(function(link){
                         link.addEventListener('click',function(){
                             var payload={
-                                q:currentQuery,
+                                q:currentFeedbackQuery||currentQuery,
                                 session:session,
                                 event:'click',
                                 product_id:Number(link.getAttribute('data-product')||0),
