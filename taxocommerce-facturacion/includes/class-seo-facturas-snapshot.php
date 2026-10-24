@@ -335,8 +335,8 @@ final class SEO_Facturas_Snapshot {
                 'plataforma' => 'Plataforma',
                 'subtipo'    => 'Subtipo',
             );
-            $vocabulary_table = $wpdb->prefix . 'seo_vocabulary';
-            $object_table = $wpdb->prefix . 'seo_object_vocabulary';
+            $vocabulary_table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+            $object_table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
             $semantic_available = function_exists('seo_catalog_table_exists')
                 && seo_catalog_table_exists($vocabulary_table)
                 && seo_catalog_table_exists($object_table);
