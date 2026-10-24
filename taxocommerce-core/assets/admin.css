@@ -138,3 +138,9 @@ body.tcc-family-admin .tcc-extension-toolbar .description{margin:0}
 body.tcc-family-admin .tcc-extension-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
 body.tcc-family-admin .tcc-extension-actions form{display:inline-flex;margin:0}
 body.tcc-family-admin .tcc-extension-actions .button{white-space:nowrap}
+
+body.tcc-family-admin .tcc-extension-upload{display:inline-flex;align-items:center;gap:6px;margin:0}
+body.tcc-family-admin .tcc-extension-upload label.button{position:relative;margin:0;cursor:pointer}
+body.tcc-family-admin .tcc-extension-upload__input{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+body.tcc-family-admin .tcc-extension-actions{min-width:235px}
+@media(max-width:782px){body.tcc-family-admin .tcc-extension-actions{min-width:0}body.tcc-family-admin .tcc-extension-upload{flex-wrap:wrap}}
