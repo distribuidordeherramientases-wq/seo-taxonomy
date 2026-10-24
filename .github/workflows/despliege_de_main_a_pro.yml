@@ -69,12 +69,18 @@ jobs:
           if not isinstance(modules, list):
               raise SystemExit("La lista de módulos activos no es válida.")
 
-          print(json.dumps([str(module) for module in modules], separators=(",", ":")))
+          eligible = [
+              str(module)
+              for module in modules
+              if str(module) != "taxocommerce-dependiente"
+          ]
+          print(json.dumps(eligible, separators=(",", ":")))
           PY
           )"
 
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
-          echo "Plugins TaxoCommerce activos en PRO: $modules"
+          echo "Plugins TaxoCommerce elegibles para sincronizar en PRO: $modules"
+          echo "Dependiente moderno queda excluido: PRO conserva el Dependiente antiguo durante la comparación."
 
       - name: Sincronizar solo cambios de plugins TaxoCommerce activos
         shell: bash
