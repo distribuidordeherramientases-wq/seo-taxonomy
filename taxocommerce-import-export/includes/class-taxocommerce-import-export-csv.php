@@ -157,7 +157,12 @@ final class TaxoCommerce_Import_Export_CSV {
 				'record_type', 'id', 'product_type', 'status', 'name', 'slug', 'sku', 'regular_price', 'sale_price',
 				'stock_status', 'manage_stock', 'stock_quantity', 'short_description', 'description', 'categories_json',
 				'tags_json', 'attributes_json', 'external_url', 'button_text',
-			)
+				'brand_taxonomy', 'brand_ids', 'brand', 'manufacturer', 'supplier',
+				'supplier_external_id', 'supplier_catalog_id', 'supplier_category', 'supplier_price',
+			),
+			',',
+			'"',
+			''
 		);
 
 		$page = 1;
@@ -207,6 +212,8 @@ final class TaxoCommerce_Import_Export_CSV {
 					$button_text  = $product->get_button_text( 'edit' );
 				}
 
+				$brand = $this->product_brand_export_payload( $product_id );
+
 				fputcsv(
 					$output,
 					array(
@@ -229,7 +236,19 @@ final class TaxoCommerce_Import_Export_CSV {
 						wp_json_encode( $attributes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
 						$external_url,
 						$button_text,
-					)
+						(string) ( $brand['taxonomy'] ?? '' ),
+						implode( ',', (array) ( $brand['ids'] ?? array() ) ),
+						implode( ' | ', (array) ( $brand['names'] ?? array() ) ),
+						(string) get_post_meta( $product_id, '_seo_fabricante', true ),
+						(string) get_post_meta( $product_id, '_seo_proveedor', true ),
+						(string) get_post_meta( $product_id, '_seo_proveedor_id_externo', true ),
+						(string) get_post_meta( $product_id, '_seo_proveedor_catalogo_id', true ),
+						(string) get_post_meta( $product_id, '_seo_categoria_proveedor', true ),
+						(string) get_post_meta( $product_id, '_seo_precio_proveedor', true ),
+					),
+					',',
+					'"',
+					''
 				);
 			}
 
@@ -246,7 +265,7 @@ final class TaxoCommerce_Import_Export_CSV {
 	 * @return void
 	 */
 	private function export_product_categories( $output ) {
-		fputcsv( $output, array( 'record_type', 'id', 'name', 'slug', 'parent_id', 'description', 'image_id' ) );
+		fputcsv( $output, array( 'record_type', 'id', 'name', 'slug', 'parent_id', 'description', 'image_id' ), ',', '"', '' );
 
 		$terms = get_terms(
 			array(
@@ -284,7 +303,7 @@ final class TaxoCommerce_Import_Export_CSV {
 	 * @return void
 	 */
 	private function export_posts( $output, $post_type ) {
-		fputcsv( $output, array( 'record_type', 'id', 'status', 'title', 'slug', 'excerpt', 'content', 'date_gmt', 'author_id', 'categories_json', 'tags_json' ) );
+		fputcsv( $output, array( 'record_type', 'id', 'status', 'title', 'slug', 'excerpt', 'content', 'date_gmt', 'author_id', 'categories_json', 'tags_json' ), ',', '"', '' );
 
 		$page = 1;
 		do {
@@ -334,6 +353,12 @@ final class TaxoCommerce_Import_Export_CSV {
 	public function import_row_for_batch( $data, $context = array() ) {
 		$type     = sanitize_key( (string) ( $data['record_type'] ?? '' ) );
 		$expected = sanitize_key( (string) ( $context['type'] ?? '' ) );
+
+		if ( ! $type && $expected ) {
+			$data['record_type']     = $expected;
+			$data['_partial_update'] = '1';
+			$type = $expected;
+		}
 
 		if ( $expected && $type !== $expected ) {
 			return new WP_Error(
@@ -725,6 +750,39 @@ final class TaxoCommerce_Import_Export_CSV {
 	}
 
 	/**
+	 * Product brand/provider taxonomy payload for round-trip exports.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return array
+	 */
+	private function product_brand_export_payload( $product_id ) {
+		$taxonomy = sanitize_key( (string) get_post_meta( $product_id, '_seo_taxonomia_marca', true ) );
+		if ( ! $taxonomy && taxonomy_exists( 'product_brand' ) ) {
+			$taxonomy = 'product_brand';
+		}
+		if ( ! $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+			return array( 'taxonomy'=>'', 'ids'=>array(), 'names'=>array() );
+		}
+
+		$terms = wp_get_object_terms( $product_id, $taxonomy );
+		if ( is_wp_error( $terms ) ) {
+			return array( 'taxonomy'=>$taxonomy, 'ids'=>array(), 'names'=>array() );
+		}
+
+		$ids = array();
+		$names = array();
+		foreach ( (array) $terms as $term ) {
+			$ids[] = absint( $term->term_id );
+			$names[] = (string) $term->name;
+		}
+		return array(
+			'taxonomy'=>$taxonomy,
+			'ids'=>array_values( array_unique( array_filter( $ids ) ) ),
+			'names'=>array_values( array_unique( array_filter( $names, 'strlen' ) ) ),
+		);
+	}
+
+	/**
 	 * Export taxonomy payload.
 	 *
 	 * @param int    $object_id Object ID.
@@ -925,7 +983,7 @@ final class TaxoCommerce_Import_Export_CSV {
 	 * @param string[] $headers Normalized headers.
 	 * @return string
 	 */
-	private function infer_record_type_from_headers( $headers ) {
+	public function infer_record_type_from_headers( $headers ) {
 		$headers = array_values( array_unique( array_map( 'sanitize_key', (array) $headers ) ) );
 
 		$product_markers = array(
