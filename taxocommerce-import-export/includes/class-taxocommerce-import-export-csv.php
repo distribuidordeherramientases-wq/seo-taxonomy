@@ -600,10 +600,12 @@ final class TaxoCommerce_Import_Export_CSV {
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT v.semantic_group,v.slug,v.label,o.source,o.confidence
-				 FROM {$t['objects']} o
-				 INNER JOIN {$t['vocabulary']} v ON v.id=o.vocabulary_id
+				 FROM %i o
+				 INNER JOIN %i v ON v.id=o.vocabulary_id
 				 WHERE o.object_type='product' AND o.object_id=%d AND o.status=1 AND v.active=1
 				 ORDER BY v.semantic_group,v.slug",
+				$t['objects'],
+				$t['vocabulary'],
 				absint( $product_id )
 			),
 			ARRAY_A
@@ -628,11 +630,14 @@ final class TaxoCommerce_Import_Export_CSV {
 				"SELECT a.slug AS attribute_slug,a.nombre AS attribute_name,a.grupo,a.tipo,
 				        t.slug AS term_slug,t.nombre AS term_name,
 				        p.valor_texto,p.valor_numero,p.valor_numero_max,p.unidad,p.valor_original,p.orden
-				 FROM {$t['product_att']} p
-				 INNER JOIN {$t['attributes']} a ON a.id=p.atributo_id
-				 LEFT JOIN {$t['terms']} t ON t.id=p.termino_id
+				 FROM %i p
+				 INNER JOIN %i a ON a.id=p.atributo_id
+				 LEFT JOIN %i t ON t.id=p.termino_id
 				 WHERE p.product_id=%d AND a.activo=1
 				 ORDER BY p.orden,p.id",
+				$t['product_att'],
+				$t['attributes'],
+				$t['terms'],
 				absint( $product_id )
 			),
 			ARRAY_A
