@@ -403,6 +403,16 @@ final class TaxoCommerce_Core {
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-distribution' ),
 				'description'   => __( 'Feeds comerciales y sitemaps XML con publicación por bloques.', 'taxocommerce-core' ),
 			),
+			'connections' => array(
+				'id'            => 'connections',
+				'name'          => 'TaxoCommerce Connections',
+				'plugin_file'   => 'taxocommerce-connections/taxocommerce-connections.php',
+				'org_slug'      => 'taxocommerce-connections',
+				'search_term'   => 'TaxoCommerce Connections',
+				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-connections' ),
+				'description'   => __( 'Conexiones compartidas con Amazon, Pinterest y futuras APIs de la familia.', 'taxocommerce-core' ),
+			),
 			'google_bing' => array(
 				'id'            => 'google_bing',
 				'name'          => 'TaxoCommerce Google / Bing',
