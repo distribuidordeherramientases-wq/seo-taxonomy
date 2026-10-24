@@ -29,7 +29,10 @@ jobs:
       - name: Validate plugin syntax
         run: find taxocommerce-database -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Run database safety and CSV regression
-        run: php taxocommerce-database/tests/smoke.php
+        run: |
+          php taxocommerce-database/tests/smoke.php
+          php taxocommerce-database/tests/menu-smoke.php alone
+          php taxocommerce-database/tests/menu-smoke.php core
       - name: Assert no standalone legacy rollback endpoints
         run: |
           set -euo pipefail
