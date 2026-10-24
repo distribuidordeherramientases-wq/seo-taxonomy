@@ -507,12 +507,12 @@ final class TCD_Intelligence {
                     'slug'=>$slug,
                     'label'=>$hit['canonical'] ?: $hit['expression'],
                     'weight'=>$hit['weight'],
+                    'via'=>(string) ( $hit['source'] ?? '' ),
                 );
             }
         }
         self::apply_vocabulary_direct( $result, $ngrams );
-        $feedback_hints = class_exists( 'TCD_Feedback', false ) ? TCD_Feedback::active_semantic_hints( $normalized ) : array();
-        self::apply_runtime_hints( $result, array_merge( (array) $feedback_hints, (array) $runtime_hints ) );
+        self::apply_runtime_hints( $result, (array) $runtime_hints );
         self::apply_routes( $result, $include_stage );
         $result['groups'] = array_values( $result['groups'] );
         return $result;
@@ -695,13 +695,8 @@ final class TCD_Intelligence {
         $candidates = array();
 
         foreach ( self::l9_matches( $query, $include_stage ) as $product_id => $match ) {
-            self::candidate_add( $candidates, $product_id, 300 + absint( $match['score'] ?? 0 ), 'lesson9', $match );
-        }
-
-        if ( class_exists( 'TCD_Feedback', false ) ) {
-            foreach ( TCD_Feedback::active_product_scores( $query ) as $product_id => $feedback ) {
-                self::candidate_add( $candidates, $product_id, absint( $feedback['score'] ?? 0 ), 'feedback_click', $feedback );
-            }
+            $source = ! empty( $match['customer_feedback'] ) ? 'feedback_click' : 'lesson9';
+            self::candidate_add( $candidates, $product_id, 300 + absint( $match['score'] ?? 0 ), $source, $match );
         }
 
         foreach ( (array) ( $interpretation['groups'] ?? array() ) as $group ) {
@@ -710,8 +705,9 @@ final class TCD_Intelligence {
             $ids = 'product_cat' === $group_name
                 ? self::products_for_category( $slug, 160 )
                 : self::products_for_vocabulary( $group_name, $slug, 160 );
+            $source = 'customer_feedback' === (string) ( $group['via'] ?? '' ) ? 'feedback_semantic' : 'semantic';
             foreach ( $ids as $product_id ) {
-                self::candidate_add( $candidates, $product_id, 190 + absint( $group['weight'] ?? 0 ), 'semantic', $group );
+                self::candidate_add( $candidates, $product_id, 190 + absint( $group['weight'] ?? 0 ), $source, $group );
             }
         }
 
@@ -836,7 +832,7 @@ final class TCD_Intelligence {
         $margin = $top_score > 0 ? max( 0, ( $top_score - $second_score ) / $top_score ) : 0;
         $has_semantic = in_array( 'semantic', $sources, true );
         $has_l9 = in_array( 'lesson9', $sources, true );
-        $has_feedback = in_array( 'feedback_click', $sources, true );
+        $has_feedback = in_array( 'feedback_click', $sources, true ) || in_array( 'feedback_semantic', $sources, true );
         $text_only = ! $has_semantic && ! $has_l9 && ! $has_feedback;
         $has_action = ! empty( $interpretation['actions'] );
 
@@ -964,7 +960,7 @@ final class TCD_Intelligence {
         foreach ( $rows as $row ) {
             $id = absint( $row['product_id'] ?? 0 );
             if ( ! $id ) continue;
-            if ( ! isset( $products[ $id ] ) ) $products[ $id ] = array( 'product_id'=>$id, 'score'=>0, 'concepts'=>array(), 'phrase_hits'=>0, 'matches'=>array() );
+            if ( ! isset( $products[ $id ] ) ) $products[ $id ] = array( 'product_id'=>$id, 'score'=>0, 'concepts'=>array(), 'phrase_hits'=>0, 'matches'=>array(), 'customer_feedback'=>false );
             $origin = self::normalize( (string) ( $row['signal_text'] ?? '' ) );
             $group = sanitize_key( (string) ( $row['semantic_group'] ?? $row['signal_type'] ?? '' ) );
             $concept = $group . '|' . $origin;
@@ -972,6 +968,9 @@ final class TCD_Intelligence {
             $products[ $id ]['concepts'][ $concept ] = absint( $row['weight'] ?? 0 );
             $products[ $id ]['score'] += absint( $row['weight'] ?? 0 );
             if ( false !== strpos( (string) ( $row['normalized_signal'] ?? '' ), ' ' ) ) $products[ $id ]['phrase_hits']++;
+            if ( 'customer_query' === sanitize_key( (string) ( $row['signal_type'] ?? '' ) ) || 'customer_feedback' === sanitize_key( (string) ( $row['semantic_group'] ?? '' ) ) ) {
+                $products[ $id ]['customer_feedback'] = true;
+            }
             if ( count( $products[ $id ]['matches'] ) < 10 ) $products[ $id ]['matches'][] = array(
                 'type'=>sanitize_key( (string) ( $row['signal_type'] ?? '' ) ),
                 'signal'=>(string) ( $row['signal_text'] ?? '' ),
