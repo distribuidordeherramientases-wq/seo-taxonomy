@@ -301,8 +301,8 @@ function taxocommerce_distribution_render_automation() {
     $legacy_sitemap = defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) && TCDIST_LEGACY_SITEMAP_ACTIVE;
     ?>
     <div class="card" style="max-width:1000px;padding:20px;">
-        <h2 style="margin-top:0;"><?php esc_html_e( 'Automation y carga', 'taxocommerce-distribution' ); ?></h2>
-        <p><?php esc_html_e( 'Feeds keep the adaptive regulator from the previous system, but work now runs through Distribution's own worker. Each window uses a cursor, lock, and execution deadline; there is no dependency on the legacy central manager.', 'taxocommerce-distribution' ); ?></p>
+        <h2 style="margin-top:0;"><?php esc_html_e( 'Automation and workload', 'taxocommerce-distribution' ); ?></h2>
+        <p><?php esc_html_e( 'Feeds keep the adaptive regulator from the previous system, but work now runs through the dedicated Distribution worker. Each window uses a cursor, lock, and execution deadline; there is no dependency on the legacy central manager.', 'taxocommerce-distribution' ); ?></p>
 
         <table class="widefat striped">
             <tbody>
