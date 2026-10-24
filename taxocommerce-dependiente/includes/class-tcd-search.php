@@ -18,7 +18,39 @@ final class TCD_Search {
                 'args'=>array( 'q'=>array( 'required'=>true, 'sanitize_callback'=>'sanitize_text_field' ) ),
             ) );
         } );
-        add_shortcode( 'taxocommerce_dependiente', array( __CLASS__, 'shortcode' ) );
+
+        /*
+         * El shortcode canónico del plugin moderno es distinto del legado para
+         * permitir comparación A/B con ambos plugins instalados.
+         *
+         * En STAGING se conserva además taxocommerce_dependiente como alias
+         * del moderno, registrado tarde para ganar al runtime legado. En PRO,
+         * si el Dependiente antiguo está presente, no se registra ese alias y
+         * el antiguo conserva el control de su página pública.
+         */
+        add_action( 'init', array( __CLASS__, 'register_shortcodes' ), 100 );
+    }
+
+    public static function register_shortcodes() {
+        add_shortcode( 'taxocommerce_dependiente_moderno', array( __CLASS__, 'shortcode' ) );
+
+        if ( self::modern_alias_enabled() ) {
+            add_shortcode( 'taxocommerce_dependiente', array( __CLASS__, 'shortcode' ) );
+        }
+    }
+
+    private static function modern_alias_enabled() {
+        if ( function_exists( 'wp_get_environment_type' ) && 'staging' === wp_get_environment_type() ) {
+            return true;
+        }
+
+        $host = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+        $host = is_string( $host ) ? strtolower( $host ) : '';
+        if ( 0 === strpos( $host, 'staging.' ) || false !== strpos( $host, '.staging.' ) ) {
+            return true;
+        }
+
+        return ! defined( 'SEO_DEPENDIENTE_VERSION' );
     }
 
     public static function search( $request ) {

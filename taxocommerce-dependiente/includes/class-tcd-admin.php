@@ -261,7 +261,11 @@ final class TCD_Admin {
         }
         echo '</tbody></table>';
 
-        echo '<h2>Asistente</h2><p>El shortcode <code>[taxocommerce_dependiente]</code> usa el Intérprete moderno: reglas semánticas, Vocabulary, memoria L9 ponderada y catálogo publicado. La búsqueda textual queda únicamente como red de seguridad.</p>';
+        echo '<h2>Asistente e integración</h2>';
+        echo '<p>El shortcode canónico del plugin moderno es <code>[taxocommerce_dependiente_moderno]</code>. En STAGING, <code>[taxocommerce_dependiente]</code> también apunta al moderno para facilitar pruebas; en PRO, si el Dependiente antiguo está cargado, ese alias queda reservado al plugin antiguo.</p>';
+        echo '<p><strong>PHP para una plantilla:</strong></p>';
+        echo '<pre style="background:#fff;border:1px solid #c3c4c7;padding:12px;overflow:auto"><code>'.esc_html("<?php\nif ( shortcode_exists( 'taxocommerce_dependiente_moderno' ) ) {\n    echo do_shortcode( '[taxocommerce_dependiente_moderno]' );\n}\n?>").'</code></pre>';
+        echo '<p>El Intérprete moderno usa reglas semánticas, Vocabulary, memoria L9 ponderada y catálogo publicado. La búsqueda textual queda únicamente como red de seguridad.</p>';
         echo '<p>L6 utiliza directamente las FAQs canónicas de TaxoCommerce FAQs (<code>seo_faq</code>) y su categoría/propietario; no exige un CPT FAQ artificial.</p>';
         echo '</div>';
     }
