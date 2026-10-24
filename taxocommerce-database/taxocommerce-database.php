@@ -27,6 +27,7 @@ require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-admin.php';
 final class TaxoCommerce_Database {
     public static function boot() {
         add_action( 'admin_menu', array( __CLASS__, 'menu' ), 60 );
+        add_action( 'admin_enqueue_scripts', array( 'TCDB_Admin', 'register_styles' ) );
         add_action( 'admin_post_tcdb_audit', array( 'TCDB_Storage', 'handle_audit' ) );
         add_action( 'admin_post_tcdb_export', array( 'TCDB_Export', 'handle' ) );
         add_action( 'admin_post_tcdb_import_preview', array( 'TCDB_Import', 'preview' ) );
