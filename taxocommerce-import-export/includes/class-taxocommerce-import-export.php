@@ -227,8 +227,10 @@ final class TaxoCommerce_Import_Export {
 				<div class="notice notice-success is-dismissible"><p>
 					<?php
 					if ( 'media' === $kind ) {
+						/* translators: %d: number of Media images imported. */
 						echo esc_html( sprintf( __( 'Importación de Media completada. Imágenes importadas: %d.', 'taxocommerce-import-export' ), $count ) );
 					} else {
+						/* translators: %d: number of CSV rows processed. */
 						echo esc_html( sprintf( __( 'Importación completada. Filas procesadas: %d.', 'taxocommerce-import-export' ), $count ) );
 					}
 					?>
