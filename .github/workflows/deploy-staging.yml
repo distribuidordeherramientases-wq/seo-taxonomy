@@ -52,6 +52,7 @@ jobs:
             **/.github/**
             taxocommerce-core/**
             taxocommerce-database/**
+            taxocommerce-google-bing/**
             taxocommerce-images/**
             taxocommerce-import-export/**
             taxocommerce-system-check/**
