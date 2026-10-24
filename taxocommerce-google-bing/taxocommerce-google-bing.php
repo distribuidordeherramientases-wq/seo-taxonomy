@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Insights
- * Description: Informes, tendencias, mercado y oportunidades a partir de Google, Bing y otras fuentes conectadas.
+ * Description: Search, Analytics, Bing, Trends, market, opportunity, and executive reports from connected data sources.
  * Version: 0.7.3
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -57,7 +57,7 @@ function taxocommerce_google_bing_register_with_core( $core ) {
             'name'        => 'TaxoCommerce Insights',
             'version'     => TAXOCOMMERCE_GOOGLE_BING_VERSION,
             'status'      => 'active',
-            'description' => 'Informes de Search, Analytics y Bing, Trends, Mercado, oportunidades e informe ejecutivo.',
+            'description' => 'Search, Analytics, Bing, Trends, market, opportunity, and executive reports.',
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-google-bing' ),
         )
     );
@@ -114,12 +114,12 @@ function taxocommerce_google_bing_screen() {
     echo '<nav class="nav-tab-wrapper" aria-label="TaxoCommerce Insights">';
     foreach (
         array(
-            'informe'          => 'Informe',
+            'informe'          => 'Executive Report',
             'google_search'    => 'Google Search',
             'google_analytics' => 'Google Analytics',
             'bing'             => 'Bing',
             'google_trends'    => 'Google Trends',
-            'mercado'          => 'Mercado',
+            'mercado'          => 'Market',
         ) as $key => $label
     ) {
         $url = add_query_arg(
