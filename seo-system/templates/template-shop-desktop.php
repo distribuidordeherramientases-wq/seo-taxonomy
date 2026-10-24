@@ -474,7 +474,9 @@ if (!$shop_title) {
                     <h1 id="dht-shop-title"><?php echo esc_html($shop_title); ?> de herramientas y equipamiento</h1>
                     <p>Explora herramientas, maquinaria, consumibles y equipamiento técnico. Filtra, ordena y entra directamente en la categoría o producto que necesitas.</p>
 
-                    <?php if (shortcode_exists('seo_search')) : ?>
+                    <?php if (shortcode_exists('taxocommerce_search')) : ?>
+                        <?php echo do_shortcode('[taxocommerce_search placeholder="Buscar herramienta, máquina, referencia, tipo o aplicación..."]'); ?>
+                    <?php elseif (shortcode_exists('seo_search')) : ?>
                         <?php echo do_shortcode('[seo_search placeholder="Buscar herramienta, máquina, referencia, tipo o aplicación..."]'); ?>
                     <?php else : ?>
                         <form class="shop-hero-search" role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>">
@@ -574,7 +576,9 @@ if (!$shop_title) {
                     </div>
                 </div>
 
-                <?php if (shortcode_exists('seo_search_filters')) : ?>
+                <?php if (shortcode_exists('taxocommerce_advanced_search')) : ?>
+                    <?php echo do_shortcode('[taxocommerce_advanced_search class="shop-semantic-filters"]'); ?>
+                <?php elseif (shortcode_exists('seo_search_filters')) : ?>
                     <?php echo do_shortcode('[seo_search_filters class="shop-semantic-filters"]'); ?>
                 <?php endif; ?>
 

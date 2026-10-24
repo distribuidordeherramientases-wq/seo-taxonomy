@@ -69,12 +69,18 @@ jobs:
           if not isinstance(modules, list):
               raise SystemExit("La lista de módulos activos no es válida.")
 
-          print(json.dumps([str(module) for module in modules], separators=(",", ":")))
+          eligible = [
+              str(module)
+              for module in modules
+              if str(module) != "taxocommerce-dependiente"
+          ]
+          print(json.dumps(eligible, separators=(",", ":")))
           PY
           )"
 
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
-          echo "Plugins TaxoCommerce activos en PRO: $modules"
+          echo "Plugins TaxoCommerce elegibles para sincronizar en PRO: $modules"
+          echo "Dependiente moderno queda excluido: PRO conserva el Dependiente antiguo durante la comparación."
 
       - name: Sincronizar solo cambios de plugins TaxoCommerce activos
         shell: bash
@@ -92,14 +98,22 @@ jobs:
           import os
 
           for module in json.loads(os.environ.get("ACTIVE_MODULES_JSON", "[]")):
+              # Durante la comparación, PRO conserva deliberadamente el
+              # Dependiente del plugin antiguo. El moderno se valida solo en
+              # STAGING y no se sincroniza a producción.
+              if module == "taxocommerce-dependiente":
+                  continue
               print(module)
           PY
           )
 
           if [ "${#active_modules[@]}" -eq 0 ]; then
-            echo "No hay plugins TaxoCommerce activos en PRO. No se actualiza ningún plugin modular."
+            echo "No hay plugins TaxoCommerce modulares elegibles para sincronizar en PRO."
+            echo "TaxoCommerce Dependiente moderno queda excluido mientras se compara con el Dependiente antiguo."
             exit 0
           fi
+
+          echo "Protección de comparación: taxocommerce-dependiente moderno NO se despliega en PRO."
 
           allowed_modules=(
             taxocommerce-core
@@ -107,7 +121,6 @@ jobs:
             taxocommerce-import-export
             taxocommerce-system-check
             taxocommerce-templates
-            taxocommerce-dependiente
             taxocommerce-faqs
             taxocommerce-vocabulary
             taxocommerce-google-bing
