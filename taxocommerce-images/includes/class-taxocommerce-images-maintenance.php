@@ -22,7 +22,11 @@ final class TaxoCommerce_Images_Maintenance {
 	public static function assets( $hook ) {
 		if ( false === strpos( (string) $hook, 'taxocommerce-images' ) ) { return; }
 		wp_enqueue_script( 'taxocommerce-images-maintenance', plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/maintenance.js', array(), TAXOCOMMERCE_IMAGES_VERSION, true );
-		wp_localize_script( 'taxocommerce-images-maintenance', 'taxocommerceImagesMaintenance', array( 'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'taxocommerce_images_maintenance' ) ) );
+		wp_localize_script( 'taxocommerce-images-maintenance', 'taxocommerceImagesMaintenance', array(
+			'url' => admin_url( 'admin-ajax.php' ),
+			'nonce' => wp_create_nonce( 'taxocommerce_images_maintenance' ),
+			'delay' => TaxoCommerce_Images_Load::delay_ms(),
+		) );
 	}
 	public static function protect_legacy_job() {
 		if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( array( 'message' => 'Sin permisos.' ), 403 ); }
@@ -114,7 +118,8 @@ final class TaxoCommerce_Images_Maintenance {
 		if ( ! current_user_can( 'manage_options' ) ) { return new WP_Error( 'permission', 'Sin permisos.' ); }
 		$state = self::state( $mode );
 		if ( ! $state || 'running' !== $state['status'] ) { return $state; }
-		$ids = self::ids_after( $state['last'], $state['max'], 'cleanup' === $mode ? 5 : self::BATCH );
+		$batch = TaxoCommerce_Images_Load::batch_size( $mode );
+		$ids = self::ids_after( $state['last'], $state['max'], $batch );
 		$usage = array();
 		if ( 'cleanup' === $mode && $ids ) {
 			$posts = array_map( 'get_post', $ids );
@@ -170,15 +175,22 @@ final class TaxoCommerce_Images_Maintenance {
 			wp_send_json_error( array( 'message' => 'Operación no válida.' ), 400 );
 		}
 		if ( ! self::lock() ) { wp_send_json_error( array( 'message' => 'Otro lote está en curso.' ), 409 ); }
+		$measurement = TaxoCommerce_Images_Load::begin();
 		try {
 			if ( 'start' === $operation ) { self::begin( $mode ); }
+			$before = self::state( $mode );
+			$before_scanned = absint( $before['scanned'] ?? 0 );
 			$state = self::scan( $mode );
+			$processed = is_array( $state ) ? max( 0, absint( $state['scanned'] ?? 0 ) - $before_scanned ) : 0;
+			$sample = TaxoCommerce_Images_Load::finish( $mode, $measurement, $processed );
 			$result = is_wp_error( $state )
 				? $state
 				: array(
 					'done'   => ( $state['status'] ?? '' ) === 'complete',
 					'paused' => false,
 					'state'  => $state,
+					'load'   => $sample,
+					'delay'  => TaxoCommerce_Images_Load::delay_ms(),
 				);
 		} catch ( Throwable $error ) { $result = new WP_Error( 'exception', sanitize_text_field( $error->getMessage() ) ); }
 		finally { self::unlock(); }
