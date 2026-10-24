@@ -11,6 +11,7 @@ define( 'ABSPATH', __DIR__ );
 function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
 function plugin_dir_url( $path ) { return 'https://example.test/wp-content/plugins/taxocommerce-database/'; }
 function add_action( $event, $callback, $priority = 10 ) { return true; }
+function register_activation_hook( $file, $callback ) { return true; }
 function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . $path; }
 $GLOBALS['tcdb_menu_calls'] = array();
 function add_menu_page( $title, $label, $capability, $slug, $callback, $icon = '', $position = null ) {
