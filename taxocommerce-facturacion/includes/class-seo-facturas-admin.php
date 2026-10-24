@@ -92,7 +92,7 @@ final class SEO_Facturas_Admin {
 
     public static function render_page() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para acceder a esta pagina.', 'taxocommerce-seo'));
+            wp_die(esc_html__('No tienes permisos para acceder a esta pagina.', 'taxocommerce-facturacion'));
         }
 
         $tabs = array(
