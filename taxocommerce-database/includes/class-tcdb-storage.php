@@ -7,6 +7,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class TCDB_Storage {
     private static $table_cache = null;
+    private static $column_cache = array();
 
     const AUDIT_OPTION   = 'tcdb_last_audit_v1';
     const HISTORY_OPTION = 'tcdb_audit_history_v1';
@@ -116,10 +117,15 @@ final class TCDB_Storage {
         if ( ! self::table_allowed( $table, false ) ) {
             return array();
         }
+        if ( isset( self::$column_cache[ $table ] ) ) {
+            return self::$column_cache[ $table ];
+        }
         global $wpdb;
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier was verified against the current database inventory.
-        $rows = $wpdb->get_results( "SHOW COLUMNS FROM \`{$table}\`", ARRAY_A );
-        return is_array( $rows ) ? $rows : array();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier is verified against the current inventory.
+        $tick = chr( 96 );
+        $rows = $wpdb->get_results( "SHOW COLUMNS FROM {$tick}{$table}{$tick}", ARRAY_A );
+        self::$column_cache[ $table ] = is_array( $rows ) ? $rows : array();
+        return self::$column_cache[ $table ];
     }
 
     public static function primary_key( $table ) {
