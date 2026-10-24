@@ -136,6 +136,41 @@ final class TaxoCommerce_Connections_Admin {
 			'pinterest_merchant_error'  => array( 'error', __( 'Pinterest Merchant verification is invalid.', 'taxocommerce-connections' ) ),
 		);
 
+		if ( 0 === strpos( $notice, 'google_oauth_' ) ) {
+			$oauth_code = substr( $notice, strlen( 'google_oauth_' ) );
+			$oauth_messages = array(
+				'saved'               => __( 'Google OAuth settings saved.', 'taxocommerce-connections' ),
+				'connected'           => __( 'Google Search Console authorized successfully.', 'taxocommerce-connections' ),
+				'disconnected'        => __( 'Google OAuth authorization removed.', 'taxocommerce-connections' ),
+				'test_ok'             => __( 'Google OAuth connection verified.', 'taxocommerce-connections' ),
+				'missing_credentials' => __( 'Google OAuth Client ID or Client Secret is missing.', 'taxocommerce-connections' ),
+				'invalid_state'       => __( 'Google OAuth state validation failed.', 'taxocommerce-connections' ),
+				'missing_code'        => __( 'Google did not return an authorization code.', 'taxocommerce-connections' ),
+				'token_failed'        => __( 'Google OAuth authorization could not be completed.', 'taxocommerce-connections' ),
+				'test_failed'         => __( 'Google OAuth test failed.', 'taxocommerce-connections' ),
+				'access_denied'       => __( 'Google denied authorization.', 'taxocommerce-connections' ),
+			);
+			$type = isset( $_GET['tc_conn_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_conn_type'] ) ) : 'success'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$message = $oauth_messages[ $oauth_code ] ?? sanitize_text_field( $oauth_code );
+			$detail = '';
+			if ( in_array( $oauth_code, array( 'token_failed', 'test_failed' ), true ) ) {
+				$detail = (string) get_transient( 'tgb_google_oauth_error_' . get_current_user_id() );
+				delete_transient( 'tgb_google_oauth_error_' . get_current_user_id() );
+			} elseif ( 'test_ok' === $oauth_code ) {
+				$count = get_transient( 'tgb_google_oauth_test_' . get_current_user_id() );
+				delete_transient( 'tgb_google_oauth_test_' . get_current_user_id() );
+				if ( false !== $count ) {
+					$detail = sprintf(
+						/* translators: %d: number of accessible Google Search Console properties. */
+						__( 'Accessible properties: %d.', 'taxocommerce-connections' ),
+						absint( $count )
+					);
+				}
+			}
+			echo '<div class="notice notice-' . esc_attr( 'error' === $type ? 'error' : 'success' ) . ' inline"><p>' . esc_html( trim( $message . ' ' . $detail ) ) . '</p></div>';
+			return;
+		}
+
 		if ( 'amazon_test' === $notice ) {
 			$result = get_transient( 'tc_conn_amazon_test_' . get_current_user_id() );
 			delete_transient( 'tc_conn_amazon_test_' . get_current_user_id() );
