@@ -149,6 +149,7 @@ final class TCD_Maintenance {
             self::refresh_recent_posts( $since_gmt, $until_gmt );
             self::refresh_recent_faqs( $since_local, $until_local );
             self::refresh_recent_vocabulary( $since_local, $until_local );
+            self::refresh_recent_assignments( $since_local, $until_local );
             $state = self::state();
             $after_total = absint( $state['products_updated'] ?? 0 )
                 + absint( $state['categories_updated'] ?? 0 )
@@ -247,6 +248,52 @@ final class TCD_Maintenance {
         foreach ( array_keys( $products ) as $product_id ) {
             self::product_changed( $product_id );
         }
+    }
+
+    private static function refresh_recent_assignments( $since, $until ) {
+        global $wpdb;
+        $rel = $wpdb->prefix . 'seo_object_vocabulary';
+        if ( ! self::table_exists( $rel ) ) return;
+        $rows = (array) $wpdb->get_results( $wpdb->prepare(
+            "SELECT object_type,object_id,vocabulary_id,status
+             FROM {$rel}
+             WHERE updated_at>%s AND updated_at<=%s
+             ORDER BY updated_at ASC,id ASC LIMIT 300",
+            $since, $until
+        ), ARRAY_A );
+        if ( ! $rows ) return;
+
+        $vocabulary_ids = array();
+        foreach ( $rows as $row ) {
+            $type = sanitize_key( (string) ( $row['object_type'] ?? '' ) );
+            $id = absint( $row['object_id'] ?? 0 );
+            $vocabulary_id = absint( $row['vocabulary_id'] ?? 0 );
+            if ( $vocabulary_id ) $vocabulary_ids[ $vocabulary_id ] = true;
+            if ( ! $id ) continue;
+
+            if ( 'product' === $type ) {
+                self::product_changed( $id );
+            } elseif ( 'product_cat' === $type ) {
+                self::category_changed( $id );
+            } elseif ( in_array( $type, array( 'post','page' ), true ) ) {
+                self::editorial_saved( $id );
+            } elseif ( 'faq' === $type ) {
+                $item = TCD_Sources::faq_item( $id );
+                if ( is_array( $item ) ) {
+                    TCD_Academy::upsert_maintenance_item( 6, $item );
+                    TCD_Intelligence::refresh_semantic_item( 6, $item, 'faq-' . $id );
+                    self::bump( 'faqs_updated' );
+                }
+            }
+        }
+
+        foreach ( array_keys( $vocabulary_ids ) as $vocabulary_id ) {
+            $item = TCD_Sources::vocabulary_item( $vocabulary_id );
+            if ( ! is_array( $item ) ) continue;
+            TCD_Academy::upsert_maintenance_item( 3, $item );
+            TCD_Intelligence::refresh_semantic_item( 3, $item, 'vocabulary-' . $vocabulary_id );
+        }
+        if ( $vocabulary_ids ) self::bump( 'vocabulary_updated' );
     }
 
     private static function bump( $key ) {
