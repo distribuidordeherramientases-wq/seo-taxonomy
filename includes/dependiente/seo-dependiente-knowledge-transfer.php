@@ -142,82 +142,149 @@ final class SEO_Dependiente_Knowledge_Transfer {
         }
 
         $checkpoint_id = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('checkpoint-', true);
-        $rules = self::export_rules();
-        $lessons = self::export_completed_lessons();
-        $lesson9_memory = class_exists('SEO_Dependiente_V3_Lesson9')
-            ? SEO_Dependiente_V3_Lesson9::export_memory()
-            : array();
         $snapshot = absint(get_option('seo_dependiente_knowledge_snapshot', 0));
         $catalog = class_exists('SEO_Dependiente_Index') ? SEO_Dependiente_Index::status() : array();
+        $lessons = self::export_completed_lessons();
+        $rule_summary = self::export_rule_summary();
+        $lesson9_count = self::lesson9_memory_count();
 
-        $document = array(
-            'schema' => array(
-                'name'    => self::SCHEMA_NAME,
-                'version' => self::SCHEMA_VERSION,
-            ),
-            'generated_at' => current_time('c'),
-            'source' => array(
-                'home_url'             => home_url('/'),
-                'site_url'             => site_url('/'),
-                'brain_id'             => self::brain_id(),
-                'checkpoint_id'        => $checkpoint_id,
-                'dependiente_version'  => defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
-                'trainer_db_version'   => (string) get_option('seo_dependiente_entrenador_db_version', ''),
-                'wordpress_version'    => get_bloginfo('version'),
-            ),
-            'manifest' => array(
-                'knowledge_snapshot'         => $snapshot,
-                'semantic_rules'             => count($rules),
-                'academy_completed_lessons'  => count($lessons),
-                'lesson9_memory_rows'        => count($lesson9_memory),
-                'rules_digest'               => self::rules_digest($rules),
-                'catalog'                    => array(
-                    'indexed'         => absint($catalog['indexed'] ?? 0),
-                    'published'       => absint($catalog['published'] ?? 0),
-                    'indexable'       => absint($catalog['indexable'] ?? $catalog['published'] ?? 0),
-                    'excluded_hidden' => absint($catalog['excluded_hidden'] ?? 0),
-                    'last_full'       => (string) ($catalog['last_full'] ?? ''),
-                ),
-            ),
-            'semantic_rules' => $rules,
-            'academy' => array(
-                'completed_lessons' => $lessons,
-                'lesson9_memory'    => $lesson9_memory,
+        $source = array(
+            'home_url'            => home_url('/'),
+            'site_url'            => site_url('/'),
+            'brain_id'            => self::brain_id(),
+            'checkpoint_id'       => $checkpoint_id,
+            'dependiente_version' => defined('SEO_DEPENDIENTE_VERSION') ? SEO_DEPENDIENTE_VERSION : '',
+            'trainer_db_version'  => (string) get_option('seo_dependiente_entrenador_db_version', ''),
+            'wordpress_version'   => get_bloginfo('version'),
+        );
+
+        $manifest = array(
+            'knowledge_snapshot'        => $snapshot,
+            'semantic_rules'            => absint($rule_summary['count'] ?? 0),
+            'academy_completed_lessons' => count($lessons),
+            'lesson9_memory_rows'       => $lesson9_count,
+            'rules_digest'              => (string) ($rule_summary['digest'] ?? ''),
+            'catalog'                   => array(
+                'indexed'         => absint($catalog['indexed'] ?? 0),
+                'published'       => absint($catalog['published'] ?? 0),
+                'indexable'       => absint($catalog['indexable'] ?? $catalog['published'] ?? 0),
+                'excluded_hidden' => absint($catalog['excluded_hidden'] ?? 0),
+                'last_full'       => (string) ($catalog['last_full'] ?? ''),
             ),
         );
 
-        $json = wp_json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if (!is_string($json) || '' === $json) {
-            wp_die('No se pudo generar la copia de conocimiento.');
+        $base = 'dependiente-conocimiento-' . current_time('Ymd-His');
+        $gzip = function_exists('gzopen') && function_exists('gzwrite') && function_exists('gzclose');
+        $extension = $gzip ? '.json.gz' : '.json';
+        $tmp = wp_tempnam($base . $extension);
+
+        if (!$tmp) {
+            wp_die('No se pudo crear el archivo temporal de exportación.');
+        }
+
+        $handle = $gzip ? @gzopen($tmp, 'wb6') : @fopen($tmp, 'wb');
+        if (!$handle) {
+            @unlink($tmp);
+            wp_die('No se pudo abrir el archivo temporal de exportación.');
+        }
+
+        try {
+            $prefix = array(
+                'schema' => array(
+                    'name'    => self::SCHEMA_NAME,
+                    'version' => self::SCHEMA_VERSION,
+                ),
+                'generated_at' => current_time('c'),
+                'source'       => $source,
+                'manifest'     => $manifest,
+            );
+
+            $prefix_json = wp_json_encode($prefix, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($prefix_json) || '' === $prefix_json) {
+                throw new RuntimeException('No se pudo serializar la cabecera del conocimiento.');
+            }
+
+            self::export_write($handle, substr($prefix_json, 0, -1) . ',"semantic_rules":[', $gzip);
+
+            $first = true;
+            self::walk_export_rules(function($rule) use (&$first, $handle, $gzip) {
+                $json = wp_json_encode($rule, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                if (!is_string($json) || '' === $json) {
+                    throw new RuntimeException('No se pudo serializar una regla de conocimiento.');
+                }
+                self::export_write($handle, ($first ? '' : ',') . $json, $gzip);
+                $first = false;
+            });
+
+            $lessons_json = wp_json_encode($lessons, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($lessons_json)) {
+                throw new RuntimeException('No se pudieron serializar las lecciones completadas.');
+            }
+
+            self::export_write($handle, '],"academy":{"completed_lessons":' . $lessons_json . ',"lesson9_memory":[', $gzip);
+
+            $first_l9 = true;
+            self::walk_lesson9_memory(function($row) use (&$first_l9, $handle, $gzip) {
+                $json = wp_json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                if (!is_string($json) || '' === $json) {
+                    throw new RuntimeException('No se pudo serializar una fila de memoria L9.');
+                }
+                self::export_write($handle, ($first_l9 ? '' : ',') . $json, $gzip);
+                $first_l9 = false;
+            });
+
+            self::export_write($handle, ']}}', $gzip);
+        } catch (Throwable $error) {
+            if ($gzip) {
+                @gzclose($handle);
+            } else {
+                @fclose($handle);
+            }
+            @unlink($tmp);
+            wp_die(esc_html('No se pudo generar la copia de conocimiento: ' . $error->getMessage()));
+        }
+
+        if ($gzip) {
+            gzclose($handle);
+        } else {
+            fclose($handle);
         }
 
         update_option(self::LAST_EXPORT_OPTION, array(
             'checkpoint_id' => $checkpoint_id,
             'exported_at'   => current_time('mysql'),
-            'rules'         => count($rules),
-            'lesson9_memory'=> count($lesson9_memory),
+            'rules'         => absint($rule_summary['count'] ?? 0),
+            'lesson9_memory'=> $lesson9_count,
             'snapshot'      => $snapshot,
         ), false);
 
-        $base = 'dependiente-conocimiento-' . current_time('Ymd-His');
+        clearstatcache(true, $tmp);
+        $size = filesize($tmp);
+
         nocache_headers();
-        if (function_exists('gzencode')) {
-            $compressed = gzencode($json, 6);
-            if (false !== $compressed) {
-                header('Content-Type: application/gzip');
-                header('Content-Disposition: attachment; filename="' . sanitize_file_name($base . '.json.gz') . '"');
-                header('Content-Length: ' . strlen($compressed));
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Binary gzip download; HTML escaping would corrupt the archive.
-                echo $compressed;
-                exit;
-            }
+        header('Content-Type: ' . ($gzip ? 'application/gzip' : 'application/json; charset=utf-8'));
+        header('Content-Disposition: attachment; filename="' . sanitize_file_name($base . $extension) . '"');
+        if (false !== $size) {
+            header('Content-Length: ' . absint($size));
         }
 
-        header('Content-Type: application/json; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . sanitize_file_name($base . '.json') . '"');
-        header('Content-Length: ' . strlen($json));
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Raw JSON download generated by the knowledge exporter.
-        echo $json;
+        $reader = @fopen($tmp, 'rb');
+        if (!$reader) {
+            @unlink($tmp);
+            wp_die('No se pudo leer el archivo temporal de exportación.');
+        }
+
+        while (!feof($reader)) {
+            $chunk = fread($reader, 1048576);
+            if (false === $chunk) {
+                break;
+            }
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Binary/JSON download stream.
+            echo $chunk;
+        }
+
+        fclose($reader);
+        @unlink($tmp);
         exit;
     }
 
@@ -523,6 +590,162 @@ final class SEO_Dependiente_Knowledge_Transfer {
         }
 
         return $result;
+    }
+
+    /**
+     * Iterate portable semantic rules in bounded batches.
+     *
+     * @param callable $callback Receives one normalized portable rule.
+     * @return void
+     */
+    private static function walk_export_rules($callback) {
+        global $wpdb;
+
+        $table = esc_sql( SEO_Dependiente_Semantics::table() );
+        if (!SEO_Dependiente_Semantics::table_exists()) {
+            return;
+        }
+
+        $vocabulary = self::vocabulary_identity_map();
+        $last_id = 0;
+        $batch_size = 250;
+
+        do {
+            $sql = $wpdb->prepare(
+                "SELECT id,rule_key,rule_type,expression,normalized_expression,canonical_expression,match_type,semantic_role,
+                        source_vocabulary_id,source_group,source_slug,context_vocabulary_id,context_group,context_slug,
+                        target_vocabulary_id,target_group,target_slug,relation_type,result_role,weight,priority,confidence,
+                        language,source,metadata,active,created_at,updated_at
+                 FROM {$table}
+                 WHERE id > %d
+                   AND (source IS NULL OR source NOT IN ('seed','academy_stage','learned_candidate','learned_rejected'))
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $last_id,
+                $batch_size
+            );
+
+            $rows = (array) $wpdb->get_results($sql, ARRAY_A);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $last_id = max($last_id, absint($row['id'] ?? 0));
+                $row = self::hydrate_vocabulary_identity($row, $vocabulary);
+                $rule = self::normalize_rule($row, true);
+                if (!$rule || self::is_transient_source((string) ($rule['source'] ?? ''))) {
+                    continue;
+                }
+                $rule['rule_hash'] = self::rule_hash($rule);
+                call_user_func($callback, $rule);
+            }
+
+            unset($rows);
+        } while (true);
+    }
+
+    /**
+     * Count portable rules and reproduce the legacy rules digest without
+     * holding the full rule payload in memory.
+     *
+     * @return array
+     */
+    private static function export_rule_summary() {
+        $hashes = array();
+        $count = 0;
+
+        self::walk_export_rules(function($rule) use (&$hashes, &$count) {
+            $hashes[] = (string) ($rule['rule_key'] ?? '') . ':' . self::rule_hash($rule);
+            $count++;
+        });
+
+        sort($hashes, SORT_STRING);
+
+        return array(
+            'count'  => $count,
+            'digest' => hash('sha256', implode("\n", $hashes)),
+        );
+    }
+
+    /**
+     * Return the number of active lesson 9 memory rows.
+     *
+     * @return int
+     */
+    private static function lesson9_memory_count() {
+        if (!class_exists('SEO_Dependiente_V3_Lesson9')) {
+            return 0;
+        }
+        return SEO_Dependiente_V3_Lesson9::active_count();
+    }
+
+    /**
+     * Iterate lesson 9 memory in bounded batches.
+     *
+     * @param callable $callback Receives one memory row.
+     * @return void
+     */
+    private static function walk_lesson9_memory($callback) {
+        global $wpdb;
+
+        if (!class_exists('SEO_Dependiente_V3_Lesson9')) {
+            return;
+        }
+
+        SEO_Dependiente_V3_Lesson9::install();
+        $table = esc_sql( SEO_Dependiente_V3_Lesson9::table() );
+        $last_id = 0;
+        $batch_size = 250;
+
+        do {
+            $sql = $wpdb->prepare(
+                "SELECT id,lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,vocabulary_id,
+                        weight,source_hash,metadata,active
+                 FROM {$table}
+                 WHERE active = 1 AND id > %d
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $last_id,
+                $batch_size
+            );
+
+            $rows = (array) $wpdb->get_results($sql, ARRAY_A);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $last_id = max($last_id, absint($row['id'] ?? 0));
+                unset($row['id']);
+                call_user_func($callback, $row);
+            }
+
+            unset($rows);
+        } while (true);
+    }
+
+    /**
+     * Write a complete fragment to a plain or gzip stream.
+     *
+     * @param resource $handle Stream handle.
+     * @param string   $data   Fragment to write.
+     * @param bool     $gzip   Whether handle is gzip.
+     * @return void
+     */
+    private static function export_write($handle, $data, $gzip) {
+        $data = (string) $data;
+        $length = strlen($data);
+        $offset = 0;
+
+        while ($offset < $length) {
+            $chunk = substr($data, $offset);
+            $written = $gzip ? gzwrite($handle, $chunk) : fwrite($handle, $chunk);
+            if (false === $written || 0 === $written) {
+                throw new RuntimeException('No se pudo escribir el archivo de conocimiento.');
+            }
+            $offset += $written;
+        }
     }
 
     private static function export_rules() {
