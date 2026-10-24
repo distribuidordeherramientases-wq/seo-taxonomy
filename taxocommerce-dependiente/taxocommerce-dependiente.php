@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Dependiente
  * Description: Dependiente inteligente para WooCommerce: L1-L10 auditables, Intérprete semántico, memoria L9 y actualización continua.
- * Version: 0.3.2
+ * Version: 0.3.3
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.2' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.3' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 
@@ -20,6 +20,7 @@ require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-learning-log.ph
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-sources.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-academy.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-knowledge-transfer.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-feedback.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-intelligence.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-maintenance.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-search.php';
@@ -32,6 +33,7 @@ add_action( 'plugins_loaded', static function () {
     TCD_Learning_Log::boot();
     TCD_Academy::boot();
     TCD_Knowledge_Transfer::boot();
+    TCD_Feedback::boot();
     TCD_Intelligence::boot();
     TCD_Maintenance::boot();
     TCD_Search::boot();
@@ -53,6 +55,7 @@ add_action( 'taxocommerce_core_register_modules', static function ( $core ) {
 register_activation_hook( __FILE__, static function () {
     TCD_Academy::install();
     TCD_Knowledge_Transfer::install();
+    TCD_Feedback::install();
     TCD_Intelligence::install();
 } );
 register_deactivation_hook( __FILE__, static function () {
