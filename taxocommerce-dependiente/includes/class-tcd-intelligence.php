@@ -637,7 +637,7 @@ final class TCD_Intelligence {
                 $correctable = true;
             } elseif ( $issues ) {
                 $hard = array_filter( $issues, static function ( $issue ) {
-                    return in_array( (string) ( $issue['code'] ?? '' ), array( 'titulo_vacio','titulo_demasiado_corto','sin_categoria_producto','sin_tipo','sin_rol' ), true );
+                    return self::is_hard_data_issue( (string) ( $issue['code'] ?? '' ) );
                 } );
                 if ( $hard ) {
                     $origin = 'datos_fuente';
@@ -655,6 +655,37 @@ final class TCD_Intelligence {
             'action'=>$action,
             'data_issues'=>array_values( $issues ),
         );
+    }
+
+    private static function is_hard_data_issue( $code ) {
+        $code = sanitize_key( (string) $code );
+        $base = preg_replace( '/^l\d+_/', '', $code );
+        return in_array( $base, array(
+            'titulo_vacio',
+            'titulo_demasiado_corto',
+            'categoria_sin_slug',
+            'categoria_con_productos_sin_vocabulary',
+            'categoria_sin_tipo_aplicacion',
+            'sin_categoria_producto',
+            'sin_tipo',
+            'sin_rol',
+            'vocabulary_sin_grupo',
+            'vocabulary_sin_slug',
+            'vocabulary_sin_productos',
+            'sin_caracteristicas_producto',
+            'sin_senales_diferenciadoras',
+            'editorial_sin_vocabulary',
+            'faq_sin_respuesta',
+            'faq_sin_propietario',
+            'relacion_cruzada_sin_grupo',
+            'relacion_cruzada_sin_slug',
+            'relacion_cruzada_sin_producto',
+            'relacion_cruzada_sin_editorial',
+            'sin_necesidad_cliente',
+            'regresion_sin_origen',
+            'deuda_previa_no_aprendida',
+            'no_aprendido',
+        ), true );
     }
 
     private static function data_issues_for_row( $lesson, $row ) {
@@ -940,6 +971,11 @@ final class TCD_Intelligence {
         $quality = self::quality_for_lesson( $lesson );
         $report = json_decode( (string) ( $quality['report_json'] ?? '' ), true );
         $report = is_array( $report ) ? $report : array();
+        if ( ! isset( $report['failures'], $report['failure_origins'] ) ) {
+            $snapshot = TCD_Academy::snapshot_for_lesson( $lesson );
+            $snapshot_id = absint( $snapshot['id'] ?? $quality['snapshot_id'] ?? 0 );
+            if ( $snapshot_id ) $report = self::evaluate_lesson( $lesson, $snapshot_id );
+        }
 
         nocache_headers();
         header( 'Content-Type: text/csv; charset=UTF-8' );
@@ -1011,28 +1047,41 @@ final class TCD_Intelligence {
         $out = fopen( 'php://output', 'w' );
         fwrite( $out, "\xEF\xBB\xBF" );
         fputcsv( $out, array(
-            'lesson','source_type','source_id','title','issue_code','field','current_value','reason','recommended_action'
+            'lesson','source_type','source_id','title','learning_status','learning_reason',
+            'issue_code','field','current_value','reason','recommended_action'
         ), ';', '"', '' );
 
         $table = TCD_Academy::knowledge_table();
         $last = 0;
         do {
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
-                "SELECT id,source_type,source_id,title,context_json,status
+                "SELECT id,source_type,source_id,title,context_json,status,reason
                  FROM {$table}
-                 WHERE lesson=%d AND status='learned' AND id>%d
+                 WHERE lesson=%d AND id>%d
                  ORDER BY id ASC LIMIT 250",
                 $lesson,
                 $last
             ), ARRAY_A );
             foreach ( $rows as $row ) {
                 $last = absint( $row['id'] ?? 0 );
-                foreach ( self::data_issues_for_row( $lesson, $row ) as $issue ) {
+                $issues = self::data_issues_for_row( $lesson, $row );
+                if ( 'unlearned' === (string) ( $row['status'] ?? '' ) ) {
+                    $issues[] = self::data_issue(
+                        'no_aprendido',
+                        'learning',
+                        (string) ( $row['reason'] ?? '' ),
+                        (string) ( $row['reason'] ?? 'Dependiente no pudo aprender esta fuente.' ),
+                        'Corregir la causa indicada y volver a revisar esta fuente.'
+                    );
+                }
+                foreach ( $issues as $issue ) {
                     fputcsv( $out, array(
                         $lesson,
                         (string) ( $row['source_type'] ?? '' ),
                         absint( $row['source_id'] ?? 0 ),
                         (string) ( $row['title'] ?? '' ),
+                        (string) ( $row['status'] ?? '' ),
+                        (string) ( $row['reason'] ?? '' ),
                         (string) ( $issue['code'] ?? '' ),
                         (string) ( $issue['field'] ?? '' ),
                         (string) ( $issue['current'] ?? '' ),
@@ -1171,13 +1220,22 @@ final class TCD_Intelligence {
             }
         } while ( count( $rows ) === 250 );
 
+        $syllabus = TCD_Sources::syllabus();
+        $lesson_meta = (array) ( $syllabus[ $lesson ] ?? array() );
+
         return array(
             'schema'=>array(
                 'name'=>'taxocommerce_dependiente_quality_audit',
-                'version'=>1,
+                'version'=>2,
             ),
             'exported_at'=>gmdate( 'c' ),
             'lesson'=>$lesson,
+            'lesson_meta'=>array(
+                'key'=>(string) ( $lesson_meta['key'] ?? '' ),
+                'name'=>(string) ( $lesson_meta['name'] ?? '' ),
+                'source'=>(string) ( $lesson_meta['source'] ?? '' ),
+                'objective'=>(string) ( $lesson_meta['objective'] ?? '' ),
+            ),
             'quality'=>array(
                 'status'=>(string) ( $quality['status'] ?? ( ! empty( $report['passed'] ) ? 'passed' : 'failed' ) ),
                 'evaluated'=>absint( $quality['evaluated'] ?? $report['evaluated'] ?? 0 ),
