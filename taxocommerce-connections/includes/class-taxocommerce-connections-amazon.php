@@ -94,7 +94,7 @@ final class TaxoCommerce_Connections_Amazon {
 
 		update_option( self::OPTION, $settings, false );
 
-		// Keep the legacy option synchronized while old Templates/Dependiente or
+		// Keep the legacy option synchronized while old Templates/Assistant or
 		// the monolith may still read it directly.
 		update_option( self::LEGACY_OPTION, $settings, false );
 
