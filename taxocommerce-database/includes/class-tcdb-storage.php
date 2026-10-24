@@ -47,7 +47,7 @@ final class TCDB_Storage {
             return false;
         }
         $short = substr( $table, strlen( $wpdb->prefix ) );
-        return (bool) preg_match( '/^(seo_|tcd_|tcv_|tcf_|tct_|tgb_|tci_|tcr_|tca_|taxocommerce_)/i', $short );
+        return (bool) preg_match( '/^(seo_|tcdb_|tcd_|tcv_|tcf_|tct_|tgb_|tci_|tcr_|tca_|taxocommerce_)/i', $short );
     }
 
     private static function current_site_name( $table ) {
