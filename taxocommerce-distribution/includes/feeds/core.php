@@ -2,8 +2,8 @@
 /**
  * TaxoCommerce SEO - Motor de catalogos comerciales.
  *
- * Mantiene un registro canonico de producto y genera feeds publicos por lotes
- * para evitar cargar 14k+ productos en una sola peticion PHP.
+ * Maintains a canonical product record and generates public feeds in batches
+ * to avoid loading 14k+ products in a single PHP request.
  *
  * @package SEOSystem
  * @subpackage ImportExport\CommercialFeeds
@@ -33,7 +33,7 @@ function tcdist_feed_register_runtime() {
     // Cualquier alta/cambio/borrado real de WooCommerce puede modificar precio,
     // oferta, stock, titulo o disponibilidad del feed. La regeneracion se
     // agrupa mediante la cola diferida, por lo que una importacion masiva no
-    // crea una accion por producto.
+    // creates one action per product.
     add_action( 'woocommerce_new_product', 'tcdist_feed_on_woocommerce_product_changed', 20, 1 );
     add_action( 'woocommerce_update_product', 'tcdist_feed_on_woocommerce_product_changed', 20, 1 );
     add_action( 'woocommerce_delete_product', 'tcdist_feed_on_woocommerce_product_changed', 20, 1 );
@@ -139,7 +139,7 @@ function tcdist_feed_sanitize_daily_time( $value ) {
  *
  * - un host con segmentos de staging/dev/test/local siempre queda protegido;
  * - los hosts canonicos de produccion prevalecen sobre WP_ENVIRONMENT_TYPE;
- * - cualquier otro dominio respeta el valor informado por WordPress.
+ * - any other domain respects the value reported by WordPress.
  *
  * @param string $reported Entorno informado por wp_get_environment_type().
  * @param string $host     Host real de home_url().
@@ -568,7 +568,7 @@ function tcdist_feed_request_refresh( $origin = 'supplier_sync' ) {
 
 /**
  * Disparo emitido por Sincronizacion V2 cuando ya ha terminado de aplicar
- * cambios reales sobre productos WooCommerce.
+ * real changes to WooCommerce products.
  */
 function tcdist_feed_on_supplier_sync_products_changed( $context = [] ) {
     $settings = tcdist_feed_settings();
@@ -581,8 +581,8 @@ function tcdist_feed_on_supplier_sync_products_changed( $context = [] ) {
 /**
  * Refresca los feeds tras cambios persistidos en WooCommerce.
  *
- * Esto cubre tanto las campañas de Marketing (que escriben sale_price y sus
- * fechas en el producto) como una oferta creada manualmente desde WooCommerce.
+ * This covers both Marketing campaigns (which write sale_price and dates
+ * to the product) and manually created WooCommerce sale prices.
  * En STAGING no arranca nada automaticamente; se mantiene la politica de
  * seguridad del generador comercial.
  *
@@ -630,7 +630,7 @@ function tcdist_feed_candidate_count() {
 /**
  * Inicia una generacion completa y la entrega al Gestor de workers.
  *
- * Esta funcion prepara los temporales y el estado, pero NO procesa productos:
+ * This function prepares temporary files and state, but does NOT process products:
  * el reparto de ventanas, el ritmo y la continuidad pertenecen al supervisor
  * central del plugin.
  *
@@ -754,7 +754,7 @@ function tcdist_feed_start_build( $origin = 'manual' ) {
  * Configuracion adaptativa de Inventarios comerciales.
  *
  * Usa el mismo regulador temporal/memoria que Import / Export: el panel
- * Procesos puede sustituir estos valores mediante tcdist_feed_adaptive_config.
+ * Processes may override these values through tcdist_feed_adaptive_config.
  */
 function tcdist_feed_adaptive_config() {
     $config = [
@@ -854,7 +854,7 @@ function tcdist_feed_adaptive_plan( $state ) {
             $reason     = 'servidor respondiendo bien: se amplia el lote';
         } elseif ( $ideal < $previous_target ) {
             $next     = max( $config['min_rows'], $ideal );
-            $reason   = 'se ajusta el lote al tiempo real por producto';
+            $reason   = 'batch size adjusted to actual processing time per product';
             $pressure = 'media';
         } else {
             $next   = $previous_target;
@@ -1012,7 +1012,7 @@ function tcdist_feed_supervisor_run_target( $budget, $source, $target ) {
 }
 
 /**
- * Devuelve el siguiente conjunto de IDs de producto/variacion.
+ * Returns the next set of product/variation IDs.
  */
 function tcdist_feed_next_ids( $cursor, $limit ) {
     global $wpdb;
@@ -1046,7 +1046,7 @@ function tcdist_feed_next_ids( $cursor, $limit ) {
  * Compatibilidad con acciones v1.3 ya encoladas.
  *
  * Action Scheduler deja de ser motor de los lotes. Una accion heredada solo
- * despierta el Gestor de workers; el trabajo se ejecuta en su ventana común.
+ * wakes the worker manager; work executes in its shared window.
  */
 function tcdist_feed_process_batch( $run_id, $cursor = 0 ) {
     $state = tcdist_feed_state();
@@ -1257,7 +1257,7 @@ function tcdist_feed_finish_build( array $state ) {
             continue;
         }
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Publicación atómica del feed dentro del directorio gestionado; se preserva la semántica actual.
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Atomic feed publication inside the managed directory; current semantics are preserved.
         if ( ! @rename( $temp, $final ) ) {
             $state['status'] = 'failed';
             $state['errors'][] = $channel . ': no se pudo publicar el archivo final.';
@@ -1283,7 +1283,7 @@ function tcdist_feed_finish_build( array $state ) {
 }
 
 /**
- * Añade Inventarios comerciales al Monitor en tiempo real de Procesos.
+ * Adds commercial feeds to the real-time Processes monitor.
  */
 function tcdist_feed_processes_monitor_items( $items ) {
     $items = is_array( $items ) ? $items : [];
@@ -1330,7 +1330,7 @@ function tcdist_feed_processes_monitor_items( $items ) {
     $load .= ' · presion ' . ( $pressure ?: 'baja' );
 
     $response = $duration > 0.0
-        ? number_format_i18n( $duration, 2 ) . ' s el ultimo lote · ' . number_format_i18n( $rows ) . ' productos'
+        ? number_format_i18n( $duration, 2 ) . ' s last batch · ' . number_format_i18n( $rows ) . ' productos'
         : 'Sin lote medido';
     $detail = number_format_i18n( absint( $state['written'] ?? 0 ) ) . ' publicados · ' . number_format_i18n( absint( $state['excluded'] ?? 0 ) ) . ' excluidos.';
     if ( ! empty( $state['adaptive_reason'] ) ) {
@@ -1342,7 +1342,7 @@ function tcdist_feed_processes_monitor_items( $items ) {
         'name'          => 'Inventarios comerciales',
         'kind'          => 'Feeds Google, Microsoft, Pinterest y universales',
         'state'         => $view_state,
-        'speed'         => $rate > 0 ? number_format_i18n( $rate, 1 ) . ' productos/min' : 'Sin ritmo medible',
+        'speed'         => $rate > 0 ? number_format_i18n( $rate, 1 ) . ' products/min' : 'No measurable rate',
         'response'      => $response,
         'load'          => $load,
         'activity'      => $activity,
@@ -1380,7 +1380,7 @@ function tcdist_feed_plain_text( $value, $max = 5000 ) {
 }
 
 /**
- * Categoria hoja mas profunda y ruta propia del producto.
+ * Deepest leaf category and the product's own path.
  *
  * @return array{term_id:int,path:string}
  */
@@ -1453,7 +1453,7 @@ function tcdist_feed_product_images( $product, $limit = 6 ) {
     $limit = max( 1, min( 10, absint( $limit ) ) );
 
     /*
-     * Fuente única para Merchant/feeds y datos estructurados.
+     * Single source for Merchant/feeds and structured data.
      * El núcleo de imágenes prioriza Media y proveedor y sólo permite
      * logo/site icon cuando el producto no tiene ninguna imagen real.
      */
@@ -1593,7 +1593,7 @@ function tcdist_feed_identity( $product ) {
 }
 
 /**
- * Proveedor de origen si esta disponible.
+ * Source supplier when available.
  */
 function tcdist_feed_supplier( $product_id ) {
     foreach ( [ '_seo_proveedor', '_seo_supplier', 'supplier', 'proveedor' ] as $key ) {
@@ -1657,7 +1657,7 @@ function tcdist_feed_sale_price_effective_date( $product ) {
 }
 
 /**
- * Decide si un precio de oferta WooCommerce puede anunciarse en los feeds.
+ * Decides whether a WooCommerce sale price can be advertised in feeds.
  *
  * Permite ofertas activas y tambien ofertas futuras si tienen un periodo
  * completo. Evita publicar antes de tiempo un sale_price futuro sin fecha de
@@ -1705,15 +1705,15 @@ function tcdist_feed_product_record( $product_id ) {
 
     $product = wc_get_product( absint( $product_id ) );
     if ( ! $product ) {
-        return new WP_Error( 'invalid_product', 'Producto WooCommerce no resoluble.' );
+        return new WP_Error( 'invalid_product', 'WooCommerce product could not be resolved.' );
     }
 
     if ( $product->is_type( 'variable' ) ) {
-        return new WP_Error( 'variable_parent', 'El producto variable se representa mediante sus variaciones.' );
+        return new WP_Error( 'variable_parent', 'Variable products are represented by their variations.' );
     }
 
     if ( method_exists( $product, 'get_catalog_visibility' ) && 'hidden' === $product->get_catalog_visibility() ) {
-        return new WP_Error( 'catalog_hidden', 'Producto oculto del catalogo.' );
+        return new WP_Error( 'catalog_hidden', 'Product is hidden from the catalog.' );
     }
 
     $base_id = absint( $product->get_id() );
@@ -1748,19 +1748,19 @@ function tcdist_feed_product_record( $product_id ) {
 
     $link = esc_url_raw( (string) $product->get_permalink() );
     if ( '' === $link ) {
-        return new WP_Error( 'missing_link', 'URL de producto vacia.' );
+        return new WP_Error( 'missing_link', 'Product URL is empty.' );
     }
 
     $images = tcdist_feed_product_images( $product, 6 );
     if ( empty( $images ) ) {
-        return new WP_Error( 'missing_image', 'Sin imagen local ni externa.' );
+        return new WP_Error( 'missing_image', 'No local or external image.' );
     }
 
     $current_price = function_exists( 'wc_get_price_to_display' )
         ? (float) wc_get_price_to_display( $product )
         : (float) $product->get_price();
     if ( $current_price <= 0 ) {
-        return new WP_Error( 'missing_price', 'Precio no valido.' );
+        return new WP_Error( 'missing_price', 'Invalid price.' );
     }
 
     $currency = function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'EUR';
@@ -1768,7 +1768,7 @@ function tcdist_feed_product_record( $product_id ) {
 
     // Leemos los precios base en contexto edit para no perder una oferta futura
     // programada. Luego convertimos ambos al mismo criterio fiscal/visual que
-    // usa el precio mostrado por WooCommerce.
+    // uses the price displayed by WooCommerce.
     $regular_raw = (float) $product->get_regular_price( 'edit' );
     $sale_raw    = (float) $product->get_sale_price( 'edit' );
 
