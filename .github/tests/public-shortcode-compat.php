@@ -19,7 +19,7 @@ $checks = array(
     strpos($dep, "migrate_legacy_shortcode_markup") !== false,
     strpos($dep, "'[dependiente_productos'") !== false,
     strpos($dep, "'[taxocommerce_dependiente_productos'") !== false,
-    strpos($dep, "self::repair_page_content($configured);") !== false,
+    strpos($dep, 'self::repair_page_content($configured);') !== false,
 );
 
 foreach ($templates as $path) {
