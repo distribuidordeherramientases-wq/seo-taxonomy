@@ -316,6 +316,14 @@ final class TaxoCommerce_Import_Export_Batch {
 					return;
 				}
 				if ( empty( $state['current_file'] ) ) {
+					$remaining = $this->files( $this->paths()['pending'] );
+					if ( ! empty( $remaining ) && ! empty( $state['enabled'] ) ) {
+						$state['status'] = 'waiting_next';
+						$this->store_state( $state );
+						$this->schedule( 2 );
+						return;
+					}
+
 					$state['enabled'] = false;
 					$state['status']  = 'idle';
 					$state['message'] = __( 'Cola terminada. No quedan archivos pendientes.', 'taxocommerce-import-export' );
