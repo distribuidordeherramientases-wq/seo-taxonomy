@@ -4,7 +4,7 @@ Tags: woocommerce, database, mysql, backup, csv
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,6 +39,12 @@ IMPORTANTE:
 4. Ejecuta chequeos/descargas solamente cuando los necesites.
 
 == Changelog ==
+
+= 0.2.0 =
+* Añade diagnóstico completo de Clean DB a petición, optimización limitada de tablas internas y API opcional de rollback INSERT/UPDATE/DELETE sobre tablas opt-in InnoDB con PK.
+* Primera integración opcional con Redirects; no se capturan automáticamente las operaciones de otros plugins. Reversión con transacción y comprobación de cambios posteriores.
+* El historial reversible se mantiene en tablas `tcdb_operations` y `tcdb_changes`, independientes del monolito. No se borran automáticamente al desinstalar para evitar pérdida irreversible de historial.
+* Las acciones de limpieza de logs caducados/stock no generan snapshot reversible; se consideran descartes de datos expirados. Los borrados de contenidos y relaciones SEO siguen siendo solo diagnósticos.
 
 = 0.1.0 =
 * Plugin independiente MySQL/Data Table/Backups/CSV/Clean DB, sin portabilidad de rollback.
