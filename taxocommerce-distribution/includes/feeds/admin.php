@@ -103,6 +103,24 @@ function tcdist_feed_admin_regenerate() {
     }
     check_admin_referer( 'tcdist_feed_regenerate' );
 
+    // During migration both plugins can point to the same stable public feed
+    // filenames. Never let a manual Distribution build overlap an active
+    // legacy build, otherwise two independent locks could publish to the same
+    // final path.
+    if ( defined( 'TCDIST_LEGACY_FEED_ACTIVE' ) && TCDIST_LEGACY_FEED_ACTIVE && function_exists( 'seo_ie_cf_state' ) ) {
+        $legacy_state = seo_ie_cf_state();
+        if ( 'running' === sanitize_key( (string) ( $legacy_state['status'] ?? '' ) ) ) {
+            wp_safe_redirect(
+                tcdist_feed_admin_redirect_url(
+                    array(
+                        'cf_error' => rawurlencode( 'El generador antiguo de inventarios está trabajando. Espera a que termine o detenlo antes de iniciar una prueba desde Distribution.' ),
+                    )
+                )
+            );
+            exit;
+        }
+    }
+
     $result = tcdist_feed_start_build( 'manual' );
     if ( is_wp_error( $result ) ) {
         wp_safe_redirect(
