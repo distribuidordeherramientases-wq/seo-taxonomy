@@ -718,7 +718,7 @@ final class TCD_Academy {
                 'top8'=>absint($step['pass_top8']??0),'failed'=>absint($step['failed']??0),
             ));
             self::queue();
-            return max(1,$evaluated);
+            return max(1,absint($step['batch_evaluated']??1));
         }
 
         $quality=(array)($step['report']??array());
@@ -749,7 +749,7 @@ final class TCD_Academy {
             'pass_top3'=>absint($quality['pass_top3']??0),
         ));
         self::queue();
-        return absint($step['evaluated']??0);
+        return max(1,absint($step['batch_evaluated']??1));
     }
 
     private static function snapshot($id){
