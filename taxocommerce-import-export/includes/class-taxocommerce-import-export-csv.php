@@ -414,7 +414,7 @@ final class TaxoCommerce_Import_Export_CSV {
 	 */
 	private function import_product( $data ) {
 		$id           = absint( isset( $data['id'] ) ? $data['id'] : 0 );
-		$has_sku      = array_key_exists( 'sku', $data );
+		$this->should_apply_field( $data, 'sku', $partial )      = array_key_exists( 'sku', $data );
 		$sku          = $has_sku ? sanitize_text_field( (string) $data['sku'] ) : '';
 		$partial      = ! empty( $data['_partial_update'] );
 		$product_type = sanitize_key( (string) ( isset( $data['product_type'] ) ? $data['product_type'] : 'simple' ) );
@@ -452,7 +452,7 @@ final class TaxoCommerce_Import_Export_CSV {
 			}
 		}
 
-		if ( array_key_exists( 'status', $data ) ) {
+		if ( $this->should_apply_field( $data, 'status', $partial ) ) {
 			$status = sanitize_key( (string) $data['status'] );
 			if ( 'trash' === $status && $product->get_id() ) {
 				return wp_trash_post( $product->get_id() ) ? true : new WP_Error( 'taxocommerce_ie_product_trash', __( 'No se pudo mover el producto a la papelera.', 'taxocommerce-import-export' ) );
@@ -467,14 +467,14 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 
 		try {
-			if ( array_key_exists( 'name', $data ) ) {
+			if ( $this->should_apply_field( $data, 'name', $partial ) ) {
 				$name = trim( sanitize_text_field( (string) $data['name'] ) );
 				if ( '' === $name ) {
-					return new WP_Error( 'taxocommerce_ie_product_name_empty', __( 'El nombre de un producto existente no puede vaciarse mediante un CSV parcial.', 'taxocommerce-import-export' ) );
+					return new WP_Error( 'taxocommerce_ie_product_name_empty', __( 'El nombre del producto no puede quedar vacío.', 'taxocommerce-import-export' ) );
 				}
 				$product->set_name( $name );
 			}
-			if ( array_key_exists( 'slug', $data ) && '' !== trim( (string) $data['slug'] ) ) {
+			if ( $this->should_apply_field( $data, 'slug', $partial ) ) {
 				$product->set_slug( sanitize_title( (string) $data['slug'] ) );
 			}
 			if ( '' !== $status ) {
@@ -483,42 +483,42 @@ final class TaxoCommerce_Import_Export_CSV {
 			if ( $has_sku ) {
 				$product->set_sku( $sku );
 			}
-			if ( array_key_exists( 'regular_price', $data ) ) {
+			if ( $this->should_apply_field( $data, 'regular_price', $partial ) ) {
 				$product->set_regular_price( wc_format_decimal( (string) $data['regular_price'] ) );
 			}
-			if ( array_key_exists( 'sale_price', $data ) ) {
+			if ( $this->should_apply_field( $data, 'sale_price', $partial ) ) {
 				$product->set_sale_price( wc_format_decimal( (string) $data['sale_price'] ) );
 			}
-			if ( array_key_exists( 'stock_status', $data ) ) {
+			if ( $this->should_apply_field( $data, 'stock_status', $partial ) ) {
 				$product->set_stock_status( $this->stock_status( $data['stock_status'] ) );
 			}
-			if ( array_key_exists( 'manage_stock', $data ) ) {
+			if ( $this->should_apply_field( $data, 'manage_stock', $partial ) ) {
 				$product->set_manage_stock( '1' === (string) $data['manage_stock'] );
 			}
-			if ( array_key_exists( 'stock_quantity', $data ) ) {
+			if ( $this->should_apply_field( $data, 'stock_quantity', $partial ) ) {
 				$product->set_stock_quantity( '' === (string) $data['stock_quantity'] ? null : wc_stock_amount( $data['stock_quantity'] ) );
 			}
-			if ( array_key_exists( 'short_description', $data ) ) {
+			if ( $this->should_apply_field( $data, 'short_description', $partial ) ) {
 				$product->set_short_description( wp_kses_post( (string) $data['short_description'] ) );
 			}
-			if ( array_key_exists( 'description', $data ) ) {
+			if ( $this->should_apply_field( $data, 'description', $partial ) ) {
 				$product->set_description( wp_kses_post( (string) $data['description'] ) );
 			}
-			if ( array_key_exists( 'categories_json', $data ) ) {
+			if ( $this->should_apply_field( $data, 'categories_json', $partial ) ) {
 				$product->set_category_ids( $this->resolve_terms_from_json( $data['categories_json'], 'product_cat' ) );
 			}
-			if ( array_key_exists( 'tags_json', $data ) ) {
+			if ( $this->should_apply_field( $data, 'tags_json', $partial ) ) {
 				$product->set_tag_ids( $this->resolve_terms_from_json( $data['tags_json'], 'product_tag' ) );
 			}
-			if ( array_key_exists( 'attributes_json', $data ) ) {
+			if ( $this->should_apply_field( $data, 'attributes_json', $partial ) ) {
 				$product->set_attributes( $this->attributes_from_json( $data['attributes_json'] ) );
 			}
 
 			if ( is_a( $product, 'WC_Product_External' ) ) {
-				if ( array_key_exists( 'external_url', $data ) ) {
+				if ( $this->should_apply_field( $data, 'external_url', $partial ) ) {
 					$product->set_product_url( esc_url_raw( (string) $data['external_url'] ) );
 				}
-				if ( array_key_exists( 'button_text', $data ) ) {
+				if ( $this->should_apply_field( $data, 'button_text', $partial ) ) {
 					$product->set_button_text( sanitize_text_field( (string) $data['button_text'] ) );
 				}
 			}
@@ -537,6 +537,27 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether a CSV field should be applied.
+	 *
+	 * In partial correction CSVs, blank cells mean "leave unchanged".
+	 * Full round-trip imports still apply blank values when the column exists.
+	 *
+	 * @param array  $data Row.
+	 * @param string $field Field.
+	 * @param bool   $partial Partial correction mode.
+	 * @return bool
+	 */
+	private function should_apply_field( $data, $field, $partial ) {
+		if ( ! array_key_exists( $field, $data ) ) {
+			return false;
+		}
+		if ( ! $partial ) {
+			return true;
+		}
+		return '' !== trim( (string) $data[ $field ] );
 	}
 
 	/**
