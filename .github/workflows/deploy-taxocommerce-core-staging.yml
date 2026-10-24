@@ -30,6 +30,12 @@ jobs:
       - name: Verify SEO architecture report before deploy
         run: php taxocommerce-core/tests/architecture-report-smoke.php
 
+      - name: Validate Redirects Open link in Core extension catalogue
+        run: |
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
+
       - name: Validate canonical SEO relation and role tables
         run: |
           test -f taxocommerce-core/includes/class-taxocommerce-core-hierarchy-classic.php

@@ -409,6 +409,7 @@ final class TaxoCommerce_Core {
 				'org_slug'      => 'taxocommerce-redirects',
 				'search_term'   => 'TaxoCommerce Redirects',
 				'wordpress_org' => true,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-redirects' ),
 				'description'   => __( 'Redirecciones 301/302 y borrado asistido de contenidos.', 'taxocommerce-core' ),
 			),
 			'auditor' => array(
