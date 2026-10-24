@@ -1,4 +1,4 @@
-# TaxoCommerce Dependiente 0.3.0
+# TaxoCommerce Dependiente 0.3.5
 
 Plugin independiente de la familia TaxoCommerce. El objetivo de esta versión es mantener la arquitectura auditable del Dependiente moderno y recuperar, como mínimo, las capacidades útiles que daban buen resultado en el conjunto Dependiente + Intérprete anterior.
 
@@ -207,3 +207,40 @@ Estados:
 Cuando una asociación llega a `active`, se materializa en los almacenes portables: consulta→producto como señal L9 y consulta→concepto como regla semántica. Por tanto, el export de conocimiento conserva el aprendizaje consolidado sin exportar eventos, sesiones ni clics individuales.
 
 Los eventos de feedback no activos se conservan durante 180 días y se limpian después. El administrador muestra búsquedas, clics, aclaraciones y asociaciones activas. El log de aprendizaje registra también `feedback_event` y `feedback_promoted`.
+
+## Auditoría de calidad y corrección de datos
+
+Desde 0.3.5 un quality gate fallido no se limita a mostrar un porcentaje. Dependiente actúa también como auditor de la calidad de los datos que está intentando aprender.
+
+Cuando una lección no alcanza su umbral:
+
+- distingue entre **datos fuente**, **ambigüedad real** y **fallo interno de Dependiente/ranking**;
+- conserva todos los casos que quedaron fuera del Top-8;
+- indica consulta de examen, posición, resultados observados, causa probable y acción recomendada;
+- audita la lección completa para localizar anomalías aunque el elemento haya aprobado el examen;
+- incluye elementos `unlearned` y su motivo.
+
+El botón **JSON · auditoría y corrección** genera un documento estructurado con:
+
+- `quality_failures`: todos los fallos del examen;
+- `correction_queue`: elementos que sí conviene corregir en WordPress;
+- `dependiente_internal_queue`: casos que no deben resolverse deformando el contenido porque el problema es memoria/ranking;
+- `ambiguity_queue`: resultados que requieren revisar identidad/duplicidad real;
+- `data_audit`: deuda de datos detectada en toda la lección, aunque el elemento haya pasado el examen;
+- resumen por tipo de entidad e incidencia.
+
+La auditoría cubre categorías, productos, Vocabulary, posts/páginas, FAQs, relaciones cruzadas y necesidades de L9 según la lección correspondiente.
+
+### Corrección y reevaluación dirigida
+
+La foto fija original se conserva como evidencia de lo que Dependiente estudió. Después de corregir los datos fuente en WordPress, **Revisar correcciones y reevaluar**:
+
+1. vuelve a leer únicamente los casos fallidos;
+2. actualiza el conocimiento de esos objetos con los datos actuales;
+3. regenera únicamente sus señales de aprendizaje;
+4. vuelve a ejecutar el quality gate;
+5. continúa a la siguiente lección solo si alcanza el mínimo.
+
+No reinicia L1-L10 ni vuelve a procesar todo el catálogo. El umbral no se rebaja para hacer pasar la lección.
+
+Los CSV siguen disponibles como vistas tabulares para corrección masiva. El JSON es el formato principal para diagnóstico y para generar posteriormente CSV específicos de productos, categorías, posts/páginas, FAQs o Vocabulary.
