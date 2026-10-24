@@ -13,7 +13,7 @@ final class TCDB_Admin {
         'optimize' => 'Optimizar',
         'import' => 'Importar CSV',
         'cleanup' => 'Clean DB',
-        'operations' => 'Operaciones y rollback',
+        'operations' => 'Operaciones',
     );
 
     public static function register_styles( $hook ) {
@@ -53,7 +53,6 @@ final class TCDB_Admin {
         echo '<h1>TaxoCommerce Database</h1>';
         echo '<p>MySQL, exploración de tablas y operaciones manuales de mantenimiento de datos.</p></div>';
         echo '<span class="tcdb-version">v' . esc_html( TAXOCOMMERCE_DATABASE_VERSION ) . '</span></div>';
-        echo '<div class="notice notice-info inline"><p><strong>Rollback opcional:</strong> INSERT, UPDATE y DELETE solo cuando el plugin de origen registre una operación compatible. Se verifica que los registros no hayan cambiado posteriormente. No se revierten archivos, contenidos externos ni operaciones antiguas del monolito.</p></div>';
 
         echo '<nav class="nav-tab-wrapper tcdb-tabs" aria-label="Herramientas de base de datos">';
         foreach ( self::TABS as $key => $label ) {
@@ -382,8 +381,7 @@ final class TCDB_Admin {
         echo '<div class="notice notice-warning inline"><p><strong>Atención:</strong> OPTIMIZE TABLE en InnoDB puede reconstruir y bloquear la tabla. Se limita a tablas TaxoCommerce de hasta 8 MB / 50.000 filas; ANALYZE a 32 MB. Realízalo fuera de horas de actividad y con un backup reciente.</p></div>';
         $tables = TCDB_Storage::tables();
         $eligible = array_filter( $tables, static function( $row ) {
-            return $row['family'] && 'InnoDB' === $row['engine']
-                && ! in_array( $row['name'], array( TCDB_Journal::operations_table(), TCDB_Journal::changes_table() ), true );
+            return $row['family'] && 'InnoDB' === $row['engine'];
         } );
         echo '<section class="tcdb-panel"><h3>Tablas de la familia</h3>';
         echo '<div class="tcdb-scroll"><table class="widefat striped"><thead><tr><th>Tabla</th><th>Tamaño estimado</th><th>Espacio libre</th><th>Filas estimadas</th><th>Disponible</th></tr></thead><tbody>';
@@ -460,26 +458,12 @@ final class TCDB_Admin {
             self::form_start( 'tcdb_import_apply', 'tcdb_import_apply' );
             echo '<input type="hidden" name="tcdb_token" value="' . esc_attr( $token ) . '">';
             echo '<p><label><input type="checkbox" name="tcdb_backup" value="1" required> Confirmo que tengo un backup reciente y los IDs pertenecen a este WordPress.</label></p>';
-            $owner = TCDB_Journal::owner_for_table( $preview['table'] );
-            $validated = $owner && true === apply_filters(
-                'tcdb_reversible_csv_import', false, $preview['table'], $preview['rows'], $owner
-            );
-            if ( ! $validated ) {
-                $owner = '';
-            }
-            if ( $owner ) {
-                echo '<p><strong>Rollback disponible:</strong> el plugin ' . esc_html( $owner ) . ' ha registrado esta tabla como compatible. La importación se guardará como una operación reversible.</p>';
-            } else {
-                echo '<p><strong>Sin rollback:</strong> el propietario de esta tabla no ha registrado integración reversible.</p>';
-                echo '<p><label><input type="checkbox" name="tcdb_no_rollback_ack" value="1" required> Confirmo que acepto importar sin posibilidad de rollback centralizado.</label></p>';
-            }
             echo '<label class="tcdb-label">Escribe <strong>IMPORTAR</strong> para aplicar<input name="tcdb_confirm" type="text" autocomplete="off" required></label>';
             echo '<p><button class="button button-primary" type="submit">Importar solo nuevos registros</button></p></form></section>';
         }
 
         $tables = array_filter( TCDB_Storage::tables(), static function ( $meta ) {
-            return $meta['family'] && 'InnoDB' === $meta['engine']
-                && ! in_array( $meta['name'], array( TCDB_Journal::operations_table(), TCDB_Journal::changes_table() ), true );
+            return $meta['family'] && 'InnoDB' === $meta['engine'];
         } );
         echo '<section class="tcdb-panel"><h3>1. Analizar un CSV antes de aplicar cambios</h3>';
         echo '<p>Máximo 1 MB y 250 filas; las columnas deben existir exactamente en la tabla elegida. No se aceptan comandos SQL ni importaciones directas a tablas WordPress/WooCommerce.</p>';
@@ -493,7 +477,7 @@ final class TCDB_Admin {
         echo '</select></label>';
         echo '<label class="tcdb-label">Archivo CSV UTF-8<input type="file" name="tcdb_csv" accept=".csv,text/csv" required></label>';
         echo '<p><button type="submit" class="button button-primary" ' . ( $tables ? '' : 'disabled' ) . '>Validar y mostrar vista previa</button></p></form>';
-        echo '<p class="description">Para importar productos, páginas, categorías o traducciones utiliza TaxoCommerce Import-Export. El módulo propietario debe validar expresamente cualquier CSV reversible; una tabla registrada por sí sola no garantiza esa seguridad.</p></section>';
+        echo '<p class="description">Para importar productos, páginas, categorías o traducciones utiliza TaxoCommerce Import-Export. La importación solo incorpora filas nuevas; requiere validar antes los identificadores y disponer de un backup.</p></section>';
     }
 
     private static function render_cleanup() {
@@ -548,7 +532,7 @@ final class TCDB_Admin {
                 echo '</td></tr>';
             }
             echo '</tbody></table></div>';
-            echo '<p class="description">Los borrados de logs caducados o reservas antiguas no admiten rollback; están limitados a 100 elementos por ejecución. Las entidades WordPress y WooCommerce se mantienen intactas.</p>';
+            echo '<p class="description">Las limpiezas se limitan a 100 registros caducados por ejecución. No eliminan contenidos, pedidos ni entidades de WordPress o WooCommerce.</p>';
         } else {
             echo '<p class="description">Todavía no hay un diagnóstico avanzado guardado.</p>';
         }
@@ -556,65 +540,9 @@ final class TCDB_Admin {
     }
 
     private static function render_operations() {
-        self::heading( 'Operaciones y rollback', 'Historial centralizado de operaciones expresamente registradas como reversibles por plugins compatibles. No es una restauración general de WordPress.' );
-        $notice = get_transient( 'tcdb_rollback_result_' . get_current_user_id() );
-        if ( is_array( $notice ) ) {
-            echo '<div class="notice ' . ( ! empty( $notice['error'] ) ? 'notice-error' : 'notice-success' ) . ' inline"><p>' . esc_html( $notice['message'] ?? '' ) . '</p></div>';
-            delete_transient( 'tcdb_rollback_result_' . get_current_user_id() );
-        }
-
-        echo '<section class="tcdb-panel"><h3>Operaciones reversibles registradas</h3>';
-        if ( ! TCDB_Journal::ready() ) {
-            echo '<p>El historial central todavía no se ha instalado. Revisa la activación o los permisos MySQL.</p>';
-        } else {
-            $rows = TCDB_Journal::recent( 30 );
-            echo '<div class="tcdb-scroll"><table class="widefat striped"><thead><tr><th>ID</th><th>Fecha</th><th>Plugin</th><th>Operación</th><th>Registros</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>';
-            foreach ( $rows as $item ) {
-                echo '<tr><td>' . esc_html( (string) $item['id'] ) . '</td>';
-                echo '<td>' . esc_html( $item['created_at'] ) . '</td><td>' . esc_html( $item['source'] ) . '</td>';
-                echo '<td>' . esc_html( $item['label'] ) . '</td><td>' . esc_html( (string) $item['change_count'] ) . '</td>';
-                echo '<td>' . esc_html( 'rolled_back' === $item['status'] ? 'Revertida' : 'Registrada (verificar)' ) . '</td><td>';
-                echo '<a href="' . esc_url( TCDB_Storage::url( 'operations', array( 'tcdb_operation' => (int) $item['id'] ) ) ) . '">Simular / Detalle</a>';
-                echo '</td></tr>';
-            }
-            if ( ! $rows ) {
-                echo '<tr><td colspan="7">No existen todavía operaciones reversibles. Los plugins deben habilitar expresamente la integración.</td></tr>';
-            }
-            echo '</tbody></table></div>';
-        }
-        echo '</section>';
-
-        $id = absint( self::q( 'tcdb_operation' ) );
-        if ( $id && TCDB_Journal::ready() ) {
-            $preview = TCDB_Journal::preview( $id );
-            echo '<section class="tcdb-panel"><h3>Simulación de rollback #' . esc_html( (string) $id ) . '</h3>';
-            echo '<p><strong>Estado:</strong> ' . ( $preview['allowed'] ? 'Reversible en esta comprobación' : 'Bloqueado o ya revertido' ) . '</p>';
-            echo '<p>' . esc_html( (string) count( $preview['items'] ) ) . ' cambios comprobados.</p>';
-            foreach ( (array) ( $preview['errors'] ?? array() ) as $error ) {
-                echo '<div class="notice notice-error inline"><p>' . esc_html( $error ) . '</p></div>';
-            }
-            if ( $preview['items'] ) {
-                echo '<div class="tcdb-scroll"><table class="widefat striped"><thead><tr><th>Acción original</th><th>Tabla</th><th>Comprobación</th></tr></thead><tbody>';
-                foreach ( $preview['items'] as $item ) {
-                    echo '<tr><td>' . esc_html( $item['action'] ) . '</td><td><code>' . esc_html( $item['table'] ) . '</code></td>';
-                    echo '<td>' . esc_html( 'reversible' === $item['status'] ? 'Sin conflictos detectados' : 'Conflicto' ) . '</td></tr>';
-                }
-                echo '</tbody></table></div>';
-            }
-            if ( $preview['allowed'] ) {
-                echo '<p class="description">El sistema volverá a comprobar todas las filas dentro de una transacción bloqueada antes de revertir. Si encuentra un conflicto, no aplicará ninguna reversión.</p>';
-                self::form_start( 'tcdb_rollback', 'tcdb_rollback' );
-                echo '<input type="hidden" name="operation_id" value="' . esc_attr( (string) $id ) . '">';
-                echo '<label class="tcdb-label">Escribe <strong>REVERTIR</strong> para confirmar<input name="confirmation" type="text" required autocomplete="off"></label>';
-                echo '<button type="submit" class="button">Revertir operación completa</button></form>';
-            }
-            echo '</section>';
-        }
-
-        echo '<section class="tcdb-panel"><h3>Registro de tareas administrativas</h3>';
-        echo '<p>Este registro de auditoría enumera chequeos, exports, importaciones y limpiezas. <strong>No significa que todas estas tareas sean reversibles.</strong></p>';
+        self::heading( 'Operaciones registradas', 'Registro informativo de chequeos, exportaciones, importaciones, limpiezas y mantenimiento realizados por este plugin.' );
         $events = get_option( TCDB_Storage::EVENT_OPTION, array() );
-        echo '<div class="tcdb-scroll"><table class="widefat striped">';
+        echo '<section class="tcdb-panel"><div class="tcdb-scroll"><table class="widefat striped">';
         echo '<thead><tr><th>Fecha</th><th>Acción</th><th>Usuario WP (ID)</th><th>Detalle técnico</th></tr></thead><tbody>';
         foreach ( (array) $events as $row ) {
             echo '<tr><td>' . esc_html( $row['at'] ?? '' ) . '</td>';
@@ -626,7 +554,6 @@ final class TCDB_Admin {
             echo '<tr><td colspan="4">Todavía no hay operaciones manuales registradas.</td></tr>';
         }
         echo '</tbody></table></div></section>';
-        echo '<p class="description">El historial de rollback del antiguo TaxoCommerce SEO permanece en sus tablas originales. No se ha mezclado ni eliminado.</p>';
+        echo '<p class="description">Esta pantalla solo muestra acciones administrativas. Los backups se descargan por separado.</p>';
     }
-
 }
