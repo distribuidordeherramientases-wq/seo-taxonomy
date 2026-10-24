@@ -226,6 +226,21 @@ final class TCDB_Admin {
         }
     }
 
+    /**
+     * The explorer must not print credentials in plain text. Raw exports
+     * require a privileged, nonce-protected explicit download action.
+     */
+    public static function safe_display_cell( $field, $value ) {
+        if ( preg_match( '/(?:password|passwd|secret|credential|(?:^|_)token(?:_|$)|api_key|private_key|client_secret|authorization|refresh_token|access_token)/i', (string) $field ) ) {
+            return '[oculto: campo sensible]';
+        }
+        $value = is_scalar( $value ) ? (string) $value : '';
+        if ( preg_match( '/(?:\"(?:access_token|refresh_token|client_secret|password|api_key)\"\s*:)/i', $value ) ) {
+            return '[oculto: contiene credenciales]';
+        }
+        return function_exists( 'mb_substr' ) ? mb_substr( $value, 0, 160 ) : substr( $value, 0, 160 );
+    }
+
     private static function render_explorer( $table ) {
         global $wpdb;
         $columns = TCDB_Storage::columns( $table );
@@ -300,8 +315,9 @@ final class TCDB_Admin {
             foreach ( $names as $name ) {
                 $value = $row[ $name ] ?? '';
                 $text = is_scalar( $value ) ? (string) $value : '';
-                $short = function_exists( 'mb_substr' ) ? mb_substr( $text, 0, 160 ) : substr( $text, 0, 160 );
-                echo '<td title="' . esc_attr( $short ) . '">' . esc_html( $short ) . ( strlen( $text ) > strlen( $short ) ? '…' : '' ) . '</td>';
+                $short = self::safe_display_cell( $name, $value );
+                $was_masked = 0 === strpos( $short, '[oculto:' );
+                echo '<td title="' . esc_attr( $short ) . '">' . esc_html( $short ) . ( ! $was_masked && strlen( $text ) > strlen( $short ) ? '…' : '' ) . '</td>';
             }
             echo '</tr>';
         }
