@@ -131,3 +131,10 @@ body.tcc-family-admin .wrap .tcc-family-panel .form-table td,body.tcc-family-adm
 body.tcc-family-admin .wrap .tcc-family-panel table.widefat{width:100%}
 body.tcc-family-admin .wrap .tcc-family-grid>.tcc-family-panel:focus-within{border-color:#b4d3fa}
 @media(max-width:782px){body.tcc-family-admin .wrap .tcc-family-grid>.tcc-family-panel{padding:17px}}
+
+/* Homogeneous extension manager actions. */
+body.tcc-family-admin .tcc-extension-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0 16px}
+body.tcc-family-admin .tcc-extension-toolbar .description{margin:0}
+body.tcc-family-admin .tcc-extension-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+body.tcc-family-admin .tcc-extension-actions form{display:inline-flex;margin:0}
+body.tcc-family-admin .tcc-extension-actions .button{white-space:nowrap}
