@@ -104,6 +104,7 @@ jobs:
             taxocommerce-core
             taxocommerce-images
             taxocommerce-import-export
+            taxocommerce-database
             taxocommerce-system-check
             taxocommerce-templates
             taxocommerce-dependiente
