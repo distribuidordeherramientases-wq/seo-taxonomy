@@ -58,17 +58,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2             "$PRO_SITE_URL/wp-admin/admin-ajax.php?action=taxocommerce_deploy_active_modules")"
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2             "$PRO_SITE_URL/wp-json/taxocommerce/v1/deploy-active-modules")"
 
           modules="$(python3 - "$response" <<'PY'
           import json
           import sys
 
           payload = json.loads(sys.argv[1])
-          if payload.get("success") is not True:
-              raise SystemExit("PRO no devolvió un estado de despliegue válido.")
-
-          modules = payload.get("data", {}).get("modules", [])
+          modules = payload.get("modules", [])
           if not isinstance(modules, list):
               raise SystemExit("La lista de módulos activos no es válida.")
 
