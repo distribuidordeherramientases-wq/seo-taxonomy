@@ -145,7 +145,20 @@ body.tcc-family-admin .wrap .tcc-family-grid>.tcc-family-panel:focus-within{bord
 .tcc-family-screen .tci-assign-candidate{display:flex;flex:0 1 160px;flex-direction:column;gap:7px;padding:9px;border:1px solid #dcdcde;border-radius:6px;align-items:start}
 .tcc-family-screen .tci-assign-candidate img{max-width:100%;width:100px;height:88px;object-fit:contain}
 .tcc-family-screen .tci-assign-candidate small{display:block;max-width:155px;overflow-wrap:anywhere}
+.tcc-family-screen .tci-assign-media{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #eee;padding-top:11px;margin-top:5px}
+.tcc-family-screen .tci-assign-media-selection{display:inline-flex;align-items:center;min-height:34px;color:#646970}
+.tcc-family-screen .tci-assign-media-preview{display:inline-flex;align-items:center;gap:8px;color:#2c3338}
+.tcc-family-screen .tci-assign-media-preview img{width:44px;height:44px;object-fit:cover;border:1px solid #dcdcde;border-radius:4px}
 .tcc-family-screen .tci-assign-upload{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #eee;padding-top:11px}
 .tcc-family-screen .tci-assign-upload input[type=file]{max-width:240px}
 .tcc-family-screen .tci-assign-pagination{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:15px 0 0}
 @media(max-width:782px){.tcc-family-screen .tci-assign-section{padding:12px}.tcc-family-screen .tci-assign-scroll>.widefat{min-width:480px}.tcc-family-screen .tci-assign-candidate{flex-basis:140px}.tcc-family-screen .tci-assign-upload input[type=file]{max-width:100%}}
+
+
+/* Images adaptive workload control. */
+.tcc-family-screen .tci-load-control{padding:14px 16px;margin:14px 0 18px;background:#fff;border:1px solid #c3c4c7;border-radius:8px}
+.tcc-family-screen .tci-load-control__slider{display:flex;align-items:center;gap:12px;max-width:760px;margin:8px 0}
+.tcc-family-screen .tci-load-control__slider input[type=range]{flex:1;min-width:180px}
+.tcc-family-screen .tci-load-control__slider output{min-width:92px}
+.tcc-family-screen .tci-load-control__sample{margin-top:10px!important}
+@media(max-width:782px){.tcc-family-screen .tci-load-control__slider{align-items:flex-start;flex-direction:column}.tcc-family-screen .tci-load-control__slider input[type=range]{width:100%}}

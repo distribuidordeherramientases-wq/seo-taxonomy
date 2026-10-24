@@ -42,22 +42,16 @@ jobs:
             --exclude='CONTRIBUTING.md' \
             --exclude='README.md' \
             --exclude='SUPPLIER-SYNC-V2.md' \
-            --exclude='/taxocommerce-core/' \
-            --exclude='/taxocommerce-images/' \
-            --exclude='/taxocommerce-import-export/' \
-            --exclude='/taxocommerce-system-check/' \
-            --exclude='/taxocommerce-faqs/' \
-            --exclude='/taxocommerce-auditor/' \
-            --exclude='/taxocommerce-templates/' \
-            --exclude='/taxocommerce-vocabulary/' \
+            --exclude='/taxocommerce-*/' \
             --exclude='/packages/' \
             --exclude='node_modules/' \
             ./ build/taxocommerce-seo/
           # Sibling plugins have independent headers and translation domains.
           # They are deployed separately, never inside the taxocommerce-seo ZIP.
-          for sibling in taxocommerce-core taxocommerce-images taxocommerce-import-export taxocommerce-system-check taxocommerce-faqs taxocommerce-auditor taxocommerce-templates taxocommerce-vocabulary packages; do
-            test ! -e "build/taxocommerce-seo/$sibling"
-          done
+          if find build/taxocommerce-seo -mindepth 1 -maxdepth 1 -type d -name 'taxocommerce-*' | grep -q .; then
+            echo 'ERROR: un plugin modular se ha incluido dentro del ZIP monolítico.'
+            exit 1
+          fi
 
       - name: Validate WordPress.org package metadata and ZIP size
         env:
@@ -70,7 +64,10 @@ jobs:
           build-dir: './build/taxocommerce-seo'
           slug: taxocommerce-seo
           wp-version: latest
-          ignore-warnings: false
+          # Warnings are always captured by the report step below. They only
+          # block the explicit strict WordPress.org release gate; PHP/plugin
+          # errors continue to block every push and pull request.
+          ignore-warnings: true
           ignore-errors: false
 
       - name: Report warnings and enforce quality gate

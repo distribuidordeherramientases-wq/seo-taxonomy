@@ -30,6 +30,14 @@ function taxocommerce_images_test_image( $name, $seed, $bytes = null, $mime = 'i
 $admin = get_user_by( 'login', 'imagesadmin' );
 wp_set_current_user( $admin->ID );
 
+update_option( 'tcd_work_priority', 5, false );
+$priority_result = TaxoCommerce_Images_Load::set_priority( 1 );
+taxocommerce_images_test_assert( 1 === $priority_result && 1 === TaxoCommerce_Images_Load::priority(), 'Images stores its own workload priority' );
+taxocommerce_images_test_assert( 5 === (int) get_option( 'tcd_work_priority' ), 'Images priority does not alter Dependiente settings' );
+taxocommerce_images_test_assert( TaxoCommerce_Images_Load::batch_size( 'cleanup' ) < TaxoCommerce_Images_Load::batch_size( 'labels' ), 'file hashing uses a smaller batch than metadata inspection' );
+TaxoCommerce_Images_Load::set_priority( 3 );
+
+
 register_post_type( 'product', array( 'public' => true, 'supports' => array( 'title', 'thumbnail' ) ) );
 register_taxonomy( 'product_cat', array( 'product', 'page', 'post' ), array( 'hierarchical' => true, 'public' => true ) );
 add_theme_support( 'post-thumbnails' );
@@ -47,6 +55,11 @@ update_post_meta( $product, '_product_image_gallery', (string) $own_image );
 $choices = wp_list_pluck( TaxoCommerce_Images_Assignment::candidates( 'product', $product ), 'id' );
 taxocommerce_images_test_assert( array( $own_image ) === $choices, 'a product can reuse its own gallery only' );
 taxocommerce_images_test_assert( ! TaxoCommerce_Images_Assignment::has_image( 'product', $product ), 'missing featured product image stays reported' );
+$manual_image = taxocommerce_images_test_image( 'manual-media-choice.png', 27 );
+$manual_result = TaxoCommerce_Images_Assignment::assign_from_media( 'product', $product, $manual_image );
+taxocommerce_images_test_assert( true === $manual_result && $manual_image === (int) get_post_thumbnail_id( $product ), 'administrator can explicitly assign any valid existing Media image' );
+$manual_second = TaxoCommerce_Images_Assignment::assign_from_media( 'product', $product, $cat_image );
+taxocommerce_images_test_assert( is_wp_error( $manual_second ) && $manual_image === (int) get_post_thumbnail_id( $product ), 'manual Media assignment never overwrites an existing image' );
 
 $baseline = TaxoCommerce_Images_Assignment::missing( 'page', 1, 1 )['total'];
 $pages = array();

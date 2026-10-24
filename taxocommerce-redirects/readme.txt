@@ -3,7 +3,7 @@ Contributors: davidperezmartorell
 Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.4
 License: GPLv2 or later
 
 Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
@@ -72,6 +72,17 @@ retired and all native relationships have been verified.
 * This code is only for STAGING until manually approved for production release.
 
 == Changelog ==
+
+= 0.1.4 =
+* Retirada la integracion opcional del motor historico de rollback de Database. CRUD de redirecciones vuelve al flujo autonomo original, sin dependencia ni comprobaciones de Database.
+* Conservado el boton Abrir y la navegacion por Core cuando esta instalado.
+
+= 0.1.3 =
+* Version experimental retirada de la integracion de rollback.
+
+= 0.1.2 =
+* Integracion de menu y accion Abrir en el catalogo Core.
+
 
 = 0.1.1 =
 * Verified activation lifecycle and explicit uninstall cleanup for seo_redirects.

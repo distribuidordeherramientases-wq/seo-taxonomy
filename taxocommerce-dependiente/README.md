@@ -1,84 +1,209 @@
-# TaxoCommerce Dependiente 0.2.2
+# TaxoCommerce Dependiente 0.3.0
 
-Plugin de la familia TaxoCommerce que conserva el diseño de las diez primeras lecciones del Dependiente anterior, simplificando la arquitectura: **un único servicio Dependiente**, sin presentar Academia ni Entrenador como servicios separados.
+Plugin independiente de la familia TaxoCommerce. El objetivo de esta versión es mantener la arquitectura auditable del Dependiente moderno y recuperar, como mínimo, las capacidades útiles que daban buen resultado en el conjunto Dependiente + Intérprete anterior.
 
-## Flujo de cada lección
+No se presentan servicios de formación separados. Toda la lógica pertenece a un único Dependiente y se organiza como **L1-L10 + M11 Intérprete + M12 Actualización continua**.
 
-Cada L1-L10 tiene dos fases obligatorias:
+## Flujo
 
-1. **Análisis / foto fija**: se recorren las fuentes que la lección debe estudiar y se copian a `tcd_lesson_items`. Al terminar se sella la foto con número de fuentes y firma SHA-256 global.
-2. **Aprendizaje**: Dependiente estudia exclusivamente los elementos congelados. Cada fila termina como `learned` o `unlearned`, con motivo y fecha.
+### L1-L10 · Aprendizaje
 
-Una modificación posterior del catálogo no cambia silenciosamente una lección ya iniciada. Detener/reanudar conserva el mismo snapshot. Reiniciar es explícito y solo vacía tablas propias de aprendizaje.
+Cada lección conserva una **foto fija auditable** de las fuentes que va a estudiar. El proceso es:
+
+1. Construir y sellar la foto fija.
+2. Aprender exclusivamente de esa foto.
+3. Generar conocimiento semántico cuando corresponde.
+4. Evaluar una muestra mediante Top 1, Top 3, Top 8 y `pass_any`.
+5. Aplicar un quality gate.
+6. Promocionar reglas y memoria al runtime solo cuando la lección supera el gate.
+
+El catálogo original nunca se modifica durante el aprendizaje.
+
+### M11 · Intérprete
+
+Después de L10, Dependiente construye y valida su Intérprete. El runtime combina:
+
+- reglas semánticas consolidadas;
+- Vocabulary canónico;
+- rutas semánticas;
+- memoria L9 ponderada por producto;
+- catálogo WooCommerce publicado;
+- búsqueda textual únicamente como red de seguridad.
+
+El módulo ejecuta regresión sobre necesidades construidas de forma independiente a la memoria L9: la frase de examen no se guarda como señal y no incluye el título exacto del producto. Si no alcanza el umbral, el Intérprete queda degradado y el proceso no se considera listo.
+
+Las reglas y señales importadas desde el Dependiente antiguo también forman parte del runtime; no se guardan como un archivo muerto de compatibilidad.
+
+### M12 · Actualización continua
+
+Una vez completado M11, el conocimiento se mantiene incrementalmente sin repetir L1-L10.
+
+Se actualizan:
+
+- productos nuevos o modificados;
+- cambios de estado de productos;
+- categorías nuevas o editadas;
+- posts y páginas publicados/modificados;
+- FAQs activas modificadas;
+- Vocabulary y asignaciones semánticas que afecten al catálogo.
+
+Los hooks de WordPress/WooCommerce realizan actualizaciones inmediatas y una revisión periódica incremental funciona como red de seguridad. Cuando M12 cambia conocimiento, vuelve a ejecutar la regresión de M11: el Intérprete se crea una vez, pero se revalida y actualiza durante toda la vida del catálogo.
 
 ## Las diez lecciones
 
-- **L1 Mapa del catálogo**: categorías, jerarquía y Vocabulary de categoría.
-- **L2 Inventario y producto**: qué es cada producto, SKU, marca, categorías y Vocabulary.
-- **L3 TIPO y ROL**: conceptos canónicos y productos asociados.
-- **L4 Características y necesidades**: atributos, aplicación, plataforma, subtipo y etiquetas.
+- **L1 Mapa del catálogo**: categorías, jerarquía, nombres y Vocabulary de categoría.
+- **L2 Inventario y producto**: identidad, SKU, marca, categorías y clasificación semántica.
+- **L3 TIPO y ROL**: conceptos canónicos y asociaciones con productos.
+- **L4 Características y necesidades**: aplicaciones, plataformas, subtipos, tags y atributos; consolida conceptos semánticos globales sin duplicar una regla por producto.
 - **L5 Posts y páginas**: contenido editorial y Vocabulary compartido.
-- **L6 FAQs contextualizadas**: tabla canónica `seo_faq`, categoría/propietario, pregunta, respuesta y Vocabulary.
-- **L7 Relaciones cruzadas**: conceptos compartidos entre catálogo y contenido editorial.
-- **L8 Examen integrado**: revisión del conocimiento L1-L7.
-- **L9 Necesidades y productos**: lenguaje natural construido desde productos reales y sus dimensiones semánticas.
-- **L10 Consolidación y deuda**: revisión L1-L9 para localizar conocimiento pendiente/incoherente.
+- **L6 FAQs contextualizadas**: pregunta, respuesta, propietario y Vocabulary.
+- **L7 Relaciones cruzadas**: conceptos que conectan catálogo y contenido.
+- **L8 Examen integrado y regresión**: revisión conjunta de L1-L7 mediante una muestra determinista y acotada por lección, sin volver a duplicar todo el conocimiento.
+- **L9 Necesidades y productos**: memoria lingüística ponderada por producto.
+- **L10 Consolidación, deuda y regresión**: revisión global L1-L9 con el mismo muestreo reproducible y control de deuda.
 
-## Auditoría y JSON
+## Memoria L9
 
-La pantalla Dependiente muestra por lección: fase, estado de foto fija, número de fuentes, firma, aprendidos y no aprendidos.
+L9 no guarda una única frase por producto. Construye múltiples señales ponderadas a partir de datos reales:
 
-Se puede descargar:
-- JSON de una lección.
-- JSON completo del run.
+- título;
+- TIPO;
+- aplicación;
+- subtipo;
+- plataforma;
+- ROL;
+- categoría;
+- marca;
+- tags;
+- atributos;
+- frases útiles de descripción.
 
-Cada JSON contiene el temario, metadatos del snapshot, material exacto estudiado y el resultado de cada elemento. La exportación se transmite por lotes para no cargar miles de productos en memoria de una sola vez.
+Las señales genéricas aisladas no deben bastar para recomendar un producto. El ranking exige evidencia suficiente o una frase fuerte. La necesidad usada para evaluar L9/M11 se construye aparte con categoría, semántica y atributos y no se memoriza como atajo.
 
-## Datos
+## Evaluación y quality gates
 
-Tablas propias:
-- `tcd_knowledge`: conocimiento final moderno L1-L10.
-- `tcd_lesson_snapshots`: cabecera y firma de la foto fija de cada lección.
-- `tcd_lesson_items`: copia inmutable del material y resultado.
-- `tcd_portable_rules`: reglas semánticas consolidadas importadas/exportadas, incluida compatibilidad con el Dependiente antiguo.
-- `tcd_l9_memory`: memoria de lenguaje natural/producto de L9 preservada del sistema anterior.
-- `tcd_legacy_lessons`: estado histórico de lecciones antiguas importadas; nunca sustituye snapshots L1-L10 modernos.
+Dependiente conserva métricas equivalentes a las útiles del sistema anterior:
 
-Fuentes canónicas del ecosistema:
-- WordPress/WooCommerce para productos, categorías, posts y páginas.
-- `seo_vocabulary` / `seo_object_vocabulary` para semántica.
-- `seo_faq` para FAQs.
+- `pass_top1`;
+- `pass_top3`;
+- `pass_top8`;
+- `pass_any_ratio`;
+- fallos;
+- umbral mínimo por lección.
 
-## Qué se ha eliminado
+El conocimiento generado por una lección se mantiene inactivo hasta superar el quality gate.
 
-No se recuperan como servicios independientes: Academia, Entrenador, Laboratorio, Actualización continua ni reciclado automático. Tampoco se copia el enorme controlador histórico. Se conserva lo útil: currículo, preparación previa, separación preparación/ejecución, trazabilidad, control de CPU y exportación.
+## Compatibilidad con el conocimiento antiguo
 
-## Límite actual
+El importador acepta `seo_dependiente_knowledge v1`.
 
-El motor público del plugin independiente todavía debe seguir acercándose al Dependiente V3 antiguo. Esta versión corrige primero la **calidad y auditabilidad del aprendizaje**, para que el motor pueda consumir conocimiento fiable y reproducible.
+- `semantic_rules` → `tcd_portable_rules`.
+- `academy.lesson9_memory` → `tcd_l9_memory`.
+- las lecciones antiguas completadas se conservan como evidencia histórica.
+
+Las lecciones históricas no sustituyen las fotos fijas modernas. Sin embargo, las reglas y la memoria L9 importadas sí pueden ser consumidas inmediatamente por M11/runtime.
+
+## Datos propios
+
+- `tcd_knowledge`: conocimiento moderno L1-L10.
+- `tcd_lesson_snapshots`: fotos fijas.
+- `tcd_lesson_items`: material exacto estudiado.
+- `tcd_quality_checks`: evaluación y quality gates.
+- `tcd_portable_rules`: reglas semánticas modernas e importadas.
+- `tcd_l9_memory`: memoria lingüística/producto moderna e importada.
+- `tcd_legacy_lessons`: evidencia histórica del sistema anterior.
+
+## Continuidad de runs existentes
+
+Al actualizar una instalación que ya estaba aprendiendo con 0.2.x no es obligatorio reiniciar. Antes de continuar con una lección posterior, 0.3 reconstruye y evalúa progresivamente la inteligencia que falte en las lecciones anteriores ya aprendidas.
+
+## Rendimiento
+
+El aprendizaje mantiene el gestor por lotes, prioridad 1-5, snapshots y adaptación de carga. La memoria semántica se separa en:
+
+- reglas generales para conceptos/rutas;
+- señales L9 específicas de producto.
+
+Esto evita duplicar miles de reglas generales por cada producto. El runtime añade además una decisión de confianza: si solo hay coincidencia textual débil o una tarea ambigua sin evidencia semántica suficiente, no muestra productos como si la interpretación fuera segura; devuelve familias candidatas para concretar.
+
+## Exportación
+
+Se mantienen dos exports distintos:
+
+- **Aprendizaje completo · JSON**: auditoría del run y sus fotos fijas.
+- **Conocimientos · JSON**: paquete portable para copia, migración o análisis externo.
+
+La exportación se transmite por lotes para evitar construir documentos enormes en memoria.
 
 
-## Prioridad de trabajo
+## Log de aprendizaje
 
-El usuario controla la presión sobre el servidor con un único deslizador de **Prioridad 1–5**:
-- 1: Suave.
-- 2: Baja.
-- 3: Normal (recomendada).
-- 4: Alta.
-- 5: Máxima.
+Desde 0.3.1 Dependiente dispone de una pestaña **Log de aprendizaje** orientada a diagnóstico operativo.
 
-No se exige una métrica global del hosting. Cada lote mide su propio tiempo, CPU de proceso mediante `getrusage()` cuando está disponible, pico de memoria y consultas. El tamaño del siguiente lote se adapta en una escalera discreta; si el coste sube, se reduce aproximadamente a la mitad. Si `getrusage()` no está disponible, el proceso no se bloquea y usa el perfil estático de prioridad.
+El log registra, entre otros:
+
+- entrada y salida de cada tick;
+- adquisición, espera y recuperación de locks;
+- programación del siguiente tick y nudges al gestor;
+- petición y resultado de cada lote de fuentes;
+- fuente concreta leída y resumen de sus hechos/Vocabulary;
+- escritura de cada fila en la foto fija;
+- lectura, validación y escritura de cada conocimiento;
+- llamada al motor semántico;
+- progreso de cada lote;
+- errores de base de datos, excepciones y fatales PHP.
+
+El fichero activo se guarda en una carpeta privada bajo uploads, protegida frente a acceso web directo, y rota conservando únicamente la parte reciente. **Nunca debe superar 1 MiB**. La pestaña permite visualizarlo, autoactualizarlo, descargarlo y vaciarlo sin modificar el aprendizaje.
+
+Durante la fase `learning` la barra de progreso usa el tamaño de la **foto fija sellada**, no el tamaño actual del catálogo. Si el catálogo cambia después del sellado, ambos tamaños se muestran por separado para evitar interpretar como bloqueo una foto fija que, por diseño, ya no debe crecer.
 
 
-## Conocimiento portable
+## Feedback real de clientes
 
-La versión 0.2.2 recupera el flujo de exportación/importación del Dependiente antiguo con una capa de compatibilidad explícita.
+Desde 0.3.3 Dependiente incorpora dos vías de feedback anónimo que alimentan M11/M12 sin permitir que una interacción aislada se convierta directamente en conocimiento canónico.
 
-- **Analizar compatibilidad** abre un export antiguo o moderno sin escribir datos y muestra el mapeo.
-- **Importar y fusionar** mantiene el conocimiento local, inserta lo nuevo, identifica duplicados y conserva la copia local ante conflictos.
-- Los exports antiguos `seo_dependiente_knowledge` v1 se aceptan directamente.
-- `semantic_rules` se conserva en `tcd_portable_rules`.
-- `academy.lesson9_memory` se conserva en `tcd_l9_memory`.
-- `academy.completed_lessons` se guarda como histórico en `tcd_legacy_lessons`: no se marcan las nuevas L1-L10 como completadas sin sus fotos fijas.
-- El export moderno `taxocommerce_dependiente_knowledge` incluye conocimiento L1-L10, reglas portables, memoria L9 e histórico migrado.
-- No se importan índices de catálogo, búsquedas/sesiones ni estados temporales.
+### Feedback implícito: clic en producto
+
+Cuando Dependiente muestra productos y el cliente pulsa uno:
+
+1. se registra la consulta normalizada;
+2. se registra el producto pulsado;
+3. se guarda únicamente un hash de una sesión aleatoria del navegador;
+4. no se almacena IP ni identidad personal;
+5. clics repetidos de la misma sesión sobre la misma consulta/producto no suman evidencia adicional;
+6. la asociación queda inicialmente en `staged`;
+7. solo se activa cuando distintas sesiones repiten de forma suficientemente dominante la misma relación.
+
+Umbral base: al menos 4 sesiones y al menos 65 % de la evidencia de clics para esa consulta.
+
+Las asociaciones de producto activas aportan una señal adicional de ranking, nunca sustituyen por sí solas a Vocabulary/L9.
+
+### Feedback explícito: aclaraciones cerradas
+
+Si M11 determina que la consulta es ambigua:
+
+1. Dependiente analiza los productos candidatos;
+2. selecciona un eje semántico útil —preferentemente aplicación, TIPO, subtipo, plataforma o ROL—;
+3. muestra entre 3 y 5 opciones cerradas y una alternativa `Otro`;
+4. la opción elegida se aplica inmediatamente como hint de la consulta;
+5. Dependiente vuelve a interpretar y buscar;
+6. puede hacer como máximo dos aclaraciones;
+7. la elección queda como evidencia semántica para consultas futuras.
+
+Las aclaraciones pesan más que los clics, pero una sola respuesta tampoco activa conocimiento. El umbral base exige al menos 2 sesiones coherentes y 60 % de la evidencia explícita.
+
+Si no existen opciones semánticas suficientes, Dependiente puede preguntar por una familia de producto. Las aclaraciones de texto libre mediante `Otro` se conservan para análisis, pero no se promueven automáticamente como regla.
+
+### Consolidación M12
+
+M12 revisa periódicamente las asociaciones `staged` y `validated`, recalcula su evidencia y activa únicamente patrones repetidos. Antes de que M11 exista, la evidencia puede acumularse pero no se promociona a `active`.
+
+Estados:
+
+- `staged`: evidencia insuficiente;
+- `validated`: existe repetición, pero no alcanza el umbral de activación;
+- `active`: evidencia repetida y dominante; puede influir en M11/runtime.
+
+Cuando una asociación llega a `active`, se materializa en los almacenes portables: consulta→producto como señal L9 y consulta→concepto como regla semántica. Por tanto, el export de conocimiento conserva el aprendizaje consolidado sin exportar eventos, sesiones ni clics individuales.
+
+Los eventos de feedback no activos se conservan durante 180 días y se limpian después. El administrador muestra búsquedas, clics, aclaraciones y asociaciones activas. El log de aprendizaje registra también `feedback_event` y `feedback_promoted`.

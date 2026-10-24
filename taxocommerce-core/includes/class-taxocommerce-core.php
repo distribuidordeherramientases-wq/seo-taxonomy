@@ -115,6 +115,7 @@ final class TaxoCommerce_Core {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
 		add_filter( 'admin_body_class', array( $this, 'family_body_class' ) );
 		add_action( 'admin_post_taxocommerce_core_install_extension', array( $this, 'install_extension' ) );
+		add_action( 'admin_post_taxocommerce_core_upload_extension', array( $this, 'upload_extension' ) );
 		add_action( 'admin_post_taxocommerce_core_activate_extension', array( $this, 'activate_extension' ) );
 		add_action( 'admin_post_taxocommerce_core_deactivate_extension', array( $this, 'deactivate_extension' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_CORE_BASENAME, array( $this, 'plugin_action_links' ) );
@@ -224,6 +225,20 @@ final class TaxoCommerce_Core {
 	 * @return void
 	 */
 	public function hide_sidebar_submenu() {
+		// When Core runs alone, keep the compact dashboard navigation.
+		// As soon as an active extension adds a real submenu, reveal the native
+		// WordPress flyout, including Core's own pages and that extension.
+		global $submenu;
+		$items = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
+		$core_pages = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-modules' );
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) || ! isset( $item[2] ) ) {
+				continue;
+			}
+			if ( ! in_array( (string) $item[2], $core_pages, true ) ) {
+				return;
+			}
+		}
 		echo '<style id="taxocommerce-core-sidebar">#toplevel_page_taxocommerce-core > ul.wp-submenu{display:none!important;}</style>';
 	}
 
@@ -313,6 +328,16 @@ final class TaxoCommerce_Core {
 				'wordpress_org' => true,
 				'description' => __( 'Importación y exportación de catálogo, contenidos y Media.', 'taxocommerce-core' ),
 			),
+			'database' => array(
+				'id'            => 'database',
+				'name'          => 'TaxoCommerce Database',
+				'plugin_file'   => 'taxocommerce-database/taxocommerce-database.php',
+				'org_slug'      => 'taxocommerce-database',
+				'search_term'   => 'TaxoCommerce Database',
+				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-database' ),
+				'description'   => __( 'Diagnóstico MySQL, tablas, backups y mantenimiento controlado; plugin independiente.', 'taxocommerce-core' ),
+			),
 			'images' => array(
 				'id'            => 'images',
 				'name'          => 'TaxoCommerce Images',
@@ -328,7 +353,7 @@ final class TaxoCommerce_Core {
 				'plugin_file'   => 'taxocommerce-system-check/taxocommerce-system-check.php',
 				'org_slug'      => 'taxocommerce-system-check',
 				'search_term'   => 'TaxoCommerce System Check',
-				'wordpress_org' => false,
+				'wordpress_org' => true,
 				'description'   => __( 'Diagnosticos del servidor, WordPress y Plugin Validation con informes y correo opcional.', 'taxocommerce-core' ),
 			),
 			'templates' => array(
@@ -337,7 +362,7 @@ final class TaxoCommerce_Core {
 				'plugin_file'   => 'taxocommerce-templates/taxocommerce-templates.php',
 				'org_slug'      => 'taxocommerce-templates',
 				'search_term'   => 'TaxoCommerce Templates',
-				'wordpress_org' => false,
+				'wordpress_org' => true,
 				'description'   => 'Roles editoriales, asignación automática y gestión de plantillas.',
 			),
 			'dependiente' => array(
@@ -346,7 +371,7 @@ final class TaxoCommerce_Core {
 				'plugin_file'   => 'taxocommerce-dependiente/taxocommerce-dependiente.php',
 				'org_slug'      => 'taxocommerce-dependiente',
 				'search_term'   => 'TaxoCommerce Dependiente',
-				'wordpress_org' => false,
+				'wordpress_org' => true,
 				'description'   => __( 'Academia independiente de diez lecciones y asistente de catálogo, sin reciclado automático.', 'taxocommerce-core' ),
 			),
 			'faqs' => array(
@@ -355,7 +380,7 @@ final class TaxoCommerce_Core {
 				'plugin_file'   => 'taxocommerce-faqs/taxocommerce-faqs.php',
 				'org_slug'      => 'taxocommerce-faqs',
 				'search_term'   => 'TaxoCommerce FAQs',
-				'wordpress_org' => false,
+				'wordpress_org' => true,
 				'description'   => 'Preguntas frecuentes, edición manual, CSV, indicadores y Vocabulary.',
 			),
 			'vocabulary' => array(
@@ -364,7 +389,7 @@ final class TaxoCommerce_Core {
 				'plugin_file'   => 'taxocommerce-vocabulary/taxocommerce-vocabulary.php',
 				'org_slug'      => 'taxocommerce-vocabulary',
 				'search_term'   => 'TaxoCommerce Vocabulary',
-				'wordpress_org' => false,
+				'wordpress_org' => true,
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-vocabulary' ),
 				'description'   => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local.', 'taxocommerce-core' ),
 			),
@@ -374,7 +399,7 @@ final class TaxoCommerce_Core {
 				'plugin_file'   => 'taxocommerce-google-bing/taxocommerce-google-bing.php',
 				'org_slug'      => 'taxocommerce-google-bing',
 				'search_term'   => 'TaxoCommerce Google Bing',
-				'wordpress_org' => false,
+				'wordpress_org' => true,
 				'description'   => __( 'Conexiones centralizadas y futuras fuentes de datos de Google y Microsoft Bing.', 'taxocommerce-core' ),
 			),
 			'redirects' => array(
@@ -383,7 +408,8 @@ final class TaxoCommerce_Core {
 				'plugin_file'   => 'taxocommerce-redirects/taxocommerce-redirects.php',
 				'org_slug'      => 'taxocommerce-redirects',
 				'search_term'   => 'TaxoCommerce Redirects',
-				'wordpress_org' => false,
+				'wordpress_org' => true,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-redirects' ),
 				'description'   => __( 'Redirecciones 301/302 y borrado asistido de contenidos.', 'taxocommerce-core' ),
 			),
 			'auditor' => array(
@@ -392,7 +418,7 @@ final class TaxoCommerce_Core {
 				'plugin_file'   => 'taxocommerce-auditor/taxocommerce-auditor.php',
 				'org_slug'      => 'taxocommerce-auditor',
 				'search_term'   => 'TaxoCommerce Auditor',
-				'wordpress_org' => false,
+				'wordpress_org' => true,
 				'description'   => __( 'Auditoría independiente de calidad editorial y contenido.', 'taxocommerce-core' ),
 			),
 		);
@@ -508,6 +534,124 @@ final class TaxoCommerce_Core {
 		}
 
 		$this->redirect_extension_result( 'ok', __( 'Extensión instalada desde el ZIP local. Ya puedes activarla.', 'taxocommerce-core' ) );
+	}
+
+
+	/**
+	 * Installs one known TaxoCommerce extension from a ZIP uploaded in Core.
+	 *
+	 * The ZIP must contain the exact plugin basename declared in the family
+	 * catalog, so a package cannot accidentally be installed from another row.
+	 *
+	 * @return void
+	 */
+	public function upload_extension() {
+		$this->guard();
+
+		if ( ! current_user_can( 'install_plugins' ) ) {
+			wp_die( esc_html__( 'No tienes permisos para instalar plugins.', 'taxocommerce-core' ) );
+		}
+
+		check_admin_referer( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' );
+
+		$extension_id = isset( $_POST['extension_id'] ) ? sanitize_key( wp_unslash( $_POST['extension_id'] ) ) : '';
+		$catalog      = $this->family_extensions();
+
+		if ( ! isset( $catalog[ $extension_id ]['plugin_file'] ) ) {
+			wp_die( esc_html__( 'Extensión TaxoCommerce no reconocida.', 'taxocommerce-core' ) );
+		}
+
+		$extension   = (array) $catalog[ $extension_id ];
+		$plugin_file = sanitize_text_field( (string) $extension['plugin_file'] );
+
+		if ( $this->installed_plugin_data( $plugin_file ) ) {
+			$this->redirect_extension_result( 'error', __( 'La extensión ya está instalada.', 'taxocommerce-core' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File upload is validated below before use.
+		$file = isset( $_FILES['plugin_zip'] ) && is_array( $_FILES['plugin_zip'] ) ? $_FILES['plugin_zip'] : array();
+		$error = isset( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_NO_FILE;
+
+		if ( UPLOAD_ERR_OK !== $error ) {
+			$this->redirect_extension_result( 'error', __( 'No se ha recibido un ZIP válido.', 'taxocommerce-core' ) );
+		}
+
+		$name     = isset( $file['name'] ) ? sanitize_file_name( (string) $file['name'] ) : '';
+		$tmp_name = isset( $file['tmp_name'] ) ? (string) $file['tmp_name'] : '';
+		$size     = isset( $file['size'] ) ? (int) $file['size'] : 0;
+
+		if ( '' === $name || ! preg_match( '/\.zip$/i', $name ) || '' === $tmp_name || $size < 1 || ! is_uploaded_file( $tmp_name ) ) {
+			$this->redirect_extension_result( 'error', __( 'El archivo debe ser un ZIP subido correctamente.', 'taxocommerce-core' ) );
+		}
+
+		$max_size = (int) wp_max_upload_size();
+		if ( $max_size > 0 && $size > $max_size ) {
+			$this->redirect_extension_result( 'error', __( 'El ZIP supera el tamaño máximo permitido por WordPress.', 'taxocommerce-core' ) );
+		}
+
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->redirect_extension_result( 'error', __( 'El servidor no dispone de ZipArchive para validar el paquete.', 'taxocommerce-core' ) );
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+		$temp_dir  = trailingslashit( get_temp_dir() );
+		$temp_name = wp_unique_filename( $temp_dir, $name );
+		$temp_file = $temp_dir . $temp_name;
+
+		if ( ! move_uploaded_file( $tmp_name, $temp_file ) ) {
+			$this->redirect_extension_result( 'error', __( 'WordPress no pudo preparar temporalmente el ZIP.', 'taxocommerce-core' ) );
+		}
+
+		$zip   = new ZipArchive();
+		$valid = false;
+
+		if ( true === $zip->open( $temp_file ) ) {
+			for ( $index = 0; $index < $zip->numFiles; $index++ ) {
+				$entry = str_replace( '\\', '/', ltrim( (string) $zip->getNameIndex( $index ), '/' ) );
+				if ( $plugin_file === $entry ) {
+					$valid = true;
+					break;
+				}
+			}
+			$zip->close();
+		}
+
+		if ( ! $valid ) {
+			@unlink( $temp_file );
+			$this->redirect_extension_result(
+				'error',
+				sprintf(
+					/* translators: %s: expected plugin basename. */
+					__( 'El ZIP no corresponde a esta extensión. Debe contener %s.', 'taxocommerce-core' ),
+					$plugin_file
+				)
+			);
+		}
+
+		$skin     = new Automatic_Upgrader_Skin();
+		$upgrader = new Plugin_Upgrader( $skin );
+		$result   = $upgrader->install( $temp_file );
+		@unlink( $temp_file );
+
+		if ( is_wp_error( $result ) ) {
+			$this->redirect_extension_result( 'error', $result->get_error_message() );
+		}
+		if ( false === $result ) {
+			$this->redirect_extension_result( 'error', __( 'WordPress no pudo instalar el ZIP subido.', 'taxocommerce-core' ) );
+		}
+
+		wp_clean_plugins_cache( true );
+		if ( ! $this->installed_plugin_data( $plugin_file ) ) {
+			$this->redirect_extension_result(
+				'error',
+				__( 'El ZIP se procesó, pero la extensión no quedó instalada en la ruta esperada.', 'taxocommerce-core' )
+			);
+		}
+
+		$this->redirect_extension_result( 'ok', __( 'Extensión instalada desde el ZIP. Ya puedes activarla.', 'taxocommerce-core' ) );
 	}
 
 	/**
@@ -810,7 +954,14 @@ final class TaxoCommerce_Core {
 	public function render_modules() {
 		$this->guard();
 
-		$upload_url = admin_url( 'plugin-install.php?tab=upload' );
+		$family_search_url = add_query_arg(
+			array(
+				's'    => 'TaxoCommerce',
+				'tab'  => 'search',
+				'type' => 'term',
+			),
+			admin_url( 'plugin-install.php' )
+		);
 		$result     = isset( $_GET['tc_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice only.
 		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice only.
 		$catalog    = $this->family_extensions();
@@ -831,11 +982,14 @@ final class TaxoCommerce_Core {
 				<div class="notice notice-error"><p><?php echo esc_html( $message ); ?></p></div>
 			<?php endif; ?>
 
-			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Familia TaxoCommerce:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Core conoce todas las extensiones de la familia. Mientras no estén publicadas, detecta automáticamente sus ZIP locales; cuando estén disponibles en WordPress.org, también podrá encontrarlas mediante el buscador oficial.', 'taxocommerce-core' ); ?></p></div>
+			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Familia TaxoCommerce:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Core utiliza un único catálogo de extensiones en todos los entornos. Cada extensión puede instalarse desde WordPress.org cuando esté publicada, desde un ZIP subido en su propia fila o desde un ZIP local preparado por Core.', 'taxocommerce-core' ); ?></p></div>
 
 			<?php $local_package_dir = $this->local_package_directory(); ?>
 			<p class="description"><strong><?php echo esc_html__( 'Repositorio local de ZIP:', 'taxocommerce-core' ); ?></strong> <code><?php echo esc_html( $local_package_dir ? $local_package_dir : 'uploads/taxocommerce-core/plugins' ); ?></code></p>
-			<p><a class="button button-primary" href="<?php echo esc_url( $upload_url ); ?>"><?php echo esc_html__( 'Subir extensión ZIP manualmente', 'taxocommerce-core' ); ?></a></p>
+			<div class="tcc-extension-toolbar">
+				<a class="button button-primary" href="<?php echo esc_url( $family_search_url ); ?>"><?php echo esc_html__( 'Buscar familia en WordPress.org', 'taxocommerce-core' ); ?></a>
+				<span class="description"><?php echo esc_html__( 'Para instalar un ZIP manualmente, utiliza la acción Subir ZIP de la extensión correspondiente.', 'taxocommerce-core' ); ?></span>
+			</div>
 
 			<table class="widefat striped">
 				<thead>
@@ -860,7 +1014,6 @@ final class TaxoCommerce_Core {
 							? $runtime['admin_url']
 							: ( ! empty( $extension['admin_url'] ) ? esc_url_raw( (string) $extension['admin_url'] ) : '' );
 						$search_term   = sanitize_text_field( (string) ( $extension['search_term'] ?? $extension['name'] ?? '' ) );
-						$wordpress_org = ! isset( $extension['wordpress_org'] ) || (bool) $extension['wordpress_org'];
 						$local_package = $this->local_package_path( $extension );
 						$search_url  = add_query_arg(
 							array(
@@ -891,33 +1044,48 @@ final class TaxoCommerce_Core {
 							<td><?php echo esc_html( (string) ( $extension['description'] ?? '' ) ); ?></td>
 							<td>
 								<?php if ( ! $installed ) : ?>
-									<?php if ( $local_package ) : ?>
-										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
-											<input type="hidden" name="action" value="taxocommerce_core_install_extension">
+									<div class="tcc-extension-actions">
+										<a class="button button-small" href="<?php echo esc_url( $search_url ); ?>"><?php echo esc_html__( 'Buscar en WordPress.org', 'taxocommerce-core' ); ?></a>
+										<form class="tcc-extension-upload" method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+											<input type="hidden" name="action" value="taxocommerce_core_upload_extension">
 											<input type="hidden" name="extension_id" value="<?php echo esc_attr( $extension_id ); ?>">
 											<?php wp_nonce_field( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' ); ?>
-											<button class="button button-primary button-small"><?php echo esc_html__( 'Instalar ZIP local', 'taxocommerce-core' ); ?></button>
+											<label class="button button-small">
+												<?php echo esc_html__( 'Subir ZIP', 'taxocommerce-core' ); ?>
+												<input class="tcc-extension-upload__input" type="file" name="plugin_zip" accept=".zip,application/zip" required>
+											</label>
+											<button class="button button-primary button-small" type="submit"><?php echo esc_html__( 'Instalar ZIP', 'taxocommerce-core' ); ?></button>
 										</form>
-									<?php endif; ?>
-									<?php if ( $wordpress_org ) : ?><a class="button button-small" href="<?php echo esc_url( $search_url ); ?>"><?php echo esc_html__( 'Buscar en WordPress.org', 'taxocommerce-core' ); ?></a><?php endif; ?>
-									<?php if ( ! $local_package ) : ?><a class="button button-small" href="<?php echo esc_url( $upload_url ); ?>"><?php echo esc_html__( 'Subir ZIP', 'taxocommerce-core' ); ?></a><?php endif; ?>
+										<?php if ( $local_package ) : ?>
+											<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+												<input type="hidden" name="action" value="taxocommerce_core_install_extension">
+												<input type="hidden" name="extension_id" value="<?php echo esc_attr( $extension_id ); ?>">
+												<?php wp_nonce_field( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' ); ?>
+												<button class="button button-primary button-small"><?php echo esc_html__( 'Instalar ZIP local', 'taxocommerce-core' ); ?></button>
+											</form>
+										<?php endif; ?>
+									</div>
 								<?php elseif ( ! $active ) : ?>
-									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
-										<input type="hidden" name="action" value="taxocommerce_core_activate_extension">
-										<input type="hidden" name="extension_id" value="<?php echo esc_attr( $extension_id ); ?>">
-										<?php wp_nonce_field( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' ); ?>
-										<button class="button button-primary button-small"><?php echo esc_html__( 'Activar', 'taxocommerce-core' ); ?></button>
-									</form>
+									<div class="tcc-extension-actions">
+										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+											<input type="hidden" name="action" value="taxocommerce_core_activate_extension">
+											<input type="hidden" name="extension_id" value="<?php echo esc_attr( $extension_id ); ?>">
+											<?php wp_nonce_field( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' ); ?>
+											<button class="button button-primary button-small"><?php echo esc_html__( 'Activar', 'taxocommerce-core' ); ?></button>
+										</form>
+									</div>
 								<?php else : ?>
-									<?php if ( $admin_url ) : ?>
-										<a class="button button-small" href="<?php echo esc_url( $admin_url ); ?>"><?php echo esc_html__( 'Abrir', 'taxocommerce-core' ); ?></a>
-									<?php endif; ?>
-									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
-										<input type="hidden" name="action" value="taxocommerce_core_deactivate_extension">
-										<input type="hidden" name="extension_id" value="<?php echo esc_attr( $extension_id ); ?>">
-										<?php wp_nonce_field( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' ); ?>
-										<button class="button button-small"><?php echo esc_html__( 'Desactivar', 'taxocommerce-core' ); ?></button>
-									</form>
+									<div class="tcc-extension-actions">
+										<?php if ( $admin_url ) : ?>
+											<a class="button button-small" href="<?php echo esc_url( $admin_url ); ?>"><?php echo esc_html__( 'Abrir', 'taxocommerce-core' ); ?></a>
+										<?php endif; ?>
+										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+											<input type="hidden" name="action" value="taxocommerce_core_deactivate_extension">
+											<input type="hidden" name="extension_id" value="<?php echo esc_attr( $extension_id ); ?>">
+											<?php wp_nonce_field( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' ); ?>
+											<button class="button button-small"><?php echo esc_html__( 'Desactivar', 'taxocommerce-core' ); ?></button>
+										</form>
+									</div>
 								<?php endif; ?>
 							</td>
 						</tr>

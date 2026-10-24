@@ -5,6 +5,7 @@ on:
     branches: [staging]
     paths:
       - 'taxocommerce-core/**'
+      - 'taxocommerce-redirects/**'
       - 'taxocommerce-images/**'
       - 'taxocommerce-vocabulary/**'
       - 'taxocommerce-system-check/**'
@@ -13,6 +14,7 @@ on:
     branches: [staging]
     paths:
       - 'taxocommerce-core/**'
+      - 'taxocommerce-redirects/**'
       - 'taxocommerce-images/**'
       - 'taxocommerce-vocabulary/**'
       - 'taxocommerce-system-check/**'
@@ -37,6 +39,10 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: |
-          find taxocommerce-core taxocommerce-images taxocommerce-vocabulary taxocommerce-system-check -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          find taxocommerce-core taxocommerce-redirects taxocommerce-images taxocommerce-vocabulary taxocommerce-system-check -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
       - name: Verify decentralized architecture
-        run: php taxocommerce-core/tests/modular-architecture-smoke.php
+        run: |
+          php taxocommerce-core/tests/modular-architecture-smoke.php
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after

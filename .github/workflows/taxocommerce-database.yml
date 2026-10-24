@@ -1,0 +1,40 @@
+name: TaxoCommerce Database - validation
+
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-database/**'
+      - '.github/workflows/taxocommerce-database.yml'
+  push:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-database/**'
+      - '.github/workflows/taxocommerce-database.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+      - name: Validate plugin syntax
+        run: find taxocommerce-database -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Run database safety and CSV regression
+        run: |
+          php taxocommerce-database/tests/smoke.php
+          php taxocommerce-database/tests/menu-smoke.php alone
+          php taxocommerce-database/tests/menu-smoke.php core
+      - name: Assert Database has no historical rollback engine
+        run: |
+          set -euo pipefail
+          test ! -e taxocommerce-database/includes/class-tcdb-journal.php
+          ! grep -R -nE "TCDB_Journal|tcdb_rollback_supported_tables|tcdb_reversible_csv_import|admin_post_tcdb_rollback" taxocommerce-database/includes/ taxocommerce-database/taxocommerce-database.php

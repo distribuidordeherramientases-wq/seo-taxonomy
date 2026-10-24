@@ -15,6 +15,24 @@ jobs:
       - name: Checkout staging
         uses: actions/checkout@v4
 
+      - name: Validate Core architecture report before any STAGING FTP upload
+        run: |
+          php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
+          php taxocommerce-core/tests/architecture-report-smoke.php
+
+      - name: Validate independent Database before any STAGING FTP upload
+        run: |
+          find taxocommerce-database -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php taxocommerce-database/tests/smoke.php
+          php taxocommerce-database/tests/menu-smoke.php alone
+          php taxocommerce-database/tests/menu-smoke.php core
+
+      - name: Validate Redirects extension menu compatibility before STAGING FTP
+        run: |
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
+
       - name: Validate Auditor PHP before any STAGING FTP upload
         run: |
           find taxocommerce-auditor -type f -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -41,6 +59,8 @@ jobs:
             **/.git*/**
             **/.github/**
             taxocommerce-core/**
+            taxocommerce-database/**
+            taxocommerce-google-bing/**
             taxocommerce-images/**
             taxocommerce-import-export/**
             taxocommerce-system-check/**
@@ -81,6 +101,27 @@ jobs:
             **/*.md
             **/*.pot
 
+
+      - name: Deploy TaxoCommerce Database to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-database/
+          server-dir: ./wp-content/plugins/taxocommerce-database/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
 
       - name: Deploy TaxoCommerce Images to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
@@ -177,21 +218,26 @@ jobs:
             **/*.pot
 
       - name: Validate and package TaxoCommerce Dependiente
+        id: dependiente_package
         run: |
           set -euo pipefail
           test -s taxocommerce-dependiente/taxocommerce-dependiente.php
           find taxocommerce-dependiente -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           php taxocommerce-dependiente/tests/learning-smoke.php
-          rm -f taxocommerce-dependiente-0.2.1.zip
-          zip -q -r taxocommerce-dependiente-0.2.1.zip taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.DS_Store"
-          unzip -t taxocommerce-dependiente-0.2.1.zip
-          unzip -Z1 taxocommerce-dependiente-0.2.1.zip | grep -Fx 'taxocommerce-dependiente/taxocommerce-dependiente.php'
+          version="$(sed -n 's/^ \* Version: //p' taxocommerce-dependiente/taxocommerce-dependiente.php | head -n 1)"
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          zipfile="taxocommerce-dependiente-${version}.zip"
+          rm -f "$zipfile"
+          zip -q -r "$zipfile" taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.DS_Store"
+          unzip -t "$zipfile"
+          unzip -Z1 "$zipfile" | grep -Fx 'taxocommerce-dependiente/taxocommerce-dependiente.php'
 
       - name: Publish Dependiente installable ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-dependiente-0.2.1
-          path: taxocommerce-dependiente-0.2.1.zip
+          name: taxocommerce-dependiente-${{ steps.dependiente_package.outputs.version }}
+          path: taxocommerce-dependiente-${{ steps.dependiente_package.outputs.version }}.zip
           retention-days: 30
           if-no-files-found: error
 

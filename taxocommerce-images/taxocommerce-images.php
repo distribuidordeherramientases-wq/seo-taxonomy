@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Images - Image Management for WooCommerce
  * Description: Gestiona, audita y optimiza imágenes de WordPress/WooCommerce manteniendo Media como fuente de verdad.
- * Version: 0.2.6
+ * Version: 0.2.8
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'TAXOCOMMERCE_IMAGES_VERSION', '0.2.6' );
+define( 'TAXOCOMMERCE_IMAGES_VERSION', '0.2.8' );
 define( 'TAXOCOMMERCE_IMAGES_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_IMAGES_BASENAME', plugin_basename( __FILE__ ) );
@@ -24,6 +24,7 @@ require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/legacy-reference-audit.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/legacy-optimizer-engine.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/legacy-webp-engine.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-inventory.php';
+require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-load.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/legacy-optimizer-ajax.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-audit.php';
 require_once TAXOCOMMERCE_IMAGES_PATH . 'includes/class-taxocommerce-images-actions.php';

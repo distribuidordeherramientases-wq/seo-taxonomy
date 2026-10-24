@@ -15,6 +15,9 @@ $checks = array(
     false !== strpos( $uninstall, "WP_UNINSTALL_PLUGIN" ),
     false !== strpos( $uninstall, "Lifecycle::uninstall()" ),
     false === strpos( $main, 'register_deactivation_hook' ),
+    false === strpos( $main, 'tcdb_rollback_supported_tables' ),
+    false === strpos( $store, 'TCDB_Journal' ),
+    false === strpos( $store, 'journal_available' ),
 );
 foreach ( $checks as $i => $ok ) {
     if ( ! $ok ) {

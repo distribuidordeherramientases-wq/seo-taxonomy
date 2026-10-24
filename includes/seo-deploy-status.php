@@ -2,8 +2,9 @@
 /**
  * Production deployment helpers for TaxoCommerce sibling plugins.
  *
- * GitHub stages one compact ZIP per active module. WordPress applies the ZIP
+ * GitHub stages one compact ZIP per installed module. WordPress applies the ZIP
  * to its real WP_PLUGIN_DIR and overwrites only files whose SHA-256 differs.
+ * Activation state is never changed by this deployment layer.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -18,6 +19,7 @@ function seo_taxocommerce_known_deploy_modules() {
 		'taxocommerce-core'          => 'taxocommerce-core/taxocommerce-core.php',
 		'taxocommerce-images'        => 'taxocommerce-images/taxocommerce-images.php',
 		'taxocommerce-import-export' => 'taxocommerce-import-export/taxocommerce-import-export.php',
+		'taxocommerce-database'      => 'taxocommerce-database/taxocommerce-database.php',
 		'taxocommerce-system-check'  => 'taxocommerce-system-check/taxocommerce-system-check.php',
 		'taxocommerce-templates'     => 'taxocommerce-templates/taxocommerce-templates.php',
 		'taxocommerce-dependiente'   => 'taxocommerce-dependiente/taxocommerce-dependiente.php',
@@ -30,24 +32,24 @@ function seo_taxocommerce_known_deploy_modules() {
 }
 
 /**
- * Return known TaxoCommerce sibling plugins that WordPress reports as active.
+ * Return known TaxoCommerce sibling plugins physically installed in WordPress.
+ *
+ * Active and inactive plugins are both deployable. Updating files must never
+ * alter the activation state selected by the administrator.
  *
  * @return array
  */
-function seo_taxocommerce_active_deploy_modules() {
-	$known  = seo_taxocommerce_known_deploy_modules();
-	$active = (array) get_option( 'active_plugins', array() );
-
-	if ( is_multisite() ) {
-		$network = array_keys( (array) get_site_option( 'active_sitewide_plugins', array() ) );
-		$active  = array_merge( $active, $network );
+function seo_taxocommerce_installed_deploy_modules() {
+	if ( ! function_exists( 'get_plugins' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 	}
 
-	$active = array_fill_keys( array_map( 'strval', $active ), true );
-	$result = array();
+	$known     = seo_taxocommerce_known_deploy_modules();
+	$installed = get_plugins();
+	$result    = array();
 
 	foreach ( $known as $slug => $plugin_file ) {
-		if ( isset( $active[ $plugin_file ] ) ) {
+		if ( isset( $installed[ $plugin_file ] ) ) {
 			$result[] = $slug;
 		}
 	}
@@ -108,7 +110,7 @@ add_action( 'rest_api_init', 'seo_taxocommerce_register_deploy_status_route' );
 function seo_taxocommerce_deploy_status_rest() {
 	return rest_ensure_response(
 		array(
-			'modules' => seo_taxocommerce_active_deploy_modules(),
+			'modules' => seo_taxocommerce_installed_deploy_modules(),
 		)
 	);
 }
@@ -261,8 +263,9 @@ function seo_taxocommerce_deploy_remove_tree( $path ) {
 /**
  * Secure sync callback.
  *
- * Only active modules whose main file already exists in WP_PLUGIN_DIR are
- * eligible. Each module is applied as a content delta.
+ * Only installed modules whose main file already exists in WP_PLUGIN_DIR are
+ * eligible. Active and inactive modules are treated identically. Each module
+ * is applied as a content delta without changing its activation state.
  *
  * @param WP_REST_Request $request REST request.
  * @return WP_REST_Response|WP_Error
@@ -270,11 +273,11 @@ function seo_taxocommerce_deploy_remove_tree( $path ) {
 function seo_taxocommerce_deploy_sync_rest( $request ) {
 	$run_id  = seo_taxocommerce_deploy_run_id( $request->get_param( 'run_id' ) );
 	$handoff = seo_taxocommerce_deploy_handoff_root() . '/' . $run_id;
-	$known   = seo_taxocommerce_known_deploy_modules();
-	$active  = seo_taxocommerce_active_deploy_modules();
-	$targets = array();
+	$known     = seo_taxocommerce_known_deploy_modules();
+	$installed = seo_taxocommerce_installed_deploy_modules();
+	$targets   = array();
 
-	foreach ( $active as $slug ) {
+	foreach ( $installed as $slug ) {
 		if ( ! isset( $known[ $slug ] ) ) {
 			continue;
 		}
@@ -291,7 +294,7 @@ function seo_taxocommerce_deploy_sync_rest( $request ) {
 
 		if ( ! is_file( $target_main ) || ! is_dir( $target_dir ) ) {
 			seo_taxocommerce_deploy_remove_tree( $handoff );
-			return new WP_Error( 'taxocommerce_deploy_target_missing', 'El plugin activo ' . $slug . ' no existe físicamente en WP_PLUGIN_DIR.', array( 'status' => 500 ) );
+			return new WP_Error( 'taxocommerce_deploy_target_missing', 'El plugin instalado ' . $slug . ' no existe físicamente en WP_PLUGIN_DIR.', array( 'status' => 500 ) );
 		}
 
 		$targets[ $slug ] = array(
