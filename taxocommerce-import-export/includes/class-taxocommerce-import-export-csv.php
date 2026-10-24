@@ -414,7 +414,7 @@ final class TaxoCommerce_Import_Export_CSV {
 	 */
 	private function import_product( $data ) {
 		$id           = absint( isset( $data['id'] ) ? $data['id'] : 0 );
-		$this->should_apply_field( $data, 'sku', $partial )      = array_key_exists( 'sku', $data );
+		$has_sku      = array_key_exists( 'sku', $data );
 		$sku          = $has_sku ? sanitize_text_field( (string) $data['sku'] ) : '';
 		$partial      = ! empty( $data['_partial_update'] );
 		$product_type = sanitize_key( (string) ( isset( $data['product_type'] ) ? $data['product_type'] : 'simple' ) );
@@ -480,7 +480,7 @@ final class TaxoCommerce_Import_Export_CSV {
 			if ( '' !== $status ) {
 				$product->set_status( $status );
 			}
-			if ( $has_sku ) {
+			if ( $this->should_apply_field( $data, 'sku', $partial ) ) {
 				$product->set_sku( $sku );
 			}
 			if ( $this->should_apply_field( $data, 'regular_price', $partial ) ) {
