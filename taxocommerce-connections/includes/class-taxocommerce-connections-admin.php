@@ -241,7 +241,7 @@ final class TaxoCommerce_Connections_Admin {
 				</div>
 
 				<div class="card" style="max-width:none;padding:20px;">
-					<h2 style="margin-top:0;">Amazon Afiliados</h2>
+					<h2 style="margin-top:0;">Amazon Affiliates</h2>
 					<p>The <strong>Partner Tag</strong> is enough for affiliate search links used by Templates and Assistant. Creators API only enriches them with product data, images, and pricing.</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_amazon">
