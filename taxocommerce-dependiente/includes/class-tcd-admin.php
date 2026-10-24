@@ -91,6 +91,22 @@ final class TCD_Admin {
             echo '<div class="notice notice-error inline"><p><strong>Último error del estado:</strong> '.esc_html((string)$state['last_error']).'</p></div>';
         }
 
+        echo '<h2>Eventos recientes del proceso</h2>';
+        echo '<p class="description">Resumen estructurado de los últimos eventos de Academia. Se mantiene aquí, junto al log bruto, para que toda la trazabilidad técnica de Dependiente esté centralizada en una sola pestaña.</p>';
+        echo '<table class="widefat striped" style="margin-bottom:18px"><thead><tr><th>Fecha (UTC)</th><th>Evento</th><th>Detalles</th></tr></thead><tbody>';
+        $academy_logs=array_reverse(array_slice(TCD_Academy::logs(),-40));
+        if($academy_logs){
+            foreach($academy_logs as $entry){
+                echo '<tr><td>'.esc_html((string)($entry['at']??'')).'</td><td>'.esc_html((string)($entry['event']??'')).'</td><td><code>'.esc_html(wp_json_encode((array)($entry['context']??array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)).'</code></td></tr>';
+            }
+        }else{
+            echo '<tr><td colspan="3">Aún no hay eventos de Academia registrados.</td></tr>';
+        }
+        echo '</tbody></table>';
+
+        echo '<h2>Log bruto para diagnóstico</h2>';
+        echo '<p class="description">Traza completa orientada a diagnóstico técnico y análisis por IA. Incluye más detalle que el resumen anterior: lecturas, escrituras, locks, reprogramaciones, consumo y errores.</p>';
+
         $auto_url=add_query_arg('auto','1',self::tab_url('learning-log'));
         echo '<p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
         echo '<a class="button button-primary" href="'.esc_url(self::tab_url('learning-log')).'">Actualizar ahora</a>';
@@ -390,13 +406,6 @@ final class TCD_Admin {
         echo 'activas semánticas: '.esc_html(number_format_i18n(absint($feedback['active_semantic']??0)));
         echo '<div class="description">Un clic aislado no enseña una regla. Las aclaraciones pesan más, pero también necesitan repetición antes de activarse.</div>';
         echo '</td></tr></tbody></table>';
-
-        echo '<h2>Registro técnico</h2><p>Últimos eventos del análisis, sellado de foto fija y aprendizaje. Los errores de fuente se distinguen de un resultado no aprendido.</p>';
-        echo '<table class="widefat striped"><thead><tr><th>Fecha (UTC)</th><th>Evento</th><th>Detalles</th></tr></thead><tbody>';
-        foreach(array_reverse(array_slice(TCD_Academy::logs(),-40)) as $entry){
-            echo '<tr><td>'.esc_html((string)$entry['at']).'</td><td>'.esc_html((string)$entry['event']).'</td><td><code>'.esc_html(wp_json_encode($entry['context'],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)).'</code></td></tr>';
-        }
-        echo '</tbody></table>';
 
         echo '<h2>Asistente e integración</h2>';
         echo '<p>El shortcode canónico del plugin moderno es <code>[taxocommerce_dependiente_moderno]</code>. En STAGING, <code>[taxocommerce_dependiente]</code> también apunta al moderno para facilitar pruebas; en PRO, si el Dependiente antiguo está cargado, ese alias queda reservado al plugin antiguo.</p>';
