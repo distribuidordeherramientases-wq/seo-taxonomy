@@ -324,7 +324,7 @@ final class TCD_Search {
                     results.querySelectorAll('.tcd-product-link').forEach(function(link){
                         link.addEventListener('click',function(){
                             var payload={
-                                q:currentFeedbackQuery||currentQuery,
+                                q:currentQuery,
                                 session:session,
                                 event:'click',
                                 product_id:Number(link.getAttribute('data-product')||0),
