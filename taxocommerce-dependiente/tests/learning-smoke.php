@@ -16,7 +16,7 @@ preg_match("/define\s*\(\s*'TAXOCOMMERCE_DEPENDIENTE_VERSION'\s*,\s*'([0-9]+\.[0
 
 $checks=array(
     !empty($header_match[1]) && isset($constant_match[1]) && $header_match[1]===$constant_match[1],
-    isset($header_match[1]) && version_compare($header_match[1],'0.3.1','>='),
+    isset($header_match[1]) && version_compare($header_match[1],'0.3.2','>='),
     strpos($academy,'CREATE TABLE {$snapshots}')!==false,
     strpos($academy,'CREATE TABLE {$items}')!==false,
     strpos($academy,"'phase'=>'snapshot'")!==false,
@@ -63,6 +63,9 @@ $checks=array(
     strpos($search,'TCD_Intelligence::interpret')!==false,
     strpos($search,'TCD_Intelligence::decision')!==false,
     strpos($search,'TCD_Intelligence::search_products')!==false,
+    strpos($search,"add_shortcode( 'taxocommerce_dependiente_moderno'")!==false,
+    strpos($search,"'staging' === wp_get_environment_type()")!==false,
+    strpos($search,"return ! defined( 'SEO_DEPENDIENTE_VERSION' );")!==false,
     strpos($sources,'public static function source_total')!==false,
     strpos($sources,'public static function product_item')!==false,
     strpos($sources,'public static function faq_item')!==false,
@@ -89,6 +92,8 @@ $checks=array(
     strpos($admin,'Autoactualizar cada 10 s')!==false,
     strpos($admin,'elementos procesados de la foto fija')!==false,
     strpos($admin,'La foto permanece congelada durante esta lección.')!==false,
+    strpos($admin,'[taxocommerce_dependiente_moderno]')!==false,
+    strpos($admin,"shortcode_exists( 'taxocommerce_dependiente_moderno' )")!==false,
     strpos($admin,"if('knowledge'===\$tab)")!==false,
     substr_count($admin,'TCD_Knowledge_Transfer::render_admin_section();')===1,
     strpos($knowledge,"page=taxocommerce-dependiente&tab=knowledge")!==false,
