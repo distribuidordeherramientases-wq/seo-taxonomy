@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Dependiente
  * Description: Dependiente inteligente para WooCommerce: L1-L10 auditables, Intérprete semántico, memoria L9 y actualización continua.
- * Version: 0.3.4
+ * Version: 0.3.5
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.4' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.5' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 

@@ -210,6 +210,36 @@ final class TCD_Sources {
         return self::item( 3, 'vocabulary', absint( $row['id'] ?? 0 ), (string) ( $row['label'] ?? '' ), '', $facts );
     }
 
+    public static function cross_item( $id ) {
+        global $wpdb;
+        $id = absint( $id );
+        if ( ! $id ) return null;
+
+        $voc = $wpdb->prefix . 'seo_vocabulary';
+        $rel = $wpdb->prefix . 'seo_object_vocabulary';
+        if ( ! self::table_exists( $voc ) || ! self::table_exists( $rel ) ) return null;
+
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT v.id,v.semantic_group,v.slug,v.label,
+                    SUM(r.object_type='product' AND r.status=1) product_uses,
+                    SUM(r.object_type IN ('post','page') AND r.status=1) editorial_uses
+             FROM {$voc} v
+             INNER JOIN {$rel} r ON r.vocabulary_id=v.id
+             WHERE v.id=%d AND v.active=1
+             GROUP BY v.id,v.semantic_group,v.slug,v.label
+             LIMIT 1",
+            $id
+        ), ARRAY_A );
+        if ( ! is_array( $row ) ) return null;
+
+        return self::item( 7, 'cross', $id, (string) ( $row['label'] ?? '' ), '', array(
+            'group'=>sanitize_key( (string) ( $row['semantic_group'] ?? '' ) ),
+            'slug'=>sanitize_title( (string) ( $row['slug'] ?? '' ) ),
+            'product_uses'=>absint( $row['product_uses'] ?? 0 ),
+            'editorial_uses'=>absint( $row['editorial_uses'] ?? 0 ),
+        ) );
+    }
+
     private static function category_batch( $cursor, $limit ) {
         $terms = get_terms( array(
             'taxonomy'=>'product_cat','hide_empty'=>false,'number'=>$limit + 1,

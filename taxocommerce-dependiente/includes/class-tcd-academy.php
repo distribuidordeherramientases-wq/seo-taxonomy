@@ -237,11 +237,32 @@ final class TCD_Academy {
                 $state=self::initial_state();
                 self::save($state);
             }
+
+            $retry=array();
+            $lesson=absint($state['lesson']??0);
+            $snapshot=$lesson?self::snapshot_for_lesson($lesson):array();
+            if(
+                $snapshot
+                && 'quality_failed'===(string)($snapshot['status']??'')
+                && class_exists('TCD_Intelligence',false)
+                && method_exists('TCD_Intelligence','prepare_quality_retry')
+            ){
+                $retry=TCD_Intelligence::prepare_quality_retry($lesson,absint($snapshot['id']??0));
+            }
+
             delete_option('tcd_learning_stop');
-            self::save(array('run_id'=>$run,'status'=>'running','last_error'=>'','last_message'=>'Dependiente iniciado. Primero analizará la lección y cerrará su foto fija.'));
+            $message=$retry
+                ? sprintf(
+                    'Correcciones revisadas: %d fuentes releídas, %d casos reaprendidos. Reevaluando L%d sin reiniciar la formación.',
+                    absint($retry['refreshed']??0),
+                    absint($retry['relearned']??0),
+                    $lesson
+                )
+                : 'Dependiente iniciado. Primero analizará la lección y cerrará su foto fija.';
+            self::save(array('run_id'=>$run,'status'=>'running','last_error'=>'','last_message'=>$message));
             self::queue();
             self::nudge_manager();
-            self::log('started',array('lesson'=>$state['lesson'],'phase'=>$state['phase'],'run'=>$run));
+            self::log('started',array('lesson'=>$state['lesson'],'phase'=>$state['phase'],'run'=>$run,'quality_retry'=>$retry));
         }elseif('restart'===$action && in_array($state['status'],array('idle','stopped','error','completed'),true)){
             self::clear_learning_tables();
             delete_option('tcd_learning_stop');
