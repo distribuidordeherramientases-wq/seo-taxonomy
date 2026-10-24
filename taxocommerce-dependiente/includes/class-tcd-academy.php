@@ -17,7 +17,7 @@ final class TCD_Academy {
     const LOG='tcd_learning_log';
     const LOCK='tcd_learning_tick_lock';
     const SCHEMA_OPTION='tcd_learning_schema_version';
-    const SCHEMA_VERSION='2.0.0';
+    const SCHEMA_VERSION='3.0.0';
 
     public static function knowledge_table(){global $wpdb;return $wpdb->prefix.'tcd_knowledge';}
     public static function snapshots_table(){global $wpdb;return $wpdb->prefix.'tcd_lesson_snapshots';}
@@ -110,7 +110,7 @@ final class TCD_Academy {
             'unlearned'=>0,
             'run_id'=>'',
             'last_error'=>'',
-            'last_message'=>'Preparado para analizar y aprender L1-L10.',
+            'last_message'=>'Preparado para L1-L10, construcción del Intérprete y mantenimiento continuo.',
             'updated_at'=>'',
             'load_last'=>array(),
         );
@@ -205,6 +205,8 @@ final class TCD_Academy {
             // Internal plugin tables. This never touches WooCommerce/WordPress source content.
             $wpdb->query("DELETE FROM {$table}");
         }
+        if(class_exists('TCD_Intelligence'))TCD_Intelligence::reset_modern_generated();
+        if(class_exists('TCD_Maintenance'))TCD_Maintenance::deactivate();
     }
 
     private static function queue($delay=null){
@@ -262,13 +264,58 @@ final class TCD_Academy {
 
     private static function run_one($state){
         $lesson=absint($state['lesson']);
-        if($lesson>10){
-            self::save(array('status'=>'completed','last_message'=>'Las diez lecciones han terminado y el conocimiento es exportable.'));
+        if(11===$lesson){
+            $measure=TCD_Load::begin();
+            try{
+                $built=TCD_Intelligence::build_interpreter();
+                if(is_wp_error($built))throw new RuntimeException($built->get_error_message());
+                self::save(array(
+                    'lesson'=>12,'phase'=>'maintenance','status'=>'running','last_error'=>'',
+                    'last_message'=>sprintf('M11 · Intérprete construido: %d reglas, %d señales L9, regresión %.1f%%.',
+                        absint($built['rules']??0),absint($built['l9_memory']??0),100*(float)($built['pass_any_ratio']??0))
+                ));
+                self::log('interpreter_built',$built);
+                self::queue();
+            }catch(Throwable $e){
+                $load=TCD_Load::finish($measure,0);
+                self::save(array('status'=>'error','load_last'=>$load,'last_error'=>substr($e->getMessage(),0,400),'last_message'=>'M11 · Intérprete detenido por regresión o error.'));
+                self::log('interpreter_error',array('error'=>substr($e->getMessage(),0,240)));
+            }
+            return;
+        }
+        if(12===$lesson){
+            $maintenance=TCD_Maintenance::activate();
+            self::save(array(
+                'status'=>'completed','phase'=>'maintenance','last_error'=>'',
+                'last_message'=>'M12 · Actualización continua activa. El curso L1-L10 y el Intérprete están completados.'
+            ));
+            self::log('maintenance_activated',$maintenance);
+            return;
+        }
+        if($lesson>12){
+            self::save(array('status'=>'completed','last_message'=>'Dependiente está aprendido y en mantenimiento continuo.'));
             return;
         }
         $measure=TCD_Load::begin();
         $processed=0;
         try{
+            $backfill=TCD_Intelligence::backfill_next_missing($lesson);
+            if(is_wp_error($backfill))throw new RuntimeException($backfill->get_error_message());
+            if(is_array($backfill)){
+                $processed=absint($backfill['count']??0);
+                $load=TCD_Load::finish($measure,$processed);
+                self::save(array(
+                    'load_last'=>$load,
+                    'last_message'=>sprintf('Migración interna: L%d existente reevaluada y consolidada antes de continuar.',absint($backfill['lesson']??0))
+                ));
+                self::log('lesson_backfilled',array(
+                    'lesson'=>absint($backfill['lesson']??0),
+                    'count'=>$processed,
+                    'pass_any_ratio'=>(float)($backfill['quality']['pass_any_ratio']??0),
+                ));
+                self::queue();
+                return;
+            }
             if('snapshot'===(string)$state['phase']){
                 $processed=self::build_snapshot($state);
             }else{
@@ -407,6 +454,7 @@ final class TCD_Academy {
                 'learned_at'=>current_time('mysql'),
             );
             if(false===$wpdb->replace(self::knowledge_table(),$knowledge))throw new RuntimeException('Error al guardar conocimiento de L'.$lesson.'.');
+            if('learned'===$status && class_exists('TCD_Intelligence'))TCD_Intelligence::learn_item($lesson,$item,$snapshot_id);
             $wpdb->update($items,array('status'=>$status,'reason'=>$reason,'learned_at'=>current_time('mysql')),array('id'=>absint($row['id'])));
             $last=absint($row['sequence_no']);
             if($reason)$unlearned++;else $learned++;
@@ -438,20 +486,30 @@ final class TCD_Academy {
         $snapshot=self::snapshot($snapshot_id);
         $learned=absint($snapshot['learned_count']??0);
         if($learned<1)throw new RuntimeException('L'.$lesson.' no tiene ninguna fuente aprendida; no se considera completada.');
+        $quality=TCD_Intelligence::finalize_lesson($lesson,$snapshot_id);
+        if(is_wp_error($quality)){
+            $wpdb->update(self::snapshots_table(),array('status'=>'quality_failed'),array('id'=>$snapshot_id));
+            throw new RuntimeException($quality->get_error_message());
+        }
         $wpdb->update(self::snapshots_table(),array(
             'status'=>'completed','completed_at'=>current_time('mysql'),
         ),array('id'=>$snapshot_id));
         $next=$lesson+1;
         self::save(array(
-            'lesson'=>$next,'phase'=>'snapshot','snapshot_id'=>0,'snapshot_cursor'=>0,'learning_cursor'=>0,
-            'status'=>$next>10?'completed':'running',
-            'last_message'=>$next>10?'Las diez lecciones se han completado.':sprintf('L%d completada. Preparando el análisis de L%d.',$lesson,$next),
+            'lesson'=>$next,'phase'=>$next<=10?'snapshot':'interpreter','snapshot_id'=>0,'snapshot_cursor'=>0,'learning_cursor'=>0,
+            'status'=>'running',
+            'last_message'=>$next<=10
+                ? sprintf('L%d superada con %.1f%%. Preparando L%d.',$lesson,100*(float)($quality['pass_any_ratio']??0),$next)
+                : sprintf('L10 superada con %.1f%%. Preparando M11 · Intérprete.',100*(float)($quality['pass_any_ratio']??0)),
         ));
         self::log('lesson_completed',array(
             'lesson'=>$lesson,'snapshot_id'=>$snapshot_id,'sources'=>absint($snapshot['source_count']??0),
             'learned'=>$learned,'unlearned'=>absint($snapshot['unlearned_count']??0),
+            'pass_any_ratio'=>(float)($quality['pass_any_ratio']??0),
+            'pass_top1'=>absint($quality['pass_top1']??0),
+            'pass_top3'=>absint($quality['pass_top3']??0),
         ));
-        if($next<=10)self::queue();
+        self::queue();
     }
 
     private static function snapshot($id){
@@ -479,6 +537,26 @@ final class TCD_Academy {
     public static function counts(){
         global $wpdb;$table=self::knowledge_table();
         return (array)$wpdb->get_results("SELECT lesson,status,COUNT(*) total FROM {$table} GROUP BY lesson,status ORDER BY lesson,status",ARRAY_A);
+    }
+
+    public static function upsert_maintenance_item($lesson,$item){
+        global $wpdb;
+        $lesson=absint($lesson);
+        if(!$lesson || !is_array($item))return false;
+        $reason=TCD_Sources::validate_snapshot($item);
+        $row=array(
+            'lesson'=>$lesson,
+            'source_type'=>sanitize_key((string)($item['source_type']??'')),
+            'source_id'=>absint($item['source_id']??0),
+            'signature'=>sanitize_text_field((string)($item['signature']??'')),
+            'title'=>sanitize_text_field((string)($item['title']??'')),
+            'context_json'=>wp_json_encode((array)($item['facts']??array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'status'=>$reason?'unlearned':'learned',
+            'reason'=>$reason,
+            'learned_at'=>current_time('mysql'),
+        );
+        if(!$row['source_id'] || !$row['source_type'])return false;
+        return false!==$wpdb->replace(self::knowledge_table(),$row);
     }
 
     public static function export_url($lesson=0){

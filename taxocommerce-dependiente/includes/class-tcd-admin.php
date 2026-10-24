@@ -25,9 +25,11 @@ final class TCD_Admin {
     }
 
     private static function phase_label($state){
-        if('completed'===(string)($state['status']??''))return 'Completado';
+        if('completed'===(string)($state['status']??''))return 'Aprendido · mantenimiento activo';
+        if('interpreter'===(string)($state['phase']??''))return 'M11 · Construyendo / validando Intérprete';
+        if('maintenance'===(string)($state['phase']??''))return 'M12 · Actualización continua';
         if('snapshot'===(string)($state['phase']??''))return 'Analizando / creando foto fija';
-        return 'Aprendiendo la foto fija';
+        return 'Aprendiendo y evaluando la foto fija';
     }
 
     public static function render(){
@@ -41,7 +43,7 @@ final class TCD_Admin {
         }
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
-        echo '<p>Dependiente aprende el catálogo en diez lecciones. Cada lección se analiza primero y se congela en una <strong>foto fija auditable</strong>; después el aprendizaje se realiza exclusivamente sobre esa foto.</p>';
+        echo '<p>Dependiente utiliza un único flujo interno: <strong>L1-L10</strong> para aprender y evaluar el catálogo, <strong>M11</strong> para construir y validar el Intérprete y <strong>M12</strong> para mantener el conocimiento actualizado. Cada L1-L10 conserva una <strong>foto fija auditable</strong>; toda la formación queda integrada en Dependiente, sin servicios auxiliares separados.</p>';
 
         echo '<p style="display:flex;gap:8px;flex-wrap:wrap">';
         echo '<a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar aprendizaje completo · JSON</a>';
@@ -73,10 +75,11 @@ final class TCD_Admin {
 
         echo '<div style="background:#fff;border:1px solid #c3c4c7;padding:14px;margin-bottom:16px">';
         echo '<h2 style="margin-top:0">Estado: '.esc_html((string)$state['status']).'</h2>';
-        echo '<p><strong>Fase:</strong> '.esc_html(self::phase_label($state)).' · <strong>Lección:</strong> '.esc_html((string)$state['lesson']).' / 10';
+        $module=absint($state['lesson']??1);
+        echo '<p><strong>Fase:</strong> '.esc_html(self::phase_label($state)).' · <strong>Módulo:</strong> '.esc_html($module<=10?'L'.$module:'M'.$module).' / 12';
         if('snapshot'===(string)($state['phase']??'')){
             echo ' · <strong>Fuentes analizadas:</strong> '.esc_html(number_format_i18n(absint($state['snapshot_cursor']??0)));
-        }else{
+        }elseif($module<=10){
             echo ' · <strong>Elementos aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['learning_cursor']??0)));
         }
         echo ' · <strong>Aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['learned']??0))).' · <strong>No aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['unlearned']??0))).'</p>';
@@ -84,12 +87,12 @@ final class TCD_Admin {
         if(!empty($state['last_error']))echo '<div class="notice notice-error inline"><p>'.esc_html((string)$state['last_error']).'</p></div>';
         if('running'!==(string)$state['status'])self::control_button('start','Iniciar o reanudar','button button-primary');
         self::control_button('stop','Detener aprendizaje');
-        if('running'!==(string)$state['status'])self::control_button('restart','Reiniciar las diez lecciones');
+        if('running'!==(string)$state['status'])self::control_button('restart','Reiniciar aprendizaje completo');
         echo '<p class="description"><strong>Detener</strong> conserva la foto fija y el progreso. <strong>Reiniciar</strong> borra únicamente las tablas de aprendizaje propias de Dependiente y crea un run nuevo; nunca modifica productos, categorías, FAQs o Vocabulary.</p>';
         echo '</div>';
 
         echo '<h2>Las diez lecciones</h2>';
-        echo '<table class="widefat striped"><thead><tr><th>Lección</th><th>Qué aprende</th><th>Foto fija / progreso</th><th>Aprendidos</th><th>No aprendidos</th><th>Auditoría</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th>Lección</th><th>Qué aprende</th><th>Foto fija / progreso</th><th>Aprendidos</th><th>No aprendidos</th><th>Calidad</th><th>Auditoría</th></tr></thead><tbody>';
         foreach($syllabus as $no=>$lesson){
             $snapshot=TCD_Academy::snapshot_for_lesson($no);
             $status=$snapshot?(string)$snapshot['status']:'Pendiente';
@@ -108,12 +111,40 @@ final class TCD_Admin {
             echo '</td>';
             echo '<td>'.esc_html(number_format_i18n(absint($counts[$no]['learned']??0))).'</td>';
             echo '<td>'.esc_html(number_format_i18n(absint($counts[$no]['unlearned']??0))).'</td>';
+            $quality=TCD_Intelligence::quality_for_lesson($no);
+            echo '<td>';
+            if($quality){
+                echo '<strong>'.esc_html('passed'===(string)($quality['status']??'')?'OK':'NO').'</strong>';
+                echo '<div>'.esc_html(number_format_i18n(100*(float)($quality['pass_any_ratio']??0),1)).'% pass_any</div>';
+                echo '<div class="description">Top1 '.esc_html(number_format_i18n(absint($quality['pass_top1']??0))).' · Top3 '.esc_html(number_format_i18n(absint($quality['pass_top3']??0))).' · evaluadas '.esc_html(number_format_i18n(absint($quality['evaluated']??0))).'</div>';
+            }else echo '—';
+            echo '</td>';
             echo '<td>';
             if($snapshot)echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON</a>';
             else echo '—';
             echo '</td></tr>';
         }
         echo '</tbody></table>';
+
+        $interpreter=TCD_Intelligence::interpreter_state();
+        $maintenance=TCD_Maintenance::state();
+        echo '<h2>M11 · Intérprete y M12 · Actualización</h2>';
+        echo '<table class="widefat striped"><thead><tr><th>Módulo</th><th>Estado</th><th>Resultado</th></tr></thead><tbody>';
+        echo '<tr><td><strong>M11 · Creación / actualización del Intérprete</strong></td><td>'.esc_html((string)($interpreter['status']??'Pendiente')).'</td><td>';
+        if($interpreter){
+            echo esc_html(number_format_i18n(absint($interpreter['rules']??0))).' reglas · ';
+            echo esc_html(number_format_i18n(absint($interpreter['l9_memory']??0))).' señales L9 · ';
+            echo esc_html(number_format_i18n(100*(float)($interpreter['pass_any_ratio']??0),1)).'% regresión';
+        }else echo 'Se ejecuta automáticamente después de L10.';
+        echo '</td></tr>';
+        echo '<tr><td><strong>M12 · Actualización continua</strong></td><td>'.esc_html((string)($maintenance['status']??'Pendiente')).'</td><td>';
+        echo 'Productos actualizados: '.esc_html(number_format_i18n(absint($maintenance['products_updated']??0))).' · ';
+        echo 'categorías: '.esc_html(number_format_i18n(absint($maintenance['categories_updated']??0))).' · ';
+        echo 'editorial: '.esc_html(number_format_i18n(absint($maintenance['editorial_updated']??0))).' · ';
+        echo 'FAQs: '.esc_html(number_format_i18n(absint($maintenance['faqs_updated']??0))).' · ';
+        echo 'Vocabulary: '.esc_html(number_format_i18n(absint($maintenance['vocabulary_updated']??0)));
+        if(!empty($maintenance['last_run']))echo '<div class="description">Última revisión: '.esc_html((string)$maintenance['last_run']).'</div>';
+        echo '</td></tr></tbody></table>';
 
         echo '<h2>Registro técnico</h2><p>Últimos eventos del análisis, sellado de foto fija y aprendizaje. Los errores de fuente se distinguen de un resultado no aprendido.</p>';
         echo '<table class="widefat striped"><thead><tr><th>Fecha (UTC)</th><th>Evento</th><th>Detalles</th></tr></thead><tbody>';
@@ -122,7 +153,7 @@ final class TCD_Admin {
         }
         echo '</tbody></table>';
 
-        echo '<h2>Asistente</h2><p>El shortcode <code>[taxocommerce_dependiente]</code> ofrece la interfaz pública. El aprendizaje de L1-L10 alimenta el conocimiento propio del plugin y queda disponible para su motor de respuesta.</p>';
+        echo '<h2>Asistente</h2><p>El shortcode <code>[taxocommerce_dependiente]</code> usa el Intérprete moderno: reglas semánticas, Vocabulary, memoria L9 ponderada y catálogo publicado. La búsqueda textual queda únicamente como red de seguridad.</p>';
         echo '<p>L6 utiliza directamente las FAQs canónicas de TaxoCommerce FAQs (<code>seo_faq</code>) y su categoría/propietario; no exige un CPT FAQ artificial.</p>';
 
         TCD_Knowledge_Transfer::render_admin_section();
