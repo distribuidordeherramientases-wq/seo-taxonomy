@@ -502,7 +502,7 @@ final class TaxoCommerce_Connections_Pinterest {
 	}
 
 	public static function domain_verify_head() {
-		if ( is_admin() ) {
+		if ( is_admin() || function_exists( 'seo_social_pinterest_domain_verify_head' ) ) {
 			return;
 		}
 		$m = self::merchant_settings();
