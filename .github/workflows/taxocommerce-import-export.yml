@@ -37,6 +37,8 @@ jobs:
           rsync -a             --exclude='tests/'             --exclude='*.md'             --exclude='*.bak'             taxocommerce-import-export/ build/taxocommerce-import-export/
           test -f build/taxocommerce-import-export/taxocommerce-import-export.php
           test -f build/taxocommerce-import-export/includes/class-taxocommerce-import-export-batch.php
+          test -f build/taxocommerce-import-export/includes/class-taxocommerce-import-export-exporter.php
+          test -f build/taxocommerce-import-export/assets/exporter.js
           test ! -e build/taxocommerce-import-export/tests
 
       - name: WordPress Plugin Check
@@ -59,7 +61,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-import-export-0.3.1
+          name: taxocommerce-import-export-0.4.0
           path: taxocommerce-import-export.zip
           retention-days: 30
           if-no-files-found: error
