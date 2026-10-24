@@ -7,6 +7,8 @@ final class SEO_Dependiente_V3_Frontend {
     public static function init() {
         add_action('init', array(__CLASS__, 'register_shortcodes'), 20);
         add_action('init', array(__CLASS__, 'ensure_page'), 30);
+        add_filter('the_content', array(__CLASS__, 'migrate_legacy_shortcode_markup'), 8);
+        add_filter('widget_text_content', array(__CLASS__, 'migrate_legacy_shortcode_markup'), 8);
         add_filter('template_include', array(__CLASS__, 'template_include'), 99);
         add_action('wp_enqueue_scripts', array(__CLASS__, 'enqueue_page_assets'), 20);
         add_filter('wp_robots', array(__CLASS__, 'query_robots'));
@@ -16,6 +18,61 @@ final class SEO_Dependiente_V3_Frontend {
     public static function register_shortcodes() {
         add_shortcode('taxocommerce_dependiente_productos', array(__CLASS__, 'render'));
         add_shortcode('taxocommerce_dependiente', array(__CLASS__, 'render'));
+    }
+
+    /**
+     * Compatibilidad de contenido tras el prefijado de shortcodes para
+     * WordPress.org. No vuelve a registrar nombres sin prefijo: transforma
+     * únicamente el markup guardado antes de ejecutar do_shortcode().
+     */
+    public static function migrate_legacy_shortcode_markup($content) {
+        if (!is_string($content) || '' === $content) {
+            return $content;
+        }
+
+        return str_replace(
+            array(
+                '[dependiente_productos',
+                '[/dependiente_productos]',
+                '[dependiente',
+                '[/dependiente]',
+            ),
+            array(
+                '[taxocommerce_dependiente_productos',
+                '[/taxocommerce_dependiente_productos]',
+                '[taxocommerce_dependiente',
+                '[/taxocommerce_dependiente]',
+            ),
+            $content
+        );
+    }
+
+    private static function repair_page_content($post) {
+        if (!$post instanceof WP_Post) {
+            return 0;
+        }
+
+        $content = (string) $post->post_content;
+        $migrated = self::migrate_legacy_shortcode_markup($content);
+
+        if (
+            !has_shortcode($migrated, 'taxocommerce_dependiente_productos')
+            && !has_shortcode($migrated, 'taxocommerce_dependiente')
+        ) {
+            $migrated = rtrim($migrated) . "\n\n[taxocommerce_dependiente_productos]";
+        }
+
+        if ($migrated !== $content) {
+            $updated = wp_update_post(array(
+                'ID' => absint($post->ID),
+                'post_content' => $migrated,
+            ), true);
+            if (is_wp_error($updated)) {
+                return 0;
+            }
+        }
+
+        return absint($post->ID);
     }
 
     private static function navigation_groups($limit = 3) {
@@ -354,30 +411,29 @@ final class SEO_Dependiente_V3_Frontend {
 
     public static function ensure_page() {
         $page_id = absint(get_option('seo_dependiente_page_id', 0));
-        if ($page_id && 'trash' !== get_post_status($page_id)) return $page_id;
+        if ($page_id && 'trash' !== get_post_status($page_id)) {
+            $configured = get_post($page_id);
+            if ($configured instanceof WP_Post && 'page' === $configured->post_type) {
+                self::repair_page_content($configured);
+                return $page_id;
+            }
+        }
+
         $existing = get_page_by_path('dependiente', OBJECT, 'page');
         if ($existing instanceof WP_Post) {
-            $content = (string) $existing->post_content;
-            $migrated_content = str_replace(
-                array('[dependiente_productos]', '[dependiente]'),
-                array('[taxocommerce_dependiente_productos]', '[taxocommerce_dependiente]'),
-                $content
-            );
-            if (
-                !has_shortcode($migrated_content, 'taxocommerce_dependiente_productos')
-                && !has_shortcode($migrated_content, 'taxocommerce_dependiente')
-            ) {
-                $migrated_content = rtrim($migrated_content) . "\n\n[taxocommerce_dependiente_productos]";
+            $repaired = self::repair_page_content($existing);
+            if ($repaired) {
+                update_option('seo_dependiente_page_id', $repaired, false);
+                return $repaired;
             }
-            if ($migrated_content !== $content) {
-                wp_update_post(array('ID' => $existing->ID, 'post_content' => $migrated_content));
-            }
-            update_option('seo_dependiente_page_id', absint($existing->ID), false);
-            return absint($existing->ID);
         }
+
         $created = wp_insert_post(array(
-            'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Dependiente',
-            'post_name' => 'dependiente', 'post_content' => '[taxocommerce_dependiente_productos]',
+            'post_type' => 'page',
+            'post_status' => 'publish',
+            'post_title' => 'Dependiente',
+            'post_name' => 'dependiente',
+            'post_content' => '[taxocommerce_dependiente_productos]',
         ), true);
         if (is_wp_error($created)) return 0;
         update_option('seo_dependiente_page_id', absint($created), false);
