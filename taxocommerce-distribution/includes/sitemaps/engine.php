@@ -1,0 +1,1550 @@
+<?php
+/**
+ * TaxoCommerce Distribution - sitemap engine migrated from the proven Marketing implementation.
+ */
+defined( 'ABSPATH' ) || exit;
+
+function tcdist_sitemap_sitemap_storage()
+{
+    $upload = wp_upload_dir();
+
+    if (!empty($upload['error'])) {
+        return new WP_Error(
+            'tcdist_sitemap_upload_error',
+            'No se puede utilizar el directorio de uploads: ' . $upload['error']
+        );
+    }
+
+    return array(
+        'dir'     => trailingslashit($upload['basedir']) . 'seo-sitemaps/',
+        'baseurl' => trailingslashit($upload['baseurl']) . 'seo-sitemaps/',
+    );
+}
+
+/**
+ * Nombres admitidos para evitar traversal y servir únicamente XML generados.
+ *
+ * @param string $filename
+ * @return bool
+ */
+function tcdist_sitemap_sitemap_filename_is_allowed($filename)
+{
+    return (bool) preg_match(
+        '/\Asitemap(?:[_-][a-z0-9]+)*(?:-\d+)?\.xml\z/',
+        strtolower((string) $filename)
+    );
+}
+
+/**
+ * URL pública canónica de un sitemap.
+ *
+ * @param string $filename
+ * @return string
+ */
+function tcdist_sitemap_sitemap_public_url($filename)
+{
+    $filename = basename((string) $filename);
+
+    if (!tcdist_sitemap_sitemap_filename_is_allowed($filename)) {
+        return '';
+    }
+
+    return home_url('/' . $filename);
+}
+
+/**
+ * Registra las URLs públicas de los sitemaps.
+ */
+function tcdist_sitemap_register_sitemap_rewrite_rules()
+{
+    // Índice principal, alias históricos y sitemaps hijos generados.
+    add_rewrite_rule(
+        '^(wp-sitemap\.xml|sitemap(?:[_-][a-z0-9-]+)?\.xml)$',
+        'index.php?tcdist_sitemap_sitemap=$matches[1]',
+        'top'
+    );
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('init', 'tcdist_sitemap_register_sitemap_rewrite_rules', 1); }
+
+/**
+ * Desactiva el sitemap nativo de WordPress. Este módulo es la única fuente
+ * pública de sitemaps y mantiene /wp-sitemap.xml como alias compatible.
+ *
+ * @return bool
+ */
+function tcdist_sitemap_disable_wordpress_core_sitemaps()
+{
+    return false;
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_filter('wp_sitemaps_enabled', 'tcdist_sitemap_disable_wordpress_core_sitemaps', 100); }
+
+/**
+ * @param string[] $query_vars
+ * @return string[]
+ */
+function tcdist_sitemap_register_sitemap_query_var($query_vars)
+{
+    $query_vars[] = 'tcdist_sitemap_sitemap';
+    return array_values(array_unique($query_vars));
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_filter('query_vars', 'tcdist_sitemap_register_sitemap_query_var'); }
+
+/**
+ * Actualiza las reglas una sola vez cuando cambia la versión del endpoint.
+ */
+function tcdist_sitemap_maybe_flush_sitemap_rewrite_rules()
+{
+    $stored_version = (string) get_option('tcdist_sitemap_sitemap_rewrite_version', '');
+
+    if ($stored_version === (string) TCDIST_SITEMAP_REWRITE_VERSION) {
+        return;
+    }
+
+    tcdist_sitemap_register_sitemap_rewrite_rules();
+    flush_rewrite_rules(false);
+    update_option(
+        'tcdist_sitemap_sitemap_rewrite_version',
+        (string) TCDIST_SITEMAP_REWRITE_VERSION,
+        false
+    );
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('admin_init', 'tcdist_sitemap_maybe_flush_sitemap_rewrite_rules', 20); }
+
+/**
+ * Obtiene el nombre solicitado incluso si las reglas todavía no se han
+ * refrescado. Esto evita que /sitemap.xml dependa de una visita previa al admin.
+ *
+ * @return string
+ */
+function tcdist_sitemap_get_requested_sitemap_filename()
+{
+    $filename = (string) get_query_var('tcdist_sitemap_sitemap');
+
+    if ($filename === '' && isset($_SERVER['REQUEST_URI'])) {
+        $request_uri  = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
+        $request_path = (string) wp_parse_url($request_uri, PHP_URL_PATH);
+        $home_path    = (string) wp_parse_url(home_url('/'), PHP_URL_PATH);
+        $request_path = '/' . ltrim($request_path, '/');
+        $home_path    = '/' . trim($home_path, '/');
+
+        if ($home_path !== '/' && strpos($request_path, $home_path . '/') === 0) {
+            $request_path = substr($request_path, strlen($home_path));
+        }
+
+        $candidate = strtolower(basename(trim($request_path, '/')));
+
+        if (
+            'wp-sitemap.xml' === $candidate
+            || in_array($candidate, array('sitemap-index.xml', 'sitemap_index.xml'), true)
+        ) {
+            $filename = 'sitemap.xml';
+        } elseif (tcdist_sitemap_sitemap_filename_is_allowed($candidate)) {
+            $filename = $candidate;
+        }
+    }
+
+    $filename = strtolower(basename($filename));
+
+    if (
+        'wp-sitemap.xml' === $filename
+        || in_array($filename, array('sitemap-index.xml', 'sitemap_index.xml'), true)
+    ) {
+        return 'sitemap.xml';
+    }
+
+    return tcdist_sitemap_sitemap_filename_is_allowed($filename) ? $filename : '';
+}
+
+/**
+ * Sirve el XML con cabeceras correctas y sin salida del tema o de otros hooks.
+ */
+function tcdist_sitemap_maybe_serve_sitemap()
+{
+    $filename = tcdist_sitemap_get_requested_sitemap_filename();
+
+    if ($filename === '') {
+        return;
+    }
+
+    $storage = tcdist_sitemap_sitemap_storage();
+    if (is_wp_error($storage)) {
+        status_header(503);
+        exit;
+    }
+
+    $file_path = $storage['dir'] . $filename;
+
+    if (!is_file($file_path) || !is_readable($file_path)) {
+        status_header(404);
+        nocache_headers();
+        exit;
+    }
+
+    $mtime = (int) filemtime($file_path);
+    $size  = (int) filesize($file_path);
+    $etag  = '"' . md5($filename . '|' . $mtime . '|' . $size) . '"';
+
+    $if_none_match = isset($_SERVER['HTTP_IF_NONE_MATCH'])
+        ? sanitize_text_field(wp_unslash($_SERVER['HTTP_IF_NONE_MATCH']))
+        : '';
+    $if_modified_since = isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])
+        ? strtotime(sanitize_text_field(wp_unslash($_SERVER['HTTP_IF_MODIFIED_SINCE'])))
+        : false;
+
+    if ($if_none_match === $etag || ($if_modified_since && $if_modified_since >= $mtime)) {
+        status_header(304);
+        header('ETag: ' . $etag);
+        exit;
+    }
+
+    while (ob_get_level() > 0) {
+        @ob_end_clean();
+    }
+
+    status_header(200);
+    header('Content-Type: application/xml; charset=UTF-8');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Robots-Tag: noindex, follow');
+    header('Cache-Control: public, max-age=300, stale-while-revalidate=86400');
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $mtime) . ' GMT');
+    header('ETag: ' . $etag);
+
+    readfile($file_path); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+    exit;
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('template_redirect', 'tcdist_sitemap_maybe_serve_sitemap', 0); }
+
+/**
+ * Declara el índice principal en robots.txt sin duplicarlo.
+ *
+ * @param string $output
+ * @param bool   $public
+ * @return string
+ */
+function tcdist_sitemap_add_sitemap_to_robots($output, $public)
+{
+    if (!$public) {
+        return $output;
+    }
+
+    $canonical_url = tcdist_sitemap_sitemap_public_url('sitemap.xml');
+    $lines         = preg_split('/\r\n|\r|\n/', (string) $output);
+    $clean_lines   = array();
+
+    foreach ((array) $lines as $existing_line) {
+        $trimmed = trim((string) $existing_line);
+
+        if (preg_match('/^Sitemap:\s*(.+)$/i', $trimmed, $matches)) {
+            $sitemap_path = (string) wp_parse_url(trim($matches[1]), PHP_URL_PATH);
+            $basename     = strtolower(basename($sitemap_path));
+
+            // Elimina únicamente nuestros alias y el sitemap nativo para no
+            // publicar dos índices distintos en robots.txt.
+            if (in_array(
+                $basename,
+                array('wp-sitemap.xml', 'sitemap.xml', 'sitemap-index.xml', 'sitemap_index.xml'),
+                true
+            )) {
+                continue;
+            }
+        }
+
+        $clean_lines[] = $existing_line;
+    }
+
+    $output = rtrim(implode("\n", $clean_lines));
+    $output .= ($output !== '' ? "\n\n" : '') . 'Sitemap: ' . $canonical_url . "\n";
+
+    return $output;
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_filter('robots_txt', 'tcdist_sitemap_add_sitemap_to_robots', 20, 2); }
+
+/**
+ * Elimina caracteres no permitidos por XML 1.0 y escapa entidades.
+ *
+ * @param mixed $value
+ * @return string
+ */
+function tcdist_sitemap_xml_escape($value)
+{
+    $value = (string) $value;
+
+    if (function_exists('wp_check_invalid_utf8')) {
+        $value = wp_check_invalid_utf8($value, true);
+    }
+
+    $cleaned = preg_replace(
+        '/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u',
+        '',
+        $value
+    );
+
+    if (is_string($cleaned)) {
+        $value = $cleaned;
+    }
+
+    return htmlspecialchars(
+        $value,
+        ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+    );
+}
+
+/**
+ * Normaliza una URL del sitio y descarta hosts externos o esquemas inválidos.
+ *
+ * @param string $url
+ * @return string
+ */
+function tcdist_sitemap_sitemap_normalize_url($url)
+{
+    $url = esc_url_raw((string) $url, array('http', 'https'));
+
+    if ($url === '') {
+        return '';
+    }
+
+    $parts      = wp_parse_url($url);
+    $home_parts = wp_parse_url(home_url('/'));
+
+    if (
+        !is_array($parts)
+        || empty($parts['scheme'])
+        || empty($parts['host'])
+        || !is_array($home_parts)
+        || empty($home_parts['host'])
+        || strtolower($parts['host']) !== strtolower($home_parts['host'])
+    ) {
+        return '';
+    }
+
+    return preg_replace('/#.*$/', '', $url);
+}
+
+/**
+ * Normaliza una fecha al formato W3C empleado por sitemaps.
+ *
+ * @param mixed $value
+ * @return string
+ */
+function tcdist_sitemap_sitemap_normalize_lastmod($value)
+{
+    if ($value === '' || $value === null) {
+        return '';
+    }
+
+    $timestamp = is_numeric($value) ? (int) $value : strtotime((string) $value);
+
+    if ($timestamp <= 0) {
+        return '';
+    }
+
+    return gmdate('c', $timestamp);
+}
+
+/**
+ * Limpia, deduplica y ordena entradas antes de construir el XML.
+ *
+ * @param array $urls
+ * @return array
+ */
+function tcdist_sitemap_prepare_sitemap_urls($urls)
+{
+    $prepared = array();
+    $seen     = array();
+
+    foreach ((array) $urls as $url) {
+        if (!is_array($url) || empty($url['loc'])) {
+            continue;
+        }
+
+        $loc = tcdist_sitemap_sitemap_normalize_url($url['loc']);
+        if ($loc === '' || isset($seen[$loc])) {
+            continue;
+        }
+
+        $entry = array(
+            'loc'     => $loc,
+            'lastmod' => tcdist_sitemap_sitemap_normalize_lastmod(
+                isset($url['lastmod']) ? $url['lastmod'] : ''
+            ),
+            'images'  => array(),
+        );
+
+        $image_seen = array();
+        foreach ((array) (isset($url['images']) ? $url['images'] : array()) as $image_url) {
+            $image_url = esc_url_raw((string) $image_url, array('http', 'https'));
+            if ($image_url === '' || isset($image_seen[$image_url])) {
+                continue;
+            }
+
+            $image_parts = wp_parse_url($image_url);
+            if (!is_array($image_parts) || empty($image_parts['host'])) {
+                continue;
+            }
+
+            $image_seen[$image_url] = true;
+            $entry['images'][]      = $image_url;
+
+            if (count($entry['images']) >= 5) {
+                break;
+            }
+        }
+
+        $seen[$loc]   = true;
+        $prepared[]   = $entry;
+    }
+
+    usort(
+        $prepared,
+        static function ($left, $right) {
+            return strcmp($left['loc'], $right['loc']);
+        }
+    );
+
+    return $prepared;
+}
+
+/**
+ * @param array $urls
+ * @return string
+ */
+function tcdist_sitemap_build_urlset_xml($urls)
+{
+    $urls       = tcdist_sitemap_prepare_sitemap_urls($urls);
+    $has_images = false;
+
+    foreach ($urls as $url) {
+        if (!empty($url['images'])) {
+            $has_images = true;
+            break;
+        }
+    }
+
+    $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
+    if ($has_images) {
+        $xml .= ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"';
+    }
+    $xml .= ">\n";
+
+    foreach ($urls as $url) {
+        $xml .= "  <url>\n";
+        $xml .= '    <loc>' . tcdist_sitemap_xml_escape($url['loc']) . "</loc>\n";
+
+        if ($url['lastmod'] !== '') {
+            $xml .= '    <lastmod>' . tcdist_sitemap_xml_escape($url['lastmod']) . "</lastmod>\n";
+        }
+
+        foreach ($url['images'] as $image_url) {
+            $xml .= "    <image:image>\n";
+            $xml .= '      <image:loc>' . tcdist_sitemap_xml_escape($image_url) . "</image:loc>\n";
+            $xml .= "    </image:image>\n";
+        }
+
+        $xml .= "  </url>\n";
+    }
+
+    $xml .= "</urlset>\n";
+    return $xml;
+}
+
+/**
+ * @param array $files
+ * @return string
+ */
+function tcdist_sitemap_build_sitemap_index_xml($files)
+{
+    $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+    foreach ((array) $files as $file) {
+        if (empty($file['filename'])) {
+            continue;
+        }
+
+        $loc = tcdist_sitemap_sitemap_public_url($file['filename']);
+        if ($loc === '') {
+            continue;
+        }
+
+        $xml .= "  <sitemap>\n";
+        $xml .= '    <loc>' . tcdist_sitemap_xml_escape($loc) . "</loc>\n";
+
+        $lastmod = tcdist_sitemap_sitemap_normalize_lastmod(
+            isset($file['lastmod']) ? $file['lastmod'] : ''
+        );
+        if ($lastmod !== '') {
+            $xml .= '    <lastmod>' . tcdist_sitemap_xml_escape($lastmod) . "</lastmod>\n";
+        }
+
+        $xml .= "  </sitemap>\n";
+    }
+
+    $xml .= "</sitemapindex>\n";
+    return $xml;
+}
+
+/**
+ * Valida XML, raíz y namespace. También cuenta las entradas publicadas.
+ *
+ * @param string $xml
+ * @param string $expected_root
+ * @return array{valid:bool,root:string,count:int,error:string}
+ */
+function tcdist_sitemap_validate_xml_string($xml, $expected_root = '')
+{
+    $result = array(
+        'valid' => false,
+        'root'  => '',
+        'count' => 0,
+        'error' => '',
+    );
+
+    if (!is_string($xml) || trim($xml) === '') {
+        $result['error'] = 'El archivo está vacío.';
+        return $result;
+    }
+
+    if (class_exists('DOMDocument')) {
+        $previous = libxml_use_internal_errors(true);
+        libxml_clear_errors();
+
+        $dom   = new DOMDocument('1.0', 'UTF-8');
+        $flags = 0;
+        if (defined('LIBXML_NONET')) {
+            $flags |= LIBXML_NONET;
+        }
+        if (defined('LIBXML_NOBLANKS')) {
+            $flags |= LIBXML_NOBLANKS;
+        }
+
+        $loaded = $dom->loadXML($xml, $flags);
+        $errors = libxml_get_errors();
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if (!$loaded || !$dom->documentElement) {
+            $first_error = !empty($errors) ? trim($errors[0]->message) : 'XML no analizable.';
+            $result['error'] = $first_error;
+            return $result;
+        }
+
+        $root      = $dom->documentElement->localName;
+        $namespace = $dom->documentElement->namespaceURI;
+
+        if ($expected_root !== '' && $root !== $expected_root) {
+            $result['error'] = 'Raíz inesperada: ' . $root . '.';
+            return $result;
+        }
+
+        if ($namespace !== 'http://www.sitemaps.org/schemas/sitemap/0.9') {
+            $result['error'] = 'Namespace de sitemap ausente o incorrecto.';
+            return $result;
+        }
+
+        $result['valid'] = true;
+        $result['root']  = $root;
+        $result['count'] = $root === 'sitemapindex'
+            ? $dom->getElementsByTagNameNS($namespace, 'sitemap')->length
+            : $dom->getElementsByTagNameNS($namespace, 'url')->length;
+
+        return $result;
+    }
+
+    $root = preg_match('/<sitemapindex\b/i', $xml) ? 'sitemapindex' : (
+        preg_match('/<urlset\b/i', $xml) ? 'urlset' : ''
+    );
+
+    if ($root === '' || ($expected_root !== '' && $root !== $expected_root)) {
+        $result['error'] = 'No se pudo confirmar la raíz XML.';
+        return $result;
+    }
+
+    $closing = $root === 'sitemapindex' ? '</sitemapindex>' : '</urlset>';
+    if (stripos($xml, $closing) === false) {
+        $result['error'] = 'Falta la etiqueta de cierre principal.';
+        return $result;
+    }
+
+    $result['valid'] = true;
+    $result['root']  = $root;
+    $result['count'] = $root === 'sitemapindex'
+        ? preg_match_all('/<sitemap>/i', $xml)
+        : preg_match_all('/<url>/i', $xml);
+
+    return $result;
+}
+
+/**
+ * @param string $file_path
+ * @param string $expected_root
+ * @return array{valid:bool,root:string,count:int,error:string}
+ */
+function tcdist_sitemap_validate_xml_file($file_path, $expected_root = '')
+{
+    if (!is_file($file_path) || !is_readable($file_path)) {
+        return array(
+            'valid' => false,
+            'root'  => '',
+            'count' => 0,
+            'error' => 'El archivo no existe o no es legible.',
+        );
+    }
+
+    $xml = file_get_contents($file_path);
+    return tcdist_sitemap_validate_xml_string($xml, $expected_root);
+}
+
+/**
+ * Escribe y valida un XML dentro del directorio temporal de construcción.
+ *
+ * @param string $file_path
+ * @param string $xml
+ * @param string $expected_root
+ * @return array|WP_Error
+ */
+/**
+ * Conserva los permisos explícitos usados por los artefactos locales de sitemap.
+ *
+ * Se mantiene como operación local directa porque WP_Filesystem puede usar un
+ * transporte remoto y cambiar la semántica del flujo atómico de publicación.
+ *
+ * @param string $file_path Ruta local.
+ * @param int    $mode      Permisos POSIX.
+ * @return bool
+ */
+function tcdist_sitemap_set_file_permissions($file_path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Local sitemap build artifacts require exact chmod semantics.
+    return @chmod($file_path, $mode);
+}
+
+/**
+ * Renombra de forma atómica un artefacto local de sitemap.
+ *
+ * WP_Filesystem::move() puede degradar a copia+borrado según el transporte;
+ * aquí se necesita rename() local para no publicar XML parciales.
+ *
+ * @param string $source Origen local.
+ * @param string $target Destino local.
+ * @return bool
+ */
+function tcdist_sitemap_atomic_rename($source, $target)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Atomic local publication requires native rename semantics.
+    return @rename($source, $target);
+}
+
+/**
+ * Elimina un directorio local ya vacío tras limpiar su contenido.
+ *
+ * @param string $dir Directorio local.
+ * @return bool
+ */
+function tcdist_sitemap_remove_empty_directory($dir)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Directory is local, temporary and already recursively emptied.
+    return @rmdir($dir);
+}
+
+/**
+ * Abre el fichero de lock como recurso para flock().
+ *
+ * WP_Filesystem no expone un recurso compatible con flock().
+ *
+ * @param string $path Ruta del lock.
+ * @param string $mode Modo de apertura.
+ * @return resource|false
+ */
+function tcdist_sitemap_lock_stream_open($path, $mode)
+{
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- flock() requires a native PHP stream resource.
+    return @fopen($path, $mode);
+}
+
+/**
+ * Cierra el recurso de lock abierto para flock().
+ *
+ * @param resource $stream Recurso abierto.
+ * @return bool
+ */
+function tcdist_sitemap_lock_stream_close($stream)
+{
+    if (!is_resource($stream)) {
+        return false;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with tcdist_sitemap_lock_stream_open() for flock().
+    return @fclose($stream);
+}
+
+function tcdist_sitemap_write_validated_xml($file_path, $xml, $expected_root)
+{
+    $validation = tcdist_sitemap_validate_xml_string($xml, $expected_root);
+    if (!$validation['valid']) {
+        return new WP_Error('tcdist_sitemap_invalid_xml', $validation['error']);
+    }
+
+    $bytes = file_put_contents($file_path, $xml, LOCK_EX);
+    if ($bytes === false) {
+        return new WP_Error('tcdist_sitemap_write_error', 'No se pudo escribir ' . basename($file_path) . '.');
+    }
+
+    tcdist_sitemap_set_file_permissions($file_path, 0644);
+
+    $file_validation = tcdist_sitemap_validate_xml_file($file_path, $expected_root);
+    if (!$file_validation['valid']) {
+        wp_delete_file($file_path);
+        return new WP_Error('tcdist_sitemap_invalid_written_xml', $file_validation['error']);
+    }
+
+    $file_validation['bytes'] = (int) $bytes;
+    return $file_validation;
+}
+
+/**
+ * Publica un archivo de forma atómica para no dejar XML parciales visibles.
+ *
+ * @param string $source
+ * @param string $target
+ * @return bool
+ */
+function tcdist_sitemap_publish_sitemap_file($source, $target)
+{
+    $temporary = $target . '.tmp-' . wp_generate_uuid4();
+
+    if (!copy($source, $temporary)) {
+        return false;
+    }
+
+    tcdist_sitemap_set_file_permissions($temporary, 0644);
+
+    if (tcdist_sitemap_atomic_rename($temporary, $target)) {
+        return true;
+    }
+
+    if (is_file($target)) {
+        wp_delete_file($target);
+    }
+
+    $renamed = tcdist_sitemap_atomic_rename($temporary, $target);
+    if (!$renamed && is_file($temporary)) {
+        wp_delete_file($temporary);
+    }
+
+    return $renamed;
+}
+
+/**
+ * @param string $dir
+ */
+function tcdist_sitemap_remove_directory($dir)
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+
+    $items = scandir($dir);
+    if (!is_array($items)) {
+        return;
+    }
+
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') {
+            continue;
+        }
+
+        $path = $dir . DIRECTORY_SEPARATOR . $item;
+        if (is_dir($path)) {
+            tcdist_sitemap_remove_directory($path);
+        } else {
+            wp_delete_file($path);
+        }
+    }
+
+    tcdist_sitemap_remove_empty_directory($dir);
+}
+
+/**
+ * @param string[] $roles
+ * @return int[]
+ */
+function tcdist_sitemap_get_node_page_ids_by_roles($roles)
+{
+    global $wpdb;
+
+    $roles = array_values(array_unique(array_filter(array_map('sanitize_key', (array) $roles))));
+    if (empty($roles)) {
+        return array();
+    }
+
+    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
+    $table_exists = $wpdb->get_var(
+        $wpdb->prepare('SHOW TABLES LIKE %s', $nodes_table)
+    );
+
+    if ($table_exists !== $nodes_table) {
+        return array();
+    }
+
+    $placeholders = implode(', ', array_fill(0, count($roles), '%s'));
+    $sql = "
+        SELECT DISTINCT object_id
+        FROM {$nodes_table}
+        WHERE object_type = 'page'
+          AND seo_role IN ({$placeholders})
+          AND status = 1
+          AND object_id > 0
+        ORDER BY object_id ASC
+    ";
+
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal SQL template/table; role values remain placeholders.
+    $prepared = $wpdb->prepare($sql, $roles);
+
+    return array_values(
+        array_unique(
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared is the direct result of $wpdb->prepare() above.
+            array_filter(array_map('absint', (array) $wpdb->get_col($prepared)))
+        )
+    );
+}
+
+/**
+ * @param string $post_type
+ * @return int[]
+ */
+function tcdist_sitemap_get_published_post_ids($post_type)
+{
+    global $wpdb;
+
+    $post_type = sanitize_key($post_type);
+    if ($post_type === '') {
+        return array();
+    }
+
+    return array_map(
+        'absint',
+        (array) $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT ID
+                 FROM {$wpdb->posts}
+                 WHERE post_type = %s
+                   AND post_status = 'publish'
+                   AND post_password = ''
+                 ORDER BY ID ASC",
+                $post_type
+            )
+        )
+    );
+}
+
+/**
+ * Páginas de sistema que no deben enviarse al índice de búsqueda.
+ *
+ * @return int[]
+ */
+function tcdist_sitemap_get_excluded_page_ids_for_sitemap()
+{
+    $ids = array();
+
+    if (function_exists('wc_get_page_id')) {
+        foreach (array('cart', 'checkout', 'myaccount') as $page_key) {
+            $page_id = (int) wc_get_page_id($page_key);
+            if ($page_id > 0) {
+                $ids[] = $page_id;
+            }
+        }
+    }
+
+    $ids = array_merge(
+        $ids,
+        tcdist_sitemap_get_node_page_ids_by_roles(
+            array('cluster', 'hub_primary', 'hub_secondary')
+        )
+    );
+
+    return array_values(array_unique(array_filter(array_map('absint', $ids))));
+}
+
+/**
+ * Convierte posts a entradas de sitemap. Los productos pueden incorporar su
+ * imagen destacada mediante la extensión oficial de imágenes.
+ *
+ * @param array $ids
+ * @param bool  $include_images
+ * @return array
+ */
+function tcdist_sitemap_posts_to_sitemap_urls($ids, $include_images = false)
+{
+    $ids  = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
+    $urls = array();
+
+    foreach (array_chunk($ids, 500) as $id_chunk) {
+        $posts = get_posts(
+            array(
+                'post_type'              => 'any',
+                'post_status'            => 'publish',
+                'post__in'               => $id_chunk,
+                'posts_per_page'         => count($id_chunk),
+                'orderby'                => 'post__in',
+                'no_found_rows'          => true,
+                'ignore_sticky_posts'    => true,
+                'update_post_term_cache' => false,
+                'update_post_meta_cache' => (bool) $include_images,
+                'suppress_filters'       => false,
+            )
+        );
+
+        foreach ((array) $posts as $post) {
+            if (
+                !$post
+                || $post->post_status !== 'publish'
+                || $post->post_password !== ''
+            ) {
+                continue;
+            }
+
+            $include = apply_filters('tcdist_sitemap_sitemap_include_post', true, $post);
+            if (!$include) {
+                continue;
+            }
+
+            $url = get_permalink($post->ID);
+            $url = apply_filters('tcdist_sitemap_sitemap_post_url', $url, $post);
+            $url = tcdist_sitemap_sitemap_normalize_url($url);
+
+            if ($url === '') {
+                continue;
+            }
+
+            $entry = array(
+                'loc'     => $url,
+                'lastmod' => get_post_modified_time('c', true, $post),
+                'images'  => array(),
+            );
+
+            if ($include_images) {
+                $thumbnail_id = get_post_thumbnail_id($post->ID);
+                if ($thumbnail_id) {
+                    $image_url = wp_get_attachment_image_url($thumbnail_id, 'full');
+                    if ($image_url) {
+                        $entry['images'][] = $image_url;
+                    }
+                }
+            }
+
+            $entry['images'] = apply_filters(
+                'tcdist_sitemap_sitemap_post_images',
+                $entry['images'],
+                $post
+            );
+
+            $urls[] = $entry;
+        }
+    }
+
+    return tcdist_sitemap_prepare_sitemap_urls($urls);
+}
+
+/**
+ * Calcula en una única consulta la modificación más reciente de los productos
+ * directamente asociados a cada categoría.
+ *
+ * @return array<int,string>
+ */
+function tcdist_sitemap_get_product_category_lastmods()
+{
+    global $wpdb;
+
+    $rows = $wpdb->get_results(
+        "SELECT tt.term_id, MAX(p.post_modified_gmt) AS lastmod
+         FROM {$wpdb->term_taxonomy} tt
+         INNER JOIN {$wpdb->term_relationships} tr
+            ON tr.term_taxonomy_id = tt.term_taxonomy_id
+         INNER JOIN {$wpdb->posts} p
+            ON p.ID = tr.object_id
+         WHERE tt.taxonomy = 'product_cat'
+           AND p.post_type = 'product'
+           AND p.post_status = 'publish'
+           AND p.post_password = ''
+         GROUP BY tt.term_id"
+    );
+
+    $lastmods = array();
+    foreach ((array) $rows as $row) {
+        $term_id  = absint($row->term_id);
+        $timestamp = !empty($row->lastmod)
+            ? strtotime($row->lastmod . ' UTC')
+            : false;
+
+        if ($term_id > 0 && $timestamp) {
+            $lastmods[$term_id] = gmdate('c', $timestamp);
+        }
+    }
+
+    return $lastmods;
+}
+
+/**
+ * @return array
+ */
+function tcdist_sitemap_get_product_category_sitemap_urls()
+{
+    $terms = get_terms(
+        array(
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => true,
+            'orderby'    => 'term_id',
+            'order'      => 'ASC',
+        )
+    );
+
+    if (is_wp_error($terms)) {
+        return array();
+    }
+
+    $lastmods = tcdist_sitemap_get_product_category_lastmods();
+    $urls     = array();
+
+    foreach ((array) $terms as $term) {
+        if (!$term || empty($term->term_id)) {
+            continue;
+        }
+
+        $include = apply_filters('tcdist_sitemap_sitemap_include_term', true, $term);
+        if (!$include) {
+            continue;
+        }
+
+        $link = get_term_link($term);
+        if (is_wp_error($link)) {
+            continue;
+        }
+
+        $urls[] = array(
+            'loc'     => $link,
+            'lastmod' => isset($lastmods[$term->term_id]) ? $lastmods[$term->term_id] : '',
+            'images'  => array(),
+        );
+    }
+
+    return tcdist_sitemap_prepare_sitemap_urls($urls);
+}
+
+/**
+ * @param array $ids
+ * @return int[]
+ */
+function tcdist_sitemap_filter_generic_page_ids_for_sitemap($ids)
+{
+    $excluded_ids   = array_fill_keys(tcdist_sitemap_get_excluded_page_ids_for_sitemap(), true);
+    $excluded_slugs = array(
+        'carrito', 'finalizar-compra', 'mi-cuenta', 'checkout', 'cart',
+        'my-account',
+    );
+    $filtered = array();
+
+    foreach ((array) $ids as $id) {
+        $id = absint($id);
+        if ($id <= 0 || isset($excluded_ids[$id])) {
+            continue;
+        }
+
+        $post = get_post($id);
+        if (!$post || in_array($post->post_name, $excluded_slugs, true)) {
+            continue;
+        }
+
+        $filtered[] = $id;
+    }
+
+    return $filtered;
+}
+
+/**
+ * Crea uno o varios archivos de un grupo, respetando el tamaño de lote.
+ *
+ * @param string $build_dir
+ * @param string $group_slug
+ * @param array  $urls
+ * @param array  $files
+ * @param array  $errors
+ */
+function tcdist_sitemap_create_sitemap_group($build_dir, $group_slug, $urls, &$files, &$errors)
+{
+    $urls = tcdist_sitemap_prepare_sitemap_urls($urls);
+    if (empty($urls)) {
+        return;
+    }
+
+    $batch_size = (int) apply_filters(
+        'tcdist_sitemap_sitemap_batch_size',
+        TCDIST_SITEMAP_BATCH_SIZE,
+        $group_slug
+    );
+    $batch_size = max(100, min(50000, $batch_size));
+    $chunks     = array_chunk($urls, $batch_size);
+    $generated  = gmdate('c');
+
+    foreach ($chunks as $index => $chunk) {
+        $filename = 'sitemap-' . sanitize_title($group_slug) . '-' . ($index + 1) . '.xml';
+        $xml      = tcdist_sitemap_build_urlset_xml($chunk);
+        $written  = tcdist_sitemap_write_validated_xml(
+            $build_dir . $filename,
+            $xml,
+            'urlset'
+        );
+
+        if (is_wp_error($written)) {
+            $errors[] = $filename . ': ' . $written->get_error_message();
+            continue;
+        }
+
+        $files[] = array(
+            'filename'  => $filename,
+            'url_count' => (int) $written['count'],
+            'bytes'     => (int) $written['bytes'],
+            'lastmod'   => $generated,
+            'group'     => $group_slug,
+        );
+    }
+}
+
+/**
+ * Escribe un manifiesto administrativo sin exponer datos sensibles.
+ *
+ * @param string $dir
+ * @param array  $manifest
+ * @return bool
+ */
+function tcdist_sitemap_write_sitemap_manifest($dir, $manifest)
+{
+    $json = wp_json_encode(
+        $manifest,
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT
+    );
+
+    if (!is_string($json)) {
+        return false;
+    }
+
+    $target    = $dir . 'manifest.json';
+    $temporary = $target . '.tmp-' . wp_generate_uuid4();
+
+    if (file_put_contents($temporary, $json, LOCK_EX) === false) {
+        return false;
+    }
+
+    tcdist_sitemap_set_file_permissions($temporary, 0644);
+
+    if (tcdist_sitemap_atomic_rename($temporary, $target)) {
+        return true;
+    }
+
+    wp_delete_file($target);
+    return tcdist_sitemap_atomic_rename($temporary, $target);
+}
+
+/**
+ * Lee el último manifiesto de generación.
+ *
+ * @return array
+ */
+function tcdist_sitemap_get_sitemap_manifest()
+{
+    $storage = tcdist_sitemap_sitemap_storage();
+    if (is_wp_error($storage)) {
+        return array();
+    }
+
+    $file = $storage['dir'] . 'manifest.json';
+    if (!is_file($file) || !is_readable($file)) {
+        return array();
+    }
+
+    $decoded = json_decode((string) file_get_contents($file), true);
+    return is_array($decoded) ? $decoded : array();
+}
+
+/**
+ * Genera todos los sitemaps en staging, los valida y solo entonces sustituye
+ * la versión pública. Nunca borra primero los XML válidos existentes.
+ *
+ * @return array
+ */
+function tcdist_sitemap_create_sitemaps()
+{
+    $storage = tcdist_sitemap_sitemap_storage();
+    if (is_wp_error($storage)) {
+        return array('type' => 'error', 'message' => esc_html($storage->get_error_message()));
+    }
+
+    $dir = $storage['dir'];
+    if (!is_dir($dir) && !wp_mkdir_p($dir)) {
+        return array('type' => 'error', 'message' => 'No se pudo crear el directorio de sitemaps.');
+    }
+
+    $lock_file = $dir . '.generation.lock';
+    $lock      = tcdist_sitemap_lock_stream_open($lock_file, 'c');
+
+    if (!$lock || !@flock($lock, LOCK_EX | LOCK_NB)) {
+        if (is_resource($lock)) {
+            tcdist_sitemap_lock_stream_close($lock);
+        }
+        return array('type' => 'error', 'message' => 'Ya existe otra generación de sitemaps en curso.');
+    }
+
+    $build_dir = $dir . '.build-' . wp_generate_uuid4() . '/';
+    $errors    = array();
+    $files     = array();
+    $published = array();
+
+    try {
+        if (!wp_mkdir_p($build_dir)) {
+            throw new RuntimeException('No se pudo crear el directorio temporal de generación.');
+        }
+
+        $product_ids = tcdist_sitemap_get_published_post_ids('product');
+        tcdist_sitemap_create_sitemap_group(
+            $build_dir,
+            'products',
+            tcdist_sitemap_posts_to_sitemap_urls($product_ids, true),
+            $files,
+            $errors
+        );
+
+        tcdist_sitemap_create_sitemap_group(
+            $build_dir,
+            'product-categories',
+            tcdist_sitemap_get_product_category_sitemap_urls(),
+            $files,
+            $errors
+        );
+
+        $post_ids = tcdist_sitemap_get_published_post_ids('post');
+        tcdist_sitemap_create_sitemap_group(
+            $build_dir,
+            'posts',
+            tcdist_sitemap_posts_to_sitemap_urls($post_ids, false),
+            $files,
+            $errors
+        );
+
+        $cluster_ids = tcdist_sitemap_get_node_page_ids_by_roles(array('cluster'));
+        tcdist_sitemap_create_sitemap_group(
+            $build_dir,
+            'clusters',
+            tcdist_sitemap_posts_to_sitemap_urls($cluster_ids, false),
+            $files,
+            $errors
+        );
+
+        $hub_ids = tcdist_sitemap_get_node_page_ids_by_roles(array('hub_primary', 'hub_secondary'));
+        tcdist_sitemap_create_sitemap_group(
+            $build_dir,
+            'hubs',
+            tcdist_sitemap_posts_to_sitemap_urls($hub_ids, false),
+            $files,
+            $errors
+        );
+
+        $page_ids = tcdist_sitemap_filter_generic_page_ids_for_sitemap(
+            tcdist_sitemap_get_published_post_ids('page')
+        );
+        tcdist_sitemap_create_sitemap_group(
+            $build_dir,
+            'pages',
+            tcdist_sitemap_posts_to_sitemap_urls($page_ids, false),
+            $files,
+            $errors
+        );
+
+        if (!empty($errors)) {
+            throw new RuntimeException(implode(' ', $errors));
+        }
+
+        if (empty($files)) {
+            throw new RuntimeException('No se encontraron URLs públicas para generar los sitemaps.');
+        }
+
+        $index_xml = tcdist_sitemap_build_sitemap_index_xml($files);
+        foreach (array('sitemap-index.xml', 'sitemap_index.xml', 'sitemap.xml') as $index_filename) {
+            $written = tcdist_sitemap_write_validated_xml(
+                $build_dir . $index_filename,
+                $index_xml,
+                'sitemapindex'
+            );
+
+            if (is_wp_error($written)) {
+                throw new RuntimeException(
+                    $index_filename . ': ' . $written->get_error_message()
+                );
+            }
+        }
+
+        // Los hijos se publican antes que el índice para que este nunca apunte
+        // a un archivo todavía inexistente. sitemap.xml se publica el último.
+        $publish_order = array();
+        foreach ($files as $file) {
+            $publish_order[] = $file['filename'];
+        }
+        $publish_order[] = 'sitemap-index.xml';
+        $publish_order[] = 'sitemap_index.xml';
+        $publish_order[] = 'sitemap.xml';
+
+        foreach ($publish_order as $filename) {
+            if (!tcdist_sitemap_publish_sitemap_file(
+                $build_dir . $filename,
+                $dir . $filename
+            )) {
+                throw new RuntimeException('No se pudo publicar ' . $filename . '.');
+            }
+            $published[] = $filename;
+        }
+
+        $keep = array_fill_keys($published, true);
+        foreach ((array) glob($dir . '*.xml') as $old_file) {
+            $old_filename = basename($old_file);
+            if (!isset($keep[$old_filename])) {
+                wp_delete_file($old_file);
+            }
+        }
+
+        $main_validation = tcdist_sitemap_validate_xml_file(
+            $dir . 'sitemap.xml',
+            'sitemapindex'
+        );
+        if (!$main_validation['valid']) {
+            throw new RuntimeException(
+                'El índice principal publicado no superó la validación: ' . $main_validation['error']
+            );
+        }
+
+        $total_urls = 0;
+        foreach ($files as $file) {
+            $total_urls += (int) $file['url_count'];
+        }
+
+        $manifest = array(
+            'schema_version'  => TCDIST_SITEMAP_SCHEMA_VERSION,
+            'generated_at_utc'=> gmdate('c'),
+            'main_url'        => tcdist_sitemap_sitemap_public_url('sitemap.xml'),
+            'total_urls'      => $total_urls,
+            'child_files'     => count($files),
+            'files'           => $files,
+        );
+        tcdist_sitemap_write_sitemap_manifest($dir, $manifest);
+
+        return array(
+            'type'    => 'success',
+            'message' => sprintf(
+                'Sitemaps generados y validados: <strong>%1$s URLs</strong> en <strong>%2$s archivos</strong>. Índice principal: <a href="%3$s" target="_blank" rel="noopener noreferrer">%3$s</a>.',
+                number_format_i18n($total_urls),
+                number_format_i18n(count($files)),
+                esc_url(tcdist_sitemap_sitemap_public_url('sitemap.xml'))
+            ),
+        );
+    } catch (Throwable $exception) {
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Marketing] Error al generar sitemaps: ' . $exception->getMessage());
+        }
+
+        return array(
+            'type'    => 'error',
+            'message' => 'No se publicaron sitemaps nuevos: ' . esc_html($exception->getMessage()),
+        );
+    } finally {
+        tcdist_sitemap_remove_directory($build_dir);
+        @flock($lock, LOCK_UN);
+        tcdist_sitemap_lock_stream_close($lock);
+    }
+}
+
+/**
+ * Informe local de validez, tamaño y número de entradas.
+ *
+ * @return array
+ */
+function tcdist_sitemap_get_sitemap_report()
+{
+    $storage = tcdist_sitemap_sitemap_storage();
+    if (is_wp_error($storage) || !is_dir($storage['dir'])) {
+        return array(
+            'main_valid' => false,
+            'total_urls' => 0,
+            'files'      => array(),
+            'manifest'   => array(),
+        );
+    }
+
+    $files = array();
+    foreach ((array) glob($storage['dir'] . '*.xml') as $file_path) {
+        $filename = basename($file_path);
+
+        if (in_array($filename, array('sitemap-index.xml', 'sitemap_index.xml'), true)) {
+            continue;
+        }
+
+        $expected_root = $filename === 'sitemap.xml' ? 'sitemapindex' : 'urlset';
+        $validation    = tcdist_sitemap_validate_xml_file($file_path, $expected_root);
+
+        $files[] = array(
+            'filename' => $filename,
+            'url'      => tcdist_sitemap_sitemap_public_url($filename),
+            'valid'    => (bool) $validation['valid'],
+            'count'    => (int) $validation['count'],
+            'root'     => $validation['root'],
+            'error'    => $validation['error'],
+            'bytes'    => (int) filesize($file_path),
+            'modified' => (int) filemtime($file_path),
+        );
+    }
+
+    usort(
+        $files,
+        static function ($left, $right) {
+            if ($left['filename'] === 'sitemap.xml') {
+                return -1;
+            }
+            if ($right['filename'] === 'sitemap.xml') {
+                return 1;
+            }
+            return strcmp($left['filename'], $right['filename']);
+        }
+    );
+
+    $total_urls = 0;
+    $main_valid = false;
+    foreach ($files as $file) {
+        if ($file['filename'] === 'sitemap.xml') {
+            $main_valid = $file['valid'];
+        } else {
+            $total_urls += $file['count'];
+        }
+    }
+
+    return array(
+        'main_valid' => $main_valid,
+        'total_urls' => $total_urls,
+        'files'      => $files,
+        'manifest'   => tcdist_sitemap_get_sitemap_manifest(),
+    );
+}
+
+/**
+ * Compatibilidad con la interfaz previa.
+ *
+ * @return string[]
+ */
+function tcdist_sitemap_get_existing_sitemaps()
+{
+    $report = tcdist_sitemap_get_sitemap_report();
+    $urls   = array();
+
+    foreach ($report['files'] as $file) {
+        if (!empty($file['url'])) {
+            $urls[] = $file['url'];
+        }
+    }
+
+    return $urls;
+}
+
+/**
+ * Programa una única regeneración diferida después de cambios de contenido.
+ */
+function tcdist_sitemap_schedule_sitemap_regeneration($post_id = 0)
+{
+    $post_id = absint($post_id);
+
+    if (
+        (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
+        || ($post_id > 0 && wp_is_post_revision($post_id))
+    ) {
+        return;
+    }
+
+    if (!wp_next_scheduled('tcdist_sitemap_regenerate_sitemaps_event')) {
+        wp_schedule_single_event(
+            time() + TCDIST_SITEMAP_REGEN_DELAY,
+            'tcdist_sitemap_regenerate_sitemaps_event'
+        );
+    }
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('save_post_product', 'tcdist_sitemap_schedule_sitemap_regeneration', 20, 1); }
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('save_post_page', 'tcdist_sitemap_schedule_sitemap_regeneration', 20, 1); }
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('save_post_post', 'tcdist_sitemap_schedule_sitemap_regeneration', 20, 1); }
+
+/**
+ * Los hooks de términos entregan un term_id, no un post_id.
+ */
+function tcdist_sitemap_schedule_sitemap_regeneration_for_term()
+{
+    tcdist_sitemap_schedule_sitemap_regeneration(0);
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('created_product_cat', 'tcdist_sitemap_schedule_sitemap_regeneration_for_term', 20, 0); }
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('edited_product_cat', 'tcdist_sitemap_schedule_sitemap_regeneration_for_term', 20, 0); }
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('delete_product_cat', 'tcdist_sitemap_schedule_sitemap_regeneration_for_term', 20, 0); }
+
+/**
+ * Regeneración silenciosa para WP-Cron.
+ */
+function tcdist_sitemap_regenerate_sitemaps_silent()
+{
+    $result = tcdist_sitemap_create_sitemaps();
+
+    if (!is_array($result) || ($result['type'] ?? '') !== 'success') {
+        $message = is_array($result) && isset($result['message'])
+            ? wp_strip_all_tags($result['message'])
+            : 'Resultado desconocido.';
+        if (function_exists('seo_system_private_log')) {
+            seo_system_private_log('error', '[SEO Marketing] Regeneración automática de sitemaps: ' . $message);
+        }
+    }
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('tcdist_sitemap_regenerate_sitemaps_event', 'tcdist_sitemap_regenerate_sitemaps_silent'); }
+
+
+/**
+ * Garantiza una primera generación sin bloquear la carga pública.
+ */
+function tcdist_sitemap_ensure_initial_sitemap_generation()
+{
+    $storage = tcdist_sitemap_sitemap_storage();
+    if (is_wp_error($storage) || is_file($storage['dir'] . 'sitemap.xml')) {
+        return;
+    }
+
+    if (!wp_next_scheduled('tcdist_sitemap_regenerate_sitemaps_event')) {
+        wp_schedule_single_event(
+            time() + 60,
+            'tcdist_sitemap_regenerate_sitemaps_event'
+        );
+    }
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('init', 'tcdist_sitemap_ensure_initial_sitemap_generation', 30); }
+
+/* ========================================================================
+ * Inventario + auditoria externa por lotes (GitHub Actions + Python)
+ * ===================================================================== */
+
+if (!defined('SEO_MARKETING_SCAN_SCHEMA_VERSION')) {
+    define('SEO_MARKETING_SCAN_SCHEMA_VERSION', 3);
+}
+if (!defined('SEO_MARKETING_SCAN_BATCH_LIMIT')) {
+    define('SEO_MARKETING_SCAN_BATCH_LIMIT', 500);
+}
+
+function tcdist_sitemap_scan_tables()
+{
+    global $wpdb;
+
+    return array(
+        'scans'     => esc_sql( $wpdb->prefix . 'tcdist_sitemap_scans' ),
+        'urls'      => esc_sql( $wpdb->prefix . 'tcdist_sitemap_scan_urls' ),
+        'inventory' => esc_sql( $wpdb->prefix . 'tcdist_sitemap_inventory' ),
+    );
+}
+
+/**
