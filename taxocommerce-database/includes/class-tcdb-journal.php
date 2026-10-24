@@ -111,6 +111,21 @@ final class TCDB_Journal {
             && in_array( $table, (array) $registered[ $source ], true );
     }
 
+    /**
+     * Returns a registered plugin owner for an explicit physical table.
+     * The generic CSV importer only journals INSERTs for these opt-in tables.
+     */
+    public static function owner_for_table( $table ) {
+        $registered = apply_filters( 'tcdb_rollback_supported_tables', array() );
+        foreach ( (array) $registered as $source => $tables ) {
+            if ( is_string( $source ) && is_array( $tables )
+                && in_array( $table, $tables, true ) && self::supports( $table, $source ) ) {
+                return $source;
+            }
+        }
+        return '';
+    }
+
     public static function primary( $table, $source = '' ) {
         if ( ! self::supports( $table, $source ) ) {
             return '';
