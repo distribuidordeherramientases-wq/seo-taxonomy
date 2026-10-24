@@ -27,6 +27,12 @@ jobs:
           php taxocommerce-database/tests/menu-smoke.php alone
           php taxocommerce-database/tests/menu-smoke.php core
 
+      - name: Validate Redirects extension menu compatibility before STAGING FTP
+        run: |
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
+
       - name: Validate Auditor PHP before any STAGING FTP upload
         run: |
           find taxocommerce-auditor -type f -name '*.php' -print0 | xargs -0 -n1 php -l
