@@ -6,6 +6,7 @@ $intelligence=file_get_contents($root.'/includes/class-tcd-intelligence.php');
 $maintenance=file_get_contents($root.'/includes/class-tcd-maintenance.php');
 $search=file_get_contents($root.'/includes/class-tcd-search.php');
 $admin=file_get_contents($root.'/includes/class-tcd-admin.php');
+$knowledge=file_get_contents($root.'/includes/class-tcd-knowledge-transfer.php');
 $main=file_get_contents($root.'/taxocommerce-dependiente.php');
 $header_match=array();
 $constant_match=array();
@@ -71,6 +72,12 @@ $checks=array(
     strpos($admin,'foto fija auditable')!==false,
     strpos($admin,'M11 · Intérprete')!==false,
     strpos($admin,'M12 · Actualización continua')!==false,
+    strpos($admin,'nav-tab-wrapper')!==false,
+    strpos($admin,'Conocimiento / Importar–Exportar')!==false,
+    strpos($admin,"if('knowledge'===\$tab)")!==false,
+    substr_count($admin,'TCD_Knowledge_Transfer::render_admin_section();')===1,
+    strpos($knowledge,"page=taxocommerce-dependiente&tab=knowledge")!==false,
+    strpos($knowledge,"margin-top:28px")===false,
     strpos($admin,'TaxoCommerce Dependiente · Academia')===false,
     strpos($admin,'Entrenador')===false,
 );

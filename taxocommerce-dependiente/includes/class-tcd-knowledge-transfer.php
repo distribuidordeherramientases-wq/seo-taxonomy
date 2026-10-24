@@ -298,7 +298,7 @@ final class TCD_Knowledge_Transfer {
 		$learning    = TCD_Academy::state();
 		$busy        = 'running' === (string) ( $learning['status'] ?? '' );
 		?>
-		<section id="tcd-portable-knowledge" style="margin-top:28px;padding:18px;background:#fff;border:1px solid #c3c4c7">
+		<section id="tcd-portable-knowledge" style="padding:18px;background:#fff;border:1px solid #c3c4c7">
 			<h2 style="margin-top:0"><?php esc_html_e( 'Conocimiento portable · Exportar / Importar', 'taxocommerce-dependiente' ); ?></h2>
 			<p><?php esc_html_e( 'Esta herramienta mueve el conocimiento consolidado de Dependiente sin copiar el índice del catálogo, búsquedas de clientes ni estados temporales. Acepta tanto el export antiguo como el formato del plugin moderno.', 'taxocommerce-dependiente' ); ?></p>
 
@@ -1063,7 +1063,7 @@ final class TCD_Knowledge_Transfer {
 	}
 
 	private static function redirect() {
-		wp_safe_redirect( admin_url( 'admin.php?page=taxocommerce-dependiente#tcd-portable-knowledge' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=taxocommerce-dependiente&tab=knowledge' ) );
 		exit;
 	}
 
