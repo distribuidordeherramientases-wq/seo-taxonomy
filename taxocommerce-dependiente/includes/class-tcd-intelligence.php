@@ -74,8 +74,10 @@ final class TCD_Intelligence {
             return;
         }
         $stage = self::stage_id( $lesson, $snapshot_id );
-        foreach ( self::rules_from_item( $lesson, $item ) as $rule ) {
-            self::stage_rule( $lesson, $item, $rule, $stage );
+        if ( in_array( $lesson, array( 1, 3, 5, 6, 7 ), true ) ) {
+            foreach ( self::rules_from_item( $lesson, $item ) as $rule ) {
+                self::stage_rule( $lesson, $item, $rule, $stage );
+            }
         }
         if ( 9 === $lesson ) {
             self::stage_l9_item( $item, $stage );
@@ -233,7 +235,7 @@ final class TCD_Intelligence {
     private static function signals_from_item( $item ) {
         $facts = (array) ( $item['facts'] ?? array() );
         $signals = array();
-        self::add_signal( $signals, 'title', (string) ( $item['title'] ?? '' ), 240, 'title', 0, false );
+        self::add_signal( $signals, 'title', (string) ( $item['title'] ?? '' ), 240, 'title', 0, true );
         self::add_signal( $signals, 'need', (string) ( $facts['customer_need'] ?? '' ), 220, 'need', 0, true );
 
         foreach ( (array) ( $facts['vocabulary'] ?? array() ) as $group => $rows ) {
@@ -465,8 +467,150 @@ final class TCD_Intelligence {
                 $result['groups'][ $key ] = array( 'group'=>$group, 'slug'=>$slug, 'label'=>$hit['canonical'], 'weight'=>$hit['weight'] );
             }
         }
+        self::apply_vocabulary_direct( $result, $ngrams );
+        self::apply_routes( $result, $include_stage );
         $result['groups'] = array_values( $result['groups'] );
         return $result;
+    }
+
+    private static function apply_vocabulary_direct( &$result, $ngrams ) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'seo_vocabulary';
+        if ( ! self::table_exists( $table ) ) return;
+        $slugs = array();
+        foreach ( (array) $ngrams as $phrase ) {
+            $slug = sanitize_title( $phrase );
+            if ( $slug ) {
+                $slugs[] = $slug;
+                $slugs[] = str_replace( '-', '_', $slug );
+            }
+        }
+        $slugs = array_slice( array_values( array_unique( array_filter( $slugs ) ) ), 0, 120 );
+        if ( ! $slugs ) return;
+        $placeholders = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
+        $sql = "SELECT id,semantic_group,slug,label FROM {$table} WHERE active=1 AND slug IN ({$placeholders}) ORDER BY id ASC LIMIT 150";
+        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $slugs ), ARRAY_A );
+        foreach ( $rows as $row ) {
+            $group = sanitize_key( (string) ( $row['semantic_group'] ?? '' ) );
+            $slug = sanitize_title( (string) ( $row['slug'] ?? '' ) );
+            if ( ! $group || ! $slug ) continue;
+            $key = $group . ':' . $slug;
+            if ( ! isset( $result['groups'][ $key ] ) ) {
+                $result['groups'][ $key ] = array(
+                    'group'=>$group,
+                    'slug'=>$slug,
+                    'label'=>(string) ( $row['label'] ?? '' ),
+                    'weight'=>130,
+                );
+            }
+            $result['semantic_hits'][] = array(
+                'id'=>absint( $row['id'] ?? 0 ),
+                'expression'=>(string) ( $row['label'] ?? '' ),
+                'canonical'=>(string) ( $row['label'] ?? '' ),
+                'role'=>$group,
+                'source_group'=>$group,
+                'source_slug'=>$slug,
+                'target_group'=>$group,
+                'target_slug'=>$slug,
+                'weight'=>130,
+                'source'=>'vocabulary',
+            );
+        }
+    }
+
+    private static function apply_routes( &$result, $include_stage = '' ) {
+        global $wpdb;
+        if ( empty( $result['groups'] ) ) return;
+        $table = TCD_Knowledge_Transfer::rules_table();
+        $params = array();
+        $active = 'active=1';
+        if ( $include_stage ) {
+            $active = '(active=1 OR source_brain_id=%s)';
+            $params[] = $include_stage;
+        }
+        $sql = "SELECT id,source_group,source_slug,context_group,context_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source
+                FROM {$table}
+                WHERE {$active} AND rule_type='route' AND language='es'
+                ORDER BY priority ASC,weight DESC,id ASC LIMIT 500";
+        $rows = $params
+            ? (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A )
+            : (array) $wpdb->get_results( $sql, ARRAY_A );
+        if ( ! $rows ) return;
+
+        $known = array();
+        foreach ( (array) $result['groups'] as $group ) {
+            $known[ sanitize_key( (string) ( $group['group'] ?? '' ) ) . ':' . sanitize_title( (string) ( $group['slug'] ?? '' ) ) ] = true;
+        }
+        foreach ( $rows as $row ) {
+            $source_key = sanitize_key( (string) ( $row['source_group'] ?? '' ) ) . ':' . sanitize_title( (string) ( $row['source_slug'] ?? '' ) );
+            if ( empty( $known[ $source_key ] ) ) continue;
+            $context_group = sanitize_key( (string) ( $row['context_group'] ?? '' ) );
+            $context_slug = sanitize_title( (string) ( $row['context_slug'] ?? '' ) );
+            if ( $context_group && $context_slug && empty( $known[ $context_group . ':' . $context_slug ] ) ) continue;
+            $target_group = sanitize_key( (string) ( $row['target_group'] ?? '' ) );
+            $target_slug = sanitize_title( (string) ( $row['target_slug'] ?? '' ) );
+            if ( ! $target_group || ! $target_slug ) continue;
+            $target_key = $target_group . ':' . $target_slug;
+            if ( ! isset( $result['groups'][ $target_key ] ) ) {
+                $result['groups'][ $target_key ] = array(
+                    'group'=>$target_group,
+                    'slug'=>$target_slug,
+                    'label'=>str_replace( '-', ' ', $target_slug ),
+                    'weight'=>absint( $row['weight'] ?? 100 ),
+                    'via'=>'route',
+                );
+                $known[ $target_key ] = true;
+            }
+            $result['semantic_hits'][] = array(
+                'id'=>absint( $row['id'] ?? 0 ),
+                'expression'=>$source_key,
+                'canonical'=>$target_key,
+                'role'=>sanitize_key( (string) ( $row['result_role'] ?? $target_group ) ),
+                'source_group'=>sanitize_key( (string) ( $row['source_group'] ?? '' ) ),
+                'source_slug'=>sanitize_title( (string) ( $row['source_slug'] ?? '' ) ),
+                'target_group'=>$target_group,
+                'target_slug'=>$target_slug,
+                'weight'=>absint( $row['weight'] ?? 0 ),
+                'source'=>(string) ( $row['source'] ?? '' ),
+            );
+        }
+    }
+
+    public static function backfill_next_missing( $current_lesson ) {
+        global $wpdb;
+        $current_lesson = min( 10, max( 1, absint( $current_lesson ) ) );
+        for ( $lesson = 1; $lesson < $current_lesson; $lesson++ ) {
+            if ( self::quality_for_lesson( $lesson ) ) continue;
+            $count = absint( $wpdb->get_var( $wpdb->prepare(
+                'SELECT COUNT(*) FROM %i WHERE lesson=%d AND status=%s',
+                TCD_Academy::knowledge_table(), $lesson, 'learned'
+            ) ) );
+            if ( ! $count ) continue;
+            $snapshot = TCD_Academy::snapshot_for_lesson( $lesson );
+            $snapshot_id = absint( $snapshot['id'] ?? 0 );
+            $last = 0;
+            do {
+                $rows = (array) $wpdb->get_results( $wpdb->prepare(
+                    'SELECT id,source_type,source_id,title,context_json FROM %i WHERE lesson=%d AND status=%s AND id>%d ORDER BY id ASC LIMIT 200',
+                    TCD_Academy::knowledge_table(), $lesson, 'learned', $last
+                ), ARRAY_A );
+                foreach ( $rows as $row ) {
+                    $last = absint( $row['id'] ?? 0 );
+                    $facts = json_decode( (string) ( $row['context_json'] ?? '' ), true );
+                    self::learn_item( $lesson, array(
+                        'lesson'=>$lesson,
+                        'source_type'=>(string) ( $row['source_type'] ?? '' ),
+                        'source_id'=>absint( $row['source_id'] ?? 0 ),
+                        'title'=>(string) ( $row['title'] ?? '' ),
+                        'facts'=>is_array( $facts ) ? $facts : array(),
+                    ), $snapshot_id );
+                }
+            } while ( count( $rows ) === 200 );
+            $quality = self::finalize_lesson( $lesson, $snapshot_id );
+            if ( is_wp_error( $quality ) ) return $quality;
+            return array( 'lesson'=>$lesson, 'count'=>$count, 'quality'=>$quality );
+        }
+        return false;
     }
 
     public static function search_products( $query, $limit = 8, $include_stage = '' ) {
@@ -603,10 +747,18 @@ final class TCD_Intelligence {
     }
 
     private static function search_categories( $query, $limit ) {
-        $rows = get_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false, 'search'=>sanitize_text_field( $query ), 'number'=>absint( $limit ) ) );
-        if ( is_wp_error( $rows ) ) return array();
         $out = array();
-        foreach ( $rows as $term ) if ( $term instanceof WP_Term ) $out[] = array( 'id'=>$term->term_id, 'title'=>$term->name );
+        $exact = get_term_by( 'name', trim( (string) $query ), 'product_cat' );
+        if ( $exact instanceof WP_Term ) $out[] = array( 'id'=>$exact->term_id, 'title'=>$exact->name );
+        $rows = get_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false, 'search'=>sanitize_text_field( $query ), 'number'=>absint( $limit ) ) );
+        if ( is_wp_error( $rows ) ) return $out;
+        foreach ( $rows as $term ) {
+            if ( ! $term instanceof WP_Term ) continue;
+            $exists = false;
+            foreach ( $out as $item ) if ( absint( $item['id'] ?? 0 ) === absint( $term->term_id ) ) { $exists = true; break; }
+            if ( ! $exists ) $out[] = array( 'id'=>$term->term_id, 'title'=>$term->name );
+            if ( count( $out ) >= absint( $limit ) ) break;
+        }
         return $out;
     }
 
