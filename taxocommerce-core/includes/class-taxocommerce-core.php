@@ -328,6 +328,16 @@ final class TaxoCommerce_Core {
 				'wordpress_org' => true,
 				'description' => __( 'Importación y exportación de catálogo, contenidos y Media.', 'taxocommerce-core' ),
 			),
+			'database' => array(
+				'id'            => 'database',
+				'name'          => 'TaxoCommerce Database',
+				'plugin_file'   => 'taxocommerce-database/taxocommerce-database.php',
+				'org_slug'      => 'taxocommerce-database',
+				'search_term'   => 'TaxoCommerce Database',
+				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-database' ),
+				'description'   => __( 'Diagnóstico MySQL, tablas, backups y mantenimiento controlado; plugin independiente.', 'taxocommerce-core' ),
+			),
 			'images' => array(
 				'id'            => 'images',
 				'name'          => 'TaxoCommerce Images',
