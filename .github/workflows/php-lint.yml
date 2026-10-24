@@ -22,6 +22,9 @@ jobs:
       - name: Academy M5 editorial fast-path regression
         run: php .github/tests/academy-m5-fastpath.php
 
+      - name: Public shortcode compatibility regression
+        run: php .github/tests/public-shortcode-compat.php
+
       - name: Check provider export SQL was not swallowed by phpcs comments
         run: |
           python3 - <<'PY'
