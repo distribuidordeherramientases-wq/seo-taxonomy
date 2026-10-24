@@ -29,6 +29,9 @@ jobs:
       - name: Batch queue smoke
         run: php taxocommerce-import-export/tests/batch-queue-smoke.php
 
+      - name: Editorial import safety
+        run: php taxocommerce-import-export/tests/editorial-import-safety.php
+
       - name: Build distributable package
         run: |
           set -euo pipefail
