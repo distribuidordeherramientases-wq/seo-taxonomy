@@ -391,7 +391,7 @@ final class TCD_Feedback {
         $product_id = absint( $target['product_id'] ?? 0 );
         $group = sanitize_key( (string) ( $target['semantic_group'] ?? '' ) );
         $slug = sanitize_title( (string) ( $target['semantic_slug'] ?? '' ) );
-        $target_key = substr( (string) ( $target['target_key'] ?? '' ), 0, 191 );
+        $target_key = substr( (string) ( $target['target_key'] ?? '' ), 0, 64 );
 
         if ( 'product' === $target_type ) {
             $click_sessions = absint( $wpdb->get_var( $wpdb->prepare(
@@ -485,6 +485,7 @@ final class TCD_Feedback {
         );
 
         $wpdb->replace( $learning, $row );
+        self::sync_portable_knowledge( $row );
 
         return array(
             'status'=>$status,
@@ -496,6 +497,127 @@ final class TCD_Feedback {
             'newly_promoted'=>$newly_promoted,
             'previous_status'=>$previous_status,
         );
+    }
+
+    private static function sync_portable_knowledge( $row ) {
+        if ( ! class_exists( 'TCD_Knowledge_Transfer', false ) ) return;
+
+        $status = sanitize_key( (string) ( $row['status'] ?? '' ) );
+        $target_type = sanitize_key( (string) ( $row['target_type'] ?? '' ) );
+
+        if ( 'product' === $target_type ) {
+            self::sync_product_signal( $row, 'active' === $status );
+        } elseif ( 'semantic' === $target_type ) {
+            self::sync_semantic_rule( $row, 'active' === $status );
+        }
+    }
+
+    private static function sync_product_signal( $row, $active ) {
+        global $wpdb;
+
+        $table = TCD_Knowledge_Transfer::l9_table();
+        $product_id = absint( $row['product_id'] ?? 0 );
+        $query = self::normalize_query( $row['normalized_query'] ?? '' );
+        if ( ! $product_id || ! $query ) return;
+
+        $hash = hash( 'sha256', 'customer_feedback|' . (string) ( $row['query_hash'] ?? '' ) . '|product:' . $product_id );
+        if ( ! $active ) {
+            $wpdb->delete(
+                $table,
+                array(
+                    'lesson_key'=>'feedback_customer_query',
+                    'product_id'=>$product_id,
+                    'source_hash'=>$hash,
+                )
+            );
+            return;
+        }
+
+        $confidence = max( 0, min( 1, (float) ( $row['confidence'] ?? 0 ) ) );
+        $weight = min( 360, max( 180, 180 + (int) round( 180 * $confidence ) ) );
+        $metadata = array(
+            'origin'=>'customer_feedback',
+            'evidence'=>'click',
+            'click_sessions'=>absint( $row['click_sessions'] ?? 0 ),
+            'evidence_share'=>round( (float) ( $row['evidence_share'] ?? 0 ), 4 ),
+            'confidence'=>round( $confidence, 4 ),
+        );
+
+        $wpdb->replace( $table, array(
+            'lesson_key'=>'feedback_customer_query',
+            'product_id'=>$product_id,
+            'signal_type'=>'customer_query',
+            'signal_text'=>substr( $query, 0, 250 ),
+            'normalized_signal'=>substr( $query, 0, 250 ),
+            'semantic_group'=>'customer_feedback',
+            'vocabulary_id'=>null,
+            'weight'=>$weight,
+            'source_hash'=>$hash,
+            'metadata'=>wp_json_encode( $metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+            'active'=>1,
+            'source_brain_id'=>'feedback:' . substr( (string) ( $row['query_hash'] ?? '' ), 0, 55 ),
+            'updated_at'=>current_time( 'mysql' ),
+        ) );
+    }
+
+    private static function sync_semantic_rule( $row, $active ) {
+        global $wpdb;
+
+        $table = TCD_Knowledge_Transfer::rules_table();
+        $query = self::normalize_query( $row['normalized_query'] ?? '' );
+        $group = sanitize_key( (string) ( $row['semantic_group'] ?? '' ) );
+        $slug = sanitize_title( (string) ( $row['semantic_slug'] ?? '' ) );
+        $label = trim( sanitize_text_field( (string) ( $row['semantic_label'] ?? '' ) ) );
+        if ( ! $query || ! $group || ! $slug ) return;
+
+        $rule_key = sanitize_key( 'feedback_' . substr( hash( 'sha256', (string) ( $row['query_hash'] ?? '' ) . '|' . $group . '|' . $slug ), 0, 48 ) );
+        if ( ! $active ) {
+            $wpdb->delete( $table, array( 'rule_key'=>$rule_key, 'source'=>'customer_feedback' ) );
+            return;
+        }
+
+        $confidence = max( 0, min( 1, (float) ( $row['confidence'] ?? 0 ) ) );
+        $weight = min( 340, max( 190, 190 + (int) round( 150 * $confidence ) ) );
+        $priority = 1;
+        $metadata = array(
+            'origin'=>'customer_feedback',
+            'evidence'=>'clarification',
+            'clarification_sessions'=>absint( $row['clarification_sessions'] ?? 0 ),
+            'evidence_share'=>round( (float) ( $row['evidence_share'] ?? 0 ), 4 ),
+            'confidence'=>round( $confidence, 4 ),
+        );
+        $rule_hash = hash( 'sha256', wp_json_encode( array(
+            'alias',$query,$group,$slug,$weight,$priority,round( $confidence, 4 )
+        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+
+        $wpdb->replace( $table, array(
+            'rule_key'=>$rule_key,
+            'rule_type'=>'alias',
+            'expression'=>substr( $query, 0, 255 ),
+            'normalized_expression'=>substr( $query, 0, 255 ),
+            'canonical_expression'=>substr( $label ?: str_replace( '-', ' ', $slug ), 0, 255 ),
+            'match_type'=>false !== strpos( $query, ' ' ) ? 'phrase' : 'token',
+            'semantic_role'=>$group,
+            'source_group'=>$group,
+            'source_slug'=>$slug,
+            'context_group'=>null,
+            'context_slug'=>null,
+            'target_group'=>$group,
+            'target_slug'=>$slug,
+            'relation_type'=>'customer_clarification',
+            'result_role'=>$group,
+            'weight'=>$weight,
+            'priority'=>$priority,
+            'confidence'=>$confidence,
+            'language'=>'es',
+            'source'=>'customer_feedback',
+            'metadata'=>wp_json_encode( $metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+            'active'=>1,
+            'rule_hash'=>$rule_hash,
+            'source_brain_id'=>'feedback:' . substr( (string) ( $row['query_hash'] ?? '' ), 0, 55 ),
+            'created_at'=>current_time( 'mysql' ),
+            'updated_at'=>current_time( 'mysql' ),
+        ) );
     }
 
     private static function recalculate_competitors( $query_hash, $except_target_key ) {
