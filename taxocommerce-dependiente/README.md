@@ -1,4 +1,4 @@
-# TaxoCommerce Dependiente 0.3.6
+# TaxoCommerce Dependiente 0.3.7
 
 Plugin independiente de la familia TaxoCommerce. El objetivo de esta versión es mantener la arquitectura auditable del Dependiente moderno y recuperar, como mínimo, las capacidades útiles que daban buen resultado en el conjunto Dependiente + Intérprete anterior.
 
@@ -112,6 +112,8 @@ Las lecciones históricas no sustituyen las fotos fijas modernas. Sin embargo, l
 - `tcd_portable_rules`: reglas semánticas modernas e importadas.
 - `tcd_l9_memory`: memoria lingüística/producto moderna e importada.
 - `tcd_legacy_lessons`: evidencia histórica del sistema anterior.
+- `tcd_feedback_events`: feedback anónimo bruto retenido (consultas, clics y aclaraciones; sin IP/nombre/correo).
+- `tcd_feedback_learning`: evidencia agregada que alimenta M11/M12.
 
 ## Continuidad de runs existentes
 
@@ -128,12 +130,17 @@ Esto evita duplicar miles de reglas generales por cada producto. El runtime aña
 
 ## Exportación
 
-Se mantienen dos exports distintos:
+Se mantienen tres salidas con propósitos distintos:
 
 - **Aprendizaje completo · JSON**: auditoría del run y sus fotos fijas.
-- **Conocimientos · JSON**: paquete portable para copia, migración o análisis externo.
+- **Conocimientos · JSON**: paquete portable para fusionar conocimiento reutilizable entre instalaciones.
+- **Backup completo · NDJSON**: copia funcional exacta del estado persistente propio de Dependiente para restauración, migración o sustitución del antiguo clonador PRO → STAGING.
 
-La exportación se transmite por lotes para evitar construir documentos enormes en memoria.
+El backup completo incluye conocimiento L1-L10, snapshots, material estudiado, quality gates, reglas, memoria L9, histórico antiguo, feedback bruto anónimo, feedback consolidado y los estados/configuración necesarios. Excluye logs, locks, cron, transitorios, ajustes adaptativos temporales y datos fuente externos (productos, categorías, posts, páginas, FAQs y Vocabulary).
+
+La restauración completa analiza primero el archivo y después sustituye únicamente las tablas/estados propios de Dependiente conservando los IDs internos. Nunca modifica los datos fuente de WooCommerce/WordPress.
+
+Las exportaciones voluminosas se transmiten por streaming para evitar construir documentos enormes en memoria.
 
 
 ## Log de aprendizaje
