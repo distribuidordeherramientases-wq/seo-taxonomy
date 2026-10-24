@@ -40,6 +40,7 @@ jobs:
           test -f build/taxocommerce-connections/taxocommerce-connections.php
           test -f build/taxocommerce-connections/includes/class-taxocommerce-connections-amazon.php
           test -f build/taxocommerce-connections/includes/class-taxocommerce-connections-pinterest.php
+          test -f build/taxocommerce-connections/includes/class-taxocommerce-connections-google-bing.php
           test -f build/taxocommerce-connections/includes/class-taxocommerce-connections-admin.php
           test ! -e build/taxocommerce-connections/tests
 
@@ -63,7 +64,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-connections-0.1.0
+          name: taxocommerce-connections-0.2.0
           path: taxocommerce-connections.zip
           retention-days: 30
           if-no-files-found: error
