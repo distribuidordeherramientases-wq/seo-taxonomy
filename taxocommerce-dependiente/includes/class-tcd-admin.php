@@ -140,7 +140,8 @@ final class TCD_Admin {
         echo '<tr><td><strong>M12 · Actualización continua</strong></td><td>'.esc_html((string)($maintenance['status']??'Pendiente')).'</td><td>';
         echo 'Productos actualizados: '.esc_html(number_format_i18n(absint($maintenance['products_updated']??0))).' · ';
         echo 'editorial: '.esc_html(number_format_i18n(absint($maintenance['editorial_updated']??0))).' · ';
-        echo 'FAQs: '.esc_html(number_format_i18n(absint($maintenance['faqs_updated']??0)));
+        echo 'FAQs: '.esc_html(number_format_i18n(absint($maintenance['faqs_updated']??0))).' · ';
+        echo 'Vocabulary: '.esc_html(number_format_i18n(absint($maintenance['vocabulary_updated']??0)));
         if(!empty($maintenance['last_run']))echo '<div class="description">Última revisión: '.esc_html((string)$maintenance['last_run']).'</div>';
         echo '</td></tr></tbody></table>';
 
