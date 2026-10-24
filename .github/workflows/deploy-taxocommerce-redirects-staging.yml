@@ -30,6 +30,7 @@ jobs:
           set -euo pipefail
           find taxocommerce-redirects -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           php taxocommerce-redirects/tests/smoke.php
+          php taxocommerce-redirects/tests/rollback-adapter-smoke.php
           php taxocommerce-redirects/tests/lifecycle-smoke.php
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
