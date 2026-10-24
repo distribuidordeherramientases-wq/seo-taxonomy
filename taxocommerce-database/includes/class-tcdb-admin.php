@@ -461,6 +461,12 @@ final class TCDB_Admin {
             echo '<input type="hidden" name="tcdb_token" value="' . esc_attr( $token ) . '">';
             echo '<p><label><input type="checkbox" name="tcdb_backup" value="1" required> Confirmo que tengo un backup reciente y los IDs pertenecen a este WordPress.</label></p>';
             $owner = TCDB_Journal::owner_for_table( $preview['table'] );
+            $validated = $owner && true === apply_filters(
+                'tcdb_reversible_csv_import', false, $preview['table'], $preview['rows'], $owner
+            );
+            if ( ! $validated ) {
+                $owner = '';
+            }
             if ( $owner ) {
                 echo '<p><strong>Rollback disponible:</strong> el plugin ' . esc_html( $owner ) . ' ha registrado esta tabla como compatible. La importación se guardará como una operación reversible.</p>';
             } else {
@@ -472,7 +478,8 @@ final class TCDB_Admin {
         }
 
         $tables = array_filter( TCDB_Storage::tables(), static function ( $meta ) {
-            return $meta['family'] && 'InnoDB' === $meta['engine'];
+            return $meta['family'] && 'InnoDB' === $meta['engine']
+                && ! in_array( $meta['name'], array( TCDB_Journal::operations_table(), TCDB_Journal::changes_table() ), true );
         } );
         echo '<section class="tcdb-panel"><h3>1. Analizar un CSV antes de aplicar cambios</h3>';
         echo '<p>Máximo 1 MB y 250 filas; las columnas deben existir exactamente en la tabla elegida. No se aceptan comandos SQL ni importaciones directas a tablas WordPress/WooCommerce.</p>';
@@ -486,7 +493,7 @@ final class TCDB_Admin {
         echo '</select></label>';
         echo '<label class="tcdb-label">Archivo CSV UTF-8<input type="file" name="tcdb_csv" accept=".csv,text/csv" required></label>';
         echo '<p><button type="submit" class="button button-primary" ' . ( $tables ? '' : 'disabled' ) . '>Validar y mostrar vista previa</button></p></form>';
-        echo '<p class="description">Para importar productos, páginas, categorías o traducciones utiliza el plugin TaxoCommerce Import-Export, que valida las entidades WooCommerce. Esta pantalla se reserva a tablas internas existentes.</p></section>';
+        echo '<p class="description">Para importar productos, páginas, categorías o traducciones utiliza TaxoCommerce Import-Export. El módulo propietario debe validar expresamente cualquier CSV reversible; una tabla registrada por sí sola no garantiza esa seguridad.</p></section>';
     }
 
     private static function render_cleanup() {
