@@ -169,28 +169,51 @@ final class TCDB_Import {
             wp_die( 'La estructura de la tabla ha cambiado; vuelve a analizar el archivo.' );
         }
 
-        global $wpdb;
-        if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
-            wp_die( 'No se pudo iniciar una transacción InnoDB segura.' );
-        }
-        $inserted = 0;
-        $failed = false;
-        foreach ( $data['rows'] as $row ) {
-            $affected = $wpdb->insert( $table, $row );
-            if ( false === $affected || 1 !== (int) $affected ) {
-                $failed = true;
-                break;
+        $owner = TCDB_Journal::ready() ? TCDB_Journal::owner_for_table( $table ) : '';
+        $operation_id = 0;
+        if ( $owner ) {
+            // Imported INSERTs become one atomic reversible operation only
+            // when the table owner explicitly advertises a compatible schema.
+            $result = TCDB_Journal::insert_batch(
+                $owner,
+                'Importación CSV en ' . $table,
+                $table,
+                $data['rows']
+            );
+            if ( is_wp_error( $result ) ) {
+                wp_die( esc_html( $result->get_error_message() ) );
             }
-            ++$inserted;
-        }
-        if ( $failed || false === $wpdb->query( 'COMMIT' ) ) {
-            $wpdb->query( 'ROLLBACK' );
-            TCDB_Storage::log( 'import_rejected', array( 'table' => $table, 'attempted' => count( $data['rows'] ) ) );
-            wp_die( 'No se ha aplicado el CSV: hay columnas inválidas, restricciones o filas duplicadas. No se sobrescribió ninguna fila existente.' );
+            $inserted = (int) $result['rows'];
+            $operation_id = (int) $result['operation_id'];
+        } else {
+            $ack = isset( $_POST['tcdb_no_rollback_ack'] )
+                && '1' === (string) $_POST['tcdb_no_rollback_ack'];
+            if ( ! $ack ) {
+                wp_die( 'Esta tabla no ha registrado integración de rollback. Confirma expresamente que aceptas importar sin reversión centralizada.' );
+            }
+            global $wpdb;
+            if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+                wp_die( 'No se pudo iniciar una transacción InnoDB.' );
+            }
+            $inserted = 0;
+            $failed = false;
+            foreach ( $data['rows'] as $row ) {
+                $affected = $wpdb->insert( $table, $row );
+                if ( false === $affected || 1 !== (int) $affected ) {
+                    $failed = true;
+                    break;
+                }
+                ++$inserted;
+            }
+            if ( $failed || false === $wpdb->query( 'COMMIT' ) ) {
+                $wpdb->query( 'ROLLBACK' );
+                TCDB_Storage::log( 'import_rejected', array( 'table' => $table, 'attempted' => count( $data['rows'] ) ) );
+                wp_die( 'No se ha aplicado el CSV: datos inválidos, restricciones o filas duplicadas.' );
+            }
         }
 
         delete_transient( self::pending_key( $token ) );
-        TCDB_Storage::log( 'import_insert', array( 'table' => $table, 'rows' => $inserted ) );
+        TCDB_Storage::log( 'import_insert', array( 'table' => $table, 'rows' => $inserted, 'rollback_operation_id' => $operation_id ) );
         TCDB_Storage::redirect( 'import', 'import_ok' );
     }
 }
