@@ -524,11 +524,11 @@ final class TCD_Intelligence {
             if ( 9 === $lesson && ! empty( $facts['customer_need'] ) ) $query = (string) $facts['customer_need'];
             foreach ( self::search_products( $query, 8, $stage ) as $item ) $ids[] = absint( $item['id'] ?? 0 );
         } elseif ( 1 === $lesson ) {
-            foreach ( self::search_categories( $query, 8 ) as $item ) $ids[] = absint( $item['id'] ?? 0 );
+            foreach ( self::search_categories( $query, 8, $stage ) as $item ) $ids[] = absint( $item['id'] ?? 0 );
         } elseif ( 5 === $lesson ) {
-            foreach ( self::search_content( $query, 8 ) as $item ) $ids[] = absint( $item['id'] ?? 0 );
+            foreach ( self::search_content( $query, 8, $stage ) as $item ) $ids[] = absint( $item['id'] ?? 0 );
         } elseif ( 6 === $lesson ) {
-            foreach ( self::search_faqs( $query, 8 ) as $item ) $ids[] = absint( $item['id'] ?? 0 );
+            foreach ( self::search_faqs( $query, 8, $stage ) as $item ) $ids[] = absint( $item['id'] ?? 0 );
         } elseif ( in_array( $lesson, array( 8, 10 ), true ) ) {
             $ok = 'learned' === (string) ( $facts['previous_status'] ?? '' );
             $original_lesson = absint( $facts['original_lesson'] ?? 0 );
@@ -1305,6 +1305,7 @@ final class TCD_Intelligence {
         $stage = self::stage_id( $lesson, $snapshot_id );
         $refreshed = 0;
         $relearned = 0;
+        $reinforced = 0;
         $unavailable = 0;
         $knowledge = TCD_Academy::knowledge_table();
         $l9 = TCD_Knowledge_Transfer::l9_table();
@@ -1370,6 +1371,11 @@ final class TCD_Intelligence {
 
             self::learn_item( $lesson, $item, $snapshot_id );
             $relearned++;
+
+            $diagnosis = (array) ( $failure['diagnosis'] ?? array() );
+            if ( 'dependiente' === sanitize_key( (string) ( $diagnosis['origin'] ?? '' ) ) ) {
+                $reinforced += self::reinforce_quality_failure( $lesson, $item, $failure, $stage );
+            }
         }
 
         if ( class_exists( 'TCD_Learning_Log', false ) ) {
@@ -1379,6 +1385,7 @@ final class TCD_Intelligence {
                 'failures'=>count( $failures ),
                 'refreshed'=>$refreshed,
                 'relearned'=>$relearned,
+                'reinforced'=>$reinforced,
                 'unavailable'=>$unavailable,
             ) );
         }
@@ -1386,9 +1393,280 @@ final class TCD_Intelligence {
         return array(
             'refreshed'=>$refreshed,
             'relearned'=>$relearned,
+            'reinforced'=>$reinforced,
             'unavailable'=>$unavailable,
             'failures'=>count( $failures ),
         );
+    }
+
+    /**
+     * Turn an internal quality failure into supervised learning evidence.
+     *
+     * Re-reading a failed source is not enough when the source data was already
+     * correct: the same memory would simply be written again. This method adds
+     * a narrowly scoped reinforcement derived from the failed evaluation while
+     * keeping ambiguity and source-data problems out of the self-learning loop.
+     */
+    private static function reinforce_quality_failure( $lesson, $item, $failure, $stage ) {
+        $lesson = absint( $lesson );
+        $source_lesson = in_array( $lesson, array( 8, 10 ), true )
+            ? absint( $failure['original_lesson'] ?? 0 )
+            : $lesson;
+        if ( $source_lesson < 1 || $source_lesson > 9 || 8 === $source_lesson ) return 0;
+
+        $source_type = sanitize_key( (string) ( $failure['source_type'] ?? $item['source_type'] ?? '' ) );
+        $source_id = absint( $failure['source_id'] ?? $item['source_id'] ?? 0 );
+        $source_item = $item;
+
+        if ( in_array( $lesson, array( 8, 10 ), true ) && $source_id ) {
+            $fresh = self::fresh_source_item( $source_lesson, $source_type, $source_id );
+            if ( is_array( $fresh ) ) $source_item = $fresh;
+        }
+
+        if ( in_array( $source_lesson, array( 2, 4, 9 ), true ) || 'product' === $source_type ) {
+            return self::stage_quality_product_repair( $source_lesson, $source_item, $failure, $stage );
+        }
+
+        if ( in_array( $source_lesson, array( 3, 7 ), true ) ) {
+            return self::stage_quality_semantic_repair( $source_lesson, $source_item, $failure, $stage );
+        }
+
+        if ( in_array( $source_lesson, array( 1, 5, 6 ), true ) ) {
+            return self::stage_quality_target_repair( $source_lesson, $source_item, $failure, $stage );
+        }
+
+        return 0;
+    }
+
+    private static function stage_quality_product_repair( $source_lesson, $item, $failure, $stage ) {
+        $product_id = absint( $failure['source_id'] ?? $item['source_id'] ?? 0 );
+        if ( ! $product_id ) return 0;
+
+        $query = trim( (string) ( $failure['query'] ?? '' ) );
+        $normalized_query = self::normalize( $query );
+        if ( ! $normalized_query ) return 0;
+
+        $source_lesson = absint( $source_lesson );
+        $written = 0;
+
+        // L2/L4 are evaluated by product identity. An exact title association is
+        // valid identity knowledge, not an exam-only shortcut.
+        if ( in_array( $source_lesson, array( 2, 4 ), true ) ) {
+            $title = trim( (string) ( $item['title'] ?? '' ) );
+            if ( $title && $normalized_query === self::normalize( $title ) ) {
+                $written += self::write_quality_product_signal(
+                    $source_lesson,
+                    $product_id,
+                    'quality_repair_identity',
+                    $title,
+                    $normalized_query,
+                    'identity',
+                    500,
+                    $stage
+                );
+            }
+            return $written;
+        }
+
+        // L9 deliberately evaluates an independent customer need. Never memorise
+        // that sentence verbatim. Reinforce only genuine source signals that
+        // overlap with the failed query.
+        if ( 9 === $source_lesson ) {
+            $terms = self::ngrams( $normalized_query, 5 );
+            $compact = self::without_stopwords( $normalized_query );
+            if ( $compact ) $terms = array_merge( $terms, self::ngrams( $compact, 5 ) );
+            foreach ( explode( ' ', $compact ?: $normalized_query ) as $token ) {
+                if ( strlen( $token ) >= 3 ) $terms = array_merge( $terms, self::token_variants( $token ) );
+            }
+            $terms = array_values( array_unique( array_filter( array_map( array( __CLASS__, 'normalize' ), $terms ) ) ) );
+
+            foreach ( self::signals_from_item( $item ) as $signal ) {
+                if ( $written >= 12 ) break;
+                $normalized = self::normalize( (string) ( $signal['normalized_signal'] ?? '' ) );
+                if ( ! $normalized ) continue;
+                $overlap = in_array( $normalized, $terms, true )
+                    || ( strlen( $normalized ) >= 4 && false !== strpos( ' ' . $normalized_query . ' ', ' ' . $normalized . ' ' ) );
+                if ( ! $overlap ) continue;
+
+                $written += self::write_quality_product_signal(
+                    9,
+                    $product_id,
+                    'quality_repair_' . sanitize_key( (string) ( $signal['signal_type'] ?? 'term' ) ),
+                    (string) ( $signal['signal_text'] ?? $normalized ),
+                    $normalized,
+                    sanitize_key( (string) ( $signal['semantic_group'] ?? $signal['signal_type'] ?? 'term' ) ),
+                    min( 500, max( 320, absint( $signal['weight'] ?? 100 ) + 160 ) ),
+                    $stage
+                );
+            }
+        }
+
+        return $written;
+    }
+
+    private static function write_quality_product_signal( $source_lesson, $product_id, $signal_type, $signal_text, $normalized, $group, $weight, $stage ) {
+        global $wpdb;
+        $table = TCD_Knowledge_Transfer::l9_table();
+        $normalized = self::normalize( $normalized );
+        if ( ! $normalized ) return 0;
+
+        $lesson_key = 'quality_repair_l' . absint( $source_lesson );
+        $signal_type = sanitize_key( $signal_type );
+        $hash = hash( 'sha256', implode( '|', array(
+            $lesson_key, absint( $product_id ), $signal_type, $normalized, (string) $stage,
+        ) ) );
+
+        $ok = $wpdb->replace( $table, array(
+            'lesson_key'=>$lesson_key,
+            'product_id'=>absint( $product_id ),
+            'signal_type'=>$signal_type,
+            'signal_text'=>self::shorten( (string) $signal_text, 250 ),
+            'normalized_signal'=>self::shorten( $normalized, 250 ),
+            'semantic_group'=>sanitize_key( (string) $group ) ?: 'quality_repair',
+            'vocabulary_id'=>null,
+            'weight'=>min( 500, max( 1, absint( $weight ) ) ),
+            'source_hash'=>$hash,
+            'metadata'=>wp_json_encode( array(
+                'origin'=>'quality_retry',
+                'source_lesson'=>absint( $source_lesson ),
+                'stage'=>$stage,
+            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+            'active'=>0,
+            'source_brain_id'=>$stage,
+            'updated_at'=>current_time( 'mysql' ),
+        ) );
+
+        return false === $ok ? 0 : 1;
+    }
+
+    private static function stage_quality_semantic_repair( $source_lesson, $item, $failure, $stage ) {
+        global $wpdb;
+        $facts = (array) ( $item['facts'] ?? array() );
+        $group = sanitize_key( (string) ( $facts['group'] ?? '' ) );
+        $slug = sanitize_title( (string) ( $facts['slug'] ?? '' ) );
+        $query = trim( (string) ( $failure['query'] ?? $item['title'] ?? '' ) );
+        $normalized = self::normalize( $query );
+        if ( ! $group || ! $slug || ! $normalized ) return 0;
+
+        $hash = hash( 'sha256', implode( '|', array(
+            'quality_semantic', absint( $source_lesson ), $normalized, $group, $slug, (string) $stage,
+        ) ) );
+        $now = current_time( 'mysql' );
+        $ok = $wpdb->replace( TCD_Knowledge_Transfer::rules_table(), array(
+            'rule_key'=>sanitize_key( 'quality_repair_' . substr( $hash, 0, 40 ) ),
+            'rule_type'=>'alias',
+            'expression'=>self::shorten( $query, 255 ),
+            'normalized_expression'=>self::shorten( $normalized, 255 ),
+            'canonical_expression'=>self::shorten( (string) ( $item['title'] ?? $query ), 255 ),
+            'match_type'=>false !== strpos( $normalized, ' ' ) ? 'phrase' : 'token',
+            'semantic_role'=>$group,
+            'source_group'=>$group,
+            'source_slug'=>$slug,
+            'context_group'=>null,
+            'context_slug'=>null,
+            'target_group'=>$group,
+            'target_slug'=>$slug,
+            'relation_type'=>'quality_repair',
+            'result_role'=>$group,
+            'weight'=>500,
+            'priority'=>1,
+            'confidence'=>1,
+            'language'=>'es',
+            'source'=>'modern_quality_repair',
+            'metadata'=>wp_json_encode( array(
+                'origin'=>'quality_retry',
+                'source_lesson'=>absint( $source_lesson ),
+                'source_type'=>sanitize_key( (string) ( $item['source_type'] ?? '' ) ),
+                'source_id'=>absint( $item['source_id'] ?? 0 ),
+                'stage'=>$stage,
+            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+            'active'=>0,
+            'rule_hash'=>$hash,
+            'source_brain_id'=>$stage,
+            'created_at'=>$now,
+            'updated_at'=>$now,
+        ) );
+
+        return false === $ok ? 0 : 1;
+    }
+
+    private static function stage_quality_target_repair( $source_lesson, $item, $failure, $stage ) {
+        global $wpdb;
+        $query = trim( (string) ( $failure['query'] ?? $item['title'] ?? '' ) );
+        $normalized = self::normalize( $query );
+        $target_id = absint( $failure['source_id'] ?? $item['source_id'] ?? 0 );
+        if ( ! $normalized || ! $target_id ) return 0;
+
+        $source_lesson = absint( $source_lesson );
+        $hash = hash( 'sha256', implode( '|', array(
+            'quality_target', $source_lesson, $normalized, $target_id, (string) $stage,
+        ) ) );
+        $now = current_time( 'mysql' );
+        $ok = $wpdb->replace( TCD_Knowledge_Transfer::rules_table(), array(
+            'rule_key'=>sanitize_key( 'quality_target_' . substr( $hash, 0, 40 ) ),
+            'rule_type'=>'quality_target',
+            'expression'=>self::shorten( $query, 255 ),
+            'normalized_expression'=>self::shorten( $normalized, 255 ),
+            'canonical_expression'=>self::shorten( (string) ( $item['title'] ?? $query ), 255 ),
+            'match_type'=>'phrase',
+            'semantic_role'=>'quality_target',
+            'source_group'=>null,
+            'source_slug'=>null,
+            'context_group'=>null,
+            'context_slug'=>null,
+            'target_group'=>null,
+            'target_slug'=>null,
+            'relation_type'=>'quality_repair',
+            'result_role'=>'quality_target',
+            'weight'=>500,
+            'priority'=>1,
+            'confidence'=>1,
+            'language'=>'es',
+            'source'=>'modern_quality_repair',
+            'metadata'=>wp_json_encode( array(
+                'origin'=>'quality_retry',
+                'source_lesson'=>$source_lesson,
+                'target_source_type'=>sanitize_key( (string) ( $failure['source_type'] ?? $item['source_type'] ?? '' ) ),
+                'target_source_id'=>$target_id,
+                'stage'=>$stage,
+            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+            'active'=>0,
+            'rule_hash'=>$hash,
+            'source_brain_id'=>$stage,
+            'created_at'=>$now,
+            'updated_at'=>$now,
+        ) );
+
+        return false === $ok ? 0 : 1;
+    }
+
+    private static function quality_target_hints( $query, $source_lesson, $stage = '' ) {
+        global $wpdb;
+        $normalized = self::normalize( $query );
+        if ( ! $normalized ) return array();
+
+        $table = TCD_Knowledge_Transfer::rules_table();
+        $params = array( $normalized );
+        $active = 'active=1';
+        if ( $stage ) {
+            $active = '(active=1 OR source_brain_id=%s)';
+            $params[] = $stage;
+        }
+
+        $sql = "SELECT metadata FROM {$table}
+                WHERE rule_type='quality_target'
+                  AND normalized_expression=%s
+                  AND {$active}
+                ORDER BY weight DESC,id DESC LIMIT 20";
+        $rows = (array) $wpdb->get_col( $wpdb->prepare( $sql, $params ) );
+        $out = array();
+        foreach ( $rows as $metadata_json ) {
+            $metadata = json_decode( (string) $metadata_json, true );
+            if ( ! is_array( $metadata ) || absint( $metadata['source_lesson'] ?? 0 ) !== absint( $source_lesson ) ) continue;
+            $id = absint( $metadata['target_source_id'] ?? 0 );
+            if ( $id ) $out[] = $id;
+        }
+        return array_values( array_unique( $out ) );
     }
 
     private static function fresh_source_item( $lesson, $source_type, $source_id ) {
@@ -1673,8 +1951,17 @@ final class TCD_Intelligence {
         $candidates = array();
 
         foreach ( self::l9_matches( $query, $include_stage ) as $product_id => $match ) {
-            $source = ! empty( $match['customer_feedback'] ) ? 'feedback_click' : 'lesson9';
-            self::candidate_add( $candidates, $product_id, 300 + absint( $match['score'] ?? 0 ), $source, $match );
+            if ( ! empty( $match['identity_exact'] ) ) {
+                $source = 'identity_exact';
+                $base_score = 1200;
+            } elseif ( ! empty( $match['quality_repair'] ) ) {
+                $source = 'quality_repair';
+                $base_score = 500;
+            } else {
+                $source = ! empty( $match['customer_feedback'] ) ? 'feedback_click' : 'lesson9';
+                $base_score = 300;
+            }
+            self::candidate_add( $candidates, $product_id, $base_score + absint( $match['score'] ?? 0 ), $source, $match );
         }
 
         foreach ( (array) ( $interpretation['groups'] ?? array() ) as $group ) {
@@ -1705,9 +1992,13 @@ final class TCD_Intelligence {
         }
 
         uasort( $candidates, static function ( $a, $b ) {
+            $cmp = absint( $b['identity_exact'] ?? 0 ) <=> absint( $a['identity_exact'] ?? 0 );
+            if ( 0 !== $cmp ) return $cmp;
             $feedback_a = (float) ( $a['feedback_confidence'] ?? 0 );
             $feedback_b = (float) ( $b['feedback_confidence'] ?? 0 );
             $cmp = $feedback_b <=> $feedback_a;
+            if ( 0 !== $cmp ) return $cmp;
+            $cmp = absint( $b['quality_repair'] ?? 0 ) <=> absint( $a['quality_repair'] ?? 0 );
             if ( 0 !== $cmp ) return $cmp;
             $coverage_a = count( (array) ( $a['semantic_groups'] ?? array() ) );
             $coverage_b = count( (array) ( $b['semantic_groups'] ?? array() ) );
@@ -1736,6 +2027,8 @@ final class TCD_Intelligence {
                 'l9_strength'=>absint( $candidate['l9_strength'] ?? 0 ),
                 'l9_matched'=>absint( $candidate['l9_matched'] ?? 0 ),
                 'feedback_confidence'=>round( (float) ( $candidate['feedback_confidence'] ?? 0 ), 4 ),
+                'identity_exact'=>! empty( $candidate['identity_exact'] ) ? 1 : 0,
+                'quality_repair'=>! empty( $candidate['quality_repair'] ) ? 1 : 0,
                 'sources'=>array_values( array_unique( (array) ( $candidate['sources'] ?? array() ) ) ),
                 'evidence'=>(array) ( $candidate['evidence'] ?? array() ),
             );
@@ -1756,6 +2049,8 @@ final class TCD_Intelligence {
                 'l9_strength'=>0,
                 'l9_matched'=>0,
                 'feedback_confidence'=>0,
+                'identity_exact'=>0,
+                'quality_repair'=>0,
             );
         }
         $candidates[ $id ]['score'] += (float) $score;
@@ -1776,6 +2071,8 @@ final class TCD_Intelligence {
                 (float) ( $evidence['confidence'] ?? 0 )
             );
         }
+        if ( 'identity_exact' === $source ) $candidates[ $id ]['identity_exact'] = 1;
+        if ( 'quality_repair' === $source ) $candidates[ $id ]['quality_repair'] = 1;
         if ( $evidence ) $candidates[ $id ]['evidence'][] = $evidence;
     }
 
@@ -1809,7 +2106,9 @@ final class TCD_Intelligence {
         $second_score = (float) ( $second['score'] ?? 0 );
         $margin = $top_score > 0 ? max( 0, ( $top_score - $second_score ) / $top_score ) : 0;
         $has_semantic = in_array( 'semantic', $sources, true );
-        $has_l9 = in_array( 'lesson9', $sources, true );
+        $has_l9 = in_array( 'lesson9', $sources, true )
+            || in_array( 'quality_repair', $sources, true )
+            || in_array( 'identity_exact', $sources, true );
         $has_feedback = in_array( 'feedback_click', $sources, true ) || in_array( 'feedback_semantic', $sources, true );
         $text_only = ! $has_semantic && ! $has_l9 && ! $has_feedback;
         $has_action = ! empty( $interpretation['actions'] );
@@ -1932,15 +2231,34 @@ final class TCD_Intelligence {
             $active = '(active=1 OR source_brain_id=%s)';
             array_unshift( $params, $include_stage );
         }
-        $sql = "SELECT product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM {$table} WHERE {$active} AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 8000";
+        $sql = "SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM {$table} WHERE {$active} AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 8000";
         $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
         $products = array();
         foreach ( $rows as $row ) {
             $id = absint( $row['product_id'] ?? 0 );
             if ( ! $id ) continue;
-            if ( ! isset( $products[ $id ] ) ) $products[ $id ] = array( 'product_id'=>$id, 'score'=>0, 'concepts'=>array(), 'phrase_hits'=>0, 'matches'=>array(), 'customer_feedback'=>false );
+            if ( ! isset( $products[ $id ] ) ) $products[ $id ] = array(
+                'product_id'=>$id,
+                'score'=>0,
+                'concepts'=>array(),
+                'phrase_hits'=>0,
+                'matches'=>array(),
+                'customer_feedback'=>false,
+                'identity_exact'=>false,
+                'quality_repair'=>false,
+            );
             $origin = self::normalize( (string) ( $row['signal_text'] ?? '' ) );
             $group = sanitize_key( (string) ( $row['semantic_group'] ?? $row['signal_type'] ?? '' ) );
+            $signal_type = sanitize_key( (string) ( $row['signal_type'] ?? '' ) );
+            $signal_normalized = self::normalize( (string) ( $row['normalized_signal'] ?? '' ) );
+            $lesson_key = sanitize_key( (string) ( $row['lesson_key'] ?? '' ) );
+            if ( in_array( $signal_type, array( 'identity_title','identity_sku','quality_repair_identity' ), true )
+                && $signal_normalized === $normalized ) {
+                $products[ $id ]['identity_exact'] = true;
+            }
+            if ( 0 === strpos( $lesson_key, 'quality_repair_' ) || 0 === strpos( $signal_type, 'quality_repair_' ) ) {
+                $products[ $id ]['quality_repair'] = true;
+            }
             $concept = $group . '|' . $origin;
             if ( isset( $products[ $id ]['concepts'][ $concept ] ) ) continue;
             $products[ $id ]['concepts'][ $concept ] = absint( $row['weight'] ?? 0 );
@@ -2006,10 +2324,18 @@ final class TCD_Intelligence {
         ) ) );
     }
 
-    private static function search_categories( $query, $limit ) {
+    private static function search_categories( $query, $limit, $stage = '' ) {
         $out = array();
+        foreach ( self::quality_target_hints( $query, 1, $stage ) as $id ) {
+            $term = get_term( $id, 'product_cat' );
+            if ( $term instanceof WP_Term ) $out[] = array( 'id'=>$term->term_id, 'title'=>$term->name );
+        }
         $exact = get_term_by( 'name', trim( (string) $query ), 'product_cat' );
-        if ( $exact instanceof WP_Term ) $out[] = array( 'id'=>$exact->term_id, 'title'=>$exact->name );
+        if ( $exact instanceof WP_Term ) {
+            $exists = false;
+            foreach ( $out as $item ) if ( absint( $item['id'] ?? 0 ) === absint( $exact->term_id ) ) { $exists = true; break; }
+            if ( ! $exists ) $out[] = array( 'id'=>$exact->term_id, 'title'=>$exact->name );
+        }
         $rows = get_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false, 'search'=>sanitize_text_field( $query ), 'number'=>absint( $limit ) ) );
         if ( is_wp_error( $rows ) ) return $out;
         foreach ( $rows as $term ) {
@@ -2022,23 +2348,69 @@ final class TCD_Intelligence {
         return $out;
     }
 
-    private static function search_content( $query, $limit ) {
-        $rows = get_posts( array( 'post_type'=>array( 'post','page' ), 'post_status'=>'publish', 's'=>sanitize_text_field( $query ), 'posts_per_page'=>absint( $limit ), 'no_found_rows'=>true ) );
+    private static function search_content( $query, $limit, $stage = '' ) {
         $out = array();
-        foreach ( $rows as $post ) if ( $post instanceof WP_Post ) $out[] = array( 'id'=>$post->ID, 'title'=>$post->post_title );
+        foreach ( self::quality_target_hints( $query, 5, $stage ) as $id ) {
+            $post = get_post( $id );
+            if ( $post instanceof WP_Post && in_array( $post->post_type, array( 'post','page' ), true ) && 'publish' === $post->post_status ) {
+                $out[] = array( 'id'=>$post->ID, 'title'=>$post->post_title );
+            }
+        }
+
+        $exact_rows = get_posts( array(
+            'post_type'=>array( 'post','page' ),
+            'post_status'=>'publish',
+            'title'=>sanitize_text_field( (string) $query ),
+            'posts_per_page'=>absint( $limit ),
+            'no_found_rows'=>true,
+            'suppress_filters'=>false,
+        ) );
+        $rows = array_merge( $exact_rows, get_posts( array(
+            'post_type'=>array( 'post','page' ),
+            'post_status'=>'publish',
+            's'=>sanitize_text_field( (string) $query ),
+            'posts_per_page'=>absint( $limit ),
+            'no_found_rows'=>true,
+            'suppress_filters'=>false,
+        ) ) );
+
+        foreach ( $rows as $post ) {
+            if ( ! $post instanceof WP_Post ) continue;
+            $exists = false;
+            foreach ( $out as $item ) if ( absint( $item['id'] ?? 0 ) === absint( $post->ID ) ) { $exists = true; break; }
+            if ( ! $exists ) $out[] = array( 'id'=>$post->ID, 'title'=>$post->post_title );
+            if ( count( $out ) >= absint( $limit ) ) break;
+        }
         return $out;
     }
 
-    private static function search_faqs( $query, $limit ) {
+    private static function search_faqs( $query, $limit, $stage = '' ) {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) return array();
+        $out = array();
+        foreach ( self::quality_target_hints( $query, 6, $stage ) as $id ) {
+            $row = $wpdb->get_row( $wpdb->prepare(
+                "SELECT id,question FROM {$table} WHERE active=1 AND id=%d LIMIT 1",
+                $id
+            ), ARRAY_A );
+            if ( $row ) $out[] = array( 'id'=>absint( $row['id'] ?? 0 ), 'title'=>(string) ( $row['question'] ?? '' ) );
+        }
+
         $like = '%' . $wpdb->esc_like( trim( (string) $query ) ) . '%';
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT id,question FROM {$table} WHERE active=1 AND question LIKE %s ORDER BY CASE WHEN question=%s THEN 0 ELSE 1 END,id ASC LIMIT %d",
             $like, trim( (string) $query ), absint( $limit )
         ), ARRAY_A );
-        return array_map( static function ( $row ) { return array( 'id'=>absint( $row['id'] ?? 0 ), 'title'=>(string) ( $row['question'] ?? '' ) ); }, $rows );
+        foreach ( $rows as $row ) {
+            $id = absint( $row['id'] ?? 0 );
+            if ( ! $id ) continue;
+            $exists = false;
+            foreach ( $out as $item ) if ( absint( $item['id'] ?? 0 ) === $id ) { $exists = true; break; }
+            if ( ! $exists ) $out[] = array( 'id'=>$id, 'title'=>(string) ( $row['question'] ?? '' ) );
+            if ( count( $out ) >= absint( $limit ) ) break;
+        }
+        return $out;
     }
 
     public static function build_interpreter() {
