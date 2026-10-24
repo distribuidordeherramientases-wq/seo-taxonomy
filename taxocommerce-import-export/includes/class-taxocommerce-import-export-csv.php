@@ -348,6 +348,299 @@ final class TaxoCommerce_Import_Export_CSV {
 	}
 
 	/**
+	 * Header used by the incremental exporter.
+	 *
+	 * @param string $type Export dataset.
+	 * @return array
+	 */
+	public function export_header_for_job( $type ) {
+		$type = sanitize_key( (string) $type );
+		if ( 'products' === $type ) {
+			return array(
+				'record_type', 'id', 'product_type', 'status', 'name', 'slug', 'sku', 'regular_price', 'sale_price',
+				'stock_status', 'manage_stock', 'stock_quantity', 'short_description', 'description', 'categories_json',
+				'tags_json', 'attributes_json', 'external_url', 'button_text',
+				'brand_taxonomy', 'brand_ids', 'brand', 'manufacturer', 'supplier',
+				'supplier_external_id', 'supplier_catalog_id', 'supplier_category', 'supplier_price',
+			);
+		}
+		if ( 'products_reduced' === $type ) {
+			return array(
+				'record_type', 'id', 'product_type', 'status', 'name', 'slug', 'sku',
+				'categories_json', 'architecture_json', 'tags_json', 'brand_json',
+				'attributes_json', 'vocabulary_json', 'seo_attributes_json',
+			);
+		}
+		if ( 'product_categories' === $type ) {
+			return array( 'record_type', 'id', 'name', 'slug', 'parent_id', 'description', 'image_id' );
+		}
+		return array( 'record_type', 'id', 'status', 'title', 'slug', 'excerpt', 'content', 'date_gmt', 'author_id', 'categories_json', 'tags_json' );
+	}
+
+	/**
+	 * Build one row for the incremental exporter.
+	 *
+	 * @param string $type Export dataset.
+	 * @param int    $id Object ID.
+	 * @return array|null
+	 */
+	public function export_row_for_job( $type, $id ) {
+		$type = sanitize_key( (string) $type );
+		$id   = absint( $id );
+
+		if ( in_array( $type, array( 'products', 'products_reduced' ), true ) ) {
+			$product = wc_get_product( $id );
+			if ( ! $product ) {
+				return null;
+			}
+			$attributes = $this->product_attributes_export_payload( $id, $product );
+			$categories = $this->terms_payload( $id, 'product_cat' );
+			$tags       = $this->terms_payload( $id, 'product_tag' );
+			$brand      = $this->product_brand_export_payload( $id );
+
+			if ( 'products_reduced' === $type ) {
+				return array(
+					'product_inventory_reduced',
+					$id,
+					$product->get_type(),
+					$product->get_status( 'edit' ),
+					$product->get_name( 'edit' ),
+					$product->get_slug( 'edit' ),
+					$product->get_sku( 'edit' ),
+					wp_json_encode( $categories, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+					wp_json_encode( $this->product_architecture_export_payload( $categories ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+					wp_json_encode( $tags, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+					wp_json_encode( $brand, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+					wp_json_encode( $attributes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+					wp_json_encode( $this->product_vocabulary_export_payload( $id ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+					wp_json_encode( $this->product_seo_attributes_export_payload( $id ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+				);
+			}
+
+			$external_url = '';
+			$button_text  = '';
+			if ( $product->is_type( 'external' ) && is_a( $product, 'WC_Product_External' ) ) {
+				$external_url = $product->get_product_url( 'edit' );
+				$button_text  = $product->get_button_text( 'edit' );
+			}
+
+			return array(
+				'product',
+				$id,
+				$product->get_type(),
+				$product->get_status( 'edit' ),
+				$product->get_name( 'edit' ),
+				$product->get_slug( 'edit' ),
+				$product->get_sku( 'edit' ),
+				$product->get_regular_price( 'edit' ),
+				$product->get_sale_price( 'edit' ),
+				$product->get_stock_status( 'edit' ),
+				$product->get_manage_stock( 'edit' ) ? '1' : '0',
+				$product->get_stock_quantity( 'edit' ),
+				$product->get_short_description( 'edit' ),
+				$product->get_description( 'edit' ),
+				wp_json_encode( $categories, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+				wp_json_encode( $tags, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+				wp_json_encode( $attributes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+				$external_url,
+				$button_text,
+				(string) ( $brand['taxonomy'] ?? '' ),
+				implode( ',', (array) ( $brand['ids'] ?? array() ) ),
+				implode( ' | ', (array) ( $brand['names'] ?? array() ) ),
+				(string) get_post_meta( $id, '_seo_fabricante', true ),
+				(string) get_post_meta( $id, '_seo_proveedor', true ),
+				(string) get_post_meta( $id, '_seo_proveedor_id_externo', true ),
+				(string) get_post_meta( $id, '_seo_proveedor_catalogo_id', true ),
+				(string) get_post_meta( $id, '_seo_categoria_proveedor', true ),
+				(string) get_post_meta( $id, '_seo_precio_proveedor', true ),
+			);
+		}
+
+		if ( 'product_categories' === $type ) {
+			$term = get_term( $id, 'product_cat' );
+			if ( ! $term || is_wp_error( $term ) ) {
+				return null;
+			}
+			return array(
+				'product_category',
+				$term->term_id,
+				$term->name,
+				$term->slug,
+				$term->parent,
+				$term->description,
+				absint( get_term_meta( $term->term_id, 'thumbnail_id', true ) ),
+			);
+		}
+
+		$post_type = 'pages' === $type ? 'page' : 'post';
+		$post      = get_post( $id );
+		if ( ! $post || $post_type !== $post->post_type ) {
+			return null;
+		}
+		return array(
+			$post_type,
+			$post->ID,
+			$post->post_status,
+			$post->post_title,
+			$post->post_name,
+			$post->post_excerpt,
+			$post->post_content,
+			get_post_time( 'Y-m-d H:i:s', true, $post ),
+			$post->post_author,
+			wp_json_encode( 'post' === $post_type ? $this->terms_payload( $post->ID, 'category' ) : array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+			wp_json_encode( 'post' === $post_type ? $this->terms_payload( $post->ID, 'post_tag' ) : array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+		);
+	}
+
+	/**
+	 * WooCommerce attributes as a portable payload.
+	 *
+	 * @param int        $product_id Product ID.
+	 * @param WC_Product $product Product object.
+	 * @return array
+	 */
+	private function product_attributes_export_payload( $product_id, $product ) {
+		$out = array();
+		foreach ( $product->get_attributes() as $attribute ) {
+			if ( ! is_a( $attribute, 'WC_Product_Attribute' ) ) {
+				continue;
+			}
+			$values = $attribute->is_taxonomy()
+				? wc_get_product_terms( $product_id, $attribute->get_name(), array( 'fields' => 'names' ) )
+				: $attribute->get_options();
+			$out[] = array(
+				'name'      => $attribute->get_name(),
+				'visible'   => $attribute->get_visible(),
+				'variation' => $attribute->get_variation(),
+				'options'   => array_values( array_map( 'strval', (array) $values ) ),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Resolve modular Core hierarchy for categories in a reduced product row.
+	 *
+	 * @param array $categories Category payload.
+	 * @return array
+	 */
+	private function product_architecture_export_payload( $categories ) {
+		$out = array();
+		foreach ( (array) $categories as $category ) {
+			$category_id = absint( $category['id'] ?? 0 );
+			if ( ! $category_id ) {
+				continue;
+			}
+			$secondaries = array_values( array_filter( array_map( 'absint', (array) get_term_meta( $category_id, '_taxocommerce_core_parent_hub_secondary', false ) ) ) );
+			$paths = array();
+			foreach ( $secondaries as $secondary_id ) {
+				$primaries = array_values( array_filter( array_map( 'absint', (array) get_post_meta( $secondary_id, '_taxocommerce_core_parent_hub_primary', false ) ) ) );
+				if ( ! $primaries ) {
+					$paths[] = array(
+						'hub_secondary' => $this->page_identity( $secondary_id ),
+						'hub_primary'   => null,
+						'cluster'       => null,
+					);
+					continue;
+				}
+				foreach ( $primaries as $primary_id ) {
+					$clusters = array_values( array_filter( array_map( 'absint', (array) get_post_meta( $primary_id, '_taxocommerce_core_parent_cluster', false ) ) ) );
+					if ( ! $clusters ) {
+						$paths[] = array(
+							'hub_secondary' => $this->page_identity( $secondary_id ),
+							'hub_primary'   => $this->page_identity( $primary_id ),
+							'cluster'       => null,
+						);
+						continue;
+					}
+					foreach ( $clusters as $cluster_id ) {
+						$paths[] = array(
+							'hub_secondary' => $this->page_identity( $secondary_id ),
+							'hub_primary'   => $this->page_identity( $primary_id ),
+							'cluster'       => $this->page_identity( $cluster_id ),
+						);
+					}
+				}
+			}
+			$out[] = array(
+				'category' => $category,
+				'paths'    => $paths,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Small identity payload for hierarchy pages.
+	 *
+	 * @param int $page_id Page ID.
+	 * @return array
+	 */
+	private function page_identity( $page_id ) {
+		$post = get_post( absint( $page_id ) );
+		return $post ? array(
+			'id'   => absint( $post->ID ),
+			'slug' => (string) $post->post_name,
+			'name' => (string) $post->post_title,
+		) : array( 'id' => absint( $page_id ), 'slug' => '', 'name' => '' );
+	}
+
+	/**
+	 * Canonical Vocabulary assigned to one product when Vocabulary is active.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return array
+	 */
+	private function product_vocabulary_export_payload( $product_id ) {
+		if ( ! class_exists( 'TCV_Schema' ) ) {
+			return array();
+		}
+		global $wpdb;
+		$t = TCV_Schema::tables();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT v.semantic_group,v.slug,v.label,o.source,o.confidence
+				 FROM {$t['objects']} o
+				 INNER JOIN {$t['vocabulary']} v ON v.id=o.vocabulary_id
+				 WHERE o.object_type='product' AND o.object_id=%d AND o.status=1 AND v.active=1
+				 ORDER BY v.semantic_group,v.slug",
+				absint( $product_id )
+			),
+			ARRAY_A
+		);
+		return array_values( (array) $rows );
+	}
+
+	/**
+	 * Canonical SEO attributes assigned by Vocabulary.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return array
+	 */
+	private function product_seo_attributes_export_payload( $product_id ) {
+		if ( ! class_exists( 'TCV_Schema' ) ) {
+			return array();
+		}
+		global $wpdb;
+		$t = TCV_Schema::tables();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT a.slug AS attribute_slug,a.nombre AS attribute_name,a.grupo,a.tipo,
+				        t.slug AS term_slug,t.nombre AS term_name,
+				        p.valor_texto,p.valor_numero,p.valor_numero_max,p.unidad,p.valor_original,p.orden
+				 FROM {$t['product_att']} p
+				 INNER JOIN {$t['attributes']} a ON a.id=p.atributo_id
+				 LEFT JOIN {$t['terms']} t ON t.id=p.termino_id
+				 WHERE p.product_id=%d AND a.activo=1
+				 ORDER BY p.orden,p.id",
+				absint( $product_id )
+			),
+			ARRAY_A
+		);
+		return array_values( (array) $rows );
+	}
+
+	/**
 	 * Public row adapter used by the modular batch queue.
 	 *
 	 * @param array $data Row.
