@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: TaxoCommerce Dependiente
- * Description: Dependiente inteligente para WooCommerce: L1-L10 auditables, Intérprete semántico, memoria L9 y actualización continua.
+ * Plugin Name: TaxoCommerce Assistant
+ * Description: Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.
  * Version: 0.3.7
  * Requires at least: 6.5
  * Requires PHP: 7.4
