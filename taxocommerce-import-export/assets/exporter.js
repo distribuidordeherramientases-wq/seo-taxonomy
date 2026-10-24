@@ -71,8 +71,34 @@
 			if (!cluster || !primary || !secondary) {
 				return;
 			}
-			filterChildOptions(primary, cluster.value === '0' ? '' : cluster.value);
-			filterChildOptions(secondary, primary.value === '0' ? '' : primary.value);
+			var clusterId = cluster.value === '0' ? '' : cluster.value;
+			filterChildOptions(primary, clusterId);
+
+			if (primary.value !== '0') {
+				filterChildOptions(secondary, primary.value);
+				return;
+			}
+
+			var allowedPrimaries = {};
+			Array.prototype.forEach.call(primary.options, function (option, index) {
+				if (index > 0 && !option.hidden && !option.disabled) {
+					allowedPrimaries[option.value] = true;
+				}
+			});
+			Array.prototype.forEach.call(secondary.options, function (option, index) {
+				if (index === 0) {
+					option.hidden = false;
+					option.disabled = false;
+					return;
+				}
+				var parent = option.getAttribute('data-parent') || '0';
+				var visible = !clusterId || !!allowedPrimaries[parent];
+				option.hidden = !visible;
+				option.disabled = !visible;
+			});
+			if (secondary.selectedOptions.length && secondary.selectedOptions[0].disabled) {
+				secondary.value = '0';
+			}
 		}
 
 		function request(action, fields) {
