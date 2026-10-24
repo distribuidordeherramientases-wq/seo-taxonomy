@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.1
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,8 +15,13 @@ Import and export catalog, content and Media for WordPress/WooCommerce.
 
 TaxoCommerce Import-Export is an independent member of the TaxoCommerce family.
 
-Version 0.3.1 includes:
+Version 0.4.0 includes:
 
+* Dedicated Exportación tab with resumable block-based CSV generation.
+* Selectable exports for full products, reduced portable product inventory, product categories, posts and pages.
+* Product export filters for status, Cluster, primary Hub, secondary Hub and multiple product categories.
+* Reduced portable inventory with identity, hierarchy, WooCommerce tags/attributes, brand, Vocabulary and canonical SEO attributes; excludes long content, prices, stock, supplier and images.
+* Export jobs resume after reloading the admin screen and expose retry, cancel and authenticated download controls.
 * Products CSV import/export.
 * Safe partial correction CSV imports: only present columns are updated.
 * Automatic delimiter detection and safe product-type inference for correction CSVs.
@@ -29,7 +34,6 @@ Version 0.3.1 includes:
 * Featured-image, WooCommerce gallery and product-category image relationship restoration.
 * WordPress-generated thumbnails are rebuilt on import instead of transported.
 * Optional integration into TaxoCommerce Core.
-* No direct SQL.
 * Sequential multi-file batch queue with natural filename ordering.
 * Independent bounded worker owned by Import-Export, without the legacy central process manager.
 * Pause after current file, safe stop/resume from byte offset, imported/failed buckets and JSON sidecar diagnostics.
@@ -46,6 +50,15 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.0 =
+* Added a dedicated Exportación tab.
+* Added resumable AJAX export jobs processed in bounded blocks.
+* Added full and reduced portable product export modes.
+* Added product hierarchy/category/status filters using modular Core metadata.
+* Added progress, retry, cancel and authenticated completed-file downloads.
+* Kept the reduced inventory intentionally non-importable by the normal round-trip importer.
+
 
 = 0.3.0 =
 * Migrated the sequential multi-file CSV queue into the modular Import-Export plugin.
