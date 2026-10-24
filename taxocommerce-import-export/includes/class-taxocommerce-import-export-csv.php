@@ -84,7 +84,8 @@ final class TaxoCommerce_Import_Export_CSV {
 			$this->redirect_error( __( 'No se pudo abrir el CSV.', 'taxocommerce-import-export' ) );
 		}
 
-		$headers = fgetcsv( $handle );
+		$delimiter = $this->detect_delimiter( $handle );
+		$headers   = fgetcsv( $handle, 0, $delimiter, '"', '' );
 		if ( ! is_array( $headers ) ) {
 			$this->stream_close( $handle );
 			$this->redirect_error( __( 'El CSV no contiene cabecera.', 'taxocommerce-import-export' ) );
@@ -101,7 +102,7 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 
 		$count = 0;
-		while ( false !== ( $row = fgetcsv( $handle ) ) ) {
+		while ( false !== ( $row = fgetcsv( $handle, 0, $delimiter, '"', '' ) ) ) {
 			if ( empty( array_filter( $row, 'strlen' ) ) ) {
 				continue;
 			}
@@ -333,7 +334,10 @@ final class TaxoCommerce_Import_Export_CSV {
 						$post->post_author,
 						wp_json_encode( 'post' === $post_type ? $this->terms_payload( $post->ID, 'category' ) : array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
 						wp_json_encode( 'post' === $post_type ? $this->terms_payload( $post->ID, 'post_tag' ) : array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
-					)
+					),
+					',',
+					'"',
+					''
 				);
 			}
 
@@ -893,6 +897,31 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Detect CSV delimiter without consuming the stream.
+	 *
+	 * @param resource $handle Stream.
+	 * @return string
+	 */
+	private function detect_delimiter( $handle ) {
+		$position = ftell( $handle );
+		$line     = fgets( $handle );
+		fseek( $handle, $position );
+
+		if ( false === $line ) {
+			return ',';
+		}
+
+		$scores = array();
+		foreach ( array( ';', ',', "\t" ) as $candidate ) {
+			$scores[ $candidate ] = count( str_getcsv( $line, $candidate, '"', '' ) );
+		}
+		arsort( $scores, SORT_NUMERIC );
+		$delimiter = (string) key( $scores );
+
+		return in_array( $delimiter, array( ';', ',', "\t" ), true ) ? $delimiter : ',';
 	}
 
 	/**
