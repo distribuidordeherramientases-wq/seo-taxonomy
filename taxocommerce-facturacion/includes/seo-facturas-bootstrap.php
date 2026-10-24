@@ -18,7 +18,7 @@ if (!defined('SEO_FACTURAS_PATH')) {
 }
 
 if (!defined('SEO_FACTURAS_URL')) {
-    define('SEO_FACTURAS_URL', SEO_SYSTEM_URL . 'includes/facturas/');
+    define('SEO_FACTURAS_URL', plugins_url( '/', __FILE__ ));
 }
 
 require_once SEO_FACTURAS_PATH . 'class-seo-facturas-install.php';
