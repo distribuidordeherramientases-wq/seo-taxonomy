@@ -798,14 +798,16 @@ final class TCV_Portable {
                     if ( 'mirror' === $mode ) {
                         $wpdb->delete( $t['product_att'], array( 'product_id'=>$product_id ) );
                     }
+                    $cleared_attributes = array();
                     foreach ( (array) $row['attributes'] as $attribute ) {
                         $aid = self::attribute_id( $attribute['attribute_slug'] ?? '' );
                         if ( ! $aid ) {
                             continue;
                         }
                         $term_id = self::attribute_term_id( $aid, $attribute['term_slug'] ?? '' );
-                        if ( 'merge' === $mode ) {
+                        if ( 'merge' === $mode && empty( $cleared_attributes[ $aid ] ) ) {
                             $wpdb->delete( $t['product_att'], array( 'product_id'=>$product_id, 'atributo_id'=>$aid ) );
+                            $cleared_attributes[ $aid ] = true;
                         }
                         $wpdb->insert(
                             $t['product_att'],
