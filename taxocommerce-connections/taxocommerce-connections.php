@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Connections
  * Description: Shared connection layer for Google, Bing, Amazon, Pinterest, and future TaxoCommerce integrations.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_CONNECTIONS_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_CONNECTIONS_VERSION', '0.2.0' );
 define( 'TAXOCOMMERCE_CONNECTIONS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_CONNECTIONS_PATH', plugin_dir_path( __FILE__ ) );
 
