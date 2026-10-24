@@ -305,6 +305,7 @@ final class TCD_Feedback {
                 'semantic_slug'=>$semantic_slug,
                 'semantic_label'=>$semantic_label,
             ) );
+            self::recalculate_competitors( $query_hash, $target_key );
         }
 
         return array(
@@ -381,9 +382,11 @@ final class TCD_Feedback {
         ), ARRAY_A );
 
         $now = current_time( 'mysql' );
+        $previous_status = (string) ( $existing['status'] ?? '' );
+        $newly_promoted = 'active' === $status && 'active' !== $previous_status;
         $promoted_at = (string) ( $existing['promoted_at'] ?? '' );
-        if ( 'active' === $status && ! $promoted_at ) {
-            $promoted_at = $now;
+        if ( $newly_promoted ) {
+            if ( ! $promoted_at ) $promoted_at = $now;
             self::trace( 'INFO', 'feedback_promoted', array(
                 'query'=>(string) ( $target['normalized_query'] ?? '' ),
                 'target_type'=>$target_type,
@@ -424,7 +427,34 @@ final class TCD_Feedback {
             'weighted_score'=>$weighted,
             'share'=>round( $share, 4 ),
             'confidence'=>round( $confidence, 4 ),
+            'newly_promoted'=>$newly_promoted,
+            'previous_status'=>$previous_status,
         );
+    }
+
+    private static function recalculate_competitors( $query_hash, $except_target_key ) {
+        global $wpdb;
+        $table = self::learning_table();
+        $rows = (array) $wpdb->get_results( $wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE query_hash=%s AND target_key<>%s
+             ORDER BY id ASC LIMIT 50",
+            (string) $query_hash,
+            (string) $except_target_key
+        ), ARRAY_A );
+
+        foreach ( $rows as $row ) {
+            self::recalculate_target( array(
+                'query_hash'=>(string) ( $row['query_hash'] ?? '' ),
+                'normalized_query'=>(string) ( $row['normalized_query'] ?? '' ),
+                'target_type'=>(string) ( $row['target_type'] ?? '' ),
+                'target_key'=>(string) ( $row['target_key'] ?? '' ),
+                'product_id'=>absint( $row['product_id'] ?? 0 ),
+                'semantic_group'=>(string) ( $row['semantic_group'] ?? '' ),
+                'semantic_slug'=>(string) ( $row['semantic_slug'] ?? '' ),
+                'semantic_label'=>(string) ( $row['semantic_label'] ?? '' ),
+            ) );
+        }
     }
 
     public static function active_product_scores( $query ) {
@@ -600,7 +630,7 @@ final class TCD_Feedback {
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM {$table}
-                 WHERE status IN ('staged','validated')
+                 WHERE status IN ('staged','validated','active')
                  ORDER BY last_seen ASC,id ASC LIMIT %d",
                 min( 500, max( 1, absint( $limit ) ) )
             ),
@@ -621,7 +651,7 @@ final class TCD_Feedback {
                 'semantic_slug'=>(string) ( $row['semantic_slug'] ?? '' ),
                 'semantic_label'=>(string) ( $row['semantic_label'] ?? '' ),
             ) );
-            if ( 'active' === (string) ( $result['status'] ?? '' ) ) $promoted++;
+            if ( ! empty( $result['newly_promoted'] ) ) $promoted++;
         }
 
         self::prune();
