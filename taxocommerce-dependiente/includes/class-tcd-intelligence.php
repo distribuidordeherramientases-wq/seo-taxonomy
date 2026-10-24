@@ -1312,6 +1312,15 @@ final class TCD_Intelligence {
         foreach ( $failures as $failure ) {
             $source_type = sanitize_key( (string) ( $failure['source_type'] ?? '' ) );
             $source_id = absint( $failure['source_id'] ?? 0 );
+
+            // L8/L10 expose the original object to the auditor, but their own
+            // knowledge row is a review item. Refresh that review row so the
+            // regression re-reads the current original source.
+            if ( in_array( $lesson, array( 8, 10 ), true ) && absint( $failure['review_source_id'] ?? 0 ) ) {
+                $source_type = 'review';
+                $source_id = absint( $failure['review_source_id'] );
+            }
+
             if ( ! $source_id ) {
                 $unavailable++;
                 continue;
