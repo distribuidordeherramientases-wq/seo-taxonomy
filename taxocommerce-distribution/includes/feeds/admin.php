@@ -221,7 +221,7 @@ function tcdist_feed_render_admin() {
         echo '<div class="notice notice-success inline"><p>Configuracion guardada.</p></div>';
     }
     if ( isset( $_GET['cf_started'] ) ) {
-        echo '<div class="notice notice-info inline"><p>Generacion iniciada y entregada al Gestor de workers. El lote se adapta automaticamente al tiempo real de respuesta y a la carga observada.</p></div>';
+        echo '<div class="notice notice-info inline"><p>Generacion iniciada y entregada al worker propio de Distribution. El lote se adapta automaticamente al tiempo real de respuesta y a la carga observada.</p></div>';
     }
     if ( isset( $_GET['cf_stopped'] ) ) {
         echo '<div class="notice notice-warning inline"><p>Generacion detenida por el usuario. No se ha publicado ningun archivo parcial.</p></div>';
@@ -245,7 +245,7 @@ function tcdist_feed_render_admin() {
     }
 
     if ( ! $manager_enabled ) {
-        echo '<div class="notice notice-error inline"><p><strong>Gestor de workers:</strong> Inventarios comerciales no esta habilitado en Procesos &gt; Gestor de workers. Puedes iniciar una generacion, pero no avanzara hasta habilitar ese proceso.</p></div>';
+        echo '<div class="notice notice-error inline"><p><strong>worker propio de Distribution:</strong> Inventarios comerciales no esta habilitado en Procesos &gt; worker propio de Distribution. Puedes iniciar una generacion, pero no avanzara hasta habilitar ese proceso.</p></div>';
     }
 
     $status = (string) ( $state['status'] ?? 'never' );
@@ -311,7 +311,7 @@ function tcdist_feed_render_admin() {
                         </label>
                         <span>
                             <strong>Lote</strong><br>
-                            <span class="description">Adaptativo · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'seo-processes' ], admin_url( 'admin.php' ) ) ); ?>">configurar en Procesos</a></span>
+                            <span class="description">Adaptativo · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>">ver en Automatización</a></span>
                         </span>
                     </p>
 
@@ -352,7 +352,7 @@ function tcdist_feed_render_admin() {
                 <?php if ( ! empty( $state['last_batch_rows'] ) ) : ?>
                     <p class="description"><strong>Ultimo lote:</strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> productos en <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
                 <?php else : ?>
-                    <p class="description">Pendiente de la primera ventana del Gestor de workers.</p>
+                    <p class="description">Pendiente de la primera ventana del worker propio de Distribution.</p>
                 <?php endif; ?>
 
                 <?php if ( 'running' === $status ) : ?>
@@ -389,7 +389,7 @@ function tcdist_feed_render_admin() {
                         <button type="submit" class="button" <?php disabled( 'running' !== $status ); ?> onclick="return confirm('¿Parar la generacion actual? Los archivos parciales no se publicaran.');">Parar generacion</button>
                     </form>
                 </div>
-                <p class="description">Iniciar crea una generacion nueva y la entrega al <strong>Gestor de workers</strong>. Parar invalida la ejecucion actual sin sustituir el ultimo feed valido. El tamaño del lote, la pausa, la presión y la recuperacion se gobiernan desde Procesos; este modulo no mantiene un worker paralelo.</p>
+                <p class="description">Iniciar crea una generacion nueva y la entrega al <strong>worker propio de Distribution</strong>. Parar invalida la ejecucion actual sin sustituir el ultimo feed valido. El tamaño del lote, la pausa, la presión y la recuperacion se gobiernan desde Procesos; este plugin mantiene un único worker propio por bloques.</p>
                 <p class="description">Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo.</p>
 
                 <?php if ( ! empty( $state['excluded_reasons'] ) ) : ?>
@@ -507,7 +507,7 @@ function tcdist_feed_render_admin() {
             var tickUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
             var nonce = <?php echo wp_json_encode( wp_create_nonce( 'tcdist_feed_tick' ) ); ?>;
 
-            // Este pulso no procesa lotes: solo mantiene visible y elegible el gestor central.
+            // Este pulso no procesa lotes: solo mantiene visible y elegible el worker propio.
             window.setTimeout(function () {
                 var body = new URLSearchParams();
                 body.append('action', 'tcdist_feed_tick');
