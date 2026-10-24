@@ -263,7 +263,7 @@ function tcdist_feed_render_admin() {
     }
 
     if ( ! $manager_enabled ) {
-        echo '<div class="notice notice-error inline"><p><strong>Distribution worker:</strong> Inventarios comerciales no esta habilitado en Procesos &gt; worker propio de Distribution. Puedes iniciar una generacion, pero no avanzara hasta habilitar ese proceso.</p></div>';
+        echo '<div class="notice notice-error inline"><p><strong>Distribution worker:</strong> Commercial feeds are not enabled in Processes &gt; Distribution worker. You can start a generation, but it will not progress until that process is enabled.</p></div>';
     }
 
     $status = (string) ( $state['status'] ?? 'never' );
