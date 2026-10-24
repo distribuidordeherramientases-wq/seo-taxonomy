@@ -372,6 +372,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		$state['current_file']  = basename( $target );
 		$state['entity']        = $detected['type'];
 		$state['header']        = $detected['header'];
+		$state['delimiter']     = $detected['delimiter'];
 		$state['offset']        = $detected['offset'];
 		$state['processed_rows']= 0;
 		$state['error_rows']    = 0;
@@ -406,7 +407,10 @@ final class TaxoCommerce_Import_Export_Batch {
 			return new WP_Error( 'tc_ie_batch_open', __( 'No se pudo abrir el CSV actual.', 'taxocommerce-import-export' ) );
 		}
 
-		$raw_header = fgetcsv( $handle );
+		$delimiter = isset( $state['delimiter'] ) && in_array( $state['delimiter'], array( ';', ',', "\t" ), true )
+			? $state['delimiter']
+			: ',';
+		$raw_header = fgetcsv( $handle, 0, $delimiter );
 		if ( ! is_array( $raw_header ) ) {
 			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			return new WP_Error( 'tc_ie_batch_header', __( 'El CSV no contiene una cabecera válida.', 'taxocommerce-import-export' ) );
@@ -428,7 +432,7 @@ final class TaxoCommerce_Import_Export_Batch {
 				break;
 			}
 
-			$row = fgetcsv( $handle );
+			$row = fgetcsv( $handle, 0, $delimiter );
 			if ( false === $row ) {
 				$eof = true;
 				break;
@@ -515,6 +519,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		$state['current_file']   = '';
 		$state['entity']         = '';
 		$state['header']         = array();
+		$state['delimiter']      = '';
 		$state['offset']         = 0;
 		$state['processed_rows'] = 0;
 		$state['error_rows']     = 0;
@@ -597,9 +602,10 @@ final class TaxoCommerce_Import_Export_Batch {
 		if ( false === $handle ) {
 			return new WP_Error( 'tc_ie_batch_detect_open', __( 'No se pudo abrir el CSV para detectar su tipo.', 'taxocommerce-import-export' ) );
 		}
-		$raw_header = fgetcsv( $handle );
+		$delimiter  = $this->detect_delimiter( $handle );
+		$raw_header = fgetcsv( $handle, 0, $delimiter );
 		$data_offset = ftell( $handle );
-		$first      = fgetcsv( $handle );
+		$first      = fgetcsv( $handle, 0, $delimiter );
 		if ( ! is_array( $raw_header ) || ! is_array( $first ) ) {
 			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			return new WP_Error( 'tc_ie_batch_detect_empty', __( 'El CSV no contiene cabecera y al menos una fila de datos.', 'taxocommerce-import-export' ) );
@@ -638,10 +644,36 @@ final class TaxoCommerce_Import_Export_Batch {
 		}
 
 		return array(
-			'type'   => $type,
-			'header' => $header,
-			'offset' => $offset,
+			'type'      => $type,
+			'header'    => $header,
+			'delimiter' => $delimiter,
+			'offset'    => $offset,
 		);
+	}
+
+	/**
+	 * Detect the most likely CSV delimiter without consuming the stream.
+	 *
+	 * @param resource $handle CSV stream.
+	 * @return string
+	 */
+	private function detect_delimiter( $handle ) {
+		$position = ftell( $handle );
+		$line     = fgets( $handle );
+		fseek( $handle, $position );
+
+		if ( false === $line ) {
+			return ',';
+		}
+
+		$scores = array();
+		foreach ( array( ';', ',', "\t" ) as $candidate ) {
+			$scores[ $candidate ] = count( str_getcsv( $line, $candidate ) );
+		}
+		arsort( $scores, SORT_NUMERIC );
+		$delimiter = (string) key( $scores );
+
+		return in_array( $delimiter, array( ';', ',', "\t" ), true ) ? $delimiter : ',';
 	}
 
 	/**
