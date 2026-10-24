@@ -59,8 +59,11 @@ jobs:
             zip -qr ../taxocommerce-facturacion-0.1.0.zip taxocommerce-facturacion
           )
 
-          unzip -t taxocommerce-logistica-0.1.0.zip
-          unzip -t taxocommerce-facturacion-0.1.0.zip
+          cp taxocommerce-logistica-0.1.0.zip taxocommerce-logistica.zip
+          cp taxocommerce-facturacion-0.1.0.zip taxocommerce-facturacion.zip
+
+          unzip -t taxocommerce-logistica.zip
+          unzip -t taxocommerce-facturacion.zip
 
       - name: WordPress Plugin Check - Logística
         uses: wordpress/plugin-check-action@v1
@@ -84,7 +87,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: taxocommerce-logistica-0.1.0
-          path: taxocommerce-logistica-0.1.0.zip
+          path: |
+            taxocommerce-logistica-0.1.0.zip
+            taxocommerce-logistica.zip
           retention-days: 30
           if-no-files-found: error
 
@@ -92,6 +97,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: taxocommerce-facturacion-0.1.0
-          path: taxocommerce-facturacion-0.1.0.zip
+          path: |
+            taxocommerce-facturacion-0.1.0.zip
+            taxocommerce-facturacion.zip
           retention-days: 30
           if-no-files-found: error
