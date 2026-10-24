@@ -17,7 +17,7 @@ $checks = array(
     strpos( $settings, 'seo_facturas_invoice_settings' ) !== false,
     strpos( $settings, 'seo_facturas_proforma_settings' ) !== false,
     strpos( $settings, 'seo_facturas_quote_settings' ) !== false,
-    strpos( $pdf, 'Dompdf\\Dompdf' ) !== false,
+    strpos( $pdf, "Dompdf\\\\Dompdf" ) !== false,
     strpos( $quotes, 'render_block_woocommerce/cart' ) !== false,
     is_file( $root . '/includes/templates/document.php' ),
     is_file( $root . '/includes/templates/quote.php' ),
