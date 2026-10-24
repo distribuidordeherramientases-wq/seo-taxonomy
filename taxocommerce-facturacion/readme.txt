@@ -7,20 +7,27 @@ Requires PHP: 7.4
 Stable tag: 0.1.0
 License: MIT
 
-Migración 1:1 del sistema de Facturas y presupuestos de TaxoCommerce SEO.
+WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
 
 == Description ==
 
-Conserva Datos empresa, Fiscalidad, Facturas, Proformas, Presupuestos, Documentos,
-snapshots, numeración, PDF, emails, metabox de pedido y compatibilidad con carrito
-clásico y Cart Block.
+TaxoCommerce Facturación keeps the existing document workflow while moving it into an independent plugin.
 
-Reutiliza las opciones seo_facturas_* y la tabla seo_factura_documents existentes.
-No crea una segunda base documental y no incluye una rutina de desinstalación destructiva.
+Features:
 
-El ZIP instalable incorpora el mismo Dompdf 3.1.6 que usa el módulo histórico.
+* Company and tax settings.
+* Invoices and proforma invoices.
+* Cart quotations for classic Cart and Cart Block.
+* Order document registry and snapshots.
+* Document numbering and series.
+* PDF generation using the same Dompdf 3.1.6 engine as the historical module.
+* Email attachments and resending.
+* WooCommerce order metabox and customer documents.
+
+The plugin reuses the existing seo_facturas_* options and seo_factura_documents table.
+It does not create a parallel document database and does not include a destructive uninstall routine.
 
 == Changelog ==
 
 = 0.1.0 =
-* Migración 1:1 del módulo documental 0.4.0 desde el monolito.
+* Migrated the existing document module into an independent TaxoCommerce plugin.
