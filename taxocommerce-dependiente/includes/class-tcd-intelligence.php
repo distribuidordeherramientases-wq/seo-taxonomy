@@ -12,6 +12,7 @@ final class TCD_Intelligence {
     const DB_VERSION = '1.0.0';
     const DB_OPTION = 'tcd_intelligence_db_version';
     const INTERPRETER_STATE = 'tcd_interpreter_state';
+    const QUALITY_PROGRESS = 'tcd_quality_eval_progress';
     const MAX_SIGNALS_PER_PRODUCT = 32;
 
     public static function quality_table() {
@@ -65,6 +66,7 @@ final class TCD_Intelligence {
         $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE source_brain_id LIKE %s OR source_brain_id LIKE %s", $l9, 'modern:%', 'maintenance:%' ) );
         $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $quality ) );
         delete_option( self::INTERPRETER_STATE );
+        delete_option( self::QUALITY_PROGRESS );
     }
 
     public static function stage_id( $lesson, $snapshot_id ) {
@@ -432,6 +434,225 @@ final class TCD_Intelligence {
     private static function threshold( $lesson ) {
         $thresholds = array( 1=>0.94, 2=>0.88, 3=>0.88, 4=>0.86, 5=>0.85, 6=>0.92, 7=>0.87, 8=>0.90, 9=>0.88, 10=>0.90 );
         return (float) ( $thresholds[ absint( $lesson ) ] ?? 0.88 );
+    }
+
+    public static function reset_quality_progress( $lesson = 0, $snapshot_id = 0 ) {
+        $state = get_option( self::QUALITY_PROGRESS, array() );
+        if ( ! is_array( $state ) || ! $state ) return;
+        if ( $lesson && absint( $state['lesson'] ?? 0 ) !== absint( $lesson ) ) return;
+        if ( $snapshot_id && absint( $state['snapshot_id'] ?? 0 ) !== absint( $snapshot_id ) ) return;
+        delete_option( self::QUALITY_PROGRESS );
+    }
+
+    public static function quality_progress( $lesson = 0, $snapshot_id = 0 ) {
+        $state = get_option( self::QUALITY_PROGRESS, array() );
+        if ( ! is_array( $state ) || ! $state ) return array();
+        if ( $lesson && absint( $state['lesson'] ?? 0 ) !== absint( $lesson ) ) return array();
+        if ( $snapshot_id && absint( $state['snapshot_id'] ?? 0 ) !== absint( $snapshot_id ) ) return array();
+
+        $done = absint( $state['cursor'] ?? 0 );
+        $total = absint( $state['total'] ?? 0 );
+        $report = (array) ( $state['report'] ?? array() );
+        $state['done'] = $done;
+        $state['percent'] = $total ? min( 100, round( 100 * $done / $total, 1 ) ) : 0;
+        $state['pass_top1'] = absint( $report['pass_top1'] ?? 0 );
+        $state['pass_top3'] = absint( $report['pass_top3'] ?? 0 );
+        $state['pass_top8'] = absint( $report['pass_top8'] ?? 0 );
+        $state['failed'] = absint( $report['failed'] ?? 0 );
+        return $state;
+    }
+
+    private static function quality_batch_size() {
+        $priority = class_exists( 'TCD_Load', false ) ? absint( TCD_Load::priority() ) : 3;
+        $sizes = array( 1=>4, 2=>6, 3=>10, 4=>15, 5=>20 );
+        return absint( $sizes[ $priority ] ?? 10 );
+    }
+
+    /**
+     * Incremental quality evaluation.
+     *
+     * The old evaluator processed the complete 180-case sample inside one
+     * request. This method persists the deterministic sample and report between
+     * ticks so the UI can show real progress and the process can be stopped
+     * safely between batches.
+     */
+    public static function quality_step( $lesson, $snapshot_id ) {
+        global $wpdb;
+
+        $lesson = absint( $lesson );
+        $snapshot_id = absint( $snapshot_id );
+        if ( $lesson < 1 || $lesson > 10 || ! $snapshot_id ) {
+            return new WP_Error( 'tcd_quality_progress_invalid', 'No se puede iniciar la evaluación de calidad.' );
+        }
+
+        $state = get_option( self::QUALITY_PROGRESS, array() );
+        if (
+            ! is_array( $state )
+            || absint( $state['lesson'] ?? 0 ) !== $lesson
+            || absint( $state['snapshot_id'] ?? 0 ) !== $snapshot_id
+        ) {
+            $table = TCD_Academy::knowledge_table();
+            $all_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
+                "SELECT id FROM {$table} WHERE lesson=%d AND status='learned' ORDER BY id ASC",
+                $lesson
+            ) ) );
+            if ( ! $all_ids ) {
+                return new WP_Error( 'tcd_quality_progress_empty', 'La lección no tiene casos aprendidos para evaluar.' );
+            }
+
+            $sample_rows = self::representative_sample(
+                array_map( static function ( $id ) { return array( 'id'=>absint( $id ) ); }, $all_ids ),
+                180
+            );
+            $sample_ids = array_values( array_filter( array_map( static function ( $row ) {
+                return absint( $row['id'] ?? 0 );
+            }, $sample_rows ) ) );
+
+            $state = array(
+                'lesson'=>$lesson,
+                'snapshot_id'=>$snapshot_id,
+                'cursor'=>0,
+                'total'=>count( $sample_ids ),
+                'population'=>count( $all_ids ),
+                'sample_ids'=>$sample_ids,
+                'started_at'=>current_time( 'mysql' ),
+                'updated_at'=>current_time( 'mysql' ),
+                'report'=>array(
+                    'evaluated'=>0,
+                    'pass_top1'=>0,
+                    'pass_top3'=>0,
+                    'pass_top8'=>0,
+                    'failed'=>0,
+                    'pass_any_ratio'=>0,
+                    'sample'=>array(),
+                    'failures'=>array(),
+                    'failure_origins'=>array(
+                        'datos_fuente'=>0,
+                        'ambiguedad'=>0,
+                        'dependiente'=>0,
+                        'sin_diagnostico'=>0,
+                    ),
+                    'data_issue_counts'=>array(),
+                    'recommendations'=>array(),
+                    'sample_method'=>'distributed_deterministic',
+                    'population'=>count( $all_ids ),
+                ),
+            );
+            update_option( self::QUALITY_PROGRESS, $state, false );
+        }
+
+        $sample_ids = array_values( array_map( 'absint', (array) ( $state['sample_ids'] ?? array() ) ) );
+        $cursor = min( count( $sample_ids ), absint( $state['cursor'] ?? 0 ) );
+        $batch_ids = array_slice( $sample_ids, $cursor, self::quality_batch_size() );
+        $report = (array) ( $state['report'] ?? array() );
+        $stage = self::stage_id( $lesson, $snapshot_id );
+        $batch_evaluated = 0;
+
+        if ( $batch_ids ) {
+            $table = TCD_Academy::knowledge_table();
+            $placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%d' ) );
+            $rows = (array) $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id,source_type,source_id,title,context_json,status FROM {$table} WHERE id IN ({$placeholders})",
+                    $batch_ids
+                ),
+                ARRAY_A
+            );
+            $by_id = array();
+            foreach ( $rows as $row ) $by_id[ absint( $row['id'] ?? 0 ) ] = $row;
+
+            foreach ( $batch_ids as $knowledge_id ) {
+                if ( empty( $by_id[ $knowledge_id ] ) ) continue;
+                $row = $by_id[ $knowledge_id ];
+                $evaluation = self::evaluate_row( $lesson, $row, $stage );
+                $evaluation['source_type'] = sanitize_key( (string) ( $evaluation['source_type'] ?? $row['source_type'] ?? '' ) );
+                $evaluation['source_id'] = absint( $evaluation['source_id'] ?? $row['source_id'] ?? 0 );
+                $evaluation['title'] = (string) ( $evaluation['title'] ?? $row['title'] ?? '' );
+                $evaluation['diagnosis'] = self::diagnose_evaluation( $lesson, $row, $evaluation );
+
+                $report['evaluated'] = absint( $report['evaluated'] ?? 0 ) + 1;
+                if ( ! empty( $evaluation['top1'] ) ) $report['pass_top1'] = absint( $report['pass_top1'] ?? 0 ) + 1;
+                if ( ! empty( $evaluation['top3'] ) ) $report['pass_top3'] = absint( $report['pass_top3'] ?? 0 ) + 1;
+                if ( ! empty( $evaluation['top8'] ) ) $report['pass_top8'] = absint( $report['pass_top8'] ?? 0 ) + 1;
+                if ( empty( $evaluation['top8'] ) ) {
+                    $report['failed'] = absint( $report['failed'] ?? 0 ) + 1;
+                    $report['failures'][] = $evaluation;
+                    $origin = sanitize_key( (string) ( $evaluation['diagnosis']['origin'] ?? 'sin_diagnostico' ) );
+                    if ( ! isset( $report['failure_origins'][ $origin ] ) ) $origin = 'sin_diagnostico';
+                    $report['failure_origins'][ $origin ] = absint( $report['failure_origins'][ $origin ] ?? 0 ) + 1;
+                    foreach ( (array) ( $evaluation['diagnosis']['data_issues'] ?? array() ) as $issue ) {
+                        $code = sanitize_key( (string) ( $issue['code'] ?? '' ) );
+                        if ( ! $code ) continue;
+                        $report['data_issue_counts'][ $code ] = absint( $report['data_issue_counts'][ $code ] ?? 0 ) + 1;
+                    }
+                }
+                if ( count( (array) ( $report['sample'] ?? array() ) ) < 12 ) $report['sample'][] = $evaluation;
+            }
+
+            $batch_evaluated = count( $batch_ids );
+            $cursor += $batch_evaluated;
+            $report['pass_any_ratio'] = absint( $report['evaluated'] ?? 0 )
+                ? absint( $report['pass_top8'] ?? 0 ) / absint( $report['evaluated'] )
+                : 0;
+            $state['cursor'] = $cursor;
+            $state['report'] = $report;
+            $state['updated_at'] = current_time( 'mysql' );
+            update_option( self::QUALITY_PROGRESS, $state, false );
+        }
+
+        $total = count( $sample_ids );
+        if ( $cursor < $total ) {
+            return array(
+                'done'=>false,
+                'lesson'=>$lesson,
+                'snapshot_id'=>$snapshot_id,
+                'evaluated'=>$cursor,
+                'total'=>$total,
+                'percent'=>$total ? round( 100 * $cursor / $total, 1 ) : 0,
+                'batch_evaluated'=>$batch_evaluated,
+                'pass_top1'=>absint( $report['pass_top1'] ?? 0 ),
+                'pass_top3'=>absint( $report['pass_top3'] ?? 0 ),
+                'pass_top8'=>absint( $report['pass_top8'] ?? 0 ),
+                'failed'=>absint( $report['failed'] ?? 0 ),
+            );
+        }
+
+        $threshold = self::threshold( $lesson );
+        $ratio = (float) ( $report['pass_any_ratio'] ?? 0 );
+        $passed = $ratio >= $threshold;
+        $report['threshold'] = $threshold;
+        $report['passed'] = $passed;
+        $report['recommendations'] = self::quality_recommendations( $lesson, $report );
+
+        $wpdb->replace( self::quality_table(), array(
+            'snapshot_id'=>$snapshot_id,
+            'lesson'=>$lesson,
+            'evaluated'=>absint( $report['evaluated'] ?? 0 ),
+            'pass_top1'=>absint( $report['pass_top1'] ?? 0 ),
+            'pass_top3'=>absint( $report['pass_top3'] ?? 0 ),
+            'pass_top8'=>absint( $report['pass_top8'] ?? 0 ),
+            'failed'=>absint( $report['failed'] ?? 0 ),
+            'pass_any_ratio'=>$ratio,
+            'threshold'=>$threshold,
+            'status'=>$passed ? 'passed' : 'failed',
+            'report_json'=>wp_json_encode( $report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+            'created_at'=>current_time( 'mysql' ),
+        ) );
+
+        if ( $passed ) self::activate_stage( self::stage_id( $lesson, $snapshot_id ) );
+        delete_option( self::QUALITY_PROGRESS );
+
+        return array(
+            'done'=>true,
+            'passed'=>$passed,
+            'lesson'=>$lesson,
+            'snapshot_id'=>$snapshot_id,
+            'evaluated'=>absint( $report['evaluated'] ?? 0 ),
+            'total'=>$total,
+            'percent'=>100,
+            'batch_evaluated'=>$batch_evaluated,
+            'report'=>$report,
+        );
     }
 
     private static function evaluate_lesson( $lesson, $snapshot_id ) {
@@ -1289,6 +1510,7 @@ final class TCD_Intelligence {
 
         $lesson = absint( $lesson );
         $snapshot_id = absint( $snapshot_id );
+        self::reset_quality_progress( $lesson, $snapshot_id );
         $quality = self::quality_for_lesson( $lesson );
         $report = json_decode( (string) ( $quality['report_json'] ?? '' ), true );
         $report = is_array( $report ) ? $report : array();
