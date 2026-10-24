@@ -44,7 +44,7 @@ foreach ( array( 'analytics', 'search', 'bing' ) as $source ) {
     ob_start();
     TaxoCommerce_Google_Bing_Reports::render( $source );
     $html = ob_get_clean();
-    if ( false === strpos( $html, 'Descargar informe' ) || false === strpos( $html, 'Todavía no hay datos guardados' ) ) {
+    if ( false === strpos( $html, 'Download report' ) || false === strpos( $html, 'No saved data yet' ) ) {
         fwrite( STDERR, 'Unexpected empty state: ' . $source . "\n" );
         exit( 1 );
     }
@@ -91,7 +91,7 @@ $_GET = array( 'period' => '7' );
 ob_start();
 TaxoCommerce_Google_Bing_Reports::render( 'bing' );
 $html = ob_get_clean();
-if ( false === strpos( $html, 'última copia disponible' ) || false === strpos( $html, '01/08/2026' ) || false === strpos( $html, 'Exportar copia JSON' ) ) {
+if ( false === strpos( $html, 'latest available snapshot' ) || false === strpos( $html, '01/08/2026' ) || false === strpos( $html, 'Export JSON copy' ) ) {
     fwrite( STDERR, "Saved snapshot rendering failed\n" );
     exit( 1 );
 }
