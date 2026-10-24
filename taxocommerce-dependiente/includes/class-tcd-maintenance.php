@@ -47,6 +47,7 @@ final class TCD_Maintenance {
             'last_cursor_gmt'=>'',
             'last_cursor_local'=>'',
             'products_updated'=>0,
+            'categories_updated'=>0,
             'editorial_updated'=>0,
             'faqs_updated'=>0,
             'vocabulary_updated'=>0,
@@ -57,7 +58,9 @@ final class TCD_Maintenance {
 
     private static function ready() {
         $interpreter = TCD_Intelligence::interpreter_state();
-        return 'ready' === (string) ( $interpreter['status'] ?? '' );
+        // Once M11 has been built, maintenance must keep running even if a
+        // later regression temporarily marks it degraded; that is how it heals.
+        return in_array( (string) ( $interpreter['status'] ?? '' ), array( 'ready', 'degraded' ), true );
     }
 
     public static function product_changed( $product_id ) {
@@ -117,6 +120,7 @@ final class TCD_Maintenance {
         if ( ! is_array( $item ) ) return;
         TCD_Academy::upsert_maintenance_item( 1, $item );
         TCD_Intelligence::refresh_category( $term_id );
+        self::bump( 'categories_updated' );
     }
 
     public static function editorial_saved( $post_id, $post = null, $update = false ) {
@@ -132,6 +136,11 @@ final class TCD_Maintenance {
     public static function run() {
         if ( ! self::ready() ) return;
         $state = self::state();
+        $before_total = absint( $state['products_updated'] ?? 0 )
+            + absint( $state['categories_updated'] ?? 0 )
+            + absint( $state['editorial_updated'] ?? 0 )
+            + absint( $state['faqs_updated'] ?? 0 )
+            + absint( $state['vocabulary_updated'] ?? 0 );
         $since_gmt = $state['last_cursor_gmt'] ?: gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
         $since_local = $state['last_cursor_local'] ?: gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - DAY_IN_SECONDS );
         $until_gmt = current_time( 'mysql', true );
@@ -141,11 +150,21 @@ final class TCD_Maintenance {
             self::refresh_recent_faqs( $since_local, $until_local );
             self::refresh_recent_vocabulary( $since_local, $until_local );
             $state = self::state();
-            $state['status'] = 'active';
+            $after_total = absint( $state['products_updated'] ?? 0 )
+                + absint( $state['categories_updated'] ?? 0 )
+                + absint( $state['editorial_updated'] ?? 0 )
+                + absint( $state['faqs_updated'] ?? 0 )
+                + absint( $state['vocabulary_updated'] ?? 0 );
+            $interpreter_error = '';
+            if ( $after_total > $before_total ) {
+                $validation = TCD_Intelligence::build_interpreter();
+                if ( is_wp_error( $validation ) ) $interpreter_error = $validation->get_error_message();
+            }
+            $state['status'] = $interpreter_error ? 'warning' : 'active';
             $state['last_run'] = current_time( 'mysql' );
             $state['last_cursor_gmt'] = $until_gmt;
             $state['last_cursor_local'] = $until_local;
-            $state['last_error'] = '';
+            $state['last_error'] = $interpreter_error;
             $state['updated_at'] = current_time( 'mysql' );
             update_option( self::STATE, $state, false );
         } catch ( Throwable $e ) {
