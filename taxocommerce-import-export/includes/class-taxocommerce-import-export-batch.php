@@ -199,6 +199,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		if ( 'start' === $mode ) {
 			$state                     = $this->state();
 			$state['enabled']          = true;
+			$state['user_id']          = get_current_user_id();
 			$state['pause_after_file'] = false;
 			$state['stop_requested']   = false;
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : ( $state['status'] ?? 'processing' );
@@ -226,6 +227,7 @@ final class TaxoCommerce_Import_Export_Batch {
 
 		if ( 'start' === $action ) {
 			$state['enabled']          = true;
+			$state['user_id']          = get_current_user_id();
 			$state['pause_after_file'] = false;
 			$state['stop_requested']   = false;
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : 'processing';
@@ -268,8 +270,14 @@ final class TaxoCommerce_Import_Export_Batch {
 			return;
 		}
 
+		$previous_user = get_current_user_id();
+
 		try {
 			$state = $this->state();
+			$worker_user = absint( $state['user_id'] ?? 0 );
+			if ( $worker_user > 0 && $worker_user !== $previous_user ) {
+				wp_set_current_user( $worker_user );
+			}
 			if ( ! empty( $state['stop_requested'] ) ) {
 				$state['status']  = 'paused';
 				$state['enabled'] = false;
@@ -317,6 +325,9 @@ final class TaxoCommerce_Import_Export_Batch {
 				$this->schedule( 2 );
 			}
 		} finally {
+			if ( get_current_user_id() !== $previous_user ) {
+				wp_set_current_user( $previous_user );
+			}
 			$this->release_lock( $token );
 		}
 	}
