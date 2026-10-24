@@ -4,6 +4,7 @@ Módulo autónomo de conexiones e informes para Google Analytics 4, Google Searc
 
 ## Pestañas
 
+- **Informe:** lectura ejecutiva consolidada y sin llamadas externas. Combina los últimos snapshots guardados de Search Console, GA4, Bing, Trends y Mercado/Merchant; recupera la priorización útil de los informes antiguos sin duplicar las vistas detalladas de cada proveedor. Expone un contrato local para Analista.
 - **Conexiones:** Google OAuth, cuenta de servicio Google, propiedades GA4/Search Console, Bing Webmaster API, Merchant Center y Cloud Run. Guardar y probar conexión son acciones explícitas, sin sincronización de informes.
 - **Google Analytics:** sesiones, usuarios (nuevos y recurrentes), vistas, eventos, tasa de interacción y rebote, duración, eventos clave y compras registradas por GA4. Gráficos de tráfico por día, canales, países, dispositivos y tabla de páginas más vistas.
 - **Google Search:** clics, impresiones, CTR, posición media; gráficos diarios, países y dispositivos; principales consultas y páginas. Usa Search Analytics para búsqueda web y muestra como máximo 1.000 filas principales por tabla. No equivale al informe completo de indexación de Search Console.
@@ -21,7 +22,14 @@ El enlace **Exportar copia JSON** descarga únicamente la copia almacenada (sin 
 
 ## API local para Analista y otros módulos
 
-Lectura local:
+Informe ejecutivo consolidado, sólo lectura y sin red:
+
+    $executive = TaxoCommerce_Google_Bing_Executive::report();
+    // $executive['sources'], ['overview'], ['opportunities'], ['content'], ['demand']
+
+Analista debe consumir este contrato para sus resúmenes, indicadores y visualizaciones en vez de reconstruir conexiones o volver a consultar proveedores.
+
+Snapshots de fuente, también en lectura local:
 
     $reports = TaxoCommerce_Google_Bing_Reports::saved_reports( 'search' );
     // analytics | search | bing
