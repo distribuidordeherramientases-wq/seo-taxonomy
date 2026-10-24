@@ -1,4 +1,4 @@
-# TaxoCommerce Dependiente 0.3.0
+# TaxoCommerce Dependiente 0.3.4
 
 Plugin independiente de la familia TaxoCommerce. El objetivo de esta versión es mantener la arquitectura auditable del Dependiente moderno y recuperar, como mínimo, las capacidades útiles que daban buen resultado en el conjunto Dependiente + Intérprete anterior.
 
