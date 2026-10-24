@@ -731,6 +731,10 @@ final class TCD_Intelligence {
         }
 
         uasort( $candidates, static function ( $a, $b ) {
+            $feedback_a = (float) ( $a['feedback_confidence'] ?? 0 );
+            $feedback_b = (float) ( $b['feedback_confidence'] ?? 0 );
+            $cmp = $feedback_b <=> $feedback_a;
+            if ( 0 !== $cmp ) return $cmp;
             $coverage_a = count( (array) ( $a['semantic_groups'] ?? array() ) );
             $coverage_b = count( (array) ( $b['semantic_groups'] ?? array() ) );
             $cmp = $coverage_b <=> $coverage_a;
@@ -757,6 +761,7 @@ final class TCD_Intelligence {
                 'semantic_groups'=>array_keys( (array) ( $candidate['semantic_groups'] ?? array() ) ),
                 'l9_strength'=>absint( $candidate['l9_strength'] ?? 0 ),
                 'l9_matched'=>absint( $candidate['l9_matched'] ?? 0 ),
+                'feedback_confidence'=>round( (float) ( $candidate['feedback_confidence'] ?? 0 ), 4 ),
                 'sources'=>array_values( array_unique( (array) ( $candidate['sources'] ?? array() ) ) ),
                 'evidence'=>(array) ( $candidate['evidence'] ?? array() ),
             );
@@ -776,6 +781,7 @@ final class TCD_Intelligence {
                 'semantic_groups'=>array(),
                 'l9_strength'=>0,
                 'l9_matched'=>0,
+                'feedback_confidence'=>0,
             );
         }
         $candidates[ $id ]['score'] += (float) $score;
@@ -789,6 +795,12 @@ final class TCD_Intelligence {
         if ( 'lesson9' === $source && is_array( $evidence ) ) {
             $candidates[ $id ]['l9_strength'] = max( absint( $candidates[ $id ]['l9_strength'] ), absint( $evidence['score'] ?? 0 ) );
             $candidates[ $id ]['l9_matched'] = max( absint( $candidates[ $id ]['l9_matched'] ), absint( $evidence['matched_count'] ?? 0 ) );
+        }
+        if ( 'feedback_click' === $source && is_array( $evidence ) ) {
+            $candidates[ $id ]['feedback_confidence'] = max(
+                (float) ( $candidates[ $id ]['feedback_confidence'] ?? 0 ),
+                (float) ( $evidence['confidence'] ?? 0 )
+            );
         }
         if ( $evidence ) $candidates[ $id ]['evidence'][] = $evidence;
     }
