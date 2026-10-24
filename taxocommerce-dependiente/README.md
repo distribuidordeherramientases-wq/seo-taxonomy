@@ -207,3 +207,41 @@ Estados:
 Cuando una asociación llega a `active`, se materializa en los almacenes portables: consulta→producto como señal L9 y consulta→concepto como regla semántica. Por tanto, el export de conocimiento conserva el aprendizaje consolidado sin exportar eventos, sesiones ni clics individuales.
 
 Los eventos de feedback no activos se conservan durante 180 días y se limpian después. El administrador muestra búsquedas, clics, aclaraciones y asociaciones activas. El log de aprendizaje registra también `feedback_event` y `feedback_promoted`.
+
+## Auditoría de calidad y corrección de datos
+
+Desde 0.3.4 un quality gate fallido no se limita a mostrar un porcentaje. Dependiente conserva un diagnóstico accionable.
+
+Cuando una lección no alcanza su umbral:
+
+- distingue entre **dato fuente**, **ambigüedad real** y **fallo interno de Dependiente/ranking**;
+- conserva todos los casos que quedaron fuera del Top-8;
+- indica consulta de examen, posición, resultados observados, causa probable y acción recomendada;
+- audita además la lección completa para localizar anomalías de datos aunque el elemento haya aprobado el examen;
+- incluye elementos `unlearned` y su motivo.
+
+El botón **JSON · auditoría y corrección** descarga un documento estructurado con:
+
+- resumen del quality gate;
+- `quality_failures`;
+- `correction_queue`: elementos que sí deben revisarse en WordPress;
+- `dependiente_internal_queue`: casos que no deben corregirse alterando el contenido, porque el problema es memoria/ranking;
+- `ambiguity_queue`;
+- `data_audit`: anomalías detectadas en toda la lección;
+- recomendaciones y política de corrección.
+
+Los CSV son vistas tabulares del mismo diagnóstico: uno para fallos del examen y otro para deuda de datos.
+
+### Ciclo de corrección
+
+La foto fija original se conserva como evidencia de lo que Dependiente estudió. Después de corregir un producto, categoría, post/página, FAQ o Vocabulary en WordPress, el botón **Revisar correcciones y reevaluar**:
+
+1. vuelve a leer únicamente los casos que fallaron;
+2. actualiza su conocimiento con los datos actuales;
+3. regenera las señales de esos casos;
+4. repite el quality gate;
+5. continúa con la siguiente lección únicamente cuando se supera el mínimo.
+
+No reinicia L1-L10 ni vuelve a procesar todo el catálogo.
+
+Dependiente actúa así también como mecanismo de auditoría: aprender y aprobar no son la misma cosa, y un elemento puede ser recuperable por el buscador pero seguir teniendo deuda de datos (por ejemplo SKU inválido, Vocabulary incompleto o FAQ sin contexto).
