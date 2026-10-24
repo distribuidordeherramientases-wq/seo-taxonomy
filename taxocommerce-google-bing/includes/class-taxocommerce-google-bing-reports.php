@@ -145,7 +145,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         echo '<p class="description">Report for ' . esc_html( $snapshot['current']['label'] )
             . ', comparado con ' . esc_html( $snapshot['previous']['label'] )
             . '. Descargado el ' . esc_html( wp_date( 'd/m/Y H:i', (int) $snapshot['downloaded_at'] ) )
-            . '. Copia local, sin conexiones externas.</p>';
+            . '. Local snapshot, no external connections.</p>';
         $args = array(
             'action'  => 'tgb_export_report',
             'source'  => $source,
@@ -291,7 +291,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         }
         $days = (int) $from->diff( $until )->days + 1;
         if ( $days > 90 ) {
-            return new WP_Error( 'tgb_range_large', 'El intervalo máximo por descarga es de 90 days.' );
+            return new WP_Error( 'tgb_range_large', 'The maximum download range is 90 days.' );
         }
         $previous_end = $from->modify( '-1 day' );
         $previous_start = $previous_end->modify( '-' . ( $days - 1 ) . ' days' );
@@ -343,7 +343,7 @@ final class TaxoCommerce_Google_Bing_Reports {
                 array( 'label' => 'Previous', 'values' => $data['daily']['previous_impressions'], 'previous' => true ),
             )
         );
-        foreach ( array( 'countries' => 'Clicks por país', 'devices' => 'Clicks por dispositivo' ) as $type => $title ) {
+        foreach ( array( 'countries' => 'Clicks by country', 'devices' => 'Clicks by device' ) as $type => $title ) {
             $slice = array_slice( (array) ( $data[ $type ] ?? array() ), 0, 10 );
             $labels = array_column( $slice, 'name' );
             $values = array_column( $slice, 'clicks' );
@@ -408,7 +408,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         self::kpi( 'Engagement rate', $current['engagementRate'], $previous['engagementRate'], 'percent' );
         self::kpi( 'Tasa de rebote', $current['bounceRate'], $previous['bounceRate'], 'percent', true );
         self::kpi( 'Average session duration', $current['averageSessionDuration'], $previous['averageSessionDuration'], 'duration' );
-        self::kpi( 'Sessions con interacción', $current['engagedSessions'], $previous['engagedSessions'] );
+        self::kpi( 'Engaged sessions', $current['engagedSessions'], $previous['engagedSessions'] );
         self::kpi( 'Eventos', $current['eventCount'], $previous['eventCount'] );
         self::kpi( 'Eventos clave', $current['keyEvents'], $previous['keyEvents'] );
         self::kpi( 'Recorded purchases', $current['ecommercePurchases'], $previous['ecommercePurchases'] );
@@ -459,7 +459,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             )
         );
         self::bar_card(
-            'Sessions por canal de adquisición',
+            'Sessions by acquisition channel',
             'Sessions',
             $data['channels']['labels'],
             array(
