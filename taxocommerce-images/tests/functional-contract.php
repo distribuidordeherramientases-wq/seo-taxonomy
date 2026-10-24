@@ -30,6 +30,14 @@ function taxocommerce_images_test_image( $name, $seed, $bytes = null, $mime = 'i
 $admin = get_user_by( 'login', 'imagesadmin' );
 wp_set_current_user( $admin->ID );
 
+update_option( 'tcd_work_priority', 5, false );
+$priority_result = TaxoCommerce_Images_Load::set_priority( 1 );
+taxocommerce_images_test_assert( 1 === $priority_result && 1 === TaxoCommerce_Images_Load::priority(), 'Images stores its own workload priority' );
+taxocommerce_images_test_assert( 5 === (int) get_option( 'tcd_work_priority' ), 'Images priority does not alter Dependiente settings' );
+taxocommerce_images_test_assert( TaxoCommerce_Images_Load::batch_size( 'cleanup' ) < TaxoCommerce_Images_Load::batch_size( 'labels' ), 'file hashing uses a smaller batch than metadata inspection' );
+TaxoCommerce_Images_Load::set_priority( 3 );
+
+
 register_post_type( 'product', array( 'public' => true, 'supports' => array( 'title', 'thumbnail' ) ) );
 register_taxonomy( 'product_cat', array( 'product', 'page', 'post' ), array( 'hierarchical' => true, 'public' => true ) );
 add_theme_support( 'post-thumbnails' );

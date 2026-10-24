@@ -3,6 +3,16 @@
     'use strict';
     var config = window.taxocommerceImagesMaintenance;
     if (!config || !window.fetch) { return; }
+    document.querySelectorAll('[data-tci-priority]').forEach(function (slider) {
+        var form = slider.closest('form');
+        var output = form ? form.querySelector('[data-tci-priority-output]') : null;
+        var labels = { 1: 'Suave', 2: 'Baja', 3: 'Normal', 4: 'Alta', 5: 'Máxima' };
+        if (!output) { return; }
+        slider.addEventListener('input', function () {
+            output.innerHTML = '<strong>' + slider.value + ' · ' + labels[slider.value] + '</strong>';
+        });
+    });
+
     document.querySelectorAll('[data-tci-maintenance]').forEach(function (section) {
         var busy = false;
         var paused = false;
@@ -31,10 +41,13 @@
                             throw new Error(result.data && result.data.message ? result.data.message : 'No se pudo ejecutar el lote.');
                         }
                         var state = result.data.state || {};
-                        output.textContent = 'Analizadas: ' + (state.scanned || 0) + ' / ' + (state.total || 0) + '. El progreso está guardado.';
+                        var load = result.data.load || {};
+                        var cpu = load.cpu_percent === null || typeof load.cpu_percent === 'undefined' ? 'CPU no disponible' : load.cpu_percent + ' % CPU petición';
+                        var next = load.next_batch || load.batch || 0;
+                        output.textContent = 'Analizadas: ' + (state.scanned || 0) + ' / ' + (state.total || 0) + '. Último lote: ' + (load.items || 0) + ' elementos · ' + cpu + ' · ' + (load.elapsed || 0) + ' s · siguiente lote ' + next + '.';
                         if (result.data.done) { window.location.reload(); return; }
                         operation = 'scan';
-                        await new Promise(function (resolve) { window.setTimeout(resolve, 500); });
+                        await new Promise(function (resolve) { window.setTimeout(resolve, result.data.delay || config.delay || 4000); });
                     }
                     output.textContent += ' Pausado al finalizar el lote. Puedes continuar sin repetir lo analizado.';
                 } catch (error) {
