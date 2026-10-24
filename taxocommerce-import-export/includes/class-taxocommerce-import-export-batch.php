@@ -661,7 +661,6 @@ final class TaxoCommerce_Import_Export_Batch {
 		$callback = array( $this->csv, 'import_row_for_batch' );
 		$items    = array(
 			'product'          => array( 'label' => __( 'Productos WooCommerce', 'taxocommerce-import-export' ), 'import_row' => $callback ),
-			'product_editorial' => array( 'label' => __( 'Actualización editorial de productos externos', 'taxocommerce-import-export' ), 'import_row' => $callback ),
 			'product_category' => array( 'label' => __( 'Categorías WooCommerce', 'taxocommerce-import-export' ), 'import_row' => $callback ),
 			'post'             => array( 'label' => __( 'Entradas', 'taxocommerce-import-export' ), 'import_row' => $callback ),
 			'page'             => array( 'label' => __( 'Páginas', 'taxocommerce-import-export' ), 'import_row' => $callback ),
