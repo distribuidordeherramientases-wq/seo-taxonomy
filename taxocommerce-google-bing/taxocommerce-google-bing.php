@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Google/Bing
  * Description: Conexiones centralizadas con Google y Microsoft Bing para los modulos de la familia TaxoCommerce.
- * Version: 0.7.2
+ * Version: 0.7.3
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.7.2' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.7.3' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -21,6 +21,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-oauth.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-executive.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-market-sources.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-market.php';
@@ -32,6 +33,7 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
     TaxoCommerce_Google_Bing_OAuth::register();
     TaxoCommerce_Google_Bing_Reports::register();
+    TaxoCommerce_Google_Bing_Executive::register();
     TaxoCommerce_Google_Bing_Trends::register();
     TaxoCommerce_Google_Bing_Market::register();
 
@@ -99,7 +101,7 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'google_search', 'google_analytics', 'bing', 'google_trends', 'mercado' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'informe', 'google_search', 'google_analytics', 'bing', 'google_trends', 'mercado' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -109,6 +111,7 @@ function taxocommerce_google_bing_screen() {
     foreach (
         array(
             'connections'      => 'Conexiones',
+            'informe'          => 'Informe',
             'google_search'    => 'Google Search',
             'google_analytics' => 'Google Analytics',
             'bing'             => 'Bing',
@@ -130,6 +133,8 @@ function taxocommerce_google_bing_screen() {
     if ( 'connections' === $tab ) {
         echo '<p>Conexiones centralizadas. Guardar o probar una conexión no descarga métricas de negocio.</p>';
         TaxoCommerce_Google_Bing_Connections::render();
+    } elseif ( 'informe' === $tab ) {
+        TaxoCommerce_Google_Bing_Executive::render();
     } elseif ( 'google_trends' === $tab ) {
         TaxoCommerce_Google_Bing_Trends::render();
     } elseif ( 'mercado' === $tab ) {
