@@ -59,7 +59,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-import-export-0.3.0
+          name: taxocommerce-import-export-0.3.1
           path: taxocommerce-import-export.zip
           retention-days: 30
           if-no-files-found: error
