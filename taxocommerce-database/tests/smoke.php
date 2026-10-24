@@ -28,7 +28,6 @@ class TCDB_Test_WPDB {
 $wpdb = new TCDB_Test_WPDB();
 
 require dirname( __DIR__ ) . '/includes/class-tcdb-storage.php';
-require dirname( __DIR__ ) . '/includes/class-tcdb-journal.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-export.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-import.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-cleanup.php';
