@@ -712,10 +712,32 @@ final class TCD_Intelligence {
             }
         }
 
+        if ( 9 === $lesson && 'product' === $source_type ) {
+            $need = trim( (string) ( $facts['customer_need'] ?? '' ) );
+            if ( '' === $need ) {
+                $issues[] = self::data_issue( 'sin_necesidad_cliente', 'customer_need', '', 'L9 no dispone de una necesidad natural independiente para evaluar el producto.', 'Revisar los datos de TIPO, ROL, aplicación y características que permiten construir la necesidad.' );
+            }
+        }
+
         if ( 3 === $lesson || 'vocabulary' === $source_type ) {
             if ( empty( $facts['group'] ) ) $issues[] = self::data_issue( 'vocabulary_sin_grupo', 'semantic_group', '', 'El término Vocabulary no tiene grupo semántico.', 'Asignar el grupo canónico correcto.' );
             if ( empty( $facts['slug'] ) ) $issues[] = self::data_issue( 'vocabulary_sin_slug', 'slug', '', 'El término Vocabulary no tiene slug.', 'Revisar el término Vocabulary.' );
             if ( 0 === absint( $facts['product_count'] ?? 0 ) ) $issues[] = self::data_issue( 'vocabulary_sin_productos', 'product_ids', '', 'El término no está asignado a ningún producto del catálogo.', 'Confirmar si debe existir o si falta asignación.' );
+        }
+
+        if ( 7 === $lesson || 'cross' === $source_type ) {
+            if ( empty( $facts['group'] ) ) {
+                $issues[] = self::data_issue( 'relacion_cruzada_sin_grupo', 'semantic_group', '', 'La relación cruzada no tiene grupo semántico.', 'Revisar el término Vocabulary que conecta catálogo y contenido.' );
+            }
+            if ( empty( $facts['slug'] ) ) {
+                $issues[] = self::data_issue( 'relacion_cruzada_sin_slug', 'slug', '', 'La relación cruzada no tiene concepto identificable.', 'Revisar el término Vocabulary y su slug.' );
+            }
+            if ( ! absint( $facts['product_uses'] ?? 0 ) ) {
+                $issues[] = self::data_issue( 'relacion_cruzada_sin_producto', 'product_uses', '0', 'El concepto no tiene uso activo en productos.', 'Revisar las asignaciones Vocabulary a productos.' );
+            }
+            if ( ! absint( $facts['editorial_uses'] ?? 0 ) ) {
+                $issues[] = self::data_issue( 'relacion_cruzada_sin_editorial', 'editorial_uses', '0', 'El concepto no tiene uso activo en posts o páginas.', 'Revisar las asignaciones Vocabulary al contenido editorial.' );
+            }
         }
 
         if ( 5 === $lesson && in_array( $source_type, array( 'post','page' ), true ) ) {
@@ -862,9 +884,9 @@ final class TCD_Intelligence {
         $last = 0;
         do {
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
-                "SELECT id,source_type,source_id,title,context_json,status
+                "SELECT id,source_type,source_id,title,context_json,status,reason
                  FROM {$table}
-                 WHERE lesson=%d AND status='learned' AND id>%d
+                 WHERE lesson=%d AND id>%d
                  ORDER BY id ASC LIMIT 250",
                 $lesson,
                 $last
@@ -965,6 +987,15 @@ final class TCD_Intelligence {
             foreach ( $rows as $row ) {
                 $last = absint( $row['id'] ?? 0 );
                 $issues = self::data_issues_for_row( $lesson, $row );
+                if ( 'unlearned' === (string) ( $row['status'] ?? '' ) ) {
+                    $issues[] = self::data_issue(
+                        'no_aprendido',
+                        'learning',
+                        (string) ( $row['reason'] ?? '' ),
+                        (string) ( $row['reason'] ?? 'Dependiente no pudo aprender esta fuente.' ),
+                        'Corregir la causa indicada y volver a revisar esta fuente.'
+                    );
+                }
                 if ( ! $issues ) continue;
 
                 $source_type = sanitize_key( (string) ( $row['source_type'] ?? '' ) );
@@ -982,6 +1013,8 @@ final class TCD_Intelligence {
                     'source_type'=>$source_type,
                     'source_id'=>absint( $row['source_id'] ?? 0 ),
                     'title'=>(string) ( $row['title'] ?? '' ),
+                    'learning_status'=>(string) ( $row['status'] ?? '' ),
+                    'learning_reason'=>(string) ( $row['reason'] ?? '' ),
                     'issues'=>array_values( $issues ),
                 );
             }
