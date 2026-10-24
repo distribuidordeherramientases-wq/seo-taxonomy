@@ -122,7 +122,7 @@ final class TaxoCommerce_Import_Export_Batch {
 				) as $bucket => $label
 			) :
 				?>
-				<details <?php echo in_array( $bucket, array( 'pending', 'processing' ), true ) ? 'open' : ''; ?>>
+				<details <?php echo esc_attr( in_array( $bucket, array( 'pending', 'processing' ), true ) ? 'open' : '' ); ?>>
 					<summary><strong><?php echo esc_html( $label ); ?> (<?php echo esc_html( number_format_i18n( count( $files[ $bucket ] ) ) ); ?>)</strong></summary>
 					<?php if ( empty( $files[ $bucket ] ) ) : ?>
 						<p><?php esc_html_e( 'No hay archivos.', 'taxocommerce-import-export' ); ?></p>
