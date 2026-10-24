@@ -664,7 +664,7 @@ final class TaxoCommerce_Google_Bing_Market {
         echo ' <button type="submit" class="button">Save mapping</button></form>';
         echo '<p class="description">The mapping must be verified before using Merchant Best Sellers. It is not inferred from title similarity.</p>';
         self::action_form( 'tgb_market_scan', 'tgb_market_scan', 'Analyze category again', array( 'market_id' => $id ), true );
-        self::action_form( 'tgb_market_export', 'tgb_market_export', 'Exportar dossier JSON', array( 'market_id' => $id ) );
+        self::action_form( 'tgb_market_export', 'tgb_market_export', 'Export dossier JSON', array( 'market_id' => $id ) );
         echo '<h3>Latest scans</h3>';
         foreach ( $runs as $run ) {
             echo '<p>' . esc_html( $run['started_at'] . ' · ' . $run['run_status'] . ' · ' . $run['collected_count'] . ' fuentes' );
