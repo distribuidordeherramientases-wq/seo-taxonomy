@@ -47,7 +47,6 @@ final class TCDB_Admin {
         if ( ! isset( self::TABS[ $tab ] ) ) {
             $tab = 'mysql';
         }
-        self::register_styles( 'taxocommerce-database' );
         echo '<div class="wrap tcdb-wrap">';
         echo '<div class="tcdb-hero"><div><small>TAXOCOMMERCE · MÓDULO INDEPENDIENTE</small>';
         echo '<h1>TaxoCommerce Database</h1>';
