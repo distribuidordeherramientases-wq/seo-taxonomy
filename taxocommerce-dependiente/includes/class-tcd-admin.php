@@ -29,7 +29,8 @@ final class TCD_Admin {
         if('interpreter'===(string)($state['phase']??''))return 'M11 · Construyendo / validando Intérprete';
         if('maintenance'===(string)($state['phase']??''))return 'M12 · Actualización continua';
         if('snapshot'===(string)($state['phase']??''))return 'Analizando / creando foto fija';
-        return 'Aprendiendo y evaluando la foto fija';
+        if('quality'===(string)($state['phase']??''))return 'Examen de calidad / reevaluación';
+        return 'Aprendiendo la foto fija';
     }
 
     private static function tab_url($tab){
@@ -239,16 +240,45 @@ final class TCD_Admin {
         echo '<div style="background:#fff;border:1px solid #c3c4c7;padding:14px;margin-bottom:16px">';
         echo '<h2 style="margin-top:0">Estado: '.esc_html((string)$state['status']).'</h2>';
         $module=absint($state['lesson']??1);
+        $current_snapshot=TCD_Academy::snapshot_for_lesson($module);
+        $quality_progress=class_exists('TCD_Intelligence',false)
+            ? TCD_Intelligence::quality_progress($module,absint($current_snapshot['id']??0))
+            : array();
         echo '<p><strong>Fase:</strong> '.esc_html(self::phase_label($state)).' · <strong>Módulo:</strong> '.esc_html($module<=10?'L'.$module:'M'.$module).' / 12';
         if('snapshot'===(string)($state['phase']??'')){
             echo ' · <strong>Fuentes analizadas:</strong> '.esc_html(number_format_i18n(absint($state['snapshot_cursor']??0)));
+        }elseif('quality'===(string)($state['phase']??'') && $quality_progress){
+            echo ' · <strong>Casos evaluados:</strong> '.esc_html(number_format_i18n(absint($quality_progress['done']??0))).' / '.esc_html(number_format_i18n(absint($quality_progress['total']??0)));
         }elseif($module<=10){
             echo ' · <strong>Elementos aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['learning_cursor']??0)));
         }
         echo ' · <strong>Aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['learned']??0))).' · <strong>No aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['unlearned']??0))).'</p>';
         echo '<p>'.esc_html((string)$state['last_message']).'</p>';
+
+        if('quality'===(string)($state['phase']??'') && $quality_progress){
+            $q_done=absint($quality_progress['done']??0);
+            $q_total=absint($quality_progress['total']??0);
+            $q_percent=(float)($quality_progress['percent']??0);
+            echo '<div style="margin:12px 0 14px;padding:12px;background:#f6f7f7;border:1px solid #c3c4c7">';
+            echo '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">';
+            echo '<strong>Progreso del examen de calidad · L'.esc_html((string)$module).'</strong>';
+            echo '<strong>'.esc_html(number_format_i18n($q_percent,1)).'%</strong>';
+            echo '</div>';
+            echo '<div style="height:14px;background:#dcdcde;margin:8px 0;overflow:hidden;border-radius:2px">';
+            echo '<span style="display:block;height:14px;background:#2271b1;width:'.esc_attr((string)min(100,max(0,$q_percent))).'%"></span></div>';
+            echo '<div>'.esc_html(number_format_i18n($q_done)).' / '.esc_html(number_format_i18n($q_total)).' casos · ';
+            echo 'Top1 provisional '.esc_html(number_format_i18n(absint($quality_progress['pass_top1']??0))).' · ';
+            echo 'Top3 '.esc_html(number_format_i18n(absint($quality_progress['pass_top3']??0))).' · ';
+            echo 'Top8 '.esc_html(number_format_i18n(absint($quality_progress['pass_top8']??0))).' · ';
+            echo 'fallos provisionales '.esc_html(number_format_i18n(absint($quality_progress['failed']??0))).'.</div>';
+            echo '<p class="description" style="margin-bottom:0">La barra representa el examen actual, no la foto fija. El progreso se guarda entre lotes y se puede reanudar.</p>';
+            echo '</div>';
+            if('running'===(string)($state['status']??'')){
+                echo '<script>window.setTimeout(function(){window.location.reload();},4000);</script>';
+            }
+        }
+
         if(!empty($state['last_error']))echo '<div class="notice notice-error inline"><p>'.esc_html((string)$state['last_error']).'</p></div>';
-        $current_snapshot=TCD_Academy::snapshot_for_lesson(absint($state['lesson']??0));
         $quality_failed='quality_failed'===(string)($current_snapshot['status']??'');
         if('running'!==(string)$state['status']){
             self::control_button(
@@ -272,7 +302,13 @@ final class TCD_Admin {
             $planned=TCD_Sources::source_total($no);
             $is_current=$no===absint($state['lesson']);
             $building=$is_current && 'snapshot'===(string)($state['phase']??'');
-            if($building || !$sources){
+            $quality_in_progress=$is_current && 'quality'===(string)($state['phase']??'') && !empty($quality_progress);
+            if($quality_in_progress){
+                $progress_value=absint($quality_progress['done']??0);
+                $progress_total=absint($quality_progress['total']??0);
+                $progress_text='casos evaluados del examen de calidad';
+                $status='reevaluando';
+            }elseif($building || !$sources){
                 $progress_value=$is_current?absint($state['snapshot_cursor']??0):0;
                 $progress_total=$planned;
                 $progress_text='fuentes leídas para la foto fija';
@@ -301,6 +337,10 @@ final class TCD_Admin {
             if($quality){
                 $quality_report=self::quality_report($quality);
                 $passed='passed'===(string)($quality['status']??'');
+                if($quality_in_progress){
+                    echo '<strong>REEVALUANDO · '.esc_html(number_format_i18n((float)($quality_progress['percent']??0),1)).'%</strong>';
+                    echo '<div class="description">Resultado anterior debajo; se sustituirá al completar 180/180.</div>';
+                }
                 echo '<strong>'.esc_html($passed?'OK':'NO').'</strong>';
                 echo '<div>'.esc_html(number_format_i18n(100*(float)($quality['pass_any_ratio']??0),1)).'% Top8 · mínimo '.esc_html(number_format_i18n(100*(float)($quality['threshold']??0),1)).'%</div>';
                 echo '<div class="description">Top1 '.esc_html(number_format_i18n(absint($quality['pass_top1']??0))).' · Top3 '.esc_html(number_format_i18n(absint($quality['pass_top3']??0))).' · Top8 '.esc_html(number_format_i18n(absint($quality['pass_top8']??0))).' · fallos '.esc_html(number_format_i18n(absint($quality['failed']??0))).' · evaluadas '.esc_html(number_format_i18n(absint($quality['evaluated']??0))).'</div>';
