@@ -1,6 +1,6 @@
 <?php
 /**
- * TaxoCommerce SEO - Logistica de compras.
+ * TaxoCommerce Logística - Gestión de compras.
  *
  * Vista de solo lectura que cruza pedidos activos de WooCommerce con
  * seo_proveedores_productos mediante object_id. No crea tablas ni persiste
