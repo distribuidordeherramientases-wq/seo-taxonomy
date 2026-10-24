@@ -873,9 +873,20 @@ final class TCD_Intelligence {
         $rules = TCD_Knowledge_Transfer::rules_table();
         $prefix = $wpdb->esc_like( sanitize_key( 'modern_l1_termproduct_cat_' . $term_id . '_' ) ) . '%';
         $wpdb->query( $wpdb->prepare( "DELETE FROM {$rules} WHERE source='modern_learning' AND rule_key LIKE %s", $prefix ) );
-        $stage = 'maintenance:category:' . $term_id;
-        foreach ( self::rules_from_item( 1, $item ) as $rule ) self::stage_rule( 1, $item, $rule, $stage );
-        self::activate_stage( $stage );
+        self::refresh_semantic_item( 1, $item, 'category:' . $term_id );
+    }
+
+    public static function refresh_semantic_item( $lesson, $item, $maintenance_key ) {
+        $lesson = absint( $lesson );
+        if ( ! is_array( $item ) || ! in_array( $lesson, array( 1, 3, 5, 6, 7 ), true ) ) return 0;
+        $stage = 'maintenance:' . sanitize_key( (string) $maintenance_key );
+        $count = 0;
+        foreach ( self::rules_from_item( $lesson, $item ) as $rule ) {
+            self::stage_rule( $lesson, $item, $rule, $stage );
+            $count++;
+        }
+        if ( $count ) self::activate_stage( $stage );
+        return $count;
     }
 
     public static function normalize( $value ) {
