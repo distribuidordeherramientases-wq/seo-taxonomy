@@ -34,6 +34,9 @@ $checks = array(
     strpos( $admin, "Feeds comerciales" ) !== false,
     strpos( $admin, "Sitemaps" ) !== false,
     strpos( $admin, "Automatización" ) !== false,
+    strpos( file_get_contents( $root . '/includes/feeds/admin.php' ), "TCDIST_LEGACY_FEED_ACTIVE" ) !== false,
+    strpos( file_get_contents( $root . '/includes/feeds/admin.php' ), "seo_ie_cf_state" ) !== false,
+    strpos( file_get_contents( $root . '/includes/feeds/admin.php' ), "generador antiguo de inventarios está trabajando" ) !== false,
 );
 
 foreach ( $checks as $index => $ok ) {
