@@ -385,13 +385,29 @@ final class TaxoCommerce_Import_Export_CSV {
 	 */
 	private function import_product( $data ) {
 		$id           = absint( isset( $data['id'] ) ? $data['id'] : 0 );
-		$sku          = sanitize_text_field( (string) ( isset( $data['sku'] ) ? $data['sku'] : '' ) );
+		$has_sku      = array_key_exists( 'sku', $data );
+		$sku          = $has_sku ? sanitize_text_field( (string) $data['sku'] ) : '';
+		$partial      = ! empty( $data['_partial_update'] );
 		$product_type = sanitize_key( (string) ( isset( $data['product_type'] ) ? $data['product_type'] : 'simple' ) );
+
+		if ( $partial && ! $id && ! $sku ) {
+			return new WP_Error(
+				'taxocommerce_ie_partial_identifier',
+				__( 'Un CSV parcial de productos debe incluir product_id/id o SKU para localizar el producto existente.', 'taxocommerce-import-export' )
+			);
+		}
 
 		$product = $id ? wc_get_product( $id ) : false;
 		if ( ! $product && $sku ) {
 			$found_id = wc_get_product_id_by_sku( $sku );
 			$product  = $found_id ? wc_get_product( $found_id ) : false;
+		}
+
+		if ( ! $product && $partial ) {
+			return new WP_Error(
+				'taxocommerce_ie_partial_missing_product',
+				__( 'El CSV parcial sólo puede actualizar productos existentes; no se encontró el producto indicado.', 'taxocommerce-import-export' )
+			);
 		}
 
 		if ( ! $product ) {
@@ -402,42 +418,225 @@ final class TaxoCommerce_Import_Export_CSV {
 			} else {
 				return new WP_Error( 'taxocommerce_ie_product_type', __( 'La versión inicial sólo crea productos simples o externos.', 'taxocommerce-import-export' ) );
 			}
+			if ( ! array_key_exists( 'name', $data ) || '' === trim( (string) $data['name'] ) ) {
+				return new WP_Error( 'taxocommerce_ie_product_name', __( 'Para crear un producto nuevo el CSV debe incluir name/titulo.', 'taxocommerce-import-export' ) );
+			}
 		}
 
-		$status = sanitize_key( (string) ( isset( $data['status'] ) ? $data['status'] : 'draft' ) );
-		if ( 'trash' === $status && $product->get_id() ) {
-			return wp_trash_post( $product->get_id() ) ? true : new WP_Error( 'taxocommerce_ie_product_trash', __( 'No se pudo mover el producto a la papelera.', 'taxocommerce-import-export' ) );
-		}
-		if ( ! in_array( $status, array( 'publish', 'draft', 'pending', 'private' ), true ) ) {
+		if ( array_key_exists( 'status', $data ) ) {
+			$status = sanitize_key( (string) $data['status'] );
+			if ( 'trash' === $status && $product->get_id() ) {
+				return wp_trash_post( $product->get_id() ) ? true : new WP_Error( 'taxocommerce_ie_product_trash', __( 'No se pudo mover el producto a la papelera.', 'taxocommerce-import-export' ) );
+			}
+			if ( ! in_array( $status, array( 'publish', 'draft', 'pending', 'private' ), true ) ) {
+				return new WP_Error( 'taxocommerce_ie_product_status', __( 'Estado de producto no válido.', 'taxocommerce-import-export' ) );
+			}
+		} elseif ( ! $product->get_id() ) {
 			$status = 'draft';
+		} else {
+			$status = '';
 		}
 
 		try {
-			$product->set_name( sanitize_text_field( (string) ( isset( $data['name'] ) ? $data['name'] : '' ) ) );
-			$product->set_slug( sanitize_title( (string) ( isset( $data['slug'] ) ? $data['slug'] : '' ) ) );
-			$product->set_status( $status );
-			$product->set_sku( $sku );
-			$product->set_regular_price( wc_format_decimal( (string) ( isset( $data['regular_price'] ) ? $data['regular_price'] : '' ) ) );
-			$product->set_sale_price( wc_format_decimal( (string) ( isset( $data['sale_price'] ) ? $data['sale_price'] : '' ) ) );
-			$product->set_stock_status( $this->stock_status( isset( $data['stock_status'] ) ? $data['stock_status'] : 'instock' ) );
-			$product->set_manage_stock( '1' === (string) ( isset( $data['manage_stock'] ) ? $data['manage_stock'] : '0' ) );
-			$product->set_stock_quantity( '' === (string) ( isset( $data['stock_quantity'] ) ? $data['stock_quantity'] : '' ) ? null : wc_stock_amount( $data['stock_quantity'] ) );
-			$product->set_short_description( wp_kses_post( (string) ( isset( $data['short_description'] ) ? $data['short_description'] : '' ) ) );
-			$product->set_description( wp_kses_post( (string) ( isset( $data['description'] ) ? $data['description'] : '' ) ) );
-			$product->set_category_ids( $this->resolve_terms_from_json( isset( $data['categories_json'] ) ? $data['categories_json'] : '', 'product_cat' ) );
-			$product->set_tag_ids( $this->resolve_terms_from_json( isset( $data['tags_json'] ) ? $data['tags_json'] : '', 'product_tag' ) );
-			$product->set_attributes( $this->attributes_from_json( isset( $data['attributes_json'] ) ? $data['attributes_json'] : '' ) );
+			if ( array_key_exists( 'name', $data ) ) {
+				$name = trim( sanitize_text_field( (string) $data['name'] ) );
+				if ( '' === $name ) {
+					return new WP_Error( 'taxocommerce_ie_product_name_empty', __( 'El nombre de un producto existente no puede vaciarse mediante un CSV parcial.', 'taxocommerce-import-export' ) );
+				}
+				$product->set_name( $name );
+			}
+			if ( array_key_exists( 'slug', $data ) && '' !== trim( (string) $data['slug'] ) ) {
+				$product->set_slug( sanitize_title( (string) $data['slug'] ) );
+			}
+			if ( '' !== $status ) {
+				$product->set_status( $status );
+			}
+			if ( $has_sku ) {
+				$product->set_sku( $sku );
+			}
+			if ( array_key_exists( 'regular_price', $data ) ) {
+				$product->set_regular_price( wc_format_decimal( (string) $data['regular_price'] ) );
+			}
+			if ( array_key_exists( 'sale_price', $data ) ) {
+				$product->set_sale_price( wc_format_decimal( (string) $data['sale_price'] ) );
+			}
+			if ( array_key_exists( 'stock_status', $data ) ) {
+				$product->set_stock_status( $this->stock_status( $data['stock_status'] ) );
+			}
+			if ( array_key_exists( 'manage_stock', $data ) ) {
+				$product->set_manage_stock( '1' === (string) $data['manage_stock'] );
+			}
+			if ( array_key_exists( 'stock_quantity', $data ) ) {
+				$product->set_stock_quantity( '' === (string) $data['stock_quantity'] ? null : wc_stock_amount( $data['stock_quantity'] ) );
+			}
+			if ( array_key_exists( 'short_description', $data ) ) {
+				$product->set_short_description( wp_kses_post( (string) $data['short_description'] ) );
+			}
+			if ( array_key_exists( 'description', $data ) ) {
+				$product->set_description( wp_kses_post( (string) $data['description'] ) );
+			}
+			if ( array_key_exists( 'categories_json', $data ) ) {
+				$product->set_category_ids( $this->resolve_terms_from_json( $data['categories_json'], 'product_cat' ) );
+			}
+			if ( array_key_exists( 'tags_json', $data ) ) {
+				$product->set_tag_ids( $this->resolve_terms_from_json( $data['tags_json'], 'product_tag' ) );
+			}
+			if ( array_key_exists( 'attributes_json', $data ) ) {
+				$product->set_attributes( $this->attributes_from_json( $data['attributes_json'] ) );
+			}
 
 			if ( is_a( $product, 'WC_Product_External' ) ) {
-				$product->set_product_url( esc_url_raw( (string) ( isset( $data['external_url'] ) ? $data['external_url'] : '' ) ) );
-				$product->set_button_text( sanitize_text_field( (string) ( isset( $data['button_text'] ) ? $data['button_text'] : '' ) ) );
+				if ( array_key_exists( 'external_url', $data ) ) {
+					$product->set_product_url( esc_url_raw( (string) $data['external_url'] ) );
+				}
+				if ( array_key_exists( 'button_text', $data ) ) {
+					$product->set_button_text( sanitize_text_field( (string) $data['button_text'] ) );
+				}
 			}
-			$product->save();
+
+			$product_id = absint( $product->save() );
+			if ( ! $product_id ) {
+				return new WP_Error( 'taxocommerce_ie_product_save_id', __( 'WooCommerce no devolvió un ID al guardar el producto.', 'taxocommerce-import-export' ) );
+			}
+
+			$brand_provider = $this->apply_brand_provider_fields( $product_id, $data );
+			if ( is_wp_error( $brand_provider ) ) {
+				return $brand_provider;
+			}
 		} catch ( Exception $exception ) {
 			return new WP_Error( 'taxocommerce_ie_product_save', sanitize_text_field( $exception->getMessage() ) );
 		}
 
 		return true;
+	}
+
+	/**
+	 * Apply brand/provider fields only when their columns are present.
+	 *
+	 * Unknown brands are never created implicitly.
+	 *
+	 * @param int   $product_id Product ID.
+	 * @param array $data CSV row.
+	 * @return true|WP_Error
+	 */
+	private function apply_brand_provider_fields( $product_id, $data ) {
+		$product_id = absint( $product_id );
+		$brand_keys = array(
+			'brand_taxonomy', 'brand_ids', 'brand', 'manufacturer', 'supplier',
+			'supplier_external_id', 'supplier_catalog_id', 'supplier_category', 'supplier_price',
+		);
+		if ( ! array_intersect( array_keys( (array) $data ), $brand_keys ) ) {
+			return true;
+		}
+
+		$taxonomy = array_key_exists( 'brand_taxonomy', $data )
+			? sanitize_key( (string) $data['brand_taxonomy'] )
+			: sanitize_key( (string) get_post_meta( $product_id, '_seo_taxonomia_marca', true ) );
+
+		if ( ! $taxonomy && taxonomy_exists( 'product_brand' ) ) {
+			$taxonomy = 'product_brand';
+		}
+
+		$has_brand_values = ( array_key_exists( 'brand_ids', $data ) && '' !== trim( (string) $data['brand_ids'] ) )
+			|| ( array_key_exists( 'brand', $data ) && '' !== trim( (string) $data['brand'] ) );
+
+		if ( $has_brand_values ) {
+			if ( ! $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+				return new WP_Error( 'taxocommerce_ie_brand_taxonomy', __( 'La taxonomía de marca indicada no existe.', 'taxocommerce-import-export' ) );
+			}
+
+			$brand_ids = $this->resolve_existing_brand_terms(
+				$taxonomy,
+				isset( $data['brand_ids'] ) ? $data['brand_ids'] : '',
+				isset( $data['brand'] ) ? $data['brand'] : ''
+			);
+			if ( is_wp_error( $brand_ids ) ) {
+				return $brand_ids;
+			}
+
+			$assigned = wp_set_object_terms( $product_id, $brand_ids, $taxonomy, false );
+			if ( is_wp_error( $assigned ) ) {
+				return $assigned;
+			}
+
+			update_post_meta( $product_id, '_seo_taxonomia_marca', $taxonomy );
+			if ( array_key_exists( 'brand', $data ) && '' !== trim( (string) $data['brand'] ) ) {
+				update_post_meta( $product_id, '_seo_marca_proveedor', sanitize_text_field( (string) $data['brand'] ) );
+			}
+		}
+
+		$meta_map = array(
+			'manufacturer'         => '_seo_fabricante',
+			'supplier'             => '_seo_proveedor',
+			'supplier_external_id' => '_seo_proveedor_id_externo',
+			'supplier_catalog_id'  => '_seo_proveedor_catalogo_id',
+			'supplier_category'    => '_seo_categoria_proveedor',
+			'supplier_price'       => '_seo_precio_proveedor',
+		);
+		foreach ( $meta_map as $field => $meta_key ) {
+			if ( ! array_key_exists( $field, $data ) ) {
+				continue;
+			}
+			$value = sanitize_text_field( (string) $data[ $field ] );
+			if ( '' !== $value ) {
+				update_post_meta( $product_id, $meta_key, $value );
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Resolve brand terms without creating new terms from a correction CSV.
+	 *
+	 * @param string $taxonomy Taxonomy.
+	 * @param string $ids_raw IDs.
+	 * @param string $names_raw Names.
+	 * @return int[]|WP_Error
+	 */
+	private function resolve_existing_brand_terms( $taxonomy, $ids_raw, $names_raw ) {
+		$ids = array();
+		foreach ( preg_split( '/[|,;\\s]+/', trim( (string) $ids_raw ) ) as $raw_id ) {
+			$id = absint( $raw_id );
+			if ( ! $id ) {
+				continue;
+			}
+			$term = get_term( $id, $taxonomy );
+			if ( ! $term || is_wp_error( $term ) ) {
+				return new WP_Error(
+					'taxocommerce_ie_brand_id',
+					sprintf( __( 'La marca ID %d no existe en la taxonomía indicada.', 'taxocommerce-import-export' ), $id )
+				);
+			}
+			$ids[] = $id;
+		}
+
+		if ( ! $ids && '' !== trim( (string) $names_raw ) ) {
+			$names = preg_split( '/\\s*\\|\\s*/', trim( (string) $names_raw ) );
+			foreach ( $names as $name ) {
+				$name = trim( sanitize_text_field( $name ) );
+				if ( '' === $name ) {
+					continue;
+				}
+				$term = get_term_by( 'name', $name, $taxonomy );
+				if ( ! $term ) {
+					$term = get_term_by( 'slug', sanitize_title( $name ), $taxonomy );
+				}
+				if ( ! $term || is_wp_error( $term ) ) {
+					return new WP_Error(
+						'taxocommerce_ie_brand_name',
+						sprintf( __( 'La marca «%s» no existe; el importador parcial no crea marcas nuevas.', 'taxocommerce-import-export' ), $name )
+					);
+				}
+				$ids[] = absint( $term->term_id );
+			}
+		}
+
+		$ids = array_values( array_unique( array_filter( $ids ) ) );
+		if ( ! $ids ) {
+			return new WP_Error( 'taxocommerce_ie_brand_empty', __( 'No se pudo resolver ninguna marca existente.', 'taxocommerce-import-export' ) );
+		}
+		return $ids;
 	}
 
 	/**
