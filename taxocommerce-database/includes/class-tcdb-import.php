@@ -3,8 +3,8 @@
  * Strictly append-only CSV imports for existing TaxoCommerce-family tables.
  *
  * No SQL execution endpoint, no UPDATE/REPLACE/TRUNCATE/DELETE imports, and
- * no migration of the two legacy rollback systems. An InnoDB transaction
- * merely guarantees that a failed INSERT batch does not partially apply.
+ * An InnoDB transaction ensures a failed INSERT batch does not partially apply.
+ * A completed import is not automatically reversible.
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -104,9 +104,6 @@ final class TCDB_Import {
         if ( ! isset( $tables[ $table ] ) || ! $tables[ $table ]['family'] ) {
             wp_die( 'Solo se admiten tablas existentes de la familia TaxoCommerce.' );
         }
-        if ( in_array( $table, array( TCDB_Journal::operations_table(), TCDB_Journal::changes_table() ), true ) ) {
-            wp_die( 'Las tablas del historial de rollback están protegidas frente a importaciones.' );
-        }
         if ( 'InnoDB' !== $tables[ $table ]['engine'] ) {
             wp_die( 'Por seguridad, la importación requiere una tabla InnoDB.' );
         }
@@ -166,69 +163,34 @@ final class TCDB_Import {
         if ( ! isset( $tables[ $table ] ) || ! $tables[ $table ]['family'] || 'InnoDB' !== $tables[ $table ]['engine'] ) {
             wp_die( 'La tabla ya no es válida para esta importación.' );
         }
-        if ( in_array( $table, array( TCDB_Journal::operations_table(), TCDB_Journal::changes_table() ), true ) ) {
-            wp_die( 'No es posible importar filas en el historial de rollback.' );
-        }
         $columns = TCDB_Storage::columns( $table );
         if ( hash( 'sha256', wp_json_encode( $columns ) ) !== $data['column_hash']
             || is_wp_error( self::validate_column_set( $data['headers'], $columns ) ) ) {
             wp_die( 'La estructura de la tabla ha cambiado; vuelve a analizar el archivo.' );
         }
 
-        $owner = TCDB_Journal::ready() ? TCDB_Journal::owner_for_table( $table ) : '';
-        // A plugin approves reversible bulk import only after validating
-        // every row according to its own invariants (URLs, relations, etc.).
-        // Ownership of a table alone does not make raw SQL safe.
-        $validated = $owner && true === apply_filters(
-            'tcdb_reversible_csv_import', false, $table, $data['rows'], $owner
-        );
-        if ( ! $validated ) {
-            $owner = '';
+        global $wpdb;
+        if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+            wp_die( 'No se pudo iniciar una transacción InnoDB segura.' );
         }
-        $operation_id = 0;
-        if ( $owner ) {
-            // Imported INSERTs become one atomic reversible operation only
-            // when the table owner explicitly advertises a compatible schema.
-            $result = TCDB_Journal::insert_batch(
-                $owner,
-                'Importación CSV en ' . $table,
-                $table,
-                $data['rows']
-            );
-            if ( is_wp_error( $result ) ) {
-                wp_die( esc_html( $result->get_error_message() ) );
+        $inserted = 0;
+        $failed = false;
+        foreach ( $data['rows'] as $row ) {
+            $affected = $wpdb->insert( $table, $row );
+            if ( false === $affected || 1 !== (int) $affected ) {
+                $failed = true;
+                break;
             }
-            $inserted = (int) $result['rows'];
-            $operation_id = (int) $result['operation_id'];
-        } else {
-            $ack = isset( $_POST['tcdb_no_rollback_ack'] )
-                && '1' === (string) $_POST['tcdb_no_rollback_ack'];
-            if ( ! $ack ) {
-                wp_die( 'Esta tabla no ha registrado integración de rollback. Confirma expresamente que aceptas importar sin reversión centralizada.' );
-            }
-            global $wpdb;
-            if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
-                wp_die( 'No se pudo iniciar una transacción InnoDB.' );
-            }
-            $inserted = 0;
-            $failed = false;
-            foreach ( $data['rows'] as $row ) {
-                $affected = $wpdb->insert( $table, $row );
-                if ( false === $affected || 1 !== (int) $affected ) {
-                    $failed = true;
-                    break;
-                }
-                ++$inserted;
-            }
-            if ( $failed || false === $wpdb->query( 'COMMIT' ) ) {
-                $wpdb->query( 'ROLLBACK' );
-                TCDB_Storage::log( 'import_rejected', array( 'table' => $table, 'attempted' => count( $data['rows'] ) ) );
-                wp_die( 'No se ha aplicado el CSV: datos inválidos, restricciones o filas duplicadas.' );
-            }
+            ++$inserted;
+        }
+        if ( $failed || false === $wpdb->query( 'COMMIT' ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            TCDB_Storage::log( 'import_rejected', array( 'table' => $table, 'attempted' => count( $data['rows'] ) ) );
+            wp_die( 'No se ha aplicado el CSV: hay columnas inválidas, restricciones o filas duplicadas. No se sobrescribió ninguna fila existente.' );
         }
 
         delete_transient( self::pending_key( $token ) );
-        TCDB_Storage::log( 'import_insert', array( 'table' => $table, 'rows' => $inserted, 'rollback_operation_id' => $operation_id ) );
+        TCDB_Storage::log( 'import_insert', array( 'table' => $table, 'rows' => $inserted ) );
         TCDB_Storage::redirect( 'import', 'import_ok' );
     }
 }
