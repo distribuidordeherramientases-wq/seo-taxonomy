@@ -46,11 +46,11 @@ jobs:
             taxocommerce-*/**
             packages/**
 
-      - name: Instalar cliente FTPS
+      - name: Instalar cliente FTPS y compresor ZIP
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y lftp
+          sudo apt-get install -y lftp zip
 
       - name: Leer plugins TaxoCommerce activos en PRO
         id: active
@@ -76,7 +76,7 @@ jobs:
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           echo "Plugins TaxoCommerce activos en PRO: $modules"
 
-      - name: Sincronizar únicamente plugins TaxoCommerce activos mediante WordPress
+      - name: Sincronizar solo cambios de plugins TaxoCommerce activos
         shell: bash
         env:
           ACTIVE_MODULES_JSON: ${{ steps.active.outputs.modules }}
@@ -167,30 +167,47 @@ jobs:
           EOF
 
           for module in "${active_modules[@]}"; do
-            echo "Preparando $module para WordPress PRO..."
+            package="/tmp/$module.zip"
+            rm -f "$package"
+
+            echo "Empaquetando $module sin tests ni documentación..."
+            (
+              cd "$module"
+              zip -qr "$package" . \
+                -x 'tests/*' \
+                -x 'readme.txt' \
+                -x '*.md' \
+                -x '*.pot' \
+                -x 'node_modules/*' \
+                -x '*.bak'
+            )
+
+            echo "Subiendo un único paquete temporal para $module..."
             lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
           set cmd:fail-exit yes
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
-          mirror -R --delete --verbose --parallel=4 \
-            --exclude-glob .git \
-            --exclude-glob .git/** \
-            --exclude-glob node_modules \
-            --exclude-glob node_modules/** \
-            --exclude-glob '*.bak' \
-            --exclude-glob '*.md' \
-            "$module/" "$handoff/$module/"
+          put "$package" -o "$handoff/$module.zip"
           bye
           EOF
           done
 
-          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+          http_code="$(curl --silent --show-error --retry 3 --retry-delay 2 \
+            -o /tmp/taxocommerce-deploy-response.json \
+            -w '%{http_code}' \
             -X POST \
-            -H "X-Taxocommerce-Deploy-Token: $deploy_token" \
-            "$PRO_SITE_URL/wp-json/taxocommerce/v1/deploy-active-modules?run_id=$GITHUB_RUN_ID")"
+            --data-urlencode "run_id=$GITHUB_RUN_ID" \
+            --data-urlencode "deploy_token=$deploy_token" \
+            "$PRO_SITE_URL/wp-json/taxocommerce/v1/deploy-active-modules")"
 
-          export DEPLOY_RESPONSE="$response"
+          if [[ "$http_code" != 2* ]]; then
+            echo "::error::WordPress PRO rechazó la sincronización con HTTP $http_code"
+            cat /tmp/taxocommerce-deploy-response.json || true
+            exit 1
+          fi
+
+          export DEPLOY_RESPONSE="$(cat /tmp/taxocommerce-deploy-response.json)"
 
           python3 - <<'PY'
           import json
@@ -203,7 +220,7 @@ jobs:
           updated = payload.get("updated", [])
 
           updated_by_slug = {
-              str(item.get("slug", "")): str(item.get("version", ""))
+              str(item.get("slug", "")): item
               for item in updated
               if isinstance(item, dict)
           }
@@ -219,16 +236,25 @@ jobs:
               text = main_file.read_text(encoding="utf-8", errors="replace")
               match = re.search(r"^\s*\*\s*Version:\s*([^\r\n]+)", text, re.MULTILINE)
               expected = match.group(1).strip() if match else ""
-              received = updated_by_slug.get(slug, "")
+
+              item = updated_by_slug[slug]
+              received = str(item.get("version", ""))
+              changed = [str(path) for path in item.get("changed", [])]
+              unchanged = int(item.get("unchanged", 0))
+
               if not expected or received != expected:
                   raise SystemExit(
                       f"Versión remota incorrecta para {slug}: "
                       f"esperada={expected!r}; recibida={received!r}"
                   )
-              print(f"{slug}: PRO actualizado y verificado en versión {received}")
+
+              print(f"{slug}: PRO verificado en versión {received}")
+              print(f"{slug}: {len(changed)} archivo(s) actualizado(s), {unchanged} sin cambios")
+              for path in changed:
+                  print(f"  ACTUALIZADO: {path}")
           PY
 
           trap - EXIT
           cleanup_handoff
 
-          echo "Despliegue modular terminado y verificado contra WP_PLUGIN_DIR real."
+          echo "Despliegue modular terminado: solo se han sobrescrito archivos cuyo contenido cambió."
