@@ -164,6 +164,7 @@ final class TaxoCommerce_Import_Export_Batch {
 
 		$names = isset( $files['name'] ) ? (array) $files['name'] : array();
 		$tmp   = isset( $files['tmp_name'] ) ? (array) $files['tmp_name'] : array();
+		$types = isset( $files['type'] ) ? (array) $files['type'] : array();
 		$errs  = isset( $files['error'] ) ? (array) $files['error'] : array();
 		$sizes = isset( $files['size'] ) ? (array) $files['size'] : array();
 
@@ -188,10 +189,25 @@ final class TaxoCommerce_Import_Export_Batch {
 				continue;
 			}
 
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			$single = array(
+				'name'     => $name,
+				'type'     => sanitize_mime_type( (string) ( $types[ $index ] ?? 'text/csv' ) ),
+				'tmp_name' => $tmp_name,
+				'error'    => UPLOAD_ERR_OK,
+				'size'     => $size,
+			);
+			$handled = wp_handle_upload( $single, array( 'test_form' => false ) );
+			if ( ! is_array( $handled ) || ! empty( $handled['error'] ) || empty( $handled['file'] ) ) {
+				continue;
+			}
+
+			$source = wp_normalize_path( (string) $handled['file'] );
 			$target = $this->unique_path( $pending, $name );
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_move_uploaded_file -- Secure admin upload into a private queue directory.
-			if ( move_uploaded_file( $tmp_name, $target ) ) {
+			if ( $this->move_file( $source, $target ) ) {
 				$added++;
+			} elseif ( is_file( $source ) ) {
+				wp_delete_file( $source );
 			}
 		}
 
@@ -206,14 +222,25 @@ final class TaxoCommerce_Import_Export_Batch {
 			$state['pause_after_file'] = false;
 			$state['stop_requested']   = false;
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : ( $state['status'] ?? 'processing' );
-			$state['message']          = sprintf( _n( '%d archivo añadido. Cola iniciada.', '%d archivos añadidos. Cola iniciada.', $added, 'taxocommerce-import-export' ), $added );
+			$state['message']          = sprintf(
+				/* translators: %d: number of CSV files added to the batch queue. */
+				_n( '%d archivo añadido. Cola iniciada.', '%d archivos añadidos. Cola iniciada.', $added, 'taxocommerce-import-export' ),
+				$added
+			);
 			$this->store_state( $state );
 			// Process the first bounded block immediately so starting a queue does
 			// not depend on an Action Scheduler backlog or the next WP-Cron tick.
 			$this->worker();
 		}
 
-		$this->redirect( 'ok', sprintf( _n( '%d archivo añadido a la cola.', '%d archivos añadidos a la cola.', $added, 'taxocommerce-import-export' ), $added ) );
+		$this->redirect(
+			'ok',
+			sprintf(
+				/* translators: %d: number of CSV files added to the batch queue. */
+				_n( '%d archivo añadido a la cola.', '%d archivos añadidos a la cola.', $added, 'taxocommerce-import-export' ),
+				$added
+			)
+		);
 	}
 
 	/**
@@ -412,6 +439,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			$state['entity']       = '';
 			$state['status']       = 'waiting_next';
 			$state['message']      = sprintf(
+				/* translators: 1: CSV file name, 2: detection error. */
 				__( 'El archivo %1$s no pudo asignarse a un miniimportador (%2$s). Se movió a Fallidos y la cola continúa.', 'taxocommerce-import-export' ),
 				basename( $failed ),
 				$detected->get_error_message()
@@ -428,7 +456,12 @@ final class TaxoCommerce_Import_Export_Batch {
 		$state['error_rows']    = 0;
 		$state['errors']        = array();
 		$state['status']        = 'processing';
-		$state['message']       = sprintf( __( 'Procesando %1$s con miniimportador %2$s.', 'taxocommerce-import-export' ), basename( $target ), $detected['type'] );
+		$state['message']       = sprintf(
+			/* translators: 1: CSV file name, 2: mini-importer type. */
+			__( 'Procesando %1$s con miniimportador %2$s.', 'taxocommerce-import-export' ),
+			basename( $target ),
+			$detected['type']
+		);
 		$state['updated_at']    = current_time( 'mysql' );
 		return $state;
 	}
@@ -524,6 +557,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		if ( ! $eof ) {
 			$state['status']  = ! empty( $this->state()['stop_requested'] ) ? 'stopping' : 'processing';
 			$state['message'] = sprintf(
+				/* translators: 1: processed row count, 2: error row count. */
 				__( 'Bloque procesado. %1$d filas acumuladas; %2$d errores.', 'taxocommerce-import-export' ),
 				absint( $state['processed_rows'] ?? 0 ),
 				absint( $state['error_rows'] ?? 0 )
