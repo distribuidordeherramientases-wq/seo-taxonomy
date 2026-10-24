@@ -69,7 +69,11 @@ final class TCD_Maintenance {
         set_transient( $lock_key, 1, 30 );
         foreach ( array( 2, 4, 9 ) as $lesson ) {
             $item = TCD_Sources::product_item( $lesson, $product_id );
-            if ( is_array( $item ) ) TCD_Academy::upsert_maintenance_item( $lesson, $item );
+            if ( ! is_array( $item ) ) continue;
+            TCD_Academy::upsert_maintenance_item( $lesson, $item );
+            if ( 4 === $lesson ) {
+                TCD_Intelligence::refresh_semantic_item( 4, $item, 'product-features-' . $product_id );
+            }
         }
         TCD_Intelligence::refresh_product( $product_id );
         self::bump( 'products_updated' );
