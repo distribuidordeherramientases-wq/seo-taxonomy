@@ -219,6 +219,18 @@ final class TCDB_Journal {
         }
     }
 
+    /**
+     * Never misreport a successful COMMIT as failed because a third-party
+     * observer throws after the transaction was irreversibly committed.
+     */
+    private static function notify( $hook, $arg1, $arg2, $arg3 ) {
+        try {
+            do_action( $hook, $arg1, $arg2, $arg3 );
+        } catch ( Throwable $ignored ) {
+            // Observers are never allowed to alter the success of a COMMIT.
+        }
+    }
+
     private static function begin_transaction() {
         global $wpdb;
         if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
@@ -279,7 +291,7 @@ final class TCDB_Journal {
             if ( false === $wpdb->query( 'COMMIT' ) ) {
                 throw new RuntimeException( 'No se pudo confirmar la transacción reversible.' );
             }
-            do_action( 'tcdb_operation_recorded', $operation_id, $source, $action );
+            self::notify( 'tcdb_operation_recorded', $operation_id, $source, $action );
             return $result;
         } catch ( Throwable $exception ) {
             $wpdb->query( 'ROLLBACK' );
@@ -323,7 +335,7 @@ final class TCDB_Journal {
             if ( false === $wpdb->query( 'COMMIT' ) ) {
                 throw new RuntimeException( 'No se ha podido confirmar la importación.' );
             }
-            do_action( 'tcdb_operation_recorded', $id, $source, 'insert' );
+            self::notify( 'tcdb_operation_recorded', $id, $source, 'insert' );
             return array( 'operation_id' => $id, 'rows' => count( $changed ) );
         } catch ( Throwable $exception ) {
             $wpdb->query( 'ROLLBACK' );
@@ -494,7 +506,7 @@ final class TCDB_Journal {
             if ( false === $ok || false === $wpdb->query( 'COMMIT' ) ) {
                 throw new RuntimeException( 'No se pudo confirmar el rollback.' );
             }
-            do_action( 'tcdb_rollback_completed', (int) $id, (string) $operation['source'], count( $actions ) );
+            self::notify( 'tcdb_rollback_completed', (int) $id, (string) $operation['source'], count( $actions ) );
             TCDB_Storage::log( 'rollback', array( 'operation_id' => absint( $id ), 'source' => (string) $operation['source'], 'rows' => count( $actions ) ) );
             return array( 'operation_id' => absint( $id ), 'restored' => count( $actions ) );
         } catch ( Throwable $exception ) {
