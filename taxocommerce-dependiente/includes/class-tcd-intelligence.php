@@ -358,7 +358,7 @@ final class TCD_Intelligence {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
-            "SELECT source_type,source_id,title,context_json,status FROM {$table} WHERE lesson=%d ORDER BY id ASC LIMIT 120",
+            "SELECT source_type,source_id,title,context_json,status FROM {$table} WHERE lesson=%d ORDER BY id ASC LIMIT 180",
             $lesson
         ), ARRAY_A );
         $result = array( 'evaluated'=>0, 'pass_top1'=>0, 'pass_top3'=>0, 'pass_top8'=>0, 'failed'=>0, 'pass_any_ratio'=>0, 'sample'=>array() );
@@ -396,7 +396,32 @@ final class TCD_Intelligence {
             foreach ( self::search_faqs( $query, 8 ) as $item ) $ids[] = absint( $item['id'] ?? 0 );
         } elseif ( in_array( $lesson, array( 8, 10 ), true ) ) {
             $ok = 'learned' === (string) ( $facts['previous_status'] ?? '' );
-            return array( 'source_id'=>$id, 'query'=>$query, 'top1'=>$ok, 'top3'=>$ok, 'top8'=>$ok );
+            $original_lesson = absint( $facts['original_lesson'] ?? 0 );
+            $original_context = (array) ( $facts['original_context'] ?? array() );
+            if ( $ok && in_array( $original_lesson, array( 1, 2, 3, 4, 5, 6, 7, 9 ), true ) ) {
+                $regression = self::evaluate_row(
+                    $original_lesson,
+                    array(
+                        'source_type'=>sanitize_key( (string) ( $facts['original_type'] ?? '' ) ),
+                        'source_id'=>absint( $facts['original_id'] ?? 0 ),
+                        'title'=>$title,
+                        'context_json'=>wp_json_encode( $original_context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+                        'status'=>'learned',
+                    ),
+                    $stage
+                );
+                $regression['review_source_id'] = $id;
+                $regression['original_lesson'] = $original_lesson;
+                return $regression;
+            }
+            return array(
+                'source_id'=>$id,
+                'query'=>$query,
+                'original_lesson'=>$original_lesson,
+                'top1'=>$ok,
+                'top3'=>$ok,
+                'top8'=>$ok,
+            );
         } else {
             $interpretation = self::interpret( $query, $stage );
             $hits = (array) ( $interpretation['semantic_hits'] ?? array() );
