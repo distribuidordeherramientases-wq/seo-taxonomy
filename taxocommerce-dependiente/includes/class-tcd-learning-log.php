@@ -49,7 +49,7 @@ final class TCD_Learning_Log {
 
         $json = wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
         if ( false === $json ) $json = '{"encoding_error":true}';
-        if ( strlen( $json ) > 16384 ) $json = substr( $json, 0, 16300 ) . '...[truncated]"}';
+        if ( strlen( $json ) > 16384 ) $json = substr( $json, 0, 16300 ) . '...[truncated]';
 
         $line = sprintf( "%s %-5s %-32s %s\n", gmdate( 'c' ), $level, $event, $json );
         return self::append_bounded( $path, $line );
@@ -161,8 +161,8 @@ final class TCD_Learning_Log {
         $dir = trailingslashit( (string) $uploads['basedir'] ) . self::DIR_NAME;
         if ( $create && ! is_dir( $dir ) ) {
             if ( ! wp_mkdir_p( $dir ) ) return '';
-            self::protect_dir( $dir );
         }
+        if ( $create ) self::protect_dir( $dir );
         $path = trailingslashit( $dir ) . self::FILE_NAME;
         if ( $create && ! file_exists( $path ) ) {
             file_put_contents(
@@ -176,11 +176,11 @@ final class TCD_Learning_Log {
 
     private static function protect_dir( $dir ) {
         $index = trailingslashit( $dir ) . 'index.php';
-        if ( ! file_exists( $index ) ) @file_put_contents( $index, "<?php\n// Silence is golden.\n", LOCK_EX );
+        if ( ! file_exists( $index ) ) file_put_contents( $index, "<?php\n// Silence is golden.\n", LOCK_EX );
 
         $htaccess = trailingslashit( $dir ) . '.htaccess';
         if ( ! file_exists( $htaccess ) ) {
-            @file_put_contents(
+            file_put_contents(
                 $htaccess,
                 "Options -Indexes\n<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n",
                 LOCK_EX
@@ -189,7 +189,7 @@ final class TCD_Learning_Log {
 
         $webconfig = trailingslashit( $dir ) . 'web.config';
         if ( ! file_exists( $webconfig ) ) {
-            @file_put_contents(
+            file_put_contents(
                 $webconfig,
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><configuration><system.webServer><authorization><deny users=\"*\" /></authorization></system.webServer></configuration>",
                 LOCK_EX
@@ -198,7 +198,7 @@ final class TCD_Learning_Log {
     }
 
     private static function append_bounded( $path, $line ) {
-        $handle = @fopen( $path, 'c+b' );
+        $handle = fopen( $path, 'c+b' );
         if ( ! $handle ) return false;
         $ok = false;
         try {
@@ -240,8 +240,8 @@ final class TCD_Learning_Log {
                 fflush( $handle );
             }
         } finally {
-            @flock( $handle, LOCK_UN );
-            @fclose( $handle );
+            flock( $handle, LOCK_UN );
+            fclose( $handle );
         }
         return $ok;
     }
