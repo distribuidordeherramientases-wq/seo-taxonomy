@@ -2,7 +2,7 @@
 /**
  * TaxoCommerce SEO - Canales de catalogos comerciales.
  *
- * Los canales comparten el mismo registro canonico de producto y solo cambian
+ * Channels share the same canonical product record and only change
  * el formato de serializacion. El registro es extensible mediante el filtro
  * tcdist_commercial_feed_channels.
  *
@@ -138,10 +138,10 @@ function tcdist_feed_record_for_channel( array $record, $channel ) {
 }
 
 /**
- * Abre un stream local para generación incremental de feeds comerciales.
+ * Opens a local stream for incremental commercial feed generation.
  *
  * WP_Filesystem no expone recursos compatibles con fputcsv(), fseek(),
- * ftell() y fgetc(); por eso el recurso PHP queda encapsulado aquí.
+ * ftell() and fgetc(); therefore the PHP resource stays encapsulated here.
  *
  * @param string $path Ruta local.
  * @param string $mode Modo de apertura.
@@ -156,7 +156,7 @@ function tcdist_feed_stream_open( $path, $mode ) {
  * Escribe bytes en un stream comercial abierto.
  *
  * @param resource $stream Recurso abierto.
- * @param string   $data   Datos a escribir.
+ * @param string   $data   Data to write.
  * @return int|false
  */
 function tcdist_feed_stream_write( $stream, $data ) {
@@ -223,7 +223,7 @@ function tcdist_feed_channel_write_header( $channel, $path ) {
 }
 
 /**
- * Anade un producto al archivo de un canal.
+ * Adds one product to a channel file.
  */
 function tcdist_feed_channel_append_record( $channel, $path, array $record ) {
     $channels = tcdist_feed_channels();
@@ -274,7 +274,7 @@ function tcdist_feed_channel_append_record( $channel, $path, array $record ) {
         );
         if ( false === $json ) {
             tcdist_feed_stream_close( $handle );
-            return new WP_Error( 'tcdist_feed_json_encode', 'No se pudo serializar un producto al catalogo JSON.' );
+            return new WP_Error( 'tcdist_feed_json_encode', 'A product could not be serialized into the JSON catalog.' );
         }
         tcdist_feed_stream_write( $handle, '    ' . $json );
     } else {
