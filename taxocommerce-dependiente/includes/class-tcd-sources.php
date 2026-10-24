@@ -161,6 +161,32 @@ final class TCD_Sources {
         return self::post_batch( $lesson, $cursor, $limit, array( 'product' ) );
     }
 
+    public static function product_item( $lesson, $id ) {
+        $lesson = absint( $lesson );
+        return in_array( $lesson, array( 2, 4, 9 ), true ) ? self::post_item( $lesson, absint( $id ) ) : null;
+    }
+
+    public static function content_item( $id ) {
+        return self::post_item( 5, absint( $id ) );
+    }
+
+    public static function category_item( $id ) {
+        $term = get_term( absint( $id ), 'product_cat' );
+        return $term instanceof WP_Term ? self::term_item( 1, $term ) : null;
+    }
+
+    public static function faq_item( $id ) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'seo_faq';
+        if ( ! self::table_exists( $table ) ) return null;
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active
+             FROM {$table} WHERE id=%d AND active=1 LIMIT 1",
+            absint( $id )
+        ), ARRAY_A );
+        return is_array( $row ) ? self::faq_row_item( $row ) : null;
+    }
+
     private static function category_batch( $cursor, $limit ) {
         $terms = get_terms( array(
             'taxonomy'=>'product_cat','hide_empty'=>false,'number'=>$limit + 1,
@@ -209,24 +235,29 @@ final class TCD_Sources {
         $rows = array_slice( (array) $rows, 0, $limit );
         $items = array();
         foreach ( $rows as $row ) {
-            $id = absint( $row['id'] ?? 0 );
-            $question = trim( wp_strip_all_tags( (string) ( $row['question'] ?? '' ) ) );
-            $answer = trim( wp_strip_all_tags( (string) ( $row['answer'] ?? '' ) ) );
-            if ( ! $id || '' === $question ) continue;
-            $owner_type = 3 === absint( $row['object_type'] ?? 0 ) ? 'product' : 'product_cat';
-            $owner_id = 3 === absint( $row['object_type'] ?? 0 )
-                ? absint( $row['object_id'] ?? 0 )
-                : absint( $row['product_cat_id'] ?? $row['object_id'] ?? 0 );
-            $facts = array(
-                'owner_type'=>$owner_type,'owner_id'=>$owner_id,
-                'product_cat_id'=>absint( $row['product_cat_id'] ?? 0 ),
-                'answer'=>mb_substr( $answer, 0, 2500 ),
-                'sort_order'=>absint( $row['sort_order'] ?? 0 ),
-                'vocabulary'=>self::vocabulary_for_object( 'faq', $id ),
-            );
-            $items[] = self::item( 6, 'faq', $id, $question, 'Pregunta: '.$question.'. Respuesta: '.$answer, $facts );
+            $item = self::faq_row_item( $row );
+            if ( $item ) $items[] = $item;
         }
         return array( 'items'=>$items, 'cursor'=>$cursor + count( $rows ), 'more'=>$more );
+    }
+
+    private static function faq_row_item( $row ) {
+        $id = absint( $row['id'] ?? 0 );
+        $question = trim( wp_strip_all_tags( (string) ( $row['question'] ?? '' ) ) );
+        $answer = trim( wp_strip_all_tags( (string) ( $row['answer'] ?? '' ) ) );
+        if ( ! $id || '' === $question ) return null;
+        $owner_type = 3 === absint( $row['object_type'] ?? 0 ) ? 'product' : 'product_cat';
+        $owner_id = 3 === absint( $row['object_type'] ?? 0 )
+            ? absint( $row['object_id'] ?? 0 )
+            : absint( $row['product_cat_id'] ?? $row['object_id'] ?? 0 );
+        $facts = array(
+            'owner_type'=>$owner_type,'owner_id'=>$owner_id,
+            'product_cat_id'=>absint( $row['product_cat_id'] ?? 0 ),
+            'answer'=>mb_substr( $answer, 0, 2500 ),
+            'sort_order'=>absint( $row['sort_order'] ?? 0 ),
+            'vocabulary'=>self::vocabulary_for_object( 'faq', $id ),
+        );
+        return self::item( 6, 'faq', $id, $question, 'Pregunta: '.$question.'. Respuesta: '.$answer, $facts );
     }
 
     private static function vocabulary_batch( $cursor, $limit ) {
@@ -393,6 +424,9 @@ final class TCD_Sources {
             $facts['sku'] = (string) $product->get_sku();
             $facts['categories'] = self::object_terms( $id, array( 'product_cat' ) );
             $facts['brands'] = self::object_terms( $id, array( 'product_brand', 'pa_marca' ) );
+            $facts['categories_detail'] = self::object_term_details( $id, array( 'product_cat' ) );
+            $facts['brands_detail'] = self::object_term_details( $id, array( 'product_brand', 'pa_marca' ) );
+            $facts['tags_detail'] = self::object_term_details( $id, array( 'product_tag' ) );
             $facts['short_description'] = wp_strip_all_tags( (string) $product->get_short_description() );
             $facts['vocabulary'] = self::vocabulary_for_object( 'product', $id );
             if ( in_array( $lesson, array( 4, 9 ), true ) ) {
@@ -442,18 +476,47 @@ final class TCD_Sources {
         return $terms;
     }
 
+    private static function object_term_details( $id, $taxonomies ) {
+        $out = array();
+        foreach ( (array) $taxonomies as $taxonomy ) {
+            if ( ! taxonomy_exists( $taxonomy ) ) continue;
+            $rows = wp_get_object_terms( $id, $taxonomy, array( 'fields'=>'all' ) );
+            if ( is_wp_error( $rows ) ) continue;
+            foreach ( array_slice( (array) $rows, 0, 30 ) as $term ) {
+                if ( ! $term instanceof WP_Term ) continue;
+                $out[] = array(
+                    'id'=>absint( $term->term_id ),
+                    'taxonomy'=>$taxonomy,
+                    'slug'=>(string) $term->slug,
+                    'name'=>(string) $term->name,
+                );
+            }
+        }
+        return $out;
+    }
+
     private static function product_features( $id, $product ) {
         $features = self::object_terms( $id, array( 'product_tag', 'tc_tipo', 'tc_rol', 'tc_semantic_tag' ) );
         foreach ( (array) $product->get_attributes() as $attribute ) {
-            if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) ) {
-                continue;
+            if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) ) continue;
+            $raw_name = (string) $attribute->get_name();
+            $name = sanitize_key( $raw_name );
+            if ( ! $name ) continue;
+            $options = method_exists( $attribute, 'get_options' ) ? array_slice( (array) $attribute->get_options(), 0, 30 ) : array();
+            $features['attributes'][ $name ] = $options;
+            $label = function_exists( 'wc_attribute_label' ) ? wc_attribute_label( $raw_name ) : $raw_name;
+            $labels = array();
+            if ( taxonomy_exists( $raw_name ) ) {
+                foreach ( $options as $option ) {
+                    $term = get_term( absint( $option ), $raw_name );
+                    if ( $term instanceof WP_Term ) $labels[] = (string) $term->name;
+                }
+            } else {
+                foreach ( $options as $option ) {
+                    if ( is_scalar( $option ) && '' !== trim( (string) $option ) ) $labels[] = (string) $option;
+                }
             }
-            $name = sanitize_key( (string) $attribute->get_name() );
-            if ( ! $name ) {
-                continue;
-            }
-            $features['attributes'][ $name ] = method_exists( $attribute, 'get_options' )
-                ? array_slice( (array) $attribute->get_options(), 0, 30 ) : array();
+            if ( $labels ) $features['attribute_labels'][ trim( (string) $label ) ?: $name ] = array_values( array_unique( $labels ) );
         }
         return $features;
     }
