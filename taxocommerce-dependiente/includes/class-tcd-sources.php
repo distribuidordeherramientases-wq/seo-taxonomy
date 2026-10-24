@@ -240,6 +240,77 @@ final class TCD_Sources {
         ) );
     }
 
+    public static function review_item( $lesson, $knowledge_id ) {
+        global $wpdb;
+
+        $lesson = absint( $lesson );
+        $knowledge_id = absint( $knowledge_id );
+        if ( ! in_array( $lesson, array( 8, 10 ), true ) || ! $knowledge_id ) return null;
+
+        $table = TCD_Academy::knowledge_table();
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT id,lesson,source_type,source_id,title,context_json,status
+             FROM {$table} WHERE id=%d LIMIT 1",
+            $knowledge_id
+        ), ARRAY_A );
+        if ( ! is_array( $row ) ) return null;
+
+        $original_lesson = absint( $row['lesson'] ?? 0 );
+        $original_type = sanitize_key( (string) ( $row['source_type'] ?? '' ) );
+        $original_id = absint( $row['source_id'] ?? 0 );
+        $stored_context = json_decode( (string) ( $row['context_json'] ?? '' ), true );
+        $stored_context = is_array( $stored_context ) ? $stored_context : array();
+
+        $fresh = self::live_source_item( $original_lesson, $original_type, $original_id );
+        $original_context = $stored_context;
+        $title = (string) ( $row['title'] ?? '' );
+        $previous_status = sanitize_key( (string) ( $row['status'] ?? '' ) );
+
+        if ( is_array( $fresh ) ) {
+            $original_context = (array) ( $fresh['facts'] ?? array() );
+            $title = (string) ( $fresh['title'] ?? $title );
+            $previous_status = self::validate_snapshot( $fresh ) ? 'unlearned' : 'learned';
+        }
+
+        return self::item( $lesson, 'review', $knowledge_id, $title, '', array(
+            'original_lesson'=>$original_lesson,
+            'original_type'=>$original_type,
+            'original_id'=>$original_id,
+            'previous_status'=>$previous_status,
+            'original_context'=>$original_context,
+        ) );
+    }
+
+    private static function live_source_item( $lesson, $source_type, $source_id ) {
+        $lesson = absint( $lesson );
+        $source_type = sanitize_key( (string) $source_type );
+        $source_id = absint( $source_id );
+        if ( ! $source_id ) return null;
+
+        if ( in_array( $lesson, array( 2, 4, 9 ), true ) || 'product' === $source_type ) {
+            return self::product_item( $lesson, $source_id );
+        }
+        if ( 1 === $lesson || false !== strpos( $source_type, 'product_cat' ) ) {
+            return self::category_item( $source_id );
+        }
+        if ( 3 === $lesson || 'vocabulary' === $source_type ) {
+            return self::vocabulary_item( $source_id );
+        }
+        if ( 5 === $lesson && in_array( $source_type, array( 'post','page' ), true ) ) {
+            return self::content_item( $source_id );
+        }
+        if ( 6 === $lesson || in_array( $source_type, array( 'faq','seo_faq' ), true ) ) {
+            return self::faq_item( $source_id );
+        }
+        if ( 7 === $lesson || 'cross' === $source_type ) {
+            return self::cross_item( $source_id );
+        }
+        if ( in_array( $lesson, array( 8, 10 ), true ) || 'review' === $source_type ) {
+            return self::review_item( $lesson, $source_id );
+        }
+        return null;
+    }
+
     private static function category_batch( $cursor, $limit ) {
         $terms = get_terms( array(
             'taxonomy'=>'product_cat','hide_empty'=>false,'number'=>$limit + 1,

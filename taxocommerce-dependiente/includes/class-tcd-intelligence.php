@@ -637,7 +637,7 @@ final class TCD_Intelligence {
                 $correctable = true;
             } elseif ( $issues ) {
                 $hard = array_filter( $issues, static function ( $issue ) {
-                    return in_array( (string) ( $issue['code'] ?? '' ), array( 'titulo_vacio','titulo_demasiado_corto','sin_categoria_producto','sin_tipo','sin_rol' ), true );
+                    return self::is_hard_data_issue( (string) ( $issue['code'] ?? '' ) );
                 } );
                 if ( $hard ) {
                     $origin = 'datos_fuente';
@@ -655,6 +655,37 @@ final class TCD_Intelligence {
             'action'=>$action,
             'data_issues'=>array_values( $issues ),
         );
+    }
+
+    private static function is_hard_data_issue( $code ) {
+        $code = sanitize_key( (string) $code );
+        $base = preg_replace( '/^l\d+_/', '', $code );
+        return in_array( $base, array(
+            'titulo_vacio',
+            'titulo_demasiado_corto',
+            'categoria_sin_slug',
+            'categoria_con_productos_sin_vocabulary',
+            'categoria_sin_tipo_aplicacion',
+            'sin_categoria_producto',
+            'sin_tipo',
+            'sin_rol',
+            'vocabulary_sin_grupo',
+            'vocabulary_sin_slug',
+            'vocabulary_sin_productos',
+            'sin_caracteristicas_producto',
+            'sin_senales_diferenciadoras',
+            'editorial_sin_vocabulary',
+            'faq_sin_respuesta',
+            'faq_sin_propietario',
+            'relacion_cruzada_sin_grupo',
+            'relacion_cruzada_sin_slug',
+            'relacion_cruzada_sin_producto',
+            'relacion_cruzada_sin_editorial',
+            'sin_necesidad_cliente',
+            'regresion_sin_origen',
+            'deuda_previa_no_aprendida',
+            'no_aprendido',
+        ), true );
     }
 
     private static function data_issues_for_row( $lesson, $row ) {
@@ -720,6 +751,51 @@ final class TCD_Intelligence {
             }
         }
 
+        if ( 4 === $lesson && 'product' === $source_type ) {
+            $features = (array) ( $facts['features'] ?? array() );
+            $attribute_labels = (array) ( $features['attribute_labels'] ?? array() );
+            $attribute_values = (array) ( $features['attributes'] ?? array() );
+            $product_tags = (array) ( $features['product_tag'] ?? array() );
+            $vocabulary = (array) ( $facts['vocabulary'] ?? array() );
+
+            if ( ! $features ) {
+                $issues[] = self::data_issue(
+                    'sin_caracteristicas_producto',
+                    'features',
+                    '',
+                    'L4 no dispone de características, atributos ni etiquetas del producto.',
+                    'Completar atributos/etiquetas útiles o revisar la clasificación semántica del producto.'
+                );
+            }
+
+            $has_specific_semantics = ! empty( $vocabulary['aplicacion'] )
+                || ! empty( $vocabulary['plataforma'] )
+                || ! empty( $vocabulary['subtipo'] );
+            $has_specific_features = ! empty( $attribute_labels )
+                || ! empty( $attribute_values )
+                || ! empty( $product_tags );
+
+            if ( ! $has_specific_semantics && ! $has_specific_features ) {
+                $issues[] = self::data_issue(
+                    'sin_senales_diferenciadoras',
+                    'features/vocabulary',
+                    '',
+                    'El producto no aporta aplicación, plataforma, subtipo ni características que permitan diferenciar su necesidad.',
+                    'Añadir únicamente atributos o conceptos semánticos reales que ayuden a distinguir para qué sirve o con qué es compatible.'
+                );
+            }
+
+            if ( $attribute_values && ! $attribute_labels ) {
+                $issues[] = self::data_issue(
+                    'atributos_sin_etiqueta_legible',
+                    'features.attribute_labels',
+                    '',
+                    'Hay atributos almacenados pero no se han podido resolver a etiquetas legibles para el cliente.',
+                    'Revisar nombres/opciones de atributos y sus términos para que Dependiente pueda interpretarlos.'
+                );
+            }
+        }
+
         if ( 7 === $lesson || 'cross' === $source_type ) {
             if ( empty( $facts['group'] ) ) {
                 $issues[] = self::data_issue( 'relacion_cruzada_sin_grupo', 'semantic_group', '', 'La relación cruzada no tiene grupo semántico.', 'Revisar el término Vocabulary que conecta catálogo y contenido.' );
@@ -769,6 +845,52 @@ final class TCD_Intelligence {
             }
         }
 
+        if ( in_array( $lesson, array( 8, 10 ), true ) && 'review' === $source_type ) {
+            $original_lesson = absint( $facts['original_lesson'] ?? 0 );
+            $original_type = sanitize_key( (string) ( $facts['original_type'] ?? '' ) );
+            $original_id = absint( $facts['original_id'] ?? 0 );
+            $previous_status = sanitize_key( (string) ( $facts['previous_status'] ?? '' ) );
+            $original_context = (array) ( $facts['original_context'] ?? array() );
+
+            if ( ! $original_lesson || ! $original_type || ! $original_id ) {
+                $issues[] = self::data_issue(
+                    'regresion_sin_origen',
+                    'review_origin',
+                    '',
+                    'La regresión no conserva una referencia completa a la fuente original.',
+                    'Reconstruir la muestra de revisión desde el conocimiento de la lección original.'
+                );
+            } else {
+                if ( 'learned' !== $previous_status ) {
+                    $issues[] = self::data_issue(
+                        'deuda_previa_no_aprendida',
+                        'previous_status',
+                        $previous_status,
+                        'La fuente revisada ya arrastraba deuda: no estaba aprendida en L' . $original_lesson . '.',
+                        'Corregir la causa en L' . $original_lesson . ' y volver a ejecutar la regresión.'
+                    );
+                }
+
+                $original_row = array(
+                    'source_type'=>$original_type,
+                    'source_id'=>$original_id,
+                    'title'=>$title,
+                    'context_json'=>wp_json_encode( $original_context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+                    'status'=>$previous_status,
+                );
+                foreach ( self::data_issues_for_row( $original_lesson, $original_row ) as $inherited ) {
+                    $code = sanitize_key( 'l' . $original_lesson . '_' . (string) ( $inherited['code'] ?? 'deuda' ) );
+                    $issues[] = self::data_issue(
+                        $code,
+                        'L' . $original_lesson . '.' . (string) ( $inherited['field'] ?? '' ),
+                        (string) ( $inherited['current'] ?? '' ),
+                        'Deuda heredada de L' . $original_lesson . ': ' . (string) ( $inherited['reason'] ?? '' ),
+                        (string) ( $inherited['action'] ?? 'Corregir la fuente original y reevaluar.' )
+                    );
+                }
+            }
+        }
+
         return array_values( $issues );
     }
 
@@ -794,8 +916,37 @@ final class TCD_Intelligence {
         if ( absint( $origins['dependiente'] ?? 0 ) ) {
             $recommendations[] = 'Los casos dependiente no deben corregirse en WordPress: hay que reforzar memoria, señales de identidad o ranking.';
         }
-        if ( 2 === absint( $lesson ) ) {
-            $recommendations[] = 'L2 debe demostrar identidad de producto mediante título/SKU/categoría; L9 seguirá aprendiendo necesidades y lenguaje del cliente más adelante.';
+        switch ( absint( $lesson ) ) {
+            case 1:
+                $recommendations[] = 'L1 debe asegurar jerarquía, slug y clasificación semántica suficiente en categorías con productos.';
+                break;
+            case 2:
+                $recommendations[] = 'L2 debe demostrar identidad de producto mediante título/SKU/categoría; L9 seguirá aprendiendo necesidades y lenguaje del cliente más adelante.';
+                break;
+            case 3:
+                $recommendations[] = 'L3 debe mantener TIPO/ROL canónicos con slug y asignaciones reales a productos.';
+                break;
+            case 4:
+                $recommendations[] = 'L4 debe aportar señales diferenciadoras reales: aplicación, plataforma, subtipo, atributos o etiquetas útiles.';
+                break;
+            case 5:
+                $recommendations[] = 'L5 solo debe conectar contenido editorial y catálogo cuando exista Vocabulary compartido real.';
+                break;
+            case 6:
+                $recommendations[] = 'L6 exige FAQs con respuesta y propietario canónico (producto o categoría).';
+                break;
+            case 7:
+                $recommendations[] = 'L7 exige que cada concepto cruzado tenga uso real tanto en catálogo como en contenido editorial.';
+                break;
+            case 8:
+                $recommendations[] = 'L8 no debe ocultar deuda previa: cada fallo de regresión debe señalar la lección original que debe corregirse.';
+                break;
+            case 9:
+                $recommendations[] = 'L9 debe construir una necesidad natural independiente y relacionarla con señales semánticas/producto.';
+                break;
+            case 10:
+                $recommendations[] = 'L10 debe consolidar la deuda de L1-L9 y conservar el origen exacto de cada fallo de regresión.';
+                break;
         }
         return array_values( array_unique( $recommendations ) );
     }
@@ -820,6 +971,11 @@ final class TCD_Intelligence {
         $quality = self::quality_for_lesson( $lesson );
         $report = json_decode( (string) ( $quality['report_json'] ?? '' ), true );
         $report = is_array( $report ) ? $report : array();
+        if ( ! isset( $report['failures'], $report['failure_origins'] ) ) {
+            $snapshot = TCD_Academy::snapshot_for_lesson( $lesson );
+            $snapshot_id = absint( $snapshot['id'] ?? $quality['snapshot_id'] ?? 0 );
+            if ( $snapshot_id ) $report = self::evaluate_lesson( $lesson, $snapshot_id );
+        }
 
         nocache_headers();
         header( 'Content-Type: text/csv; charset=UTF-8' );
@@ -829,7 +985,7 @@ final class TCD_Intelligence {
         fputcsv( $out, array(
             'lesson','source_type','source_id','title','query','rank','top8','origin','correctable',
             'issue_codes','fields','current_values','reason','recommended_action','observed_ids','observed_titles'
-        ), ';' );
+        ), ';', '"', '' );
 
         foreach ( (array) ( $report['failures'] ?? array() ) as $failure ) {
             $diagnosis = (array) ( $failure['diagnosis'] ?? array() );
@@ -860,7 +1016,7 @@ final class TCD_Intelligence {
                 (string) ( $diagnosis['action'] ?? '' ),
                 implode( '|', array_map( static function ( $item ) { return absint( $item['id'] ?? 0 ); }, $observed ) ),
                 implode( ' || ', array_map( static function ( $item ) { return (string) ( $item['title'] ?? '' ); }, $observed ) )
-            ), ';' );
+            ), ';', '"', '' );
         }
         fclose( $out );
         exit;
@@ -891,34 +1047,47 @@ final class TCD_Intelligence {
         $out = fopen( 'php://output', 'w' );
         fwrite( $out, "\xEF\xBB\xBF" );
         fputcsv( $out, array(
-            'lesson','source_type','source_id','title','issue_code','field','current_value','reason','recommended_action'
-        ), ';' );
+            'lesson','source_type','source_id','title','learning_status','learning_reason',
+            'issue_code','field','current_value','reason','recommended_action'
+        ), ';', '"', '' );
 
         $table = TCD_Academy::knowledge_table();
         $last = 0;
         do {
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
-                "SELECT id,source_type,source_id,title,context_json,status
+                "SELECT id,source_type,source_id,title,context_json,status,reason
                  FROM {$table}
-                 WHERE lesson=%d AND status='learned' AND id>%d
+                 WHERE lesson=%d AND id>%d
                  ORDER BY id ASC LIMIT 250",
                 $lesson,
                 $last
             ), ARRAY_A );
             foreach ( $rows as $row ) {
                 $last = absint( $row['id'] ?? 0 );
-                foreach ( self::data_issues_for_row( $lesson, $row ) as $issue ) {
+                $issues = self::data_issues_for_row( $lesson, $row );
+                if ( 'unlearned' === (string) ( $row['status'] ?? '' ) ) {
+                    $issues[] = self::data_issue(
+                        'no_aprendido',
+                        'learning',
+                        (string) ( $row['reason'] ?? '' ),
+                        (string) ( $row['reason'] ?? 'Dependiente no pudo aprender esta fuente.' ),
+                        'Corregir la causa indicada y volver a revisar esta fuente.'
+                    );
+                }
+                foreach ( $issues as $issue ) {
                     fputcsv( $out, array(
                         $lesson,
                         (string) ( $row['source_type'] ?? '' ),
                         absint( $row['source_id'] ?? 0 ),
                         (string) ( $row['title'] ?? '' ),
+                        (string) ( $row['status'] ?? '' ),
+                        (string) ( $row['reason'] ?? '' ),
                         (string) ( $issue['code'] ?? '' ),
                         (string) ( $issue['field'] ?? '' ),
                         (string) ( $issue['current'] ?? '' ),
                         (string) ( $issue['reason'] ?? '' ),
                         (string) ( $issue['action'] ?? '' )
-                    ), ';' );
+                    ), ';', '"', '' );
                 }
             }
         } while ( count( $rows ) === 250 );
@@ -1051,13 +1220,22 @@ final class TCD_Intelligence {
             }
         } while ( count( $rows ) === 250 );
 
+        $syllabus = TCD_Sources::syllabus();
+        $lesson_meta = (array) ( $syllabus[ $lesson ] ?? array() );
+
         return array(
             'schema'=>array(
                 'name'=>'taxocommerce_dependiente_quality_audit',
-                'version'=>1,
+                'version'=>2,
             ),
             'exported_at'=>gmdate( 'c' ),
             'lesson'=>$lesson,
+            'lesson_meta'=>array(
+                'key'=>(string) ( $lesson_meta['key'] ?? '' ),
+                'name'=>(string) ( $lesson_meta['name'] ?? '' ),
+                'source'=>(string) ( $lesson_meta['source'] ?? '' ),
+                'objective'=>(string) ( $lesson_meta['objective'] ?? '' ),
+            ),
             'quality'=>array(
                 'status'=>(string) ( $quality['status'] ?? ( ! empty( $report['passed'] ) ? 'passed' : 'failed' ) ),
                 'evaluated'=>absint( $quality['evaluated'] ?? $report['evaluated'] ?? 0 ),
@@ -1134,6 +1312,15 @@ final class TCD_Intelligence {
         foreach ( $failures as $failure ) {
             $source_type = sanitize_key( (string) ( $failure['source_type'] ?? '' ) );
             $source_id = absint( $failure['source_id'] ?? 0 );
+
+            // L8/L10 expose the original object to the auditor, but their own
+            // knowledge row is a review item. Refresh that review row so the
+            // regression re-reads the current original source.
+            if ( in_array( $lesson, array( 8, 10 ), true ) && absint( $failure['review_source_id'] ?? 0 ) ) {
+                $source_type = 'review';
+                $source_id = absint( $failure['review_source_id'] );
+            }
+
             if ( ! $source_id ) {
                 $unavailable++;
                 continue;
@@ -1226,6 +1413,9 @@ final class TCD_Intelligence {
         }
         if ( 7 === $lesson || 'cross' === $source_type ) {
             return TCD_Sources::cross_item( $source_id );
+        }
+        if ( in_array( $lesson, array( 8, 10 ), true ) || 'review' === $source_type ) {
+            return TCD_Sources::review_item( $lesson, $source_id );
         }
         return null;
     }

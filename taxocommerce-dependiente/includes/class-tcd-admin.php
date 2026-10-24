@@ -300,16 +300,17 @@ final class TCD_Admin {
                 if(!$passed){
                     $origins=(array)($quality_report['failure_origins']??array());
                     echo '<div class="description">Datos '.esc_html(number_format_i18n(absint($origins['datos_fuente']??0))).' · ambigüedad '.esc_html(number_format_i18n(absint($origins['ambiguedad']??0))).' · Dependiente '.esc_html(number_format_i18n(absint($origins['dependiente']??0))).'</div>';
-                    echo '<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">';
-                    echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($no)).'">JSON fallos</a>';
-                    echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_csv_url($no)).'">CSV incidencias</a>';
-                    echo '</div>';
                 }
+                echo '<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">';
+                echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($no)).'">JSON auditoría</a>';
+                echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_csv_url($no)).'">CSV examen</a>';
+                echo '</div>';
             }else echo '—';
             echo '</td>';
             echo '<td>';
             if($snapshot){
-                echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON</a> ';
+                echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON aprendizaje</a> ';
+                if($quality)echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($no)).'">JSON auditoría</a> ';
                 echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($no)).'">CSV datos</a>';
             }else echo '—';
             echo '</td></tr>';

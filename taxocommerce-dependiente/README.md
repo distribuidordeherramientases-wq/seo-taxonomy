@@ -1,4 +1,4 @@
-# TaxoCommerce Dependiente 0.3.5
+# TaxoCommerce Dependiente 0.3.6
 
 Plugin independiente de la familia TaxoCommerce. El objetivo de esta versión es mantener la arquitectura auditable del Dependiente moderno y recuperar, como mínimo, las capacidades útiles que daban buen resultado en el conjunto Dependiente + Intérprete anterior.
 
@@ -244,3 +244,31 @@ La foto fija original se conserva como evidencia de lo que Dependiente estudió.
 No reinicia L1-L10 ni vuelve a procesar todo el catálogo. El umbral no se rebaja para hacer pasar la lección.
 
 Los CSV siguen disponibles como vistas tabulares para corrección masiva. El JSON es el formato principal para diagnóstico y para generar posteriormente CSV específicos de productos, categorías, posts/páginas, FAQs o Vocabulary.
+
+## Auditoría homogénea L1-L10
+
+Desde 0.3.6 las diez lecciones comparten el mismo contrato de diagnóstico y exportación. Una lección puede aprobar el quality gate y seguir mostrando deuda de datos para mantenimiento preventivo.
+
+Salidas por lección evaluada:
+
+- `JSON aprendizaje`: foto fija y conocimiento de la lección;
+- `JSON auditoría`: `quality_failures`, `correction_queue`, `dependiente_internal_queue`, `ambiguity_queue` y `data_audit`;
+- `CSV examen`: fallos concretos del quality gate;
+- `CSV datos`: deuda detectada en toda la lección, incluidos elementos `unlearned`.
+
+Cobertura específica:
+
+- L1 · categorías, jerarquía y Vocabulary;
+- L2 · identidad de producto, SKU, categoría, TIPO/ROL, resumen y marca;
+- L3 · TIPO/ROL canónicos y asignaciones;
+- L4 · características, aplicación, plataforma, subtipo, atributos y señales diferenciadoras;
+- L5 · relaciones editoriales mediante Vocabulary común;
+- L6 · FAQs, respuestas y propietario canónico;
+- L7 · relaciones cruzadas catálogo/editorial;
+- L8 · regresión L1-L7, propagando la deuda de la lección original;
+- L9 · necesidad natural y señales producto/semántica;
+- L10 · regresión L1-L9, preservando el origen exacto de la deuda.
+
+En L8/L10 las incidencias heredadas se etiquetan con la lección de origen (`L2`, `L5`, etc.), de modo que la corrección se realiza en la fuente original y no en la fila de revisión.
+
+Los CSV pasan explícitamente el parámetro `escape` de `fputcsv()` para evitar avisos `Deprecated` en PHP 8.4 manteniendo compatibilidad con PHP 7.4.
