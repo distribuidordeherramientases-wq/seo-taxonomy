@@ -161,7 +161,7 @@ if ( 1 !== $report['content']['posts']['summary']['with_signal'] || 1 !== $repor
 ob_start();
 TaxoCommerce_Google_Bing_Executive::render();
 $html = ob_get_clean();
-if ( false === strpos( $html, 'Informe ejecutivo Google / Bing' ) || false === strpos( $html, 'Oportunidades de contenido' ) ) {
+if ( false === strpos( $html, 'Executive Report' ) || false === strpos( $html, 'Content opportunities' ) ) {
 	fwrite( STDERR, "Executive render failed\n" );
 	exit( 1 );
 }
