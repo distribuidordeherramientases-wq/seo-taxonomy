@@ -5,6 +5,7 @@
  * Version: 0.1.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
+ * Requires Plugins: woocommerce
  * Author: David Pérez
  * License: MIT
  * Text Domain: taxocommerce-logistica
