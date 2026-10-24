@@ -1,7 +1,7 @@
 <?php
 /**
  * Manual, streamed SQL/CSV logical exports. No files or dumps are left inside
- * the publicly accessible uploads directory. No restore/rollback endpoints.
+ * the publicly accessible uploads directory. No SQL restore endpoints.
  */
 defined( 'ABSPATH' ) || exit;
 
