@@ -529,10 +529,13 @@ final class TCD_Backup {
         $options = self::options();
         $counts = array_fill_keys( array_keys( $tables ), 0 );
         $option_presence = array_fill_keys( array_keys( $options ), false );
+        $option_seen = array_fill_keys( array_keys( $options ), false );
         $manifest = array();
         $warnings = array();
         $errors = array();
         $unknown = 0;
+        $end_seen = false;
+        $end_rows = null;
         $line_no = 0;
 
         while ( false !== ( $line = fgets( $handle ) ) ) {
@@ -572,6 +575,10 @@ final class TCD_Backup {
             if ( 'option' === $type ) {
                 $name = (string) ( $record['name'] ?? '' );
                 if ( isset( $options[ $name ] ) ) {
+                    if ( ! empty( $option_seen[ $name ] ) ) {
+                        $errors[] = 'La opción ' . $name . ' aparece más de una vez en el backup.';
+                    }
+                    $option_seen[ $name ] = true;
                     $option_presence[ $name ] = ! empty( $record['present'] );
                 } else {
                     $unknown++;
@@ -579,9 +586,16 @@ final class TCD_Backup {
                 continue;
             }
 
-            if ( 'end' !== $type ) {
-                $unknown++;
+            if ( 'end' === $type ) {
+                if ( $end_seen ) {
+                    $errors[] = 'El backup contiene más de un marcador final.';
+                }
+                $end_seen = true;
+                $end_rows = absint( $record['table_rows'] ?? 0 );
+                continue;
             }
+
+            $unknown++;
         }
         fclose( $handle );
 
@@ -618,7 +632,22 @@ final class TCD_Backup {
         foreach ( $options as $name => $meta ) {
             if ( ! isset( $manifest_options[ $name ] ) ) {
                 $errors[] = 'El manifiesto no declara la opción obligatoria ' . $name . '.';
+                continue;
             }
+            if ( empty( $option_seen[ $name ] ) ) {
+                $errors[] = 'Falta el registro de la opción obligatoria ' . $name . '.';
+                continue;
+            }
+            $manifest_present = ! empty( $manifest_options[ $name ]['present'] );
+            if ( $manifest_present !== ! empty( $option_presence[ $name ] ) ) {
+                $errors[] = 'La presencia de la opción ' . $name . ' no coincide con el manifiesto.';
+            }
+        }
+
+        if ( ! $end_seen ) {
+            $errors[] = 'Falta el marcador final del backup; el archivo puede estar truncado.';
+        } elseif ( absint( $end_rows ) !== array_sum( array_map( 'absint', $counts ) ) ) {
+            $errors[] = 'El total de filas del marcador final no coincide con el contenido leído.';
         }
 
         if ( $unknown ) {
@@ -628,7 +657,7 @@ final class TCD_Backup {
         $source = (array) ( $manifest['source'] ?? array() );
         $source_version = (string) ( $source['dependiente_version'] ?? '' );
         if ( $source_version && version_compare( $source_version, TAXOCOMMERCE_DEPENDIENTE_VERSION, '>' ) ) {
-            $warnings[] = 'El backup procede de una versión de Dependiente más nueva que la instalada. La estructura ha pasado la validación del formato, pero conviene actualizar el plugin antes de restaurar.';
+            $errors[] = 'El backup procede de una versión de Dependiente más nueva que la instalada. Actualiza Dependiente antes de restaurar para evitar pérdida de columnas o estado.';
         }
 
         return array(
