@@ -112,7 +112,6 @@ jobs:
         shell: bash
         env:
           ALL_MODULES_JSON: ${{ steps.family.outputs.modules }}
-          ALL_MODULES_JSON: ${{ steps.family.outputs.modules }}
           INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
