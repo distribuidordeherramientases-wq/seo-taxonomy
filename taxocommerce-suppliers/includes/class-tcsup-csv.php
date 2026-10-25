@@ -73,6 +73,64 @@ final class TCSUP_CSV {
 		);
 	}
 
+	public static function suggest_field_for_header( $header ) {
+		$key = sanitize_key( remove_accents( strtolower( trim( (string) $header ) ) ) );
+		$aliases = array(
+			'id_satkit'           => 'proveedor_id_externo',
+			'id_producto'         => 'proveedor_id_externo',
+			'product_id'          => 'proveedor_id_externo',
+			'productid'           => 'proveedor_id_externo',
+			'id'                  => 'proveedor_id_externo',
+			'codigo'              => 'proveedor_id_externo',
+			'referencia'          => 'proveedor_id_externo',
+			'sku'                 => 'sku',
+			'mpn'                 => 'mpn',
+			'country'             => 'pais_origen',
+			'pais'                => 'pais_origen',
+			'language'            => 'idioma_origen',
+			'idioma'              => 'idioma_origen',
+			'url_origen'          => 'url_origen',
+			'url_to_product'      => 'url_origen',
+			'product_url'         => 'url_origen',
+			'enlace'              => 'url_origen',
+			'url_canonica'        => 'url_canonica',
+			'nombre'              => 'nombre',
+			'name'                => 'nombre',
+			'titulo'              => 'nombre',
+			'title'               => 'nombre',
+			'descripcion'         => 'descripcion',
+			'description'         => 'descripcion',
+			'marca_proveedor'     => 'marca',
+			'marca'               => 'marca',
+			'brand'               => 'marca',
+			'categoria_proveedor' => 'categoria_proveedor',
+			'categoria'           => 'categoria_proveedor',
+			'category'            => 'categoria_proveedor',
+			'categorypath'        => 'categoria_proveedor',
+			'precio_sin_iva'      => 'precio_sin_iva',
+			'cost'                => 'precio_sin_iva',
+			'precio_iva'          => 'precio_con_iva',
+			'precio_con_iva'      => 'precio_con_iva',
+			'precio'              => 'precio_con_iva',
+			'price'               => 'precio_con_iva',
+			'sales'               => 'precio_con_iva',
+			'iva_porcentaje'      => 'iva_porcentaje',
+			'tax'                 => 'iva_porcentaje',
+			'moneda'              => 'moneda',
+			'currency'            => 'moneda',
+			'stock_estado'        => 'stock_estado',
+			'stock_status'        => 'stock_estado',
+			'stock_cantidad'      => 'stock_cantidad',
+			'stock_quantity'      => 'stock_cantidad',
+			'stock_texto'         => 'stock_texto',
+			'imagenes'            => 'imagenes',
+			'imagen'              => 'imagenes',
+			'url_to_image'        => 'imagenes',
+			'image_url'           => 'imagenes',
+		);
+		return $aliases[ $key ] ?? '';
+	}
+
 	public static function templates() {
 		$templates = get_option( self::TEMPLATE_OPTION, array() );
 		if ( ! is_array( $templates ) ) {
