@@ -203,7 +203,6 @@ final class TCDB_Storage {
         $integrity = array();
         $nodes = $wpdb->prefix . 'seo_nodes';
         if ( isset( $tables[ $nodes ] ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier is computed from current-prefix table list.
             $integrity['orphan_page_nodes'] = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(*) FROM %i n
@@ -211,10 +210,9 @@ final class TCDB_Storage {
                      WHERE n.object_type='page' AND p.ID IS NULL",
                     $nodes, $wpdb->posts
                 )
-            );  );
+            );
         }
         if ( isset( $tables[ $nodes ] ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Inventory-verified table, fixed predicates.
             $integrity['duplicate_nodes'] = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(*) FROM (
@@ -223,7 +221,7 @@ final class TCDB_Storage {
                     ) d",
                     $nodes
                 )
-            );  );
+            );
         }
         // Broken parent links in the WordPress-native product category tree.
         $integrity['broken_product_category_parents'] = (int) $wpdb->get_var(
@@ -236,7 +234,6 @@ final class TCDB_Storage {
         );
         $relations = $wpdb->prefix . 'seo_relations';
         if ( isset( $tables[ $relations ] ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only an existing Core relation table is addressed.
             $integrity['duplicate_relations'] = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(*) FROM (
@@ -247,18 +244,17 @@ final class TCDB_Storage {
                     ) d",
                     $relations
                 )
-            );  );
+            );
         }
         $scheduler = $wpdb->prefix . 'actionscheduler_actions';
         if ( isset( $tables[ $scheduler ] ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Inventory-validated native Action Scheduler table.
             $integrity['as_overdue_pending'] = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(*) FROM %i
                      WHERE status='pending' AND scheduled_date_gmt < UTC_TIMESTAMP()",
                     $scheduler
                 )
-            );  );
+            );
         }
 
         return array(
