@@ -365,7 +365,7 @@ add_filter('seo_data_layer_tables', 'tccampaigns_register_data_layer_tables');
  */
 function tccampaigns_register_public_template()
 {
-    if (version_compare((string) get_option('seo_marketing_campaign_template_registry_version', '0'), '1', '>=')) {
+    if (version_compare((string) get_option('tccampaigns_template_registry_version', '0'), '1', '>=')) {
         return;
     }
 
@@ -425,7 +425,7 @@ function tccampaigns_register_public_template()
 
     $required_structural_columns = array_keys($structural);
     if (!array_diff($required_structural_columns, $columns)) {
-        update_option('seo_marketing_campaign_template_registry_version', '1', false);
+        update_option('tccampaigns_template_registry_version', '1', false);
     }
 }
 /**
