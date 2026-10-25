@@ -101,13 +101,18 @@ final class Runner {
     }
 
     public static function sanitize_filters( $scope, $filters ) {
+        $mode = sanitize_key( (string) ( $filters['mode'] ?? 'filtered' ) );
+        $mode = 'full' === $mode ? 'full' : 'filtered';
         $rows = absint( $filters['rows'] ?? 25 );
-        if ( ! in_array( $rows, array( 10,25,50,100,250 ), true ) ) {
+        if ( 'full' === $mode ) {
+            $rows = 0;
+        } elseif ( ! in_array( $rows, array( 10,25,50,100,250 ), true ) ) {
             $rows = 25;
         }
         return array(
-            'search'      => sanitize_text_field( (string) ( $filters['search'] ?? '' ) ),
-            'category_id' => 'products' === $scope ? absint( $filters['category_id'] ?? 0 ) : 0,
+            'mode'        => $mode,
+            'search'      => 'full' === $mode ? '' : sanitize_text_field( (string) ( $filters['search'] ?? '' ) ),
+            'category_id' => 'full' === $mode ? 0 : ( 'products' === $scope ? absint( $filters['category_id'] ?? 0 ) : 0 ),
             'rows'        => $rows,
         );
     }
@@ -118,6 +123,9 @@ final class Runner {
             return is_wp_error( $count ) ? null : absint( $count );
         }
 
+        if ( 'faqs' === $scope && FAQ_Source::available() ) {
+            return FAQ_Source::count_active();
+        }
         $post_type = 'faqs' === $scope ? self::faq_post_type() : ( 'products' === $scope ? 'product' : ( 'pages' === $scope ? 'page' : 'post' ) );
         $counts = wp_count_posts( $post_type );
         return $counts && isset( $counts->publish ) ? absint( $counts->publish ) : null;
@@ -130,8 +138,8 @@ final class Runner {
         if ( 'categories' === $scope && ! taxonomy_exists( 'product_cat' ) ) {
             return 'No existe la taxonomía product_cat.';
         }
-        if ( 'faqs' === $scope && ! self::faq_post_type() ) {
-            return 'WordPress no incluye un CPT FAQ de serie. Instala el módulo FAQ o registra un tipo mediante taxocommerce_auditor_faq_post_types.';
+        if ( 'faqs' === $scope && ! FAQ_Source::available() && ! self::faq_post_type() ) {
+            return 'No está disponible la tabla canónica de TaxoCommerce FAQs ni un CPT FAQ alternativo.';
         }
         return '';
     }
@@ -148,6 +156,12 @@ final class Runner {
 
         $filters = self::sanitize_filters( $scope, $filters );
         $unavailable = self::unavailable_reason( $scope );
+        $full = 'full' === (string) $filters['mode'];
+        $run_file = $unavailable ? '' : Export_Store::begin( $scope );
+        if ( ! $unavailable && '' === $run_file ) {
+            $unavailable = 'No se pudo preparar el archivo completo de auditoría en uploads/taxocommerce-auditor/.';
+        }
+        $expected = $unavailable ? null : ( $full ? self::count_objects( $scope ) : $filters['rows'] );
         $state = array(
             'status'           => $unavailable ? 'unavailable' : 'queued',
             'reason'           => $unavailable,
@@ -156,12 +170,18 @@ final class Runner {
             'completed_gmt'    => null,
             'processed'        => 0,
             'excluded'         => 0,
-            'total'            => $unavailable ? null : $filters['rows'],
+            'total'            => $expected,
             'filters'          => $filters,
+            'run_mode'         => $full ? 'full' : 'filtered',
+            'run_file'         => $run_file,
             'cursor'           => 0,
             'finding_count'    => 0,
+            'finding_entities' => array(),
             'severity_counts'  => array( 'critical' => 0, 'high' => 0, 'medium' => 0, 'low' => 0, 'info' => 0 ),
             'rule_counts'      => array(),
+            'action_class_counts' => array(),
+            'status_counts'    => array(),
+            'ready_now_count'  => 0,
             'findings'         => array(),
             'quality_total'    => 0,
             'quality_scored'   => 0,
@@ -186,7 +206,10 @@ final class Runner {
             'notes'            => array(
                 'Auditoria de solo lectura: no altera contenido, terminos ni relaciones.',
                 'La puntuacion de calidad es interna, no una metrica ni una prediccion de Google.',
-                'La ejecucion esta limitada por filtros y numero maximo de entidades para evitar sobrecarga.',
+                $full
+                    ? 'Auditoria completa: recorre todo el universo publicado del bloque en lotes acotados.'
+                    : 'Auditoria filtrada: limitada al numero maximo de entidades elegido.',
+                'La interfaz conserva una muestra acotada; el JSON completo se genera desde uploads sin truncar la cola.',
             ),
         );
         if ( ! empty( $state['editorial_map']['partial'] ) ) {
@@ -196,7 +219,9 @@ final class Runner {
             $state['notes'][] = 'Referencia histórica para revisar tamaños: 5-10 productos. Las propuestas requieren evidencia semántica y no autorizan cambios automáticos.';
         }
         if ( 'faqs' === $scope && ! $unavailable ) {
-            $state['notes'][] = 'Validacion del owner solo cuando otro modulo ofrece el filtro taxocommerce_auditor_faq_owner.';
+            $state['notes'][] = FAQ_Source::available()
+                ? 'Las FAQs se leen desde el almacén canónico de TaxoCommerce FAQs y se valida owner, categoría, contenido y duplicados.'
+                : 'FAQ CPT alternativo: la validación del owner depende del filtro taxocommerce_auditor_faq_owner.';
         }
         update_option( self::option( $scope, 'state' ), $state, false );
         if ( ! $unavailable ) {
@@ -236,6 +261,13 @@ final class Runner {
     private static function batch( $scope, $cursor, $filters = array(), $remaining = null ) {
         $filters = self::sanitize_filters( $scope, $filters );
         $batch_size = min( self::BATCH_SIZE, null === $remaining ? self::BATCH_SIZE : max( 1, absint( $remaining ) ) );
+        if ( 'faqs' === $scope && FAQ_Source::available() ) {
+            return FAQ_Source::batch(
+                absint( $cursor ),
+                $batch_size,
+                (string) ( $filters['search'] ?? '' )
+            );
+        }
         if ( 'categories' === $scope ) {
             $terms = get_terms(
                 array(
@@ -354,17 +386,47 @@ final class Runner {
         }
     }
 
+    private static function compact_evidence( $value, $depth = 0 ) {
+        if ( is_scalar( $value ) || null === $value ) {
+            return is_string( $value ) ? mb_substr( $value, 0, 1200, 'UTF-8' ) : $value;
+        }
+        if ( ! is_array( $value ) || $depth >= 4 ) {
+            return null;
+        }
+        $out = array();
+        foreach ( array_slice( $value, 0, 30, true ) as $key => $child ) {
+            $out[ $key ] = self::compact_evidence( $child, $depth + 1 );
+        }
+        return $out;
+    }
+
     private static function add_finding( &$state, $row ) {
         $row = Priority::decorate( (array) $row );
+        $row = Decision_Context::decorate( $row );
         $severity = $row['severity'];
         $code = $row['code'];
         $priority = $row['priority'];
-        $row['evidence'] = mb_substr( (string) ( $row['evidence'] ?? '' ), 0, 350, 'UTF-8' );
+        $action_class = (string) ( $row['action_class'] ?? 'INFORMATIVO' );
+        $status = (string) ( $row['status'] ?? 'NO_ACTION' );
+        $row['evidence'] = self::compact_evidence( $row['evidence'] ?? '' );
 
         $state['finding_count']++;
         $state['severity_counts'][ $severity ]++;
         $state['rule_counts'][ $code ] = absint( $state['rule_counts'][ $code ] ?? 0 ) + 1;
         $state['priority_counts'][ $priority ] = absint( $state['priority_counts'][ $priority ] ?? 0 ) + 1;
+        $state['action_class_counts'][ $action_class ] = absint( $state['action_class_counts'][ $action_class ] ?? 0 ) + 1;
+        $state['status_counts'][ $status ] = absint( $state['status_counts'][ $status ] ?? 0 ) + 1;
+        if ( ! empty( $row['ready_now'] ) ) {
+            $state['ready_now_count']++;
+        }
+        $entity_key = sanitize_key( (string) ( $row['entity_type'] ?? '' ) ) . '|' . (string) ( $row['entity_id'] ?? '' );
+        if ( '|' !== $entity_key ) {
+            $state['finding_entities'][ md5( $entity_key ) ] = true;
+        }
+
+        if ( empty( $state['run_file'] ) || ! Export_Store::append( $state['run_file'], $row ) ) {
+            throw new \RuntimeException( 'No se pudo escribir la cola completa del Auditor en uploads.' );
+        }
         $state['findings'][] = $row;
     }
 
@@ -399,28 +461,177 @@ final class Runner {
         $state['quality_worst'] = array_slice( $state['quality_worst'], 0, self::MAX_QUALITY_ROWS );
     }
 
+    private static function inventory( $scope, $state ) {
+        $processed = absint( $state['processed'] ?? 0 );
+        if ( 'products' === $scope ) {
+            $categories = wp_count_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) );
+            return array(
+                'products'   => $processed,
+                'categories' => is_wp_error( $categories ) ? null : absint( $categories ),
+            );
+        }
+        if ( 'categories' === $scope ) {
+            $with_products = wp_count_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true ) );
+            return array(
+                'categories'              => $processed,
+                'categories_with_products'=> is_wp_error( $with_products ) ? null : absint( $with_products ),
+            );
+        }
+        if ( 'posts' === $scope ) {
+            return array( 'posts' => $processed );
+        }
+        if ( 'pages' === $scope ) {
+            return array( 'pages' => $processed );
+        }
+        if ( 'faqs' === $scope ) {
+            return array( 'faqs' => $processed );
+        }
+        return array( 'entities' => $processed );
+    }
+
+    private static function rule_total( $rules, $codes ) {
+        $total = 0;
+        foreach ( (array) $codes as $code ) {
+            $total += absint( $rules[ $code ] ?? 0 );
+        }
+        return $total;
+    }
+
+    private static function kpi_row( $key, $label, $value, $unit = '', $detail = '', $tone = 'neutral' ) {
+        return array(
+            'key'    => sanitize_key( (string) $key ),
+            'label'  => (string) $label,
+            'value'  => is_numeric( $value ) ? 0 + $value : (string) $value,
+            'unit'   => (string) $unit,
+            'detail' => (string) $detail,
+            'tone'   => sanitize_key( (string) $tone ) ?: 'neutral',
+        );
+    }
+
+    public static function scope_kpis( $scope, $report ) {
+        $scope = sanitize_key( (string) $scope );
+        $report = is_array( $report ) ? $report : array();
+        $rules = (array) ( $report['rule_counts'] ?? array() );
+        $severity = (array) ( $report['severity_counts'] ?? array() );
+        $priority = (array) ( $report['priority_counts'] ?? array() );
+        $statuses = (array) ( $report['status_counts'] ?? array() );
+        $quality = (array) ( $report['quality'] ?? array() );
+        $bands = (array) ( $quality['bands'] ?? array() );
+        $processed = absint( $report['processed'] ?? 0 );
+        $excluded = absint( $report['excluded'] ?? 0 );
+        $audited = max( 0, $processed - $excluded );
+        $review = absint( $report['entities_to_review'] ?? 0 );
+        $clean = max( 0, $audited - $review );
+        $clean_pct = $audited ? round( ( $clean / $audited ) * 100, 1 ) : null;
+
+        $general = array(
+            self::kpi_row( 'entities_reviewed', 'Entidades auditadas', $audited, '', $excluded ? 'Entidades realmente evaluadas; se excluyen ' . $excluded . ' páginas funcionales/corporativas.' : 'Universo realmente evaluado en esta ejecución.' ),
+            self::kpi_row( 'clean_entities', 'Sin incidencias detectadas', $clean, '', 'Entidades auditadas sin hallazgos en las reglas activas.', $clean === $audited && $audited ? 'good' : 'neutral' ),
+            self::kpi_row( 'clean_rate', 'Cobertura limpia', null === $clean_pct ? 'N/D' : $clean_pct, null === $clean_pct ? '' : '%', 'Porcentaje de entidades sin hallazgos en esta ejecución.', null !== $clean_pct && $clean_pct >= 90 ? 'good' : ( null !== $clean_pct && $clean_pct < 70 ? 'bad' : 'warn' ) ),
+            self::kpi_row( 'findings', 'Hallazgos', absint( $report['finding_count'] ?? 0 ), '', 'Total de incidencias detectadas.' ),
+            self::kpi_row( 'critical_high', 'Críticos + alta', absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ), '', 'Incidencias con mayor severidad.', ( absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ) ) ? 'bad' : 'good' ),
+            self::kpi_row( 'p1', 'Prioridad P1', absint( $priority['P1'] ?? 0 ), '', 'Tareas que requieren revisión prioritaria.', absint( $priority['P1'] ?? 0 ) ? 'bad' : 'good' ),
+            self::kpi_row( 'source_verification', 'Verificación de fuente', absint( $statuses['NEEDS_SOURCE_VERIFICATION'] ?? 0 ), '', 'Casos que no deben corregirse sin contrastar fabricante/proveedor.', absint( $statuses['NEEDS_SOURCE_VERIFICATION'] ?? 0 ) ? 'warn' : 'good' ),
+            self::kpi_row( 'quality_average', 'Calidad media', null === ( $quality['average'] ?? null ) ? 'N/D' : (float) $quality['average'], null === ( $quality['average'] ?? null ) ? '' : '/100', 'Índice interno de calidad; no es una métrica de Google.', null !== ( $quality['average'] ?? null ) && (float) $quality['average'] >= 80 ? 'good' : ( null !== ( $quality['average'] ?? null ) && (float) $quality['average'] < 60 ? 'bad' : 'warn' ) ),
+            self::kpi_row( 'weak_quality', 'Calidad débil', absint( $bands['debil'] ?? 0 ), '', 'Entidades clasificadas en la banda interna más baja.', absint( $bands['debil'] ?? 0 ) ? 'warn' : 'good' ),
+        );
+
+        $specific = array();
+        if ( 'products' === $scope ) {
+            $specific = array(
+                self::kpi_row( 'missing_description', 'Sin descripción', absint( $rules['product_missing_description'] ?? 0 ), '', 'Producto sin descripción larga útil.', absint( $rules['product_missing_description'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'missing_excerpt', 'Sin resumen', absint( $rules['product_missing_excerpt'] ?? 0 ), '', 'Producto sin descripción corta/resumen.', absint( $rules['product_missing_excerpt'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_category', 'Sin categoría', absint( $rules['product_without_category'] ?? 0 ), '', 'Productos publicados sin product_cat.', absint( $rules['product_without_category'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['product_without_native_vocabulary'] ?? 0 ), '', 'Productos sin clasificación semántica nativa.', absint( $rules['product_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'identity_drift', 'Deriva de identidad', self::rule_total( $rules, array( 'product_title_excerpt_drift', 'product_description_identity_drift', 'product_description_alignment_weak', 'product_tag_identity_drift' ) ), '', 'Título, resumen, descripción o tags con señales de incoherencia.', 'warn' ),
+                self::kpi_row( 'attribute_conflicts', 'Conflictos de atributos', self::rule_total( $rules, array( 'product_attribute_title_conflict', 'attribute_value_malformed', 'attribute_without_name', 'attribute_without_value' ) ), '', 'Atributos que requieren validación o normalización.', 'warn' ),
+                self::kpi_row( 'unstable_sku', 'SKU no estable', absint( $rules['product_no_stable_sku'] ?? 0 ), '', 'Productos sin identificador SKU estable.', absint( $rules['product_no_stable_sku'] ?? 0 ) ? 'warn' : 'good' ),
+            );
+        } elseif ( 'categories' === $scope ) {
+            $rebalance = (array) ( $report['category_rebalance']['summary'] ?? array() );
+            $specific = array(
+                self::kpi_row( 'empty_categories', 'Categorías vacías', absint( $rules['category_empty'] ?? 0 ), '', 'Categorías sin productos.', absint( $rules['category_empty'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'single_product', 'Con un solo producto', absint( $rules['category_single_product'] ?? 0 ), '', 'Categorías con profundidad comercial mínima.', 'warn' ),
+                self::kpi_row( 'missing_description', 'Sin descripción', absint( $rules['category_missing_description'] ?? 0 ), '', 'Categorías sin contenido descriptivo.', absint( $rules['category_missing_description'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['category_without_native_vocabulary'] ?? 0 ), '', 'Categorías sin clasificación semántica nativa.', absint( $rules['category_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_secondary_hub', 'Sin Hub secundario', absint( $rules['category_no_native_secondary_hub'] ?? 0 ), '', 'Categorías sin encaje arquitectónico nativo.', absint( $rules['category_no_native_secondary_hub'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'underfilled', 'Infra-dimensionadas', absint( $rules['category_underfilled'] ?? 0 ), '', 'Categorías candidatas a revisión por poca profundidad.', 'warn' ),
+                self::kpi_row( 'oversized', 'Sobre-dimensionadas', absint( $rules['category_oversized'] ?? 0 ), '', 'Categorías candidatas a división.', 'warn' ),
+                self::kpi_row( 'split_proposals', 'Propuestas de división', absint( $rebalance['split_proposals'] ?? 0 ), '', 'Propuestas basadas en evidencia semántica; no ejecutan cambios.', 'neutral' ),
+                self::kpi_row( 'merge_proposals', 'Propuestas de unión', absint( $rebalance['merge_proposals'] ?? 0 ), '', 'Propuestas de consolidación para revisión humana.', 'neutral' ),
+            );
+        } elseif ( 'posts' === $scope ) {
+            $specific = array(
+                self::kpi_row( 'thin_content', 'Contenido débil', absint( $rules['editorial_thin_content'] ?? 0 ), '', 'Posts con cuerpo insuficiente para su función.', absint( $rules['editorial_thin_content'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ), '', 'Posts sin clasificación semántica nativa.', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'title_drift', 'Título/contenido incoherente', absint( $rules['editorial_title_content_drift'] ?? 0 ), '', 'Señales de desalineación entre título y cuerpo.', 'warn' ),
+                self::kpi_row( 'cannibalization', 'Canibalización', self::rule_total( $rules, array( 'editorial_post_canonical_cannibalization', 'editorial_post_category_cannibalization', 'editorial_post_landing_cannibalization' ) ), '', 'Solapamientos de intención con categorías, landings u otras URL canónicas.', 'bad' ),
+                self::kpi_row( 'structural_overlap', 'Solapamiento estructural', absint( $rules['editorial_post_structural_overlap'] ?? 0 ), '', 'Posts que compiten con piezas estructurales del sitio.', 'warn' ),
+                self::kpi_row( 'duplicate_titles', 'Títulos duplicados', absint( $rules['duplicate_editorial_title'] ?? 0 ), '', 'Identidades editoriales repetidas dentro del bloque.', 'warn' ),
+            );
+        } elseif ( 'pages' === $scope ) {
+            $specific = array(
+                self::kpi_row( 'thin_content', 'Contenido débil', absint( $rules['editorial_thin_content'] ?? 0 ), '', 'Páginas/landings con cuerpo insuficiente.', absint( $rules['editorial_thin_content'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ), '', 'Páginas sin clasificación semántica nativa.', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'landing_duplicates', 'Landings duplicadas', absint( $rules['editorial_landing_duplicate'] ?? 0 ), '', 'Landings con identidad editorial repetida.', absint( $rules['editorial_landing_duplicate'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'cannibalization', 'Canibalización', self::rule_total( $rules, array( 'editorial_canonical_post_cannibalization', 'editorial_landing_canonical_cannibalization', 'editorial_landing_post_cannibalization', 'editorial_landing_category_overlap' ) ), '', 'Solapamientos entre páginas estructurales, landings, posts y categorías.', 'bad' ),
+                self::kpi_row( 'structural_overlap', 'Solapamiento estructural', absint( $rules['editorial_landing_structural_overlap'] ?? 0 ), '', 'Landings que invaden funciones de otras piezas estructurales.', 'warn' ),
+                self::kpi_row( 'unclassified_role', 'Rol sin clasificar', absint( $rules['editorial_page_role_unclassified'] ?? 0 ), '', 'Páginas cuyo rol SEO no está resuelto.', 'warn' ),
+                self::kpi_row( 'missing_parent', 'Sin padre nativo', absint( $rules['page_missing_native_parent'] ?? 0 ), '', 'Páginas estructurales sin relación padre esperada.', 'warn' ),
+            );
+        } elseif ( 'faqs' === $scope ) {
+            $specific = array(
+                self::kpi_row( 'thin_answer', 'Respuesta insuficiente', absint( $rules['faq_thin_answer'] ?? 0 ), '', 'FAQs con respuesta vacía o demasiado escueta.', absint( $rules['faq_thin_answer'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'empty_question', 'Pregunta vacía', absint( $rules['faq_empty_question'] ?? 0 ), '', 'FAQs sin pregunta utilizable.', absint( $rules['faq_empty_question'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'orphan_owner', 'Owner huérfano', absint( $rules['faq_orphan_owner'] ?? 0 ), '', 'FAQs cuyo destino canónico ya no existe.', absint( $rules['faq_orphan_owner'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'invalid_owner', 'Owner inválido', absint( $rules['faq_invalid_owner_type'] ?? 0 ), '', 'FAQs fuera del modelo canónico página/hub, categoría o producto.', absint( $rules['faq_invalid_owner_type'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'missing_category', 'Sin categoría', absint( $rules['faq_missing_product_category'] ?? 0 ), '', 'FAQs sin product_cat_id válido.', absint( $rules['faq_missing_product_category'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'semantic_drift', 'Deriva semántica', absint( $rules['faq_owner_semantic_drift'] ?? 0 ), '', 'Pregunta posiblemente alejada del owner confirmado.', 'warn' ),
+                self::kpi_row( 'duplicate_same_owner', 'Duplicadas en mismo owner', absint( $rules['duplicate_faq_same_owner'] ?? 0 ), '', 'Preguntas equivalentes repetidas para el mismo destino.', 'warn' ),
+            );
+        }
+
+        return array(
+            'scope'    => $scope,
+            'mode'     => (string) ( $report['run_mode'] ?? 'filtered' ),
+            'coverage' => 'full' === (string) ( $report['run_mode'] ?? '' ) ? 'complete_scope' : 'filtered_sample',
+            'general'  => $general,
+            'specific' => $specific,
+            'note'     => 'Los KPI describen calidad interna y errores del contenido auditado. No son métricas de posicionamiento de Google/Bing.',
+        );
+    }
+
     private static function complete( $scope, &$state ) {
         $state['status'] = 'completed';
         $state['completed_gmt'] = current_time( 'mysql', true );
         self::trim_samples( $state );
+        $previous_report = self::report( $scope );
 
         $report = array(
             'schema'      => 'taxocommerce_auditor_native_v2',
             'version'     => Plugin::VERSION,
             'scope'       => $scope,
+            'run_mode'    => (string) ( $state['run_mode'] ?? 'filtered' ),
             'started_gmt' => $state['started_gmt'],
             'completed_gmt' => $state['completed_gmt'],
+            'completed_local' => current_time( 'mysql' ),
             'duration_seconds' => max( 0, time() - absint( $state['started_timestamp'] ?? time() ) ),
-            'source_model' => 'WordPress post/term meta + WooCommerce CRUD + Vocabulary native taxonomies',
+            'source_model' => 'WordPress/WooCommerce nativo + Vocabulary + TaxoCommerce FAQs + contexto persistido local opcional',
             'processed'   => $state['processed'],
             'excluded'    => $state['excluded'],
             'expected'    => $state['total'],
             'filters'     => (array) ( $state['filters'] ?? array() ),
+            'inventory'   => self::inventory( $scope, $state ),
             'finding_count' => $state['finding_count'],
+            'entities_to_review' => count( (array) ( $state['finding_entities'] ?? array() ) ),
             'severity_counts' => $state['severity_counts'],
             'rule_counts'     => $state['rule_counts'],
             'priority_counts' => $state['priority_counts'],
-            'decision_context' => self::persisted_decision_context( $scope ),
+            'action_class_counts' => (array) ( $state['action_class_counts'] ?? array() ),
+            'status_counts'    => (array) ( $state['status_counts'] ?? array() ),
+            'ready_now_count'  => absint( $state['ready_now_count'] ?? 0 ),
+            'decision_context' => Decision_Context::public_snapshot(),
+            'full_findings_file' => (string) ( $state['run_file'] ?? '' ),
             'category_rebalance' => 'categories' === $scope
                 ? array(
                     'summary' => $state['rebalance_summary'],
@@ -451,7 +662,12 @@ final class Runner {
             'findings_sample_truncated' => $state['finding_count'] > count( $state['findings'] ),
             'notes' => $state['notes'],
         );
+        $report['scope_kpis'] = self::scope_kpis( $scope, $report );
         update_option( self::option( $scope, 'report' ), $report, false );
+        $previous_file = (string) ( $previous_report['full_findings_file'] ?? '' );
+        if ( $previous_file && $previous_file !== (string) $report['full_findings_file'] ) {
+            Export_Store::delete( $previous_file );
+        }
 
         // Store a bounded list of completed runs, as in the legacy Auditor.
         $history = (array) get_option( self::option( $scope, 'history' ), array() );
@@ -474,6 +690,7 @@ final class Runner {
             $state['seen_templates'],
             $state['seen_faq_questions'],
             $state['editorial_map'],
+            $state['finding_entities'],
             $state['findings'],
             $state['quality_worst'],
             $state['rebalance_proposals']
@@ -500,9 +717,10 @@ final class Runner {
         try {
             self::load_indexes( $state );
             $state['status'] = 'running';
-            $limit = absint( $state['filters']['rows'] ?? 25 );
-            $remaining = max( 0, $limit - absint( $state['processed'] ) );
-            if ( 0 === $remaining ) {
+            $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );
+            $limit = $full ? 0 : absint( $state['filters']['rows'] ?? 25 );
+            $remaining = $full ? null : max( 0, $limit - absint( $state['processed'] ) );
+            if ( ! $full && 0 === $remaining ) {
                 self::complete( $scope, $state );
                 return;
             }
@@ -694,8 +912,11 @@ final class Runner {
             }
 
             self::trim_samples( $state );
-            $limit_reached = absint( $state['processed'] ) >= absint( $state['filters']['rows'] ?? 25 );
-            $effective_batch = min( self::BATCH_SIZE, max( 1, absint( $state['filters']['rows'] ?? 25 ) - ( absint( $state['processed'] ) - count( $objects ) ) ) );
+            $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );
+            $limit_reached = ! $full && absint( $state['processed'] ) >= absint( $state['filters']['rows'] ?? 25 );
+            $effective_batch = $full
+                ? self::BATCH_SIZE
+                : min( self::BATCH_SIZE, max( 1, absint( $state['filters']['rows'] ?? 25 ) - ( absint( $state['processed'] ) - count( $objects ) ) ) );
             if ( $limit_reached || count( $objects ) < $effective_batch ) {
                 self::complete( $scope, $state );
             } else {
