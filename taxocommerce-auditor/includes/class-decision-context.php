@@ -142,6 +142,13 @@ final class Decision_Context {
         if ( 'category' === $type ) {
             return array( $id );
         }
+        if ( 'faq' === $type ) {
+            $faq = FAQ_Source::get( $id );
+            if ( $faq instanceof FAQ_Record && $faq->product_cat_id ) {
+                return array( absint( $faq->product_cat_id ) );
+            }
+            return array();
+        }
         if ( 'product' === $type ) {
             $ids = wp_get_post_terms( $id, 'product_cat', array( 'fields' => 'ids' ) );
             return is_wp_error( $ids )
