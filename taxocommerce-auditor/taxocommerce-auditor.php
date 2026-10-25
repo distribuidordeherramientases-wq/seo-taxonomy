@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Auditor - Content Quality for WooCommerce
  * Description: Auditoria de contenidos en cinco bloques, con lectura nativa de WordPress y WooCommerce.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -19,6 +19,8 @@ require_once __DIR__ . '/includes/class-rules.php';
 require_once __DIR__ . '/includes/class-editorial-specialist.php';
 require_once __DIR__ . '/includes/class-category-review.php';
 require_once __DIR__ . '/includes/class-priority.php';
+require_once __DIR__ . '/includes/class-export-store.php';
+require_once __DIR__ . '/includes/class-decision-context.php';
 require_once __DIR__ . '/includes/class-runner.php';
 require_once __DIR__ . '/includes/class-admin.php';
 
@@ -26,7 +28,7 @@ require_once __DIR__ . '/includes/class-admin.php';
  * Standalone entry point. No SEO_SYSTEM_* globals or legacy source files.
  */
 final class Plugin {
-    const VERSION = '0.2.0';
+    const VERSION = '0.3.0';
     const MENU_SLUG = 'taxocommerce-auditor';
 
     public static function boot() {
