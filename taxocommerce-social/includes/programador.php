@@ -15,7 +15,7 @@ if (!defined('TCSOCIAL_PROGRAMADOR_DB_VERSION')) {
 }
 
 if (!defined('TCSOCIAL_PROGRAMADOR_DB_VERSION_OPTION')) {
-    define('TCSOCIAL_PROGRAMADOR_DB_VERSION_OPTION', 'tcsocial_programador_db_version');
+    define('TCSOCIAL_PROGRAMADOR_DB_VERSION_OPTION', 'seo_social_programador_db_version');
 }
 
 /**
@@ -24,7 +24,7 @@ if (!defined('TCSOCIAL_PROGRAMADOR_DB_VERSION_OPTION')) {
 function tcsocial_programador_table()
 {
     global $wpdb;
-    return $wpdb->prefix . 'tcsocial_schedule';
+    return $wpdb->prefix . 'seo_social_schedule';
 }
 
 /**
@@ -127,6 +127,21 @@ function tcsocial_programador_mysql_from_timestamp($timestamp)
 }
 
 
+/**
+ * Comprueba si una fecha/hora cae en la franja reservada a campañas.
+ *
+ * Las 18:00 quedan reservadas para publicaciones de campaña. El programador
+ * editorial debe usar cualquier otra hora para evitar colisiones y mantener
+ * ambos calendarios independientes.
+ *
+ * @param int $timestamp
+ * @return bool
+ */
+function tcsocial_programador_is_campaign_reserved_time($timestamp)
+{
+    unset($timestamp);
+    return false;
+}
 
 /**
  * @param int $schedule_id
@@ -562,10 +577,10 @@ function tcsocial_programador_render_admin()
     echo '</div></div>';
 
     echo '<div class="seo-social-field" style="margin-top:8px"><label>Texto / plantilla opcional</label><textarea name="message_template" placeholder="Dejalo vacio para usar la plantilla vigente de cada red en el momento de publicar."></textarea><p class="seo-social-help">Si lo rellenas, este texto se usara como plantilla para todas las redes seleccionadas. Puedes usar {titulo}, {extracto}, {fecha}, {url}, {sitio}, {autor}, {tipo}, {categorias} e {imagen}.</p></div>';
-    echo '<div class="seo-social-field" style="margin-top:12px"><label>Nota interna opcional</label><input type="text" name="notes" value="" placeholder="Ej.: lanzamiento, noticia proveedor, contenido destacado..."></div>';
+    echo '<div class="seo-social-field" style="margin-top:12px"><label>Nota interna opcional</label><input type="text" name="notes" value="" placeholder="Ej.: lanzamiento, noticia proveedor, campana septiembre..."></div>';
 
     echo '<div class="seo-social-actions"><button type="submit" class="button button-primary" ' . disabled(empty($connected), true, false) . '>Programar publicacion</button>';
-    echo '<span class="seo-social-help">La ejecucion usa WP-Cron. La recurrencia queda desactivada para evitar republicaciones no revisadas.</span></div>';
+    echo '<span class="seo-social-help">La ejecucion usa WP-Cron. Mas adelante podremos anadir recurrencia, prioridades y recomendaciones de Analista.</span></div>';
     echo '</form>';
     echo '</section>';
 
@@ -653,6 +668,6 @@ function tcsocial_programador_render_admin()
 
     echo '<section class="seo-social-card">';
     echo '<h2>Siguiente evolucion</h2>';
-    echo '<p class="seo-social-help" style="font-size:13px">La tabla ya conserva <code>source</code> y <code>notes</code> para conservar el origen y el motivo de cada programación. La recurrencia no se activa en esta version para evitar republicar automaticamente contenido sin revisar si necesita cambios.</p>';
+    echo '<p class="seo-social-help" style="font-size:13px">La tabla ya conserva <code>source</code> y <code>notes</code> para que mas adelante Analista pueda proponer tareas con prioridad y motivo. La recurrencia no se activa en esta version para evitar republicar automaticamente contenido sin revisar si necesita cambios.</p>';
     echo '</section>';
 }
