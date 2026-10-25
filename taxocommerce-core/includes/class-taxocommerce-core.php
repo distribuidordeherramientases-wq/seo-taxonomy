@@ -413,6 +413,16 @@ final class TaxoCommerce_Core {
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-connections' ),
 				'description'   => __( 'Shared connections for Google, Bing, Amazon, Pinterest, and future family APIs.', 'taxocommerce-core' ),
 			),
+			'social' => array(
+				'id'            => 'social',
+				'name'          => 'TaxoCommerce Social',
+				'plugin_file'   => 'taxocommerce-social/taxocommerce-social.php',
+				'org_slug'      => 'taxocommerce-social',
+				'search_term'   => 'TaxoCommerce Social',
+				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-social' ),
+				'description'   => __( 'Social network connections, publishing templates, queue, history, and standalone publication calendar.', 'taxocommerce-core' ),
+			),
 			'google_bing' => array(
 				'id'            => 'google_bing',
 				'name'          => 'TaxoCommerce Insights',
