@@ -8,10 +8,10 @@ final class TCD_Admin {
 
     public static function menu(){
         if (function_exists('taxocommerce_core')) {
-            add_submenu_page('taxocommerce-core','TaxoCommerce Dependiente','Dependiente','manage_woocommerce',
+            add_submenu_page('taxocommerce-core','TaxoCommerce Sales Assistant','Sales Assistant','manage_woocommerce',
                 'taxocommerce-dependiente',array(__CLASS__,'render'));
         } else {
-            add_menu_page('TaxoCommerce Dependiente','Dependiente','manage_woocommerce',
+            add_menu_page('TaxoCommerce Sales Assistant','Sales Assistant','manage_woocommerce',
                 'taxocommerce-dependiente',array(__CLASS__,'render'),'dashicons-store',59);
         }
     }
