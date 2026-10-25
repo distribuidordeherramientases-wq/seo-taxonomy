@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.24
+Stable tag: 0.4.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,9 @@ Esta ayuda es de solo lectura; no genera ni modifica contenido automáticamente
 y no cambia el plugin TaxoCommerce SEO.
 
 == Changelog ==
+
+= 0.4.26 =
+* Registers TaxoCommerce Suppliers in the family extension catalog and canonical admin navigation.
 
 = 0.4.24 =
 * Registra TaxoCommerce Logística y TaxoCommerce Facturación como extensiones de la familia.
