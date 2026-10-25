@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Suppliers
- * Description: CSV-only supplier catalogue intake, intermediate product decisions, supplier prices, WooCommerce linking, and external image references.
+ * Description: Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.
  * Version: 0.2.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
