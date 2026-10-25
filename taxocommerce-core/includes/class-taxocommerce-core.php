@@ -489,6 +489,16 @@ final class TaxoCommerce_Core {
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-social' ),
 				'description'   => __( 'Social network connections, publishing templates, queue, history, and standalone publication calendar.', 'taxocommerce-core' ),
 			),
+			'campaigns' => array(
+				'id'            => 'campaigns',
+				'name'          => 'TaxoCommerce Campaigns',
+				'plugin_file'   => 'taxocommerce-campaigns/taxocommerce-campaigns.php',
+				'org_slug'      => 'taxocommerce-campaigns',
+				'search_term'   => 'TaxoCommerce Campaigns',
+				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-campaigns' ),
+				'description'   => __( 'Offer campaigns, promotional prices, banners, social offer publication, and a standalone commercial calendar.', 'taxocommerce-core' ),
+			),
 			'google_bing' => array(
 				'id'            => 'google_bing',
 				'name'          => 'TaxoCommerce Insights',
