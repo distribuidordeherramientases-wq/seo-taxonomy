@@ -180,7 +180,7 @@ final class TCD_Intelligence {
             $written += self::stage_l2_exact_identity( $item, $stage );
         }
 
-        $covered_after = min( $total, $covered_before + count( $rows ) );
+        $covered_after = absint( $wpdb->get_var( $covered_sql ) );
         $remaining = max( 0, $total - $covered_after );
         $done = 0 === $remaining || ! $rows;
 
