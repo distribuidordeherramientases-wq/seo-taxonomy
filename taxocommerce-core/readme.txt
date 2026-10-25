@@ -12,51 +12,25 @@ A modular WordPress/WooCommerce core for catalog hierarchy, unified content edit
 
 == Description ==
 
-Version 0.4.22 registers the optional, independent TaxoCommerce Database plugin in the extensions catalog. Installing Core does not install or activate Database. If Database is active, it registers its native submenu under Core; without Core it uses its own top-level menu.
+TaxoCommerce Core manages WooCommerce catalog hierarchy, native WordPress/WooCommerce content editing, editorial quality guidance, technical logs, role relationships and optional integrations with standalone TaxoCommerce plugins.
 
-TaxoCommerce Core is the clean modular foundation for the next TaxoCommerce architecture. The 0.2.0 pilot is validated and deployed independently to STAGING.
+* Content management for products, product categories, posts and pages. WordPress/WooCommerce remain the authoritative owners of these records.
+* Search-friendly site hierarchy: clusters, primary hubs, secondary hubs, categories, products and relations.
+* Manual SEO architecture report with distinct object counts and a local short-lived cache.
+* Editorial guidance for useful, specific, verifiable catalog and page content; it does not generate bulk content automatically.
+* Independent module registry and a local bounded technical log.
+* Optional integrations with TaxoCommerce Database, Suppliers, Insights, Auditor, Assistant and other extensions; installing Core does not install or automatically activate them.
+* Administration can organize native WordPress menus and content roles after a deliberate administrator action.
 
-Version 0.3.1 includes a unified Content Manager, WordPress-native SEO hierarchy and extension installer links for:
+Core is intended to provide independent catalog and content-management functionality, not merely to install other plugins. It does not manage WooCommerce checkout, payment or shipping calculations.
 
-* WooCommerce products.
-* WooCommerce product categories.
-* WordPress posts.
-* WordPress pages.
+== Installation ==
 
-WordPress and WooCommerce remain the canonical source of truth. Core does not duplicate those objects into parallel tables.
-
-The pilot also includes:
-
-* A module registry contract.
-* A process registry contract.
-* A bounded technical log.
-* A hierarchy shell for the future Cluster -> Primary Hub -> Secondary Hub -> Category -> Product model.
-* Extension hooks for KPIs and future modules.
-
-## Informe de arquitectura SEO en Contenidos
-
-La pestaña «Arquitectura SEO» recupera el informe de distribución de clusters, hubs,
-categorías y productos publicados. Consulta exclusivamente las relaciones gestionadas
-por Core y WordPress/WooCommerce, sin cargar el plugin antiguo. Recuentos únicos,
-actualización manual y caché local de 15 minutos; sin escaneos ni procesos periódicos.
-
-## Guías de edición en Contenidos
-
-El Gestor de contenidos incluye instrucciones de redacción para Productos,
-Categorías, Entradas y Páginas. Se muestran en cada pestaña y dentro de cada
-editor individual. La guía combina criterios originales recuperados del editor
-anterior con recomendaciones públicas de Google Search Central:
-
-* Información útil para personas, verificable y específica de cada objeto.
-* Redacción sencilla, sin contenido copiado ni plantillas repetitivas.
-* Identificación precisa de productos, variantes, categorías y páginas.
-* Enlaces internos y arquitectura comercial comprensibles.
-* Títulos descriptivos, imágenes relevantes y metadescripciones únicas.
-* Sin cuotas obligatorias de palabras, FAQs o porcentajes de keywords.
-* Enlaces a las referencias oficiales de Google.
-
-Esta ayuda es de solo lectura; no genera ni modifica contenido automáticamente
-y no cambia el plugin TaxoCommerce SEO.
+1. Upload and activate the TaxoCommerce Core ZIP using WordPress Plugins.
+2. Open its administration menu and review the existing content hierarchy.
+3. Install WooCommerce separately if you want to manage products and product categories.
+4. Review differences in STAGING before changing the live site's menu or SEO role assignments.
+5. Install other TaxoCommerce extensions individually only when needed.
 
 == Changelog ==
 

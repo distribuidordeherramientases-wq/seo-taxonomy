@@ -8,50 +8,45 @@ Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Gestor independiente de MySQL para WordPress y WooCommerce: inventario, diagnostico, optimizacion controlada, backups, exportaciones, importacion CSV y limpieza de datos caducados.
+Standalone WordPress database inventory, MySQL diagnostics, selective SQL/CSV exports and controlled maintenance.
 
 == Description ==
 
-TaxoCommerce Database funciona SIN TaxoCommerce Core ni ningun otro plugin de la familia. Con Core activo aparece como submenú de sus extensiones; en ausencia de Core muestra un menu independiente.
+TaxoCommerce Database provides manually initiated WordPress database inspection, maintenance and backups. It functions independently; TaxoCommerce Core offers optional grouped administration.
 
-== Herramientas ==
+* MySQL: on-demand server and table diagnostics, without continuous scanning.
+* Data Table: read-only inventory and paginated browsing of supported module tables.
+* Backups: download CSV or SQL for selected internal tables, or SQL for all WordPress-prefix tables, without writing dumps to public uploads.
+* Optimize: manually confirm bounded ANALYZE TABLE and OPTIMIZE TABLE actions on supported internal tables.
+* CSV imports: preview and validate insertion into supported InnoDB internal tables; limits are 1 MiB and 250 rows. A transaction cancels the entire import on error. This is not a general SQL restore feature.
+* Clean DB: identify expired transients and sessions and report stale records. Bounded removal covers expired/disposable data only and does not directly delete orders, products or categories.
+* Operations: local informational log; no historical rollback engine.
 
-* MySQL: fotografia bajo demanda de version, indicadores del servidor, motores, tamaños, relaciones SEO y hasta 20 chequeos anteriores. No analiza continuamente.
-* Data Table: inventario de las tablas del sitio y explorador de solo lectura, con filtros y paginas limitadas, de tablas propias de la familia.
-* Backups: CSV/SQL por tabla interna, SQL conjunto de tablas de la familia o SQL de todas las tablas del prefijo WordPress. Descarga directa al navegador, sin guardar el dump en uploads.
-* Optimizar: ANALYZE TABLE manual en tablas internas InnoDB de hasta 32 MB y OPTIMIZE TABLE manual en tablas internas de hasta 8 MB/50.000 filas. Confirmacion expresa, backup y ninguna tarea en segundo plano.
-* Importar CSV: solo INSERT en tablas internas InnoDB, con validacion, vista previa, confirmacion y limites de 1 MB / 250 filas. La transaccion SQL cancela el lote completo en caso de fallo. No actualiza ni elimina registros existentes. No restaura copias SQL.
-* Clean DB: deteccion de transients/sesiones caducadas y diagnostico avanzado bajo demanda de revisiones, papelera, metadatos huerfanos, registros Action Scheduler y reservas de stock. Unicamente se habilitan limpiezas acotadas (maximo 100) de datos ya caducados/descartables. Sin borrados directos de pedidos, productos o categorias.
-* Operaciones: registro informativo local de chequeos, descargas, importaciones, optimizaciones y limpiezas; sin posibilidad de deshacer operaciones anteriores.
-
-Seguridad: manage_options, nonce, inventario real de identificadores SQL, escape de salida y limites para evitar consultas y escrituras descontroladas.
-
-== Limitaciones y recuperacion ==
-
-* Los ficheros SQL exportados mientras la tienda recibe escrituras NO son necesariamente snapshots transaccionales. Utiliza backups verificados del hosting para la restauracion completa.
-* Un backup completo puede contener datos personales, hashes, claves de API y tokens. Protege los archivos fuera de carpetas publicas.
-* El CSV conserva los valores originales y puede contener formulas al abrirse como una hoja de calculo.
-* Mantiene transacciones SQL para evitar importaciones a medias, pero no existe un motor de reversión historica en los plugins modulares.
-* Si esta version sustituye a la experimental 0.2.0, los objetos fisicos `tcdb_operations` y `tcdb_changes` que ya existieran en la base de datos no se eliminan de manera automatica por precaucion. No se cargan, escriben ni registran y quedan excluidos de importaciones y optimizaciones. Comprobar su contenido antes de eliminarlos manualmente.
-* Las tablas del gestor de operaciones del TaxoCommerce SEO antiguo no se modifican.
+The UI requires administrator capabilities and uses nonces. As with any database tool, a validated hosting backup is required before changing live data.
 
 == Installation ==
 
-1. Instala o actualiza la carpeta taxocommerce-database en wp-content/plugins.
-2. Activa el plugin desde WordPress > Plugins.
-3. Abre TaxoCommerce Database, o TaxoCommerce Core > Base de datos cuando Core este activo.
-4. Ejecuta los chequeos o mantenimientos solo cuando sean necesarios.
+1. Upload and activate TaxoCommerce Database under WordPress Plugins.
+2. Open its menu (or the optional TaxoCommerce Core submenu).
+3. Begin with a read-only inventory and export a backup of the relevant tables.
+4. Test each optimization, import or cleanup against STAGING before acting on production.
+
+== Privacy and Limitations ==
+
+Database exports may contain customer personal information, passwords or hashes, authentication tokens and API keys. Handle downloaded files as sensitive records: encrypt them, restrict access and delete them under your retention policy.
+
+SQL dumps created during concurrent store updates are not guaranteed to be transactionally consistent. Use verified hosting backups for complete recovery. Exported CSV values may be interpreted as formulas by spreadsheet programs; inspect untrusted content before opening exports.
+
+An earlier experimental rollback history was discontinued in 0.2.1. This module does not offer one-click historical restoration.
 
 == Changelog ==
 
 = 0.2.1 =
-* Eliminado el motor experimental de rollback historico, su API, sus endpoints, su panel y los adaptadores de otros plugins.
-* Sin tablas nuevas ni tareas de captura de operaciones. Importacion CSV independiente y atomica.
-* Se mantienen MySQL, Data Table, Backups, Optimizar, Clean DB y el registro informativo de operaciones.
+* Removed experimental historical rollback and its endpoints.
+* Kept independent CSV inserts, backups, MySQL diagnostics and bounded cleanup.
 
 = 0.2.0 =
-* Ampliados los diagnósticos Clean DB y las operaciones manuales de optimización.
-* Funcion experimental de historial reversible, retirada en 0.2.1.
+* Added extended manual maintenance diagnostics and optimization limits.
 
 = 0.1.0 =
-* Plugin autonomo inicial con inventario MySQL, Data Table, exportacion CSV/SQL, importacion controlada y limpieza de caducidades.
+* Initial standalone MySQL inventory and safe data operations.
