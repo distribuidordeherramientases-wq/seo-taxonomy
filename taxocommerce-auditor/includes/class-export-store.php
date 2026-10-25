@@ -231,6 +231,7 @@ final class Export_Store {
             ),
         );
         foreach ( $extras as $key => $value ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-encoded application/json stream; HTML escaping invalidates JSON syntax.
             echo ",\n" . self::encode( (string) $key ) . ': ' . self::encode( $value );
         }
 
