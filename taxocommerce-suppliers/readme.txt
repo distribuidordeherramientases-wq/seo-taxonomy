@@ -4,7 +4,7 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
@@ -22,6 +22,7 @@ Included:
 * WooCommerce product linking/creation on acceptance.
 * Supplier price correction and optional WooCommerce price updates.
 * External supplier image references stored without downloading to Media.
+* Purchasing view that matches active WooCommerce sales to accepted supplier sources.
 * Compatibility with the existing seo_proveedores_productos and seo_supplier_images tables.
 * Public service taxocommerce_suppliers_get_sources() for Logistics and other family plugins.
 
@@ -33,6 +34,10 @@ Explicitly excluded:
 * Automatic supplier website extraction.
 
 == Changelog ==
+
+= 0.2.0 =
+* Move WooCommerce sale-to-supplier purchasing from Logistics into Suppliers.
+* Add Purchasing dashboard with supplier source, cost, purchase URL, and missing-source detection.
 
 = 0.1.0 =
 * Initial independent Suppliers module.
