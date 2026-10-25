@@ -1,0 +1,486 @@
+<?php
+/**
+ * Supplier inventory decisions, WooCommerce linking, prices, and external images.
+ *
+ * @package TaxoCommerceSuppliers
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+final class TCSUP_Products {
+
+	private static function guard( $nonce_action ) {
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage supplier products.', 'taxocommerce-suppliers' ) );
+		}
+		check_admin_referer( $nonce_action );
+	}
+
+	public static function row( $id ) {
+		global $wpdb;
+		return $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM ' . TCSUP_Schema::catalog_table() . ' WHERE id=%d LIMIT 1', absint( $id ) ),
+			ARRAY_A
+		);
+	}
+
+	private static function redirect( $tab, $args = array() ) {
+		wp_safe_redirect(
+			add_query_arg(
+				array_merge( array( 'page' => 'taxocommerce-suppliers', 'tab' => $tab ), $args ),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	private static function default_category_id() {
+		$term_id = absint( get_option( 'default_product_cat', 0 ) );
+		if ( $term_id && term_exists( $term_id, 'product_cat' ) ) {
+			return $term_id;
+		}
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'product_cat',
+				'hide_empty' => false,
+				'number'     => 1,
+				'orderby'    => 'term_id',
+				'order'      => 'ASC',
+			)
+		);
+		return ! is_wp_error( $terms ) && ! empty( $terms[0]->term_id ) ? absint( $terms[0]->term_id ) : 0;
+	}
+
+	private static function existing_product( $row ) {
+		$product_id = absint( $row['object_id'] ?? 0 );
+		if ( $product_id && 'product' === get_post_type( $product_id ) && 'trash' !== get_post_status( $product_id ) ) {
+			return $product_id;
+		}
+
+		$catalog_id = absint( $row['id'] ?? 0 );
+		if ( $catalog_id ) {
+			$posts = get_posts(
+				array(
+					'post_type'      => 'product',
+					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+					'fields'         => 'ids',
+					'posts_per_page' => 1,
+					'meta_key'       => '_seo_proveedor_catalogo_id',
+					'meta_value'     => $catalog_id,
+				)
+			);
+			if ( $posts ) {
+				return absint( $posts[0] );
+			}
+		}
+
+		$provider = sanitize_text_field( (string) ( $row['proveedor'] ?? '' ) );
+		$external = sanitize_text_field( (string) ( $row['proveedor_id_externo'] ?? '' ) );
+		if ( $provider && $external ) {
+			$posts = get_posts(
+				array(
+					'post_type'      => 'product',
+					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+					'fields'         => 'ids',
+					'posts_per_page' => 20,
+					'meta_key'       => '_seo_proveedor_id_externo',
+					'meta_value'     => $external,
+				)
+			);
+			foreach ( $posts as $candidate ) {
+				if ( 0 === strcasecmp( (string) get_post_meta( $candidate, '_seo_proveedor', true ), $provider ) ) {
+					$country = strtoupper( (string) ( $row['pais_origen'] ?? '' ) );
+					$linked_country = strtoupper( (string) get_post_meta( $candidate, '_seo_proveedor_pais', true ) );
+					if ( '' === $country || '' === $linked_country || $country === $linked_country ) {
+						return absint( $candidate );
+					}
+				}
+			}
+		}
+
+		return 0;
+	}
+
+	private static function internal_sku( $row, $is_new ) {
+		$supplier_sku = trim( (string) ( $row['sku'] ?? '' ) );
+		if ( ! function_exists( 'wc_get_product_id_by_sku' ) ) {
+			return $supplier_sku;
+		}
+
+		$provider = strtoupper( trim( (string) ( $row['proveedor'] ?? '' ) ) );
+		$country  = strtolower( trim( (string) ( $row['pais_origen'] ?? '' ) ) );
+		if ( 'VEVOR' === $provider && '' !== $country ) {
+			return 'vevor-' . $country . '-row-' . absint( $row['id'] ?? 0 );
+		}
+
+		if ( '' === $supplier_sku ) {
+			return '';
+		}
+		$owner = absint( wc_get_product_id_by_sku( $supplier_sku ) );
+		if ( ! $owner || ! $is_new ) {
+			return $supplier_sku;
+		}
+		return '';
+	}
+
+	private static function base_price( $row ) {
+		foreach ( array( 'precio_con_iva', 'precio_sin_iva' ) as $field ) {
+			if ( isset( $row[ $field ] ) && '' !== (string) $row[ $field ] && is_numeric( $row[ $field ] ) ) {
+				return (float) $row[ $field ];
+			}
+		}
+		return null;
+	}
+
+	public static function accept( $id ) {
+		if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'WC_Product_Simple' ) ) {
+			return new WP_Error( 'tcsup_woocommerce', 'WooCommerce is required to accept supplier products.' );
+		}
+
+		$row = self::row( $id );
+		if ( ! $row ) {
+			return new WP_Error( 'tcsup_missing_row', 'Supplier catalogue row was not found.' );
+		}
+
+		$product_id = self::existing_product( $row );
+		$is_new     = ! $product_id;
+		$product    = $product_id ? wc_get_product( $product_id ) : new WC_Product_Simple();
+		if ( ! $product ) {
+			return new WP_Error( 'tcsup_product', 'WooCommerce product could not be loaded.' );
+		}
+
+		if ( $is_new ) {
+			$category_id = self::default_category_id();
+			if ( ! $category_id ) {
+				return new WP_Error( 'tcsup_category', 'A default WooCommerce product category is required before accepting new products.' );
+			}
+			$product->set_status( 'draft' );
+			$product->set_catalog_visibility( 'hidden' );
+			$product->set_category_ids( array( $category_id ) );
+			$product->set_name( sanitize_text_field( (string) ( $row['nombre'] ?? '' ) ) );
+			$product->set_description( wp_kses_post( (string) ( $row['descripcion'] ?? '' ) ) );
+		} elseif ( '' === (string) $product->get_name() ) {
+			$product->set_name( sanitize_text_field( (string) ( $row['nombre'] ?? '' ) ) );
+		}
+
+		$sku = self::internal_sku( $row, $is_new );
+		if ( '' !== $sku ) {
+			$current_sku = (string) $product->get_sku();
+			if ( $is_new || '' === $current_sku || $current_sku === $sku ) {
+				$product->set_sku( $sku );
+			}
+		}
+
+		$base = self::base_price( $row );
+		if ( null !== $base ) {
+			$sale_margin    = (float) get_option( 'taxocommerce_suppliers_sale_margin', 20 );
+			$regular_margin = (float) get_option( 'taxocommerce_suppliers_regular_margin', 45 );
+			if ( $regular_margin < $sale_margin ) {
+				$regular_margin = $sale_margin;
+			}
+			$sale    = round( $base * ( 1 + $sale_margin / 100 ), wc_get_price_decimals() );
+			$regular = round( $base * ( 1 + $regular_margin / 100 ), wc_get_price_decimals() );
+			$product->set_regular_price( wc_format_decimal( $regular ) );
+			$product->set_sale_price( wc_format_decimal( $sale ) );
+			$product->set_price( wc_format_decimal( $sale ) );
+		}
+
+		$qty = $row['stock_cantidad'] ?? null;
+		if ( null !== $qty && '' !== (string) $qty && is_numeric( $qty ) ) {
+			$product->set_manage_stock( true );
+			$product->set_stock_quantity( max( 0, (float) $qty ) );
+			$product->set_stock_status( (float) $qty > 0 ? 'instock' : 'outofstock' );
+		} else {
+			$product->set_manage_stock( false );
+			$stock_state = sanitize_key( (string) ( $row['stock_estado'] ?? '' ) );
+			$product->set_stock_status(
+				in_array( $stock_state, array( 'out_of_stock', 'outofstock', 'agotado', 'sin_stock' ), true )
+					? 'outofstock'
+					: 'instock'
+			);
+		}
+
+		$product_id = absint( $product->save() );
+		if ( ! $product_id ) {
+			return new WP_Error( 'tcsup_save', 'WooCommerce did not return a product ID.' );
+		}
+
+		$meta = array(
+			'_seo_proveedor'                    => (string) ( $row['proveedor'] ?? '' ),
+			'_seo_proveedor_id_externo'         => (string) ( $row['proveedor_id_externo'] ?? '' ),
+			'_seo_proveedor_catalogo_id'        => absint( $row['id'] ?? 0 ),
+			'_seo_proveedor_pais'               => (string) ( $row['pais_origen'] ?? '' ),
+			'_seo_proveedor_sku'                => (string) ( $row['sku'] ?? '' ),
+			'_seo_categoria_proveedor'          => (string) ( $row['categoria_proveedor'] ?? '' ),
+			'_seo_precio_proveedor'             => null === $base ? '' : wc_format_decimal( $base ),
+			'_seo_proveedor_mpn'                => (string) ( $row['mpn'] ?? '' ),
+			'_seo_proveedor_url_origen'         => (string) ( $row['url_origen'] ?? '' ),
+			'_seo_proveedor_url_canonica'       => (string) ( $row['url_canonica'] ?? '' ),
+			'_seo_proveedor_precio_sin_iva'     => (string) ( $row['precio_sin_iva'] ?? '' ),
+			'_seo_proveedor_precio_con_iva'     => (string) ( $row['precio_con_iva'] ?? '' ),
+			'_seo_proveedor_iva_porcentaje'     => (string) ( $row['iva_porcentaje'] ?? '' ),
+			'_seo_proveedor_moneda'             => (string) ( $row['moneda'] ?? '' ),
+			'_seo_proveedor_stock_estado'       => (string) ( $row['stock_estado'] ?? '' ),
+			'_seo_proveedor_stock_cantidad'     => (string) ( $row['stock_cantidad'] ?? '' ),
+			'_seo_proveedor_stock_texto'        => (string) ( $row['stock_texto'] ?? '' ),
+			'_seo_proveedor_hash_producto'      => (string) ( $row['hash_producto'] ?? '' ),
+			'_seo_proveedor_ultima_importacion' => (string) ( $row['ultima_importacion'] ?? '' ),
+		);
+		foreach ( $meta as $key => $value ) {
+			update_post_meta( $product_id, $key, $value );
+		}
+
+		$images_result = self::sync_external_images( $row, $product_id );
+		if ( is_wp_error( $images_result ) ) {
+			update_post_meta( $product_id, '_seo_imagen_import_error', $images_result->get_error_message() );
+		} else {
+			delete_post_meta( $product_id, '_seo_imagen_import_error' );
+			update_post_meta( $product_id, '_seo_imagenes_externas', 1 );
+			update_post_meta( $product_id, '_seo_imagenes_externas_total', absint( $images_result['count'] ?? 0 ) );
+		}
+
+		global $wpdb;
+		$wpdb->update(
+			TCSUP_Schema::catalog_table(),
+			array(
+				'object_id'               => $product_id,
+				'estado_seleccion'        => 'aceptado',
+				'estado_sincronizacion'   => 'sincronizado',
+				'hash_aplicado'           => (string) ( $row['hash_producto'] ?? '' ),
+				'snapshot_aplicado'       => wp_json_encode( $row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+				'ultima_sincronizacion'   => current_time( 'mysql' ),
+				'ultimo_error_sync'       => '',
+				'actualizado'             => current_time( 'mysql' ),
+			),
+			array( 'id' => absint( $row['id'] ) )
+		);
+
+		return array( 'product_id' => $product_id, 'created' => $is_new );
+	}
+
+	public static function set_selection( $id, $selection ) {
+		$allowed = array( 'pendiente', 'revisar', 'aceptado', 'descartado' );
+		$selection = sanitize_key( $selection );
+		if ( ! in_array( $selection, $allowed, true ) ) {
+			return false;
+		}
+		global $wpdb;
+		return false !== $wpdb->update(
+			TCSUP_Schema::catalog_table(),
+			array(
+				'estado_seleccion'      => $selection,
+				'estado_sincronizacion' => 'descartado' === $selection ? 'ignorado' : 'pendiente',
+				'actualizado'           => current_time( 'mysql' ),
+			),
+			array( 'id' => absint( $id ) )
+		);
+	}
+
+	public static function sync_external_images( $row, $product_id = 0 ) {
+		global $wpdb;
+
+		$urls = TCSUP_CSV::image_urls( $row['imagenes'] ?? '' );
+		$table = TCSUP_Schema::images_table();
+		$catalog_row_id = absint( $row['id'] ?? 0 );
+		$product_id = $product_id ? absint( $product_id ) : absint( $row['object_id'] ?? 0 );
+		$supplier = sanitize_text_field( (string) ( $row['proveedor'] ?? '' ) );
+		$supplier_sku = sanitize_text_field( (string) ( $row['sku'] ?? '' ) );
+		if ( '' === $supplier_sku ) {
+			$supplier_sku = sanitize_text_field( (string) ( $row['proveedor_id_externo'] ?? '' ) );
+		}
+
+		$wpdb->update(
+			$table,
+			array( 'status' => 'inactive', 'updated_at' => current_time( 'mysql' ) ),
+			array( 'catalog_row_id' => $catalog_row_id )
+		);
+
+		$count = 0;
+		foreach ( $urls as $position => $url ) {
+			$hash = hash( 'sha256', $url );
+			$existing_id = absint(
+				$wpdb->get_var(
+					$wpdb->prepare(
+						"SELECT id FROM {$table} WHERE supplier=%s AND supplier_sku=%s AND image_hash=%s LIMIT 1",
+						$supplier,
+						$supplier_sku,
+						$hash
+					)
+				)
+			);
+			$data = array(
+				'supplier'            => $supplier,
+				'supplier_product_id' => sanitize_text_field( (string) ( $row['proveedor_id_externo'] ?? '' ) ),
+				'supplier_sku'        => $supplier_sku,
+				'product_id'          => $product_id ?: null,
+				'catalog_row_id'      => $catalog_row_id ?: null,
+				'source_url'          => esc_url_raw( (string) ( $row['url_origen'] ?? '' ) ),
+				'source_file'         => 'taxocommerce-suppliers-csv',
+				'image_url'           => $url,
+				'image_hash'          => $hash,
+				'position'            => absint( $position ),
+				'is_primary'          => 0 === $position ? 1 : 0,
+				'status'              => 'active',
+				'updated_at'          => current_time( 'mysql' ),
+			);
+			if ( $existing_id ) {
+				$wpdb->update( $table, $data, array( 'id' => $existing_id ) );
+			} else {
+				$data['created_at'] = current_time( 'mysql' );
+				$wpdb->insert( $table, $data );
+			}
+			$count++;
+		}
+
+		return array( 'count' => $count );
+	}
+
+	public static function handle_row_action() {
+		self::guard( 'tcsup_row_action' );
+		$id     = isset( $_POST['row_id'] ) ? absint( $_POST['row_id'] ) : 0;
+		$action = isset( $_POST['supplier_action'] ) ? sanitize_key( wp_unslash( $_POST['supplier_action'] ) ) : '';
+		$result = true;
+
+		if ( 'accept' === $action ) {
+			$result = self::accept( $id );
+		} elseif ( in_array( $action, array( 'discard', 'review', 'pending' ), true ) ) {
+			$selection = array( 'discard' => 'descartado', 'review' => 'revisar', 'pending' => 'pendiente' );
+			$result = self::set_selection( $id, $selection[ $action ] );
+		}
+
+		if ( is_wp_error( $result ) ) {
+			self::redirect( 'inventory', array( 'tc_error_message' => rawurlencode( $result->get_error_message() ) ) );
+		}
+		self::redirect( 'inventory', array( 'row_updated' => 1 ) );
+	}
+
+	public static function handle_bulk_action() {
+		self::guard( 'tcsup_bulk_action' );
+		$ids = isset( $_POST['row_ids'] ) && is_array( $_POST['row_ids'] ) ? array_map( 'absint', $_POST['row_ids'] ) : array();
+		$action = isset( $_POST['bulk_supplier_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_supplier_action'] ) ) : '';
+		$done = 0;
+		$errors = 0;
+
+		foreach ( array_filter( $ids ) as $id ) {
+			if ( 'accept' === $action ) {
+				$result = self::accept( $id );
+			} else {
+				$map = array( 'discard' => 'descartado', 'review' => 'revisar', 'pending' => 'pendiente' );
+				$result = isset( $map[ $action ] ) ? self::set_selection( $id, $map[ $action ] ) : false;
+			}
+			if ( is_wp_error( $result ) || false === $result ) {
+				$errors++;
+			} else {
+				$done++;
+			}
+		}
+
+		self::redirect( 'inventory', array( 'bulk_done' => $done, 'bulk_errors' => $errors ) );
+	}
+
+	public static function handle_price_update() {
+		self::guard( 'tcsup_price_update' );
+		$id = isset( $_POST['row_id'] ) ? absint( $_POST['row_id'] ) : 0;
+		$row = self::row( $id );
+		if ( ! $row ) {
+			self::redirect( 'prices', array( 'tc_error' => 'missing' ) );
+		}
+
+		$without_tax = isset( $_POST['precio_sin_iva'] ) ? self::decimal( wp_unslash( $_POST['precio_sin_iva'] ) ) : null;
+		$with_tax    = isset( $_POST['precio_con_iva'] ) ? self::decimal( wp_unslash( $_POST['precio_con_iva'] ) ) : null;
+		$tax         = isset( $_POST['iva_porcentaje'] ) ? self::decimal( wp_unslash( $_POST['iva_porcentaje'] ) ) : null;
+		$currency    = isset( $_POST['moneda'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['moneda'] ) ) ) : 'EUR';
+
+		global $wpdb;
+		$wpdb->update(
+			TCSUP_Schema::catalog_table(),
+			array(
+				'precio_sin_iva'      => $without_tax,
+				'precio_con_iva'      => $with_tax,
+				'iva_porcentaje'      => $tax,
+				'moneda'              => $currency,
+				'estado_sincronizacion'=> 'modificado',
+				'cambios_detectados'  => 'price',
+				'actualizado'         => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		$product_id = absint( $row['object_id'] ?? 0 );
+		if ( $product_id && ! empty( $_POST['apply_woo'] ) && class_exists( 'WooCommerce' ) ) {
+			$product = wc_get_product( $product_id );
+			$regular = isset( $_POST['woo_regular'] ) ? self::decimal( wp_unslash( $_POST['woo_regular'] ) ) : null;
+			$sale    = isset( $_POST['woo_sale'] ) ? self::decimal( wp_unslash( $_POST['woo_sale'] ) ) : null;
+			if ( $product ) {
+				if ( null !== $regular ) {
+					$product->set_regular_price( wc_format_decimal( $regular ) );
+				}
+				$product->set_sale_price( null === $sale ? '' : wc_format_decimal( $sale ) );
+				$product->set_price( null !== $sale ? wc_format_decimal( $sale ) : wc_format_decimal( $regular ) );
+				$product->save();
+			}
+		}
+
+		self::redirect( 'prices', array( 'price_saved' => 1 ) );
+	}
+
+	private static function decimal( $value ) {
+		$value = str_replace( ',', '.', trim( (string) $value ) );
+		$value = preg_replace( '/[^0-9.\-]/', '', $value );
+		return '' !== $value && is_numeric( $value ) ? (string) $value : null;
+	}
+
+	public static function handle_images_update() {
+		self::guard( 'tcsup_images_update' );
+		$id = isset( $_POST['row_id'] ) ? absint( $_POST['row_id'] ) : 0;
+		$row = self::row( $id );
+		if ( ! $row ) {
+			self::redirect( 'images', array( 'tc_error' => 'missing' ) );
+		}
+
+		$mode = isset( $_POST['image_mode'] ) ? sanitize_key( wp_unslash( $_POST['image_mode'] ) ) : 'external';
+		if ( ! in_array( $mode, array( 'external', 'local', 'inherit' ), true ) ) {
+			$mode = 'external';
+		}
+		$urls = isset( $_POST['image_urls'] ) ? TCSUP_CSV::image_urls( wp_unslash( $_POST['image_urls'] ) ) : array();
+		$encoded = $urls ? wp_json_encode( $urls, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) : '';
+
+		global $wpdb;
+		$wpdb->update(
+			TCSUP_Schema::catalog_table(),
+			array(
+				'imagenes'      => $encoded,
+				'modo_imagenes' => $mode,
+				'actualizado'   => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		$row['imagenes']      = $encoded;
+		$row['modo_imagenes'] = $mode;
+		if ( 'external' === $mode ) {
+			self::sync_external_images( $row, absint( $row['object_id'] ?? 0 ) );
+		} else {
+			$wpdb->update(
+				TCSUP_Schema::images_table(),
+				array( 'status' => 'inactive', 'updated_at' => current_time( 'mysql' ) ),
+				array( 'catalog_row_id' => $id )
+			);
+		}
+
+		self::redirect( 'images', array( 'images_saved' => 1, 'row_id' => $id ) );
+	}
+
+	public static function sources_for_product( $product_id ) {
+		global $wpdb;
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM ' . TCSUP_Schema::catalog_table() . ' WHERE object_id=%d AND estado_seleccion=%s ORDER BY actualizado DESC,id DESC',
+				absint( $product_id ),
+				'aceptado'
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
+	}
+}
