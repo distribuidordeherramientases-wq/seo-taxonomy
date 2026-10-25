@@ -448,7 +448,7 @@ final class TaxoCommerce_Google_Bing_Market {
 
     private static function require_admin( $nonce ) {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'Unauthorized access.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( $nonce );
     }
