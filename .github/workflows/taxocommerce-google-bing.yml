@@ -4,11 +4,15 @@ on:
     branches: [staging]
     paths:
       - 'taxocommerce-google-bing/**'
+      - 'taxocommerce-connections/taxocommerce-connections.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
       - '.github/workflows/taxocommerce-google-bing.yml'
   pull_request:
     branches: [staging]
     paths:
       - 'taxocommerce-google-bing/**'
+      - 'taxocommerce-connections/taxocommerce-connections.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
       - '.github/workflows/taxocommerce-google-bing.yml'
   workflow_dispatch:
 permissions:
