@@ -2989,7 +2989,7 @@ function tcsocial_network_render_scheduler()
     }
 
     echo '<form method="get" class="seo-social-filterbar" style="margin-top:18px">';
-    echo '<input type="hidden" name="page" value="seo-menu-marketing"><input type="hidden" name="tab" value="social"><input type="hidden" name="social_subtab" value="scheduler">';
+    echo '<input type="hidden" name="page" value="taxocommerce-social"><input type="hidden" name="tab" value="calendar"><input type="hidden" name="social_subtab" value="scheduler">';
     echo '<div class="seo-social-field"><label>Tipo</label><select name="social_type"><option value="">Entradas + Páginas/Landings</option>';
     $current_type = sanitize_key((string) tcsocial_network_query_arg('social_type', ''));
     echo '<option value="post" ' . selected($current_type, 'post', false) . '>Entradas</option><option value="page" ' . selected($current_type, 'page', false) . '>Páginas / Landings</option></select></div>';
