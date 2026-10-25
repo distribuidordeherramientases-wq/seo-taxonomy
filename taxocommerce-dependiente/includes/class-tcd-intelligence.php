@@ -13,6 +13,7 @@ final class TCD_Intelligence {
     const DB_OPTION = 'tcd_intelligence_db_version';
     const INTERPRETER_STATE = 'tcd_interpreter_state';
     const QUALITY_PROGRESS = 'tcd_quality_eval_progress';
+    const QUALITY_PROGRESS_VERSION = 2;
     const L2_IDENTITY_BACKFILL = 'tcd_l2_identity_backfill';
     const MAX_SIGNALS_PER_PRODUCT = 32;
 
@@ -683,6 +684,7 @@ final class TCD_Intelligence {
         $state = get_option( self::QUALITY_PROGRESS, array() );
         if (
             ! is_array( $state )
+            || absint( $state['version'] ?? 0 ) !== self::QUALITY_PROGRESS_VERSION
             || absint( $state['lesson'] ?? 0 ) !== $lesson
             || absint( $state['snapshot_id'] ?? 0 ) !== $snapshot_id
         ) {
@@ -704,6 +706,7 @@ final class TCD_Intelligence {
             }, $sample_rows ) ) );
 
             $state = array(
+                'version'=>self::QUALITY_PROGRESS_VERSION,
                 'lesson'=>$lesson,
                 'snapshot_id'=>$snapshot_id,
                 'cursor'=>0,
@@ -2149,7 +2152,14 @@ final class TCD_Intelligence {
             'ignored'=>array(),
         );
         if ( ! $normalized ) return $result;
-        $ngrams = self::ngrams( $normalized, 5 );
+        $terms = array( $normalized );
+        $compact = self::without_stopwords( $normalized );
+        if ( $compact && $compact !== $normalized ) $terms[] = $compact;
+        foreach ( self::ngrams( $normalized, 5 ) as $phrase ) $terms[] = $phrase;
+        if ( $compact && $compact !== $normalized ) {
+            foreach ( self::ngrams( $compact, 5 ) as $phrase ) $terms[] = $phrase;
+        }
+        $ngrams = array_slice( array_values( array_unique( array_filter( $terms ) ) ), 0, 140 );
         if ( ! $ngrams ) return $result;
         $table = TCD_Knowledge_Transfer::rules_table();
         $placeholders = implode( ',', array_fill( 0, count( $ngrams ), '%s' ) );
