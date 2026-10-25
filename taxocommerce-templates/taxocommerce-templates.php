@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Roles editoriales, registro de plantillas y asignación automática, independiente de TaxoCommerce Core.
- * Version: 0.3.2
+ * Version: 0.4.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.3.2');
+define('TCT_VERSION','0.4.0');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -99,7 +99,7 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_save_template',array(__CLASS__,'save_template'));
         add_action('admin_post_tct_settings',array(__CLASS__,'settings'));
         add_action('admin_post_tct_save_page_role',array(__CLASS__,'save_page_role'));
-        add_action('admin_post_tct_upload_template',array(__CLASS__,'upload_template'));
+        add_action('admin_post_tct_upload_template',array('TCT_Template_Editor','upload'));
         add_action('admin_post_tct_save_request',array('TCT_Request_Admin','save_request'));
         add_action('admin_post_tct_save_code',array('TCT_Template_Editor','save'));
         add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
@@ -317,61 +317,7 @@ final class TaxoCommerce_Templates {
     }
 
     public static function upload_template() {
-        if (!current_user_can('manage_options') || !current_user_can('update_plugins') ||
-            !TCT_Template_Editor::can_edit()) {
-            wp_die('La subida de PHP requiere permisos para editar plugins y que WordPress permita editar codigo.');
-        }
-        self::guard('tct_upload_template');
-        $files = isset($_FILES['template_file']) ? $_FILES['template_file'] : null;
-        if (!is_array($files) || !isset($files['error']) || UPLOAD_ERR_OK !== (int) $files['error']) {
-            self::redirect('Error en la subida del archivo.');
-        }
-        $name = isset($files['name']) ? sanitize_file_name($files['name']) : '';
-        if (!TCT_Router::valid_filename($name) || empty($files['tmp_name']) ||
-            !is_uploaded_file($files['tmp_name'])) {
-            self::redirect('Nombre o subida no valida. Solo PHP.');
-        }
-        $size = isset($files['size']) ? (int) $files['size'] : 0;
-        if ($size < 8 || $size > 1024 * 1024) {
-            self::redirect('Archivo vacio o mayor de 1 MB.');
-        }
-        $handle = fopen($files['tmp_name'], 'rb');
-        $head = $handle ? fread($handle, 256) : '';
-        if ($handle) {
-            fclose($handle);
-        }
-        if (!is_string($head) || !preg_match('/^\s*<\?php\b/', $head)) {
-            self::redirect('El archivo debe contener codigo PHP valido.');
-        }
-        $valid = TCT_Template_Editor::validate_php(file_get_contents($files['tmp_name']));
-        if (is_wp_error($valid)) {
-            self::redirect($valid->get_error_message());
-        }
-        $directory = TCT_Template_Editor::prepare_directory();
-        if (is_wp_error($directory)) {
-            self::redirect($directory->get_error_message());
-        }
-        $target = $directory . $name;
-        if (is_link($target)) {
-            self::redirect('No se permiten enlaces simbolicos.');
-        }
-        if (is_file(TCT_DIR . 'templates/' . $name)) {
-            self::redirect('El nombre coincide con una plantilla integrada. Usa otro nombre.');
-        }
-        if (is_file($target)) {
-            if (empty($_POST['replace'])) {
-                self::redirect('El archivo ya existe. Marca reemplazar para confirmarlo.');
-            }
-            $backup = $target . '.' . gmdate('YmdHis') . '.bak';
-            if (!copy($target,$backup)) {
-                self::redirect('No se pudo guardar copia de seguridad.');
-            }
-        }
-        if (!move_uploaded_file($files['tmp_name'],$target)) {
-            self::redirect('No se pudo guardar el archivo en la biblioteca.');
-        }
-        @chmod($target,0640);
-        self::redirect('Archivo incorporado a la biblioteca. Ya puedes asociarlo.');
+        TCT_Template_Editor::upload();
     }
 
     public static function screen() {
@@ -386,7 +332,7 @@ final class TaxoCommerce_Templates {
         $tabs = array(
             'requests' => 'Tipos de peticion WordPress / WooCommerce',
             'roles'    => 'Jerarquia y roles propios',
-            'editor'   => 'Editor de archivos PHP',
+            'editor'   => 'Editor y biblioteca',
             'audit'    => 'Auditoria de asociaciones'
         );
         foreach ($tabs as $key=>$label) {
@@ -442,13 +388,7 @@ final class TaxoCommerce_Templates {
         echo '<p class="description">Desactivado por defecto; activa solo cuando todos los archivos de las rutas utilizadas esten migrados y probados.</p>';
         submit_button('Guardar activacion','secondary');
         echo '</form><h2>Archivos de plantilla</h2>';
-        echo '<p>Sube archivos .php propios. Quedan en wp-content/taxocommerce-templates-library/, fuera de los despliegues del plugin.</p>';
-        echo '<form method="post" enctype="multipart/form-data" action="' . esc_url(admin_url('admin-post.php')) . '">';
-        wp_nonce_field('tct_upload_template');
-        echo '<input type="hidden" name="action" value="tct_upload_template"><input type="file" name="template_file" accept=".php" required> ';
-        echo '<label><input type="checkbox" name="replace" value="1"> Reemplazar archivo existente (con copia)</label> ';
-        submit_button('Subir plantilla','secondary','submit',false);
-        echo '</form>';
+        echo '<p>La subida, duplicado, descarga, edicion y variantes se gestionan ahora desde <a href="' . esc_url(TCT_Request_Admin::admin_url('editor')) . '"><strong>Editor y biblioteca</strong></a>.</p>';
         echo '<h2>Asignacion a paginas y rutas automaticas</h2>';
         echo '<p>Las rutas automaticas se resuelven por tipo de peticion. Las rutas asignables admiten paginas existentes; las variantes no son roles independientes.</p>';
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">';

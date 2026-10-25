@@ -3,7 +3,7 @@ Contributors: davidperezmartorell
 Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.2
+Stable tag: 0.4.0
 License: GPLv2 or later
 
 Gestor de plantillas independientes para WordPress y WooCommerce.
@@ -19,7 +19,15 @@ Tres areas independientes:
    - Los endpoints AJAX, eventos y acciones de WooCommerce no son plantillas PHP: el plugin no inyecta HTML en respuestas JSON.
    - Sin asignacion, WordPress / WooCommerce conserva su plantilla predeterminada y la jerarquia del tema. Soporta tambien el index de respaldo.
 2. Jerarquia y roles TaxoCommerce: conserva Cluster, hubs, landings y asignaciones existentes en seo_nodes/seo_templates. Las variantes movil/escritorio estan ligadas a una unica plantilla principal.
-3. Editor de PHP: crear, visualizar, descargar y modificar plantillas en biblioteca persistente, con validacion de sintaxis, backups y restricciones de permisos.
+3. Editor y biblioteca PHP:
+   - Inventario unico de archivos integrados y plantillas propias.
+   - Consulta de codigo integrado en modo solo lectura.
+   - Crear desde texto, duplicar, descargar y editar archivos propios.
+   - Subir PHP desde el navegador con validacion de sintaxis y limite de 1 MB.
+   - Backup automatico antes de reemplazar una plantilla propia.
+   - Crear y editar variantes mobile/desktop desde la plantilla principal.
+   - Asociacion automatica a una peticion cuando el editor se abre desde Tipos de peticion.
+   - Biblioteca persistente fuera de la carpeta del plugin.
 
 == Seguridad y limites ==
 - El motor nuevo permanece DESACTIVADO por defecto: habilitar solo despues de probar las plantillas necesarias en STAGING.
