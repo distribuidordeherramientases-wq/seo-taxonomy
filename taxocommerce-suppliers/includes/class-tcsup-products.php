@@ -431,9 +431,10 @@ final class TCSUP_Products {
 
 		if ( $catalog_row_id && $supplier && $supplier_sku ) {
 			$sql = $wpdb->prepare(
-				"UPDATE {$table}
+				"UPDATE %i
 				 SET status=%s,updated_at=%s
 				 WHERE catalog_row_id=%d OR (supplier=%s AND supplier_sku=%s)",
+				$table,
 				'inactive',
 				current_time( 'mysql' ),
 				$catalog_row_id,
@@ -475,7 +476,8 @@ final class TCSUP_Products {
 			$existing_id = absint(
 				$wpdb->get_var(
 					$wpdb->prepare(
-						"SELECT id FROM {$table} WHERE supplier=%s AND supplier_sku=%s AND image_hash=%s LIMIT 1",
+						"SELECT id FROM %i WHERE supplier=%s AND supplier_sku=%s AND image_hash=%s LIMIT 1",
+						$table,
 						$supplier,
 						$supplier_sku,
 						$hash
