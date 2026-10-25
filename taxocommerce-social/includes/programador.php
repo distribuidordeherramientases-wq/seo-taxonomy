@@ -1,15 +1,132 @@
 <?php
 /**
- * No existen franjas reservadas: el calendario social es autónomo.
+ * TaxoCommerce SEO - Programador Social.
  *
- * @param int $timestamp
- * @return bool
+ * MVP seguro para programar publicaciones futuras de entradas y landings en
+ * los proveedores sociales ya conectados. No modifica la frecuencia SEO propia
+ * de posts/landings y no republica automaticamente: cada tarea requiere una
+ * programacion explicita.
  */
-function tcsocial_programador_is_campaign_reserved_time($timestamp)
-{
-    unset($timestamp);
-    return false;
+
+defined('ABSPATH') || exit;
+
+if (!defined('TCSOCIAL_PROGRAMADOR_DB_VERSION')) {
+    define('TCSOCIAL_PROGRAMADOR_DB_VERSION', 1);
 }
+
+if (!defined('TCSOCIAL_PROGRAMADOR_DB_VERSION_OPTION')) {
+    define('TCSOCIAL_PROGRAMADOR_DB_VERSION_OPTION', 'tcsocial_programador_db_version');
+}
+
+/**
+ * @return string
+ */
+function tcsocial_programador_table()
+{
+    global $wpdb;
+    return $wpdb->prefix . 'tcsocial_schedule';
+}
+
+/**
+ * Instala/actualiza la tabla del programador.
+ */
+function tcsocial_programador_maybe_install_table()
+{
+    $installed = (int) get_option(TCSOCIAL_PROGRAMADOR_DB_VERSION_OPTION, 0);
+    if ($installed >= TCSOCIAL_PROGRAMADOR_DB_VERSION) {
+        return;
+    }
+
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $table = tcsocial_programador_table();
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE {$table} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        content_id bigint(20) unsigned NOT NULL,
+        provider varchar(32) NOT NULL DEFAULT '',
+        scheduled_at datetime NOT NULL,
+        template longtext NULL,
+        status varchar(24) NOT NULL DEFAULT 'scheduled',
+        publication_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        source varchar(32) NOT NULL DEFAULT 'manual',
+        notes text NULL,
+        error_message text NULL,
+        created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+        created_at datetime NOT NULL,
+        updated_at datetime NOT NULL,
+        executed_at datetime NULL,
+        PRIMARY KEY  (id),
+        KEY status_scheduled (status, scheduled_at),
+        KEY content_provider (content_id, provider),
+        KEY publication_id (publication_id)
+    ) {$charset_collate};";
+
+    dbDelta($sql);
+    update_option(TCSOCIAL_PROGRAMADOR_DB_VERSION_OPTION, TCSOCIAL_PROGRAMADOR_DB_VERSION, false);
+}
+add_action('init', 'tcsocial_programador_maybe_install_table', 20);
+
+/**
+ * @return string
+ */
+function tcsocial_programador_admin_url($args = array())
+{
+    if (function_exists('tcsocial_network_admin_url')) {
+        return tcsocial_network_admin_url('programador', is_array($args) ? $args : array());
+    }
+
+    return add_query_arg(
+        array_merge(
+            array(
+                'page'          => 'taxocommerce-social',
+                'tab'           => 'social',
+                'social_subtab' => 'programador',
+            ),
+            is_array($args) ? $args : array()
+        ),
+        admin_url('admin.php')
+    );
+}
+
+/**
+ * Convierte datetime-local en timestamp respetando la zona horaria de WordPress.
+ *
+ * @param string $value
+ * @return int|WP_Error
+ */
+function tcsocial_programador_parse_datetime($value)
+{
+    $value = trim((string) $value);
+    if ($value === '') {
+        return new WP_Error('missing_datetime', 'Selecciona fecha y hora de publicacion.');
+    }
+
+    try {
+        $timezone = wp_timezone();
+        $date = DateTimeImmutable::createFromFormat('Y-m-d\\TH:i', $value, $timezone);
+        $errors = DateTimeImmutable::getLastErrors();
+        if (false === $date || (is_array($errors) && (!empty($errors['warning_count']) || !empty($errors['error_count'])))) {
+            return new WP_Error('invalid_datetime', 'La fecha y hora no son validas.');
+        }
+        return $date->getTimestamp();
+    } catch (Exception $e) {
+        return new WP_Error('invalid_datetime', 'La fecha y hora no son validas.');
+    }
+}
+
+/**
+ * @param int $timestamp
+ * @return string
+ */
+function tcsocial_programador_mysql_from_timestamp($timestamp)
+{
+    return wp_date('Y-m-d H:i:s', (int) $timestamp, wp_timezone());
+}
+
+
 
 /**
  * @param int $schedule_id
@@ -448,7 +565,7 @@ function tcsocial_programador_render_admin()
     echo '<div class="seo-social-field" style="margin-top:12px"><label>Nota interna opcional</label><input type="text" name="notes" value="" placeholder="Ej.: lanzamiento, noticia proveedor, contenido destacado..."></div>';
 
     echo '<div class="seo-social-actions"><button type="submit" class="button button-primary" ' . disabled(empty($connected), true, false) . '>Programar publicacion</button>';
-    echo '<span class="seo-social-help">La ejecucion usa WP-Cron. Mas adelante podremos anadir recurrencia, prioridades y recomendaciones de Analista.</span></div>';
+    echo '<span class="seo-social-help">La ejecucion usa WP-Cron. La recurrencia queda desactivada para evitar republicaciones no revisadas.</span></div>';
     echo '</form>';
     echo '</section>';
 
@@ -536,6 +653,6 @@ function tcsocial_programador_render_admin()
 
     echo '<section class="seo-social-card">';
     echo '<h2>Siguiente evolucion</h2>';
-    echo '<p class="seo-social-help" style="font-size:13px">La tabla ya conserva <code>source</code> y <code>notes</code> para que mas adelante Analista pueda proponer tareas con prioridad y motivo. La recurrencia no se activa en esta version para evitar republicar automaticamente contenido sin revisar si necesita cambios.</p>';
+    echo '<p class="seo-social-help" style="font-size:13px">La tabla ya conserva <code>source</code> y <code>notes</code> para conservar el origen y el motivo de cada programación. La recurrencia no se activa en esta version para evitar republicar automaticamente contenido sin revisar si necesita cambios.</p>';
     echo '</section>';
 }
