@@ -101,13 +101,18 @@ final class Runner {
     }
 
     public static function sanitize_filters( $scope, $filters ) {
+        $mode = sanitize_key( (string) ( $filters['mode'] ?? 'filtered' ) );
+        $mode = 'full' === $mode ? 'full' : 'filtered';
         $rows = absint( $filters['rows'] ?? 25 );
-        if ( ! in_array( $rows, array( 10,25,50,100,250 ), true ) ) {
+        if ( 'full' === $mode ) {
+            $rows = 0;
+        } elseif ( ! in_array( $rows, array( 10,25,50,100,250 ), true ) ) {
             $rows = 25;
         }
         return array(
-            'search'      => sanitize_text_field( (string) ( $filters['search'] ?? '' ) ),
-            'category_id' => 'products' === $scope ? absint( $filters['category_id'] ?? 0 ) : 0,
+            'mode'        => $mode,
+            'search'      => 'full' === $mode ? '' : sanitize_text_field( (string) ( $filters['search'] ?? '' ) ),
+            'category_id' => 'full' === $mode ? 0 : ( 'products' === $scope ? absint( $filters['category_id'] ?? 0 ) : 0 ),
             'rows'        => $rows,
         );
     }
@@ -148,6 +153,12 @@ final class Runner {
 
         $filters = self::sanitize_filters( $scope, $filters );
         $unavailable = self::unavailable_reason( $scope );
+        $full = 'full' === (string) $filters['mode'];
+        $run_file = $unavailable ? '' : Export_Store::begin( $scope );
+        if ( ! $unavailable && '' === $run_file ) {
+            $unavailable = 'No se pudo preparar el archivo completo de auditoría en uploads/taxocommerce-auditor/.';
+        }
+        $expected = $unavailable ? null : ( $full ? self::count_objects( $scope ) : $filters['rows'] );
         $state = array(
             'status'           => $unavailable ? 'unavailable' : 'queued',
             'reason'           => $unavailable,
@@ -156,12 +167,18 @@ final class Runner {
             'completed_gmt'    => null,
             'processed'        => 0,
             'excluded'         => 0,
-            'total'            => $unavailable ? null : $filters['rows'],
+            'total'            => $expected,
             'filters'          => $filters,
+            'run_mode'         => $full ? 'full' : 'filtered',
+            'run_file'         => $run_file,
             'cursor'           => 0,
             'finding_count'    => 0,
+            'finding_entities' => array(),
             'severity_counts'  => array( 'critical' => 0, 'high' => 0, 'medium' => 0, 'low' => 0, 'info' => 0 ),
             'rule_counts'      => array(),
+            'action_class_counts' => array(),
+            'status_counts'    => array(),
+            'ready_now_count'  => 0,
             'findings'         => array(),
             'quality_total'    => 0,
             'quality_scored'   => 0,
@@ -186,7 +203,10 @@ final class Runner {
             'notes'            => array(
                 'Auditoria de solo lectura: no altera contenido, terminos ni relaciones.',
                 'La puntuacion de calidad es interna, no una metrica ni una prediccion de Google.',
-                'La ejecucion esta limitada por filtros y numero maximo de entidades para evitar sobrecarga.',
+                $full
+                    ? 'Auditoria completa: recorre todo el universo publicado del bloque en lotes acotados.'
+                    : 'Auditoria filtrada: limitada al numero maximo de entidades elegido.',
+                'La interfaz conserva una muestra acotada; el JSON completo se genera desde uploads sin truncar la cola.',
             ),
         );
         if ( ! empty( $state['editorial_map']['partial'] ) ) {
@@ -354,17 +374,47 @@ final class Runner {
         }
     }
 
+    private static function compact_evidence( $value, $depth = 0 ) {
+        if ( is_scalar( $value ) || null === $value ) {
+            return is_string( $value ) ? mb_substr( $value, 0, 1200, 'UTF-8' ) : $value;
+        }
+        if ( ! is_array( $value ) || $depth >= 4 ) {
+            return null;
+        }
+        $out = array();
+        foreach ( array_slice( $value, 0, 30, true ) as $key => $child ) {
+            $out[ $key ] = self::compact_evidence( $child, $depth + 1 );
+        }
+        return $out;
+    }
+
     private static function add_finding( &$state, $row ) {
         $row = Priority::decorate( (array) $row );
+        $row = Decision_Context::decorate( $row );
         $severity = $row['severity'];
         $code = $row['code'];
         $priority = $row['priority'];
-        $row['evidence'] = mb_substr( (string) ( $row['evidence'] ?? '' ), 0, 350, 'UTF-8' );
+        $action_class = (string) ( $row['action_class'] ?? 'INFORMATIVO' );
+        $status = (string) ( $row['status'] ?? 'NO_ACTION' );
+        $row['evidence'] = self::compact_evidence( $row['evidence'] ?? '' );
 
         $state['finding_count']++;
         $state['severity_counts'][ $severity ]++;
         $state['rule_counts'][ $code ] = absint( $state['rule_counts'][ $code ] ?? 0 ) + 1;
         $state['priority_counts'][ $priority ] = absint( $state['priority_counts'][ $priority ] ?? 0 ) + 1;
+        $state['action_class_counts'][ $action_class ] = absint( $state['action_class_counts'][ $action_class ] ?? 0 ) + 1;
+        $state['status_counts'][ $status ] = absint( $state['status_counts'][ $status ] ?? 0 ) + 1;
+        if ( ! empty( $row['ready_now'] ) ) {
+            $state['ready_now_count']++;
+        }
+        $entity_key = sanitize_key( (string) ( $row['entity_type'] ?? '' ) ) . '|' . (string) ( $row['entity_id'] ?? '' );
+        if ( '|' !== $entity_key ) {
+            $state['finding_entities'][ md5( $entity_key ) ] = true;
+        }
+
+        if ( empty( $state['run_file'] ) || ! Export_Store::append( $state['run_file'], $row ) ) {
+            throw new \RuntimeException( 'No se pudo escribir la cola completa del Auditor en uploads.' );
+        }
         $state['findings'][] = $row;
     }
 
@@ -399,28 +449,65 @@ final class Runner {
         $state['quality_worst'] = array_slice( $state['quality_worst'], 0, self::MAX_QUALITY_ROWS );
     }
 
+    private static function inventory( $scope, $state ) {
+        $processed = absint( $state['processed'] ?? 0 );
+        if ( 'products' === $scope ) {
+            $categories = wp_count_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) );
+            return array(
+                'products'   => $processed,
+                'categories' => is_wp_error( $categories ) ? null : absint( $categories ),
+            );
+        }
+        if ( 'categories' === $scope ) {
+            $with_products = wp_count_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true ) );
+            return array(
+                'categories'              => $processed,
+                'categories_with_products'=> is_wp_error( $with_products ) ? null : absint( $with_products ),
+            );
+        }
+        if ( 'posts' === $scope ) {
+            return array( 'posts' => $processed );
+        }
+        if ( 'pages' === $scope ) {
+            return array( 'pages' => $processed );
+        }
+        if ( 'faqs' === $scope ) {
+            return array( 'faqs' => $processed );
+        }
+        return array( 'entities' => $processed );
+    }
+
     private static function complete( $scope, &$state ) {
         $state['status'] = 'completed';
         $state['completed_gmt'] = current_time( 'mysql', true );
         self::trim_samples( $state );
+        $previous_report = self::report( $scope );
 
         $report = array(
             'schema'      => 'taxocommerce_auditor_native_v2',
             'version'     => Plugin::VERSION,
             'scope'       => $scope,
+            'run_mode'    => (string) ( $state['run_mode'] ?? 'filtered' ),
             'started_gmt' => $state['started_gmt'],
             'completed_gmt' => $state['completed_gmt'],
+            'completed_local' => current_time( 'mysql' ),
             'duration_seconds' => max( 0, time() - absint( $state['started_timestamp'] ?? time() ) ),
             'source_model' => 'WordPress post/term meta + WooCommerce CRUD + Vocabulary native taxonomies',
             'processed'   => $state['processed'],
             'excluded'    => $state['excluded'],
             'expected'    => $state['total'],
             'filters'     => (array) ( $state['filters'] ?? array() ),
+            'inventory'   => self::inventory( $scope, $state ),
             'finding_count' => $state['finding_count'],
+            'entities_to_review' => count( (array) ( $state['finding_entities'] ?? array() ) ),
             'severity_counts' => $state['severity_counts'],
             'rule_counts'     => $state['rule_counts'],
             'priority_counts' => $state['priority_counts'],
-            'decision_context' => self::persisted_decision_context( $scope ),
+            'action_class_counts' => (array) ( $state['action_class_counts'] ?? array() ),
+            'status_counts'    => (array) ( $state['status_counts'] ?? array() ),
+            'ready_now_count'  => absint( $state['ready_now_count'] ?? 0 ),
+            'decision_context' => Decision_Context::public_snapshot(),
+            'full_findings_file' => (string) ( $state['run_file'] ?? '' ),
             'category_rebalance' => 'categories' === $scope
                 ? array(
                     'summary' => $state['rebalance_summary'],
@@ -452,6 +539,10 @@ final class Runner {
             'notes' => $state['notes'],
         );
         update_option( self::option( $scope, 'report' ), $report, false );
+        $previous_file = (string) ( $previous_report['full_findings_file'] ?? '' );
+        if ( $previous_file && $previous_file !== (string) $report['full_findings_file'] ) {
+            Export_Store::delete( $previous_file );
+        }
 
         // Store a bounded list of completed runs, as in the legacy Auditor.
         $history = (array) get_option( self::option( $scope, 'history' ), array() );
@@ -474,6 +565,7 @@ final class Runner {
             $state['seen_templates'],
             $state['seen_faq_questions'],
             $state['editorial_map'],
+            $state['finding_entities'],
             $state['findings'],
             $state['quality_worst'],
             $state['rebalance_proposals']
@@ -500,9 +592,10 @@ final class Runner {
         try {
             self::load_indexes( $state );
             $state['status'] = 'running';
-            $limit = absint( $state['filters']['rows'] ?? 25 );
-            $remaining = max( 0, $limit - absint( $state['processed'] ) );
-            if ( 0 === $remaining ) {
+            $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );
+            $limit = $full ? 0 : absint( $state['filters']['rows'] ?? 25 );
+            $remaining = $full ? null : max( 0, $limit - absint( $state['processed'] ) );
+            if ( ! $full && 0 === $remaining ) {
                 self::complete( $scope, $state );
                 return;
             }
@@ -694,8 +787,11 @@ final class Runner {
             }
 
             self::trim_samples( $state );
-            $limit_reached = absint( $state['processed'] ) >= absint( $state['filters']['rows'] ?? 25 );
-            $effective_batch = min( self::BATCH_SIZE, max( 1, absint( $state['filters']['rows'] ?? 25 ) - ( absint( $state['processed'] ) - count( $objects ) ) ) );
+            $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );
+            $limit_reached = ! $full && absint( $state['processed'] ) >= absint( $state['filters']['rows'] ?? 25 );
+            $effective_batch = $full
+                ? self::BATCH_SIZE
+                : min( self::BATCH_SIZE, max( 1, absint( $state['filters']['rows'] ?? 25 ) - ( absint( $state['processed'] ) - count( $objects ) ) ) );
             if ( $limit_reached || count( $objects ) < $effective_batch ) {
                 self::complete( $scope, $state );
             } else {
