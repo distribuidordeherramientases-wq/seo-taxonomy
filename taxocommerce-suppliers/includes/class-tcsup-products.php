@@ -417,6 +417,41 @@ final class TCSUP_Products {
 		);
 	}
 
+	private static function deactivate_external_images( $row ) {
+		global $wpdb;
+		$table          = TCSUP_Schema::images_table();
+		$catalog_row_id = absint( $row['id'] ?? 0 );
+		$supplier       = sanitize_text_field( (string) ( $row['proveedor'] ?? '' ) );
+		$supplier_sku   = sanitize_text_field( (string) ( $row['sku'] ?? '' ) );
+		if ( '' === $supplier_sku ) {
+			$supplier_sku = sanitize_text_field( (string) ( $row['proveedor_id_externo'] ?? '' ) );
+		}
+
+		if ( $catalog_row_id && $supplier && $supplier_sku ) {
+			$sql = $wpdb->prepare(
+				"UPDATE {$table}
+				 SET status=%s,updated_at=%s
+				 WHERE catalog_row_id=%d OR (supplier=%s AND supplier_sku=%s)",
+				'inactive',
+				current_time( 'mysql' ),
+				$catalog_row_id,
+				$supplier,
+				$supplier_sku
+			);
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is fully prepared above.
+			$wpdb->query( $sql );
+			return;
+		}
+
+		if ( $catalog_row_id ) {
+			$wpdb->update(
+				$table,
+				array( 'status' => 'inactive', 'updated_at' => current_time( 'mysql' ) ),
+				array( 'catalog_row_id' => $catalog_row_id )
+			);
+		}
+	}
+
 	public static function sync_external_images( $row, $product_id = 0 ) {
 		global $wpdb;
 
@@ -430,11 +465,7 @@ final class TCSUP_Products {
 			$supplier_sku = sanitize_text_field( (string) ( $row['proveedor_id_externo'] ?? '' ) );
 		}
 
-		$wpdb->update(
-			$table,
-			array( 'status' => 'inactive', 'updated_at' => current_time( 'mysql' ) ),
-			array( 'catalog_row_id' => $catalog_row_id )
-		);
+		self::deactivate_external_images( $row );
 
 		$count = 0;
 		foreach ( $urls as $position => $url ) {
@@ -623,11 +654,7 @@ final class TCSUP_Products {
 		if ( 'external' === $mode ) {
 			self::sync_external_images( $row, absint( $row['object_id'] ?? 0 ) );
 		} else {
-			$wpdb->update(
-				TCSUP_Schema::images_table(),
-				array( 'status' => 'inactive', 'updated_at' => current_time( 'mysql' ) ),
-				array( 'catalog_row_id' => $id )
-			);
+			self::deactivate_external_images( $row );
 		}
 
 		self::redirect( 'images', array( 'images_saved' => 1, 'row_id' => $id ) );
