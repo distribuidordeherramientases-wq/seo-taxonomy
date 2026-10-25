@@ -1,0 +1,122 @@
+name: TaxoCommerce Family WordPress.org Readiness
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-*/**'
+      - '.github/workflows/taxocommerce-family-plugin-check.yml'
+      - '.github/scripts/taxocommerce_family_readme_check.py'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-*/**'
+      - '.github/workflows/taxocommerce-family-plugin-check.yml'
+      - '.github/scripts/taxocommerce_family_readme_check.py'
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-plugin-check:
+    name: WordPress.org readiness / ${{ matrix.slug }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        slug:
+          - taxocommerce-auditor
+          - taxocommerce-campaigns
+          - taxocommerce-connections
+          - taxocommerce-core
+          - taxocommerce-database
+          - taxocommerce-dependiente
+          - taxocommerce-distribution
+          - taxocommerce-facturacion
+          - taxocommerce-faqs
+          - taxocommerce-google-bing
+          - taxocommerce-images
+          - taxocommerce-import-export
+          - taxocommerce-logistica
+          - taxocommerce-redirects
+          - taxocommerce-social
+          - taxocommerce-suppliers
+          - taxocommerce-system-check
+          - taxocommerce-templates
+          - taxocommerce-vocabulary
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Build standalone distributable package
+        shell: bash
+        env:
+          PLUGIN: ${{ matrix.slug }}
+        run: |
+          set -euo pipefail
+          mkdir -p "build/$PLUGIN"
+          rsync -a \
+            --exclude='tests/' \
+            --exclude='README.md' \
+            --exclude='*.bak' \
+            --exclude='*.log' \
+            "$PLUGIN/" "build/$PLUGIN/"
+          test -f "build/$PLUGIN/$PLUGIN.php"
+          test -f "build/$PLUGIN/readme.txt"
+          find "build/$PLUGIN" -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          python3 .github/scripts/taxocommerce_family_readme_check.py "$PLUGIN" "build/$PLUGIN"
+          ( cd build && zip -qr "../$PLUGIN.zip" "$PLUGIN" )
+          unzip -t "$PLUGIN.zip"
+          bytes=$(stat -c%s "$PLUGIN.zip")
+          if (( bytes > 10485760 )); then
+            echo "::error title=$PLUGIN package::ZIP exceeds the 10 MiB submission limit: $bytes bytes"
+            exit 1
+          fi
+          echo "ZIP size: $bytes bytes"
+
+      - name: WordPress Plugin Check - strict, warnings visible
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ./build/${{ matrix.slug }}
+          slug: ${{ matrix.slug }}
+          wp-version: latest
+          ignore-warnings: false
+          ignore-errors: false
+
+      - name: Save findings in job summary
+        if: always()
+        shell: bash
+        env:
+          PLUGIN: ${{ matrix.slug }}
+        run: |
+          {
+            echo "## $PLUGIN - WordPress Plugin Check"
+            if test -f "$RUNNER_TEMP/plugin-check-results.txt"; then
+              echo '\`\`\`text'
+              head -c 20000 "$RUNNER_TEMP/plugin-check-results.txt"
+              echo
+              echo '\`\`\`'
+            else
+              echo 'Plugin Check report unavailable: inspect earlier steps.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload per-plugin report and test ZIP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordpress-readiness-${{ matrix.slug }}
+          path: |
+            ${{ runner.temp }}/plugin-check-results.txt
+            ./${{ matrix.slug }}.zip
+          retention-days: 14
+          if-no-files-found: warn
