@@ -205,47 +205,60 @@ final class TCDB_Storage {
         if ( isset( $tables[ $nodes ] ) ) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier is computed from current-prefix table list.
             $integrity['orphan_page_nodes'] = (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM \`{$nodes}\` n
-                  LEFT JOIN {$wpdb->posts} p ON p.ID=n.object_id
-                 WHERE n.object_type='page' AND p.ID IS NULL"
-            );
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM %i n
+                     LEFT JOIN %i p ON p.ID=n.object_id
+                     WHERE n.object_type='page' AND p.ID IS NULL",
+                    $nodes, $wpdb->posts
+                )
+            );  );
         }
         if ( isset( $tables[ $nodes ] ) ) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Inventory-verified table, fixed predicates.
             $integrity['duplicate_nodes'] = (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM (
-                    SELECT object_type,object_id,seo_role FROM " . chr(96) . $nodes . chr(96) .
-                    " GROUP BY object_type,object_id,seo_role HAVING COUNT(*) > 1
-                ) d"
-            );
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM (
+                        SELECT object_type,object_id,seo_role FROM %i
+                        GROUP BY object_type,object_id,seo_role HAVING COUNT(*) > 1
+                    ) d",
+                    $nodes
+                )
+            );  );
         }
         // Broken parent links in the WordPress-native product category tree.
         $integrity['broken_product_category_parents'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} t
-                LEFT JOIN {$wpdb->term_taxonomy} p
-                  ON p.term_id=t.parent AND p.taxonomy='product_cat'
-              WHERE t.taxonomy='product_cat' AND t.parent<>0 AND p.term_id IS NULL"
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM %i t
+                 LEFT JOIN %i p ON p.term_id=t.parent AND p.taxonomy='product_cat'
+                 WHERE t.taxonomy='product_cat' AND t.parent<>0 AND p.term_id IS NULL",
+                $wpdb->term_taxonomy, $wpdb->term_taxonomy
+            )
         );
-
         $relations = $wpdb->prefix . 'seo_relations';
         if ( isset( $tables[ $relations ] ) ) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only an existing Core relation table is addressed.
             $integrity['duplicate_relations'] = (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM (
-                    SELECT source_type,source_id,target_type,target_id,relation_type
-                    FROM \`{$relations}\`
-                    GROUP BY source_type,source_id,target_type,target_id,relation_type
-                    HAVING COUNT(*) > 1
-                ) d"
-            );
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM (
+                        SELECT source_type,source_id,target_type,target_id,relation_type
+                        FROM %i
+                        GROUP BY source_type,source_id,target_type,target_id,relation_type
+                        HAVING COUNT(*) > 1
+                    ) d",
+                    $relations
+                )
+            );  );
         }
         $scheduler = $wpdb->prefix . 'actionscheduler_actions';
         if ( isset( $tables[ $scheduler ] ) ) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Inventory-validated native Action Scheduler table.
             $integrity['as_overdue_pending'] = (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM \`{$scheduler}\`
-                 WHERE status='pending' AND scheduled_date_gmt < UTC_TIMESTAMP()"
-            );
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM %i
+                     WHERE status='pending' AND scheduled_date_gmt < UTC_TIMESTAMP()",
+                    $scheduler
+                )
+            );  );
         }
 
         return array(
