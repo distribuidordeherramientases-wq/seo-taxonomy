@@ -85,6 +85,7 @@ final class Admin {
     private static function filter_form( $scope, $label ) {
         $state = Runner::state( $scope );
         $filters = Runner::sanitize_filters( $scope, (array) ( $state['filters'] ?? array() ) );
+        echo '<div class="taxocommerce-auditor-filter-wrap"><p><strong>Auditoría filtrada</strong> · revisión rápida de una muestra o búsqueda concreta.</p>';
         echo '<form class="taxocommerce-auditor-filter" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="taxocommerce_auditor_action">';
         echo '<input type="hidden" name="scope" value="' . esc_attr( $scope ) . '">';
@@ -107,8 +108,8 @@ final class Admin {
             echo '<option value="' . esc_attr( $n ) . '" ' . selected( $filters['rows'], $n, false ) . '>' . esc_html( $n ) . '</option>';
         }
         echo '</select></label>';
-        echo '<button type="submit" class="button button-primary">' . esc_html( $label ) . '</button>';
-        echo '</form>';
+        echo '<button type="submit" class="button">' . esc_html( $label ) . '</button>';
+        echo '</form></div>';
     }
 
     public static function render() {
@@ -142,7 +143,9 @@ final class Admin {
                 echo '<p>' . esc_html( (string) $state['reason'] ) . '</p>';
             }
             if ( $report ) {
-                echo '<p><strong>Último informe completo:</strong> ' . esc_html( (string) ( $report['completed_gmt'] ?? '' ) ) . ' UTC';
+                $mode = 'full' === (string) ( $report['run_mode'] ?? '' ) ? 'completa' : 'filtrada';
+                echo '<p><strong>Último informe:</strong> ' . esc_html( (string) ( $report['completed_gmt'] ?? '' ) ) . ' UTC';
+                echo ' · Modo: <strong>' . esc_html( $mode ) . '</strong>';
                 echo ' · Revisados: ' . esc_html( (string) absint( $report['processed'] ?? 0 ) );
                 echo ' · Hallazgos: ' . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . '</p>';
                 $details = self::scope_link( $scope );
@@ -151,10 +154,13 @@ final class Admin {
                     'taxocommerce_auditor_export_' . $scope
                 );
                 echo '<p><a class="button" href="' . esc_url( $details ) . '">Ver último informe</a> ';
-                echo '<a class="button" href="' . esc_url( $export ) . '">JSON</a></p>';
+                echo '<a class="button" href="' . esc_url( $export ) . '">JSON completo</a></p>';
             }
 
-            self::filter_form( $scope, $report ? 'Repetir auditoría filtrada' : 'Auditar filtro' );
+            echo '<div class="taxocommerce-auditor-full"><p><strong>Auditoría completa</strong> · recorre todo el bloque publicado por lotes y genera un JSON sin truncar la cola.</p>';
+            self::action_form( $scope, 'start_full', $report ? 'Repetir auditoría completa' : 'Auditar todo', true );
+            echo '</div>';
+            self::filter_form( $scope, $report ? 'Repetir filtro' : 'Auditar filtro' );
             if ( in_array( $status, array( 'queued', 'running' ), true ) ) {
                 self::action_form( $scope, 'step', 'Procesar siguiente lote' );
                 self::action_form( $scope, 'pause', 'Pausar' );
@@ -502,8 +508,9 @@ final class Admin {
             wp_die( esc_html__( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ), '', array( 'response' => 400 ) );
         }
         check_admin_referer( 'taxocommerce_auditor_action_' . $scope );
-        if ( 'start' === $task ) {
+        if ( in_array( $task, array( 'start', 'start_full' ), true ) ) {
             $filters = Runner::sanitize_filters( $scope, array(
+                'mode'        => 'start_full' === $task ? 'full' : 'filtered',
                 'search'      => isset( $_POST['search'] ) ? wp_unslash( $_POST['search'] ) : '',
                 'category_id' => isset( $_POST['category_id'] ) ? wp_unslash( $_POST['category_id'] ) : 0,
                 'rows'        => isset( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : 25,
@@ -540,8 +547,12 @@ final class Admin {
         nocache_headers();
         header( 'X-Content-Type-Options: nosniff' );
         header( 'Content-Type: application/json; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="taxocommerce_auditor_' . $scope . '.json"' );
-        echo wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-auditor-' . $scope . '-' . gmdate( 'Ymd-His' ) . '.json"' );
+        if ( ! Export_Store::stream_report( $scope, $report ) ) {
+            // Backward compatibility for reports created before the complete
+            // JSON spool existed.
+            echo wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE );
+        }
         exit;
     }
 }
