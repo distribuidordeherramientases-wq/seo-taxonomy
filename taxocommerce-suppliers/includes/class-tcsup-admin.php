@@ -543,7 +543,7 @@ final class TCSUP_Admin {
 				<input type="hidden" name="action" value="tcsup_bulk_action">
 				<?php wp_nonce_field( 'tcsup_bulk_action' ); ?>
 				<div class="tcsup-bulk">
-					<select name="bulk_supplier_action" required>
+					<select name="bulk_supplier_action">
 						<option value="">Bulk action</option>
 						<option value="accept">Accept / link to WooCommerce</option>
 						<option value="review">Mark for review</option>
@@ -553,7 +553,7 @@ final class TCSUP_Admin {
 					<button class="button button-primary">Apply</button>
 				</div>
 				<div class="tcsup-scroll"><table class="widefat striped">
-					<thead><tr><th></th><th>Supplier</th><th>External identity</th><th>Product</th><th>Market</th><th>Supplier price</th><th>Stock</th><th>Decision</th><th>Sync</th><th>Woo ID</th><th>Actions</th></tr></thead>
+					<thead><tr><th><input type="checkbox" id="tcsup-select-page" aria-label="Select all rows on this page"></th><th>Supplier</th><th>External identity</th><th>Product</th><th>Market</th><th>Supplier price</th><th>Stock</th><th>Decision</th><th>Sync</th><th>Woo ID</th><th>Actions</th></tr></thead>
 					<tbody>
 					<?php if ( ! $rows ) : ?><tr><td colspan="11">No supplier rows match the current filters.</td></tr><?php endif; ?>
 					<?php foreach ( $rows as $row ) : ?>
@@ -578,6 +578,15 @@ final class TCSUP_Admin {
 					</tbody>
 				</table></div>
 			</form>
+			<script>
+			(function(){
+				var toggle=document.getElementById('tcsup-select-page');
+				if(!toggle){return;}
+				toggle.addEventListener('change',function(){
+					document.querySelectorAll('input[name="row_ids[]"]').forEach(function(box){box.checked=toggle.checked;});
+				});
+			})();
+			</script>
 			<?php self::render_pagination( 'inventory', $result ); ?>
 		</section>
 		<?php
