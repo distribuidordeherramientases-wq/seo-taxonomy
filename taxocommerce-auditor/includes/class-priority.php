@@ -86,7 +86,7 @@ final class Priority {
         $finding['priority_score'] = self::BASE[ $priority ] + self::SEVERITY_WEIGHT[ $severity ];
         $finding['action_class'] = $action_class;
         $finding['status'] = $status;
-        $finding['ready_now'] = false;
+        $finding['ready_now'] = in_array( $status, array( 'REVIEW_REQUIRED', 'READY_FOR_EDITOR' ), true );
         $finding['requires_source_check'] = $needs_source;
         $finding['depends_on'] = $needs_source ? array( 'verificar_ficha_fabricante_o_proveedor' ) : array();
 
