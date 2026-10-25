@@ -234,22 +234,22 @@ jobs:
             **/*.pot
 
       - name: Validate TaxoCommerce Social
-        id: social_validate
-        continue-on-error: true
         run: |
           test -f taxocommerce-social/taxocommerce-social.php
           find taxocommerce-social -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
       - name: Build TaxoCommerce Social local ZIP
-        if: steps.social_validate.outcome == 'success'
         run: |
           rm -rf build-social-package
           mkdir -p build-social-package
-          zip -qr build-social-package/taxocommerce-social.zip taxocommerce-social             -x 'taxocommerce-social/tests/*'                'taxocommerce-social/**/*.bak'                'taxocommerce-social/**/*.md'                'taxocommerce-social/**/*.pot'
+          zip -qr build-social-package/taxocommerce-social.zip taxocommerce-social \
+            -x 'taxocommerce-social/tests/*' \
+               'taxocommerce-social/**/*.bak' \
+               'taxocommerce-social/**/*.md' \
+               'taxocommerce-social/**/*.pot'
           unzip -t build-social-package/taxocommerce-social.zip
 
       - name: Deploy TaxoCommerce Social ZIP to Core local repository
-        if: steps.social_validate.outcome == 'success'
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
@@ -263,7 +263,6 @@ jobs:
           log-level: verbose
 
       - name: Deploy TaxoCommerce Social to STAGING
-        if: steps.social_validate.outcome == 'success'
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
