@@ -289,6 +289,42 @@ final class TCSUP_CSV {
 		return $map;
 	}
 
+	private static function save_mapping_template( $name, $provider, $mapping, $header ) {
+		$name = sanitize_text_field( (string) $name );
+		$provider = sanitize_text_field( (string) $provider );
+		if ( '' === trim( $name ) ) {
+			return false;
+		}
+
+		$stored_mapping = array();
+		foreach ( (array) $mapping as $field => $index ) {
+			$index = intval( $index );
+			if ( $index >= 0 && isset( $header[ $index ] ) ) {
+				$stored_mapping[ sanitize_key( $field ) ] = (string) $header[ $index ];
+			}
+		}
+
+		$id = 'custom_' . sanitize_key( $name );
+		if ( 'custom_' === $id ) {
+			$id .= wp_generate_password( 6, false, false );
+		}
+
+		$templates = get_option( self::TEMPLATE_OPTION, array() );
+		if ( ! is_array( $templates ) ) {
+			$templates = array();
+		}
+		$templates[ $id ] = array(
+			'id'       => $id,
+			'name'     => $name,
+			'provider' => $provider,
+			'mode'     => 'mapping',
+			'builtin'  => false,
+			'mapping'  => $stored_mapping,
+		);
+		update_option( self::TEMPLATE_OPTION, $templates, false );
+		return $id;
+	}
+
 	private static function mapping_from_template( $template, $header ) {
 		$mode = (string) ( $template['mode'] ?? 'mapping' );
 		if ( 'canonical' === $mode ) {
@@ -426,6 +462,11 @@ final class TCSUP_CSV {
 					self::redirect( array( 'tc_error' => 'required_mapping' ) );
 				}
 			}
+
+			$template_name_to_save = isset( $_POST['save_template_name'] ) ? sanitize_text_field( wp_unslash( $_POST['save_template_name'] ) ) : '';
+			if ( '' !== trim( $template_name_to_save ) ) {
+				self::save_mapping_template( $template_name_to_save, $provider, $mapping, $header );
+			}
 		}
 
 		global $wpdb;
@@ -562,34 +603,10 @@ final class TCSUP_CSV {
 
 		$name     = isset( $_POST['template_name'] ) ? sanitize_text_field( wp_unslash( $_POST['template_name'] ) ) : '';
 		$provider = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
-		if ( '' === trim( $name ) ) {
+		$mapping  = self::mapping_from_request( $header );
+		if ( ! self::save_mapping_template( $name, $provider, $mapping, $header ) ) {
 			self::redirect( array( 'tc_error' => 'template_name' ) );
 		}
-
-		$mapping = self::mapping_from_request( $header );
-		$stored_mapping = array();
-		foreach ( $mapping as $field => $index ) {
-			$stored_mapping[ $field ] = (string) $header[ $index ];
-		}
-
-		$id = 'custom_' . sanitize_key( $name );
-		if ( 'custom_' === $id ) {
-			$id .= wp_generate_password( 6, false, false );
-		}
-
-		$templates = get_option( self::TEMPLATE_OPTION, array() );
-		if ( ! is_array( $templates ) ) {
-			$templates = array();
-		}
-		$templates[ $id ] = array(
-			'id'       => $id,
-			'name'     => $name,
-			'provider' => $provider,
-			'mode'     => 'mapping',
-			'builtin'  => false,
-			'mapping'  => $stored_mapping,
-		);
-		update_option( self::TEMPLATE_OPTION, $templates, false );
 
 		self::redirect( array( 'template_saved' => 1 ) );
 	}
