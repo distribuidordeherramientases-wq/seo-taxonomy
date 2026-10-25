@@ -58,10 +58,47 @@ add_filter('taxocommerce_core_family_extensions','taxocommerce_campaigns_family_
 function tccampaigns_claim_schedule_when_legacy_is_off(){
     if(function_exists('seo_marketing_campaigns_get')) return;
     if(get_option('tccampaigns_schedule_owner_v1')) return;
+
     global $wpdb;
     $tables=tccampaigns_tables();
     $ids=(array)$wpdb->get_col("SELECT id FROM {$tables['campaigns']} WHERE is_enabled=1");
-    foreach($ids as $id) tccampaigns_reschedule(absint($id));
+
+    foreach($ids as $id){
+        $id=absint($id);
+        if(!$id) continue;
+
+        if(function_exists('as_unschedule_all_actions')){
+            as_unschedule_all_actions('seo_marketing_campaign_apply',array($id),'seo-marketing-campaigns');
+            as_unschedule_all_actions('seo_marketing_campaign_restore',array($id),'seo-marketing-campaigns');
+        }
+        wp_clear_scheduled_hook('seo_marketing_campaign_apply',array($id));
+        wp_clear_scheduled_hook('seo_marketing_campaign_restore',array($id));
+        tccampaigns_reschedule($id);
+    }
+
+    // Existing campaign-social agenda is stored in postmeta and therefore
+    // survives the plugin split. Rebind only when the old publisher is gone.
+    if(!function_exists('seo_social_campaign_run_scheduled')){
+        $like=$wpdb->esc_like('_seo_social_campaign_schedule_').'%';
+        $rows=(array)$wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT post_id,meta_key,meta_value FROM {$wpdb->postmeta}
+                 WHERE meta_key LIKE %s AND CAST(meta_value AS UNSIGNED) > %d",
+                $like,
+                time()+30
+            )
+        );
+        foreach($rows as $row){
+            if(!preg_match('/^_seo_social_campaign_schedule_(\\d+)_([a-z0-9_-]+)$/',(string)$row->meta_key,$m)) continue;
+            $args=array(absint($m[1]),absint($row->post_id),sanitize_key($m[2]));
+            $ts=absint($row->meta_value);
+            wp_clear_scheduled_hook('seo_social_campaign_publish_scheduled',$args);
+            if($ts && !wp_next_scheduled('tccampaigns_social_publish_event',$args)){
+                wp_schedule_single_event($ts,'tccampaigns_social_publish_event',$args);
+            }
+        }
+    }
+
     update_option('tccampaigns_schedule_owner_v1',1,false);
 }
 add_action('init','tccampaigns_claim_schedule_when_legacy_is_off',30);
