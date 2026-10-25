@@ -19,6 +19,7 @@ require_once __DIR__ . '/includes/class-rules.php';
 require_once __DIR__ . '/includes/class-editorial-specialist.php';
 require_once __DIR__ . '/includes/class-category-review.php';
 require_once __DIR__ . '/includes/class-priority.php';
+require_once __DIR__ . '/includes/class-faq-source.php';
 require_once __DIR__ . '/includes/class-export-store.php';
 require_once __DIR__ . '/includes/class-decision-context.php';
 require_once __DIR__ . '/includes/class-runner.php';
