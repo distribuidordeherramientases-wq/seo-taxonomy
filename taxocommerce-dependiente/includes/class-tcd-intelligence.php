@@ -118,18 +118,22 @@ final class TCD_Intelligence {
             return $result;
         }
 
-        $covered_sql = $wpdb->prepare(
-            "SELECT COUNT(DISTINCT k.source_id)
-             FROM {$knowledge} k
-             INNER JOIN {$memory} m
-                ON m.product_id=k.source_id
-               AND m.lesson_key='v2_l2_identity'
-               AND m.signal_type='identity_title'
-               AND (m.active=1 OR m.source_brain_id=%s)
-             WHERE k.lesson=2 AND k.status='learned'",
-            $stage
-        );
-        $covered_before = absint( $wpdb->get_var( $covered_sql ) );
+        $covered_count = static function () use ( $wpdb, $knowledge, $memory, $stage ) {
+            return absint( $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(DISTINCT k.source_id)
+                     FROM %i k
+                     INNER JOIN %i m
+                        ON m.product_id=k.source_id
+                       AND m.lesson_key='v2_l2_identity'
+                       AND m.signal_type='identity_title'
+                       AND (m.active=1 OR m.source_brain_id=%s)
+                     WHERE k.lesson=2 AND k.status='learned'",
+                    $knowledge, $memory, $stage
+                )
+            ) );
+        };
+        $covered_before = $covered_count();
         if ( $covered_before >= $total ) {
             $result = array(
                 'snapshot_id'=>$snapshot_id,
@@ -150,12 +154,12 @@ final class TCD_Intelligence {
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT k.source_type,k.source_id,k.title,k.context_json
-                 FROM {$knowledge} k
+                 FROM %i k
                  WHERE k.lesson=2
                    AND k.status='learned'
                    AND NOT EXISTS (
                        SELECT 1
-                       FROM {$memory} m
+                       FROM %i m
                        WHERE m.product_id=k.source_id
                          AND m.lesson_key='v2_l2_identity'
                          AND m.signal_type='identity_title'
@@ -163,6 +167,8 @@ final class TCD_Intelligence {
                    )
                  ORDER BY k.id ASC
                  LIMIT %d",
+                $knowledge,
+                $memory,
                 $stage,
                 $limit
             ),
@@ -181,7 +187,7 @@ final class TCD_Intelligence {
             $written += self::stage_l2_exact_identity( $item, $stage );
         }
 
-        $covered_after = absint( $wpdb->get_var( $covered_sql ) );
+        $covered_after = $covered_count();
         $remaining = max( 0, $total - $covered_after );
         $done = 0 === $remaining || ! $rows;
 
@@ -2084,12 +2090,17 @@ final class TCD_Intelligence {
             $params[] = $stage;
         }
 
-        $sql = "SELECT metadata FROM {$table}
+        
+        $rows = (array) $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT metadata FROM %i
                 WHERE rule_type='quality_target'
                   AND normalized_expression=%s
                   AND {$active}
-                ORDER BY weight DESC,id DESC LIMIT 20";
-        $rows = (array) $wpdb->get_col( $wpdb->prepare( $sql, $params ) );
+                ORDER BY weight DESC,id DESC LIMIT 20",
+                array_merge( array( $table ), $params )
+            )
+        );
         $out = array();
         foreach ( $rows as $metadata_json ) {
             $metadata = json_decode( (string) $metadata_json, true );
@@ -2173,8 +2184,13 @@ final class TCD_Intelligence {
             $active = '(active=1 OR source_brain_id=%s)';
             array_unshift( $params, $include_stage );
         }
-        $sql = "SELECT id,rule_type,expression,normalized_expression,canonical_expression,semantic_role,source_group,source_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source FROM {$table} WHERE {$active} AND language='es' AND normalized_expression IN ({$placeholders}) ORDER BY LENGTH(normalized_expression) DESC,priority ASC,weight DESC,id ASC LIMIT 300";
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+        
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id,rule_type,expression,normalized_expression,canonical_expression,semantic_role,source_group,source_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source FROM %i WHERE {$active} AND language='es' AND normalized_expression IN ({$placeholders}) ORDER BY LENGTH(normalized_expression) DESC,priority ASC,weight DESC,id ASC LIMIT 300",
+                array_merge( array( $table ), $params )
+            ), ARRAY_A
+        );
         foreach ( $rows as $row ) {
             $hit = array(
                 'id'=>absint( $row['id'] ?? 0 ),
@@ -2227,8 +2243,13 @@ final class TCD_Intelligence {
         $slugs = array_slice( array_values( array_unique( array_filter( $slugs ) ) ), 0, 120 );
         if ( ! $slugs ) return;
         $placeholders = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
-        $sql = "SELECT id,semantic_group,slug,label FROM {$table} WHERE active=1 AND slug IN ({$placeholders}) ORDER BY id ASC LIMIT 150";
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $slugs ), ARRAY_A );
+        
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id,semantic_group,slug,label FROM %i WHERE active=1 AND slug IN ({$placeholders}) ORDER BY id ASC LIMIT 150",
+                array_merge( array( $table ), $slugs )
+            ), ARRAY_A
+        );
         foreach ( $rows as $row ) {
             $group = sanitize_key( (string) ( $row['semantic_group'] ?? '' ) );
             $slug = sanitize_title( (string) ( $row['slug'] ?? '' ) );
@@ -2298,13 +2319,16 @@ final class TCD_Intelligence {
             $active = '(active=1 OR source_brain_id=%s)';
             $params[] = $include_stage;
         }
-        $sql = "SELECT id,source_group,source_slug,context_group,context_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source
-                FROM {$table}
+        
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id,source_group,source_slug,context_group,context_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source
+                FROM %i
                 WHERE {$active} AND rule_type='route' AND language='es'
-                ORDER BY priority ASC,weight DESC,id ASC LIMIT 500";
-        $rows = $params
-            ? (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A )
-            : (array) $wpdb->get_results( $sql, ARRAY_A );
+                ORDER BY priority ASC,weight DESC,id ASC LIMIT 500",
+                array_merge( array( $table ), $params )
+            ), ARRAY_A
+        );
         if ( ! $rows ) return;
 
         $known = array();
@@ -2691,8 +2715,14 @@ final class TCD_Intelligence {
             array_unshift( $params, $include_stage );
         }
 
-        $sql = "SELECT product_id,lesson_key,signal_type,signal_text,normalized_signal,weight,source_brain_id
-                FROM {$table}
+        
+
+        // The final ORDER BY placeholder represents the normalized full query.
+        $params[] = self::shorten( $normalized, 250 );
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT product_id,lesson_key,signal_type,signal_text,normalized_signal,weight,source_brain_id
+                FROM %i
                 WHERE {$active}
                   AND lesson_key IN ('v2_l2_identity','quality_repair_l2')
                   AND signal_type IN ('identity_title','identity_sku','quality_repair_identity')
@@ -2704,11 +2734,10 @@ final class TCD_Intelligence {
                   END,
                   weight DESC,
                   id ASC
-                LIMIT 100";
-
-        // The final ORDER BY placeholder represents the normalized full query.
-        $params[] = self::shorten( $normalized, 250 );
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+                LIMIT 100",
+                array_merge( array( $table ), $params )
+            ), ARRAY_A
+        );
         if ( ! $rows ) return array();
 
         $out = array();
@@ -2765,8 +2794,13 @@ final class TCD_Intelligence {
             $active = '(active=1 OR source_brain_id=%s)';
             array_unshift( $params, $include_stage );
         }
-        $sql = "SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM {$table} WHERE {$active} AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 8000";
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+        
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM %i WHERE {$active} AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 8000",
+                array_merge( array( $table ), $params )
+            ), ARRAY_A
+        );
         $products = array();
         foreach ( $rows as $row ) {
             $id = absint( $row['product_id'] ?? 0 );
