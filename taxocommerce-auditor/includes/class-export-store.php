@@ -215,6 +215,7 @@ final class Export_Store {
             'category_rebalance'   => $report['category_rebalance'] ?? null,
             'editorial_comparison' => $report['editorial_comparison'] ?? null,
             'decision_context'     => $report['decision_context'] ?? null,
+            'scope_kpis'           => (array) ( $report['scope_kpis'] ?? array() ),
             'findings_meta'        => array(
                 'sampled'          => false,
                 'total_count'      => $finding_count,
