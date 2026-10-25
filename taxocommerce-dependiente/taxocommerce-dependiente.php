@@ -5,6 +5,7 @@
  * Version: 0.3.7
  * Requires at least: 6.5
  * Requires PHP: 7.4
+ * Requires Plugins: woocommerce
  * Author: David Perez
  * License: GPLv2 or later
  * Text Domain: taxocommerce-dependiente

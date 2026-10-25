@@ -1,43 +1,42 @@
 === TaxoCommerce System Check ===
-Plugin Name: TaxoCommerce System Check
-Description: Diagnostico de WordPress, servidor, integridad del plugin e informes voluntarios.
+Contributors: davidperezmartorell
+Tags: system, diagnostics, wordpress, security, performance
 Requires at least: 5.8
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.5
+Stable tag: 0.2.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
+Server, WordPress and plugin diagnostics with administrator-controlled reports and local checks.
+
 == Description ==
 
-Plugin independiente con los chequeos existentes de TaxoCommerce SEO:
-* System Check: PHP, MySQL, WordPress, hosting, rendimiento, seguridad y logs.
-* Plugin Validation: chequeos funcionales, de servicios e integridad del codigo.
-* Informes PDF/JSON y correo periodico previa activacion.
-* Chequeos HTTP de paginas, posts, imagenes y productos con worker local y KPIs.
-* Peticiones HTTP reales a URL publicas, redirecciones, 4xx, 5xx y tiempos de respuesta sin GitHub.
+TaxoCommerce System Check provides a standalone administration entry for diagnostics, and can integrate its menu with TaxoCommerce Core when installed.
 
-Con TaxoCommerce Core activo System Check aparece como una unica opcion de menu. Dentro hay tres pestanas: Sistema, Plugin Validation y HTTP; HTTP incluye Paginas, Posts, Imagenes y Productos. Sin Core permanece una unica entrada de menu independiente.
+* WordPress, PHP and hosting/system status screens.
+* Plugin validation and local PHP checks.
+* Optional HTTP URL audit of site content, when started explicitly by an administrator.
+* On-demand diagnostic reports and optional administrator-configured notification emails.
+* Dedicated bounded processing for longer URL checks. Neither external GitHub runners nor artificial traffic generation are necessary.
+* Historical administration URLs are kept for compatibility.
 
-Cuando TaxoCommerce SEO permanece activo, System Check reutiliza su motor
-actual para evitar declaraciones de funciones PHP duplicadas.
+Some historical diagnostic callbacks are reused when the old TaxoCommerce SEO plugin is still present. Standalone behavior must be tested with the old plugin disabled before publication.
 
 == Installation ==
 
-1. Instala el ZIP taxocommerce-system-check.zip y activa el plugin.
-2. Abre TaxoCommerce Core > System Check y elige Sistema, Plugin Validation o HTTP.
-3. Ejecuta los chequeos y revisa los resultados.
-4. Habilita el correo programado expresamente si deseas notificaciones.
+1. Install and activate TaxoCommerce System Check.
+2. Open System Check in WordPress administration (or the Core submenu if Core is installed).
+3. Run a system or plugin check and review the findings.
+4. Start URL audits or enable scheduled email reports only when you intend to use them.
 
-== Important notes ==
+== Privacy ==
 
-Esta es la primera extraccion funcional, no la version comercial definitiva.
-Determinados tests aun dependen de servicios de TaxoCommerce SEO y no son
-generalizables a cualquier instalacion WordPress.
-La revision individual de cada plugin se incorporara en una version futura.
-No incluye gestion de suscripciones ni cobros.
-El envio de correos no se habilita automaticamente.
-Los chequeos HTTP arrancan de forma manual y se procesan por lotes pequenos.
-Usan Action Scheduler si existe y WP-Cron en caso contrario; si el Cron no se ejecuta, usa Reanudar.
-La medicion HTTP local desde hosting no certifica accesibilidad desde Internet.
+System diagnostics can include server configuration, URLs and error details. Treat exported results as potentially sensitive. No diagnostic report should be sent to a developer automatically: optional email reports must be explicitly enabled and target an address chosen by the site administrator. HTTP checks make requests to the site's specified URLs and must be used within hosting limits.
 
-Version 0.2.3: las cuatro auditorias HTTP se registran como procesos Core. El gestor central permite iniciar, pausar, reanudar y cancelar. La vista HTTP conserva sus KPIs y detalle. Sin Core se mantienen los controles locales.
+== Changelog ==
+
+= 0.2.8 =
+* Standalone system and plugin diagnostics with compatibility routes.
+* Local PHP checks and optional bounded HTTP URL audits.
+* Administrator-controlled reports and notifications.

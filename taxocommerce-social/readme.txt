@@ -1,20 +1,39 @@
 === TaxoCommerce Social ===
-Contributors: taxocommerce
+Contributors: davidperezmartorell
+Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.1.0
 License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Standalone social publishing module for the TaxoCommerce family.
+Manage authorized social connections, publication templates and a content calendar.
 
-== 0.1.0 ==
-* Migrates the existing Facebook, Instagram, LinkedIn, Pinterest and X social connectors.
-* Reuses the existing seo_social_network_settings_v1 option and the seo_social_publications / seo_social_schedule tables.
-* Provides exactly three administration tabs: Connections, Templates and Calendar.
-* Calendar includes manual scheduling, CSV agenda tools, queue/history and monthly calendar.
-* Removes campaign/offer integration and does not apply special scheduling rules for News content.
-* Keeps its own tcsocial_* functions so it can coexist briefly with the legacy plugin for verification.
-* Does not delete shared social tables or connection data on deactivation/uninstall.
+== Description ==
 
-== Migration ==
-Activate alongside the legacy plugin only for a short read-only verification period. Both modules see the same stored social configuration and operational tables. Do not manage the same connection or schedule simultaneously from both plugins.
+TaxoCommerce Social supports optional Facebook, Instagram, LinkedIn, Pinterest and X connections, manual publication planning, CSV-based scheduling and queue/history views.
+
+* Administration areas: Connections, Templates and Calendar.
+* Existing social settings and publication/schedule tables are reused on migrating sites.
+* Dedicated local calendar; offer/campaign planning belongs to TaxoCommerce Campaigns.
+* No social account is connected or published to by default. Administrators must authorize a provider and perform the action.
+
+The plugin interacts with selected social network services when an administrator connects an account or starts publishing. External platforms operate under their own access tokens, API quotas and terms; configure only accounts you are authorized to manage.
+
+== Installation ==
+
+1. Install and activate TaxoCommerce Social.
+2. Open Social > Connections and authorize only the desired providers.
+3. Configure a publication template and inspect your social platform permissions.
+4. Test a single scheduled publication before enabling automated operation.
+
+== Privacy ==
+
+Social publishing sends authorized content and associated account data to the selected external social network. Store tokens securely, review provider policies and avoid including personal information in generated posts without permission. Disconnect accounts when the integration is not required.
+
+== Changelog ==
+
+= 0.1.0 =
+* Extracted social connections, templates and calendar into a standalone plugin.
+* Preserved existing settings and history without deleting them on deactivation.

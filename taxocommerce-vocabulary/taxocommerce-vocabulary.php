@@ -5,6 +5,9 @@
  * Version: 0.3.2
  * Requires at least: 6.7
  * Requires PHP: 7.4
+ * Author: David Perez
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-vocabulary
  */
 
