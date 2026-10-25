@@ -52,7 +52,7 @@ final class TaxoCommerce_Database {
             add_submenu_page(
                 'taxocommerce-core',
                 'TaxoCommerce Database',
-                'Base de datos',
+                'Database',
                 'manage_options',
                 $slug,
                 array( 'TCDB_Admin', 'render' )
