@@ -154,7 +154,7 @@ function seo_google_trends_get_settings() {
 
 function seo_google_trends_save_settings_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para configurar Google Trends.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para configurar Google Trends.', 'taxocommerce-google-bing'));
     }
 
     check_admin_referer('seo_google_trends_save_settings', 'seo_google_trends_settings_nonce');
@@ -1851,7 +1851,7 @@ function seo_google_trends_sync($force = false, $limit = 0) {
 
 function seo_google_trends_sync_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para actualizar Google Trends.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para actualizar Google Trends.', 'taxocommerce-google-bing'));
     }
     check_admin_referer('seo_google_trends_sync', 'seo_google_trends_sync_nonce');
 
@@ -1998,7 +1998,7 @@ function seo_google_trends_csv_stream_close($handle) {
 
 function seo_google_trends_import_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para importar Google Trends.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para importar Google Trends.', 'taxocommerce-google-bing'));
     }
     check_admin_referer('seo_google_trends_import', 'seo_google_trends_nonce');
     seo_google_trends_maybe_install();
@@ -2101,7 +2101,7 @@ function seo_google_trends_import_handler() {
 
 function seo_google_trends_clear_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para borrar Google Trends.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para borrar Google Trends.', 'taxocommerce-google-bing'));
     }
     check_admin_referer('seo_google_trends_clear', 'seo_google_trends_clear_nonce');
 
