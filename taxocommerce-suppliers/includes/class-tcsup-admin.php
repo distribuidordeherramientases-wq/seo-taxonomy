@@ -254,6 +254,11 @@ final class TCSUP_Admin {
 				}
 			}
 		}
+		foreach ( $header as $index => $column ) {
+			if ( TCSUP_CSV::suggest_field_for_header( $column ) === $field ) {
+				return $index;
+			}
+		}
 		return -1;
 	}
 
