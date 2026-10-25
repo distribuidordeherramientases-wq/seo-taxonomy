@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Suppliers
- * Description: CSV-only supplier catalogue intake, intermediate product decisions, supplier prices, WooCommerce linking, and external image references.
- * Version: 0.1.0
+ * Description: Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.
+ * Version: 0.2.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.0' );
 define( 'TAXOCOMMERCE_SUPPLIERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SUPPLIERS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SUPPLIERS_URL', plugin_dir_url( __FILE__ ) );
@@ -22,6 +22,7 @@ define( 'TAXOCOMMERCE_SUPPLIERS_URL', plugin_dir_url( __FILE__ ) );
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-schema.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-csv.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-products.php';
+require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-purchasing.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-admin.php';
 
 function taxocommerce_suppliers_activate() {
@@ -51,7 +52,7 @@ function taxocommerce_suppliers_register_core( $core ) {
 			'name'        => 'TaxoCommerce Suppliers',
 			'version'     => TAXOCOMMERCE_SUPPLIERS_VERSION,
 			'status'      => 'active',
-			'description' => 'CSV supplier catalogue, intermediate decisions, prices, and external images.',
+			'description' => 'Supplier catalogue, purchasing, prices, and external images.',
 			'admin_url'   => admin_url( 'admin.php?page=taxocommerce-suppliers' ),
 		)
 	);
@@ -71,7 +72,7 @@ function taxocommerce_suppliers_family_catalog( $extensions ) {
 		'search_term'   => 'TaxoCommerce Suppliers',
 		'wordpress_org' => false,
 		'admin_url'     => admin_url( 'admin.php?page=taxocommerce-suppliers' ),
-		'description'   => 'CSV supplier catalogue, intermediate decisions, prices, and external images.',
+		'description'   => 'Supplier catalogue, purchasing, prices, and external images.',
 	);
 	return $extensions;
 }
