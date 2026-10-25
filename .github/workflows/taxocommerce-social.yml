@@ -1,0 +1,105 @@
+name: Build and Deploy TaxoCommerce Social to STAGING
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-social/**'
+      - '.github/workflows/taxocommerce-social.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: PHP syntax
+        run: find taxocommerce-social -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Verify canonical shared storage
+        run: |
+          grep -q "seo_social_network_settings_v1" taxocommerce-social/includes/core.php
+          grep -q "seo_social_publications" taxocommerce-social/includes/core.php
+          grep -q "seo_social_schedule" taxocommerce-social/includes/programador.php
+          grep -q "seo_social_programador_db_version" taxocommerce-social/includes/programador.php
+
+      - name: Verify standalone scope
+        run: |
+          test -s taxocommerce-social/taxocommerce-social.php
+          ! grep -R "add_action('transition_post_status'.*tcsocial_network_schedule_on_publish" taxocommerce-social --include='*.php'
+          ! grep -R "seo-menu-marketing" taxocommerce-social --include='*.php'
+
+      - name: Package ZIP
+        run: |
+          rm -rf build-social-package
+          mkdir -p build-social-package
+          zip -qr build-social-package/taxocommerce-social.zip taxocommerce-social \
+            -x 'taxocommerce-social/tests/*' \
+               'taxocommerce-social/**/*.bak' \
+               'taxocommerce-social/**/*.md' \
+               'taxocommerce-social/**/*.pot'
+          unzip -t build-social-package/taxocommerce-social.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-social-${{ github.sha }}
+          path: build-social-package/taxocommerce-social.zip
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package local ZIP
+        run: |
+          rm -rf build-social-package
+          mkdir -p build-social-package
+          zip -qr build-social-package/taxocommerce-social.zip taxocommerce-social \
+            -x 'taxocommerce-social/tests/*' \
+               'taxocommerce-social/**/*.bak' \
+               'taxocommerce-social/**/*.md' \
+               'taxocommerce-social/**/*.pot'
+          unzip -t build-social-package/taxocommerce-social.zip
+
+      - name: Upload Social ZIP to Core local repository
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./build-social-package/
+          server-dir: ./wp-content/uploads/taxocommerce-core/plugins/
+          dry-run: false
+          log-level: standard
+
+      - name: Deploy Social plugin to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-social/
+          server-dir: ./wp-content/plugins/taxocommerce-social/
+          dry-run: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
