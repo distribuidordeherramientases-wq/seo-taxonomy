@@ -251,8 +251,8 @@ function tcsocial_calendar_render_admin()
     echo '</div>';
 
     echo '<form method="get" class="seo-social-calendar-filter">';
-    echo '<input type="hidden" name="page" value="seo-menu-marketing">';
-    echo '<input type="hidden" name="tab" value="social">';
+    echo '<input type="hidden" name="page" value="taxocommerce-social">';
+    echo '<input type="hidden" name="tab" value="calendar">';
     echo '<input type="hidden" name="social_subtab" value="calendar">';
     echo '<input type="hidden" name="social_month" value="' . esc_attr($month_key) . '">';
     echo '<label><span>Red</span><select name="social_calendar_provider"><option value="">Todas las redes</option>';
