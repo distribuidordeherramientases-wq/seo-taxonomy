@@ -51,8 +51,13 @@ final class Decision_Context {
             'market_categories' => array(),
             'dependiente' => self::dependiente_global(),
             'suppliers' => self::state_reference( class_exists( 'TCSUP_Schema' ), class_exists( 'TCSUP_Schema' ) ? 'fresh' : 'unavailable', class_exists( 'TCSUP_Schema' ) ? 'TaxoCommerce Suppliers disponible.' : 'TaxoCommerce Suppliers no está disponible.' ),
-            'comparador' => self::state_reference( false, 'unavailable', 'No existe todavía un proveedor nativo de Comparador registrado para Auditor.' ),
+            'comparador' => self::state_reference( false, 'unavailable', 'No hay perfiles persistidos de Comparador disponibles.' ),
+            'comparador_categories' => array(),
         );
+
+        $comparador = self::comparador_snapshot();
+        $snapshot['comparador'] = (array) ( $comparador['state'] ?? $snapshot['comparador'] );
+        $snapshot['comparador_categories'] = (array) ( $comparador['categories'] ?? array() );
 
         if ( class_exists( 'TaxoCommerce_Google_Bing_Analyst' ) && method_exists( 'TaxoCommerce_Google_Bing_Analyst', 'report' ) ) {
             $report = (array) \TaxoCommerce_Google_Bing_Analyst::report();
@@ -225,6 +230,122 @@ final class Decision_Context {
         );
     }
 
+    private static function comparador_snapshot() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'seo_comparador_profiles';
+        if ( ! self::table_exists( $table ) ) {
+            return array(
+                'state' => self::state_reference( false, 'unavailable', 'No existe la tabla persistida de perfiles de Comparador.' ),
+                'categories' => array(),
+            );
+        }
+
+        $table_sql = esc_sql( $table );
+        // Read-only access to persisted derived evidence. Auditor never starts
+        // Comparador jobs and never calls external providers.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- internal fixed table name.
+        $rows = (array) $wpdb->get_results(
+            "SELECT id,canonical_name,category_ids,primary_category_id,status,
+                    own_products_count,external_products_seen,external_products_comparable,
+                    comparison_axes_count,confidence,source_snapshot_at,
+                    recommended_action,decision_reason,updated_at
+             FROM {$table_sql}
+             ORDER BY updated_at DESC,id DESC
+             LIMIT 1000",
+            ARRAY_A
+        );
+
+        $map = array();
+        $fresh = 0;
+        $stale = 0;
+        foreach ( $rows as $row ) {
+            $ids = array();
+            $primary = absint( $row['primary_category_id'] ?? 0 );
+            if ( $primary ) {
+                $ids[] = $primary;
+            }
+            $decoded = json_decode( (string) ( $row['category_ids'] ?? '' ), true );
+            if ( is_array( $decoded ) ) {
+                foreach ( $decoded as $candidate ) {
+                    $candidate = absint( $candidate );
+                    if ( $candidate ) {
+                        $ids[] = $candidate;
+                    }
+                }
+            }
+            $ids = array_values( array_unique( $ids ) );
+            if ( ! $ids ) {
+                continue;
+            }
+
+            $status = sanitize_key( (string) ( $row['status'] ?? '' ) );
+            $row_state = in_array( $status, array( 'ready', 'ready_for_editorial', 'published' ), true ) ? 'fresh' : 'stale';
+            if ( 'fresh' === $row_state ) {
+                $fresh++;
+            } else {
+                $stale++;
+            }
+            $item = array(
+                'state'                        => $row_state,
+                'available'                    => true,
+                'profile_id'                   => absint( $row['id'] ?? 0 ),
+                'name'                         => (string) ( $row['canonical_name'] ?? '' ),
+                'status'                       => (string) ( $row['status'] ?? '' ),
+                'recommended_action'           => (string) ( $row['recommended_action'] ?? '' ),
+                'decision_reason'              => (string) ( $row['decision_reason'] ?? '' ),
+                'confidence'                   => (float) ( $row['confidence'] ?? 0 ),
+                'own_products_count'           => absint( $row['own_products_count'] ?? 0 ),
+                'external_products_seen'       => absint( $row['external_products_seen'] ?? 0 ),
+                'external_products_comparable' => absint( $row['external_products_comparable'] ?? 0 ),
+                'comparison_axes_count'         => absint( $row['comparison_axes_count'] ?? 0 ),
+                'source_snapshot_at'            => $row['source_snapshot_at'] ?: null,
+                'updated_at'                    => $row['updated_at'] ?: null,
+            );
+            foreach ( $ids as $term_id ) {
+                if ( ! isset( $map[ $term_id ] ) ) {
+                    $map[ $term_id ] = array();
+                }
+                if ( count( $map[ $term_id ] ) < 10 ) {
+                    $map[ $term_id ][] = $item;
+                }
+            }
+        }
+
+        $available = ! empty( $rows );
+        $state = ! $available ? 'unavailable' : ( $fresh > 0 ? ( $stale > 0 ? 'partial' : 'fresh' ) : 'stale' );
+        return array(
+            'state' => self::state_reference(
+                $available,
+                $state,
+                $available
+                    ? 'Perfiles persistidos de Comparador leídos directamente; Auditor no ejecuta Comparador.'
+                    : 'La tabla existe pero no contiene perfiles de Comparador.'
+            ),
+            'categories' => $map,
+        );
+    }
+
+    private static function comparador_context( $snapshot, $category_ids ) {
+        $rows = array();
+        foreach ( (array) $category_ids as $term_id ) {
+            foreach ( (array) ( $snapshot['comparador_categories'][ absint( $term_id ) ] ?? array() ) as $row ) {
+                $key = absint( $row['profile_id'] ?? 0 );
+                if ( $key ) {
+                    $rows[ $key ] = $row;
+                }
+            }
+        }
+        if ( $rows ) {
+            return array(
+                'state'     => 'fresh',
+                'available' => true,
+                'source'    => 'Comparador persistido',
+                'rows'      => array_slice( array_values( $rows ), 0, 8 ),
+            );
+        }
+        return (array) ( $snapshot['comparador'] ?? self::state_reference( false, 'unavailable', '' ) );
+    }
+
     private static function table_exists( $table ) {
         global $wpdb;
         return (string) $wpdb->get_var(
@@ -387,7 +508,7 @@ final class Decision_Context {
             'insights'    => $insights,
             'market'      => self::market_context( $snapshot, $category_ids ),
             'dependiente' => self::dependiente_entity( $type, $id, $category_ids, (array) ( $snapshot['dependiente'] ?? array() ) ),
-            'comparador'  => (array) ( $snapshot['comparador'] ?? array() ),
+            'comparador'  => self::comparador_context( $snapshot, $category_ids ),
             'suppliers'   => self::supplier_context( $type, $id ),
         );
 
