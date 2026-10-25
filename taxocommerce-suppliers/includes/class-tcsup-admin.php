@@ -417,19 +417,23 @@ final class TCSUP_Admin {
 		}
 
 		$where_sql = implode( ' AND ', $where );
-		$count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
-		if ( $args ) {
-			$count_sql = $wpdb->prepare( $count_sql, $args );
-		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Dynamic clauses use a fixed allowlist and prepared values above.
-		$total = absint( $wpdb->get_var( $count_sql ) );
+		// The WHERE fragments above come exclusively from this method's fixed allowlist.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed local SQL fragments; all values and the identifier are prepared below.
+		$count_format = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
+		$count_query  = $wpdb->prepare(
+			$count_format,
+			array_merge( array( $table ), $args )
+		);
+		$total = absint( $wpdb->get_var( $count_query ) );
 
 		$offset = ( $page - 1 ) * $limit;
-		$sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY actualizado DESC,id DESC LIMIT %d OFFSET %d";
-		$query_args = array_merge( $args, array( $limit, $offset ) );
-		$sql = $wpdb->prepare( $sql, $query_args );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is fully prepared above.
-		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed local SQL fragments; all values and the identifier are prepared below.
+		$row_format = "SELECT * FROM %i WHERE {$where_sql} ORDER BY actualizado DESC,id DESC LIMIT %d OFFSET %d";
+		$row_query = $wpdb->prepare(
+			$row_format,
+			array_merge( array( $table ), $args, array( $limit, $offset ) )
+		);
+		$rows = $wpdb->get_results( $row_query, ARRAY_A );
 
 		return array(
 			'rows'  => is_array( $rows ) ? $rows : array(),
@@ -477,7 +481,12 @@ final class TCSUP_Admin {
 
 	private static function providers() {
 		global $wpdb;
-		return $wpdb->get_col( 'SELECT DISTINCT proveedor FROM ' . TCSUP_Schema::catalog_table() . " WHERE proveedor<>'' ORDER BY proveedor ASC" );
+		$query = $wpdb->prepare(
+			'SELECT DISTINCT proveedor FROM %i WHERE proveedor<>%s ORDER BY proveedor ASC',
+			TCSUP_Schema::catalog_table(),
+			''
+		);
+		return $wpdb->get_col( $query );
 	}
 
 	private static function filter_bar( $tab, $show_selection = true ) {
