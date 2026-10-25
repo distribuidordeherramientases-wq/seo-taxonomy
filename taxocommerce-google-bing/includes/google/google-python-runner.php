@@ -215,7 +215,7 @@ if ( ! function_exists( 'seo_google_python_runner_test_connection' ) ) {
 if ( ! function_exists( 'seo_google_python_runner_save_settings' ) ) {
     function seo_google_python_runner_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'taxocommerce-seo' ) );
+            wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( 'seo_google_python_runner_save', 'seo_google_python_runner_nonce' );
 
@@ -411,7 +411,7 @@ if ( ! function_exists( 'seo_google_python_runner_start' ) ) {
 if ( ! function_exists( 'seo_google_python_runner_handle_launch' ) ) {
     function seo_google_python_runner_handle_launch() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'taxocommerce-seo' ) );
+            wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( 'seo_google_python_runner_launch', 'seo_google_python_runner_launch_nonce' );
 

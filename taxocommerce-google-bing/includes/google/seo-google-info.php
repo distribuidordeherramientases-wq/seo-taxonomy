@@ -213,7 +213,7 @@ function seo_google_connection_status() {
  */
 function seo_google_save_settings_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para configurar Google Intelligence.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para configurar Google Intelligence.', 'taxocommerce-google-bing'));
     }
 
     check_admin_referer('seo_google_save_settings', 'seo_google_settings_nonce');
@@ -264,7 +264,7 @@ function seo_google_save_settings_handler() {
  */
 function seo_google_connect_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para conectar Google.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para conectar Google.', 'taxocommerce-google-bing'));
     }
 
     check_admin_referer('seo_google_connect', 'seo_google_connect_nonce');
@@ -325,7 +325,7 @@ function seo_google_query_arg($key, $default = '') {
  */
 function seo_google_oauth_callback_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para completar esta conexión.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para completar esta conexión.', 'taxocommerce-google-bing'));
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth callback uses the one-time state token below.
@@ -575,7 +575,7 @@ function seo_google_get_search_console_properties() {
  */
 function seo_google_test_connection_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para probar esta conexión.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para probar esta conexión.', 'taxocommerce-google-bing'));
     }
 
     check_admin_referer('seo_google_test_connection', 'seo_google_test_nonce');
@@ -610,7 +610,7 @@ function seo_google_test_connection_handler() {
  */
 function seo_google_disconnect_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para desconectar Google.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para desconectar Google.', 'taxocommerce-google-bing'));
     }
 
     check_admin_referer('seo_google_disconnect', 'seo_google_disconnect_nonce');
@@ -896,7 +896,7 @@ function seo_google_install_tables($force = false) {
  */
 function seo_google_repair_tables_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para reparar las tablas.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para reparar las tablas.', 'taxocommerce-google-bing'));
     }
 
     check_admin_referer('seo_google_repair_tables', 'seo_google_repair_nonce');
@@ -4242,13 +4242,13 @@ function seo_google_get_lab_rows($property_id, array $filters) {
  */
 function seo_google_export_csv_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'taxocommerce-google-bing'));
     }
 
     check_admin_referer('seo_google_export_csv', 'seo_google_export_nonce');
     $settings = seo_google_get_settings();
     if ('connected' !== seo_google_connection_status()) {
-        wp_die(esc_html__('Google Search Console no está conectado.', 'taxocommerce-seo'));
+        wp_die(esc_html__('Google Search Console no está conectado.', 'taxocommerce-google-bing'));
     }
 
     $filters = seo_google_get_lab_filters($settings['property_id'], $_GET);
@@ -4282,7 +4282,7 @@ function seo_google_export_csv_handler() {
  */
 function seo_google_export_decisions_json_handler() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'taxocommerce-google-bing'));
     }
 
     check_admin_referer('seo_google_export_decisions_json');
@@ -4291,7 +4291,7 @@ function seo_google_export_decisions_json_handler() {
     $days = in_array($days, array(28, 60, 90), true) ? $days : 60;
 
     if (!function_exists('seo_google_opportunity_export_payload')) {
-        wp_die(esc_html__('El motor de decisiones de Google Intelligence no está disponible.', 'taxocommerce-seo'));
+        wp_die(esc_html__('El motor de decisiones de Google Intelligence no está disponible.', 'taxocommerce-google-bing'));
     }
 
     $payload = seo_google_opportunity_export_payload($days);
