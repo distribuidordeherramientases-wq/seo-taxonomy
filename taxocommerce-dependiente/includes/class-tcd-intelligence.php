@@ -1087,7 +1087,6 @@ final class TCD_Intelligence {
             'sin_rol',
             'vocabulary_sin_grupo',
             'vocabulary_sin_slug',
-            'vocabulary_sin_productos',
             'sin_caracteristicas_producto',
             'sin_senales_diferenciadoras',
             'editorial_sin_vocabulary',
@@ -1243,7 +1242,15 @@ final class TCD_Intelligence {
         if ( 3 === $lesson || 'vocabulary' === $source_type ) {
             if ( empty( $facts['group'] ) ) $issues[] = self::data_issue( 'vocabulary_sin_grupo', 'semantic_group', '', 'El término Vocabulary no tiene grupo semántico.', 'Asignar el grupo canónico correcto.' );
             if ( empty( $facts['slug'] ) ) $issues[] = self::data_issue( 'vocabulary_sin_slug', 'slug', '', 'El término Vocabulary no tiene slug.', 'Revisar el término Vocabulary.' );
-            if ( 0 === absint( $facts['product_count'] ?? 0 ) ) $issues[] = self::data_issue( 'vocabulary_sin_productos', 'product_ids', '', 'El término no está asignado a ningún producto del catálogo.', 'Confirmar si debe existir o si falta asignación.' );
+            if ( 0 === absint( $facts['product_count'] ?? 0 ) ) {
+                $issues[] = self::data_issue(
+                    'vocabulary_sin_uso_actual',
+                    'product_ids',
+                    '',
+                    'El término Vocabulary no tiene productos asociados actualmente. Esto no implica que sea incorrecto: puede ser un concepto válido sin uso temporal, un agrupador o un término preparado para catálogo futuro.',
+                    'Mantener el término si sigue siendo semánticamente válido. Revisarlo sólo si existen indicios adicionales de obsolescencia, duplicidad o clasificación incorrecta.'
+                );
+            }
         }
 
         if ( 5 === $lesson && in_array( $source_type, array( 'post','page' ), true ) ) {
@@ -1340,7 +1347,7 @@ final class TCD_Intelligence {
                 $recommendations[] = 'L2 debe demostrar identidad de producto mediante título/SKU/categoría; L9 seguirá aprendiendo necesidades y lenguaje del cliente más adelante.';
                 break;
             case 3:
-                $recommendations[] = 'L3 debe mantener TIPO/ROL canónicos con slug y asignaciones reales a productos.';
+                $recommendations[] = 'L3 debe mantener TIPO/ROL canónicos y slug válidos. Un término Vocabulary sin productos asociados actualmente es informativo y no debe bloquear la lección por sí solo.';
                 break;
             case 4:
                 $recommendations[] = 'L4 debe aportar señales diferenciadoras reales: aplicación, plataforma, subtipo, atributos o etiquetas útiles.';
