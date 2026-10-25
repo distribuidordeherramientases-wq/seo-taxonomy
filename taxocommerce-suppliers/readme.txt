@@ -24,7 +24,7 @@ Included:
 * External supplier image references stored without downloading to Media.
 * Purchasing view that matches active WooCommerce sales to accepted supplier sources.
 * Compatibility with the existing seo_proveedores_productos and seo_supplier_images tables.
-* Public service taxocommerce_suppliers_get_sources() for Logistics and other family plugins.
+* Public service taxocommerce_suppliers_get_sources() for purchasing and other family plugins.
 
 Explicitly excluded:
 * Scraping.
