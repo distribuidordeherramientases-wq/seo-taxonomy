@@ -487,6 +487,116 @@ final class Runner {
         return array( 'entities' => $processed );
     }
 
+    private static function rule_total( $rules, $codes ) {
+        $total = 0;
+        foreach ( (array) $codes as $code ) {
+            $total += absint( $rules[ $code ] ?? 0 );
+        }
+        return $total;
+    }
+
+    private static function kpi_row( $key, $label, $value, $unit = '', $detail = '', $tone = 'neutral' ) {
+        return array(
+            'key'    => sanitize_key( (string) $key ),
+            'label'  => (string) $label,
+            'value'  => is_numeric( $value ) ? 0 + $value : (string) $value,
+            'unit'   => (string) $unit,
+            'detail' => (string) $detail,
+            'tone'   => sanitize_key( (string) $tone ) ?: 'neutral',
+        );
+    }
+
+    public static function scope_kpis( $scope, $report ) {
+        $scope = sanitize_key( (string) $scope );
+        $report = is_array( $report ) ? $report : array();
+        $rules = (array) ( $report['rule_counts'] ?? array() );
+        $severity = (array) ( $report['severity_counts'] ?? array() );
+        $priority = (array) ( $report['priority_counts'] ?? array() );
+        $statuses = (array) ( $report['status_counts'] ?? array() );
+        $quality = (array) ( $report['quality'] ?? array() );
+        $bands = (array) ( $quality['bands'] ?? array() );
+        $processed = absint( $report['processed'] ?? 0 );
+        $review = absint( $report['entities_to_review'] ?? 0 );
+        $clean = max( 0, $processed - $review );
+        $clean_pct = $processed ? round( ( $clean / $processed ) * 100, 1 ) : null;
+
+        $general = array(
+            self::kpi_row( 'entities_reviewed', 'Entidades revisadas', $processed, '', 'Universo procesado en esta ejecución.' ),
+            self::kpi_row( 'clean_entities', 'Sin incidencias detectadas', $clean, '', 'Entidades sin hallazgos en las reglas activas.', $clean === $processed && $processed ? 'good' : 'neutral' ),
+            self::kpi_row( 'clean_rate', 'Cobertura limpia', null === $clean_pct ? 'N/D' : $clean_pct, null === $clean_pct ? '' : '%', 'Porcentaje de entidades sin hallazgos en esta ejecución.', null !== $clean_pct && $clean_pct >= 90 ? 'good' : ( null !== $clean_pct && $clean_pct < 70 ? 'bad' : 'warn' ) ),
+            self::kpi_row( 'findings', 'Hallazgos', absint( $report['finding_count'] ?? 0 ), '', 'Total de incidencias detectadas.' ),
+            self::kpi_row( 'critical_high', 'Críticos + alta', absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ), '', 'Incidencias con mayor severidad.', ( absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ) ) ? 'bad' : 'good' ),
+            self::kpi_row( 'p1', 'Prioridad P1', absint( $priority['P1'] ?? 0 ), '', 'Tareas que requieren revisión prioritaria.', absint( $priority['P1'] ?? 0 ) ? 'bad' : 'good' ),
+            self::kpi_row( 'source_verification', 'Verificación de fuente', absint( $statuses['NEEDS_SOURCE_VERIFICATION'] ?? 0 ), '', 'Casos que no deben corregirse sin contrastar fabricante/proveedor.', absint( $statuses['NEEDS_SOURCE_VERIFICATION'] ?? 0 ) ? 'warn' : 'good' ),
+            self::kpi_row( 'quality_average', 'Calidad media', null === ( $quality['average'] ?? null ) ? 'N/D' : (float) $quality['average'], null === ( $quality['average'] ?? null ) ? '' : '/100', 'Índice interno de calidad; no es una métrica de Google.', null !== ( $quality['average'] ?? null ) && (float) $quality['average'] >= 80 ? 'good' : ( null !== ( $quality['average'] ?? null ) && (float) $quality['average'] < 60 ? 'bad' : 'warn' ) ),
+            self::kpi_row( 'weak_quality', 'Calidad débil', absint( $bands['debil'] ?? 0 ), '', 'Entidades clasificadas en la banda interna más baja.', absint( $bands['debil'] ?? 0 ) ? 'warn' : 'good' ),
+        );
+
+        $specific = array();
+        if ( 'products' === $scope ) {
+            $specific = array(
+                self::kpi_row( 'missing_description', 'Sin descripción', absint( $rules['product_missing_description'] ?? 0 ), '', 'Producto sin descripción larga útil.', absint( $rules['product_missing_description'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'missing_excerpt', 'Sin resumen', absint( $rules['product_missing_excerpt'] ?? 0 ), '', 'Producto sin descripción corta/resumen.', absint( $rules['product_missing_excerpt'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_category', 'Sin categoría', absint( $rules['product_without_category'] ?? 0 ), '', 'Productos publicados sin product_cat.', absint( $rules['product_without_category'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['product_without_native_vocabulary'] ?? 0 ), '', 'Productos sin clasificación semántica nativa.', absint( $rules['product_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'identity_drift', 'Deriva de identidad', self::rule_total( $rules, array( 'product_title_excerpt_drift', 'product_description_identity_drift', 'product_description_alignment_weak', 'product_tag_identity_drift' ) ), '', 'Título, resumen, descripción o tags con señales de incoherencia.', 'warn' ),
+                self::kpi_row( 'attribute_conflicts', 'Conflictos de atributos', self::rule_total( $rules, array( 'product_attribute_title_conflict', 'attribute_value_malformed', 'attribute_without_name', 'attribute_without_value' ) ), '', 'Atributos que requieren validación o normalización.', 'warn' ),
+                self::kpi_row( 'unstable_sku', 'SKU no estable', absint( $rules['product_no_stable_sku'] ?? 0 ), '', 'Productos sin identificador SKU estable.', absint( $rules['product_no_stable_sku'] ?? 0 ) ? 'warn' : 'good' ),
+            );
+        } elseif ( 'categories' === $scope ) {
+            $rebalance = (array) ( $report['category_rebalance']['summary'] ?? array() );
+            $specific = array(
+                self::kpi_row( 'empty_categories', 'Categorías vacías', absint( $rules['category_empty'] ?? 0 ), '', 'Categorías sin productos.', absint( $rules['category_empty'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'single_product', 'Con un solo producto', absint( $rules['category_single_product'] ?? 0 ), '', 'Categorías con profundidad comercial mínima.', 'warn' ),
+                self::kpi_row( 'missing_description', 'Sin descripción', absint( $rules['category_missing_description'] ?? 0 ), '', 'Categorías sin contenido descriptivo.', absint( $rules['category_missing_description'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['category_without_native_vocabulary'] ?? 0 ), '', 'Categorías sin clasificación semántica nativa.', absint( $rules['category_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_secondary_hub', 'Sin Hub secundario', absint( $rules['category_no_native_secondary_hub'] ?? 0 ), '', 'Categorías sin encaje arquitectónico nativo.', absint( $rules['category_no_native_secondary_hub'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'underfilled', 'Infra-dimensionadas', absint( $rules['category_underfilled'] ?? 0 ), '', 'Categorías candidatas a revisión por poca profundidad.', 'warn' ),
+                self::kpi_row( 'oversized', 'Sobre-dimensionadas', absint( $rules['category_oversized'] ?? 0 ), '', 'Categorías candidatas a división.', 'warn' ),
+                self::kpi_row( 'split_proposals', 'Propuestas de división', absint( $rebalance['split_proposals'] ?? 0 ), '', 'Propuestas basadas en evidencia semántica; no ejecutan cambios.', 'neutral' ),
+                self::kpi_row( 'merge_proposals', 'Propuestas de unión', absint( $rebalance['merge_proposals'] ?? 0 ), '', 'Propuestas de consolidación para revisión humana.', 'neutral' ),
+            );
+        } elseif ( 'posts' === $scope ) {
+            $specific = array(
+                self::kpi_row( 'thin_content', 'Contenido débil', absint( $rules['editorial_thin_content'] ?? 0 ), '', 'Posts con cuerpo insuficiente para su función.', absint( $rules['editorial_thin_content'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ), '', 'Posts sin clasificación semántica nativa.', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'title_drift', 'Título/contenido incoherente', absint( $rules['editorial_title_content_drift'] ?? 0 ), '', 'Señales de desalineación entre título y cuerpo.', 'warn' ),
+                self::kpi_row( 'cannibalization', 'Canibalización', self::rule_total( $rules, array( 'editorial_post_canonical_cannibalization', 'editorial_post_category_cannibalization', 'editorial_post_landing_cannibalization' ) ), '', 'Solapamientos de intención con categorías, landings u otras URL canónicas.', 'bad' ),
+                self::kpi_row( 'structural_overlap', 'Solapamiento estructural', absint( $rules['editorial_post_structural_overlap'] ?? 0 ), '', 'Posts que compiten con piezas estructurales del sitio.', 'warn' ),
+                self::kpi_row( 'duplicate_titles', 'Títulos duplicados', absint( $rules['duplicate_editorial_title'] ?? 0 ), '', 'Identidades editoriales repetidas dentro del bloque.', 'warn' ),
+            );
+        } elseif ( 'pages' === $scope ) {
+            $specific = array(
+                self::kpi_row( 'thin_content', 'Contenido débil', absint( $rules['editorial_thin_content'] ?? 0 ), '', 'Páginas/landings con cuerpo insuficiente.', absint( $rules['editorial_thin_content'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ), '', 'Páginas sin clasificación semántica nativa.', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'landing_duplicates', 'Landings duplicadas', absint( $rules['editorial_landing_duplicate'] ?? 0 ), '', 'Landings con identidad editorial repetida.', absint( $rules['editorial_landing_duplicate'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'cannibalization', 'Canibalización', self::rule_total( $rules, array( 'editorial_canonical_post_cannibalization', 'editorial_landing_canonical_cannibalization', 'editorial_landing_post_cannibalization', 'editorial_landing_category_overlap' ) ), '', 'Solapamientos entre páginas estructurales, landings, posts y categorías.', 'bad' ),
+                self::kpi_row( 'structural_overlap', 'Solapamiento estructural', absint( $rules['editorial_landing_structural_overlap'] ?? 0 ), '', 'Landings que invaden funciones de otras piezas estructurales.', 'warn' ),
+                self::kpi_row( 'unclassified_role', 'Rol sin clasificar', absint( $rules['editorial_page_role_unclassified'] ?? 0 ), '', 'Páginas cuyo rol SEO no está resuelto.', 'warn' ),
+                self::kpi_row( 'missing_parent', 'Sin padre nativo', absint( $rules['page_missing_native_parent'] ?? 0 ), '', 'Páginas estructurales sin relación padre esperada.', 'warn' ),
+            );
+        } elseif ( 'faqs' === $scope ) {
+            $specific = array(
+                self::kpi_row( 'thin_answer', 'Respuesta insuficiente', absint( $rules['faq_thin_answer'] ?? 0 ), '', 'FAQs con respuesta vacía o demasiado escueta.', absint( $rules['faq_thin_answer'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'empty_question', 'Pregunta vacía', absint( $rules['faq_empty_question'] ?? 0 ), '', 'FAQs sin pregunta utilizable.', absint( $rules['faq_empty_question'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'orphan_owner', 'Owner huérfano', absint( $rules['faq_orphan_owner'] ?? 0 ), '', 'FAQs cuyo destino canónico ya no existe.', absint( $rules['faq_orphan_owner'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'invalid_owner', 'Owner inválido', absint( $rules['faq_invalid_owner_type'] ?? 0 ), '', 'FAQs fuera del modelo canónico página/hub, categoría o producto.', absint( $rules['faq_invalid_owner_type'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'missing_category', 'Sin categoría', absint( $rules['faq_missing_product_category'] ?? 0 ), '', 'FAQs sin product_cat_id válido.', absint( $rules['faq_missing_product_category'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'semantic_drift', 'Deriva semántica', absint( $rules['faq_owner_semantic_drift'] ?? 0 ), '', 'Pregunta posiblemente alejada del owner confirmado.', 'warn' ),
+                self::kpi_row( 'duplicate_same_owner', 'Duplicadas en mismo owner', absint( $rules['duplicate_faq_same_owner'] ?? 0 ), '', 'Preguntas equivalentes repetidas para el mismo destino.', 'warn' ),
+            );
+        }
+
+        return array(
+            'scope'    => $scope,
+            'mode'     => (string) ( $report['run_mode'] ?? 'filtered' ),
+            'coverage' => 'full' === (string) ( $report['run_mode'] ?? '' ) ? 'complete_scope' : 'filtered_sample',
+            'general'  => $general,
+            'specific' => $specific,
+            'note'     => 'Los KPI describen calidad interna y errores del contenido auditado. No son métricas de posicionamiento de Google/Bing.',
+        );
+    }
+
     private static function complete( $scope, &$state ) {
         $state['status'] = 'completed';
         $state['completed_gmt'] = current_time( 'mysql', true );
@@ -548,6 +658,7 @@ final class Runner {
             'findings_sample_truncated' => $state['finding_count'] > count( $state['findings'] ),
             'notes' => $state['notes'],
         );
+        $report['scope_kpis'] = self::scope_kpis( $scope, $report );
         update_option( self::option( $scope, 'report' ), $report, false );
         $previous_file = (string) ( $previous_report['full_findings_file'] ?? '' );
         if ( $previous_file && $previous_file !== (string) $report['full_findings_file'] ) {
