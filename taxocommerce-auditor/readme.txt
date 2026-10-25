@@ -1,6 +1,6 @@
 === TaxoCommerce Auditor - Content Quality for WooCommerce ===
 Contributors: davidperezmartorell
-Tags: woocommerce, audit, seo, content, quality, taxonomy
+Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
