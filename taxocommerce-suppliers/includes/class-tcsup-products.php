@@ -18,12 +18,14 @@ final class TCSUP_Products {
 
 	public static function row( $id ) {
 		global $wpdb;
-		$query = $wpdb->prepare(
-			'SELECT * FROM %i WHERE id=%d LIMIT 1',
-			TCSUP_Schema::catalog_table(),
-			absint( $id )
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE id=%d LIMIT 1',
+				TCSUP_Schema::catalog_table(),
+				absint( $id )
+			),
+			ARRAY_A
 		);
-		return $wpdb->get_row( $query, ARRAY_A );
 	}
 
 	private static function redirect( $tab, $args = array() ) {
@@ -666,15 +668,17 @@ final class TCSUP_Products {
 
 	public static function sources_for_product( $product_id ) {
 		global $wpdb;
-		$query = $wpdb->prepare(
-			'SELECT * FROM %i WHERE object_id=%d AND estado_seleccion IN (%s,%s,%s) ORDER BY actualizado DESC,id DESC',
-			TCSUP_Schema::catalog_table(),
-			absint( $product_id ),
-			'aceptado',
-			'publicado',
-			'actualizar'
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE object_id=%d AND estado_seleccion IN (%s,%s,%s) ORDER BY actualizado DESC,id DESC',
+				TCSUP_Schema::catalog_table(),
+				absint( $product_id ),
+				'aceptado',
+				'publicado',
+				'actualizar'
+			),
+			ARRAY_A
 		);
-		$rows = $wpdb->get_results( $query, ARRAY_A );
 		return is_array( $rows ) ? $rows : array();
 	}
 }
