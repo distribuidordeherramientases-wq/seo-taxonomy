@@ -397,7 +397,9 @@ final class TCSUP_Admin {
 		$accepted_flag = $accepted_only ? 1 : 0;
 		$like = '' !== $search ? '%' . $wpdb->esc_like( $search ) . '%' : '';
 
-		$count_query = $wpdb->prepare(
+		$total = absint(
+			$wpdb->get_var(
+				$wpdb->prepare(
 			"SELECT COUNT(*) FROM %i
 			 WHERE (
 				(%d=1 AND estado_seleccion IN (%s,%s,%s))
@@ -424,9 +426,11 @@ final class TCSUP_Admin {
 			$like,
 			$like
 		);
-		$total = absint( $wpdb->get_var( $count_query ) );
+			)
+		);
 
-		$row_query = $wpdb->prepare(
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
 			"SELECT * FROM %i
 			 WHERE (
 				(%d=1 AND estado_seleccion IN (%s,%s,%s))
@@ -456,8 +460,9 @@ final class TCSUP_Admin {
 			$like,
 			$limit,
 			$offset
+		);,
+			ARRAY_A
 		);
-		$rows = $wpdb->get_results( $row_query, ARRAY_A );
 
 		return array(
 			'rows'  => is_array( $rows ) ? $rows : array(),
