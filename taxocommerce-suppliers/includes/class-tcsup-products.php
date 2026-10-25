@@ -123,6 +123,59 @@ final class TCSUP_Products {
 		return '';
 	}
 
+	private static function brand_taxonomy() {
+		$candidates = array( 'product_brand', 'pwb-brand', 'yith_product_brand', 'pa_marca', 'pa_brand' );
+		foreach ( $candidates as $taxonomy ) {
+			if ( taxonomy_exists( $taxonomy ) ) {
+				return $taxonomy;
+			}
+		}
+
+		$taxonomies = get_object_taxonomies( 'product', 'objects' );
+		foreach ( (array) $taxonomies as $taxonomy => $object ) {
+			$label = remove_accents(
+				strtolower(
+					trim( (string) ( $object->labels->singular_name ?? $object->label ?? '' ) )
+				)
+			);
+			if ( in_array( $label, array( 'marca', 'brand' ), true ) ) {
+				return (string) $taxonomy;
+			}
+		}
+		return '';
+	}
+
+	private static function assign_brand( $product_id, $brand ) {
+		$product_id = absint( $product_id );
+		$brand      = sanitize_text_field( trim( (string) $brand ) );
+		if ( ! $product_id || '' === $brand ) {
+			return true;
+		}
+
+		$taxonomy = self::brand_taxonomy();
+		if ( '' === $taxonomy ) {
+			return new WP_Error( 'tcsup_brand_taxonomy', 'No product brand taxonomy is available.' );
+		}
+
+		$term = term_exists( $brand, $taxonomy );
+		if ( ! $term ) {
+			$term = wp_insert_term( $brand, $taxonomy );
+		}
+		if ( is_wp_error( $term ) ) {
+			return $term;
+		}
+
+		$term_id = is_array( $term ) ? absint( $term['term_id'] ) : absint( $term );
+		$assigned = wp_set_object_terms( $product_id, array( $term_id ), $taxonomy, false );
+		if ( is_wp_error( $assigned ) ) {
+			return $assigned;
+		}
+
+		update_post_meta( $product_id, '_seo_marca_proveedor', $brand );
+		update_post_meta( $product_id, '_seo_taxonomia_marca', $taxonomy );
+		return true;
+	}
+
 	private static function base_price( $row ) {
 		foreach ( array( 'precio_con_iva', 'precio_sin_iva' ) as $field ) {
 			if ( isset( $row[ $field ] ) && '' !== (string) $row[ $field ] && is_numeric( $row[ $field ] ) ) {
@@ -279,6 +332,13 @@ final class TCSUP_Products {
 		);
 		foreach ( $meta as $key => $value ) {
 			update_post_meta( $product_id, $key, $value );
+		}
+
+		$brand_result = self::assign_brand( $product_id, (string) ( $row['marca'] ?? '' ) );
+		if ( is_wp_error( $brand_result ) ) {
+			update_post_meta( $product_id, '_seo_marca_import_error', $brand_result->get_error_message() );
+		} else {
+			delete_post_meta( $product_id, '_seo_marca_import_error' );
 		}
 
 		$image_mode = sanitize_key( (string) ( $row['modo_imagenes'] ?? 'inherit' ) );
