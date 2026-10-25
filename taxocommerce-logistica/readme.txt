@@ -1,6 +1,6 @@
 === TaxoCommerce Logistics ===
 Contributors: davidperezmartorell
-Tags: woocommerce, logistics, shipping, suppliers, orders
+Tags: woocommerce, logistics, shipping, weight, orders
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -21,20 +21,21 @@ Supplier matching, supplier purchase URLs, and sale-to-supplier procurement live
 
 == Description ==
 
-TaxoCommerce Logistics keeps the existing logistics workflow while moving it into an independent plugin.
+TaxoCommerce Logistics is the shipping-cost domain for the TaxoCommerce family.
 
 Features:
 
-* Active WooCommerce order management.
-* Supplier matching through the existing seo_proveedores_productos table.
-* Supplier purchase and catalog links.
-* Shipping rules by region, order amount, weight and dimensions.
+* Active WooCommerce order weight audit.
+* Missing product-weight detection.
+* Shipping method and charged shipping-cost visibility.
+* Shipping rules by region, order amount, weight, dimensions, and volume.
+* Fixed, per-kg, and per-unit shipping cost formulas.
 * JSON import and export for shipping rules.
 * WooCommerce shipping rate integration.
 * Optional integration with TaxoCommerce Core.
 
-The plugin reuses the historical seo_transporte_costes_settings option and does not create a parallel supplier table.
-It does not include a destructive uninstall routine.
+The plugin reuses the historical seo_transporte_costes_settings option, so existing shipping rules remain intact.
+It does not contain supplier matching, purchasing, or supplier-catalog logic.
 
 == Changelog ==
 
