@@ -516,13 +516,15 @@ final class Runner {
         $quality = (array) ( $report['quality'] ?? array() );
         $bands = (array) ( $quality['bands'] ?? array() );
         $processed = absint( $report['processed'] ?? 0 );
+        $excluded = absint( $report['excluded'] ?? 0 );
+        $audited = max( 0, $processed - $excluded );
         $review = absint( $report['entities_to_review'] ?? 0 );
-        $clean = max( 0, $processed - $review );
-        $clean_pct = $processed ? round( ( $clean / $processed ) * 100, 1 ) : null;
+        $clean = max( 0, $audited - $review );
+        $clean_pct = $audited ? round( ( $clean / $audited ) * 100, 1 ) : null;
 
         $general = array(
-            self::kpi_row( 'entities_reviewed', 'Entidades revisadas', $processed, '', 'Universo procesado en esta ejecución.' ),
-            self::kpi_row( 'clean_entities', 'Sin incidencias detectadas', $clean, '', 'Entidades sin hallazgos en las reglas activas.', $clean === $processed && $processed ? 'good' : 'neutral' ),
+            self::kpi_row( 'entities_reviewed', 'Entidades auditadas', $audited, '', $excluded ? 'Entidades realmente evaluadas; se excluyen ' . $excluded . ' páginas funcionales/corporativas.' : 'Universo realmente evaluado en esta ejecución.' ),
+            self::kpi_row( 'clean_entities', 'Sin incidencias detectadas', $clean, '', 'Entidades auditadas sin hallazgos en las reglas activas.', $clean === $audited && $audited ? 'good' : 'neutral' ),
             self::kpi_row( 'clean_rate', 'Cobertura limpia', null === $clean_pct ? 'N/D' : $clean_pct, null === $clean_pct ? '' : '%', 'Porcentaje de entidades sin hallazgos en esta ejecución.', null !== $clean_pct && $clean_pct >= 90 ? 'good' : ( null !== $clean_pct && $clean_pct < 70 ? 'bad' : 'warn' ) ),
             self::kpi_row( 'findings', 'Hallazgos', absint( $report['finding_count'] ?? 0 ), '', 'Total de incidencias detectadas.' ),
             self::kpi_row( 'critical_high', 'Críticos + alta', absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ), '', 'Incidencias con mayor severidad.', ( absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ) ) ? 'bad' : 'good' ),
