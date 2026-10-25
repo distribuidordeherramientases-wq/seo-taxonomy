@@ -442,9 +442,9 @@ final class TCSUP_Admin {
 					<button class="button button-primary">Apply</button>
 				</div>
 				<div class="tcsup-scroll"><table class="widefat striped">
-					<thead><tr><th></th><th>Supplier</th><th>External identity</th><th>Product</th><th>Market</th><th>Supplier price</th><th>Stock</th><th>Decision</th><th>Sync</th><th>Woo ID</th></tr></thead>
+					<thead><tr><th></th><th>Supplier</th><th>External identity</th><th>Product</th><th>Market</th><th>Supplier price</th><th>Stock</th><th>Decision</th><th>Sync</th><th>Woo ID</th><th>Actions</th></tr></thead>
 					<tbody>
-					<?php if ( ! $rows ) : ?><tr><td colspan="10">No supplier rows match the current filters.</td></tr><?php endif; ?>
+					<?php if ( ! $rows ) : ?><tr><td colspan="11">No supplier rows match the current filters.</td></tr><?php endif; ?>
 					<?php foreach ( $rows as $row ) : ?>
 						<tr>
 							<td><input type="checkbox" name="row_ids[]" value="<?php echo esc_attr( $row['id'] ); ?>"></td>
@@ -457,6 +457,11 @@ final class TCSUP_Admin {
 							<td><strong><?php echo esc_html( $row['estado_seleccion'] ); ?></strong></td>
 							<td><?php echo esc_html( $row['estado_sincronizacion'] ); ?><?php echo $row['cambios_detectados'] ? '<br><small>' . esc_html( $row['cambios_detectados'] ) . '</small>' : ''; ?></td>
 							<td><?php echo $row['object_id'] ? '<a href="' . esc_url( get_edit_post_link( absint( $row['object_id'] ) ) ) . '">#' . esc_html( $row['object_id'] ) . '</a>' : '—'; ?></td>
+							<td class="tcsup-row-actions">
+								<button class="button button-small button-primary" name="row_action" value="accept:<?php echo esc_attr( $row['id'] ); ?>">Accept</button>
+								<button class="button button-small" name="row_action" value="review:<?php echo esc_attr( $row['id'] ); ?>">Review</button>
+								<button class="button button-small" name="row_action" value="discard:<?php echo esc_attr( $row['id'] ); ?>">Discard</button>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 					</tbody>
