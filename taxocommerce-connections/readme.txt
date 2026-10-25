@@ -1,54 +1,44 @@
-=== TaxoCommerce Connections ===
+=== TaxoCommerce Connections Compatibility Bridge ===
 Contributors: davidperezmartorell
-Tags: integrations, api, amazon, pinterest, oauth
+Tags: integrations, compatibility, insights
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Shared external connections for the TaxoCommerce plugin family.
+Temporary compatibility bridge after moving all external connections into TaxoCommerce Insights.
 
 == Description ==
 
-TaxoCommerce Connections centralizes credentials and OAuth that are consumed by more than one TaxoCommerce module.
+From version 0.3.0, TaxoCommerce Connections is no longer an independent TaxoCommerce family service.
 
-Version 0.2.0 includes:
+The canonical administration screen is:
 
-* Google Search Console / GA4 service-account settings.
-* Google Merchant Center account settings.
-* Microsoft Bing Webmaster API settings.
-* Google OAuth presentation and callback compatibility with Insights.
-* Amazon Associates Partner Tag.
-* Optional Amazon Creators API client.
-* Backward-compatible helpers used by Templates and Assistant.
-* Pinterest Business App ID / App Secret.
-* Pinterest OAuth with the existing stable callback URL.
-* Pinterest board selection and API test.
-* Pinterest Merchant domain verification and catalog feed URL.
-* Compatibility synchronization with the legacy TaxoCommerce SEO options while both plugins coexist.
+TaxoCommerce Insights -> Connections
 
-Connections does not own reports, feeds, campaigns or social publication workflows. Those remain in the functional modules that consume each connection.
+When Insights is active, this bridge:
 
-Cloudflare is intentionally not migrated in 0.2.0 because the current installation has it disabled and no required modular consumer depends on it.
+* Does not register a separate Core family extension.
+* Does not register a visible Connections menu.
+* Redirects historical admin URLs to Insights -> Connections.
+* Does not load duplicate Amazon, Pinterest, Google, Bing, or Merchant connection classes.
 
+If Insights is accidentally disabled while this bridge is still active, the historical standalone connection implementation can load as a temporary fallback so credentials remain reachable.
 
-== Language ==
+Existing option names are unchanged. The consolidation does not require reconnecting Google, Bing, Merchant, Amazon, Pinterest, YouTube, or SerpApi.
 
-English is the base source and UI language. Future localization should use standard WordPress gettext translations without changing technical slugs or option keys.
+Once the consolidated Insights installation is verified operationally, this compatibility plugin can be deactivated.
 
 == Changelog ==
 
+= 0.3.0 =
+* Converted the standalone plugin into a compatibility bridge.
+* Moved canonical connection ownership and UI to TaxoCommerce Insights.
+* Historical Connections URLs now redirect to Insights -> Connections.
+* Removed standalone family-extension registration.
+* Preserved standalone fallback behavior when Insights is unavailable.
+
 = 0.2.0 =
-* Added shared Google Search Console / GA4 service-account settings.
-* Added Google Merchant Center account settings and connection tests.
-* Added Microsoft Bing Webmaster settings and connection tests.
-* Moved the visible connection ownership away from Insights while preserving the existing option names and OAuth callback contracts.
-* Standardized the base UI language to English.
-
-
-= 0.1.0 =
-* Added shared Amazon Associates / Creators connection.
-* Added shared Pinterest Business / OAuth connection.
-* Added legacy compatibility for Templates, Dependiente and Pinterest Merchant.
+* Shared Google, Bing, Merchant, Amazon, and Pinterest connection layer before consolidation.

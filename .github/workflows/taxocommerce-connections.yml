@@ -1,4 +1,4 @@
-name: TaxoCommerce Connections CI
+name: TaxoCommerce Connections Compatibility CI
 
 on:
   pull_request:
@@ -64,7 +64,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-connections-0.2.0
+          name: taxocommerce-connections-0.3.0
           path: taxocommerce-connections.zip
           retention-days: 30
           if-no-files-found: error

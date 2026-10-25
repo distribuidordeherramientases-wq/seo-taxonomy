@@ -807,6 +807,7 @@ final class TaxoCommerce_Google_Bing_Connections {
             add_query_arg(
                 array(
                     'page'       => 'taxocommerce-google-bing',
+                    'tgb_tab'    => 'connections',
                     'tgb_notice' => sanitize_key( $code ),
                     'tgb_type'   => sanitize_key( $type ),
                 ),
@@ -824,7 +825,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         );
     }
 
-    private static function render_notice() {
+    public static function render_notice() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect status.
         $code = isset( $_GET['tgb_notice'] ) ? sanitize_key( wp_unslash( $_GET['tgb_notice'] ) ) : '';
         if ( '' === $code ) {

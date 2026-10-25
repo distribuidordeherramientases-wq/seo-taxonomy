@@ -459,27 +459,13 @@ final class TaxoCommerce_Google_Bing_OAuth {
     }
 
     private static function redirect( $notice, $type = 'success' ) {
-        if ( defined( 'TAXOCOMMERCE_CONNECTIONS_VERSION' ) ) {
-            wp_safe_redirect(
-                add_query_arg(
-                    array(
-                        'page'           => 'taxocommerce-connections',
-                        'tc_conn_notice' => 'google_oauth_' . sanitize_key( $notice ),
-                        'tc_conn_type'   => sanitize_key( $type ),
-                    ),
-                    admin_url( 'admin.php' )
-                )
-            );
-            exit;
-        }
-
         wp_safe_redirect(
             add_query_arg(
                 array(
-                    'page'       => 'taxocommerce-google-bing',
-                    'tgb_tab'    => 'connections',
-                    'tgb_notice' => sanitize_key( $notice ),
-                    'tgb_type'   => sanitize_key( $type ),
+                    'page'           => 'taxocommerce-google-bing',
+                    'tgb_tab'        => 'connections',
+                    'tc_conn_notice' => 'google_oauth_' . sanitize_key( $notice ),
+                    'tc_conn_type'   => sanitize_key( $type ),
                 ),
                 admin_url( 'admin.php' )
             )
