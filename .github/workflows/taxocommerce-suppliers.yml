@@ -34,7 +34,8 @@ jobs:
       - name: Assert CSV-only scope
         run: |
           set -euo pipefail
-          ! grep -RniE 'crawler-queue\.php|github-python-runner|google-python-runner|Cloud Run|scraper' taxocommerce-suppliers --include='*.php'
+          ! grep -RniE 'crawler-queue\.php|github-python-runner|google-python-runner|seo_supplier_crawl_|seo_supplier_external_web_recipes|wp_remote_get\(|wp_remote_post\(|curl_exec\(' \
+            taxocommerce-suppliers/includes taxocommerce-suppliers/taxocommerce-suppliers.php --include='*.php'
 
       - name: Build distributable package
         run: |
