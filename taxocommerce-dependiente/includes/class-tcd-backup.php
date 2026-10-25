@@ -359,6 +359,7 @@ final class TCD_Backup {
 
     private static function emit_line( $value ) {
         $json = wp_json_encode( $value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON Lines HTTP download is encoded by wp_json_encode; HTML escaping corrupts backup data.
         echo ( false === $json ? '{"record":"encoding_error"}' : $json ) . "\n";
     }
 
@@ -429,6 +430,7 @@ final class TCD_Backup {
 
         $tables = self::tables();
         $options = self::options();
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Administrator-validated JSONL backup is parsed in bounded records with a closed PHP temp-file handle.
         $handle = fopen( $path, 'rb' );
         if ( ! $handle ) {
             return new WP_Error( 'tcd_backup_open', 'No se ha podido abrir el backup.' );
@@ -481,10 +483,12 @@ final class TCD_Backup {
             $wpdb->query( 'COMMIT' );
         } catch ( Throwable $e ) {
             $wpdb->query( 'ROLLBACK' );
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Administrator-validated JSONL backup is parsed in bounded records with a closed PHP temp-file handle.
             fclose( $handle );
             return new WP_Error( 'tcd_backup_restore_failed', $e->getMessage() );
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Administrator-validated JSONL backup is parsed in bounded records with a closed PHP temp-file handle.
         fclose( $handle );
 
         // Runtime guards and schedules are deliberately local to the destination.
@@ -520,6 +524,7 @@ final class TCD_Backup {
     }
 
     private static function scan_file( $path ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Administrator-validated JSONL backup is parsed in bounded records with a closed PHP temp-file handle.
         $handle = fopen( $path, 'rb' );
         if ( ! $handle ) {
             return array( 'error' => 'No se ha podido abrir el backup.', 'safe_to_restore' => false );
@@ -597,6 +602,7 @@ final class TCD_Backup {
 
             $unknown++;
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Administrator-validated JSONL backup is parsed in bounded records with a closed PHP temp-file handle.
         fclose( $handle );
 
         if ( ! $manifest ) {

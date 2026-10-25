@@ -1407,6 +1407,7 @@ final class TCD_Intelligence {
         header( 'Content-Type: text/csv; charset=UTF-8' );
         header( 'Content-Disposition: attachment; filename="dependiente_L' . $lesson . '_incidencias_' . gmdate( 'Ymd_His' ) . '.csv"' );
         $out = fopen( 'php://output', 'w' );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Authorized php://output CSV streaming requires direct stream writes and closure.
         fwrite( $out, "\xEF\xBB\xBF" );
         fputcsv( $out, array(
             'lesson','source_type','source_id','title','query','rank','top8','origin','correctable',
@@ -1444,6 +1445,7 @@ final class TCD_Intelligence {
                 implode( ' || ', array_map( static function ( $item ) { return (string) ( $item['title'] ?? '' ); }, $observed ) )
             ), ';', '"', '' );
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authorized php://output CSV streaming requires direct stream writes and closure.
         fclose( $out );
         exit;
     }
@@ -1471,6 +1473,7 @@ final class TCD_Intelligence {
         header( 'Content-Type: text/csv; charset=UTF-8' );
         header( 'Content-Disposition: attachment; filename="dependiente_L' . $lesson . '_datos_a_revisar_' . gmdate( 'Ymd_His' ) . '.csv"' );
         $out = fopen( 'php://output', 'w' );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Authorized php://output CSV streaming requires direct stream writes and closure.
         fwrite( $out, "\xEF\xBB\xBF" );
         fputcsv( $out, array(
             'lesson','source_type','source_id','title','learning_status','learning_reason',
@@ -1518,6 +1521,7 @@ final class TCD_Intelligence {
             }
         } while ( count( $rows ) === 250 );
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authorized php://output CSV streaming requires direct stream writes and closure.
         fclose( $out );
         exit;
     }
