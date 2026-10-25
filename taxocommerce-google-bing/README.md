@@ -6,9 +6,11 @@ The plugin keeps its historical technical slug `taxocommerce-google-bing` for co
 
 ## Responsibilities
 
-Insights owns reporting and analysis, not credentials.
+Insights owns external connections, reporting, market research, and strategic analysis.
 
 Active areas:
+
+- **Connections** — Google, Bing, Merchant, Amazon, Pinterest, YouTube, and SerpApi credentials/OAuth used by Insights and other TaxoCommerce modules.
 
 - **Analyst** — strategic decision layer: where we are, how the market looks, and what to do now/next/investigate/watch.
 - **Executive Report** — consolidated local view across Search Console, GA4, Bing, Trends, and Market.
@@ -20,17 +22,22 @@ Active areas:
 
 ## Connections
 
-Credentials and OAuth are configured in **TaxoCommerce Connections**.
+Connections are now configured directly in **TaxoCommerce Insights → Connections**.
 
-Connections currently owns the visible configuration for:
+The unified screen owns:
 
-- Google Search Console / GA4 service account
-- Google Merchant Center
-- Microsoft Bing Webmaster
-- Amazon Associates / Creators API
-- Pinterest Business / OAuth
+- Google Search Console / GA4 service account.
+- Google Search Console OAuth.
+- Google Merchant Center.
+- Microsoft Bing Webmaster.
+- Market providers: YouTube Data API and SerpApi.
+- Amazon Associates / Creators API.
+- Pinterest Business / OAuth / board selection.
+- Pinterest Merchant domain verification and catalog feed URL.
 
-Insights intentionally continues to read the existing Google/Bing option names during migration so no credentials or historical configuration are lost.
+The historical option names and public compatibility helpers are deliberately preserved. Existing credentials are read in place; users do not have to reconnect services after the consolidation.
+
+The former `TaxoCommerce Connections` plugin is retained temporarily only as a compatibility bridge. When Insights is active it does not register a separate family module or connection screen; historical URLs redirect to `Insights → Connections`.
 
 ## Compatibility
 
@@ -45,6 +52,17 @@ English is the base source and UI language. Future localization should use stand
 ## Validation
 
 The GitHub Actions workflow validates PHP syntax, local-only report rendering, executive aggregation, Trends behavior, Market independence, and package deployment to STAGING.
+
+## Version 1.0.0
+
+- Merged the standalone TaxoCommerce Connections capability into TaxoCommerce Insights.
+- Added a visible **Connections** tab to Insights.
+- Preserved all existing Google/Bing/Merchant option names and Google OAuth callback contracts.
+- Embedded Amazon Associates / Creators and Pinterest Business connection services with their existing option names and legacy helper APIs.
+- Added YouTube and SerpApi Market-provider credentials to the same Connections tab.
+- Removed standalone Connections from the Core family extension catalog.
+- Converted the old TaxoCommerce Connections plugin into a temporary compatibility bridge that redirects historical administration URLs to Insights.
+- No credential migration or reconnection is required.
 
 ## Version 0.9.1
 
