@@ -2,6 +2,7 @@
 Contributors: davidperez
 Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.1.0
 License: GPLv2 or later
