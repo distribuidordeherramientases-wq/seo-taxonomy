@@ -179,9 +179,18 @@ final class Admin {
     }
 
     private static function edit_url( $type, $id ) {
-        if ( 'product_cat' === $type ) {
+        if ( 'product_cat' === $type || 'category' === $type ) {
             $url = get_edit_term_link( $id, 'product_cat' );
             return is_wp_error( $url ) ? '' : (string) $url;
+        }
+        if ( 'faq' === $type ) {
+            if ( class_exists( '\\TaxoCommerce_FAQs' ) && is_callable( array( '\\TaxoCommerce_FAQs', 'url' ) ) ) {
+                return (string) \TaxoCommerce_FAQs::url( array( 'faq_id' => absint( $id ) ) );
+            }
+            return (string) add_query_arg(
+                array( 'page' => 'taxocommerce-core-content', 'tc_type' => 'faqs', 'faq_id' => absint( $id ) ),
+                admin_url( 'admin.php' )
+            );
         }
         return (string) get_edit_post_link( $id, '' );
     }
