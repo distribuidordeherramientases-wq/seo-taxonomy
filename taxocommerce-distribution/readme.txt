@@ -1,6 +1,6 @@
 === TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce ===
 Contributors: davidperezmartorell
-Tags: woocommerce, merchant, sitemap, product-feed, bing, pinterest
+Tags: woocommerce, merchant, sitemap, product-feed, bing
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
