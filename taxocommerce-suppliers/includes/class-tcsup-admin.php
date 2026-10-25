@@ -160,6 +160,7 @@ final class TCSUP_Admin {
 				'provider'         => 'A supplier name is required.',
 				'required_mapping' => 'Supplier product ID and product name must be mapped before importing.',
 				'vevor_headers'     => 'The VEVOR CSV is missing one or more required official feed columns.',
+				'price_mapping'    => 'Price updates require an identity column and at least one price column. VEVOR also requires market country and external ID.',
 				'template_name'    => 'A template name is required.',
 				'missing'          => 'The supplier catalogue row no longer exists.',
 			);
@@ -272,6 +273,8 @@ final class TCSUP_Admin {
 			<p><strong>File:</strong> <code><?php echo esc_html( (string) $state['filename'] ); ?></code> · <strong>Delimiter:</strong> <code><?php echo "	" === $state['delimiter'] ? 'TAB' : esc_html( $state['delimiter'] ); ?></code></p>
 			<?php if ( 'vevor' === $mode ) : ?>
 				<div class="notice notice-info inline"><p>The VEVOR preset maps the official feed locally: product URL → external ID/SKU/market, Name → name, categoryPath → supplier category, Sales → price, Currency → currency, URL to image → external image. No network request is made.</p></div>
+			<?php elseif ( 'price_update' === $mode ) : ?>
+				<div class="notice notice-info inline"><p>Price update mode never creates supplier catalogue rows. Map supplier external ID or SKU plus at least one price column. For VEVOR, map external ID and market country so regional products cannot be mixed.</p></div>
 			<?php endif; ?>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -295,7 +298,23 @@ final class TCSUP_Admin {
 										<?php endforeach; ?>
 									</select>
 								</td>
-								<td><?php echo ! empty( $definition['required'] ) ? 'Yes' : 'No'; ?></td>
+								<td>
+									<?php
+									if ( 'price_update' === $mode ) {
+										if ( in_array( $field, array( 'proveedor_id_externo', 'sku' ), true ) ) {
+											echo esc_html( 'Identity' );
+										} elseif ( in_array( $field, array( 'precio_sin_iva', 'precio_con_iva' ), true ) ) {
+											echo esc_html( 'At least one price' );
+										} elseif ( 'pais_origen' === $field ) {
+											echo esc_html( 'Required for VEVOR' );
+										} else {
+											echo esc_html( 'No' );
+										}
+									} else {
+										echo esc_html( ! empty( $definition['required'] ) ? 'Yes' : 'No' );
+									}
+									?>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 						</tbody>
