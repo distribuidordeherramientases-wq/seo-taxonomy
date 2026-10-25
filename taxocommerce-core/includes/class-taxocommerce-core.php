@@ -392,7 +392,7 @@ final class TaxoCommerce_Core {
 				'search_term'   => 'TaxoCommerce Suppliers',
 				'wordpress_org' => false,
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-suppliers' ),
-				'description'   => __( 'CSV supplier catalogue, intermediate decisions, prices, and external images.', 'taxocommerce-core' ),
+				'description'   => __( 'Supplier catalogue, purchasing, prices, and external images.', 'taxocommerce-core' ),
 			),
 			'database' => array(
 				'id'            => 'database',
@@ -506,7 +506,7 @@ final class TaxoCommerce_Core {
 				'search_term'   => 'TaxoCommerce Logistics',
 				'wordpress_org' => false,
 				'admin_url'     => admin_url( 'admin.php?page=seo-logistica' ),
-				'description'   => __( 'WooCommerce orders, suppliers, and shipping operations.', 'taxocommerce-core' ),
+				'description'   => __( 'WooCommerce order weights, dimensions, and shipping-cost rules.', 'taxocommerce-core' ),
 			),
 			'facturacion' => array(
 				'id'            => 'facturacion',
