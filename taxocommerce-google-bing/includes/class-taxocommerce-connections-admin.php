@@ -200,7 +200,7 @@ final class TaxoCommerce_Connections_Admin {
 		<div class="wrap">
 			<h2><?php esc_html_e( 'Connections', 'taxocommerce-google-bing' ); ?></h2>
 			<p><?php esc_html_e( 'External data connections used by Insights and other TaxoCommerce modules. Credentials and OAuth are stored here; Insights consumes the resulting data for reports, Market, and Analyst.', 'taxocommerce-google-bing' ); ?></p>
-			<?php self::notice(); ?>
+			<?php self::notice(); TaxoCommerce_Google_Bing_Connections::render_notice(); ?>
 
 			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;max-width:1300px;">
 				<div class="card" style="max-width:none;padding:20px;">
@@ -257,6 +257,26 @@ final class TaxoCommerce_Connections_Admin {
 						<input type="hidden" name="action" value="taxocommerce_connections_test_bing">
 						<?php wp_nonce_field( 'taxocommerce_connections_test_bing' ); ?>
 						<?php submit_button( __( 'Test Bing', 'taxocommerce-google-bing' ), 'secondary', 'submit', false ); ?>
+					</form>
+				</div>
+
+				<div id="tgb-market-providers" class="card" style="max-width:none;padding:20px;">
+					<h2 style="margin-top:0;">Market Providers · YouTube / SerpApi</h2>
+					<p>Optional providers used by Market research. Opening this screen does not query either provider.</p>
+					<p><strong>YouTube Data API v3</strong> requires its own API key. <strong>SerpApi</strong> is optional and may have external usage costs.</p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="tgb_save_market_providers">
+						<?php wp_nonce_field( 'tgb_save_market_providers' ); ?>
+						<?php foreach ( array( 'youtube' => 'YouTube Data API v3', 'serpapi' => 'SerpApi · Web / Shopping' ) as $provider => $label ) : ?>
+							<?php $saved_provider_key = '' !== (string) get_option( 'tgb_market_' . $provider . '_key', '' ); ?>
+							<p><label><strong><?php echo esc_html( $label ); ?></strong><br>
+								<input class="regular-text" type="password" name="<?php echo esc_attr( $provider ); ?>_key" autocomplete="new-password" value="" placeholder="<?php echo esc_attr( $saved_provider_key ? 'Stored; leave blank to keep it' : 'Enter API key' ); ?>">
+							</label></p>
+							<?php if ( $saved_provider_key ) : ?>
+								<p><label><input type="checkbox" name="clear_<?php echo esc_attr( $provider ); ?>" value="1"> Remove stored key</label></p>
+							<?php endif; ?>
+						<?php endforeach; ?>
+						<?php submit_button( __( 'Save Market providers', 'taxocommerce-google-bing' ), 'primary', 'submit', false ); ?>
 					</form>
 				</div>
 
@@ -329,9 +349,8 @@ final class TaxoCommerce_Connections_Admin {
 
 			<div class="card" style="max-width:1300px;padding:20px;margin-top:18px;">
 				<h2 style="margin-top:0;">Responsibility split</h2>
-				<p><strong>Connections:</strong> Google, Bing, Amazon, and Pinterest credentials, OAuth, tokens, accounts, and connection tests.</p>
-				<p><strong>Insights:</strong> Google Search, Analytics, Bing, Trends, Market, opportunities, and executive reporting. It does not own credentials.</p>
-				<p><strong>Distribution:</strong> commercial feeds and sitemaps. Pinterest Catalogs is published there; Connections only owns its connection and verification data.</p>
+				<p><strong>Insights:</strong> owns external connections and consumes them for Search, Analytics, Bing, Trends, Market, Analyst, opportunities, and executive reporting.</p>
+				<p><strong>Distribution:</strong> owns commercial feeds and sitemaps. Pinterest Catalogs is published there; Insights stores the Pinterest connection and domain-verification data.</p>
 				<p><strong>Cloudflare:</strong> not migrated. It is disabled and currently has no required modular consumer.</p>
 			</div>
 		</div>
