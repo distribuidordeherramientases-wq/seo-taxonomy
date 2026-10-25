@@ -559,16 +559,107 @@ final class TCSUP_CSV {
 			$data['actualizado']        = $now;
 			$data['hash_producto']      = self::row_hash( $data );
 
-			$existing = $wpdb->get_row(
-				$wpdb->prepare(
-					"SELECT * FROM {$table} WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s AND source_row_key=%s LIMIT 1",
-					$provider,
-					$country,
-					$external_id,
-					$row_key
-				),
-				ARRAY_A
-			);
+			$is_vevor = 'VEVOR' === strtoupper( $provider ) && '' !== $country;
+			$existing = null;
+
+			if ( $is_vevor ) {
+				$existing = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT * FROM {$table} WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s AND source_row_key=%s LIMIT 1",
+						$provider,
+						$country,
+						$external_id,
+						$row_key
+					),
+					ARRAY_A
+				);
+
+				// Bind a single pre-source_row_key legacy row instead of creating
+				// a duplicate on the first import through the independent module.
+				if ( ! $existing ) {
+					$legacy_rows = $wpdb->get_results(
+						$wpdb->prepare(
+							"SELECT * FROM {$table}
+							 WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s
+							   AND sku=%s AND nombre=%s
+							   AND (source_row_key='' OR source_row_key IS NULL)
+							 ORDER BY id ASC LIMIT 2",
+							$provider,
+							$country,
+							$external_id,
+							$sku,
+							$name
+						),
+						ARRAY_A
+					);
+					if ( 1 === count( (array) $legacy_rows ) ) {
+						$existing = $legacy_rows[0];
+					}
+				}
+			} else {
+				$existing_by_external = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT * FROM {$table} WHERE proveedor=%s AND proveedor_id_externo=%s ORDER BY id ASC LIMIT 1",
+						$provider,
+						$external_id
+					),
+					ARRAY_A
+				);
+				$existing_by_sku = null;
+				if ( '' !== $sku ) {
+					$existing_by_sku = $wpdb->get_row(
+						$wpdb->prepare(
+							"SELECT * FROM {$table} WHERE proveedor=%s AND sku=%s ORDER BY id ASC LIMIT 1",
+							$provider,
+							$sku
+						),
+						ARRAY_A
+					);
+				}
+
+				if (
+					$existing_by_external
+					&& $existing_by_sku
+					&& absint( $existing_by_external['id'] ?? 0 ) !== absint( $existing_by_sku['id'] ?? 0 )
+				) {
+					foreach ( array( $existing_by_external, $existing_by_sku ) as $conflict_row ) {
+						$wpdb->update(
+							$table,
+							array(
+								'estado_seleccion'      => 'revisar',
+								'estado_sincronizacion' => 'conflicto',
+								'ultimo_error_sync'      => 'Supplier SKU and external ID resolve to different catalogue rows.',
+								'actualizado'            => $now,
+							),
+							array( 'id' => absint( $conflict_row['id'] ) )
+						);
+					}
+					$errors++;
+					continue;
+				}
+
+				if (
+					$existing_by_external
+					&& '' !== $sku
+					&& '' !== trim( (string) ( $existing_by_external['sku'] ?? '' ) )
+					&& $sku !== trim( (string) $existing_by_external['sku'] )
+				) {
+					$wpdb->update(
+						$table,
+						array(
+							'estado_seleccion'      => 'revisar',
+							'estado_sincronizacion' => 'conflicto',
+							'ultimo_error_sync'      => 'Supplier external ID arrived with a different SKU.',
+							'actualizado'            => $now,
+						),
+						array( 'id' => absint( $existing_by_external['id'] ) )
+					);
+					$errors++;
+					continue;
+				}
+
+				$existing = $existing_by_sku ?: $existing_by_external;
+			}
 
 			if ( $existing ) {
 				$changed = self::changed_fields( $existing, $data );
