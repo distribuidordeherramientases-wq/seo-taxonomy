@@ -98,6 +98,26 @@ final class TCSUP_Products {
 			}
 		}
 
+		$provider = sanitize_text_field( (string) ( $row['proveedor'] ?? '' ) );
+		$sku      = trim( sanitize_text_field( (string) ( $row['sku'] ?? '' ) ) );
+		$country  = strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) );
+
+		// VEVOR can reuse supplier SKUs across market-specific variants, so SKU
+		// alone is never a safe WooCommerce identity for that provider.
+		if ( $sku && function_exists( 'wc_get_product_id_by_sku' ) && ! ( 0 === strcasecmp( $provider, 'VEVOR' ) && $country ) ) {
+			$candidate = absint( wc_get_product_id_by_sku( $sku ) );
+			if ( $candidate && 'product' === get_post_type( $candidate ) && 'trash' !== get_post_status( $candidate ) ) {
+				$linked_provider = sanitize_text_field( (string) get_post_meta( $candidate, '_seo_proveedor', true ) );
+				if ( $linked_provider && 0 !== strcasecmp( $linked_provider, $provider ) ) {
+					return new WP_Error(
+						'tcsup_sku_provider_conflict',
+						'Supplier SKU is already linked in WooCommerce to a different supplier.'
+					);
+				}
+				return $candidate;
+			}
+		}
+
 		return 0;
 	}
 
@@ -246,7 +266,11 @@ final class TCSUP_Products {
 			return new WP_Error( 'tcsup_missing_row', 'Supplier catalogue row was not found.' );
 		}
 
-		$product_id = self::existing_product( $row );
+		$product_match = self::existing_product( $row );
+		if ( is_wp_error( $product_match ) ) {
+			return $product_match;
+		}
+		$product_id = absint( $product_match );
 		$is_new     = ! $product_id;
 		$product    = $product_id ? wc_get_product( $product_id ) : new WC_Product_Simple();
 		if ( ! $product ) {
