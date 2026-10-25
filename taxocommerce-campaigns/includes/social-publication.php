@@ -177,6 +177,9 @@ function tccampaigns_social_tracking_url($product_id, $provider, $publication_id
  */
 function tccampaigns_social_create_pending_publication($product_id, $provider, $template, $campaign_id = 0)
 {
+    if (!function_exists('tcsocial_network_publications_table')) {
+        return new WP_Error('social_unavailable', 'TaxoCommerce Social no está activo.');
+    }
     global $wpdb;
     $post = get_post(absint($product_id));
     if (!$post || 'publish' !== $post->post_status) {
@@ -271,6 +274,9 @@ function tccampaigns_social_publish_product($campaign_id, $product_id, $provider
         return new WP_Error('campaign_product_not_sellable', 'El producto no esta visible o no tiene stock; no se publica la oferta.');
     }
 
+    if (!function_exists('tcsocial_network_get_provider') || !function_exists('tcsocial_network_get_settings') || !function_exists('tcsocial_network_publications_table')) {
+        return new WP_Error('social_unavailable', 'TaxoCommerce Social no está activo.');
+    }
     $provider_config = tcsocial_network_get_provider($provider);
     $settings = tcsocial_network_get_settings();
     $saved_provider = isset($settings['providers'][$provider]) && is_array($settings['providers'][$provider])
@@ -445,6 +451,9 @@ function tccampaigns_social_set_schedule($campaign_id, $product_id, $provider, $
     if ($timestamp <= time() + 30) {
         return new WP_Error('invalid_campaign_schedule', 'La fecha de campaña debe estar en el futuro.');
     }
+    if (!function_exists('tcsocial_network_get_provider') || !function_exists('tcsocial_network_get_settings')) {
+        return new WP_Error('social_unavailable', 'TaxoCommerce Social no está activo.');
+    }
     $provider_config = tcsocial_network_get_provider($provider);
     $settings = tcsocial_network_get_settings();
     if (!$provider_config || empty($settings['providers'][$provider]['enabled'])) {
@@ -540,24 +549,26 @@ function tccampaigns_social_occupied_offer_days($provider)
 
     // Si hoy ya se publicó una oferta en esta red, también reservamos el día
     // aunque la tarea ya no figure en postmeta.
-    $publications_table = tcsocial_network_publications_table();
-    $today = wp_date('Y-m-d', time(), $timezone);
-    $published = $wpdb->get_col(
-        $wpdb->prepare(
-            "SELECT published_at FROM {$publications_table}
-             WHERE provider = %s
-               AND content_type = 'campaign_product'
-               AND status = 'published'
-               AND published_at IS NOT NULL
-               AND published_at >= %s",
-            $provider,
-            $today . ' 00:00:00'
-        )
-    );
-    foreach ((array) $published as $mysql) {
-        $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', (string) $mysql, $timezone);
-        if ($dt instanceof DateTimeImmutable) {
-            $days[] = $dt->format('Y-m-d');
+    if (function_exists('tcsocial_network_publications_table')) {
+        $publications_table = tcsocial_network_publications_table();
+        $today = wp_date('Y-m-d', time(), $timezone);
+        $published = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT published_at FROM {$publications_table}
+                 WHERE provider = %s
+                   AND content_type = 'campaign_product'
+                   AND status = 'published'
+                   AND published_at IS NOT NULL
+                   AND published_at >= %s",
+                $provider,
+                $today . ' 00:00:00'
+            )
+        );
+        foreach ((array) $published as $mysql) {
+            $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', (string) $mysql, $timezone);
+            if ($dt instanceof DateTimeImmutable) {
+                $days[] = $dt->format('Y-m-d');
+            }
         }
     }
 
@@ -637,6 +648,10 @@ function tccampaigns_social_handle_plan()
         exit;
     }
 
+    if (!function_exists('tcsocial_network_get_settings') || !function_exists('tcsocial_network_get_providers')) {
+        wp_safe_redirect(tccampaigns_calendar_url(array('campaign_social_msg' => 'no_provider')));
+        exit;
+    }
     $settings = tcsocial_network_get_settings();
     $available = tcsocial_network_get_providers();
     $providers = array_values(array_filter($providers, static function ($provider) use ($settings, $available) {
@@ -805,7 +820,7 @@ function tccampaigns_social_render_scheduler_panel()
         $created = isset($_GET['campaign_created']) ? absint($_GET['campaign_created']) : 0;
         $skipped = isset($_GET['campaign_skipped']) ? absint($_GET['campaign_skipped']) : 0;
         $texts = array(
-            'planned'    => array('success', sprintf('Campaña programada: %d oferta(s) nuevas a las 18:00; %d producto(s) ya programados/publicados o sin día disponible.', $created, $skipped)),
+            'planned'    => array('success', sprintf('Campaña programada: %d oferta(s) nuevas a la hora comercial; %d producto(s) ya programados/publicados o sin día disponible.', $created, $skipped)),
             'no_slots'   => array('warning', 'No quedan días disponibles para nuevas ofertas dentro del periodo de campaña. Las entradas y landings no bloquean estos huecos; solo se reserva una oferta diaria por red.'),
             'missing'    => array('warning', 'Selecciona una campaña valida y al menos una red social.'),
             'no_provider'=> array('warning', 'Ninguna de las redes seleccionadas esta conectada.'),
@@ -817,6 +832,10 @@ function tccampaigns_social_render_scheduler_panel()
     }
 
     $campaigns = tccampaigns_get_social_catalog();
+    if (!function_exists('tcsocial_network_get_settings') || !function_exists('tcsocial_network_get_providers')) {
+        echo '<div class="notice notice-info inline"><p>Activa TaxoCommerce Social para programar y publicar ofertas en redes. El calendario comercial y los banners públicos siguen funcionando sin Social.</p></div>';
+        return;
+    }
     $settings = tcsocial_network_get_settings();
     $providers = tcsocial_network_get_providers();
     $connected = array();
@@ -827,7 +846,7 @@ function tccampaigns_social_render_scheduler_panel()
     }
 
     echo '<section class="seo-social-card" style="margin-top:18px">';
-    echo '<div class="seo-social-intro"><div><h2>Campañas de Marketing</h2><p>Lee directamente <strong>TaxoCommerce Campaigns</strong>. Las ofertas se programan a las <strong>18:00</strong> y pueden convivir el mismo día con entradas o landings. Solo se evita duplicar dos ofertas de campaña el mismo día en una misma red.</p></div><span class="seo-social-state is-ok">Fuente: Campaigns</span></div>';
+    echo '<div class="seo-social-intro"><div><h2>Campañas de Marketing</h2><p>Lee directamente <strong>TaxoCommerce Campaigns</strong>. Las ofertas se programan a la <strong>hora comercial configurada</strong> y pueden convivir el mismo día con entradas o landings. Solo se evita duplicar dos ofertas de campaña el mismo día en una misma red.</p></div><span class="seo-social-state is-ok">Fuente: Campaigns</span></div>';
 
     if (!$campaigns) {
         echo '<p class="seo-social-code-note">No hay campañas habilitadas actuales o futuras con productos disponibles.</p></section>';
@@ -868,7 +887,7 @@ function tccampaigns_social_render_scheduler_panel()
         echo '<div class="seo-social-field"><label>Max. productos por red</label><input type="number" name="max_items" min="1" max="50" value="4"><p class="seo-social-help">Se programa como máximo una oferta por día y red.</p></div>';
         echo '<div class="seo-social-field"><label>Hora comercial de ofertas</label><input type="text" value="' . esc_attr(tccampaigns_social_fixed_publication_time()) . '" readonly><p class="seo-social-help">Hora fija de WordPress. Los posts y landings del mismo día no bloquean la oferta.</p></div>';
         echo '</div>';
-        echo '<div class="seo-social-actions"><button class="button button-primary" type="submit" ' . disabled(empty($connected), true, false) . '>Programar ofertas a las 18:00</button></div>';
+        echo '<div class="seo-social-actions"><button class="button button-primary" type="submit" ' . disabled(empty($connected), true, false) . '>Programar ofertas</button></div>';
         echo '<p class="seo-social-help">No mueve ni reprograma contenido editorial existente. Si una entrada sale por la mañana y una oferta a las 18:00, ambas se mantienen. Si ya existe otra oferta de campaña ese día en la misma red, se utiliza el siguiente día disponible. La creatividad usa la foto real del producto: Media local o imagen externa activa del proveedor sin importarla a Media.</p>';
         echo '</form>';
 
