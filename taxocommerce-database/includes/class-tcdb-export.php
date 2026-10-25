@@ -130,25 +130,34 @@ final class TCDB_Export {
 
     private static function stream_sql( $tables, $mode ) {
         global $wpdb;
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
         echo "-- TaxoCommerce Database v" . TAXOCOMMERCE_DATABASE_VERSION . "\n";
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
         echo "-- Exportación lógica: " . gmdate( 'c' ) . "\n";
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
         echo "-- Ámbito: " . ( 'all' === $mode ? 'tablas WordPress del sitio' : 'tablas propias TaxoCommerce' ) . "\n";
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
         echo "-- IMPORTANTE: las exportaciones realizadas mientras la tienda recibe escrituras no son snapshots transaccionales.\n";
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
         echo "-- Para restauración total usar una base vacía y la herramienta del hosting; este plugin NO ejecuta SQL importado.\n";
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
         echo "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n";
 
         $completed = 0;
         foreach ( $tables as $table ) {
             if ( ! TCDB_Storage::table_allowed( $table, false ) ) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
                 echo "-- ERROR: tabla no autorizada; exportación INCOMPLETA.\n";
                 return;
             }
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table validated against current-site inventory.
             $ddl = $wpdb->get_row( "SHOW CREATE TABLE \`{$table}\`", ARRAY_N );
             if ( ! is_array( $ddl ) || ! isset( $ddl[1] ) ) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
                 echo "-- ERROR: no se ha podido leer el esquema de " . $table . "; exportación INCOMPLETA.\n";
                 return;
             }
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
             echo "-- Tabla: " . $table . "\n" . $ddl[1] . ";\n";
             $ok = self::rows( $table, static function ( $row ) use ( $table ) {
                 $column_sql = array();
@@ -161,16 +170,20 @@ final class TCDB_Export {
                     $value_sql[] = TCDB_Export::sql_literal( $value );
                 }
                 if ( $column_sql ) {
+                    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
                     echo 'INSERT INTO ' . chr(96) . $table . chr(96) . ' (' . implode( ',', $column_sql ) . ') VALUES (' . implode( ',', $value_sql ) . ");\n";
                 }
             } );
             if ( ! $ok ) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
                 echo "-- ERROR: fallo al exportar " . $table . "; exportación INCOMPLETA.\n";
                 return;
             }
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
             echo "-- Fin de tabla: " . $table . "\n\n";
             ++$completed;
         }
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
         echo "SET FOREIGN_KEY_CHECKS=1;\n-- EXPORTACIÓN COMPLETA: {$completed} tablas.\n";
     }
 
@@ -196,6 +209,7 @@ final class TCDB_Export {
         if ( ! $ok ) {
             fputcsv( $stream, array( '__TCDB_EXPORT_INCOMPLETO__' ) );
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- CSV is streamed to php://output, not saved to WordPress filesystem.
         fclose( $stream );
     }
 }

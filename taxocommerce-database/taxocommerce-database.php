@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Database
- * Description: Auditoría MySQL, exploración de tablas, copias SQL/CSV y mantenimiento controlado. Independiente de TaxoCommerce Core.
+ * Description: Standalone MySQL diagnostics, table browsing, streamed SQL/CSV backups and controlled maintenance for WordPress.
  * Version: 0.2.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
