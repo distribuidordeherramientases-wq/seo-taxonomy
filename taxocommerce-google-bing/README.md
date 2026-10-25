@@ -10,6 +10,7 @@ Insights owns reporting and analysis, not credentials.
 
 Active areas:
 
+- **Analyst** — strategic decision layer: where we are, how the market looks, and what to do now/next/investigate/watch.
 - **Executive Report** — consolidated local view across Search Console, GA4, Bing, Trends, and Market.
 - **Google Search** — clicks, impressions, CTR, average position, countries, devices, queries, and pages.
 - **Google Analytics** — sessions, active/new/returning users, views, engagement, channels, countries, devices, key events, and purchases.
@@ -44,6 +45,16 @@ English is the base source and UI language. Future localization should use stand
 ## Validation
 
 The GitHub Actions workflow validates PHP syntax, local-only report rendering, executive aggregation, Trends behavior, Market independence, and package deployment to STAGING.
+
+## Version 0.9.0
+
+- Added **Analyst** inside Insights rather than creating another plugin.
+- Rebuilt the useful former Analista workflow on top of current saved Search, Analytics, Bing, Trends, Market, and Merchant data.
+- Restored a short work queue with **NOW / NEXT / INVESTIGATE / WATCH** buckets.
+- NOW requires direct demand evidence; Market/Trends-only signals remain exploratory until confirmed.
+- Added a stable local-only `TaxoCommerce_Google_Bing_Analyst::report()` contract for the future TaxoCommerce Editor.
+- Analyst never downloads provider data when opened or exported.
+- Market comparison is explicitly evidence-based and never presented as an external ranking unless the source actually provides one.
 
 ## Version 0.8.0
 
