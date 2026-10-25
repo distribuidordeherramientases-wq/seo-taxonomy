@@ -136,6 +136,12 @@ class TGB_Analyst_WPDB {
         if ( false !== strpos( $query, 'COUNT(*) FROM wp_tgb_market_categories' ) ) return 2;
         return 0;
     }
+    public function get_row( $query, $format = null ) {
+        if ( false !== strpos( $query, 'merchant_signals' ) ) {
+            return array( 'external_evidence' => 6, 'merchant_signals' => 3 );
+        }
+        return array();
+    }
     public function get_results( $query, $format = null ) {
         if ( false !== strpos( $query, 'GROUP_CONCAT' ) ) {
             return array(
