@@ -32,6 +32,8 @@ function get_terms() { return $GLOBALS['tgb_terms']; }
 function get_post_meta( $id, $key, $single = true ) { return 20 === (int) $id ? 'landing' : ''; }
 function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . $path; }
 function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
+function home_url( $path = '/' ) { return 'https://example.test' . $path; }
+function wp_parse_url( $url, $part = -1 ) { return parse_url( $url, $part ); }
 function wp_nonce_url( $url, $action ) { return $url . '&_wpnonce=test'; }
 function wp_remote_get() { throw new RuntimeException( 'Unexpected HTTP GET from Analyst' ); }
 function wp_remote_post() { throw new RuntimeException( 'Unexpected HTTP POST from Analyst' ); }
