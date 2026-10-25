@@ -46,6 +46,15 @@ English is the base source and UI language. Future localization should use stand
 
 The GitHub Actions workflow validates PHP syntax, local-only report rendering, executive aggregation, Trends behavior, Market independence, and package deployment to STAGING.
 
+## Version 0.9.1
+
+- Makes Analyst explicitly global: Market performs individual category/product research; Analyst aggregates the saved results.
+- Adds a Global Market Summary with research coverage, pending/error counts, product signals, unique products/clusters, observed brands, and observed sellers.
+- Aggregates repeated Merchant/offer product signals across all analyzed categories.
+- Adds market/catalog gap prioritization by contrasting accumulated product signals with local WooCommerce category depth.
+- Keeps detailed category evidence, Merchant leaders, and observed competitor domains below the global summary as supporting evidence.
+- No provider calls are made by Analyst; all aggregation is local over saved Market data.
+
 ## Version 0.9.0
 
 - Added **Analyst** inside Insights rather than creating another plugin.
