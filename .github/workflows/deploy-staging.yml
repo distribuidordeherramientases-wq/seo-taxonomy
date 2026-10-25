@@ -61,6 +61,7 @@ jobs:
             taxocommerce-core/**
             taxocommerce-connections/**
             taxocommerce-social/**
+            taxocommerce-campaigns/**
             taxocommerce-database/**
             taxocommerce-google-bing/**
             taxocommerce-images/**
@@ -272,6 +273,60 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-social/
           server-dir: ./wp-content/plugins/taxocommerce-social/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Validate TaxoCommerce Campaigns
+        id: campaigns_validate
+        continue-on-error: true
+        run: |
+          test -f taxocommerce-campaigns/taxocommerce-campaigns.php
+          find taxocommerce-campaigns -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Build TaxoCommerce Campaigns local ZIP
+        if: steps.campaigns_validate.outcome == 'success'
+        run: |
+          rm -rf build-campaigns-package
+          mkdir -p build-campaigns-package
+          zip -qr build-campaigns-package/taxocommerce-campaigns.zip taxocommerce-campaigns \
+            -x 'taxocommerce-campaigns/tests/*' \
+               'taxocommerce-campaigns/**/*.bak' \
+               'taxocommerce-campaigns/**/*.md' \
+               'taxocommerce-campaigns/**/*.pot'
+          unzip -t build-campaigns-package/taxocommerce-campaigns.zip
+
+      - name: Deploy TaxoCommerce Campaigns ZIP to Core local repository
+        if: steps.campaigns_validate.outcome == 'success'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./build-campaigns-package/
+          server-dir: ./wp-content/uploads/taxocommerce-core/plugins/
+          dry-run: false
+          log-level: verbose
+
+      - name: Deploy TaxoCommerce Campaigns to STAGING
+        if: steps.campaigns_validate.outcome == 'success'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-campaigns/
+          server-dir: ./wp-content/plugins/taxocommerce-campaigns/
           dry-run: false
           log-level: verbose
           exclude: |
