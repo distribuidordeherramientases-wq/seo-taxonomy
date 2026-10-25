@@ -384,83 +384,83 @@ final class TCSUP_Admin {
 	private static function catalogue_query( $limit = 50, $accepted_only = false ) {
 		global $wpdb;
 
-		$table     = TCSUP_Schema::catalog_table();
-		$provider  = self::request_filter( 'supplier' );
-		$selection = self::request_filter( 'selection' );
-		$country   = strtoupper( self::request_filter( 'country' ) );
-		$search    = self::request_filter( 's' );
+		$table         = TCSUP_Schema::catalog_table();
+		$provider      = self::request_filter( 'supplier' );
+		$selection     = self::request_filter( 'selection' );
+		$country       = strtoupper( self::request_filter( 'country' ) );
+		$search        = self::request_filter( 's' );
+		$accepted_flag = $accepted_only ? 1 : 0;
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
-		$page  = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
-		$limit = max( 1, min( 200, absint( $limit ) ) );
+		$page   = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		$limit  = max( 1, min( 200, absint( $limit ) ) );
 		$offset = ( $page - 1 ) * $limit;
-		$accepted_flag = $accepted_only ? 1 : 0;
-		$like = '' !== $search ? '%' . $wpdb->esc_like( $search ) . '%' : '';
+		$like   = '' !== $search ? '%' . $wpdb->esc_like( $search ) . '%' : '';
 
 		$total = absint(
 			$wpdb->get_var(
 				$wpdb->prepare(
-			"SELECT COUNT(*) FROM %i
-			 WHERE (
-				(%d=1 AND estado_seleccion IN (%s,%s,%s))
-				OR
-				(%d=0 AND (%s='' OR estado_seleccion=%s))
-			 )
-			 AND (%s='' OR proveedor=%s)
-			 AND (%s='' OR pais_origen=%s)
-			 AND (%s='' OR nombre LIKE %s OR sku LIKE %s OR proveedor_id_externo LIKE %s)",
-			$table,
-			$accepted_flag,
-			'aceptado',
-			'publicado',
-			'actualizar',
-			$accepted_flag,
-			$selection,
-			$selection,
-			$provider,
-			$provider,
-			$country,
-			$country,
-			$search,
-			$like,
-			$like,
-			$like
-		);
+					"SELECT COUNT(*) FROM %i
+					 WHERE (
+						(%d=1 AND estado_seleccion IN (%s,%s,%s))
+						OR
+						(%d=0 AND (%s='' OR estado_seleccion=%s))
+					 )
+					 AND (%s='' OR proveedor=%s)
+					 AND (%s='' OR pais_origen=%s)
+					 AND (%s='' OR nombre LIKE %s OR sku LIKE %s OR proveedor_id_externo LIKE %s)",
+					$table,
+					$accepted_flag,
+					'aceptado',
+					'publicado',
+					'actualizar',
+					$accepted_flag,
+					$selection,
+					$selection,
+					$provider,
+					$provider,
+					$country,
+					$country,
+					$search,
+					$like,
+					$like,
+					$like
+				)
 			)
 		);
 
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-			"SELECT * FROM %i
-			 WHERE (
-				(%d=1 AND estado_seleccion IN (%s,%s,%s))
-				OR
-				(%d=0 AND (%s='' OR estado_seleccion=%s))
-			 )
-			 AND (%s='' OR proveedor=%s)
-			 AND (%s='' OR pais_origen=%s)
-			 AND (%s='' OR nombre LIKE %s OR sku LIKE %s OR proveedor_id_externo LIKE %s)
-			 ORDER BY actualizado DESC,id DESC
-			 LIMIT %d OFFSET %d",
-			$table,
-			$accepted_flag,
-			'aceptado',
-			'publicado',
-			'actualizar',
-			$accepted_flag,
-			$selection,
-			$selection,
-			$provider,
-			$provider,
-			$country,
-			$country,
-			$search,
-			$like,
-			$like,
-			$like,
-			$limit,
-			$offset
-		);,
+				"SELECT * FROM %i
+				 WHERE (
+					(%d=1 AND estado_seleccion IN (%s,%s,%s))
+					OR
+					(%d=0 AND (%s='' OR estado_seleccion=%s))
+				 )
+				 AND (%s='' OR proveedor=%s)
+				 AND (%s='' OR pais_origen=%s)
+				 AND (%s='' OR nombre LIKE %s OR sku LIKE %s OR proveedor_id_externo LIKE %s)
+				 ORDER BY actualizado DESC,id DESC
+				 LIMIT %d OFFSET %d",
+				$table,
+				$accepted_flag,
+				'aceptado',
+				'publicado',
+				'actualizar',
+				$accepted_flag,
+				$selection,
+				$selection,
+				$provider,
+				$provider,
+				$country,
+				$country,
+				$search,
+				$like,
+				$like,
+				$like,
+				$limit,
+				$offset
+			),
 			ARRAY_A
 		);
 
