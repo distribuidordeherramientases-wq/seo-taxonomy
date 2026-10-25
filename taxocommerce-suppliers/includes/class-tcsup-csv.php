@@ -516,16 +516,23 @@ final class TCSUP_CSV {
 			} else {
 				$data = array();
 				foreach ( self::fields() as $field => $definition ) {
-					$value = isset( $mapping[ $field ] ) && isset( $row[ $mapping[ $field ] ] )
-						? $row[ $mapping[ $field ] ]
-						: '';
-					$data[ $field ] = self::sanitize_value( $field, $value );
+					if ( ! isset( $mapping[ $field ] ) || ! array_key_exists( $mapping[ $field ], $row ) ) {
+						continue;
+					}
+					$data[ $field ] = self::sanitize_value( $field, $row[ $mapping[ $field ] ] );
 				}
 			}
 
 			$external_id = trim( (string) ( $data['proveedor_id_externo'] ?? '' ) );
 			$sku         = trim( (string) ( $data['sku'] ?? '' ) );
 			$name        = trim( (string) ( $data['nombre'] ?? '' ) );
+			if ( function_exists( 'mb_strlen' ) && mb_strlen( $name, 'UTF-8' ) > 255 ) {
+				$name = mb_substr( $name, 0, 255, 'UTF-8' );
+				$data['nombre'] = $name;
+			} elseif ( strlen( $name ) > 255 ) {
+				$name = substr( $name, 0, 255 );
+				$data['nombre'] = $name;
+			}
 			if ( '' === $external_id ) {
 				$external_id = $sku;
 				$data['proveedor_id_externo'] = $external_id;
