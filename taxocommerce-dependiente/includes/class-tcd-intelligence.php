@@ -13,6 +13,7 @@ final class TCD_Intelligence {
     const DB_OPTION = 'tcd_intelligence_db_version';
     const INTERPRETER_STATE = 'tcd_interpreter_state';
     const QUALITY_PROGRESS = 'tcd_quality_eval_progress';
+    const L2_IDENTITY_BACKFILL = 'tcd_l2_identity_backfill';
     const MAX_SIGNALS_PER_PRODUCT = 32;
 
     public static function quality_table() {
@@ -67,10 +68,204 @@ final class TCD_Intelligence {
         $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $quality ) );
         delete_option( self::INTERPRETER_STATE );
         delete_option( self::QUALITY_PROGRESS );
+        delete_option( self::L2_IDENTITY_BACKFILL );
     }
 
     public static function stage_id( $lesson, $snapshot_id ) {
         return 'modern:L' . absint( $lesson ) . ':S' . absint( $snapshot_id );
+    }
+
+    /**
+     * Backfill exact L2 identity for snapshots learned before v2_l2_identity
+     * existed. It reads only the frozen Dependiente knowledge table; it never
+     * rereads the live WooCommerce catalogue.
+     */
+    public static function l2_identity_backfill_step( $snapshot_id ) {
+        global $wpdb;
+
+        $snapshot_id = absint( $snapshot_id );
+        if ( ! $snapshot_id ) {
+            return new WP_Error( 'tcd_l2_identity_backfill_invalid', 'Falta la foto fija de L2.' );
+        }
+
+        $stage = self::stage_id( 2, $snapshot_id );
+        $saved = get_option( self::L2_IDENTITY_BACKFILL, array() );
+        if (
+            is_array( $saved )
+            && absint( $saved['snapshot_id'] ?? 0 ) === $snapshot_id
+            && ! empty( $saved['done'] )
+        ) {
+            return $saved;
+        }
+
+        $knowledge = TCD_Academy::knowledge_table();
+        $memory = TCD_Knowledge_Transfer::l9_table();
+        $total = absint( $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$knowledge} WHERE lesson=2 AND status='learned'"
+        ) );
+
+        if ( ! $total ) {
+            $result = array(
+                'snapshot_id'=>$snapshot_id,
+                'done'=>true,
+                'processed'=>0,
+                'total'=>0,
+                'remaining'=>0,
+                'written'=>0,
+            );
+            update_option( self::L2_IDENTITY_BACKFILL, $result, false );
+            return $result;
+        }
+
+        $covered_sql = $wpdb->prepare(
+            "SELECT COUNT(DISTINCT k.source_id)
+             FROM {$knowledge} k
+             INNER JOIN {$memory} m
+                ON m.product_id=k.source_id
+               AND m.lesson_key='v2_l2_identity'
+               AND m.signal_type='identity_title'
+               AND (m.active=1 OR m.source_brain_id=%s)
+             WHERE k.lesson=2 AND k.status='learned'",
+            $stage
+        );
+        $covered_before = absint( $wpdb->get_var( $covered_sql ) );
+        if ( $covered_before >= $total ) {
+            $result = array(
+                'snapshot_id'=>$snapshot_id,
+                'done'=>true,
+                'processed'=>$total,
+                'total'=>$total,
+                'remaining'=>0,
+                'written'=>0,
+            );
+            update_option( self::L2_IDENTITY_BACKFILL, $result, false );
+            return $result;
+        }
+
+        $priority = class_exists( 'TCD_Load', false ) ? absint( TCD_Load::priority() ) : 3;
+        $batch_sizes = array( 1=>40, 2=>70, 3=>120, 4=>180, 5=>250 );
+        $limit = absint( $batch_sizes[ $priority ] ?? 120 );
+
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT k.source_type,k.source_id,k.title,k.context_json
+                 FROM {$knowledge} k
+                 WHERE k.lesson=2
+                   AND k.status='learned'
+                   AND NOT EXISTS (
+                       SELECT 1
+                       FROM {$memory} m
+                       WHERE m.product_id=k.source_id
+                         AND m.lesson_key='v2_l2_identity'
+                         AND m.signal_type='identity_title'
+                         AND (m.active=1 OR m.source_brain_id=%s)
+                   )
+                 ORDER BY k.id ASC
+                 LIMIT %d",
+                $stage,
+                $limit
+            ),
+            ARRAY_A
+        );
+
+        $written = 0;
+        foreach ( $rows as $row ) {
+            $facts = json_decode( (string) ( $row['context_json'] ?? '' ), true );
+            $item = array(
+                'source_type'=>sanitize_key( (string) ( $row['source_type'] ?? 'product' ) ),
+                'source_id'=>absint( $row['source_id'] ?? 0 ),
+                'title'=>(string) ( $row['title'] ?? '' ),
+                'facts'=>is_array( $facts ) ? $facts : array(),
+            );
+            $written += self::stage_l2_exact_identity( $item, $stage );
+        }
+
+        $covered_after = absint( $wpdb->get_var( $covered_sql ) );
+        $remaining = max( 0, $total - $covered_after );
+        $done = 0 === $remaining || ! $rows;
+
+        $result = array(
+            'snapshot_id'=>$snapshot_id,
+            'done'=>$done,
+            'processed'=>$covered_after,
+            'total'=>$total,
+            'remaining'=>$remaining,
+            'batch'=>count( $rows ),
+            'written'=>$written,
+        );
+        update_option( self::L2_IDENTITY_BACKFILL, $result, false );
+        return $result;
+    }
+
+    private static function stage_l2_exact_identity( $item, $stage ) {
+        global $wpdb;
+
+        $product_id = absint( $item['source_id'] ?? 0 );
+        if ( ! $product_id ) return 0;
+
+        $facts = (array) ( $item['facts'] ?? array() );
+        $signals = array();
+
+        $title = trim( (string) ( $item['title'] ?? '' ) );
+        $normalized_title = self::normalize( $title );
+        if ( $normalized_title ) {
+            $signals[] = array(
+                'signal_type'=>'identity_title',
+                'signal_text'=>$title,
+                'normalized_signal'=>$normalized_title,
+                'weight'=>320,
+            );
+        }
+
+        $sku = trim( (string) ( $facts['sku'] ?? '' ) );
+        if ( self::valid_identity_value( $sku ) ) {
+            $normalized_sku = self::normalize( $sku );
+            if ( $normalized_sku ) {
+                $signals[] = array(
+                    'signal_type'=>'identity_sku',
+                    'signal_text'=>$sku,
+                    'normalized_signal'=>$normalized_sku,
+                    'weight'=>420,
+                );
+            }
+        }
+
+        $table = TCD_Knowledge_Transfer::l9_table();
+        $written = 0;
+        foreach ( $signals as $signal ) {
+            $normalized = self::normalize( (string) ( $signal['normalized_signal'] ?? '' ) );
+            if ( ! $normalized ) continue;
+            $signal_type = sanitize_key( (string) ( $signal['signal_type'] ?? 'identity' ) );
+            $hash = hash( 'sha256', implode( '|', array(
+                'v2_l2_identity',
+                $product_id,
+                $signal_type,
+                $normalized,
+            ) ) );
+            $ok = $wpdb->replace( $table, array(
+                'lesson_key'=>'v2_l2_identity',
+                'product_id'=>$product_id,
+                'signal_type'=>$signal_type,
+                'signal_text'=>self::shorten( (string) ( $signal['signal_text'] ?? $normalized ), 250 ),
+                'normalized_signal'=>self::shorten( $normalized, 250 ),
+                'semantic_group'=>'identity',
+                'vocabulary_id'=>null,
+                'weight'=>min( 500, max( 1, absint( $signal['weight'] ?? 100 ) ) ),
+                'source_hash'=>$hash,
+                'metadata'=>wp_json_encode( array(
+                    'origin'=>'l2_identity_backfill',
+                    'lesson'=>2,
+                    'purpose'=>'product_identity',
+                    'stage'=>$stage,
+                ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+                'active'=>0,
+                'source_brain_id'=>$stage,
+                'updated_at'=>current_time( 'mysql' ),
+            ) );
+            if ( false !== $ok ) $written++;
+        }
+
+        return $written;
     }
 
     public static function learn_item( $lesson, $item, $snapshot_id ) {
