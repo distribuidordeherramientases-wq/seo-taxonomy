@@ -427,6 +427,34 @@ final class TCSUP_Admin {
 		<?php
 	}
 
+	private static function selection_label( $value ) {
+		$labels = array(
+			'pendiente'  => 'Pending',
+			'revisar'    => 'Review',
+			'aceptado'   => 'Accepted',
+			'descartado' => 'Discarded',
+			'publicado'  => 'Published',
+			'actualizar' => 'Update',
+		);
+		$value = sanitize_key( (string) $value );
+		return $labels[ $value ] ?? ucfirst( str_replace( '_', ' ', $value ) );
+	}
+
+	private static function sync_label( $value ) {
+		$labels = array(
+			'nuevo'        => 'New',
+			'modificado'   => 'Modified',
+			'sin_cambios'  => 'Unchanged',
+			'sincronizado' => 'Synchronized',
+			'conflicto'    => 'Conflict',
+			'ignorado'     => 'Ignored',
+			'pendiente'    => 'Pending',
+			'legacy'       => 'Legacy',
+		);
+		$value = sanitize_key( (string) $value );
+		return $labels[ $value ] ?? ucfirst( str_replace( '_', ' ', $value ) );
+	}
+
 	private static function render_inventory() {
 		$rows = self::catalogue_query( 100, false );
 		?>
@@ -459,8 +487,8 @@ final class TCSUP_Admin {
 							<td><?php echo esc_html( $row['pais_origen'] ?: '—' ); ?></td>
 							<td><?php echo esc_html( ( '' !== (string) $row['precio_con_iva'] ? $row['precio_con_iva'] : $row['precio_sin_iva'] ) . ' ' . $row['moneda'] ); ?></td>
 							<td><?php echo esc_html( '' !== (string) $row['stock_cantidad'] ? $row['stock_cantidad'] : $row['stock_estado'] ); ?></td>
-							<td><strong><?php echo esc_html( $row['estado_seleccion'] ); ?></strong></td>
-							<td><?php echo esc_html( $row['estado_sincronizacion'] ); ?><?php echo $row['cambios_detectados'] ? '<br><small>' . esc_html( $row['cambios_detectados'] ) . '</small>' : ''; ?></td>
+							<td><strong><?php echo esc_html( self::selection_label( $row['estado_seleccion'] ) ); ?></strong></td>
+							<td><?php echo esc_html( self::sync_label( $row['estado_sincronizacion'] ) ); ?><?php echo $row['cambios_detectados'] ? '<br><small>' . esc_html( $row['cambios_detectados'] ) . '</small>' : ''; ?></td>
 							<td><?php echo $row['object_id'] ? '<a href="' . esc_url( get_edit_post_link( absint( $row['object_id'] ) ) ) . '">#' . esc_html( $row['object_id'] ) . '</a>' : '—'; ?></td>
 							<td class="tcsup-row-actions">
 								<button class="button button-small button-primary" name="row_action" value="accept:<?php echo esc_attr( $row['id'] ); ?>">Accept</button>
