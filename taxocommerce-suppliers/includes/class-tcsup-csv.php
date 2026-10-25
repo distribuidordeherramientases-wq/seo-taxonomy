@@ -543,9 +543,12 @@ final class TCSUP_CSV {
 
 		if ( 'vevor' !== $mode ) {
 			if ( 'price_update' === $mode ) {
-				$has_identity = isset( $mapping['proveedor_id_externo'] ) || isset( $mapping['sku'] );
-				$has_price    = isset( $mapping['precio_sin_iva'] ) || isset( $mapping['precio_con_iva'] );
-				$vevor_country_ok = 'VEVOR' !== strtoupper( $provider ) || isset( $mapping['pais_origen'] );
+				$is_vevor_provider = 'VEVOR' === strtoupper( $provider );
+				$has_identity = $is_vevor_provider
+					? isset( $mapping['proveedor_id_externo'] )
+					: ( isset( $mapping['proveedor_id_externo'] ) || isset( $mapping['sku'] ) );
+				$has_price = isset( $mapping['precio_sin_iva'] ) || isset( $mapping['precio_con_iva'] );
+				$vevor_country_ok = ! $is_vevor_provider || isset( $mapping['pais_origen'] );
 				if ( ! $has_identity || ! $has_price || ! $vevor_country_ok ) {
 					fclose( $handle );
 					self::redirect( array( 'tc_error' => 'price_mapping' ) );
@@ -623,7 +626,7 @@ final class TCSUP_CSV {
 			$country = strtoupper( trim( (string) ( $data['pais_origen'] ?? '' ) ) );
 			$is_vevor = 'VEVOR' === strtoupper( $provider ) && '' !== $country;
 			$row_key = trim( (string) ( $data['source_row_key'] ?? '' ) );
-			if ( 'VEVOR' === strtoupper( $provider ) && '' === $row_key ) {
+			if ( 'VEVOR' === strtoupper( $provider ) && '' === $row_key && 'price_update' !== $mode ) {
 				$base = hash( 'sha256', wp_json_encode( array( $country, $sku, $name, $external_id ) ) );
 				$occurrence[ $base ] = isset( $occurrence[ $base ] ) ? $occurrence[ $base ] + 1 : 1;
 				$row_key = hash( 'sha256', $base . ':' . $occurrence[ $base ] );
@@ -631,7 +634,7 @@ final class TCSUP_CSV {
 			}
 
 			$data['proveedor'] = $provider;
-			if ( array_key_exists( 'pais_origen', $data ) || $is_vevor ?? false ) {
+			if ( array_key_exists( 'pais_origen', $data ) || $is_vevor ) {
 				$data['pais_origen'] = $country;
 			}
 			if ( array_key_exists( 'moneda', $data ) && '' === (string) $data['moneda'] ) {
@@ -640,42 +643,64 @@ final class TCSUP_CSV {
 			$data['raw_json']           = wp_json_encode( $assoc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 			$data['ultima_importacion'] = $now;
 			$data['actualizado']        = $now;
-			$data['hash_producto']      = self::row_hash( $data );
+			if ( 'price_update' !== $mode ) {
+				$data['hash_producto'] = self::row_hash( $data );
+			}
 
 			$existing = null;
 
 			if ( $is_vevor ) {
-				$existing = $wpdb->get_row(
-					$wpdb->prepare(
-						"SELECT * FROM {$table} WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s AND source_row_key=%s LIMIT 1",
-						$provider,
-						$country,
-						$external_id,
-						$row_key
-					),
-					ARRAY_A
-				);
-
-				// Bind a single pre-source_row_key legacy row instead of creating
-				// a duplicate on the first import through the independent module.
-				if ( ! $existing ) {
-					$legacy_rows = $wpdb->get_results(
+				if ( 'price_update' === $mode && '' === $row_key ) {
+					$price_matches = $wpdb->get_results(
 						$wpdb->prepare(
 							"SELECT * FROM {$table}
 							 WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s
-							   AND sku=%s AND nombre=%s
-							   AND (source_row_key='' OR source_row_key IS NULL)
 							 ORDER BY id ASC LIMIT 2",
 							$provider,
 							$country,
-							$external_id,
-							$sku,
-							$name
+							$external_id
 						),
 						ARRAY_A
 					);
-					if ( 1 === count( (array) $legacy_rows ) ) {
-						$existing = $legacy_rows[0];
+					if ( 1 === count( (array) $price_matches ) ) {
+						$existing = $price_matches[0];
+					} else {
+						$errors++;
+						continue;
+					}
+				} else {
+					$existing = $wpdb->get_row(
+						$wpdb->prepare(
+							"SELECT * FROM {$table} WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s AND source_row_key=%s LIMIT 1",
+							$provider,
+							$country,
+							$external_id,
+							$row_key
+						),
+						ARRAY_A
+					);
+
+					// Bind a single pre-source_row_key legacy row instead of creating
+					// a duplicate on the first import through the independent module.
+					if ( ! $existing ) {
+						$legacy_rows = $wpdb->get_results(
+							$wpdb->prepare(
+								"SELECT * FROM {$table}
+								 WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s
+								   AND sku=%s AND nombre=%s
+								   AND (source_row_key='' OR source_row_key IS NULL)
+								 ORDER BY id ASC LIMIT 2",
+								$provider,
+								$country,
+								$external_id,
+								$sku,
+								$name
+							),
+							ARRAY_A
+						);
+						if ( 1 === count( (array) $legacy_rows ) ) {
+							$existing = $legacy_rows[0];
+						}
 					}
 				}
 			} else {
@@ -787,7 +812,7 @@ final class TCSUP_CSV {
 			add_query_arg(
 				array(
 					'page'       => 'taxocommerce-suppliers',
-					'tab'        => 'inventory',
+					'tab'        => 'price_update' === $mode ? 'prices' : 'inventory',
 					'imported'   => $inserted + $updated + $unchanged,
 					'new'        => $inserted,
 					'updated'    => $updated,
