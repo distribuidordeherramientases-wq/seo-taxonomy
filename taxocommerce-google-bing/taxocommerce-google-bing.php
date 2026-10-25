@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: Search, Analytics, Bing, Trends, Market, Analyst, opportunity, and executive reports from connected data sources.
- * Version: 0.9.0
+ * Version: 0.9.1
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.9.0' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '0.9.1' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
