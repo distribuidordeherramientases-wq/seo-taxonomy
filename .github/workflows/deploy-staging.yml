@@ -65,6 +65,7 @@ jobs:
             taxocommerce-google-bing/**
             taxocommerce-images/**
             taxocommerce-import-export/**
+            taxocommerce-suppliers/**
             taxocommerce-system-check/**
             taxocommerce-templates/**
             taxocommerce-auditor/**
@@ -176,6 +177,33 @@ jobs:
             **/*.md
             **/*.pot
 
+
+      - name: Validate TaxoCommerce Suppliers
+        run: |
+          test -f taxocommerce-suppliers/taxocommerce-suppliers.php
+          find taxocommerce-suppliers -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-suppliers/tests/smoke.php
+
+      - name: Deploy TaxoCommerce Suppliers to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-suppliers/
+          server-dir: ./wp-content/plugins/taxocommerce-suppliers/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
 
       - name: Validate TaxoCommerce Connections
         run: |

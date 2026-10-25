@@ -1,0 +1,79 @@
+name: TaxoCommerce Suppliers CI
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-suppliers/**'
+      - 'taxocommerce-core/**'
+      - '.github/workflows/taxocommerce-suppliers.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-suppliers/**'
+      - 'taxocommerce-core/**'
+      - '.github/workflows/taxocommerce-suppliers.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP lint
+        run: |
+          find taxocommerce-suppliers -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Suppliers smoke
+        run: php taxocommerce-suppliers/tests/smoke.php
+
+      - name: Assert CSV-only scope
+        run: |
+          set -euo pipefail
+          ! grep -RniE 'crawler-queue\.php|github-python-runner|google-python-runner|seo_supplier_crawl_|seo_supplier_external_web_recipes|wp_remote_get\(|wp_remote_post\(|curl_exec\(' \
+            taxocommerce-suppliers/includes taxocommerce-suppliers/taxocommerce-suppliers.php --include='*.php'
+
+      - name: Build distributable package
+        run: |
+          set -euo pipefail
+          rm -rf build/taxocommerce-suppliers
+          mkdir -p build/taxocommerce-suppliers
+          rsync -a \
+            --exclude='tests/' \
+            --exclude='*.md' \
+            --exclude='*.bak' \
+            taxocommerce-suppliers/ build/taxocommerce-suppliers/
+          test -f build/taxocommerce-suppliers/taxocommerce-suppliers.php
+          test -f build/taxocommerce-suppliers/includes/class-tcsup-csv.php
+          test -f build/taxocommerce-suppliers/includes/class-tcsup-products.php
+          test -f build/taxocommerce-suppliers/includes/class-tcsup-schema.php
+          test ! -e build/taxocommerce-suppliers/tests
+
+      - name: WordPress Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './build/taxocommerce-suppliers'
+          slug: taxocommerce-suppliers
+          wp-version: latest
+          ignore-warnings: true
+          ignore-errors: false
+
+      - name: Package ZIP
+        run: |
+          (
+            cd build
+            zip -qr ../taxocommerce-suppliers.zip taxocommerce-suppliers
+          )
+          unzip -t taxocommerce-suppliers.zip
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-suppliers-0.1.0
+          path: taxocommerce-suppliers.zip
+          retention-days: 30
+          if-no-files-found: error
