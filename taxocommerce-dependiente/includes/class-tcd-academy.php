@@ -113,6 +113,8 @@ final class TCD_Academy {
             'last_message'=>'Preparado para L1-L10, construcción del Intérprete y mantenimiento continuo.',
             'updated_at'=>'',
             'load_last'=>array(),
+            'identity_backfill_done'=>0,
+            'identity_backfill_total'=>0,
         );
     }
 
@@ -699,6 +701,50 @@ final class TCD_Academy {
         $learned=absint($snapshot['learned_count']??0);
         if($learned<1)throw new RuntimeException('L'.$lesson.' no tiene ninguna fuente aprendida; no se considera completada.');
 
+        if(
+            2===$lesson
+            && method_exists('TCD_Intelligence','l2_identity_backfill_step')
+        ){
+            $identity=TCD_Intelligence::l2_identity_backfill_step($snapshot_id);
+            if(is_wp_error($identity))throw new RuntimeException($identity->get_error_message());
+
+            $identity_done=absint($identity['processed']??0);
+            $identity_total=absint($identity['total']??0);
+            self::save(array(
+                'identity_backfill_done'=>$identity_done,
+                'identity_backfill_total'=>$identity_total,
+            ));
+
+            if(empty($identity['done'])){
+                $percent=$identity_total>0 ? round(100*$identity_done/$identity_total,1) : 0;
+                self::save(array(
+                    'last_message'=>sprintf(
+                        'L2 · preparando memoria de identidad desde la foto fija: %d / %d productos · %.1f%%.',
+                        $identity_done,$identity_total,$percent
+                    ),
+                ));
+                self::log('l2_identity_backfill_progress',array(
+                    'snapshot_id'=>$snapshot_id,
+                    'processed'=>$identity_done,
+                    'total'=>$identity_total,
+                    'remaining'=>absint($identity['remaining']??0),
+                    'batch'=>absint($identity['batch']??0),
+                    'written'=>absint($identity['written']??0),
+                    'percent'=>$percent,
+                ));
+                self::queue();
+                return max(1,absint($identity['batch']??1));
+            }
+
+            if($identity_total>0 && $identity_done>0){
+                self::log('l2_identity_backfill_completed',array(
+                    'snapshot_id'=>$snapshot_id,
+                    'processed'=>$identity_done,
+                    'total'=>$identity_total,
+                ));
+            }
+        }
+
         $step=TCD_Intelligence::quality_step($lesson,$snapshot_id);
         if(is_wp_error($step))throw new RuntimeException($step->get_error_message());
 
@@ -736,6 +782,7 @@ final class TCD_Academy {
         $next=$lesson+1;
         self::save(array(
             'lesson'=>$next,'phase'=>$next<=10?'snapshot':'interpreter','snapshot_id'=>0,'snapshot_cursor'=>0,'learning_cursor'=>0,
+            'identity_backfill_done'=>0,'identity_backfill_total'=>0,
             'status'=>'running',
             'last_message'=>$next<=10
                 ? sprintf('L%d superada con %.1f%%. Preparando L%d.',$lesson,100*(float)($quality['pass_any_ratio']??0),$next)
