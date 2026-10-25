@@ -25,6 +25,9 @@ function is_wp_error($value) {
 function sanitize_key($key) {
     return preg_replace('/[^a-z0-9_-]/', '', strtolower((string)$key));
 }
+function sanitize_file_name($name) {
+    return preg_replace('/[^A-Za-z0-9._-]/', '', basename((string)$name));
+}
 function apply_filters($name, $value) {
     return $value;
 }
