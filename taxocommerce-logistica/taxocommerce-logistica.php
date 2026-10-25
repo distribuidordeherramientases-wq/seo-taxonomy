@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Logistics
- * Description: WooCommerce order, supplier, and shipping management migrated 1:1 from TaxoCommerce SEO.
- * Version: 0.1.0
+ * Description: WooCommerce shipping weight, dimensions, and delivery-cost management.
+ * Version: 0.2.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -13,12 +13,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.2.0' );
 define( 'TAXOCOMMERCE_LOGISTICA_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_LOGISTICA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_LOGISTICA_URL', plugin_dir_url( __FILE__ ) );
 
-require_once TAXOCOMMERCE_LOGISTICA_DIR . 'includes/seo-logistica.php';
 require_once TAXOCOMMERCE_LOGISTICA_DIR . 'includes/seo-transporte.php';
 
 function taxocommerce_logistica_register_menu() {
@@ -31,7 +30,7 @@ function taxocommerce_logistica_register_menu() {
             'Logistics',
             $capability,
             'seo-logistica',
-            'seo_logistica_page'
+            array( 'SEO_Transporte_Costes', 'render_page' )
         );
         return;
     }
@@ -59,7 +58,7 @@ function taxocommerce_logistica_register_core( $core ) {
             'name'        => 'TaxoCommerce Logistics',
             'version'     => TAXOCOMMERCE_LOGISTICA_VERSION,
             'status'      => 'active',
-            'description' => 'Pedidos, proveedores y transporte WooCommerce.',
+            'description' => 'Shipping weight, dimensions, and delivery-cost rules for WooCommerce.',
             'admin_url'   => admin_url( 'admin.php?page=seo-logistica' ),
         )
     );
@@ -79,7 +78,7 @@ function taxocommerce_logistica_family_catalog( $extensions ) {
         'search_term'   => 'TaxoCommerce Logistics',
         'wordpress_org' => false,
         'admin_url'     => admin_url( 'admin.php?page=seo-logistica' ),
-        'description'   => 'Pedidos, proveedores y transporte WooCommerce.',
+        'description'   => 'Shipping weight, dimensions, and delivery-cost rules for WooCommerce.',
     );
     return $extensions;
 }
