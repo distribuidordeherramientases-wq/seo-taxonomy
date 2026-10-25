@@ -434,7 +434,7 @@ final class TCSUP_Admin {
 			<?php if ( $show_selection ) : ?>
 			<select name="selection">
 				<option value="">All decisions</option>
-				<?php foreach ( array( 'pendiente'=>'Pending','revisar'=>'Review','aceptado'=>'Accepted','descartado'=>'Discarded' ) as $value => $label ) : ?>
+				<?php foreach ( array( 'pendiente'=>'Pending','revisar'=>'Review','aceptado'=>'Accepted','descartado'=>'Discarded','publicado'=>'Published · legacy','actualizar'=>'Update · legacy','duplicado'=>'Duplicate · legacy' ) as $value => $label ) : ?>
 					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( self::request_filter( 'selection' ), $value ); ?>><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select>
@@ -454,6 +454,7 @@ final class TCSUP_Admin {
 			'descartado' => 'Discarded',
 			'publicado'  => 'Published',
 			'actualizar' => 'Update',
+			'duplicado'   => 'Duplicate',
 		);
 		$value = sanitize_key( (string) $value );
 		return $labels[ $value ] ?? ucfirst( str_replace( '_', ' ', $value ) );
