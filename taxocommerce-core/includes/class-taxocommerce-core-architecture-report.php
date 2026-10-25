@@ -368,7 +368,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         echo '<div class="tc-architecture-kpis">';
         foreach ( $cards as $card ) {
             echo '<div class="tc-architecture-kpi tc-architecture-kpi--' . esc_attr( $card[3] ) . '">';
-            echo '<span>' . esc_html( $card[0] ) . '</span><strong>' . self::amount( $card[1] ) . '</strong>';
+            echo '<span>' . esc_html( $card[0] ) . '</span><strong>' . esc_html( self::amount( $card[1] ) ) . '</strong>';
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Card detail contains only numbers escaped by amount() and static text.
             echo '<small>' . $card[2] . '</small></div>';
         }
@@ -387,7 +387,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         foreach ( $report['clusters'] as $cluster ) {
             echo '<tr><th scope="row">' . esc_html( $cluster['title'] ) . '</th>';
             foreach ( array( 'primary', 'secondary', 'categories', 'products' ) as $column ) {
-                echo '<td>' . self::amount( $cluster[ $column ] ) . '</td>';
+                echo '<td>' . esc_html( self::amount( $cluster[ $column ] ) ) . '</td>';
             }
             echo '<td>' . esc_html( number_format_i18n( (float) $cluster['density'], 1 ) ) . '</td></tr>';
         }
@@ -400,14 +400,14 @@ final class TaxoCommerce_Core_Architecture_Report {
         foreach ( $report['clusters'] as $cluster ) {
             echo '<article class="tc-architecture-cluster">';
             echo '<div class="tc-architecture-cluster-head"><div><span>Cluster</span><h4>' . esc_html( $cluster['title'] ) . '</h4></div>';
-            echo '<strong>' . self::amount( $cluster['products'] ) . ' <small>productos</small></strong></div>';
+            echo '<strong>' . esc_html( self::amount( $cluster['products'] ) ) . ' <small>productos</small></strong></div>';
             echo '<div class="tc-architecture-cluster-stats">';
             foreach ( array(
                 'primary' => 'Hubs primarios',
                 'secondary' => 'Hubs secundarios',
                 'categories' => 'Categorías',
             ) as $metric => $label ) {
-                echo '<div><strong>' . self::amount( $cluster[ $metric ] ) . '</strong><span>' . esc_html( $label ) . '</span></div>';
+                echo '<div><strong>' . esc_html( self::amount( $cluster[ $metric ] ) ) . '</strong><span>' . esc_html( $label ) . '</span></div>';
             }
             echo '<div><strong>' . esc_html( number_format_i18n( (float) $cluster['density'], 1 ) ) . '</strong><span>Prod./categoría</span></div>';
             echo '</div>';
@@ -416,13 +416,13 @@ final class TaxoCommerce_Core_Architecture_Report {
                 echo '<div class="tc-architecture-cluster-detail">';
                 echo '<div class="tc-architecture-bars"><h5>Reparto por hub primario</h5>';
                 foreach ( $cluster['primaryRows'] as $row ) {
-                    echo '<div class="tc-architecture-bar"><div><span>' . esc_html( $row['label'] ) . '</span><strong>' . self::amount( $row['products'] ) . '</strong></div>';
+                    echo '<div class="tc-architecture-bar"><div><span>' . esc_html( $row['label'] ) . '</span><strong>' . esc_html( self::amount( $row['products'] ) ) . '</strong></div>';
                     echo '<progress max="' . esc_attr( (string) max( 1, (int) $cluster['products'] ) ) . '" value="' . esc_attr( (string) $row['products'] ) . '"></progress></div>';
                 }
                 echo '</div><div class="tc-architecture-table-wrap"><table class="widefat striped">';
                 echo '<thead><tr><th>Hub primario</th><th>Subhubs</th><th>Categorías</th><th>Productos</th></tr></thead><tbody>';
                 foreach ( $cluster['primaryRows'] as $row ) {
-                    echo '<tr><th scope="row">' . esc_html( $row['label'] ) . '</th><td>' . self::amount( $row['secondaries'] ) . '</td><td>' . self::amount( $row['categories'] ) . '</td><td><strong>' . self::amount( $row['products'] ) . '</strong></td></tr>';
+                    echo '<tr><th scope="row">' . esc_html( $row['label'] ) . '</th><td>' . esc_html( self::amount( $row['secondaries'] ) ) . '</td><td>' . esc_html( self::amount( $row['categories'] ) ) . '</td><td><strong>' . esc_html( self::amount( $row['products'] ) ) . '</strong></td></tr>';
                 }
                 echo '</tbody></table></div></div>';
             } else {
