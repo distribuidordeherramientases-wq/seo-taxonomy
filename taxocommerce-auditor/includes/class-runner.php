@@ -219,7 +219,9 @@ final class Runner {
             $state['notes'][] = 'Referencia histórica para revisar tamaños: 5-10 productos. Las propuestas requieren evidencia semántica y no autorizan cambios automáticos.';
         }
         if ( 'faqs' === $scope && ! $unavailable ) {
-            $state['notes'][] = 'Validacion del owner solo cuando otro modulo ofrece el filtro taxocommerce_auditor_faq_owner.';
+            $state['notes'][] = FAQ_Source::available()
+                ? 'Las FAQs se leen desde el almacén canónico de TaxoCommerce FAQs y se valida owner, categoría, contenido y duplicados.'
+                : 'FAQ CPT alternativo: la validación del owner depende del filtro taxocommerce_auditor_faq_owner.';
         }
         update_option( self::option( $scope, 'state' ), $state, false );
         if ( ! $unavailable ) {
@@ -614,7 +616,7 @@ final class Runner {
             'completed_gmt' => $state['completed_gmt'],
             'completed_local' => current_time( 'mysql' ),
             'duration_seconds' => max( 0, time() - absint( $state['started_timestamp'] ?? time() ) ),
-            'source_model' => 'WordPress post/term meta + WooCommerce CRUD + Vocabulary native taxonomies',
+            'source_model' => 'WordPress/WooCommerce nativo + Vocabulary + TaxoCommerce FAQs + contexto persistido local opcional',
             'processed'   => $state['processed'],
             'excluded'    => $state['excluded'],
             'expected'    => $state['total'],
