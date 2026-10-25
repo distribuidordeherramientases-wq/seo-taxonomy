@@ -250,7 +250,7 @@ final class TaxoCommerce_FAQs {
         check_admin_referer( 'taxocommerce_faqs_delete' );
         global $wpdb;
         $id = isset( $_POST['faq_id'] ) ? absint( wp_unslash( $_POST['faq_id'] ) ) : 0;
-        $faq = $wpdb->get_row( $wpdb->prepare( 'SELECT id,object_type,object_id FROM ' . self::table( 'seo_faq' ) . ' WHERE id=%d', $id ) );
+        $faq = $wpdb->get_row( $wpdb->prepare( 'SELECT id, object_type, object_id FROM %i WHERE id = %d', self::table( 'seo_faq' ), $id ) );
         if ( ! $faq ) { self::notice( 'FAQ inexistente.', true ); }
         if ( false === $wpdb->delete( self::table( 'seo_faq' ), array( 'id' => $id ), array( '%d' ) ) ) { self::notice( 'Error eliminando FAQ.', true ); }
         if ( self::tags_available() ) {
@@ -269,13 +269,16 @@ final class TaxoCommerce_FAQs {
         nocache_headers();
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV response must stream directly to the HTTP output handle, not WordPress filesystem storage.
         $out = fopen( 'php://output', 'w' );
         if ( ! $out ) { exit; }
         fputcsv( $out, array( 'id', 'object_type', 'object_id', 'product_cat_id', 'question', 'answer', 'sort_order', 'active', 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo' ) );
         $cursor = 0;
         do {
             $rows = $wpdb->get_results( $wpdb->prepare(
-                "SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM {$table} WHERE id>%d ORDER BY id ASC LIMIT 200", $cursor
+                'SELECT id, object_type, object_id, product_cat_id, question, answer, sort_order, active FROM %i WHERE id > %d ORDER BY id ASC LIMIT 200',
+                $table,
+                $cursor
             ), ARRAY_A );
             foreach ( (array) $rows as $row ) {
                 $cursor = (int) $row['id'];
@@ -291,6 +294,7 @@ final class TaxoCommerce_FAQs {
                 fputcsv( $out, $values );
             }
         } while ( count( (array) $rows ) === 200 );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing the HTTP CSV stream created immediately above.
         fclose( $out );
         exit;
     }
@@ -302,12 +306,17 @@ final class TaxoCommerce_FAQs {
             || (int) $_FILES['faqs_csv']['size'] > 2 * MB_IN_BYTES ) {
             self::notice( 'Selecciona un CSV válido de hasta 2 MB.', true );
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Reading a size-checked, verified PHP upload stream row by row for bounded CSV parsing.
         $file = fopen( $_FILES['faqs_csv']['tmp_name'], 'r' );
         if ( ! $file ) { self::notice( 'No se pudo abrir el CSV.', true ); }
         $header = fgetcsv( $file );
         $needed = array( 'id', 'object_type', 'object_id', 'product_cat_id', 'question', 'answer', 'sort_order', 'active' );
         $header = is_array( $header ) ? array_map( 'trim', $header ) : array();
-        if ( array_diff( $needed, $header ) ) { fclose( $file ); self::notice( 'Faltan columnas CSV requeridas.', true ); }
+        if ( array_diff( $needed, $header ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the validated upload stream on CSV header failure.
+            fclose( $file );
+            self::notice( 'Faltan columnas CSV requeridas.', true );
+        }
         global $wpdb;
         $table = self::table( 'seo_faq' );
         $created = 0; $updated = 0; $errors = 0; $seen = 0;
@@ -327,7 +336,7 @@ final class TaxoCommerce_FAQs {
                 'answer' => $answer, 'sort_order' => absint( $data['sort_order'] ),
                 'active' => (int) ( '1' === trim( $data['active'] ) ), 'updated_at' => current_time( 'mysql', true ) );
             $id = absint( $data['id'] );
-            $existing = $id ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE id=%d", $id ) ) : 0;
+            $existing = $id ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d', $table, $id ) ) : 0;
             if ( $existing ) {
                 $ok = $wpdb->update( $table, $payload, array( 'id' => $existing ) );
                 if ( false === $ok ) { $errors++; continue; }
@@ -353,6 +362,7 @@ final class TaxoCommerce_FAQs {
                 self::save_tags( $id, $groups );
             }
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the bounded CSV stream after parsing.
         fclose( $file );
         self::notice( sprintf( 'Importación: %d creadas, %d actualizadas, %d errores. Máximo 500 filas por archivo.', $created, $updated, $errors ), $errors > 0 );
     }
@@ -369,19 +379,27 @@ final class TaxoCommerce_FAQs {
         self::ensure_category();
         $table = self::table( 'seo_faq' );
         $id = isset( $_GET['faq_id'] ) ? absint( wp_unslash( $_GET['faq_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $editing = $id ? $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id=%d", $id ), ARRAY_A ) : null;
+        $editing = $id ? $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A ) : null;
         $summary = $wpdb->get_row( "SELECT COUNT(*) total, SUM(active=1) active_count,SUM(active=0) inactive_count,COUNT(DISTINCT CONCAT(object_type,':',object_id)) destinations,SUM(open_count) opens,
             COUNT(DISTINCT NULLIF(product_cat_id,0)) categories,SUM(product_cat_id=0) uncategorized FROM {$table}", ARRAY_A );
         $page = isset( $_GET['faq_paged'] ) ? max( 1, absint( wp_unslash( $_GET['faq_paged'] ) ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $search = isset( $_GET['faq_search'] ) ? sanitize_text_field( wp_unslash( $_GET['faq_search'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $filter_category = isset( $_GET['faq_category'] ) ? absint( wp_unslash( $_GET['faq_category'] ) ) : 0;
-        $conditions = array();
-        $values = array();
-        if ( $search ) { $conditions[] = 'question LIKE %s'; $values[] = '%' . $wpdb->esc_like( $search ) . '%'; }
-        if ( $filter_category ) { $conditions[] = 'product_cat_id=%d'; $values[] = $filter_category; }
-        $where = $conditions ? 'WHERE ' . implode( ' AND ', $conditions ) : '';
-        if ( $values ) { $where = $wpdb->prepare( $where, $values ); }
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} {$where} ORDER BY id DESC LIMIT 25 OFFSET %d", ( $page - 1 ) * 25 ), ARRAY_A );
+        // Use one static, fully prepared query; both filters are optional.
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM %i WHERE (%s = '' OR question LIKE %s)
+                  AND (%d = 0 OR product_cat_id = %d)
+                  ORDER BY id DESC LIMIT 25 OFFSET %d",
+                $table,
+                $search,
+                '%' . $wpdb->esc_like( $search ) . '%',
+                $filter_category,
+                $filter_category,
+                ( $page - 1 ) * 25
+            ),
+            ARRAY_A
+        );
         $notice = get_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() );
         echo '<div class="wrap"><h2>FAQs</h2><p>Preguntas frecuentes asociadas a hubs, categorías o productos. Datos compartidos con TaxoCommerce SEO.</p>';
         if ( $notice ) { delete_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() ); echo '<div class="notice notice-' . ( $notice[1] ? 'error' : 'success' ) . '"><p>' . esc_html( $notice[0] ) . '</p></div>'; }
