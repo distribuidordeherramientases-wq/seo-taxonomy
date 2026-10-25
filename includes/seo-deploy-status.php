@@ -28,6 +28,8 @@ function seo_taxocommerce_known_deploy_modules() {
 		'taxocommerce-google-bing'   => 'taxocommerce-google-bing/taxocommerce-google-bing.php',
 		'taxocommerce-auditor'       => 'taxocommerce-auditor/taxocommerce-auditor.php',
 		'taxocommerce-redirects'     => 'taxocommerce-redirects/taxocommerce-redirects.php',
+		'taxocommerce-logistica'     => 'taxocommerce-logistica/taxocommerce-logistica.php',
+		'taxocommerce-facturacion'   => 'taxocommerce-facturacion/taxocommerce-facturacion.php',
 	);
 }
 

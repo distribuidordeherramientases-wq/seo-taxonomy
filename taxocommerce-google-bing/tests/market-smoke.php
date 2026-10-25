@@ -1,6 +1,6 @@
 <?php
 /**
- * Mercado smoke test: the UI must not call external services, and the new
+ * Market smoke test: the UI must not call external services, and the new
  * module must load with no WooCommerce, Core, or legacy Ojeador installed.
  * Run: php taxocommerce-google-bing/tests/market-smoke.php
  */
@@ -62,7 +62,7 @@ if ( count( $tables ) !== 3 ||
     $tables['categories'] !== 'wp_tgb_market_categories' ||
     $tables['sources'] !== 'wp_tgb_market_sources' ||
     $tables['runs'] !== 'wp_tgb_market_runs' ) {
-    fwrite( STDERR, "Incorrect Mercado tables\n" );
+    fwrite( STDERR, "Incorrect Market tables\n" );
     exit( 1 );
 }
 if ( TaxoCommerce_Google_Bing_Market_Sources::any_global_provider() ||
@@ -74,14 +74,11 @@ $_GET = array();
 ob_start();
 TaxoCommerce_Google_Bing_Market::render();
 $html = ob_get_clean();
-foreach ( array( 'Mercado', 'Sincronizar siguiente lote de categorías', 'No existe la taxonomía product_cat',
-    'Analizar pendientes en cola', 'Sin evidencias' ) as $needle ) {
-    if ( 'Sin evidencias' === $needle ) {
-        continue; // This phrase occurs only on the selected category screen.
-    }
+foreach ( array( 'Market · Category Research', 'Sync next category batch', 'The product_cat taxonomy does not exist',
+    'Analyze queued pending categories' ) as $needle ) {
     if ( false === strpos( $html, $needle ) ) {
-        fwrite( STDERR, "Mercado output missing: $needle\n" );
+        fwrite( STDERR, "Market output missing: $needle\n" );
         exit( 1 );
     }
 }
-echo "Mercado smoke: OK, independent admin render, three owned tables, zero network calls\n";
+echo "Market smoke: OK, independent admin render, three owned tables, zero network calls\n";

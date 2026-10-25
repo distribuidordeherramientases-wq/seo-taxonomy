@@ -25,11 +25,11 @@ final class TaxoCommerce_Google_Bing_Trends {
      */
     public static function countries() {
         $featured = array(
-            'ES' => 'España',
+            'ES' => 'Spain',
             'DE' => 'Alemania',
             'FR' => 'Francia',
-            'NL' => 'Países Bajos',
-            'US' => 'Estados Unidos',
+            'NL' => 'Netherlands',
+            'US' => 'United States',
         );
         $additional = array();
         if ( function_exists( 'WC' ) ) {
@@ -107,7 +107,7 @@ final class TaxoCommerce_Google_Bing_Trends {
             return new WP_Error( 'tgb_trends_terms_empty', 'Introduce al menos una palabra o frase.' );
         }
         if ( strlen( $raw ) > 1500 ) {
-            return new WP_Error( 'tgb_trends_terms_long', 'La lista de términos es demasiado larga.' );
+            return new WP_Error( 'tgb_trends_terms_long', 'The term list is too long.' );
         }
         $terms = array();
         $seen = array();
@@ -118,7 +118,7 @@ final class TaxoCommerce_Google_Bing_Trends {
             }
             $length = function_exists( 'mb_strlen' ) ? mb_strlen( $term, 'UTF-8' ) : strlen( $term );
             if ( $length > 120 ) {
-                return new WP_Error( 'tgb_trends_term_long', 'Cada frase debe tener 120 caracteres como máximo.' );
+                return new WP_Error( 'tgb_trends_term_long', 'Each phrase may contain at most 120 characters.' );
             }
             $key = function_exists( 'mb_strtolower' ) ? mb_strtolower( $term, 'UTF-8' ) : strtolower( $term );
             if ( isset( $seen[ $key ] ) ) {
@@ -127,7 +127,7 @@ final class TaxoCommerce_Google_Bing_Trends {
             $seen[ $key ] = true;
             $terms[] = $term;
             if ( count( $terms ) > 5 ) {
-                return new WP_Error( 'tgb_trends_terms_limit', 'Compara un máximo de cinco palabras o frases por consulta.' );
+                return new WP_Error( 'tgb_trends_terms_limit', 'Compare at most five words or phrases per query.' );
             }
         }
         return $terms ? $terms : new WP_Error( 'tgb_trends_terms_empty', 'Introduce al menos una palabra o frase.' );
@@ -168,7 +168,7 @@ final class TaxoCommerce_Google_Bing_Trends {
         $geo = isset( $_POST['explore_geo'] ) && is_string( $_POST['explore_geo'] )
             ? strtoupper( trim( sanitize_text_field( wp_unslash( $_POST['explore_geo'] ) ) ) ) : '';
         if ( '' !== $geo && ! preg_match( '/^[A-Z]{2}$/', $geo ) ) {
-            wp_die( esc_html__( 'Selecciona una región válida.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'Select a valid region.', 'taxocommerce-google-bing' ) );
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
         $period = isset( $_POST['explore_period'] ) && is_string( $_POST['explore_period'] )
@@ -193,34 +193,34 @@ final class TaxoCommerce_Google_Bing_Trends {
 
         echo '<div class="tgb-trends">';
         echo '<h2>Google Trends</h2>';
-        echo '<p>Consulta el interés de búsqueda de las palabras que elijas, en el país y periodo que indiques. <strong>Pulsa «Buscar tendencias» para mostrar los gráficos debajo.</strong></p>';
+        echo '<p>Explore search interest for the terms you choose in the selected country and period. <strong>Click “Search trends” to display the charts below.</strong></p>';
 
         echo '<section class="tgb-trends-query">';
         echo '<form id="tgb-trends-search-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" target="_blank" rel="noopener noreferrer">';
         echo '<input type="hidden" name="action" value="tgb_trends_explore">';
         // Accessible no-JavaScript fallback: original handler opens Explore.
         wp_nonce_field( 'tgb_trends_explore' );
-        echo '<label for="tgb-trends-terms"><strong>Palabras o frases a consultar</strong></label>';
-        echo '<textarea id="tgb-trends-terms" class="large-text" name="trends_terms" rows="4" maxlength="1500" required placeholder="taladros a batería&#10;Makita&#10;llaves de impacto"></textarea>';
-        echo '<p class="description">Escribe una palabra o frase por línea, hasta cinco. Se mostrarán resultados exclusivamente de esas búsquedas.</p>';
+        echo '<label for="tgb-trends-terms"><strong>Words or phrases to explore</strong></label>';
+        echo '<textarea id="tgb-trends-terms" class="large-text" name="trends_terms" rows="4" maxlength="1500" required placeholder="cordless drills&#10;Makita&#10;impact wrenches"></textarea>';
+        echo '<p class="description">Enter one word or phrase per line, up to five. Results are shown only for those searches.</p>';
 
         echo '<div class="tgb-trends-controls">';
-        echo '<label for="tgb-trends-explore-geo"><strong>Zona:</strong></label>';
+        echo '<label for="tgb-trends-explore-geo"><strong>Region:</strong></label>';
         echo '<select id="tgb-trends-explore-geo" name="explore_geo">';
-        echo '<option value="">Todo el mundo</option>';
+        echo '<option value="">Worldwide</option>';
         foreach ( $countries as $code => $label ) {
             echo '<option value="' . esc_attr( $code ) . '">' . esc_html( $label ) . '</option>';
         }
         echo '</select>';
 
-        echo '<label for="tgb-trends-explore-period"><strong>Periodo:</strong></label>';
+        echo '<label for="tgb-trends-explore-period"><strong>Period:</strong></label>';
         echo '<select id="tgb-trends-explore-period" name="explore_period">';
         foreach ( array(
-            'now 7-d' => 'Últimos 7 días',
-            'today 1-m' => 'Últimos 30 días',
-            'today 3-m' => 'Últimos 90 días',
-            'today 12-m' => 'Últimos 12 meses',
-            'today 5-y' => 'Últimos 5 años',
+            'now 7-d' => 'Last 7 days',
+            'today 1-m' => 'Last 30 days',
+            'today 3-m' => 'Last 90 days',
+            'today 12-m' => 'Last 12 months',
+            'today 5-y' => 'Last 5 years',
         ) as $value => $label ) {
             echo '<option value="' . esc_attr( $value ) . '"' . ( 'today 12-m' === $value ? ' selected' : '' ) . '>' . esc_html( $label ) . '</option>';
         }
@@ -228,20 +228,20 @@ final class TaxoCommerce_Google_Bing_Trends {
         echo '</div>';
 
         echo '<div class="tgb-trends-actions">';
-        echo '<button class="button button-primary" type="submit">Buscar tendencias</button>';
-        echo '<a class="button" id="tgb-trends-open-google" href="https://trends.google.com/trends/explore" target="_blank" rel="noopener noreferrer">Abrir en Google Trends ↗</a>';
+        echo '<button class="button button-primary" type="submit">Search trends</button>';
+        echo '<a class="button" id="tgb-trends-open-google" href="https://trends.google.com/trends/explore" target="_blank" rel="noopener noreferrer">Open in Google Trends ↗</a>';
         echo '</div>';
         echo '<p id="tgb-trends-validation" class="notice notice-error inline" role="alert" hidden></p>';
         echo '</form>';
         echo '</section>';
 
-        echo '<section id="tgb-trends-results" class="tgb-trends-results" aria-label="Resultados de Google Trends" hidden></section>';
+        echo '<section id="tgb-trends-results" class="tgb-trends-results" aria-label="Google Trends results" hidden></section>';
         echo '<div id="tgb-trends-empty" class="tgb-trends-empty">';
-        echo '<strong>Todavía no hay resultados para esta consulta.</strong>';
-        echo '<p>Introduce las palabras, elige el país y el periodo, y pulsa «Buscar tendencias». No se realizan consultas automáticamente al abrir esta pestaña.</p>';
+        echo '<strong>No results for this query yet.</strong>';
+        echo '<p>Enter terms, choose a country and period, then click “Search trends”. No automatic query is made when opening this tab.</p>';
         echo '</div>';
 
-        echo '<p class="description tgb-trends-api"><strong>Fuente: </strong><a href="https://trends.google.com/trends/" target="_blank" rel="noopener noreferrer">Google Trends</a>. Los gráficos integrados muestran índices relativos de interés (0–100), no volúmenes absolutos ni visitas de tu tienda. Google puede limitar la integración de algunos gráficos. La <a href="https://developers.google.com/search/apis/trends" target="_blank" rel="noopener noreferrer">API oficial para descargar series</a> continúa en acceso alfa restringido.</p>';
+        echo '<p class="description tgb-trends-api"><strong>Source: </strong><a href="https://trends.google.com/trends/" target="_blank" rel="noopener noreferrer">Google Trends</a>. Embedded charts show relative interest indexes (0–100), not absolute volumes or store visits. Google may limit embedding for some charts. The <a href="https://developers.google.com/search/apis/trends" target="_blank" rel="noopener noreferrer">official API for downloadable series</a> remains in restricted alpha access.</p>';
         echo '<style>
           .tgb-trends{margin-top:18px;max-width:1250px}
           .tgb-trends-query{margin:18px 0;padding:18px;background:#fff;border:1px solid #dcdcde;border-radius:6px}
@@ -279,10 +279,10 @@ final class TaxoCommerce_Google_Bing_Trends {
      */
     public static function parse_rss( $body ) {
         if ( ! function_exists( 'simplexml_load_string' ) ) {
-            return new WP_Error( 'tgb_trends_simplexml', 'SimpleXML no está habilitado en PHP.' );
+            return new WP_Error( 'tgb_trends_simplexml', 'SimpleXML is not enabled in PHP.' );
         }
         if ( '' === trim( (string) $body ) ) {
-            return new WP_Error( 'tgb_trends_empty', 'Google Trends ha devuelto un RSS vacío.' );
+            return new WP_Error( 'tgb_trends_empty', 'Google Trends returned an empty RSS feed.' );
         }
 
         $previous = libxml_use_internal_errors( true );
@@ -291,7 +291,7 @@ final class TaxoCommerce_Google_Bing_Trends {
         libxml_use_internal_errors( $previous );
 
         if ( false === $xml || ! isset( $xml->channel->item ) ) {
-            return new WP_Error( 'tgb_trends_xml', 'El RSS no contiene una lista de tendencias válida.' );
+            return new WP_Error( 'tgb_trends_xml', 'The RSS feed does not contain a valid trends list.' );
         }
 
         $items = array();
@@ -345,11 +345,11 @@ final class TaxoCommerce_Google_Bing_Trends {
             )
         );
         if ( is_wp_error( $response ) ) {
-            return new WP_Error( 'tgb_trends_connection', 'No se ha podido descargar el RSS de Google Trends: ' . $response->get_error_message() );
+            return new WP_Error( 'tgb_trends_connection', 'Google Trends RSS could not be downloaded: ' . $response->get_error_message() );
         }
         $code = (int) wp_remote_retrieve_response_code( $response );
         if ( $code < 200 || $code >= 300 ) {
-            return new WP_Error( 'tgb_trends_http', 'Google Trends ha respondido HTTP ' . $code . '. No se ha modificado la copia guardada.' );
+            return new WP_Error( 'tgb_trends_http', 'Google Trends returned HTTP ' . $code . '. The saved snapshot was not modified.' );
         }
         $items = self::parse_rss( wp_remote_retrieve_body( $response ) );
         if ( is_wp_error( $items ) ) {
@@ -360,7 +360,7 @@ final class TaxoCommerce_Google_Bing_Trends {
 
     public static function download() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para descargar informes.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'You do not have permission to download reports.', 'taxocommerce-google-bing' ) );
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified with source-specific nonce below.
         $geo = isset( $_POST['trends_geo'] ) ? self::valid_geo( wp_unslash( $_POST['trends_geo'] ) ) : 'ES';
@@ -368,7 +368,7 @@ final class TaxoCommerce_Google_Bing_Trends {
 
         $lock = 'tgb_trends_download_lock_' . get_current_blog_id() . '_' . $geo;
         if ( get_transient( $lock ) ) {
-            self::finish( $geo, 'Ya hay una descarga de Google Trends en curso para este país.', true );
+            self::finish( $geo, 'A Google Trends download is already running for this country.', true );
         }
         set_transient( $lock, 1, 90 );
         $result = self::fetch_rss( $geo );
@@ -392,7 +392,7 @@ final class TaxoCommerce_Google_Bing_Trends {
 
     public static function export_json() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para exportar informes.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'You do not have permission to export reports.', 'taxocommerce-google-bing' ) );
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified immediately below.
         $geo = isset( $_GET['trends_geo'] ) ? self::valid_geo( wp_unslash( $_GET['trends_geo'] ) ) : 'ES';
@@ -400,7 +400,7 @@ final class TaxoCommerce_Google_Bing_Trends {
 
         $snapshot = self::saved_snapshot( $geo );
         if ( ! $snapshot ) {
-            wp_die( esc_html__( 'No hay datos guardados para exportar.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'There are no saved data to export.', 'taxocommerce-google-bing' ) );
         }
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );

@@ -27,7 +27,7 @@ require dirname( __DIR__ ) . '/taxocommerce-database.php';
 TaxoCommerce_Database::menu();
 $calls = $GLOBALS['tcdb_menu_calls'];
 $expected = function_exists( 'taxocommerce_core' )
-    ? array( 'submenu', 'taxocommerce-core', 'taxocommerce-database', 'Base de datos' )
+    ? array( 'submenu', 'taxocommerce-core', 'taxocommerce-database', 'Database' )
     : array( 'menu', 'taxocommerce-database', 'TaxoCommerce DB' );
 if ( 1 !== count( $calls ) || $calls[0] !== $expected ) {
     fwrite( STDERR, 'FAIL: wrong standalone/Core menu registration: ' . json_encode( $calls ) . "\n" );

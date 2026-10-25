@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar versión de producción desde MAIN
+      - name: Checkout production version from MAIN
         uses: actions/checkout@v6
         with:
           ref: main
@@ -113,6 +113,8 @@ jobs:
             taxocommerce-google-bing
             taxocommerce-auditor
             taxocommerce-redirects
+            taxocommerce-logistica
+            taxocommerce-facturacion
           )
 
           is_allowed() {
@@ -169,6 +171,13 @@ jobs:
           for module in "${installed_modules[@]}"; do
             package="/tmp/$module.zip"
             rm -f "$package"
+
+            if [ "$module" = "taxocommerce-facturacion" ]; then
+              echo "Including the same Dompdf bundle from the historical module in Billing..."
+              test -f includes/facturas/dompdf/autoload.inc.php
+              rm -rf "$module/includes/dompdf"
+              cp -a includes/facturas/dompdf "$module/includes/dompdf"
+            fi
 
             echo "Empaquetando $module sin tests ni documentación..."
             (

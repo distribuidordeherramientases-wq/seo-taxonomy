@@ -1,14 +1,18 @@
-name: Build and Deploy TaxoCommerce Google Bing to STAGING
+name: Build and Deploy TaxoCommerce Insights to STAGING
 on:
   push:
     branches: [staging]
     paths:
       - 'taxocommerce-google-bing/**'
+      - 'taxocommerce-connections/taxocommerce-connections.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
       - '.github/workflows/taxocommerce-google-bing.yml'
   pull_request:
     branches: [staging]
     paths:
       - 'taxocommerce-google-bing/**'
+      - 'taxocommerce-connections/taxocommerce-connections.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
       - '.github/workflows/taxocommerce-google-bing.yml'
   workflow_dispatch:
 permissions:
@@ -28,22 +32,30 @@ jobs:
         run: php taxocommerce-google-bing/tests/reporting-smoke.php
       - name: Executive report local-only smoke test
         run: php taxocommerce-google-bing/tests/executive-report-smoke.php
+      - name: Analyst local-only smoke test
+        run: php taxocommerce-google-bing/tests/analyst-smoke.php
+      - name: Merged Connections architecture smoke test
+        run: php taxocommerce-google-bing/tests/connections-merged-smoke.php
       - name: Trends manual RSS smoke test
         run: php taxocommerce-google-bing/tests/trends-smoke.php
-      - name: Mercado standalone smoke test
+      - name: Market standalone smoke test
         run: php taxocommerce-google-bing/tests/market-smoke.php
-      - name: Mercado category storage integration test
+      - name: Market category storage integration test
         run: php taxocommerce-google-bing/tests/market-catalog-smoke.php
       - name: Check plugin independence
         run: |
           test -s taxocommerce-google-bing/taxocommerce-google-bing.php
           test -s taxocommerce-google-bing/includes/class-taxocommerce-google-bing-connections.php
+          test -s taxocommerce-google-bing/includes/class-taxocommerce-google-bing-analyst.php
+          test -s taxocommerce-google-bing/includes/class-taxocommerce-connections-admin.php
+          test -s taxocommerce-google-bing/includes/class-taxocommerce-connections-amazon.php
+          test -s taxocommerce-google-bing/includes/class-taxocommerce-connections-pinterest.php
           if grep -R 'SEO_SYSTEM_PATH\|SEO_SYSTEM_FILE\|require_once.*seo-taxonomy' taxocommerce-google-bing --include='*.php'; then exit 1; fi
       - name: Package ZIP
         run: zip -qr taxocommerce-google-bing.zip taxocommerce-google-bing
       - uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-google-bing-${{ github.sha }}
+          name: taxocommerce-insights-${{ github.sha }}
           path: taxocommerce-google-bing.zip
   deploy:
     needs: verify
@@ -51,7 +63,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
     steps:
       - uses: actions/checkout@v4
-      - name: Upload only this plugin to STAGING
+      - name: Upload TaxoCommerce Insights to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}

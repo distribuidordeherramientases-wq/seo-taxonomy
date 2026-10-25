@@ -1,0 +1,38 @@
+.tgb-analyst{max-width:1500px}
+.tgb-analyst-head,.tgb-analyst-section-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.tgb-analyst-head{margin:18px 0}
+.tgb-analyst-head h2,.tgb-analyst-section h3{margin:0 0 6px}
+.tgb-analyst-head p,.tgb-analyst-section-head p{margin:0;max-width:980px;color:#50575e}
+.tgb-analyst-section{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;margin:0 0 18px}
+.tgb-analyst-state{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;background:#f0f0f1;color:#3c434a}
+.tgb-analyst-state.is-improving{background:#edfaef;color:#116329}
+.tgb-analyst-state.is-declining{background:#fcf0f1;color:#8a2424}
+.tgb-analyst-state.is-mixed{background:#fff8e5;color:#8a4b08}
+.tgb-analyst-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.tgb-analyst-kpi{border:1px solid #dcdcde;border-radius:7px;padding:13px;background:#fdfdfd}
+.tgb-analyst-kpi span,.tgb-analyst-kpi small{display:block;color:#646970}
+.tgb-analyst-kpi strong{display:block;font-size:24px;line-height:1.2;margin:4px 0}
+.tgb-analyst-scroll{overflow:auto}
+.tgb-analyst-scroll table{min-width:820px}
+.tgb-analyst-plan{margin-top:20px}
+.tgb-analyst-plan h4{font-size:16px;margin:0 0 4px}
+.tgb-analyst-directive{display:flex;gap:14px;border:1px solid #dcdcde;border-left:5px solid #2271b1;border-radius:6px;padding:13px;margin:10px 0;background:#fff}
+.tgb-analyst-priority{min-width:64px;font-size:24px;font-weight:700}
+.tgb-analyst-priority small{font-size:11px;font-weight:400}
+.tgb-analyst-directive-body{min-width:0;flex:1}
+.tgb-analyst-directive-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tgb-analyst-directive-head strong{font-size:15px}
+.tgb-analyst-directive-body p{margin:7px 0}
+.tgb-analyst-pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:700;background:#e9f2fb;color:#135e96}
+.tgb-analyst-pill.is-muted{background:#f0f0f1;color:#3c434a}
+.tgb-analyst-meta{font-size:12px;color:#646970}
+.tgb-analyst-sources{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.tgb-analyst-sources span{display:inline-block;border-radius:999px;padding:3px 8px;background:#f0f0f1;color:#3c434a;font-size:11px}
+@media(max-width:782px){.tgb-analyst-directive{display:block}.tgb-analyst-priority{margin-bottom:8px}.tgb-analyst-kpis{grid-template-columns:1fr 1fr}}
+
+.tgb-analyst-global{margin:22px 0;padding:16px;border:1px solid #c3c4c7;border-radius:8px;background:#f6f7f7}
+.tgb-analyst-global>h4{font-size:17px;margin:0 0 5px}
+.tgb-analyst-global h4:not(:first-child){margin-top:22px}
+.tgb-analyst-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+.tgb-analyst-two table{min-width:0}
+@media(max-width:1100px){.tgb-analyst-two{grid-template-columns:1fr}}

@@ -16,6 +16,7 @@ final class TCD_Academy {
     const STATE='tcd_learning_state';
     const LOG='tcd_learning_log';
     const LOCK='tcd_learning_tick_lock';
+    const WATCHDOG='tcd_learning_watchdog_last';
     const SCHEMA_OPTION='tcd_learning_schema_version';
     const SCHEMA_VERSION='3.0.0';
 
@@ -113,6 +114,8 @@ final class TCD_Academy {
             'last_message'=>'Preparado para L1-L10, construcción del Intérprete y mantenimiento continuo.',
             'updated_at'=>'',
             'load_last'=>array(),
+            'identity_backfill_done'=>0,
+            'identity_backfill_total'=>0,
         );
     }
 
@@ -207,6 +210,7 @@ final class TCD_Academy {
     public static function boot(){
         self::maybe_upgrade();
         add_action(self::CRON_HOOK,array(__CLASS__,'tick'));
+        add_action('admin_init',array(__CLASS__,'watchdog_running_process'));
         add_filter('seo_process_supervisor_has_pending_work',array(__CLASS__,'filter_pending_work'),40,1);
         add_filter('seo_process_supervisor_manager_targets',array(__CLASS__,'filter_manager_targets'),40,3);
         add_action('admin_post_tcd_academy_control',array(__CLASS__,'control'));
@@ -237,14 +241,39 @@ final class TCD_Academy {
                 $state=self::initial_state();
                 self::save($state);
             }
+
+            $retry=array();
+            $lesson=absint($state['lesson']??0);
+            $snapshot=$lesson?self::snapshot_for_lesson($lesson):array();
+            if(
+                $snapshot
+                && 'quality_failed'===(string)($snapshot['status']??'')
+                && class_exists('TCD_Intelligence',false)
+                && method_exists('TCD_Intelligence','prepare_quality_retry')
+            ){
+                $retry=TCD_Intelligence::prepare_quality_retry($lesson,absint($snapshot['id']??0));
+            }
+
             delete_option('tcd_learning_stop');
-            self::save(array('run_id'=>$run,'status'=>'running','last_error'=>'','last_message'=>'Dependiente iniciado. Primero analizará la lección y cerrará su foto fija.'));
+            delete_option(self::WATCHDOG);
+            $message=$retry
+                ? sprintf(
+                    'Correcciones revisadas: %d fuentes releídas, %d casos reaprendidos. Reevaluando L%d sin reiniciar la formación.',
+                    absint($retry['refreshed']??0),
+                    absint($retry['relearned']??0),
+                    $lesson
+                )
+                : 'Dependiente iniciado. Primero analizará la lección y cerrará su foto fija.';
+            $changes=array('run_id'=>$run,'status'=>'running','last_error'=>'','last_message'=>$message);
+            if($retry)$changes['phase']='quality';
+            self::save($changes);
             self::queue();
             self::nudge_manager();
-            self::log('started',array('lesson'=>$state['lesson'],'phase'=>$state['phase'],'run'=>$run));
+            self::log('started',array('lesson'=>$state['lesson'],'phase'=>$state['phase'],'run'=>$run,'quality_retry'=>$retry));
         }elseif('restart'===$action && in_array($state['status'],array('idle','stopped','error','completed'),true)){
             self::clear_learning_tables();
             delete_option('tcd_learning_stop');
+            delete_option(self::WATCHDOG);
             self::save(array_merge(self::initial_state(),array('status'=>'running','run_id'=>wp_generate_uuid4())));
             self::queue();
             self::nudge_manager();
@@ -262,6 +291,44 @@ final class TCD_Academy {
         }
         if(class_exists('TCD_Intelligence'))TCD_Intelligence::reset_modern_generated();
         if(class_exists('TCD_Maintenance'))TCD_Maintenance::deactivate();
+    }
+
+    public static function watchdog_running_process(){
+        if(!is_admin())return;
+
+        $state=self::state();
+        if('running'!==(string)($state['status']??''))return;
+
+        $run=(string)($state['run_id']??'');
+        if($run && get_option('tcd_learning_stop','')===$run)return;
+
+        $now=time();
+        $last=absint(get_option(self::WATCHDOG,0));
+        if($last && ($now-$last)<15)return;
+        update_option(self::WATCHDOG,$now,false);
+
+        $lock=absint(get_option(self::LOCK,0));
+        $lock_age=$lock?max(0,$now-$lock):0;
+        if($lock && $lock_age<120)return;
+
+        $next=wp_next_scheduled(self::CRON_HOOK);
+        $cron_repaired=false;
+        if(!$next || $next<($now-15) || $next>($now+60)){
+            wp_clear_scheduled_hook(self::CRON_HOOK);
+            wp_schedule_single_event($now+1,self::CRON_HOOK);
+            $cron_repaired=true;
+        }
+
+        self::nudge_manager(0);
+        self::trace('INFO','watchdog_wakeup',array(
+            'lesson'=>absint($state['lesson']??0),
+            'phase'=>(string)($state['phase']??''),
+            'snapshot_cursor'=>absint($state['snapshot_cursor']??0),
+            'learning_cursor'=>absint($state['learning_cursor']??0),
+            'cron_repaired'=>$cron_repaired?1:0,
+            'next_tick'=>wp_next_scheduled(self::CRON_HOOK)?:0,
+            'lock_age'=>$lock_age,
+        ));
     }
 
     private static function queue($delay=null){
@@ -418,6 +485,8 @@ final class TCD_Academy {
             }
             if('snapshot'===(string)$state['phase']){
                 $processed=self::build_snapshot($state);
+            }elseif('quality'===(string)$state['phase']){
+                $processed=self::evaluate_quality($state);
             }else{
                 $processed=self::learn_snapshot($state);
             }
@@ -570,7 +639,16 @@ final class TCD_Academy {
             'last_sequence'=>$rows?absint($rows[count($rows)-1]['sequence_no']??0):0,
         ));
 
-        if(!$rows){self::complete_lesson($state);return 0;}
+        if(!$rows){
+            TCD_Intelligence::reset_quality_progress($lesson,$snapshot_id);
+            self::save(array(
+                'phase'=>'quality',
+                'last_message'=>sprintf('L%d · aprendizaje terminado. Preparando examen de calidad.',$lesson),
+            ));
+            self::log('quality_started',array('lesson'=>$lesson,'snapshot_id'=>$snapshot_id));
+            self::queue();
+            return 0;
+        }
 
         $learned=0;$unlearned=0;$last=absint($state['learning_cursor']);
         foreach($rows as $row){
@@ -657,24 +735,96 @@ final class TCD_Academy {
         return count($rows);
     }
 
-    private static function complete_lesson($state){
+    private static function evaluate_quality($state){
         global $wpdb;
         $lesson=absint($state['lesson']);
         $snapshot_id=absint($state['snapshot_id']);
         $snapshot=self::snapshot($snapshot_id);
         $learned=absint($snapshot['learned_count']??0);
         if($learned<1)throw new RuntimeException('L'.$lesson.' no tiene ninguna fuente aprendida; no se considera completada.');
-        $quality=TCD_Intelligence::finalize_lesson($lesson,$snapshot_id);
-        if(is_wp_error($quality)){
-            $wpdb->update(self::snapshots_table(),array('status'=>'quality_failed'),array('id'=>$snapshot_id));
-            throw new RuntimeException($quality->get_error_message());
+
+        if(
+            2===$lesson
+            && method_exists('TCD_Intelligence','l2_identity_backfill_step')
+        ){
+            $identity=TCD_Intelligence::l2_identity_backfill_step($snapshot_id);
+            if(is_wp_error($identity))throw new RuntimeException($identity->get_error_message());
+
+            $identity_done=absint($identity['processed']??0);
+            $identity_total=absint($identity['total']??0);
+            self::save(array(
+                'identity_backfill_done'=>$identity_done,
+                'identity_backfill_total'=>$identity_total,
+            ));
+
+            if(empty($identity['done'])){
+                $percent=$identity_total>0 ? round(100*$identity_done/$identity_total,1) : 0;
+                self::save(array(
+                    'last_message'=>sprintf(
+                        'L2 · preparando memoria de identidad desde la foto fija: %d / %d productos · %.1f%%.',
+                        $identity_done,$identity_total,$percent
+                    ),
+                ));
+                self::log('l2_identity_backfill_progress',array(
+                    'snapshot_id'=>$snapshot_id,
+                    'processed'=>$identity_done,
+                    'total'=>$identity_total,
+                    'remaining'=>absint($identity['remaining']??0),
+                    'batch'=>absint($identity['batch']??0),
+                    'written'=>absint($identity['written']??0),
+                    'percent'=>$percent,
+                ));
+                self::queue();
+                return max(1,absint($identity['batch']??1));
+            }
+
+            if($identity_total>0 && $identity_done>0){
+                self::log('l2_identity_backfill_completed',array(
+                    'snapshot_id'=>$snapshot_id,
+                    'processed'=>$identity_done,
+                    'total'=>$identity_total,
+                ));
+            }
         }
+
+        $step=TCD_Intelligence::quality_step($lesson,$snapshot_id);
+        if(is_wp_error($step))throw new RuntimeException($step->get_error_message());
+
+        if(empty($step['done'])){
+            $evaluated=absint($step['evaluated']??0);
+            $total=absint($step['total']??0);
+            $percent=(float)($step['percent']??0);
+            self::save(array(
+                'last_message'=>sprintf(
+                    'L%d · examen de calidad: %d / %d casos evaluados · %.1f%% · Top8 provisional %d · fallos provisionales %d.',
+                    $lesson,$evaluated,$total,$percent,absint($step['pass_top8']??0),absint($step['failed']??0)
+                ),
+            ));
+            self::log('quality_progress',array(
+                'lesson'=>$lesson,'snapshot_id'=>$snapshot_id,'evaluated'=>$evaluated,'total'=>$total,
+                'percent'=>$percent,'top1'=>absint($step['pass_top1']??0),'top3'=>absint($step['pass_top3']??0),
+                'top8'=>absint($step['pass_top8']??0),'failed'=>absint($step['failed']??0),
+            ));
+            self::queue(1);
+            return max(1,absint($step['batch_evaluated']??1));
+        }
+
+        $quality=(array)($step['report']??array());
+        if(empty($step['passed'])){
+            $wpdb->update(self::snapshots_table(),array('status'=>'quality_failed'),array('id'=>$snapshot_id));
+            throw new RuntimeException(sprintf(
+                'L%d no supera el control de calidad: %.1f%%, mínimo %.1f%%.',
+                $lesson,100*(float)($quality['pass_any_ratio']??0),100*(float)($quality['threshold']??0)
+            ));
+        }
+
         $wpdb->update(self::snapshots_table(),array(
             'status'=>'completed','completed_at'=>current_time('mysql'),
         ),array('id'=>$snapshot_id));
         $next=$lesson+1;
         self::save(array(
             'lesson'=>$next,'phase'=>$next<=10?'snapshot':'interpreter','snapshot_id'=>0,'snapshot_cursor'=>0,'learning_cursor'=>0,
+            'identity_backfill_done'=>0,'identity_backfill_total'=>0,
             'status'=>'running',
             'last_message'=>$next<=10
                 ? sprintf('L%d superada con %.1f%%. Preparando L%d.',$lesson,100*(float)($quality['pass_any_ratio']??0),$next)
@@ -688,6 +838,7 @@ final class TCD_Academy {
             'pass_top3'=>absint($quality['pass_top3']??0),
         ));
         self::queue();
+        return max(1,absint($step['batch_evaluated']??1));
     }
 
     private static function snapshot($id){
@@ -755,7 +906,7 @@ final class TCD_Academy {
         header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="'.$filename.'"');
 
-        echo '{"schema":{"name":"taxocommerce_dependiente_learning","version":1},';
+        echo '{"schema":{"name":"taxocommerce_dependiente_learning","version":2},';
         echo '"exported_at":'.wp_json_encode(gmdate('c')).',';
         echo '"run_id":'.wp_json_encode((string)($state['run_id']??'')).',';
         echo '"state":'.wp_json_encode($state,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',';
@@ -770,7 +921,17 @@ final class TCD_Academy {
             $syllabus=json_decode((string)$snapshot['syllabus_json'],true);
             echo '{"lesson":'.$no.',"syllabus":'.wp_json_encode($syllabus,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',';
             $meta=$snapshot;unset($meta['syllabus_json']);
-            echo '"snapshot":'.wp_json_encode($meta,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',"items":[';
+            $quality=class_exists('TCD_Intelligence',false)?TCD_Intelligence::quality_for_lesson($no):array();
+            $quality_report=array();
+            if($quality){
+                $quality_report=json_decode((string)($quality['report_json']??''),true);
+                $quality_report=is_array($quality_report)?$quality_report:array();
+            }
+            echo '"snapshot":'.wp_json_encode($meta,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',';
+            echo '"quality":'.wp_json_encode(array(
+                'summary'=>$quality,
+                'report'=>$quality_report,
+            ),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',"items":[';
             self::stream_snapshot_items(absint($snapshot['id']));
             echo ']}';
         }

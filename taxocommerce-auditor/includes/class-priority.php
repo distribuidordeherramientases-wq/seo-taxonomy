@@ -45,7 +45,7 @@ final class Priority {
             'product_without_native_vocabulary', 'category_missing_description',
             'category_missing_excerpt', 'category_without_native_vocabulary',
             'editorial_thin_content', 'editorial_without_native_vocabulary',
-            'faq_thin_answer',
+            'faq_thin_answer', 'faq_missing_product_category',
         );
         $migrate = array( 'faq_legacy_owner_active', 'faq_migration_candidate' );
 
@@ -86,7 +86,7 @@ final class Priority {
         $finding['priority_score'] = self::BASE[ $priority ] + self::SEVERITY_WEIGHT[ $severity ];
         $finding['action_class'] = $action_class;
         $finding['status'] = $status;
-        $finding['ready_now'] = false;
+        $finding['ready_now'] = in_array( $status, array( 'REVIEW_REQUIRED', 'READY_FOR_EDITOR' ), true );
         $finding['requires_source_check'] = $needs_source;
         $finding['depends_on'] = $needs_source ? array( 'verificar_ficha_fabricante_o_proveedor' ) : array();
 

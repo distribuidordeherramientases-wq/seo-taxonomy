@@ -9,6 +9,8 @@ on:
       - 'taxocommerce-images/**'
       - 'taxocommerce-vocabulary/**'
       - 'taxocommerce-system-check/**'
+      - 'taxocommerce-logistica/**'
+      - 'taxocommerce-facturacion/**'
       - '.github/workflows/ci-taxocommerce-modular-architecture.yml'
   push:
     branches: [staging]
@@ -18,6 +20,8 @@ on:
       - 'taxocommerce-images/**'
       - 'taxocommerce-vocabulary/**'
       - 'taxocommerce-system-check/**'
+      - 'taxocommerce-logistica/**'
+      - 'taxocommerce-facturacion/**'
       - '.github/workflows/ci-taxocommerce-modular-architecture.yml'
 
 permissions:
@@ -39,10 +43,13 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: |
-          find taxocommerce-core taxocommerce-redirects taxocommerce-images taxocommerce-vocabulary taxocommerce-system-check -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          find taxocommerce-core taxocommerce-redirects taxocommerce-images taxocommerce-vocabulary taxocommerce-system-check taxocommerce-logistica taxocommerce-facturacion -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
       - name: Verify decentralized architecture
         run: |
           php taxocommerce-core/tests/modular-architecture-smoke.php
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
+          php taxocommerce-logistica/tests/smoke.php
+          php taxocommerce-facturacion/tests/smoke.php
+          test -f includes/facturas/dompdf/autoload.inc.php

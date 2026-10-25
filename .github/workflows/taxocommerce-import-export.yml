@@ -1,0 +1,67 @@
+name: TaxoCommerce Import-Export CI
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-import-export/**'
+      - '.github/workflows/taxocommerce-import-export.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-import-export/**'
+      - '.github/workflows/taxocommerce-import-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP lint
+        run: |
+          find taxocommerce-import-export -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Batch queue smoke
+        run: php taxocommerce-import-export/tests/batch-queue-smoke.php
+
+      - name: Build distributable package
+        run: |
+          set -euo pipefail
+          rm -rf build/taxocommerce-import-export
+          mkdir -p build/taxocommerce-import-export
+          rsync -a             --exclude='tests/'             --exclude='*.md'             --exclude='*.bak'             taxocommerce-import-export/ build/taxocommerce-import-export/
+          test -f build/taxocommerce-import-export/taxocommerce-import-export.php
+          test -f build/taxocommerce-import-export/includes/class-taxocommerce-import-export-batch.php
+          test -f build/taxocommerce-import-export/includes/class-taxocommerce-import-export-exporter.php
+          test -f build/taxocommerce-import-export/assets/exporter.js
+          test ! -e build/taxocommerce-import-export/tests
+
+      - name: WordPress Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './build/taxocommerce-import-export'
+          slug: taxocommerce-import-export
+          wp-version: latest
+          ignore-warnings: true
+          ignore-errors: false
+
+      - name: Package ZIP
+        run: |
+          (
+            cd build
+            zip -qr ../taxocommerce-import-export.zip taxocommerce-import-export
+          )
+          unzip -t taxocommerce-import-export.zip
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-import-export-0.4.0
+          path: taxocommerce-import-export.zip
+          retention-days: 30
+          if-no-files-found: error

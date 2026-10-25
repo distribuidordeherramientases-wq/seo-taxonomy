@@ -1,0 +1,105 @@
+name: Package Logistics and Billing
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-logistica/**'
+      - 'taxocommerce-facturacion/**'
+      - 'includes/facturas/dompdf/**'
+      - '.github/workflows/package-logistica-facturacion.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-logistica/**'
+      - 'taxocommerce-facturacion/**'
+      - 'includes/facturas/dompdf/**'
+      - '.github/workflows/package-logistica-facturacion.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Logistics
+        run: |
+          find taxocommerce-logistica -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-logistica/tests/smoke.php
+
+      - name: Validate Billing
+        run: |
+          find taxocommerce-facturacion -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-facturacion/tests/smoke.php
+          test -f includes/facturas/dompdf/autoload.inc.php
+
+      - name: Build installable ZIPs
+        run: |
+          set -euo pipefail
+          rm -rf build
+          mkdir -p build/taxocommerce-logistica build/taxocommerce-facturacion
+
+          rsync -a             --exclude='tests/'             --exclude='*.md'             --exclude='*.bak'             taxocommerce-logistica/ build/taxocommerce-logistica/
+
+          rsync -a             --exclude='tests/'             --exclude='*.md'             --exclude='*.bak'             taxocommerce-facturacion/ build/taxocommerce-facturacion/
+
+          cp -a includes/facturas/dompdf build/taxocommerce-facturacion/includes/dompdf
+
+          test -f build/taxocommerce-logistica/taxocommerce-logistica.php
+          test -f build/taxocommerce-facturacion/taxocommerce-facturacion.php
+          test -f build/taxocommerce-facturacion/includes/dompdf/vendor/autoload.php
+
+          (
+            cd build
+            zip -qr ../taxocommerce-logistica-0.2.0.zip taxocommerce-logistica
+            zip -qr ../taxocommerce-facturacion-0.1.0.zip taxocommerce-facturacion
+          )
+
+          cp taxocommerce-logistica-0.2.0.zip taxocommerce-logistica.zip
+          cp taxocommerce-facturacion-0.1.0.zip taxocommerce-facturacion.zip
+
+          unzip -t taxocommerce-logistica.zip
+          unzip -t taxocommerce-facturacion.zip
+
+      - name: WordPress Plugin Check - Logística
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './build/taxocommerce-logistica'
+          slug: taxocommerce-logistica
+          wp-version: latest
+          ignore-warnings: true
+          ignore-errors: false
+
+      - name: WordPress Plugin Check - Facturación
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './build/taxocommerce-facturacion'
+          slug: taxocommerce-facturacion
+          wp-version: latest
+          exclude-dirs: 'includes/dompdf'
+          ignore-warnings: true
+          ignore-errors: false
+
+      - name: Upload Logística ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-logistica-0.2.0
+          path: |
+            taxocommerce-logistica-0.2.0.zip
+            taxocommerce-logistica.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload Facturación ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-facturacion-0.1.0
+          path: |
+            taxocommerce-facturacion-0.1.0.zip
+            taxocommerce-facturacion.zip
+          retention-days: 30
+          if-no-files-found: error

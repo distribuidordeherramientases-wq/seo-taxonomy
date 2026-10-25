@@ -522,12 +522,14 @@ final class Rules {
      * The original FAQ check requires an explicit owner and compares repeated
      * questions only within that owner. A missing schema is unavailable data.
      */
-    private static function inspect_faq( \WP_Post $post ) {
-        $title = trim( (string) $post->post_title );
-        $answer = self::text( $post->post_content );
+    private static function inspect_faq( $post ) {
+        $title = trim( (string) ( $post->post_title ?? '' ) );
+        $answer = self::text( $post->post_content ?? '' );
         $findings = array();
-        $id = absint( $post->ID );
+        $id = absint( $post->ID ?? 0 );
         $owner_key = '';
+        $category_id = 0;
+
         if ( '' === $title ) {
             $findings[] = self::finding( 'faq_empty_question', 'high', 'faq', $id, $title, 'FAQ sin pregunta.', 'Completar o retirar la pregunta.' );
         }
@@ -535,28 +537,65 @@ final class Rules {
             $findings[] = self::finding( 'faq_thin_answer', 'medium', 'faq', $id, $title, 'Respuesta ausente o demasiado escueta.', 'Aportar una respuesta concreta y verificable.' );
         }
 
-        // An FAQ plugin may register native owner metadata through the filter.
-        // Never guess an owner from the question's title.
-        $owner = apply_filters( 'taxocommerce_auditor_faq_owner', null, $post );
+        $owner = null;
+        if ( $post instanceof FAQ_Record ) {
+            $category_id = absint( $post->product_cat_id );
+            $owner_type = absint( $post->object_type );
+            $owner_id = absint( $post->object_id );
+            if ( 1 === $owner_type ) {
+                $owner = array( 'type' => 'page', 'id' => $owner_id );
+            } elseif ( 2 === $owner_type ) {
+                $owner = array( 'type' => 'product_cat', 'id' => $owner_id ?: $category_id );
+            } elseif ( 3 === $owner_type ) {
+                $owner = array( 'type' => 'product', 'id' => $owner_id );
+            } else {
+                $owner = array( 'type' => 'invalid', 'id' => $owner_id );
+            }
+
+            if ( ! $category_id || ! term_exists( $category_id, 'product_cat' ) ) {
+                $findings[] = self::finding(
+                    'faq_missing_product_category',
+                    'medium',
+                    'faq',
+                    $id,
+                    $title,
+                    'FAQ sin product_cat_id válido en el almacén canónico.',
+                    'Asignar una categoría real de WooCommerce para conservar contexto comercial y semántico.'
+                );
+            }
+        } else {
+            // Generic FAQ CPT integration remains available for third-party
+            // providers. Never infer an owner from the question text.
+            $owner = apply_filters( 'taxocommerce_auditor_faq_owner', null, $post );
+        }
+
         if ( is_array( $owner ) && isset( $owner['type'], $owner['id'] ) ) {
             $type = sanitize_key( (string) $owner['type'] );
             $owner_id = absint( $owner['id'] );
-            $valid_type = in_array( $type, array( 'product', 'product_cat' ), true );
+            $valid_type = in_array( $type, array( 'product', 'product_cat', 'page' ), true );
             if ( ! $valid_type ) {
                 $findings[] = self::finding(
                     'faq_invalid_owner_type', 'critical', 'faq', $id, $title,
-                    'El owner de FAQ no es un producto ni una categoría.',
+                    'El owner de FAQ no pertenece a los tipos canónicos página/hub, categoría o producto.',
                     'Asignar un owner canónico del tipo correcto.'
                 );
             } else {
-                $valid = 'product' === $type
-                    ? ( 'product' === get_post_type( $owner_id ) && 'publish' === get_post_status( $owner_id ) )
-                    : (bool) term_exists( $owner_id, 'product_cat' );
+                if ( 'product' === $type ) {
+                    $valid = 'product' === get_post_type( $owner_id ) && 'publish' === get_post_status( $owner_id );
+                } elseif ( 'product_cat' === $type ) {
+                    $valid = (bool) term_exists( $owner_id, 'product_cat' );
+                } else {
+                    $owner_post = get_post( $owner_id );
+                    $valid = $owner_post instanceof \WP_Post
+                        && 'publish' === (string) $owner_post->post_status
+                        && in_array( (string) $owner_post->post_type, array( 'page', 'seo_landing' ), true );
+                }
+
                 if ( ! $valid ) {
                     $findings[] = self::finding(
                         'faq_orphan_owner', 'critical', 'faq', $id, $title,
                         'No se encuentra el owner publicado o su tipo no corresponde.',
-                        'Revisar la relación nativa por ID, sin inferirla mediante similitud.'
+                        'Revisar la relación canónica por ID, sin inferirla mediante similitud.'
                     );
                 } else {
                     $owner_key = $type . ':' . $owner_id;
@@ -570,12 +609,29 @@ final class Rules {
                                     . ' ' . self::text( $owner_product->get_description() );
                             }
                         }
-                    } else {
+                    } elseif ( 'product_cat' === $type ) {
                         $owner_term = get_term( $owner_id, 'product_cat' );
                         if ( $owner_term instanceof \WP_Term ) {
                             $owner_text = $owner_term->name . ' ' . self::text( $owner_term->description );
                         }
+                    } else {
+                        $owner_post = get_post( $owner_id );
+                        if ( $owner_post instanceof \WP_Post ) {
+                            $owner_text = $owner_post->post_title . ' '
+                                . self::text( $owner_post->post_excerpt ) . ' '
+                                . self::text( $owner_post->post_content );
+                        }
                     }
+
+                    // Product category is useful supporting context even when
+                    // the direct owner is a page/hub or product.
+                    if ( $category_id ) {
+                        $context_term = get_term( $category_id, 'product_cat' );
+                        if ( $context_term instanceof \WP_Term ) {
+                            $owner_text .= ' ' . $context_term->name . ' ' . self::text( $context_term->description );
+                        }
+                    }
+
                     if ( count( self::tokens( $title ) ) >= 2 ) {
                         $alignment = self::title_alignment( $title, $owner_text );
                         if ( null !== $alignment && $alignment < 0.08 ) {
@@ -594,7 +650,7 @@ final class Rules {
             'findings'   => $findings,
             'title_key'  => self::identity_key( $title ),
             'owner_key'  => $owner_key,
-            'quality'    => self::quality( 'faq', $title, $answer, '', true, true, null, trim( (string) $post->post_name ) ),
+            'quality'    => self::quality( 'faq', $title, $answer, '', true, true, null, trim( (string) ( $post->post_name ?? '' ) ) ),
         );
     }
 
@@ -608,7 +664,7 @@ final class Rules {
         if ( in_array( $scope, array( 'posts', 'pages' ), true ) && $object instanceof \WP_Post ) {
             return self::inspect_editorial( $object, $scope );
         }
-        if ( 'faqs' === $scope && $object instanceof \WP_Post ) {
+        if ( 'faqs' === $scope && ( $object instanceof FAQ_Record || $object instanceof \WP_Post ) ) {
             return self::inspect_faq( $object );
         }
         return array( 'excluded' => true, 'reason' => 'Tipo de objeto no reconocido.' );

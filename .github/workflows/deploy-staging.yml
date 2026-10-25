@@ -1,4 +1,4 @@
-name: Despliegue inmediado a STAGING
+name: Immediate deployment to STAGING
 
 on:
   push:
@@ -59,10 +59,14 @@ jobs:
             **/.git*/**
             **/.github/**
             taxocommerce-core/**
+            taxocommerce-connections/**
+            taxocommerce-social/**
+            taxocommerce-campaigns/**
             taxocommerce-database/**
             taxocommerce-google-bing/**
             taxocommerce-images/**
             taxocommerce-import-export/**
+            taxocommerce-suppliers/**
             taxocommerce-system-check/**
             taxocommerce-templates/**
             taxocommerce-auditor/**
@@ -70,6 +74,8 @@ jobs:
             taxocommerce-dependiente/**
             taxocommerce-faqs/**
             taxocommerce-vocabulary/**
+            taxocommerce-logistica/**
+            taxocommerce-facturacion/**
             packages/**
             **/node_modules/**
             **/*.bak
@@ -173,6 +179,248 @@ jobs:
             **/*.pot
 
 
+      - name: Validate TaxoCommerce Suppliers
+        run: |
+          test -f taxocommerce-suppliers/taxocommerce-suppliers.php
+          find taxocommerce-suppliers -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-suppliers/tests/smoke.php
+
+      - name: Deploy TaxoCommerce Suppliers to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-suppliers/
+          server-dir: ./wp-content/plugins/taxocommerce-suppliers/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Validate TaxoCommerce Connections
+        run: |
+          test -f taxocommerce-connections/taxocommerce-connections.php
+          find taxocommerce-connections -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-connections/tests/connections-smoke.php
+
+      - name: Deploy TaxoCommerce Connections to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-connections/
+          server-dir: ./wp-content/plugins/taxocommerce-connections/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Validate TaxoCommerce Social
+        run: |
+          test -f taxocommerce-social/taxocommerce-social.php
+          find taxocommerce-social -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Build TaxoCommerce Social local ZIP
+        run: |
+          rm -rf build-social-package
+          mkdir -p build-social-package
+          zip -qr build-social-package/taxocommerce-social.zip taxocommerce-social \
+            -x 'taxocommerce-social/tests/*' \
+               'taxocommerce-social/**/*.bak' \
+               'taxocommerce-social/**/*.md' \
+               'taxocommerce-social/**/*.pot'
+          unzip -t build-social-package/taxocommerce-social.zip
+
+      - name: Deploy TaxoCommerce Social ZIP to Core local repository
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./build-social-package/
+          server-dir: ./wp-content/uploads/taxocommerce-core/plugins/
+          dry-run: false
+          log-level: verbose
+
+      - name: Deploy TaxoCommerce Social to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-social/
+          server-dir: ./wp-content/plugins/taxocommerce-social/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Validate TaxoCommerce Campaigns
+        id: campaigns_validate
+        continue-on-error: true
+        run: |
+          test -f taxocommerce-campaigns/taxocommerce-campaigns.php
+          find taxocommerce-campaigns -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Build TaxoCommerce Campaigns local ZIP
+        if: steps.campaigns_validate.outcome == 'success'
+        run: |
+          rm -rf build-campaigns-package
+          mkdir -p build-campaigns-package
+          zip -qr build-campaigns-package/taxocommerce-campaigns.zip taxocommerce-campaigns \
+            -x 'taxocommerce-campaigns/tests/*' \
+               'taxocommerce-campaigns/**/*.bak' \
+               'taxocommerce-campaigns/**/*.md' \
+               'taxocommerce-campaigns/**/*.pot'
+          unzip -t build-campaigns-package/taxocommerce-campaigns.zip
+
+      - name: Deploy TaxoCommerce Campaigns ZIP to Core local repository
+        if: steps.campaigns_validate.outcome == 'success'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./build-campaigns-package/
+          server-dir: ./wp-content/uploads/taxocommerce-core/plugins/
+          dry-run: false
+          log-level: verbose
+
+      - name: Deploy TaxoCommerce Campaigns to STAGING
+        if: steps.campaigns_validate.outcome == 'success'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-campaigns/
+          server-dir: ./wp-content/plugins/taxocommerce-campaigns/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Validate TaxoCommerce Distribution
+        run: |
+          test -f taxocommerce-distribution/taxocommerce-distribution.php
+          find taxocommerce-distribution -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-distribution/tests/distribution-smoke.php
+
+      - name: Deploy TaxoCommerce Distribution to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-distribution/
+          server-dir: ./wp-content/plugins/taxocommerce-distribution/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Validate TaxoCommerce Logistics
+        run: |
+          test -f taxocommerce-logistica/taxocommerce-logistica.php
+          find taxocommerce-logistica -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-logistica/tests/smoke.php
+
+      - name: Deploy TaxoCommerce Logistics to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-logistica/
+          server-dir: ./wp-content/plugins/taxocommerce-logistica/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
+      - name: Prepare and validate TaxoCommerce Billing
+        run: |
+          test -f taxocommerce-facturacion/taxocommerce-facturacion.php
+          test -f includes/facturas/dompdf/autoload.inc.php
+          rm -rf taxocommerce-facturacion/includes/dompdf
+          cp -a includes/facturas/dompdf taxocommerce-facturacion/includes/dompdf
+          find taxocommerce-facturacion -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-facturacion/tests/smoke.php
+          test -f taxocommerce-facturacion/includes/dompdf/vendor/autoload.php
+
+      - name: Deploy TaxoCommerce Billing to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-facturacion/
+          server-dir: ./wp-content/plugins/taxocommerce-facturacion/
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
       - name: Validate TaxoCommerce FAQs
         run: |
           find taxocommerce-faqs -type f -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -217,7 +465,7 @@ jobs:
             **/*.md
             **/*.pot
 
-      - name: Validate and package TaxoCommerce Dependiente
+      - name: Validate and package TaxoCommerce Assistant
         id: dependiente_package
         run: |
           set -euo pipefail
@@ -233,7 +481,7 @@ jobs:
           unzip -t "$zipfile"
           unzip -Z1 "$zipfile" | grep -Fx 'taxocommerce-dependiente/taxocommerce-dependiente.php'
 
-      - name: Publish Dependiente installable ZIP
+      - name: Publish Assistant installable ZIP
         uses: actions/upload-artifact@v4
         with:
           name: taxocommerce-dependiente-${{ steps.dependiente_package.outputs.version }}
@@ -241,7 +489,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Deploy TaxoCommerce Dependiente to STAGING
+      - name: Deploy TaxoCommerce Assistant to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}

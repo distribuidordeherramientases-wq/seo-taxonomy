@@ -8,10 +8,10 @@ final class TCD_Admin {
 
     public static function menu(){
         if (function_exists('taxocommerce_core')) {
-            add_submenu_page('taxocommerce-core','TaxoCommerce Dependiente','Dependiente','manage_woocommerce',
+            add_submenu_page('taxocommerce-core','TaxoCommerce Sales Assistant','Sales Assistant','manage_woocommerce',
                 'taxocommerce-dependiente',array(__CLASS__,'render'));
         } else {
-            add_menu_page('TaxoCommerce Dependiente','Dependiente','manage_woocommerce',
+            add_menu_page('TaxoCommerce Sales Assistant','Sales Assistant','manage_woocommerce',
                 'taxocommerce-dependiente',array(__CLASS__,'render'),'dashicons-store',59);
         }
     }
@@ -29,7 +29,8 @@ final class TCD_Admin {
         if('interpreter'===(string)($state['phase']??''))return 'M11 · Construyendo / validando Intérprete';
         if('maintenance'===(string)($state['phase']??''))return 'M12 · Actualización continua';
         if('snapshot'===(string)($state['phase']??''))return 'Analizando / creando foto fija';
-        return 'Aprendiendo y evaluando la foto fija';
+        if('quality'===(string)($state['phase']??''))return 'Examen de calidad / reevaluación';
+        return 'Aprendiendo la foto fija';
     }
 
     private static function tab_url($tab){
@@ -46,6 +47,7 @@ final class TCD_Admin {
         echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px">';
         echo '<a class="nav-tab '.esc_attr('overview'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('overview')).'">Dependiente</a>';
         echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
+        echo '<a class="nav-tab '.esc_attr('backup'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('backup')).'">Backup / Restaurar</a>';
         echo '<a class="nav-tab '.esc_attr('learning-log'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('learning-log')).'">Log de aprendizaje</a>';
         echo '</nav>';
     }
@@ -89,6 +91,22 @@ final class TCD_Admin {
             echo '<div class="notice notice-error inline"><p><strong>Último error del estado:</strong> '.esc_html((string)$state['last_error']).'</p></div>';
         }
 
+        echo '<h2>Eventos recientes del proceso</h2>';
+        echo '<p class="description">Resumen estructurado de los últimos eventos de Academia. Se mantiene aquí, junto al log bruto, para que toda la trazabilidad técnica de Dependiente esté centralizada en una sola pestaña.</p>';
+        echo '<table class="widefat striped" style="margin-bottom:18px"><thead><tr><th>Fecha (UTC)</th><th>Evento</th><th>Detalles</th></tr></thead><tbody>';
+        $academy_logs=array_reverse(array_slice(TCD_Academy::logs(),-40));
+        if($academy_logs){
+            foreach($academy_logs as $entry){
+                echo '<tr><td>'.esc_html((string)($entry['at']??'')).'</td><td>'.esc_html((string)($entry['event']??'')).'</td><td><code>'.esc_html(wp_json_encode((array)($entry['context']??array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)).'</code></td></tr>';
+            }
+        }else{
+            echo '<tr><td colspan="3">Aún no hay eventos de Academia registrados.</td></tr>';
+        }
+        echo '</tbody></table>';
+
+        echo '<h2>Log bruto para diagnóstico</h2>';
+        echo '<p class="description">Traza completa orientada a diagnóstico técnico y análisis por IA. Incluye más detalle que el resumen anterior: lecturas, escrituras, locks, reprogramaciones, consumo y errores.</p>';
+
         $auto_url=add_query_arg('auto','1',self::tab_url('learning-log'));
         echo '<p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
         echo '<a class="button button-primary" href="'.esc_url(self::tab_url('learning-log')).'">Actualizar ahora</a>';
@@ -110,17 +128,84 @@ final class TCD_Admin {
         echo '</div>';
     }
 
+    private static function quality_report($quality){
+        $report=json_decode((string)($quality['report_json']??''),true);
+        return is_array($report)?$report:array();
+    }
+
+    private static function render_quality_diagnosis($lesson,$quality){
+        $report=self::quality_report($quality);
+        if(!$report || 'failed'!==(string)($quality['status']??''))return;
+
+        $origins=(array)($report['failure_origins']??array());
+        $failures=(array)($report['failures']??array());
+        $recommendations=(array)($report['recommendations']??array());
+
+        echo '<div style="background:#fff;border:1px solid #d63638;border-left-width:4px;padding:14px;margin:18px 0">';
+        echo '<h2 style="margin-top:0">Diagnóstico de L'.esc_html((string)$lesson).'</h2>';
+        echo '<p><strong>La fuente sí se aprendió.</strong> El fallo corresponde al examen de recuperación/interpretación. ';
+        echo 'Se evaluaron '.esc_html(number_format_i18n(absint($report['evaluated']??0))).' casos y ';
+        echo esc_html(number_format_i18n(absint($report['failed']??0))).' quedaron fuera del Top-8.</p>';
+
+        echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0">';
+        foreach(array(
+            'datos_fuente'=>'Datos fuente',
+            'ambiguedad'=>'Ambigüedad',
+            'dependiente'=>'Dependiente/ranking',
+            'sin_diagnostico'=>'Sin diagnóstico',
+        ) as $key=>$label){
+            echo '<span style="padding:6px 10px;border:1px solid #c3c4c7;background:#f6f7f7"><strong>'.esc_html($label).':</strong> '.esc_html(number_format_i18n(absint($origins[$key]??0))).'</span>';
+        }
+        echo '</div>';
+
+        echo '<p><a class="button button-primary" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($lesson)).'">JSON · auditoría y corrección</a> ';
+        echo '<a class="button" href="'.esc_url(TCD_Intelligence::quality_csv_url($lesson)).'">CSV · fallos del examen</a> ';
+        echo '<a class="button" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($lesson)).'">CSV · datos a revisar</a></p>';
+        echo '<p class="description">El JSON separa lo que debes corregir en WordPress, las ambigüedades y los fallos internos de Dependiente, e incluye la deuda de datos detectada en toda la lección. Los CSV son vistas tabulares para revisión o corrección masiva.</p>';
+
+        if($recommendations){
+            echo '<h3>Qué hacer</h3><ul style="list-style:disc;padding-left:22px">';
+            foreach($recommendations as $recommendation)echo '<li>'.esc_html((string)$recommendation).'</li>';
+            echo '</ul>';
+        }
+
+        if($failures){
+            echo '<h3>Primeros casos que fallaron</h3>';
+            echo '<table class="widefat striped"><thead><tr><th>Tipo / ID</th><th>Esperado</th><th>Posición</th><th>Origen</th><th>Por qué</th><th>Qué hacer</th></tr></thead><tbody>';
+            foreach(array_slice($failures,0,12) as $failure){
+                $diagnosis=(array)($failure['diagnosis']??array());
+                echo '<tr>';
+                echo '<td><code>'.esc_html((string)($failure['source_type']??'')).':'.esc_html((string)absint($failure['source_id']??0)).'</code></td>';
+                echo '<td>'.esc_html((string)($failure['title']??$failure['query']??'' )).'</td>';
+                $rank=absint($failure['rank']??0);
+                echo '<td>'.esc_html($rank?(string)$rank:'Fuera Top-8').'</td>';
+                echo '<td><strong>'.esc_html((string)($diagnosis['origin']??'sin_diagnostico')).'</strong></td>';
+                echo '<td>'.esc_html((string)($diagnosis['reason']??'')).'</td>';
+                echo '<td>'.esc_html((string)($diagnosis['action']??'')).'</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+            if(count($failures)>12)echo '<p class="description">Mostrando 12 de '.esc_html(number_format_i18n(count($failures))).' fallos. El CSV contiene todos.</p>';
+        }
+        echo '</div>';
+    }
+
     public static function render(){
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
-        if(!in_array($tab,array('overview','knowledge','learning-log'),true))$tab='overview';
+        if(!in_array($tab,array('overview','knowledge','backup','learning-log'),true))$tab='overview';
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         self::tabs($tab);
 
         if('knowledge'===$tab){
             TCD_Knowledge_Transfer::render_admin_section();
+            echo '</div>';
+            return;
+        }
+        if('backup'===$tab){
+            TCD_Backup::render_admin_section();
             echo '</div>';
             return;
         }
@@ -140,10 +225,9 @@ final class TCD_Admin {
         echo '<p>Dependiente utiliza un único flujo interno: <strong>L1-L10</strong> para aprender y evaluar el catálogo, <strong>M11</strong> para construir y validar el Intérprete y <strong>M12</strong> para mantener el conocimiento actualizado. Cada L1-L10 conserva una <strong>foto fija auditable</strong>; toda la formación queda integrada en Dependiente, sin servicios auxiliares separados.</p>';
 
         echo '<p style="display:flex;gap:8px;flex-wrap:wrap">';
-        echo '<a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar aprendizaje completo · JSON</a>';
-        echo '<a class="button" href="'.esc_url(self::tab_url('knowledge')).'">Gestionar conocimiento portable</a>';
+        echo '<a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar auditoría L1–L10 · JSON</a>';
         echo '</p>';
-        echo '<p class="description">El aprendizaje completo sirve para auditar las diez lecciones. La exportación/importación de conocimiento portable está separada en su propia pestaña para que no quede oculta al final de esta pantalla.</p>';
+        echo '<p class="description">Este JSON sirve para auditar el aprendizaje de las diez lecciones. El conocimiento portable y el backup se gestionan únicamente desde sus pestañas específicas para evitar accesos duplicados.</p>';
 
         $priority=TCD_Load::priority();
         $sample=TCD_Load::last_sample();
@@ -170,19 +254,53 @@ final class TCD_Admin {
         echo '<div style="background:#fff;border:1px solid #c3c4c7;padding:14px;margin-bottom:16px">';
         echo '<h2 style="margin-top:0">Estado: '.esc_html((string)$state['status']).'</h2>';
         $module=absint($state['lesson']??1);
+        $current_snapshot=TCD_Academy::snapshot_for_lesson($module);
+        $quality_progress=class_exists('TCD_Intelligence',false)
+            ? TCD_Intelligence::quality_progress($module,absint($current_snapshot['id']??0))
+            : array();
+        $identity_backfill_done=absint($state['identity_backfill_done']??0);
+        $identity_backfill_total=absint($state['identity_backfill_total']??0);
+        $identity_backfill_active=
+            2===$module
+            && 'quality'===(string)($state['phase']??'')
+            && $identity_backfill_total>0
+            && $identity_backfill_done<$identity_backfill_total;
         echo '<p><strong>Fase:</strong> '.esc_html(self::phase_label($state)).' · <strong>Módulo:</strong> '.esc_html($module<=10?'L'.$module:'M'.$module).' / 12';
         if('snapshot'===(string)($state['phase']??'')){
             echo ' · <strong>Fuentes analizadas:</strong> '.esc_html(number_format_i18n(absint($state['snapshot_cursor']??0)));
+        }elseif($identity_backfill_active){
+            echo ' · <strong>Identidades preparadas:</strong> '.esc_html(number_format_i18n($identity_backfill_done)).' / '.esc_html(number_format_i18n($identity_backfill_total));
+        }elseif('quality'===(string)($state['phase']??'') && $quality_progress){
+            echo ' · <strong>Casos evaluados:</strong> '.esc_html(number_format_i18n(absint($quality_progress['done']??0))).' / '.esc_html(number_format_i18n(absint($quality_progress['total']??0)));
         }elseif($module<=10){
             echo ' · <strong>Elementos aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['learning_cursor']??0)));
         }
         echo ' · <strong>Aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['learned']??0))).' · <strong>No aprendidos:</strong> '.esc_html(number_format_i18n(absint($state['unlearned']??0))).'</p>';
         echo '<p>'.esc_html((string)$state['last_message']).'</p>';
+
+        // La tabla L1-L10 ya muestra el progreso dinámico de la lección activa.
+        // Evitamos duplicar aquí una segunda barra; mantenemos solo la
+        // autoactualización para que la fila inferior avance en tiempo real.
+        if(
+            'quality'===(string)($state['phase']??'')
+            && ($quality_progress || $identity_backfill_active)
+            && 'running'===(string)($state['status']??'')
+        ){
+            echo '<script>window.setTimeout(function(){window.location.reload();},4000);</script>';
+        }
+
         if(!empty($state['last_error']))echo '<div class="notice notice-error inline"><p>'.esc_html((string)$state['last_error']).'</p></div>';
-        if('running'!==(string)$state['status'])self::control_button('start','Iniciar o reanudar','button button-primary');
+        $quality_failed='quality_failed'===(string)($current_snapshot['status']??'');
+        if('running'!==(string)$state['status']){
+            self::control_button(
+                'start',
+                $quality_failed?'Revisar correcciones y reevaluar':'Iniciar o reanudar',
+                'button button-primary'
+            );
+        }
         self::control_button('stop','Detener aprendizaje');
         if('running'!==(string)$state['status'])self::control_button('restart','Reiniciar aprendizaje completo');
-        echo '<p class="description"><strong>Detener</strong> conserva la foto fija y el progreso. <strong>Reiniciar</strong> borra únicamente las tablas de aprendizaje propias de Dependiente y crea un run nuevo; nunca modifica productos, categorías, FAQs o Vocabulary.</p>';
+        echo '<p class="description"><strong>Detener</strong> conserva la foto fija y el progreso. Si una lección falla calidad, <strong>Revisar correcciones y reevaluar</strong> vuelve a leer únicamente los casos fallidos y repite el examen, sin reiniciar L1-L10. <strong>Reiniciar</strong> borra únicamente las tablas de aprendizaje propias de Dependiente y crea un run nuevo; nunca modifica productos, categorías, FAQs o Vocabulary.</p>';
         echo '</div>';
 
         echo '<h2>Las diez lecciones</h2>';
@@ -195,7 +313,19 @@ final class TCD_Admin {
             $planned=TCD_Sources::source_total($no);
             $is_current=$no===absint($state['lesson']);
             $building=$is_current && 'snapshot'===(string)($state['phase']??'');
-            if($building || !$sources){
+            $identity_backfill_in_progress=$is_current && $identity_backfill_active;
+            $quality_in_progress=$is_current && 'quality'===(string)($state['phase']??'') && !empty($quality_progress) && !$identity_backfill_in_progress;
+            if($identity_backfill_in_progress){
+                $progress_value=$identity_backfill_done;
+                $progress_total=$identity_backfill_total;
+                $progress_text='identidades L2 preparadas desde la foto fija';
+                $status='preparando identidad';
+            }elseif($quality_in_progress){
+                $progress_value=absint($quality_progress['done']??0);
+                $progress_total=absint($quality_progress['total']??0);
+                $progress_text='casos evaluados del examen de calidad';
+                $status='reevaluando';
+            }elseif($building || !$sources){
                 $progress_value=$is_current?absint($state['snapshot_cursor']??0):0;
                 $progress_total=$planned;
                 $progress_text='fuentes leídas para la foto fija';
@@ -222,17 +352,43 @@ final class TCD_Admin {
             $quality=TCD_Intelligence::quality_for_lesson($no);
             echo '<td>';
             if($quality){
-                echo '<strong>'.esc_html('passed'===(string)($quality['status']??'')?'OK':'NO').'</strong>';
-                echo '<div>'.esc_html(number_format_i18n(100*(float)($quality['pass_any_ratio']??0),1)).'% pass_any</div>';
-                echo '<div class="description">Top1 '.esc_html(number_format_i18n(absint($quality['pass_top1']??0))).' · Top3 '.esc_html(number_format_i18n(absint($quality['pass_top3']??0))).' · evaluadas '.esc_html(number_format_i18n(absint($quality['evaluated']??0))).'</div>';
+                $quality_report=self::quality_report($quality);
+                $passed='passed'===(string)($quality['status']??'');
+                if($identity_backfill_in_progress){
+                    $identity_percent=$identity_backfill_total>0 ? (100*$identity_backfill_done/$identity_backfill_total) : 0;
+                    echo '<strong>PREPARANDO IDENTIDAD · '.esc_html(number_format_i18n($identity_percent,1)).'%</strong>';
+                    echo '<div class="description">Completando la memoria de identidad de la foto fija antes de repetir el examen.</div>';
+                }elseif($quality_in_progress){
+                    echo '<strong>REEVALUANDO · '.esc_html(number_format_i18n((float)($quality_progress['percent']??0),1)).'%</strong>';
+                    echo '<div class="description">Resultado anterior debajo; se sustituirá al completar 180/180.</div>';
+                }
+                echo '<strong>'.esc_html($passed?'OK':'NO').'</strong>';
+                echo '<div>'.esc_html(number_format_i18n(100*(float)($quality['pass_any_ratio']??0),1)).'% Top8 · mínimo '.esc_html(number_format_i18n(100*(float)($quality['threshold']??0),1)).'%</div>';
+                echo '<div class="description">Top1 '.esc_html(number_format_i18n(absint($quality['pass_top1']??0))).' · Top3 '.esc_html(number_format_i18n(absint($quality['pass_top3']??0))).' · Top8 '.esc_html(number_format_i18n(absint($quality['pass_top8']??0))).' · fallos '.esc_html(number_format_i18n(absint($quality['failed']??0))).' · evaluadas '.esc_html(number_format_i18n(absint($quality['evaluated']??0))).'</div>';
+                if(!$passed){
+                    $origins=(array)($quality_report['failure_origins']??array());
+                    echo '<div class="description">Datos '.esc_html(number_format_i18n(absint($origins['datos_fuente']??0))).' · ambigüedad '.esc_html(number_format_i18n(absint($origins['ambiguedad']??0))).' · Dependiente '.esc_html(number_format_i18n(absint($origins['dependiente']??0))).'</div>';
+                }
+                echo '<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">';
+                echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($no)).'">JSON auditoría</a>';
+                echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_csv_url($no)).'">CSV examen</a>';
+                echo '</div>';
             }else echo '—';
             echo '</td>';
             echo '<td>';
-            if($snapshot)echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON</a>';
-            else echo '—';
+            if($snapshot){
+                echo '<a class="button button-small" href="'.esc_url(TCD_Academy::export_url($no)).'">JSON aprendizaje</a> ';
+                if($quality)echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($no)).'">JSON auditoría</a> ';
+                echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($no)).'">CSV datos</a>';
+            }else echo '—';
             echo '</td></tr>';
         }
         echo '</tbody></table>';
+
+        $current_quality=TCD_Intelligence::quality_for_lesson(absint($state['lesson']??0));
+        if($current_quality && 'failed'===(string)($current_quality['status']??'')){
+            self::render_quality_diagnosis(absint($state['lesson']??0),$current_quality);
+        }
 
         $interpreter=TCD_Intelligence::interpreter_state();
         $maintenance=TCD_Maintenance::state();
@@ -267,13 +423,6 @@ final class TCD_Admin {
         echo 'activas semánticas: '.esc_html(number_format_i18n(absint($feedback['active_semantic']??0)));
         echo '<div class="description">Un clic aislado no enseña una regla. Las aclaraciones pesan más, pero también necesitan repetición antes de activarse.</div>';
         echo '</td></tr></tbody></table>';
-
-        echo '<h2>Registro técnico</h2><p>Últimos eventos del análisis, sellado de foto fija y aprendizaje. Los errores de fuente se distinguen de un resultado no aprendido.</p>';
-        echo '<table class="widefat striped"><thead><tr><th>Fecha (UTC)</th><th>Evento</th><th>Detalles</th></tr></thead><tbody>';
-        foreach(array_reverse(array_slice(TCD_Academy::logs(),-40)) as $entry){
-            echo '<tr><td>'.esc_html((string)$entry['at']).'</td><td>'.esc_html((string)$entry['event']).'</td><td><code>'.esc_html(wp_json_encode($entry['context'],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)).'</code></td></tr>';
-        }
-        echo '</tbody></table>';
 
         echo '<h2>Asistente e integración</h2>';
         echo '<p>El shortcode canónico del plugin moderno es <code>[taxocommerce_dependiente_moderno]</code>. En STAGING, <code>[taxocommerce_dependiente]</code> también apunta al moderno para facilitar pruebas; en PRO, si el Dependiente antiguo está cargado, ese alias queda reservado al plugin antiguo.</p>';

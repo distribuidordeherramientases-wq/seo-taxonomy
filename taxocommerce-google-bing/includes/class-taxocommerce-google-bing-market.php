@@ -1,6 +1,6 @@
 <?php
 /**
- * Mercado: category-first evidence collection and storage.
+ * Market: category-first evidence collection and storage.
  *
  * Standalone by design. It never requires TaxoCommerce Core or the legacy
  * Ojeador/Comparador database. No network traffic while rendering screens.
@@ -260,7 +260,7 @@ final class TaxoCommerce_Google_Bing_Market {
 
     public static function sync_categories_batch() {
         if ( ! taxonomy_exists( 'product_cat' ) ) {
-            return new WP_Error( 'market_no_taxonomy', 'WooCommerce no está activo: no existe product_cat.' );
+            return new WP_Error( 'market_no_taxonomy', 'WooCommerce is not active: product_cat does not exist.' );
         }
         $offset = absint( get_option( self::CURSOR_OPTION, 0 ) );
         $terms = get_terms( array(
@@ -352,19 +352,19 @@ final class TaxoCommerce_Google_Bing_Market {
         global $wpdb;
         $cat = self::category( $id );
         if ( ! $cat || 'archived' === $cat['scan_status'] ) {
-            return new WP_Error( 'market_no_category', 'Categoría inexistente o archivada.' );
+            return new WP_Error( 'market_no_category', 'Category does not exist or is archived.' );
         }
         if ( ! class_exists( 'TaxoCommerce_Google_Bing_Market_Sources' ) ) {
-            return new WP_Error( 'market_missing_sources', 'Falta el recolector de Mercado.' );
+            return new WP_Error( 'market_missing_sources', 'Market collector is missing.' );
         }
         // An absent provider is not a fatal error: collect() records every
         // optional provider as skipped and runs whichever connection is usable.
         if ( 0 === self::today_budget() ) {
-            return new WP_Error( 'market_daily_budget', 'Límite de seguridad de 10 categorías consultadas al día alcanzado.' );
+            return new WP_Error( 'market_daily_budget', 'Daily safety limit of 10 externally queried categories reached.' );
         }
         $lock = 'tgb_market_scan_lock_' . absint( $id );
         if ( get_transient( $lock ) ) {
-            return new WP_Error( 'market_locked', 'Esta categoría ya se está analizando.' );
+            return new WP_Error( 'market_locked', 'This category is already being analyzed.' );
         }
         set_transient( $lock, 1, 4 * MINUTE_IN_SECONDS );
         $t = self::tables();
@@ -448,7 +448,7 @@ final class TaxoCommerce_Google_Bing_Market {
 
     private static function require_admin( $nonce ) {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'Unauthorized access.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( $nonce );
     }
@@ -470,8 +470,8 @@ final class TaxoCommerce_Google_Bing_Market {
         self::require_admin( 'tgb_market_sync' );
         $result = self::sync_categories_batch();
         self::redirect( is_wp_error( $result ) ? $result->get_error_message()
-            : sprintf( '%d categorías revisadas; %s.', $result['processed'],
-                $result['complete'] ? 'catálogo sincronizado' : 'quedan lotes por sincronizar' ), is_wp_error( $result ) );
+            : sprintf( '%d categories reviewed; %s.', $result['processed'],
+                $result['complete'] ? 'catalog synchronized' : 'more batches remain' ), is_wp_error( $result ) );
     }
 
     public static function handle_mapping() {
@@ -480,7 +480,7 @@ final class TaxoCommerce_Google_Bing_Market {
         $id = absint( $_POST['market_id'] ?? 0 );
         $cat = self::category( $id );
         if ( ! $cat ) {
-            self::redirect( 'Categoría no encontrada.', true );
+            self::redirect( 'Category not found.', true );
         }
         $value = absint( $_POST['google_category_id'] ?? 0 );
         $t = self::tables();
@@ -493,7 +493,7 @@ final class TaxoCommerce_Google_Bing_Market {
                 $id, 'merchant'
             ) );
         }
-        self::redirect( 'Categoría Google guardada. La asociación debe estar verificada en la taxonomía oficial.', false, $id );
+        self::redirect( 'Google category saved. The mapping must be verified against the official taxonomy.', false, $id );
     }
 
     public static function handle_scan() {
@@ -501,7 +501,7 @@ final class TaxoCommerce_Google_Bing_Market {
         $id = absint( $_POST['market_id'] ?? 0 );
         $result = self::scan_category( $id );
         self::redirect( is_wp_error( $result ) ? $result->get_error_message()
-            : 'Escaneo finalizado: ' . $result['status'] . ' · ' . $result['received'] . ' evidencias guardadas o actualizadas.',
+            : 'Scan completed: ' . $result['status'] . ' · ' . $result['received'] . ' evidence records saved or updated.',
             is_wp_error( $result ), $id );
     }
 
@@ -510,14 +510,14 @@ final class TaxoCommerce_Google_Bing_Market {
         // Queued categories can be processed without optional provider keys.
         update_option( self::QUEUE_OPTION, 1, false );
         self::queue_schedule( 60 );
-        self::redirect( 'Cola de Mercado activada. Procesa una categoría por ejecución mediante WP-Cron; máximo 10 categorías al día.' );
+        self::redirect( 'Market queue started. It processes one category per WP-Cron run, with a maximum of 10 categories per day.' );
     }
 
     public static function handle_queue_stop() {
         self::require_admin( 'tgb_market_queue_stop' );
         update_option( self::QUEUE_OPTION, 0, false );
         wp_clear_scheduled_hook( 'tgb_market_queue_tick' );
-        self::redirect( 'Cola detenida sin borrar resultados.' );
+        self::redirect( 'Queue stopped without deleting results.' );
     }
 
     public static function handle_export() {
@@ -526,7 +526,7 @@ final class TaxoCommerce_Google_Bing_Market {
         $id = absint( $_POST['market_id'] ?? 0 );
         $cat = self::category( $id );
         if ( ! $cat ) {
-            wp_die( 'Categoría no encontrada.' );
+            wp_die( 'Category not found.' );
         }
         $t = self::tables();
         $sources = $wpdb->get_results( $wpdb->prepare(
@@ -542,14 +542,14 @@ final class TaxoCommerce_Google_Bing_Market {
         unset( $source );
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="mercado_categoria_' . $cat['term_id'] . '.json"' );
+        header( 'Content-Disposition: attachment; filename="market_category_' . $cat['term_id'] . '.json"' );
         echo wp_json_encode( array(
             'schema' => 'tgb-market-category-v1',
             'exported_at_utc' => gmdate( 'c' ),
             'category' => $cat,
             'sources' => $sources,
             'runs' => $runs,
-            'purpose' => 'Dossier de evidencias para revisión editorial; no es un post publicado.',
+            'purpose' => 'Evidence dossier for editorial review; it is not a published post.',
         ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Explicit JSON download.
         exit;
     }
@@ -576,34 +576,34 @@ final class TaxoCommerce_Google_Bing_Market {
             echo '<div class="notice ' . ( ! empty( $notice['error'] ) ? 'notice-error' : 'notice-success' ) . ' inline"><p>' . esc_html( $notice['message'] ) . '</p></div>';
             delete_transient( 'tgb_market_notice_' . get_current_user_id() );
         }
-        echo '<h2>Mercado · Investigación por categoría</h2>';
-        echo '<p>Trabaja con las categorías reales de WooCommerce, sin depender de SKU, EAN o GTIN. Los resultados se almacenan exclusivamente en tablas propias y no crean borradores ni publicaciones.</p>';
-        echo '<p><strong>Categorías:</strong> ' . esc_html( $total )
-            . ' · <strong>Analizadas:</strong> ' . esc_html( $complete )
-            . ' · <strong>Pendientes:</strong> ' . esc_html( $pending )
-            . ' · <strong>Fuentes guardadas:</strong> ' . esc_html( $evidence )
-            . ' · <strong>Consultas permitidas hoy:</strong> ' . esc_html( self::today_budget() ) . '</p>';
+        echo '<h2>Market · Category Research</h2>';
+        echo '<p>Works with real WooCommerce categories without depending on SKU, EAN, or GTIN. Results are stored only in plugin-owned tables and do not create drafts or publications.</p>';
+        echo '<p><strong>Categories:</strong> ' . esc_html( $total )
+            . ' · <strong>Analyzed:</strong> ' . esc_html( $complete )
+            . ' · <strong>Pending:</strong> ' . esc_html( $pending )
+            . ' · <strong>Saved sources:</strong> ' . esc_html( $evidence )
+            . ' · <strong>Queries allowed today:</strong> ' . esc_html( self::today_budget() ) . '</p>';
         if ( ! taxonomy_exists( 'product_cat' ) ) {
-            echo '<div class="notice notice-warning inline"><p>No existe la taxonomía product_cat: instala o activa WooCommerce para descubrir categorías.</p></div>';
+            echo '<div class="notice notice-warning inline"><p>The product_cat taxonomy does not exist: install or activate WooCommerce to discover categories.</p></div>';
         }
-        self::action_form( 'tgb_market_sync', 'tgb_market_sync', 'Sincronizar siguiente lote de categorías', array(), true );
+        self::action_form( 'tgb_market_sync', 'tgb_market_sync', 'Sync next category batch', array(), true );
         if ( get_option( self::QUEUE_OPTION, 0 ) ) {
-            self::action_form( 'tgb_market_queue_stop', 'tgb_market_queue_stop', 'Detener análisis de categorías' );
+            self::action_form( 'tgb_market_queue_stop', 'tgb_market_queue_stop', 'Stop category analysis' );
         } else {
-            self::action_form( 'tgb_market_queue_start', 'tgb_market_queue_start', 'Analizar pendientes en cola' );
+            self::action_form( 'tgb_market_queue_start', 'tgb_market_queue_start', 'Analyze queued pending categories' );
         }
-        echo '<p class="description">La sincronización local revisa ' . esc_html( self::BATCH_SIZE ) . ' categorías por lote; tras la instalación continúa desde administración. La cola realiza como máximo 10 escaneos externos por día y necesita visitas o cron del servidor para avanzar. Abrir esta pantalla nunca consulta APIs externas.</p>';
+        echo '<p class="description">Local synchronization reviews ' . esc_html( self::BATCH_SIZE ) . ' categories per batch; after installation it continues from the admin. The queue performs at most 10 external scans per day and requires site traffic or server cron to progress. Opening this screen never queries external APIs.</p>';
 
         $youtube = '' !== (string) get_option( 'tgb_market_youtube_key', '' );
         $serpapi = '' !== (string) get_option( 'tgb_market_serpapi_key', '' );
         $merchant = TaxoCommerce_Google_Bing_Connections::merchant_account();
         $google = TaxoCommerce_Google_Bing_Market_Sources::google_available();
-        echo '<h3>Fuentes de investigación</h3><p>Google Search Console: ' . esc_html( $google ? 'configurado' : 'sin acceso configurado' ) . ' · YouTube: ' . esc_html( $youtube ? 'configurado' : 'sin API key' )
-            . ' · SerpApi (web y ofertas): ' . esc_html( $serpapi ? 'configurado' : 'sin API key' )
-            . ' · Merchant: ' . esc_html( $merchant ? 'ID configurado; requiere autorización y categoría Google' : 'sin cuenta' ) . '.</p>';
+        echo '<h3>Research sources</h3><p>Google Search Console: ' . esc_html( $google ? 'configured' : 'no configured access' ) . ' · YouTube: ' . esc_html( $youtube ? 'configured' : 'no API key' )
+            . ' · SerpApi (web and offers): ' . esc_html( $serpapi ? 'configured' : 'no API key' )
+            . ' · Merchant: ' . esc_html( $merchant ? 'ID configured; requires authorization and a Google category' : 'no account' ) . '.</p>';
         $connections_url = add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'connections' ), admin_url( 'admin.php' ) ) . '#tgb-market-providers';
-        echo '<p><a class="button" href="' . esc_url( $connections_url ) . '">Configurar proveedores en Conexiones</a></p>';
-        echo '<p class="description">YouTube y SerpApi son opcionales. YouTube requiere una API key de su propia API de Google; SerpApi es un proveedor externo. No se consultan APIs al abrir esta pantalla.</p>';
+        echo '<p><a class="button" href="' . esc_url( $connections_url ) . '">Configure providers in Connections</a></p>';
+        echo '<p class="description">YouTube and SerpApi are optional. YouTube requires its own Google API key; SerpApi is an external provider. No APIs are queried when opening this screen.</p>';
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only listing pagination.
         $page = max( 1, absint( $_GET['market_page'] ?? 1 ) );
@@ -612,24 +612,24 @@ final class TaxoCommerce_Google_Bing_Market {
             "SELECT id,term_id,name,country,locale,google_category_id,scan_status,last_scanned_at FROM {$t['categories']} WHERE scan_status != 'archived' ORDER BY id ASC LIMIT 40 OFFSET %d",
             $offset
         ), ARRAY_A );
-        echo '<h3>Categorías de WooCommerce</h3><div style="overflow-x:auto"><table class="widefat striped">';
-        echo '<thead><tr><th>Term ID</th><th>Categoría</th><th>País / idioma</th><th>Google Category ID</th><th>Estado</th><th>Última búsqueda</th><th>Acciones</th></tr></thead><tbody>';
+        echo '<h3>WooCommerce Categories</h3><div style="overflow-x:auto"><table class="widefat striped">';
+        echo '<thead><tr><th>Term ID</th><th>Category</th><th>Country / language</th><th>Google Category ID</th><th>Status</th><th>Last search</th><th>Actions</th></tr></thead><tbody>';
         foreach ( $rows as $row ) {
             $link = add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'mercado', 'market_term' => $row['id'] ), admin_url( 'admin.php' ) );
             echo '<tr><td>' . esc_html( $row['term_id'] ) . '</td><td><a href="' . esc_url( $link ) . '">' . esc_html( $row['name'] ) . '</a></td><td>'
-                . esc_html( $row['country'] . ' / ' . $row['locale'] ) . '</td><td>' . esc_html( $row['google_category_id'] ?: 'Sin asignar' )
+                . esc_html( $row['country'] . ' / ' . $row['locale'] ) . '</td><td>' . esc_html( $row['google_category_id'] ?: 'Unassigned' )
                 . '</td><td>' . esc_html( $row['scan_status'] ) . '</td><td>' . esc_html( $row['last_scanned_at'] ?: '-' ) . '</td><td>';
-            self::action_form( 'tgb_market_scan', 'tgb_market_scan', 'Analizar', array( 'market_id' => $row['id'] ) );
-            echo ' <a class="button" href="' . esc_url( $link ) . '">Fuentes</a></td></tr>';
+            self::action_form( 'tgb_market_scan', 'tgb_market_scan', 'Analyze', array( 'market_id' => $row['id'] ) );
+            echo ' <a class="button" href="' . esc_url( $link ) . '">Sources</a></td></tr>';
         }
         if ( ! $rows ) {
-            echo '<tr><td colspan="7">No hay categorías registradas. Utiliza Sincronizar categorías.</td></tr>';
+            echo '<tr><td colspan="7">No categories are registered. Use category synchronization.</td></tr>';
         }
         echo '</tbody></table></div>';
         $pages = (int) ceil( $total / 40 );
         if ( $pages > 1 ) {
-            echo '<p>Página ' . esc_html( $page ) . ' / ' . esc_html( $pages ) . ' ';
-            foreach ( array( 'Anterior' => max( 1, $page - 1 ), 'Siguiente' => min( $pages, $page + 1 ) ) as $label => $target ) {
+            echo '<p>Page ' . esc_html( $page ) . ' / ' . esc_html( $pages ) . ' ';
+            foreach ( array( 'Previous' => max( 1, $page - 1 ), 'Next' => min( $pages, $page + 1 ) ) as $label => $target ) {
                 $link = add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'mercado', 'market_page' => $target ), admin_url( 'admin.php' ) );
                 echo '<a class="button" href="' . esc_url( $link ) . '">' . esc_html( $label ) . '</a> ';
             }
@@ -655,26 +655,26 @@ final class TaxoCommerce_Google_Bing_Market {
         $runs = $wpdb->get_results( $wpdb->prepare(
             "SELECT run_status,collected_count,provider_report,error_message,started_at FROM {$t['runs']} WHERE category_id = %d ORDER BY id DESC LIMIT 5", $id
         ), ARRAY_A );
-        echo '<hr><h2>Expediente: ' . esc_html( $cat['name'] ) . '</h2>';
-        echo '<p>País ' . esc_html( $cat['country'] ) . ', idioma ' . esc_html( $cat['locale'] ) . '. Enlaces a páginas descubiertas no equivalen a comentarios verificados; Merchant muestra señales de popularidad, no precios de competidores individuales.</p>';
+        echo '<hr><h2>Dossier: ' . esc_html( $cat['name'] ) . '</h2>';
+        echo '<p>Country ' . esc_html( $cat['country'] ) . ', language ' . esc_html( $cat['locale'] ) . '. Links to discovered pages do not equal verified reviews; Merchant shows popularity signals, not individual competitor prices.</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_market_mapping"><input type="hidden" name="market_id" value="' . esc_attr( $id ) . '">';
         wp_nonce_field( 'tgb_market_mapping' );
-        echo '<label><strong>ID de categoría oficial Google:</strong> <input type="number" min="0" name="google_category_id" value="' . esc_attr( $cat['google_category_id'] ) . '"></label>';
-        echo ' <button type="submit" class="button">Guardar correspondencia</button></form>';
-        echo '<p class="description">La equivalencia debe verificarse antes de usar Merchant Best Sellers. No se infiere por parecido del título.</p>';
-        self::action_form( 'tgb_market_scan', 'tgb_market_scan', 'Volver a analizar categoría', array( 'market_id' => $id ), true );
-        self::action_form( 'tgb_market_export', 'tgb_market_export', 'Exportar dossier JSON', array( 'market_id' => $id ) );
-        echo '<h3>Últimos escaneos</h3>';
+        echo '<label><strong>Official Google category ID:</strong> <input type="number" min="0" name="google_category_id" value="' . esc_attr( $cat['google_category_id'] ) . '"></label>';
+        echo ' <button type="submit" class="button">Save mapping</button></form>';
+        echo '<p class="description">The mapping must be verified before using Merchant Best Sellers. It is not inferred from title similarity.</p>';
+        self::action_form( 'tgb_market_scan', 'tgb_market_scan', 'Analyze category again', array( 'market_id' => $id ), true );
+        self::action_form( 'tgb_market_export', 'tgb_market_export', 'Export dossier JSON', array( 'market_id' => $id ) );
+        echo '<h3>Latest scans</h3>';
         foreach ( $runs as $run ) {
-            echo '<p>' . esc_html( $run['started_at'] . ' · ' . $run['run_status'] . ' · ' . $run['collected_count'] . ' fuentes' );
+            echo '<p>' . esc_html( $run['started_at'] . ' · ' . $run['run_status'] . ' · ' . $run['collected_count'] . ' sources' );
             if ( $run['error_message'] ) {
                 echo '<br><span class="description">' . esc_html( $run['error_message'] ) . '</span>';
             }
             echo '</p>';
         }
-        echo '<h3>Fuentes obtenidas (' . esc_html( count( $sources ) ) . ' mostradas)</h3>';
-        echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr><th>Tipo / proveedor</th><th>Fuente</th><th>Extracto</th><th>Estado</th><th>Recogida</th></tr></thead><tbody>';
+        echo '<h3>Sources collected (' . esc_html( count( $sources ) ) . ' shown)</h3>';
+        echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr><th>Type / provider</th><th>Source</th><th>Excerpt</th><th>Status</th><th>Collected</th></tr></thead><tbody>';
         foreach ( $sources as $row ) {
             echo '<tr><td>' . esc_html( $row['source_type'] . ' / ' . $row['provider'] ) . '</td><td>';
             if ( $row['source_url'] ) {
@@ -686,8 +686,8 @@ final class TaxoCommerce_Google_Bing_Market {
                 . esc_html( $row['evidence_level'] ) . '</td><td>' . esc_html( $row['collected_at'] ) . '</td></tr>';
         }
         if ( ! $sources ) {
-            echo '<tr><td colspan="5">Sin evidencias. Configura fuentes y analiza la categoría.</td></tr>';
+            echo '<tr><td colspan="5">No evidence. Configure sources and analyze the category.</td></tr>';
         }
-        echo '</tbody></table></div><p class="description">Exportación destinada al futuro Editor. Mercado no genera publicaciones ni copia automática de comentarios en WordPress.</p>';
+        echo '</tbody></table></div><p class="description">Export intended for the future Editor. Market does not create publications or automatically copy reviews into WordPress.</p>';
     }
 }

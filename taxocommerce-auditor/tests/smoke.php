@@ -138,6 +138,7 @@ class Fake_WC_Product {
 $GLOBALS['tc_wc'] = new Fake_WC_Product();
 function wc_get_product( $id ) { return $GLOBALS['tc_wc']; }
 
+require dirname( __DIR__ ) . '/includes/class-faq-source.php';
 require dirname( __DIR__ ) . '/includes/class-rules.php';
 require dirname( __DIR__ ) . '/includes/class-editorial-specialist.php';
 require dirname( __DIR__ ) . '/includes/class-category-review.php';
@@ -203,6 +204,18 @@ $faq = Rules::inspect( 'faqs', new WP_Post( 21, 'Como se utiliza', 'como-se-util
 verify( in_array( 'faq_thin_answer', array_column( $faq['findings'], 'code' ), true ), 'Missing FAQ answer' );
 verify( ! in_array( 'faq_orphan_owner', array_column( $faq['findings'], 'code' ), true ), 'Unknown FAQ ownership not invented' );
 
+$canonical_faq = new \TaxoCommerce\Auditor\FAQ_Record( array(
+    'id' => 22,
+    'object_type' => 3,
+    'object_id' => 4,
+    'product_cat_id' => 11,
+    'question' => 'Que bateria utiliza',
+    'answer' => 'Respuesta suficientemente detallada para explicar la compatibilidad y el uso de la bateria del producto.',
+    'active' => 1,
+) );
+$canonical_result = Rules::inspect( 'faqs', $canonical_faq );
+verify( empty( array_intersect( array( 'faq_invalid_owner_type', 'faq_orphan_owner', 'faq_missing_product_category' ), array_column( $canonical_result['findings'], 'code' ) ) ), 'Canonical TaxoCommerce FAQ owner/category accepted' );
+
 $must_check = Priority::decorate( array( 'code' => 'product_attribute_title_conflict', 'severity' => 'high', 'entity_type' => 'product', 'entity_id' => 4 ) );
 verify( $must_check['priority'] === 'P1' && $must_check['requires_source_check'] && ! $must_check['ready_now'], 'P1 requires evidence and review' );
 $enrich = Priority::decorate( array( 'code' => 'product_missing_excerpt', 'severity' => 'medium', 'entity_type' => 'product', 'entity_id' => 4 ) );
@@ -211,6 +224,30 @@ verify( $enrich['priority'] === 'P2', 'P2 enrichment' );
 verify( Runner::valid_scope( 'products' ) && Runner::valid_scope( 'categories' )
     && Runner::valid_scope( 'posts' ) && Runner::valid_scope( 'pages' )
     && Runner::valid_scope( 'faqs' ), 'All five scopes supported' );
+$product_kpis = Runner::scope_kpis( 'products', array(
+    'run_mode' => 'full',
+    'processed' => 100,
+    'excluded' => 0,
+    'entities_to_review' => 20,
+    'finding_count' => 30,
+    'severity_counts' => array( 'critical'=>1, 'high'=>2 ),
+    'priority_counts' => array( 'P1'=>3 ),
+    'status_counts' => array( 'NEEDS_SOURCE_VERIFICATION'=>2 ),
+    'rule_counts' => array(
+        'product_missing_description'=>7,
+        'product_without_category'=>2,
+        'product_without_native_vocabulary'=>5,
+    ),
+    'quality' => array(
+        'average'=>78.5,
+        'bands'=>array( 'debil'=>4 ),
+    ),
+) );
+verify( 'complete_scope' === $product_kpis['coverage'], 'Full KPI coverage marker' );
+verify( 80 === $product_kpis['general'][1]['value'], 'Clean entity KPI' );
+verify( 80.0 === $product_kpis['general'][2]['value'], 'Clean rate KPI' );
+verify( 7 === $product_kpis['specific'][0]['value'], 'Product-specific KPI' );
+
 verify( ! Runner::valid_scope( 'invalid' ), 'Invalid scope rejected' );
 verify( ! defined( 'SEO_SYSTEM_PATH' ) && ! class_exists( 'SEO_Auditor' ), 'No collisions with old monolith' );
 
