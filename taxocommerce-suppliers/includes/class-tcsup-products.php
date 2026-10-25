@@ -132,7 +132,58 @@ final class TCSUP_Products {
 		return null;
 	}
 
+	private static function acceptance_lock_name( $row ) {
+		$identity = implode(
+			'|',
+			array(
+				strtoupper( trim( (string) ( $row['proveedor'] ?? '' ) ) ),
+				strtoupper( trim( (string) ( $row['pais_origen'] ?? '' ) ) ),
+				trim( (string) ( $row['proveedor_id_externo'] ?? '' ) ),
+				trim( (string) ( $row['source_row_key'] ?? '' ) ),
+				(string) absint( $row['id'] ?? 0 ),
+			)
+		);
+		return 'tcsup_' . substr( hash( 'sha256', $identity ), 0, 48 );
+	}
+
+	private static function acquire_acceptance_lock( $row ) {
+		global $wpdb;
+		$name = self::acceptance_lock_name( $row );
+		$locked = (int) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT GET_LOCK(%s,%d)', $name, 10 )
+		);
+		return 1 === $locked
+			? $name
+			: new WP_Error( 'tcsup_accept_lock', 'Another acceptance process is already working on this supplier product.' );
+	}
+
+	private static function release_acceptance_lock( $name ) {
+		if ( ! $name ) {
+			return;
+		}
+		global $wpdb;
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) );
+	}
+
 	public static function accept( $id ) {
+		$row = self::row( $id );
+		if ( ! $row ) {
+			return new WP_Error( 'tcsup_missing_row', 'Supplier catalogue row was not found.' );
+		}
+
+		$lock = self::acquire_acceptance_lock( $row );
+		if ( is_wp_error( $lock ) ) {
+			return $lock;
+		}
+
+		try {
+			return self::accept_unlocked( $id );
+		} finally {
+			self::release_acceptance_lock( $lock );
+		}
+	}
+
+	private static function accept_unlocked( $id ) {
 		if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'WC_Product_Simple' ) ) {
 			return new WP_Error( 'tcsup_woocommerce', 'WooCommerce is required to accept supplier products.' );
 		}
