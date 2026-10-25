@@ -281,7 +281,7 @@ final class Runner {
                 )
             );
             if ( is_wp_error( $terms ) ) {
-                throw new \RuntimeException( $terms->get_error_message() );
+                throw new \RuntimeException( esc_html( $terms->get_error_message() ) );
             }
             return (array) $terms;
         }

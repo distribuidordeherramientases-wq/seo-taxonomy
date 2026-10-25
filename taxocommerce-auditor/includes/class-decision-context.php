@@ -371,8 +371,9 @@ final class Decision_Context {
                     "SELECT COUNT(*) events,
                             SUM(CASE WHEN event_type='click' THEN 1 ELSE 0 END) clicks,
                             COUNT(DISTINCT query_hash) queries
-                     FROM {$events}
+                     FROM %i
                      WHERE product_id=%d",
+                    $events,
                     $id
                 ),
                 ARRAY_A
@@ -398,10 +399,13 @@ final class Decision_Context {
                         "SELECT COUNT(*) events,
                                 SUM(CASE WHEN e.event_type='click' THEN 1 ELSE 0 END) clicks,
                                 COUNT(DISTINCT e.query_hash) queries
-                         FROM {$events} e
-                         INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id=e.product_id
-                         INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
+                         FROM %i e
+                         INNER JOIN %i tr ON tr.object_id=e.product_id
+                         INNER JOIN %i tt ON tt.term_taxonomy_id=tr.term_taxonomy_id
                          WHERE tt.taxonomy='product_cat' AND tt.term_id=%d",
+                        $events,
+                        $wpdb->term_relationships,
+                        $wpdb->term_taxonomy,
                         $id
                     ),
                     ARRAY_A

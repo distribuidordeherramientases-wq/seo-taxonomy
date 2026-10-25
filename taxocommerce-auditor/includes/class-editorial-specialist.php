@@ -83,7 +83,7 @@ final class Editorial_Specialist {
                 'orderby'       => 'ID',
                 'order'         => 'ASC',
                 'no_found_rows' => true,
-                'suppress_filters' => true,
+                'suppress_filters' => false,
             )
         );
 
