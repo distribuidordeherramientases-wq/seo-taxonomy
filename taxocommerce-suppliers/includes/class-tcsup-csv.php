@@ -134,7 +134,7 @@ final class TCSUP_CSV {
 	}
 
 	private static function clean_header( $value ) {
-		$value = preg_replace( '/^ï»¿/', '', (string) $value );
+		$value = preg_replace( '/^\\x{FEFF}/u', '', (string) $value );
 		return trim( wp_strip_all_tags( $value ) );
 	}
 
@@ -144,7 +144,10 @@ final class TCSUP_CSV {
 		$template_id = isset( $_POST['template_id'] ) ? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : 'canonical';
 		$templates   = self::templates();
 		$template    = isset( $templates[ $template_id ] ) ? $templates[ $template_id ] : $templates['canonical'];
-		$provider    = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : (string) ( $template['provider'] ?? '' );
+		$provider    = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
+		if ( '' === trim( $provider ) ) {
+			$provider = sanitize_text_field( (string) ( $template['provider'] ?? '' ) );
+		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload is validated below.
 		$file = isset( $_FILES['supplier_csv'] ) && is_array( $_FILES['supplier_csv'] ) ? $_FILES['supplier_csv'] : array();
@@ -223,7 +226,7 @@ final class TCSUP_CSV {
 		if ( '' === $value ) {
 			return null;
 		}
-		$value = str_replace( array( "Â ", ' ' ), '', $value );
+		$value = preg_replace( '/[\\x{00A0}\\s]+/u', '', $value );
 		if ( false !== strpos( $value, ',' ) && false !== strpos( $value, '.' ) ) {
 			if ( strrpos( $value, ',' ) > strrpos( $value, '.' ) ) {
 				$value = str_replace( '.', '', $value );
@@ -436,8 +439,14 @@ final class TCSUP_CSV {
 		$templates   = self::templates();
 		$template_id = isset( $_POST['template_id'] ) ? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : (string) ( $state['template_id'] ?? 'canonical' );
 		$template    = isset( $templates[ $template_id ] ) ? $templates[ $template_id ] : $templates['canonical'];
-		$provider    = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : (string) ( $state['provider'] ?? $template['provider'] ?? '' );
-		$provider    = trim( $provider );
+		$provider    = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
+		if ( '' === trim( $provider ) ) {
+			$provider = sanitize_text_field( (string) ( $state['provider'] ?? '' ) );
+		}
+		if ( '' === trim( $provider ) ) {
+			$provider = sanitize_text_field( (string) ( $template['provider'] ?? '' ) );
+		}
+		$provider = trim( $provider );
 		if ( '' === $provider ) {
 			self::redirect( array( 'tc_error' => 'provider' ) );
 		}
@@ -451,9 +460,18 @@ final class TCSUP_CSV {
 		$header = is_array( $header ) ? array_map( array( __CLASS__, 'clean_header' ), $header ) : array();
 
 		$mode = (string) ( $template['mode'] ?? 'mapping' );
-		$mapping = 'mapping' === $mode
-			? self::mapping_from_request( $header )
-			: self::mapping_from_template( $template, $header );
+		$mapping = 'vevor' === $mode
+			? array()
+			: self::mapping_from_request( $header );
+
+		if ( 'vevor' === $mode ) {
+			$required_headers = array( 'Name', 'URL to product', 'categoryPath', 'URL to image', 'Currency', 'Sales' );
+			$missing_headers = array_values( array_diff( $required_headers, $header ) );
+			if ( $missing_headers ) {
+				fclose( $handle );
+				self::redirect( array( 'tc_error' => 'vevor_headers' ) );
+			}
+		}
 
 		if ( 'vevor' !== $mode ) {
 			foreach ( self::fields() as $field => $definition ) {
