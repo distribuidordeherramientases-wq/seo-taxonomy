@@ -79,6 +79,9 @@ tct_assert(TCT_Router::variant_name('template-product-mobile.php', 'desktop') ==
 tct_assert(TCT_Router::path('template-default.php') !== '', 'Encontrar archivo PHP integrado.');
 tct_assert(TCT_Template_Editor::validate_php("<?php\necho 2;\n") === true, 'Aceptar PHP correcto.');
 tct_assert(is_wp_error(TCT_Template_Editor::validate_php('<?php function invalid( {')), 'Rechazar PHP sintacticamente incorrecto.');
+tct_assert(TCT_Template_Editor::source('template-helpers.php') !== '', 'Permitir consultar Helpers integrados desde la biblioteca.');
+tct_assert(TCT_Template_Editor::source('../evil.php') === '', 'Bloquear traversal tambien en el editor.');
+tct_assert(in_array('template-product-mobile.php', TCT_Router::available_files(true), true), 'La biblioteca completa debe incluir variantes.');
 
 $defs = TCT_Request_Registry::definitions(false);
 foreach (array('front_page','blog_index','single_post','page','taxonomy_category','comments',
