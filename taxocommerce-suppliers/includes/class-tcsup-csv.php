@@ -675,9 +675,10 @@ final class TCSUP_CSV {
 				if ( 'price_update' === $mode && '' === $row_key ) {
 					$price_matches = $wpdb->get_results(
 						$wpdb->prepare(
-							"SELECT * FROM {$table}
+							"SELECT * FROM %i
 							 WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s
 							 ORDER BY id ASC LIMIT 2",
+							$table,
 							$provider,
 							$country,
 							$external_id
@@ -693,7 +694,8 @@ final class TCSUP_CSV {
 				} else {
 					$existing = $wpdb->get_row(
 						$wpdb->prepare(
-							"SELECT * FROM {$table} WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s AND source_row_key=%s LIMIT 1",
+							"SELECT * FROM %i WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s AND source_row_key=%s LIMIT 1",
+							$table,
 							$provider,
 							$country,
 							$external_id,
@@ -707,11 +709,12 @@ final class TCSUP_CSV {
 					if ( ! $existing ) {
 						$legacy_rows = $wpdb->get_results(
 							$wpdb->prepare(
-								"SELECT * FROM {$table}
+								"SELECT * FROM %i
 								 WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s
 								   AND sku=%s AND nombre=%s
 								   AND (source_row_key='' OR source_row_key IS NULL)
 								 ORDER BY id ASC LIMIT 2",
+								$table,
 								$provider,
 								$country,
 								$external_id,
@@ -730,7 +733,8 @@ final class TCSUP_CSV {
 				if ( $has_external_id ) {
 					$existing_by_external = $wpdb->get_row(
 						$wpdb->prepare(
-							"SELECT * FROM {$table} WHERE proveedor=%s AND proveedor_id_externo=%s ORDER BY id ASC LIMIT 1",
+							"SELECT * FROM %i WHERE proveedor=%s AND proveedor_id_externo=%s ORDER BY id ASC LIMIT 1",
+							$table,
 							$provider,
 							$external_id
 						),
@@ -741,7 +745,8 @@ final class TCSUP_CSV {
 				if ( '' !== $sku ) {
 					$existing_by_sku = $wpdb->get_row(
 						$wpdb->prepare(
-							"SELECT * FROM {$table} WHERE proveedor=%s AND sku=%s ORDER BY id ASC LIMIT 1",
+							"SELECT * FROM %i WHERE proveedor=%s AND sku=%s ORDER BY id ASC LIMIT 1",
+							$table,
 							$provider,
 							$sku
 						),
