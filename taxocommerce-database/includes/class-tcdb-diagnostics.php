@@ -43,43 +43,72 @@ final class TCDB_Diagnostics {
 
     public static function audit() {
         global $wpdb;
-        $tables = TCDB_Storage::tables();
-        $metrics = array();
+        $tables  = TCDB_Storage::tables();
+        $metrics = array_fill_keys( array_keys( self::definitions() ), null );
 
-        $queries = array(
-            'revisions' => "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='revision'",
-            'auto_drafts' => "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status='auto-draft'",
-            'trashed_posts' => "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status='trash'",
-            'spam_comments' => "SELECT COUNT(*) FROM {$wpdb->comments} WHERE comment_approved='spam'",
-            'trashed_comments' => "SELECT COUNT(*) FROM {$wpdb->comments} WHERE comment_approved='trash'",
-            'orphan_postmeta' => "SELECT COUNT(*) FROM {$wpdb->postmeta} m LEFT JOIN {$wpdb->posts} p ON p.ID=m.post_id WHERE p.ID IS NULL",
-            'orphan_commentmeta' => "SELECT COUNT(*) FROM {$wpdb->commentmeta} m LEFT JOIN {$wpdb->comments} c ON c.comment_ID=m.comment_id WHERE c.comment_ID IS NULL",
-            'orphan_termmeta' => "SELECT COUNT(*) FROM {$wpdb->termmeta} m LEFT JOIN {$wpdb->terms} t ON t.term_id=m.term_id WHERE t.term_id IS NULL",
-            'orphan_term_relationships' => "SELECT COUNT(*) FROM {$wpdb->term_relationships} tr LEFT JOIN {$wpdb->posts} p ON p.ID=tr.object_id WHERE p.ID IS NULL",
-            'orphan_usermeta' => "SELECT COUNT(*) FROM {$wpdb->usermeta} m LEFT JOIN {$wpdb->users} u ON u.ID=m.user_id WHERE u.ID IS NULL",
-        );
+        // Every read-only count uses a fixed SQL template and a quoted table identifier.
+        $metrics['revisions'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE post_type='revision'", $wpdb->posts ) );
+        $metrics['auto_drafts'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE post_status='auto-draft'", $wpdb->posts ) );
+        $metrics['trashed_posts'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE post_status='trash'", $wpdb->posts ) );
+        $metrics['spam_comments'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE comment_approved='spam'", $wpdb->comments ) );
+        $metrics['trashed_comments'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE comment_approved='trash'", $wpdb->comments ) );
+
+        $metrics['orphan_postmeta'] = (int) $wpdb->get_var( $wpdb->prepare(
+            'SELECT COUNT(*) FROM %i m LEFT JOIN %i p ON p.ID=m.post_id WHERE p.ID IS NULL',
+            $wpdb->postmeta, $wpdb->posts
+        ) );
+        $metrics['orphan_commentmeta'] = (int) $wpdb->get_var( $wpdb->prepare(
+            'SELECT COUNT(*) FROM %i m LEFT JOIN %i c ON c.comment_ID=m.comment_id WHERE c.comment_ID IS NULL',
+            $wpdb->commentmeta, $wpdb->comments
+        ) );
+        $metrics['orphan_termmeta'] = (int) $wpdb->get_var( $wpdb->prepare(
+            'SELECT COUNT(*) FROM %i m LEFT JOIN %i t ON t.term_id=m.term_id WHERE t.term_id IS NULL',
+            $wpdb->termmeta, $wpdb->terms
+        ) );
+        $metrics['orphan_term_relationships'] = (int) $wpdb->get_var( $wpdb->prepare(
+            'SELECT COUNT(*) FROM %i tr LEFT JOIN %i p ON p.ID=tr.object_id WHERE p.ID IS NULL',
+            $wpdb->term_relationships, $wpdb->posts
+        ) );
+        $metrics['orphan_usermeta'] = (int) $wpdb->get_var( $wpdb->prepare(
+            'SELECT COUNT(*) FROM %i m LEFT JOIN %i u ON u.ID=m.user_id WHERE u.ID IS NULL',
+            $wpdb->usermeta, $wpdb->users
+        ) );
+
         $as_actions = $wpdb->prefix . 'actionscheduler_actions';
         $as_logs = $wpdb->prefix . 'actionscheduler_logs';
         $as_claims = $wpdb->prefix . 'actionscheduler_claims';
         $stock = $wpdb->prefix . 'wc_reserved_stock';
         $items = $wpdb->prefix . 'woocommerce_order_items';
         $itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+
         if ( self::has( $as_actions, $tables ) && self::has( $as_logs, $tables ) ) {
-            $queries['as_orphan_logs'] = "SELECT COUNT(*) FROM {$as_logs} l LEFT JOIN {$as_actions} a ON a.action_id=l.action_id WHERE a.action_id IS NULL AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)";
-            $queries['as_old_completed_logs'] = "SELECT COUNT(*) FROM {$as_logs} l INNER JOIN {$as_actions} a ON a.action_id=l.action_id WHERE a.status IN ('complete','canceled') AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)";
+            $metrics['as_orphan_logs'] = (int) $wpdb->get_var( $wpdb->prepare(
+                'SELECT COUNT(*) FROM %i l LEFT JOIN %i a ON a.action_id=l.action_id WHERE a.action_id IS NULL AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)',
+                $as_logs, $as_actions
+            ) );
+            $metrics['as_old_completed_logs'] = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM %i l INNER JOIN %i a ON a.action_id=l.action_id WHERE a.status IN ('complete','canceled') AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)",
+                $as_logs, $as_actions
+            ) );
         }
         if ( self::has( $as_actions, $tables ) && self::has( $as_claims, $tables ) ) {
-            $queries['as_orphan_claims'] = "SELECT COUNT(*) FROM {$as_claims} c LEFT JOIN {$as_actions} a ON a.claim_id=c.claim_id WHERE a.action_id IS NULL AND c.date_created_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)";
+            $metrics['as_orphan_claims'] = (int) $wpdb->get_var( $wpdb->prepare(
+                'SELECT COUNT(*) FROM %i c LEFT JOIN %i a ON a.claim_id=c.claim_id WHERE a.action_id IS NULL AND c.date_created_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)',
+                $as_claims, $as_actions
+            ) );
         }
         if ( self::has( $stock, $tables ) ) {
-            $queries['wc_expired_reserved_stock'] = "SELECT COUNT(*) FROM {$stock} WHERE expires < UTC_TIMESTAMP()";
+            $metrics['wc_expired_reserved_stock'] = (int) $wpdb->get_var( $wpdb->prepare(
+                'SELECT COUNT(*) FROM %i WHERE expires < UTC_TIMESTAMP()', $stock
+            ) );
         }
         if ( self::has( $items, $tables ) && self::has( $itemmeta, $tables ) ) {
-            $queries['wc_orphan_order_itemmeta'] = "SELECT COUNT(*) FROM {$itemmeta} m LEFT JOIN {$items} i ON i.order_item_id=m.order_item_id WHERE i.order_item_id IS NULL";
+            $metrics['wc_orphan_order_itemmeta'] = (int) $wpdb->get_var( $wpdb->prepare(
+                'SELECT COUNT(*) FROM %i m LEFT JOIN %i i ON i.order_item_id=m.order_item_id WHERE i.order_item_id IS NULL',
+                $itemmeta, $items
+            ) );
         }
-        foreach ( self::definitions() as $key => $info ) {
-            $metrics[ $key ] = isset( $queries[ $key ] ) ? (int) $wpdb->get_var( $queries[ $key ] ) : null;
-        }
+
         return array(
             'at' => current_time( 'mysql' ),
             'metrics' => $metrics,
