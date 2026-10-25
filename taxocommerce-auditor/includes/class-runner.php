@@ -123,6 +123,9 @@ final class Runner {
             return is_wp_error( $count ) ? null : absint( $count );
         }
 
+        if ( 'faqs' === $scope && FAQ_Source::available() ) {
+            return FAQ_Source::count_active();
+        }
         $post_type = 'faqs' === $scope ? self::faq_post_type() : ( 'products' === $scope ? 'product' : ( 'pages' === $scope ? 'page' : 'post' ) );
         $counts = wp_count_posts( $post_type );
         return $counts && isset( $counts->publish ) ? absint( $counts->publish ) : null;
@@ -135,8 +138,8 @@ final class Runner {
         if ( 'categories' === $scope && ! taxonomy_exists( 'product_cat' ) ) {
             return 'No existe la taxonomía product_cat.';
         }
-        if ( 'faqs' === $scope && ! self::faq_post_type() ) {
-            return 'WordPress no incluye un CPT FAQ de serie. Instala el módulo FAQ o registra un tipo mediante taxocommerce_auditor_faq_post_types.';
+        if ( 'faqs' === $scope && ! FAQ_Source::available() && ! self::faq_post_type() ) {
+            return 'No está disponible la tabla canónica de TaxoCommerce FAQs ni un CPT FAQ alternativo.';
         }
         return '';
     }
@@ -256,6 +259,13 @@ final class Runner {
     private static function batch( $scope, $cursor, $filters = array(), $remaining = null ) {
         $filters = self::sanitize_filters( $scope, $filters );
         $batch_size = min( self::BATCH_SIZE, null === $remaining ? self::BATCH_SIZE : max( 1, absint( $remaining ) ) );
+        if ( 'faqs' === $scope && FAQ_Source::available() ) {
+            return FAQ_Source::batch(
+                absint( $cursor ),
+                $batch_size,
+                (string) ( $filters['search'] ?? '' )
+            );
+        }
         if ( 'categories' === $scope ) {
             $terms = get_terms(
                 array(
