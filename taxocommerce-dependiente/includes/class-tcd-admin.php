@@ -260,9 +260,18 @@ final class TCD_Admin {
         $quality_progress=class_exists('TCD_Intelligence',false)
             ? TCD_Intelligence::quality_progress($module,absint($current_snapshot['id']??0))
             : array();
+        $identity_backfill_done=absint($state['identity_backfill_done']??0);
+        $identity_backfill_total=absint($state['identity_backfill_total']??0);
+        $identity_backfill_active=
+            2===$module
+            && 'quality'===(string)($state['phase']??'')
+            && $identity_backfill_total>0
+            && $identity_backfill_done<$identity_backfill_total;
         echo '<p><strong>Fase:</strong> '.esc_html(self::phase_label($state)).' · <strong>Módulo:</strong> '.esc_html($module<=10?'L'.$module:'M'.$module).' / 12';
         if('snapshot'===(string)($state['phase']??'')){
             echo ' · <strong>Fuentes analizadas:</strong> '.esc_html(number_format_i18n(absint($state['snapshot_cursor']??0)));
+        }elseif($identity_backfill_active){
+            echo ' · <strong>Identidades preparadas:</strong> '.esc_html(number_format_i18n($identity_backfill_done)).' / '.esc_html(number_format_i18n($identity_backfill_total));
         }elseif('quality'===(string)($state['phase']??'') && $quality_progress){
             echo ' · <strong>Casos evaluados:</strong> '.esc_html(number_format_i18n(absint($quality_progress['done']??0))).' / '.esc_html(number_format_i18n(absint($quality_progress['total']??0)));
         }elseif($module<=10){
@@ -276,7 +285,7 @@ final class TCD_Admin {
         // autoactualización para que la fila inferior avance en tiempo real.
         if(
             'quality'===(string)($state['phase']??'')
-            && $quality_progress
+            && ($quality_progress || $identity_backfill_active)
             && 'running'===(string)($state['status']??'')
         ){
             echo '<script>window.setTimeout(function(){window.location.reload();},4000);</script>';
@@ -306,8 +315,14 @@ final class TCD_Admin {
             $planned=TCD_Sources::source_total($no);
             $is_current=$no===absint($state['lesson']);
             $building=$is_current && 'snapshot'===(string)($state['phase']??'');
-            $quality_in_progress=$is_current && 'quality'===(string)($state['phase']??'') && !empty($quality_progress);
-            if($quality_in_progress){
+            $identity_backfill_in_progress=$is_current && $identity_backfill_active;
+            $quality_in_progress=$is_current && 'quality'===(string)($state['phase']??'') && !empty($quality_progress) && !$identity_backfill_in_progress;
+            if($identity_backfill_in_progress){
+                $progress_value=$identity_backfill_done;
+                $progress_total=$identity_backfill_total;
+                $progress_text='identidades L2 preparadas desde la foto fija';
+                $status='preparando identidad';
+            }elseif($quality_in_progress){
                 $progress_value=absint($quality_progress['done']??0);
                 $progress_total=absint($quality_progress['total']??0);
                 $progress_text='casos evaluados del examen de calidad';
@@ -341,7 +356,11 @@ final class TCD_Admin {
             if($quality){
                 $quality_report=self::quality_report($quality);
                 $passed='passed'===(string)($quality['status']??'');
-                if($quality_in_progress){
+                if($identity_backfill_in_progress){
+                    $identity_percent=$identity_backfill_total>0 ? (100*$identity_backfill_done/$identity_backfill_total) : 0;
+                    echo '<strong>PREPARANDO IDENTIDAD · '.esc_html(number_format_i18n($identity_percent,1)).'%</strong>';
+                    echo '<div class="description">Completando la memoria de identidad de la foto fija antes de repetir el examen.</div>';
+                }elseif($quality_in_progress){
                     echo '<strong>REEVALUANDO · '.esc_html(number_format_i18n((float)($quality_progress['percent']??0),1)).'%</strong>';
                     echo '<div class="description">Resultado anterior debajo; se sustituirá al completar 180/180.</div>';
                 }
