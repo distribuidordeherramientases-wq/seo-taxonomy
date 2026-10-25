@@ -16,7 +16,7 @@ if (!defined('TCCAMPAIGNS_DB_OPTION')) {
     define('TCCAMPAIGNS_DB_OPTION', 'seo_marketing_campaigns_db_version');
 }
 if (!defined('TCCAMPAIGNS_ACTION_GROUP')) {
-    define('TCCAMPAIGNS_ACTION_GROUP', 'seo-marketing-campaigns');
+    define('TCCAMPAIGNS_ACTION_GROUP', 'taxocommerce-campaigns');
 }
 
 /**
