@@ -139,12 +139,46 @@ class TGB_Analyst_WPDB {
         return 0;
     }
     public function get_row( $query, $format = null ) {
+        if ( false !== strpos( $query, "SUM(CASE WHEN scan_status='complete'" ) ) {
+            return array( 'total' => 4, 'complete' => 2, 'partial' => 0, 'pending' => 1, 'errors' => 1 );
+        }
         if ( false !== strpos( $query, 'merchant_signals' ) ) {
             return array( 'external_evidence' => 6, 'merchant_signals' => 3 );
         }
         return array();
     }
     public function get_results( $query, $format = null ) {
+        if ( false !== strpos( $query, "s.source_type IN ('offer','market_signal')" ) && false !== strpos( $query, 'metadata_json' ) ) {
+            return array(
+                array(
+                    'term_id' => 101, 'category_name' => 'Taladros profesionales', 'source_type' => 'market_signal',
+                    'provider' => 'merchant', 'title' => 'Taladro Pro X', 'updated_at' => '2026-10-25 10:00:00',
+                    'metadata_json' => json_encode( array( 'brand' => 'Marca A', 'rank' => 2, 'relative_demand' => 'HIGH' ) ),
+                ),
+                array(
+                    'term_id' => 101, 'category_name' => 'Taladros profesionales', 'source_type' => 'offer',
+                    'provider' => 'serpapi', 'title' => 'Taladro Pro X', 'updated_at' => '2026-10-25 10:00:00',
+                    'metadata_json' => json_encode( array( 'seller' => 'Seller One', 'price_value' => 99.0 ) ),
+                ),
+                array(
+                    'term_id' => 102, 'category_name' => 'Soldadura TIG', 'source_type' => 'market_signal',
+                    'provider' => 'merchant', 'title' => 'Soldador TIG 200', 'updated_at' => '2026-10-25 09:00:00',
+                    'metadata_json' => json_encode( array( 'brand' => 'Marca B', 'rank' => 1, 'relative_demand' => 'VERY_HIGH' ) ),
+                ),
+            );
+        }
+        if ( false !== strpos( $query, 'HAVING product_signals>0' ) ) {
+            return array(
+                array(
+                    'term_id' => 101, 'name' => 'Taladros profesionales', 'country' => 'ES',
+                    'product_signals' => 8, 'merchant_signals' => 4, 'offers' => 4,
+                ),
+                array(
+                    'term_id' => 102, 'name' => 'Soldadura TIG', 'country' => 'ES',
+                    'product_signals' => 3, 'merchant_signals' => 2, 'offers' => 1,
+                ),
+            );
+        }
         if ( false !== strpos( $query, 'GROUP_CONCAT' ) ) {
             return array(
                 array(
@@ -175,6 +209,20 @@ if ( empty( $report['market']['available'] ) || 6 !== (int) $report['market']['c
     fwrite( STDERR, "Market comparison failed\n" );
     exit( 1 );
 }
+if ( 50.0 !== (float) $report['market']['global_rollup']['coverage']['coverage_pct'] ) {
+    fwrite( STDERR, "Global Market coverage rollup failed\n" );
+    exit( 1 );
+}
+if ( 3 !== (int) $report['market']['global_rollup']['product_intelligence']['signals']
+    || 2 !== (int) $report['market']['global_rollup']['product_intelligence']['unique_products'] ) {
+    fwrite( STDERR, "Product intelligence rollup failed\n" );
+    exit( 1 );
+}
+if ( empty( $report['market']['global_rollup']['catalog_gaps'] )
+    || 'Taladros profesionales' !== $report['market']['global_rollup']['catalog_gaps'][0]['category'] ) {
+    fwrite( STDERR, "Catalog gap rollup failed\n" );
+    exit( 1 );
+}
 if ( empty( $report['direction']['summary']['now'] ) ) {
     fwrite( STDERR, "Analyst NOW bucket failed\n" );
     exit( 1 );
@@ -187,7 +235,7 @@ if ( empty( $report['editor_contract']['rows'] ) ) {
 ob_start();
 TaxoCommerce_Google_Bing_Analyst::render();
 $html = ob_get_clean();
-foreach ( array( 'Where are we?', 'How does the market look?', 'Where should we go?' ) as $needle ) {
+foreach ( array( 'Where are we?', 'How does the market look?', 'Global Market Summary', 'Products / clusters repeating across the research', 'Where should we go?' ) as $needle ) {
     if ( false === strpos( $html, $needle ) ) {
         fwrite( STDERR, "Analyst render missing: $needle\n" );
         exit( 1 );

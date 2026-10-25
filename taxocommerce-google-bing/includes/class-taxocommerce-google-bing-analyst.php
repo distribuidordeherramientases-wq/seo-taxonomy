@@ -194,10 +194,11 @@ final class TaxoCommerce_Google_Bing_Analyst {
 
 	private static function market_position() {
 		$empty = array(
-			'available' => false,
-			'summary'   => array(),
-			'categories'=> array(),
-			'providers' => array(),
+			'available'     => false,
+			'summary'       => array(),
+			'global_rollup' => array(),
+			'categories'    => array(),
+			'providers'     => array(),
 		);
 		if ( ! class_exists( 'TaxoCommerce_Google_Bing_Market' ) ) {
 			return $empty;
@@ -347,6 +348,208 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		);
 		$competitors = array_slice( $competitors, 0, 20 );
 
+		// Aggregate all saved category research into a global business view.
+		// This is the Analyst layer: it summarizes stored product/category evidence
+		// and never re-runs Market or calls providers.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned table, fixed aggregate query, no user input.
+		$status_totals = (array) $wpdb->get_row(
+			"SELECT
+				COUNT(*) AS total,
+				SUM(CASE WHEN scan_status='complete' THEN 1 ELSE 0 END) AS complete,
+				SUM(CASE WHEN scan_status='partial' THEN 1 ELSE 0 END) AS partial,
+				SUM(CASE WHEN scan_status='pending' THEN 1 ELSE 0 END) AS pending,
+				SUM(CASE WHEN scan_status='error' THEN 1 ELSE 0 END) AS errors
+			 FROM {$categories_table}
+			 WHERE scan_status<>'archived'",
+			ARRAY_A
+		);
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned tables, fixed local-only query, no user input.
+		$product_signal_rows = (array) $wpdb->get_results(
+			"SELECT c.term_id,c.name AS category_name,s.source_type,s.provider,s.title,s.metadata_json,s.updated_at
+			 FROM {$sources_table} s
+			 INNER JOIN {$categories_table} c ON c.id=s.category_id
+			 WHERE c.scan_status<>'archived'
+			   AND s.evidence_level<>'stale'
+			   AND s.source_type IN ('offer','market_signal')
+			 ORDER BY s.updated_at DESC,s.id DESC",
+			ARRAY_A
+		);
+
+		$product_map = array();
+		$brand_map = array();
+		$seller_map = array();
+		foreach ( $product_signal_rows as $signal ) {
+			$title = sanitize_text_field( (string) ( $signal['title'] ?? '' ) );
+			if ( '' === $title ) {
+				continue;
+			}
+			$metadata = json_decode( (string) ( $signal['metadata_json'] ?? '' ), true );
+			$metadata = is_array( $metadata ) ? $metadata : array();
+			$key = self::normalize( $title );
+			if ( '' === $key ) {
+				continue;
+			}
+			if ( ! isset( $product_map[ $key ] ) ) {
+				$product_map[ $key ] = array(
+					'title'      => $title,
+					'mentions'   => 0,
+					'categories' => array(),
+					'providers'  => array(),
+					'brand'      => '',
+					'best_rank'  => 0,
+				);
+			}
+			$product_map[ $key ]['mentions']++;
+			$category_name = sanitize_text_field( (string) ( $signal['category_name'] ?? '' ) );
+			if ( '' !== $category_name ) {
+				$product_map[ $key ]['categories'][ $category_name ] = true;
+			}
+			$provider = sanitize_key( (string) ( $signal['provider'] ?? '' ) );
+			if ( '' !== $provider ) {
+				$product_map[ $key ]['providers'][ $provider ] = true;
+			}
+			$brand = sanitize_text_field( (string) ( $metadata['brand'] ?? '' ) );
+			if ( '' !== $brand ) {
+				$product_map[ $key ]['brand'] = $brand;
+				$brand_key = self::normalize( $brand );
+				if ( '' !== $brand_key ) {
+					if ( ! isset( $brand_map[ $brand_key ] ) ) {
+						$brand_map[ $brand_key ] = array( 'brand' => $brand, 'mentions' => 0, 'products' => array(), 'categories' => array() );
+					}
+					$brand_map[ $brand_key ]['mentions']++;
+					$brand_map[ $brand_key ]['products'][ $title ] = true;
+					if ( '' !== $category_name ) {
+						$brand_map[ $brand_key ]['categories'][ $category_name ] = true;
+					}
+				}
+			}
+			$rank = absint( $metadata['rank'] ?? 0 );
+			if ( $rank && ( 0 === (int) $product_map[ $key ]['best_rank'] || $rank < (int) $product_map[ $key ]['best_rank'] ) ) {
+				$product_map[ $key ]['best_rank'] = $rank;
+			}
+			$seller = sanitize_text_field( (string) ( $metadata['seller'] ?? '' ) );
+			if ( '' !== $seller ) {
+				$seller_key = self::normalize( $seller );
+				if ( '' !== $seller_key ) {
+					if ( ! isset( $seller_map[ $seller_key ] ) ) {
+						$seller_map[ $seller_key ] = array( 'seller' => $seller, 'mentions' => 0, 'products' => array(), 'categories' => array() );
+					}
+					$seller_map[ $seller_key ]['mentions']++;
+					$seller_map[ $seller_key ]['products'][ $title ] = true;
+					if ( '' !== $category_name ) {
+						$seller_map[ $seller_key ]['categories'][ $category_name ] = true;
+					}
+				}
+			}
+		}
+
+		$product_clusters = array();
+		foreach ( $product_map as $product ) {
+			$product['category_count'] = count( $product['categories'] );
+			$product['categories'] = array_slice( array_keys( $product['categories'] ), 0, 5 );
+			$product['providers'] = array_values( array_keys( $product['providers'] ) );
+			$product_clusters[] = $product;
+		}
+		usort(
+			$product_clusters,
+			static function ( $left, $right ) {
+				$mentions = (int) $right['mentions'] <=> (int) $left['mentions'];
+				if ( 0 !== $mentions ) {
+					return $mentions;
+				}
+				$left_rank = (int) ( $left['best_rank'] ?: 999999 );
+				$right_rank = (int) ( $right['best_rank'] ?: 999999 );
+				return $left_rank <=> $right_rank;
+			}
+		);
+		$product_clusters = array_slice( $product_clusters, 0, 25 );
+
+		$top_brands = array();
+		foreach ( $brand_map as $brand ) {
+			$brand['product_count'] = count( $brand['products'] );
+			$brand['category_count'] = count( $brand['categories'] );
+			$brand['categories'] = array_slice( array_keys( $brand['categories'] ), 0, 5 );
+			unset( $brand['products'] );
+			$top_brands[] = $brand;
+		}
+		usort( $top_brands, static function ( $left, $right ) { return (int) $right['mentions'] <=> (int) $left['mentions']; } );
+		$top_brands = array_slice( $top_brands, 0, 20 );
+
+		$top_sellers = array();
+		foreach ( $seller_map as $seller ) {
+			$seller['product_count'] = count( $seller['products'] );
+			$seller['category_count'] = count( $seller['categories'] );
+			$seller['categories'] = array_slice( array_keys( $seller['categories'] ), 0, 5 );
+			unset( $seller['products'] );
+			$top_sellers[] = $seller;
+		}
+		usort( $top_sellers, static function ( $left, $right ) { return (int) $right['mentions'] <=> (int) $left['mentions']; } );
+		$top_sellers = array_slice( $top_sellers, 0, 20 );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned tables, fixed local-only query, no user input.
+		$gap_rows = (array) $wpdb->get_results(
+			"SELECT c.term_id,c.name,c.country,
+				SUM(CASE WHEN s.source_type IN ('offer','market_signal') THEN 1 ELSE 0 END) AS product_signals,
+				SUM(CASE WHEN s.provider='merchant' THEN 1 ELSE 0 END) AS merchant_signals,
+				SUM(CASE WHEN s.source_type='offer' THEN 1 ELSE 0 END) AS offers
+			 FROM {$categories_table} c
+			 LEFT JOIN {$sources_table} s ON s.category_id=c.id AND s.evidence_level<>'stale'
+			 WHERE c.scan_status<>'archived'
+			 GROUP BY c.id,c.term_id,c.name,c.country
+			 HAVING product_signals>0
+			 ORDER BY product_signals DESC,merchant_signals DESC,c.id ASC
+			 LIMIT 80",
+			ARRAY_A
+		);
+		$catalog_gaps = array();
+		foreach ( $gap_rows as $gap ) {
+			$term_id = absint( $gap['term_id'] ?? 0 );
+			$term = $term_id ? get_term( $term_id, 'product_cat' ) : null;
+			$local_products = ( $term && ! is_wp_error( $term ) ) ? absint( $term->count ) : 0;
+			$product_signals = absint( $gap['product_signals'] ?? 0 );
+			$merchant_signals = absint( $gap['merchant_signals'] ?? 0 );
+			$offers = absint( $gap['offers'] ?? 0 );
+			$score = min( 100, max( 0, ( $product_signals * 4 ) + ( $merchant_signals * 3 ) + ( $offers * 2 ) - min( 30, $local_products * 2 ) ) );
+			$link = $term && ! is_wp_error( $term ) ? get_term_link( $term ) : '';
+			$catalog_gaps[] = array(
+				'term_id'          => $term_id,
+				'category'         => sanitize_text_field( (string) ( $gap['name'] ?? '' ) ),
+				'country'          => sanitize_text_field( (string) ( $gap['country'] ?? '' ) ),
+				'local_products'   => $local_products,
+				'product_signals'  => $product_signals,
+				'merchant_signals' => $merchant_signals,
+				'offers'           => $offers,
+				'gap_score'        => $score,
+				'url'              => is_wp_error( $link ) ? '' : (string) $link,
+			);
+		}
+		usort( $catalog_gaps, static function ( $left, $right ) { return (int) $right['gap_score'] <=> (int) $left['gap_score']; } );
+		$catalog_gaps = array_slice( $catalog_gaps, 0, 20 );
+
+		$coverage_total = absint( $status_totals['total'] ?? 0 );
+		$coverage_done = absint( $status_totals['complete'] ?? 0 ) + absint( $status_totals['partial'] ?? 0 );
+		$global_rollup = array(
+			'coverage' => array(
+				'total'       => $coverage_total,
+				'complete'    => absint( $status_totals['complete'] ?? 0 ),
+				'partial'     => absint( $status_totals['partial'] ?? 0 ),
+				'pending'     => absint( $status_totals['pending'] ?? 0 ),
+				'errors'      => absint( $status_totals['errors'] ?? 0 ),
+				'coverage_pct'=> $coverage_total > 0 ? round( ( $coverage_done / $coverage_total ) * 100, 1 ) : 0.0,
+			),
+			'product_intelligence' => array(
+				'signals'         => count( $product_signal_rows ),
+				'unique_products' => count( $product_map ),
+				'brands'          => count( $brand_map ),
+				'sellers'         => count( $seller_map ),
+			),
+			'product_clusters' => $product_clusters,
+			'top_brands'       => $top_brands,
+			'top_sellers'      => $top_sellers,
+			'catalog_gaps'     => $catalog_gaps,
+		);
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned table name, no user input.
 		$total_categories = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$categories_table} WHERE scan_status<>'archived'" );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned table name, no user input.
@@ -370,6 +573,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 				'external_evidence'   => absint( $totals['external_evidence'] ?? 0 ),
 				'merchant_signals'    => absint( $totals['merchant_signals'] ?? 0 ),
 			),
+			'global_rollup'    => $global_rollup,
 			'categories'       => $categories,
 			'providers'        => $provider_counts,
 			'merchant_leaders' => $merchant_leaders,
@@ -1029,6 +1233,71 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		self::simple_kpi( 'Merchant signals', absint( $summary['merchant_signals'] ?? 0 ) );
 		echo '</div>';
 
+		$rollup = (array) ( $market['global_rollup'] ?? array() );
+		if ( $rollup ) {
+			$coverage = (array) ( $rollup['coverage'] ?? array() );
+			$product_intelligence = (array) ( $rollup['product_intelligence'] ?? array() );
+			echo '<div class="tgb-analyst-global"><h4>Global Market Summary</h4><p class="description">This is the aggregate view of all saved Market research. Analyst reads the accumulated category/product evidence and summarizes it; it does not repeat the individual analyses.</p>';
+			echo '<div class="tgb-analyst-kpis">';
+			self::simple_kpi( 'Research coverage', (float) ( $coverage['coverage_pct'] ?? 0 ), '%' );
+			self::simple_kpi( 'Pending categories', absint( $coverage['pending'] ?? 0 ) );
+			self::simple_kpi( 'Categories with errors', absint( $coverage['errors'] ?? 0 ) );
+			self::simple_kpi( 'Product signals', absint( $product_intelligence['signals'] ?? 0 ) );
+			self::simple_kpi( 'Unique products / clusters', absint( $product_intelligence['unique_products'] ?? 0 ) );
+			self::simple_kpi( 'Observed brands', absint( $product_intelligence['brands'] ?? 0 ) );
+			self::simple_kpi( 'Observed sellers', absint( $product_intelligence['sellers'] ?? 0 ) );
+			echo '</div>';
+
+			$gaps = (array) ( $rollup['catalog_gaps'] ?? array() );
+			if ( $gaps ) {
+				echo '<h4>Largest market / catalog gaps</h4><p class="description">Categories with accumulated product-level market signals but comparatively shallow local assortment. The score is an internal prioritization aid, not a market-share metric.</p>';
+				echo '<div class="tgb-analyst-scroll"><table class="widefat striped"><thead><tr><th>Priority</th><th>Category</th><th>Local products</th><th>Product signals</th><th>Merchant</th><th>Offers</th></tr></thead><tbody>';
+				foreach ( array_slice( $gaps, 0, 12 ) as $gap ) {
+					echo '<tr><td><strong>' . esc_html( (string) $gap['gap_score'] ) . '/100</strong></td><td>';
+					if ( ! empty( $gap['url'] ) ) {
+						echo '<a href="' . esc_url( $gap['url'] ) . '" target="_blank" rel="noopener"><strong>' . esc_html( (string) $gap['category'] ) . '</strong></a>';
+					} else {
+						echo '<strong>' . esc_html( (string) $gap['category'] ) . '</strong>';
+					}
+					echo '</td><td>' . esc_html( number_format_i18n( (int) $gap['local_products'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $gap['product_signals'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $gap['merchant_signals'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $gap['offers'] ) ) . '</td></tr>';
+				}
+				echo '</tbody></table></div>';
+			}
+
+			$clusters = (array) ( $rollup['product_clusters'] ?? array() );
+			if ( $clusters ) {
+				echo '<h4>Products / clusters repeating across the research</h4><p class="description">Aggregated product-level signals from Merchant and stored shopping offers. Repetition indicates recurring visibility in the research set.</p>';
+				echo '<div class="tgb-analyst-scroll"><table class="widefat striped"><thead><tr><th>Product / cluster</th><th>Brand</th><th>Mentions</th><th>Categories</th><th>Best Merchant rank</th><th>Sources</th></tr></thead><tbody>';
+				foreach ( array_slice( $clusters, 0, 12 ) as $cluster ) {
+					echo '<tr><td><strong>' . esc_html( (string) $cluster['title'] ) . '</strong></td><td>' . esc_html( (string) ( $cluster['brand'] ?: '—' ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $cluster['mentions'] ) ) . '</td><td>' . esc_html( implode( ' · ', (array) $cluster['categories'] ) ) . '</td><td>' . esc_html( (string) ( $cluster['best_rank'] ?: '—' ) ) . '</td><td>' . esc_html( implode( ', ', (array) $cluster['providers'] ) ) . '</td></tr>';
+				}
+				echo '</tbody></table></div>';
+			}
+
+			$brands = (array) ( $rollup['top_brands'] ?? array() );
+			$sellers = (array) ( $rollup['top_sellers'] ?? array() );
+			if ( $brands || $sellers ) {
+				echo '<div class="tgb-analyst-two">';
+				if ( $brands ) {
+					echo '<div><h4>Observed brands</h4><table class="widefat striped"><thead><tr><th>Brand</th><th>Signals</th><th>Products</th><th>Categories</th></tr></thead><tbody>';
+					foreach ( array_slice( $brands, 0, 10 ) as $brand ) {
+						echo '<tr><td><strong>' . esc_html( (string) $brand['brand'] ) . '</strong></td><td>' . esc_html( number_format_i18n( (int) $brand['mentions'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $brand['product_count'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $brand['category_count'] ) ) . '</td></tr>';
+					}
+					echo '</tbody></table></div>';
+				}
+				if ( $sellers ) {
+					echo '<div><h4>Observed sellers</h4><table class="widefat striped"><thead><tr><th>Seller</th><th>Offers</th><th>Products</th><th>Categories</th></tr></thead><tbody>';
+					foreach ( array_slice( $sellers, 0, 10 ) as $seller ) {
+						echo '<tr><td><strong>' . esc_html( (string) $seller['seller'] ) . '</strong></td><td>' . esc_html( number_format_i18n( (int) $seller['mentions'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $seller['product_count'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $seller['category_count'] ) ) . '</td></tr>';
+					}
+					echo '</tbody></table></div>';
+				}
+				echo '</div>';
+			}
+			echo '</div>';
+		}
+
+		echo '<h4>Detailed category evidence</h4>';
 		echo '<div class="tgb-analyst-scroll"><table class="widefat striped"><thead><tr><th>Category</th><th>Country</th><th>Local products</th><th>External evidence</th><th>Merchant</th><th>Offers</th><th>Sources</th></tr></thead><tbody>';
 		foreach ( array_slice( (array) ( $market['categories'] ?? array() ), 0, 15 ) as $row ) {
 			echo '<tr><td>';
@@ -1141,8 +1410,9 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		echo '</div>';
 	}
 
-	private static function simple_kpi( $label, $value ) {
-		echo '<div class="tgb-analyst-kpi"><span>' . esc_html( $label ) . '</span><strong>' . esc_html( number_format_i18n( (float) $value, 0 ) ) . '</strong></div>';
+	private static function simple_kpi( $label, $value, $suffix = '' ) {
+		$decimals = is_float( $value ) && floor( $value ) !== $value ? 1 : 0;
+		echo '<div class="tgb-analyst-kpi"><span>' . esc_html( $label ) . '</span><strong>' . esc_html( number_format_i18n( (float) $value, $decimals ) . $suffix ) . '</strong></div>';
 	}
 
 	private static function percent_delta( $current, $previous, $lower_is_better = false ) {

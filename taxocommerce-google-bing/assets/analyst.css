@@ -29,3 +29,10 @@
 .tgb-analyst-sources{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .tgb-analyst-sources span{display:inline-block;border-radius:999px;padding:3px 8px;background:#f0f0f1;color:#3c434a;font-size:11px}
 @media(max-width:782px){.tgb-analyst-directive{display:block}.tgb-analyst-priority{margin-bottom:8px}.tgb-analyst-kpis{grid-template-columns:1fr 1fr}}
+
+.tgb-analyst-global{margin:22px 0;padding:16px;border:1px solid #c3c4c7;border-radius:8px;background:#f6f7f7}
+.tgb-analyst-global>h4{font-size:17px;margin:0 0 5px}
+.tgb-analyst-global h4:not(:first-child){margin-top:22px}
+.tgb-analyst-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+.tgb-analyst-two table{min-width:0}
+@media(max-width:1100px){.tgb-analyst-two{grid-template-columns:1fr}}
