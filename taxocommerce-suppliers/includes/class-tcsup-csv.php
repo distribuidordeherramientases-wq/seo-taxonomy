@@ -46,6 +46,14 @@ final class TCSUP_CSV {
 				'builtin'  => true,
 				'mapping'  => array(),
 			),
+			'price_update' => array(
+				'id'       => 'price_update',
+				'name'     => 'Supplier Price Update CSV',
+				'provider' => '',
+				'mode'     => 'price_update',
+				'builtin'  => true,
+				'mapping'  => array(),
+			),
 			'vevor' => array(
 				'id'       => 'vevor',
 				'name'     => 'VEVOR official CSV',
@@ -74,7 +82,9 @@ final class TCSUP_CSV {
 	}
 
 	public static function suggest_field_for_header( $header ) {
-		$key = sanitize_key( remove_accents( strtolower( trim( (string) $header ) ) ) );
+		$key = remove_accents( strtolower( trim( (string) $header ) ) );
+		$key = preg_replace( '/[^a-z0-9]+/', '_', $key );
+		$key = trim( (string) $key, '_' );
 		$aliases = array(
 			'id_satkit'           => 'proveedor_id_externo',
 			'id_producto'         => 'proveedor_id_externo',
@@ -532,10 +542,20 @@ final class TCSUP_CSV {
 		}
 
 		if ( 'vevor' !== $mode ) {
-			foreach ( self::fields() as $field => $definition ) {
-				if ( ! empty( $definition['required'] ) && ! isset( $mapping[ $field ] ) ) {
+			if ( 'price_update' === $mode ) {
+				$has_identity = isset( $mapping['proveedor_id_externo'] ) || isset( $mapping['sku'] );
+				$has_price    = isset( $mapping['precio_sin_iva'] ) || isset( $mapping['precio_con_iva'] );
+				$vevor_country_ok = 'VEVOR' !== strtoupper( $provider ) || isset( $mapping['pais_origen'] );
+				if ( ! $has_identity || ! $has_price || ! $vevor_country_ok ) {
 					fclose( $handle );
-					self::redirect( array( 'tc_error' => 'required_mapping' ) );
+					self::redirect( array( 'tc_error' => 'price_mapping' ) );
+				}
+			} else {
+				foreach ( self::fields() as $field => $definition ) {
+					if ( ! empty( $definition['required'] ) && ! isset( $mapping[ $field ] ) ) {
+						fclose( $handle );
+						self::redirect( array( 'tc_error' => 'required_mapping' ) );
+					}
 				}
 			}
 
@@ -595,12 +615,13 @@ final class TCSUP_CSV {
 				$external_id = $sku;
 				$data['proveedor_id_externo'] = $external_id;
 			}
-			if ( '' === $external_id || '' === $name ) {
+			if ( '' === $external_id || ( 'price_update' !== $mode && '' === $name ) ) {
 				$errors++;
 				continue;
 			}
 
 			$country = strtoupper( trim( (string) ( $data['pais_origen'] ?? '' ) ) );
+			$is_vevor = 'VEVOR' === strtoupper( $provider ) && '' !== $country;
 			$row_key = trim( (string) ( $data['source_row_key'] ?? '' ) );
 			if ( 'VEVOR' === strtoupper( $provider ) && '' === $row_key ) {
 				$base = hash( 'sha256', wp_json_encode( array( $country, $sku, $name, $external_id ) ) );
@@ -609,15 +630,18 @@ final class TCSUP_CSV {
 				$data['source_row_key'] = $row_key;
 			}
 
-			$data['proveedor']          = $provider;
-			$data['pais_origen']        = $country;
-			$data['moneda']             = (string) ( $data['moneda'] ?? '' ) ?: 'EUR';
+			$data['proveedor'] = $provider;
+			if ( array_key_exists( 'pais_origen', $data ) || $is_vevor ?? false ) {
+				$data['pais_origen'] = $country;
+			}
+			if ( array_key_exists( 'moneda', $data ) && '' === (string) $data['moneda'] ) {
+				$data['moneda'] = 'EUR';
+			}
 			$data['raw_json']           = wp_json_encode( $assoc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 			$data['ultima_importacion'] = $now;
 			$data['actualizado']        = $now;
 			$data['hash_producto']      = self::row_hash( $data );
 
-			$is_vevor = 'VEVOR' === strtoupper( $provider ) && '' !== $country;
 			$existing = null;
 
 			if ( $is_vevor ) {
@@ -719,6 +743,11 @@ final class TCSUP_CSV {
 				$existing = $existing_by_sku ?: $existing_by_external;
 			}
 
+			if ( ! $existing && 'price_update' === $mode ) {
+				$errors++;
+				continue;
+			}
+
 			if ( $existing ) {
 				$changed = self::changed_fields( $existing, $data );
 				$data['estado_sincronizacion'] = $changed ? 'modificado' : (string) ( $existing['estado_sincronizacion'] ?? 'sin_cambios' );
@@ -732,6 +761,12 @@ final class TCSUP_CSV {
 					$unchanged++;
 				}
 			} else {
+				if ( ! array_key_exists( 'moneda', $data ) ) {
+					$data['moneda'] = 'EUR';
+				}
+				if ( ! array_key_exists( 'pais_origen', $data ) ) {
+					$data['pais_origen'] = '';
+				}
 				$data['estado_seleccion']      = 'pendiente';
 				$data['estado_sincronizacion'] = 'nuevo';
 				$data['modo_imagenes']         = 'external';
