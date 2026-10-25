@@ -190,14 +190,16 @@ final class TCSUP_CSV {
 	}
 
 	private static function open_csv( $path, $delimiter = '' ) {
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Native CSV streaming is required.
-		$handle = fopen( $path, 'rb' );
-		if ( ! $handle ) {
+		try {
+			$handle = new SplFileObject( $path, 'rb' );
+		} catch ( RuntimeException $exception ) {
 			return new WP_Error( 'tcsup_csv_open', 'The CSV file could not be opened.' );
 		}
-		$first = fgets( $handle );
-		rewind( $handle );
+
+		$first = $handle->fgets();
+		$handle->rewind();
 		$delimiter = $delimiter ?: self::detect_delimiter( (string) $first );
+		$handle->setCsvControl( $delimiter, '"', '' );
 		return array( $handle, $delimiter );
 	}
 
@@ -248,7 +250,11 @@ final class TCSUP_CSV {
 
 		$stored_name = wp_unique_filename( $directory, wp_date( 'Ymd_His' ) . '_' . $name );
 		$path        = trailingslashit( $directory ) . $stored_name;
-		if ( ! move_uploaded_file( $tmp_name, $path ) ) {
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		WP_Filesystem();
+		global $wp_filesystem;
+		if ( ! $wp_filesystem || ! $wp_filesystem->move( $tmp_name, $path, true ) ) {
 			self::redirect( array( 'tc_error' => 'storage' ) );
 		}
 
@@ -258,21 +264,25 @@ final class TCSUP_CSV {
 		}
 
 		list( $handle, $delimiter ) = $opened;
-		$header = fgetcsv( $handle, 0, $delimiter, '"', '' );
+		$header = $handle->fgetcsv();
 		if ( ! is_array( $header ) || count( $header ) < 2 ) {
-			fclose( $handle );
+			
 			self::redirect( array( 'tc_error' => 'header' ) );
 		}
 		$header = array_map( array( __CLASS__, 'clean_header' ), $header );
 
 		$preview = array();
-		while ( count( $preview ) < 8 && false !== ( $row = fgetcsv( $handle, 0, $delimiter, '"', '' ) ) ) {
+		while ( count( $preview ) < 8 && ! $handle->eof() ) {
+			$row = $handle->fgetcsv();
+			if ( false === $row || array( null ) === $row ) {
+				continue;
+			}
 			if ( ! array_filter( $row, static function ( $value ) { return '' !== trim( (string) $value ); } ) ) {
 				continue;
 			}
 			$preview[] = $row;
 		}
-		fclose( $handle );
+		
 
 		$state = array(
 			'path'        => wp_normalize_path( $path ),
@@ -524,7 +534,7 @@ final class TCSUP_CSV {
 			self::redirect( array( 'tc_error' => 'read' ) );
 		}
 		list( $handle, $delimiter ) = $opened;
-		$header = fgetcsv( $handle, 0, $delimiter, '"', '' );
+		$header = $handle->fgetcsv();
 		$header = is_array( $header ) ? array_map( array( __CLASS__, 'clean_header' ), $header ) : array();
 
 		$mode = (string) ( $template['mode'] ?? 'mapping' );
@@ -536,7 +546,7 @@ final class TCSUP_CSV {
 			$required_headers = array( 'Name', 'URL to product', 'categoryPath', 'URL to image', 'Currency', 'Sales' );
 			$missing_headers = array_values( array_diff( $required_headers, $header ) );
 			if ( $missing_headers ) {
-				fclose( $handle );
+				
 				self::redirect( array( 'tc_error' => 'vevor_headers' ) );
 			}
 		}
@@ -550,13 +560,13 @@ final class TCSUP_CSV {
 				$has_price = isset( $mapping['precio_sin_iva'] ) || isset( $mapping['precio_con_iva'] );
 				$vevor_country_ok = ! $is_vevor_provider || isset( $mapping['pais_origen'] );
 				if ( ! $has_identity || ! $has_price || ! $vevor_country_ok ) {
-					fclose( $handle );
+					
 					self::redirect( array( 'tc_error' => 'price_mapping' ) );
 				}
 			} else {
 				foreach ( self::fields() as $field => $definition ) {
 					if ( ! empty( $definition['required'] ) && ! isset( $mapping[ $field ] ) ) {
-						fclose( $handle );
+						
 						self::redirect( array( 'tc_error' => 'required_mapping' ) );
 					}
 				}
@@ -578,7 +588,11 @@ final class TCSUP_CSV {
 		$errors     = 0;
 		$occurrence = array();
 
-		while ( false !== ( $row = fgetcsv( $handle, 0, $delimiter, '"', '' ) ) ) {
+		while ( ! $handle->eof() ) {
+			$row = $handle->fgetcsv();
+			if ( false === $row || array( null ) === $row ) {
+				continue;
+			}
 			if ( ! array_filter( $row, static function ( $value ) { return '' !== trim( (string) $value ); } ) ) {
 				continue;
 			}
@@ -816,7 +830,7 @@ final class TCSUP_CSV {
 				}
 			}
 		}
-		fclose( $handle );
+		
 		self::clear_state();
 
 		wp_safe_redirect(
@@ -878,10 +892,10 @@ final class TCSUP_CSV {
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=UTF-8' );
 		header( 'Content-Disposition: attachment; filename="taxocommerce_supplier_template.csv"' );
-		$out = fopen( 'php://output', 'w' );
-		fwrite( $out, "ï»¿" );
-		fputcsv( $out, array_keys( self::fields() ), ';', '"', '' );
-		fclose( $out );
+		$csv = "\xEF\xBB\xBF" . implode( ';', array_keys( self::fields() ) ) . "\r\n";
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Download contains fixed internal field keys only.
+		echo $csv;
 		exit;
 	}
+
 }
