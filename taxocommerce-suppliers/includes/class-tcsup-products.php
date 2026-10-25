@@ -536,6 +536,15 @@ final class TCSUP_Products {
 		);
 
 		$product_id = absint( $row['object_id'] ?? 0 );
+		if ( $product_id ) {
+			$base = null !== $with_tax ? $with_tax : $without_tax;
+			update_post_meta( $product_id, '_seo_precio_proveedor', null === $base ? '' : $base );
+			update_post_meta( $product_id, '_seo_proveedor_precio_sin_iva', null === $without_tax ? '' : $without_tax );
+			update_post_meta( $product_id, '_seo_proveedor_precio_con_iva', null === $with_tax ? '' : $with_tax );
+			update_post_meta( $product_id, '_seo_proveedor_iva_porcentaje', null === $tax ? '' : $tax );
+			update_post_meta( $product_id, '_seo_proveedor_moneda', $currency );
+		}
+
 		if ( $product_id && ! empty( $_POST['apply_woo'] ) && class_exists( 'WooCommerce' ) ) {
 			$product = wc_get_product( $product_id );
 			$regular = isset( $_POST['woo_regular'] ) ? self::decimal( wp_unslash( $_POST['woo_regular'] ) ) : null;
