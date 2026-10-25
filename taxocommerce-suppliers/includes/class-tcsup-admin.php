@@ -159,6 +159,7 @@ final class TCSUP_Admin {
 				'state'            => 'The analyzed CSV session expired. Upload the file again.',
 				'provider'         => 'A supplier name is required.',
 				'required_mapping' => 'Supplier product ID and product name must be mapped before importing.',
+				'vevor_headers'     => 'The VEVOR CSV is missing one or more required official feed columns.',
 				'template_name'    => 'A template name is required.',
 				'missing'          => 'The supplier catalogue row no longer exists.',
 			);
@@ -266,17 +267,6 @@ final class TCSUP_Admin {
 			<p><strong>File:</strong> <code><?php echo esc_html( (string) $state['filename'] ); ?></code> · <strong>Delimiter:</strong> <code><?php echo "	" === $state['delimiter'] ? 'TAB' : esc_html( $state['delimiter'] ); ?></code></p>
 			<?php if ( 'vevor' === $mode ) : ?>
 				<div class="notice notice-info inline"><p>The VEVOR preset maps the official feed locally: product URL → external ID/SKU/market, Name → name, categoryPath → supplier category, Sales → price, Currency → currency, URL to image → external image. No network request is made.</p></div>
-			<?php else : ?>
-				<div class="tcsup-mapping">
-					<?php foreach ( TCSUP_CSV::fields() as $field => $definition ) : ?>
-						<label>
-							<span><?php echo esc_html( $definition['label'] ); ?><?php echo ! empty( $definition['required'] ) ? ' *' : ''; ?></span>
-							<select name="mapping_preview_<?php echo esc_attr( $field ); ?>" disabled>
-								<option>Choose a CSV column below</option>
-							</select>
-						</label>
-					<?php endforeach; ?>
-				</div>
 			<?php endif; ?>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
