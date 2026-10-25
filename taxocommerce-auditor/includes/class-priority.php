@@ -45,7 +45,7 @@ final class Priority {
             'product_without_native_vocabulary', 'category_missing_description',
             'category_missing_excerpt', 'category_without_native_vocabulary',
             'editorial_thin_content', 'editorial_without_native_vocabulary',
-            'faq_thin_answer',
+            'faq_thin_answer', 'faq_missing_product_category',
         );
         $migrate = array( 'faq_legacy_owner_active', 'faq_migration_candidate' );
 
