@@ -19,7 +19,9 @@ final class TCV_IO {
         nocache_headers();
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename=' . $filename );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV streams are from an administrator-verified PHP upload or php://output; bounded parser needs a real stream handle.
         $fh = fopen( 'php://output', 'w' );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Close or write the authenticated CSV stream without loading the whole response into memory.
         fwrite( $fh, "\xEF\xBB\xBF" );
         fputcsv( $fh, $headers, ';' );
         return $fh;
@@ -40,6 +42,7 @@ final class TCV_IO {
         foreach ( (array) $maps as $r ) {
             fputcsv( $fh, array( 'type_role','','','','','','','',$r['type_slug'],$r['role_slug'],$r['confidence'] ), ';' );
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close or write the authenticated CSV stream without loading the whole response into memory.
         fclose( $fh );
         exit;
     }
@@ -63,21 +66,25 @@ final class TCV_IO {
         foreach ( (array) $aliases as $r ) {
             fputcsv( $fh, array( 'alias',$r['attribute_slug'],'','','','','','','','','','','',$r['term_slug'],'','','',$r['alias'] ), ';' );
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close or write the authenticated CSV stream without loading the whole response into memory.
         fclose( $fh );
         exit;
     }
 
     private static function read_csv( $tmp ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV streams are from an administrator-verified PHP upload or php://output; bounded parser needs a real stream handle.
         $fh = fopen( $tmp, 'r' );
         if ( ! $fh ) {
             return new WP_Error( 'tcv_csv_open', 'No se pudo abrir el CSV.' );
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- CSV streams are from an administrator-verified PHP upload or php://output; bounded parser needs a real stream handle.
         $bom = fread( $fh, 3 );
         if ( "\xEF\xBB\xBF" !== $bom ) {
             rewind( $fh );
         }
         $headers = fgetcsv( $fh, 0, ';' );
         if ( ! is_array( $headers ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close or write the authenticated CSV stream without loading the whole response into memory.
             fclose( $fh );
             return new WP_Error( 'tcv_csv_header', 'El CSV no contiene cabecera.' );
         }
@@ -89,10 +96,12 @@ final class TCV_IO {
             }
             $rows[] = array_combine( $headers, $values );
             if ( count( $rows ) > 50000 ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close or write the authenticated CSV stream without loading the whole response into memory.
                 fclose( $fh );
                 return new WP_Error( 'tcv_csv_limit', 'El CSV supera el límite de 50.000 filas.' );
             }
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close or write the authenticated CSV stream without loading the whole response into memory.
         fclose( $fh );
         return $rows;
     }
@@ -101,8 +110,9 @@ final class TCV_IO {
         self::guard();
         check_admin_referer( 'tcv_import' );
         $domain = isset( $_POST['domain'] ) ? sanitize_key( wp_unslash( $_POST['domain'] ) ) : '';
-        if ( empty( $_FILES['csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['csv']['tmp_name'] ) ) {
-            self::redirect( 'error', 'No se ha recibido ningún CSV.' );
+        if ( empty( $_FILES['csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['csv']['tmp_name'] )
+            || empty( $_FILES['csv']['size'] ) || (int) $_FILES['csv']['size'] > 10 * MB_IN_BYTES ) {
+            self::redirect( 'error', 'Selecciona un CSV válido de hasta 10 MB.' );
         }
         $rows = self::read_csv( $_FILES['csv']['tmp_name'] );
         if ( is_wp_error( $rows ) ) {
