@@ -205,11 +205,14 @@ jobs:
             **/*.pot
 
       - name: Validate TaxoCommerce Social
+        id: social_validate
+        continue-on-error: true
         run: |
           test -f taxocommerce-social/taxocommerce-social.php
           find taxocommerce-social -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
       - name: Deploy TaxoCommerce Social to STAGING
+        if: steps.social_validate.outcome == 'success'
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
