@@ -21,7 +21,7 @@ unset($seo_mysql_audit_file);
  */
 function seo_server_status() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-system-check'));
     }
 
     $active_tab = seo_server_status_get_active_tab();
