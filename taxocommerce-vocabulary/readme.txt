@@ -1,21 +1,37 @@
 === TaxoCommerce Vocabulary ===
-Contributors: taxocommerce
+Contributors: davidperezmartorell
+Tags: woocommerce, taxonomy, attributes, classification, csv
 Requires at least: 6.7
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.3.2
 License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Canonical semantic vocabulary and technical attributes for TaxoCommerce.
+Canonical semantic vocabulary, product characteristics and assisted classification for WooCommerce.
 
-== 0.3.2 ==
-* Adds a standalone portable JSON catalog backup for Vocabulary, type-role mappings, product/category assignments, canonical product attributes and WooCommerce product tags.
-* Adds mandatory import simulation and MERGE/MIRROR assignment modes.
-* Resolves destination objects with portable identities; numeric source IDs are audit-only.
-* Adds an integrity summary and content fingerprint to exported packages.
-* MIRROR never deletes missing canonical masters; it only aligns assignments for objects included in the package.
+== Description ==
 
-== 0.3.0 ==
-* Uses the existing seo_vocabulary, seo_object_vocabulary, seo_type_role_map and sql_atributos* tables as canonical storage.
-* Adds a dedicated Classifier tab that proposes semantic labels and technical attributes from product content without changing data automatically.
-* Adds independent CSV import/export for semantic labels and technical attribute masters.
-* Keeps product assignments out of Vocabulary master exports.
+TaxoCommerce Vocabulary helps site administrators maintain canonical labels, technical attributes and assignments to WooCommerce content.
+
+* Uses canonical existing vocabulary, role-mapping and technical attribute storage on migrating installations.
+* Provides a classifier with proposals based on product data; classification is not applied automatically.
+* Supports CSV management of semantic and attribute masters and portable JSON import/export of assignments.
+* Mandatory import simulation and MERGE/MIRROR modes make bulk updates reviewable.
+* Numeric source IDs are audit-only: portable references are resolved against the target site's real objects.
+
+== Installation ==
+
+1. Install and activate TaxoCommerce Vocabulary alongside WooCommerce.
+2. Check existing masters and assignments before changing anything.
+3. Export a backup before running an import.
+4. Simulate JSON imports, review unresolved objects and then approve intentional changes.
+
+== Changelog ==
+
+= 0.3.2 =
+* Portable semantic backups, object identity resolution and import simulation.
+* MERGE/MIRROR assignment controls and fingerprinted exports.
+
+= 0.3.0 =
+* Canonical storage reuse, independent classifier and CSV master exchange.

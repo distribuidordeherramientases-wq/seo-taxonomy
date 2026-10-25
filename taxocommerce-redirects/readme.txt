@@ -3,10 +3,17 @@ Contributors: davidperezmartorell
 Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
+Tested up to: 7.1
 Stable tag: 0.1.4
 License: GPLv2 or later
 
+== Description ==
+
 Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
+
+== Installation ==
+
+Install and activate the plugin. Export existing redirect rules before uninstalling or replacing another redirect manager. When the former plugin is active, do not enable two handlers for the same rule.
 
 == Standalone or combined with Core ==
 

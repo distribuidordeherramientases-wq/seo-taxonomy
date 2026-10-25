@@ -1,23 +1,35 @@
 === TaxoCommerce Campaigns ===
-Contributors: taxocommerce
+Contributors: davidperezmartorell
+Tags: woocommerce, marketing, campaigns, pricing, offers
 Requires at least: 6.7
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.1.0
 License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Offer campaigns and commercial publication calendar for the TaxoCommerce family.
+WooCommerce product offer campaigns, banners and an independent commercial calendar.
 
-== 0.1.0 ==
-* Migrates the existing Marketing campaign engine without duplicating campaign data.
-* Reuses seo_marketing_campaigns and seo_marketing_campaign_products.
-* Keeps campaign creation/editing, products, prices, overlap protection, import/export, apply/restore and safe deletion.
-* Adds an independent commercial calendar.
-* Moves campaign social offer planning and campaign creatives out of the Social editorial calendar.
-* Reuses TaxoCommerce Social connections when that plugin is active.
-* Keeps the existing campaign creative cache under uploads/seo-social-campaigns during migration.
-* Adds public shortcodes [taxocommerce_campaign] and [oferta].
-* Keeps compatibility with TaxoCommerce Templates template-campaign.php after the legacy monolith is disabled.
-* Does not create posts for banners or offers.
+== Description ==
 
-== Migration ==
-Campaign data is not copied. Both old and new modules read the same canonical campaign tables during the short verification period. Avoid editing the same campaign from both interfaces simultaneously.
+TaxoCommerce Campaigns manages product promotions and scheduled price campaigns with conflict checks. It includes campaign creation/editing, product assignment, price application and restoration, CSV imports/exports, promotional creatives and a commercial calendar.
+
+* Reuses the existing seo_marketing_campaigns and seo_marketing_campaign_products tables where available.
+* Supports public [taxocommerce_campaign] and [oferta] shortcodes.
+* Can share approved social publishing connections with the optional TaxoCommerce Social plugin.
+* Keeps existing compatible creative assets during migration.
+
+Two campaign engines must not edit or schedule the same campaign simultaneously; only one should own campaign apply/restore jobs.
+
+== Installation ==
+
+1. Install WooCommerce and TaxoCommerce Campaigns.
+2. Open Campaigns in WordPress administration and create a campaign for test products.
+3. Verify planned prices, dates, overlap handling and restoration in a test environment.
+4. Enable automated campaign schedules only after checking no other plugin owns these jobs.
+
+== Changelog ==
+
+= 0.1.0 =
+* Extracted campaigns, product offers and their commercial calendar into an independent module.
+* Retained canonical campaign records and compatibility with existing public template hooks.

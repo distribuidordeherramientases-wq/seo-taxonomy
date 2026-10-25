@@ -3,6 +3,7 @@ Contributors: davidperezmartorell
 Tags: faq, woocommerce, questions, csv, vocabulary
 Requires at least: 6.5
 Requires PHP: 7.4
+Tested up to: 7.1
 Stable tag: 0.1.3
 License: GPLv2 or later
 
@@ -22,6 +23,8 @@ una pantalla propia. No activa nuevas FAQs ni altera la version SEO.
 
 Cada nueva FAQ debe pertenecer a una categoria WooCommerce product_cat existente. Las FAQs heredadas no categorizadas permanecen visibles y se contabilizan para revision.
 
+
+== Installation ==
 
 == Instalación y desinstalación (0.1.3) ==
 
