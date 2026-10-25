@@ -613,9 +613,11 @@ final class TCSUP_Products {
 		global $wpdb;
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT * FROM ' . TCSUP_Schema::catalog_table() . ' WHERE object_id=%d AND estado_seleccion=%s ORDER BY actualizado DESC,id DESC',
+				'SELECT * FROM ' . TCSUP_Schema::catalog_table() . " WHERE object_id=%d AND estado_seleccion IN (%s,%s,%s) ORDER BY actualizado DESC,id DESC",
 				absint( $product_id ),
-				'aceptado'
+				'aceptado',
+				'publicado',
+				'actualizar'
 			),
 			ARRAY_A
 		);
