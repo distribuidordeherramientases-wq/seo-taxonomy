@@ -198,6 +198,7 @@ final class TCD_Learning_Log {
     }
 
     private static function append_bounded( $path, $line ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Private capped log holds an exclusive flock for atomic append and tail rotation.
         $handle = fopen( $path, 'c+b' );
         if ( ! $handle ) return false;
         $ok = false;
@@ -219,11 +220,14 @@ final class TCD_Learning_Log {
                 ftruncate( $handle, 0 );
                 rewind( $handle );
                 $header = gmdate( 'c' ) . " INFO  log_rotated                      {\"kept_bytes\":" . strlen( $tail ) . "}\n";
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Private capped log holds an exclusive flock for atomic append and tail rotation.
                 fwrite( $handle, $header );
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Private capped log holds an exclusive flock for atomic append and tail rotation.
                 fwrite( $handle, $tail );
             }
 
             fseek( $handle, 0, SEEK_END );
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Private capped log holds an exclusive flock for atomic append and tail rotation.
             $ok = false !== fwrite( $handle, $line );
             fflush( $handle );
 
@@ -236,11 +240,13 @@ final class TCD_Learning_Log {
                 if ( false !== $newline ) $tail = substr( $tail, $newline + 1 );
                 ftruncate( $handle, 0 );
                 rewind( $handle );
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Private capped log holds an exclusive flock for atomic append and tail rotation.
                 fwrite( $handle, $tail );
                 fflush( $handle );
             }
         } finally {
             flock( $handle, LOCK_UN );
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Private capped log holds an exclusive flock for atomic append and tail rotation.
             fclose( $handle );
         }
         return $ok;
