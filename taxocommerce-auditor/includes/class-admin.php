@@ -217,6 +217,7 @@ final class Admin {
         $view = isset( $_GET['auditor_view'] ) ? sanitize_key( wp_unslash( $_GET['auditor_view'] ) ) : 'summary';
         $views = array(
             'summary'  => 'Resumen',
+            'kpis'     => 'KPIs',
             'quality'  => 'Calidad interna',
             'plan'     => 'Plan priorizado',
             'findings' => 'Hallazgos',
@@ -236,7 +237,9 @@ final class Admin {
         }
         echo '</nav>';
 
-        if ( 'quality' === $view ) {
+        if ( 'kpis' === $view ) {
+            self::render_kpis( $scope, $report );
+        } elseif ( 'quality' === $view ) {
             self::render_quality( $report );
         } elseif ( 'plan' === $view ) {
             self::render_plan( $report );
@@ -258,6 +261,66 @@ final class Admin {
         echo '<div class="taxocommerce-auditor-metric"><strong>' . esc_html( (string) $value ) . '</strong><span>' . esc_html( $label ) . '</span></div>';
     }
 
+    private static function render_kpi_card( $row ) {
+        $row = is_array( $row ) ? $row : array();
+        $tone = sanitize_key( (string) ( $row['tone'] ?? 'neutral' ) );
+        if ( ! in_array( $tone, array( 'good', 'warn', 'bad', 'neutral' ), true ) ) {
+            $tone = 'neutral';
+        }
+        $value = (string) ( $row['value'] ?? 'N/D' );
+        $unit = (string) ( $row['unit'] ?? '' );
+        echo '<div class="taxocommerce-auditor-kpi is-' . esc_attr( $tone ) . '">';
+        echo '<div class="taxocommerce-auditor-kpi-value"><strong>' . esc_html( $value ) . '</strong>';
+        if ( '' !== $unit ) {
+            echo '<span>' . esc_html( $unit ) . '</span>';
+        }
+        echo '</div>';
+        echo '<h4>' . esc_html( (string) ( $row['label'] ?? '' ) ) . '</h4>';
+        if ( ! empty( $row['detail'] ) ) {
+            echo '<p>' . esc_html( (string) $row['detail'] ) . '</p>';
+        }
+        echo '</div>';
+    }
+
+    private static function render_kpis( $scope, $report ) {
+        $kpis = (array) ( $report['scope_kpis'] ?? Runner::scope_kpis( $scope, $report ) );
+        $scope_labels = array(
+            'products'   => 'Productos',
+            'categories' => 'Categorías',
+            'posts'      => 'Posts',
+            'pages'      => 'Páginas y landings',
+            'faqs'       => 'FAQs',
+        );
+        $coverage = 'complete_scope' === (string) ( $kpis['coverage'] ?? '' )
+            ? 'auditoría completa'
+            : 'auditoría filtrada';
+
+        echo '<div class="taxocommerce-auditor-kpi-head">';
+        echo '<div><h3>KPIs de ' . esc_html( $scope_labels[ $scope ] ?? $scope ) . '</h3>';
+        echo '<p>Indicadores específicos de calidad, integridad y errores a corregir sobre la última ' . esc_html( $coverage ) . '.</p></div>';
+        echo '<span class="taxocommerce-auditor-kpi-mode">' . esc_html( $coverage ) . '</span>';
+        echo '</div>';
+
+        echo '<h4 class="taxocommerce-auditor-kpi-section">Estado general</h4>';
+        echo '<div class="taxocommerce-auditor-kpi-grid">';
+        foreach ( (array) ( $kpis['general'] ?? array() ) as $row ) {
+            self::render_kpi_card( $row );
+        }
+        echo '</div>';
+
+        echo '<h4 class="taxocommerce-auditor-kpi-section">Diagnóstico específico</h4>';
+        echo '<div class="taxocommerce-auditor-kpi-grid">';
+        foreach ( (array) ( $kpis['specific'] ?? array() ) as $row ) {
+            self::render_kpi_card( $row );
+        }
+        if ( empty( $kpis['specific'] ) ) {
+            echo '<p>No hay indicadores específicos disponibles para este bloque.</p>';
+        }
+        echo '</div>';
+
+        echo '<div class="notice notice-info inline"><p>' . esc_html( (string) ( $kpis['note'] ?? '' ) ) . '</p></div>';
+    }
+
     private static function render_summary( $report ) {
         $counts = (array) ( $report['severity_counts'] ?? array() );
         $quality = (array) ( $report['quality'] ?? array() );
@@ -276,6 +339,19 @@ final class Admin {
             echo '<p>Páginas funcionales/corporativas excluidas del diagnóstico editorial: <strong>' . esc_html( (string) absint( $report['excluded'] ) ) . '</strong>.</p>';
         }
         self::render_priority_counts( (array) ( $report['priority_counts'] ?? array() ) );
+
+        $scope = sanitize_key( (string) ( $report['scope'] ?? '' ) );
+        $kpis = (array) ( $report['scope_kpis'] ?? ( $scope ? Runner::scope_kpis( $scope, $report ) : array() ) );
+        if ( ! empty( $kpis['specific'] ) ) {
+            echo '<h3>KPIs específicos</h3><div class="taxocommerce-auditor-kpi-grid is-compact">';
+            foreach ( array_slice( (array) $kpis['specific'], 0, 4 ) as $row ) {
+                self::render_kpi_card( $row );
+            }
+            echo '</div>';
+            if ( $scope ) {
+                echo '<p><a class="button" href="' . esc_url( self::report_url( $scope, 'kpis' ) ) . '">Ver todos los KPIs</a></p>';
+            }
+        }
 
         $rules = (array) ( $report['rule_counts'] ?? array() );
         arsort( $rules, SORT_NUMERIC );
