@@ -397,14 +397,22 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     public static function role_pages( $role ) {
         global $wpdb;
         $nodes = self::nodes_table();
-        $sql = $wpdb->prepare(
-            "SELECT p.ID FROM %i p
-             INNER JOIN %i n ON n.object_type = %s AND n.object_id = p.ID
-             WHERE p.post_type = %s AND p.post_status IN ('publish','draft','pending','private','future')
-               AND n.seo_role = %s AND n.status = 1 ORDER BY p.post_title ASC",
-            $wpdb->posts, $nodes, 'page', 'page', sanitize_key( $role )
+        $ids = array_map(
+            'absint',
+            (array) $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT p.ID FROM %i p
+                     INNER JOIN %i n ON n.object_type = %s AND n.object_id = p.ID
+                     WHERE p.post_type = %s AND p.post_status IN ('publish','draft','pending','private','future')
+                       AND n.seo_role = %s AND n.status = 1 ORDER BY p.post_title ASC",
+                    $wpdb->posts,
+                    $nodes,
+                    'page',
+                    'page',
+                    sanitize_key( $role )
+                )
+            )
         );
-        $ids = array_map( 'absint', (array) $wpdb->get_col( $sql ) );
         if ( ! $ids ) {
             return array();
         }
