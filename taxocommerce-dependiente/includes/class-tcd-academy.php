@@ -16,6 +16,7 @@ final class TCD_Academy {
     const STATE='tcd_learning_state';
     const LOG='tcd_learning_log';
     const LOCK='tcd_learning_tick_lock';
+    const WATCHDOG='tcd_learning_watchdog_last';
     const SCHEMA_OPTION='tcd_learning_schema_version';
     const SCHEMA_VERSION='3.0.0';
 
@@ -209,6 +210,7 @@ final class TCD_Academy {
     public static function boot(){
         self::maybe_upgrade();
         add_action(self::CRON_HOOK,array(__CLASS__,'tick'));
+        add_action('admin_init',array(__CLASS__,'watchdog_running_process'));
         add_filter('seo_process_supervisor_has_pending_work',array(__CLASS__,'filter_pending_work'),40,1);
         add_filter('seo_process_supervisor_manager_targets',array(__CLASS__,'filter_manager_targets'),40,3);
         add_action('admin_post_tcd_academy_control',array(__CLASS__,'control'));
@@ -253,6 +255,7 @@ final class TCD_Academy {
             }
 
             delete_option('tcd_learning_stop');
+            delete_option(self::WATCHDOG);
             $message=$retry
                 ? sprintf(
                     'Correcciones revisadas: %d fuentes releídas, %d casos reaprendidos. Reevaluando L%d sin reiniciar la formación.',
@@ -270,6 +273,7 @@ final class TCD_Academy {
         }elseif('restart'===$action && in_array($state['status'],array('idle','stopped','error','completed'),true)){
             self::clear_learning_tables();
             delete_option('tcd_learning_stop');
+            delete_option(self::WATCHDOG);
             self::save(array_merge(self::initial_state(),array('status'=>'running','run_id'=>wp_generate_uuid4())));
             self::queue();
             self::nudge_manager();
@@ -287,6 +291,44 @@ final class TCD_Academy {
         }
         if(class_exists('TCD_Intelligence'))TCD_Intelligence::reset_modern_generated();
         if(class_exists('TCD_Maintenance'))TCD_Maintenance::deactivate();
+    }
+
+    public static function watchdog_running_process(){
+        if(!is_admin())return;
+
+        $state=self::state();
+        if('running'!==(string)($state['status']??''))return;
+
+        $run=(string)($state['run_id']??'');
+        if($run && get_option('tcd_learning_stop','')===$run)return;
+
+        $now=time();
+        $last=absint(get_option(self::WATCHDOG,0));
+        if($last && ($now-$last)<15)return;
+        update_option(self::WATCHDOG,$now,false);
+
+        $lock=absint(get_option(self::LOCK,0));
+        $lock_age=$lock?max(0,$now-$lock):0;
+        if($lock && $lock_age<120)return;
+
+        $next=wp_next_scheduled(self::CRON_HOOK);
+        $cron_repaired=false;
+        if(!$next || $next<($now-15) || $next>($now+60)){
+            wp_clear_scheduled_hook(self::CRON_HOOK);
+            wp_schedule_single_event($now+1,self::CRON_HOOK);
+            $cron_repaired=true;
+        }
+
+        self::nudge_manager(0);
+        self::trace('INFO','watchdog_wakeup',array(
+            'lesson'=>absint($state['lesson']??0),
+            'phase'=>(string)($state['phase']??''),
+            'snapshot_cursor'=>absint($state['snapshot_cursor']??0),
+            'learning_cursor'=>absint($state['learning_cursor']??0),
+            'cron_repaired'=>$cron_repaired?1:0,
+            'next_tick'=>wp_next_scheduled(self::CRON_HOOK)?:0,
+            'lock_age'=>$lock_age,
+        ));
     }
 
     private static function queue($delay=null){
@@ -763,7 +805,7 @@ final class TCD_Academy {
                 'percent'=>$percent,'top1'=>absint($step['pass_top1']??0),'top3'=>absint($step['pass_top3']??0),
                 'top8'=>absint($step['pass_top8']??0),'failed'=>absint($step['failed']??0),
             ));
-            self::queue();
+            self::queue(1);
             return max(1,absint($step['batch_evaluated']??1));
         }
 
