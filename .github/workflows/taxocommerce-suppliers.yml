@@ -50,6 +50,7 @@ jobs:
           test -f build/taxocommerce-suppliers/taxocommerce-suppliers.php
           test -f build/taxocommerce-suppliers/includes/class-tcsup-csv.php
           test -f build/taxocommerce-suppliers/includes/class-tcsup-products.php
+          test -f build/taxocommerce-suppliers/includes/class-tcsup-purchasing.php
           test -f build/taxocommerce-suppliers/includes/class-tcsup-schema.php
           test ! -e build/taxocommerce-suppliers/tests
 
@@ -73,7 +74,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-suppliers-0.1.0
+          name: taxocommerce-suppliers-0.2.0
           path: taxocommerce-suppliers.zip
           retention-days: 30
           if-no-files-found: error
