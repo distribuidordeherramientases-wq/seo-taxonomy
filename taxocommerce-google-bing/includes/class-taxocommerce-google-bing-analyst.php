@@ -372,8 +372,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			 WHERE c.scan_status<>'archived'
 			   AND s.evidence_level<>'stale'
 			   AND s.source_type IN ('offer','market_signal')
-			 ORDER BY s.updated_at DESC,s.id DESC
-			 LIMIT 2000",
+			 ORDER BY s.updated_at DESC,s.id DESC",
 			ARRAY_A
 		);
 
