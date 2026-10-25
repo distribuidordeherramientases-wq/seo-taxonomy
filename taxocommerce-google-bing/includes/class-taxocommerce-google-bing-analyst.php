@@ -266,6 +266,36 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		}
 		arsort( $provider_counts );
 
+		// Merchant Best Sellers is a market-demand signal, not a claim about a
+		// seller's complete market share. Keep the original rank/demand labels.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned tables, fixed read-only query, no user input.
+		$merchant_rows = (array) $wpdb->get_results(
+			"SELECT c.term_id,c.name,s.title,s.metadata_json,s.updated_at
+			 FROM {$sources_table} s
+			 INNER JOIN {$categories_table} c ON c.id=s.category_id
+			 WHERE c.scan_status<>'archived'
+			   AND s.provider='merchant'
+			   AND s.evidence_level<>'stale'
+			 ORDER BY s.updated_at DESC,s.id DESC
+			 LIMIT 30",
+			ARRAY_A
+		);
+		$merchant_leaders = array();
+		foreach ( $merchant_rows as $merchant_row ) {
+			$metadata = json_decode( (string) ( $merchant_row['metadata_json'] ?? '' ), true );
+			$metadata = is_array( $metadata ) ? $metadata : array();
+			$merchant_leaders[] = array(
+				'term_id'         => absint( $merchant_row['term_id'] ?? 0 ),
+				'category'        => sanitize_text_field( (string) ( $merchant_row['name'] ?? '' ) ),
+				'title'           => sanitize_text_field( (string) ( $merchant_row['title'] ?? '' ) ),
+				'brand'           => sanitize_text_field( (string) ( $metadata['brand'] ?? '' ) ),
+				'rank'            => absint( $metadata['rank'] ?? 0 ),
+				'relative_demand' => sanitize_text_field( (string) ( $metadata['relative_demand'] ?? '' ) ),
+				'report_date'     => sanitize_text_field( (string) ( $metadata['report_date'] ?? '' ) ),
+				'updated_at'      => sanitize_text_field( (string) ( $merchant_row['updated_at'] ?? '' ) ),
+			);
+		}
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned table name, no user input.
 		$total_categories = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$categories_table} WHERE scan_status<>'archived'" );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned table name, no user input.
@@ -289,8 +319,9 @@ final class TaxoCommerce_Google_Bing_Analyst {
 				'external_evidence'   => absint( $totals['external_evidence'] ?? 0 ),
 				'merchant_signals'    => absint( $totals['merchant_signals'] ?? 0 ),
 			),
-			'categories' => $categories,
-			'providers'  => $provider_counts,
+			'categories'       => $categories,
+			'providers'        => $provider_counts,
+			'merchant_leaders' => $merchant_leaders,
 		);
 	}
 
@@ -956,7 +987,18 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			}
 			echo '</td><td>' . esc_html( (string) $row['country'] ) . '</td><td>' . esc_html( number_format_i18n( (int) $row['product_count'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $row['external_evidence'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $row['merchant'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $row['offers'] ) ) . '</td><td>' . esc_html( implode( ', ', (array) $row['providers'] ) ) . '</td></tr>';
 		}
-		echo '</tbody></table></div></section>';
+		echo '</tbody></table></div>';
+
+		$leaders = (array) ( $market['merchant_leaders'] ?? array() );
+		if ( $leaders ) {
+			echo '<h4>Merchant market leaders</h4><p class="description">Saved Google Merchant Best Sellers signals. Rank and relative demand come from the provider report; they are not calculated by TaxoCommerce.</p>';
+			echo '<div class="tgb-analyst-scroll"><table class="widefat striped"><thead><tr><th>Category</th><th>Product / cluster</th><th>Brand</th><th>Rank</th><th>Relative demand</th><th>Report date</th></tr></thead><tbody>';
+			foreach ( array_slice( $leaders, 0, 15 ) as $leader ) {
+				echo '<tr><td>' . esc_html( (string) $leader['category'] ) . '</td><td><strong>' . esc_html( (string) $leader['title'] ) . '</strong></td><td>' . esc_html( (string) ( $leader['brand'] ?: '—' ) ) . '</td><td>' . esc_html( (string) ( $leader['rank'] ?: '—' ) ) . '</td><td>' . esc_html( (string) ( $leader['relative_demand'] ?: '—' ) ) . '</td><td>' . esc_html( (string) ( $leader['report_date'] ?: '—' ) ) . '</td></tr>';
+			}
+			echo '</tbody></table></div>';
+		}
+		echo '</section>';
 	}
 
 	private static function render_direction( $direction ) {
