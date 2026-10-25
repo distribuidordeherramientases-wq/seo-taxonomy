@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Insights
- * Description: Search, Analytics, Bing, Trends, market, opportunity, and executive reports from connected data sources.
+ * Description: Search, Analytics, Bing, Trends, Market, Analyst, opportunity, and executive reports from connected data sources.
  * Version: 0.9.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
