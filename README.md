@@ -1,5 +1,14 @@
 # TaxoCommerce SEO
 
+## Estado del proyecto
+
+**TaxoCommerce SEO 2.4.1 cierra la línea monolítica histórica.**
+
+A partir de este punto, el desarrollo funcional continúa en los plugins independientes de la familia TaxoCommerce. El plugin monolítico queda congelado para desarrollo ordinario y sólo podrá recibir correcciones críticas de compatibilidad, migración o seguridad cuando sean estrictamente necesarias.
+
+Cada plugin independiente mantiene su propia versión y su propio historial en el `readme.txt` incluido en su carpeta. Los milestones globales, como `2.4.2`, coordinan trabajo entre plugins pero no son versiones del monolito ni obligan a sincronizar las versiones de toda la familia.
+
+
 **TaxoCommerce SEO** es un plugin para WordPress y WooCommerce orientado a la gestión centralizada de la arquitectura SEO de un sitio web.
 
 Permite organizar páginas estratégicas, productos, categorías, imágenes y sus relaciones, además de incorporar herramientas de análisis, automatización y mejora de contenidos asistida por IA.
@@ -352,9 +361,7 @@ Cada Issue puede utilizarse para documentar:
 
 # 🧪 Estado del proyecto
 
-TaxoCommerce SEO se encuentra actualmente en desarrollo activo.
-
-La arquitectura, funcionalidades y estructura interna pueden evolucionar a medida que se incorporan nuevas herramientas y se prepara el plugin para su distribución.
+La línea monolítica TaxoCommerce SEO queda cerrada en la versión 2.4.1. El desarrollo activo continúa en los plugins independientes de la familia TaxoCommerce.
 
 ---
 
@@ -364,7 +371,7 @@ El flujo de publicación utiliza `staging` como candidata a la próxima versión
 
 Los cambios normales se validan durante la semana en staging y se promueven a producción de forma agrupada, normalmente una vez por semana. Los hotfix críticos pueden seguir un ciclo más corto.
 
-La versión debe mantenerse coherente entre la cabecera del plugin, `SEO_SYSTEM_VERSION`, `readme.txt` y `CHANGELOG.md`.
+Para el monolito, la versión final queda fijada en 2.4.1. A partir de ahí, cada plugin independiente mantiene su propia versión y changelog en su carpeta.
 
 Consulta [Versiones y publicación](docs/RELEASE-PROCESS.md) para el procedimiento completo.
 
