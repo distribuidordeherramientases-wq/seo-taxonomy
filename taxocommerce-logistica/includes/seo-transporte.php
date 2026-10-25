@@ -11,10 +11,11 @@ defined('ABSPATH') || exit;
 if (!class_exists('SEO_Transporte_Costes')) {
     final class SEO_Transporte_Costes {
         const OPTION = 'seo_transporte_costes_settings';
-        const PAGE   = 'seo-transporte';
+        const PAGE        = 'seo-logistica';
+        const LEGACY_PAGE = 'seo-transporte';
 
         public static function init() {
-            add_action('admin_menu', array(__CLASS__, 'register_page'), 30);
+            add_action('admin_menu', array(__CLASS__, 'register_legacy_page'), 30);
             add_action('admin_post_seo_transporte_save', array(__CLASS__, 'save_settings'));
             add_action('admin_post_seo_transporte_export', array(__CLASS__, 'export_settings'));
             add_action('admin_post_seo_transporte_import', array(__CLASS__, 'import_settings'));
@@ -55,7 +56,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 public function __construct($settings = array()) {
                     $this->id                 = 'seo_transporte_bridge';
                     $this->method_title       = 'TaxoCommerce Transporte (interno)';
-                    $this->method_description = 'Metodo tecnico interno. Las tarifas se gestionan desde TaxoCommerce Logística > Transporte.';
+                    $this->method_description = 'Metodo tecnico interno. Las tarifas se gestionan desde TaxoCommerce Logistics.';
                     $this->title              = 'Transporte';
                     $this->supports           = array();
                     $this->enabled            = !empty($settings['enabled']) ? 'yes' : 'no';
@@ -91,32 +92,41 @@ if (!class_exists('SEO_Transporte_Costes')) {
             return $settings;
         }
 
-        public static function register_page() {
+        public static function register_legacy_page() {
             $capability = class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options';
             add_submenu_page(
                 null,
-                'Transporte',
-                'Transporte',
+                'Logistics',
+                'Logistics',
                 $capability,
-                self::PAGE,
-                array(__CLASS__, 'render_page')
+                self::LEGACY_PAGE,
+                array(__CLASS__, 'redirect_legacy_page')
             );
         }
 
+        public static function redirect_legacy_page() {
+            wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
+            exit;
+        }
+
         private static function is_page() {
-            return is_admin() && isset($_GET['page']) && self::PAGE === sanitize_key(wp_unslash($_GET['page']));
+            if (!is_admin() || !isset($_GET['page'])) {
+                return false;
+            }
+            $page = sanitize_key(wp_unslash($_GET['page']));
+            return in_array($page, array(self::PAGE, self::LEGACY_PAGE), true);
         }
 
         public static function admin_parent_file($parent_file) {
-            if (self::is_page()) {
-                return 'seo-system';
+            if (self::is_page() && function_exists('taxocommerce_core')) {
+                return 'taxocommerce-core';
             }
             return $parent_file;
         }
 
         public static function admin_submenu_file($submenu_file) {
-            if (self::is_page()) {
-                return 'seo-tools';
+            if (self::is_page() && function_exists('taxocommerce_core')) {
+                return 'seo-logistica';
             }
             return $submenu_file;
         }
@@ -479,6 +489,137 @@ if (!class_exists('SEO_Transporte_Costes')) {
             <?php
         }
 
+        private static function active_shipping_orders() {
+            if (!function_exists('wc_get_orders')) {
+                return array();
+            }
+            return wc_get_orders(array(
+                'status'  => array('pending', 'on-hold', 'processing'),
+                'limit'   => 100,
+                'orderby' => 'date',
+                'order'   => 'DESC',
+                'return'  => 'objects',
+            ));
+        }
+
+        private static function order_weight_metrics($order) {
+            $weight = 0.0;
+            $units = 0.0;
+            $missing_weight = 0;
+
+            if (!is_object($order) || !is_callable(array($order, 'get_items'))) {
+                return array('weight' => 0.0, 'units' => 0.0, 'missing_weight' => 0);
+            }
+
+            foreach ($order->get_items('line_item') as $item) {
+                if (!is_object($item)) {
+                    continue;
+                }
+                $qty = max(0, (float) $item->get_quantity());
+                $units += $qty;
+
+                $product = is_callable(array($item, 'get_product')) ? $item->get_product() : false;
+                if (!$product || !is_callable(array($product, 'get_weight'))) {
+                    $missing_weight++;
+                    continue;
+                }
+
+                $raw_weight = trim((string) $product->get_weight());
+                if ('' === $raw_weight) {
+                    $missing_weight++;
+                    continue;
+                }
+
+                $kg = function_exists('wc_get_weight')
+                    ? (float) wc_get_weight((float) $raw_weight, 'kg')
+                    : (float) $raw_weight;
+                $weight += max(0, $kg) * $qty;
+            }
+
+            return array(
+                'weight'         => $weight,
+                'units'          => $units,
+                'missing_weight' => $missing_weight,
+            );
+        }
+
+        private static function order_shipping_method_label($order) {
+            if (!is_object($order) || !is_callable(array($order, 'get_shipping_methods'))) {
+                return '—';
+            }
+            $labels = array();
+            foreach ($order->get_shipping_methods() as $shipping_item) {
+                if (is_object($shipping_item) && is_callable(array($shipping_item, 'get_name'))) {
+                    $name = trim((string) $shipping_item->get_name());
+                    if ('' !== $name) {
+                        $labels[] = $name;
+                    }
+                }
+            }
+            return $labels ? implode(', ', array_unique($labels)) : '—';
+        }
+
+        private static function render_order_shipping_audit() {
+            $orders = self::active_shipping_orders();
+            ?>
+            <div class="seo-transport-panel">
+                <div class="seo-transport-title-row">
+                    <div>
+                        <h2>Pedidos: peso y coste de envío</h2>
+                        <p>Vista operativa de los pedidos activos. No contiene ninguna lógica de proveedor o compra: esa relación se gestiona ahora en TaxoCommerce Suppliers → Purchasing.</p>
+                    </div>
+                </div>
+
+                <?php if (!$orders) : ?>
+                    <div class="notice notice-info inline"><p>No hay pedidos pendientes, en espera o procesando.</p></div>
+                <?php else : ?>
+                    <div style="overflow:auto">
+                        <table class="widefat striped">
+                            <thead>
+                                <tr>
+                                    <th>Pedido</th>
+                                    <th>Estado</th>
+                                    <th>Unidades</th>
+                                    <th>Peso total</th>
+                                    <th>Productos sin peso</th>
+                                    <th>Método de envío</th>
+                                    <th>Coste envío</th>
+                                    <th>Impuestos envío</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($orders as $order) : ?>
+                                <?php
+                                if (!is_object($order) || !is_callable(array($order, 'get_id'))) {
+                                    continue;
+                                }
+                                $metrics = self::order_weight_metrics($order);
+                                $order_id = absint($order->get_id());
+                                $edit_url = is_callable(array($order, 'get_edit_order_url')) ? $order->get_edit_order_url() : '';
+                                $status = sanitize_key((string) $order->get_status());
+                                $status_label = function_exists('wc_get_order_status_name') ? wc_get_order_status_name($status) : $status;
+                                $shipping_total = is_callable(array($order, 'get_shipping_total')) ? (float) $order->get_shipping_total() : 0.0;
+                                $shipping_tax = is_callable(array($order, 'get_shipping_tax')) ? (float) $order->get_shipping_tax() : 0.0;
+                                ?>
+                                <tr>
+                                    <td><?php if ($edit_url) : ?><a href="<?php echo esc_url($edit_url); ?>"><strong>#<?php echo esc_html($order_id); ?></strong></a><?php else : ?><strong>#<?php echo esc_html($order_id); ?></strong><?php endif; ?></td>
+                                    <td><?php echo esc_html($status_label); ?></td>
+                                    <td><?php echo esc_html(wc_format_decimal($metrics['units'], 2)); ?></td>
+                                    <td><strong><?php echo esc_html(wc_format_decimal($metrics['weight'], 3)); ?> kg</strong></td>
+                                    <td><?php echo esc_html((string) absint($metrics['missing_weight'])); ?></td>
+                                    <td><?php echo esc_html(self::order_shipping_method_label($order)); ?></td>
+                                    <td><?php echo wp_kses_post(wc_price($shipping_total)); ?></td>
+                                    <td><?php echo wp_kses_post(wc_price($shipping_tax)); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php
+        }
+
         public static function render_page() {
             if (!current_user_can(self::capability())) {
                 wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-logistica'));
@@ -492,11 +633,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
             $status = isset($_GET['seo_transport_status']) ? sanitize_key(wp_unslash($_GET['seo_transport_status'])) : '';
             ?>
             <div class="wrap seo-transporte-wrap">
-                <h1>Logística</h1>
-                <nav class="nav-tab-wrapper" aria-label="Logística">
-                    <a class="nav-tab" href="<?php echo esc_url(admin_url('admin.php?page=seo-logistica')); ?>">Gestión de pedidos</a>
-                    <a class="nav-tab nav-tab-active" href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE)); ?>">Transporte</a>
-                </nav>
+                <h1>Logistics — Shipping Weight & Costs</h1>
 
                 <?php if ('saved' === $status) : ?>
                     <div class="notice notice-success is-dismissible"><p>Reglas de transporte guardadas. WooCommerce recalculará las tarifas con esta configuración.</p></div>
@@ -506,7 +643,9 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
                 <?php self::render_import_notice(); ?>
 
-                <p class="seo-transport-intro">Una sola pantalla controla el coste que verá el cliente en carrito y checkout. Cuando el gestor está activo, las tarifas configuradas en WooCommerce se ignoran y este motor devuelve una única tarifa según destino, subtotal, peso y dimensiones.</p>
+                <p class="seo-transport-intro">Logistics now manages only shipping weight, dimensions and delivery cost. Supplier purchasing has moved to TaxoCommerce Suppliers → Purchasing. When this manager is active, it returns one WooCommerce shipping rate according to destination, subtotal, weight and dimensions.</p>
+
+                <?php self::render_order_shipping_audit(); ?>
 
                 <div class="seo-transport-panel seo-transport-transfer">
                     <div>
