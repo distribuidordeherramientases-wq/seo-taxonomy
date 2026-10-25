@@ -274,7 +274,7 @@ final class Assisted_Delete {
                 'posts_per_page'      => 1,
                 'fields'              => 'ids',
                 'no_found_rows'       => true,
-                'suppress_filters'    => true,
+                'suppress_filters'    => false,
                 'tax_query'           => array(
                     array(
                         'taxonomy'         => 'product_cat',
