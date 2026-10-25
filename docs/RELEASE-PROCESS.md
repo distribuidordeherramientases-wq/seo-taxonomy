@@ -103,12 +103,12 @@ La documentación pública debe indicar la misma licencia que este archivo.
 
 ### Documentación
 
-Cuando el cambio queda validado en staging:
+Cuando un cambio de un plugin independiente queda validado en staging:
 
 1. documentar la interfaz si ha cambiado;
-2. añadir una entrada a `CHANGELOG.md`;
+2. añadir la entrada de versión/changelog al `readme.txt` de ese plugin;
 3. actualizar documentación específica si existe;
-4. actualizar `readme.txt` cuando el cambio deba aparecer en la próxima versión pública.
+4. no modificar `CHANGELOG.md` ni `readme.txt` raíz salvo que el cambio sea un hotfix crítico del monolito 2.4.1.
 
 ---
 
@@ -132,26 +132,9 @@ El `CHANGELOG.md` raíz y el `readme.txt` raíz permanecen congelados en 2.4.1 s
 
 ## 4 bis. Sección Unreleased histórica
 
-Mientras se acumulan cambios para la próxima publicación, `CHANGELOG.md` mantiene al principio:
+Esta mecánica se conserva únicamente como referencia de cómo se publicaba el monolito antes de 2.4.1. **No se abrirá una nueva sección `Unreleased` en el `CHANGELOG.md` raíz.**
 
-```markdown
-## [Unreleased]
-
-### Marketing
-- ...
-
-### Correcciones
-- ...
-```
-
-Cuando se hace el corte semanal:
-
-1. se decide el número de versión;
-2. `Unreleased` se convierte en la versión fechada;
-3. se crea una nueva sección `Unreleased` vacía para el siguiente ciclo.
-
-Esto permite que staging actúe como una verdadera candidata a la próxima release.
-
+Para los plugins independientes, el trabajo pendiente se gestiona mediante Issues, PRs y milestones; al publicar un cambio, se actualiza el changelog del `readme.txt` del plugin afectado.
 ---
 
 ## 5. Corte semanal de producción
@@ -245,7 +228,7 @@ fix/hotfix-...
  producción
 ```
 
-El hotfix también debe quedar registrado en `CHANGELOG.md` y en `readme.txt` si genera una nueva versión pública.
+Un hotfix de un plugin independiente debe quedar registrado en el `readme.txt` de ese plugin. `CHANGELOG.md` y `readme.txt` raíz sólo se modifican si el hotfix afecta específicamente al monolito 2.4.1.
 
 ---
 
@@ -289,14 +272,14 @@ Antes de producción:
 
 - [ ] Cambios integrados en staging.
 - [ ] Pruebas funcionales realizadas.
-- [ ] `CHANGELOG.md` actualizado.
-- [ ] `readme.txt` actualizado.
+- [ ] `readme.txt` del plugin afectado actualizado.
+- [ ] Versión del plugin afectado consistente en su cabecera, constante y `Stable tag`.
 - [ ] Manual/Wiki actualizado si cambió la interfaz.
-- [ ] Versión consistente en todos los archivos.
 - [ ] Sintaxis PHP validada.
 - [ ] PR staging → main revisada.
 - [ ] Despliegue manual ejecutado.
 - [ ] Smoke test de producción completado.
+- [ ] El monolito sigue en 2.4.1 salvo hotfix crítico explícito.
 
 ---
 
