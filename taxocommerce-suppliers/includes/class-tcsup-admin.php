@@ -383,60 +383,80 @@ final class TCSUP_Admin {
 
 	private static function catalogue_query( $limit = 50, $accepted_only = false ) {
 		global $wpdb;
-		$table = TCSUP_Schema::catalog_table();
-		$where = array( '1=1' );
-		$args  = array();
 
-		$provider = self::request_filter( 'supplier' );
+		$table     = TCSUP_Schema::catalog_table();
+		$provider  = self::request_filter( 'supplier' );
 		$selection = self::request_filter( 'selection' );
-		$country = strtoupper( self::request_filter( 'country' ) );
-		$search = self::request_filter( 's' );
+		$country   = strtoupper( self::request_filter( 'country' ) );
+		$search    = self::request_filter( 's' );
+
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
-		$page = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		$page  = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
 		$limit = max( 1, min( 200, absint( $limit ) ) );
+		$offset = ( $page - 1 ) * $limit;
+		$accepted_flag = $accepted_only ? 1 : 0;
+		$like = '' !== $search ? '%' . $wpdb->esc_like( $search ) . '%' : '';
 
-		if ( $accepted_only ) {
-			$where[] = 'estado_seleccion IN (%s,%s,%s)';
-			array_push( $args, 'aceptado', 'publicado', 'actualizar' );
-		} elseif ( $selection ) {
-			$where[] = 'estado_seleccion=%s';
-			$args[] = $selection;
-		}
-		if ( $provider ) {
-			$where[] = 'proveedor=%s';
-			$args[] = $provider;
-		}
-		if ( $country ) {
-			$where[] = 'pais_origen=%s';
-			$args[] = $country;
-		}
-		if ( $search ) {
-			$like = '%' . $wpdb->esc_like( $search ) . '%';
-			$where[] = '(nombre LIKE %s OR sku LIKE %s OR proveedor_id_externo LIKE %s)';
-			array_push( $args, $like, $like, $like );
-		}
-
-		$where_sql = implode( ' AND ', $where );
-		// The WHERE fragments above come exclusively from this method's fixed allowlist.
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed local SQL fragments; all values and the identifier are prepared below.
-		$count_format = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Format is assembled only from the fixed filter fragments above.
 		$count_query = $wpdb->prepare(
-			$count_format,
-			array_merge( array( $table ), $args )
+			"SELECT COUNT(*) FROM %i
+			 WHERE (
+				(%d=1 AND estado_seleccion IN (%s,%s,%s))
+				OR
+				(%d=0 AND (%s='' OR estado_seleccion=%s))
+			 )
+			 AND (%s='' OR proveedor=%s)
+			 AND (%s='' OR pais_origen=%s)
+			 AND (%s='' OR nombre LIKE %s OR sku LIKE %s OR proveedor_id_externo LIKE %s)",
+			$table,
+			$accepted_flag,
+			'aceptado',
+			'publicado',
+			'actualizar',
+			$accepted_flag,
+			$selection,
+			$selection,
+			$provider,
+			$provider,
+			$country,
+			$country,
+			$search,
+			$like,
+			$like,
+			$like
 		);
-		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query is prepared immediately above from a fixed local filter allowlist.
 		$total = absint( $wpdb->get_var( $count_query ) );
 
-		$offset = ( $page - 1 ) * $limit;
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed local SQL fragments; all values and the identifier are prepared below.
-		$row_format = "SELECT * FROM %i WHERE {$where_sql} ORDER BY actualizado DESC,id DESC LIMIT %d OFFSET %d";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Format is assembled only from the fixed filter fragments above.
 		$row_query = $wpdb->prepare(
-			$row_format,
-			array_merge( array( $table ), $args, array( $limit, $offset ) )
+			"SELECT * FROM %i
+			 WHERE (
+				(%d=1 AND estado_seleccion IN (%s,%s,%s))
+				OR
+				(%d=0 AND (%s='' OR estado_seleccion=%s))
+			 )
+			 AND (%s='' OR proveedor=%s)
+			 AND (%s='' OR pais_origen=%s)
+			 AND (%s='' OR nombre LIKE %s OR sku LIKE %s OR proveedor_id_externo LIKE %s)
+			 ORDER BY actualizado DESC,id DESC
+			 LIMIT %d OFFSET %d",
+			$table,
+			$accepted_flag,
+			'aceptado',
+			'publicado',
+			'actualizar',
+			$accepted_flag,
+			$selection,
+			$selection,
+			$provider,
+			$provider,
+			$country,
+			$country,
+			$search,
+			$like,
+			$like,
+			$like,
+			$limit,
+			$offset
 		);
-		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query is prepared immediately above from a fixed local filter allowlist.
 		$rows = $wpdb->get_results( $row_query, ARRAY_A );
 
 		return array(
