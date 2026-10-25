@@ -409,6 +409,18 @@ final class TCSUP_Products {
 		self::guard( 'tcsup_bulk_action' );
 		$ids = isset( $_POST['row_ids'] ) && is_array( $_POST['row_ids'] ) ? array_map( 'absint', $_POST['row_ids'] ) : array();
 		$action = isset( $_POST['bulk_supplier_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_supplier_action'] ) ) : '';
+
+		$row_action = isset( $_POST['row_action'] ) ? sanitize_text_field( wp_unslash( $_POST['row_action'] ) ) : '';
+		if ( $row_action && false !== strpos( $row_action, ':' ) ) {
+			list( $single_action, $single_id ) = array_pad( explode( ':', $row_action, 2 ), 2, '' );
+			$single_action = sanitize_key( $single_action );
+			$single_id     = absint( $single_id );
+			if ( $single_id && in_array( $single_action, array( 'accept', 'review', 'discard', 'pending' ), true ) ) {
+				$ids    = array( $single_id );
+				$action = $single_action;
+			}
+		}
+
 		$done = 0;
 		$errors = 0;
 
