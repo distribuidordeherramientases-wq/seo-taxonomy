@@ -165,7 +165,10 @@ final class TaxoCommerce_Core_Dashboard {
 							<p class="tcc-module__description"><?php echo esc_html( $module['description'] ); ?></p>
 							<div class="tcc-module__footer">
 								<span class="tcc-status tcc-status--<?php echo esc_attr( $module['tone'] ); ?>"><?php echo esc_html( $module['state'] ); ?></span>
-								<a class="tcc-button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $module['slug'] ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Abrir %s', 'taxocommerce-core' ), $module['title'] ) ); ?>"><?php esc_html_e( 'Abrir', 'taxocommerce-core' ); ?> <span class="dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span></a>
+								<a class="tcc-button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $module['slug'] ) ); ?>" aria-label="<?php
+                                    /* translators: %s: title of the module displayed on the dashboard. */
+                                    echo esc_attr( sprintf( __( 'Abrir %s', 'taxocommerce-core' ), $module['title'] ) );
+                                ?>"><?php esc_html_e( 'Abrir', 'taxocommerce-core' ); ?> <span class="dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span></a>
 							</div>
 						</article>
 					<?php endforeach; ?>
