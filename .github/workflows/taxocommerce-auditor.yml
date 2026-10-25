@@ -1,0 +1,86 @@
+name: Build and Deploy TaxoCommerce Auditor to STAGING
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-auditor/**'
+      - '.github/workflows/taxocommerce-auditor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring
+          coverage: none
+
+      - name: PHP syntax
+        run: find taxocommerce-auditor -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Auditor smoke tests
+        run: php taxocommerce-auditor/tests/smoke.php
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package local ZIP
+        run: |
+          rm -rf build-auditor-package
+          mkdir -p build-auditor-package
+          zip -qr build-auditor-package/taxocommerce-auditor.zip taxocommerce-auditor \
+            -x 'taxocommerce-auditor/tests/*' \
+               'taxocommerce-auditor/**/*.bak' \
+               'taxocommerce-auditor/**/*.md' \
+               'taxocommerce-auditor/**/*.pot'
+          unzip -t build-auditor-package/taxocommerce-auditor.zip
+
+      - name: Upload Auditor ZIP to Core local repository
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./build-auditor-package/
+          server-dir: ./wp-content/uploads/taxocommerce-core/plugins/
+          dry-run: false
+          log-level: standard
+
+      - name: Deploy Auditor plugin to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-auditor/
+          server-dir: ./wp-content/plugins/taxocommerce-auditor/
+          dry-run: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
