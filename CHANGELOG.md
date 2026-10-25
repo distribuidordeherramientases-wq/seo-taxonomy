@@ -1,5 +1,25 @@
 # Changelog
 
+> **Histórico del monolito cerrado.** TaxoCommerce SEO 2.4.1 es la última versión planificada de la línea monolítica. A partir del milestone 2.4.2, los cambios funcionales y sus versiones se documentan en el `readme.txt` de cada plugin independiente. Este archivo raíz queda congelado salvo una corrección crítica que afecte específicamente al monolito.
+
+## [2.4.1] - 2026-10-25
+
+### Cierre de la arquitectura monolítica
+
+- Última versión planificada de **TaxoCommerce SEO** como plugin monolítico.
+- Se completa el cambio operativo hacia la familia modular TaxoCommerce, con Core y extensiones independientes.
+- El desarrollo funcional ordinario deja de incorporarse al monolito.
+- Cada plugin independiente mantiene desde ahora su propia versión y su propio changelog en el `readme.txt` de su carpeta.
+- Los milestones globales posteriores, empezando por **2.4.2**, coordinan trabajo entre plugins y no representan una nueva versión del monolito.
+- El monolito sólo podrá recibir correcciones críticas de compatibilidad, migración o seguridad cuando sean estrictamente necesarias.
+
+### Versionado posterior
+
+- Las versiones de Core, Images, Auditor, Suppliers, Insights, Distribution y el resto de extensiones evolucionan de forma independiente.
+- Una modificación en un plugin no obliga a incrementar la versión de los demás.
+- El repositorio raíz conserva este changelog como histórico de la etapa monolítica.
+
+
 ## [2.4.0] - 2026-10-13
 
 Primera release de la línea **TaxoCommerce SEO 2.4.x**.
