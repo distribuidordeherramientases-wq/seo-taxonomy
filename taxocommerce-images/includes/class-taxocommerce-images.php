@@ -166,8 +166,8 @@ final class TaxoCommerce_Images {
 		if ( defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
 			add_submenu_page(
 				'taxocommerce-core',
-				__( 'Imágenes', 'taxocommerce-images' ),
-				__( 'Imágenes', 'taxocommerce-images' ),
+				__( 'Images', 'taxocommerce-images' ),
+				__( 'Images', 'taxocommerce-images' ),
 				$capability,
 				'taxocommerce-images',
 				array( $this, 'render' )

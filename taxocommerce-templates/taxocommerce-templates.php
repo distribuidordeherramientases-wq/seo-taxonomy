@@ -126,7 +126,7 @@ final class TaxoCommerce_Templates {
     }
     public static function menu() {
         $parent=function_exists('taxocommerce_core')?'taxocommerce-core':null;
-        if($parent) add_submenu_page($parent,'TaxoCommerce Templates','Plantillas','manage_options','taxocommerce-templates',array(__CLASS__,'screen'));
+        if($parent) add_submenu_page($parent,'TaxoCommerce Templates','Templates','manage_options','taxocommerce-templates',array(__CLASS__,'screen'));
         else add_menu_page('TaxoCommerce Templates','Templates','manage_options','taxocommerce-templates',array(__CLASS__,'screen'),'dashicons-layout',62);
     }
     private static function guard($nonce) {
