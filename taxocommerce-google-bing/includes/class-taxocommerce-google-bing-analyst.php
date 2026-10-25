@@ -296,6 +296,57 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			);
 		}
 
+		// Presence of external domains in saved Market evidence. This is an
+		// observation-frequency view, never a claimed ranking or market share.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned tables, fixed read-only query, no user input.
+		$external_rows = (array) $wpdb->get_results(
+			"SELECT c.id AS category_id,c.name,s.source_url
+			 FROM {$sources_table} s
+			 INNER JOIN {$categories_table} c ON c.id=s.category_id
+			 WHERE c.scan_status<>'archived'
+			   AND s.provider<>'google_search'
+			   AND s.evidence_level<>'stale'
+			   AND s.source_url<>''
+			 ORDER BY s.updated_at DESC,s.id DESC
+			 LIMIT 600",
+			ARRAY_A
+		);
+		$own_host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+		$domain_map = array();
+		foreach ( $external_rows as $external_row ) {
+			$host = strtolower( (string) wp_parse_url( (string) ( $external_row['source_url'] ?? '' ), PHP_URL_HOST ) );
+			$host = preg_replace( '/^www\./', '', $host );
+			if ( '' === $host || $host === preg_replace( '/^www\./', '', $own_host ) ) {
+				continue;
+			}
+			if ( ! isset( $domain_map[ $host ] ) ) {
+				$domain_map[ $host ] = array(
+					'domain' => $host,
+					'mentions' => 0,
+					'categories' => array(),
+				);
+			}
+			$domain_map[ $host ]['mentions']++;
+			$category_name = sanitize_text_field( (string) ( $external_row['name'] ?? '' ) );
+			if ( '' !== $category_name ) {
+				$domain_map[ $host ]['categories'][ $category_name ] = true;
+			}
+		}
+		$competitors = array();
+		foreach ( $domain_map as $item ) {
+			$item['category_count'] = count( $item['categories'] );
+			$item['categories'] = array_slice( array_keys( $item['categories'] ), 0, 6 );
+			$competitors[] = $item;
+		}
+		usort(
+			$competitors,
+			static function ( $left, $right ) {
+				$count = (int) $right['mentions'] <=> (int) $left['mentions'];
+				return 0 !== $count ? $count : (int) $right['category_count'] <=> (int) $left['category_count'];
+			}
+		);
+		$competitors = array_slice( $competitors, 0, 20 );
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned table name, no user input.
 		$total_categories = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$categories_table} WHERE scan_status<>'archived'" );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned table name, no user input.
@@ -322,6 +373,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			'categories'       => $categories,
 			'providers'        => $provider_counts,
 			'merchant_leaders' => $merchant_leaders,
+			'competitors'      => $competitors,
 		);
 	}
 
@@ -995,6 +1047,16 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			echo '<div class="tgb-analyst-scroll"><table class="widefat striped"><thead><tr><th>Category</th><th>Product / cluster</th><th>Brand</th><th>Rank</th><th>Relative demand</th><th>Report date</th></tr></thead><tbody>';
 			foreach ( array_slice( $leaders, 0, 15 ) as $leader ) {
 				echo '<tr><td>' . esc_html( (string) $leader['category'] ) . '</td><td><strong>' . esc_html( (string) $leader['title'] ) . '</strong></td><td>' . esc_html( (string) ( $leader['brand'] ?: '—' ) ) . '</td><td>' . esc_html( (string) ( $leader['rank'] ?: '—' ) ) . '</td><td>' . esc_html( (string) ( $leader['relative_demand'] ?: '—' ) ) . '</td><td>' . esc_html( (string) ( $leader['report_date'] ?: '—' ) ) . '</td></tr>';
+			}
+			echo '</tbody></table></div>';
+		}
+
+		$competitors = (array) ( $market['competitors'] ?? array() );
+		if ( $competitors ) {
+			echo '<h4>Observed competing domains</h4><p class="description">Frequency of external domains in saved Market evidence. More mentions mean more observed presence in our research set, not a verified market-share or ranking position.</p>';
+			echo '<div class="tgb-analyst-scroll"><table class="widefat striped"><thead><tr><th>Domain</th><th>Observed mentions</th><th>Categories</th><th>Sample areas</th></tr></thead><tbody>';
+			foreach ( array_slice( $competitors, 0, 15 ) as $competitor ) {
+				echo '<tr><td><strong>' . esc_html( (string) $competitor['domain'] ) . '</strong></td><td>' . esc_html( number_format_i18n( (int) $competitor['mentions'] ) ) . '</td><td>' . esc_html( number_format_i18n( (int) $competitor['category_count'] ) ) . '</td><td>' . esc_html( implode( ' · ', (array) $competitor['categories'] ) ) . '</td></tr>';
 			}
 			echo '</tbody></table></div>';
 		}
