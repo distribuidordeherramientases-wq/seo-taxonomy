@@ -25,10 +25,12 @@ function tccampaigns_calendar_rows($month) {
     return (array) $wpdb->get_results(
         $wpdb->prepare(
             "SELECT c.*, COUNT(cp.id) AS product_count
-             FROM {$tables['campaigns']} c
-             LEFT JOIN {$tables['products']} cp ON cp.campaign_id=c.id
+             FROM %i c
+             LEFT JOIN %i cp ON cp.campaign_id=c.id
              WHERE c.start_at <= %s AND c.end_at >= %s
              GROUP BY c.id ORDER BY c.start_at ASC,c.id ASC",
+            $tables['campaigns'],
+            $tables['products'],
             $end->format('Y-m-d H:i:s'),
             $start->format('Y-m-d H:i:s')
         )
@@ -86,7 +88,7 @@ function tccampaigns_calendar_render() {
     for($d=1;$d<=$days;$d++){
         $date=sprintf('%s-%02d',$month,$d);
         $today=$date===wp_date('Y-m-d',time(),$tz);
-        echo '<div class="tcc-calendar-day'.($today?' is-today':'').'"><strong>'.$d.'</strong>';
+        echo '<div class="tcc-calendar-day'.($today?' is-today':'').'"><strong>'.esc_html((string) $d).'</strong>';
         foreach((array)($events[$date]??array()) as $event){
             if('campaign'===$event['kind']){
                 $url=tccampaigns_admin_url(array('campaign_id'=>$event['id']));
