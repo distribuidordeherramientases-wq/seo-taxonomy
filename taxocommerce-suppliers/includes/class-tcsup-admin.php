@@ -420,19 +420,23 @@ final class TCSUP_Admin {
 		// The WHERE fragments above come exclusively from this method's fixed allowlist.
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed local SQL fragments; all values and the identifier are prepared below.
 		$count_format = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
-		$count_query  = $wpdb->prepare(
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Format is assembled only from the fixed filter fragments above.
+		$count_query = $wpdb->prepare(
 			$count_format,
 			array_merge( array( $table ), $args )
 		);
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query is prepared immediately above from a fixed local filter allowlist.
 		$total = absint( $wpdb->get_var( $count_query ) );
 
 		$offset = ( $page - 1 ) * $limit;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed local SQL fragments; all values and the identifier are prepared below.
 		$row_format = "SELECT * FROM %i WHERE {$where_sql} ORDER BY actualizado DESC,id DESC LIMIT %d OFFSET %d";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Format is assembled only from the fixed filter fragments above.
 		$row_query = $wpdb->prepare(
 			$row_format,
 			array_merge( array( $table ), $args, array( $limit, $offset ) )
 		);
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Query is prepared immediately above from a fixed local filter allowlist.
 		$rows = $wpdb->get_results( $row_query, ARRAY_A );
 
 		return array(
@@ -481,12 +485,13 @@ final class TCSUP_Admin {
 
 	private static function providers() {
 		global $wpdb;
-		$query = $wpdb->prepare(
-			'SELECT DISTINCT proveedor FROM %i WHERE proveedor<>%s ORDER BY proveedor ASC',
-			TCSUP_Schema::catalog_table(),
-			''
+		return $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT DISTINCT proveedor FROM %i WHERE proveedor<>%s ORDER BY proveedor ASC',
+				TCSUP_Schema::catalog_table(),
+				''
+			)
 		);
-		return $wpdb->get_col( $query );
 	}
 
 	private static function filter_bar( $tab, $show_selection = true ) {
