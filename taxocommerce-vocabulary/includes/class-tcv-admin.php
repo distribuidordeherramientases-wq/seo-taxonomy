@@ -205,7 +205,9 @@ final class TCV_Admin {
     private static function io() {
         $labels = wp_nonce_url( admin_url( 'admin-post.php?action=tcv_export_labels' ), 'tcv_export_labels' );
         $attrs = wp_nonce_url( admin_url( 'admin-post.php?action=tcv_export_attributes' ), 'tcv_export_attributes' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- import_form() returns only fixed form markup with escaped action URL, domain attribute and a WordPress nonce; wp_kses_post would remove its form inputs.
         echo '<div class="tcv-grid"><div class="tcv-panel"><h2>Etiquetas</h2><p>Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL.</p><a class="button button-primary" href="' . esc_url( $labels ) . '">Exportar CSV de etiquetas</a>' . self::import_form( 'labels' ) . '</div>';
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- import_form() returns only fixed form markup with escaped action URL, domain attribute and a WordPress nonce; wp_kses_post would remove its form inputs.
         echo '<div class="tcv-panel"><h2>Atributos</h2><p>Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos.</p><a class="button button-primary" href="' . esc_url( $attrs ) . '">Exportar CSV de atributos</a>' . self::import_form( 'attributes' ) . '</div></div>';
         TCV_Portable::render_panel();
     }
