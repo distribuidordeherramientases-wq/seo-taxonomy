@@ -155,8 +155,8 @@ final class TaxoCommerce_Import_Export {
 		if ( function_exists( 'taxocommerce_core' ) ) {
 			add_submenu_page(
 				'taxocommerce-core',
-				__( 'Importar / Exportar', 'taxocommerce-import-export' ),
-				__( 'Importar / Exportar', 'taxocommerce-import-export' ),
+				__( 'Import / Export', 'taxocommerce-import-export' ),
+				__( 'Import / Export', 'taxocommerce-import-export' ),
 				$capability,
 				'taxocommerce-import-export',
 				array( $this, 'render_page' )
