@@ -281,13 +281,19 @@ final class TCSUP_Products {
 			update_post_meta( $product_id, $key, $value );
 		}
 
-		$images_result = self::sync_external_images( $row, $product_id );
-		if ( is_wp_error( $images_result ) ) {
-			update_post_meta( $product_id, '_seo_imagen_import_error', $images_result->get_error_message() );
-		} else {
-			delete_post_meta( $product_id, '_seo_imagen_import_error' );
-			update_post_meta( $product_id, '_seo_imagenes_externas', 1 );
-			update_post_meta( $product_id, '_seo_imagenes_externas_total', absint( $images_result['count'] ?? 0 ) );
+		$image_mode = sanitize_key( (string) ( $row['modo_imagenes'] ?? 'inherit' ) );
+		if ( 'external' === $image_mode ) {
+			$images_result = self::sync_external_images( $row, $product_id );
+			if ( is_wp_error( $images_result ) ) {
+				update_post_meta( $product_id, '_seo_imagen_import_error', $images_result->get_error_message() );
+			} else {
+				delete_post_meta( $product_id, '_seo_imagen_import_error' );
+				update_post_meta( $product_id, '_seo_imagenes_externas', 1 );
+				update_post_meta( $product_id, '_seo_imagenes_externas_total', absint( $images_result['count'] ?? 0 ) );
+			}
+		} elseif ( 'local' === $image_mode ) {
+			delete_post_meta( $product_id, '_seo_imagenes_externas' );
+			delete_post_meta( $product_id, '_seo_imagenes_externas_total' );
 		}
 
 		global $wpdb;
