@@ -236,8 +236,6 @@ final class TaxoCommerce_Google_Bing_Analyst {
 
 		$categories = array();
 		$provider_counts = array();
-		$total_external = 0;
-		$total_merchant = 0;
 		foreach ( $rows as $row ) {
 			$providers = array_values( array_filter( array_map( 'sanitize_key', explode( ',', (string) ( $row['providers'] ?? '' ) ) ) ) );
 			foreach ( $providers as $provider ) {
@@ -248,8 +246,6 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			$product_count = ( $term && ! is_wp_error( $term ) ) ? absint( $term->count ) : 0;
 			$external = absint( $row['external_evidence'] ?? 0 );
 			$merchant = absint( $row['merchant'] ?? 0 );
-			$total_external += $external;
-			$total_merchant += $merchant;
 			$link = $term && ! is_wp_error( $term ) ? get_term_link( $term ) : '';
 			$categories[] = array(
 				'market_category_id' => absint( $row['id'] ?? 0 ),
@@ -274,14 +270,24 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		$total_categories = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$categories_table} WHERE scan_status<>'archived'" );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned table name, no user input.
 		$analyzed = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$categories_table} WHERE scan_status IN ('complete','partial')" );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal plugin-owned tables, fixed aggregate query, no user input.
+		$totals = (array) $wpdb->get_row(
+			"SELECT
+				SUM(CASE WHEN s.provider<>'google_search' THEN 1 ELSE 0 END) AS external_evidence,
+				SUM(CASE WHEN s.provider='merchant' THEN 1 ELSE 0 END) AS merchant_signals
+			 FROM {$sources_table} s
+			 INNER JOIN {$categories_table} c ON c.id=s.category_id
+			 WHERE c.scan_status<>'archived' AND s.evidence_level<>'stale'",
+			ARRAY_A
+		);
 
 		return array(
 			'available' => true,
 			'summary' => array(
 				'categories'          => $total_categories,
 				'analyzed_categories' => $analyzed,
-				'external_evidence'   => $total_external,
-				'merchant_signals'    => $total_merchant,
+				'external_evidence'   => absint( $totals['external_evidence'] ?? 0 ),
+				'merchant_signals'    => absint( $totals['merchant_signals'] ?? 0 ),
 			),
 			'categories' => $categories,
 			'providers'  => $provider_counts,
