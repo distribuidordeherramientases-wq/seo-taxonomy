@@ -306,22 +306,14 @@ final class TCSUP_Admin {
 						</tbody>
 					</table>
 				<?php endif; ?>
+				<?php if ( 'vevor' !== $mode ) : ?>
+					<details class="tcsup-template-save">
+						<summary>Save this mapping as a reusable template</summary>
+						<p><input type="text" name="save_template_name" placeholder="Optional template name"></p>
+					</details>
+				<?php endif; ?>
 				<p class="submit"><?php submit_button( 'Import into intermediate inventory', 'primary', 'submit', false ); ?></p>
 			</form>
-
-			<?php if ( 'mapping' === $mode || 'canonical' === $mode ) : ?>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tcsup-save-template">
-					<input type="hidden" name="action" value="tcsup_save_template">
-					<?php wp_nonce_field( 'tcsup_save_template' ); ?>
-					<input type="text" name="template_name" placeholder="Template name" required>
-					<input type="text" name="provider" value="<?php echo esc_attr( (string) ( $state['provider'] ?? '' ) ); ?>" placeholder="Supplier">
-					<?php foreach ( TCSUP_CSV::fields() as $field => $definition ) : ?>
-						<?php $suggested = self::suggested_index( $field, $header, $template ); ?>
-						<input type="hidden" name="mapping[<?php echo esc_attr( $field ); ?>]" value="<?php echo esc_attr( $suggested ); ?>">
-					<?php endforeach; ?>
-					<?php submit_button( 'Save current mapping as template', 'secondary', 'submit', false ); ?>
-				</form>
-			<?php endif; ?>
 
 			<h3>Preview</h3>
 			<div class="tcsup-scroll"><table class="widefat striped"><thead><tr>
