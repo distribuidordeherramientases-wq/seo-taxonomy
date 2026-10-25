@@ -84,7 +84,7 @@ final class TCSUP_Admin {
 	private static function active_tab() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
-		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'images' ), true ) ? $tab : 'import';
+		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'images', 'purchasing' ), true ) ? $tab : 'import';
 	}
 
 	public static function render() {
@@ -98,7 +98,7 @@ final class TCSUP_Admin {
 				<div>
 					<p class="tcsup-eyebrow">TAXOCOMMERCE SUPPLIERS</p>
 					<h1>Supplier Catalogue</h1>
-					<p>CSV-only supplier intake, intermediate product decisions, price control, and external image references.</p>
+					<p>Supplier catalogue intake, product decisions, purchasing, price control, and external image references.</p>
 				</div>
 			</header>
 			<nav class="nav-tab-wrapper tcsup-tabs">
@@ -108,7 +108,8 @@ final class TCSUP_Admin {
 					'templates' => 'CSV Templates',
 					'inventory' => 'Inventory',
 					'prices'    => 'Prices',
-					'images'    => 'External Images',
+					'images'     => 'External Images',
+					'purchasing' => 'Purchasing',
 				);
 				foreach ( $tabs as $key => $label ) {
 					printf(
@@ -134,6 +135,9 @@ final class TCSUP_Admin {
 					break;
 				case 'images':
 					self::render_images();
+					break;
+				case 'purchasing':
+					TCSUP_Purchasing::render();
 					break;
 				default:
 					self::render_import();
