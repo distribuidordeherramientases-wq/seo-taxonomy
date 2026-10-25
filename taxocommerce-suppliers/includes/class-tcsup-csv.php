@@ -605,6 +605,7 @@ final class TCSUP_CSV {
 			}
 
 			$external_id = trim( (string) ( $data['proveedor_id_externo'] ?? '' ) );
+			$has_external_id = '' !== $external_id;
 			$sku         = trim( (string) ( $data['sku'] ?? '' ) );
 			$name        = trim( (string) ( $data['nombre'] ?? '' ) );
 			if ( function_exists( 'mb_strlen' ) && mb_strlen( $name, 'UTF-8' ) > 255 ) {
@@ -616,7 +617,10 @@ final class TCSUP_CSV {
 			}
 			if ( '' === $external_id ) {
 				$external_id = $sku;
-				$data['proveedor_id_externo'] = $external_id;
+				if ( 'price_update' !== $mode ) {
+					$data['proveedor_id_externo'] = $external_id;
+					$has_external_id = '' !== $external_id;
+				}
 			}
 			if ( '' === $external_id || ( 'price_update' !== $mode && '' === $name ) ) {
 				$errors++;
@@ -624,6 +628,10 @@ final class TCSUP_CSV {
 			}
 
 			$country = strtoupper( trim( (string) ( $data['pais_origen'] ?? '' ) ) );
+			if ( 'price_update' === $mode && 'VEVOR' === strtoupper( $provider ) && '' === $country ) {
+				$errors++;
+				continue;
+			}
 			$is_vevor = 'VEVOR' === strtoupper( $provider ) && '' !== $country;
 			$row_key = trim( (string) ( $data['source_row_key'] ?? '' ) );
 			if ( 'VEVOR' === strtoupper( $provider ) && '' === $row_key && 'price_update' !== $mode ) {
@@ -704,14 +712,17 @@ final class TCSUP_CSV {
 					}
 				}
 			} else {
-				$existing_by_external = $wpdb->get_row(
-					$wpdb->prepare(
-						"SELECT * FROM {$table} WHERE proveedor=%s AND proveedor_id_externo=%s ORDER BY id ASC LIMIT 1",
-						$provider,
-						$external_id
-					),
-					ARRAY_A
-				);
+				$existing_by_external = null;
+				if ( $has_external_id ) {
+					$existing_by_external = $wpdb->get_row(
+						$wpdb->prepare(
+							"SELECT * FROM {$table} WHERE proveedor=%s AND proveedor_id_externo=%s ORDER BY id ASC LIMIT 1",
+							$provider,
+							$external_id
+						),
+						ARRAY_A
+					);
+				}
 				$existing_by_sku = null;
 				if ( '' !== $sku ) {
 					$existing_by_sku = $wpdb->get_row(
