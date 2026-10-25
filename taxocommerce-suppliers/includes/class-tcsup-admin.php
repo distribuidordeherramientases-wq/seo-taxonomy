@@ -391,10 +391,13 @@ final class TCSUP_Admin {
 		$selection = self::request_filter( 'selection' );
 		$country = strtoupper( self::request_filter( 'country' ) );
 		$search = self::request_filter( 's' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
+		$page = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		$limit = max( 1, min( 200, absint( $limit ) ) );
 
 		if ( $accepted_only ) {
-			$where[] = 'estado_seleccion=%s';
-			$args[] = 'aceptado';
+			$where[] = 'estado_seleccion IN (%s,%s,%s)';
+			array_push( $args, 'aceptado', 'publicado', 'actualizar' );
 		} elseif ( $selection ) {
 			$where[] = 'estado_seleccion=%s';
 			$args[] = $selection;
@@ -413,9 +416,62 @@ final class TCSUP_Admin {
 			array_push( $args, $like, $like, $like );
 		}
 
-		$sql = "SELECT * FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ORDER BY actualizado DESC,id DESC LIMIT %d';
-		$args[] = absint( $limit );
-		return $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
+		$where_sql = implode( ' AND ', $where );
+		$count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
+		if ( $args ) {
+			$count_sql = $wpdb->prepare( $count_sql, $args );
+		}
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Dynamic clauses use a fixed allowlist and prepared values above.
+		$total = absint( $wpdb->get_var( $count_sql ) );
+
+		$offset = ( $page - 1 ) * $limit;
+		$sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY actualizado DESC,id DESC LIMIT %d OFFSET %d";
+		$query_args = array_merge( $args, array( $limit, $offset ) );
+		$sql = $wpdb->prepare( $sql, $query_args );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is fully prepared above.
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
+
+		return array(
+			'rows'  => is_array( $rows ) ? $rows : array(),
+			'total' => $total,
+			'page'  => $page,
+			'pages' => max( 1, (int) ceil( $total / $limit ) ),
+			'limit' => $limit,
+		);
+	}
+
+	private static function render_pagination( $tab, $result ) {
+		$pages = absint( $result['pages'] ?? 1 );
+		if ( $pages <= 1 ) {
+			return;
+		}
+		$current = max( 1, absint( $result['page'] ?? 1 ) );
+		$args = array(
+			'page' => self::PAGE,
+			'tab'  => $tab,
+		);
+		foreach ( array( 'supplier', 'selection', 'country', 's' ) as $key ) {
+			$value = self::request_filter( $key );
+			if ( '' !== $value ) {
+				$args[ $key ] = $value;
+			}
+		}
+		$base = add_query_arg( $args, admin_url( 'admin.php' ) );
+		$base = add_query_arg( 'paged', '%#%', $base );
+		echo '<div class="tablenav"><div class="tablenav-pages">';
+		echo wp_kses_post(
+			paginate_links(
+				array(
+					'base'      => $base,
+					'format'    => '',
+					'current'   => $current,
+					'total'     => $pages,
+					'prev_text' => '‹',
+					'next_text' => '›',
+				)
+			)
+		);
+		echo '</div></div>';
 	}
 
 	private static function providers() {
@@ -476,7 +532,8 @@ final class TCSUP_Admin {
 	}
 
 	private static function render_inventory() {
-		$rows = self::catalogue_query( 100, false );
+		$result = self::catalogue_query( 50, false );
+		$rows = $result['rows'];
 		?>
 		<section class="tcsup-card">
 			<div class="tcsup-card-head"><div><h2>Intermediate supplier inventory</h2><p>CSV rows stay here until they are accepted, sent to review, or discarded.</p></div></div>
@@ -520,12 +577,14 @@ final class TCSUP_Admin {
 					</tbody>
 				</table></div>
 			</form>
+			<?php self::render_pagination( 'inventory', $result ); ?>
 		</section>
 		<?php
 	}
 
 	private static function render_prices() {
-		$rows = self::catalogue_query( 80, false );
+		$result = self::catalogue_query( 40, false );
+		$rows = $result['rows'];
 		$sale_margin = (float) get_option( 'taxocommerce_suppliers_sale_margin', 20 );
 		$regular_margin = (float) get_option( 'taxocommerce_suppliers_regular_margin', 45 );
 		?>
@@ -561,12 +620,14 @@ final class TCSUP_Admin {
 				</form>
 			<?php endforeach; ?>
 			</div>
+			<?php self::render_pagination( 'prices', $result ); ?>
 		</section>
 		<?php
 	}
 
 	private static function render_images() {
-		$rows = self::catalogue_query( 100, false );
+		$result = self::catalogue_query( 50, false );
+		$rows = $result['rows'];
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only row selector.
 		$selected_id = isset( $_GET['row_id'] ) ? absint( $_GET['row_id'] ) : 0;
 		$selected = $selected_id ? TCSUP_Products::row( $selected_id ) : array();
@@ -611,6 +672,7 @@ final class TCSUP_Admin {
 				<?php endforeach; ?>
 				</tbody>
 			</table></div>
+			<?php self::render_pagination( 'images', $result ); ?>
 		</section>
 		<?php
 	}
