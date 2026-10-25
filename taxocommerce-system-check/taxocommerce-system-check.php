@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce System Check
  * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
  * Version: 0.2.8
- * Requires at least: 5.8
+ * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
  * License: GPLv2 or later

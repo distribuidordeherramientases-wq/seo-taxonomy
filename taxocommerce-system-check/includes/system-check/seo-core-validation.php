@@ -186,14 +186,14 @@ function seo_core_system_test_csv_safe_value($value) {
  */
 function seo_core_system_test_export_missing_product_excerpts() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'taxocommerce-seo'), '', array('response' => 403));
+        wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'taxocommerce-system-check'), '', array('response' => 403));
     }
 
     check_admin_referer('seo_core_export_missing_product_excerpts');
 
     $format = isset($_GET['format']) ? sanitize_key(wp_unslash($_GET['format'])) : 'json';
     if (!in_array($format, array('json', 'csv'), true)) {
-        wp_die(esc_html__('Formato de exportacion no valido.', 'taxocommerce-seo'), '', array('response' => 400));
+        wp_die(esc_html__('Formato de exportacion no valido.', 'taxocommerce-system-check'), '', array('response' => 400));
     }
 
     $rows = seo_core_system_test_missing_product_excerpt_rows();
@@ -232,7 +232,7 @@ function seo_core_system_test_export_missing_product_excerpts() {
     header('Content-Type: text/csv; charset=utf-8');
     $out = fopen('php://output', 'w');
     if ($out === false) {
-        wp_die(esc_html__('No se pudo abrir la salida CSV.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No se pudo abrir la salida CSV.', 'taxocommerce-system-check'));
     }
 
     // UTF-8 BOM improves Excel compatibility; semicolon matches common es-ES CSV imports.
@@ -290,7 +290,7 @@ if (is_readable($seo_core_persistence_test_module)) {
 
 function seo_core_system_test() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-system-check'));
     }
 
     $active_tab = seo_core_system_test_get_active_tab();

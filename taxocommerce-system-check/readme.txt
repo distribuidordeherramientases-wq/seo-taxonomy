@@ -1,7 +1,7 @@
 === TaxoCommerce System Check ===
 Contributors: davidperezmartorell
 Tags: system, diagnostics, wordpress, security, performance
-Requires at least: 5.8
+Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.2.8
