@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce SEO - Catalog, Trends, Content & Feeds
  * Plugin URI: https://focazul.wordpress.com/taxocommerce-seo-catalog-trends-content-feeds/
  * Description: Modular SEO, catalog, content and commercial management platform for WordPress and WooCommerce.
- * Version: 2.4.0
+ * Version: 2.4.1
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Pérez
@@ -19,12 +19,13 @@ defined('ABSPATH') || exit;
  *
  * Plataforma modular de gestión SEO, catálogo, contenidos y actividad comercial para WordPress y WooCommerce.
  *
- * Resumen de la serie 2.4.0:
+ * Resumen de la serie 2.4.1:
  * - Consolidacion de Auditor por bloques, prioridades y exportacion de informes.
  * - Evolucion de Analista, Ojeador, Ingeniero, Dependiente y Academia.
  * - Mejoras de importacion/exportacion, proveedores y flujos VEVOR.
  * - Preparacion de la familia modular TaxoCommerce (Core y extensiones).
  * - Herramientas de validacion, diagnostico y gestion de procesos.
+ * - Cierre de la linea monolitica: el desarrollo funcional continua en los plugins TaxoCommerce independientes.
  *
  * Incluye:
  * - Arquitectura Cluster → Hub → Categoría → Producto.
@@ -44,7 +45,7 @@ defined('ABSPATH') || exit;
 // Preserve the legacy plugin's own bootstrap path even if another plugin
 // has registered SEO_SYSTEM_* constants earlier in the request.
 if ( ! defined( 'SEO_SYSTEM_VERSION' ) ) {
-    define( 'SEO_SYSTEM_VERSION', '2.4.0' );
+    define( 'SEO_SYSTEM_VERSION', '2.4.1' );
 }
 if ( ! defined( 'SEO_SYSTEM_DB_VERSION' ) ) {
     define( 'SEO_SYSTEM_DB_VERSION', '2.3.9' );
