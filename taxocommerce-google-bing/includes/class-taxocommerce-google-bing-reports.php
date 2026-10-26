@@ -583,7 +583,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             return $previous_reports;
         }
 
-        if ( count( $current_reports ) < 7 || count( $previous_reports ) < 7 ) {
+        if ( count( $current_reports ) < 8 || count( $previous_reports ) < 8 ) {
             return new WP_Error( 'tgb_ga4_incomplete', 'Google Analytics returned an incomplete report batch.' );
         }
 
@@ -632,6 +632,10 @@ final class TaxoCommerce_Google_Bing_Reports {
             'channels' => self::ga4_groups( $current_reports[4], $previous_reports[4] ),
             'devices' => self::ga4_groups( $current_reports[5], $previous_reports[5] ),
             'pages' => self::ga4_pages( $current_reports[6], $previous_reports[6] ),
+            'funnel' => array(
+                'current'  => self::ga4_event_map( $current_reports[7] ),
+                'previous' => self::ga4_event_map( $previous_reports[7] ),
+            ),
             'daily' => array(
                 'labels'              => $axis_current['labels'],
                 'current_sessions'    => $daily_current['sessions'],
@@ -731,9 +735,25 @@ final class TaxoCommerce_Google_Bing_Reports {
                 'orderBys' => array( array( 'metric' => array( 'metricName' => 'screenPageViews' ), 'desc' => true ) ),
                 'limit' => 100,
             ),
+            array(
+                'dateRanges' => array( $date_range ),
+                'dimensions' => array( array( 'name' => 'eventName' ) ),
+                'metrics'    => array( array( 'name' => 'eventCount' ) ),
+                'dimensionFilter' => array(
+                    'filter' => array(
+                        'fieldName'    => 'eventName',
+                        'inListFilter' => array(
+                            'values' => array( 'view_item', 'add_to_cart', 'view_cart', 'begin_checkout', 'purchase' ),
+                        ),
+                    ),
+                ),
+                'limit' => 20,
+            ),
         );
 
-        $response = wp_remote_post(
+        $reports = array();
+        foreach ( array_chunk( $requests, 5 ) as $request_chunk ) {
+            $response = wp_remote_post(
             'https://analyticsdata.googleapis.com/v1beta/properties/' . rawurlencode( $property ) . ':batchRunReports',
             array(
                 'timeout' => 30,
@@ -746,22 +766,27 @@ final class TaxoCommerce_Google_Bing_Reports {
             )
         );
 
-        if ( is_wp_error( $response ) ) {
-            return $response;
-        }
-
-        $code = (int) wp_remote_retrieve_response_code( $response );
-        $body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-
-        if ( $code < 200 || $code >= 300 || ! is_array( $body ) ) {
-            $message = 'Google Analytics returned HTTP ' . $code . '.';
-            if ( is_array( $body ) && ! empty( $body['error']['message'] ) ) {
-                $message .= ' ' . sanitize_text_field( (string) $body['error']['message'] );
+            if ( is_wp_error( $response ) ) {
+                return $response;
             }
-            return new WP_Error( 'tgb_ga4_report_error', $message );
+
+            $code = (int) wp_remote_retrieve_response_code( $response );
+            $body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+
+            if ( $code < 200 || $code >= 300 || ! is_array( $body ) ) {
+                $message = 'Google Analytics returned HTTP ' . $code . '.';
+                if ( is_array( $body ) && ! empty( $body['error']['message'] ) ) {
+                    $message .= ' ' . sanitize_text_field( (string) $body['error']['message'] );
+                }
+                return new WP_Error( 'tgb_ga4_report_error', $message );
+            }
+
+            foreach ( (array) ( $body['reports'] ?? array() ) as $report ) {
+                $reports[] = $report;
+            }
         }
 
-        return array_values( (array) ( $body['reports'] ?? array() ) );
+        return $reports;
     }
 
     private static function ga4_summary( $report ) {
@@ -779,6 +804,23 @@ final class TaxoCommerce_Google_Bing_Reports {
             'keyEvents'        => (int) self::row_metric( $row, 9 ),
             'ecommercePurchases' => (int) self::row_metric( $row, 10 ),
         );
+    }
+
+    private static function ga4_event_map( $report ) {
+        $events = array(
+            'view_item'      => 0,
+            'add_to_cart'    => 0,
+            'view_cart'      => 0,
+            'begin_checkout' => 0,
+            'purchase'       => 0,
+        );
+        foreach ( (array) ( $report['rows'] ?? array() ) as $row ) {
+            $name = sanitize_key( self::row_dimension( $row, 0 ) );
+            if ( array_key_exists( $name, $events ) ) {
+                $events[ $name ] += (int) self::row_metric( $row, 0 );
+            }
+        }
+        return $events;
     }
 
     private static function ga4_user_split( $report ) {
