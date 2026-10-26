@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,12 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and extended to unified connections and Analyst reporting.
 
 == Changelog ==
+
+= 1.1.1 =
+* Added persistent Prepared Intelligence built from saved Search, GA4, Bing, Trends and Market evidence.
+* Analyst now consumes prepared report data instead of re-running deterministic Search/GA4 preprocessing on page load.
+* Market aggregation is cached and refreshed when new Market evidence is saved.
+* Detailed provider reports remain the auditable source while Analyst receives compact prepared summaries and candidate rows.
 
 = 1.1.0 =
 * Recovered the clear diagnostic dashboard from the former Analista inside the modern Analyst tab.
