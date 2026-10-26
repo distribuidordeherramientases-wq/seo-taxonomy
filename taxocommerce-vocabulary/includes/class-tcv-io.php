@@ -78,8 +78,6 @@ final class TCV_IO {
         foreach ( (array) $aliases as $r ) {
             self::output_csv_row( array( 'alias',$r['attribute_slug'],'','','','','','','','','','','',$r['term_slug'],'','','',$r['alias'] ) );
         }
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close or write the authenticated CSV stream without loading the whole response into memory.
-        fclose( $fh );
         exit;
     }
 
