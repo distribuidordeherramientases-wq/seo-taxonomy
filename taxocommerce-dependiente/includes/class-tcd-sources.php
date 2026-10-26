@@ -562,33 +562,6 @@ final class TCD_Sources {
         return (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === (string) $table;
     }
 
-    /**
-     * Return whether a migration-era source table contains a column.
-     *
-     * PRO can legitimately keep the historical seo_faq schema until the FAQs
-     * extension upgrades it. Dependiente must remain able to read that table.
-     */
-    private static function table_has_column( $table, $column ) {
-        global $wpdb;
-        static $cache = array();
-
-        $table = (string) $table;
-        $column = sanitize_key( (string) $column );
-        $key = $table . ':' . $column;
-        if ( array_key_exists( $key, $cache ) ) {
-            return $cache[ $key ];
-        }
-        if ( '' === $table || '' === $column || ! self::table_exists( $table ) ) {
-            $cache[ $key ] = false;
-            return false;
-        }
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal table name is built from $wpdb->prefix plus a fixed suffix.
-        $found = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", $column ) );
-        $cache[ $key ] = ( $column === (string) $found );
-        return $cache[ $key ];
-    }
-
     private static function vocabulary_for_object( $object_type, $object_id ) {
         global $wpdb;
         $voc=$wpdb->prefix.'seo_vocabulary';
