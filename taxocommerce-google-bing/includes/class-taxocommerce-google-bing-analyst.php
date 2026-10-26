@@ -1192,8 +1192,9 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		echo '<a class="button" href="' . esc_url( add_query_arg( array( 'page'=>'taxocommerce-google-bing', 'tgb_tab'=>'google_analytics' ), admin_url( 'admin.php' ) ) ) . '">Actualizar Analytics</a>';
 		echo '<a class="button" href="' . esc_url( self::export_url() ) . '">Export Analyst JSON</a></div></section>';
 
-		TaxoCommerce_Google_Bing_Commercial::render( (array) $report['commercial'] );
+		// Prioritize the familiar historic SEO dashboard. Commercial directives follow it.
 		self::render_diagnostic_dashboard( (array) $report['diagnostic'] );
+		TaxoCommerce_Google_Bing_Commercial::render( (array) $report['commercial'] );
 		self::render_market( (array) $report['market'] );
 		self::render_direction( (array) $report['direction'] );
 
@@ -1239,7 +1240,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 	private static function render_diagnostic_dashboard( $data ) {
 		echo '<section class="tgb-analyst-section tgb-analyst-diagnostic"><div class="tgb-analyst-section-head"><div><h3>Resumen</h3><p>La lectura principal del antiguo Analista, reconstruida con snapshots modernos de Search Console y GA4.</p></div></div>';
 		if ( empty( $data['available'] ) ) {
-			echo '<div class="notice notice-info inline"><p>No hay todavía un snapshot de Google Search. Actualiza Google Search para generar el diagnóstico.</p></div></section>';
+			echo '<div class="notice notice-warning inline"><p><strong>Faltan los datos de Google Search.</strong> Los gráficos de evolución, posiciones Top 3/10/50/100 y movimiento de keywords no pueden mostrarse sin una descarga válida. Revisa la propiedad y sus permisos en Conexiones y después pulsa «Actualizar Google Search». No se generan cifras ficticias.</p></div></section>';
 			return;
 		}
 		if ( ! empty( $data['needs_refresh'] ) ) {
