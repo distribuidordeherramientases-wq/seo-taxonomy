@@ -366,7 +366,7 @@ final class TCD_Sources {
             'total' => null,
             'active' => null,
             'inactive' => null,
-            'has_product_cat_id' => false,
+            'has_product_cat_id' => null,
             'missing_columns' => array(),
             'status' => 'missing_table',
             'message' => 'No existe la tabla de FAQs de esta instalación de WordPress.',
