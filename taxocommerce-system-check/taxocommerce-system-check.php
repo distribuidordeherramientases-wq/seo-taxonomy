@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce System Check
- * Description: Chequeos independientes del servidor, WordPress y plugins, con informes y correo opcional.
- * Version: 0.2.8
+ * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
+ * Version: 0.2.9
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.8' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.9' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
