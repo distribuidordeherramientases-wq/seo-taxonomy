@@ -1,5 +1,7 @@
 name: TaxoCommerce Family WordPress.org Readiness
 
+# A change to this workflow intentionally selects all standalone TaxoCommerce modules.
+
 on:
   workflow_dispatch:
   pull_request:
