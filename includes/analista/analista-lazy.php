@@ -317,6 +317,9 @@ if (!function_exists('seo_analista_lazy_render_sources')) {
 if (!function_exists('seo_analista_lazy_render_partial')) {
     function seo_analista_lazy_render_partial($report, $days) {
         switch ($report) {
+            case 'directrices':
+                seo_analista_lazy_render_directrices($days);
+                break;
             case 'resumen':
                 seo_analista_lazy_render_summary($days);
                 break;
