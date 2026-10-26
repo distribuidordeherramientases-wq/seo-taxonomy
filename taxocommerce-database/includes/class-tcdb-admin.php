@@ -261,37 +261,76 @@ final class TCDB_Admin {
         if ( ! in_array( $per_page, array( 25, 50, 100 ), true ) ) {
             $per_page = 25;
         }
-        $where = '';
-        if ( '' !== $filter ) {
-            if ( in_array( $column, $names, true ) && TCDB_Storage::identifier( $column ) ) {
-                $where = $wpdb->prepare(
-                    "WHERE CAST(" . chr(96) . $column . chr(96) . " AS CHAR) LIKE %s",
-                    '%' . $wpdb->esc_like( $filter ) . '%'
-                );
-            } else {
-                $terms = array();
-                $arguments = array();
-                foreach ( array_slice( $names, 0, 5 ) as $field ) {
-                    if ( TCDB_Storage::identifier( $field ) ) {
-                        $terms[] = 'CAST(' . chr(96) . $field . chr(96) . ' AS CHAR) LIKE %s';
-                        $arguments[] = '%' . $wpdb->esc_like( $filter ) . '%';
-                    }
+        $valid_names = array_values(
+            array_filter(
+                $names,
+                static function ( $name ) {
+                    return TCDB_Storage::identifier( $name );
                 }
-                if ( $terms ) {
-                    $where = $wpdb->prepare( 'WHERE (' . implode( ' OR ', $terms ) . ')', $arguments );
-                }
-            }
-        }
-        $order = TCDB_Storage::primary_key( $table );
-        $order_clause = TCDB_Storage::identifier( $order ) ? 'ORDER BY ' . chr(96) . $order . chr(96) . ' DESC' : '';
-        $offset = ( $page - 1 ) * $per_page;
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifiers selected from actual table schema; WHERE values are prepared.
-        $query = $wpdb->prepare(
-            "SELECT * FROM " . chr(96) . $table . chr(96) . " {$where} {$order_clause} LIMIT %d OFFSET %d",
-            $per_page + 1,
-            $offset
+            )
         );
-        $rows = $wpdb->get_results( $query, ARRAY_A );
+        if ( ! $valid_names ) {
+            echo '<div class="notice notice-warning inline"><p>No se puede explorar esta tabla.</p></div>';
+            return;
+        }
+
+        $order = TCDB_Storage::primary_key( $table );
+        if ( ! TCDB_Storage::identifier( $order ) || ! in_array( $order, $valid_names, true ) ) {
+            $order = $valid_names[0];
+        }
+        $offset = ( $page - 1 ) * $per_page;
+
+        if ( '' === $filter ) {
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT * FROM %i ORDER BY %i DESC LIMIT %d OFFSET %d',
+                    $table,
+                    $order,
+                    $per_page + 1,
+                    $offset
+                ),
+                ARRAY_A
+            );
+        } elseif ( in_array( $column, $valid_names, true ) ) {
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT * FROM %i WHERE CAST(%i AS CHAR) LIKE %s ORDER BY %i DESC LIMIT %d OFFSET %d',
+                    $table,
+                    $column,
+                    '%' . $wpdb->esc_like( $filter ) . '%',
+                    $order,
+                    $per_page + 1,
+                    $offset
+                ),
+                ARRAY_A
+            );
+        } else {
+            $search_columns = array_slice( $valid_names, 0, 5 );
+            while ( count( $search_columns ) < 5 ) {
+                $search_columns[] = $search_columns[0];
+            }
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM %i
+                     WHERE CONCAT_WS(' ',
+                         CAST(%i AS CHAR), CAST(%i AS CHAR), CAST(%i AS CHAR),
+                         CAST(%i AS CHAR), CAST(%i AS CHAR)
+                     ) LIKE %s
+                     ORDER BY %i DESC LIMIT %d OFFSET %d",
+                    $table,
+                    $search_columns[0],
+                    $search_columns[1],
+                    $search_columns[2],
+                    $search_columns[3],
+                    $search_columns[4],
+                    '%' . $wpdb->esc_like( $filter ) . '%',
+                    $order,
+                    $per_page + 1,
+                    $offset
+                ),
+                ARRAY_A
+            );
+        }
         $rows = is_array( $rows ) ? $rows : array();
         $has_next = count( $rows ) > $per_page;
         $rows = array_slice( $rows, 0, $per_page );
