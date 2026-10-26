@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.9
+Stable tag: 0.3.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,11 @@ No. Learning builds and evaluates separate knowledge records.
 No. Core provides optional grouped administration.
 
 == Changelog ==
+
+= 0.3.10 =
+* Make L6 FAQ reading tolerant of optional columns in legacy and modern seo_faq tables.
+* Diagnose empty, inactive, incompatible, or unreadable FAQ sources in the learning log without modifying FAQ content.
+* Verify FAQ source compatibility with an executable regression for both database layouts.
 
 = 0.3.9 =
 * Make FAQ schema compatibility queries explicit and fully prepared.
