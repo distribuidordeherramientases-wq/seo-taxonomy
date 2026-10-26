@@ -33,6 +33,8 @@ jobs:
         run: find taxocommerce-dependiente -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
       - name: Auditable learning regression guards
         run: php taxocommerce-dependiente/tests/learning-smoke.php
+      - name: L6 FAQs legacy and modern source regression
+        run: php taxocommerce-dependiente/tests/faq-source-smoke.php
       - name: No separate Academy or Trainer UI
         run: |
           ! grep --line-number --fixed-strings 'TaxoCommerce Dependiente · Academia' taxocommerce-dependiente/includes/class-tcd-admin.php taxocommerce-dependiente/taxocommerce-dependiente.php
