@@ -762,7 +762,7 @@ final class TaxoCommerce_Google_Bing_Reports {
                     'Content-Type'  => 'application/json',
                     'Accept'        => 'application/json',
                 ),
-                'body' => wp_json_encode( array( 'requests' => $requests ) ),
+                'body' => wp_json_encode( array( 'requests' => $request_chunk ) ),
             )
         );
 
