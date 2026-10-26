@@ -41,9 +41,11 @@ final class TaxoCommerce_Google_Bing_GSC {
             'previous_total' => array( 'previous', array(), 1 ),
             'current_days'   => array( 'current', array( 'date' ), 100 ),
             'previous_days'  => array( 'previous', array( 'date' ), 100 ),
-            'queries'        => array( 'current', array( 'query' ), 1000 ),
-            'pages'          => array( 'current', array( 'page' ), 1000 ),
-            'countries'      => array( 'current', array( 'country' ), 100 ),
+            'queries'          => array( 'current', array( 'query' ), 1000 ),
+            'previous_queries' => array( 'previous', array( 'query' ), 1000 ),
+            'pages'            => array( 'current', array( 'page' ), 1000 ),
+            'previous_pages'   => array( 'previous', array( 'page' ), 1000 ),
+            'countries'        => array( 'current', array( 'country' ), 100 ),
             'devices'        => array( 'current', array( 'device' ), 10 ),
         );
 
@@ -83,9 +85,13 @@ final class TaxoCommerce_Google_Bing_GSC {
                 'previous_clicks' => self::daily_metric( $results['previous_days'], $axis_previous['indexes'], $days, 'clicks' ),
                 'current_impressions' => self::daily_metric( $results['current_days'], $axis_current['indexes'], $days, 'impressions' ),
                 'previous_impressions' => self::daily_metric( $results['previous_days'], $axis_previous['indexes'], $days, 'impressions' ),
+                'current_position' => self::daily_metric( $results['current_days'], $axis_current['indexes'], $days, 'position' ),
+                'previous_position' => self::daily_metric( $results['previous_days'], $axis_previous['indexes'], $days, 'position' ),
             ),
             'queries' => self::top_rows( $results['queries'] ),
+            'previous_queries' => self::top_rows( $results['previous_queries'] ),
             'pages' => self::top_rows( $results['pages'] ),
+            'previous_pages' => self::top_rows( $results['previous_pages'] ),
             'countries' => self::top_rows( $results['countries'] ),
             'devices' => self::top_rows( $results['devices'] ),
             'note' => 'Search Console devuelve filas principales, no necesariamente todas las consultas (las anonimizadas se omiten). Los totales de la propiedad se solicitan por separado.',
@@ -183,7 +189,9 @@ final class TaxoCommerce_Google_Bing_GSC {
             $keys = (array) ( $row['keys'] ?? array() );
             $date = (string) ( $keys[0] ?? '' );
             if ( isset( $indexes[ $date ] ) ) {
-                $values[ $indexes[ $date ] ] = (int) ( $row[ $metric ] ?? 0 );
+                $values[ $indexes[ $date ] ] = 'position' === $metric
+                    ? (float) ( $row[ $metric ] ?? 0 )
+                    : (int) ( $row[ $metric ] ?? 0 );
             }
         }
         return $values;
