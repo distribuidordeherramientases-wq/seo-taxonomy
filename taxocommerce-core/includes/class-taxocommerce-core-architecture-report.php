@@ -15,6 +15,7 @@ final class TaxoCommerce_Core_Architecture_Report {
     const CACHE_KEY = 'taxocommerce_core_architecture_report_v1';
     const CACHE_TTL = 15 * MINUTE_IN_SECONDS;
     const PAGE_TYPE = 'architecture';
+    const PAGE_SLUG = 'taxocommerce-core-reports';
 
     public static function register_hooks() {
         add_action( 'admin_post_taxocommerce_core_refresh_architecture', array( __CLASS__, 'refresh' ) );
@@ -24,7 +25,10 @@ final class TaxoCommerce_Core_Architecture_Report {
     public static function enqueue_styles( $hook ) {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin tab selector.
         $type = isset( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : '';
-        if ( self::PAGE_TYPE !== $type || false === strpos( (string) $hook, '_page_' . TaxoCommerce_Core_Content_Manager::PAGE_SLUG ) ) {
+        $on_reports_page = false !== strpos( (string) $hook, '_page_' . self::PAGE_SLUG );
+        $on_legacy_tab   = self::PAGE_TYPE === $type
+            && false !== strpos( (string) $hook, '_page_' . TaxoCommerce_Core_Content_Manager::PAGE_SLUG );
+        if ( ! $on_reports_page && ! $on_legacy_tab ) {
             return;
         }
 
@@ -48,8 +52,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         wp_safe_redirect(
             add_query_arg(
                 array(
-                    'page'    => TaxoCommerce_Core_Content_Manager::PAGE_SLUG,
-                    'tc_type' => self::PAGE_TYPE,
+                    'page' => self::PAGE_SLUG,
                 ),
                 admin_url( 'admin.php' )
             )

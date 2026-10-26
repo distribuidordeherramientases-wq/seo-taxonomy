@@ -9,6 +9,8 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 define( 'ABSPATH', '/' );
 define( 'MINUTE_IN_SECONDS', 60 );
+define( 'TAXOCOMMERCE_CORE_VERSION', 'smoke-test' );
+define( 'TAXOCOMMERCE_CORE_FILE', __FILE__ );
 function absint( $number ) { return abs( (int) $number ); }
 function esc_html( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $s ) { return esc_html( $s ); }
@@ -16,6 +18,8 @@ function esc_url( $s ) { return esc_html( $s ); }
 function number_format_i18n( $n, $dec = 0 ) { return number_format( $n, $dec, ',', '.' ); }
 function wp_date( $format, $ts ) { return gmdate( $format, $ts ); }
 function admin_url( $p = '' ) { return 'https://example.test/wp-admin/' . $p; }
+function plugins_url( $path, $file ) { return 'https://example.test/wp-content/plugins/taxocommerce-core/' . $path; }
+function wp_enqueue_style( $handle, $url, $deps, $version ) { $GLOBALS['tc_test_styles'][] = $handle; }
 function wp_nonce_field( $action, $name = '_wpnonce' ) { echo '<input name="' . esc_attr( $name ) . '" value="test">'; }
 function get_transient( $k ) { global $fixture; return $fixture; }
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
@@ -104,4 +108,16 @@ ob_start(); TaxoCommerce_Core_Architecture_Report::render(); $empty = ob_get_cle
 if ( false === strpos( $empty, 'No existen clusters publicados' ) ) {
     fwrite( STDERR, "FAIL empty state\n" ); exit( 1 );
 }
-echo "Architecture report OK: clusters, hubs, categories, unique products and empty states.\n";
+$GLOBALS['tc_test_styles'] = array();
+TaxoCommerce_Core_Architecture_Report::enqueue_styles( 'taxocommerce-core_page_taxocommerce-core-reports' );
+if ( ! in_array( 'taxocommerce-core-architecture', $GLOBALS['tc_test_styles'], true ) ) {
+    fwrite( STDERR, "FAIL Reports screen did not enqueue architecture CSS\n" );
+    exit( 1 );
+}
+$GLOBALS['tc_test_styles'] = array();
+TaxoCommerce_Core_Architecture_Report::enqueue_styles( 'tools_page_unrelated' );
+if ( ! empty( $GLOBALS['tc_test_styles'] ) ) {
+    fwrite( STDERR, "FAIL architecture CSS leaks onto unrelated screen\n" );
+    exit( 1 );
+}
+echo "Architecture report OK: clusters, hubs, categories, unique products, Reports CSS and empty states.\n";
