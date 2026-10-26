@@ -174,14 +174,25 @@ final class TCD_Sources {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) return null;
-        $has_category = self::table_has_column( $table, 'product_cat_id' );
-        $sql = $has_category
-            ? 'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1'
-            : 'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1';
-        $row = $wpdb->get_row(
-            $wpdb->prepare( $sql, $table, absint( $id ) ),
-            ARRAY_A
-        );
+        if ( self::table_has_column( $table, 'product_cat_id' ) ) {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1',
+                    $table,
+                    absint( $id )
+                ),
+                ARRAY_A
+            );
+        } else {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1',
+                    $table,
+                    absint( $id )
+                ),
+                ARRAY_A
+            );
+        }
         return is_array( $row ) ? self::faq_row_item( $row ) : null;
     }
 
@@ -353,14 +364,27 @@ final class TCD_Sources {
         if ( ! self::table_exists( $table ) ) {
             return new WP_Error( 'tcd_faq_plugin_missing', 'TaxoCommerce FAQs no está disponible: falta la tabla seo_faq.' );
         }
-        $has_category = self::table_has_column( $table, 'product_cat_id' );
-        $sql = $has_category
-            ? 'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d'
-            : 'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d';
-        $rows = $wpdb->get_results(
-            $wpdb->prepare( $sql, $table, $limit + 1, $cursor ),
-            ARRAY_A
-        );
+        if ( self::table_has_column( $table, 'product_cat_id' ) ) {
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d',
+                    $table,
+                    $limit + 1,
+                    $cursor
+                ),
+                ARRAY_A
+            );
+        } else {
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d',
+                    $table,
+                    $limit + 1,
+                    $cursor
+                ),
+                ARRAY_A
+            );
+        }
         if ( $wpdb->last_error ) {
             return new WP_Error(
                 'tcd_faq_source_query',
