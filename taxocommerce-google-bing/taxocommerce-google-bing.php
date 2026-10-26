@@ -41,6 +41,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-executive.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-prepared.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-analyst.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-market-sources.php';
@@ -61,6 +62,7 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Connections_Admin::boot();
     TaxoCommerce_Google_Bing_Reports::register();
     TaxoCommerce_Google_Bing_Executive::register();
+    TaxoCommerce_Google_Bing_Prepared::register();
     TaxoCommerce_Google_Bing_Analyst::register();
     TaxoCommerce_Google_Bing_Trends::register();
     TaxoCommerce_Google_Bing_Market::register();
