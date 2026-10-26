@@ -91,6 +91,20 @@ final class TCD_Admin {
             echo '<div class="notice notice-error inline"><p><strong>Último error del estado:</strong> '.esc_html((string)$state['last_error']).'</p></div>';
         }
 
+        if ( 6 === absint( $state['lesson'] ?? 0 ) ) {
+            $faq = TCD_Sources::faq_diagnostics();
+            $ready = 'ready' === (string) ( $faq['status'] ?? '' );
+            echo '<div class="notice ' . ( $ready ? 'notice-info' : 'notice-warning' ) . ' inline"><p><strong>Diagnóstico de la fuente L6 · FAQs:</strong> '
+                . esc_html( (string) ( $faq['message'] ?? 'Sin diagnóstico' ) ) . '</p>';
+            if ( ! empty( $faq['exists'] ) ) {
+                echo '<p>Registros: ' . esc_html( null === $faq['total'] ? 'N/D' : number_format_i18n( $faq['total'] ) )
+                    . ' · activos: ' . esc_html( null === $faq['active'] ? 'N/D' : number_format_i18n( $faq['active'] ) )
+                    . ' · inactivos: ' . esc_html( null === $faq['inactive'] ? 'N/D' : number_format_i18n( $faq['inactive'] ) )
+                    . ' · campo opcional product_cat_id: ' . ( null === $faq['has_product_cat_id'] ? 'no comprobado' : ( $faq['has_product_cat_id'] ? 'presente' : 'ausente (compatible)' ) ) . '.</p>';
+            }
+            echo '<p class="description">Comprobación de solo lectura. No cambia el contenido de las FAQs ni el estado del aprendizaje.</p></div>';
+        }
+
         echo '<h2>Eventos recientes del proceso</h2>';
         echo '<p class="description">Resumen estructurado de los últimos eventos de Academia. Se mantiene aquí, junto al log bruto, para que toda la trazabilidad técnica de Dependiente esté centralizada en una sola pestaña.</p>';
         echo '<table class="widefat striped" style="margin-bottom:18px"><thead><tr><th>Fecha (UTC)</th><th>Evento</th><th>Detalles</th></tr></thead><tbody>';

@@ -102,4 +102,17 @@ if ( false === strpos( $reports_source, 'array_chunk( $requests, 5 )' )
     fwrite( STDERR, "GA4 batching/funnel regression guard failed\n" );
     exit( 1 );
 }
+// The Analytics summary may contain at most ten metrics per GA4 request.
+if ( false === strpos( $reports_source, 'count( $current_reports ) < 9' )
+    || false === strpos( $reports_source, 'self::ga4_summary( $current_reports[0], $current_reports[8] )' )
+    || false === strpos( $reports_source, "array( 'name' => 'ecommercePurchases' )" )
+    || false !== strpos( $reports_source, 'row_metric( $row, 10 )' ) ) {
+    fwrite( STDERR, "GA4 report shape regression failed\n" );
+    exit( 1 );
+}
+$gsc_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-gsc.php' );
+if ( false === strpos( $gsc_source, 'Una conexión GA4 correcta no concede permisos de Search Console.' ) ) {
+    fwrite( STDERR, "GSC permissions guidance regression failed\n" );
+    exit( 1 );
+}
 echo "Report rendering smoke test: OK (no network requests, GA4 batches capped at five)\n";

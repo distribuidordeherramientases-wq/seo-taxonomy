@@ -188,6 +188,16 @@ final class TaxoCommerce_Core {
 			array( $this->content, 'render' )
 		);
 
+		// Expose Reports at the same admin menu level as Content.
+		add_submenu_page(
+			'taxocommerce-core',
+			__( 'Informes', 'taxocommerce-core' ),
+			__( 'Informes', 'taxocommerce-core' ),
+			$capability,
+			TaxoCommerce_Core_Architecture_Report::PAGE_SLUG,
+			array( $this, 'render_reports' )
+		);
+
 		add_submenu_page(
 			'taxocommerce-core',
 			__( 'SEO Hierarchy', 'taxocommerce-core' ),
@@ -236,6 +246,7 @@ final class TaxoCommerce_Core {
 		$labels = array(
 			'taxocommerce-core'          => 'TaxoCommerce Core',
 			'taxocommerce-core-content'  => 'Content',
+			'taxocommerce-core-reports'  => 'Informes',
 			'taxocommerce-core-hierarchy'=> 'SEO Hierarchy',
 			'taxocommerce-core-menu'     => 'Menu Manager',
 			'taxocommerce-core-modules'  => 'Extensions',
@@ -289,6 +300,10 @@ final class TaxoCommerce_Core {
 		foreach ( $items as $item ) {
 			if ( ! is_array( $item ) || ! isset( $item[2] ) ) {
 				continue;
+			}
+			if ( TaxoCommerce_Core_Architecture_Report::PAGE_SLUG === (string) $item[2] ) {
+				// Keep Reports visible in the WordPress sidebar, even without extensions.
+				return;
 			}
 			if ( ! in_array( (string) $item[2], $core_pages, true ) ) {
 				return;
@@ -1017,6 +1032,23 @@ final class TaxoCommerce_Core {
 			$this->legacy_detected(),
 			$this->woocommerce_detected()
 		);
+	}
+
+	/**
+	 * Reports page at the same menu depth as Content.
+	 * Reuses the cached, independent Core architecture report.
+	 *
+	 * @return void
+	 */
+	public function render_reports() {
+		$this->guard();
+		echo '<div class="wrap tcc-family-screen">';
+		echo '<header class="tcc-page-header">';
+		echo '<div class="tcc-page-header__content"><h1>' . esc_html__( 'Informes', 'taxocommerce-core' ) . '</h1>';
+		echo '<p>' . esc_html__( 'Distribución de contenidos y arquitectura SEO.', 'taxocommerce-core' ) . '</p></div>';
+		echo '</header>';
+		TaxoCommerce_Core_Architecture_Report::render();
+		echo '</div>';
 	}
 
 	/**
