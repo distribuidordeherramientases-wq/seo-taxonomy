@@ -69,3 +69,25 @@
   .tgb-analyst-head-actions .button{flex:1 1 auto;text-align:center}
   .tgb-position-row>div:first-child{align-items:flex-start;flex-direction:column;gap:2px}
 }
+
+
+/* Commercial summary: important customer decisions before technical detail. */
+.tgb-analyst-commercial{border-left:4px solid #1d6b4c}
+.tgb-analyst-commercial-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}
+.tgb-analyst-commercial-kpi{padding:15px;border:1px solid #dcdcde;border-radius:8px;background:#f7f9fa}
+.tgb-analyst-commercial-kpi span,.tgb-analyst-commercial-kpi small{display:block;color:#50575e}
+.tgb-analyst-commercial-kpi strong{display:block;margin:5px 0;font-size:27px;line-height:1.15}
+.tgb-analyst-commercial-funnel{margin:22px 0}
+.tgb-analyst-commercial-funnel h4,.tgb-analyst-commercial>h4{font-size:16px;margin:18px 0 12px}
+.tgb-analyst-commercial-funnel-row{display:grid;grid-template-columns:minmax(100px,155px) minmax(60px,1fr) 60px;gap:14px;align-items:center;margin:11px 0}
+.tgb-analyst-commercial-funnel-row strong{text-align:right}
+.tgb-analyst-commercial-track{height:15px;border-radius:8px;overflow:hidden;background:#f0f0f1}
+.tgb-analyst-commercial-track span{display:block;height:100%;background:#2271b1;border-radius:8px}
+.tgb-analyst-commercial-action{display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;padding:16px 0;border-top:1px solid #dcdcde}
+.tgb-analyst-commercial-action h4{font-size:15px;margin:0 0 6px}
+.tgb-analyst-commercial-action p{margin:5px 0 10px}
+.tgb-analyst-commercial-action small{color:#50575e}
+.tgb-analyst-commercial-bucket{display:inline-block;align-self:start;width:max-content;max-width:100%;border-radius:5px;background:#edf3f9;color:#134767;font-weight:700;font-size:11px;letter-spacing:.04em;padding:5px 9px}
+.tgb-analyst-commercial-notes{border-top:1px solid #dcdcde;margin-top:12px;padding-top:14px;color:#50575e}
+.tgb-analyst-commercial-notes summary{cursor:pointer;font-weight:600}
+@media(max-width:782px){.tgb-analyst-commercial-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.tgb-analyst-commercial-action{grid-template-columns:1fr;gap:8px}.tgb-analyst-commercial-funnel-row{grid-template-columns:100px minmax(50px,1fr) 40px;gap:8px}}
