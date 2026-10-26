@@ -56,6 +56,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		$market = self::market_position();
 		$search_candidates = (array) ( $prepared['search']['candidates'] ?? array() );
 		$directives = self::direction( $executive, $search_candidates, $market );
+		$commercial = TaxoCommerce_Google_Bing_Commercial::build( $prepared, $market );
 
 		return array(
 			'schema' => array(
@@ -67,6 +68,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			'diagnostic'   => $diagnostic,
 			'where_we_are' => $where,
 			'market'       => $market,
+			'commercial'   => $commercial,
 			'direction'    => $directives,
 			'editor_contract' => array(
 				'schema' => 'taxocommerce-editor-opportunities-v1',
@@ -1185,11 +1187,12 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		echo '<div class="tgb-analyst">';
 
 		echo '<section class="tgb-analyst-head"><div><h2>Analyst</h2>';
-		echo '<p>Diagnóstico claro de visibilidad y evolución, seguido por la capa estratégica de mercado y prioridades. La pantalla sólo lee snapshots guardados.</p></div><div class="tgb-analyst-head-actions">';
+		echo '<p>Decisiones comerciales claras y métricas clave, seguidas por el diagnóstico de visibilidad, mercado y prioridades. La pantalla sólo lee snapshots guardados.</p></div><div class="tgb-analyst-head-actions">';
 		echo '<a class="button button-primary" href="' . esc_url( add_query_arg( array( 'page'=>'taxocommerce-google-bing', 'tgb_tab'=>'google_search' ), admin_url( 'admin.php' ) ) ) . '">Actualizar Google Search</a>';
 		echo '<a class="button" href="' . esc_url( add_query_arg( array( 'page'=>'taxocommerce-google-bing', 'tgb_tab'=>'google_analytics' ), admin_url( 'admin.php' ) ) ) . '">Actualizar Analytics</a>';
 		echo '<a class="button" href="' . esc_url( self::export_url() ) . '">Export Analyst JSON</a></div></section>';
 
+		TaxoCommerce_Google_Bing_Commercial::render( (array) $report['commercial'] );
 		self::render_diagnostic_dashboard( (array) $report['diagnostic'] );
 		self::render_market( (array) $report['market'] );
 		self::render_direction( (array) $report['direction'] );

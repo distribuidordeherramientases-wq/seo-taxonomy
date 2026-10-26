@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, Search, Analytics, Bing, Trends, Market, Analyst, opportunity, and executive reports.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.1' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.2' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -42,6 +42,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-executive.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-prepared.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-commercial.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-analyst.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-market-sources.php';
