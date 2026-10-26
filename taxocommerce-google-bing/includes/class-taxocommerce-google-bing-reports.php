@@ -583,12 +583,12 @@ final class TaxoCommerce_Google_Bing_Reports {
             return $previous_reports;
         }
 
-        if ( count( $current_reports ) < 8 || count( $previous_reports ) < 8 ) {
+        if ( count( $current_reports ) < 9 || count( $previous_reports ) < 9 ) {
             return new WP_Error( 'tgb_ga4_incomplete', 'Google Analytics returned an incomplete report batch.' );
         }
 
-        $current_summary  = self::ga4_summary( $current_reports[0] );
-        $previous_summary = self::ga4_summary( $previous_reports[0] );
+        $current_summary  = self::ga4_summary( $current_reports[0], $current_reports[8] );
+        $previous_summary = self::ga4_summary( $previous_reports[0], $previous_reports[8] );
         $current_users    = self::ga4_user_split( $current_reports[1] );
         $previous_users   = self::ga4_user_split( $previous_reports[1] );
         $current_country  = self::ga4_country_map( $current_reports[2] );
@@ -677,7 +677,6 @@ final class TaxoCommerce_Google_Bing_Reports {
                     array( 'name' => 'bounceRate' ),
                     array( 'name' => 'averageSessionDuration' ),
                     array( 'name' => 'keyEvents' ),
-                    array( 'name' => 'ecommercePurchases' ),
                 ),
                 'limit' => 1,
             ),
@@ -749,6 +748,13 @@ final class TaxoCommerce_Google_Bing_Reports {
                 ),
                 'limit' => 20,
             ),
+            // GA4 accepts a maximum of 10 metrics per individual RunReport request.
+            // Keep the original eight report positions intact and fetch purchases separately.
+            array(
+                'dateRanges' => array( $date_range ),
+                'metrics'    => array( array( 'name' => 'ecommercePurchases' ) ),
+                'limit'      => 1,
+            ),
         );
 
         $reports = array();
@@ -789,7 +795,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         return $reports;
     }
 
-    private static function ga4_summary( $report ) {
+    private static function ga4_summary( $report, $purchases_report ) {
         $row = (array) ( $report['rows'][0] ?? array() );
         return array(
             'activeUsers'      => (int) self::row_metric( $row, 0 ),
@@ -802,7 +808,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             'bounceRate'       => (float) self::row_metric( $row, 7 ),
             'averageSessionDuration' => (float) self::row_metric( $row, 8 ),
             'keyEvents'        => (int) self::row_metric( $row, 9 ),
-            'ecommercePurchases' => (int) self::row_metric( $row, 10 ),
+            'ecommercePurchases' => (int) self::row_metric( (array) ( $purchases_report['rows'][0] ?? array() ), 0 ),
         );
     }
 
