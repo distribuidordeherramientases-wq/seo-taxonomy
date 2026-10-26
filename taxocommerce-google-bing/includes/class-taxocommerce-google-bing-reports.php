@@ -86,7 +86,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         echo '<input type="hidden" name="period" value="custom">';
         echo '<label>Desde <input type="date" name="start" value="' . esc_attr( $ranges['current']['start'] ) . '" required></label>';
         echo '<label>Hasta <input type="date" name="end" value="' . esc_attr( $ranges['current']['end'] ) . '" required></label>';
-        echo '<button type="submit" class="button">Apply dates (no download)</button>';
+        echo '<button type="submit" class="button">Aplicar fechas (sin actualizar)</button>';
         echo '</form>';
         echo '<p class="description tgb-report-range">Period: ' . esc_html( $ranges['current']['label'] ) . ' · Comparison: ' . esc_html( $ranges['previous']['label'] ) . '. Full calendar days; the comparison period has the same duration.</p>';
 
@@ -99,7 +99,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             echo '<input type="hidden" name="end" value="' . esc_attr( $ranges['current']['end'] ) . '">';
         }
         wp_nonce_field( 'tgb_download_report_' . $source );
-        echo '<button type="submit" class="button button-primary">Download report for ' . esc_html( $names[ $source ] ) . '</button>';
+        echo '<button type="submit" class="button button-primary">Actualizar datos de ' . esc_html( $names[ $source ] ) . '</button>';
         echo '</form>';
 
         $notice_key = 'tgb_download_notice_' . get_current_user_id();
@@ -136,7 +136,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         }
 
         if ( null === $snapshot ) {
-            echo '<div class="notice notice-info inline"><p>No saved data yet. Click “Download report” to query the API.</p></div>';
+            echo '<div class="notice notice-info inline"><p>No hay datos guardados todavía. Pulsa “Actualizar datos” para consultar la API.</p></div>';
             self::styles();
             echo '</div>';
             return;
@@ -221,7 +221,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         );
         update_option( self::STORE_PREFIX . $source, $entries, false );
         do_action( 'tgb_manual_report_saved', $source, $ranges, $entries[ $key ] );
-        self::finish_download( $source, $selection, 'Report downloaded and saved successfully.', false );
+        self::finish_download( $source, $selection, 'Datos actualizados y guardados correctamente.', false );
     }
 
     public static function export_report() {
