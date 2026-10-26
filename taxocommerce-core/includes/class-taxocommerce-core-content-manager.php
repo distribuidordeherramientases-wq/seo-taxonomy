@@ -200,7 +200,6 @@ final class TaxoCommerce_Core_Content_Manager {
 			'categories' => __( 'Categorías de producto', 'taxocommerce-core' ),
 			'posts'      => __( 'Posts', 'taxocommerce-core' ),
 			'pages'      => __( 'Páginas', 'taxocommerce-core' ),
-            'architecture' => __( 'Arquitectura SEO', 'taxocommerce-core' ),
             'faqs'       => class_exists( 'TaxoCommerce_FAQs' ) ? __( 'FAQs', 'taxocommerce-core' ) : '',
             'anomalies'  => __( 'Anomalías', 'taxocommerce-core' ),
 		);
