@@ -5,7 +5,16 @@ define( 'TAXOCOMMERCE_GOOGLE_BING_URL', 'https://example.test/plugin/' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', 'test' );
 
 function add_action() {}
+function do_action() {}
 function wp_enqueue_style() {}
+$GLOBALS['tgb_options'] = array();
+function get_option( $key, $default = false ) {
+    return array_key_exists( $key, $GLOBALS['tgb_options'] ) ? $GLOBALS['tgb_options'][ $key ] : $default;
+}
+function update_option( $key, $value, $autoload = null ) {
+    $GLOBALS['tgb_options'][ $key ] = $value;
+    return true;
+}
 function current_user_can() { return true; }
 function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $value ) ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
@@ -255,11 +264,19 @@ class TGB_Analyst_WPDB {
 }
 $GLOBALS['wpdb'] = new TGB_Analyst_WPDB();
 
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-prepared.php';
+TaxoCommerce_Google_Bing_Prepared::register();
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-analyst.php';
 
 $report = TaxoCommerce_Google_Bing_Analyst::report();
 if ( 'taxocommerce-insights-analyst' !== $report['schema']['name'] ) {
     fwrite( STDERR, "Unexpected Analyst schema\n" );
+    exit( 1 );
+}
+if ( empty( $report['prepared_at'] )
+    || empty( $GLOBALS['tgb_options']['tgb_prepared_intelligence_v1'] )
+    || empty( $GLOBALS['tgb_options']['tgb_analyst_market_prepared_v1'] ) ) {
+    fwrite( STDERR, "Prepared Intelligence persistence failed\n" );
     exit( 1 );
 }
 if ( 'improving' !== $report['where_we_are']['momentum'] ) {
