@@ -36,3 +36,36 @@
 .tgb-analyst-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
 .tgb-analyst-two table{min-width:0}
 @media(max-width:1100px){.tgb-analyst-two{grid-template-columns:1fr}}
+
+
+.tgb-analyst-head-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tgb-analyst-diagnostic{border-left:4px solid #2271b1}
+.tgb-analyst-period{margin:12px 0;color:#50575e}
+.tgb-analyst-kpis--diagnostic{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}
+.tgb-analyst-kpi small.is-good{color:#008a20;font-weight:600}
+.tgb-analyst-kpi small.is-bad{color:#b32d2e;font-weight:600}
+.tgb-analyst-subsection{margin-top:24px;padding-top:20px;border-top:1px solid #dcdcde}
+.tgb-analyst-subsection>h3{margin:0 0 4px}
+.tgb-analyst-reading{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px}
+.tgb-analyst-reading>div{border:1px solid #dcdcde;border-radius:7px;padding:13px;background:#fdfdfd}
+.tgb-analyst-reading p{margin:6px 0 0;color:#50575e}
+.tgb-analyst-chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px}
+.tgb-analyst-chart{border:1px solid #dcdcde;border-radius:7px;padding:13px;background:#fff}
+.tgb-analyst-chart>div{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.tgb-analyst-chart>div span{font-size:22px;font-weight:700}
+.tgb-analyst-chart svg{display:block;width:100%;height:auto;margin-top:8px}
+.tgb-analyst-chart line{stroke:#dcdcde;stroke-width:1}
+.tgb-analyst-chart polyline{fill:none;stroke:#2271b1;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.tgb-position-bars{margin-top:14px}
+.tgb-position-row{margin:0 0 13px}
+.tgb-position-row>div:first-child{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:5px}
+.tgb-position-row span{color:#646970;font-size:12px}
+.tgb-position-track{height:16px;background:#f0f0f1;border-radius:999px;position:relative;overflow:hidden}
+.tgb-position-track i{position:absolute;left:0;top:0;height:100%;border-radius:999px}
+.tgb-position-track i.previous{background:#c3c4c7}
+.tgb-position-track i.current{background:#2271b1;height:8px;top:4px}
+@media(max-width:782px){
+  .tgb-analyst-head-actions{width:100%}
+  .tgb-analyst-head-actions .button{flex:1 1 auto;text-align:center}
+  .tgb-position-row>div:first-child{align-items:flex-start;flex-direction:column;gap:2px}
+}

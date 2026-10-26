@@ -12,7 +12,7 @@ $bridge = file_get_contents( $repo . '/taxocommerce-connections/taxocommerce-con
 $core = file_get_contents( $repo . '/taxocommerce-core/includes/class-taxocommerce-core.php' );
 
 $checks = array(
-    strpos( $main, 'Version: 1.0.0' ) !== false,
+    strpos( $main, 'Version: 1.1.0' ) !== false,
     strpos( $main, "'connections'      => 'Connections'" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Admin::render()" ) !== false,
     strpos( $main, "class-taxocommerce-connections-amazon.php" ) !== false,

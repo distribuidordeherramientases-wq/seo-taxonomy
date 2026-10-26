@@ -44,7 +44,9 @@ final class TaxoCommerce_Google_Bing_Analyst {
 	public static function report() {
 		$executive = TaxoCommerce_Google_Bing_Executive::report();
 		$search    = self::latest_snapshot( 'search' );
+		$analytics = self::latest_snapshot( 'analytics' );
 
+		$diagnostic = self::diagnostic_dashboard( $search, $analytics );
 		$where = self::where_we_are( $executive, $search );
 		$market = self::market_position();
 		$directives = self::direction( $executive, $search, $market );
@@ -55,6 +57,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 				'version' => 1,
 			),
 			'generated_at' => time(),
+			'diagnostic'   => $diagnostic,
 			'where_we_are' => $where,
 			'market'       => $market,
 			'direction'    => $directives,
@@ -99,6 +102,288 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			}
 		}
 		return $latest;
+	}
+
+
+	private static function diagnostic_dashboard( $search, $analytics ) {
+		$search_data = (array) ( $search['data'] ?? array() );
+		$analytics_data = (array) ( $analytics['data'] ?? array() );
+		$current = (array) ( $search_data['summary']['current'] ?? array() );
+		$previous = (array) ( $search_data['summary']['previous'] ?? array() );
+		$current_queries = (array) ( $search_data['queries'] ?? array() );
+		$previous_queries = (array) ( $search_data['previous_queries'] ?? array() );
+		$current_pages = (array) ( $search_data['pages'] ?? array() );
+		$previous_pages = (array) ( $search_data['previous_pages'] ?? array() );
+
+		$distribution = self::position_distribution( $current_queries );
+		$previous_distribution = self::position_distribution( $previous_queries );
+		$movement = self::keyword_movement( $current_queries, $previous_queries );
+
+		$ga4_current = (array) ( $analytics_data['summary']['current'] ?? array() );
+		$ga4_previous = (array) ( $analytics_data['summary']['previous'] ?? array() );
+		$funnel_current = (array) ( $analytics_data['funnel']['current'] ?? array() );
+		$funnel_previous = (array) ( $analytics_data['funnel']['previous'] ?? array() );
+
+		$country_labels = (array) ( $analytics_data['countries']['labels'] ?? array() );
+		$country_current = (array) ( $analytics_data['countries']['current'] ?? array() );
+		$country_previous = (array) ( $analytics_data['countries']['previous'] ?? array() );
+		$spain_current = self::country_value( $country_labels, $country_current, array( 'spain', 'españa', 'espana' ) );
+		$spain_previous = self::country_value( $country_labels, $country_previous, array( 'spain', 'españa', 'espana' ) );
+
+		$impressions_change = self::raw_percent_delta(
+			(float) ( $current['impressions'] ?? 0 ),
+			(float) ( $previous['impressions'] ?? 0 )
+		);
+		$position_change = (float) ( $previous['position'] ?? 0 ) - (float) ( $current['position'] ?? 0 );
+
+		$quick = array();
+		if ( null === $impressions_change ) {
+			$quick['coverage'] = 'Google empieza a mostrar nuevas URLs y consultas frente a una base anterior de cero.';
+		} else {
+			$quick['coverage'] = 'Las impresiones cambian ' . number_format_i18n( $impressions_change, 1 ) . '% frente al periodo anterior.';
+		}
+		$quick['ranking'] = $position_change > 0
+			? 'La posición media mejora ' . number_format_i18n( $position_change, 1 ) . ' puestos.'
+			: ( $position_change < 0
+				? 'La posición media retrocede ' . number_format_i18n( abs( $position_change ), 1 ) . ' puestos.'
+				: 'La posición media permanece estable.' );
+		$quick['movement'] = number_format_i18n( (int) $movement['improved'] )
+			. ' keywords suben y ' . number_format_i18n( (int) $movement['declined'] )
+			. ' bajan respecto al periodo anterior.';
+		if ( $funnel_current ) {
+			$quick['funnel'] = number_format_i18n( (int) ( $funnel_current['view_item'] ?? 0 ) )
+				. ' vistas de producto → ' . number_format_i18n( (int) ( $funnel_current['add_to_cart'] ?? 0 ) )
+				. ' carritos → ' . number_format_i18n( (int) ( $funnel_current['begin_checkout'] ?? 0 ) )
+				. ' checkout → ' . number_format_i18n( (int) ( $funnel_current['purchase'] ?? 0 ) ) . ' compras medidas.';
+		}
+		if ( $spain_current > 0 ) {
+			$total_users = max( 0, (int) ( $ga4_current['activeUsers'] ?? 0 ) );
+			$share = $total_users > 0 ? ( $spain_current / $total_users ) * 100 : 0;
+			$quick['market'] = number_format_i18n( $spain_current ) . ' usuarios activos de España'
+				. ( $share > 0 ? ' (' . number_format_i18n( $share, 1 ) . '% del total).' : '.' );
+		}
+
+		return array(
+			'available' => ! empty( $search_data ),
+			'needs_refresh' => ! empty( $current_queries ) && empty( $previous_queries ),
+			'search_downloaded_at' => absint( $search['downloaded_at'] ?? 0 ),
+			'analytics_downloaded_at' => absint( $analytics['downloaded_at'] ?? 0 ),
+			'period' => array(
+				'current'  => (array) ( $search['current'] ?? array() ),
+				'previous' => (array) ( $search['previous'] ?? array() ),
+			),
+			'metrics' => array(
+				'visibility' => array( self::visibility_index( $distribution ), self::visibility_index( $previous_distribution ) ),
+				'impressions' => array( (int) ( $current['impressions'] ?? 0 ), (int) ( $previous['impressions'] ?? 0 ) ),
+				'position' => array( (float) ( $current['position'] ?? 0 ), (float) ( $previous['position'] ?? 0 ) ),
+				'keywords' => array( count( $current_queries ), count( $previous_queries ) ),
+				'pages' => array( count( $current_pages ), count( $previous_pages ) ),
+				'ctr' => array( (float) ( $current['ctr'] ?? 0 ), (float) ( $previous['ctr'] ?? 0 ) ),
+				'sessions' => array( (int) ( $ga4_current['sessions'] ?? 0 ), (int) ( $ga4_previous['sessions'] ?? 0 ) ),
+				'users' => array( (int) ( $ga4_current['activeUsers'] ?? 0 ), (int) ( $ga4_previous['activeUsers'] ?? 0 ) ),
+				'view_item' => array( (int) ( $funnel_current['view_item'] ?? 0 ), (int) ( $funnel_previous['view_item'] ?? 0 ) ),
+				'add_to_cart' => array( (int) ( $funnel_current['add_to_cart'] ?? 0 ), (int) ( $funnel_previous['add_to_cart'] ?? 0 ) ),
+				'begin_checkout' => array( (int) ( $funnel_current['begin_checkout'] ?? 0 ), (int) ( $funnel_previous['begin_checkout'] ?? 0 ) ),
+				'purchases' => array(
+					(int) ( $funnel_current['purchase'] ?? $ga4_current['ecommercePurchases'] ?? 0 ),
+					(int) ( $funnel_previous['purchase'] ?? $ga4_previous['ecommercePurchases'] ?? 0 ),
+				),
+				'spain' => array( $spain_current, $spain_previous ),
+			),
+			'distribution' => $distribution,
+			'previous_distribution' => $previous_distribution,
+			'movement' => $movement,
+			'daily' => (array) ( $search_data['daily'] ?? array() ),
+			'page_types' => self::page_type_summary( $current_pages ),
+			'architecture' => self::architecture_snapshot(),
+			'quick_read' => $quick,
+		);
+	}
+
+	private static function position_distribution( $rows ) {
+		$out = array( 'top3'=>0, 'top10'=>0, 'top20'=>0, 'top50'=>0, 'top100'=>0, 'outside'=>0 );
+		foreach ( (array) $rows as $row ) {
+			$position = (float) ( $row['position'] ?? 0 );
+			if ( $position <= 0 ) {
+				continue;
+			}
+			if ( $position <= 3 ) {
+				$out['top3']++;
+			} elseif ( $position <= 10 ) {
+				$out['top10']++;
+			} elseif ( $position <= 20 ) {
+				$out['top20']++;
+			} elseif ( $position <= 50 ) {
+				$out['top50']++;
+			} elseif ( $position <= 100 ) {
+				$out['top100']++;
+			} else {
+				$out['outside']++;
+			}
+		}
+		return $out;
+	}
+
+	private static function visibility_index( $distribution ) {
+		$total = array_sum( (array) $distribution );
+		if ( $total < 1 ) {
+			return 0.0;
+		}
+		$weighted = ( (int) ( $distribution['top3'] ?? 0 ) * 100 )
+			+ ( (int) ( $distribution['top10'] ?? 0 ) * 72 )
+			+ ( (int) ( $distribution['top20'] ?? 0 ) * 45 )
+			+ ( (int) ( $distribution['top50'] ?? 0 ) * 18 )
+			+ ( (int) ( $distribution['top100'] ?? 0 ) * 5 );
+		return round( $weighted / $total, 1 );
+	}
+
+	private static function keyword_movement( $current_rows, $previous_rows ) {
+		$current = array();
+		$previous = array();
+		foreach ( (array) $current_rows as $row ) {
+			$key = self::query_key( $row['name'] ?? '' );
+			if ( '' !== $key ) {
+				$current[ $key ] = (array) $row;
+			}
+		}
+		foreach ( (array) $previous_rows as $row ) {
+			$key = self::query_key( $row['name'] ?? '' );
+			if ( '' !== $key ) {
+				$previous[ $key ] = (array) $row;
+			}
+		}
+		$out = array(
+			'improved'=>0, 'stable'=>0, 'declined'=>0, 'new'=>0, 'lost'=>0,
+			'net_top100'=>0, 'net_top50'=>0, 'net_top20'=>0, 'net_top10'=>0, 'net_top3'=>0,
+		);
+		foreach ( $current as $key => $row ) {
+			$position = (float) ( $row['position'] ?? 0 );
+			if ( $position <= 0 ) {
+				continue;
+			}
+			if ( ! isset( $previous[ $key ] ) || (float) ( $previous[ $key ]['position'] ?? 0 ) <= 0 ) {
+				$out['new']++;
+				continue;
+			}
+			$movement = (float) $previous[ $key ]['position'] - $position;
+			if ( $movement >= 1.0 ) {
+				$out['improved']++;
+			} elseif ( $movement <= -1.0 ) {
+				$out['declined']++;
+			} else {
+				$out['stable']++;
+			}
+		}
+		foreach ( $previous as $key => $row ) {
+			if ( ! isset( $current[ $key ] ) && (float) ( $row['position'] ?? 0 ) > 0 ) {
+				$out['lost']++;
+			}
+		}
+		$current_distribution = self::position_distribution( $current_rows );
+		$previous_distribution = self::position_distribution( $previous_rows );
+		foreach ( array( 100, 50, 20, 10, 3 ) as $threshold ) {
+			$out[ 'net_top' . $threshold ] = self::threshold_total( $current_distribution, $threshold )
+				- self::threshold_total( $previous_distribution, $threshold );
+		}
+		return $out;
+	}
+
+	private static function threshold_total( $distribution, $threshold ) {
+		$value = (int) ( $distribution['top3'] ?? 0 );
+		if ( $threshold >= 10 ) $value += (int) ( $distribution['top10'] ?? 0 );
+		if ( $threshold >= 20 ) $value += (int) ( $distribution['top20'] ?? 0 );
+		if ( $threshold >= 50 ) $value += (int) ( $distribution['top50'] ?? 0 );
+		if ( $threshold >= 100 ) $value += (int) ( $distribution['top100'] ?? 0 );
+		return $value;
+	}
+
+	private static function query_key( $query ) {
+		$query = remove_accents( wp_strip_all_tags( (string) $query ) );
+		$query = function_exists( 'mb_strtolower' ) ? mb_strtolower( $query, 'UTF-8' ) : strtolower( $query );
+		$query = preg_replace( '/[^a-z0-9]+/i', ' ', $query );
+		return trim( preg_replace( '/\s+/', ' ', (string) $query ) );
+	}
+
+	private static function raw_percent_delta( $current, $previous ) {
+		if ( 0.0 === (float) $previous ) {
+			return (float) $current > 0 ? null : 0.0;
+		}
+		return ( ( (float) $current - (float) $previous ) / abs( (float) $previous ) ) * 100;
+	}
+
+	private static function country_value( $labels, $values, $names ) {
+		foreach ( (array) $labels as $index => $label ) {
+			$normalized = function_exists( 'mb_strtolower' )
+				? mb_strtolower( remove_accents( (string) $label ), 'UTF-8' )
+				: strtolower( remove_accents( (string) $label ) );
+			if ( in_array( $normalized, (array) $names, true ) ) {
+				return (int) ( $values[ $index ] ?? 0 );
+			}
+		}
+		return 0;
+	}
+
+	private static function page_type_summary( $pages ) {
+		$out = array();
+		foreach ( (array) $pages as $row ) {
+			$url = (string) ( $row['name'] ?? '' );
+			$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+			$type = 'Landing / página';
+			if ( '' === $path || '/' === $path ) {
+				$type = 'Portada';
+			} elseif ( 0 === strpos( $path, '/producto/' ) ) {
+				$type = 'Producto';
+			} elseif ( 0 === strpos( $path, '/tienda/' ) || 0 === strpos( $path, '/categoria-producto/' ) ) {
+				$type = 'Categoría';
+			} elseif ( 0 === strpos( $path, '/noticias/' ) ) {
+				$type = 'Entrada';
+			} elseif ( 0 === strpos( $path, '/marca/' ) ) {
+				$type = 'Marca';
+			}
+			if ( ! isset( $out[ $type ] ) ) {
+				$out[ $type ] = array( 'pages'=>0, 'clicks'=>0, 'impressions'=>0 );
+			}
+			$out[ $type ]['pages']++;
+			$out[ $type ]['clicks'] += (int) ( $row['clicks'] ?? 0 );
+			$out[ $type ]['impressions'] += (int) ( $row['impressions'] ?? 0 );
+		}
+		uasort( $out, static function ( $left, $right ) {
+			return (int) $right['impressions'] <=> (int) $left['impressions'];
+		} );
+		return $out;
+	}
+
+	private static function architecture_snapshot() {
+		$out = array(
+			'clusters' => 0,
+			'hub_primary' => 0,
+			'hub_secondary' => 0,
+			'categories' => 0,
+			'products' => 0,
+		);
+		foreach ( array( 'cluster'=>'clusters', 'hub_primary'=>'hub_primary', 'hub_secondary'=>'hub_secondary' ) as $role => $key ) {
+			$ids = get_posts(
+				array(
+					'post_type'      => 'page',
+					'post_status'    => 'publish',
+					'fields'         => 'ids',
+					'posts_per_page' => -1,
+					'no_found_rows'  => true,
+					'meta_key'       => '_taxocommerce_core_seo_role',
+					'meta_value'     => $role,
+				)
+			);
+			$out[ $key ] = count( (array) $ids );
+		}
+		if ( taxonomy_exists( 'product_cat' ) ) {
+			$count = wp_count_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false ) );
+			$out['categories'] = is_wp_error( $count ) ? 0 : (int) $count;
+		}
+		if ( post_type_exists( 'product' ) ) {
+			$counts = wp_count_posts( 'product' );
+			$out['products'] = isset( $counts->publish ) ? (int) $counts->publish : 0;
+		}
+		return $out;
 	}
 
 	private static function where_we_are( $executive, $search ) {
@@ -1174,14 +1459,16 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		echo '<div class="tgb-analyst">';
 
 		echo '<section class="tgb-analyst-head"><div><h2>Analyst</h2>';
-		echo '<p>Strategic view rebuilt from the former Analista: where we are, how the market is moving, and where to go next. It reads saved evidence only and never calls providers while this page is open.</p></div>';
-		echo '<a class="button" href="' . esc_url( self::export_url() ) . '">Export Analyst JSON</a></section>';
+		echo '<p>Diagnóstico claro de visibilidad y evolución, seguido por la capa estratégica de mercado y prioridades. La pantalla sólo lee snapshots guardados.</p></div><div class="tgb-analyst-head-actions">';
+		echo '<a class="button button-primary" href="' . esc_url( add_query_arg( array( 'page'=>'taxocommerce-google-bing', 'tgb_tab'=>'google_search' ), admin_url( 'admin.php' ) ) ) . '">Actualizar Google Search</a>';
+		echo '<a class="button" href="' . esc_url( add_query_arg( array( 'page'=>'taxocommerce-google-bing', 'tgb_tab'=>'google_analytics' ), admin_url( 'admin.php' ) ) ) . '">Actualizar Analytics</a>';
+		echo '<a class="button" href="' . esc_url( self::export_url() ) . '">Export Analyst JSON</a></div></section>';
 
-		self::render_where_we_are( (array) $report['where_we_are'] );
+		self::render_diagnostic_dashboard( (array) $report['diagnostic'] );
 		self::render_market( (array) $report['market'] );
 		self::render_direction( (array) $report['direction'] );
 
-		echo '<p class="description">This report is the strategic contract for the future TaxoCommerce Editor. Analyst decides what deserves work; Editor will draft or update the content.</p>';
+		echo '<p class="description">Analyst combina el diagnóstico histórico recuperado con la nueva cola estratégica NOW / NEXT / INVESTIGATE / WATCH.</p>';
 		echo '</div>';
 	}
 
@@ -1217,6 +1504,183 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			echo '</tbody></table></div>';
 		}
 		echo '</section>';
+	}
+
+
+	private static function render_diagnostic_dashboard( $data ) {
+		echo '<section class="tgb-analyst-section tgb-analyst-diagnostic"><div class="tgb-analyst-section-head"><div><h3>Resumen</h3><p>La lectura principal del antiguo Analista, reconstruida con snapshots modernos de Search Console y GA4.</p></div></div>';
+		if ( empty( $data['available'] ) ) {
+			echo '<div class="notice notice-info inline"><p>No hay todavía un snapshot de Google Search. Actualiza Google Search para generar el diagnóstico.</p></div></section>';
+			return;
+		}
+		if ( ! empty( $data['needs_refresh'] ) ) {
+			echo '<div class="notice notice-warning inline"><p>El snapshot actual es anterior al nuevo esquema. Actualiza Google Search una vez para recuperar comparación consulta a consulta, movimiento de keywords y tramos Top 10/50/100.</p></div>';
+		}
+
+		$current_period = (array) ( $data['period']['current'] ?? array() );
+		$previous_period = (array) ( $data['period']['previous'] ?? array() );
+		echo '<p class="tgb-analyst-period"><strong>Periodo:</strong> ' . esc_html( (string) ( $current_period['label'] ?? 'último snapshot' ) );
+		if ( ! empty( $previous_period['label'] ) ) {
+			echo ' · <strong>Comparación:</strong> ' . esc_html( (string) $previous_period['label'] );
+		}
+		if ( ! empty( $data['search_downloaded_at'] ) ) {
+			echo ' · <strong>Search actualizado:</strong> ' . esc_html( wp_date( 'd/m/Y H:i', (int) $data['search_downloaded_at'] ) );
+		}
+		if ( ! empty( $data['analytics_downloaded_at'] ) ) {
+			echo ' · <strong>GA4 actualizado:</strong> ' . esc_html( wp_date( 'd/m/Y H:i', (int) $data['analytics_downloaded_at'] ) );
+		}
+		echo '</p>';
+
+		$m = (array) ( $data['metrics'] ?? array() );
+		echo '<div class="tgb-analyst-kpis tgb-analyst-kpis--diagnostic">';
+		self::diagnostic_kpi( 'Índice de visibilidad', $m['visibility'] ?? array(), 'decimal' );
+		self::diagnostic_kpi( 'Impresiones', $m['impressions'] ?? array() );
+		self::diagnostic_kpi( 'Posición media', $m['position'] ?? array(), 'decimal', true );
+		self::diagnostic_kpi( 'Keywords visibles', $m['keywords'] ?? array() );
+		self::diagnostic_kpi( 'Páginas visibles', $m['pages'] ?? array() );
+		self::diagnostic_kpi( 'CTR', $m['ctr'] ?? array(), 'percent' );
+		self::diagnostic_kpi( 'Sesiones GA4', $m['sessions'] ?? array() );
+		self::diagnostic_kpi( 'Usuarios GA4', $m['users'] ?? array() );
+		self::diagnostic_kpi( 'Vistas producto', $m['view_item'] ?? array() );
+		self::diagnostic_kpi( 'Añadir al carrito', $m['add_to_cart'] ?? array() );
+		self::diagnostic_kpi( 'Checkouts iniciados', $m['begin_checkout'] ?? array() );
+		self::diagnostic_kpi( 'Compras GA4', $m['purchases'] ?? array() );
+		self::diagnostic_kpi( 'España', $m['spain'] ?? array() );
+		echo '</div>';
+
+		$quick = (array) ( $data['quick_read'] ?? array() );
+		if ( $quick ) {
+			echo '<div class="tgb-analyst-subsection"><h3>Lectura rápida</h3><p class="description">Lo importante del periodo sin recorrer todos los informes.</p><div class="tgb-analyst-reading">';
+			foreach ( array(
+				'coverage'=>'Cobertura',
+				'ranking'=>'Ranking',
+				'movement'=>'Movimiento',
+				'funnel'=>'Embudo comercial',
+				'market'=>'Mercado objetivo',
+			) as $key=>$label ) {
+				if ( empty( $quick[ $key ] ) ) continue;
+				echo '<div><strong>' . esc_html( $label ) . '</strong><p>' . esc_html( (string) $quick[ $key ] ) . '</p></div>';
+			}
+			echo '</div></div>';
+		}
+
+		$daily = (array) ( $data['daily'] ?? array() );
+		if ( ! empty( $daily['labels'] ) ) {
+			echo '<div class="tgb-analyst-subsection"><h3>Evolución en Google</h3><p class="description">Serie del último periodo guardado para ver si la visibilidad avanza antes de convertirse en clics.</p><div class="tgb-analyst-chart-grid">';
+			self::diagnostic_line_chart( (array) $daily['current_position'], 'Posición media', true, 1 );
+			self::diagnostic_line_chart( (array) $daily['current_impressions'], 'Impresiones', false, 0 );
+			self::diagnostic_line_chart( (array) $daily['current_clicks'], 'Clics', false, 0 );
+			echo '</div></div>';
+		}
+
+		self::render_position_distribution(
+			(array) ( $data['distribution'] ?? array() ),
+			(array) ( $data['previous_distribution'] ?? array() )
+		);
+		self::render_keyword_movement( (array) ( $data['movement'] ?? array() ), ! empty( $data['needs_refresh'] ) );
+		self::render_page_types( (array) ( $data['page_types'] ?? array() ) );
+		self::render_architecture_snapshot( (array) ( $data['architecture'] ?? array() ) );
+		echo '</section>';
+	}
+
+	private static function diagnostic_kpi( $label, $values, $format = 'number', $lower_is_better = false ) {
+		$current = isset( $values[0] ) ? (float) $values[0] : 0.0;
+		$previous = isset( $values[1] ) ? (float) $values[1] : 0.0;
+		$value = 'percent' === $format
+			? number_format_i18n( $current * 100, 2 ) . '%'
+			: number_format_i18n( $current, 'decimal' === $format ? 1 : 0 );
+		echo '<div class="tgb-analyst-kpi"><span>' . esc_html( $label ) . '</span><strong>' . esc_html( $value ) . '</strong>';
+		if ( 0.0 !== $previous || 0.0 !== $current ) {
+			$delta = self::raw_percent_delta( $current, $previous );
+			if ( null === $delta ) {
+				echo '<small>nuevo</small>';
+			} else {
+				$good = $lower_is_better ? $delta < 0 : $delta > 0;
+				$arrow = $delta > 0 ? '↑' : ( $delta < 0 ? '↓' : '→' );
+				echo '<small class="' . esc_attr( $good ? 'is-good' : ( 0.0 === $delta ? '' : 'is-bad' ) ) . '">' . esc_html( $arrow . ' ' . number_format_i18n( abs( $delta ), 1 ) . '%' ) . '</small>';
+			}
+		}
+		echo '</div>';
+	}
+
+	private static function diagnostic_line_chart( $values, $title, $inverse = false, $decimals = 0 ) {
+		$values = array_values( array_map( 'floatval', (array) $values ) );
+		if ( count( $values ) < 2 ) return;
+		$min = min( $values );
+		$max = max( $values );
+		$range = max( 0.0001, $max - $min );
+		$width = 620;
+		$height = 170;
+		$pad = 16;
+		$points = array();
+		$last = max( 1, count( $values ) - 1 );
+		foreach ( $values as $index=>$value ) {
+			$x = $pad + ( ( $index / $last ) * ( $width - ( $pad * 2 ) ) );
+			$ratio = ( $value - $min ) / $range;
+			if ( $inverse ) $ratio = 1 - $ratio;
+			$y = $pad + ( ( 1 - $ratio ) * ( $height - ( $pad * 2 ) ) );
+			$points[] = number_format( $x, 2, '.', '' ) . ',' . number_format( $y, 2, '.', '' );
+		}
+		echo '<div class="tgb-analyst-chart"><div><strong>' . esc_html( $title ) . '</strong><span>' . esc_html( number_format_i18n( end( $values ), $decimals ) ) . '</span></div>';
+		echo '<svg viewBox="0 0 ' . absint( $width ) . ' ' . absint( $height ) . '" role="img" aria-label="' . esc_attr( $title ) . '"><line x1="16" y1="154" x2="604" y2="154"></line><polyline points="' . esc_attr( implode( ' ', $points ) ) . '"></polyline></svg></div>';
+	}
+
+	private static function render_position_distribution( $current, $previous ) {
+		$labels = array( 'top3'=>'Top 3', 'top10'=>'4–10', 'top20'=>'11–20', 'top50'=>'21–50', 'top100'=>'51–100', 'outside'=>'>100' );
+		$all = array_merge( array_values( $current ), array_values( $previous ) );
+		$max = max( 1, $all ? max( $all ) : 1 );
+		echo '<div class="tgb-analyst-subsection"><h3>Cómo avanzan nuestras posiciones</h3><p class="description">Aquí se ve si las consultas van entrando desde posiciones bajas hacia Top 100, Top 50, Top 20 y Top 10.</p><div class="tgb-position-bars">';
+		foreach ( $labels as $key=>$label ) {
+			$now = (int) ( $current[ $key ] ?? 0 );
+			$before = (int) ( $previous[ $key ] ?? 0 );
+			echo '<div class="tgb-position-row"><div><strong>' . esc_html( $label ) . '</strong><span>' . esc_html( number_format_i18n( $now ) . ' ahora · ' . number_format_i18n( $before ) . ' antes' ) . '</span></div><div class="tgb-position-track">';
+			echo '<i class="previous" style="width:' . esc_attr( number_format( min( 100, ( $before / $max ) * 100 ), 2, '.', '' ) ) . '%"></i>';
+			echo '<i class="current" style="width:' . esc_attr( number_format( min( 100, ( $now / $max ) * 100 ), 2, '.', '' ) ) . '%"></i></div></div>';
+		}
+		echo '</div></div>';
+	}
+
+	private static function render_keyword_movement( $movement, $needs_refresh ) {
+		echo '<div class="tgb-analyst-subsection"><h3>Movimiento de keywords</h3><p class="description">Comparación consulta a consulta contra el periodo anterior.</p>';
+		if ( $needs_refresh ) {
+			echo '<p class="description"><strong>Pendiente de nueva actualización de Search:</strong> el snapshot antiguo no conserva las consultas del periodo anterior.</p>';
+		}
+		echo '<div class="tgb-analyst-kpis">';
+		foreach ( array(
+			'improved'=>array('Subieron','Consultas que ganaron posiciones.'),
+			'stable'=>array('Estables','Variación inferior a 1 posición.'),
+			'declined'=>array('Bajaron','Consultas que perdieron posiciones.'),
+			'new'=>array('Nuevas','No aparecían en el periodo anterior.'),
+			'net_top50'=>array('Entraron Top 50','Saldo neto de consultas en Top 50.'),
+			'net_top10'=>array('Entraron Top 10','Saldo neto de consultas en Top 10.'),
+		) as $key=>$meta ) {
+			$value = (int) ( $movement[ $key ] ?? 0 );
+			echo '<div class="tgb-analyst-kpi"><span>' . esc_html( $meta[0] ) . '</span><strong>' . esc_html( in_array( $key, array('net_top50','net_top10'), true ) ? sprintf( '%+d', $value ) : number_format_i18n( $value ) ) . '</strong><small>' . esc_html( $meta[1] ) . '</small></div>';
+		}
+		echo '</div></div>';
+	}
+
+	private static function render_page_types( $types ) {
+		if ( ! $types ) return;
+		echo '<div class="tgb-analyst-subsection"><h3>Cómo se posiciona el catálogo</h3><p class="description">Qué parte de la visibilidad está llegando a categorías, productos, landings y contenidos.</p><div class="tgb-analyst-scroll"><table class="widefat striped"><thead><tr><th>Tipo de URL</th><th>Páginas</th><th>Impresiones</th><th>Clics</th></tr></thead><tbody>';
+		foreach ( $types as $label=>$row ) {
+			echo '<tr><td><strong>' . esc_html( (string) $label ) . '</strong></td><td>' . esc_html( number_format_i18n( (int) ( $row['pages'] ?? 0 ) ) ) . '</td><td>' . esc_html( number_format_i18n( (int) ( $row['impressions'] ?? 0 ) ) ) . '</td><td>' . esc_html( number_format_i18n( (int) ( $row['clicks'] ?? 0 ) ) ) . '</td></tr>';
+		}
+		echo '</tbody></table></div></div>';
+	}
+
+	private static function render_architecture_snapshot( $architecture ) {
+		echo '<div class="tgb-analyst-subsection"><h3>Arquitectura que Analista tiene en cuenta</h3><p class="description">La lectura conoce la estructura cluster → hub primario → hub secundario → categoría y el catálogo publicado.</p><div class="tgb-analyst-kpis">';
+		foreach ( array(
+			'clusters'=>'Clusters',
+			'hub_primary'=>'Hubs primarios',
+			'hub_secondary'=>'Hubs secundarios',
+			'categories'=>'Categorías',
+			'products'=>'Productos',
+		) as $key=>$label ) {
+			self::simple_kpi( $label, (int) ( $architecture[ $key ] ?? 0 ) );
+		}
+		echo '</div></div>';
 	}
 
 	private static function render_market( $market ) {

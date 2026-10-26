@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,14 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and extended to unified connections and Analyst reporting.
 
 == Changelog ==
+
+= 1.1.0 =
+* Recovered the clear diagnostic dashboard from the former Analista inside the modern Analyst tab.
+* Added visibility index, ranking distribution, keyword movement, Search evolution, catalog URL types, and architecture counters from saved snapshots.
+* Search snapshots now keep previous-period queries/pages and daily position so Top 10/50/100 movement is auditable.
+* Fixed GA4 batchRunReports by splitting report requests into batches of at most five.
+* Added GA4 ecommerce funnel event counts for product views, add-to-cart, checkout and purchase diagnostics.
+* Renamed report retrieval actions to “Actualizar datos” for clearer manual refresh semantics.
 
 = 1.0.0 =
 * Consolidated compatible external connections into Insights.
