@@ -13,6 +13,7 @@ define( 'DAY_IN_SECONDS', 86400 );
 $GLOBALS['market_test_tables'] = array();
 $GLOBALS['tgb_test_options'] = array();
 $GLOBALS['tgb_test_remote_calls'] = array();
+$GLOBALS['tgb_test_actions'] = array();
 
 class WP_Error {
     private $code;
@@ -25,6 +26,9 @@ function is_wp_error( $v ) { return $v instanceof WP_Error; }
 function absint( $v ) { return abs( (int) $v ); }
 function get_option( $k, $default = false ) { return $GLOBALS['tgb_test_options'][ $k ] ?? $default; }
 function update_option( $k, $v, $autoload = false ) { $GLOBALS['tgb_test_options'][ $k ] = $v; return true; }
+function do_action( $hook ) {
+    $GLOBALS['tgb_test_actions'][] = func_get_args();
+}
 function get_locale() { return 'es_ES'; }
 function get_current_user_id() { return 1; }
 function current_time( $type, $gmt = false ) { return gmdate( 'Y-m-d H:i:s' ); }
@@ -183,6 +187,15 @@ if ( $GLOBALS['wpdb']->sources[2]['evidence_level'] !== 'public_comment' ||
 }
 if ( (int) get_option( 'tgb_market_daily_budget', array() )['spent'] !== 1 ) {
     fwrite( STDERR, "Daily budget did not increment\n" ); exit( 1 );
+}
+$prepared_hook = array_values( array_filter(
+    $GLOBALS['tgb_test_actions'],
+    static function ( $args ) {
+        return isset( $args[0] ) && 'tgb_market_evidence_saved' === $args[0];
+    }
+) );
+if ( empty( $prepared_hook ) ) {
+    fwrite( STDERR, "Market evidence hook was not emitted\n" ); exit( 1 );
 }
 
 unlink( $fake_root . 'wp-admin/includes/upgrade.php' );
