@@ -260,6 +260,80 @@ final class TaxoCommerce_FAQs {
         self::notice( 'FAQ eliminada.' );
     }
 
+    private static function csv_line( $values ) {
+        $encoded = array();
+        foreach ( (array) $values as $value ) {
+            $value = str_replace( '"', '""', (string) $value );
+            $encoded[] = '"' . $value . '"';
+        }
+        return implode( ',', $encoded ) . "\r\n";
+    }
+
+    private static function output_csv_row( $values ) {
+        // CSV is an authenticated download response, not HTML. csv_line()
+        // quotes every field and doubles embedded quotation marks.
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo self::csv_line( $values );
+    }
+
+    /**
+     * Parse a bounded CSV string while preserving delimiters and newlines
+     * inside quoted fields. Import files are capped at 2 MB before parsing.
+     */
+    private static function parse_csv_rows( $contents ) {
+        $rows = array();
+        $row = array();
+        $field = '';
+        $quoted = false;
+        $length = strlen( (string) $contents );
+
+        for ( $i = 0; $i < $length; $i++ ) {
+            $char = $contents[ $i ];
+
+            if ( $quoted ) {
+                if ( '"' === $char ) {
+                    if ( $i + 1 < $length && '"' === $contents[ $i + 1 ] ) {
+                        $field .= '"';
+                        $i++;
+                    } else {
+                        $quoted = false;
+                    }
+                } else {
+                    $field .= $char;
+                }
+                continue;
+            }
+
+            if ( '"' === $char && '' === $field ) {
+                $quoted = true;
+            } elseif ( ',' === $char ) {
+                $row[] = $field;
+                $field = '';
+            } elseif ( "\r" === $char || "\n" === $char ) {
+                $row[] = $field;
+                $field = '';
+                if ( 1 !== count( $row ) || '' !== (string) $row[0] ) {
+                    $rows[] = $row;
+                }
+                $row = array();
+                if ( "\r" === $char && $i + 1 < $length && "\n" === $contents[ $i + 1 ] ) {
+                    $i++;
+                }
+            } else {
+                $field .= $char;
+            }
+        }
+
+        if ( $quoted ) {
+            return new WP_Error( 'taxocommerce_faqs_csv_quotes', 'El CSV contiene un campo entrecomillado sin cerrar.' );
+        }
+        if ( '' !== $field || $row ) {
+            $row[] = $field;
+            $rows[] = $row;
+        }
+        return $rows;
+    }
+
     public static function export() {
         self::guard();
         check_admin_referer( 'taxocommerce_faqs_export' );
@@ -267,104 +341,177 @@ final class TaxoCommerce_FAQs {
         $table = self::table( 'seo_faq' );
         $filename = 'taxocommerce_faqs_' . gmdate( 'Ymd_His' ) . '.csv';
         nocache_headers();
+        header( 'X-Content-Type-Options: nosniff' );
         header( 'Content-Type: text/csv; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV response must stream directly to the HTTP output handle, not WordPress filesystem storage.
-        $out = fopen( 'php://output', 'w' );
-        if ( ! $out ) { exit; }
-        fputcsv( $out, array( 'id', 'object_type', 'object_id', 'product_cat_id', 'question', 'answer', 'sort_order', 'active', 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo' ) );
+        header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
+        // UTF-8 BOM for spreadsheet applications.
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo "\xEF\xBB\xBF";
+        self::output_csv_row( array( 'id', 'object_type', 'object_id', 'product_cat_id', 'question', 'answer', 'sort_order', 'active', 'rol', 'tipo', 'aplicacion', 'plataforma', 'subtipo' ) );
+
         $cursor = 0;
         do {
-            $rows = $wpdb->get_results( $wpdb->prepare(
-                'SELECT id, object_type, object_id, product_cat_id, question, answer, sort_order, active FROM %i WHERE id > %d ORDER BY id ASC LIMIT 200',
-                $table,
-                $cursor
-            ), ARRAY_A );
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT id, object_type, object_id, product_cat_id, question, answer, sort_order, active FROM %i WHERE id > %d ORDER BY id ASC LIMIT 200',
+                    $table,
+                    $cursor
+                ),
+                ARRAY_A
+            );
             foreach ( (array) $rows as $row ) {
                 $cursor = (int) $row['id'];
                 $tags = self::tags( $cursor );
                 $values = array_values( $row );
                 foreach ( self::GROUPS as $group ) {
-                    $values[] = implode( '|', array_map( static function ( $t ) { return $t['slug']; }, $tags[ $group ] ) );
+                    $values[] = implode( '|', array_map( static function ( $tag ) { return $tag['slug']; }, $tags[ $group ] ) );
                 }
-                $values = array_map( static function ( $x ) {
-                    $x = (string) $x;
-                    return preg_match( '/^[=+@\x2d]/', $x ) ? "'" . $x : $x;
-                }, $values );
-                fputcsv( $out, $values );
+                $values = array_map(
+                    static function ( $value ) {
+                        $value = (string) $value;
+                        return preg_match( '/^[=+@\x2d]/', $value ) ? "'" . $value : $value;
+                    },
+                    $values
+                );
+                self::output_csv_row( $values );
             }
         } while ( count( (array) $rows ) === 200 );
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing the HTTP CSV stream created immediately above.
-        fclose( $out );
         exit;
     }
 
     public static function import() {
         self::guard();
         check_admin_referer( 'taxocommerce_faqs_import' );
-        if ( empty( $_FILES['faqs_csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['faqs_csv']['tmp_name'] )
-            || (int) $_FILES['faqs_csv']['size'] > 2 * MB_IN_BYTES ) {
+
+        $upload = isset( $_FILES['faqs_csv'] ) && is_array( $_FILES['faqs_csv'] )
+            ? $_FILES['faqs_csv']
+            : array();
+        $tmp_name = isset( $upload['tmp_name'] ) ? (string) $upload['tmp_name'] : '';
+        $size = isset( $upload['size'] ) ? absint( $upload['size'] ) : 0;
+        $error = isset( $upload['error'] ) ? absint( $upload['error'] ) : UPLOAD_ERR_NO_FILE;
+        if ( UPLOAD_ERR_OK !== $error || '' === $tmp_name || ! is_uploaded_file( $tmp_name ) || $size < 1 || $size > 2 * MB_IN_BYTES ) {
             self::notice( 'Selecciona un CSV válido de hasta 2 MB.', true );
         }
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Reading a size-checked, verified PHP upload stream row by row for bounded CSV parsing.
-        $file = fopen( $_FILES['faqs_csv']['tmp_name'], 'r' );
-        if ( ! $file ) { self::notice( 'No se pudo abrir el CSV.', true ); }
-        $header = fgetcsv( $file );
+
+        if ( ! function_exists( 'WP_Filesystem' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        global $wp_filesystem;
+        if ( ! WP_Filesystem() || ! $wp_filesystem ) {
+            self::notice( 'No se pudo inicializar el sistema de archivos de WordPress.', true );
+        }
+
+        $contents = $wp_filesystem->get_contents( $tmp_name );
+        if ( false === $contents ) {
+            self::notice( 'No se pudo leer el CSV.', true );
+        }
+        if ( 0 === strpos( $contents, "\xEF\xBB\xBF" ) ) {
+            $contents = substr( $contents, 3 );
+        }
+
+        $parsed = self::parse_csv_rows( $contents );
+        if ( is_wp_error( $parsed ) || ! $parsed ) {
+            self::notice( is_wp_error( $parsed ) ? $parsed->get_error_message() : 'El CSV está vacío.', true );
+        }
+
+        $header = array_map( 'trim', (array) array_shift( $parsed ) );
         $needed = array( 'id', 'object_type', 'object_id', 'product_cat_id', 'question', 'answer', 'sort_order', 'active' );
-        $header = is_array( $header ) ? array_map( 'trim', $header ) : array();
         if ( array_diff( $needed, $header ) ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the validated upload stream on CSV header failure.
-            fclose( $file );
             self::notice( 'Faltan columnas CSV requeridas.', true );
         }
+
         global $wpdb;
         $table = self::table( 'seo_faq' );
-        $created = 0; $updated = 0; $errors = 0; $seen = 0;
-        while ( ( $row = fgetcsv( $file ) ) !== false && $seen < 500 ) {
+        $created = 0;
+        $updated = 0;
+        $errors = 0;
+        $seen = 0;
+
+        foreach ( $parsed as $row ) {
+            if ( $seen >= 500 ) {
+                break;
+            }
             $seen++;
-            if ( count( $row ) !== count( $header ) ) { $errors++; continue; }
+            if ( count( $row ) !== count( $header ) ) {
+                $errors++;
+                continue;
+            }
             $data = array_combine( $header, $row );
             $type = absint( $data['object_type'] );
             $target = absint( $data['object_id'] );
             $category = absint( $data['product_cat_id'] );
-            if ( 2 === $type && ! $target ) { $target = $category; }
+            if ( 2 === $type && ! $target ) {
+                $target = $category;
+            }
             $question = sanitize_text_field( $data['question'] );
             $answer = wp_kses_post( $data['answer'] );
-            if ( ! self::valid_category( $category ) || ! in_array( $type, array( 1,2,3 ), true ) || ! self::target_exists( $type, $target )
-                || '' === trim( $question ) || '' === trim( wp_strip_all_tags( $answer ) ) || strlen( $question ) > 255 ) { $errors++; continue; }
-            $payload = array( 'object_type' => $type, 'object_id' => $target, 'product_cat_id' => $category, 'question' => $question,
-                'answer' => $answer, 'sort_order' => absint( $data['sort_order'] ),
-                'active' => (int) ( '1' === trim( $data['active'] ) ), 'updated_at' => current_time( 'mysql', true ) );
+            if ( ! self::valid_category( $category ) || ! in_array( $type, array( 1, 2, 3 ), true ) || ! self::target_exists( $type, $target )
+                || '' === trim( $question ) || '' === trim( wp_strip_all_tags( $answer ) ) || strlen( $question ) > 255 ) {
+                $errors++;
+                continue;
+            }
+
+            $payload = array(
+                'object_type' => $type,
+                'object_id' => $target,
+                'product_cat_id' => $category,
+                'question' => $question,
+                'answer' => $answer,
+                'sort_order' => absint( $data['sort_order'] ),
+                'active' => (int) ( '1' === trim( $data['active'] ) ),
+                'updated_at' => current_time( 'mysql', true ),
+            );
             $id = absint( $data['id'] );
-            $existing = $id ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d', $table, $id ) ) : 0;
+            $existing = $id
+                ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d', $table, $id ) )
+                : 0;
+
             if ( $existing ) {
                 $ok = $wpdb->update( $table, $payload, array( 'id' => $existing ) );
-                if ( false === $ok ) { $errors++; continue; }
-                $updated++; $id = $existing;
+                if ( false === $ok ) {
+                    $errors++;
+                    continue;
+                }
+                $updated++;
+                $id = $existing;
             } else {
                 $payload['created_at'] = current_time( 'mysql', true );
                 $ok = $wpdb->insert( $table, $payload );
-                if ( false === $ok ) { $errors++; continue; }
-                $id = (int) $wpdb->insert_id; $created++;
+                if ( false === $ok ) {
+                    $errors++;
+                    continue;
+                }
+                $id = (int) $wpdb->insert_id;
+                $created++;
             }
+
             if ( self::tags_available() ) {
                 $groups = array();
                 foreach ( self::GROUPS as $group ) {
-                    $slugs = empty( $data[ $group ] ) ? array() : array_slice( array_filter( array_map( 'sanitize_title', explode( '|', $data[ $group ] ) ) ), 0, 50 );
-                    if ( ! $slugs ) { $groups[ $group ] = array(); continue; }
+                    $slugs = empty( $data[ $group ] )
+                        ? array()
+                        : array_slice( array_filter( array_map( 'sanitize_title', explode( '|', $data[ $group ] ) ) ), 0, 50 );
+                    if ( ! $slugs ) {
+                        $groups[ $group ] = array();
+                        continue;
+                    }
                     $voc = self::table( 'seo_vocabulary' );
                     $ph = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
-                    $groups[ $group ] = $wpdb->get_col( $wpdb->prepare(
-                        "SELECT id FROM {$voc} WHERE active=1 AND semantic_group=%s AND slug IN ({$ph})",
-                        array_merge( array( $group ), $slugs )
-                    ) );
+                    $groups[ $group ] = $wpdb->get_col(
+                        $wpdb->prepare(
+                            "SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND slug IN ({$ph})",
+                            array_merge( array( $voc, $group ), $slugs )
+                        )
+                    );
                 }
                 self::save_tags( $id, $groups );
             }
         }
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the bounded CSV stream after parsing.
-        fclose( $file );
-        self::notice( sprintf( 'Importación: %d creadas, %d actualizadas, %d errores. Máximo 500 filas por archivo.', $created, $updated, $errors ), $errors > 0 );
+
+        self::notice(
+            sprintf( 'Importación: %d creadas, %d actualizadas, %d errores. Máximo 500 filas por archivo.', $created, $updated, $errors ),
+            $errors > 0
+        );
     }
 
     private static function category_name( $id ) {
