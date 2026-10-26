@@ -266,6 +266,7 @@ $GLOBALS['wpdb'] = new TGB_Analyst_WPDB();
 
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-prepared.php';
 TaxoCommerce_Google_Bing_Prepared::register();
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-commercial.php';
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-analyst.php';
 
 $report = TaxoCommerce_Google_Bing_Analyst::report();
@@ -312,6 +313,10 @@ if ( empty( $report['direction']['summary']['now'] ) ) {
     fwrite( STDERR, "Analyst NOW bucket failed\n" );
     exit( 1 );
 }
+if ( empty( $report['commercial']['schema']['name'] ) || 'taxocommerce-insights-commercial' !== $report['commercial']['schema']['name'] || ! isset( $report['commercial']['kpis']['purchases'] ) ) {
+    fwrite( STDERR, "Commercial insight contract failed\n" );
+    exit( 1 );
+}
 if ( empty( $report['editor_contract']['rows'] ) ) {
     fwrite( STDERR, "Editor contract failed\n" );
     exit( 1 );
@@ -320,7 +325,7 @@ if ( empty( $report['editor_contract']['rows'] ) ) {
 ob_start();
 TaxoCommerce_Google_Bing_Analyst::render();
 $html = ob_get_clean();
-foreach ( array( 'Resumen', 'Cómo avanzan nuestras posiciones', 'Movimiento de keywords', 'Arquitectura que Analista tiene en cuenta', 'How does the market look?', 'Global Market Summary', 'Products / clusters repeating across the research', 'Where should we go?' ) as $needle ) {
+foreach ( array( 'What should I do?', 'Purchase events', 'Recommended actions', 'Resumen', 'Cómo avanzan nuestras posiciones', 'Movimiento de keywords', 'Arquitectura que Analista tiene en cuenta', 'How does the market look?', 'Global Market Summary', 'Products / clusters repeating across the research', 'Where should we go?' ) as $needle ) {
     if ( false === strpos( $html, $needle ) ) {
         fwrite( STDERR, "Analyst render missing: $needle\n" );
         exit( 1 );

@@ -1,21 +1,18 @@
-name: WordPress Plugin Check
+name: Legacy TaxoCommerce SEO Plugin Check (manual)
 
 on:
-  pull_request:
-  push:
-    branches:
-      - staging
-      - main
+  # Legacy monolith diagnostic only. The public WordPress.org release gate for
+  # the new family lives in taxocommerce-family-plugin-check.yml.
   workflow_dispatch:
     inputs:
       release_gate:
-        description: 'Strict WordPress.org release gate (no Plugin Check warnings, ZIP under 10 MB)'
+        description: 'Legacy diagnostic: strict gate for the retired monolith'
         required: true
         type: boolean
-        default: true
+        default: false
 
 concurrency:
-  group: wp-plugin-check-${{ github.event.pull_request.number || github.ref }}
+  group: legacy-wp-plugin-check-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

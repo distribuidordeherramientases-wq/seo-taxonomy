@@ -4,7 +4,7 @@ Tags: woocommerce, database, mysql, backup, csv
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.1
+Stable tag: 0.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,6 +38,10 @@ CSV preserves original cells, potentially including spreadsheet formulas. Append
 4. Review every confirmation and use verified hosting backups for full restoration.
 
 == Changelog ==
+
+= 0.2.2 =
+* Refresh WordPress.org readiness against the current standalone database tools.
+* Preserve bounded streamed exports, insert-only CSV import and administrator-controlled maintenance.
 
 = 0.2.1 =
 * Removed experimental historical rollback support while retaining atomic CSV import and manual maintenance.

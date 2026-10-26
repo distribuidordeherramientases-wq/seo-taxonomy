@@ -4,8 +4,10 @@ Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
+
+Manage SEO redirects and assisted content deletion for WordPress and WooCommerce.
 
 == Description ==
 
@@ -76,9 +78,12 @@ retired and all native relationships have been verified.
 * Old monolith will regain control if this plugin is deactivated.
 * Deploying by FTPS makes the plugin available in WordPress Plugins; activation
   requires separate authenticated wp-admin or WP-CLI access.
-* This code is only for STAGING until manually approved for production release.
 
 == Changelog ==
+
+= 0.1.5 =
+* WordPress.org release metadata cleanup and English plugin description.
+* Confirmed bounded assisted-delete queries keep WordPress filters enabled.
 
 = 0.1.4 =
 * Retirada la integracion opcional del motor historico de rollback de Database. CRUD de redirecciones vuelve al flujo autonomo original, sin dependencia ni comprobaciones de Database.

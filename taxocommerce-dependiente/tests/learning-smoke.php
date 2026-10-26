@@ -178,7 +178,7 @@ $checks=array(
     strpos($sources,'. \': \' . $title')===false,
     strpos($sources,'TaxoCommerce FAQs no está disponible: falta la tabla seo_faq.')!==false,
     strpos($sources,"private static function table_has_column")!==false,
-    strpos($sources,"private static function faq_category_select")!==false,
+    strpos($sources,'self::table_has_column( $table, \'product_cat_id\' )')!==false,
     strpos($sources,"0 AS product_cat_id")!==false,
     strpos($sources,'$category_id ?: absint( $row[\'object_id\'] ?? 0 )')!==false,
     strpos($sources,"tcd_faq_source_query")!==false,

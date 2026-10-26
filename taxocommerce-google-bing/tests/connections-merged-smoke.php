@@ -13,7 +13,7 @@ $bridge = file_get_contents( $repo . '/taxocommerce-connections/taxocommerce-con
 $core = file_get_contents( $repo . '/taxocommerce-core/includes/class-taxocommerce-core.php' );
 
 $checks = array(
-    strpos( $main, 'Version: 1.1.1' ) !== false,
+    strpos( $main, 'Version: 1.1.2' ) !== false,
     strpos( $main, "'connections'      => 'Connections'" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Admin::render()" ) !== false,
     strpos( $main, "class-taxocommerce-connections-amazon.php" ) !== false,
@@ -21,6 +21,7 @@ $checks = array(
     strpos( $main, "TaxoCommerce_Connections_Amazon::boot()" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Pinterest::boot()" ) !== false,
     strpos( $main, "class-taxocommerce-google-bing-prepared.php" ) !== false,
+    strpos( $main, "class-taxocommerce-google-bing-commercial.php" ) !== false,
     strpos( $main, "TaxoCommerce_Google_Bing_Prepared::register()" ) !== false,
     strpos( $prepared, "tgb_prepared_intelligence_v1" ) !== false,
     strpos( $admin, "'page'    => 'taxocommerce-google-bing'" ) !== false,

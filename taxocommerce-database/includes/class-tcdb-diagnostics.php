@@ -135,54 +135,114 @@ final class TCDB_Diagnostics {
         $logs = $wpdb->prefix . 'actionscheduler_logs';
         $claims = $wpdb->prefix . 'actionscheduler_claims';
         $stock = $wpdb->prefix . 'wc_reserved_stock';
-        $query = '';
-        $target = '';
-        $key = '';
+
+        if ( 'wc_expired_reserved_stock' === $kind && isset( $tables[ $stock ] ) ) {
+            $deleted = $wpdb->query(
+                $wpdb->prepare(
+                    'DELETE FROM %i WHERE expires < UTC_TIMESTAMP() LIMIT %d',
+                    $stock,
+                    self::BATCH
+                )
+            );
+            return false === $deleted
+                ? new WP_Error( 'tcdb_cleanup_sql', 'MySQL no pudo limpiar el stock caducado.' )
+                : (int) $deleted;
+        }
 
         if ( 'as_orphan_logs' === $kind && isset( $tables[ $logs ], $tables[ $actions ] ) ) {
-            $query = "SELECT l.log_id FROM {$logs} l LEFT JOIN {$actions} a ON a.action_id=l.action_id
-                       WHERE a.action_id IS NULL AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY) LIMIT " . self::BATCH;
-            $target = $logs; $key = 'log_id';
+            $ids = (array) $wpdb->get_col(
+                $wpdb->prepare(
+                    'SELECT l.log_id FROM %i l LEFT JOIN %i a ON a.action_id=l.action_id
+                     WHERE a.action_id IS NULL AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)
+                     LIMIT %d',
+                    $logs,
+                    $actions,
+                    self::BATCH
+                )
+            );
         } elseif ( 'as_old_completed_logs' === $kind && isset( $tables[ $logs ], $tables[ $actions ] ) ) {
-            $query = "SELECT l.log_id FROM {$logs} l INNER JOIN {$actions} a ON a.action_id=l.action_id
-                       WHERE a.status IN ('complete','canceled') AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY) LIMIT " . self::BATCH;
-            $target = $logs; $key = 'log_id';
+            $ids = (array) $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT l.log_id FROM %i l INNER JOIN %i a ON a.action_id=l.action_id
+                     WHERE a.status IN ('complete','canceled')
+                       AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
+                     LIMIT %d",
+                    $logs,
+                    $actions,
+                    self::BATCH
+                )
+            );
         } elseif ( 'as_orphan_claims' === $kind && isset( $tables[ $claims ], $tables[ $actions ] ) ) {
-            $query = "SELECT c.claim_id FROM {$claims} c LEFT JOIN {$actions} a ON a.claim_id=c.claim_id
-                       WHERE a.action_id IS NULL AND c.date_created_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY) LIMIT " . self::BATCH;
-            $target = $claims; $key = 'claim_id';
-        } elseif ( 'wc_expired_reserved_stock' === $kind && isset( $tables[ $stock ] ) ) {
-            // No race-sensitive order edits: check that the hold remains expired at DELETE.
-            $query = "DELETE FROM {$stock} WHERE expires < UTC_TIMESTAMP() LIMIT " . self::BATCH;
-            $deleted = $wpdb->query( $query );
-            return false === $deleted ? new WP_Error( 'tcdb_cleanup_sql', 'MySQL no pudo limpiar el stock caducado.' ) : (int) $deleted;
+            $ids = (array) $wpdb->get_col(
+                $wpdb->prepare(
+                    'SELECT c.claim_id FROM %i c LEFT JOIN %i a ON a.claim_id=c.claim_id
+                     WHERE a.action_id IS NULL AND c.date_created_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)
+                     LIMIT %d',
+                    $claims,
+                    $actions,
+                    self::BATCH
+                )
+            );
         } else {
             return new WP_Error( 'tcdb_cleanup_not_supported', 'Esta limpieza no está habilitada o faltan sus tablas.' );
         }
 
-        $ids = (array) $wpdb->get_col( $query );
         $ids = array_values( array_filter( array_map( 'absint', $ids ) ) );
         if ( ! $ids ) {
             return 0;
         }
-        $holders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-        // Every ID is integer derived from read-only candidate SELECT; final
-        // DELETE rechecks the relationship and age to avoid stale eligibility.
-        if ( 'as_orphan_logs' === $kind ) {
-            $sql = "DELETE FROM {$target} WHERE {$key} IN ({$holders})
-                    AND log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)
-                    AND NOT EXISTS (SELECT 1 FROM {$actions} a WHERE a.action_id={$target}.action_id)";
-        } elseif ( 'as_old_completed_logs' === $kind ) {
-            $sql = "DELETE FROM {$target} WHERE {$key} IN ({$holders})
-                    AND log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
-                    AND EXISTS (SELECT 1 FROM {$actions} a WHERE a.action_id={$target}.action_id AND a.status IN ('complete','canceled'))";
-        } else {
-            $sql = "DELETE FROM {$target} WHERE {$key} IN ({$holders})
-                    AND date_created_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)
-                    AND NOT EXISTS (SELECT 1 FROM {$actions} a WHERE a.claim_id={$target}.claim_id)";
+
+        $removed = 0;
+        foreach ( $ids as $id ) {
+            if ( 'as_orphan_logs' === $kind ) {
+                $deleted = $wpdb->query(
+                    $wpdb->prepare(
+                        'DELETE l FROM %i l
+                         WHERE l.log_id=%d
+                           AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)
+                           AND NOT EXISTS (SELECT 1 FROM %i a WHERE a.action_id=l.action_id)',
+                        $logs,
+                        $id,
+                        $actions
+                    )
+                );
+            } elseif ( 'as_old_completed_logs' === $kind ) {
+                $deleted = $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE l FROM %i l
+                         WHERE l.log_id=%d
+                           AND l.log_date_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
+                           AND EXISTS (
+                               SELECT 1 FROM %i a
+                               WHERE a.action_id=l.action_id
+                                 AND a.status IN ('complete','canceled')
+                           )",
+                        $logs,
+                        $id,
+                        $actions
+                    )
+                );
+            } else {
+                $deleted = $wpdb->query(
+                    $wpdb->prepare(
+                        'DELETE c FROM %i c
+                         WHERE c.claim_id=%d
+                           AND c.date_created_gmt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)
+                           AND NOT EXISTS (SELECT 1 FROM %i a WHERE a.claim_id=c.claim_id)',
+                        $claims,
+                        $id,
+                        $actions
+                    )
+                );
+            }
+
+            if ( false === $deleted ) {
+                return new WP_Error( 'tcdb_cleanup_sql', 'MySQL no pudo eliminar registros caducados.' );
+            }
+            $removed += (int) $deleted;
         }
-        $deleted = $wpdb->query( $wpdb->prepare( $sql, $ids ) );
-        return false === $deleted ? new WP_Error( 'tcdb_cleanup_sql', 'MySQL no pudo eliminar registros caducados.' ) : (int) $deleted;
+
+        return $removed;
     }
 
     public static function handle_cleanup() {
