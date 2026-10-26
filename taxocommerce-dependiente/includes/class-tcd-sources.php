@@ -378,13 +378,15 @@ final class TCD_Sources {
         $question = trim( wp_strip_all_tags( (string) ( $row['question'] ?? '' ) ) );
         $answer = trim( wp_strip_all_tags( (string) ( $row['answer'] ?? '' ) ) );
         if ( ! $id || '' === $question ) return null;
-        $owner_type = 3 === absint( $row['object_type'] ?? 0 ) ? 'product' : 'product_cat';
-        $owner_id = 3 === absint( $row['object_type'] ?? 0 )
+        $object_type = absint( $row['object_type'] ?? 0 );
+        $category_id = absint( $row['product_cat_id'] ?? 0 );
+        $owner_type = 3 === $object_type ? 'product' : 'product_cat';
+        $owner_id = 3 === $object_type
             ? absint( $row['object_id'] ?? 0 )
-            : absint( $row['product_cat_id'] ?? $row['object_id'] ?? 0 );
+            : ( $category_id ?: absint( $row['object_id'] ?? 0 ) );
         $facts = array(
             'owner_type'=>$owner_type,'owner_id'=>$owner_id,
-            'product_cat_id'=>absint( $row['product_cat_id'] ?? 0 ),
+            'product_cat_id'=>$category_id,
             'answer'=>mb_substr( $answer, 0, 2500 ),
             'sort_order'=>absint( $row['sort_order'] ?? 0 ),
             'vocabulary'=>self::vocabulary_for_object( 'faq', $id ),
