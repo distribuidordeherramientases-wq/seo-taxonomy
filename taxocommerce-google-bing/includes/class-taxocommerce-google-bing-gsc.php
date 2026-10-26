@@ -64,10 +64,12 @@ final class TaxoCommerce_Google_Bing_GSC {
                 }
             }
             if ( is_wp_error( $result ) ) {
-                return new WP_Error(
-                    'tgb_gsc_incomplete',
-                    'No se pudo recuperar «' . $name . '»: ' . $result->get_error_message()
-                );
+                $status = (int) $result->get_error_data( 'status' );
+                $message = 'No se pudo recuperar «' . $name . '»: ' . $result->get_error_message();
+                if ( 403 === $status ) {
+                    $message .= ' Revisa en Conexiones la propiedad Search Console exacta (URL con https y barra final o sc-domain:) y los permisos del usuario OAuth o cuenta de servicio. Una conexión GA4 correcta no concede permisos de Search Console.';
+                }
+                return new WP_Error( 'tgb_gsc_incomplete', $message, array( 'status' => $status ) );
             }
             $results[ $name ] = (array) ( $result['rows'] ?? array() );
         }
