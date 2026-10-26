@@ -97,7 +97,7 @@ if ( false === strpos( $html, 'latest available snapshot' ) || false === strpos(
 }
 $reports_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-reports.php' );
 if ( false === strpos( $reports_source, 'array_chunk( $requests, 5 )' )
-    || false === strpos( $reports_source, "array( 'requests' => $request_chunk )" )
+    || false === strpos( $reports_source, 'array( \'requests\' => $request_chunk )' )
     || false === strpos( $reports_source, "'funnel' => array(" ) ) {
     fwrite( STDERR, "GA4 batching/funnel regression guard failed\n" );
     exit( 1 );
