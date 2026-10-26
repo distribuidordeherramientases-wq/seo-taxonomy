@@ -174,25 +174,17 @@ final class TCD_Sources {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) return null;
-        if ( self::table_has_column( $table, 'product_cat_id' ) ) {
-            $row = $wpdb->get_row(
-                $wpdb->prepare(
-                    'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1',
-                    $table,
-                    absint( $id )
-                ),
-                ARRAY_A
-            );
-        } else {
-            $row = $wpdb->get_row(
-                $wpdb->prepare(
-                    'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1',
-                    $table,
-                    absint( $id )
-                ),
-                ARRAY_A
-            );
-        }
+
+        // Legacy FAQ schemas omit optional fields such as product_cat_id.
+        // Read the stored row and let faq_row_item() normalize optional values.
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT * FROM %i WHERE id=%d AND active=1 LIMIT 1',
+                $table,
+                absint( $id )
+            ),
+            ARRAY_A
+        );
         return is_array( $row ) ? self::faq_row_item( $row ) : null;
     }
 
@@ -358,45 +350,122 @@ final class TCD_Sources {
         return array( 'items'=>$items, 'cursor'=>$cursor + count( $page_ids ), 'more'=>$more );
     }
 
+    /**
+     * Read-only FAQ preflight for L6 and the administrator log.
+     *
+     * The original SEO plugin did not have product_cat_id, whereas the modern
+     * FAQs module adds it. An additional column is not a reason to block L6.
+     * Never migrate tables, enable records, or modify source content here.
+     */
+    public static function faq_diagnostics() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'seo_faq';
+        $diagnosis = array(
+            'table' => $table,
+            'exists' => false,
+            'total' => null,
+            'active' => null,
+            'inactive' => null,
+            'has_product_cat_id' => false,
+            'missing_columns' => array(),
+            'status' => 'missing_table',
+            'message' => 'No existe la tabla de FAQs de esta instalación de WordPress.',
+        );
+
+        if ( ! self::table_exists( $table ) ) {
+            return $diagnosis;
+        }
+        $diagnosis['exists'] = true;
+
+        $columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
+        if ( $wpdb->last_error || ! is_array( $columns ) || ! $columns ) {
+            $diagnosis['status'] = 'schema_error';
+            $diagnosis['message'] = 'No se pudieron inspeccionar las columnas de seo_faq: ' . sanitize_text_field( (string) $wpdb->last_error );
+            return $diagnosis;
+        }
+
+        $columns = array_map( 'strtolower', array_map( 'strval', $columns ) );
+        $required = array( 'id', 'object_type', 'object_id', 'question', 'answer', 'active' );
+        $diagnosis['missing_columns'] = array_values( array_diff( $required, $columns ) );
+        $diagnosis['has_product_cat_id'] = in_array( 'product_cat_id', $columns, true );
+
+        if ( $diagnosis['missing_columns'] ) {
+            $diagnosis['status'] = 'schema_incompatible';
+            $diagnosis['message'] = 'La tabla seo_faq no tiene las columnas imprescindibles: ' . implode( ', ', $diagnosis['missing_columns'] ) . '. Las columnas sort_order y product_cat_id son opcionales.';
+            return $diagnosis;
+        }
+
+        $counts = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN active=1 THEN 1 ELSE 0 END),0) AS active_count FROM %i',
+                $table
+            ),
+            ARRAY_A
+        );
+        if ( $wpdb->last_error || ! is_array( $counts ) ) {
+            $diagnosis['status'] = 'count_error';
+            $diagnosis['message'] = 'No se pudo contar el material FAQ de L6: ' . sanitize_text_field( (string) $wpdb->last_error );
+            return $diagnosis;
+        }
+
+        $diagnosis['total'] = absint( $counts['total'] ?? 0 );
+        $diagnosis['active'] = absint( $counts['active_count'] ?? 0 );
+        $diagnosis['inactive'] = max( 0, $diagnosis['total'] - $diagnosis['active'] );
+        if ( 0 === $diagnosis['total'] ) {
+            $diagnosis['status'] = 'empty_table';
+            $diagnosis['message'] = 'La tabla seo_faq existe, pero está vacía. Comprueba que las FAQs se hayan importado a esta base de datos.';
+        } elseif ( 0 === $diagnosis['active'] ) {
+            $diagnosis['status'] = 'no_active_rows';
+            $diagnosis['message'] = 'Hay ' . number_format_i18n( $diagnosis['total'] ) . ' FAQs, pero ninguna tiene active=1. Revisa el estado de las FAQs; Dependiente no las activa automáticamente.';
+        } else {
+            $diagnosis['status'] = 'ready';
+            $diagnosis['message'] = 'Hay ' . number_format_i18n( $diagnosis['active'] ) . ' FAQs activas de ' . number_format_i18n( $diagnosis['total'] ) . ' registros.';
+        }
+        return $diagnosis;
+    }
+
     private static function faq_batch( $cursor, $limit ) {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) {
             return new WP_Error( 'tcd_faq_plugin_missing', 'TaxoCommerce FAQs no está disponible: falta la tabla seo_faq.' );
         }
-        if ( self::table_has_column( $table, 'product_cat_id' ) ) {
-            $rows = $wpdb->get_results(
-                $wpdb->prepare(
-                    'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d',
-                    $table,
-                    $limit + 1,
-                    $cursor
-                ),
-                ARRAY_A
-            );
-        } else {
-            $rows = $wpdb->get_results(
-                $wpdb->prepare(
-                    'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d',
-                    $table,
-                    $limit + 1,
-                    $cursor
-                ),
-                ARRAY_A
-            );
-        }
-        if ( $wpdb->last_error ) {
+
+        // Optional legacy/modern FAQ fields vary. The batch size is bounded
+        // to 100 and faq_row_item() maps missing optional values safely.
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT * FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d',
+                $table,
+                $limit + 1,
+                $cursor
+            ),
+            ARRAY_A
+        );
+        if ( $wpdb->last_error || ! is_array( $rows ) ) {
             return new WP_Error(
                 'tcd_faq_source_query',
                 'No se han podido leer las FAQs para L6: ' . sanitize_text_field( (string) $wpdb->last_error )
             );
         }
-        $more = count( (array) $rows ) > $limit;
-        $rows = array_slice( (array) $rows, 0, $limit );
+        if ( 0 === $cursor && ! $rows ) {
+            $diagnosis = self::faq_diagnostics();
+            $message = (string) $diagnosis['message'];
+            if ( 'ready' === $diagnosis['status'] ) {
+                $message .= ' Sin embargo, el lote de lectura devuelve 0 filas. Verifica la versión del plugin y el acceso SQL; no se considera una lección vacía.';
+            }
+            return new WP_Error( 'tcd_faq_source_empty', $message );
+        }
+
+        $more = count( $rows ) > $limit;
+        $rows = array_slice( $rows, 0, $limit );
         $items = array();
         foreach ( $rows as $row ) {
             $item = self::faq_row_item( $row );
             if ( $item ) $items[] = $item;
+        }
+        if ( 0 === $cursor && ! $more && $rows && ! $items ) {
+            return new WP_Error( 'tcd_faq_source_unusable', 'Hay FAQs activas, pero ninguna del lote contiene una pregunta válida. Revisa las preguntas en TaxoCommerce FAQs.' );
         }
         return array( 'items'=>$items, 'cursor'=>$cursor + count( $rows ), 'more'=>$more );
     }
