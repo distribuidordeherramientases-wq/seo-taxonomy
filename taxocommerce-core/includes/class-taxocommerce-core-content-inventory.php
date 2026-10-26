@@ -212,7 +212,7 @@ final class TaxoCommerce_Core_Content_Inventory {
         }
         echo '</tbody></table></div><p class="description">' . esc_html__( 'Los totales incluyen contenidos en papelera y excluyen los borradores automáticos de WordPress.', 'taxocommerce-core' ) . '</p></div>';
 
-        echo '<div class="tc-inventory-actions"><a class="button" href="' . esc_url( self::tab_url( 'architecture' ) ) . '">' . esc_html__( 'Arquitectura SEO', 'taxocommerce-core' ) . '</a>';
+        echo '<div class="tc-inventory-actions"><a class="button" href="' . esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_Architecture_Report::PAGE_SLUG ) ) . '">' . esc_html__( 'Arquitectura SEO', 'taxocommerce-core' ) . '</a>';
         echo '<a class="button" href="' . esc_url( self::tab_url( 'anomalies' ) ) . '">' . esc_html__( 'Revisar anomalías', 'taxocommerce-core' ) . '</a></div>';
         echo '<p class="description">' . esc_html__( 'Para calidad, gravedad de errores, recomendaciones y exportaciones completas utiliza TaxoCommerce Auditor.', 'taxocommerce-core' ) . '</p>';
         echo '</section>';
