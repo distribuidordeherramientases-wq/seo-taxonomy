@@ -174,12 +174,14 @@ final class TCD_Sources {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) return null;
-        $category_select = self::faq_category_select( $table );
-        $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT id,object_type,object_id,{$category_select},question,answer,sort_order,active
-             FROM {$table} WHERE id=%d AND active=1 LIMIT 1",
-            absint( $id )
-        ), ARRAY_A );
+        $has_category = self::table_has_column( $table, 'product_cat_id' );
+        $sql = $has_category
+            ? 'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1'
+            : 'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1';
+        $row = $wpdb->get_row(
+            $wpdb->prepare( $sql, $table, absint( $id ) ),
+            ARRAY_A
+        );
         return is_array( $row ) ? self::faq_row_item( $row ) : null;
     }
 
@@ -351,12 +353,14 @@ final class TCD_Sources {
         if ( ! self::table_exists( $table ) ) {
             return new WP_Error( 'tcd_faq_plugin_missing', 'TaxoCommerce FAQs no está disponible: falta la tabla seo_faq.' );
         }
-        $category_select = self::faq_category_select( $table );
-        $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id,object_type,object_id,{$category_select},question,answer,sort_order,active
-             FROM {$table} WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d",
-            $limit + 1, $cursor
-        ), ARRAY_A );
+        $has_category = self::table_has_column( $table, 'product_cat_id' );
+        $sql = $has_category
+            ? 'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d'
+            : 'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d';
+        $rows = $wpdb->get_results(
+            $wpdb->prepare( $sql, $table, $limit + 1, $cursor ),
+            ARRAY_A
+        );
         if ( $wpdb->last_error ) {
             return new WP_Error(
                 'tcd_faq_source_query',
@@ -490,19 +494,6 @@ final class TCD_Sources {
         $found = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", $column ) );
         $cache[ $key ] = ( $column === (string) $found );
         return $cache[ $key ];
-    }
-
-    /**
-     * Keep L6 compatible with the historical seo_faq schema.
-     *
-     * New FAQs stores expose product_cat_id. Older production tables do not;
-     * object_id still identifies the canonical owner, so a zero category is a
-     * safe compatibility value until TaxoCommerce FAQs upgrades the schema.
-     */
-    private static function faq_category_select( $table ) {
-        return self::table_has_column( $table, 'product_cat_id' )
-            ? 'product_cat_id'
-            : '0 AS product_cat_id';
     }
 
     private static function vocabulary_for_object( $object_type, $object_id ) {
