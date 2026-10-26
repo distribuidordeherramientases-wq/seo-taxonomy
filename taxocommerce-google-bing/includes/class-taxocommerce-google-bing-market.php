@@ -397,6 +397,7 @@ final class TaxoCommerce_Google_Bing_Market {
                 'scan_status' => $status,
                 'last_scanned_at' => current_time( 'mysql', true ),
             ), array( 'id' => absint( $id ) ) );
+            do_action( 'tgb_market_evidence_saved', absint( $id ), $status, $created );
             return array( 'status' => $status, 'received' => $created, 'errors' => $problems );
         } finally {
             delete_transient( $lock );
