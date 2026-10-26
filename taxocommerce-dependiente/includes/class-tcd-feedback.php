@@ -318,10 +318,11 @@ final class TCD_Feedback {
         ) ) );
 
         $table = self::events_table();
-        $sql = $wpdb->prepare(
-            "INSERT IGNORE INTO {$table}
+        $inserted = $wpdb->query( $wpdb->prepare(
+            "INSERT IGNORE INTO %i
             (event_hash,session_hash,query_hash,query_text,event_type,product_id,semantic_group,semantic_slug,semantic_label,depth,confidence,context_json,created_at)
             VALUES (%s,%s,%s,%s,%s,%d,%s,%s,%s,%d,%f,%s,%s)",
+            $table,
             $event_hash,
             $session_hash,
             $query_hash,
@@ -335,9 +336,7 @@ final class TCD_Feedback {
             $confidence,
             wp_json_encode( (array) $args['context'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
             current_time( 'mysql' )
-        );
-
-        $inserted = $wpdb->query( $sql );
+        ) );
         if ( false === $inserted ) {
             self::trace( 'ERROR', 'feedback_db_error', array(
                 'event_type'=>$event_type,
@@ -737,14 +736,19 @@ final class TCD_Feedback {
         $voc = $wpdb->prefix . 'seo_vocabulary';
         if ( self::table_exists( $rel ) && self::table_exists( $voc ) ) {
             $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-            $sql = "SELECT r.object_id,v.semantic_group,v.slug,v.label
-                    FROM {$rel} r
-                    INNER JOIN {$voc} v ON v.id=r.vocabulary_id
-                    WHERE r.object_type='product' AND r.status=1 AND v.active=1
-                      AND r.object_id IN ({$placeholders})
-                      AND v.semantic_group IN ('aplicacion','tipo','subtipo','plataforma','rol')
-                    LIMIT 800";
-            $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $ids ), ARRAY_A );
+            $rows = (array) $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT r.object_id,v.semantic_group,v.slug,v.label
+                     FROM %i r
+                     INNER JOIN %i v ON v.id=r.vocabulary_id
+                     WHERE r.object_type='product' AND r.status=1 AND v.active=1
+                       AND r.object_id IN ({$placeholders})
+                       AND v.semantic_group IN ('aplicacion','tipo','subtipo','plataforma','rol')
+                     LIMIT 800",
+                    array_merge( array( $rel, $voc ), $ids )
+                ),
+                ARRAY_A
+            );
 
             $rank_map = array();
             foreach ( $ids as $position => $id ) $rank_map[ $id ] = $position;
