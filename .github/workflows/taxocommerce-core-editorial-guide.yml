@@ -44,3 +44,6 @@ jobs:
 
       - name: Verify SEO architecture distribution
         run: php taxocommerce-core/tests/architecture-report-smoke.php
+
+      - name: Verify cached content inventory
+        run: php taxocommerce-core/tests/content-inventory-smoke.php

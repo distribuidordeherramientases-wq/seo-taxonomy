@@ -28,6 +28,7 @@ require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-vocabula
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-editorial-guide.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-editor-ui.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-architecture-report.php';
+require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-inventory.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-manager.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-anomalies.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-anomalies-json.php';
