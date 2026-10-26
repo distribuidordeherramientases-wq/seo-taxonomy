@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.28
+Stable tag: 0.4.29
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -47,6 +47,10 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.29 =
+* Refresh WordPress.org readiness against the current modular Core implementation.
+* Preserve native content, hierarchy, menu and extension-management contracts while validating the standalone package.
 
 = 0.4.28 =
 * Consolidated external connections under TaxoCommerce Insights.
