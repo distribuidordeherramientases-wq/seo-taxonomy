@@ -180,6 +180,7 @@ $checks=array(
     strpos($sources,"private static function table_has_column")!==false,
     strpos($sources,"private static function faq_category_select")!==false,
     strpos($sources,"0 AS product_cat_id")!==false,
+    strpos($sources,"$category_id ?: absint( $row['object_id'] ?? 0 )")!==false,
     strpos($sources,"tcd_faq_source_query")!==false,
     strpos($sources,"semantic_group IN ('tipo','rol')")!==false,
     strpos($sources,'validate_snapshot')!==false,
