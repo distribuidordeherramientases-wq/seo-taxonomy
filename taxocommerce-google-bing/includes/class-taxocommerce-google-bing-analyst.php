@@ -14,10 +14,12 @@ defined( 'ABSPATH' ) || exit;
 final class TaxoCommerce_Google_Bing_Analyst {
 
 	const EXPORT_ACTION = 'tgb_export_analyst';
+	const MARKET_PREPARED_OPTION = 'tgb_analyst_market_prepared_v1';
 
 	public static function register() {
 		add_action( 'admin_post_' . self::EXPORT_ACTION, array( __CLASS__, 'export' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'tgb_market_evidence_saved', array( __CLASS__, 'refresh_market_position' ), 30, 3 );
 	}
 
 	public static function enqueue_assets() {
@@ -479,6 +481,27 @@ final class TaxoCommerce_Google_Bing_Analyst {
 	}
 
 	private static function market_position() {
+		$stored = get_option( self::MARKET_PREPARED_OPTION, array() );
+		if ( is_array( $stored ) && ! empty( $stored['prepared_at'] ) && isset( $stored['data'] ) && is_array( $stored['data'] ) ) {
+			return $stored['data'];
+		}
+		return self::refresh_market_position();
+	}
+
+	public static function refresh_market_position( ...$ignored ) {
+		$data = self::build_market_position();
+		update_option(
+			self::MARKET_PREPARED_OPTION,
+			array(
+				'prepared_at' => time(),
+				'data' => $data,
+			),
+			false
+		);
+		return $data;
+	}
+
+	private static function build_market_position() {
 		$empty = array(
 			'available'     => false,
 			'summary'       => array(),
