@@ -7,6 +7,8 @@ Tested up to: 7.1
 Stable tag: 0.1.5
 License: GPLv2 or later
 
+Manage SEO redirects and assisted content deletion for WordPress and WooCommerce.
+
 == Description ==
 
 Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
