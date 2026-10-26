@@ -100,7 +100,7 @@ final class TCD_Admin {
                 echo '<p>Registros: ' . esc_html( null === $faq['total'] ? 'N/D' : number_format_i18n( $faq['total'] ) )
                     . ' · activos: ' . esc_html( null === $faq['active'] ? 'N/D' : number_format_i18n( $faq['active'] ) )
                     . ' · inactivos: ' . esc_html( null === $faq['inactive'] ? 'N/D' : number_format_i18n( $faq['inactive'] ) )
-                    . ' · campo opcional product_cat_id: ' . ( ! empty( $faq['has_product_cat_id'] ) ? 'presente' : 'ausente (compatible)' ) . '.</p>';
+                    . ' · campo opcional product_cat_id: ' . ( null === $faq['has_product_cat_id'] ? 'no comprobado' : ( $faq['has_product_cat_id'] ? 'presente' : 'ausente (compatible)' ) ) . '.</p>';
             }
             echo '<p class="description">Comprobación de solo lectura. No cambia el contenido de las FAQs ni el estado del aprendizaje.</p></div>';
         }
