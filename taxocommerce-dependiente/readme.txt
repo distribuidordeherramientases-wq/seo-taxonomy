@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.7
+Stable tag: 0.3.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,11 @@ No. Learning builds and evaluates separate knowledge records.
 No. Core provides optional grouped administration.
 
 == Changelog ==
+
+= 0.3.8 =
+* L6 reads both current and historical `seo_faq` schemas during migration.
+* Falls back to `0 AS product_cat_id` when the legacy FAQ table has not yet been upgraded.
+* Reports SQL read failures explicitly instead of misreporting them as an empty training source.
 
 = 0.3.7 =
 * Standalone auditable L1-L10 learning and M11/M12 semantic search.
