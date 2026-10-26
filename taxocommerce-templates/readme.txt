@@ -2,58 +2,53 @@
 Contributors: davidperezmartorell
 Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.4.0
 License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Gestor de plantillas independientes para WordPress y WooCommerce.
+Register WordPress and WooCommerce request templates, maintain SEO role assignments and audit existing PHP template associations.
 
-== Descripcion ==
-Tres areas independientes:
-1. Tipos de peticion WordPress / WooCommerce:
-   - Tipos integrados de WordPress (portada, home, single, page, archive, taxonomy, 404, search, etc.).
-   - Tipos de contenido y taxonomias publicas registrados en la instalacion.
-   - Paginas WooCommerce clasicas (catalogo, carrito, checkout, pedido recibido y cuenta).
-   - Archivos PHP internos de WooCommerce, incluidos botones Add to Cart, fragmentos de producto y correos, cuando los proporciona la instalacion.
-   - Las plantillas PHP de WooCommerce se interceptan mediante wc_get_template y wc_get_template_part; los comentarios mediante comments_template.
-   - Los endpoints AJAX, eventos y acciones de WooCommerce no son plantillas PHP: el plugin no inyecta HTML en respuestas JSON.
-   - Sin asignacion, WordPress / WooCommerce conserva su plantilla predeterminada y la jerarquia del tema. Soporta tambien el index de respaldo.
-2. Jerarquia y roles TaxoCommerce: conserva Cluster, hubs, landings y asignaciones existentes en seo_nodes/seo_templates. Las variantes movil/escritorio estan ligadas a una unica plantilla principal.
-3. Editor y biblioteca PHP:
-   - Inventario unico de archivos integrados y plantillas propias.
-   - Consulta de codigo integrado en modo solo lectura.
-   - Crear desde texto, duplicar, descargar y editar archivos propios.
-   - Subir PHP desde el navegador con validacion de sintaxis y limite de 1 MB.
-   - Backup automatico antes de reemplazar una plantilla propia.
-   - Crear y editar variantes mobile/desktop desde la plantilla principal.
-   - Asociacion automatica a una peticion cuando el editor se abre desde Tipos de peticion.
-   - Biblioteca persistente fuera de la carpeta del plugin.
+== Description ==
 
-== Seguridad y limites ==
-- El motor nuevo permanece DESACTIVADO por defecto: habilitar solo despues de probar las plantillas necesarias en STAGING.
-- Los archivos subidos se almacenan fuera de la carpeta del plugin en wp-content/taxocommerce-templates-library.
-- Requiere permisos suficientes para modificar plugins, permisos de administrador y edicion de PHP habilitada por WordPress.
-- Los archivos integrados se consultan y duplican, pero no se sobrescriben desde el editor.
-- Se comprueba sintaxis, no comportamiento ni dependencias de ejecucion: un PHP sintacticamente correcto puede fallar en runtime.
-- Las plantillas de bloques HTML (wp_template) se gestionan en el Editor del sitio, no sustituyendo codigo PHP.
-- No cargar directamente el PHP del plugin monolitico; sus helpers deben migrarse para que los nuevos archivos sean autonomos.
-- Las rutas especializadas del piloto internacional VEVOR no se reemplazan desde el nuevo router mientras el antiguo continue ejecutandolas.
-- No activar simultaneamente dos gestores que modifiquen la misma peticion sin comprobar su prioridad.
+TaxoCommerce Templates is a standalone request-template routing and management plugin for WordPress and WooCommerce. It supports three areas:
 
-== Pruebas ==
-php taxocommerce-templates/tests/smoke.php
-find taxocommerce-templates -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+* Request types: WordPress front page, posts, pages, archives, taxonomies, search, 404, custom post types and registered public taxonomies, as well as classic WooCommerce shop/cart/checkout/account/order pages and selected native WooCommerce PHP template hooks.
+* Editorial roles: retain cluster, primary and secondary hub, landing and mail-template assignments using compatible `seo_nodes`, `seo_templates` and `seo_mail_templates` records. Mobile and desktop variants belong to one primary assignment.
+* Template library: inspect built-in source code read-only; create, duplicate, download and edit custom PHP templates; upload PHP files subject to syntax checking and a 1 MiB limit; back up custom files before replacement.
 
-== Extension ==
-apply_filters('tct_request_definitions', $definitions) para exponer nuevos tipos con nombre, grupo y archivo de referencia.
-apply_filters('tct_request_candidates', $keys) para determinar la precedencia de resolucion para una peticion del frontend.
-Los tipos que no pasan por template_include ni wc_get_template necesitan su propio filtro/gancho de integracion.
+Custom templates are stored in a separate WordPress content library rather than the plugin folder. Built-in source files are never overwritten from the editor.
 
-== Compatibilidad de las asociaciones de produccion ==
-- Mantiene literalmente las asociaciones de seo_templates, seo_nodes y seo_mail_templates al utilizar la misma base de datos de WordPress.
-- Incorpora una copia independiente de los archivos y recursos publicos de seo-system/templates para evitar depender de que el plugin antiguo siga activado.
-- El cargador nuevo da prioridad a la misma clave de rol/solicitud y conserva las variantes mobile/desktop.
-- La pestaña Auditoria de asociaciones permite comparar registros, ubicacion de archivo antiguo/nuevo, roles sin plantilla, variantes ausentes, asignaciones de correo y descargar un inventario CSV.
-- No se ejecuta ninguna migracion que reasigne IDs de paginas ni modifique seo_nodes.
-- El nuevo motor permanece apagado de forma predeterminada; antes de apagar el plugin antiguo deben validarse sus dependencias funcionales y assets en STAGING.
-- El inventario de archivos demuestra la copia y el PHP lint demuestra la sintaxis, pero ninguno certifica por si solo la equivalencia visual, las integraciones con servicios del plugin antiguo o la paridad de datos PRO y STAGING.
+**Important:** PHP source upload and execution are advanced trusted-administrator features that may not meet the security and policy requirements for new plugins distributed through the public WordPress.org directory. This version is a private migration and staging-validation build, **not an approved public-directory release**. Do not submit it to WordPress.org until the executable PHP editing feature has been removed, split off or explicitly accepted by the directory reviewers.
+
+== Installation ==
+
+1. Install and activate on a test WordPress installation; TaxoCommerce Core is not required.
+2. Inspect all request types and imported associations in the audit area.
+3. Leave the new template routing engine disabled until existing templates and dependencies are validated in STAGING.
+4. Verify that the old routing engine is not active for the same request during migration.
+5. Enable only individual tested request assignments. A syntactically valid PHP file may still cause runtime failures.
+
+== Security ==
+
+The PHP template editor requires administrator permissions and WordPress permission to edit PHP/plugin code. Validate every uploaded file and keep hosting backups. Library files are stored outside the plugin directory under `wp-content/taxocommerce-templates-library`; review web-server execution restrictions and filesystem permissions carefully. Never permit untrusted users to upload or edit executable PHP.
+
+AJAX/JSON endpoints and WooCommerce action callbacks are not themselves request templates; this module must not insert HTML into JSON responses. Block-based `wp_template` content should be edited with the native WordPress Site Editor.
+
+== Migration and Compatibility ==
+
+The plugin preserves existing role/request records and copies compatible historic template resources without directly loading the old monolith's PHP files. It does not reassign page IDs or automatically alter existing `seo_nodes` relations. Pilot-specific international VEVOR template routes remain with their existing owner until explicitly migrated.
+
+The association-audit panel compares old and new file locations, roles without templates, missing desktop/mobile variants and mail templates, and exports a CSV inventory. A file inventory or PHP lint pass does not establish visual or functional equivalence.
+
+== Developer Notes ==
+
+Use `tct_request_definitions` to extend named request definitions and `tct_request_candidates` to customise frontend request resolution precedence. Request types not using `template_include` or the native WooCommerce template hooks need their own dedicated integration.
+
+== Changelog ==
+
+= 0.4.0 =
+* Standalone request and WooCommerce template routing.
+* Existing editorial role and assignment compatibility.
+* Independent custom PHP template library, variants and audit reports.

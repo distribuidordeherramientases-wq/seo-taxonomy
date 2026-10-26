@@ -1,11 +1,13 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Templates
- * Description: Roles editoriales, registro de plantillas y asignación automática, independiente de TaxoCommerce Core.
+ * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
  * Version: 0.4.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
+ * Author: David Perez
  * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
