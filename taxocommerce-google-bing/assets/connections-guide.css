@@ -1,0 +1,32 @@
+.tgb-guided-connections{max-width:1540px;display:grid;gap:18px;margin:18px 0}
+.tgb-guide-pair{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(340px,.9fr);gap:18px;align-items:start}
+.tgb-guide-pair>.card{margin:0;max-width:none;box-sizing:border-box;min-width:0;padding:20px;border:1px solid #dcdcde;border-radius:7px}
+.tgb-guide-form .large-text,.tgb-guide-form .regular-text{max-width:100%;box-sizing:border-box}
+.tgb-guide-form textarea{max-width:100%;resize:vertical}
+.tgb-guide-panel{background:#fcfcfd}
+.tgb-guide-header{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px}
+.tgb-guide-header>.dashicons{font-size:26px;height:26px;width:26px;color:#2271b1}
+.tgb-guide-header h2{font-size:17px;margin:0 0 5px}
+.tgb-guide-header p{margin:0;color:#50575e}
+.tgb-guide-topic{border:1px solid #dcdcde;border-radius:6px;background:#fff;margin:9px 0}
+.tgb-guide-topic summary{cursor:pointer;font-weight:600;line-height:1.45;padding:12px}
+.tgb-guide-topic summary:hover,.tgb-guide-topic summary:focus-visible{background:#f0f6fc}
+.tgb-guide-topic[open] summary{border-bottom:1px solid #e2e4e7}
+.tgb-guide-topic-body{padding:4px 14px 14px}
+.tgb-guide-topic-body p{line-height:1.5}
+.tgb-guide-steps{padding-left:22px;margin:13px 0}
+.tgb-guide-steps li{margin:0 0 9px;line-height:1.55}
+.tgb-guide-illustration{margin:12px 0;padding:12px;background:#f7f9fb;border:1px solid #c8d8e6;border-radius:6px}
+.tgb-guide-illustration-head{display:flex;gap:7px;align-items:center;font-weight:600;margin-bottom:11px}
+.tgb-guide-clicks{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tgb-guide-click-target{background:#fff;display:inline-block;padding:7px 10px;border-radius:5px;border:1px solid #8c8f94;font-weight:600;font-size:12px}
+.tgb-guide-chevron{font-weight:700;color:#2271b1;font-size:18px}
+.tgb-guide-illustration figcaption,.tgb-guide-disclaimer{font-size:12px;color:#646970;margin:10px 0 0}
+.tgb-guide-links{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.tgb-guide-links .button{display:inline-flex;align-items:center;gap:4px;white-space:normal;height:auto;min-height:30px}
+.tgb-guide-links .dashicons{font-size:14px;width:14px;height:14px}
+.tgb-guide-note,.tgb-connection-hint{padding:10px 12px;border-left:3px solid #2271b1;background:#f0f6fc;overflow-wrap:anywhere}
+.tgb-guide-note .dashicons{font-size:15px;vertical-align:middle;width:15px;height:15px}
+.tgb-guides-intro{max-width:1000px;margin:16px 0}
+@media(max-width:1100px){.tgb-guide-pair{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:782px){.tgb-guide-pair>.card{padding:14px}.tgb-guide-form .regular-text{width:100%}}
