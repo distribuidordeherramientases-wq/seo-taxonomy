@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.28
+Stable tag: 0.4.29
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,6 +15,7 @@ Manage WooCommerce catalog structure and WordPress content from a modular dashbo
 TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce catalog and content management. WordPress posts, pages, terms and WooCommerce products remain the canonical data sources; Core does not duplicate them into a separate content store.
 
 * Editorial management for products, product categories, posts and pages using native WordPress editing.
+* Cached read-only inventory dashboard for all main content types, statuses, taxonomies, media and optional FAQs.
 * SEO architecture based on clusters, primary hubs, secondary hubs, product categories and products.
 * Native WordPress navigation menu generation with optional manual entries and safe regeneration.
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
@@ -47,6 +48,10 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.29 =
+* Added Core > Content > Overview inventory with 15-minute cache and protected manual refresh.
+* Reused canonical WordPress and WooCommerce counts without initiating an Auditor scan.
 
 = 0.4.28 =
 * Consolidated external connections under TaxoCommerce Insights.
