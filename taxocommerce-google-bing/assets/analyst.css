@@ -36,3 +36,58 @@
 .tgb-analyst-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
 .tgb-analyst-two table{min-width:0}
 @media(max-width:1100px){.tgb-analyst-two{grid-template-columns:1fr}}
+
+
+.tgb-analyst-head-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tgb-analyst-diagnostic{border-left:4px solid #2271b1}
+.tgb-analyst-period{margin:12px 0;color:#50575e}
+.tgb-analyst-kpis--diagnostic{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}
+.tgb-analyst-kpi small.is-good{color:#008a20;font-weight:600}
+.tgb-analyst-kpi small.is-bad{color:#b32d2e;font-weight:600}
+.tgb-analyst-subsection{margin-top:24px;padding-top:20px;border-top:1px solid #dcdcde}
+.tgb-analyst-subsection>h3{margin:0 0 4px}
+.tgb-analyst-reading{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px}
+.tgb-analyst-reading>div{border:1px solid #dcdcde;border-radius:7px;padding:13px;background:#fdfdfd}
+.tgb-analyst-reading p{margin:6px 0 0;color:#50575e}
+.tgb-analyst-chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px}
+.tgb-analyst-chart{border:1px solid #dcdcde;border-radius:7px;padding:13px;background:#fff}
+.tgb-analyst-chart>div{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.tgb-analyst-chart>div span{font-size:22px;font-weight:700}
+.tgb-analyst-chart svg{display:block;width:100%;height:auto;margin-top:8px}
+.tgb-analyst-chart line{stroke:#dcdcde;stroke-width:1}
+.tgb-analyst-chart polyline{fill:none;stroke:#2271b1;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.tgb-position-bars{margin-top:14px}
+.tgb-position-row{margin:0 0 13px}
+.tgb-position-row>div:first-child{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:5px}
+.tgb-position-row span{color:#646970;font-size:12px}
+.tgb-position-track{height:16px;background:#f0f0f1;border-radius:999px;position:relative;overflow:hidden}
+.tgb-position-track i{position:absolute;left:0;top:0;height:100%;border-radius:999px}
+.tgb-position-track i.previous{background:#c3c4c7}
+.tgb-position-track i.current{background:#2271b1;height:8px;top:4px}
+@media(max-width:782px){
+  .tgb-analyst-head-actions{width:100%}
+  .tgb-analyst-head-actions .button{flex:1 1 auto;text-align:center}
+  .tgb-position-row>div:first-child{align-items:flex-start;flex-direction:column;gap:2px}
+}
+
+
+/* Commercial summary: important customer decisions before technical detail. */
+.tgb-analyst-commercial{border-left:4px solid #1d6b4c}
+.tgb-analyst-commercial-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}
+.tgb-analyst-commercial-kpi{padding:15px;border:1px solid #dcdcde;border-radius:8px;background:#f7f9fa}
+.tgb-analyst-commercial-kpi span,.tgb-analyst-commercial-kpi small{display:block;color:#50575e}
+.tgb-analyst-commercial-kpi strong{display:block;margin:5px 0;font-size:27px;line-height:1.15}
+.tgb-analyst-commercial-funnel{margin:22px 0}
+.tgb-analyst-commercial-funnel h4,.tgb-analyst-commercial>h4{font-size:16px;margin:18px 0 12px}
+.tgb-analyst-commercial-funnel-row{display:grid;grid-template-columns:minmax(100px,155px) minmax(60px,1fr) 60px;gap:14px;align-items:center;margin:11px 0}
+.tgb-analyst-commercial-funnel-row strong{text-align:right}
+.tgb-analyst-commercial-track{height:15px;border-radius:8px;overflow:hidden;background:#f0f0f1}
+.tgb-analyst-commercial-track span{display:block;height:100%;background:#2271b1;border-radius:8px}
+.tgb-analyst-commercial-action{display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;padding:16px 0;border-top:1px solid #dcdcde}
+.tgb-analyst-commercial-action h4{font-size:15px;margin:0 0 6px}
+.tgb-analyst-commercial-action p{margin:5px 0 10px}
+.tgb-analyst-commercial-action small{color:#50575e}
+.tgb-analyst-commercial-bucket{display:inline-block;align-self:start;width:max-content;max-width:100%;border-radius:5px;background:#edf3f9;color:#134767;font-weight:700;font-size:11px;letter-spacing:.04em;padding:5px 9px}
+.tgb-analyst-commercial-notes{border-top:1px solid #dcdcde;margin-top:12px;padding-top:14px;color:#50575e}
+.tgb-analyst-commercial-notes summary{cursor:pointer;font-weight:600}
+@media(max-width:782px){.tgb-analyst-commercial-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.tgb-analyst-commercial-action{grid-template-columns:1fr;gap:8px}.tgb-analyst-commercial-funnel-row{grid-template-columns:100px minmax(50px,1fr) 40px;gap:8px}}

@@ -716,7 +716,8 @@ final class TaxoCommerce_Core {
 		$temp_name = wp_unique_filename( $temp_dir, $name );
 		$temp_file = $temp_dir . $temp_name;
 
-		if ( ! move_uploaded_file( $tmp_name, $temp_file ) ) {
+		// phpcs:ignore Generic.PHP.ForbiddenFunctions.Found -- Verified uploaded ZIP must be moved to a private OS temp directory for Plugin_Upgrader, not a web-accessible media directory.
+        if ( ! move_uploaded_file( $tmp_name, $temp_file ) ) {
 			$this->redirect_extension_result( 'error', __( 'WordPress could not prepare the ZIP temporarily.', 'taxocommerce-core' ) );
 		}
 
@@ -735,7 +736,7 @@ final class TaxoCommerce_Core {
 		}
 
 		if ( ! $valid ) {
-			@unlink( $temp_file );
+			wp_delete_file( $temp_file );
 			$this->redirect_extension_result(
 				'error',
 				sprintf(
@@ -749,7 +750,7 @@ final class TaxoCommerce_Core {
 		$skin     = new Automatic_Upgrader_Skin();
 		$upgrader = new Plugin_Upgrader( $skin );
 		$result   = $upgrader->install( $temp_file );
-		@unlink( $temp_file );
+		wp_delete_file( $temp_file );
 
 		if ( is_wp_error( $result ) ) {
 			$this->redirect_extension_result( 'error', $result->get_error_message() );

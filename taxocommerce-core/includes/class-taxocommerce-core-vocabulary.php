@@ -69,12 +69,14 @@ final class TaxoCommerce_Core_Vocabulary {
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT v.id, v.semantic_group, v.slug, v.label, ov.source
-                 FROM {$tables['relations']} ov
-                 INNER JOIN {$tables['vocabulary']} v ON v.id=ov.vocabulary_id
+                 FROM %i ov
+                 INNER JOIN %i v ON v.id=ov.vocabulary_id
                  WHERE ov.object_type=%s AND ov.object_id=%d
                    AND ov.status=1 AND v.active=1
                    AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
                  ORDER BY v.semantic_group ASC,v.label ASC",
+                $tables['relations'],
+                $tables['vocabulary'],
                 $type,
                 absint( $object_id )
             ),

@@ -1024,10 +1024,13 @@ function seo_system_diagnostics_collect_scheduler_snapshot() {
     }
 
     $status_rows = (array) $wpdb->get_results(
-        "SELECT status, COUNT(*) AS total, MIN(scheduled_date_gmt) AS first_date, MAX(scheduled_date_gmt) AS last_date
-         FROM {$actions}
-         GROUP BY status
-         ORDER BY status ASC",
+        $wpdb->prepare(
+            "SELECT status, COUNT(*) AS total, MIN(scheduled_date_gmt) AS first_date, MAX(scheduled_date_gmt) AS last_date
+             FROM %i
+             GROUP BY status
+             ORDER BY status ASC",
+            $actions
+        ),
         ARRAY_A
     );
     $statuses = array();
@@ -1040,18 +1043,24 @@ function seo_system_diagnostics_collect_scheduler_snapshot() {
     }
 
     $overdue = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$actions}
-         WHERE status = 'pending' AND scheduled_date_gmt <= UTC_TIMESTAMP()"
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
+             WHERE status = 'pending' AND scheduled_date_gmt <= UTC_TIMESTAMP()",
+            $actions
+        )
     );
     $hooks = (array) $wpdb->get_results(
-        "SELECT hook, status, COUNT(*) AS total,
-                MIN(scheduled_date_gmt) AS first_date,
-                MAX(scheduled_date_gmt) AS last_date
-         FROM {$actions}
-         WHERE status IN ('pending', 'failed')
-         GROUP BY hook, status
-         ORDER BY status DESC, total DESC
-         LIMIT 30",
+        $wpdb->prepare(
+            "SELECT hook, status, COUNT(*) AS total,
+                    MIN(scheduled_date_gmt) AS first_date,
+                    MAX(scheduled_date_gmt) AS last_date
+             FROM %i
+             WHERE status IN ('pending', 'failed')
+             GROUP BY hook, status
+             ORDER BY status DESC, total DESC
+             LIMIT 30",
+            $actions
+        ),
         ARRAY_A
     );
     $top_hooks = array();
@@ -1066,7 +1075,7 @@ function seo_system_diagnostics_collect_scheduler_snapshot() {
     }
 
     $log_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($logs)));
-    $log_count = (string) $log_exists === $logs ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$logs}") : null;
+    $log_count = (string) $log_exists === $logs ? (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i', $logs)) : null;
 
     return array(
         'available'       => true,
@@ -2030,7 +2039,7 @@ function seo_system_diagnostics_render_report_page() {
 
 function seo_system_diagnostics_handle_refresh_report() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para actualizar este informe.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para actualizar este informe.', 'taxocommerce-system-check'));
     }
     check_admin_referer('seo_system_diagnostics_refresh_report');
 
@@ -2080,7 +2089,7 @@ function seo_system_diagnostics_send_json_download($payload, $filename_prefix) {
 
 function seo_system_diagnostics_handle_download_server_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-system-check'));
     }
     check_admin_referer('seo_system_diagnostics_download_server_json');
     $profile = isset($_GET['profile']) ? sanitize_key(wp_unslash($_GET['profile'])) : 'ai';
@@ -2092,7 +2101,7 @@ function seo_system_diagnostics_handle_download_server_json() {
 
 function seo_system_diagnostics_handle_download_validation_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-system-check'));
     }
     check_admin_referer('seo_system_diagnostics_download_validation_json');
     $profile = isset($_GET['profile']) ? sanitize_key(wp_unslash($_GET['profile'])) : 'ai';
@@ -2104,7 +2113,7 @@ function seo_system_diagnostics_handle_download_validation_json() {
 
 function seo_system_diagnostics_handle_download_json() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-system-check'));
     }
     check_admin_referer('seo_system_diagnostics_download_json');
 
@@ -2117,7 +2126,7 @@ function seo_system_diagnostics_handle_download_json() {
 
 function seo_system_diagnostics_handle_download_pdf() {
     if (!current_user_can('manage_options')) {
-        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-seo'));
+        wp_die(esc_html__('No tienes permisos para descargar este informe.', 'taxocommerce-system-check'));
     }
     check_admin_referer('seo_system_diagnostics_download_pdf');
 

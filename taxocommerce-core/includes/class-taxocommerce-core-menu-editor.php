@@ -121,7 +121,12 @@ final class TaxoCommerce_Core_Menu_Editor {
         self::box( 'page', true ); self::box( 'post' ); self::custom_box(); self::box( 'category' );
         if ( taxonomy_exists( 'product_cat' ) ) { self::box( 'product_cat' ); }
         echo '</aside><section><h2>' . esc_html__( 'Estructura del menú', 'taxocommerce-core' ) . '</h2><div class="tc-menu-structure"><div class="tc-menu-summary"><strong>' . esc_html__( 'Estructura SEO automática + elementos de WordPress', 'taxocommerce-core' ) . '</strong><p>';
-        echo esc_html( sprintf( __( '%1$d automáticos · %2$d manuales. Los manuales se conservan al sincronizar.', 'taxocommerce-core' ), $generated, count( $items ) - $generated ) ) . '</p></div>';
+        echo esc_html( sprintf(
+            /* translators: 1: generated navigation items; 2: manually added items. */
+            __( '%1$d automáticos · %2$d manuales. Los manuales se conservan al sincronizar.', 'taxocommerce-core' ),
+            $generated,
+            count( $items ) - $generated
+        ) ) . '</p></div>';
         if ( ! $items ) { echo '<p>' . esc_html__( 'Todavía no hay elementos guardados. Añade elementos a la izquierda o crea el menú desde la jerarquía.', 'taxocommerce-core' ) . '</p>'; }
         echo '<ul class="tc-menu-items">';
         foreach ( $items as $item ) {
@@ -237,9 +242,13 @@ final class TaxoCommerce_Core_Menu_Editor {
         $task = isset( $_POST['task'] ) && is_string( $_POST['task'] ) ? sanitize_key( wp_unslash( $_POST['task'] ) ) : '';
         if ( 'add' === $task ) {
             $type = isset( $_POST['object_type'] ) && is_string( $_POST['object_type'] ) ? sanitize_key( wp_unslash( $_POST['object_type'] ) ) : '';
-            $ids = isset( $_POST['object_ids'] ) && is_array( $_POST['object_ids'] ) ? wp_unslash( $_POST['object_ids'] ) : array();
+            $ids = isset( $_POST['object_ids'] ) && is_array( $_POST['object_ids'] ) ? array_map( 'absint', wp_unslash( $_POST['object_ids'] ) ) : array();
             $result = self::add_objects( $type, $ids );
-            $message = is_wp_error( $result ) ? $result->get_error_message() : sprintf( __( '%d elementos añadidos. Se conservarán al sincronizar.', 'taxocommerce-core' ), $result );
+            $message = is_wp_error( $result ) ? $result->get_error_message() : sprintf(
+                /* translators: %d: number of WordPress objects newly added to the menu. */
+                __( '%d elementos añadidos. Se conservarán al sincronizar.', 'taxocommerce-core' ),
+                $result
+            );
         } elseif ( 'custom' === $task ) {
             $title = isset( $_POST['custom_title'] ) && is_string( $_POST['custom_title'] ) ? wp_unslash( $_POST['custom_title'] ) : '';
             $url = isset( $_POST['custom_url'] ) && is_string( $_POST['custom_url'] ) ? wp_unslash( $_POST['custom_url'] ) : '';

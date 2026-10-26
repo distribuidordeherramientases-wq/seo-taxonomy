@@ -2,8 +2,8 @@
 /**
  * Native WordPress/WooCommerce source adapters for the ten fixed lessons.
  *
- * No reads from seo_faq, seo_vocabulary, seo_object_vocabulary, seo_nodes,
- * seo_relations or the former Dependiente tables. No writes to WP content.
+ * Reads canonical WordPress/WooCommerce content plus the shared legacy-compatible
+ * seo_faq / Vocabulary stores during the modular migration. No writes to source content.
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -174,11 +174,25 @@ final class TCD_Sources {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) return null;
-        $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active
-             FROM {$table} WHERE id=%d AND active=1 LIMIT 1",
-            absint( $id )
-        ), ARRAY_A );
+        if ( self::table_has_column( $table, 'product_cat_id' ) ) {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1',
+                    $table,
+                    absint( $id )
+                ),
+                ARRAY_A
+            );
+        } else {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE id=%d AND active=1 LIMIT 1',
+                    $table,
+                    absint( $id )
+                ),
+                ARRAY_A
+            );
+        }
         return is_array( $row ) ? self::faq_row_item( $row ) : null;
     }
 
@@ -350,11 +364,33 @@ final class TCD_Sources {
         if ( ! self::table_exists( $table ) ) {
             return new WP_Error( 'tcd_faq_plugin_missing', 'TaxoCommerce FAQs no está disponible: falta la tabla seo_faq.' );
         }
-        $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active
-             FROM {$table} WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d",
-            $limit + 1, $cursor
-        ), ARRAY_A );
+        if ( self::table_has_column( $table, 'product_cat_id' ) ) {
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT id,object_type,object_id,product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d',
+                    $table,
+                    $limit + 1,
+                    $cursor
+                ),
+                ARRAY_A
+            );
+        } else {
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT id,object_type,object_id,0 AS product_cat_id,question,answer,sort_order,active FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d',
+                    $table,
+                    $limit + 1,
+                    $cursor
+                ),
+                ARRAY_A
+            );
+        }
+        if ( $wpdb->last_error ) {
+            return new WP_Error(
+                'tcd_faq_source_query',
+                'No se han podido leer las FAQs para L6: ' . sanitize_text_field( (string) $wpdb->last_error )
+            );
+        }
         $more = count( (array) $rows ) > $limit;
         $rows = array_slice( (array) $rows, 0, $limit );
         $items = array();
@@ -370,13 +406,15 @@ final class TCD_Sources {
         $question = trim( wp_strip_all_tags( (string) ( $row['question'] ?? '' ) ) );
         $answer = trim( wp_strip_all_tags( (string) ( $row['answer'] ?? '' ) ) );
         if ( ! $id || '' === $question ) return null;
-        $owner_type = 3 === absint( $row['object_type'] ?? 0 ) ? 'product' : 'product_cat';
-        $owner_id = 3 === absint( $row['object_type'] ?? 0 )
+        $object_type = absint( $row['object_type'] ?? 0 );
+        $category_id = absint( $row['product_cat_id'] ?? 0 );
+        $owner_type = 3 === $object_type ? 'product' : 'product_cat';
+        $owner_id = 3 === $object_type
             ? absint( $row['object_id'] ?? 0 )
-            : absint( $row['product_cat_id'] ?? $row['object_id'] ?? 0 );
+            : ( $category_id ?: absint( $row['object_id'] ?? 0 ) );
         $facts = array(
             'owner_type'=>$owner_type,'owner_id'=>$owner_id,
-            'product_cat_id'=>absint( $row['product_cat_id'] ?? 0 ),
+            'product_cat_id'=>$category_id,
             'answer'=>mb_substr( $answer, 0, 2500 ),
             'sort_order'=>absint( $row['sort_order'] ?? 0 ),
             'vocabulary'=>self::vocabulary_for_object( 'faq', $id ),
@@ -453,6 +491,33 @@ final class TCD_Sources {
     private static function table_exists( $table ) {
         global $wpdb;
         return (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === (string) $table;
+    }
+
+    /**
+     * Return whether a migration-era source table contains a column.
+     *
+     * PRO can legitimately keep the historical seo_faq schema until the FAQs
+     * extension upgrades it. Dependiente must remain able to read that table.
+     */
+    private static function table_has_column( $table, $column ) {
+        global $wpdb;
+        static $cache = array();
+
+        $table = (string) $table;
+        $column = sanitize_key( (string) $column );
+        $key = $table . ':' . $column;
+        if ( array_key_exists( $key, $cache ) ) {
+            return $cache[ $key ];
+        }
+        if ( '' === $table || '' === $column || ! self::table_exists( $table ) ) {
+            $cache[ $key ] = false;
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal table name is built from $wpdb->prefix plus a fixed suffix.
+        $found = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", $column ) );
+        $cache[ $key ] = ( $column === (string) $found );
+        return $cache[ $key ];
     }
 
     private static function vocabulary_for_object( $object_type, $object_id ) {

@@ -1,5 +1,7 @@
 name: TaxoCommerce Family WordPress.org Readiness
 
+# A change to this workflow intentionally selects all standalone TaxoCommerce modules.
+
 on:
   workflow_dispatch:
   pull_request:
@@ -8,18 +10,41 @@ on:
       - 'taxocommerce-*/**'
       - '.github/workflows/taxocommerce-family-plugin-check.yml'
       - '.github/scripts/taxocommerce_family_readme_check.py'
+      - '.github/scripts/taxocommerce_family_scope.py'
   push:
     branches: [staging]
     paths:
       - 'taxocommerce-*/**'
       - '.github/workflows/taxocommerce-family-plugin-check.yml'
       - '.github/scripts/taxocommerce_family_readme_check.py'
+      - '.github/scripts/taxocommerce_family_scope.py'
 
 permissions:
   contents: read
 
 jobs:
+  discover-plugin-scope:
+    runs-on: ubuntu-latest
+    outputs:
+      slugs: ${{ steps.scope.outputs.slugs }}
+      count: ${{ steps.scope.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select standalone modules
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: python3 .github/scripts/taxocommerce_family_scope.py
+      - name: Show scope
+        run: echo "Selected ${{ steps.scope.outputs.count }} modules for independent Plugin Check"
+
   standalone-plugin-check:
+    needs: discover-plugin-scope
     name: WordPress.org readiness / ${{ matrix.slug }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -27,26 +52,7 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
-        slug:
-          - taxocommerce-auditor
-          - taxocommerce-campaigns
-          - taxocommerce-connections
-          - taxocommerce-core
-          - taxocommerce-database
-          - taxocommerce-dependiente
-          - taxocommerce-distribution
-          - taxocommerce-facturacion
-          - taxocommerce-faqs
-          - taxocommerce-google-bing
-          - taxocommerce-images
-          - taxocommerce-import-export
-          - taxocommerce-logistica
-          - taxocommerce-redirects
-          - taxocommerce-social
-          - taxocommerce-suppliers
-          - taxocommerce-system-check
-          - taxocommerce-templates
-          - taxocommerce-vocabulary
+        slug: ${{ fromJSON(needs.discover-plugin-scope.outputs.slugs) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

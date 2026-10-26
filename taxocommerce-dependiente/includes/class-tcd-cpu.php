@@ -91,11 +91,13 @@ final class TCD_CPU {
      * mutually exclusive; guest counters are already included in user/nice.
      */
     private static function proc_stat_sample() {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Read-only trusted /proc/stat OS pseudo-file, no user-controlled path, closed immediately.
         $handle = @fopen( '/proc/stat', 'r' );
         if ( false === $handle ) {
             return null;
         }
         $line = @fgets( $handle, 512 );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Read-only trusted /proc/stat OS pseudo-file, no user-controlled path, closed immediately.
         @fclose( $handle );
         if ( ! is_string( $line ) || ! preg_match( '/^cpu\s+((?:\d+\s+){7}\d+)/', trim( $line ), $matches ) ) {
             return null;

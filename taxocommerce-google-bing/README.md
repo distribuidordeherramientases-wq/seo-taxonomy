@@ -12,7 +12,7 @@ Active areas:
 
 - **Connections** — Google, Bing, Merchant, Amazon, Pinterest, YouTube, and SerpApi credentials/OAuth used by Insights and other TaxoCommerce modules.
 
-- **Analyst** — strategic decision layer: where we are, how the market looks, and what to do now/next/investigate/watch.
+- **Analyst** — concise commercial directives and KPIs first, with funnel event visualization; full SEO/Market diagnostics and now/next/investigate/watch sections remain below. Read-only saved data, with explicit caveats about off-site affiliate conversions.
 - **Executive Report** — consolidated local view across Search Console, GA4, Bing, Trends, and Market.
 - **Google Search** — clicks, impressions, CTR, average position, countries, devices, queries, and pages.
 - **Google Analytics** — sessions, active/new/returning users, views, engagement, channels, countries, devices, key events, and purchases.

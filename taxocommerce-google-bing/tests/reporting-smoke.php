@@ -44,7 +44,7 @@ foreach ( array( 'analytics', 'search', 'bing' ) as $source ) {
     ob_start();
     TaxoCommerce_Google_Bing_Reports::render( $source );
     $html = ob_get_clean();
-    if ( false === strpos( $html, 'Download report' ) || false === strpos( $html, 'No saved data yet' ) ) {
+    if ( false === strpos( $html, 'Actualizar datos' ) || false === strpos( $html, 'No hay datos guardados todavía' ) ) {
         fwrite( STDERR, 'Unexpected empty state: ' . $source . "\n" );
         exit( 1 );
     }
@@ -95,4 +95,11 @@ if ( false === strpos( $html, 'latest available snapshot' ) || false === strpos(
     fwrite( STDERR, "Saved snapshot rendering failed\n" );
     exit( 1 );
 }
-echo "Report rendering smoke test: OK (no network requests)\n";
+$reports_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-reports.php' );
+if ( false === strpos( $reports_source, 'array_chunk( $requests, 5 )' )
+    || false === strpos( $reports_source, 'array( \'requests\' => $request_chunk )' )
+    || false === strpos( $reports_source, "'funnel' => array(" ) ) {
+    fwrite( STDERR, "GA4 batching/funnel regression guard failed\n" );
+    exit( 1 );
+}
+echo "Report rendering smoke test: OK (no network requests, GA4 batches capped at five)\n";

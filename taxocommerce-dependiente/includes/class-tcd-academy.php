@@ -427,7 +427,7 @@ final class TCD_Academy {
             $measure=TCD_Load::begin();
             try{
                 $built=TCD_Intelligence::build_interpreter();
-                if(is_wp_error($built))throw new RuntimeException($built->get_error_message());
+                if(is_wp_error($built))throw new RuntimeException( esc_html( $built->get_error_message()) );
                 self::save(array(
                     'lesson'=>12,'phase'=>'maintenance','status'=>'running','last_error'=>'',
                     'last_message'=>sprintf('M11 · Intérprete construido: %d reglas, %d señales L9, regresión %.1f%%.',
@@ -467,7 +467,7 @@ final class TCD_Academy {
         ));
         try{
             $backfill=TCD_Intelligence::backfill_next_missing($lesson);
-            if(is_wp_error($backfill))throw new RuntimeException($backfill->get_error_message());
+            if(is_wp_error($backfill))throw new RuntimeException( esc_html( $backfill->get_error_message()) );
             if(is_array($backfill)){
                 $processed=absint($backfill['count']??0);
                 $load=TCD_Load::finish($measure,$processed);
@@ -531,7 +531,7 @@ final class TCD_Academy {
         );
         if(false===$wpdb->insert(self::snapshots_table(),$row)){
             self::trace_db_error('snapshot_create',self::snapshots_table());
-            throw new RuntimeException('No se pudo crear la foto fija de L'.$lesson.'.');
+            throw new RuntimeException( esc_html( 'No se pudo crear la foto fija de L'.$lesson.'.') );
         }
         $id=(int)$wpdb->insert_id;
         self::save(array('snapshot_id'=>$id,'snapshot_cursor'=>0,'learning_cursor'=>0,'last_message'=>'L'.$lesson.': analizando fuentes para construir la foto fija.'));
@@ -552,7 +552,7 @@ final class TCD_Academy {
         $batch=TCD_Sources::batch($lesson,$cursor,$limit);
         if(is_wp_error($batch)){
             self::trace('ERROR','source_batch_error',array('lesson'=>$lesson,'cursor'=>$cursor,'limit'=>$limit,'error'=>$batch->get_error_message()));
-            throw new RuntimeException($batch->get_error_message());
+            throw new RuntimeException( esc_html( $batch->get_error_message()) );
         }
         self::trace('INFO','source_batch_read',array(
             'lesson'=>$lesson,'cursor'=>$cursor,'limit'=>$limit,
@@ -580,7 +580,7 @@ final class TCD_Academy {
             );
             if(false===$wpdb->replace(self::items_table(),$row)){
                 self::trace_db_error('snapshot_item_write',self::items_table());
-                throw new RuntimeException('No se pudo guardar una fuente en la foto fija de L'.$lesson.'.');
+                throw new RuntimeException( esc_html( 'No se pudo guardar una fuente en la foto fija de L'.$lesson.'.') );
             }
             self::trace('DEBUG','snapshot_write',array(
                 'snapshot_id'=>$snapshot_id,'sequence'=>$sequence,
@@ -601,7 +601,7 @@ final class TCD_Academy {
 
         $items=self::items_table();
         $count=absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$items} WHERE snapshot_id=%d",$snapshot_id)));
-        if($count<1)throw new RuntimeException('L'.$lesson.' no ha encontrado material formativo; no se inicia el aprendizaje.');
+        if($count<1)throw new RuntimeException( esc_html( 'L'.$lesson.' no ha encontrado material formativo; no se inicia el aprendizaje.') );
         $signatures=$wpdb->get_col($wpdb->prepare("SELECT signature FROM {$items} WHERE snapshot_id=%d ORDER BY sequence_no ASC,id ASC",$snapshot_id));
         $signature=hash('sha256',implode('|',array_map('strval',(array)$signatures)));
         $wpdb->update(self::snapshots_table(),array(
@@ -620,7 +620,7 @@ final class TCD_Academy {
         global $wpdb;
         $lesson=absint($state['lesson']);
         $snapshot_id=absint($state['snapshot_id']);
-        if(!$snapshot_id)throw new RuntimeException('Falta la foto fija de L'.$lesson.'.');
+        if(!$snapshot_id)throw new RuntimeException( esc_html( 'Falta la foto fija de L'.$lesson.'.') );
         $run=(string)$state['run_id'];
         $items=self::items_table();
         $limit=TCD_Load::batch_size();
@@ -681,7 +681,7 @@ final class TCD_Academy {
             );
             if(false===$wpdb->replace(self::knowledge_table(),$knowledge)){
                 self::trace_db_error('knowledge_write',self::knowledge_table());
-                throw new RuntimeException('Error al guardar conocimiento de L'.$lesson.'.');
+                throw new RuntimeException( esc_html( 'Error al guardar conocimiento de L'.$lesson.'.') );
             }
             self::trace('INFO','knowledge_write',array(
                 'lesson'=>$lesson,'sequence'=>absint($row['sequence_no']??0),
@@ -741,14 +741,14 @@ final class TCD_Academy {
         $snapshot_id=absint($state['snapshot_id']);
         $snapshot=self::snapshot($snapshot_id);
         $learned=absint($snapshot['learned_count']??0);
-        if($learned<1)throw new RuntimeException('L'.$lesson.' no tiene ninguna fuente aprendida; no se considera completada.');
+        if($learned<1)throw new RuntimeException( esc_html( 'L'.$lesson.' no tiene ninguna fuente aprendida; no se considera completada.') );
 
         if(
             2===$lesson
             && method_exists('TCD_Intelligence','l2_identity_backfill_step')
         ){
             $identity=TCD_Intelligence::l2_identity_backfill_step($snapshot_id);
-            if(is_wp_error($identity))throw new RuntimeException($identity->get_error_message());
+            if(is_wp_error($identity))throw new RuntimeException( esc_html( $identity->get_error_message()) );
 
             $identity_done=absint($identity['processed']??0);
             $identity_total=absint($identity['total']??0);
@@ -788,7 +788,7 @@ final class TCD_Academy {
         }
 
         $step=TCD_Intelligence::quality_step($lesson,$snapshot_id);
-        if(is_wp_error($step))throw new RuntimeException($step->get_error_message());
+        if(is_wp_error($step))throw new RuntimeException( esc_html( $step->get_error_message()) );
 
         if(empty($step['done'])){
             $evaluated=absint($step['evaluated']??0);
@@ -812,10 +812,10 @@ final class TCD_Academy {
         $quality=(array)($step['report']??array());
         if(empty($step['passed'])){
             $wpdb->update(self::snapshots_table(),array('status'=>'quality_failed'),array('id'=>$snapshot_id));
-            throw new RuntimeException(sprintf(
+            throw new RuntimeException( esc_html( sprintf(
                 'L%d no supera el control de calidad: %.1f%%, mínimo %.1f%%.',
                 $lesson,100*(float)($quality['pass_any_ratio']??0),100*(float)($quality['threshold']??0)
-            ));
+            ) ) );
         }
 
         $wpdb->update(self::snapshots_table(),array(
@@ -843,13 +843,13 @@ final class TCD_Academy {
 
     private static function snapshot($id){
         global $wpdb;
-        $row=$wpdb->get_row($wpdb->prepare("SELECT * FROM ".self::snapshots_table()." WHERE id=%d",absint($id)),ARRAY_A);
+        $row=$wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE id=%d',self::snapshots_table(),absint($id)),ARRAY_A);
         return is_array($row)?$row:array();
     }
 
     public static function snapshots(){
         global $wpdb;
-        return (array)$wpdb->get_results("SELECT * FROM ".self::snapshots_table()." ORDER BY lesson ASC,id DESC",ARRAY_A);
+        return (array)$wpdb->get_results($wpdb->prepare('SELECT * FROM %i ORDER BY lesson ASC,id DESC',self::snapshots_table()),ARRAY_A);
     }
 
     public static function snapshot_for_lesson($lesson){
@@ -857,8 +857,8 @@ final class TCD_Academy {
         $run=(string)(self::state()['run_id']??'');
         if(!$run)return array();
         $row=$wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM ".self::snapshots_table()." WHERE run_id=%s AND lesson=%d ORDER BY id DESC LIMIT 1",
-            $run,absint($lesson)
+            'SELECT * FROM %i WHERE run_id=%s AND lesson=%d ORDER BY id DESC LIMIT 1',
+            self::snapshots_table(),$run,absint($lesson)
         ),ARRAY_A);
         return is_array($row)?$row:array();
     }
@@ -919,7 +919,7 @@ final class TCD_Academy {
             if(!$first_lesson)echo ',';
             $first_lesson=false;
             $syllabus=json_decode((string)$snapshot['syllabus_json'],true);
-            echo '{"lesson":'.$no.',"syllabus":'.wp_json_encode($syllabus,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',';
+            echo '{"lesson":'.esc_html( (string) absint( $no ) ).',"syllabus":'.wp_json_encode($syllabus,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).',';
             $meta=$snapshot;unset($meta['syllabus_json']);
             $quality=class_exists('TCD_Intelligence',false)?TCD_Intelligence::quality_for_lesson($no):array();
             $quality_report=array();

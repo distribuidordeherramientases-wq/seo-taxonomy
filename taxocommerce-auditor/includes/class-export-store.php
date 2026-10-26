@@ -66,7 +66,7 @@ final class Export_Store {
     public static function delete( $file ) {
         $path = self::path( $file );
         if ( '' !== $path && is_file( $path ) ) {
-            @unlink( $path );
+            wp_delete_file( $path );
         }
     }
 
@@ -80,6 +80,7 @@ final class Export_Store {
         if ( '' === $path || ! is_readable( $path ) ) {
             return;
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Stream a potentially large bounded JSONL audit without loading the whole file into memory.
         $handle = fopen( $path, 'rb' );
         if ( false === $handle ) {
             return;
@@ -96,6 +97,7 @@ final class Export_Store {
                 }
             }
         } finally {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the JSONL generator stream reliably on completion or early exit.
             fclose( $handle );
         }
     }
@@ -115,6 +117,7 @@ final class Export_Store {
             if ( ! $first ) {
                 echo ',';
             }
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON stream uses wp_json_encode under application/json; HTML escaping corrupts the payload.
             echo "\n" . self::encode( $row );
             $first = false;
         }
@@ -203,10 +206,12 @@ final class Export_Store {
             if ( ! $first ) {
                 echo ",\n";
             }
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON stream uses wp_json_encode under application/json; HTML escaping corrupts the payload.
             echo self::encode( (string) $key ) . ': ' . self::encode( $value );
             $first = false;
         }
 
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON stream uses wp_json_encode under application/json; HTML escaping corrupts the payload.
         echo ",\n" . self::encode( 'priority_queue' ) . ': ';
         self::stream_rows( $file );
 
@@ -226,11 +231,14 @@ final class Export_Store {
             ),
         );
         foreach ( $extras as $key => $value ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-encoded application/json stream; HTML escaping invalidates JSON syntax.
             echo ",\n" . self::encode( (string) $key ) . ': ' . self::encode( $value );
         }
 
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON stream uses wp_json_encode under application/json; HTML escaping corrupts the payload.
         echo ",\n" . self::encode( 'findings' ) . ': ';
         self::stream_rows( $file );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON stream uses wp_json_encode under application/json; HTML escaping corrupts the payload.
         echo ",\n" . self::encode( 'notes' ) . ': ' . self::encode( (array) ( $report['notes'] ?? array() ) );
         echo "\n}\n";
         return true;

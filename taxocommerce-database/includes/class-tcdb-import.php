@@ -46,18 +46,21 @@ final class TCDB_Import {
         if ( false === $size || $size < 1 || $size > self::MAX_BYTES ) {
             return new WP_Error( 'tcdb_size', 'El CSV debe tener entre 1 byte y 1 MB.' );
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Authenticated <=1 MiB uploaded CSV is parsed from the temporary PHP stream in bounded rows.
         $file = @fopen( $path, 'rb' );
         if ( ! $file ) {
             return new WP_Error( 'tcdb_open', 'No se pudo abrir el CSV.' );
         }
         $headers = fgetcsv( $file, 0, ',', '"', '\\' );
         if ( ! is_array( $headers ) || ! $headers ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authenticated <=1 MiB uploaded CSV is parsed from the temporary PHP stream in bounded rows.
             fclose( $file );
             return new WP_Error( 'tcdb_header', 'El CSV debe tener una primera fila con nombres de columnas.' );
         }
         $headers[0] = preg_replace( '/^\xEF\xBB\xBF/', '', (string) $headers[0] );
         $headers = array_map( 'trim', $headers );
         if ( in_array( '', $headers, true ) || count( $headers ) > self::MAX_COLUMNS || count( array_unique( $headers ) ) !== count( $headers ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authenticated <=1 MiB uploaded CSV is parsed from the temporary PHP stream in bounded rows.
             fclose( $file );
             return new WP_Error( 'tcdb_header_columns', 'Nombres de columna repetidos o vacíos.' );
         }
@@ -67,6 +70,7 @@ final class TCDB_Import {
                 continue;
             }
             if ( count( $values ) !== count( $headers ) ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authenticated <=1 MiB uploaded CSV is parsed from the temporary PHP stream in bounded rows.
                 fclose( $file );
                 return new WP_Error( 'tcdb_csv_width', 'Una fila no tiene el mismo número de columnas que la cabecera.' );
             }
@@ -74,10 +78,12 @@ final class TCDB_Import {
             foreach ( $headers as $i => $column ) {
                 $value = (string) $values[ $i ];
                 if ( strlen( $value ) > 8192 || false !== strpos( $value, "\0" ) ) {
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authenticated <=1 MiB uploaded CSV is parsed from the temporary PHP stream in bounded rows.
                     fclose( $file );
                     return new WP_Error( 'tcdb_cell', 'Una celda supera el límite de 8 KB o incluye datos binarios.' );
                 }
                 if ( function_exists( 'mb_check_encoding' ) && ! mb_check_encoding( $value, 'UTF-8' ) ) {
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authenticated <=1 MiB uploaded CSV is parsed from the temporary PHP stream in bounded rows.
                     fclose( $file );
                     return new WP_Error( 'tcdb_encoding', 'El CSV debe estar codificado en UTF-8.' );
                 }
@@ -85,10 +91,12 @@ final class TCDB_Import {
             }
             $rows[] = $row;
             if ( count( $rows ) > self::MAX_ROWS ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authenticated <=1 MiB uploaded CSV is parsed from the temporary PHP stream in bounded rows.
                 fclose( $file );
                 return new WP_Error( 'tcdb_rows', 'Importa 250 registros o menos en cada lote.' );
             }
         }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Authenticated <=1 MiB uploaded CSV is parsed from the temporary PHP stream in bounded rows.
         fclose( $file );
         if ( ! $rows ) {
             return new WP_Error( 'tcdb_empty', 'El archivo no contiene registros de datos.' );

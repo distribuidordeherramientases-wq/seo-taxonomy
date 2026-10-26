@@ -431,7 +431,11 @@ final class TCD_Knowledge_Transfer {
 		header( 'Content-Type: application/json; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
 
-		echo '{"schema":{"name":' . wp_json_encode( self::SCHEMA_NAME ) . ',"version":' . self::SCHEMA_VERSION . '},';
+		echo '{"schema":{"name":';
+		echo wp_json_encode( self::SCHEMA_NAME );
+		echo ',"version":';
+		echo wp_json_encode( absint( self::SCHEMA_VERSION ) );
+		echo '},';
 		echo '"generated_at":' . wp_json_encode( gmdate( 'c' ) ) . ',';
 		echo '"source":' . wp_json_encode(
 			array(

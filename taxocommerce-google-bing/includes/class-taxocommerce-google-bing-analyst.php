@@ -14,10 +14,12 @@ defined( 'ABSPATH' ) || exit;
 final class TaxoCommerce_Google_Bing_Analyst {
 
 	const EXPORT_ACTION = 'tgb_export_analyst';
+	const MARKET_PREPARED_OPTION = 'tgb_analyst_market_prepared_v1';
 
 	public static function register() {
 		add_action( 'admin_post_' . self::EXPORT_ACTION, array( __CLASS__, 'export' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'tgb_market_evidence_saved', array( __CLASS__, 'refresh_market_position' ), 30, 3 );
 	}
 
 	public static function enqueue_assets() {
@@ -42,12 +44,19 @@ final class TaxoCommerce_Google_Bing_Analyst {
 	 * @return array
 	 */
 	public static function report() {
-		$executive = TaxoCommerce_Google_Bing_Executive::report();
-		$search    = self::latest_snapshot( 'search' );
+		$prepared = class_exists( 'TaxoCommerce_Google_Bing_Prepared' )
+			? TaxoCommerce_Google_Bing_Prepared::current()
+			: array();
+		$executive = ! empty( $prepared['executive'] )
+			? (array) $prepared['executive']
+			: TaxoCommerce_Google_Bing_Executive::report();
 
-		$where = self::where_we_are( $executive, $search );
+		$diagnostic = (array) ( $prepared['diagnostic'] ?? array() );
+		$where = self::where_we_are( $executive, $prepared );
 		$market = self::market_position();
-		$directives = self::direction( $executive, $search, $market );
+		$search_candidates = (array) ( $prepared['search']['candidates'] ?? array() );
+		$directives = self::direction( $executive, $search_candidates, $market );
+		$commercial = TaxoCommerce_Google_Bing_Commercial::build( $prepared, $market );
 
 		return array(
 			'schema' => array(
@@ -55,8 +64,11 @@ final class TaxoCommerce_Google_Bing_Analyst {
 				'version' => 1,
 			),
 			'generated_at' => time(),
+			'prepared_at'  => absint( $prepared['prepared_at'] ?? 0 ),
+			'diagnostic'   => $diagnostic,
 			'where_we_are' => $where,
 			'market'       => $market,
+			'commercial'   => $commercial,
 			'direction'    => $directives,
 			'editor_contract' => array(
 				'schema' => 'taxocommerce-editor-opportunities-v1',
@@ -78,30 +90,14 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		);
 	}
 
-	private static function latest_snapshot( $source ) {
-		if ( ! class_exists( 'TaxoCommerce_Google_Bing_Reports' ) ) {
-			return array();
+	private static function raw_percent_delta( $current, $previous ) {
+		if ( 0.0 === (float) $previous ) {
+			return (float) $current > 0 ? null : 0.0;
 		}
-		$entries = TaxoCommerce_Google_Bing_Reports::saved_reports( $source );
-		if ( ! is_array( $entries ) || ! $entries ) {
-			return array();
-		}
-		$latest = array();
-		$stamp  = 0;
-		foreach ( $entries as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			$current = absint( $entry['downloaded_at'] ?? 0 );
-			if ( $current >= $stamp ) {
-				$latest = $entry;
-				$stamp  = $current;
-			}
-		}
-		return $latest;
+		return ( ( (float) $current - (float) $previous ) / abs( (float) $previous ) ) * 100;
 	}
 
-	private static function where_we_are( $executive, $search ) {
+	private static function where_we_are( $executive, $prepared ) {
 		$overview = (array) ( $executive['overview'] ?? array() );
 		$search_overview = (array) ( $overview['google_search'] ?? array() );
 		$analytics = (array) ( $overview['analytics'] ?? array() );
@@ -152,7 +148,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		}
 
 		$queries = array();
-		foreach ( array_slice( (array) ( $search['data']['queries'] ?? array() ), 0, 15 ) as $row ) {
+		foreach ( array_slice( (array) ( $prepared['search']['top_queries'] ?? array() ), 0, 15 ) as $row ) {
 			if ( ! is_array( $row ) ) {
 				continue;
 			}
@@ -171,11 +167,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			'content'  => (array) ( $executive['content'] ?? array() ),
 			'opportunities' => (array) ( $executive['opportunities']['summary'] ?? array() ),
 			'top_queries' => $queries,
-			'snapshot' => array(
-				'downloaded_at' => absint( $search['downloaded_at'] ?? 0 ),
-				'current'       => (array) ( $search['current'] ?? array() ),
-				'previous'      => (array) ( $search['previous'] ?? array() ),
-			),
+			'snapshot' => (array) ( $prepared['search']['snapshot'] ?? array() ),
 		);
 	}
 
@@ -193,6 +185,27 @@ final class TaxoCommerce_Google_Bing_Analyst {
 	}
 
 	private static function market_position() {
+		$stored = get_option( self::MARKET_PREPARED_OPTION, array() );
+		if ( is_array( $stored ) && ! empty( $stored['prepared_at'] ) && isset( $stored['data'] ) && is_array( $stored['data'] ) ) {
+			return $stored['data'];
+		}
+		return self::refresh_market_position();
+	}
+
+	public static function refresh_market_position( ...$ignored ) {
+		$data = self::build_market_position();
+		update_option(
+			self::MARKET_PREPARED_OPTION,
+			array(
+				'prepared_at' => time(),
+				'data' => $data,
+			),
+			false
+		);
+		return $data;
+	}
+
+	private static function build_market_position() {
 		$empty = array(
 			'available'     => false,
 			'summary'       => array(),
@@ -581,7 +594,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		);
 	}
 
-	private static function direction( $executive, $search, $market ) {
+	private static function direction( $executive, $search_rows, $market ) {
 		$rows = array();
 
 		foreach ( (array) ( $executive['opportunities']['rows'] ?? array() ) as $opportunity ) {
@@ -591,7 +604,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			}
 		}
 
-		foreach ( self::search_directives( $search ) as $directive ) {
+		foreach ( self::search_directives( $search_rows ) as $directive ) {
 			$rows[] = $directive;
 		}
 		foreach ( self::market_directives( $market ) as $directive ) {
@@ -701,8 +714,8 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		);
 	}
 
-	private static function search_directives( $search ) {
-		$queries = array_values( (array) ( $search['data']['queries'] ?? array() ) );
+	private static function search_directives( $search_rows ) {
+		$queries = array_values( (array) $search_rows );
 		if ( ! $queries ) {
 			return array();
 		}
@@ -1174,14 +1187,17 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		echo '<div class="tgb-analyst">';
 
 		echo '<section class="tgb-analyst-head"><div><h2>Analyst</h2>';
-		echo '<p>Strategic view rebuilt from the former Analista: where we are, how the market is moving, and where to go next. It reads saved evidence only and never calls providers while this page is open.</p></div>';
-		echo '<a class="button" href="' . esc_url( self::export_url() ) . '">Export Analyst JSON</a></section>';
+		echo '<p>Decisiones comerciales claras y métricas clave, seguidas por el diagnóstico de visibilidad, mercado y prioridades. La pantalla sólo lee snapshots guardados.</p></div><div class="tgb-analyst-head-actions">';
+		echo '<a class="button button-primary" href="' . esc_url( add_query_arg( array( 'page'=>'taxocommerce-google-bing', 'tgb_tab'=>'google_search' ), admin_url( 'admin.php' ) ) ) . '">Actualizar Google Search</a>';
+		echo '<a class="button" href="' . esc_url( add_query_arg( array( 'page'=>'taxocommerce-google-bing', 'tgb_tab'=>'google_analytics' ), admin_url( 'admin.php' ) ) ) . '">Actualizar Analytics</a>';
+		echo '<a class="button" href="' . esc_url( self::export_url() ) . '">Export Analyst JSON</a></div></section>';
 
-		self::render_where_we_are( (array) $report['where_we_are'] );
+		TaxoCommerce_Google_Bing_Commercial::render( (array) $report['commercial'] );
+		self::render_diagnostic_dashboard( (array) $report['diagnostic'] );
 		self::render_market( (array) $report['market'] );
 		self::render_direction( (array) $report['direction'] );
 
-		echo '<p class="description">This report is the strategic contract for the future TaxoCommerce Editor. Analyst decides what deserves work; Editor will draft or update the content.</p>';
+		echo '<p class="description">Analyst combina el diagnóstico histórico recuperado con la nueva cola estratégica NOW / NEXT / INVESTIGATE / WATCH.</p>';
 		echo '</div>';
 	}
 
@@ -1217,6 +1233,183 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			echo '</tbody></table></div>';
 		}
 		echo '</section>';
+	}
+
+
+	private static function render_diagnostic_dashboard( $data ) {
+		echo '<section class="tgb-analyst-section tgb-analyst-diagnostic"><div class="tgb-analyst-section-head"><div><h3>Resumen</h3><p>La lectura principal del antiguo Analista, reconstruida con snapshots modernos de Search Console y GA4.</p></div></div>';
+		if ( empty( $data['available'] ) ) {
+			echo '<div class="notice notice-info inline"><p>No hay todavía un snapshot de Google Search. Actualiza Google Search para generar el diagnóstico.</p></div></section>';
+			return;
+		}
+		if ( ! empty( $data['needs_refresh'] ) ) {
+			echo '<div class="notice notice-warning inline"><p>El snapshot actual es anterior al nuevo esquema. Actualiza Google Search una vez para recuperar comparación consulta a consulta, movimiento de keywords y tramos Top 10/50/100.</p></div>';
+		}
+
+		$current_period = (array) ( $data['period']['current'] ?? array() );
+		$previous_period = (array) ( $data['period']['previous'] ?? array() );
+		echo '<p class="tgb-analyst-period"><strong>Periodo:</strong> ' . esc_html( (string) ( $current_period['label'] ?? 'último snapshot' ) );
+		if ( ! empty( $previous_period['label'] ) ) {
+			echo ' · <strong>Comparación:</strong> ' . esc_html( (string) $previous_period['label'] );
+		}
+		if ( ! empty( $data['search_downloaded_at'] ) ) {
+			echo ' · <strong>Search actualizado:</strong> ' . esc_html( wp_date( 'd/m/Y H:i', (int) $data['search_downloaded_at'] ) );
+		}
+		if ( ! empty( $data['analytics_downloaded_at'] ) ) {
+			echo ' · <strong>GA4 actualizado:</strong> ' . esc_html( wp_date( 'd/m/Y H:i', (int) $data['analytics_downloaded_at'] ) );
+		}
+		echo '</p>';
+
+		$m = (array) ( $data['metrics'] ?? array() );
+		echo '<div class="tgb-analyst-kpis tgb-analyst-kpis--diagnostic">';
+		self::diagnostic_kpi( 'Índice de visibilidad', $m['visibility'] ?? array(), 'decimal' );
+		self::diagnostic_kpi( 'Impresiones', $m['impressions'] ?? array() );
+		self::diagnostic_kpi( 'Posición media', $m['position'] ?? array(), 'decimal', true );
+		self::diagnostic_kpi( 'Keywords visibles', $m['keywords'] ?? array() );
+		self::diagnostic_kpi( 'Páginas visibles', $m['pages'] ?? array() );
+		self::diagnostic_kpi( 'CTR', $m['ctr'] ?? array(), 'percent' );
+		self::diagnostic_kpi( 'Sesiones GA4', $m['sessions'] ?? array() );
+		self::diagnostic_kpi( 'Usuarios GA4', $m['users'] ?? array() );
+		self::diagnostic_kpi( 'Vistas producto', $m['view_item'] ?? array() );
+		self::diagnostic_kpi( 'Añadir al carrito', $m['add_to_cart'] ?? array() );
+		self::diagnostic_kpi( 'Checkouts iniciados', $m['begin_checkout'] ?? array() );
+		self::diagnostic_kpi( 'Compras GA4', $m['purchases'] ?? array() );
+		self::diagnostic_kpi( 'España', $m['spain'] ?? array() );
+		echo '</div>';
+
+		$quick = (array) ( $data['quick_read'] ?? array() );
+		if ( $quick ) {
+			echo '<div class="tgb-analyst-subsection"><h3>Lectura rápida</h3><p class="description">Lo importante del periodo sin recorrer todos los informes.</p><div class="tgb-analyst-reading">';
+			foreach ( array(
+				'coverage'=>'Cobertura',
+				'ranking'=>'Ranking',
+				'movement'=>'Movimiento',
+				'funnel'=>'Embudo comercial',
+				'market'=>'Mercado objetivo',
+			) as $key=>$label ) {
+				if ( empty( $quick[ $key ] ) ) continue;
+				echo '<div><strong>' . esc_html( $label ) . '</strong><p>' . esc_html( (string) $quick[ $key ] ) . '</p></div>';
+			}
+			echo '</div></div>';
+		}
+
+		$daily = (array) ( $data['daily'] ?? array() );
+		if ( ! empty( $daily['labels'] ) ) {
+			echo '<div class="tgb-analyst-subsection"><h3>Evolución en Google</h3><p class="description">Serie del último periodo guardado para ver si la visibilidad avanza antes de convertirse en clics.</p><div class="tgb-analyst-chart-grid">';
+			self::diagnostic_line_chart( (array) $daily['current_position'], 'Posición media', true, 1 );
+			self::diagnostic_line_chart( (array) $daily['current_impressions'], 'Impresiones', false, 0 );
+			self::diagnostic_line_chart( (array) $daily['current_clicks'], 'Clics', false, 0 );
+			echo '</div></div>';
+		}
+
+		self::render_position_distribution(
+			(array) ( $data['distribution'] ?? array() ),
+			(array) ( $data['previous_distribution'] ?? array() )
+		);
+		self::render_keyword_movement( (array) ( $data['movement'] ?? array() ), ! empty( $data['needs_refresh'] ) );
+		self::render_page_types( (array) ( $data['page_types'] ?? array() ) );
+		self::render_architecture_snapshot( (array) ( $data['architecture'] ?? array() ) );
+		echo '</section>';
+	}
+
+	private static function diagnostic_kpi( $label, $values, $format = 'number', $lower_is_better = false ) {
+		$current = isset( $values[0] ) ? (float) $values[0] : 0.0;
+		$previous = isset( $values[1] ) ? (float) $values[1] : 0.0;
+		$value = 'percent' === $format
+			? number_format_i18n( $current * 100, 2 ) . '%'
+			: number_format_i18n( $current, 'decimal' === $format ? 1 : 0 );
+		echo '<div class="tgb-analyst-kpi"><span>' . esc_html( $label ) . '</span><strong>' . esc_html( $value ) . '</strong>';
+		if ( 0.0 !== $previous || 0.0 !== $current ) {
+			$delta = self::raw_percent_delta( $current, $previous );
+			if ( null === $delta ) {
+				echo '<small>nuevo</small>';
+			} else {
+				$good = $lower_is_better ? $delta < 0 : $delta > 0;
+				$arrow = $delta > 0 ? '↑' : ( $delta < 0 ? '↓' : '→' );
+				echo '<small class="' . esc_attr( $good ? 'is-good' : ( 0.0 === $delta ? '' : 'is-bad' ) ) . '">' . esc_html( $arrow . ' ' . number_format_i18n( abs( $delta ), 1 ) . '%' ) . '</small>';
+			}
+		}
+		echo '</div>';
+	}
+
+	private static function diagnostic_line_chart( $values, $title, $inverse = false, $decimals = 0 ) {
+		$values = array_values( array_map( 'floatval', (array) $values ) );
+		if ( count( $values ) < 2 ) return;
+		$min = min( $values );
+		$max = max( $values );
+		$range = max( 0.0001, $max - $min );
+		$width = 620;
+		$height = 170;
+		$pad = 16;
+		$points = array();
+		$last = max( 1, count( $values ) - 1 );
+		foreach ( $values as $index=>$value ) {
+			$x = $pad + ( ( $index / $last ) * ( $width - ( $pad * 2 ) ) );
+			$ratio = ( $value - $min ) / $range;
+			if ( $inverse ) $ratio = 1 - $ratio;
+			$y = $pad + ( ( 1 - $ratio ) * ( $height - ( $pad * 2 ) ) );
+			$points[] = number_format( $x, 2, '.', '' ) . ',' . number_format( $y, 2, '.', '' );
+		}
+		echo '<div class="tgb-analyst-chart"><div><strong>' . esc_html( $title ) . '</strong><span>' . esc_html( number_format_i18n( end( $values ), $decimals ) ) . '</span></div>';
+		echo '<svg viewBox="0 0 ' . absint( $width ) . ' ' . absint( $height ) . '" role="img" aria-label="' . esc_attr( $title ) . '"><line x1="16" y1="154" x2="604" y2="154"></line><polyline points="' . esc_attr( implode( ' ', $points ) ) . '"></polyline></svg></div>';
+	}
+
+	private static function render_position_distribution( $current, $previous ) {
+		$labels = array( 'top3'=>'Top 3', 'top10'=>'4–10', 'top20'=>'11–20', 'top50'=>'21–50', 'top100'=>'51–100', 'outside'=>'>100' );
+		$all = array_merge( array_values( $current ), array_values( $previous ) );
+		$max = max( 1, $all ? max( $all ) : 1 );
+		echo '<div class="tgb-analyst-subsection"><h3>Cómo avanzan nuestras posiciones</h3><p class="description">Aquí se ve si las consultas van entrando desde posiciones bajas hacia Top 100, Top 50, Top 20 y Top 10.</p><div class="tgb-position-bars">';
+		foreach ( $labels as $key=>$label ) {
+			$now = (int) ( $current[ $key ] ?? 0 );
+			$before = (int) ( $previous[ $key ] ?? 0 );
+			echo '<div class="tgb-position-row"><div><strong>' . esc_html( $label ) . '</strong><span>' . esc_html( number_format_i18n( $now ) . ' ahora · ' . number_format_i18n( $before ) . ' antes' ) . '</span></div><div class="tgb-position-track">';
+			echo '<i class="previous" style="width:' . esc_attr( number_format( min( 100, ( $before / $max ) * 100 ), 2, '.', '' ) ) . '%"></i>';
+			echo '<i class="current" style="width:' . esc_attr( number_format( min( 100, ( $now / $max ) * 100 ), 2, '.', '' ) ) . '%"></i></div></div>';
+		}
+		echo '</div></div>';
+	}
+
+	private static function render_keyword_movement( $movement, $needs_refresh ) {
+		echo '<div class="tgb-analyst-subsection"><h3>Movimiento de keywords</h3><p class="description">Comparación consulta a consulta contra el periodo anterior.</p>';
+		if ( $needs_refresh ) {
+			echo '<p class="description"><strong>Pendiente de nueva actualización de Search:</strong> el snapshot antiguo no conserva las consultas del periodo anterior.</p>';
+		}
+		echo '<div class="tgb-analyst-kpis">';
+		foreach ( array(
+			'improved'=>array('Subieron','Consultas que ganaron posiciones.'),
+			'stable'=>array('Estables','Variación inferior a 1 posición.'),
+			'declined'=>array('Bajaron','Consultas que perdieron posiciones.'),
+			'new'=>array('Nuevas','No aparecían en el periodo anterior.'),
+			'net_top50'=>array('Entraron Top 50','Saldo neto de consultas en Top 50.'),
+			'net_top10'=>array('Entraron Top 10','Saldo neto de consultas en Top 10.'),
+		) as $key=>$meta ) {
+			$value = (int) ( $movement[ $key ] ?? 0 );
+			echo '<div class="tgb-analyst-kpi"><span>' . esc_html( $meta[0] ) . '</span><strong>' . esc_html( in_array( $key, array('net_top50','net_top10'), true ) ? sprintf( '%+d', $value ) : number_format_i18n( $value ) ) . '</strong><small>' . esc_html( $meta[1] ) . '</small></div>';
+		}
+		echo '</div></div>';
+	}
+
+	private static function render_page_types( $types ) {
+		if ( ! $types ) return;
+		echo '<div class="tgb-analyst-subsection"><h3>Cómo se posiciona el catálogo</h3><p class="description">Qué parte de la visibilidad está llegando a categorías, productos, landings y contenidos.</p><div class="tgb-analyst-scroll"><table class="widefat striped"><thead><tr><th>Tipo de URL</th><th>Páginas</th><th>Impresiones</th><th>Clics</th></tr></thead><tbody>';
+		foreach ( $types as $label=>$row ) {
+			echo '<tr><td><strong>' . esc_html( (string) $label ) . '</strong></td><td>' . esc_html( number_format_i18n( (int) ( $row['pages'] ?? 0 ) ) ) . '</td><td>' . esc_html( number_format_i18n( (int) ( $row['impressions'] ?? 0 ) ) ) . '</td><td>' . esc_html( number_format_i18n( (int) ( $row['clicks'] ?? 0 ) ) ) . '</td></tr>';
+		}
+		echo '</tbody></table></div></div>';
+	}
+
+	private static function render_architecture_snapshot( $architecture ) {
+		echo '<div class="tgb-analyst-subsection"><h3>Arquitectura que Analista tiene en cuenta</h3><p class="description">La lectura conoce la estructura cluster → hub primario → hub secundario → categoría y el catálogo publicado.</p><div class="tgb-analyst-kpis">';
+		foreach ( array(
+			'clusters'=>'Clusters',
+			'hub_primary'=>'Hubs primarios',
+			'hub_secondary'=>'Hubs secundarios',
+			'categories'=>'Categorías',
+			'products'=>'Productos',
+		) as $key=>$label ) {
+			self::simple_kpi( $label, (int) ( $architecture[ $key ] ?? 0 ) );
+		}
+		echo '</div></div>';
 	}
 
 	private static function render_market( $market ) {

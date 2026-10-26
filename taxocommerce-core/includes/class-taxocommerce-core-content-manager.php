@@ -42,6 +42,7 @@ final class TaxoCommerce_Core_Content_Manager {
 		add_action( 'admin_post_taxocommerce_core_save_content', array( $this, 'save_content' ) );
         TaxoCommerce_Core_Editor_UI::register_hooks();
         TaxoCommerce_Core_Architecture_Report::register_hooks();
+        TaxoCommerce_Core_Content_Inventory::register_hooks();
 	}
 
 	/**
@@ -65,7 +66,7 @@ final class TaxoCommerce_Core_Content_Manager {
             echo '</div>';
             return;
         }
-        if ( ! in_array( $content_type, array( 'anomalies', 'architecture' ), true ) && 'edit' === $action && $item_id ) {
+        if ( ! in_array( $content_type, array( 'anomalies', 'architecture', 'summary' ), true ) && 'edit' === $action && $item_id ) {
             echo '<div class="wrap tc-content-editor-wrap">';
             $this->render_editor( $content_type, $item_id );
             echo '</div>';
@@ -82,7 +83,9 @@ final class TaxoCommerce_Core_Content_Manager {
                 </div>
             </header>
             <?php $this->render_tabs( $content_type ); ?>
-            <?php if ( 'anomalies' === $content_type ) : ?>
+            <?php if ( 'summary' === $content_type ) : ?>
+                <?php TaxoCommerce_Core_Content_Inventory::render(); ?>
+            <?php elseif ( 'anomalies' === $content_type ) : ?>
                 <?php taxocommerce_core_anomalies_render(); ?>
             <?php elseif ( 'architecture' === $content_type ) : ?>
                 <?php TaxoCommerce_Core_Architecture_Report::render(); ?>
@@ -180,8 +183,8 @@ final class TaxoCommerce_Core_Content_Manager {
 	 * @return string
 	 */
 	private function request_content_type() {
-		$type = isset( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : 'products'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-		return in_array( $type, array( 'products', 'categories', 'posts', 'pages', 'faqs', 'anomalies', 'architecture' ), true ) ? $type : 'products';
+		$type = isset( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : 'summary'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
+		return in_array( $type, array( 'summary', 'products', 'categories', 'posts', 'pages', 'faqs', 'anomalies', 'architecture' ), true ) ? $type : 'summary';
 	}
 
 	/**
@@ -192,6 +195,7 @@ final class TaxoCommerce_Core_Content_Manager {
 	 */
 	private function render_tabs( $current ) {
 		$tabs = array(
+            'summary'  => __( 'Resumen', 'taxocommerce-core' ),
 			'products'   => __( 'Productos', 'taxocommerce-core' ),
 			'categories' => __( 'Categorías de producto', 'taxocommerce-core' ),
 			'posts'      => __( 'Posts', 'taxocommerce-core' ),

@@ -303,7 +303,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         foreach ( array( 'youtube' => 'YouTube Data API v3', 'serpapi' => 'SerpApi · búsqueda web y Shopping' ) as $provider => $label ) {
             $saved = '' !== (string) get_option( 'tgb_market_' . $provider . '_key', '' );
             echo '<tr><th><label for="tgb-provider-' . esc_attr( $provider ) . '">' . esc_html( $label ) . '</label></th><td>';
-            echo self::badge( $saved ? 'Configurado' : 'Sin configurar', $saved ? 'ok' : 'warning' );
+            echo wp_kses_post( self::badge( $saved ? 'Configurado' : 'Sin configurar', $saved ? 'ok' : 'warning' ) );
             echo '<p><input class="regular-text" id="tgb-provider-' . esc_attr( $provider ) . '" type="password" name="' . esc_attr( $provider ) . '_key" autocomplete="new-password" value="" placeholder="' . esc_attr( $saved ? 'Dejar vacío para conservar la clave' : 'Introducir API key' ) . '"></p>';
             if ( $saved ) {
                 echo '<label><input type="checkbox" name="clear_' . esc_attr( $provider ) . '" value="1"> Eliminar la clave existente</label>';

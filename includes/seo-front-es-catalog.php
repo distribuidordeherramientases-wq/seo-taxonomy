@@ -277,6 +277,12 @@ add_action( 'pre_get_posts', static function ( $query ) {
     if ( ! $query instanceof WP_Query || ! seo_front_es_is_storefront() ) {
         return;
     }
+    // Homepage has its own cached VEVOR showcase; do not attach costly
+    // per-country postmeta and supplier NOT EXISTS filters to its category images.
+    // Category, shop, search and product views retain their existing protections.
+    if ( function_exists( 'is_front_page' ) && is_front_page() ) {
+        return;
+    }
     $types = (array) $query->get( 'post_type' );
     if ( array( 'product' ) !== array_values( $types ) ) {
         return;

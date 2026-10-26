@@ -5,7 +5,16 @@ define( 'TAXOCOMMERCE_GOOGLE_BING_URL', 'https://example.test/plugin/' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', 'test' );
 
 function add_action() {}
+function do_action() {}
 function wp_enqueue_style() {}
+$GLOBALS['tgb_options'] = array();
+function get_option( $key, $default = false ) {
+    return array_key_exists( $key, $GLOBALS['tgb_options'] ) ? $GLOBALS['tgb_options'][ $key ] : $default;
+}
+function update_option( $key, $value, $autoload = null ) {
+    $GLOBALS['tgb_options'][ $key ] = $value;
+    return true;
+}
 function current_user_can() { return true; }
 function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $value ) ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
@@ -19,7 +28,16 @@ function esc_attr( $value ) { return esc_html( $value ); }
 function number_format_i18n( $value, $decimals = 0 ) { return number_format( (float) $value, $decimals, '.', ',' ); }
 function remove_accents( $value ) { return (string) $value; }
 function wp_strip_all_tags( $value ) { return strip_tags( (string) $value ); }
+function wp_date( $format, $timestamp ) { return gmdate( $format, $timestamp ); }
 function taxonomy_exists( $taxonomy ) { return 'product_cat' === $taxonomy; }
+function post_type_exists( $post_type ) { return 'product' === $post_type; }
+function wp_count_terms() { return 982; }
+function wp_count_posts( $post_type ) { return (object) array( 'publish' => 'product' === $post_type ? 28046 : 0 ); }
+function get_posts( $args = array() ) {
+    $role = (string) ( $args['meta_value'] ?? '' );
+    $counts = array( 'cluster'=>3, 'hub_primary'=>19, 'hub_secondary'=>65 );
+    return isset( $counts[ $role ] ) ? range( 1, $counts[ $role ] ) : array();
+}
 function is_wp_error( $value ) { return false; }
 function get_term_link( $term ) { return 'https://example.test/category/' . $term->slug . '/'; }
 function get_term( $id, $taxonomy ) {
@@ -45,20 +63,72 @@ $GLOBALS['tgb_terms'] = array(
 
 class TaxoCommerce_Google_Bing_Reports {
     public static function saved_reports( $source ) {
-        if ( 'search' !== $source ) return array();
-        return array(
-            'latest' => array(
-                'downloaded_at' => 1792800000,
-                'current' => array( 'start' => '2026-10-01', 'end' => '2026-10-30', 'label' => 'October' ),
-                'previous' => array( 'start' => '2026-09-01', 'end' => '2026-09-30', 'label' => 'September' ),
-                'data' => array(
-                    'queries' => array(
-                        array( 'name' => 'taladros profesionales', 'clicks' => 20, 'impressions' => 500, 'ctr' => 0.04, 'position' => 8.0 ),
-                        array( 'name' => 'comparativa taladro profesional', 'clicks' => 4, 'impressions' => 160, 'ctr' => 0.025, 'position' => 14.0 ),
+        if ( 'search' === $source ) {
+            return array(
+                'latest' => array(
+                    'downloaded_at' => 1792800000,
+                    'current' => array( 'start' => '2026-10-01', 'end' => '2026-10-30', 'label' => 'October' ),
+                    'previous' => array( 'start' => '2026-09-01', 'end' => '2026-09-30', 'label' => 'September' ),
+                    'data' => array(
+                        'summary' => array(
+                            'current' => array( 'clicks'=>100, 'impressions'=>5000, 'ctr'=>0.02, 'position'=>11.0 ),
+                            'previous' => array( 'clicks'=>80, 'impressions'=>4200, 'ctr'=>0.019, 'position'=>13.0 ),
+                        ),
+                        'daily' => array(
+                            'labels'=>array('01/10','02/10','03/10'),
+                            'current_clicks'=>array(2,4,6),
+                            'previous_clicks'=>array(1,3,4),
+                            'current_impressions'=>array(100,130,160),
+                            'previous_impressions'=>array(90,100,120),
+                            'current_position'=>array(18.0,14.0,11.0),
+                            'previous_position'=>array(20.0,18.0,16.0),
+                        ),
+                        'queries' => array(
+                            array( 'name'=>'taladros profesionales', 'clicks'=>20, 'impressions'=>500, 'ctr'=>0.04, 'position'=>8.0 ),
+                            array( 'name'=>'comparativa taladro profesional', 'clicks'=>4, 'impressions'=>160, 'ctr'=>0.025, 'position'=>14.0 ),
+                            array( 'name'=>'taladro industrial', 'clicks'=>1, 'impressions'=>70, 'ctr'=>0.014, 'position'=>48.0 ),
+                        ),
+                        'previous_queries' => array(
+                            array( 'name'=>'taladros profesionales', 'clicks'=>14, 'impressions'=>420, 'ctr'=>0.033, 'position'=>12.0 ),
+                            array( 'name'=>'comparativa taladro profesional', 'clicks'=>3, 'impressions'=>130, 'ctr'=>0.023, 'position'=>18.0 ),
+                            array( 'name'=>'taladro antiguo', 'clicks'=>1, 'impressions'=>50, 'ctr'=>0.02, 'position'=>70.0 ),
+                        ),
+                        'pages' => array(
+                            array( 'name'=>'https://example.test/categoria-producto/taladros/', 'clicks'=>12, 'impressions'=>600, 'ctr'=>0.02, 'position'=>9.0 ),
+                            array( 'name'=>'https://example.test/producto/taladro-pro/', 'clicks'=>8, 'impressions'=>400, 'ctr'=>0.02, 'position'=>12.0 ),
+                        ),
+                        'previous_pages' => array(
+                            array( 'name'=>'https://example.test/categoria-producto/taladros/', 'clicks'=>8, 'impressions'=>450, 'ctr'=>0.017, 'position'=>13.0 ),
+                        ),
                     ),
                 ),
-            ),
-        );
+            );
+        }
+        if ( 'analytics' === $source ) {
+            return array(
+                'latest' => array(
+                    'downloaded_at'=>1792800100,
+                    'current'=>array('start'=>'2026-10-01','end'=>'2026-10-30','label'=>'October'),
+                    'previous'=>array('start'=>'2026-09-01','end'=>'2026-09-30','label'=>'September'),
+                    'data'=>array(
+                        'summary'=>array(
+                            'current'=>array('activeUsers'=>328,'sessions'=>359,'ecommercePurchases'=>1),
+                            'previous'=>array('activeUsers'=>300,'sessions'=>330,'ecommercePurchases'=>0),
+                        ),
+                        'funnel'=>array(
+                            'current'=>array('view_item'=>152,'add_to_cart'=>11,'view_cart'=>7,'begin_checkout'=>5,'purchase'=>1),
+                            'previous'=>array('view_item'=>140,'add_to_cart'=>9,'view_cart'=>6,'begin_checkout'=>4,'purchase'=>0),
+                        ),
+                        'countries'=>array(
+                            'labels'=>array('Spain','France'),
+                            'current'=>array(127,40),
+                            'previous'=>array(110,35),
+                        ),
+                    ),
+                ),
+            );
+        }
+        return array();
     }
 }
 
@@ -194,6 +264,9 @@ class TGB_Analyst_WPDB {
 }
 $GLOBALS['wpdb'] = new TGB_Analyst_WPDB();
 
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-prepared.php';
+TaxoCommerce_Google_Bing_Prepared::register();
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-commercial.php';
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-analyst.php';
 
 $report = TaxoCommerce_Google_Bing_Analyst::report();
@@ -201,8 +274,21 @@ if ( 'taxocommerce-insights-analyst' !== $report['schema']['name'] ) {
     fwrite( STDERR, "Unexpected Analyst schema\n" );
     exit( 1 );
 }
+if ( empty( $report['prepared_at'] )
+    || empty( $GLOBALS['tgb_options']['tgb_prepared_intelligence_v1'] )
+    || empty( $GLOBALS['tgb_options']['tgb_analyst_market_prepared_v1'] ) ) {
+    fwrite( STDERR, "Prepared Intelligence persistence failed\n" );
+    exit( 1 );
+}
 if ( 'improving' !== $report['where_we_are']['momentum'] ) {
     fwrite( STDERR, "Where-we-are momentum failed\n" );
+    exit( 1 );
+}
+if ( empty( $report['diagnostic']['available'] )
+    || 1 !== (int) $report['diagnostic']['movement']['net_top10']
+    || 3 !== (int) $report['diagnostic']['architecture']['clusters']
+    || 127 !== (int) $report['diagnostic']['metrics']['spain'][0] ) {
+    fwrite( STDERR, "Recovered diagnostic dashboard failed\n" );
     exit( 1 );
 }
 if ( empty( $report['market']['available'] ) || 6 !== (int) $report['market']['categories'][0]['external_evidence'] ) {
@@ -227,6 +313,10 @@ if ( empty( $report['direction']['summary']['now'] ) ) {
     fwrite( STDERR, "Analyst NOW bucket failed\n" );
     exit( 1 );
 }
+if ( empty( $report['commercial']['schema']['name'] ) || 'taxocommerce-insights-commercial' !== $report['commercial']['schema']['name'] || ! isset( $report['commercial']['kpis']['purchases'] ) ) {
+    fwrite( STDERR, "Commercial insight contract failed\n" );
+    exit( 1 );
+}
 if ( empty( $report['editor_contract']['rows'] ) ) {
     fwrite( STDERR, "Editor contract failed\n" );
     exit( 1 );
@@ -235,7 +325,7 @@ if ( empty( $report['editor_contract']['rows'] ) ) {
 ob_start();
 TaxoCommerce_Google_Bing_Analyst::render();
 $html = ob_get_clean();
-foreach ( array( 'Where are we?', 'How does the market look?', 'Global Market Summary', 'Products / clusters repeating across the research', 'Where should we go?' ) as $needle ) {
+foreach ( array( 'What should I do?', 'Purchase events', 'Recommended actions', 'Resumen', 'Cómo avanzan nuestras posiciones', 'Movimiento de keywords', 'Arquitectura que Analista tiene en cuenta', 'How does the market look?', 'Global Market Summary', 'Products / clusters repeating across the research', 'Where should we go?' ) as $needle ) {
     if ( false === strpos( $html, $needle ) ) {
         fwrite( STDERR, "Analyst render missing: $needle\n" );
         exit( 1 );

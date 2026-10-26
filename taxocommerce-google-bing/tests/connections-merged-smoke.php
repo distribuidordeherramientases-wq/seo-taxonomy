@@ -8,17 +8,22 @@ $amazon = file_get_contents( $root . '/includes/class-taxocommerce-connections-a
 $pinterest = file_get_contents( $root . '/includes/class-taxocommerce-connections-pinterest.php' );
 $google_bing = file_get_contents( $root . '/includes/class-taxocommerce-connections-google-bing.php' );
 $oauth = file_get_contents( $root . '/includes/class-taxocommerce-google-bing-oauth.php' );
+$prepared = file_get_contents( $root . '/includes/class-taxocommerce-google-bing-prepared.php' );
 $bridge = file_get_contents( $repo . '/taxocommerce-connections/taxocommerce-connections.php' );
 $core = file_get_contents( $repo . '/taxocommerce-core/includes/class-taxocommerce-core.php' );
 
 $checks = array(
-    strpos( $main, 'Version: 1.0.0' ) !== false,
+    strpos( $main, 'Version: 1.1.2' ) !== false,
     strpos( $main, "'connections'      => 'Connections'" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Admin::render()" ) !== false,
     strpos( $main, "class-taxocommerce-connections-amazon.php" ) !== false,
     strpos( $main, "class-taxocommerce-connections-pinterest.php" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Amazon::boot()" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Pinterest::boot()" ) !== false,
+    strpos( $main, "class-taxocommerce-google-bing-prepared.php" ) !== false,
+    strpos( $main, "class-taxocommerce-google-bing-commercial.php" ) !== false,
+    strpos( $main, "TaxoCommerce_Google_Bing_Prepared::register()" ) !== false,
+    strpos( $prepared, "tgb_prepared_intelligence_v1" ) !== false,
     strpos( $admin, "'page'    => 'taxocommerce-google-bing'" ) !== false,
     strpos( $admin, "'tgb_tab' => 'connections'" ) !== false,
     strpos( $admin, 'Market Providers · YouTube / SerpApi' ) !== false,

@@ -144,3 +144,16 @@ body.tcc-family-admin .tcc-extension-upload label.button{position:relative;margi
 body.tcc-family-admin .tcc-extension-upload__input{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 body.tcc-family-admin .tcc-extension-actions{min-width:235px}
 @media(max-width:782px){body.tcc-family-admin .tcc-extension-actions{min-width:0}body.tcc-family-admin .tcc-extension-upload{flex-wrap:wrap}}
+
+
+/* Scoped, lightweight Content inventory overview. */
+body.tcc-family-admin .tc-content-inventory .tc-inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px;margin:16px 0 24px}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-card{background:#fff;border:1px solid var(--tc-border);border-radius:10px;padding:18px 20px;min-width:0;box-shadow:0 2px 10px rgba(18,45,91,.04)}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-card span{display:block;color:#63738b;font-size:13px;font-weight:650}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-card strong{display:block;font-size:29px;line-height:1.2;color:#174eaa;margin:7px 0}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-card small{display:block;color:#5b6c82;font-size:12px;margin-bottom:8px}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-tools{display:flex;align-items:center;flex-wrap:wrap;gap:14px;justify-content:space-between;margin:12px 0}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-table-scroll{overflow-x:auto;max-width:100%}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-table{min-width:710px}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-table td:not(:first-child),body.tcc-family-admin .tc-content-inventory .tc-inventory-table th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+body.tcc-family-admin .tc-content-inventory .tc-inventory-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}

@@ -63,7 +63,9 @@ final class TCDB_Maintenance {
         $notice = 'maintenance_error';
         try {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified physical table name in live inventory.
-            $result = $wpdb->get_results( ( 'analyze' === $mode ? 'ANALYZE TABLE ' : 'OPTIMIZE TABLE ' ) . chr(96) . $table . chr(96), ARRAY_A );
+            $result = 'analyze' === $mode
+                ? $wpdb->get_results( $wpdb->prepare( 'ANALYZE TABLE %i', $table ), ARRAY_A )
+                : $wpdb->get_results( $wpdb->prepare( 'OPTIMIZE TABLE %i', $table ), ARRAY_A );
             if ( ! is_array( $result ) || ! $result ) {
                 throw new RuntimeException( 'MySQL no ha devuelto un resultado de mantenimiento.' );
             }

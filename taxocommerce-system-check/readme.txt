@@ -1,10 +1,10 @@
 === TaxoCommerce System Check ===
 Contributors: davidperezmartorell
 Tags: system, diagnostics, wordpress, security, performance
-Requires at least: 5.8
+Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.8
+Stable tag: 0.2.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,10 @@ Some historical diagnostic callbacks are reused when the old TaxoCommerce SEO pl
 System diagnostics can include server configuration, URLs and error details. Treat exported results as potentially sensitive. No diagnostic report should be sent to a developer automatically: optional email reports must be explicitly enabled and target an address chosen by the site administrator. HTTP checks make requests to the site's specified URLs and must be used within hosting limits.
 
 == Changelog ==
+
+= 0.2.9 =
+* Refresh WordPress.org metadata for the standalone System Check package.
+* Confirm current gettext calls use the standalone text domain and Action Scheduler table identifiers use prepared `%i` placeholders.
 
 = 0.2.8 =
 * Standalone system and plugin diagnostics with compatibility routes.

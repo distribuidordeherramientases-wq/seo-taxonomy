@@ -485,76 +485,76 @@ $get_term_image = static function ($term, $size = 'medium_large') use ($wpdb) {
     return '';
 };
 
-$popular_products  = function_exists('wc_get_products') ? wc_get_products(array(
-    'limit'   => 12,
-    'status'  => 'publish',
-    'seo_es_catalog_only' => true,
-    'orderby' => 'popularity',
-)) : array();
-
-$sale_products = function_exists('wc_get_products') ? wc_get_products(array(
-    'limit'   => 12,
-    'status'  => 'publish',
-    'seo_es_catalog_only' => true,
-    'on_sale' => true,
-    'orderby' => 'date',
-    'order'   => 'DESC',
-)) : array();
-
-$new_products = function_exists('wc_get_products') ? wc_get_products(array(
-    'limit'   => 12,
-    'status'  => 'publish',
-    'seo_es_catalog_only' => true,
-    'orderby' => 'date',
-    'order'   => 'DESC',
-)) : array();
-
-$featured_products = function_exists('wc_get_products') ? wc_get_products(array(
-    'limit'    => 12,
-    'status'   => 'publish',
-    'seo_es_catalog_only' => true,
-    'featured' => true,
-    'orderby'  => 'date',
-    'order'    => 'DESC',
-)) : array();
-
-if (empty($featured_products)) {
-    $featured_products = $popular_products;
+// The homepage only needs a small rotating VEVOR showcase.
+ // Load published product IDs with one bounded lookup every two hours. No
+ // international-market, category or catalogue-exclusion joins are needed.
+$front_vevor_ids = get_transient( 'dht_front_vevor_showcase_ids_v1' );
+if ( ! is_array( $front_vevor_ids ) ) {
+    $front_vevor_ids = array_map(
+        'absint',
+        (array) $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT p.ID FROM %i p
+                 WHERE p.post_type = 'product'
+                   AND p.post_status = 'publish'
+                   AND EXISTS (
+                       SELECT 1 FROM %i pm
+                       WHERE pm.post_id = p.ID
+                         AND pm.meta_key = %s
+                         AND pm.meta_value = %s
+                   )
+                 ORDER BY p.ID DESC LIMIT %d",
+                $wpdb->posts,
+                $wpdb->postmeta,
+                '_seo_proveedor',
+                'VEVOR',
+                180
+            )
+        )
+    );
+    $front_vevor_ids = array_values( array_unique( array_filter( $front_vevor_ids ) ) );
+    shuffle( $front_vevor_ids );
+    $front_vevor_ids = array_slice( $front_vevor_ids, 0, 12 );
+    set_transient( 'dht_front_vevor_showcase_ids_v1', $front_vevor_ids, 2 * HOUR_IN_SECONDS );
+}
+$new_products = array();
+if ( function_exists( 'wc_get_product' ) ) {
+    foreach ( $front_vevor_ids as $front_vevor_id ) {
+        $front_vevor_product = wc_get_product( absint( $front_vevor_id ) );
+        if ( $front_vevor_product instanceof WC_Product && 'publish' === $front_vevor_product->get_status() ) {
+            $new_products[] = $front_vevor_product;
+        }
+    }
 }
 
-$render_products = static function ($products, $extra_class = '') {
-    // Defence in depth: never display a foreign affiliate product with an ES cart CTA.
-    if (function_exists('seo_front_es_product_is_visible')) {
-        $products = array_values(array_filter((array) $products, 'seo_front_es_product_is_visible'));
-    }
-    if (empty($products)) {
-        echo '<p class="sf-empty">No hay productos disponibles en este bloque.</p>';
+$render_products = static function ( $products, $extra_class = '' ) {
+    if ( empty( $products ) ) {
+        echo '<p class="sf-empty">No hay productos VEVOR publicados disponibles.</p>';
         return;
     }
 
-    add_filter('woocommerce_product_get_image', 'dht_front_mobile_product_image_external_fallback', 20, 6);
-
-    echo '<ul class="products sf-products ' . esc_attr($extra_class) . '">';
-
-    foreach ($products as $product) {
-        if (!$product || !is_a($product, 'WC_Product')) {
+    // These cards only open a product detail. Never offer a Spanish cart action
+    // for an international affiliate product from the homepage.
+    add_filter( 'woocommerce_product_get_image', 'dht_front_mobile_product_image_external_fallback', 20, 6 );
+    echo '<ul class="products sf-products ' . esc_attr( $extra_class ) . '">';
+    foreach ( $products as $product ) {
+        if ( ! $product instanceof WC_Product ) {
             continue;
         }
-
-        global $post;
-        $post = get_post($product->get_id());
-        if (!$post) {
+        $url = get_permalink( $product->get_id() );
+        if ( ! $url ) {
             continue;
         }
-
-        setup_postdata($post);
-        wc_get_template_part('content', 'product');
+        echo '<li class="product type-product">';
+        echo '<a class="woocommerce-LoopProduct-link woocommerce-loop-product__link" href="' . esc_url( $url ) . '">';
+        echo wp_kses_post( $product->get_image( 'woocommerce_thumbnail', array( 'loading' => 'lazy' ) ) );
+        echo '<h2 class="woocommerce-loop-product__title">' . esc_html( $product->get_name() ) . '</h2>';
+        echo '</a>';
+        echo '<a class="button" href="' . esc_url( $url ) . '">Ver producto</a>';
+        echo '</li>';
     }
-
-    wp_reset_postdata();
     echo '</ul>';
-
-    remove_filter('woocommerce_product_get_image', 'dht_front_mobile_product_image_external_fallback', 20);
+    remove_filter( 'woocommerce_product_get_image', 'dht_front_mobile_product_image_external_fallback', 20 );
 };
 
 /* Estructura editorial real: cluster -> hub primario -> hub secundario. */
@@ -1001,7 +1001,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
 
         <section class="sf-mobile-section sf-mobile-section--products">
             <div class="sf-mobile-shell">
-                <div class="sf-mobile-heading"><h2>Novedades</h2></div>
+                <div class="sf-mobile-heading"><h2>Productos VEVOR</h2></div>
                 <?php $render_products(array_slice($new_products, 0, 10), 'sf-products--mobile'); ?>
             </div>
         </section>

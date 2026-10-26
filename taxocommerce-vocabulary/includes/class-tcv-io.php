@@ -17,12 +17,28 @@ final class TCV_IO {
 
     private static function csv_headers( $filename, $headers ) {
         nocache_headers();
+        header( 'X-Content-Type-Options: nosniff' );
         header( 'Content-Type: text/csv; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename=' . $filename );
-        $fh = fopen( 'php://output', 'w' );
-        fwrite( $fh, "\xEF\xBB\xBF" );
-        fputcsv( $fh, $headers, ';' );
-        return $fh;
+        header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
+        // CSV is a download response, not HTML. Values are encoded by csv_line().
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo "\xEF\xBB\xBF" . self::csv_line( $headers );
+    }
+
+    private static function csv_line( $values ) {
+        $encoded = array();
+        foreach ( (array) $values as $value ) {
+            $value = str_replace( '"', '""', (string) $value );
+            $encoded[] = '"' . $value . '"';
+        }
+        return implode( ';', $encoded ) . "\r\n";
+    }
+
+    private static function output_csv_row( $values ) {
+        // CSV is a download response, not HTML. csv_line() quotes every field
+        // and doubles embedded quotes according to RFC 4180-style CSV rules.
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo self::csv_line( $values );
     }
 
     public static function export_labels() {
@@ -31,16 +47,15 @@ final class TCV_IO {
         global $wpdb;
         $t = TCV_Schema::tables();
         $headers = array( 'row_type','source_id','semantic_group','slug','label','parent_source_id','source','active','type_slug','role_slug','confidence' );
-        $fh = self::csv_headers( 'taxocommerce_vocabulary_etiquetas.csv', $headers );
+        self::csv_headers( 'taxocommerce_vocabulary_etiquetas.csv', $headers );
         $rows = $wpdb->get_results( "SELECT id,semantic_group,slug,label,parent_id,source,active FROM {$t['vocabulary']} ORDER BY semantic_group,label", ARRAY_A );
         foreach ( (array) $rows as $r ) {
-            fputcsv( $fh, array( 'term',$r['id'],$r['semantic_group'],$r['slug'],$r['label'],$r['parent_id'],$r['source'],$r['active'],'','','' ), ';' );
+            self::output_csv_row( array( 'term',$r['id'],$r['semantic_group'],$r['slug'],$r['label'],$r['parent_id'],$r['source'],$r['active'],'','','' ) );
         }
         $maps = $wpdb->get_results( "SELECT tv.slug type_slug,rv.slug role_slug,m.confidence FROM {$t['type_role']} m INNER JOIN {$t['vocabulary']} tv ON tv.id=m.type_vocabulary_id INNER JOIN {$t['vocabulary']} rv ON rv.id=m.role_vocabulary_id WHERE m.active=1", ARRAY_A );
         foreach ( (array) $maps as $r ) {
-            fputcsv( $fh, array( 'type_role','','','','','','','',$r['type_slug'],$r['role_slug'],$r['confidence'] ), ';' );
+            self::output_csv_row( array( 'type_role','','','','','','','',$r['type_slug'],$r['role_slug'],$r['confidence'] ) );
         }
-        fclose( $fh );
         exit;
     }
 
@@ -50,50 +65,69 @@ final class TCV_IO {
         global $wpdb;
         $t = TCV_Schema::tables();
         $headers = array( 'row_type','attribute_slug','attribute_name','group','type','unit_type','unit_base','multiple','filterable','visible','seo','sort','active','term_slug','term_name','term_sort','term_active','alias' );
-        $fh = self::csv_headers( 'taxocommerce_vocabulary_atributos.csv', $headers );
+        self::csv_headers( 'taxocommerce_vocabulary_atributos.csv', $headers );
         $attrs = $wpdb->get_results( "SELECT * FROM {$t['attributes']} ORDER BY orden,nombre", ARRAY_A );
         foreach ( (array) $attrs as $a ) {
-            fputcsv( $fh, array( 'attribute',$a['slug'],$a['nombre'],$a['grupo'],$a['tipo'],$a['unidad_tipo'],$a['unidad_base'],$a['multiple'],$a['filtrable'],$a['visible'],$a['seo'],$a['orden'],$a['activo'],'','','','','' ), ';' );
+            self::output_csv_row( array( 'attribute',$a['slug'],$a['nombre'],$a['grupo'],$a['tipo'],$a['unidad_tipo'],$a['unidad_base'],$a['multiple'],$a['filtrable'],$a['visible'],$a['seo'],$a['orden'],$a['activo'],'','','','','' ) );
         }
         $terms = $wpdb->get_results( "SELECT a.slug attribute_slug,t.slug term_slug,t.nombre,t.orden,t.activo FROM {$t['terms']} t INNER JOIN {$t['attributes']} a ON a.id=t.atributo_id ORDER BY a.slug,t.orden,t.nombre", ARRAY_A );
         foreach ( (array) $terms as $r ) {
-            fputcsv( $fh, array( 'term',$r['attribute_slug'],'','','','','','','','','','','',$r['term_slug'],$r['nombre'],$r['orden'],$r['activo'],'' ), ';' );
+            self::output_csv_row( array( 'term',$r['attribute_slug'],'','','','','','','','','','','',$r['term_slug'],$r['nombre'],$r['orden'],$r['activo'],'' ) );
         }
         $aliases = $wpdb->get_results( "SELECT a.slug attribute_slug,t.slug term_slug,x.alias FROM {$t['aliases']} x INNER JOIN {$t['attributes']} a ON a.id=x.atributo_id LEFT JOIN {$t['terms']} t ON t.id=x.termino_id ORDER BY a.slug,t.slug,x.alias", ARRAY_A );
         foreach ( (array) $aliases as $r ) {
-            fputcsv( $fh, array( 'alias',$r['attribute_slug'],'','','','','','','','','','','',$r['term_slug'],'','','',$r['alias'] ), ';' );
+            self::output_csv_row( array( 'alias',$r['attribute_slug'],'','','','','','','','','','','',$r['term_slug'],'','','',$r['alias'] ) );
         }
-        fclose( $fh );
         exit;
     }
 
     private static function read_csv( $tmp ) {
-        $fh = fopen( $tmp, 'r' );
-        if ( ! $fh ) {
-            return new WP_Error( 'tcv_csv_open', 'No se pudo abrir el CSV.' );
+        if ( ! function_exists( 'WP_Filesystem' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
         }
-        $bom = fread( $fh, 3 );
-        if ( "\xEF\xBB\xBF" !== $bom ) {
-            rewind( $fh );
+
+        global $wp_filesystem;
+        if ( ! WP_Filesystem() || ! $wp_filesystem ) {
+            return new WP_Error( 'tcv_csv_filesystem', 'No se pudo inicializar el sistema de archivos de WordPress.' );
         }
-        $headers = fgetcsv( $fh, 0, ';' );
-        if ( ! is_array( $headers ) ) {
-            fclose( $fh );
+
+        $contents = $wp_filesystem->get_contents( $tmp );
+        if ( false === $contents ) {
+            return new WP_Error( 'tcv_csv_open', 'No se pudo leer el CSV.' );
+        }
+
+        if ( 0 === strpos( $contents, "\xEF\xBB\xBF" ) ) {
+            $contents = substr( $contents, 3 );
+        }
+
+        $lines = preg_split( '/\r\n|\n|\r/', $contents );
+        if ( ! is_array( $lines ) || empty( $lines ) ) {
             return new WP_Error( 'tcv_csv_header', 'El CSV no contiene cabecera.' );
         }
+
+        $header_line = array_shift( $lines );
+        $headers = str_getcsv( (string) $header_line, ';' );
+        if ( ! is_array( $headers ) || empty( $headers ) ) {
+            return new WP_Error( 'tcv_csv_header', 'El CSV no contiene cabecera.' );
+        }
+
         $headers = array_map( 'sanitize_key', $headers );
         $rows = array();
-        while ( ( $values = fgetcsv( $fh, 0, ';' ) ) !== false ) {
+
+        foreach ( $lines as $line ) {
+            if ( '' === trim( (string) $line ) ) {
+                continue;
+            }
+            $values = str_getcsv( (string) $line, ';' );
             if ( count( $values ) !== count( $headers ) ) {
                 continue;
             }
             $rows[] = array_combine( $headers, $values );
             if ( count( $rows ) > 50000 ) {
-                fclose( $fh );
                 return new WP_Error( 'tcv_csv_limit', 'El CSV supera el límite de 50.000 filas.' );
             }
         }
-        fclose( $fh );
+
         return $rows;
     }
 
@@ -101,8 +135,9 @@ final class TCV_IO {
         self::guard();
         check_admin_referer( 'tcv_import' );
         $domain = isset( $_POST['domain'] ) ? sanitize_key( wp_unslash( $_POST['domain'] ) ) : '';
-        if ( empty( $_FILES['csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['csv']['tmp_name'] ) ) {
-            self::redirect( 'error', 'No se ha recibido ningún CSV.' );
+        if ( empty( $_FILES['csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['csv']['tmp_name'] )
+            || empty( $_FILES['csv']['size'] ) || (int) $_FILES['csv']['size'] > 10 * MB_IN_BYTES ) {
+            self::redirect( 'error', 'Selecciona un CSV válido de hasta 10 MB.' );
         }
         $rows = self::read_csv( $_FILES['csv']['tmp_name'] );
         if ( is_wp_error( $rows ) ) {

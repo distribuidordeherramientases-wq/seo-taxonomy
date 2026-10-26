@@ -268,7 +268,23 @@ final class Admin {
             self::success( $ok ? 'Regla eliminada.' : 'No se pudo eliminar la regla.', ! $ok );
         }
         if ( 'import' === $task ) {
-            $file = isset( $_FILES['redirects_json'] ) && is_array( $_FILES['redirects_json'] ) ? $_FILES['redirects_json'] : array();
+            $file = array(
+                'name'     => isset( $_FILES['redirects_json']['name'] )
+                    ? sanitize_file_name( wp_unslash( $_FILES['redirects_json']['name'] ) )
+                    : '',
+                'type'     => isset( $_FILES['redirects_json']['type'] )
+                    ? sanitize_mime_type( wp_unslash( $_FILES['redirects_json']['type'] ) )
+                    : '',
+                'tmp_name' => isset( $_FILES['redirects_json']['tmp_name'] )
+                    ? sanitize_text_field( wp_unslash( $_FILES['redirects_json']['tmp_name'] ) )
+                    : '',
+                'error'    => isset( $_FILES['redirects_json']['error'] )
+                    ? absint( $_FILES['redirects_json']['error'] )
+                    : UPLOAD_ERR_NO_FILE,
+                'size'     => isset( $_FILES['redirects_json']['size'] )
+                    ? absint( $_FILES['redirects_json']['size'] )
+                    : 0,
+            );
             $result = self::import( $file, ! empty( $_POST['preserve_activity'] ) );
             self::success( is_wp_error( $result ) ? $result->get_error_message() : sprintf(
                 'Importación finalizada: %d creadas, %d repetidas, %d inválidas, %d ciclos, %d errores SQL.',

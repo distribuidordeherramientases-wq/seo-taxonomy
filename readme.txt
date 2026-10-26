@@ -5,7 +5,7 @@ Tags: seo, woocommerce, taxonomy, catalog, automation
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.4.0
+Stable tag: 2.4.1
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -36,10 +36,16 @@ Key features:
 * Process manager and workers for heavy operations.
 * Diagnostic, maintenance, and validation tools.
 
-TaxoCommerce SEO is actively developed and uses staging to validate changes before promoting them to production.
+TaxoCommerce SEO 2.4.1 is the final planned release of the legacy monolithic plugin. Ongoing functional development continues in the independent TaxoCommerce plugins. The legacy plugin remains available only for migration, compatibility, and critical fixes when strictly necessary.
 
 == Changelog ==
 
+= 2.4.1 =
+
+* Final planned release of the legacy monolithic TaxoCommerce SEO plugin.
+* Completes the transition to the independent TaxoCommerce plugin family.
+* Future functional changes and version histories are maintained in each plugin's own `readme.txt`.
+* The legacy plugin is frozen for normal development; only critical compatibility, migration, or security fixes should be considered.
 = 2.4.0 =
 
 * Consolidated independent content-audit areas and prioritized editorial findings.
@@ -279,6 +285,12 @@ The administrator is responsible for having authorization to use each source and
 
 == Changelog ==
 
+= 2.4.1 - 2026-10-25 =
+
+* Final planned release of the legacy monolithic TaxoCommerce SEO plugin.
+* Completes the transition to the independent TaxoCommerce plugin family.
+* Future functional changes and version histories are maintained in each plugin's own `readme.txt`.
+* The legacy plugin is frozen for normal development; only critical compatibility, migration, or security fixes should be considered.
 = 2.4.0 - 2026-10-13 =
 
 * Renamed the public plugin identity to TaxoCommerce SEO - Catalog, Trends, Content & Feeds and prepared the WordPress.org slug taxocommerce-seo.

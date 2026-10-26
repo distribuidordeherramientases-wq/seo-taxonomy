@@ -96,7 +96,10 @@ final class Assisted_Delete {
     }
 
     public static function intercept_native() {
-        if ( 'GET' !== strtoupper( (string) ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) {
+        $request_method = isset( $_SERVER['REQUEST_METHOD'] )
+            ? strtoupper( sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) )
+            : '';
+        if ( 'GET' !== $request_method ) {
             return;
         }
         global $pagenow;
@@ -274,7 +277,7 @@ final class Assisted_Delete {
                 'posts_per_page'      => 1,
                 'fields'              => 'ids',
                 'no_found_rows'       => true,
-                'suppress_filters'    => true,
+                'suppress_filters'    => false,
                 'tax_query'           => array(
                     array(
                         'taxonomy'         => 'product_cat',
