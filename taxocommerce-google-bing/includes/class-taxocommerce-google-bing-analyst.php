@@ -42,14 +42,18 @@ final class TaxoCommerce_Google_Bing_Analyst {
 	 * @return array
 	 */
 	public static function report() {
-		$executive = TaxoCommerce_Google_Bing_Executive::report();
-		$search    = self::latest_snapshot( 'search' );
-		$analytics = self::latest_snapshot( 'analytics' );
+		$prepared = class_exists( 'TaxoCommerce_Google_Bing_Prepared' )
+			? TaxoCommerce_Google_Bing_Prepared::current()
+			: array();
+		$executive = ! empty( $prepared['executive'] )
+			? (array) $prepared['executive']
+			: TaxoCommerce_Google_Bing_Executive::report();
 
-		$diagnostic = self::diagnostic_dashboard( $search, $analytics );
-		$where = self::where_we_are( $executive, $search );
+		$diagnostic = (array) ( $prepared['diagnostic'] ?? array() );
+		$where = self::where_we_are( $executive, $prepared );
 		$market = self::market_position();
-		$directives = self::direction( $executive, $search, $market );
+		$search_candidates = (array) ( $prepared['search']['candidates'] ?? array() );
+		$directives = self::direction( $executive, $search_candidates, $market );
 
 		return array(
 			'schema' => array(
@@ -57,6 +61,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 				'version' => 1,
 			),
 			'generated_at' => time(),
+			'prepared_at'  => absint( $prepared['prepared_at'] ?? 0 ),
 			'diagnostic'   => $diagnostic,
 			'where_we_are' => $where,
 			'market'       => $market,
@@ -386,7 +391,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		return $out;
 	}
 
-	private static function where_we_are( $executive, $search ) {
+	private static function where_we_are( $executive, $prepared ) {
 		$overview = (array) ( $executive['overview'] ?? array() );
 		$search_overview = (array) ( $overview['google_search'] ?? array() );
 		$analytics = (array) ( $overview['analytics'] ?? array() );
@@ -437,7 +442,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		}
 
 		$queries = array();
-		foreach ( array_slice( (array) ( $search['data']['queries'] ?? array() ), 0, 15 ) as $row ) {
+		foreach ( array_slice( (array) ( $prepared['search']['top_queries'] ?? array() ), 0, 15 ) as $row ) {
 			if ( ! is_array( $row ) ) {
 				continue;
 			}
@@ -456,11 +461,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			'content'  => (array) ( $executive['content'] ?? array() ),
 			'opportunities' => (array) ( $executive['opportunities']['summary'] ?? array() ),
 			'top_queries' => $queries,
-			'snapshot' => array(
-				'downloaded_at' => absint( $search['downloaded_at'] ?? 0 ),
-				'current'       => (array) ( $search['current'] ?? array() ),
-				'previous'      => (array) ( $search['previous'] ?? array() ),
-			),
+			'snapshot' => (array) ( $prepared['search']['snapshot'] ?? array() ),
 		);
 	}
 
@@ -866,7 +867,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		);
 	}
 
-	private static function direction( $executive, $search, $market ) {
+	private static function direction( $executive, $search_rows, $market ) {
 		$rows = array();
 
 		foreach ( (array) ( $executive['opportunities']['rows'] ?? array() ) as $opportunity ) {
@@ -876,7 +877,7 @@ final class TaxoCommerce_Google_Bing_Analyst {
 			}
 		}
 
-		foreach ( self::search_directives( $search ) as $directive ) {
+		foreach ( self::search_directives( $search_rows ) as $directive ) {
 			$rows[] = $directive;
 		}
 		foreach ( self::market_directives( $market ) as $directive ) {
@@ -986,8 +987,8 @@ final class TaxoCommerce_Google_Bing_Analyst {
 		);
 	}
 
-	private static function search_directives( $search ) {
-		$queries = array_values( (array) ( $search['data']['queries'] ?? array() ) );
+	private static function search_directives( $search_rows ) {
+		$queries = array_values( (array) $search_rows );
 		if ( ! $queries ) {
 			return array();
 		}
