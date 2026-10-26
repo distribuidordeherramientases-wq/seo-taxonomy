@@ -12,6 +12,10 @@ defined('ABSPATH') || exit;
 if (!function_exists('seo_analista_lazy_reports')) {
     function seo_analista_lazy_reports() {
         return array(
+            'directrices' => array(
+                'label' => 'Qué hacer',
+                'description' => 'Diagnóstico comercial sencillo: visitas, compras y siguientes pasos.',
+            ),
             'resumen' => array(
                 'label' => 'Resumen',
                 'description' => 'Visibilidad, evolución, GA4, búsqueda interna y arquitectura general.',
@@ -102,6 +106,43 @@ if (!function_exists('seo_analista_lazy_render_shell')) {
             ) . ';',
             'before'
         );
+    }
+}
+
+if (!function_exists('seo_analista_lazy_render_directrices')) {
+    function seo_analista_lazy_render_directrices($days) {
+        $google = seo_analista_google_snapshot($days, false);
+        $ga4 = (array) ($google['ga4'] ?? array());
+        $funnel = (array) ($ga4['funnel'] ?? array());
+        $sessions = (int) ($ga4['sessions'] ?? 0);
+        $purchases = (int) ($ga4['purchases'] ?? 0);
+        $carts = (int) ($funnel['add_to_cart'] ?? 0);
+        $checkouts = (int) ($funnel['begin_checkout'] ?? 0);
+        echo '<section class="seo-analista-section"><h2>Qué hacer para vender más</h2><p>Directrices basadas en datos disponibles. No confundir visibilidad con compradores ni compras externas de afiliación con WooCommerce.</p>';
+        if (empty($ga4['available'])) {
+            echo '<p>Analytics no está disponible. Comprueba la conexión antes de interpretar ventas o conversión.</p></section>';
+            return;
+        }
+        echo '<div class="seo-analista-grid">';
+        seo_analista_render_metric_card('Sesiones', number_format_i18n($sessions));
+        seo_analista_render_metric_card('Compras WooCommerce', number_format_i18n($purchases));
+        seo_analista_render_metric_card('Conversión por sesión', $sessions > 0 ? number_format_i18n(100 * $purchases / $sessions, 2) . '%' : 'N/D');
+        seo_analista_render_metric_card('Añadidos al carrito', number_format_i18n($carts));
+        seo_analista_render_metric_card('Inicios de compra', number_format_i18n($checkouts));
+        echo '</div><ol>';
+        if ($sessions === 0) {
+            echo '<li><strong>Comprobar medición.</strong> No hay sesiones suficientes para diagnosticar ventas.</li>';
+        } else {
+            if ($checkouts > $purchases) echo '<li><strong>Revisar el checkout.</strong> Hay más inicios de compra que compras registradas. Realiza una compra de prueba y comprueba transporte, pagos y eventos GA4; no se puede atribuir el abandono sin datos por usuario.</li>';
+            if ($carts > $checkouts) echo '<li><strong>Revisar carrito y gastos de envío.</strong> Los eventos de carrito superan los inicios de compra. Verifica los costes finales y los enlaces al checkout.</li>';
+            if ($sessions > 0 && $purchases === 0) echo '<li><strong>Comprobar intención de compra y precios.</strong> Hay visitas pero ninguna compra registrada. Contrasta productos visitados con stock, precios y competencia antes de modificar el catálogo.</li>';
+            echo '<li><strong>Separar ventas y afiliación.</strong> Analiza España y mercados internacionales por separado. Los clics hacia proveedores y las comisiones confirmadas requieren su propia medición: no están representados por las compras WooCommerce.</li>';
+            echo '<li><strong>Priorizar oportunidades reales.</strong> Revisa en Plan de acción las tareas con destino validado; no publiques contenido nuevo solo por aumentar impresiones.</li>';
+        }
+        if (array_key_exists('add_shipping_info', $funnel) && (int) $funnel['add_shipping_info'] === 0 && (int) ($funnel['add_payment_info'] ?? 0) > 0) {
+            echo '<li><strong>Verificar eventos de Analytics.</strong> Se registra información de pago pero no de envío; puede ser una configuración legítima o una medición incompleta.</li>';
+        }
+        echo '</ol><p class="description">Los recuentos del embudo son eventos agregados, no necesariamente los mismos usuarios. Las directrices son verificaciones, no causas de pérdida demostradas.</p></section>';
     }
 }
 
