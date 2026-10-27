@@ -17,6 +17,7 @@ $cases = array(
     array( $verified, $ok, 'connected' ),
     array( $verified, $bad, 'error' ),
     array( $verified, array( 'ok' => 1, 'checked_at' => $now - 8 * DAY_IN_SECONDS, 'sig' => 'identity-A' ), 'configured' ),
+    array( $verified, array( 'ok' => 0, 'checked_at' => $now - 8 * DAY_IN_SECONDS, 'sig' => 'identity-A' ), 'configured' ),
     array( $verified, array( 'ok' => 1, 'checked_at' => $now - 100, 'sig' => 'identity-B' ), 'configured' ),
     array( array( 'mode' => 'test', 'ready' => false, 'sig' => 'identity-A' ), $ok, 'pending' ),
     array( array( 'mode' => 'test', 'ready' => true, 'disabled' => true, 'sig' => 'identity-A' ), $ok, 'disabled' ),
