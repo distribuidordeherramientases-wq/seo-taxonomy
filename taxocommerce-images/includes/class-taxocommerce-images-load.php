@@ -173,9 +173,10 @@ final class TaxoCommerce_Images_Load {
 		$query_now      = function_exists( 'get_num_queries' ) ? get_num_queries() : 0;
 		$queries        = max( 0, absint( $query_now ) - absint( $start['queries'] ?? 0 ) );
 
-		$current = self::batch_size( $process );
-		$next    = $current;
-		$target  = self::target_cpu( $priority );
+		$priority = self::priority( $process );
+		$current  = self::batch_size( $process );
+		$next     = $current;
+		$target   = self::target_cpu( $priority );
 
 		$wall_target = array( 1 => 3.0, 2 => 4.5, 3 => 6.0, 4 => 8.0, 5 => 11.0 )[ $priority ];
 		$reduce = $elapsed >= $wall_target
@@ -197,7 +198,7 @@ final class TaxoCommerce_Images_Load {
 
 		$sample = array(
 			'process'        => $process,
-			'priority'       => self::priority(),
+			'priority'       => $priority,
 			'label'          => self::label( $priority ),
 			'items'          => absint( $items ),
 			'batch'          => $current,
