@@ -21,7 +21,7 @@ $checks = array(
     strpos( $batch, "individual_status" ) !== false,
     strpos( $core, "tc-ie-individual-monitor" ) !== false,
     strpos( $core, "taxocommerce_ie_individual_status" ) !== false,
-    strpos( $csv, "queue_individual( $file )" ) !== false,
+    strpos( $csv, 'queue_individual( $file )' ) !== false,
     strpos( $main, "class-taxocommerce-import-export-exporter.php" ) !== false,
     strpos( $core, "Exportación" ) !== false,
     strpos( $core, "new TaxoCommerce_Import_Export_Exporter" ) !== false,
