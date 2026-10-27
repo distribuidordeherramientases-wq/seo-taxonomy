@@ -31,11 +31,17 @@ $admin = get_user_by( 'login', 'imagesadmin' );
 wp_set_current_user( $admin->ID );
 
 update_option( 'tcd_work_priority', 5, false );
-$priority_result = TaxoCommerce_Images_Load::set_priority( 1 );
-taxocommerce_images_test_assert( 1 === $priority_result && 1 === TaxoCommerce_Images_Load::priority(), 'Images stores its own workload priority' );
-taxocommerce_images_test_assert( 5 === (int) get_option( 'tcd_work_priority' ), 'Images priority does not alter Dependiente settings' );
+$priority_result = TaxoCommerce_Images_Load::set_priority( 1, 'cleanup' );
+TaxoCommerce_Images_Load::set_priority( 4, 'labels' );
+TaxoCommerce_Images_Load::set_priority( 2, 'assignment_page' );
+taxocommerce_images_test_assert( 1 === $priority_result && 1 === TaxoCommerce_Images_Load::priority( 'cleanup' ), 'cleanup stores its own workload priority' );
+taxocommerce_images_test_assert( 4 === TaxoCommerce_Images_Load::priority( 'labels' ), 'labels has an independent workload priority' );
+taxocommerce_images_test_assert( 2 === TaxoCommerce_Images_Load::priority( 'assignment_page' ), 'page assignment has an independent workload priority' );
+taxocommerce_images_test_assert( 5 === (int) get_option( 'tcd_work_priority' ), 'Images priorities do not alter Dependiente settings' );
 taxocommerce_images_test_assert( TaxoCommerce_Images_Load::batch_size( 'cleanup' ) < TaxoCommerce_Images_Load::batch_size( 'labels' ), 'file hashing uses a smaller batch than metadata inspection' );
-TaxoCommerce_Images_Load::set_priority( 3 );
+TaxoCommerce_Images_Load::set_priority( 3, 'cleanup' );
+TaxoCommerce_Images_Load::set_priority( 3, 'labels' );
+TaxoCommerce_Images_Load::set_priority( 3, 'assignment_page' );
 
 
 register_post_type( 'product', array( 'public' => true, 'supports' => array( 'title', 'thumbnail' ) ) );
@@ -71,10 +77,11 @@ for ( $i = 0; $i < 100; ++$i ) {
 $report = TaxoCommerce_Images_Assignment::missing( 'page' );
 taxocommerce_images_test_assert( 25 === count( $report['items'] ), 'report displays 25 rows' );
 taxocommerce_images_test_assert( $baseline + 100 === $report['total'], 'KPI counts all pages, not just the visible 25' );
+$expected_assignment_batch = TaxoCommerce_Images_Load::batch_size( 'assignment_page' );
 $first = TaxoCommerce_Images_Assignment::process_assignment_batch( 'page', 0 );
-taxocommerce_images_test_assert( 25 === $first['seen'] && 0 === $first['assigned'] && $first['cursor'] > 0, 'unresolvable first batch advances its cursor' );
+taxocommerce_images_test_assert( $expected_assignment_batch === $first['seen'] && 0 === $first['assigned'] && $first['cursor'] > 0, 'unresolvable adaptive assignment batch advances its cursor' );
 $result = $first; $rounds = 0; $assigned = 0;
-while ( ! $result['done'] && ++$rounds < 10 ) {
+while ( ! $result['done'] && ++$rounds < 100 ) {
 	$result = TaxoCommerce_Images_Assignment::process_assignment_batch( 'page', $result['cursor'] );
 	$assigned += $result['assigned'];
 }
@@ -102,11 +109,15 @@ for ( $i = 0; $i < 30; ++$i ) { $scan = TaxoCommerce_Images_Maintenance::scan( '
 taxocommerce_images_test_assert( 'complete' === $scan['status'] && $scan['scanned'] === $scan['total'], 'cleanup inspection covers the entire snapshot' );
 $row = get_post_meta( $duplicate, '_taxocommerce_images_cleanup_result', true );
 taxocommerce_images_test_assert( 'duplicate' === $row['status'] && $unused === (int) $row['duplicate'], 'exact full-file duplicate is detected' );
+taxocommerce_images_test_assert( absint( $scan['counts']['duplicate'] ?? 0 ) >= 1, 'cleanup report counts exact duplicate copies' );
+taxocommerce_images_test_assert( absint( $scan['counts']['keeper'] ?? 0 ) >= 1, 'cleanup report keeps one canonical original for duplicate groups' );
+taxocommerce_images_test_assert( false !== strpos( (string) ( $scan['message'] ?? '' ), 'Escaneo completo' ), 'cleanup state exposes a full-library completion summary' );
 taxocommerce_images_test_assert( is_file( get_attached_file( $unused ) ) && is_file( get_attached_file( $duplicate ) ), 'inspection performs no unconfirmed deletion' );
 
 TaxoCommerce_Images_Maintenance::begin( 'labels' );
 for ( $i = 0; $i < 30; ++$i ) { $scan = TaxoCommerce_Images_Maintenance::scan( 'labels' ); if ( 'complete' === $scan['status'] ) { break; } }
 taxocommerce_images_test_assert( 'complete' === $scan['status'] && $scan['scanned'] === $scan['total'], 'attribute inspection covers the entire library without HTTP' );
+taxocommerce_images_test_assert( false !== strpos( (string) ( $scan['message'] ?? '' ), 'Escaneo completo de etiquetas' ), 'labels state exposes a full-library completion summary' );
 $subscriber = wp_create_user( 'limiteduser', 'local-test-password', 'limited@example.test' );
 wp_set_current_user( $subscriber );
 taxocommerce_images_test_assert( is_wp_error( TaxoCommerce_Images_Assignment::process_assignment_batch( 'page' ) ), 'non-administrator cannot run assignment' );
