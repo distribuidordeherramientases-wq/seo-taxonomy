@@ -320,7 +320,10 @@ final class TaxoCommerce_Images {
 						<input type="hidden" name="action" value="taxocommerce_images_save_priority">
 						<input type="hidden" name="mode" value="<?php echo esc_attr( $process ); ?>">
 						<?php wp_nonce_field( 'taxocommerce_images_save_priority', 'taxocommerce_images_nonce' ); ?>
-						<label for="tci-priority-<?php echo esc_attr( $process ); ?>"><strong><?php echo esc_html( sprintf( __( 'Prioridad de %s', 'taxocommerce-images' ), $heading ) ); ?></strong></label>
+						<label for="tci-priority-<?php echo esc_attr( $process ); ?>"><strong><?php
+						/* translators: %s: assignment group name, for example Pages or Products. */
+						echo esc_html( sprintf( __( 'Prioridad de %s', 'taxocommerce-images' ), $heading ) );
+						?></strong></label>
 						<div class="tci-load-control__slider">
 							<span><?php esc_html_e( '1 · Suave', 'taxocommerce-images' ); ?></span>
 							<input id="tci-priority-<?php echo esc_attr( $process ); ?>" name="priority" type="range" min="1" max="5" step="1" value="<?php echo esc_attr( (string) $priority ); ?>" data-tci-priority>
@@ -330,7 +333,10 @@ final class TaxoCommerce_Images {
 						<p class="description"><?php esc_html_e( 'Este control solo afecta a este grupo. Si otros procesos cargan el servidor, el tiempo real de sus peticiones hará que reduzca automáticamente el siguiente lote.', 'taxocommerce-images' ); ?></p>
 						<button type="submit" class="button"><?php esc_html_e( 'Guardar prioridad', 'taxocommerce-images' ); ?></button>
 						<?php if ( $sample ) : ?>
-							<span class="description"><?php echo esc_html( sprintf( __( ' Último lote: %1$d elementos · %2$s s · siguiente lote %3$d.', 'taxocommerce-images' ), absint( $sample['items'] ?? 0 ), number_format_i18n( (float) ( $sample['elapsed'] ?? 0 ), 2 ), absint( $sample['next_batch'] ?? 0 ) ) ); ?></span>
+							<span class="description"><?php
+							/* translators: 1: processed items, 2: elapsed seconds, 3: next adaptive batch size. */
+							echo esc_html( sprintf( __( ' Último lote: %1$d elementos · %2$s s · siguiente lote %3$d.', 'taxocommerce-images' ), absint( $sample['items'] ?? 0 ), number_format_i18n( (float) ( $sample['elapsed'] ?? 0 ), 2 ), absint( $sample['next_batch'] ?? 0 ) ) );
+							?></span>
 						<?php endif; ?>
 					</form>
 					<div class="tci-assign-bulk" data-tci-assignment="<?php echo esc_attr( $scope ); ?>">
@@ -342,6 +348,7 @@ final class TaxoCommerce_Images {
 							<?php
 							if ( $assignment_state ) {
 								echo esc_html( sprintf(
+									/* translators: 1: reviewed objects, 2: assigned images, 3: remaining objects. */
 									__( 'Última pasada: %1$d revisados · %2$d asignados · %3$d pendientes.', 'taxocommerce-images' ),
 									absint( $assignment_state['seen'] ?? 0 ),
 									absint( $assignment_state['assigned'] ?? 0 ),
