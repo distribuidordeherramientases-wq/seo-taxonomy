@@ -25,6 +25,9 @@ function get_transient( $k ) { global $fixture; return $fixture; }
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
 class WP_Error { private $message; public function __construct( $code, $message ) { $this->message = $message; } public function get_error_message() { return $this->message; } }
 
+// Standalone smoke: supply the Content route without booting WordPress or Core.
+class TaxoCommerce_Core_Content_Manager { const PAGE_SLUG = 'taxocommerce-core-content'; }
+
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-core-architecture-report.php';
 
 $roles = array(
