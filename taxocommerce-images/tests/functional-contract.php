@@ -102,6 +102,9 @@ for ( $i = 0; $i < 30; ++$i ) { $scan = TaxoCommerce_Images_Maintenance::scan( '
 taxocommerce_images_test_assert( 'complete' === $scan['status'] && $scan['scanned'] === $scan['total'], 'cleanup inspection covers the entire snapshot' );
 $row = get_post_meta( $duplicate, '_taxocommerce_images_cleanup_result', true );
 taxocommerce_images_test_assert( 'duplicate' === $row['status'] && $unused === (int) $row['duplicate'], 'exact full-file duplicate is detected' );
+taxocommerce_images_test_assert( absint( $scan['counts']['duplicate'] ?? 0 ) >= 1, 'cleanup report counts exact duplicate copies' );
+taxocommerce_images_test_assert( absint( $scan['counts']['keeper'] ?? 0 ) >= 1, 'cleanup report keeps one canonical original for duplicate groups' );
+taxocommerce_images_test_assert( false !== strpos( (string) ( $scan['message'] ?? '' ), 'Escaneo completo' ), 'cleanup state exposes a full-library completion summary' );
 taxocommerce_images_test_assert( is_file( get_attached_file( $unused ) ) && is_file( get_attached_file( $duplicate ) ), 'inspection performs no unconfirmed deletion' );
 
 TaxoCommerce_Images_Maintenance::begin( 'labels' );
