@@ -95,7 +95,7 @@ final class TaxoCommerce_Connections_Status {
             || ! hash_equals( (string) ( $config['sig'] ?? '' ), (string) ( $saved['sig'] ?? '' ) ) ) {
             return 'configured';
         }
-        if ( ! empty( $saved['ok'] ) && ( $now - (int) $saved['checked_at'] ) > self::VALID_FOR ) {
+        if ( ( $now - (int) $saved['checked_at'] ) > self::VALID_FOR ) {
             return 'configured';
         }
         return ! empty( $saved['ok'] ) ? 'connected' : 'error';
