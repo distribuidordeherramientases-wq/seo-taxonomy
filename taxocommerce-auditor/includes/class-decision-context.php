@@ -240,18 +240,18 @@ final class Decision_Context {
             );
         }
 
-        $table_sql = esc_sql( $table );
-        // Read-only access to persisted derived evidence. Auditor never starts
-        // Comparador jobs and never calls external providers.
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- internal fixed table name.
+        // Read-only local snapshot; do not launch market/comparator jobs.
         $rows = (array) $wpdb->get_results(
-            "SELECT id,canonical_name,category_ids,primary_category_id,status,
-                    own_products_count,external_products_seen,external_products_comparable,
-                    comparison_axes_count,confidence,source_snapshot_at,
-                    recommended_action,decision_reason,updated_at
-             FROM {$table_sql}
-             ORDER BY updated_at DESC,id DESC
-             LIMIT 1000",
+            $wpdb->prepare(
+                "SELECT id,canonical_name,category_ids,primary_category_id,status,
+                        own_products_count,external_products_seen,external_products_comparable,
+                        comparison_axes_count,confidence,source_snapshot_at,
+                        recommended_action,decision_reason,updated_at
+                 FROM %i
+                 ORDER BY updated_at DESC,id DESC
+                 LIMIT 1000",
+                $table
+            ),
             ARRAY_A
         );
 
@@ -446,10 +446,11 @@ final class Decision_Context {
             $wpdb->prepare(
                 "SELECT proveedor,proveedor_id_externo,sku,pais_origen,estado_seleccion,estado_sincronizacion,
                         ultima_importacion,ultima_sincronizacion,ultimo_error_sync,actualizado
-                 FROM {$table}
+                 FROM %i
                  WHERE object_id=%d
                  ORDER BY actualizado DESC,id DESC
                  LIMIT 1",
+                $table,
                 absint( $id )
             ),
             ARRAY_A

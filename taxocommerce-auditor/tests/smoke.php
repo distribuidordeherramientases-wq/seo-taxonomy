@@ -251,4 +251,11 @@ verify( 7 === $product_kpis['specific'][0]['value'], 'Product-specific KPI' );
 verify( ! Runner::valid_scope( 'invalid' ), 'Invalid scope rejected' );
 verify( ! defined( 'SEO_SYSTEM_PATH' ) && ! class_exists( 'SEO_Auditor' ), 'No collisions with old monolith' );
 
+// Guard against reintroducing interpolated identifiers in canonical read-only sources.
+$faq_sql_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-faq-source.php' );
+$context_sql_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-decision-context.php' );
+verify( false === strpos( $faq_sql_source, 'FROM {$table}' ), 'FAQ queries use prepared identifiers' );
+verify( false !== strpos( $faq_sql_source, "'SELECT COUNT(*) FROM %i WHERE active=1'" ), 'FAQ count uses WordPress identifier placeholder' );
+verify( false !== strpos( $context_sql_source, 'FROM %i' ), 'context provider identifiers prepared' );
+
 echo "TaxoCommerce Auditor native parity smoke tests passed.\n";
