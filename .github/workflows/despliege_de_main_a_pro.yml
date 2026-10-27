@@ -52,6 +52,38 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lftp zip
 
+      - name: Descubrir plugins TaxoCommerce disponibles en MAIN
+        id: family
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t modules < <(
+            find . -maxdepth 1 -mindepth 1 -type d -name 'taxocommerce-*' -printf '%f\n' | sort
+          )
+
+          valid_modules=()
+          for module in "${modules[@]}"; do
+            if [[ "$module" =~ ^taxocommerce-[a-z0-9-]+$ ]] && [ -f "$module/$module.php" ]; then
+              valid_modules+=("$module")
+            fi
+          done
+
+          if [ "${#valid_modules[@]}" -eq 0 ]; then
+            echo "::error::No se encontraron plugins TaxoCommerce válidos en MAIN."
+            exit 1
+          fi
+
+          modules_json="$(python3 - "${valid_modules[@]}" <<'PY'
+          import json
+          import sys
+          print(json.dumps(sys.argv[1:], separators=(",", ":")))
+          PY
+          )"
+
+          echo "modules=$modules_json" >> "$GITHUB_OUTPUT"
+          echo "Plugins TaxoCommerce disponibles en MAIN: $modules_json"
+
       - name: Leer plugins TaxoCommerce instalados en PRO
         id: installed
         shell: bash
@@ -76,6 +108,93 @@ jobs:
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           echo "Plugins TaxoCommerce instalados para sincronizar en PRO: $modules"
 
+      - name: Preparar en PRO los ZIP de plugins todavía no instalados
+        shell: bash
+        env:
+          ALL_MODULES_JSON: ${{ steps.family.outputs.modules }}
+          INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t all_modules < <(
+            python3 - <<'PY'
+          import json
+          import os
+          for module in json.loads(os.environ.get("ALL_MODULES_JSON", "[]")):
+              print(module)
+          PY
+          )
+
+          mapfile -t installed_modules < <(
+            python3 - <<'PY'
+          import json
+          import os
+          for module in json.loads(os.environ.get("INSTALLED_MODULES_JSON", "[]")):
+              print(module)
+          PY
+          )
+
+          declare -A installed_lookup=()
+          for module in "${installed_modules[@]}"; do
+            installed_lookup["$module"]=1
+          done
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          mkdir -p "wp-content/uploads/taxocommerce-core/plugins"
+          bye
+          EOF
+
+          prepared=0
+          for module in "${all_modules[@]}"; do
+            if [ -n "${installed_lookup[$module]:-}" ]; then
+              echo "$module ya está instalado en PRO: se actualizará directamente y no se instalará desde ZIP."
+              continue
+            fi
+
+            if [ "$module" = "taxocommerce-facturacion" ]; then
+              echo "Including the same Dompdf bundle from the historical module in Billing installer..."
+              test -f includes/facturas/dompdf/autoload.inc.php
+              rm -rf "$module/includes/dompdf"
+              cp -a includes/facturas/dompdf "$module/includes/dompdf"
+            fi
+
+            package="/tmp/$module-installable.zip"
+            rm -f "$package"
+
+            echo "Preparando ZIP instalable para $module..."
+            zip -qr "$package" "$module" \
+              -x "$module/tests/*" \
+                 "$module/readme.txt" \
+                 "$module/*.md" \
+                 "$module/*.pot" \
+                 "$module/node_modules/*" \
+                 "$module/*.bak"
+
+            unzip -t "$package" >/dev/null
+            unzip -Z1 "$package" | grep -Fx "$module/$module.php" >/dev/null
+
+            lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          put "$package" -o "wp-content/uploads/taxocommerce-core/plugins/$module.zip"
+          bye
+          EOF
+
+            echo "$module: ZIP disponible en uploads/taxocommerce-core/plugins/$module.zip"
+            prepared=$((prepared + 1))
+          done
+
+          echo "ZIP de plugins no instalados preparados: $prepared"
+
       - name: Sincronizar cambios de todos los plugins TaxoCommerce instalados
         shell: bash
         env:
@@ -97,40 +216,27 @@ jobs:
           )
 
           if [ "${#installed_modules[@]}" -eq 0 ]; then
-            echo "No hay plugins TaxoCommerce modulares instalados para sincronizar en PRO."
+            echo "No hay plugins TaxoCommerce instalados para actualizar en PRO. Los ZIP de los no instalados ya se han preparado."
             exit 0
           fi
-          allowed_modules=(
-            taxocommerce-core
-            taxocommerce-images
-            taxocommerce-import-export
-            taxocommerce-database
-            taxocommerce-system-check
-            taxocommerce-templates
-            taxocommerce-dependiente
-            taxocommerce-faqs
-            taxocommerce-vocabulary
-            taxocommerce-google-bing
-            taxocommerce-auditor
-            taxocommerce-redirects
-            taxocommerce-logistica
-            taxocommerce-facturacion
+
+          mapfile -t allowed_modules < <(
+            python3 - <<'PY'
+          import json
+          import os
+          for module in json.loads(os.environ.get("ALL_MODULES_JSON", "[]")):
+              print(module)
+          PY
           )
 
-          is_allowed() {
-            local candidate="$1"
-            local allowed
-            for allowed in "${allowed_modules[@]}"; do
-              if [ "$candidate" = "$allowed" ]; then
-                return 0
-              fi
-            done
-            return 1
-          }
+          declare -A allowed_lookup=()
+          for module in "${allowed_modules[@]}"; do
+            allowed_lookup["$module"]=1
+          done
 
           for module in "${installed_modules[@]}"; do
-            if ! is_allowed "$module"; then
-              echo "::error::PRO devolvió un módulo no permitido: $module"
+            if [ -z "${allowed_lookup[$module]:-}" ]; then
+              echo "::error::PRO devolvió un módulo TaxoCommerce instalado que no existe correctamente en MAIN: $module"
               exit 1
             fi
 
@@ -139,7 +245,6 @@ jobs:
               exit 1
             fi
           done
-
           deploy_token="$(openssl rand -hex 32)"
           token_hash="$(printf '%s' "$deploy_token" | sha256sum | awk '{print $1}')"
           handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"

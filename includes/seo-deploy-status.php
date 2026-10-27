@@ -10,29 +10,34 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Known deployable TaxoCommerce sibling plugins.
+ * Return physically installed TaxoCommerce sibling plugins.
+ *
+ * Discovery is based on the canonical plugin layout:
+ * taxocommerce-slug/taxocommerce-slug.php. This avoids maintaining a second
+ * hard-coded family list that can drift from the repository and Core catalog.
  *
  * @return array
  */
 function seo_taxocommerce_known_deploy_modules() {
-	return array(
-		'taxocommerce-core'          => 'taxocommerce-core/taxocommerce-core.php',
-		'taxocommerce-images'        => 'taxocommerce-images/taxocommerce-images.php',
-		'taxocommerce-import-export' => 'taxocommerce-import-export/taxocommerce-import-export.php',
-		'taxocommerce-database'      => 'taxocommerce-database/taxocommerce-database.php',
-		'taxocommerce-system-check'  => 'taxocommerce-system-check/taxocommerce-system-check.php',
-		'taxocommerce-templates'     => 'taxocommerce-templates/taxocommerce-templates.php',
-		'taxocommerce-dependiente'   => 'taxocommerce-dependiente/taxocommerce-dependiente.php',
-		'taxocommerce-faqs'          => 'taxocommerce-faqs/taxocommerce-faqs.php',
-		'taxocommerce-vocabulary'    => 'taxocommerce-vocabulary/taxocommerce-vocabulary.php',
-		'taxocommerce-google-bing'   => 'taxocommerce-google-bing/taxocommerce-google-bing.php',
-		'taxocommerce-auditor'       => 'taxocommerce-auditor/taxocommerce-auditor.php',
-		'taxocommerce-redirects'     => 'taxocommerce-redirects/taxocommerce-redirects.php',
-		'taxocommerce-logistica'     => 'taxocommerce-logistica/taxocommerce-logistica.php',
-		'taxocommerce-facturacion'   => 'taxocommerce-facturacion/taxocommerce-facturacion.php',
-	);
-}
+	if ( ! function_exists( 'get_plugins' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
 
+	$plugins = get_plugins();
+	$known   = array();
+
+	foreach ( array_keys( $plugins ) as $plugin_file ) {
+		$plugin_file = wp_normalize_path( (string) $plugin_file );
+		if ( ! preg_match( '#^(taxocommerce-[a-z0-9-]+)/\\1\\.php$#', $plugin_file, $matches ) ) {
+			continue;
+		}
+
+		$known[ $matches[1] ] = $plugin_file;
+	}
+
+	ksort( $known, SORT_STRING );
+	return $known;
+}
 /**
  * Return known TaxoCommerce sibling plugins physically installed in WordPress.
  *
@@ -42,21 +47,7 @@ function seo_taxocommerce_known_deploy_modules() {
  * @return array
  */
 function seo_taxocommerce_installed_deploy_modules() {
-	if ( ! function_exists( 'get_plugins' ) ) {
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-	}
-
-	$known     = seo_taxocommerce_known_deploy_modules();
-	$installed = get_plugins();
-	$result    = array();
-
-	foreach ( $known as $slug => $plugin_file ) {
-		if ( isset( $installed[ $plugin_file ] ) ) {
-			$result[] = $slug;
-		}
-	}
-
-	return $result;
+	return array_keys( seo_taxocommerce_known_deploy_modules() );
 }
 
 /**
