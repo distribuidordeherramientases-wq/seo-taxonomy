@@ -137,18 +137,15 @@ final class TaxoCommerce_Google_Bing_Trends {
      * Official Google Trends Explore URL only. This does not fetch, scrape
      * or store arbitrary keyword-interest series on the WordPress server.
      */
-    public static function explore_link( $terms, $geo = '', $period = 'today 12-m' ) {
+    public static function explore_link( $terms, $geo = 'ES', $period = 'today 12-m' ) {
         $periods = array( 'now 7-d', 'today 1-m', 'today 3-m', 'today 12-m', 'today 5-y' );
         $period = in_array( $period, $periods, true ) ? $period : 'today 12-m';
-        $geo = is_scalar( $geo ) ? strtoupper( trim( (string) $geo ) ) : '';
+        // This Trends dashboard analyses only Spain; ignore legacy geo inputs.
         $arguments = array(
-            'q' => implode( ',', (array) $terms ),
+            'q'    => implode( ',', (array) $terms ),
             'date' => $period,
+            'geo'  => 'ES',
         );
-        // Absence of geo means worldwide. Never silently force Spain.
-        if ( preg_match( '/^[A-Z]{2}$/', $geo ) ) {
-            $arguments['geo'] = $geo;
-        }
         return add_query_arg( $arguments, 'https://trends.google.com/trends/explore' );
     }
 
@@ -164,12 +161,8 @@ final class TaxoCommerce_Google_Bing_Trends {
         if ( is_wp_error( $terms ) ) {
             wp_die( esc_html( $terms->get_error_message() ) );
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
-        $geo = isset( $_POST['explore_geo'] ) && is_string( $_POST['explore_geo'] )
-            ? strtoupper( trim( sanitize_text_field( wp_unslash( $_POST['explore_geo'] ) ) ) ) : '';
-        if ( '' !== $geo && ! preg_match( '/^[A-Z]{2}$/', $geo ) ) {
-            wp_die( esc_html__( 'Select a valid region.', 'taxocommerce-google-bing' ) );
-        }
+        // Spanish-only Trends; never accept country overrides from POST.
+        $geo = 'ES';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
         $period = isset( $_POST['explore_period'] ) && is_string( $_POST['explore_period'] )
             ? sanitize_text_field( wp_unslash( $_POST['explore_period'] ) ) : 'today 12-m';
@@ -189,11 +182,9 @@ final class TaxoCommerce_Google_Bing_Trends {
             TAXOCOMMERCE_GOOGLE_BING_VERSION,
             true
         );
-        $countries = self::countries();
-
         echo '<div class="tgb-trends">';
         echo '<h2>Google Trends</h2>';
-        echo '<p>Explore search interest for the terms you choose in the selected country and period. <strong>Click “Search trends” to display the charts below.</strong></p>';
+        echo '<p>Explore search interest in Spain for the selected terms and period. <strong>Click “Search trends” to display the charts below.</strong></p>';
 
         echo '<section class="tgb-trends-query">';
         echo '<form id="tgb-trends-search-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" target="_blank" rel="noopener noreferrer">';
@@ -205,13 +196,8 @@ final class TaxoCommerce_Google_Bing_Trends {
         echo '<p class="description">Enter one word or phrase per line, up to five. Results are shown only for those searches.</p>';
 
         echo '<div class="tgb-trends-controls">';
-        echo '<label for="tgb-trends-explore-geo"><strong>Region:</strong></label>';
-        echo '<select id="tgb-trends-explore-geo" name="explore_geo">';
-        echo '<option value="">Worldwide</option>';
-        foreach ( $countries as $code => $label ) {
-            echo '<option value="' . esc_attr( $code ) . '">' . esc_html( $label ) . '</option>';
-        }
-        echo '</select>';
+        echo '<span><strong>Región:</strong> España</span>';
+        echo '<input type="hidden" id="tgb-trends-explore-geo" name="explore_geo" value="ES">';
 
         echo '<label for="tgb-trends-explore-period"><strong>Period:</strong></label>';
         echo '<select id="tgb-trends-explore-period" name="explore_period">';
@@ -238,7 +224,7 @@ final class TaxoCommerce_Google_Bing_Trends {
         echo '<section id="tgb-trends-results" class="tgb-trends-results" aria-label="Google Trends results" hidden></section>';
         echo '<div id="tgb-trends-empty" class="tgb-trends-empty">';
         echo '<strong>No results for this query yet.</strong>';
-        echo '<p>Enter terms, choose a country and period, then click “Search trends”. No automatic query is made when opening this tab.</p>';
+        echo '<p>Enter terms and choose a period, then click “Search trends”. No automatic query is made when opening this tab.</p>';
         echo '</div>';
 
         echo '<p class="description tgb-trends-api"><strong>Source: </strong><a href="https://trends.google.com/trends/" target="_blank" rel="noopener noreferrer">Google Trends</a>. Embedded charts show relative interest indexes (0–100), not absolute volumes or store visits. Google may limit embedding for some charts. The <a href="https://developers.google.com/search/apis/trends" target="_blank" rel="noopener noreferrer">official API for downloadable series</a> remains in restricted alpha access.</p>';

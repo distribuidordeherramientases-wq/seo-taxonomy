@@ -33,6 +33,9 @@ jobs:
       - name: Verify Core content inventory before deploy
         run: php taxocommerce-core/tests/content-inventory-smoke.php
 
+      - name: Validate Extensions cards on Core home
+        run: php taxocommerce-core/tests/extensions-dashboard-smoke.php
+
       - name: Validate Redirects Open link in Core extension catalogue
         run: |
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone

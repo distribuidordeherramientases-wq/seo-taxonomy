@@ -31,7 +31,7 @@ foreach ( array( 'ES', 'DE', 'FR', 'NL', 'US' ) as $geo ) {
     ob_start();
     TaxoCommerce_Google_Bing_Trends::render();
     $output = ob_get_clean();
-    if ( false === strpos( $output, 'Search trends' ) || false === strpos( $output, 'tgb-trends-results' ) || false !== strpos( $output, 'Trending search' ) ) {
+    if ( false === strpos( $output, 'Search trends' ) || false === strpos( $output, 'tgb-trends-results' ) || false !== strpos( $output, 'Trending search' ) || false !== strpos( $output, 'Worldwide' ) || false === strpos( $output, 'name="explore_geo" value="ES"' ) ) {
         fwrite( STDERR, "Trends tab failed: $geo\n" );
         exit( 1 );
     }
@@ -50,7 +50,7 @@ if ( function_exists( 'simplexml_load_string' ) ) {
 $terms = TaxoCommerce_Google_Bing_Trends::parse_terms( "taladros a batería\namoladoras\ntaladros a batería" );
 if ( is_wp_error( $terms ) || count( $terms ) !== 2 ) { fwrite( STDERR, "Terms parsing failed\n" ); exit( 1 ); }
 $link = TaxoCommerce_Google_Bing_Trends::explore_link( $terms, '', 'today 12-m' );
-if ( strpos( $link, 'geo=' ) !== false || strpos( $link, 'trends/explore' ) === false ) { fwrite( STDERR, "Worldwide explore failed\n" ); exit( 1 ); }
+if ( strpos( $link, 'geo=ES' ) === false || strpos( $link, 'trends/explore' ) === false ) { fwrite( STDERR, "Spain-only explore failed\n" ); exit( 1 ); }
 $over = TaxoCommerce_Google_Bing_Trends::parse_terms( "a,b,c,d,e,f" );
 if ( ! is_wp_error( $over ) ) { fwrite( STDERR, "Limit failed\n" ); exit( 1 ); }
 echo "Trends smoke: OK - no remote call on rendering\n";

@@ -25,6 +25,9 @@ function get_transient( $k ) { global $fixture; return $fixture; }
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
 class WP_Error { private $message; public function __construct( $code, $message ) { $this->message = $message; } public function get_error_message() { return $this->message; } }
 
+// Standalone smoke: supply the Content route without booting WordPress or Core.
+class TaxoCommerce_Core_Content_Manager { const PAGE_SLUG = 'taxocommerce-core-content'; }
+
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-core-architecture-report.php';
 
 $roles = array(
@@ -93,7 +96,7 @@ $fixture['generated_at'] = 1792850400;
 ob_start();
 TaxoCommerce_Core_Architecture_Report::render();
 $html = ob_get_clean();
-foreach ( array( 'Distribución de la arquitectura SEO', 'Resumen por cluster', 'Detalle por cluster', 'Carpintería', 'Reparto por hub primario', 'Actualizar informe' ) as $needle ) {
+foreach ( array( 'Distribución de la arquitectura SEO', 'Distribución de la jerarquía SEO', 'Productos publicados por cluster', 'Resumen por cluster', 'Detalle por cluster', 'Carpintería', 'Reparto por hub primario', 'Actualizar informe' ) as $needle ) {
     if ( false === strpos( $html, $needle ) ) {
         fwrite( STDERR, "FAIL missing report content: $needle\n" );
         exit( 1 );
@@ -109,9 +112,9 @@ if ( false === strpos( $empty, 'No existen clusters publicados' ) ) {
     fwrite( STDERR, "FAIL empty state\n" ); exit( 1 );
 }
 $GLOBALS['tc_test_styles'] = array();
-TaxoCommerce_Core_Architecture_Report::enqueue_styles( 'taxocommerce-core_page_taxocommerce-core-reports' );
+TaxoCommerce_Core_Architecture_Report::enqueue_styles( 'taxocommerce-core_page_taxocommerce-core-content' );
 if ( ! in_array( 'taxocommerce-core-architecture', $GLOBALS['tc_test_styles'], true ) ) {
-    fwrite( STDERR, "FAIL Reports screen did not enqueue architecture CSS\n" );
+    fwrite( STDERR, "FAIL Content summary did not enqueue architecture CSS\n" );
     exit( 1 );
 }
 $GLOBALS['tc_test_styles'] = array();

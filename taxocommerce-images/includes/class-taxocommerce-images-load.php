@@ -23,8 +23,16 @@ final class TaxoCommerce_Images_Load {
 	 *
 	 * @return int
 	 */
-	public static function priority() {
-		return max( 1, min( 5, absint( get_option( self::PRIORITY_OPTION, self::DEFAULT_PRIORITY ) ) ) );
+	public static function priority( $process = 'generic' ) {
+		$process = self::process_key( $process );
+		$stored = get_option( self::PRIORITY_OPTION, self::DEFAULT_PRIORITY );
+		if ( is_array( $stored ) ) {
+			$value = isset( $stored[ $process ] ) ? $stored[ $process ] : ( $stored['default'] ?? self::DEFAULT_PRIORITY );
+		} else {
+			// Backward compatibility with the former single Images-wide priority.
+			$value = $stored;
+		}
+		return max( 1, min( 5, absint( $value ) ) );
 	}
 
 	/**
@@ -33,17 +41,21 @@ final class TaxoCommerce_Images_Load {
 	 * @param mixed $raw Submitted priority.
 	 * @return int|WP_Error
 	 */
-	public static function set_priority( $raw ) {
+	public static function set_priority( $raw, $process = 'generic' ) {
 		if ( ! is_scalar( $raw ) || ! preg_match( '/^[1-5]$/', trim( (string) $raw ) ) ) {
 			return new WP_Error( 'taxocommerce_images_priority_invalid', __( 'La prioridad debe estar entre 1 y 5.', 'taxocommerce-images' ) );
 		}
 
+		$process  = self::process_key( $process );
 		$priority = (int) $raw;
-		update_option( self::PRIORITY_OPTION, $priority, false );
-
-		foreach ( array( 'cleanup', 'labels' ) as $process ) {
-			update_option( self::batch_option( $process ), self::initial_batch( $process, $priority ), false );
+		$stored   = get_option( self::PRIORITY_OPTION, self::DEFAULT_PRIORITY );
+		if ( ! is_array( $stored ) ) {
+			$legacy = max( 1, min( 5, absint( $stored ) ) );
+			$stored = array( 'default' => $legacy );
 		}
+		$stored[ $process ] = $priority;
+		update_option( self::PRIORITY_OPTION, $stored, false );
+		update_option( self::batch_option( $process ), self::initial_batch( $process, $priority ), false );
 
 		return $priority;
 	}
@@ -84,8 +96,8 @@ final class TaxoCommerce_Images_Load {
 	 * @param int|null $priority Priority.
 	 * @return int Milliseconds.
 	 */
-	public static function delay_ms( $priority = null ) {
-		$priority = null === $priority ? self::priority() : max( 1, min( 5, absint( $priority ) ) );
+	public static function delay_ms( $process = 'generic', $priority = null ) {
+		$priority = null === $priority ? self::priority( $process ) : max( 1, min( 5, absint( $priority ) ) );
 		$delays = array( 1 => 15000, 2 => 8000, 3 => 4000, 4 => 2000, 5 => 1000 );
 		return $delays[ $priority ];
 	}
@@ -161,11 +173,13 @@ final class TaxoCommerce_Images_Load {
 		$query_now      = function_exists( 'get_num_queries' ) ? get_num_queries() : 0;
 		$queries        = max( 0, absint( $query_now ) - absint( $start['queries'] ?? 0 ) );
 
-		$current = self::batch_size( $process );
-		$next    = $current;
-		$target  = self::target_cpu();
+		$priority = self::priority( $process );
+		$current  = self::batch_size( $process );
+		$next     = $current;
+		$target   = self::target_cpu( $priority );
 
-		$reduce = $elapsed >= 20
+		$wall_target = array( 1 => 3.0, 2 => 4.5, 3 => 6.0, 4 => 8.0, 5 => 11.0 )[ $priority ];
+		$reduce = $elapsed >= $wall_target
 			|| ( null !== $memory_percent && $memory_percent >= 75 )
 			|| ( null !== $cpu && $cpu > ( $target + 10 ) );
 
@@ -184,8 +198,8 @@ final class TaxoCommerce_Images_Load {
 
 		$sample = array(
 			'process'        => $process,
-			'priority'       => self::priority(),
-			'label'          => self::label(),
+			'priority'       => $priority,
+			'label'          => self::label( $priority ),
 			'items'          => absint( $items ),
 			'batch'          => $current,
 			'next_batch'     => $next,
@@ -209,11 +223,13 @@ final class TaxoCommerce_Images_Load {
 	 * @return int
 	 */
 	private static function initial_batch( $process, $priority = null ) {
-		$priority = null === $priority ? self::priority() : max( 1, min( 5, absint( $priority ) ) );
 		$process  = self::process_key( $process );
+		$priority = null === $priority ? self::priority( $process ) : max( 1, min( 5, absint( $priority ) ) );
 
 		if ( 'cleanup' === $process ) {
 			$values = array( 1 => 1, 2 => 2, 3 => 3, 4 => 5, 5 => 8 );
+		} elseif ( 0 === strpos( $process, 'assignment_' ) ) {
+			$values = array( 1 => 1, 2 => 2, 3 => 4, 4 => 7, 5 => 12 );
 		} else {
 			$values = array( 1 => 5, 2 => 10, 3 => 20, 4 => 30, 5 => 40 );
 		}
@@ -228,11 +244,13 @@ final class TaxoCommerce_Images_Load {
 	 * @return int
 	 */
 	private static function max_batch( $process, $priority = null ) {
-		$priority = null === $priority ? self::priority() : max( 1, min( 5, absint( $priority ) ) );
 		$process  = self::process_key( $process );
+		$priority = null === $priority ? self::priority( $process ) : max( 1, min( 5, absint( $priority ) ) );
 
 		if ( 'cleanup' === $process ) {
 			$values = array( 1 => 3, 2 => 5, 3 => 10, 4 => 15, 5 => 25 );
+		} elseif ( 0 === strpos( $process, 'assignment_' ) ) {
+			$values = array( 1 => 2, 2 => 4, 3 => 8, 4 => 15, 5 => 25 );
 		} else {
 			$values = array( 1 => 10, 2 => 20, 3 => 35, 4 => 50, 5 => 75 );
 		}
@@ -246,9 +264,14 @@ final class TaxoCommerce_Images_Load {
 	 * @return int[]
 	 */
 	private static function levels( $process ) {
-		return 'cleanup' === self::process_key( $process )
-			? array( 1, 2, 3, 5, 8, 10, 15, 20, 25 )
-			: array( 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 75 );
+		$process = self::process_key( $process );
+		if ( 'cleanup' === $process ) {
+			return array( 1, 2, 3, 5, 8, 10, 15, 20, 25 );
+		}
+		if ( 0 === strpos( $process, 'assignment_' ) ) {
+			return array( 1, 2, 3, 4, 5, 7, 8, 10, 12, 15, 20, 25 );
+		}
+		return array( 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 75 );
 	}
 
 	private static function next_level( $process, $current ) {
