@@ -23,9 +23,9 @@ $checks = array(
     strpos( $exporter, "taxocommerce_import_export_export_runtime_seconds" ) !== false,
     strpos( $exporter, "_taxocommerce_core_parent_hub_secondary" ) !== false,
     strpos( $exporter, "category_scope_active" ) !== false,
-    strpos( $exporter, "array_filter( wp_unslash( $_POST['statuses'] ), 'is_scalar' )" ) !== false,
-    strpos( $exporter, "array_filter( wp_unslash( $_POST['category_ids'] ), 'is_scalar' )" ) !== false,
-    strpos( $exporter, "is_scalar( $_POST['cluster_id'] )" ) !== false,
+    strpos( $exporter, "array_filter( wp_unslash( \$_POST['statuses'] ), 'is_scalar' )" ) !== false,
+    strpos( $exporter, "array_filter( wp_unslash( \$_POST['category_ids'] ), 'is_scalar' )" ) !== false,
+    strpos( $exporter, "is_scalar( \$_POST['cluster_id'] )" ) !== false,
 
     strpos( $csv, "export_header_for_job" ) !== false,
     strpos( $csv, "export_row_for_job" ) !== false,
