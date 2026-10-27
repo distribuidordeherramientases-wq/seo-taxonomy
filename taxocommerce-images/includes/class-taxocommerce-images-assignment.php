@@ -29,6 +29,7 @@ final class TaxoCommerce_Images_Assignment {
 		add_action( 'admin_post_taxocommerce_images_assign_auto', array( __CLASS__, 'handle_assign_auto' ) );
 		add_action( 'admin_post_taxocommerce_images_assign_upload', array( __CLASS__, 'handle_assign_upload' ) );
 		add_action( 'admin_post_taxocommerce_images_assign_media', array( __CLASS__, 'handle_assign_media' ) );
+		add_action( 'wp_ajax_taxocommerce_images_assign_auto_batch', array( __CLASS__, 'ajax_assign_auto_batch' ) );
 	}
 
 	/**
@@ -680,6 +681,8 @@ final class TaxoCommerce_Images_Assignment {
 	public static function process_assignment_batch( $scope, $after_id = 0 ) {
 		if ( ! current_user_can( 'manage_options' ) || ! self::valid_scope( $scope ) ) { return new WP_Error( 'permission', 'Sin permisos o tipo no válido.' ); }
 		$after_id = absint( $after_id );
+		$process = self::process_key( $scope );
+		$limit = max( 1, min( self::BULK_LIMIT, TaxoCommerce_Images_Load::batch_size( $process ) ) );
 		$post_filter = static function ( $where, $query ) use ( $scope, $after_id ) {
 			global $wpdb;
 			if ( $scope === $query->get( 'post_type' ) && $query->get( 'meta_query' ) ) { $where .= $wpdb->prepare( " AND {$wpdb->posts}.ID > %d", $after_id ); }
@@ -697,7 +700,7 @@ final class TaxoCommerce_Images_Assignment {
 		add_filter( 'posts_where', $post_filter, 10, 2 );
 		add_filter( 'get_terms_args', $term_args, 10, 2 );
 		add_filter( 'terms_clauses', $term_filter, 10, 3 );
-		try { $report = self::missing( $scope, 1, self::BULK_LIMIT ); }
+		try { $report = self::missing( $scope, 1, $limit ); }
 		finally {
 			remove_filter( 'posts_where', $post_filter, 10 );
 			remove_filter( 'get_terms_args', $term_args, 10 );
@@ -710,21 +713,123 @@ final class TaxoCommerce_Images_Assignment {
 			if ( $candidates && self::apply( $scope, $item['id'], $candidates[0]['id'] ) ) { ++$assigned; }
 		}
 		$all = self::missing( $scope, 1, 1 );
-		return array( 'seen' => count( $report['items'] ), 'assigned' => $assigned, 'cursor' => $after_id, 'remaining' => $all['total'], 'done' => count( $report['items'] ) < self::BULK_LIMIT || 0 === $all['total'] );
+		return array( 'seen' => count( $report['items'] ), 'assigned' => $assigned, 'cursor' => $after_id, 'remaining' => $all['total'], 'done' => count( $report['items'] ) < $limit || 0 === $all['total'], 'batch' => $limit );
+	}
+
+	private static function process_key( $scope ) {
+		return 'assignment_' . sanitize_key( (string) $scope );
+	}
+
+	private static function state_option( $scope ) {
+		return 'taxocommerce_images_assignment_state_' . sanitize_key( (string) $scope );
+	}
+
+	public static function assignment_state( $scope ) {
+		if ( ! self::valid_scope( $scope ) ) {
+			return array();
+		}
+		$state = get_option( self::state_option( $scope ), array() );
+		return is_array( $state ) ? $state : array();
+	}
+
+	private static function save_assignment_state( $scope, $state ) {
+		update_option( self::state_option( $scope ), is_array( $state ) ? $state : array(), false );
+	}
+
+	public static function ajax_assign_auto_batch() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Sin permisos.', 'taxocommerce-images' ) ), 403 );
+		}
+		check_ajax_referer( 'taxocommerce_images_assignment', 'nonce' );
+
+		$scope = isset( $_POST['scope'] ) && is_scalar( $_POST['scope'] )
+			? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
+		$operation = isset( $_POST['operation'] ) && is_scalar( $_POST['operation'] )
+			? sanitize_key( wp_unslash( $_POST['operation'] ) ) : 'scan';
+
+		if ( ! self::valid_scope( $scope ) || ! in_array( $operation, array( 'start', 'scan' ), true ) ) {
+			wp_send_json_error( array( 'message' => __( 'Proceso de asignación no válido.', 'taxocommerce-images' ) ), 400 );
+		}
+
+		$process = self::process_key( $scope );
+		if ( ! TaxoCommerce_Images_Maintenance::lock( $process ) ) {
+			wp_send_json_error( array( 'message' => __( 'Este mismo grupo de asignación ya tiene un lote en curso.', 'taxocommerce-images' ) ), 409 );
+		}
+
+		$measurement = TaxoCommerce_Images_Load::begin();
+		try {
+			$state = self::assignment_state( $scope );
+			if ( 'start' === $operation || empty( $state ) || 'complete' === ( $state['status'] ?? '' ) ) {
+				$initial = self::missing( $scope, 1, 1 );
+				$state = array(
+					'run'          => wp_generate_uuid4(),
+					'scope'        => $scope,
+					'status'       => 'running',
+					'cursor'       => 0,
+					'total'        => absint( $initial['total'] ?? 0 ),
+					'seen'         => 0,
+					'assigned'     => 0,
+					'remaining'    => absint( $initial['total'] ?? 0 ),
+					'started_at'   => current_time( 'mysql' ),
+					'completed_at' => '',
+					'message'      => __( 'Asignación automática completa iniciada.', 'taxocommerce-images' ),
+				);
+				self::save_assignment_state( $scope, $state );
+			}
+
+			$result = self::process_assignment_batch( $scope, absint( $state['cursor'] ?? 0 ) );
+			if ( is_wp_error( $result ) ) {
+				throw new RuntimeException( $result->get_error_message() );
+			}
+
+			$state['cursor']    = absint( $result['cursor'] ?? 0 );
+			$state['seen']      = absint( $state['seen'] ?? 0 ) + absint( $result['seen'] ?? 0 );
+			$state['assigned']  = absint( $state['assigned'] ?? 0 ) + absint( $result['assigned'] ?? 0 );
+			$state['remaining'] = absint( $result['remaining'] ?? 0 );
+			$state['status']    = ! empty( $result['done'] ) ? 'complete' : 'running';
+			if ( 'complete' === $state['status'] ) {
+				$state['completed_at'] = current_time( 'mysql' );
+				$state['message'] = sprintf(
+					/* translators: 1: reviewed objects, 2: assigned images, 3: unresolved objects. */
+					__( 'Pasada completa: %1$d elementos revisados, %2$d imágenes asignadas y %3$d elementos permanecen sin candidato válido.', 'taxocommerce-images' ),
+					absint( $state['seen'] ),
+					absint( $state['assigned'] ),
+					absint( $state['remaining'] )
+				);
+			}
+			self::save_assignment_state( $scope, $state );
+			$sample = TaxoCommerce_Images_Load::finish( $process, $measurement, absint( $result['seen'] ?? 0 ) );
+
+			wp_send_json_success(
+				array(
+					'done'  => 'complete' === $state['status'],
+					'state' => $state,
+					'load'  => $sample,
+					'delay' => TaxoCommerce_Images_Load::delay_ms( $process ),
+				)
+			);
+		} catch ( Throwable $error ) {
+			wp_send_json_error( array( 'message' => sanitize_text_field( $error->getMessage() ) ), 400 );
+		} finally {
+			TaxoCommerce_Images_Maintenance::unlock( $process );
+		}
 	}
 
 	public static function handle_assign_auto() {
 		$data = self::guard( 'taxocommerce_images_assign_auto' );
+		$process = self::process_key( $data['scope'] );
 		$key = 'taxocommerce_images_assign_cursor_' . get_current_user_id() . '_' . $data['scope'];
+		$measurement = TaxoCommerce_Images_Load::begin();
 		$result = self::process_assignment_batch( $data['scope'], absint( get_transient( $key ) ) );
 		if ( is_wp_error( $result ) ) { self::redirect( $data['scope'], 'error', $result->get_error_message() ); }
+		$sample = TaxoCommerce_Images_Load::finish( $process, $measurement, absint( $result['seen'] ?? 0 ) );
 		if ( $result['done'] ) { delete_transient( $key ); } else { set_transient( $key, $result['cursor'], DAY_IN_SECONDS ); }
 		$message = sprintf(
-			/* translators: 1: reviewed objects, 2: assigned images, 3: all remaining objects. */
-			__( 'Revisados: %1$d. Asignados: %2$d. Pendientes totales: %3$d.', 'taxocommerce-images' ),
-			$result['seen'], $result['assigned'], $result['remaining']
+			/* translators: 1: reviewed objects, 2: assigned images, 3: all remaining objects, 4: next batch. */
+			__( 'Revisados: %1$d. Asignados: %2$d. Pendientes totales: %3$d. Siguiente lote regulado: %4$d.', 'taxocommerce-images' ),
+			$result['seen'], $result['assigned'], $result['remaining'], absint( $sample['next_batch'] ?? 0 )
 		);
-		$message .= $result['done'] ? ' Pasada terminada; los casos sin imagen propia siguen pendientes.' : ' El siguiente clic continúa con el siguiente lote.';
+		$message .= $result['done'] ? ' Pasada terminada; los casos sin imagen propia siguen pendientes.' : ' El siguiente clic continúa con el siguiente lote regulado.';
 		self::redirect( $data['scope'], 'ok', $message );
 	}
 
