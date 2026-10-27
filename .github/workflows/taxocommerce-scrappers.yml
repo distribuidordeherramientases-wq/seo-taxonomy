@@ -1,0 +1,97 @@
+name: Build and Deploy TaxoCommerce Scrappers to STAGING
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-scrappers/**'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
+      - '.github/workflows/taxocommerce-scrappers.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-scrappers/**'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
+      - '.github/workflows/taxocommerce-scrappers.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: PHP syntax
+        run: find taxocommerce-scrappers -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Scrappers smoke
+        run: php taxocommerce-scrappers/tests/smoke.php
+
+      - name: Verify standalone package
+        run: |
+          set -euo pipefail
+          test -s taxocommerce-scrappers/taxocommerce-scrappers.php
+          test -s taxocommerce-scrappers/includes/ojeador/ojeador-bootstrap.php
+          test -s taxocommerce-scrappers/includes/ojeador/class-ojeador-shopping.php
+          test -s taxocommerce-scrappers/includes/ingeniero/ingeniero-bootstrap.php
+          test -s taxocommerce-scrappers/includes/ingeniero/class-seo-ingeniero-search.php
+          ! grep -R -n "SEO_SYSTEM_URL\|SEO_SYSTEM_PATH" taxocommerce-scrappers --include='*.php'
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package local ZIP
+        run: |
+          rm -rf build-scrappers-package
+          mkdir -p build-scrappers-package
+          zip -qr build-scrappers-package/taxocommerce-scrappers.zip taxocommerce-scrappers             -x 'taxocommerce-scrappers/tests/*'                'taxocommerce-scrappers/**/*.bak'                'taxocommerce-scrappers/**/*.md'
+          unzip -t build-scrappers-package/taxocommerce-scrappers.zip
+
+      - name: Upload Scrappers ZIP to Core local repository
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./build-scrappers-package/
+          server-dir: ./wp-content/uploads/taxocommerce-core/plugins/
+          dry-run: false
+          log-level: standard
+
+      - name: Deploy Scrappers plugin to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-scrappers/
+          server-dir: ./wp-content/plugins/taxocommerce-scrappers/
+          dry-run: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
