@@ -664,31 +664,129 @@ final class TCD_Sources {
                 $facts['features'] = self::product_features( $id, $product );
             }
             if ( 9 === $lesson ) {
-                $category_names = wp_get_post_terms( $id, 'product_cat', array( 'fields'=>'names' ) );
-                $category_label = ! is_wp_error( $category_names ) && $category_names ? (string) $category_names[0] : 'herramientas';
-                $need_parts = array();
-                foreach ( array( 'tipo','aplicacion','plataforma','subtipo','rol' ) as $group ) {
-                    if ( ! empty( $facts['vocabulary'][ $group ][0]['label'] ) ) {
-                        $need_parts[] = (string) $facts['vocabulary'][ $group ][0]['label'];
+                // Prefer the most specific assigned category. Never use the
+                // temporary "Nuevos productos" bucket in customer language.
+                $category_label = 'herramientas';
+                $category_depth = -1;
+                $categories = wp_get_post_terms( $id, 'product_cat', array( 'fields'=>'all' ) );
+                if ( ! is_wp_error( $categories ) ) {
+                    foreach ( (array) $categories as $category ) {
+                        if ( ! $category instanceof WP_Term ) continue;
+                        if ( 'nuevos-productos' === sanitize_title( (string) $category->name ) ) continue;
+                        $depth = $category->parent ? 1 : 0;
+                        if ( $depth > $category_depth ) {
+                            $category_label = (string) $category->name;
+                            $category_depth = $depth;
+                        }
                     }
                 }
-                foreach ( array_slice( (array) ( $facts['features']['attribute_labels'] ?? array() ), 0, 2, true ) as $label => $values ) {
-                    $value = is_array( $values ) ? reset( $values ) : '';
-                    if ( '' !== trim( (string) $value ) ) {
-                        $need_parts[] = trim( (string) $label . ' ' . (string) $value );
-                    }
-                }
-                $need_parts = array_values( array_unique( array_filter( array_map( 'trim', $need_parts ) ) ) );
-                $facts['customer_need'] = trim(
-                    'Necesito ' . $category_label
-                    . ( $need_parts ? ' para ' . implode( ', ', array_slice( $need_parts, 0, 4 ) ) : '' )
+                $need = self::customer_need_for_product(
+                    $category_label,
+                    (array) $facts['vocabulary'],
+                    (array) $facts['features'],
+                    $title
                 );
+                $facts['customer_need'] = $need['query'];
+                $facts['customer_need_scope'] = $need['scope'];
+                $facts['customer_need_qualifiers'] = $need['qualifiers'];
             }
             $body = (string) $product->get_short_description() . ' ' . $body;
         }
         return self::item( $lesson, $post->post_type, $id, $title, $body, $facts );
     }
 
+
+    /**
+     * Build an independent customer need, not a copy of the product title.
+     * Generic family requests and product-specific requests must have different
+     * evaluation criteria; only source-backed attributes and model/dimension
+     * qualifiers make a request specific.
+     */
+    public static function customer_need_for_product( $category, $vocabulary, $features, $title ) {
+        $labels = array();
+        foreach ( array( 'subtipo', 'tipo', 'aplicacion', 'plataforma' ) as $group ) {
+            foreach ( array_slice( (array) ( $vocabulary[ $group ] ?? array() ), 0, 1 ) as $row ) {
+                if ( ! is_array( $row ) ) continue;
+                $label = trim( (string) ( $row['label'] ?? $row['name'] ?? '' ) );
+                if ( '' !== $label ) $labels[ $group ] = $label;
+            }
+        }
+
+        $category = trim( (string) $category );
+        $focus = (string) ( $labels['subtipo'] ?? $labels['tipo'] ?? ( $category ?: 'herramientas' ) );
+        $query = 'Busco ' . $focus;
+        if ( '' !== $category && 'herramientas' !== $category
+            && sanitize_title( $category ) !== sanitize_title( $focus )
+            && 'nuevos-productos' !== sanitize_title( $category ) ) {
+            $query .= ' de ' . $category;
+        }
+
+        $application = trim( (string) ( $labels['aplicacion'] ?? '' ) );
+        $platform = trim( (string) ( $labels['plataforma'] ?? '' ) );
+        if ( '' !== $application && sanitize_title( $application ) !== sanitize_title( $focus ) ) {
+            $query .= ' para ' . $application;
+        }
+        if ( '' !== $platform && sanitize_title( $platform ) !== sanitize_title( $focus )
+            && sanitize_title( $platform ) !== sanitize_title( $application ) ) {
+            $query .= ' compatible con ' . $platform;
+        }
+
+        $details = array();
+        foreach ( (array) ( $features['attribute_labels'] ?? array() ) as $name => $values ) {
+            foreach ( array_slice( (array) $values, 0, 1 ) as $value ) {
+                $text = trim( (string) $name . ' ' . (string) $value );
+                if ( '' !== trim( (string) $value ) && ! in_array( $text, $details, true ) ) {
+                    $details[] = $text;
+                }
+            }
+            if ( count( $details ) >= 2 ) break;
+        }
+
+        $qualifiers = self::product_qualifiers( $title );
+        foreach ( $qualifiers as $qualifier ) {
+            $already_in_details = false;
+            foreach ( $details as $detail ) {
+                if ( false !== stripos( $detail, $qualifier ) ) {
+                    $already_in_details = true;
+                    break;
+                }
+            }
+            if ( ! $already_in_details ) $details[] = $qualifier;
+        }
+
+        // Avoid memorizing the title/SKU and avoid imposing exact-product
+        // retrieval when the original need only describes a whole family.
+        $details = array_slice( array_values( array_unique( $details ) ), 0, 4 );
+        if ( $details ) $query .= ' con ' . implode( ', ', $details );
+        return array(
+            'query'=>sanitize_text_field( $query ),
+            'scope'=>$details ? 'product' : 'family',
+            'qualifiers'=>$qualifiers,
+        );
+    }
+
+    /**
+     * Quantities, dimensions and model codes from a title, independent of the
+     * category/role boilerplate. Small bounded output for shared L9 matching.
+     */
+    public static function product_qualifiers( $title ) {
+        $title = wp_strip_all_tags( (string) $title );
+        $patterns = array(
+            '/\b\d+(?:[,.]\d+)?(?:\s*[x×]\s*\d+(?:[,.]\d+)?){1,2}\s*(?:mm|cm|m)?\b/iu',
+            '/\b\d+(?:[,.]\d+)?\s*(?:mm²|mm2|mm|cm|kg|kw|mah|rpm|psi|hp|ah|ml|piezas?|unidades?|pines?|pcs|w|v|l)\b/iu',
+            '/\b[A-Z]{1,4}-?\d{2,}[A-Z0-9-]*\b/u',
+        );
+        $found = array();
+        foreach ( $patterns as $pattern ) {
+            if ( ! preg_match_all( $pattern, $title, $matches ) ) continue;
+            foreach ( (array) $matches[0] as $match ) {
+                $match = trim( preg_replace( '/\s+/u', ' ', (string) $match ) );
+                if ( '' !== $match && ! in_array( $match, $found, true ) ) $found[] = $match;
+                if ( count( $found ) >= 3 ) return $found;
+            }
+        }
+        return $found;
+    }
 
     public static function faq_owner( $post ) {
         $filtered = apply_filters( 'taxocommerce_dependiente_faq_owner', null, $post );
