@@ -433,7 +433,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$type    = sanitize_key( (string) ( $state['type'] ?? '' ) );
 		$filters = is_array( $state['filters'] ?? null ) ? $state['filters'] : array();
 		$cursor  = absint( $state['cursor'] ?? 0 );
-		$limit   = max( 10, min( 250, absint( apply_filters( 'taxocommerce_import_export_export_rows_per_block', 100 ) ) ) );
+		$limit   = max( 10, min( 250, absint( apply_filters( 'taxocommerce_import_export_export_rows_per_block', 50 ) ) ) );
 		$seconds = max( 2, min( 15, (float) apply_filters( 'taxocommerce_import_export_export_runtime_seconds', 6 ) ) );
 		$deadline = microtime( true ) + $seconds;
 
