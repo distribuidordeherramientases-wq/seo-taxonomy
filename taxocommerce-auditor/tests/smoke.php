@@ -258,4 +258,9 @@ verify( false === strpos( $faq_sql_source, 'FROM {$table}' ), 'FAQ queries use p
 verify( false !== strpos( $faq_sql_source, "'SELECT COUNT(*) FROM %i WHERE active=1'" ), 'FAQ count uses WordPress identifier placeholder' );
 verify( false !== strpos( $context_sql_source, 'FROM %i' ), 'context provider identifiers prepared' );
 
+$admin_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-admin.php' );
+verify( false !== strpos( $admin_source, "is_string( $_POST['search'] )" ), 'POST search validates scalar before sanitizing' );
+verify( false !== strpos( $admin_source, "is_scalar( $_POST['category_id'] )" ), 'POST category ID ignores malformed arrays' );
+verify( false !== strpos( $admin_source, "is_scalar( $_POST['rows'] )" ), 'POST row count ignores malformed arrays' );
+
 echo "TaxoCommerce Auditor native parity smoke tests passed.\n";
