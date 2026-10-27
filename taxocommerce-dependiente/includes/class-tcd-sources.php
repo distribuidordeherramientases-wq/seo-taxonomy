@@ -686,6 +686,7 @@ final class TCD_Sources {
                     (array) $facts['features'],
                     $title
                 );
+                $facts['customer_need_category'] = $category_label;
                 $facts['customer_need'] = $need['query'];
                 $facts['customer_need_scope'] = $need['scope'];
                 $facts['customer_need_qualifiers'] = $need['qualifiers'];
@@ -702,6 +703,59 @@ final class TCD_Sources {
      * evaluation criteria; only source-backed attributes and model/dimension
      * qualifiers make a request specific.
      */
+    /**
+     * Rebuild L9 evaluation language from the *sealed* knowledge snapshot.
+     * Historical rows kept customer_need="Necesito ..." even after the
+     * generator changed. Reading that stale sentence prevented the new
+     * evaluation/ranking from being exercised.
+     *
+     * This method deliberately does not read live product data or write to
+     * WordPress; the same snapshot gives the same independent query.
+     */
+    public static function customer_need_from_facts( $facts, $title ) {
+        $facts = is_array( $facts ) ? $facts : array();
+        $title = (string) $title;
+        $category = trim( (string) ( $facts['customer_need_category'] ?? '' ) );
+        if ( '' === $category || 'nuevos-productos' === sanitize_title( $category ) ) {
+            $category = '';
+            $best = -1;
+            foreach ( (array) ( $facts['categories_detail'] ?? array() ) as $term ) {
+                if ( ! is_array( $term ) || 'product_cat' !== (string) ( $term['taxonomy'] ?? 'product_cat' ) ) continue;
+                $name = trim( (string) ( $term['name'] ?? '' ) );
+                if ( '' === $name || 'nuevos-productos' === sanitize_title( $name ) ) continue;
+                $score = self::need_label_overlap( $name, $title );
+                if ( $score > $best ) {
+                    $best = $score;
+                    $category = $name;
+                }
+            }
+        }
+        if ( '' === $category ) $category = 'herramientas';
+        return self::customer_need_for_product(
+            $category,
+            (array) ( $facts['vocabulary'] ?? array() ),
+            (array) ( $facts['features'] ?? array() ),
+            $title
+        );
+    }
+
+    /**
+     * Prefer the product's real function to a generic Vocabulary label.
+     * Scores use only source text and source classifications, not exam IDs.
+     */
+    private static function need_label_overlap( $label, $title ) {
+        $title_tokens = array_fill_keys( array_filter( explode( '-', sanitize_title( (string) $title ) ) ), true );
+        $ignore = array_flip( array( 'de', 'del', 'la', 'el', 'los', 'las', 'y', 'para',
+            'con', 'una', 'uno', 'vevor', 'kit', 'juego', 'herramienta', 'herramientas',
+            'equipo', 'equipamiento', 'producto', 'accesorio', 'accesorios' ) );
+        $matched = 0;
+        foreach ( explode( '-', sanitize_title( (string) $label ) ) as $token ) {
+            if ( strlen( $token ) < 4 || isset( $ignore[ $token ] ) ) continue;
+            if ( isset( $title_tokens[ $token ] ) ) $matched++;
+        }
+        return $matched;
+    }
+
     public static function customer_need_for_product( $category, $vocabulary, $features, $title ) {
         $labels = array();
         foreach ( array( 'subtipo', 'tipo', 'aplicacion', 'plataforma' ) as $group ) {
@@ -714,6 +768,21 @@ final class TCD_Sources {
 
         $category = trim( (string) $category );
         $focus = (string) ( $labels['subtipo'] ?? $labels['tipo'] ?? ( $category ?: 'herramientas' ) );
+        $focus_score = self::need_label_overlap( $focus, $title );
+        foreach ( array( 'tipo', 'subtipo' ) as $group ) {
+            $candidate = (string) ( $labels[ $group ] ?? '' );
+            $candidate_score = self::need_label_overlap( $candidate, $title );
+            if ( '' !== $candidate && $candidate_score > $focus_score ) {
+                $focus = $candidate;
+                $focus_score = $candidate_score;
+            }
+        }
+        // Incorrect or overly broad Vocabulary sometimes says "kit" while
+        // the archived category and title describe a specific tool family.
+        $category_score = self::need_label_overlap( $category, $title );
+        if ( 'herramientas' !== $category && $category_score > $focus_score ) {
+            $focus = $category;
+        }
         $query = 'Busco ' . $focus;
         if ( '' !== $category && 'herramientas' !== $category
             && sanitize_title( $category ) !== sanitize_title( $focus )
@@ -754,13 +823,27 @@ final class TCD_Sources {
             if ( ! $already_in_details ) $details[] = $qualifier;
         }
 
-        // Avoid memorizing the title/SKU and avoid imposing exact-product
-        // retrieval when the original need only describes a whole family.
+        // Attributes such as colour or material are useful language but
+        // cannot by themselves identify one SKU among equivalent products.
+        $specific = (bool) $qualifiers;
+        if ( ! $specific ) {
+            foreach ( (array) ( $features['attribute_labels'] ?? array() ) as $name => $values ) {
+                foreach ( (array) $values as $value ) {
+                    if ( preg_match( '/[0-9]/u', (string) $value )
+                        || preg_match( '/modelo|referencia|compatib|talla/iu', (string) $name ) ) {
+                        $specific = true;
+                        break 2;
+                    }
+                }
+            }
+        }
+        // No complete title, SKU or expected product ID is ever injected
+        // into the test query, so product-level retrieval remains meaningful.
         $details = array_slice( array_values( array_unique( $details ) ), 0, 4 );
         if ( $details ) $query .= ' con ' . implode( ', ', $details );
         return array(
             'query'=>sanitize_text_field( $query ),
-            'scope'=>$details ? 'product' : 'family',
+            'scope'=>$specific ? 'product' : 'family',
             'qualifiers'=>$qualifiers,
         );
     }
@@ -773,7 +856,7 @@ final class TCD_Sources {
         $title = wp_strip_all_tags( (string) $title );
         $patterns = array(
             '/\b\d+(?:[,.]\d+)?(?:\s*[x×]\s*\d+(?:[,.]\d+)?){1,2}\s*(?:mm|cm|m)?\b/iu',
-            '/\b\d+(?:[,.]\d+)?\s*(?:mm²|mm2|mm|cm|kg|kw|mah|rpm|psi|hp|ah|ml|piezas?|unidades?|pines?|pcs|w|v|l)\b/iu',
+            '/\b\d+(?:[,.]\d+)?\s*(?:mm²|mm2|mm|cm|kg|kw|mah|rpm|psi|hp|ah|ml|piezas?|unidades?|pines?|pcs|hz|bar|w|v|l|m|g|t|a)\b/iu',
             '/\b[A-Z]{1,4}-?\d{2,}[A-Z0-9-]*\b/u',
         );
         $found = array();

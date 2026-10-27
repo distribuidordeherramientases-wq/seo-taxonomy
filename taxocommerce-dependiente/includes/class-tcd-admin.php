@@ -161,6 +161,15 @@ final class TCD_Admin {
         echo 'Se evaluaron '.esc_html(number_format_i18n(absint($report['evaluated']??0))).' casos y ';
         echo esc_html(number_format_i18n(absint($report['failed']??0))).' quedaron fuera del Top-8.</p>';
 
+        if(9===absint($lesson)){
+            $origin_counts=(array)($report['query_origins']??array());
+            $rebuilt=absint($origin_counts['snapshot_facts']??0);
+            $legacy=absint($origin_counts['legacy_missing_facts']??0);
+            echo '<p><strong>Preguntas de examen regeneradas desde la foto fija:</strong> '.esc_html(number_format_i18n($rebuilt));
+            echo ' · <strong>sin hechos suficientes (legacy):</strong> '.esc_html(number_format_i18n($legacy)).'.</p>';
+            echo '<p class="description">Se mantienen los datos aprendidos y el umbral del 88 %. Una pregunta genérica evalúa la familia; las necesidades con medidas o modelo evalúan la referencia concreta.</p>';
+        }
+
         echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0">';
         foreach(array(
             'datos_fuente'=>'Datos fuente',
