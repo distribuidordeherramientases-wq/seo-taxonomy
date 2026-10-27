@@ -7,17 +7,7 @@ Requires PHP: 7.4
 Stable tag: 0.2.0
 License: MIT
 
-WooCommerce shipping weight, dimensions, and delivery-cost management.
-
-TaxoCommerce Logistics now owns only the shipping domain:
-* Active-order weight audit.
-* Missing product-weight detection.
-* Shipping method and charged shipping cost visibility.
-* Destination, subtotal, weight, dimensions, and volume rules.
-* Fixed, per-kg, and per-unit shipping costs.
-* Shipping rule import/export.
-
-Supplier matching, supplier purchase URLs, and sale-to-supplier procurement live in TaxoCommerce Suppliers → Purchasing.
+Manage shipping costs, package weight and dimensions in WooCommerce with manual rules and shipment audits.
 
 == Description ==
 
