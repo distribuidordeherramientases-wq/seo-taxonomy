@@ -13,7 +13,7 @@ final class TCD_Intelligence {
     const DB_OPTION = 'tcd_intelligence_db_version';
     const INTERPRETER_STATE = 'tcd_interpreter_state';
     const QUALITY_PROGRESS = 'tcd_quality_eval_progress';
-    const QUALITY_PROGRESS_VERSION = 2;
+    const QUALITY_PROGRESS_VERSION = 3;
     const L2_IDENTITY_BACKFILL = 'tcd_l2_identity_backfill';
     const MAX_SIGNALS_PER_PRODUCT = 32;
 
@@ -995,19 +995,56 @@ final class TCD_Intelligence {
         }
 
         $pos = array_search( $id, $ids, true );
-        $rank = false === $pos ? 0 : $pos + 1;
+        $exact_rank = false === $pos ? 0 : $pos + 1;
+        $rank = $exact_rank;
+        $family_rank = 0;
+        // Family language cannot identify one arbitrarily selected SKU.
+        // Report the strict product rank as a diagnostic, and evaluate family
+        // suitability independently from the product-specific quality gate.
+        if ( 9 === $lesson && 'family' === (string) ( $facts['customer_need_scope'] ?? '' ) ) {
+            $family_rank = self::l9_family_rank( $ids, $facts, $stage );
+            if ( $family_rank > 0 ) $rank = $family_rank;
+        }
         return array(
             'source_type'=>sanitize_key( (string) ( $row['source_type'] ?? '' ) ),
             'source_id'=>$id,
             'title'=>$title,
             'query'=>$query,
             'rank'=>$rank,
+            'exact_rank'=>$exact_rank,
+            'family_rank'=>$family_rank,
+            'need_scope'=>9 === $lesson ? (string) ( $facts['customer_need_scope'] ?? 'legacy' ) : 'identity',
             'top1'=>1 === $rank,
             'top3'=>$rank > 0 && $rank <= 3,
             'top8'=>$rank > 0 && $rank <= 8,
             'observed_ids'=>array_values( array_slice( $ids, 0, 8 ) ),
             'observed'=>self::observed_labels( (string) ( $row['source_type'] ?? '' ), $ids ),
         );
+    }
+
+    private static function l9_family_rank( $ids, $facts, $stage ) {
+        $family = (array) ( $facts['vocabulary'] ?? array() );
+        $groups = array();
+        foreach ( array( 'subtipo', 'tipo' ) as $group ) {
+            foreach ( array_slice( (array) ( $family[ $group ] ?? array() ), 0, 1 ) as $row ) {
+                if ( ! is_array( $row ) ) continue;
+                $slug = sanitize_title( (string) ( $row['slug'] ?? $row['label'] ?? '' ) );
+                if ( $slug ) $groups[] = array( 'group'=>$group, 'slug'=>$slug );
+            }
+        }
+        if ( ! $groups ) return 0;
+        $candidate_ids = array_slice( array_values( array_filter( array_map( 'absint', (array) $ids ) ) ), 0, 8 );
+        if ( ! $candidate_ids ) return 0;
+        $matched = array();
+        // One bounded membership query per semantic group, not per result.
+        foreach ( $groups as $group ) {
+            $members = self::products_for_vocabulary( $group['group'], $group['slug'], 8, $candidate_ids );
+            foreach ( $members as $member ) $matched[ absint( $member ) ] = true;
+        }
+        foreach ( $candidate_ids as $offset => $product_id ) {
+            if ( isset( $matched[ $product_id ] ) ) return $offset + 1;
+        }
+        return 0;
     }
 
     private static function observed_labels( $source_type, $ids ) {
@@ -2497,13 +2534,17 @@ final class TCD_Intelligence {
             if ( 0 !== $cmp ) return $cmp;
             $coverage_a = count( (array) ( $a['semantic_groups'] ?? array() ) );
             $coverage_b = count( (array) ( $b['semantic_groups'] ?? array() ) );
+            $cmp = absint( $b['l9_strength'] ?? 0 ) <=> absint( $a['l9_strength'] ?? 0 );
+            if ( 0 !== $cmp ) return $cmp;
+            $cmp = (float) ( $b['score'] ?? 0 ) <=> (float) ( $a['score'] ?? 0 );
+            if ( 0 !== $cmp ) return $cmp;
             $cmp = $coverage_b <=> $coverage_a;
             if ( 0 !== $cmp ) return $cmp;
             $cmp = absint( $b['l9_matched'] ?? 0 ) <=> absint( $a['l9_matched'] ?? 0 );
             if ( 0 !== $cmp ) return $cmp;
             $cmp = (float) ( $b['score'] ?? 0 ) <=> (float) ( $a['score'] ?? 0 );
             if ( 0 !== $cmp ) return $cmp;
-            return absint( $b['id'] ?? 0 ) <=> absint( $a['id'] ?? 0 );
+            return absint( $a['id'] ?? 0 ) <=> absint( $b['id'] ?? 0 );
         } );
 
         $out = array();
@@ -2900,7 +2941,7 @@ final class TCD_Intelligence {
         ) ) );
     }
 
-    private static function products_for_vocabulary( $group, $slug, $limit ) {
+    private static function products_for_vocabulary( $group, $slug, $limit, $specific_ids = array() ) {
         global $wpdb;
         $group = sanitize_key( $group );
         $slug = sanitize_title( $slug );
@@ -2913,8 +2954,17 @@ final class TCD_Intelligence {
             $group, $slug, str_replace( '-', '_', $slug )
         ) ) );
         if ( ! $vocabulary_id ) return array();
+        if ( $specific_ids ) {
+            $specific_ids = array_values( array_filter( array_unique( array_map( 'absint', $specific_ids ) ) ) );
+            if ( ! $specific_ids ) return array();
+            $placeholders = implode( ',', array_fill( 0, count( $specific_ids ), '%d' ) );
+            return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
+                "SELECT object_id FROM {$rel} WHERE object_type='product' AND status=1 AND vocabulary_id=%d AND object_id IN ({$placeholders}) LIMIT %d",
+                array_merge( array( $vocabulary_id ), $specific_ids, array( absint( $limit ) ) )
+            ) ) );
+        }
         return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-            "SELECT object_id FROM {$rel} WHERE object_type='product' AND status=1 AND vocabulary_id=%d ORDER BY object_id DESC LIMIT %d",
+            "SELECT object_id FROM {$rel} WHERE object_type='product' AND status=1 AND vocabulary_id=%d ORDER BY object_id ASC LIMIT %d",
             $vocabulary_id, absint( $limit )
         ) ) );
     }
