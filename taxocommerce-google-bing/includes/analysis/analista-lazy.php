@@ -91,7 +91,7 @@ if (!function_exists('seo_analista_lazy_render_shell')) {
             'seo-analista-lazy',
             plugins_url('assets/analista-lazy.js', __FILE__),
             array('jquery'),
-            SEO_SYSTEM_VERSION,
+            TAXOCOMMERCE_GOOGLE_BING_VERSION,
             true
         );
         wp_add_inline_script(
