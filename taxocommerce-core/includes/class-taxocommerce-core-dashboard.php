@@ -24,7 +24,7 @@ final class TaxoCommerce_Core_Dashboard {
 	 * @param bool  $woocommerce Whether WooCommerce is loaded.
 	 * @return void
 	 */
-	public static function render( $modules, $legacy, $woocommerce ) {
+	public static function render( $modules, $legacy, $woocommerce, $extensions_renderer = null ) {
 		$modules     = is_array( $modules ) ? $modules : array();
 		$legacy      = (bool) $legacy;
 		$woocommerce = (bool) $woocommerce;
@@ -81,44 +81,9 @@ final class TaxoCommerce_Core_Dashboard {
 				'tone'        => 'info',
 				'slug'        => 'taxocommerce-core-menu',
 			),
-			array(
-				'title'       => __( 'Extensiones', 'taxocommerce-core' ),
-				'icon'        => 'dashicons-admin-plugins',
-				'description' => __( 'Descubre y administra los módulos de la familia TaxoCommerce de forma independiente.', 'taxocommerce-core' ),
-				'state'       => __( 'Sistema modular', 'taxocommerce-core' ),
-				'tone'        => 'purple',
-				'slug'        => 'taxocommerce-core-modules',
-			),
-
 		);
 
-		$migration = array(
-			array(
-				'name' => __( 'Contenidos', 'taxocommerce-core' ),
-				'old'  => __( 'Edición de productos, categorías, entradas y páginas distribuida entre WordPress, WooCommerce y TaxoCommerce.', 'taxocommerce-core' ),
-				'state'=> __( 'Piloto funcional', 'taxocommerce-core' ),
-				'tone' => 'success',
-			),
-			array(
-				'name' => __( 'Jerarquía SEO', 'taxocommerce-core' ),
-				'old'  => __( 'Cluster → Hub primario → Hub secundario → Categoría → Producto y sus relaciones.', 'taxocommerce-core' ),
-				'state'=> __( 'Modelo nativo del Core', 'taxocommerce-core' ),
-				'tone' => 'info',
-			),
-			array(
-				'name' => __( 'Gestor de menús', 'taxocommerce-core' ),
-				'old'  => __( 'Menu Manager, jerarquía SEO y menús nativos de WordPress.', 'taxocommerce-core' ),
-				'state'=> __( 'Migrado al Core', 'taxocommerce-core' ),
-				'tone' => 'info',
-			),
-			array(
-				'name' => __( 'Extensiones', 'taxocommerce-core' ),
-				'old'  => __( 'Imágenes, Vocabulary, Auditor, Mercado, Proveedores y otros módulos del monolito.', 'taxocommerce-core' ),
-				'state'=> __( 'Sistema modular', 'taxocommerce-core' ),
-				'tone' => 'purple',
-			),
 
-		);
 		?>
 		<div class="wrap tcc-dashboard" id="taxocommerce-core-dashboard">
 			<header class="tcc-hero" aria-labelledby="tcc-dashboard-title">
@@ -175,33 +140,9 @@ final class TaxoCommerce_Core_Dashboard {
 				</div>
 			</section>
 
-			<section class="tcc-migration" aria-labelledby="tcc-migration-title">
-				<div class="tcc-migration__header">
-					<span class="dashicons dashicons-list-view" aria-hidden="true"></span>
-					<h2 id="tcc-migration-title"><?php esc_html_e( 'Mapa de migración', 'taxocommerce-core' ); ?></h2>
-					<p><?php esc_html_e( 'Correspondencias del plugin actual con el nuevo Core. Los estados indican el avance real de cada módulo.', 'taxocommerce-core' ); ?></p>
-				</div>
-				<div class="tcc-table-scroll" role="region" aria-label="<?php esc_attr_e( 'Tabla de migración del Core', 'taxocommerce-core' ); ?>" tabindex="0">
-					<table class="tcc-migration__table">
-						<thead>
-							<tr>
-								<th scope="col"><?php esc_html_e( 'Nuevo Core', 'taxocommerce-core' ); ?></th>
-								<th scope="col"><?php esc_html_e( 'Equivalente en el plugin actual', 'taxocommerce-core' ); ?></th>
-								<th scope="col"><?php esc_html_e( 'Estado de migración', 'taxocommerce-core' ); ?></th>
-							</tr>
-						</thead>
-						<tbody>
-							<?php foreach ( $migration as $item ) : ?>
-								<tr>
-									<th scope="row"><?php echo esc_html( $item['name'] ); ?></th>
-									<td><?php echo esc_html( $item['old'] ); ?></td>
-									<td><span class="tcc-migration__status tcc-migration__status--<?php echo esc_attr( $item['tone'] ); ?>"><?php echo esc_html( $item['state'] ); ?></span></td>
-								</tr>
-							<?php endforeach; ?>
-						</tbody>
-					</table>
-				</div>
-			</section>
+			<?php if ( is_callable( $extensions_renderer ) ) : ?>
+				<?php call_user_func( $extensions_renderer ); ?>
+			<?php endif; ?>
 		</div>
 		<?php
 	}
