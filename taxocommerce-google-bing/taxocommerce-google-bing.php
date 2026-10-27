@@ -172,6 +172,25 @@ function taxocommerce_google_bing_screen() {
  * This is an explicitly transitional bridge, not an independent rewrite.
  * No provider APIs or heavy analyses run until a report is clicked.
  */
+/**
+ * Load original CSS in the admin header; scripts are printed in the footer.
+ * The original admin_enqueue_scripts guard only targets seo-reports/analista.
+ */
+function taxocommerce_google_bing_analysis_assets() {
+    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+    $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : '';
+    if ( 'taxocommerce-google-bing' !== $page || 'analysis' !== $tab ) return;
+    if ( ! function_exists( 'seo_analista_lazy_reports' ) || ! defined( 'SEO_SYSTEM_URL' ) ) return;
+    $version = defined( 'SEO_SYSTEM_VERSION' ) ? SEO_SYSTEM_VERSION : TAXOCOMMERCE_GOOGLE_BING_VERSION;
+    wp_enqueue_style(
+        'tgb-legacy-analysis-css',
+        SEO_SYSTEM_URL . 'includes/analista/assets/analista-informe.css',
+        array(),
+        $version
+    );
+}
+add_action( 'admin_enqueue_scripts', 'taxocommerce_google_bing_analysis_assets' );
+
 function taxocommerce_google_bing_analysis_screen() {
     $legacy_available = function_exists( 'seo_analista_lazy_reports' )
         && function_exists( 'seo_analista_lazy_render_partial' )
@@ -193,12 +212,6 @@ function taxocommerce_google_bing_analysis_screen() {
     // Re-enqueue regardless of the legacy page-specific admin enqueue guard.
     if ( defined( 'SEO_SYSTEM_URL' ) ) {
         $version = defined( 'SEO_SYSTEM_VERSION' ) ? SEO_SYSTEM_VERSION : TAXOCOMMERCE_GOOGLE_BING_VERSION;
-        wp_enqueue_style(
-            'tgb-legacy-analysis-css',
-            SEO_SYSTEM_URL . 'includes/analista/assets/analista-informe.css',
-            array(),
-            $version
-        );
         wp_enqueue_script(
             'tgb-legacy-analysis-js',
             SEO_SYSTEM_URL . 'includes/analista/assets/analista-lazy.js',
