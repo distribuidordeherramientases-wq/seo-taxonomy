@@ -91,6 +91,8 @@ final class TaxoCommerce_Import_Export_Batch {
 						<tr><th><?php esc_html_e( 'Estado', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['status'] ?? 'idle' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Archivo actual', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['current_file'] ?? '—' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Tipo', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['entity'] ?? '—' ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Velocidad', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( TaxoCommerce_IE_Load::priority( 'import' ) . ' · ' . TaxoCommerce_IE_Load::labels()[ TaxoCommerce_IE_Load::priority( 'import' ) ] ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Último lote', 'taxocommerce-import-export' ); ?></th><td><?php $tc_ie_last = TaxoCommerce_IE_Load::last_sample( 'import' ); echo esc_html( absint( $tc_ie_last['items'] ?? 0 ) . ' filas · ' . number_format_i18n( (float) ( $tc_ie_last['elapsed'] ?? 0 ), 2 ) . ' s · siguiente lote ' . TaxoCommerce_IE_Load::batch_size( 'import' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Filas procesadas', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['processed_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['error_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Mensaje', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['message'] ?? '' ) ); ?></td></tr>
@@ -98,6 +100,18 @@ final class TaxoCommerce_Import_Export_Batch {
 					</tbody>
 				</table>
 
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:12px;">
+					<input type="hidden" name="action" value="taxocommerce_ie_batch_control">
+					<?php wp_nonce_field( 'taxocommerce_ie_batch_control', 'taxocommerce_ie_batch_nonce' ); ?>
+					<label for="tc-ie-import-priority"><strong><?php esc_html_e( 'Velocidad de importación', 'taxocommerce-import-export' ); ?></strong></label>
+					<select id="tc-ie-import-priority" name="priority">
+						<?php foreach ( TaxoCommerce_IE_Load::labels() as $number => $label ) : ?>
+							<option value="<?php echo esc_attr( (string) $number ); ?>" <?php selected( $number, TaxoCommerce_IE_Load::priority( 'import' ) ); ?>><?php echo esc_html( $number . ' · ' . $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<button class="button button-secondary" name="queue_action" value="priority"><?php esc_html_e( 'Guardar velocidad', 'taxocommerce-import-export' ); ?></button>
+					<p class="description"><?php esc_html_e( 'El cambio se aplica al siguiente bloque sin perder el progreso. Nivel 3 recomendado.', 'taxocommerce-import-export' ); ?></p>
+				</form>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
 					<input type="hidden" name="action" value="taxocommerce_ie_batch_control">
 					<?php wp_nonce_field( 'taxocommerce_ie_batch_control', 'taxocommerce_ie_batch_nonce' ); ?>
@@ -255,6 +269,11 @@ final class TaxoCommerce_Import_Export_Batch {
 		$action = isset( $_POST['queue_action'] ) ? sanitize_key( wp_unslash( $_POST['queue_action'] ) ) : '';
 		$state  = $this->state();
 
+		if ( 'priority' === $action ) {
+			$raw = isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : '';
+			$updated = TaxoCommerce_IE_Load::set_priority( 'import', $raw );
+			$this->redirect( is_wp_error( $updated ) ? 'error' : 'ok', is_wp_error( $updated ) ? $updated->get_error_message() : __( 'Velocidad de importación actualizada.', 'taxocommerce-import-export' ) );
+		}
 		if ( 'start' === $action ) {
 			$state['enabled']          = true;
 			$state['user_id']          = get_current_user_id();
@@ -362,7 +381,7 @@ final class TaxoCommerce_Import_Export_Batch {
 					if ( ! empty( $remaining ) && ! empty( $state['enabled'] ) ) {
 						$state['status'] = 'waiting_next';
 						$this->store_state( $state );
-						$this->schedule( 2 );
+						$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
 						return;
 					}
 
@@ -384,9 +403,9 @@ final class TaxoCommerce_Import_Export_Batch {
 			$this->store_state( $state );
 
 			if ( 'processing' === ( $state['status'] ?? '' ) && ! empty( $state['enabled'] ) ) {
-				$this->schedule( 2 );
+				$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
 			} elseif ( 'waiting_next' === ( $state['status'] ?? '' ) && ! empty( $state['enabled'] ) ) {
-				$this->schedule( 2 );
+				$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
 			}
 		} finally {
 			if ( get_current_user_id() !== $previous_user ) {
@@ -505,7 +524,8 @@ final class TaxoCommerce_Import_Export_Batch {
 			fseek( $handle, $offset );
 		}
 
-		$limit    = max( 5, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 50 ) ) ) );
+		$limit    = min( TaxoCommerce_IE_Load::batch_size( 'import' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 50 ) ) ) ) );
+		$measure  = TaxoCommerce_IE_Load::begin();
 		$deadline = microtime( true ) + max( 2, min( 20, (float) apply_filters( 'taxocommerce_import_export_batch_runtime_seconds', 8 ) ) );
 		$done     = 0;
 		$eof      = false;
@@ -552,6 +572,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		}
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		TaxoCommerce_IE_Load::finish( 'import', $measure, $done );
 		$state['updated_at'] = current_time( 'mysql' );
 
 		if ( ! $eof ) {
