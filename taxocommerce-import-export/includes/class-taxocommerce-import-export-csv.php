@@ -101,6 +101,24 @@ final class TaxoCommerce_Import_Export_CSV {
 			}
 		}
 
+		// The individual endpoint is synchronous. Never allow a large CSV to
+		// bypass the bounded adaptive batch worker on shared hosting.
+		$rows_checked = 0;
+		while ( false !== ( $check_row = fgetcsv( $handle, 0, $delimiter, '"', '' ) ) ) {
+			if ( ! array_filter( $check_row, 'strlen' ) ) continue;
+			$rows_checked++;
+			if ( $rows_checked > 25 ) {
+				$this->stream_close( $handle );
+				$this->redirect_error( __( 'Este CSV supera las 25 filas de la importación individual. Súbelo como un único archivo en Importación por lotes para aplicar el limitador de cinco velocidades.', 'taxocommerce-import-export' ) );
+			}
+		}
+		$this->stream_close( $handle );
+		$handle = $this->stream_open( $file['tmp_name'], 'r' );
+		if ( false === $handle ) {
+			$this->redirect_error( __( 'No se pudo reabrir el CSV.', 'taxocommerce-import-export' ) );
+		}
+		fgetcsv( $handle, 0, $delimiter, '"', '' );
+
 		$count = 0;
 		while ( false !== ( $row = fgetcsv( $handle, 0, $delimiter, '"', '' ) ) ) {
 			if ( empty( array_filter( $row, 'strlen' ) ) ) {
