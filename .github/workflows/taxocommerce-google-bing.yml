@@ -36,6 +36,8 @@ jobs:
         run: php taxocommerce-google-bing/tests/connections-merged-smoke.php
       - name: Trends manual RSS smoke test
         run: php taxocommerce-google-bing/tests/trends-smoke.php
+      - name: Connection health status smoke test
+        run: php taxocommerce-google-bing/tests/connections-status-smoke.php
       - name: Check plugin independence
         run: |
           test -s taxocommerce-google-bing/taxocommerce-google-bing.php
