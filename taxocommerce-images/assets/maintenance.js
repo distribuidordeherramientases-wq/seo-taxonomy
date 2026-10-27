@@ -48,9 +48,15 @@
                         var total = Number(state.total || 0);
                         var scanned = Number(state.scanned || 0);
                         var percent = total > 0 ? Math.min(100, Math.round((scanned * 1000) / total) / 10) : 0;
-                        var summary = section.dataset.tciMaintenance === 'cleanup'
-                            ? ' · sin uso ' + Number(counts.unused || 0) + ' · duplicadas exactas ' + Number(counts.duplicate || 0)
-                            : '';
+                        var summary = '';
+                        if (section.dataset.tciMaintenance === 'cleanup') {
+                            summary = ' · sin uso ' + Number(counts.unused || 0) + ' · duplicadas exactas ' + Number(counts.duplicate || 0);
+                        } else if (section.dataset.tciMaintenance === 'labels') {
+                            summary = ' · sin ALT ' + Number(counts.missing_alt || 0)
+                                + ' · títulos a revisar ' + (Number(counts.missing_title || 0) + Number(counts.review_title || 0))
+                                + ' · sin dimensiones ' + Number(counts.missing_dimensions || 0)
+                                + ' · archivos ausentes ' + Number(counts.missing_file || 0);
+                        }
                         output.textContent = 'Escaneo completo: ' + scanned + ' / ' + total + ' (' + percent + ' %)' + summary + '. Último lote interno: ' + (load.items || 0) + ' elementos · ' + cpu + ' · ' + (load.elapsed || 0) + ' s · siguiente lote ' + next + '.';
                         if (result.data.done) { window.location.reload(); return; }
                         operation = 'scan';
