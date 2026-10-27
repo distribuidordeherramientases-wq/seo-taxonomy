@@ -40,6 +40,75 @@ final class TaxoCommerce_Import_Export_Batch {
 		add_action( self::WORKER_HOOK, array( $this, 'worker' ) );
 	}
 
+	const INDIVIDUAL_STATE = 'taxocommerce_ie_individual_last';
+
+	/** Queue a single CSV without processing rows in the upload request. */
+	public function queue_individual( $file ) {
+		$this->guard();
+		$this->prepare_directories();
+		$state = $this->state();
+		if ( ! empty( $state['enabled'] ) || ! empty( $state['current_file'] ) || $this->files( $this->paths()['pending'] ) ) {
+			return new WP_Error( 'tc_ie_individual_busy', __( 'Hay una importación pendiente o en curso. Finaliza la cola antes de subir otro CSV.', 'taxocommerce-import-export' ) );
+		}
+		$name = isset( $file['name'] ) && is_scalar( $file['name'] ) ? sanitize_file_name( wp_unslash( (string) $file['name'] ) ) : '';
+		$size = isset( $file['size'] ) && is_scalar( $file['size'] ) ? absint( $file['size'] ) : 0;
+		$error = isset( $file['error'] ) && is_scalar( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_NO_FILE;
+		$tmp = isset( $file['tmp_name'] ) && is_scalar( $file['tmp_name'] ) ? (string) $file['tmp_name'] : '';
+		if ( UPLOAD_ERR_OK !== $error || 'csv' !== strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) || $size < 1 || $size > 50 * MB_IN_BYTES || ! is_uploaded_file( $tmp ) ) {
+			return new WP_Error( 'tc_ie_individual_upload', __( 'No se ha podido recibir un archivo CSV válido de hasta 50 MB.', 'taxocommerce-import-export' ) );
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		$handled = wp_handle_upload( array(
+			'name' => $name, 'type' => 'text/csv', 'tmp_name' => $tmp,
+			'error' => UPLOAD_ERR_OK, 'size' => $size,
+		), array( 'test_form' => false ) );
+		if ( ! is_array( $handled ) || ! empty( $handled['error'] ) || empty( $handled['file'] ) ) {
+			return new WP_Error( 'tc_ie_individual_move', __( 'WordPress no pudo almacenar el archivo recibido.', 'taxocommerce-import-export' ) );
+		}
+		$source = wp_normalize_path( (string) $handled['file'] );
+		$target = $this->unique_path( $this->paths()['pending'], $name );
+		if ( ! $this->move_file( $source, $target ) ) {
+			return new WP_Error( 'tc_ie_individual_store', __( 'No se pudo añadir el archivo a la cola privada.', 'taxocommerce-import-export' ) );
+		}
+		$record = array(
+			'file' => basename( $target ), 'status' => 'pending', 'rows' => 0,
+			'errors' => 0, 'events' => array( current_time( 'mysql' ) . ' · Archivo recibido y guardado en la cola.' ),
+			'updated' => current_time( 'mysql' ), 'message' => __( 'Pendiente de validación.', 'taxocommerce-import-export' ),
+		);
+		update_option( self::INDIVIDUAL_STATE, $record, false );
+		$state['enabled'] = true;
+		$state['user_id'] = get_current_user_id();
+		$state['pause_after_file'] = true;
+		$state['stop_requested'] = false;
+		$state['status'] = 'waiting_next';
+		$state['message'] = __( 'Archivo individual recibido: se procesará por bloques.', 'taxocommerce-import-export' );
+		$this->store_state( $state );
+		$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
+		return true;
+	}
+
+	/** Read-only status for the last individually uploaded CSV. */
+	public function individual_status() {
+		$this->guard();
+		$record = get_option( self::INDIVIDUAL_STATE, array() );
+		if ( ! is_array( $record ) || empty( $record['file'] ) ) return array();
+		$state = $this->state();
+		$file = (string) $record['file'];
+		if ( $file === (string) ( $state['current_file'] ?? '' ) ) {
+			$record['status'] = sanitize_key( (string) ( $state['status'] ?? 'processing' ) );
+			$record['rows'] = absint( $state['processed_rows'] ?? 0 );
+			$record['errors'] = absint( $state['error_rows'] ?? 0 );
+			$record['message'] = sanitize_text_field( (string) ( $state['message'] ?? '' ) );
+			$record['updated'] = (string) ( $state['updated_at'] ?? '' );
+			$record['details'] = array_slice( (array) ( $state['errors'] ?? array() ), -10 );
+		} elseif ( $file === (string) ( $state['last_file'] ?? '' ) ) {
+			$record['status'] = 'failed' === ( $record['status'] ?? '' ) || 'failed' === ( $state['status'] ?? '' ) ? 'failed' : ( ! empty( $record['errors'] ) ? 'completed_with_errors' : 'completed' );
+			$record['message'] = sanitize_text_field( (string) ( $state['message'] ?? '' ) );
+			$record['updated'] = (string) ( $state['updated_at'] ?? '' );
+		}
+		return $record;
+	}
+
 	/**
 	 * Whether the queue currently owns an import file.
 	 *
@@ -91,6 +160,8 @@ final class TaxoCommerce_Import_Export_Batch {
 						<tr><th><?php esc_html_e( 'Estado', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['status'] ?? 'idle' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Archivo actual', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['current_file'] ?? '—' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Tipo', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['entity'] ?? '—' ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Velocidad', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( TaxoCommerce_IE_Load::priority( 'import' ) . ' · ' . TaxoCommerce_IE_Load::labels()[ TaxoCommerce_IE_Load::priority( 'import' ) ] ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Último lote', 'taxocommerce-import-export' ); ?></th><td><?php $tc_ie_last = TaxoCommerce_IE_Load::last_sample( 'import' ); echo esc_html( absint( $tc_ie_last['items'] ?? 0 ) . ' filas · ' . number_format_i18n( (float) ( $tc_ie_last['elapsed'] ?? 0 ), 2 ) . ' s · siguiente lote ' . TaxoCommerce_IE_Load::batch_size( 'import' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Filas procesadas', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['processed_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['error_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Mensaje', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['message'] ?? '' ) ); ?></td></tr>
@@ -98,6 +169,18 @@ final class TaxoCommerce_Import_Export_Batch {
 					</tbody>
 				</table>
 
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:12px;">
+					<input type="hidden" name="action" value="taxocommerce_ie_batch_control">
+					<?php wp_nonce_field( 'taxocommerce_ie_batch_control', 'taxocommerce_ie_batch_nonce' ); ?>
+					<label for="tc-ie-import-priority"><strong><?php esc_html_e( 'Velocidad de importación', 'taxocommerce-import-export' ); ?></strong></label>
+					<select id="tc-ie-import-priority" name="priority">
+						<?php foreach ( TaxoCommerce_IE_Load::labels() as $number => $label ) : ?>
+							<option value="<?php echo esc_attr( (string) $number ); ?>" <?php selected( $number, TaxoCommerce_IE_Load::priority( 'import' ) ); ?>><?php echo esc_html( $number . ' · ' . $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<button class="button button-secondary" name="queue_action" value="priority"><?php esc_html_e( 'Guardar velocidad', 'taxocommerce-import-export' ); ?></button>
+					<p class="description"><?php esc_html_e( 'El cambio se aplica al siguiente bloque sin perder el progreso. Nivel 3 recomendado.', 'taxocommerce-import-export' ); ?></p>
+				</form>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
 					<input type="hidden" name="action" value="taxocommerce_ie_batch_control">
 					<?php wp_nonce_field( 'taxocommerce_ie_batch_control', 'taxocommerce_ie_batch_nonce' ); ?>
@@ -255,6 +338,11 @@ final class TaxoCommerce_Import_Export_Batch {
 		$action = isset( $_POST['queue_action'] ) ? sanitize_key( wp_unslash( $_POST['queue_action'] ) ) : '';
 		$state  = $this->state();
 
+		if ( 'priority' === $action ) {
+			$raw = isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : '';
+			$updated = TaxoCommerce_IE_Load::set_priority( 'import', $raw );
+			$this->redirect( is_wp_error( $updated ) ? 'error' : 'ok', is_wp_error( $updated ) ? $updated->get_error_message() : __( 'Velocidad de importación actualizada.', 'taxocommerce-import-export' ) );
+		}
 		if ( 'start' === $action ) {
 			$state['enabled']          = true;
 			$state['user_id']          = get_current_user_id();
@@ -362,7 +450,7 @@ final class TaxoCommerce_Import_Export_Batch {
 					if ( ! empty( $remaining ) && ! empty( $state['enabled'] ) ) {
 						$state['status'] = 'waiting_next';
 						$this->store_state( $state );
-						$this->schedule( 2 );
+						$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
 						return;
 					}
 
@@ -384,9 +472,9 @@ final class TaxoCommerce_Import_Export_Batch {
 			$this->store_state( $state );
 
 			if ( 'processing' === ( $state['status'] ?? '' ) && ! empty( $state['enabled'] ) ) {
-				$this->schedule( 2 );
+				$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
 			} elseif ( 'waiting_next' === ( $state['status'] ?? '' ) && ! empty( $state['enabled'] ) ) {
-				$this->schedule( 2 );
+				$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
 			}
 		} finally {
 			if ( get_current_user_id() !== $previous_user ) {
@@ -434,6 +522,15 @@ final class TaxoCommerce_Import_Export_Batch {
 					JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
 				)
 			); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			$individual = get_option( self::INDIVIDUAL_STATE, array() );
+			if ( is_array( $individual ) && (string) ( $individual['file'] ?? '' ) === $filename ) {
+				$individual['status'] = 'failed';
+				$individual['errors'] = 1;
+				$individual['message'] = sanitize_text_field( $detected->get_error_message() );
+				$individual['updated'] = current_time( 'mysql' );
+				$individual['events'][] = $individual['updated'] . ' · Archivo rechazado: ' . $individual['message'];
+				update_option( self::INDIVIDUAL_STATE, $individual, false );
+			}
 			$state['current_file'] = '';
 			$state['last_file']    = basename( $failed );
 			$state['entity']       = '';
@@ -505,7 +602,8 @@ final class TaxoCommerce_Import_Export_Batch {
 			fseek( $handle, $offset );
 		}
 
-		$limit    = max( 5, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 50 ) ) ) );
+		$limit    = min( TaxoCommerce_IE_Load::batch_size( 'import' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 50 ) ) ) ) );
+		$measure  = TaxoCommerce_IE_Load::begin();
 		$deadline = microtime( true ) + max( 2, min( 20, (float) apply_filters( 'taxocommerce_import_export_batch_runtime_seconds', 8 ) ) );
 		$done     = 0;
 		$eof      = false;
@@ -552,6 +650,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		}
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		TaxoCommerce_IE_Load::finish( 'import', $measure, $done );
 		$state['updated_at'] = current_time( 'mysql' );
 
 		if ( ! $eof ) {
@@ -598,6 +697,17 @@ final class TaxoCommerce_Import_Export_Batch {
 		);
 		file_put_contents( $target . '.log.json', wp_json_encode( $log, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
+		$individual = get_option( self::INDIVIDUAL_STATE, array() );
+		if ( is_array( $individual ) && (string) ( $individual['file'] ?? '' ) === basename( $path ) ) {
+			$individual['rows'] = absint( $state['processed_rows'] ?? 0 );
+			$individual['errors'] = absint( $state['error_rows'] ?? 0 );
+			$individual['details'] = array_slice( (array) ( $state['errors'] ?? array() ), -10 );
+			$individual['status'] = $has_errors ? 'completed_with_errors' : 'completed';
+			$individual['message'] = $has_errors ? __( 'Finalizado con errores. Revisa las filas indicadas.', 'taxocommerce-import-export' ) : __( 'Importación finalizada correctamente.', 'taxocommerce-import-export' );
+			$individual['updated'] = current_time( 'mysql' );
+			$individual['events'][] = $individual['updated'] . ' · ' . $individual['message'];
+			update_option( self::INDIVIDUAL_STATE, $individual, false );
+		}
 		$pause = ! empty( $state['pause_after_file'] );
 		$state['last_file']      = basename( $target );
 		$state['current_file']   = '';
@@ -639,6 +749,14 @@ final class TaxoCommerce_Import_Export_Batch {
 			if ( is_file( $source ) ) {
 				$this->move_file( $source, $this->unique_path( $paths['failed'], $name ) );
 			}
+		}
+		$individual = get_option( self::INDIVIDUAL_STATE, array() );
+		if ( is_array( $individual ) && $name === (string) ( $individual['file'] ?? '' ) ) {
+			$individual['status'] = 'failed';
+			$individual['message'] = sanitize_text_field( $message );
+			$individual['updated'] = current_time( 'mysql' );
+			$individual['events'][] = $individual['updated'] . ' · Error: ' . $individual['message'];
+			update_option( self::INDIVIDUAL_STATE, $individual, false );
 		}
 		$this->store_state(
 			array(

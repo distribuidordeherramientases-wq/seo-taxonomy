@@ -79,6 +79,7 @@ final class TaxoCommerce_Import_Export {
 		add_filter( 'admin_body_class', array( $this, 'family_admin_body_class' ) );
 		add_action( 'admin_post_taxocommerce_import_export_export', array( $this->csv, 'handle_export' ) );
 		add_action( 'admin_post_taxocommerce_import_export_import', array( $this->csv, 'handle_import' ) );
+		add_action( 'wp_ajax_taxocommerce_ie_individual_status', array( $this, 'ajax_individual_status' ) );
 		add_action( 'admin_post_taxocommerce_import_export_media_export', array( $this->media, 'handle_export' ) );
 		add_action( 'admin_post_taxocommerce_import_export_media_import', array( $this->media, 'handle_import' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_IMPORT_EXPORT_BASENAME, array( $this, 'plugin_action_links' ) );
@@ -281,6 +282,34 @@ final class TaxoCommerce_Import_Export {
 				</div>
 			</div>
 
+			<div class="card" style="max-width:none;margin-top:20px;padding:20px;" id="tc-ie-individual-monitor">
+				<h2><?php esc_html_e( 'Estado de la última importación individual', 'taxocommerce-import-export' ); ?></h2>
+				<p id="tc-ie-individual-state"><?php esc_html_e( 'Consultando el último trabajo…', 'taxocommerce-import-export' ); ?></p>
+				<pre id="tc-ie-individual-events" style="white-space:pre-wrap;max-height:260px;overflow:auto;background:#f6f7f7;padding:12px;"></pre>
+				<p class="description"><?php esc_html_e( 'El seguimiento permanece visible al recargar. El CSV se procesa con la cola propia y el limitador de velocidad; no cierres el informe por falta de movimiento instantáneo.', 'taxocommerce-import-export' ); ?></p>
+			</div>
+			<script>
+			(function() {
+				var output = document.getElementById('tc-ie-individual-state');
+				var events = document.getElementById('tc-ie-individual-events');
+				if (!output || !events) return;
+				var nonce = '<?php echo esc_js( wp_create_nonce( 'taxocommerce_ie_individual_status' ) ); ?>';
+				function poll() {
+					var body = new URLSearchParams({action:'taxocommerce_ie_individual_status', nonce:nonce});
+					fetch('<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>', {method:'POST', credentials:'same-origin', body:body}).then(function(res) { return res.json(); }).then(function(payload) {
+						if (!payload.success) throw new Error('No se ha podido consultar el estado.');
+						var r = payload.data || {};
+						if (!r.file) { output.textContent = 'No hay ninguna importación individual registrada.'; events.textContent = ''; return; }
+						output.textContent = r.file + ' · ' + (r.status || 'pendiente') + ' · ' + Number(r.rows || 0) + ' filas procesadas · ' + Number(r.errors || 0) + ' errores · ' + (r.message || '') + ' · ' + (r.updated || '');
+						var lines = Array.isArray(r.events) ? r.events.slice(-20) : [];
+						(r.details || []).forEach(function(error) { lines.push('Fila ' + (error.row || '?') + ': ' + (error.message || 'error')); });
+						events.textContent = lines.join('\\n');
+					}).catch(function(error) { output.textContent = 'Error al consultar el registro: ' + error.message; });
+				}
+				poll();
+				window.setInterval(poll, 5000);
+			})();
+			</script>
 			<h2><?php echo esc_html__( 'Media · imágenes', 'taxocommerce-import-export' ); ?></h2>
 			<p><?php echo esc_html__( 'Las imágenes se transportan aquí, no desde TaxoCommerce Images. El paquete contiene originales, metadatos y relaciones; las miniaturas se regeneran al importar.', 'taxocommerce-import-export' ); ?></p>
 			<div class="tcc-family-grid">
@@ -311,6 +340,14 @@ final class TaxoCommerce_Import_Export {
 			</table>
 		</div>
 		<?php
+	}
+
+	/** Authenticated, read-only snapshot of the latest individual import. */
+	public function ajax_individual_status() {
+		$this->guard();
+		check_ajax_referer( 'taxocommerce_ie_individual_status', 'nonce' );
+		$batch = new TaxoCommerce_Import_Export_Batch( $this->csv );
+		wp_send_json_success( $batch->individual_status() );
 	}
 
 	/**
