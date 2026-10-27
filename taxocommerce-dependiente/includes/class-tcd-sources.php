@@ -856,7 +856,7 @@ final class TCD_Sources {
         $title = wp_strip_all_tags( (string) $title );
         $patterns = array(
             '/\b\d+(?:[,.]\d+)?(?:\s*[x×]\s*\d+(?:[,.]\d+)?){1,2}\s*(?:mm|cm|m)?\b/iu',
-            '/\b\d+(?:[,.]\d+)?\s*(?:mm²|mm2|mm|cm|kg|kw|mah|rpm|psi|hp|ah|ml|piezas?|unidades?|pines?|pcs|w|v|l)\b/iu',
+            '/\b\d+(?:[,.]\d+)?\s*(?:mm²|mm2|mm|cm|kg|kw|mah|rpm|psi|hp|ah|ml|piezas?|unidades?|pines?|pcs|hz|bar|w|v|l|m|g|t|a)\b/iu',
             '/\b[A-Z]{1,4}-?\d{2,}[A-Z0-9-]*\b/u',
         );
         $found = array();
