@@ -629,23 +629,25 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$content_statuses = array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' );
 		$allowed_statuses = in_array( $type, array( 'products', 'products_reduced' ), true ) ? $product_statuses : $content_statuses;
 
-		$raw_statuses = isset( $_POST['statuses'] ) && is_array( $_POST['statuses'] )
-			? array_map( 'sanitize_key', wp_unslash( $_POST['statuses'] ) )
-			: array();
+		$raw_statuses = isset( $_POST['statuses'] ) && is_array( $_POST['statuses'] ) ? wp_unslash( $_POST['statuses'] ) : array();
+		$raw_statuses = array_map( 'sanitize_key', array_filter( $raw_statuses, 'is_scalar' ) );
 		$statuses = array_values( array_intersect( $allowed_statuses, array_unique( $raw_statuses ) ) );
 		if ( ! $statuses ) {
 			$statuses = $allowed_statuses;
 		}
 
-		$raw_categories = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] )
-			? array_map( 'absint', wp_unslash( $_POST['category_ids'] ) )
-			: array();
+		$raw_categories = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ? wp_unslash( $_POST['category_ids'] ) : array();
+		$raw_categories = array_map( 'absint', array_filter( $raw_categories, 'is_scalar' ) );
+
+		$cluster = isset( $_POST['cluster_id'] ) && is_scalar( $_POST['cluster_id'] ) ? absint( wp_unslash( $_POST['cluster_id'] ) ) : 0;
+		$primary = isset( $_POST['hub_primary_id'] ) && is_scalar( $_POST['hub_primary_id'] ) ? absint( wp_unslash( $_POST['hub_primary_id'] ) ) : 0;
+		$secondary = isset( $_POST['hub_secondary_id'] ) && is_scalar( $_POST['hub_secondary_id'] ) ? absint( wp_unslash( $_POST['hub_secondary_id'] ) ) : 0;
 
 		return array(
 			'statuses'         => $statuses,
-			'cluster_id'       => absint( $_POST['cluster_id'] ?? 0 ),
-			'hub_primary_id'   => absint( $_POST['hub_primary_id'] ?? 0 ),
-			'hub_secondary_id' => absint( $_POST['hub_secondary_id'] ?? 0 ),
+			'cluster_id'       => $cluster,
+			'hub_primary_id'   => $primary,
+			'hub_secondary_id' => $secondary,
 			'category_ids'     => array_values( array_unique( array_filter( $raw_categories ) ) ),
 		);
 	}
