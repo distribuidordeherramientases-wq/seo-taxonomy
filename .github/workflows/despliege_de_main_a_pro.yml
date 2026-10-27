@@ -198,6 +198,7 @@ jobs:
       - name: Sincronizar cambios de todos los plugins TaxoCommerce instalados
         shell: bash
         env:
+          ALL_MODULES_JSON: ${{ steps.family.outputs.modules }}
           INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
@@ -224,10 +225,16 @@ jobs:
             python3 - <<'PY'
           import json
           import os
-          for module in json.loads(os.environ.get("ALL_MODULES_JSON", "[]")):
+          for module in json.loads(os.environ["ALL_MODULES_JSON"]):
               print(module)
           PY
           )
+
+          if [ "${#allowed_modules[@]}" -eq 0 ]; then
+            echo "::error::La lista de módulos de MAIN está vacía; comprueba ALL_MODULES_JSON antes de escribir en PRO."
+            exit 1
+          fi
+          echo "Validación previa: ${#installed_modules[@]} instalados en PRO; ${#allowed_modules[@]} disponibles en MAIN."
 
           declare -A allowed_lookup=()
           for module in "${allowed_modules[@]}"; do
