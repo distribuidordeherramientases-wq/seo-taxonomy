@@ -10,6 +10,12 @@ $exporter_js = file_get_contents( $root . '/assets/exporter.js' );
 $checks = array(
     strpos( $main, "Version: 0.4.1" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-batch.php" ) !== false,
+    strpos( $main, "class-taxocommerce-ie-load.php" ) !== false,
+    strpos( $batch, "TaxoCommerce_IE_Load::batch_size( 'import' )" ) !== false,
+    strpos( $batch, "TaxoCommerce_IE_Load::delay( 'import' )" ) !== false,
+    strpos( $exporter, "TaxoCommerce_IE_Load::batch_size( 'export' )" ) !== false,
+    strpos( $exporter, "tc-ie-export-priority" ) !== false,
+    strpos( $batch, "tc-ie-import-priority" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-exporter.php" ) !== false,
     strpos( $core, "Exportación" ) !== false,
     strpos( $core, "new TaxoCommerce_Import_Export_Exporter" ) !== false,
