@@ -696,7 +696,7 @@ final class TCD_Intelligence {
         ) {
             $table = TCD_Academy::knowledge_table();
             $all_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-                "SELECT id FROM {$table} WHERE lesson=%d AND status='learned' ORDER BY id ASC",
+                "SELECT id FROM {$table} WHERE lesson=%d AND status='learned' ORDER BY source_type ASC,source_id ASC",
                 $lesson
             ) ) );
             if ( ! $all_ids ) {
@@ -863,7 +863,7 @@ final class TCD_Intelligence {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
         $all_rows = (array) $wpdb->get_results( $wpdb->prepare(
-            "SELECT id,source_type,source_id,title,context_json,status FROM {$table} WHERE lesson=%d AND status='learned' ORDER BY id ASC",
+            "SELECT id,source_type,source_id,title,context_json,status FROM {$table} WHERE lesson=%d AND status='learned' ORDER BY source_type ASC,source_id ASC",
             $lesson
         ), ARRAY_A );
         $rows = self::representative_sample( $all_rows, 180 );
