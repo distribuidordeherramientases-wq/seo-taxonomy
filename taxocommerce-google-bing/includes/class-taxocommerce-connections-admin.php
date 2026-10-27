@@ -202,8 +202,10 @@ final class TaxoCommerce_Connections_Admin {
 			<p><?php esc_html_e( 'External data connections used by Insights and other TaxoCommerce modules. Credentials and OAuth are stored here; Insights consumes the resulting data for reports, Market, and Analyst.', 'taxocommerce-google-bing' ); ?></p>
 			<?php self::notice(); TaxoCommerce_Google_Bing_Connections::render_notice(); ?>
 
-			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;max-width:1300px;">
-				<div class="card" style="max-width:none;padding:20px;">
+			<p class="tgb-guides-intro">For each service: configure credentials on the left, follow the illustrated setup instructions and official links on the right.</p>
+			<div class="tgb-guided-connections">
+				<div class="tgb-guide-pair">
+				<div class="card tgb-guide-form">
 					<h2 style="margin-top:0;">Google · Search Console / Analytics / Merchant</h2>
 					<p><strong>TaxoCommerce Insights</strong> owns these credentials and consumes the data for reporting, Market and Analyst. Existing option names are preserved, so no reconnection is required.</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -212,6 +214,7 @@ final class TaxoCommerce_Connections_Admin {
 						<p><label><strong>Search Console property</strong><br><input class="large-text code" type="text" name="search_console_site_url" value="<?php echo esc_attr( (string) ( $google['search_console_site_url'] ?? '' ) ); ?>" placeholder="sc-domain:example.com or https://www.example.com/"></label></p>
 						<p><label><strong>GA4 property</strong><br><input class="regular-text" inputmode="numeric" type="text" name="analytics_property_id" value="<?php echo esc_attr( (string) ( $google['analytics_property_id'] ?? '' ) ); ?>" placeholder="123456789"></label></p>
 						<p><label><strong>Measurement ID</strong><br><input class="regular-text" type="text" name="measurement_id" value="<?php echo esc_attr( (string) ( $google['measurement_id'] ?? '' ) ); ?>" placeholder="G-XXXXXXXXXX"></label></p>
+						<?php TaxoCommerce_Connections_Guide::service_identity( $google ); ?>
 						<p><label><strong>Service account JSON</strong><br><textarea class="large-text code" rows="6" name="service_account_json" placeholder="<?php echo esc_attr( ! empty( $google['service_account_json'] ) ? 'Credential already stored; leave blank to keep it' : 'Paste the service account JSON' ); ?>"></textarea></label></p>
 						<?php submit_button( __( 'Save Google', 'taxocommerce-google-bing' ), 'primary', 'submit', false ); ?>
 					</form>
@@ -239,7 +242,10 @@ final class TaxoCommerce_Connections_Admin {
 					</div>
 				</div>
 
-				<div class="card" style="max-width:none;padding:20px;">
+				<aside class="card tgb-guide-panel" aria-label="Google · Search Console / Analytics / Merchant instructions"><?php TaxoCommerce_Connections_Guide::render( 'google' ); ?></aside>
+			</div>
+			<div class="tgb-guide-pair">
+				<div class="card tgb-guide-form">
 					<h2 style="margin-top:0;">Microsoft Bing Webmaster</h2>
 					<p>Complementary search source for queries, pages, crawl, and index data. Insights uses this connection for reporting.</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -260,7 +266,10 @@ final class TaxoCommerce_Connections_Admin {
 					</form>
 				</div>
 
-				<div id="tgb-market-providers" class="card" style="max-width:none;padding:20px;">
+				<aside class="card tgb-guide-panel" aria-label="Microsoft Bing Webmaster instructions"><?php TaxoCommerce_Connections_Guide::render( 'bing' ); ?></aside>
+			</div>
+			<div class="tgb-guide-pair">
+				<div id="tgb-market-providers" class="card tgb-guide-form">
 					<h2 style="margin-top:0;">Market Providers · YouTube / SerpApi</h2>
 					<p>Optional providers used by Market research. Opening this screen does not query either provider.</p>
 					<p><strong>YouTube Data API v3</strong> requires its own API key. <strong>SerpApi</strong> is optional and may have external usage costs.</p>
@@ -280,7 +289,10 @@ final class TaxoCommerce_Connections_Admin {
 					</form>
 				</div>
 
-				<div class="card" style="max-width:none;padding:20px;">
+				<aside class="card tgb-guide-panel" aria-label="Market Providers · YouTube / SerpApi instructions"><?php TaxoCommerce_Connections_Guide::render( 'market' ); ?></aside>
+			</div>
+			<div class="tgb-guide-pair">
+				<div class="card tgb-guide-form">
 					<h2 style="margin-top:0;">Amazon Affiliates</h2>
 					<p>The <strong>Partner Tag</strong> is enough for affiliate search links used by Templates and Assistant. Creators API only enriches them with product data, images, and pricing.</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -303,7 +315,10 @@ final class TaxoCommerce_Connections_Admin {
 					</form>
 				</div>
 
-				<div class="card" style="max-width:none;padding:20px;">
+				<aside class="card tgb-guide-panel" aria-label="Amazon Affiliates instructions"><?php TaxoCommerce_Connections_Guide::render( 'amazon' ); ?></aside>
+			</div>
+			<div class="tgb-guide-pair">
+				<div class="card tgb-guide-form">
 					<h2 style="margin-top:0;">Pinterest Business</h2>
 					<p>One connection supports both social publishing and Merchant/Catalogs configuration. Distribution publishes the feed; Insights owns OAuth, board selection, and domain verification.</p>
 					<p><strong>Callback OAuth:</strong><br><code><?php echo esc_html( TaxoCommerce_Connections_Pinterest::redirect_uri() ); ?></code></p>
@@ -345,6 +360,8 @@ final class TaxoCommerce_Connections_Admin {
 						<?php submit_button( __( 'Save Pinterest Merchant', 'taxocommerce-google-bing' ), 'secondary', 'submit', false ); ?>
 					</form>
 				</div>
+				<aside class="card tgb-guide-panel" aria-label="Pinterest Business instructions"><?php TaxoCommerce_Connections_Guide::render( 'pinterest' ); ?></aside>
+			</div>
 			</div>
 
 			<div class="card" style="max-width:1300px;padding:20px;margin-top:18px;">

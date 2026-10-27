@@ -87,7 +87,13 @@ final class TCV_Admin {
     private static function labels() {
         global $wpdb;
         $t = TCV_Schema::tables();
-        $counts = $wpdb->get_results( "SELECT semantic_group,COUNT(*) n FROM {$t['vocabulary']} WHERE active=1 GROUP BY semantic_group", OBJECT_K );
+        $counts = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT semantic_group, COUNT(*) n FROM %i WHERE active=1 GROUP BY semantic_group',
+                $t['vocabulary']
+            ),
+            OBJECT_K
+        );
         echo '<div class="tcv-kpis">';
         foreach ( TCV_Classifier::GROUPS as $g ) {
             echo '<div class="tcv-card"><strong>' . esc_html( strtoupper( $g ) ) . '</strong><span>' . esc_html( number_format_i18n( isset( $counts[$g] ) ? $counts[$g]->n : 0 ) ) . '</span></div>';
@@ -100,7 +106,14 @@ final class TCV_Admin {
             echo '<option value="' . esc_attr( $g ) . '">' . esc_html( strtoupper( $g ) ) . '</option>';
         }
         echo '</select> <input name="label" class="regular-text" placeholder="Nombre visible" required> <button class="button button-primary">Dar de alta</button></form></div>';
-        $rows = $wpdb->get_results( "SELECT semantic_group,slug,label,source,active FROM {$t['vocabulary']} ORDER BY semantic_group,label LIMIT 300", ARRAY_A );
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT semantic_group,slug,label,source,active FROM %i ORDER BY semantic_group,label LIMIT %d',
+                $t['vocabulary'],
+                300
+            ),
+            ARRAY_A
+        );
         echo '<div class="tcv-panel"><h2>Diccionario</h2><table class="widefat striped"><thead><tr><th>Grupo</th><th>Etiqueta</th><th>Slug</th><th>Origen</th><th>Estado</th></tr></thead><tbody>';
         foreach ( $rows as $r ) {
             echo '<tr><td>' . esc_html( strtoupper( $r['semantic_group'] ) ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td><code>' . esc_html( $r['slug'] ) . '</code></td><td>' . esc_html( $r['source'] ) . '</td><td>' . ( $r['active'] ? 'Activa' : 'Inactiva' ) . '</td></tr>';
@@ -111,7 +124,18 @@ final class TCV_Admin {
     private static function attributes() {
         global $wpdb;
         $t = TCV_Schema::tables();
-        $attrs = $wpdb->get_results( "SELECT a.*, (SELECT COUNT(*) FROM {$t['terms']} t WHERE t.atributo_id=a.id AND t.activo=1) term_count, (SELECT COUNT(*) FROM {$t['aliases']} x WHERE x.atributo_id=a.id) alias_count FROM {$t['attributes']} a ORDER BY a.orden,a.nombre", ARRAY_A );
+        $attrs = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT a.*,
+                    (SELECT COUNT(*) FROM %i t WHERE t.atributo_id=a.id AND t.activo=1) term_count,
+                    (SELECT COUNT(*) FROM %i x WHERE x.atributo_id=a.id) alias_count
+                 FROM %i a ORDER BY a.orden,a.nombre',
+                $t['terms'],
+                $t['aliases'],
+                $t['attributes']
+            ),
+            ARRAY_A
+        );
         echo '<div class="tcv-panel"><h2>Atributos técnicos canónicos</h2><p>Definiciones propias de TaxoCommerce. No se convierten automáticamente en atributos WooCommerce.</p><table class="widefat striped"><thead><tr><th>Atributo</th><th>Tipo</th><th>Unidad</th><th>Términos</th><th>Aliases</th><th>Estado</th></tr></thead><tbody>';
         foreach ( $attrs as $a ) {
             echo '<tr><td><strong>' . esc_html( $a['nombre'] ) . '</strong><br><code>' . esc_html( $a['slug'] ) . '</code></td><td>' . esc_html( $a['tipo'] ) . '</td><td>' . esc_html( $a['unidad_base'] ) . '</td><td>' . esc_html( $a['term_count'] ) . '</td><td>' . esc_html( $a['alias_count'] ) . '</td><td>' . ( $a['activo'] ? 'Activo' : 'Inactivo' ) . '</td></tr>';
@@ -238,7 +262,9 @@ final class TCV_Admin {
             $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
             $count = 0;
             if ( $exists === $table ) {
-                $count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+                $count = (int) $wpdb->get_var(
+                    $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table )
+                );
             }
             echo '<tr><td><code>' . esc_html( $table ) . '</code></td><td>' . ( $exists === $table ? 'OK' : 'Falta' ) . '</td><td>' . esc_html( number_format_i18n( $count ) ) . '</td></tr>';
         }

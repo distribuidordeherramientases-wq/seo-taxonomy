@@ -109,4 +109,100 @@ assert_tcdb( false !== strpos( $import, "'START TRANSACTION'" ), 'CSV import sta
 assert_tcdb( false !== strpos( $import, "'COMMIT'" ), 'CSV import commits on success' );
 assert_tcdb( false !== strpos( $import, "'ROLLBACK'" ), 'CSV import aborts failed transaction' );
 
-echo "TaxoCommerce Database smoke OK: MySQL, CSV atomicity, family independence, no historical journal.\n";
+
+/**
+ * Mock the SQL exporter to cover both paginators without a live database.
+ * Use exactly 100 rows on page one and a final row on page two.
+ */
+define( 'ARRAY_A', 'ARRAY_A' );
+class TCDB_Test_Export_WPDB extends TCDB_Test_WPDB {
+    public $last_error = '';
+    public $queries = array();
+
+    public function prepare( $sql, ...$values ) {
+        $i = 0;
+        return preg_replace_callback(
+            '/%[ids]/',
+            static function ( $match ) use ( &$i, $values ) {
+                $value = $values[ $i++ ];
+                if ( '%i' === $match[0] ) {
+                    $tick = chr( 96 );
+                    return $tick . str_replace( $tick, $tick . $tick, (string) $value ) . $tick;
+                }
+                if ( '%d' === $match[0] ) {
+                    return (string) (int) $value;
+                }
+                return "'" . addslashes( (string) $value ) . "'";
+            },
+            $sql
+        );
+    }
+
+    public function get_results( $sql, $format = ARRAY_A ) {
+        $this->queries[] = $sql;
+        if ( false !== strpos( $sql, 'wp_seo_export_test' ) ) {
+            return false !== strpos( $sql, ' WHERE ' )
+                ? array( array( 'id' => 101, 'title' => 'Final' ) )
+                : array_map(
+                    static function ( $id ) { return array( 'id' => $id, 'title' => 'Product' ); },
+                    range( 1, 100 )
+                );
+        }
+        if ( false !== strpos( $sql, 'wp_tcd_export_nopk' ) ) {
+            return false !== strpos( $sql, ' OFFSET 100' )
+                ? array( array( 'title' => 'Final' ) )
+                : array_fill( 0, 100, array( 'title' => 'Product' ) );
+        }
+        return array();
+    }
+}
+
+$export_db = new TCDB_Test_Export_WPDB();
+$wpdb = $export_db;
+$storage_class = new ReflectionClass( 'TCDB_Storage' );
+$table_property = $storage_class->getProperty( 'table_cache' );
+$table_property->setAccessible( true );
+$table_property->setValue( null, array(
+    'wp_seo_export_test' => array( 'family' => true ),
+    'wp_tcd_export_nopk' => array( 'family' => true ),
+) );
+$column_property = $storage_class->getProperty( 'column_cache' );
+$column_property->setAccessible( true );
+$column_property->setValue( null, array(
+    'wp_seo_export_test' => array(
+        array( 'Field' => 'id', 'Key' => 'PRI' ),
+        array( 'Field' => 'title', 'Key' => '' ),
+    ),
+    'wp_tcd_export_nopk' => array( array( 'Field' => 'title', 'Key' => '' ) ),
+) );
+
+$export_method = new ReflectionMethod( 'TCDB_Export', 'rows' );
+$export_method->setAccessible( true );
+$exported = array();
+$ok = $export_method->invoke( null, 'wp_seo_export_test', static function ( $row, $columns ) use ( &$exported ) {
+    $exported[] = $row;
+} );
+assert_tcdb( true === $ok && 101 === count( $exported ), '100+1 rows exported via primary-key cursor' );
+assert_tcdb( 2 === count( $export_db->queries ), 'keyset export does not duplicate or over-query' );
+assert_tcdb( false !== strpos( $export_db->queries[0], 'ORDER BY ' . chr(96) . 'id' . chr(96) . ' ASC LIMIT 100' ), 'keyset query prepared with correct sort' );
+assert_tcdb( false !== strpos( $export_db->queries[1], ' WHERE ' . chr(96) . 'id' . chr(96) . " > '100'" ), 'keyset cursor is prepared' );
+
+$exported = array();
+$export_db->queries = array();
+$ok = $export_method->invoke( null, 'wp_tcd_export_nopk', static function ( $row, $columns ) use ( &$exported ) {
+    $exported[] = $row;
+} );
+assert_tcdb( true === $ok && 101 === count( $exported ), '100+1 rows exported without a primary key' );
+assert_tcdb( 2 === count( $export_db->queries ), 'non-PK export uses two bounded queries' );
+assert_tcdb( false !== strpos( $export_db->queries[1], 'LIMIT 100 OFFSET 100' ), 'non-PK offset prepared' );
+
+$export_db->queries = array();
+assert_tcdb( false === $export_method->invoke( null, 'wp_users', static function ( $row ) {} ), 'unapproved export table rejected' );
+assert_tcdb( ! $export_db->queries, 'unapproved export table never queried' );
+
+$storage_source = file_get_contents( $root . '/includes/class-tcdb-storage.php' );
+$export_source = file_get_contents( $root . '/includes/class-tcdb-export.php' );
+assert_tcdb( false !== strpos( $storage_source, "'SHOW COLUMNS FROM %i'" ), 'schema column query prepared' );
+assert_tcdb( false !== strpos( $export_source, "'SHOW CREATE TABLE %i'" ), 'DDL query prepared' );
+
+echo "TaxoCommerce Database smoke OK: MySQL, CSV atomicity, prepared export pagination and family independence.\n";

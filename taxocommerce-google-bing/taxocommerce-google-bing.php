@@ -36,6 +36,7 @@ if ( ! class_exists( 'TaxoCommerce_Connections_Admin', false ) ) {
     require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connections-admin.php';
 }
 
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connections-guide.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-oauth.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc.php';
@@ -163,6 +164,7 @@ function taxocommerce_google_bing_screen() {
     echo '</nav>';
 
     if ( 'connections' === $tab ) {
+        wp_enqueue_style( 'tgb-connections-guide', TAXOCOMMERCE_GOOGLE_BING_URL . 'assets/connections-guide.css', array(), TAXOCOMMERCE_GOOGLE_BING_VERSION );
         TaxoCommerce_Connections_Admin::render();
     } elseif ( 'analyst' === $tab ) {
         TaxoCommerce_Google_Bing_Analyst::render();
