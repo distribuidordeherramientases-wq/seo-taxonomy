@@ -40,6 +40,75 @@ final class TaxoCommerce_Import_Export_Batch {
 		add_action( self::WORKER_HOOK, array( $this, 'worker' ) );
 	}
 
+	const INDIVIDUAL_STATE = 'taxocommerce_ie_individual_last';
+
+	/** Queue a single CSV without processing rows in the upload request. */
+	public function queue_individual( $file ) {
+		$this->guard();
+		$this->prepare_directories();
+		$state = $this->state();
+		if ( ! empty( $state['enabled'] ) || ! empty( $state['current_file'] ) || $this->files( $this->paths()['pending'] ) ) {
+			return new WP_Error( 'tc_ie_individual_busy', __( 'Hay una importación pendiente o en curso. Finaliza la cola antes de subir otro CSV.', 'taxocommerce-import-export' ) );
+		}
+		$name = isset( $file['name'] ) && is_scalar( $file['name'] ) ? sanitize_file_name( wp_unslash( (string) $file['name'] ) ) : '';
+		$size = isset( $file['size'] ) && is_scalar( $file['size'] ) ? absint( $file['size'] ) : 0;
+		$error = isset( $file['error'] ) && is_scalar( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_NO_FILE;
+		$tmp = isset( $file['tmp_name'] ) && is_scalar( $file['tmp_name'] ) ? (string) $file['tmp_name'] : '';
+		if ( UPLOAD_ERR_OK !== $error || 'csv' !== strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) || $size < 1 || $size > 50 * MB_IN_BYTES || ! is_uploaded_file( $tmp ) ) {
+			return new WP_Error( 'tc_ie_individual_upload', __( 'No se ha podido recibir un archivo CSV válido de hasta 50 MB.', 'taxocommerce-import-export' ) );
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		$handled = wp_handle_upload( array(
+			'name' => $name, 'type' => 'text/csv', 'tmp_name' => $tmp,
+			'error' => UPLOAD_ERR_OK, 'size' => $size,
+		), array( 'test_form' => false ) );
+		if ( ! is_array( $handled ) || ! empty( $handled['error'] ) || empty( $handled['file'] ) ) {
+			return new WP_Error( 'tc_ie_individual_move', __( 'WordPress no pudo almacenar el archivo recibido.', 'taxocommerce-import-export' ) );
+		}
+		$source = wp_normalize_path( (string) $handled['file'] );
+		$target = $this->unique_path( $this->paths()['pending'], $name );
+		if ( ! $this->move_file( $source, $target ) ) {
+			return new WP_Error( 'tc_ie_individual_store', __( 'No se pudo añadir el archivo a la cola privada.', 'taxocommerce-import-export' ) );
+		}
+		$record = array(
+			'file' => basename( $target ), 'status' => 'pending', 'rows' => 0,
+			'errors' => 0, 'events' => array( current_time( 'mysql' ) . ' · Archivo recibido y guardado en la cola.' ),
+			'updated' => current_time( 'mysql' ), 'message' => __( 'Pendiente de validación.', 'taxocommerce-import-export' ),
+		);
+		update_option( self::INDIVIDUAL_STATE, $record, false );
+		$state['enabled'] = true;
+		$state['user_id'] = get_current_user_id();
+		$state['pause_after_file'] = true;
+		$state['stop_requested'] = false;
+		$state['status'] = 'waiting_next';
+		$state['message'] = __( 'Archivo individual recibido: se procesará por bloques.', 'taxocommerce-import-export' );
+		$this->store_state( $state );
+		$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
+		return true;
+	}
+
+	/** Read-only status for the last individually uploaded CSV. */
+	public function individual_status() {
+		$this->guard();
+		$record = get_option( self::INDIVIDUAL_STATE, array() );
+		if ( ! is_array( $record ) || empty( $record['file'] ) ) return array();
+		$state = $this->state();
+		$file = (string) $record['file'];
+		if ( $file === (string) ( $state['current_file'] ?? '' ) ) {
+			$record['status'] = sanitize_key( (string) ( $state['status'] ?? 'processing' ) );
+			$record['rows'] = absint( $state['processed_rows'] ?? 0 );
+			$record['errors'] = absint( $state['error_rows'] ?? 0 );
+			$record['message'] = sanitize_text_field( (string) ( $state['message'] ?? '' ) );
+			$record['updated'] = (string) ( $state['updated_at'] ?? '' );
+			$record['details'] = array_slice( (array) ( $state['errors'] ?? array() ), -10 );
+		} elseif ( $file === (string) ( $state['last_file'] ?? '' ) ) {
+			$record['status'] = 'failed' === ( $state['status'] ?? '' ) ? 'failed' : ( ! empty( $record['errors'] ) ? 'completed_with_errors' : 'completed' );
+			$record['message'] = sanitize_text_field( (string) ( $state['message'] ?? '' ) );
+			$record['updated'] = (string) ( $state['updated_at'] ?? '' );
+		}
+		return $record;
+	}
+
 	/**
 	 * Whether the queue currently owns an import file.
 	 *
@@ -619,6 +688,17 @@ final class TaxoCommerce_Import_Export_Batch {
 		);
 		file_put_contents( $target . '.log.json', wp_json_encode( $log, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
+		$individual = get_option( self::INDIVIDUAL_STATE, array() );
+		if ( is_array( $individual ) && (string) ( $individual['file'] ?? '' ) === basename( $path ) ) {
+			$individual['rows'] = absint( $state['processed_rows'] ?? 0 );
+			$individual['errors'] = absint( $state['error_rows'] ?? 0 );
+			$individual['details'] = array_slice( (array) ( $state['errors'] ?? array() ), -10 );
+			$individual['status'] = $has_errors ? 'completed_with_errors' : 'completed';
+			$individual['message'] = $has_errors ? __( 'Finalizado con errores. Revisa las filas indicadas.', 'taxocommerce-import-export' ) : __( 'Importación finalizada correctamente.', 'taxocommerce-import-export' );
+			$individual['updated'] = current_time( 'mysql' );
+			$individual['events'][] = $individual['updated'] . ' · ' . $individual['message'];
+			update_option( self::INDIVIDUAL_STATE, $individual, false );
+		}
 		$pause = ! empty( $state['pause_after_file'] );
 		$state['last_file']      = basename( $target );
 		$state['current_file']   = '';
@@ -660,6 +740,14 @@ final class TaxoCommerce_Import_Export_Batch {
 			if ( is_file( $source ) ) {
 				$this->move_file( $source, $this->unique_path( $paths['failed'], $name ) );
 			}
+		}
+		$individual = get_option( self::INDIVIDUAL_STATE, array() );
+		if ( is_array( $individual ) && $name === (string) ( $individual['file'] ?? '' ) ) {
+			$individual['status'] = 'failed';
+			$individual['message'] = sanitize_text_field( $message );
+			$individual['updated'] = current_time( 'mysql' );
+			$individual['events'][] = $individual['updated'] . ' · Error: ' . $individual['message'];
+			update_option( self::INDIVIDUAL_STATE, $individual, false );
 		}
 		$this->store_state(
 			array(
