@@ -995,7 +995,9 @@ final class TCD_Intelligence {
         }
 
         $pos = array_search( $id, $ids, true );
-        $rank = false === $pos ? 0 : $pos + 1;
+        $exact_rank = false === $pos ? 0 : $pos + 1;
+        $rank = $exact_rank;
+        $family_rank = 0;
         // Family language cannot identify one arbitrarily selected SKU.
         // Report the strict product rank as a diagnostic, and evaluate family
         // suitability independently from the product-specific quality gate.
@@ -1009,6 +1011,9 @@ final class TCD_Intelligence {
             'title'=>$title,
             'query'=>$query,
             'rank'=>$rank,
+            'exact_rank'=>$exact_rank,
+            'family_rank'=>$family_rank,
+            'need_scope'=>9 === $lesson ? (string) ( $facts['customer_need_scope'] ?? 'legacy' ) : 'identity',
             'top1'=>1 === $rank,
             'top3'=>$rank > 0 && $rank <= 3,
             'top8'=>$rank > 0 && $rank <= 8,
@@ -1021,18 +1026,23 @@ final class TCD_Intelligence {
         $family = (array) ( $facts['vocabulary'] ?? array() );
         $groups = array();
         foreach ( array( 'subtipo', 'tipo' ) as $group ) {
-            foreach ( (array) ( $family[ $group ] ?? array() ) as $row ) {
+            foreach ( array_slice( (array) ( $family[ $group ] ?? array() ), 0, 1 ) as $row ) {
                 if ( ! is_array( $row ) ) continue;
                 $slug = sanitize_title( (string) ( $row['slug'] ?? $row['label'] ?? '' ) );
                 if ( $slug ) $groups[] = array( 'group'=>$group, 'slug'=>$slug );
             }
         }
         if ( ! $groups ) return 0;
-        foreach ( array_slice( (array) $ids, 0, 8 ) as $offset => $product_id ) {
-            foreach ( $groups as $group ) {
-                $members = self::products_for_vocabulary( $group['group'], $group['slug'], 160, array( absint( $product_id ) ) );
-                if ( in_array( absint( $product_id ), $members, true ) ) return $offset + 1;
-            }
+        $candidate_ids = array_slice( array_values( array_filter( array_map( 'absint', (array) $ids ) ) ), 0, 8 );
+        if ( ! $candidate_ids ) return 0;
+        $matched = array();
+        // One bounded membership query per semantic group, not per result.
+        foreach ( $groups as $group ) {
+            $members = self::products_for_vocabulary( $group['group'], $group['slug'], 8, $candidate_ids );
+            foreach ( $members as $member ) $matched[ absint( $member ) ] = true;
+        }
+        foreach ( $candidate_ids as $offset => $product_id ) {
+            if ( isset( $matched[ $product_id ] ) ) return $offset + 1;
         }
         return 0;
     }
