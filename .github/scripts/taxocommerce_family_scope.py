@@ -23,8 +23,8 @@ def modules() -> list[str]:
         for child in Path(".").glob("taxocommerce-*")
         if child.is_dir() and (child / (child.name + ".php")).is_file()
     )
-    if len(result) != 19:
-        raise RuntimeError(f"Expected 19 standalone plugins; found {len(result)}: {result}")
+    if len(result) != 20:
+        raise RuntimeError(f"Expected 20 standalone plugins; found {len(result)}: {result}")
     return result
 
 
