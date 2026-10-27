@@ -1,0 +1,35 @@
+<?php
+/**
+ * Core homepage Extensions layout regression, no WordPress database needed.
+ * php taxocommerce-core/tests/extensions-dashboard-smoke.php
+ */
+$core = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-core.php' );
+$home = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-core-dashboard.php' );
+$css  = file_get_contents( dirname( __DIR__ ) . '/assets/admin.css' );
+function tcc_extension_assert( $condition, $message ) {
+    if ( ! $condition ) {
+        fwrite( STDERR, 'FAIL Core Extensions dashboard: ' . $message . PHP_EOL );
+        exit( 1 );
+    }
+}
+tcc_extension_assert( false !== strpos( $core, 'public function render_extension_catalog()' ), 'the extension catalogue renderer exists' );
+tcc_extension_assert( false !== strpos( $home, 'call_user_func( $extensions_renderer )' ), 'Core homepage renders the extension catalogue' );
+tcc_extension_assert( false !== strpos( $home, 'is_callable( $extensions_renderer )' ), 'renderer callback is guarded' );
+tcc_extension_assert( false === strpos( $home, 'tcc-migration' ), 'redundant migration table removed' );
+tcc_extension_assert( false === strpos( $home, "'slug'        => 'taxocommerce-core-modules'" ), 'Extensions navigation duplicate removed' );
+tcc_extension_assert( false === strpos( $core, "'taxocommerce-core-modules',\n\t\t\tarray( $this, 'render_modules' )" ), 'Extensions submenu registration removed' );
+tcc_extension_assert( false !== strpos( $core, 'redirect_old_extensions_page' ), 'old bookmarks redirect to Core' );
+tcc_extension_assert( false !== strpos( $core, "admin.php?page=taxocommerce-core#tcc-extensions" ), 'old bookmark has anchored target' );
+tcc_extension_assert( false !== strpos( $core, "'page'       => 'taxocommerce-core'," ), 'extension POST result redirects to Core' );
+tcc_extension_assert( false !== strpos( $core, 'get_plugins()' ), 'live installed plugins are detected' );
+tcc_extension_assert( false !== strpos( $core, "extension_is_active( \$plugin_file )" ), 'live activation state is checked' );
+tcc_extension_assert( false !== strpos( $core, 'local_package_path( $extension )' ), 'local ZIP is detected' );
+tcc_extension_assert( false !== strpos( $core, 'tcc-extensions-grid' ), 'cards exist' );
+foreach ( array( 'taxocommerce_core_deactivate_extension', 'taxocommerce_core_activate_extension', 'taxocommerce_core_upload_extension', 'taxocommerce_core_install_extension' ) as $action ) {
+    tcc_extension_assert( false !== strpos( $core, 'value="' . $action . '"' ), $action . ' retained in cards' );
+}
+tcc_extension_assert( false !== strpos( $core, "wp_nonce_field( 'taxocommerce_core_extension_action', 'taxocommerce_core_nonce' )" ), 'POST actions still require nonces' );
+tcc_extension_assert( false !== strpos( $core, "current_user_can( 'install_plugins' )" ), 'install controls respect capability' );
+tcc_extension_assert( false !== strpos( $core, "current_user_can( 'activate_plugins' )" ), 'activation controls respect capability' );
+tcc_extension_assert( false !== strpos( $css, '@media(max-width:782px){.tcc-extensions-grid{grid-template-columns:1fr}' ), 'single-column mobile cards' );
+echo "Core Extensions dashboard regression passed.\n";
