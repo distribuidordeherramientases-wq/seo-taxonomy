@@ -161,6 +161,24 @@ final class TCD_Admin {
         echo 'Se evaluaron '.esc_html(number_format_i18n(absint($report['evaluated']??0))).' casos y ';
         echo esc_html(number_format_i18n(absint($report['failed']??0))).' quedaron fuera del Top-8.</p>';
 
+        if(in_array(absint($lesson),array(9,10),true)){
+            $evaluated_version=(string)($report['evaluated_plugin_version']??'no registrada');
+            $current_version=defined('TAXOCOMMERCE_DEPENDIENTE_VERSION') ? TAXOCOMMERCE_DEPENDIENTE_VERSION : 'desconocida';
+            echo '<p><strong>Versión del motor que realizó el examen:</strong> '.esc_html($evaluated_version);
+            echo ' · <strong>Plugin PHP cargado:</strong> '.esc_html($current_version).'.</p>';
+            if(TCD_Intelligence::quality_report_is_stale($lesson,$report)){
+                echo '<p><strong>Auditoría antigua o sin versión verificable:</strong> este resultado no acredita el ranking actual.';
+                echo ' Actualiza el plugin en STAGING si procede y utiliza «Revisar correcciones y reevaluar».';
+                echo ' No reinicies las diez lecciones.</p>';
+            }
+            if(10===absint($lesson)){
+                $query_origins=(array)($report['query_origins']??array());
+                echo '<p><strong>Regresiones L9 examinadas con preguntas reconstruidas:</strong> ';
+                echo esc_html(number_format_i18n(absint($query_origins['snapshot_facts']??0)));
+                echo ' · <strong>legacy sin hechos:</strong> '.esc_html(number_format_i18n(absint($query_origins['legacy_missing_facts']??0))).'.</p>';
+            }
+        }
+
         if(9===absint($lesson)){
             $origin_counts=(array)($report['query_origins']??array());
             $rebuilt=absint($origin_counts['snapshot_facts']??0);
