@@ -205,4 +205,11 @@ $export_source = file_get_contents( $root . '/includes/class-tcdb-export.php' );
 assert_tcdb( false !== strpos( $storage_source, "'SHOW COLUMNS FROM %i'" ), 'schema column query prepared' );
 assert_tcdb( false !== strpos( $export_source, "'SHOW CREATE TABLE %i'" ), 'DDL query prepared' );
 
+// Regression: expiry cleanup is bounded, prepared and uses native transient deletion.
+$cleanup_source = file_get_contents( $root . '/includes/class-tcdb-cleanup.php' );
+assert_tcdb( false !== strpos( $cleanup_source, "'DELETE FROM %i WHERE session_expiry < %d LIMIT %d'" ), 'session cleanup identifiers and limit prepared' );
+assert_tcdb( false !== strpos( $cleanup_source, "status='pending' AND scheduled_date_gmt < UTC_TIMESTAMP()" ), 'Action Scheduler overdue jobs remain read-only' );
+assert_tcdb( false === strpos( $cleanup_source, 'DELETE FROM ' . chr( 96 ) ), 'no direct interpolated deletion table' );
+assert_tcdb( false !== strpos( $cleanup_source, 'delete_transient( $transient )' ), 'WP API used for expired transient removal' );
+
 echo "TaxoCommerce Database smoke OK: MySQL, CSV atomicity, prepared export pagination and family independence.\n";
