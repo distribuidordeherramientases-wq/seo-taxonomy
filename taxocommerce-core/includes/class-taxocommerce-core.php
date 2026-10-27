@@ -113,6 +113,7 @@ final class TaxoCommerce_Core {
 		add_action( 'admin_head', array( $this, 'hide_sidebar_submenu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_anomalies_page' ) );
+		add_action( 'admin_init', array( $this, 'redirect_legacy_reports_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
 		add_filter( 'admin_body_class', array( $this, 'family_body_class' ) );
 		add_action( 'admin_post_taxocommerce_core_install_extension', array( $this, 'install_extension' ) );
@@ -188,16 +189,6 @@ final class TaxoCommerce_Core {
 			array( $this->content, 'render' )
 		);
 
-		// Expose Reports at the same admin menu level as Content.
-		add_submenu_page(
-			'taxocommerce-core',
-			__( 'Informes', 'taxocommerce-core' ),
-			__( 'Informes', 'taxocommerce-core' ),
-			$capability,
-			TaxoCommerce_Core_Architecture_Report::PAGE_SLUG,
-			array( $this, 'render_reports' )
-		);
-
 		add_submenu_page(
 			'taxocommerce-core',
 			__( 'SEO Hierarchy', 'taxocommerce-core' ),
@@ -246,7 +237,6 @@ final class TaxoCommerce_Core {
 		$labels = array(
 			'taxocommerce-core'          => 'TaxoCommerce Core',
 			'taxocommerce-core-content'  => 'Content',
-			'taxocommerce-core-reports'  => 'Informes',
 			'taxocommerce-core-hierarchy'=> 'SEO Hierarchy',
 			'taxocommerce-core-menu'     => 'Menu Manager',
 			'taxocommerce-core-modules'  => 'Extensions',
@@ -301,10 +291,6 @@ final class TaxoCommerce_Core {
 		foreach ( $items as $item ) {
 			if ( ! is_array( $item ) || ! isset( $item[2] ) ) {
 				continue;
-			}
-			if ( TaxoCommerce_Core_Architecture_Report::PAGE_SLUG === (string) $item[2] ) {
-				// Keep Reports visible in the WordPress sidebar, even without extensions.
-				return;
 			}
 			if ( ! in_array( (string) $item[2], $core_pages, true ) ) {
 				return;
@@ -1102,6 +1088,18 @@ final class TaxoCommerce_Core {
 				admin_url( 'admin.php' )
 			)
 		);
+		exit;
+	}
+
+	/** Redirect old Reports URLs to the unified Content summary. */
+	public function redirect_legacy_reports_page() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( TaxoCommerce_Core_Architecture_Report::PAGE_SLUG !== $page ) {
+			return;
+		}
+		$this->guard();
+		wp_safe_redirect( add_query_arg( array( 'page' => TaxoCommerce_Core_Content_Manager::PAGE_SLUG, 'tc_type' => 'summary' ), admin_url( 'admin.php' ) ) . '#tc-architecture-report' );
 		exit;
 	}
 

@@ -24,11 +24,9 @@ final class TaxoCommerce_Core_Architecture_Report {
 
     public static function enqueue_styles( $hook ) {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin tab selector.
-        $type = isset( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : '';
-        $on_reports_page = false !== strpos( (string) $hook, '_page_' . self::PAGE_SLUG );
-        $on_legacy_tab   = self::PAGE_TYPE === $type
-            && false !== strpos( (string) $hook, '_page_' . TaxoCommerce_Core_Content_Manager::PAGE_SLUG );
-        if ( ! $on_reports_page && ! $on_legacy_tab ) {
+        $type = isset( $_GET['tc_type'] ) ? sanitize_key( wp_unslash( $_GET['tc_type'] ) ) : 'summary';
+        $on_content = false !== strpos( (string) $hook, '_page_' . TaxoCommerce_Core_Content_Manager::PAGE_SLUG );
+        if ( ! $on_content || ( 'summary' !== $type && self::PAGE_TYPE !== $type ) ) {
             return;
         }
 
@@ -52,7 +50,8 @@ final class TaxoCommerce_Core_Architecture_Report {
         wp_safe_redirect(
             add_query_arg(
                 array(
-                    'page' => self::PAGE_SLUG,
+                    'page'    => TaxoCommerce_Core_Content_Manager::PAGE_SLUG,
+                    'tc_type' => 'summary',
                 ),
                 admin_url( 'admin.php' )
             )
@@ -343,7 +342,7 @@ final class TaxoCommerce_Core_Architecture_Report {
 
     public static function render() {
         $report = self::report();
-        echo '<div class="tc-architecture-report">';
+        echo '<div class="tc-architecture-report" id="tc-architecture-report">';
         echo '<div class="tc-architecture-heading"><div><h2>Distribución de la arquitectura SEO</h2>';
         echo '<p>Lectura de páginas, categorías y productos a través de los clusters. Informe de solo lectura.</p></div>';
         echo '<div class="tc-architecture-tools">';
@@ -377,10 +376,38 @@ final class TaxoCommerce_Core_Architecture_Report {
         }
         echo '</div>';
 
+        // The same cached, deduplicated report feeds accessible charts and detail tables.
+        $levels = array(
+            'Clusters'          => (int) $report['clusters_count'],
+            'Hubs primarios'     => (int) $report['primary_count'],
+            'Hubs secundarios'   => (int) $report['secondary_count'],
+            'Categorías'        => (int) $report['categories_count'],
+        );
+        $max_level = max( 1, max( array_values( $levels ) ) );
+        echo '<section class="tc-architecture-panel tc-architecture-visual" aria-label="Distribución por niveles de jerarquía SEO">';
+        echo '<h3>Distribución de la jerarquía SEO</h3>';
+        echo '<p class="description">Cluster → Hub primario → Hub secundario → Categoría. Cada nivel muestra elementos únicos; no representa un embudo de conversión.</p>';
+        foreach ( $levels as $label => $count ) {
+            $width = 100 * $count / $max_level;
+            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $label ) . '</span><strong>' . self::amount( $count ) . '</strong></div>';
+            echo '<div class="tc-architecture-level-track"><span style="width:' . esc_attr( (string) round( $width, 2 ) ) . '%"></span></div></div>';
+        }
+        echo '</section>';
+
         if ( empty( $report['clusters'] ) ) {
             echo '<div class="notice notice-info inline"><p>No existen clusters publicados con los que construir el informe.</p></div></div>';
             return;
         }
+
+        $max_products = max( 1, max( array_map( static function( $row ) { return (int) $row['products']; }, $report['clusters'] ) ) );
+        echo '<section class="tc-architecture-panel tc-architecture-visual" aria-label="Productos por cluster">';
+        echo '<h3>Productos publicados por cluster</h3><p class="description">Cobertura de productos únicos dentro de cada cluster; un producto en varios clusters puede figurar en más de una barra.</p>';
+        foreach ( $report['clusters'] as $cluster ) {
+            $width = round( 100 * (int) $cluster['products'] / $max_products, 2 );
+            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $cluster['title'] ) . '</span><strong>' . self::amount( $cluster['products'] ) . '</strong></div>';
+            echo '<div class="tc-architecture-level-track"><span style="width:' . esc_attr( (string) $width ) . '%"></span></div></div>';
+        }
+        echo '</section>';
 
         echo '<section class="tc-architecture-section"><div class="tc-architecture-section-heading"><div>';
         echo '<span>Visión global</span><h3>Cómo se reparte la arquitectura</h3></div>';

@@ -60,3 +60,16 @@
 .tc-architecture-cluster-detail{padding:10px}
 .tc-architecture-panel{padding:10px}
 }
+
+/* Overview charts (pure CSS, accessible data labels and no extra JS queries). */
+.tc-architecture-visual{margin:18px 0}
+.tc-architecture-visual h3{font-size:17px;margin:0 0 5px}
+.tc-architecture-visual .description{margin:0 0 15px;color:#61718b}
+.tc-architecture-level{margin:11px 0}
+.tc-architecture-level-label{display:flex;align-items:baseline;justify-content:space-between;gap:15px;margin-bottom:5px;overflow-wrap:anywhere}
+.tc-architecture-level-label span{font-weight:600;color:#354660}
+.tc-architecture-level-label strong{flex-shrink:0;font-variant-numeric:tabular-nums}
+.tc-architecture-level-track{height:11px;background:#eaf0f8;border-radius:9px;overflow:hidden}
+.tc-architecture-level-track span{display:block;height:100%;background:#1769de;border-radius:9px;min-width:0}
+.tc-architecture-visual:nth-of-type(even) .tc-architecture-level-track span{background:#14a67a}
+#tc-architecture-report{scroll-margin-top:45px}
