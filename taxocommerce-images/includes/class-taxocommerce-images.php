@@ -291,11 +291,11 @@ final class TaxoCommerce_Images {
 	 * @return void
 	 */
 	private function render_assignment() {
-		echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Productos: solo se propone una imagen de su propia galería. Nunca la de otro producto. Los informes muestran 25 filas y los contadores incluyen todos los pendientes.', 'taxocommerce-images' ) . '</p></div>';
+		echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Productos: solo se propone una imagen de su propia galería. Nunca la de otro producto. Cada grupo de asignación tiene su propio regulador 1–5 y puede ejecutarse en paralelo con los demás; los lotes son internos y adaptativos.', 'taxocommerce-images' ) . '</p></div>';
 		?>
 		<h2><?php esc_html_e( 'Asignación de imágenes por categorías relacionadas', 'taxocommerce-images' ); ?></h2>
 		<p><?php esc_html_e( 'Primero se propone la imagen asociada a la categoría; después, imágenes de productos o entradas pertenecientes a esa categoría. No se utiliza una imagen aleatoria de Media ni se descargan imágenes de proveedores.', 'taxocommerce-images' ); ?></p>
-		<p><?php esc_html_e( 'Puedes asignar individualmente una imagen sugerida, elegir una imagen existente en Media, asignar automáticamente hasta 25 elementos por grupo o subir un archivo desde tu equipo. Si no hay categoría vinculada ni imágenes válidas, el elemento permanece pendiente.', 'taxocommerce-images' ); ?></p>
+		<p><?php esc_html_e( 'Puedes asignar individualmente una imagen sugerida, elegir una imagen existente en Media, lanzar una pasada automática completa por grupo o subir un archivo desde tu equipo. La pasada automática se divide en lotes internos regulados y puede pausarse o reanudarse sin un control central.', 'taxocommerce-images' ); ?></p>
 		<?php
 		foreach ( TaxoCommerce_Images_Assignment::scopes() as $scope => $heading ) {
 			$param = 'tc_assign_' . sanitize_key( $scope ) . '_page';
@@ -304,6 +304,10 @@ final class TaxoCommerce_Images {
 				? max( 1, absint( wp_unslash( $_GET[ $param ] ) ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 				: 1;
 			$report = TaxoCommerce_Images_Assignment::missing( $scope, $current );
+			$process = 'assignment_' . sanitize_key( $scope );
+			$priority = TaxoCommerce_Images_Load::priority( $process );
+			$sample = TaxoCommerce_Images_Load::last_sample( $process );
+			$assignment_state = TaxoCommerce_Images_Assignment::assignment_state( $scope );
 			?>
 			<section class="tci-assign-section" id="tc-assign-<?php echo esc_attr( $scope ); ?>">
 				<h2><?php echo esc_html( $heading ); ?> <small>(<?php echo esc_html( number_format_i18n( absint( $report['total'] ) ) ); ?> <?php esc_html_e( 'sin imagen', 'taxocommerce-images' ); ?>)</small></h2>
@@ -312,13 +316,51 @@ final class TaxoCommerce_Images {
 				<?php elseif ( empty( $report['total'] ) ) : ?>
 					<p><?php esc_html_e( 'No hay elementos sin imagen asignada.', 'taxocommerce-images' ); ?></p>
 				<?php else : ?>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tci-assign-bulk">
-						<input type="hidden" name="action" value="taxocommerce_images_assign_auto">
-						<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
-						<?php wp_nonce_field( 'taxocommerce_images_assign_auto', 'taxocommerce_images_nonce' ); ?>
-						<?php submit_button( __( 'Asignar automáticamente hasta 25', 'taxocommerce-images' ), 'primary', 'submit', false ); ?>
-						<span class="description"><?php esc_html_e( 'Solo se asigna si hay un candidato de la categoría relacionada; no se cambia ninguna imagen existente.', 'taxocommerce-images' ); ?></span>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tci-load-control" style="margin:12px 0;">
+						<input type="hidden" name="action" value="taxocommerce_images_save_priority">
+						<input type="hidden" name="mode" value="<?php echo esc_attr( $process ); ?>">
+						<?php wp_nonce_field( 'taxocommerce_images_save_priority', 'taxocommerce_images_nonce' ); ?>
+						<label for="tci-priority-<?php echo esc_attr( $process ); ?>"><strong><?php echo esc_html( sprintf( __( 'Prioridad de %s', 'taxocommerce-images' ), $heading ) ); ?></strong></label>
+						<div class="tci-load-control__slider">
+							<span><?php esc_html_e( '1 · Suave', 'taxocommerce-images' ); ?></span>
+							<input id="tci-priority-<?php echo esc_attr( $process ); ?>" name="priority" type="range" min="1" max="5" step="1" value="<?php echo esc_attr( (string) $priority ); ?>" data-tci-priority>
+							<span><?php esc_html_e( '5 · Máxima', 'taxocommerce-images' ); ?></span>
+							<output data-tci-priority-output><strong><?php echo esc_html( $priority . ' · ' . TaxoCommerce_Images_Load::label( $priority ) ); ?></strong></output>
+						</div>
+						<p class="description"><?php esc_html_e( 'Este control solo afecta a este grupo. Si otros procesos cargan el servidor, el tiempo real de sus peticiones hará que reduzca automáticamente el siguiente lote.', 'taxocommerce-images' ); ?></p>
+						<button type="submit" class="button"><?php esc_html_e( 'Guardar prioridad', 'taxocommerce-images' ); ?></button>
+						<?php if ( $sample ) : ?>
+							<span class="description"><?php echo esc_html( sprintf( __( ' Último lote: %1$d elementos · %2$s s · siguiente lote %3$d.', 'taxocommerce-images' ), absint( $sample['items'] ?? 0 ), number_format_i18n( (float) ( $sample['elapsed'] ?? 0 ), 2 ), absint( $sample['next_batch'] ?? 0 ) ) ); ?></span>
+						<?php endif; ?>
 					</form>
+					<div class="tci-assign-bulk" data-tci-assignment="<?php echo esc_attr( $scope ); ?>">
+						<button type="button" class="button button-primary" data-tci-assignment-operation="start"><?php esc_html_e( 'Asignar automáticamente todo el grupo', 'taxocommerce-images' ); ?></button>
+						<button type="button" class="button" data-tci-assignment-operation="scan" <?php disabled( empty( $assignment_state ) || 'running' !== ( $assignment_state['status'] ?? '' ) ); ?>><?php esc_html_e( 'Continuar', 'taxocommerce-images' ); ?></button>
+						<button type="button" class="button" data-tci-assignment-pause><?php esc_html_e( 'Pausar', 'taxocommerce-images' ); ?></button>
+						<span class="description"><?php esc_html_e( 'Solo se asigna si hay un candidato de la categoría relacionada; no se cambia ninguna imagen existente.', 'taxocommerce-images' ); ?></span>
+						<p data-tci-assignment-progress role="status" aria-live="polite">
+							<?php
+							if ( $assignment_state ) {
+								echo esc_html( sprintf(
+									__( 'Última pasada: %1$d revisados · %2$d asignados · %3$d pendientes.', 'taxocommerce-images' ),
+									absint( $assignment_state['seen'] ?? 0 ),
+									absint( $assignment_state['assigned'] ?? 0 ),
+									absint( $assignment_state['remaining'] ?? $report['total'] )
+								) );
+							} else {
+								esc_html_e( 'No hay una pasada automática iniciada.', 'taxocommerce-images' );
+							}
+							?>
+						</p>
+						<noscript>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<input type="hidden" name="action" value="taxocommerce_images_assign_auto">
+								<input type="hidden" name="scope" value="<?php echo esc_attr( $scope ); ?>">
+								<?php wp_nonce_field( 'taxocommerce_images_assign_auto', 'taxocommerce_images_nonce' ); ?>
+								<button type="submit" class="button"><?php esc_html_e( 'Procesar siguiente lote', 'taxocommerce-images' ); ?></button>
+							</form>
+						</noscript>
+					</div>
 					<div class="tci-assign-scroll">
 					<table class="widefat striped">
 						<thead>
