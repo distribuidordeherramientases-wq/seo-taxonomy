@@ -61,101 +61,17 @@ final class TaxoCommerce_Import_Export_CSV {
 		$this->guard();
 		check_admin_referer( 'taxocommerce_import_export_import', 'taxocommerce_import_export_nonce' );
 
-		if ( class_exists( 'TaxoCommerce_Import_Export_Batch' ) && TaxoCommerce_Import_Export_Batch::is_running() ) {
-			wp_die( esc_html__( 'Hay una importación por lotes en curso. Páusala o detenla antes de iniciar una importación individual.', 'taxocommerce-import-export' ) );
-		}
-
-		if ( empty( $_FILES['csv_file'] ) || ! is_array( $_FILES['csv_file'] ) ) {
-			$this->redirect_error( __( 'No se ha recibido ningún CSV.', 'taxocommerce-import-export' ) );
-		}
-
-		$file = $_FILES['csv_file']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated locally.
-		if ( ! empty( $file['error'] ) || empty( $file['tmp_name'] ) ) {
-			$this->redirect_error( __( 'La subida del CSV ha fallado.', 'taxocommerce-import-export' ) );
-		}
-
-		$name = isset( $file['name'] ) ? sanitize_file_name( wp_unslash( $file['name'] ) ) : '';
-		if ( 'csv' !== strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) ) {
-			$this->redirect_error( __( 'El archivo debe tener extensión .csv.', 'taxocommerce-import-export' ) );
-		}
-
-		$handle = $this->stream_open( $file['tmp_name'], 'r' );
-		if ( false === $handle ) {
-			$this->redirect_error( __( 'No se pudo abrir el CSV.', 'taxocommerce-import-export' ) );
-		}
-
-		$delimiter = $this->detect_delimiter( $handle );
-		$headers   = fgetcsv( $handle, 0, $delimiter, '"', '' );
-		if ( ! is_array( $headers ) ) {
-			$this->stream_close( $handle );
-			$this->redirect_error( __( 'El CSV no contiene cabecera.', 'taxocommerce-import-export' ) );
-		}
-
-		$headers = array_map( array( $this, 'normalize_header' ), $headers );
-		$implicit_record_type = '';
-		if ( ! in_array( 'record_type', $headers, true ) ) {
-			$implicit_record_type = $this->infer_record_type_from_headers( $headers );
-			if ( ! $implicit_record_type ) {
-				$this->stream_close( $handle );
-				$this->redirect_error( __( 'No se puede identificar con seguridad el tipo de contenido del CSV. Añade record_type o usa cabeceras específicas del tipo.', 'taxocommerce-import-export' ) );
-			}
-		}
-
-		// The individual endpoint is synchronous. Never allow a large CSV to
-		// bypass the bounded adaptive batch worker on shared hosting.
-		$rows_checked = 0;
-		while ( false !== ( $check_row = fgetcsv( $handle, 0, $delimiter, '"', '' ) ) ) {
-			if ( ! array_filter( $check_row, 'strlen' ) ) continue;
-			$rows_checked++;
-			if ( $rows_checked > 25 ) {
-				$this->stream_close( $handle );
-				$this->redirect_error( __( 'Este CSV supera las 25 filas de la importación individual. Súbelo como un único archivo en Importación por lotes para aplicar el limitador de cinco velocidades.', 'taxocommerce-import-export' ) );
-			}
-		}
-		$this->stream_close( $handle );
-		$handle = $this->stream_open( $file['tmp_name'], 'r' );
-		if ( false === $handle ) {
-			$this->redirect_error( __( 'No se pudo reabrir el CSV.', 'taxocommerce-import-export' ) );
-		}
-		fgetcsv( $handle, 0, $delimiter, '"', '' );
-
-		$count = 0;
-		while ( false !== ( $row = fgetcsv( $handle, 0, $delimiter, '"', '' ) ) ) {
-			if ( empty( array_filter( $row, 'strlen' ) ) ) {
-				continue;
-			}
-			$row  = array_pad( $row, count( $headers ), '' );
-			$data = array_combine( $headers, array_slice( $row, 0, count( $headers ) ) );
-			if ( ! is_array( $data ) ) {
-				continue;
-			}
-			if ( $implicit_record_type ) {
-				$data['record_type']    = $implicit_record_type;
-				$data['_partial_update'] = '1';
-			}
-
-			$result = $this->import_row( $data );
-			if ( is_wp_error( $result ) ) {
-				$this->stream_close( $handle );
-				$this->redirect_error(
-					sprintf(
-						/* translators: 1: row number, 2: error message. */
-						__( 'Error en la fila %1$d: %2$s', 'taxocommerce-import-export' ),
-						$count + 2,
-						$result->get_error_message()
-					)
-				);
-			}
-			$count++;
-		}
-		$this->stream_close( $handle );
-
+		// Individual upload now uses the same bounded queue as bulk imports.
+		// No product rows are written inside this HTTP request.
+		$batch = new TaxoCommerce_Import_Export_Batch( $this );
+		$file = isset( $_FILES['csv_file'] ) && is_array( $_FILES['csv_file'] ) ? $_FILES['csv_file'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified by queue_individual().
+		$result = $batch->queue_individual( $file );
 		$url = add_query_arg(
 			array(
-				'page'         => 'taxocommerce-import-export',
-				'tc_ie_result' => 'ok',
-				'tc_ie_count'  => $count,
-				'tc_ie_kind'   => 'csv',
+				'page' => 'taxocommerce-import-export',
+				'tc_ie_tab' => 'individual',
+				'tc_ie_result' => is_wp_error( $result ) ? 'error' : 'ok',
+				'tc_ie_message' => rawurlencode( is_wp_error( $result ) ? $result->get_error_message() : __( 'Archivo recibido. La importación se ejecutará por bloques; consulta su estado debajo del formulario.', 'taxocommerce-import-export' ) ),
 			),
 			admin_url( 'admin.php' )
 		);
