@@ -28,8 +28,9 @@ final class TaxoCommerce_Images_Maintenance {
 			'taxocommerceImagesMaintenance',
 			array(
 				'url'   => admin_url( 'admin-ajax.php' ),
-				'nonce' => wp_create_nonce( 'taxocommerce_images_maintenance' ),
-				'delay' => 4000,
+				'nonce'            => wp_create_nonce( 'taxocommerce_images_maintenance' ),
+				'assignmentNonce' => wp_create_nonce( 'taxocommerce_images_assignment' ),
+				'delay'            => 4000,
 			)
 		);
 	}
