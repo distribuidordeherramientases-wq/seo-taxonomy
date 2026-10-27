@@ -53,8 +53,9 @@ final class SEO_Ingeniero_Admin {
 
     public static function page_url($tab = 'research', $extra = array()) {
         return add_query_arg(array_merge(array(
-            'page' => 'seo-ingeniero',
-            'tab'  => sanitize_key((string) $tab),
+            'page'    => 'taxocommerce-scrappers',
+            'tcs_tab' => 'ingeniero',
+            'tab'     => sanitize_key((string) $tab),
         ), (array) $extra), admin_url('admin.php'));
     }
 
