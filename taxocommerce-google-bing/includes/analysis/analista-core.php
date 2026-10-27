@@ -20,8 +20,8 @@ if (!function_exists('seo_analista_admin_url')) {
     function seo_analista_admin_url(array $args = array()) {
         $url = add_query_arg(
             array(
-                'page' => 'seo-reports',
-                'tab'  => 'analista',
+                'page'    => 'taxocommerce-google-bing',
+                'tgb_tab' => 'analysis',
             ),
             admin_url('admin.php')
         );
