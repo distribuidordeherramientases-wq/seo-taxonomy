@@ -66,6 +66,15 @@ final class TaxoCommerce_Import_Export_CSV {
 		$batch = new TaxoCommerce_Import_Export_Batch( $this );
 		$file = isset( $_FILES['csv_file'] ) && is_array( $_FILES['csv_file'] ) ? $_FILES['csv_file'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified by queue_individual().
 		$result = $batch->queue_individual( $file );
+		if ( is_wp_error( $result ) ) {
+			update_option( TaxoCommerce_Import_Export_Batch::INDIVIDUAL_STATE, array(
+				'file' => isset( $file['name'] ) && is_scalar( $file['name'] ) ? sanitize_file_name( wp_unslash( (string) $file['name'] ) ) : __( 'Archivo sin nombre', 'taxocommerce-import-export' ),
+				'status' => 'failed', 'rows' => 0, 'errors' => 1,
+				'message' => sanitize_text_field( $result->get_error_message() ),
+				'updated' => current_time( 'mysql' ),
+				'events' => array( current_time( 'mysql' ) . ' · ' . sanitize_text_field( $result->get_error_message() ) ),
+			), false );
+		}
 		$url = add_query_arg(
 			array(
 				'page' => 'taxocommerce-import-export',
