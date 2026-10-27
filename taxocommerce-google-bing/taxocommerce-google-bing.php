@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections and data downloads for Google Search Console, Google Analytics, Bing, and Google Trends.
- * Version: 1.1.4
+ * Version: 1.1.5
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.4' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.5' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -42,6 +42,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/analysis/analista-bootstrap.php';
 
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
@@ -120,7 +121,7 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'google_search', 'google_analytics', 'bing', 'google_trends' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'analysis', 'google_search', 'google_analytics', 'bing', 'google_trends' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -130,6 +131,7 @@ function taxocommerce_google_bing_screen() {
     foreach (
         array(
             'connections'      => 'Connections',
+            'analysis'         => 'Analysis',
             'google_search'    => 'Google Search',
             'google_analytics' => 'Google Analytics',
             'bing'             => 'Bing',
@@ -150,6 +152,8 @@ function taxocommerce_google_bing_screen() {
     if ( 'connections' === $tab ) {
         wp_enqueue_style( 'tgb-connections-guide', TAXOCOMMERCE_GOOGLE_BING_URL . 'assets/connections-guide.css', array(), TAXOCOMMERCE_GOOGLE_BING_VERSION );
         TaxoCommerce_Connections_Admin::render();
+    } elseif ( 'analysis' === $tab ) {
+        seo_analista_render_report();
     } elseif ( 'google_trends' === $tab ) {
         TaxoCommerce_Google_Bing_Trends::render();
     } else {
