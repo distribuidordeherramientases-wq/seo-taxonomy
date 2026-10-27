@@ -187,6 +187,15 @@ final class TaxoCommerce_Import_Export_Exporter {
 				</div>
 
 				<p style="margin-top:20px;">
+						<label for="tc-ie-export-priority"><strong><?php esc_html_e( 'Velocidad de exportación', 'taxocommerce-import-export' ); ?></strong></label>
+						<select name="priority" id="tc-ie-export-priority">
+							<?php foreach ( TaxoCommerce_IE_Load::labels() as $number => $label ) : ?>
+								<option value="<?php echo esc_attr( (string) $number ); ?>" <?php selected( $number, TaxoCommerce_IE_Load::priority( 'export' ) ); ?>><?php echo esc_html( $number . ' · ' . $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<span class="description"><?php esc_html_e( 'El límite se adapta a CPU y memoria; 3 recomendado.', 'taxocommerce-import-export' ); ?></span>
+				</p>
+				<p style="margin-top:20px;">
 					<button id="tc-ie-export-start" type="submit" class="button button-primary"><?php esc_html_e( 'Crear CSV por bloques', 'taxocommerce-import-export' ); ?></button>
 				</p>
 			</form>
@@ -249,6 +258,11 @@ final class TaxoCommerce_Import_Export_Exporter {
 			wp_send_json_error( array( 'message' => __( 'Tipo de exportación no válido.', 'taxocommerce-import-export' ) ), 400 );
 		}
 
+		$priority = isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : TaxoCommerce_IE_Load::priority( 'export' );
+		$saved = TaxoCommerce_IE_Load::set_priority( 'export', $priority );
+		if ( is_wp_error( $saved ) ) {
+			wp_send_json_error( array( 'message' => $saved->get_error_message() ), 400 );
+		}
 		$this->delete_current_job();
 
 		$filters = $this->filters_from_request( $type );
@@ -433,7 +447,8 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$type    = sanitize_key( (string) ( $state['type'] ?? '' ) );
 		$filters = is_array( $state['filters'] ?? null ) ? $state['filters'] : array();
 		$cursor  = absint( $state['cursor'] ?? 0 );
-		$limit   = max( 10, min( 250, absint( apply_filters( 'taxocommerce_import_export_export_rows_per_block', 50 ) ) ) );
+		$limit   = min( TaxoCommerce_IE_Load::batch_size( 'export' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_export_rows_per_block', 50 ) ) ) ) );
+		$measure = TaxoCommerce_IE_Load::begin();
 		$seconds = max( 2, min( 15, (float) apply_filters( 'taxocommerce_import_export_export_runtime_seconds', 6 ) ) );
 		$deadline = microtime( true ) + $seconds;
 
@@ -491,6 +506,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		}
 		$state['file_size'] = (int) ftell( $handle );
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		TaxoCommerce_IE_Load::finish( 'export', $measure, $processed_ids );
 		$state['blocks'] = absint( $state['blocks'] ?? 0 ) + 1;
 		$state['updated'] = time();
 		if ( $processed_ids === count( $ids ) && count( $ids ) < $limit ) {
@@ -910,6 +926,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 			'examined'    => absint( $state['examined'] ?? $state['processed'] ?? 0 ),
 			'skipped'     => absint( $state['skipped'] ?? 0 ),
 			'blocks'      => absint( $state['blocks'] ?? 0 ),
+			'priority'    => TaxoCommerce_IE_Load::priority( 'export' ),
+			'delay'       => TaxoCommerce_IE_Load::delay( 'export' ) * 1000,
+			'nextBatch'   => TaxoCommerce_IE_Load::batch_size( 'export' ),
 			'total'       => absint( $state['total'] ?? 0 ),
 			'complete'    => ! empty( $state['complete'] ),
 			'downloadUrl' => ! empty( $state['complete'] ) ? $this->download_url( $state ) : '',
