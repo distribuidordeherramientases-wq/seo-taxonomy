@@ -13,6 +13,85 @@
         });
     });
 
+    document.querySelectorAll('[data-tci-assignment]').forEach(function (section) {
+        var busy = false;
+        var paused = false;
+        var output = section.querySelector('[data-tci-assignment-progress]');
+        var buttons = section.querySelectorAll('[data-tci-assignment-operation]');
+        var pause = section.querySelector('[data-tci-assignment-pause]');
+        var scope = section.dataset.tciAssignment;
+        if (!scope || !output) { return; }
+
+        if (pause) {
+            pause.addEventListener('click', function () {
+                paused = true;
+            });
+        }
+
+        buttons.forEach(function (button) {
+            button.addEventListener('click', async function () {
+                if (busy) { return; }
+                var operation = button.dataset.tciAssignmentOperation;
+                if (operation !== 'start' && operation !== 'scan') { return; }
+
+                busy = true;
+                paused = false;
+                buttons.forEach(function (item) { item.disabled = true; });
+
+                try {
+                    while (!paused) {
+                        var form = new URLSearchParams();
+                        form.set('action', 'taxocommerce_images_assign_auto_batch');
+                        form.set('nonce', config.assignmentNonce || '');
+                        form.set('scope', scope);
+                        form.set('operation', operation);
+
+                        var response = await fetch(config.url, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            body: form
+                        });
+                        var result = await response.json();
+                        if (!response.ok || !result.success) {
+                            throw new Error(result.data && result.data.message ? result.data.message : 'No se pudo ejecutar el lote de asignación.');
+                        }
+
+                        var state = result.data.state || {};
+                        var load = result.data.load || {};
+                        var total = Number(state.total || 0);
+                        var seen = Number(state.seen || 0);
+                        var assigned = Number(state.assigned || 0);
+                        var remaining = Number(state.remaining || 0);
+                        var percent = total > 0 ? Math.min(100, Math.round((seen * 1000) / total) / 10) : 100;
+                        var next = Number(load.next_batch || load.batch || 0);
+                        var elapsed = Number(load.elapsed || 0);
+
+                        output.textContent = 'Pasada automática: ' + seen + ' / ' + total + ' revisados (' + percent + ' %) · '
+                            + assigned + ' asignados · ' + remaining + ' pendientes · último lote '
+                            + Number(load.items || 0) + ' · ' + elapsed + ' s · siguiente lote ' + next + '.';
+
+                        if (result.data.done) {
+                            output.textContent += ' Proceso terminado. Puedes actualizar la pantalla cuando hayan finalizado los demás procesos.';
+                            return;
+                        }
+
+                        operation = 'scan';
+                        await new Promise(function (resolve) {
+                            window.setTimeout(resolve, result.data.delay || config.delay || 4000);
+                        });
+                    }
+
+                    output.textContent += ' Pausado al finalizar el lote. Puedes continuar sin repetir lo ya revisado.';
+                } catch (error) {
+                    output.textContent = 'Proceso detenido: ' + error.message + ' El último lote completado está guardado.';
+                } finally {
+                    busy = false;
+                    buttons.forEach(function (item) { item.disabled = false; });
+                }
+            });
+        });
+    });
+
     document.querySelectorAll('[data-tci-maintenance]').forEach(function (section) {
         var busy = false;
         var paused = false;
