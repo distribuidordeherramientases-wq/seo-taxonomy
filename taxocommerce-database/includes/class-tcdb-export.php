@@ -89,16 +89,39 @@ final class TCDB_Export {
         $cursor = null;
         $offset = 0;
         do {
-            if ( $keyset ) {
-                $condition = null === $cursor ? '' : $wpdb->prepare( "WHERE \`{$primary}\` > %s", (string) $cursor );
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Validated table and column names; cursor is prepared.
-                $query = "SELECT * FROM \`{$table}\` {$condition} ORDER BY \`{$primary}\` ASC LIMIT " . self::BATCH;
+            if ( $keyset && null === $cursor ) {
+                $rows = $wpdb->get_results(
+                    $wpdb->prepare(
+                        'SELECT * FROM %i ORDER BY %i ASC LIMIT %d',
+                        $table,
+                        $primary,
+                        self::BATCH
+                    ),
+                    ARRAY_A
+                );
+            } elseif ( $keyset ) {
+                $rows = $wpdb->get_results(
+                    $wpdb->prepare(
+                        'SELECT * FROM %i WHERE %i > %s ORDER BY %i ASC LIMIT %d',
+                        $table,
+                        $primary,
+                        (string) $cursor,
+                        $primary,
+                        self::BATCH
+                    ),
+                    ARRAY_A
+                );
             } else {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table is inventoried and limits are integers.
-                $query = $wpdb->prepare( "SELECT * FROM \`{$table}\` LIMIT %d OFFSET %d", self::BATCH, $offset );
+                $rows = $wpdb->get_results(
+                    $wpdb->prepare(
+                        'SELECT * FROM %i LIMIT %d OFFSET %d',
+                        $table,
+                        self::BATCH,
+                        $offset
+                    ),
+                    ARRAY_A
+                );
             }
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Verified schema identifiers, prepared values.
-            $rows = $wpdb->get_results( $query, ARRAY_A );
             if ( ! is_array( $rows ) || '' !== $wpdb->last_error ) {
                 return false;
             }
@@ -150,8 +173,10 @@ final class TCDB_Export {
                 echo "-- ERROR: tabla no autorizada; exportación INCOMPLETA.\n";
                 return;
             }
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table validated against current-site inventory.
-            $ddl = $wpdb->get_row( "SHOW CREATE TABLE \`{$table}\`", ARRAY_N );
+            $ddl = $wpdb->get_row(
+                $wpdb->prepare( 'SHOW CREATE TABLE %i', $table ),
+                ARRAY_N
+            );
             if ( ! is_array( $ddl ) || ! isset( $ddl[1] ) ) {
                 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authenticated application/sql backup must retain raw SQL; HTML escaping corrupts the dump.
                 echo "-- ERROR: no se ha podido leer el esquema de " . $table . "; exportación INCOMPLETA.\n";
