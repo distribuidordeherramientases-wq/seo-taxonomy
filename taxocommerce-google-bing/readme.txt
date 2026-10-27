@@ -17,7 +17,8 @@ TaxoCommerce Insights helps WordPress and WooCommerce administrators compare sea
 * Connections: Google Search Console, Google Analytics, Google Merchant Center, Bing Webmaster, optional Amazon and Pinterest services, YouTube and SerpApi.
 * Search, Analytics and Bing reporting with date comparisons and downloadable summaries where connected.
 * Trends and saved market evidence for categories and products.
-* Analyst and Executive reports aggregate locally stored results into priorities.
+* Three short board reports: current performance, market, and strategic priorities (select one at a time, with print and JSON export).
+* Analyst and the full Executive data report remain available as evidence and technical drill-down.
 * The main technical folder remains taxocommerce-google-bing for compatibility; the displayed product name is TaxoCommerce Insights.
 
 Opening reports does not automatically fetch provider data. Administrators explicitly initiate connection, download, refresh or research operations. Each external source requires the corresponding authorization and provider terms.

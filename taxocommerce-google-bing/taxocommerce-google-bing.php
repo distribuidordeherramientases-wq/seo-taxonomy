@@ -43,6 +43,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-executive.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-prepared.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-board.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-commercial.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-analyst.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
@@ -64,6 +65,7 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Connections_Admin::boot();
     TaxoCommerce_Google_Bing_Reports::register();
     TaxoCommerce_Google_Bing_Executive::register();
+    TaxoCommerce_Google_Bing_Board::register();
     TaxoCommerce_Google_Bing_Prepared::register();
     TaxoCommerce_Google_Bing_Analyst::register();
     TaxoCommerce_Google_Bing_Trends::register();
@@ -133,7 +135,7 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'analyst', 'informe', 'google_search', 'google_analytics', 'bing', 'google_trends', 'mercado' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'analyst', 'informe', 'google_search', 'google_analytics', 'bing', 'google_trends', 'mercado', 'informe_datos' ), true ) ) {
         $tab = 'informe';
     }
 
@@ -144,7 +146,7 @@ function taxocommerce_google_bing_screen() {
         array(
             'connections'      => 'Connections',
             'analyst'          => 'Analyst',
-            'informe'          => 'Executive Report',
+            'informe'          => 'Executive Reports',
             'google_search'    => 'Google Search',
             'google_analytics' => 'Google Analytics',
             'bing'             => 'Bing',
@@ -169,6 +171,8 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'analyst' === $tab ) {
         TaxoCommerce_Google_Bing_Analyst::render();
     } elseif ( 'informe' === $tab ) {
+        TaxoCommerce_Google_Bing_Board::render();
+    } elseif ( 'informe_datos' === $tab ) {
         TaxoCommerce_Google_Bing_Executive::render();
     } elseif ( 'google_trends' === $tab ) {
         TaxoCommerce_Google_Bing_Trends::render();
