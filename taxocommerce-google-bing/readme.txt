@@ -8,7 +8,7 @@ Stable tag: 1.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-External connections and manual data downloads for Google Search Console, Google Analytics, Bing, and Google Trends.
+External connections, manual provider data downloads, and the restored legacy Analysis dashboard.
 
 == Description ==
 
@@ -19,7 +19,7 @@ TaxoCommerce Insights keeps external service connections and manual data downloa
 * Google Analytics downloads.
 * Bing downloads.
 * Google Trends exploration and saved snapshots.
-* Analysis: original eleven on-demand reports from the legacy TaxoCommerce SEO module (requires the old reporting engine while installed). Executive Reports and Market remain removed.
+* Analysis restores the previous working Analista engine inside Insights, including summary, content, structure, trends, comparison and work-plan views.
 * The main technical folder remains taxocommerce-google-bing for compatibility; the displayed product name is TaxoCommerce Insights.
 
 Opening reports does not automatically fetch provider data. Administrators explicitly initiate connection, download, refresh or research operations. Each external source requires the corresponding authorization and provider terms.
@@ -51,6 +51,11 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.5 =
+* Restored the previous Analista 3.9.0 engine as the Insights > Analysis tab instead of rebuilding it.
+* Preserved its 28/60/90-day views, lazy partial analyses, action plan, comparison, structure, content, trends and JSON export.
+* Adapted legacy admin URLs and assets to the standalone Insights plugin.
 
 = 1.1.4 =
 * Removed Analyst, Executive Reports, Market, their supporting code, assets, and tests.
