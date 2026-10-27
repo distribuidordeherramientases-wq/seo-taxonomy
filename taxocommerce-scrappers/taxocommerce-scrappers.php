@@ -18,12 +18,20 @@ define( 'TAXOCOMMERCE_SCRAPPERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SCRAPPERS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SCRAPPERS_URL', plugin_dir_url( __FILE__ ) );
 
-require_once TAXOCOMMERCE_SCRAPPERS_PATH . 'includes/ojeador/ojeador-bootstrap.php';
-require_once TAXOCOMMERCE_SCRAPPERS_PATH . 'includes/ingeniero/ingeniero-bootstrap.php';
+// During the migration the historical monolith may still be active. Reuse its
+// already-loaded classes instead of declaring the same legacy class names twice.
+if ( ! class_exists( 'SEO_Ojeador_Admin', false ) ) {
+    require_once TAXOCOMMERCE_SCRAPPERS_PATH . 'includes/ojeador/ojeador-bootstrap.php';
+}
+if ( ! class_exists( 'SEO_Ingeniero', false ) ) {
+    require_once TAXOCOMMERCE_SCRAPPERS_PATH . 'includes/ingeniero/ingeniero-bootstrap.php';
+}
 
 final class TaxoCommerce_Scrappers {
     public static function boot() {
-        if ( class_exists( 'SEO_Ingeniero_Admin' ) ) {
+        // The standalone Ingeniero bootstrap does not initialize its admin
+        // controller. Do it here only when its actions have not been registered.
+        if ( class_exists( 'SEO_Ingeniero_Admin' ) && ! has_action( 'admin_post_seo_ingeniero_prepare', array( 'SEO_Ingeniero_Admin', 'handle_prepare' ) ) ) {
             SEO_Ingeniero_Admin::init();
         }
 
