@@ -20,7 +20,7 @@ $checks = array(
     strpos( $exporter, "taxocommerce_ie_export_status" ) !== false,
     strpos( $exporter, "taxocommerce_ie_export_cancel" ) !== false,
     strpos( $exporter, "taxocommerce_import_export_export_rows_per_block" ) !== false,
-    strpos( $exporter, "ftruncate( $handle, $committed_size )" ) !== false,
+    strpos( $exporter, 'ftruncate( $handle, $committed_size )' ) !== false,
     strpos( $exporter, "'file_size'" ) !== false,
     strpos( $exporter, "'examined'" ) !== false,
     strpos( $exporter, "'skipped'" ) !== false,
