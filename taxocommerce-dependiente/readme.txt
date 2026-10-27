@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.12
+Stable tag: 0.3.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,12 @@ No. Learning builds and evaluates separate knowledge records.
 No. Core provides optional grouped administration.
 
 == Changelog ==
+
+= 0.3.13 =
+* Record evaluator revision, actual PHP plugin version and L9 query provenance in quality JSON reports.
+* Flag old L9/L10 audit results as stale and allow repeat of only the current quality examination.
+* Preserve existing L1-L9 snapshots and the 90% quality gate for L10.
+
 
 = 0.3.12 =
 * Rebuild L9 evaluation needs deterministically from sealed learned facts, instead of reusing historical legacy questions.
