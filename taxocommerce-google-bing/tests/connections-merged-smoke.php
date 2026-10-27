@@ -8,7 +8,6 @@ $amazon = file_get_contents( $root . '/includes/class-taxocommerce-connections-a
 $pinterest = file_get_contents( $root . '/includes/class-taxocommerce-connections-pinterest.php' );
 $google_bing = file_get_contents( $root . '/includes/class-taxocommerce-connections-google-bing.php' );
 $oauth = file_get_contents( $root . '/includes/class-taxocommerce-google-bing-oauth.php' );
-$prepared = file_get_contents( $root . '/includes/class-taxocommerce-google-bing-prepared.php' );
 $bridge = file_get_contents( $repo . '/taxocommerce-connections/taxocommerce-connections.php' );
 $core = file_get_contents( $repo . '/taxocommerce-core/includes/class-taxocommerce-core.php' );
 $readme = file_get_contents( $root . '/readme.txt' );
@@ -25,13 +24,15 @@ $checks = array(
     strpos( $main, "class-taxocommerce-connections-pinterest.php" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Amazon::boot()" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Pinterest::boot()" ) !== false,
-    strpos( $main, "class-taxocommerce-google-bing-prepared.php" ) !== false,
-    strpos( $main, "class-taxocommerce-google-bing-commercial.php" ) !== false,
-    strpos( $main, "TaxoCommerce_Google_Bing_Prepared::register()" ) !== false,
-    strpos( $prepared, "tgb_prepared_intelligence_v1" ) !== false,
     strpos( $admin, "'page'    => 'taxocommerce-google-bing'" ) !== false,
     strpos( $admin, "'tgb_tab' => 'connections'" ) !== false,
-    strpos( $admin, 'Market Providers · YouTube / SerpApi' ) !== false,
+    strpos( $main, "'google_search'    => 'Google Search'" ) !== false,
+    strpos( $main, "'google_analytics' => 'Google Analytics'" ) !== false,
+    strpos( $main, "'bing'             => 'Bing'" ) !== false,
+    strpos( $main, "'google_trends'    => 'Google Trends'" ) !== false,
+    strpos( $main, "'analyst'" ) === false,
+    strpos( $main, "'mercado'" ) === false,
+    strpos( $main, "'informe'" ) === false,
     strpos( $amazon, "const OPTION        = 'taxocommerce_connections_amazon'" ) !== false,
     strpos( $amazon, "const LEGACY_OPTION = 'seo_amazon_creators_recipe_settings'" ) !== false,
     strpos( $pinterest, "const OPTION        = 'taxocommerce_connections_pinterest'" ) !== false,
