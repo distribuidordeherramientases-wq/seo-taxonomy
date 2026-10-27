@@ -44,9 +44,9 @@ final class TaxoCommerce_Connections_Status {
             $gsc_site = trim( (string) ( $oauth['property_id'] ?? '' ) );
         }
         $amazon_tag = trim( (string) ( $amazon['partner_tag'] ?? '' ) );
+        $oauth_identity = ! empty( $tokens['refresh_token'] ) ? $tokens['refresh_token'] : ( $tokens['access_token'] ?? '' );
         $google_token_signature = $service_ready ? $service : array(
-            $oauth['client_id'] ?? '', $oauth['client_secret'] ?? '', $tokens['refresh_token'] ?? '',
-            $tokens['access_token'] ?? '',
+            $oauth['client_id'] ?? '', $oauth['client_secret'] ?? '', $oauth_identity,
         );
 
         return array(
@@ -57,7 +57,7 @@ final class TaxoCommerce_Connections_Status {
             'merchant' => array( 'name' => 'Google Merchant Center', 'ready' => '' !== $merchant && $service_ready, 'mode' => 'test',
                 'sig' => self::signature( array( $merchant, $service ) ) ),
             'oauth' => array( 'name' => 'Google OAuth', 'ready' => $oauth_ready, 'mode' => 'test',
-                'sig' => self::signature( array( $oauth['client_id'] ?? '', $oauth['client_secret'] ?? '', $tokens['refresh_token'] ?? '', $tokens['access_token'] ?? '', $oauth['property_id'] ?? '' ) ) ),
+                'sig' => self::signature( array( $oauth['client_id'] ?? '', $oauth['client_secret'] ?? '', $oauth_identity, $oauth['property_id'] ?? '' ) ) ),
             'bing' => array( 'name' => 'Bing Webmaster', 'ready' => '' !== trim( $bing_key ) && '' !== (string) ( $bing['site_url'] ?? '' ), 'disabled' => empty( $bing['enabled'] ), 'mode' => 'test',
                 'sig' => self::signature( array( $bing['site_url'] ?? '', $bing_key ) ) ),
             'trends' => array( 'name' => 'Google Trends', 'ready' => true, 'mode' => 'public',
@@ -144,7 +144,10 @@ final class TaxoCommerce_Connections_Status {
             if ( ! empty( $record['checked_at'] ) && hash_equals( (string) $config['sig'], (string) ( $record['sig'] ?? '' ) ) ) {
                 echo '<small>Última prueba: ' . esc_html( wp_date( 'd/m/Y H:i', (int) $record['checked_at'] ) ) . '</small>';
                 if ( 'error' === $state ) {
-                    echo '<small>La prueba falló. Revisa credenciales, permisos o acceso a la propiedad.</small>';
+                    $code = sanitize_key( (string) ( $record['error_code'] ?? '' ) );
+                    $help = array( 'property_access_denied' => 'La propiedad no está autorizada.', 'bing_site_denied' => 'El sitio no está autorizado.', 'no_credentials' => 'Faltan credenciales.', 'connection_unavailable' => 'El servicio no respondió.', 'invalid_response' => 'Respuesta no válida.' );
+                    $detail = isset( $help[ $code ] ) ? $help[ $code ] : ( preg_match( '/^http_[0-9]{3}$/', $code ) ? 'Respuesta ' . strtoupper( str_replace( '_', ' ', $code ) ) : 'Revisa permisos, credenciales y acceso a la propiedad.' );
+                    echo '<small>' . esc_html( $detail ) . '</small>';
                 }
             } elseif ( 'configured' === $state && 'test' === $config['mode'] ) {
                 echo '<small>Prueba la conexión para verificarla.</small>';
@@ -257,11 +260,14 @@ final class TaxoCommerce_Connections_Status {
         }
         $outcome = self::verify( $id );
         $records = self::records();
+        // Token refresh during the explicit check may update the OAuth option.
+        $current = self::definitions();
         // Do not persist API messages or tokens; only a code, boolean and timestamp.
         $records[ $id ] = array(
             'ok'         => ! is_wp_error( $outcome ) ? 1 : 0,
             'checked_at' => time(),
-            'sig'        => $definitions[ $id ]['sig'],
+            'sig'        => $current[ $id ]['sig'],
+            'error_code' => is_wp_error( $outcome ) ? sanitize_key( $outcome->get_error_code() ) : '',
         );
         update_option( self::OPTION, $records, false );
         $url = TaxoCommerce_Connections_Admin::url( array( 'tc_health_checked' => $id ) ) . '#tgb-health-heading';
