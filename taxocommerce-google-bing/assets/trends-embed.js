@@ -56,10 +56,7 @@
 
     function selection() {
         const terms = parseTerms(textField.value);
-        const geo = (geoField.value || '').toUpperCase();
-        if (geo && !/^[A-Z]{2}$/.test(geo)) {
-            throw new Error('El país seleccionado no es válido.');
-        }
+        const geo = 'ES'; // Spain only, regardless of field changes.
         const period = allowedPeriods.includes(periodField.value) ? periodField.value : 'today 12-m';
         return {terms: terms, geo: geo, period: period};
     }
@@ -149,7 +146,7 @@
             return;
         }
 
-        const country = geoField.selectedOptions.length ? geoField.selectedOptions[0].textContent : 'Todo el mundo';
+        const country = 'España';
         const period = periodField.selectedOptions.length ? periodField.selectedOptions[0].textContent : config.period;
         const header = node('div', 'tgb-trends-result-heading');
         header.appendChild(node('h3', '', 'Resultados para: ' + config.terms.join(' · ')));
