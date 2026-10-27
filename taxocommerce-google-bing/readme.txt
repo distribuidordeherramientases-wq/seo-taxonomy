@@ -4,21 +4,22 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Search, analytics and market reporting with optional external service connections and an executive Analyst view.
+External connections and manual data downloads for Google Search Console, Google Analytics, Bing, and Google Trends.
 
 == Description ==
 
-TaxoCommerce Insights helps WordPress and WooCommerce administrators compare search visibility, audience metrics and saved market research.
+TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
 
-* Connections: Google Search Console, Google Analytics, Google Merchant Center, Bing Webmaster, optional Amazon and Pinterest services, YouTube and SerpApi.
-* Search, Analytics and Bing reporting with date comparisons and downloadable summaries where connected.
-* Trends and saved market evidence for categories and products.
-* Three short board reports: current performance, market, and strategic priorities (select one at a time, with print and JSON export).
-* Analyst and the full Executive data report remain available as evidence and technical drill-down.
+* Connections: Google Search Console, Google Analytics, Google Merchant Center, Bing Webmaster, Amazon and Pinterest.
+* Google Search downloads.
+* Google Analytics downloads.
+* Bing downloads.
+* Google Trends exploration and saved snapshots.
+* Analyst, Executive Reports and Market have been removed and will be redesigned from scratch.
 * The main technical folder remains taxocommerce-google-bing for compatibility; the displayed product name is TaxoCommerce Insights.
 
 Opening reports does not automatically fetch provider data. Administrators explicitly initiate connection, download, refresh or research operations. Each external source requires the corresponding authorization and provider terms.
@@ -47,9 +48,14 @@ Only previously saved local information may be available. Live Google/Bing metri
 
 = Is this the old Google/Bing plugin? =
 
-It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and extended to unified connections and Analyst reporting.
+It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.4 =
+* Removed Analyst, Executive Reports, Market, their supporting code, assets, and tests.
+* Kept Connections, Google Search, Google Analytics, Bing, and Google Trends.
+* Removed Market-only YouTube and SerpApi provider configuration.
 
 = 1.1.3 =
 * Reuses the authorized Google Search Console OAuth property and credentials already configured in the historic plugin, without copying or modifying its secrets.
