@@ -17,7 +17,7 @@ tcc_extension_assert( false !== strpos( $home, 'call_user_func( $extensions_rend
 tcc_extension_assert( false !== strpos( $home, 'is_callable( $extensions_renderer )' ), 'renderer callback is guarded' );
 tcc_extension_assert( false === strpos( $home, 'tcc-migration' ), 'redundant migration table removed' );
 tcc_extension_assert( false === strpos( $home, "'slug'        => 'taxocommerce-core-modules'" ), 'Extensions navigation duplicate removed' );
-tcc_extension_assert( false === strpos( $core, "'taxocommerce-core-modules',\n\t\t\tarray( $this, 'render_modules' )" ), 'Extensions submenu registration removed' );
+tcc_extension_assert( false === strpos( $core, "'taxocommerce-core-modules',\n\t\t\tarray( \$this, 'render_modules' )" ), 'Extensions submenu registration removed' );
 tcc_extension_assert( false !== strpos( $core, 'redirect_old_extensions_page' ), 'old bookmarks redirect to Core' );
 tcc_extension_assert( false !== strpos( $core, "admin.php?page=taxocommerce-core#tcc-extensions" ), 'old bookmark has anchored target' );
 tcc_extension_assert( false !== strpos( $core, "'page'       => 'taxocommerce-core'," ), 'extension POST result redirects to Core' );
