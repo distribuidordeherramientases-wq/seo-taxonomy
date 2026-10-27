@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.8
+Stable tag: 0.2.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,13 @@ Current functionality includes:
 * Optional integration into TaxoCommerce Core.
 
 == Changelog ==
+
+= 0.2.9 =
+* Changed unused/duplicate analysis into one full-library job that continues automatically until the complete Media snapshot is scanned.
+* Kept adaptive 1-5 CPU/memory regulation as an internal batching mechanism only; batch size no longer reads as the scope of the report.
+* Added explicit KPI/report counts for total, scanned, used, unused, exact SHA-256 duplicates, duplicate keepers and review cases.
+* Added report filters for actionable findings, unused images, duplicate groups, used images, review cases and all rows.
+* Duplicate detection remains exact original-file SHA-256 comparison; names, dimensions and file sizes alone never classify a duplicate.
 
 = 0.2.8 =
 * Added independent adaptive workload control for bounded local image scans.
