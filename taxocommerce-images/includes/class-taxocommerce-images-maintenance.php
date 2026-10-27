@@ -267,14 +267,13 @@ final class TaxoCommerce_Images_Maintenance {
 		check_admin_referer( 'taxocommerce_images_save_priority', 'taxocommerce_images_nonce' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+		$mode = isset( $_POST['mode'] ) && is_scalar( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'cleanup';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$priority = isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : '';
 		$result = TaxoCommerce_Images_Load::set_priority( $priority, $mode );
 		if ( is_wp_error( $result ) ) {
 			wp_die( esc_html( $result->get_error_message() ) );
 		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$mode = isset( $_POST['mode'] ) && is_scalar( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'cleanup';
 		if ( 0 === strpos( $mode, 'assignment_' ) ) {
 			$tab = 'assignment';
 		} else {
