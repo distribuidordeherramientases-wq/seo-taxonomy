@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Import and export catalog, content and Media for WordPress/WooCommerce.
 
 TaxoCommerce Import-Export is an independent member of the TaxoCommerce family.
 
-Version 0.4.0 includes:
+Version 0.4.1 includes:
 
 * Dedicated Exportación tab with resumable block-based CSV generation.
 * Selectable exports for full products, reduced portable product inventory, product categories, posts and pages.
@@ -50,6 +50,13 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.1 =
+* Product CSV export resumes after interruptions by truncating incomplete blocks back to the last persisted byte offset, preventing duplicate rows.
+* Export progress now distinguishes examined records, written rows, skipped products and completed blocks.
+* Product export supports scheduled (`future`) status alongside publish, draft, pending, private and trash.
+* Safely rejects in-flight jobs created before the new byte-checkpoint format instead of corrupting the CSV.
+
 
 = 0.4.0 =
 * Added a dedicated Exportación tab.
