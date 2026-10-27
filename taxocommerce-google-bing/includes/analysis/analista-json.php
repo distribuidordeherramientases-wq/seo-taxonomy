@@ -124,7 +124,7 @@ if (!function_exists('seo_analista_build_json_export')) {
             'generated_at' => gmdate('c'),
             'site' => array(
                 'home_url' => home_url('/'),
-                'plugin_version' => defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : '',
+                'plugin_version' => defined('TAXOCOMMERCE_GOOGLE_BING_VERSION') ? TAXOCOMMERCE_GOOGLE_BING_VERSION : '',
                 'analista_version' => defined('SEO_ANALISTA_VERSION') ? SEO_ANALISTA_VERSION : '',
             ),
             'period' => (array) ($data['period'] ?? array()),
