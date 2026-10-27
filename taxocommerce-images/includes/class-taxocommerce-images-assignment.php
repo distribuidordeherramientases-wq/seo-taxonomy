@@ -800,19 +800,24 @@ final class TaxoCommerce_Images_Assignment {
 			self::save_assignment_state( $scope, $state );
 			$sample = TaxoCommerce_Images_Load::finish( $process, $measurement, absint( $result['seen'] ?? 0 ) );
 
-			wp_send_json_success(
-				array(
-					'done'  => 'complete' === $state['status'],
-					'state' => $state,
-					'load'  => $sample,
-					'delay' => TaxoCommerce_Images_Load::delay_ms( $process ),
-				)
+			$response = array(
+				'done'  => 'complete' === $state['status'],
+				'state' => $state,
+				'load'  => $sample,
+				'delay' => TaxoCommerce_Images_Load::delay_ms( $process ),
 			);
+			$error_message = '';
 		} catch ( Throwable $error ) {
-			wp_send_json_error( array( 'message' => sanitize_text_field( $error->getMessage() ) ), 400 );
+			$response = array();
+			$error_message = sanitize_text_field( $error->getMessage() );
 		} finally {
 			TaxoCommerce_Images_Maintenance::unlock( $process );
 		}
+
+		if ( '' !== $error_message ) {
+			wp_send_json_error( array( 'message' => $error_message ), 400 );
+		}
+		wp_send_json_success( $response );
 	}
 
 	public static function handle_assign_auto() {
