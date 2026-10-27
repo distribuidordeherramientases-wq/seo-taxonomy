@@ -102,7 +102,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			$record['updated'] = (string) ( $state['updated_at'] ?? '' );
 			$record['details'] = array_slice( (array) ( $state['errors'] ?? array() ), -10 );
 		} elseif ( $file === (string) ( $state['last_file'] ?? '' ) ) {
-			$record['status'] = 'failed' === ( $state['status'] ?? '' ) ? 'failed' : ( ! empty( $record['errors'] ) ? 'completed_with_errors' : 'completed' );
+			$record['status'] = 'failed' === ( $record['status'] ?? '' ) || 'failed' === ( $state['status'] ?? '' ) ? 'failed' : ( ! empty( $record['errors'] ) ? 'completed_with_errors' : 'completed' );
 			$record['message'] = sanitize_text_field( (string) ( $state['message'] ?? '' ) );
 			$record['updated'] = (string) ( $state['updated_at'] ?? '' );
 		}
@@ -522,6 +522,15 @@ final class TaxoCommerce_Import_Export_Batch {
 					JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
 				)
 			); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			$individual = get_option( self::INDIVIDUAL_STATE, array() );
+			if ( is_array( $individual ) && (string) ( $individual['file'] ?? '' ) === $filename ) {
+				$individual['status'] = 'failed';
+				$individual['errors'] = 1;
+				$individual['message'] = sanitize_text_field( $detected->get_error_message() );
+				$individual['updated'] = current_time( 'mysql' );
+				$individual['events'][] = $individual['updated'] . ' · Archivo rechazado: ' . $individual['message'];
+				update_option( self::INDIVIDUAL_STATE, $individual, false );
+			}
 			$state['current_file'] = '';
 			$state['last_file']    = basename( $failed );
 			$state['entity']       = '';
