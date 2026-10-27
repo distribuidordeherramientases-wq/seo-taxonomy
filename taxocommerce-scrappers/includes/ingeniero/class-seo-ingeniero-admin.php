@@ -3,7 +3,6 @@ defined('ABSPATH') || exit;
 
 final class SEO_Ingeniero_Admin {
     public static function init() {
-        add_action('admin_menu', array(__CLASS__, 'register_page'), 32);
         add_filter('seo_content_items', array(__CLASS__, 'content_card'), 32, 1);
         add_filter('parent_file', array(__CLASS__, 'parent_file'), 32, 1);
         add_filter('submenu_file', array(__CLASS__, 'submenu_file'), 32, 1);
@@ -584,7 +583,7 @@ final class SEO_Ingeniero_Admin {
         echo '</div>';
 
         echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:12px 0">';
-        echo '<input type="hidden" name="page" value="seo-ingeniero"><input type="hidden" name="tab" value="editorial">';
+        echo '<input type="hidden" name="page" value="taxocommerce-scrappers"><input type="hidden" name="tcs_tab" value="ingeniero"><input type="hidden" name="tab" value="editorial">';
         echo '<label>Estado<br><select name="editorial_status"><option value="">Todos</option>';
         foreach (array('candidate'=>'Candidato','review'=>'Revisión','approved'=>'Aprobado','draft'=>'Borrador','published'=>'Publicado','needs_update'=>'Necesita actualizar','closed'=>'Cerrado') as $key=>$label) {
             echo '<option value="' . esc_attr($key) . '" ' . selected($status,$key,false) . '>' . esc_html($label) . '</option>';
@@ -654,7 +653,7 @@ final class SEO_Ingeniero_Admin {
 
         if (absint($list['pages'] ?? 1) > 1) {
             $links = paginate_links(array(
-                'base'=>add_query_arg(array('page'=>'seo-ingeniero','tab'=>'editorial','editorial_status'=>$status,'editorial_action'=>$action,'paged'=>'%#%'), admin_url('admin.php')),
+                'base'=>add_query_arg(array('page'=>'taxocommerce-scrappers','tcs_tab'=>'ingeniero','tab'=>'editorial','editorial_status'=>$status,'editorial_action'=>$action,'paged'=>'%#%'), admin_url('admin.php')),
                 'format'=>'',
                 'current'=>absint($list['page'] ?? 1),
                 'total'=>absint($list['pages'] ?? 1),
