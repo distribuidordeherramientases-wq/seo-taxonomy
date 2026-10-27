@@ -67,7 +67,7 @@ $checks=array(
     strpos($intelligence,"'query_origins'=>array()")!==false,
     strpos($intelligence,'const QUALITY_PROGRESS_VERSION = 4;')!==false,
     strpos($intelligence,'$base_score = 500;')===false,
-    strpos($intelligence,'$cmp = absint( $b')===false,
+    strpos($intelligence,'$cmp = absint( $b[\'quality_repair\']')===false,
     strpos($admin,'Preguntas de examen regeneradas desde la foto fija')!==false,
     strpos($sources,'customer_need_scope')!==false,
     strpos($sources,'product_qualifiers')!==false,
