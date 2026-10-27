@@ -454,6 +454,10 @@ final class TaxoCommerce_Import_Export_Exporter {
 			return new WP_Error( 'tc_ie_export_open', __( 'No se pudo reabrir el CSV temporal.', 'taxocommerce-import-export' ) );
 		}
 
+		if ( ! isset( $state['file_size'] ) ) {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			return new WP_Error( 'tc_ie_export_legacy_job', __( 'Esta exportación empezó con una versión anterior. Inicia una nueva para proteger el CSV.', 'taxocommerce-import-export' ) );
+		}
 		$committed_size = absint( $state['file_size'] ?? 0 );
 		$actual_size = (int) filesize( $state['path'] );
 		if ( $actual_size < $committed_size || ! ftruncate( $handle, $committed_size ) || 0 !== fseek( $handle, 0, SEEK_END ) ) {
