@@ -13,7 +13,8 @@ final class TCD_Intelligence {
     const DB_OPTION = 'tcd_intelligence_db_version';
     const INTERPRETER_STATE = 'tcd_interpreter_state';
     const QUALITY_PROGRESS = 'tcd_quality_eval_progress';
-    const QUALITY_PROGRESS_VERSION = 4;
+    const QUALITY_PROGRESS_VERSION = 5;
+    const QUALITY_EVALUATOR_REVISION = 'l9-snapshot-facts-v2';
     const L2_IDENTITY_BACKFILL = 'tcd_l2_identity_backfill';
     const MAX_SIGNALS_PER_PRODUCT = 32;
 
@@ -740,6 +741,8 @@ final class TCD_Intelligence {
                     'recommendations'=>array(),
                     'sample_method'=>'distributed_deterministic',
                     'population'=>count( $all_ids ),
+                    'quality_engine_revision'=>self::QUALITY_EVALUATOR_REVISION,
+                    'evaluated_plugin_version'=>defined( 'TAXOCOMMERCE_DEPENDIENTE_VERSION' ) ? TAXOCOMMERCE_DEPENDIENTE_VERSION : 'unknown',
                     'query_origins'=>array(),
                 ),
             );
@@ -774,7 +777,9 @@ final class TCD_Intelligence {
                 $evaluation['source_id'] = absint( $evaluation['source_id'] ?? $row['source_id'] ?? 0 );
                 $evaluation['title'] = (string) ( $evaluation['title'] ?? $row['title'] ?? '' );
                 $evaluation['diagnosis'] = self::diagnose_evaluation( $lesson, $row, $evaluation );
-                if ( 9 === $lesson ) {
+                // L10 recursively evaluates its archived L9 rows. Keep
+                // provenance for these regressions, not just direct L9 exams.
+                if ( 9 === $lesson || ( 10 === $lesson && 9 === absint( $evaluation['original_lesson'] ?? 0 ) ) ) {
                     $query_origin = sanitize_key( (string) ( $evaluation['query_origin'] ?? 'unknown' ) );
                     $report['query_origins'][ $query_origin ] = absint( $report['query_origins'][ $query_origin ] ?? 0 ) + 1;
                 }
@@ -891,7 +896,9 @@ final class TCD_Intelligence {
             'recommendations'=>array(),
             'sample_method'=>'distributed_deterministic',
             'population'=>count( $all_rows ),
-                    'query_origins'=>array(),
+            'quality_engine_revision'=>self::QUALITY_EVALUATOR_REVISION,
+            'evaluated_plugin_version'=>defined( 'TAXOCOMMERCE_DEPENDIENTE_VERSION' ) ? TAXOCOMMERCE_DEPENDIENTE_VERSION : 'unknown',
+            'query_origins'=>array(),
         );
         $stage = self::stage_id( $lesson, $snapshot_id );
 
@@ -901,7 +908,7 @@ final class TCD_Intelligence {
             $evaluation['source_id'] = absint( $evaluation['source_id'] ?? $row['source_id'] ?? 0 );
             $evaluation['title'] = (string) ( $evaluation['title'] ?? $row['title'] ?? '' );
             $evaluation['diagnosis'] = self::diagnose_evaluation( $lesson, $row, $evaluation );
-            if ( 9 === $lesson ) {
+            if ( 9 === $lesson || ( 10 === $lesson && 9 === absint( $evaluation['original_lesson'] ?? 0 ) ) ) {
                 $query_origin = sanitize_key( (string) ( $evaluation['query_origin'] ?? 'unknown' ) );
                 $result['query_origins'][ $query_origin ] = absint( $result['query_origins'][ $query_origin ] ?? 0 ) + 1;
             }
@@ -1759,6 +1766,11 @@ final class TCD_Intelligence {
                 'threshold'=>(float) ( $report['threshold'] ?? $quality['threshold'] ?? self::threshold( $lesson ) ),
                 'population'=>absint( $report['population'] ?? 0 ),
                 'sample_method'=>(string) ( $report['sample_method'] ?? '' ),
+                'evaluated_plugin_version'=>(string) ( $report['evaluated_plugin_version'] ?? 'unknown' ),
+                'active_plugin_version'=>defined( 'TAXOCOMMERCE_DEPENDIENTE_VERSION' ) ? TAXOCOMMERCE_DEPENDIENTE_VERSION : 'unknown',
+                'quality_engine_revision'=>(string) ( $report['quality_engine_revision'] ?? 'legacy_unknown' ),
+                'quality_engine_stale'=>self::quality_report_is_stale( $lesson, $report ),
+                'query_origins'=>(array) ( $report['query_origins'] ?? array() ),
             ),
             'summary'=>array(
                 'failure_origins'=>(array) ( $report['failure_origins'] ?? array() ),
@@ -2228,6 +2240,18 @@ final class TCD_Intelligence {
         global $wpdb;
         $wpdb->query( $wpdb->prepare( 'UPDATE %i SET active=1,updated_at=%s WHERE source_brain_id=%s', TCD_Knowledge_Transfer::rules_table(), current_time( 'mysql' ), $stage ) );
         $wpdb->query( $wpdb->prepare( 'UPDATE %i SET active=1,updated_at=%s WHERE source_brain_id=%s', TCD_Knowledge_Transfer::l9_table(), current_time( 'mysql' ), $stage ) );
+    }
+
+    /**
+     * Old persisted reports must not be presented as if recalculated by the
+     * current L9/L10 evaluator. This check is read-only: no automatic
+     * 180-case scan from the admin page or JSON download.
+     */
+    public static function quality_report_is_stale( $lesson, $report ) {
+        $lesson = absint( $lesson );
+        if ( ! in_array( $lesson, array( 9, 10 ), true ) ) return false;
+        $report = is_array( $report ) ? $report : array();
+        return (string) ( $report['quality_engine_revision'] ?? '' ) !== self::QUALITY_EVALUATOR_REVISION;
     }
 
     public static function quality_for_lesson( $lesson ) {
