@@ -290,7 +290,7 @@ final class TaxoCommerce_Images_Maintenance {
 		?>
 		<section data-tci-maintenance="<?php echo esc_attr( $mode ); ?>">
 		<h2><?php echo esc_html( 'labels' === $mode ? 'Etiquetas y atributos de imágenes' : 'Liberar espacio: sin uso y duplicadas' ); ?></h2>
-		<p><?php echo esc_html( 'labels' === $mode ? 'Revisa ALT, título y dimensiones de Media, sin peticiones HTTP. Leyenda y descripción son opcionales. No se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador; el contenido HTML ya publicado se revisa aparte.' : 'Escanea la biblioteca completa en un único trabajo. Internamente usa lotes adaptativos regulados 1–5 para proteger CPU y memoria, pero continúa automáticamente hasta revisar todas las imágenes. El informe separa imágenes en uso, sin uso conocido, duplicadas exactas y casos que requieren revisión. Las duplicadas exactas se verifican comparando SHA-256 del archivo original; no se deducen por nombre, tamaño o dimensiones. No se elimina ninguna imagen durante este análisis.' ); ?></p>
+		<p><?php echo esc_html( 'labels' === $mode ? 'Escanea la biblioteca completa en un único trabajo para revisar ALT, título, dimensiones y existencia del archivo. Internamente usa lotes adaptativos regulados 1–5 para proteger CPU y memoria, pero continúa automáticamente hasta revisar todas las imágenes. Leyenda y descripción son opcionales; no se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador.' : 'Escanea la biblioteca completa en un único trabajo. Internamente usa lotes adaptativos regulados 1–5 para proteger CPU y memoria, pero continúa automáticamente hasta revisar todas las imágenes. El informe separa imágenes en uso, sin uso conocido, duplicadas exactas y casos que requieren revisión. Las duplicadas exactas se verifican comparando SHA-256 del archivo original; no se deducen por nombre, tamaño o dimensiones. No se elimina ninguna imagen durante este análisis.' ); ?></p>
 		<?php
 		$priority = TaxoCommerce_Images_Load::priority();
 		$sample = TaxoCommerce_Images_Load::last_sample( $mode );
@@ -361,15 +361,47 @@ final class TaxoCommerce_Images_Maintenance {
 				?>
 			</p>
 		<?php else : ?>
+			<?php
+			$label_counts = wp_parse_args(
+				(array) ( $state['counts'] ?? array() ),
+				array(
+					'missing_alt'        => 0,
+					'decorative_alt'     => 0,
+					'missing_title'      => 0,
+					'review_title'       => 0,
+					'missing_dimensions' => 0,
+					'missing_file'       => 0,
+					'ok'                 => 0,
+				)
+			);
+			?>
 			<div class="tcc-stat-grid">
-			<?php foreach ( (array) ( $state['counts'] ?? array() ) as $flag => $count ) : ?>
-			<div class="card"><strong><?php echo esc_html( number_format_i18n( $count ) ); ?></strong> <?php echo esc_html( $labels[ $flag ] ?? $flag ); ?></div>
-			<?php endforeach; ?>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $state['total'] ?? 0 ) ) ); ?></strong> <?php esc_html_e( 'Total biblioteca', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $state['scanned'] ?? 0 ) ) ); ?></strong> <?php esc_html_e( 'Analizadas', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $label_counts['missing_alt'] ) ) ); ?></strong> <?php esc_html_e( 'Sin ALT informativo', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $label_counts['missing_title'] ) + absint( $label_counts['review_title'] ) ) ); ?></strong> <?php esc_html_e( 'Título a revisar', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $label_counts['missing_dimensions'] ) ) ); ?></strong> <?php esc_html_e( 'Sin dimensiones', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $label_counts['missing_file'] ) ) ); ?></strong> <?php esc_html_e( 'Archivo ausente', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $label_counts['ok'] ) ) ); ?></strong> <?php esc_html_e( 'Sin incidencias', 'taxocommerce-images' ); ?></div>
 			</div>
+			<p><strong><?php esc_html_e( 'Informe de etiquetas:', 'taxocommerce-images' ); ?></strong>
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: 1: missing ALT, 2: title review, 3: missing dimensions, 4: missing files. */
+						__( '%1$d sin ALT · %2$d con título a revisar · %3$d sin dimensiones · %4$d con archivo ausente.', 'taxocommerce-images' ),
+						absint( $label_counts['missing_alt'] ),
+						absint( $label_counts['missing_title'] ) + absint( $label_counts['review_title'] ),
+						absint( $label_counts['missing_dimensions'] ),
+						absint( $label_counts['missing_file'] )
+					)
+				);
+				?>
+			</p>
 		<?php endif; ?>
 		<p><?php echo esc_html( 'Analizadas: ' . (int) ( $state['scanned'] ?? 0 ) . ' / ' . (int) ( $state['total'] ?? 0 ) . '. El proceso recorre la biblioteca completa; el tamaño del lote es únicamente un regulador interno y no limita el informe.' ); ?></p>
 		<?php if ( ! empty( $state['message'] ) ) : ?><p><strong><?php echo esc_html( (string) $state['message'] ); ?></strong></p><?php endif; ?>
-		<p><button class="button button-primary" data-tci-operation="start"><?php echo esc_html( 'cleanup' === $mode ? 'Escanear toda la biblioteca' : 'Analizar todas' ); ?></button> <button class="button" data-tci-operation="scan" <?php disabled( ! $state || 'running' !== $state['status'] ); ?>>Continuar análisis completo</button> <button class="button" data-tci-pause>Pausar</button>
+		<p><button class="button button-primary" data-tci-operation="start">Escanear toda la biblioteca</button> <button class="button" data-tci-operation="scan" <?php disabled( ! $state || 'running' !== $state['status'] ); ?>>Continuar análisis completo</button> <button class="button" data-tci-pause>Pausar</button>
 		<?php if ( 'cleanup' === $mode ) : ?><a class="button" href="<?php echo esc_url( admin_url( 'upload.php?mode=list' ) ); ?>">Revisar en Media</a><?php endif; ?></p>
 		<p data-tci-progress role="status" aria-live="polite"><?php echo esc_html( 'Eliminadas: ' . (int) ( $state['removed'] ?? 0 ) . '. Espacio liberado comprobado: ' . size_format( (int) ( $state['saved_bytes'] ?? 0 ) ) ); ?></p>
 		<?php
