@@ -42,9 +42,16 @@
                         }
                         var state = result.data.state || {};
                         var load = result.data.load || {};
+                        var counts = state.counts || {};
                         var cpu = load.cpu_percent === null || typeof load.cpu_percent === 'undefined' ? 'CPU no disponible' : load.cpu_percent + ' % CPU petición';
                         var next = load.next_batch || load.batch || 0;
-                        output.textContent = 'Analizadas: ' + (state.scanned || 0) + ' / ' + (state.total || 0) + '. Último lote: ' + (load.items || 0) + ' elementos · ' + cpu + ' · ' + (load.elapsed || 0) + ' s · siguiente lote ' + next + '.';
+                        var total = Number(state.total || 0);
+                        var scanned = Number(state.scanned || 0);
+                        var percent = total > 0 ? Math.min(100, Math.round((scanned * 1000) / total) / 10) : 0;
+                        var summary = section.dataset.tciMaintenance === 'cleanup'
+                            ? ' · sin uso ' + Number(counts.unused || 0) + ' · duplicadas exactas ' + Number(counts.duplicate || 0)
+                            : '';
+                        output.textContent = 'Escaneo completo: ' + scanned + ' / ' + total + ' (' + percent + ' %)' + summary + '. Último lote interno: ' + (load.items || 0) + ' elementos · ' + cpu + ' · ' + (load.elapsed || 0) + ' s · siguiente lote ' + next + '.';
                         if (result.data.done) { window.location.reload(); return; }
                         operation = 'scan';
                         await new Promise(function (resolve) { window.setTimeout(resolve, result.data.delay || config.delay || 4000); });
