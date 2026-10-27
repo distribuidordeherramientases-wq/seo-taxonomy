@@ -131,9 +131,10 @@ final class TCDB_Storage {
             return self::$column_cache[ $table ];
         }
         global $wpdb;
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier is verified against the current inventory.
-        $tick = chr( 96 );
-        $rows = $wpdb->get_results( "SHOW COLUMNS FROM {$tick}{$table}{$tick}", ARRAY_A );
+        $rows = $wpdb->get_results(
+            $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ),
+            ARRAY_A
+        );
         self::$column_cache[ $table ] = is_array( $rows ) ? $rows : array();
         return self::$column_cache[ $table ];
     }
