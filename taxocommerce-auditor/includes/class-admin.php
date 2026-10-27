@@ -619,8 +619,10 @@ final class Admin {
 
     public static function handle_action() {
         self::guard();
-        $scope = isset( $_POST['scope'] ) ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
-        $task = isset( $_POST['task'] ) ? sanitize_key( wp_unslash( $_POST['task'] ) ) : '';
+        $scope = isset( $_POST['scope'] ) && is_string( $_POST['scope'] )
+            ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
+        $task = isset( $_POST['task'] ) && is_string( $_POST['task'] )
+            ? sanitize_key( wp_unslash( $_POST['task'] ) ) : '';
         if ( ! Runner::valid_scope( $scope ) ) {
             wp_die( esc_html__( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ), '', array( 'response' => 400 ) );
         }
@@ -628,9 +630,12 @@ final class Admin {
         if ( in_array( $task, array( 'start', 'start_full' ), true ) ) {
             $filters = Runner::sanitize_filters( $scope, array(
                 'mode'        => 'start_full' === $task ? 'full' : 'filtered',
-                'search'      => isset( $_POST['search'] ) ? wp_unslash( $_POST['search'] ) : '',
-                'category_id' => isset( $_POST['category_id'] ) ? wp_unslash( $_POST['category_id'] ) : 0,
-                'rows'        => isset( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : 25,
+                'search'      => isset( $_POST['search'] ) && is_string( $_POST['search'] )
+                    ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '',
+                'category_id' => isset( $_POST['category_id'] ) && is_scalar( $_POST['category_id'] )
+                    ? absint( wp_unslash( (string) $_POST['category_id'] ) ) : 0,
+                'rows'        => isset( $_POST['rows'] ) && is_scalar( $_POST['rows'] )
+                    ? absint( wp_unslash( (string) $_POST['rows'] ) ) : 25,
             ) );
             if ( ! Runner::start( $scope, $filters ) ) {
                 wp_die( esc_html__( 'Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote antes de reiniciarla.', 'taxocommerce-auditor' ), '', array( 'response' => 409 ) );
