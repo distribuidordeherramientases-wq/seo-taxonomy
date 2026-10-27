@@ -84,7 +84,25 @@ final class TaxoCommerce_Images_Maintenance {
 	public static function begin( $mode ) {
 		if ( ! current_user_can( 'manage_options' ) || ! in_array( $mode, array( 'labels', 'cleanup' ), true ) ) { return new WP_Error( 'permission', 'Sin permisos.' ); }
 		$q = new WP_Query( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'post_mime_type' => 'image', 'fields' => 'ids', 'posts_per_page' => 1, 'orderby' => 'ID', 'order' => 'DESC' ) );
-		$state = array( 'run' => wp_generate_uuid4(), 'last' => 0, 'max' => $q->posts ? absint( $q->posts[0] ) : 0, 'total' => (int) $q->found_posts, 'scanned' => 0, 'status' => 'running', 'counts' => array(), 'removed' => 0, 'saved_bytes' => 0, 'message' => '' );
+		$counts = 'cleanup' === $mode
+			? array( 'used' => 0, 'unused' => 0, 'duplicate' => 0, 'keeper' => 0, 'review' => 0 )
+			: array();
+		$state = array(
+			'run'          => wp_generate_uuid4(),
+			'last'         => 0,
+			'max'          => $q->posts ? absint( $q->posts[0] ) : 0,
+			'total'        => (int) $q->found_posts,
+			'scanned'      => 0,
+			'status'       => 'running',
+			'counts'       => $counts,
+			'removed'      => 0,
+			'saved_bytes'  => 0,
+			'started_at'   => current_time( 'mysql' ),
+			'completed_at' => '',
+			'message'      => 'cleanup' === $mode
+				? __( 'Escaneo completo iniciado. Los lotes internos se regulan automáticamente hasta recorrer toda la biblioteca.', 'taxocommerce-images' )
+				: '',
+		);
 		self::save_state( $mode, $state );
 		return $state;
 	}
@@ -155,7 +173,19 @@ final class TaxoCommerce_Images_Maintenance {
 			$state = self::state( $mode ); $state['last'] = $id; ++$state['scanned']; self::save_state( $mode, $state );
 		}
 		$state = self::state( $mode );
-		if ( ! $ids || $state['last'] >= $state['max'] ) { $state['status'] = 'complete'; }
+		if ( ! $ids || $state['last'] >= $state['max'] ) {
+			$state['status'] = 'complete';
+			$state['completed_at'] = current_time( 'mysql' );
+			if ( 'cleanup' === $mode ) {
+				$state['message'] = sprintf(
+					/* translators: 1: scanned images, 2: unused images, 3: exact duplicates. */
+					__( 'Escaneo completo: %1$d imágenes analizadas, %2$d sin uso conocido y %3$d duplicadas exactas.', 'taxocommerce-images' ),
+					absint( $state['scanned'] ?? 0 ),
+					absint( $state['counts']['unused'] ?? 0 ),
+					absint( $state['counts']['duplicate'] ?? 0 )
+				);
+			}
+		}
 		self::save_state( $mode, $state );
 		return $state;
 	}
@@ -260,7 +290,7 @@ final class TaxoCommerce_Images_Maintenance {
 		?>
 		<section data-tci-maintenance="<?php echo esc_attr( $mode ); ?>">
 		<h2><?php echo esc_html( 'labels' === $mode ? 'Etiquetas y atributos de imágenes' : 'Liberar espacio: sin uso y duplicadas' ); ?></h2>
-		<p><?php echo esc_html( 'labels' === $mode ? 'Revisa ALT, título y dimensiones de Media, sin peticiones HTTP. Leyenda y descripción son opcionales. No se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador; el contenido HTML ya publicado se revisa aparte.' : 'Analiza toda la biblioteca sin límite de 8 MB para comparar archivos. Informa de originales idénticos y medios sin referencias conocidas. Borrado y consolidación automáticos no habilitados en esta entrega; no se elimina ninguna imagen durante el análisis.' ); ?></p>
+		<p><?php echo esc_html( 'labels' === $mode ? 'Revisa ALT, título y dimensiones de Media, sin peticiones HTTP. Leyenda y descripción son opcionales. No se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador; el contenido HTML ya publicado se revisa aparte.' : 'Escanea la biblioteca completa en un único trabajo. Internamente usa lotes adaptativos regulados 1–5 para proteger CPU y memoria, pero continúa automáticamente hasta revisar todas las imágenes. El informe separa imágenes en uso, sin uso conocido, duplicadas exactas y casos que requieren revisión. Las duplicadas exactas se verifican comparando SHA-256 del archivo original; no se deducen por nombre, tamaño o dimensiones. No se elimina ninguna imagen durante este análisis.' ); ?></p>
 		<?php
 		$priority = TaxoCommerce_Images_Load::priority();
 		$sample = TaxoCommerce_Images_Load::last_sample( $mode );
@@ -301,20 +331,90 @@ final class TaxoCommerce_Images_Maintenance {
 				</p>
 			<?php endif; ?>
 		</form>
-		<div class="tcc-stat-grid">
-		<?php foreach ( (array) ( $state['counts'] ?? array() ) as $flag => $count ) : ?>
-		<div class="card"><strong><?php echo esc_html( number_format_i18n( $count ) ); ?></strong> <?php echo esc_html( $labels[ $flag ] ?? $flag ); ?></div>
-		<?php endforeach; ?>
-		</div>
-		<p><?php echo esc_html( 'Analizadas: ' . (int) ( $state['scanned'] ?? 0 ) . ' / ' . (int) ( $state['total'] ?? 0 ) . '. Los contadores incluyen todos los lotes examinados, no solo las 25 filas visibles.' ); ?></p>
-		<p><button class="button button-primary" data-tci-operation="start">Analizar todas</button> <button class="button" data-tci-operation="scan" <?php disabled( ! $state || 'running' !== $state['status'] ); ?>>Continuar</button> <button class="button" data-tci-pause>Pausar</button>
+		<?php if ( 'cleanup' === $mode ) : ?>
+			<?php
+			$cleanup_counts = wp_parse_args(
+				(array) ( $state['counts'] ?? array() ),
+				array( 'used' => 0, 'unused' => 0, 'duplicate' => 0, 'keeper' => 0, 'review' => 0 )
+			);
+			?>
+			<div class="tcc-stat-grid">
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $state['total'] ?? 0 ) ) ); ?></strong> <?php esc_html_e( 'Total biblioteca', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $state['scanned'] ?? 0 ) ) ); ?></strong> <?php esc_html_e( 'Analizadas', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $cleanup_counts['used'] ) ) ); ?></strong> <?php esc_html_e( 'En uso', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $cleanup_counts['unused'] ) ) ); ?></strong> <?php esc_html_e( 'Sin uso conocido', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $cleanup_counts['duplicate'] ) ) ); ?></strong> <?php esc_html_e( 'Duplicadas exactas (SHA-256)', 'taxocommerce-images' ); ?></div>
+				<div class="card"><strong><?php echo esc_html( number_format_i18n( absint( $cleanup_counts['review'] ) ) ); ?></strong> <?php esc_html_e( 'Revisión necesaria', 'taxocommerce-images' ); ?></div>
+			</div>
+			<p><strong><?php esc_html_e( 'Informe de limpieza:', 'taxocommerce-images' ); ?></strong>
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: 1: unused, 2: duplicates, 3: keepers, 4: review. */
+						__( '%1$d imágenes sin uso conocido · %2$d copias duplicadas exactas · %3$d originales conservados de grupos duplicados · %4$d casos para revisar.', 'taxocommerce-images' ),
+						absint( $cleanup_counts['unused'] ),
+						absint( $cleanup_counts['duplicate'] ),
+						absint( $cleanup_counts['keeper'] ),
+						absint( $cleanup_counts['review'] )
+					)
+				);
+				?>
+			</p>
+		<?php else : ?>
+			<div class="tcc-stat-grid">
+			<?php foreach ( (array) ( $state['counts'] ?? array() ) as $flag => $count ) : ?>
+			<div class="card"><strong><?php echo esc_html( number_format_i18n( $count ) ); ?></strong> <?php echo esc_html( $labels[ $flag ] ?? $flag ); ?></div>
+			<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
+		<p><?php echo esc_html( 'Analizadas: ' . (int) ( $state['scanned'] ?? 0 ) . ' / ' . (int) ( $state['total'] ?? 0 ) . '. El proceso recorre la biblioteca completa; el tamaño del lote es únicamente un regulador interno y no limita el informe.' ); ?></p>
+		<?php if ( ! empty( $state['message'] ) ) : ?><p><strong><?php echo esc_html( (string) $state['message'] ); ?></strong></p><?php endif; ?>
+		<p><button class="button button-primary" data-tci-operation="start"><?php echo esc_html( 'cleanup' === $mode ? 'Escanear toda la biblioteca' : 'Analizar todas' ); ?></button> <button class="button" data-tci-operation="scan" <?php disabled( ! $state || 'running' !== $state['status'] ); ?>>Continuar análisis completo</button> <button class="button" data-tci-pause>Pausar</button>
 		<?php if ( 'cleanup' === $mode ) : ?><a class="button" href="<?php echo esc_url( admin_url( 'upload.php?mode=list' ) ); ?>">Revisar en Media</a><?php endif; ?></p>
 		<p data-tci-progress role="status" aria-live="polite"><?php echo esc_html( 'Eliminadas: ' . (int) ( $state['removed'] ?? 0 ) . '. Espacio liberado comprobado: ' . size_format( (int) ( $state['saved_bytes'] ?? 0 ) ) ); ?></p>
 		<?php
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
 		$page = isset( $_GET['report_page'] ) && is_scalar( $_GET['report_page'] ) ? max( 1, absint( $_GET['report_page'] ) ) : 1;
-		$q = self::rows( $mode, array(), $page );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report filter.
+		$report_filter = isset( $_GET['report_filter'] ) && is_scalar( $_GET['report_filter'] ) ? sanitize_key( wp_unslash( $_GET['report_filter'] ) ) : ( 'cleanup' === $mode ? 'issues' : 'all' );
+		$filter_statuses = array();
+		if ( 'cleanup' === $mode ) {
+			if ( 'issues' === $report_filter ) { $filter_statuses = array( 'unused', 'duplicate', 'keeper', 'review' ); }
+			elseif ( 'unused' === $report_filter ) { $filter_statuses = array( 'unused' ); }
+			elseif ( 'duplicates' === $report_filter ) { $filter_statuses = array( 'duplicate', 'keeper' ); }
+			elseif ( 'used' === $report_filter ) { $filter_statuses = array( 'used' ); }
+			elseif ( 'review' === $report_filter ) { $filter_statuses = array( 'review' ); }
+			else { $report_filter = 'all'; }
+		}
+		$q = self::rows( $mode, $filter_statuses, $page );
 		?>
+		<?php if ( 'cleanup' === $mode ) : ?>
+			<p class="subsubsub" style="float:none;margin:12px 0;">
+			<?php
+			$filters = array(
+				'issues'     => __( 'Sin uso + duplicadas + revisión', 'taxocommerce-images' ),
+				'unused'     => __( 'Sin uso', 'taxocommerce-images' ),
+				'duplicates' => __( 'Duplicadas', 'taxocommerce-images' ),
+				'used'       => __( 'En uso', 'taxocommerce-images' ),
+				'review'     => __( 'Revisión', 'taxocommerce-images' ),
+				'all'        => __( 'Todas', 'taxocommerce-images' ),
+			);
+			$filter_links = array();
+			foreach ( $filters as $key => $filter_label ) {
+				$url = add_query_arg(
+					array(
+						'page'          => 'taxocommerce-images',
+						'tab'           => 'references',
+						'report_filter' => $key,
+					),
+					admin_url( 'admin.php' )
+				);
+				$filter_links[] = '<a class="' . ( $report_filter === $key ? 'current' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $filter_label ) . '</a>';
+			}
+			echo wp_kses_post( implode( ' | ', $filter_links ) );
+			?>
+			</p>
+		<?php endif; ?>
 		<table class="widefat striped"><thead><tr><th>Imagen</th><th>Resultado</th><th>Acciones</th></tr></thead><tbody>
 		<?php foreach ( $q->posts as $post ) : $id = $post->ID; $row = get_post_meta( $id, self::row_key( $mode ), true ); ?>
 		<tr><td><?php echo wp_kses_post( wp_get_attachment_image( $id, array( 60, 60 ) ) ); ?> <?php echo esc_html( get_the_title( $id ) . ' #' . $id ); ?></td><td>
@@ -332,7 +432,7 @@ final class TaxoCommerce_Images_Maintenance {
 		<?php endif; ?>
 		<a href="<?php echo esc_url( get_edit_post_link( $id ) ); ?>">Editar en Media</a></td></tr>
 		<?php endforeach; ?></tbody></table>
-		<?php echo wp_kses_post( paginate_links( array( 'base' => add_query_arg( array( 'page' => 'taxocommerce-images', 'tab' => 'labels' === $mode ? 'labels' : 'references', 'report_page' => '%#%' ), admin_url( 'admin.php' ) ), 'current' => $page, 'total' => $q->max_num_pages ) ) ); ?>
+		<?php echo wp_kses_post( paginate_links( array( 'base' => add_query_arg( array( 'page' => 'taxocommerce-images', 'tab' => 'labels' === $mode ? 'labels' : 'references', 'report_filter' => $report_filter, 'report_page' => '%#%' ), admin_url( 'admin.php' ) ), 'current' => $page, 'total' => $q->max_num_pages ) ) ); ?>
 		</section>
 		<?php
 	}
