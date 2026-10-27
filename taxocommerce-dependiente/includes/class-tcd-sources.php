@@ -713,7 +713,7 @@ final class TCD_Sources {
         }
 
         $category = trim( (string) $category );
-        $focus = (string) ( $labels['subtipo'] ?? $labels['tipo'] ?? $category ?: 'herramientas' );
+        $focus = (string) ( $labels['subtipo'] ?? $labels['tipo'] ?? ( $category ?: 'herramientas' ) );
         $query = 'Busco ' . $focus;
         if ( '' !== $category && 'herramientas' !== $category
             && sanitize_title( $category ) !== sanitize_title( $focus )
