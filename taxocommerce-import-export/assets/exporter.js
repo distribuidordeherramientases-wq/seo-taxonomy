@@ -136,11 +136,16 @@
 
 		function setProgress(data) {
 			var processed = Number(data.processed || 0);
+			var examined = Number(data.examined || processed);
+			var skipped = Number(data.skipped || 0);
+			var blocks = Number(data.blocks || 0);
 			var total = Number(data.total || 0);
-			var pct = total > 0 ? Math.min(100, (processed / total) * 100) : (data.complete ? 100 : 0);
+			var pct = data.complete ? 100 : (total > 0 ? Math.min(99, (examined / total) * 100) : 0);
 			bar.value = pct;
 			message.textContent = (data.typeLabel ? data.typeLabel + ' · ' : '') +
-				processed + (total ? ' / ' + total : '') + ' registros procesados' +
+				processed + ' filas escritas · ' + examined + (total ? ' / ' + total : '') +
+				' registros revisados · ' + blocks + ' bloques' +
+				(skipped ? ' · ' + skipped + ' omitidos' : '') +
 				(data.complete ? '. CSV terminado.' : '. Generando por bloques…');
 		}
 
