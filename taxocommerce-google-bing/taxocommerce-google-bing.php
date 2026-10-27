@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Insights
- * Description: External connections and data downloads for Google Search Console, Google Analytics, Bing, and Google Trends.
+ * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
  * Version: 1.1.5
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -77,7 +77,7 @@ function taxocommerce_google_bing_register_with_core( $core ) {
             'name'        => 'TaxoCommerce Insights',
             'version'     => TAXOCOMMERCE_GOOGLE_BING_VERSION,
             'status'      => 'active',
-            'description' => 'External connections and data downloads for Google Search Console, Google Analytics, Bing, and Google Trends.',
+            'description' => 'External connections, provider data downloads, and the restored legacy Analysis dashboard.',
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-google-bing' ),
         )
     );
