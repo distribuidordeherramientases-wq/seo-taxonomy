@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,7 @@ TaxoCommerce Insights keeps external service connections and manual data downloa
 * Google Analytics downloads.
 * Bing downloads.
 * Google Trends exploration and saved snapshots.
-* Analyst, Executive Reports and Market have been removed and will be redesigned from scratch.
+* Analysis: original eleven on-demand reports from the legacy TaxoCommerce SEO module (requires the old reporting engine while installed). Executive Reports and Market remain removed.
 * The main technical folder remains taxocommerce-google-bing for compatibility; the displayed product name is TaxoCommerce Insights.
 
 Opening reports does not automatically fetch provider data. Administrators explicitly initiate connection, download, refresh or research operations. Each external source requires the corresponding authorization and provider terms.
