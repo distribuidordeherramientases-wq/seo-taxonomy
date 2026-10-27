@@ -92,7 +92,8 @@ final class TaxoCommerce_Google_Bing_GSC {
                 $initial_response = $probe;
                 break;
             }
-            $last_status = (int) $probe->get_error_data( 'status' );
+            $probe_data = (array) $probe->get_error_data();
+            $last_status = (int) ( $probe_data['status'] ?? 0 );
             if ( ! in_array( $last_status, array( 401, 403, 404 ), true ) ) {
                 return new WP_Error(
                     'tgb_gsc_incomplete',
@@ -138,7 +139,8 @@ final class TaxoCommerce_Google_Bing_GSC {
             }
             $result = self::request( $site, $token, $ranges[ $spec[0] ], $spec[1], $spec[2] );
             if ( is_wp_error( $result ) ) {
-                $status = (int) $result->get_error_data( 'status' );
+                $result_data = (array) $result->get_error_data();
+                $status = (int) ( $result_data['status'] ?? 0 );
                 $message = 'No se pudo recuperar «' . $name . '»: ' . $result->get_error_message();
                 if ( 403 === $status ) {
                     $message .= ' La propiedad que funcionó en la comprobación inicial ha perdido acceso durante la descarga.';
