@@ -11,9 +11,14 @@ $oauth = file_get_contents( $root . '/includes/class-taxocommerce-google-bing-oa
 $prepared = file_get_contents( $root . '/includes/class-taxocommerce-google-bing-prepared.php' );
 $bridge = file_get_contents( $repo . '/taxocommerce-connections/taxocommerce-connections.php' );
 $core = file_get_contents( $repo . '/taxocommerce-core/includes/class-taxocommerce-core.php' );
+$readme = file_get_contents( $root . '/readme.txt' );
+
+preg_match( '/\* Version: ([0-9]+\.[0-9]+\.[0-9]+)/', $main, $header_version );
+preg_match( "/define\\( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '([^']+)' \\);/", $main, $constant_version );
+preg_match( '/Stable tag: ([0-9]+\.[0-9]+\.[0-9]+)/', $readme, $readme_version );
 
 $checks = array(
-    strpos( $main, 'Version: 1.1.2' ) !== false,
+    ! empty( $header_version[1] ) && $header_version[1] === ( $constant_version[1] ?? '' ) && $header_version[1] === ( $readme_version[1] ?? '' ),
     strpos( $main, "'connections'      => 'Connections'" ) !== false,
     strpos( $main, "TaxoCommerce_Connections_Admin::render()" ) !== false,
     strpos( $main, "class-taxocommerce-connections-amazon.php" ) !== false,

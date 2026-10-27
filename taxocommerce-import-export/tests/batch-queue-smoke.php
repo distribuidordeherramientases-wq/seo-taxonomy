@@ -8,7 +8,7 @@ $exporter = file_get_contents( $root . '/includes/class-taxocommerce-import-expo
 $exporter_js = file_get_contents( $root . '/assets/exporter.js' );
 
 $checks = array(
-    strpos( $main, "Version: 0.4.0" ) !== false,
+    strpos( $main, "Version: 0.4.1" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-batch.php" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-exporter.php" ) !== false,
     strpos( $core, "Exportación" ) !== false,
@@ -20,6 +20,13 @@ $checks = array(
     strpos( $exporter, "taxocommerce_ie_export_status" ) !== false,
     strpos( $exporter, "taxocommerce_ie_export_cancel" ) !== false,
     strpos( $exporter, "taxocommerce_import_export_export_rows_per_block" ) !== false,
+    strpos( $exporter, 'ftruncate( $handle, $committed_size )' ) !== false,
+    strpos( $exporter, "'file_size'" ) !== false,
+    strpos( $exporter, "'examined'" ) !== false,
+    strpos( $exporter, "'skipped'" ) !== false,
+    strpos( $exporter, "'blocks'" ) !== false,
+    strpos( $exporter, "'future', 'trash'" ) !== false,
+    strpos( $exporter_js, "registros revisados" ) !== false,
     strpos( $exporter, "taxocommerce_import_export_export_runtime_seconds" ) !== false,
     strpos( $exporter, "_taxocommerce_core_parent_hub_secondary" ) !== false,
     strpos( $exporter, "category_scope_active" ) !== false,

@@ -119,9 +119,11 @@ final class TCDB_Import {
         if ( ! isset( $_FILES['tcdb_csv'] ) || ! is_array( $_FILES['tcdb_csv'] ) ) {
             wp_die( 'No se ha recibido ningún CSV.' );
         }
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP upload metadata is validated below; only the client filename is normalised, while tmp_name must remain the original uploaded path for is_uploaded_file().
         $upload = $_FILES['tcdb_csv'];
         $error = isset( $upload['error'] ) ? (int) $upload['error'] : -1;
-        $name = isset( $upload['name'] ) && is_string( $upload['name'] ) ? $upload['name'] : '';
+        $name = isset( $upload['name'] ) && is_string( $upload['name'] )
+            ? sanitize_file_name( wp_unslash( $upload['name'] ) ) : '';
         $path = isset( $upload['tmp_name'] ) && is_string( $upload['tmp_name'] ) ? $upload['tmp_name'] : '';
         if ( UPLOAD_ERR_OK !== $error || 'csv' !== strtolower( (string) pathinfo( $name, PATHINFO_EXTENSION ) )
             || ! $path || ! is_uploaded_file( $path ) || (int) ( $upload['size'] ?? 0 ) > self::MAX_BYTES ) {
@@ -161,7 +163,8 @@ final class TCDB_Import {
             ? sanitize_text_field( wp_unslash( $_POST['tcdb_token'] ) ) : '';
         $confirm = isset( $_POST['tcdb_confirm'] ) && is_string( $_POST['tcdb_confirm'] )
             ? sanitize_text_field( wp_unslash( $_POST['tcdb_confirm'] ) ) : '';
-        $backup = isset( $_POST['tcdb_backup'] ) && '1' === (string) $_POST['tcdb_backup'];
+        $backup = isset( $_POST['tcdb_backup'] ) && is_string( $_POST['tcdb_backup'] )
+            && '1' === sanitize_text_field( wp_unslash( $_POST['tcdb_backup'] ) );
         $data = self::get_preview( $token );
         if ( ! $data || 'IMPORTAR' !== $confirm || ! $backup ) {
             wp_die( 'Confirma IMPORTAR y que dispones de una copia de seguridad. Repite el análisis si ha caducado.' );

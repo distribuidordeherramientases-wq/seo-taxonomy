@@ -56,9 +56,12 @@ final class FAQ_Source {
             return null;
         }
         global $wpdb;
-        $table = esc_sql( self::table() );
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- plugin-owned table, fixed query.
-        return absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE active=1" ) );
+        $table = self::table();
+        return absint(
+            $wpdb->get_var(
+                $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE active=1', $table )
+            )
+        );
     }
 
     public static function batch( $cursor, $limit, $search = '' ) {
@@ -66,7 +69,7 @@ final class FAQ_Source {
             return array();
         }
         global $wpdb;
-        $table = esc_sql( self::table() );
+        $table = self::table();
         $cursor = absint( $cursor );
         $limit = max( 1, min( 200, absint( $limit ) ) );
         $search = trim( sanitize_text_field( (string) $search ) );
@@ -75,10 +78,11 @@ final class FAQ_Source {
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_type,object_id,product_cat_id,question,answer,active,updated_at
-                     FROM {$table}
+                     FROM %i
                      WHERE active=1 AND id>%d AND id=%d
                      ORDER BY id ASC
                      LIMIT %d",
+                    $table,
                     $cursor,
                     absint( $search ),
                     $limit
@@ -90,10 +94,11 @@ final class FAQ_Source {
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_type,object_id,product_cat_id,question,answer,active,updated_at
-                     FROM {$table}
+                     FROM %i
                      WHERE active=1 AND id>%d AND question LIKE %s
                      ORDER BY id ASC
                      LIMIT %d",
+                    $table,
                     $cursor,
                     $like,
                     $limit
@@ -104,10 +109,11 @@ final class FAQ_Source {
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_type,object_id,product_cat_id,question,answer,active,updated_at
-                     FROM {$table}
+                     FROM %i
                      WHERE active=1 AND id>%d
                      ORDER BY id ASC
                      LIMIT %d",
+                    $table,
                     $cursor,
                     $limit
                 ),
@@ -127,13 +133,14 @@ final class FAQ_Source {
             return null;
         }
         global $wpdb;
-        $table = esc_sql( self::table() );
+        $table = self::table();
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT id,object_type,object_id,product_cat_id,question,answer,active,updated_at
-                 FROM {$table}
+                 FROM %i
                  WHERE id=%d
                  LIMIT 1",
+                $table,
                 absint( $faq_id )
             ),
             ARRAY_A

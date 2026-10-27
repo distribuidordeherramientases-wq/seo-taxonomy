@@ -13,29 +13,110 @@ final class TaxoCommerce_Google_Bing_GSC {
     public static function download( $days, $ranges ) {
         $settings = TaxoCommerce_Google_Bing_Connections::google_settings();
         $oauth = TaxoCommerce_Google_Bing_OAuth::settings();
-        $site = trim( (string) ( $settings['search_console_site_url'] ?? '' ) );
-        if ( '' === $site ) {
-            $site = trim( (string) ( $oauth['property_id'] ?? '' ) );
-        }
-        if ( '' === $site ) {
-            return new WP_Error( 'tgb_gsc_missing_site', 'No hay propiedad de Google Search Console seleccionada en Conexiones.' );
-        }
 
-        // Prefer an authorized service account, otherwise use the OAuth connection.
-        $token = new WP_Error( 'tgb_gsc_credentials', 'Faltan credenciales de Search Console.' );
-        $using_service_account = ! empty( $settings['service_account_json'] );
-        if ( $using_service_account ) {
-            $token = TaxoCommerce_Google_Bing_Connections::access_token(
-                'https://www.googleapis.com/auth/webmasters.readonly'
+        // The historical Google Intelligence module uses OAuth + property_id.
+        // A service-account URL saved in Insights may differ (URL-prefix vs
+        // sc-domain:, or missing trailing slash) and is not necessarily
+        // authorized for the OAuth user. Always test matched credential/site
+        // pairs instead of retrying a second token with the first URL.
+        $oauth_site = trim( (string) ( $oauth['property_id'] ?? '' ) );
+        $service_site = trim( (string) ( $settings['search_console_site_url'] ?? '' ) );
+        $legacy = get_option( 'seo_google_intelligence_settings', array() );
+        $legacy_site = is_array( $legacy ) ? trim( (string) ( $legacy['property_id'] ?? '' ) ) : '';
+
+        $candidates = array();
+        if ( '' !== $oauth_site ) {
+            $candidates[] = array( 'auth' => 'oauth', 'site' => $oauth_site );
+        }
+        if ( '' !== $legacy_site && $legacy_site !== $oauth_site ) {
+            $candidates[] = array( 'auth' => 'oauth', 'site' => $legacy_site );
+        }
+        // Optional bridge while the old monolith still runs. No dependency:
+        // when absent, the modern OAuth authorization remains independent.
+        // Never copy, log, revoke or rewrite the old plugin's credentials.
+        if ( '' !== $legacy_site && function_exists( 'seo_google_get_access_token' ) ) {
+            $candidates[] = array( 'auth' => 'legacy_oauth', 'site' => $legacy_site );
+        }
+        if ( '' !== $service_site && ! empty( $settings['service_account_json'] ) ) {
+            $candidates[] = array( 'auth' => 'service_account', 'site' => $service_site );
+        }
+        if ( '' === $oauth_site && '' !== $service_site ) {
+            $candidates[] = array( 'auth' => 'oauth', 'site' => $service_site );
+        }
+        if ( '' === $service_site && '' !== $oauth_site && ! empty( $settings['service_account_json'] ) ) {
+            $candidates[] = array( 'auth' => 'service_account', 'site' => $oauth_site );
+        }
+        if ( ! $candidates ) {
+            return new WP_Error(
+                'tgb_gsc_missing_site',
+                'No hay una propiedad Search Console utilizable en la conexión OAuth, en la cuenta de servicio ni en la configuración histórica.'
             );
         }
-        if ( is_wp_error( $token ) ) {
-            $token = TaxoCommerce_Google_Bing_OAuth::access_token();
-        }
-        if ( is_wp_error( $token ) ) {
-            return $token;
+
+        $tokens = array();
+        $chosen = null;
+        $initial_response = null;
+        $denied = array();
+        $last_status = 0;
+
+        // Only the explicit "Actualizar datos" action runs these probes.
+        // A successful first request is reused as current_total so normal
+        // refreshes still perform exactly ten Search Console data queries.
+        foreach ( $candidates as $candidate ) {
+            $method = $candidate['auth'];
+            if ( ! array_key_exists( $method, $tokens ) ) {
+                if ( 'legacy_oauth' === $method ) {
+                    $tokens[ $method ] = seo_google_get_access_token();
+                } elseif ( 'oauth' === $method ) {
+                    $tokens[ $method ] = TaxoCommerce_Google_Bing_OAuth::access_token();
+                } else {
+                    $tokens[ $method ] = TaxoCommerce_Google_Bing_Connections::access_token(
+                        'https://www.googleapis.com/auth/webmasters.readonly'
+                    );
+                }
+            }
+            $token = $tokens[ $method ];
+            if ( is_wp_error( $token ) || ! is_string( $token ) || '' === $token ) {
+                continue;
+            }
+
+            $probe = self::request(
+                $candidate['site'],
+                $token,
+                $ranges['current'],
+                array(),
+                1
+            );
+            if ( ! is_wp_error( $probe ) ) {
+                $chosen = $candidate;
+                $initial_response = $probe;
+                break;
+            }
+            $probe_data = (array) $probe->get_error_data();
+            $last_status = (int) ( $probe_data['status'] ?? 0 );
+            if ( ! in_array( $last_status, array( 401, 403, 404 ), true ) ) {
+                return new WP_Error(
+                    'tgb_gsc_incomplete',
+                    'No se pudo recuperar «current_total»: ' . $probe->get_error_message(),
+                    array( 'status' => $last_status )
+                );
+            }
+            $denied[] = $method . ' → ' . $candidate['site'];
         }
 
+        if ( null === $chosen ) {
+            return new WP_Error(
+                'tgb_gsc_incomplete',
+                'No hay una combinación autorizada de credenciales y propiedad Search Console. '
+                . 'Se comprobaron las propiedades OAuth, histórica y de cuenta de servicio disponibles. '
+                . ( $denied ? 'Accesos denegados: ' . implode( '; ', array_unique( $denied ) ) . '. ' : '' )
+                . 'Revisa el identificador exacto de propiedad en Conexiones. '
+                . 'Una conexión GA4 correcta no concede permisos de Search Console.',
+                array( 'status' => $last_status )
+            );
+        }
+        $site = $chosen['site'];
+        $token = $tokens[ $chosen['auth'] ];
         $specs = array(
             'current_total'  => array( 'current', array(), 1 ),
             'previous_total' => array( 'previous', array(), 1 ),
@@ -49,25 +130,20 @@ final class TaxoCommerce_Google_Bing_GSC {
             'devices'        => array( 'current', array( 'device' ), 10 ),
         );
 
-        $results = array();
+        $results = array(
+            'current_total' => (array) ( $initial_response['rows'] ?? array() ),
+        );
         foreach ( $specs as $name => $spec ) {
-            $result = self::request( $site, $token, $ranges[ $spec[0] ], $spec[1], $spec[2] );
-            if ( is_wp_error( $result ) && $using_service_account && 'current_total' === $name
-                && in_array( (int) $result->get_error_data( 'status' ), array( 401, 403 ), true ) ) {
-                // The service account may be authorized for GA4 but not this Search
-                // Console property. Retry once with the explicitly linked OAuth user.
-                $oauth_token = TaxoCommerce_Google_Bing_OAuth::access_token();
-                if ( ! is_wp_error( $oauth_token ) ) {
-                    $token = $oauth_token;
-                    $using_service_account = false;
-                    $result = self::request( $site, $token, $ranges[ $spec[0] ], $spec[1], $spec[2] );
-                }
+            if ( 'current_total' === $name ) {
+                continue; // Already retrieved by the credential/property probe.
             }
+            $result = self::request( $site, $token, $ranges[ $spec[0] ], $spec[1], $spec[2] );
             if ( is_wp_error( $result ) ) {
-                $status = (int) $result->get_error_data( 'status' );
+                $result_data = (array) $result->get_error_data();
+                $status = (int) ( $result_data['status'] ?? 0 );
                 $message = 'No se pudo recuperar «' . $name . '»: ' . $result->get_error_message();
                 if ( 403 === $status ) {
-                    $message .= ' Revisa en Conexiones la propiedad Search Console exacta (URL con https y barra final o sc-domain:) y los permisos del usuario OAuth o cuenta de servicio. Una conexión GA4 correcta no concede permisos de Search Console.';
+                    $message .= ' La propiedad que funcionó en la comprobación inicial ha perdido acceso durante la descarga.';
                 }
                 return new WP_Error( 'tgb_gsc_incomplete', $message, array( 'status' => $status ) );
             }
@@ -96,7 +172,9 @@ final class TaxoCommerce_Google_Bing_GSC {
             'previous_pages' => self::top_rows( $results['previous_pages'] ),
             'countries' => self::top_rows( $results['countries'] ),
             'devices' => self::top_rows( $results['devices'] ),
-            'note' => 'Search Console devuelve filas principales, no necesariamente todas las consultas (las anonimizadas se omiten). Los totales de la propiedad se solicitan por separado.',
+            'source_property' => $site,
+            'credential_source' => $chosen['auth'],
+            'note' => 'Propiedad utilizada: ' . $site . ' (' . $chosen['auth'] . '). Search Console devuelve filas principales, no necesariamente todas las consultas (las anonimizadas se omiten). Los totales de la propiedad se solicitan por separado.',
         );
     }
 

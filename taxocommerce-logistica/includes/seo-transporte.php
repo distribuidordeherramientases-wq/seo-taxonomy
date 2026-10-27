@@ -775,13 +775,15 @@ if (did_action('admin_print_footer_scripts')) {
 
             // Algunas peticiones pueden enviar los campos directamente.
             foreach (array('billing_country','billing_state','billing_postcode','billing_city','shipping_country','shipping_state','shipping_postcode','shipping_city','ship_to_different_address') as $key) {
-                if (isset($_POST[$key]) && !isset($posted[$key])) {
-                    $posted[$key] = wp_unslash($_POST[$key]);
+                if (isset($_POST[$key]) && !isset($posted[$key]) && is_scalar($_POST[$key])) {
+                    $posted[$key] = sanitize_text_field(wp_unslash((string) $_POST[$key]));
                 }
             }
 
             if (!empty($posted)) {
-                $ship_different = !empty($posted['ship_to_different_address']);
+                $ship_different = isset($posted['ship_to_different_address'])
+                    && is_scalar($posted['ship_to_different_address'])
+                    && '1' === (string) $posted['ship_to_different_address'];
                 $prefix = $ship_different ? 'shipping_' : 'billing_';
 
                 /*
@@ -791,7 +793,7 @@ if (did_action('admin_print_footer_scripts')) {
                  */
                 foreach (array('country','state','postcode','city') as $field) {
                     $key = $prefix . $field;
-                    if (isset($posted[$key])) {
+                    if (isset($posted[$key]) && is_scalar($posted[$key])) {
                         $value = sanitize_text_field((string) $posted[$key]);
                         if ('' !== trim($value)) {
                             $destination[$field] = $value;

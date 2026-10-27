@@ -293,7 +293,11 @@ final class TaxoCommerce_Import_Export_Exporter {
 			'filename'  => $filename,
 			'filters'   => $filters,
 			'cursor'    => 0,
+			'examined'  => 0,
 			'processed' => 0,
+			'skipped'   => 0,
+			'blocks'    => 0,
+			'file_size' => (int) filesize( $path ),
 			'total'     => absint( $total ),
 			'complete'  => false,
 			'created'   => time(),
@@ -306,6 +310,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 				'job'       => $job_id,
 				'typeLabel' => $state['type_label'],
 				'processed' => 0,
+				'examined'  => 0,
+				'skipped'   => 0,
+				'blocks'    => 0,
 				'total'     => $state['total'],
 			)
 		);
@@ -426,7 +433,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$type    = sanitize_key( (string) ( $state['type'] ?? '' ) );
 		$filters = is_array( $state['filters'] ?? null ) ? $state['filters'] : array();
 		$cursor  = absint( $state['cursor'] ?? 0 );
-		$limit   = max( 10, min( 250, absint( apply_filters( 'taxocommerce_import_export_export_rows_per_block', 100 ) ) ) );
+		$limit   = max( 10, min( 250, absint( apply_filters( 'taxocommerce_import_export_export_rows_per_block', 50 ) ) ) );
 		$seconds = max( 2, min( 15, (float) apply_filters( 'taxocommerce_import_export_export_runtime_seconds', 6 ) ) );
 		$deadline = microtime( true ) + $seconds;
 
@@ -440,9 +447,22 @@ final class TaxoCommerce_Import_Export_Exporter {
 			return $state;
 		}
 
-		$handle = fopen( $state['path'], 'ab' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		// A PHP timeout may leave rows appended after the last committed cursor.
+		// Rewind to the last saved byte offset before repeating that short block.
+		$handle = fopen( $state['path'], 'c+b' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		if ( false === $handle ) {
 			return new WP_Error( 'tc_ie_export_open', __( 'No se pudo reabrir el CSV temporal.', 'taxocommerce-import-export' ) );
+		}
+
+		if ( ! isset( $state['file_size'] ) ) {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			return new WP_Error( 'tc_ie_export_legacy_job', __( 'Esta exportación empezó con una versión anterior. Inicia una nueva para proteger el CSV.', 'taxocommerce-import-export' ) );
+		}
+		$committed_size = absint( $state['file_size'] ?? 0 );
+		$actual_size = (int) filesize( $state['path'] );
+		if ( $actual_size < $committed_size || ! ftruncate( $handle, $committed_size ) || 0 !== fseek( $handle, 0, SEEK_END ) ) {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			return new WP_Error( 'tc_ie_export_recover', __( 'No se ha podido recuperar el CSV parcial tras una interrupción.', 'taxocommerce-import-export' ) );
 		}
 
 		$processed_ids = 0;
@@ -452,16 +472,26 @@ final class TaxoCommerce_Import_Export_Exporter {
 			}
 
 			$row = $this->csv->export_row_for_job( $type, absint( $id ) );
+			if ( is_array( $row ) && false === fputcsv( $handle, $row, ',', '"', '' ) ) {
+				fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+				return new WP_Error( 'tc_ie_export_write', __( 'No se pudo escribir una fila del CSV. Reintenta el bloque.', 'taxocommerce-import-export' ) );
+			}
 			$state['cursor'] = absint( $id );
 			$processed_ids++;
-			if ( ! is_array( $row ) ) {
-				continue;
+			$state['examined'] = absint( $state['examined'] ?? 0 ) + 1;
+			if ( is_array( $row ) ) {
+				$state['processed'] = absint( $state['processed'] ?? 0 ) + 1;
+			} else {
+				$state['skipped'] = absint( $state['skipped'] ?? 0 ) + 1;
 			}
-			fputcsv( $handle, $row, ',', '"', '' );
-			$state['processed'] = absint( $state['processed'] ?? 0 ) + 1;
 		}
+		if ( ! fflush( $handle ) ) {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			return new WP_Error( 'tc_ie_export_flush', __( 'No se pudo confirmar el bloque escrito. Reintenta.', 'taxocommerce-import-export' ) );
+		}
+		$state['file_size'] = (int) ftell( $handle );
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-
+		$state['blocks'] = absint( $state['blocks'] ?? 0 ) + 1;
 		$state['updated'] = time();
 		if ( $processed_ids === count( $ids ) && count( $ids ) < $limit ) {
 			$state['complete'] = true;
@@ -599,27 +629,29 @@ final class TaxoCommerce_Import_Export_Exporter {
 	 * @return array
 	 */
 	private function filters_from_request( $type ) {
-		$product_statuses = array( 'publish', 'draft', 'pending', 'private', 'trash' );
+		$product_statuses = array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' );
 		$content_statuses = array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' );
 		$allowed_statuses = in_array( $type, array( 'products', 'products_reduced' ), true ) ? $product_statuses : $content_statuses;
 
-		$raw_statuses = isset( $_POST['statuses'] ) && is_array( $_POST['statuses'] )
-			? array_map( 'sanitize_key', wp_unslash( $_POST['statuses'] ) )
-			: array();
+		$raw_statuses = isset( $_POST['statuses'] ) && is_array( $_POST['statuses'] ) ? wp_unslash( $_POST['statuses'] ) : array();
+		$raw_statuses = array_map( 'sanitize_key', array_filter( $raw_statuses, 'is_scalar' ) );
 		$statuses = array_values( array_intersect( $allowed_statuses, array_unique( $raw_statuses ) ) );
 		if ( ! $statuses ) {
 			$statuses = $allowed_statuses;
 		}
 
-		$raw_categories = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] )
-			? array_map( 'absint', wp_unslash( $_POST['category_ids'] ) )
-			: array();
+		$raw_categories = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ? wp_unslash( $_POST['category_ids'] ) : array();
+		$raw_categories = array_map( 'absint', array_filter( $raw_categories, 'is_scalar' ) );
+
+		$cluster = isset( $_POST['cluster_id'] ) && is_scalar( $_POST['cluster_id'] ) ? absint( wp_unslash( $_POST['cluster_id'] ) ) : 0;
+		$primary = isset( $_POST['hub_primary_id'] ) && is_scalar( $_POST['hub_primary_id'] ) ? absint( wp_unslash( $_POST['hub_primary_id'] ) ) : 0;
+		$secondary = isset( $_POST['hub_secondary_id'] ) && is_scalar( $_POST['hub_secondary_id'] ) ? absint( wp_unslash( $_POST['hub_secondary_id'] ) ) : 0;
 
 		return array(
 			'statuses'         => $statuses,
-			'cluster_id'       => absint( $_POST['cluster_id'] ?? 0 ),
-			'hub_primary_id'   => absint( $_POST['hub_primary_id'] ?? 0 ),
-			'hub_secondary_id' => absint( $_POST['hub_secondary_id'] ?? 0 ),
+			'cluster_id'       => $cluster,
+			'hub_primary_id'   => $primary,
+			'hub_secondary_id' => $secondary,
 			'category_ids'     => array_values( array_unique( array_filter( $raw_categories ) ) ),
 		);
 	}
@@ -875,6 +907,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 			'job'         => (string) ( $state['id'] ?? '' ),
 			'typeLabel'   => (string) ( $state['type_label'] ?? '' ),
 			'processed'   => absint( $state['processed'] ?? 0 ),
+			'examined'    => absint( $state['examined'] ?? $state['processed'] ?? 0 ),
+			'skipped'     => absint( $state['skipped'] ?? 0 ),
+			'blocks'      => absint( $state['blocks'] ?? 0 ),
 			'total'       => absint( $state['total'] ?? 0 ),
 			'complete'    => ! empty( $state['complete'] ),
 			'downloadUrl' => ! empty( $state['complete'] ) ? $this->download_url( $state ) : '',
