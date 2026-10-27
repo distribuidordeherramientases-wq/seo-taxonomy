@@ -36,9 +36,9 @@ Current functionality includes:
 == Changelog ==
 
 = 0.2.9 =
-* Changed unused/duplicate analysis into one full-library job that continues automatically until the complete Media snapshot is scanned.
+* Changed unused/duplicate analysis and labels/attributes review into full-library jobs that continue automatically until the complete Media snapshot is scanned.
 * Kept adaptive 1-5 CPU/memory regulation as an internal batching mechanism only; batch size no longer reads as the scope of the report.
-* Added explicit KPI/report counts for total, scanned, used, unused, exact SHA-256 duplicates, duplicate keepers and review cases.
+* Added explicit KPI/report counts for total/scanned images, used/unused media, exact SHA-256 duplicates, duplicate keepers, missing ALT, titles to review, dimensions, missing files and review cases.
 * Added report filters for actionable findings, unused images, duplicate groups, used images, review cases and all rows.
 * Duplicate detection remains exact original-file SHA-256 comparison; names, dimensions and file sizes alone never classify a duplicate.
 
