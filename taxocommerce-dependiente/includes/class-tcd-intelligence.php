@@ -740,6 +740,7 @@ final class TCD_Intelligence {
                     'recommendations'=>array(),
                     'sample_method'=>'distributed_deterministic',
                     'population'=>count( $all_ids ),
+                    'query_origins'=>array(),
                 ),
             );
             update_option( self::QUALITY_PROGRESS, $state, false );
@@ -773,6 +774,10 @@ final class TCD_Intelligence {
                 $evaluation['source_id'] = absint( $evaluation['source_id'] ?? $row['source_id'] ?? 0 );
                 $evaluation['title'] = (string) ( $evaluation['title'] ?? $row['title'] ?? '' );
                 $evaluation['diagnosis'] = self::diagnose_evaluation( $lesson, $row, $evaluation );
+                if ( 9 === $lesson ) {
+                    $query_origin = sanitize_key( (string) ( $evaluation['query_origin'] ?? 'unknown' ) );
+                    $report['query_origins'][ $query_origin ] = absint( $report['query_origins'][ $query_origin ] ?? 0 ) + 1;
+                }
 
                 $report['evaluated'] = absint( $report['evaluated'] ?? 0 ) + 1;
                 if ( ! empty( $evaluation['top1'] ) ) $report['pass_top1'] = absint( $report['pass_top1'] ?? 0 ) + 1;
@@ -886,6 +891,7 @@ final class TCD_Intelligence {
             'recommendations'=>array(),
             'sample_method'=>'distributed_deterministic',
             'population'=>count( $all_rows ),
+                    'query_origins'=>array(),
         );
         $stage = self::stage_id( $lesson, $snapshot_id );
 
@@ -895,6 +901,10 @@ final class TCD_Intelligence {
             $evaluation['source_id'] = absint( $evaluation['source_id'] ?? $row['source_id'] ?? 0 );
             $evaluation['title'] = (string) ( $evaluation['title'] ?? $row['title'] ?? '' );
             $evaluation['diagnosis'] = self::diagnose_evaluation( $lesson, $row, $evaluation );
+            if ( 9 === $lesson ) {
+                $query_origin = sanitize_key( (string) ( $evaluation['query_origin'] ?? 'unknown' ) );
+                $result['query_origins'][ $query_origin ] = absint( $result['query_origins'][ $query_origin ] ?? 0 ) + 1;
+            }
             $result['evaluated']++;
             if ( ! empty( $evaluation['top1'] ) ) $result['pass_top1']++;
             if ( ! empty( $evaluation['top3'] ) ) $result['pass_top3']++;
