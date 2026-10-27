@@ -8,8 +8,8 @@ defined( 'ABSPATH' ) || exit;
 
 final class TaxoCommerce_Images_Maintenance {
 	const BATCH = 25;
-	const LOCK = 'taxocommerce_images_mutation_lock';
-	private static $token = '';
+	const LOCK_PREFIX = 'taxocommerce_images_process_lock_';
+	private static $tokens = array();
 
 	public static function boot() {
 		add_action( 'wp_ajax_taxocommerce_images_maintenance', array( __CLASS__, 'ajax' ) );
@@ -29,7 +29,7 @@ final class TaxoCommerce_Images_Maintenance {
 			array(
 				'url'   => admin_url( 'admin-ajax.php' ),
 				'nonce' => wp_create_nonce( 'taxocommerce_images_maintenance' ),
-				'delay' => TaxoCommerce_Images_Load::delay_ms(),
+				'delay' => 4000,
 			)
 		);
 	}
@@ -37,32 +37,45 @@ final class TaxoCommerce_Images_Maintenance {
 		if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( array( 'message' => 'Sin permisos.' ), 403 ); }
 		$is_webp = doing_action( 'wp_ajax_tci_webp_batch' );
 		check_ajax_referer( $is_webp ? 'tci_webp_run' : 'tci_optimizer_run', 'nonce' );
-		if ( ! self::lock() ) { wp_send_json_error( array( 'message' => 'Otro proceso está modificando imágenes.' ), 409 ); }
-		register_shutdown_function( array( __CLASS__, 'unlock' ) );
+		if ( ! self::lock( 'mutation' ) ) { wp_send_json_error( array( 'message' => 'Otro proceso de modificación de imágenes está activo.' ), 409 ); }
+		register_shutdown_function( array( __CLASS__, 'unlock' ), 'mutation' );
 	}
-	public static function lock() {
+	public static function lock( $process = 'mutation' ) {
 		global $wpdb;
+		$process = sanitize_key( (string) $process );
+		$process = '' === $process ? 'mutation' : $process;
+		$key = self::LOCK_PREFIX . $process;
 		$token = wp_generate_uuid4();
 		$value = array( 'token' => $token, 'time' => time() );
-		if ( add_option( self::LOCK, $value, '', false ) ) { self::$token = $token; return true; }
-		$old = get_option( self::LOCK );
+		if ( add_option( $key, $value, '', false ) ) {
+			self::$tokens[ $process ] = $token;
+			return true;
+		}
+		$old = get_option( $key );
 		if ( is_array( $old ) && (int) ( $old['time'] ?? 0 ) < time() - 900 ) {
-			// Compare-and-delete: an old worker cannot remove another worker's lease.
-			$deleted = $wpdb->delete( $wpdb->options, array( 'option_name' => self::LOCK, 'option_value' => maybe_serialize( $old ) ), array( '%s', '%s' ) );
-			wp_cache_delete( self::LOCK, 'options' );
-			if ( $deleted && add_option( self::LOCK, $value, '', false ) ) { self::$token = $token; return true; }
+			$deleted = $wpdb->delete( $wpdb->options, array( 'option_name' => $key, 'option_value' => maybe_serialize( $old ) ), array( '%s', '%s' ) );
+			wp_cache_delete( $key, 'options' );
+			if ( $deleted && add_option( $key, $value, '', false ) ) {
+				self::$tokens[ $process ] = $token;
+				return true;
+			}
 		}
 		return false;
 	}
-	public static function unlock() {
+	public static function unlock( $process = 'mutation' ) {
 		global $wpdb;
-		$old = get_option( self::LOCK );
-		if ( self::$token && is_array( $old ) && hash_equals( self::$token, (string) ( $old['token'] ?? '' ) ) ) {
-			$wpdb->delete( $wpdb->options, array( 'option_name' => self::LOCK, 'option_value' => maybe_serialize( $old ) ), array( '%s', '%s' ) );
-			wp_cache_delete( self::LOCK, 'options' );
+		$process = sanitize_key( (string) $process );
+		$process = '' === $process ? 'mutation' : $process;
+		$key = self::LOCK_PREFIX . $process;
+		$token = (string) ( self::$tokens[ $process ] ?? '' );
+		$old = get_option( $key );
+		if ( $token && is_array( $old ) && hash_equals( $token, (string) ( $old['token'] ?? '' ) ) ) {
+			$wpdb->delete( $wpdb->options, array( 'option_name' => $key, 'option_value' => maybe_serialize( $old ) ), array( '%s', '%s' ) );
+			wp_cache_delete( $key, 'options' );
 		}
-		self::$token = '';
+		unset( self::$tokens[ $process ] );
 	}
+
 	private static function option( $mode ) { return 'taxocommerce_images_' . $mode . '_report_v2'; }
 	public static function state( $mode ) {
 		$value = get_option( self::option( $mode ), array() );
@@ -216,7 +229,7 @@ final class TaxoCommerce_Images_Maintenance {
 		if ( ! in_array( $mode, array( 'labels', 'cleanup' ), true ) || ! in_array( $operation, array( 'start', 'scan' ), true ) ) {
 			wp_send_json_error( array( 'message' => 'Operación no válida.' ), 400 );
 		}
-		if ( ! self::lock() ) { wp_send_json_error( array( 'message' => 'Otro lote está en curso.' ), 409 ); }
+		if ( ! self::lock( $mode ) ) { wp_send_json_error( array( 'message' => 'Este mismo proceso ya tiene un lote en curso.' ), 409 ); }
 		$measurement = TaxoCommerce_Images_Load::begin();
 		try {
 			if ( 'start' === $operation ) { self::begin( $mode ); }
@@ -233,11 +246,11 @@ final class TaxoCommerce_Images_Maintenance {
 					'paused' => false,
 					'state'  => $state,
 					'load'   => $sample,
-					'delay'  => TaxoCommerce_Images_Load::delay_ms(),
+					'delay'  => TaxoCommerce_Images_Load::delay_ms( $mode ),
 				);
 			}
 		} catch ( Throwable $error ) { $result = new WP_Error( 'exception', sanitize_text_field( $error->getMessage() ) ); }
-		finally { self::unlock(); }
+		finally { self::unlock( $mode ); }
 		if ( is_wp_error( $result ) ) { wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 ); }
 		wp_send_json_success( $result );
 	}
@@ -254,14 +267,18 @@ final class TaxoCommerce_Images_Maintenance {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$priority = isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : '';
-		$result = TaxoCommerce_Images_Load::set_priority( $priority );
+		$result = TaxoCommerce_Images_Load::set_priority( $priority, $mode );
 		if ( is_wp_error( $result ) ) {
 			wp_die( esc_html( $result->get_error_message() ) );
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$mode = isset( $_POST['mode'] ) && is_scalar( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'cleanup';
-		$tab = 'labels' === $mode ? 'labels' : 'references';
+		if ( 0 === strpos( $mode, 'assignment_' ) ) {
+			$tab = 'assignment';
+		} else {
+			$tab = 'labels' === $mode ? 'labels' : 'references';
+		}
 
 		wp_safe_redirect(
 			add_query_arg(
@@ -300,7 +317,7 @@ final class TaxoCommerce_Images_Maintenance {
 		<h2><?php echo esc_html( 'labels' === $mode ? 'Etiquetas y atributos de imágenes' : 'Liberar espacio: sin uso y duplicadas' ); ?></h2>
 		<p><?php echo esc_html( 'labels' === $mode ? 'Escanea la biblioteca completa en un único trabajo para revisar ALT, título, dimensiones y existencia del archivo. Internamente usa lotes adaptativos regulados 1–5 para proteger CPU y memoria, pero continúa automáticamente hasta revisar todas las imágenes. Leyenda y descripción son opcionales; no se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador.' : 'Escanea la biblioteca completa en un único trabajo. Internamente usa lotes adaptativos regulados 1–5 para proteger CPU y memoria, pero continúa automáticamente hasta revisar todas las imágenes. El informe separa imágenes en uso, sin uso conocido, duplicadas exactas y casos que requieren revisión. Las duplicadas exactas se verifican comparando SHA-256 del archivo original; no se deducen por nombre, tamaño o dimensiones. No se elimina ninguna imagen durante este análisis.' ); ?></p>
 		<?php
-		$priority = TaxoCommerce_Images_Load::priority();
+		$priority = TaxoCommerce_Images_Load::priority( $mode );
 		$sample = TaxoCommerce_Images_Load::last_sample( $mode );
 		?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tci-load-control">
