@@ -18,26 +18,32 @@ final class TCDB_Cleanup {
             'as_overdue_pending' => null,
         );
         $pattern = $wpdb->esc_like( '_transient_timeout_' ) . '%';
-        $counts['expired_transients'] = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->options}
-              WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d",
-            $pattern,
-            time()
-        ) );
+        $counts['expired_transients'] = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT COUNT(*) FROM %i WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d',
+                $wpdb->options,
+                $pattern,
+                time()
+            )
+        );
         $tables = TCDB_Storage::tables();
         $wc_table = $wpdb->prefix . 'woocommerce_sessions';
         if ( isset( $tables[ $wc_table ] ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Existing WooCommerce table for this site.
-            $counts['expired_wc_sessions'] = (int) $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM \`{$wc_table}\` WHERE session_expiry < %d",
-                time()
-            ) );
+            $counts['expired_wc_sessions'] = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    'SELECT COUNT(*) FROM %i WHERE session_expiry < %d',
+                    $wc_table,
+                    time()
+                )
+            );
         }
         $as_table = $wpdb->prefix . 'actionscheduler_actions';
         if ( isset( $tables[ $as_table ] ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Existing Action Scheduler table for this site.
             $counts['as_overdue_pending'] = (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM \`{$as_table}\` WHERE status='pending' AND scheduled_date_gmt < UTC_TIMESTAMP()"
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM %i WHERE status='pending' AND scheduled_date_gmt < UTC_TIMESTAMP()",
+                    $as_table
+                )
             );
         }
         return $counts;
@@ -56,13 +62,15 @@ final class TCDB_Cleanup {
         $deleted = 0;
         if ( 'expired_transients' === $action ) {
             $prefix = '_transient_timeout_';
-            $options = $wpdb->get_col( $wpdb->prepare(
-                "SELECT option_name FROM {$wpdb->options}
-                  WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d LIMIT %d",
-                $wpdb->esc_like( $prefix ) . '%',
-                time(),
-                self::LIMIT
-            ) );
+            $options = $wpdb->get_col(
+                $wpdb->prepare(
+                    'SELECT option_name FROM %i WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d LIMIT %d',
+                    $wpdb->options,
+                    $wpdb->esc_like( $prefix ) . '%',
+                    time(),
+                    self::LIMIT
+                )
+            );
             foreach ( (array) $options as $option_name ) {
                 if ( 0 === strpos( (string) $option_name, $prefix ) ) {
                     $transient = substr( (string) $option_name, strlen( $prefix ) );
@@ -76,12 +84,14 @@ final class TCDB_Cleanup {
             if ( ! TCDB_Storage::table_allowed( $table, false ) ) {
                 wp_die( 'La tabla de sesiones WooCommerce no está disponible.' );
             }
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Existing native WooCommerce table; bounded by LIMIT.
-            $result = $wpdb->query( $wpdb->prepare(
-                "DELETE FROM \`{$table}\` WHERE session_expiry < %d LIMIT %d",
-                time(),
-                self::LIMIT
-            ) );
+            $result = $wpdb->query(
+                $wpdb->prepare(
+                    'DELETE FROM %i WHERE session_expiry < %d LIMIT %d',
+                    $table,
+                    time(),
+                    self::LIMIT
+                )
+            );
             if ( false === $result ) {
                 wp_die( 'No se pudo limpiar las sesiones caducadas.' );
             }
