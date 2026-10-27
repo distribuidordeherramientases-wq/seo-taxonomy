@@ -198,7 +198,7 @@
 						showComplete(data);
 						return;
 					}
-					await waitBriefly();
+					await new Promise(function (resolve) { window.setTimeout(resolve, Math.max(100, Number(data.delay || 1000))); });
 				}
 			} catch (error) {
 				setBusy(false);
