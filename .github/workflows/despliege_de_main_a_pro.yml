@@ -143,11 +143,13 @@ jobs:
           done
 
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
-          set cmd:fail-exit yes
+          set cmd:fail-exit no
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
           mkdir -p "wp-content/uploads/taxocommerce-core/plugins"
+          set cmd:fail-exit yes
+          cd "wp-content/uploads/taxocommerce-core/plugins"
           bye
           EOF
 
@@ -271,12 +273,14 @@ jobs:
           : > /tmp/taxocommerce-deploy-marker
 
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
-          set cmd:fail-exit yes
+          set cmd:fail-exit no
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
           mkdir -p "$handoff"
-          put /tmp/taxocommerce-deploy-marker -o "$handoff/.token-$token_hash"
+          set cmd:fail-exit yes
+          cd "$handoff"
+          put /tmp/taxocommerce-deploy-marker -o ".token-$token_hash"
           bye
           EOF
 
