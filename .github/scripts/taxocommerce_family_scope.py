@@ -23,8 +23,10 @@ def modules() -> list[str]:
         for child in Path(".").glob("taxocommerce-*")
         if child.is_dir() and (child / (child.name + ".php")).is_file()
     )
-    if len(result) != 19:
-        raise RuntimeError(f"Expected 19 standalone plugins; found {len(result)}: {result}")
+    # Scrappers is a standalone extension since 2026-10-27.
+    # Keep the inventory assertion strict so missing/unexpected packages fail CI.
+    if len(result) != 20:
+        raise RuntimeError(f"Expected 20 standalone plugins; found {len(result)}: {result}")
     return result
 
 
