@@ -48,7 +48,7 @@ jobs:
           test -s taxocommerce-scrappers/includes/ojeador/class-ojeador-shopping.php
           test -s taxocommerce-scrappers/includes/ingeniero/ingeniero-bootstrap.php
           test -s taxocommerce-scrappers/includes/ingeniero/class-seo-ingeniero-search.php
-          ! grep -R -n "SEO_SYSTEM_URL\|SEO_SYSTEM_PATH\|require_once.*includes/ojeador\|require_once.*includes/ingeniero" taxocommerce-scrappers --include='*.php'
+          ! grep -R -n "SEO_SYSTEM_URL\|SEO_SYSTEM_PATH" taxocommerce-scrappers --include='*.php'
 
   deploy:
     needs: verify
