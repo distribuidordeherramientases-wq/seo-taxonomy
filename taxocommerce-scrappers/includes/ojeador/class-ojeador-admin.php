@@ -10,11 +10,10 @@
 defined('ABSPATH') || exit;
 
 final class SEO_Ojeador_Admin {
-    const PAGE = 'seo-ojeador';
+    const PAGE = 'taxocommerce-scrappers';
     private static $tools_filter_used = false;
 
     public static function init() {
-        add_action('admin_menu', array(__CLASS__, 'register_page'), 90);
         // Acceso visible centralizado en Mercado; se conserva la ruta completa de Ojeador.
         // No inyectar una tarjeta alternativa en Herramientas.
         add_action('admin_post_seo_ojeador_settings_save', array(__CLASS__, 'save_settings'));
@@ -96,12 +95,12 @@ final class SEO_Ojeador_Admin {
     }
 
     private static function redirect($args = array()) {
-        wp_safe_redirect(add_query_arg(array_merge(array('page'=>self::PAGE), $args), admin_url('admin.php')));
+        wp_safe_redirect(add_query_arg(array_merge(array('page'=>self::PAGE,'tcs_tab'=>'ojeador'), $args), admin_url('admin.php')));
         exit;
     }
 
     private static function redirect_provider_connections($args = array(), $anchor = 'seo-google-shared-providers') {
-        $url = add_query_arg(array_merge(array('page'=>'seo-provider-connections'), $args), admin_url('admin.php'));
+        $url = add_query_arg(array_merge(array('page'=>self::PAGE,'tcs_tab'=>'connections'), $args), admin_url('admin.php'));
         if ($anchor !== '') {
             $url .= '#' . sanitize_html_class($anchor);
         }
@@ -191,9 +190,9 @@ final class SEO_Ojeador_Admin {
             <?php
 wp_enqueue_style(
     'taxocommerce-ojeador-admin',
-    SEO_SYSTEM_URL . 'includes/assets/ojeador-admin.css',
+    TAXOCOMMERCE_SCRAPPERS_URL . 'assets/ojeador-admin.css',
     array(),
-    SEO_SYSTEM_VERSION
+    TAXOCOMMERCE_SCRAPPERS_VERSION
 );
 if (did_action('admin_print_styles')) {
     wp_print_styles('taxocommerce-ojeador-admin');
@@ -986,7 +985,7 @@ if (did_action('admin_print_styles')) {
                 <details class="seo-ojeador-box seo-ojeador-config"><summary>Ritmo de Ojeador</summary>
                     <p class="seo-ojeador-muted" style="margin:12px 0 0;">
                         Las credenciales compartidas de <strong>SerpApi y ScraperAPI</strong> se gestionan en
-                        <a href="<?php echo esc_url(admin_url('admin.php?page=seo-provider-connections#seo-google-shared-providers')); ?>">Conexiones con proveedores</a>.
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=taxocommerce-scrappers&tcs_tab=connections#seo-google-shared-providers')); ?>">Conexiones con proveedores</a>.
                     </p>
                     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                         <?php wp_nonce_field('seo_ojeador_settings_save'); ?>
