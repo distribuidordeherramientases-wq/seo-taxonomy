@@ -201,12 +201,14 @@ final class TaxoCommerce_Connections_Admin {
 			<h2><?php esc_html_e( 'Connections', 'taxocommerce-google-bing' ); ?></h2>
 			<p><?php esc_html_e( 'External data connections used by TaxoCommerce and the download screens. Credentials and OAuth are stored here for Google Search Console, Google Analytics, Bing, Google Trends, Amazon, and Pinterest.', 'taxocommerce-google-bing' ); ?></p>
 			<?php self::notice(); TaxoCommerce_Google_Bing_Connections::render_notice(); ?>
+			<?php TaxoCommerce_Connections_Status::notice(); TaxoCommerce_Connections_Status::render(); ?>
 
 			<p class="tgb-guides-intro">For each service: configure credentials on the left, follow the illustrated setup instructions and official links on the right.</p>
 			<div class="tgb-guided-connections">
 				<div class="tgb-guide-pair">
 				<div class="card tgb-guide-form">
 					<h2 style="margin-top:0;">Google · Search Console / Analytics / Merchant</h2>
+                    <div class="tgb-health-service-line"><strong>Search Console</strong> <?php TaxoCommerce_Connections_Status::badge( 'gsc' ); ?> <strong>GA4</strong> <?php TaxoCommerce_Connections_Status::badge( 'ga4' ); ?></div>
 					<p><strong>TaxoCommerce Insights</strong> owns these credentials and uses them for Google Search Console and Google Analytics downloads. Existing option names are preserved, so no reconnection is required.</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_google">
@@ -224,7 +226,7 @@ final class TaxoCommerce_Connections_Admin {
 						<?php submit_button( __( 'Test Google', 'taxocommerce-google-bing' ), 'secondary', 'submit', false ); ?>
 					</form>
 					<hr>
-					<h3>Google Merchant Center</h3>
+					<h3>Google Merchant Center <?php TaxoCommerce_Connections_Status::badge( 'merchant' ); ?></h3>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_merchant">
 						<?php wp_nonce_field( 'taxocommerce_connections_save_merchant' ); ?>
@@ -237,7 +239,7 @@ final class TaxoCommerce_Connections_Admin {
 						<?php submit_button( __( 'Test Merchant', 'taxocommerce-google-bing' ), 'secondary', 'submit', false ); ?>
 					</form>
 					<div style="margin-top:18px;padding-top:14px;border-top:1px solid #ddd;">
-						<h3>Google OAuth</h3>
+						<h3>Google OAuth <?php TaxoCommerce_Connections_Status::badge( 'oauth' ); ?></h3>
 						<?php TaxoCommerce_Connections_Google_Bing::google_oauth_render(); ?>
 					</div>
 				</div>
@@ -246,7 +248,7 @@ final class TaxoCommerce_Connections_Admin {
 			</div>
 			<div class="tgb-guide-pair">
 				<div class="card tgb-guide-form">
-					<h2 style="margin-top:0;">Microsoft Bing Webmaster</h2>
+					<h2 style="margin-top:0;">Microsoft Bing Webmaster <?php TaxoCommerce_Connections_Status::badge( 'bing' ); ?></h2>
 					<p>Complementary search source for queries, pages, crawl, and index data. Insights uses this connection for Bing downloads.</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_bing">
@@ -270,7 +272,8 @@ final class TaxoCommerce_Connections_Admin {
 			</div>
 			<div class="tgb-guide-pair">
 				<div class="card tgb-guide-form">
-					<h2 style="margin-top:0;">Amazon Affiliates</h2>
+					<h2 style="margin-top:0;">Amazon Affiliates <?php TaxoCommerce_Connections_Status::badge( 'amazon_tag' ); ?></h2>
+                    <p class="tgb-health-service-line"><strong>Creators API:</strong> <?php TaxoCommerce_Connections_Status::badge( 'amazon_api' ); ?></p>
 					<p>The <strong>Partner Tag</strong> is enough for affiliate search links used by Templates and Assistant. Creators API only enriches them with product data, images, and pricing.</p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_amazon">
@@ -296,7 +299,7 @@ final class TaxoCommerce_Connections_Admin {
 			</div>
 			<div class="tgb-guide-pair">
 				<div class="card tgb-guide-form">
-					<h2 style="margin-top:0;">Pinterest Business</h2>
+					<h2 style="margin-top:0;">Pinterest Business <?php TaxoCommerce_Connections_Status::badge( 'pinterest' ); ?></h2>
 					<p>One connection supports both social publishing and Merchant/Catalogs configuration. Distribution publishes the feed; Insights owns OAuth, board selection, and domain verification.</p>
 					<p><strong>Callback OAuth:</strong><br><code><?php echo esc_html( TaxoCommerce_Connections_Pinterest::redirect_uri() ); ?></code></p>
 
@@ -327,7 +330,7 @@ final class TaxoCommerce_Connections_Admin {
 					</form>
 
 					<hr>
-					<h3>Pinterest Merchant / Catalogs</h3>
+					<h3>Pinterest Merchant / Catalogs <?php TaxoCommerce_Connections_Status::badge( 'pinterest_catalog' ); ?></h3>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_pinterest_merchant">
 						<?php wp_nonce_field( 'taxocommerce_connections_save_pinterest_merchant' ); ?>
