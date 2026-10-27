@@ -14,7 +14,7 @@ $checks = array(
     strpos( $transport, 'package_metrics' ) !== false,
     strpos( $transport, 'order_weight_metrics' ) !== false,
     strpos( $transport, 'is_scalar($posted[$key])' ) !== false,
-    strpos( $transport, "'1' === (string) $posted['ship_to_different_address']" ) !== false,
+    strpos( $transport, "&& '1' === (string)" ) !== false,
     strpos( $transport, 'sanitize_text_field(wp_unslash((string) $_POST[$key]))' ) !== false,
     strpos( $transport, 'get_shipping_total' ) !== false,
     strpos( $transport, 'seo_transporte_export' ) !== false,
