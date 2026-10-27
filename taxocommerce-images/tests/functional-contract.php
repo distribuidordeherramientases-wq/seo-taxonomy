@@ -110,6 +110,7 @@ taxocommerce_images_test_assert( is_file( get_attached_file( $unused ) ) && is_f
 TaxoCommerce_Images_Maintenance::begin( 'labels' );
 for ( $i = 0; $i < 30; ++$i ) { $scan = TaxoCommerce_Images_Maintenance::scan( 'labels' ); if ( 'complete' === $scan['status'] ) { break; } }
 taxocommerce_images_test_assert( 'complete' === $scan['status'] && $scan['scanned'] === $scan['total'], 'attribute inspection covers the entire library without HTTP' );
+taxocommerce_images_test_assert( false !== strpos( (string) ( $scan['message'] ?? '' ), 'Escaneo completo de etiquetas' ), 'labels state exposes a full-library completion summary' );
 $subscriber = wp_create_user( 'limiteduser', 'local-test-password', 'limited@example.test' );
 wp_set_current_user( $subscriber );
 taxocommerce_images_test_assert( is_wp_error( TaxoCommerce_Images_Assignment::process_assignment_batch( 'page' ) ), 'non-administrator cannot run assignment' );
