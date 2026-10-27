@@ -66,14 +66,6 @@ final class TaxoCommerce_Core_Dashboard {
 				'slug'        => TaxoCommerce_Core_Content_Manager::PAGE_SLUG,
 			),
 			array(
-				'title'       => __( 'Informes', 'taxocommerce-core' ),
-				'icon'        => 'dashicons-chart-area',
-				'description' => __( 'Consulta la distribución por clústeres, hubs, categorías y productos desde el informe de arquitectura SEO.', 'taxocommerce-core' ),
-				'state'       => __( 'Informe disponible', 'taxocommerce-core' ),
-				'tone'        => 'info',
-				'slug'        => TaxoCommerce_Core_Architecture_Report::PAGE_SLUG,
-			),
-			array(
 				'title'       => __( 'Jerarquía SEO', 'taxocommerce-core' ),
 				'icon'        => 'dashicons-networking',
 				'description' => __( 'Gestiona la arquitectura Cluster → Hub primario → Hub secundario → Categoría → Producto.', 'taxocommerce-core' ),
