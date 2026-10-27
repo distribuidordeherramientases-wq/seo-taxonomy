@@ -885,7 +885,18 @@ final class TCD_Academy {
             'learned_at'=>current_time('mysql'),
         );
         if(!$row['source_id'] || !$row['source_type'])return false;
-        return false!==$wpdb->replace(self::knowledge_table(),$row);
+
+        // REPLACE deletes and re-inserts the row, changing its auto-increment
+        // ID. Quality sampling used that ID and therefore drifted after a
+        // retry. Preserve identity while refreshing the source snapshot.
+        $existing_id=absint($wpdb->get_var($wpdb->prepare(
+            'SELECT id FROM %i WHERE lesson=%d AND source_type=%s AND source_id=%d LIMIT 1',
+            self::knowledge_table(),$lesson,$row['source_type'],$row['source_id']
+        )));
+        if($existing_id){
+            return false!==$wpdb->update(self::knowledge_table(),$row,array('id'=>$existing_id));
+        }
+        return false!==$wpdb->insert(self::knowledge_table(),$row);
     }
 
     public static function export_url($lesson=0){
