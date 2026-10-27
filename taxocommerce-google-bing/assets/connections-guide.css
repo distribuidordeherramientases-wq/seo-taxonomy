@@ -30,3 +30,27 @@
 .tgb-guides-intro{max-width:1000px;margin:16px 0}
 @media(max-width:1100px){.tgb-guide-pair{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:782px){.tgb-guide-pair>.card{padding:14px}.tgb-guide-form .regular-text{width:100%}}
+
+
+/* Connection health: cached state only; network checks require an explicit POST. */
+.tgb-health-overview{margin:18px 0 22px;background:#fff;border:1px solid #dfe6ef;border-radius:12px;padding:19px 20px;box-shadow:0 2px 10px rgba(30,60,90,.04)}
+.tgb-health-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tgb-health-overview h2{margin:0 0 5px;font-size:19px}
+.tgb-health-top p{margin:0 0 13px;color:#596983}
+.tgb-health-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.tgb-health-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border:1px solid #e2e8f1;padding:12px;border-radius:9px;background:#fafcff;min-width:0}
+.tgb-health-item>div{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.tgb-health-item strong{color:#16263e;font-size:13px}
+.tgb-health-item small{color:#63738c;line-height:1.35}
+.tgb-health-item form{flex-shrink:0}
+.tgb-health-overview>.description{margin-top:13px;color:#566983}
+.tgb-health-badge{display:inline-flex;vertical-align:middle;align-items:center;border-radius:18px;border:1px solid transparent;padding:3px 9px;font-size:11px;line-height:1.4;font-weight:650;white-space:normal}
+.tgb-health-good{color:#137347;background:#e9f8ee;border-color:#b2e4c4}
+.tgb-health-neutral{color:#425c83;background:#edf3fb;border-color:#d2e0f3}
+.tgb-health-pending{color:#79520b;background:#fff6dc;border-color:#f3dca0}
+.tgb-health-bad{color:#a12828;background:#ffeded;border-color:#f3baba}
+.tgb-health-muted{color:#666;background:#f0f0f1;border-color:#ddd}
+.tgb-guide-form h2 .tgb-health-badge,.tgb-guide-form h3 .tgb-health-badge{font-weight:650;margin-left:5px}
+.tgb-health-service-line{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:8px 0 12px}
+@media(max-width:960px){.tgb-health-grid{grid-template-columns:1fr}}
+@media(max-width:500px){.tgb-health-overview{padding:12px}.tgb-health-item{flex-direction:column}.tgb-health-item form{align-self:flex-start}}
