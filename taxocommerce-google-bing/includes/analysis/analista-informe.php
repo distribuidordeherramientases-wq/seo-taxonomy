@@ -13,15 +13,16 @@ if (!function_exists('seo_analista_enqueue_report_assets')) {
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
 
-        if ('seo-reports' !== $page || 'analista' !== $tab) {
+        $tgb_tab = isset($_GET['tgb_tab']) ? sanitize_key(wp_unslash($_GET['tgb_tab'])) : '';
+        if ('taxocommerce-google-bing' !== $page || 'analysis' !== $tgb_tab) {
             return;
         }
 
         wp_enqueue_style(
             'seo-analista-informe',
-            SEO_SYSTEM_URL . 'includes/analista/assets/analista-informe.css',
+            TAXOCOMMERCE_GOOGLE_BING_URL . 'includes/analysis/assets/analista-informe.css',
             array(),
-            defined('SEO_SYSTEM_VERSION') ? SEO_SYSTEM_VERSION : null
+            defined('TAXOCOMMERCE_GOOGLE_BING_VERSION') ? TAXOCOMMERCE_GOOGLE_BING_VERSION : null
         );
     }
 }
@@ -824,7 +825,7 @@ if (!function_exists('seo_analista_render_report')) {
 
 
         echo '<div class="seo-analista-toolbar"><div><h2 style="margin:0 0 4px">Analista</h2><p style="margin:0;color:#646970">La página ya no calcula todos los informes al abrirse. Ejecuta únicamente el bloque que necesites.</p></div>';
-        echo '<form method="get"><input type="hidden" name="page" value="seo-reports"><input type="hidden" name="tab" value="analista"><label><strong>Periodo</strong></label><select name="analista_days">';
+        echo '<form method="get"><input type="hidden" name="page" value="taxocommerce-google-bing"><input type="hidden" name="tgb_tab" value="analysis"><label><strong>Periodo</strong></label><select name="analista_days">';
         foreach (array(28, 60, 90) as $option) echo '<option value="' . absint($option) . '" ' . selected($days, $option, false) . '>' . absint($option) . ' días</option>';
         echo '</select><button class="button">Cambiar periodo</button>';
         if (function_exists('seo_analista_export_json_url')) echo '<a class="button" href="' . esc_url(seo_analista_export_json_url($days)) . '">Generar JSON completo</a>';
