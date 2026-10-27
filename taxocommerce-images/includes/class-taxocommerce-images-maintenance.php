@@ -101,7 +101,7 @@ final class TaxoCommerce_Images_Maintenance {
 			'completed_at' => '',
 			'message'      => 'cleanup' === $mode
 				? __( 'Escaneo completo iniciado. Los lotes internos se regulan automáticamente hasta recorrer toda la biblioteca.', 'taxocommerce-images' )
-				: '',
+				: __( 'Escaneo completo de etiquetas iniciado. Los lotes internos se regulan automáticamente hasta recorrer toda la biblioteca.', 'taxocommerce-images' ),
 		);
 		self::save_state( $mode, $state );
 		return $state;
@@ -183,6 +183,14 @@ final class TaxoCommerce_Images_Maintenance {
 					absint( $state['scanned'] ?? 0 ),
 					absint( $state['counts']['unused'] ?? 0 ),
 					absint( $state['counts']['duplicate'] ?? 0 )
+				);
+			} else {
+				$state['message'] = sprintf(
+					/* translators: 1: scanned images, 2: missing ALT, 3: titles to review. */
+					__( 'Escaneo completo de etiquetas: %1$d imágenes analizadas, %2$d sin ALT informativo y %3$d con título a revisar.', 'taxocommerce-images' ),
+					absint( $state['scanned'] ?? 0 ),
+					absint( $state['counts']['missing_alt'] ?? 0 ),
+					absint( $state['counts']['missing_title'] ?? 0 ) + absint( $state['counts']['review_title'] ?? 0 )
 				);
 			}
 		}
