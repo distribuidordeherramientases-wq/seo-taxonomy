@@ -176,6 +176,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     /** Relationship snapshots for the tree, editor and menu generator. */
     public static function rows( $type = '' ) {
         global $wpdb;
+        self::ensure_country_schema();
         if ( ! self::available() ) {
             return array();
         }
@@ -572,7 +573,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                         self::node_open( $secondary, 'Hub secundario', $links, 'secondary', $focus === (int) $secondary_id );
                         self::render_group( $secondary, array(
                             'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
-                        ), $defs );
+                        ), $defs, $country );
                         self::node_close();
                     }
                     self::node_close();
@@ -614,7 +615,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
  . esc_html( (string) count( $loose_primaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
                 foreach ( $loose_primaries as $primary ) {
                     self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary->ID ] ?? array() ), 'child', $focus === (int) $primary->ID );
-                    self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs );
+                    self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs, $country );
                     self::node_close();
                 }
                 echo '</div></details>';
@@ -691,7 +692,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         $map = self::map( $type, $country );
         $selected = array_keys( $map[ $parent->ID ] ?? array() );
         $taken = array();
-        foreach ( $map as $source => $items ) {
+        foreach ( self::map( $type ) as $source => $items ) {
             if ( (int) $source !== (int) $parent->ID ) {
                 foreach ( $items as $target => $_ ) {
                     $taken[ (int) $target ] = true;
@@ -803,7 +804,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
               clearTimeout(timer);
               timer=setTimeout(()=>{
                 const args=new URLSearchParams({action:"taxocommerce_core_search_hierarchy_categories",nonce:config.nonce,
-                  q:q,source:input.dataset.tcSource,tc_country:input.closest('form').querySelector('input[name="tc_country"]').value});
+                  q:q,source:input.dataset.tcSource,tc_country:input.closest("form").querySelector("input[name=tc_country]").value});
                 fetch(config.url+"?"+args,{credentials:"same-origin"}).then(r=>r.json()).then(json=>{
                   if(!json.success || input.value.toLocaleLowerCase().trim()!==q) return;
                   const present=new Set(Array.from(input.closest("form").querySelectorAll("input[name=\'targets[]\']")).map(x=>x.value));
