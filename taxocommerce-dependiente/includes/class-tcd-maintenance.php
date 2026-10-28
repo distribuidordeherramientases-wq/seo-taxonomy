@@ -60,9 +60,11 @@ final class TCD_Maintenance {
     }
 
     private static function ready() {
+        // Original Linguist M11 is trained independently from product-ID ranking.
+        // Maintenance must not depend on an obsolete search-retrieval exam.
+        $linguist = TCD_Original_Linguista::state();
+        if ('completed' === (string) ($linguist['status'] ?? '')) return true;
         $interpreter = TCD_Intelligence::interpreter_state();
-        // Once M11 has been built, maintenance must keep running even if a
-        // later regression temporarily marks it degraded; that is how it heals.
         return in_array( (string) ( $interpreter['status'] ?? '' ), array( 'ready', 'degraded' ), true );
     }
 
