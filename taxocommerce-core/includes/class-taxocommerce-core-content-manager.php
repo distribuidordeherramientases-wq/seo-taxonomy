@@ -132,6 +132,13 @@ final class TaxoCommerce_Core_Content_Manager {
 		if ( is_wp_error( $result ) ) {
 			wp_die( esc_html( $result->get_error_message() ) );
 		}
+        // Country is saved with the same authenticated content form, never when moving to trash.
+        $country = TaxoCommerce_Core_Country::read_posted();
+        if ( is_wp_error( $country ) ) { wp_die( esc_html( $country->get_error_message() ) ); }
+        if ( is_string( $country ) && 'trash' !== ( isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '' ) ) {
+            $country_result = 'categories' === $content_type ? TaxoCommerce_Core_Country::set_term( $item_id, $country ) : TaxoCommerce_Core_Country::set_post( $item_id, $country );
+            if ( is_wp_error( $country_result ) ) { wp_die( esc_html( $country_result->get_error_message() ) ); }
+        }
 
         // A trash action must not rewrite the semantic relationships.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
@@ -385,7 +392,7 @@ final class TaxoCommerce_Core_Content_Manager {
 			<thead>
 				<tr>
 					<th><?php echo esc_html__( 'Título', 'taxocommerce-core' ); ?></th>
-					<th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th>
+					<th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'País', 'taxocommerce-core' ); ?></th>
 					<th><?php echo esc_html__( 'Categorías', 'taxocommerce-core' ); ?></th>
 					<?php if ( 'products' === $content_type ) : ?>
 						<th><?php echo esc_html__( 'Precio', 'taxocommerce-core' ); ?></th>
@@ -412,7 +419,7 @@ final class TaxoCommerce_Core_Content_Manager {
 					?>
 					<tr>
 						<td><strong><?php echo esc_html( get_the_title( $post ) ); ?></strong><br><small>#<?php echo esc_html( (string) $post->ID ); ?></small></td>
-						<td><?php echo esc_html( $status_obj ? $status_obj->label : $post->post_status ); ?></td>
+						<td><?php echo esc_html( $status_obj ? $status_obj->label : $post->post_status ); ?></td><td><?php echo esc_html( TaxoCommerce_Core_Country::label( TaxoCommerce_Core_Country::post( $post->ID ) ) ); ?></td>
 						<td><?php echo esc_html( $term_names ? implode( ', ', array_slice( $term_names, 0, 4 ) ) : '—' ); ?></td>
 						<?php if ( 'products' === $content_type ) : ?>
 							<td><?php echo $product ? wp_kses_post( $product->get_price_html() ) : '—'; ?></td>
@@ -467,7 +474,7 @@ final class TaxoCommerce_Core_Content_Manager {
 		$total_pages = is_wp_error( $count ) ? 1 : max( 1, (int) ceil( absint( $count ) / self::PER_PAGE ) );
 		?>
 		<div class="tc-overview-table-scroll"><table class="widefat striped tc-overview-table">
-			<thead><tr><th><?php echo esc_html__( 'Categoría', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Superior', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Productos', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Imagen', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'KPI', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acciones', 'taxocommerce-core' ); ?></th></tr></thead>
+			<thead><tr><th><?php echo esc_html__( 'Categoría', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Superior', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'País', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Productos', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Descripción', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Imagen', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'KPI', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acciones', 'taxocommerce-core' ); ?></th></tr></thead>
 			<tbody>
 			<?php if ( is_wp_error( $terms ) || empty( $terms ) ) : ?>
 				<tr><td colspan="7"><?php echo esc_html__( 'No se han encontrado categorías.', 'taxocommerce-core' ); ?></td></tr>
@@ -479,7 +486,7 @@ final class TaxoCommerce_Core_Content_Manager {
 					?>
 					<tr>
 						<td><strong><?php echo esc_html( $term->name ); ?></strong><br><small><?php echo esc_html( $term->slug ); ?> · #<?php echo esc_html( (string) $term->term_id ); ?></small></td>
-						<td><?php echo $parent && ! is_wp_error( $parent ) ? esc_html( $parent->name ) : '—'; ?></td>
+						<td><?php echo $parent && ! is_wp_error( $parent ) ? esc_html( $parent->name ) : '—'; ?></td><td><?php echo esc_html( TaxoCommerce_Core_Country::label( TaxoCommerce_Core_Country::term( $term->term_id ) ) ); ?></td>
 						<td><?php echo esc_html( (string) $term->count ); ?></td>
 						<td><?php echo $term->description ? esc_html__( 'Sí', 'taxocommerce-core' ) : esc_html__( 'No', 'taxocommerce-core' ); ?></td>
 						<td><?php echo absint( get_term_meta( $term->term_id, 'thumbnail_id', true ) ) ? esc_html__( 'Sí', 'taxocommerce-core' ) : esc_html__( 'No', 'taxocommerce-core' ); ?></td>

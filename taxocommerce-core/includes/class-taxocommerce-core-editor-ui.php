@@ -263,6 +263,7 @@ final class TaxoCommerce_Core_Editor_UI {
         TaxoCommerce_Core_Vocabulary::render( 'products', $id );
         self::side();
         self::status( $product->get_status( 'edit' ) );
+        TaxoCommerce_Core_Country::field( TaxoCommerce_Core_Country::post( $id ) );
         echo '<section class="tc-editor-card"><div class="tc-card-heading"><h2>Datos comerciales</h2></div>';
         self::input( 'sku', 'SKU', $product->get_sku( 'edit' ) );
         if ( $product->is_type( 'simple' ) || $product->is_type( 'external' ) ) {
@@ -304,6 +305,7 @@ final class TaxoCommerce_Core_Editor_UI {
         TaxoCommerce_Core_Vocabulary::render( $content_type, $id );
         self::side();
         self::status( $post->post_status );
+        TaxoCommerce_Core_Country::field( TaxoCommerce_Core_Country::post( $id ) );
         if ( 'posts' === $content_type ) {
             echo '<input type="hidden" name="tc_tax_present" value="1">';
             self::terms( 'category', $id, 'Categorías WordPress' );
@@ -321,6 +323,7 @@ final class TaxoCommerce_Core_Editor_UI {
         self::rich_editor( $term->description, 'Descripción de categoría', 13 );
         TaxoCommerce_Core_Vocabulary::render( 'categories', $id );
         self::side();
+        TaxoCommerce_Core_Country::field( TaxoCommerce_Core_Country::term( $id ) );
         echo '<section class="tc-editor-card"><div class="tc-card-heading"><h2>Organización</h2></div>';
         echo '<p class="tc-field-help">La categoría superior define la posición en la jerarquía WooCommerce.</p>';
         TaxoCommerce_Core_Vocabulary::render_picker(
