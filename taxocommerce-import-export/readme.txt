@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.6
+Stable tag: 0.4.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -116,3 +116,10 @@ The package transports original image files plus title, ALT, caption, descriptio
 * Ventana de ejecución por petición: hasta 25 segundos por defecto, siempre con margen respecto del límite PHP, y objetivos configurables de hasta 2000 filas en velocidad máxima. Un único trabajador; sin paralelismo inseguro.
 * El tamaño se reduce si la memoria PHP está alta o cuando la duración real de los guardados de WooCommerce lo requiere. El porcentaje de CPU de PHP no representa la CPU global del servidor.
 * Información adicional por lote: filas objetivo y reales, duración, tiempo medio de guardado y consultas SQL por fila. Aumentar el tamaño objetivo no implica que se multiplique por diez la velocidad de guardado de cada fila.
+
+== 0.4.7 ==
+* Allows deleting an individual pending CSV while another file is processing. A brief, atomic filesystem mutex protects the claim-to-processing transition without locking the whole WooCommerce worker. The active file remains untouched and queue state remains consistent.
+* Avoids WC_Product::save() on unchanged existing products while still updating country/supplier metadata, without skipping saves for new or modified products.
+* Defers WordPress taxonomy recounts for each product block and flushes in a finally block; never disables WooCommerce hooks or product lookup synchronization.
+* Records actual lookup, save and metadata SQL queries/time per batch, including skipped unchanged saves, for diagnosing slow imports. x10 row-size targets remain but do not imply x10 throughput.
+* Adds filesystem regression for deletion during another worker, mutex races and queue stability, plus product no-op smoke.
