@@ -112,9 +112,14 @@ final class TCD_Search {
             TCD_Feedback::record_other( $q, $session, $other, $depth );
         }
 
-        $interpretation = TCD_Intelligence::interpret( $effective_query, '', $runtime_hints );
-        $ranked = TCD_Intelligence::search_products( $effective_query, 24, '', $runtime_hints );
-        $decision = TCD_Intelligence::decision( $effective_query, $interpretation, $ranked );
+        // Faithful port of the original Interpreter: it cleans and translates
+        // human language. Product retrieval stays with Dependiente.
+        $linguistic = TCD_Original_Interprete::interpret( $effective_query );
+        $interpreted_query = trim( (string) ( $linguistic['dependiente_query'] ?? '' ) );
+        if ( '' === $interpreted_query ) $interpreted_query = $effective_query;
+        $interpretation = TCD_Intelligence::interpret( $interpreted_query, '', $runtime_hints );
+        $ranked = TCD_Intelligence::search_products( $interpreted_query, 24, '', $runtime_hints );
+        $decision = TCD_Intelligence::decision( $interpreted_query, $interpretation, $ranked );
         $suggestions = TCD_Intelligence::suggestions_from_products( $ranked, 8 );
 
         $clarification = array();
@@ -146,7 +151,13 @@ final class TCD_Search {
         return rest_ensure_response( array(
             'session'=>$session,
             'query'=>$q,
-            'effective_query'=>$effective_query,
+            'effective_query'=>$interpreted_query,
+            'linguistic_interpreter'=>array(
+                'version'=>(string)($linguistic['version']??''),
+                'search_query'=>(string)($linguistic['search_query']??''),
+                'transformations'=>(array)($linguistic['transformations']??array()),
+                'structured'=>(array)($linguistic['structured']??array()),
+            ),
             'feedback_query'=>$feedback_query,
             'answer'=>(string) ( $decision['message'] ?? '' ),
             'results'=>$results,
