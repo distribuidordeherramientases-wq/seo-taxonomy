@@ -369,8 +369,10 @@ final class TaxoCommerce_Import_Export_Batch {
 
 
 	/**
-	 * Delete exactly one queued CSV before any importer starts processing it.
-	 * Rejects traversal, symlinks, other queue buckets and concurrent workers.
+	 * Delete exactly one CSV from the pending bucket, even while the worker
+	 * processes a different file. File claim and deletion share a short-lived
+	 * filesystem mutex; the 25-second product worker lock is NOT used.
+	 * Rejects traversal, symlinks and every other queue bucket.
 	 *
 	 * @param string $filename Exact basename in the pending directory.
 	 * @return true|WP_Error
@@ -387,9 +389,9 @@ final class TaxoCommerce_Import_Export_Batch {
 			return new WP_Error( 'tc_ie_delete_invalid', __( 'El nombre de archivo pendiente no es válido.', 'taxocommerce-import-export' ) );
 		}
 
-		$lock = $this->acquire_lock();
-		if ( '' === $lock ) {
-			return new WP_Error( 'tc_ie_delete_busy', __( 'Se está procesando otro bloque. Vuelve a intentar borrar este archivo cuando finalice.', 'taxocommerce-import-export' ) );
+		$lock = $this->acquire_pending_mutex();
+		if ( ! is_resource( $lock ) ) {
+			return new WP_Error( 'tc_ie_delete_busy', __( 'No se pudo obtener el bloqueo breve de archivos pendientes. Reintenta la operación.', 'taxocommerce-import-export' ) );
 		}
 
 		try {
@@ -425,7 +427,9 @@ final class TaxoCommerce_Import_Export_Batch {
 
 			$state = $this->state();
 			if ( ! empty( $state['enabled'] ) && empty( $state['current_file'] )
-				&& ! $this->files( $pending ) ) {
+				&& ! $this->files( $pending )
+				&& ! $this->files( $this->paths()['processing'] )
+				&& ! get_transient( self::LOCK_KEY ) ) {
 				$state['enabled'] = false;
 				$state['status'] = 'idle';
 				$state['message'] = __( 'Se ha eliminado el último CSV pendiente; la cola está vacía.', 'taxocommerce-import-export' );
@@ -433,7 +437,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			}
 			return true;
 		} finally {
-			$this->release_lock( $lock );
+			$this->release_pending_mutex( $lock );
 		}
 	}
 
@@ -638,18 +642,29 @@ final class TaxoCommerce_Import_Export_Batch {
 	 * @return array|WP_Error
 	 */
 	private function start_next_file( $state ) {
-		$paths   = $this->paths();
-		$pending = $this->files( $paths['pending'] );
-		if ( empty( $pending ) ) {
+		$paths = $this->paths();
+		// Hold the pending mutex ONLY while selecting and moving the next CSV.
+		// Admin deletion may safely run while an unrelated CSV is processing.
+		$pending_lock = $this->acquire_pending_mutex();
+		if ( ! is_resource( $pending_lock ) ) {
 			$state['current_file'] = '';
+			$state['status'] = 'waiting_next';
 			return $state;
 		}
-
-		$source   = $pending[0];
-		$filename = basename( $source );
-		$target   = $this->unique_path( $paths['processing'], $filename );
-		if ( ! $this->move_file( $source, $target ) ) {
-			return new WP_Error( 'tc_ie_batch_move', __( 'No se pudo mover el siguiente CSV a processing.', 'taxocommerce-import-export' ) );
+		try {
+			$pending = $this->files( $paths['pending'] );
+			if ( empty( $pending ) ) {
+				$state['current_file'] = '';
+				return $state;
+			}
+			$source = $pending[0];
+			$filename = basename( $source );
+			$target = $this->unique_path( $paths['processing'], $filename );
+			if ( ! $this->move_file( $source, $target ) ) {
+				return new WP_Error( 'tc_ie_batch_move', __( 'No se pudo mover el siguiente CSV a processing.', 'taxocommerce-import-export' ) );
+			}
+		} finally {
+			$this->release_pending_mutex( $pending_lock );
 		}
 
 		$detected = $this->detect_importer( $target );
@@ -1311,6 +1326,43 @@ Deny from all
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'taxocommerce_ie_batch_step' ),
 		) ) . ';', 'before' );
+	}
+
+	/**
+	 * Short, cross-request filesystem mutex for pending-file mutations.
+	 *
+	 * Unlike the main import worker lock, this lock is held only for a
+	 * directory read + rename or unlink; an active product block does not
+	 * prevent deleting an unrelated CSV that is still pending.
+	 *
+	 * @return resource|false
+	 */
+	private function acquire_pending_mutex() {
+		$pending = $this->paths()['pending'];
+		if ( ! $pending || ! is_dir( $pending ) ) {
+			return false;
+		}
+		$path = trailingslashit( $pending ) . '.pending-mutex.lock';
+		$handle = fopen( $path, 'c' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Cross-request local filesystem mutex.
+		if ( false === $handle ) {
+			return false;
+		}
+		for ( $attempt = 0; $attempt < 50; ++$attempt ) {
+			if ( flock( $handle, LOCK_EX | LOCK_NB ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_flock -- Atomic per-directory file lock.
+				return $handle;
+			}
+			usleep( 20000 );
+		}
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		return false;
+	}
+
+	/** @param resource $handle Held pending mutex. */
+	private function release_pending_mutex( $handle ) {
+		if ( is_resource( $handle ) ) {
+			flock( $handle, LOCK_UN ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_flock
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		}
 	}
 
 	/**
