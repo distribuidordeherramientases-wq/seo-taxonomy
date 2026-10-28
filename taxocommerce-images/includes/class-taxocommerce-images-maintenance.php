@@ -274,7 +274,9 @@ final class TaxoCommerce_Images_Maintenance {
 		if ( is_wp_error( $result ) ) {
 			wp_die( esc_html( $result->get_error_message() ) );
 		}
-		if ( 0 === strpos( $mode, 'assignment_' ) ) {
+		if ( 'audit' === $mode ) {
+			$tab = 'audit';
+		} elseif ( 0 === strpos( $mode, 'assignment_' ) ) {
 			$tab = 'assignment';
 		} else {
 			$tab = 'labels' === $mode ? 'labels' : 'references';
