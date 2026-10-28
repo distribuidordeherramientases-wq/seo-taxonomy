@@ -176,7 +176,6 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     /** Relationship snapshots for the tree, editor and menu generator. */
     public static function rows( $type = '' ) {
         global $wpdb;
-        self::ensure_country_schema();
         if ( ! self::available() ) {
             return array();
         }
@@ -185,9 +184,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             return array();
         }
         $table = self::table();
+        $field = (string) $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'country_code' ) ) === 'country_code' ? 'country_code' : 'NULL AS country_code';
         if ( $type ) {
             $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM {$table} WHERE relation_type = %s", $type ),
+                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM {$table} WHERE relation_type = %s", $type ),
                 ARRAY_A
             );
         } else {
@@ -195,7 +195,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Whitelisted SQL placeholders and known table name.
             $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM {$table} WHERE relation_type IN ({$placeholders})", $types ),
+                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM {$table} WHERE relation_type IN ({$placeholders})", $types ),
                 ARRAY_A
             );
         }
@@ -277,7 +277,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 return new WP_Error( 'tc_relations_taken', sprintf( 'El elemento #%d ya pertenece a otro padre. Desvincúlalo primero.', $id ) );
             }
         }
-        $old = array_keys( self::map( $type )[ $source ] ?? array() );
+        $old = array_keys( self::map( $type, $country )[ $source ] ?? array() );
         $to_add = array_diff( $ids, $old );
         $to_remove = array_diff( $old, $ids );
 
@@ -331,7 +331,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         } elseif ( 'secondary_to_category' === $type ) {
             $type = 'hub_secondary_to_category';
         }
-        $selected = array_keys( self::map( $type )[ absint( $source ) ] ?? array() );
+        $selected = array_keys( self::map( $type, $country )[ absint( $source ) ] ?? array() );
         $selected[] = absint( $target );
         return self::replace( $hierarchy, $type, $source, $selected, $country );
     }
