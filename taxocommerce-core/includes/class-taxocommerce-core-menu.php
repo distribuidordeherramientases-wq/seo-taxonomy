@@ -28,6 +28,18 @@ final class TaxoCommerce_Core_Menu {
 	 */
 	private $logger;
 
+    public static function country( $write = false ) {
+        $params = $write ? $_POST : $_GET;
+        $value = isset( $params['tc_country'] ) && is_string( $params['tc_country'] ) ? sanitize_text_field( wp_unslash( $params['tc_country'] ) ) : 'ES';
+        return TaxoCommerce_Core_Country::normalize( $value ) ?: 'ES';
+    }
+
+    public static function menu_option( $country = '' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: self::country();
+        return 'ES' === $country ? self::MENU_ID_OPTION : self::MENU_ID_OPTION . '_' . strtolower( $country );
+    }
+
+
 	/**
 	 * Constructor.
 	 *
@@ -57,7 +69,8 @@ final class TaxoCommerce_Core_Menu {
 	public function render() {
 		$this->guard();
 
-		$tree       = $this->build_tree();
+		$country    = self::country();
+		$tree       = $this->build_tree( $country );
 		$menu_id    = $this->get_menu_id();
 		$result     = isset( $_GET['tc_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
@@ -78,7 +91,8 @@ final class TaxoCommerce_Core_Menu {
 				<div class="notice notice-error"><p><?php echo esc_html( $message ); ?></p></div>
 			<?php endif; ?>
 
-			<?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'top' ); ?>
+			<form method="get" style="display:flex;gap:10px;align-items:center;margin:15px 0;flex-wrap:wrap"><input type="hidden" name="page" value="taxocommerce-core-menu"><label for="tc-menu-country"><strong>País del menú</strong></label><select id="tc-menu-country" name="tc_country"><?php TaxoCommerce_Core_Country::options( $country ); ?></select><button class="button">Seleccionar menú</button></form>
+            <?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'top' ); ?>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Fuente:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría de producto. La jerarquía sigue siendo la fuente de la propuesta; WordPress conserva el menú publicado.', 'taxocommerce-core' ); ?></p></div>
 
 			<?php $this->render_kpis( $tree, $menu_id ); ?>
@@ -103,13 +117,14 @@ final class TaxoCommerce_Core_Menu {
 		$this->guard();
 		check_admin_referer( 'taxocommerce_core_sync_menu', 'taxocommerce_core_nonce' );
 
-		$menu_id = $this->get_or_create_menu();
+		$country = self::country( true );
+        $menu_id = $this->get_or_create_menu( $country );
 		if ( is_wp_error( $menu_id ) ) {
 			$this->redirect( 'error', $menu_id->get_error_message() );
 		}
 
 		$this->delete_generated_items( $menu_id );
-		$result = $this->write_tree_to_menu( $this->build_tree(), $menu_id );
+		$result = $this->write_tree_to_menu( $this->build_tree( $country ), $menu_id );
 
 		if ( is_wp_error( $result ) ) {
 			$this->redirect( 'error', $result->get_error_message() );
@@ -128,7 +143,7 @@ final class TaxoCommerce_Core_Menu {
 		$this->guard();
 		check_admin_referer( 'taxocommerce_core_activate_menu', 'taxocommerce_core_nonce' );
 
-		$menu_id   = $this->get_menu_id();
+		$menu_id   = $this->get_menu_id( self::country( true ) );
 		$location  = isset( $_POST['menu_location'] ) ? sanitize_key( wp_unslash( $_POST['menu_location'] ) ) : '';
 		$locations = get_registered_nav_menus();
 
@@ -182,18 +197,18 @@ final class TaxoCommerce_Core_Menu {
 	 *
 	 * @return array
 	 */
-	private function build_tree() {
-		$clusters    = $this->pages_by_role( 'cluster' );
-		$primaries   = $this->pages_by_role( 'hub_primary' );
-		$secondaries = $this->pages_by_role( 'hub_secondary' );
+	private function build_tree( $country = 'ES' ) {
+		$clusters    = TaxoCommerce_Core_Hierarchy_Classic::country_pages( 'cluster', $country );
+		$primaries   = TaxoCommerce_Core_Hierarchy_Classic::country_pages( 'hub_primary', $country );
+		$secondaries = TaxoCommerce_Core_Hierarchy_Classic::country_pages( 'hub_secondary', $country );
 		$categories  = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC' ) );
 		$categories  = is_wp_error( $categories ) ? array() : $categories;
 
 		// seo_relations is now authoritative. Older post/term metadata is
 		// retained for compatibility, but does not drive generated menus.
-		$cluster_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'cluster_to_primary' );
-		$primary_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_primary_to_hub_secondary' );
-		$secondary_map = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_secondary_to_category' );
+		$cluster_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'cluster_to_primary', $country );
+		$primary_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_primary_to_hub_secondary', $country );
+		$secondary_map = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_secondary_to_category', $country );
 		$primaries_by_id = array();
 		$secondaries_by_id = array();
 		$categories_by_id = array();
@@ -204,6 +219,7 @@ final class TaxoCommerce_Core_Menu {
 			$secondaries_by_id[ (int) $page->ID ] = $page;
 		}
 		foreach ( $categories as $term ) {
+            if ( TaxoCommerce_Core_Country::term( $term->term_id ) !== $country ) { continue; }
 			$categories_by_id[ (int) $term->term_id ] = $term;
 		}
 
@@ -413,23 +429,24 @@ final class TaxoCommerce_Core_Menu {
 	 *
 	 * @return int|WP_Error
 	 */
-	private function get_or_create_menu() {
-		$menu_id = $this->get_menu_id();
+	private function get_or_create_menu( $country = 'ES' ) {
+		$menu_id = $this->get_menu_id( $country );
 		if ( $menu_id ) {
 			return $menu_id;
 		}
 
-		$existing = wp_get_nav_menu_object( 'TaxoCommerce' );
+		$name = 'ES' === $country ? 'TaxoCommerce' : 'TaxoCommerce - ' . $country;
+        $existing = wp_get_nav_menu_object( $name );
 		if ( $existing && ! is_wp_error( $existing ) ) {
 			$menu_id = absint( $existing->term_id );
 		} else {
-			$menu_id = wp_create_nav_menu( 'TaxoCommerce' );
+			$menu_id = wp_create_nav_menu( $name );
 			if ( is_wp_error( $menu_id ) ) {
 				return $menu_id;
 			}
 		}
 
-		update_option( self::MENU_ID_OPTION, absint( $menu_id ), false );
+		update_option( self::menu_option( $country ), absint( $menu_id ), false );
 		return absint( $menu_id );
 	}
 
@@ -438,8 +455,9 @@ final class TaxoCommerce_Core_Menu {
 	 *
 	 * @return int
 	 */
-	private function get_menu_id() {
-		$menu_id = absint( get_option( self::MENU_ID_OPTION, 0 ) );
+	private function get_menu_id( $country = '' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: self::country();
+		$menu_id = absint( get_option( self::menu_option( $country ), 0 ) );
 		return $menu_id && wp_get_nav_menu_object( $menu_id ) ? $menu_id : 0;
 	}
 
@@ -523,6 +541,7 @@ final class TaxoCommerce_Core_Menu {
 	private function redirect( $result, $message ) {
 		$url = add_query_arg(
 			array(
+                'tc_country' => self::country( true ),
 				'page'       => 'taxocommerce-core-menu',
 				'tc_result'  => sanitize_key( $result ),
 				'tc_message' => sanitize_text_field( $message ),
