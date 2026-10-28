@@ -285,6 +285,7 @@ final class TaxoCommerce_Import_Export {
 			<div class="card" style="max-width:none;margin-top:20px;padding:20px;" id="tc-ie-individual-monitor">
 				<h2><?php esc_html_e( 'Estado de la última importación individual', 'taxocommerce-import-export' ); ?></h2>
 				<p id="tc-ie-individual-state"><?php esc_html_e( 'Consultando el último trabajo…', 'taxocommerce-import-export' ); ?></p>
+				<p id="tc-ie-batch-live" role="status" aria-live="polite" style="background:#f6f7f7;padding:10px;">Consultando ejecución por bloques…</p>
 				<pre id="tc-ie-individual-events" style="white-space:pre-wrap;max-height:260px;overflow:auto;background:#f6f7f7;padding:12px;"></pre>
 				<p class="description"><?php esc_html_e( 'El seguimiento permanece visible al recargar. El CSV se procesa con la cola propia y el limitador de velocidad; no cierres el informe por falta de movimiento instantáneo.', 'taxocommerce-import-export' ); ?></p>
 			</div>
