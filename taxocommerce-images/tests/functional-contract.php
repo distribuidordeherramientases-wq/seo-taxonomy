@@ -132,4 +132,54 @@ if ( tci_webp_supported() ) {
 	taxocommerce_images_test_assert( 'image/webp' === get_post_mime_type( $jpeg ) && is_file( get_attached_file( $jpeg ) ), 'converted attachment remains valid' );
 	taxocommerce_images_test_assert( ! is_file( $old_file ) && ! get_post_meta( $jpeg, '_tci_webp_leftover_backups', true ), 'successful conversion leaves no permanent JPEG backup' );
 } else { WP_CLI::warning( 'WebP editor unavailable: conversion acceptance not verified.' ); }
+// Verify the real Media audit (not just the pure regulator) resumes at
+// exactly the existing ID cursor after changing speed on a running report.
+for ( $i = 0; $i < 42; ++$i ) {
+	wp_insert_post( array(
+		'post_type' => 'attachment',
+		'post_status' => 'inherit',
+		'post_mime_type' => 'image/png',
+		'post_title' => 'Auditoría velocidad imagen ' . $i,
+	) );
+}
+TaxoCommerce_Images_Load::set_priority( 1, 'audit' );
+$audit = new TaxoCommerce_Images_Audit();
+$audit_begin = new ReflectionMethod( 'TaxoCommerce_Images_Audit', 'new_state' );
+$audit_step = new ReflectionMethod( 'TaxoCommerce_Images_Audit', 'process_batch' );
+update_option( TaxoCommerce_Images_Audit::STATE_OPTION, $audit_begin->invoke( $audit ), false );
+$first_audit = $audit_step->invoke( $audit );
+taxocommerce_images_test_assert(
+	25 === (int) $first_audit['scanned']
+		&& 'running' === $first_audit['status']
+		&& (int) $first_audit['last_id'] > 0,
+	'audit speed 1 processes exactly one bounded 25-ID batch and persists its cursor'
+);
+$cursor_before_change = (int) $first_audit['last_id'];
+$summary_before_change = $first_audit['summary'];
+TaxoCommerce_Images_Load::set_priority( 5, 'audit' );
+$audit_state_unchanged = get_option( TaxoCommerce_Images_Audit::STATE_OPTION );
+taxocommerce_images_test_assert(
+	$cursor_before_change === (int) $audit_state_unchanged['last_id']
+		&& 25 === (int) $audit_state_unchanged['scanned']
+		&& $summary_before_change === $audit_state_unchanged['summary'],
+	'changing Media audit speed to 5 retains the 25 images and all existing findings'
+);
+$next_audit = $audit_step->invoke( $audit );
+taxocommerce_images_test_assert(
+	'completed' === $next_audit['status']
+		&& (int) $next_audit['scanned'] === (int) $next_audit['total']
+		&& (int) $next_audit['last_id'] > $cursor_before_change,
+	'audit resumes without skipping or repeating IDs after changing speed'
+);
+$audit_load = TaxoCommerce_Images_Load::last_sample( 'audit' );
+taxocommerce_images_test_assert(
+	5 === (int) $audit_load['priority'] && 200 === (int) $audit_load['batch']
+		&& isset( $audit_load['reason'], $audit_load['items_per_second'] ),
+	'audit exposes a five-speed adaptive batch with real time and throughput metrics'
+);
+taxocommerce_images_test_assert(
+	false !== has_action( 'wp_ajax_taxocommerce_images_audit_step' ),
+	'authenticated Media audit continuation remains registered'
+);
+
 WP_CLI::success( 'Images functional contract passed in isolated WordPress. Automatic deletion/consolidation is not enabled.' );
