@@ -76,9 +76,10 @@ final class TaxoCommerce_Images_Background {
 		}
 		// A paused scan resumes from its saved cursor; completed/stopped
 		// mutation jobs require an explicit fresh start.
-		$resume = 'paused' === ( $old['status'] ?? '' );
+		$resume = in_array( (string) ( $old['status'] ?? '' ), array( 'paused', 'error' ), true );
 		$job = $resume ? $old : array(
 			'mode' => $mode,
+			'run' => wp_generate_uuid4(),
 			'actor' => $actor_id,
 			'status' => 'running',
 			'cursor' => 0,
@@ -171,16 +172,30 @@ final class TaxoCommerce_Images_Background {
 			try {
 				$result = self::chunk( $selected, $job );
 				if ( is_wp_error( $result ) ) {
-					throw new RuntimeException( $result->get_error_message() );
+					if ( in_array( $result->get_error_code(), array( 'tci_audit_background_busy', 'tci_background_assignment_busy', 'tci_mutation_busy', 'tci_busy' ), true ) ) {
+						$job['message'] = __( 'Otro lote está activo. Se reintentará.', 'taxocommerce-images' );
+					} else {
+						throw new RuntimeException( $result->get_error_message() );
+					}
+				} else {
+					$job = $result;
+					$job['failures'] = 0;
 				}
-				$job = $result;
-				$job['failures'] = 0;
 			} catch ( Throwable $error ) {
 				$job['failures'] = absint( $job['failures'] ?? 0 ) + 1;
 				$job['message'] = sanitize_text_field( $error->getMessage() );
 				if ( $job['failures'] >= 3 ) {
 					$job['status'] = 'error';
 				}
+			}
+			// A pause/stop (or new run) can be requested while the chunk runs.
+			// Never overwrite a more recent administrator decision.
+			$live = self::state( $selected );
+			if ( ! empty( $live['run'] ) && $live['run'] !== ( $job['run'] ?? '' ) ) {
+				return;
+			}
+			if ( in_array( (string) ( $live['status'] ?? '' ), array( 'paused', 'stopped' ), true ) ) {
+				$job['status'] = $live['status'];
 			}
 			$job['last_tick'] = time();
 			$delay = max( 1, (int) ceil( TaxoCommerce_Images_Load::delay_ms( $selected ) / 1000 ) );
@@ -288,6 +303,15 @@ final class TaxoCommerce_Images_Background {
 		}
 	}
 
+	/** Stop an obsolete job (for example, when its audit snapshot is reset). */
+	public static function stop( $mode ) {
+		$job = self::state( $mode );
+		if ( $job ) {
+			$job['status'] = 'stopped';
+			self::save( $mode, $job );
+		}
+	}
+
 	public static function ajax() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => 'Sin permisos.' ), 403 );
@@ -302,6 +326,20 @@ final class TaxoCommerce_Images_Background {
 		if ( 'start' === $operation ) {
 			if ( ! in_array( $mode, array( 'optimize', 'webp' ), true ) ) {
 				wp_send_json_error( array( 'message' => 'Inicia este análisis desde su botón habitual.' ), 400 );
+			}
+			$job = self::start( $mode, get_current_user_id() );
+		} elseif ( 'resume' === $operation && ! $job && ! in_array( $mode, array( 'optimize', 'webp' ), true ) ) {
+			// Adopt a previously started scan rather than restarting its cursor.
+			$existing = array();
+			if ( 'audit' === $mode ) {
+				$existing = ( new TaxoCommerce_Images_Audit() )->state();
+			} elseif ( in_array( $mode, array( 'labels', 'cleanup' ), true ) ) {
+				$existing = TaxoCommerce_Images_Maintenance::state( $mode );
+			} elseif ( 0 === strpos( $mode, 'assignment_' ) ) {
+				$existing = TaxoCommerce_Images_Assignment::assignment_state( substr( $mode, strlen( 'assignment_' ) ) );
+			}
+			if ( 'running' !== ( $existing['status'] ?? '' ) ) {
+				wp_send_json_error( array( 'message' => 'No hay un proceso interrumpido que reanudar.' ), 400 );
 			}
 			$job = self::start( $mode, get_current_user_id() );
 		} elseif ( in_array( $operation, array( 'pause', 'resume', 'stop' ), true ) && $job ) {
