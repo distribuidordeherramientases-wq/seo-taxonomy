@@ -7,7 +7,7 @@ class TaxoCommerce_Core_Logger { public function info( $a, $b ) {} }
 class TaxoCommerce_Core_Hierarchy_Classic { public static function map( $kind, $country = '' ) { return array(); } public static function role_pages( $role ) { return array(); } public static function country_pages( $role, $country ) { return array(); } }
 class WP_Query { public $posts; public function __construct( $args ) { $GLOBALS['last_query']=$args; $rows=array_values( array_filter( $GLOBALS['posts'], static function( $post ) use ( $args ) { return $post->post_type===$args['post_type'] && 'publish'===$post->post_status && ''===$post->post_password && ( ''===$args['s'] || false!==stripos( $post->post_title, $args['s'] ) ); } ) ); $this->posts=array_slice( $rows, $args['offset'], $args['posts_per_page'] ); } }
 $GLOBALS['hooks']=array(); $GLOBALS['options']=array('taxocommerce_core_menu_id'=>99,'taxocommerce_core_menu_location_backup'=>array('locations'=>array('primary'=>1)));
-$GLOBALS['menus']=array(99=>(object)array('term_id'=>99)); $GLOBALS['items']=array(); $GLOBALS['meta']=array(); $GLOBALS['writes']=0; $GLOBALS['allowed']=true;
+$GLOBALS['menus']=array(99=>(object)array('term_id'=>99,'name'=>'TaxoCommerce')); $GLOBALS['items']=array(); $GLOBALS['meta']=array(); $GLOBALS['writes']=0; $GLOBALS['allowed']=true;
 $GLOBALS['posts']=array(); for($i=1;$i<=130;$i++){ $GLOBALS['posts'][$i]=new WP_Post($i,'Example page '.$i); }
 $GLOBALS['posts'][131]=new WP_Post(131,'Draft'); $GLOBALS['posts'][131]->post_status='draft';
 function is_wp_error($x){return $x instanceof WP_Error;} function absint($x){return abs((int)$x);} function sanitize_key($x){return preg_replace('/[^a-z0-9_-]/','',strtolower((string)$x));} function sanitize_text_field($x){return trim(strip_tags((string)$x));}
@@ -17,7 +17,9 @@ function selected($a,$b=true,$echo=true){$s=(string)$a===(string)$b?' selected="
 function taxonomy_exists($x){return in_array($x,array('category','product_cat'),true);} function admin_url($x=''){return 'https://example.test/wp-admin/'.$x;} function wp_create_nonce($a){return 'nonce-'.$a;}
 function get_option($k,$d=false){return $GLOBALS['options'][$k]??$d;} function update_option($k,$v,$autoload=false){$GLOBALS['writes']++;$GLOBALS['options'][$k]=$v;return true;}
 function get_theme_mod($k,$d=array()){return array('primary'=>99);} function get_registered_nav_menus(){return array('primary'=>'Menu principal','footer'=>'Pie');}
-function wp_get_nav_menu_object($id){return 'TaxoCommerce'===$id?($GLOBALS['menus'][99]??false):($GLOBALS['menus'][$id]??false);} function wp_create_nav_menu($name){$GLOBALS['writes']++;$GLOBALS['menus'][99]=(object)array('term_id'=>99);return 99;}
+function wp_get_nav_menu_object($id){if(is_numeric($id))return $GLOBALS['menus'][(int)$id]??false;foreach($GLOBALS['menus'] as $m){if($m->name===$id)return $m;}return false;}
+function wp_create_nav_menu($name){$GLOBALS['writes']++;$id=max(array_keys($GLOBALS['menus']) ?: array(98))+1;$GLOBALS['menus'][$id]=(object)array('term_id'=>$id,'name'=>$name);return $id;}
+function wp_update_nav_menu_object($id,$data){$GLOBALS['writes']++;if(!isset($GLOBALS['menus'][$id]))return new WP_Error('bad_menu','Menu missing');$GLOBALS['menus'][$id]->name=$data['menu-name'];return $id;}
 function wp_get_nav_menu_items($id,$args=array()){return array_values(array_filter($GLOBALS['items'],static function($item)use($id){return $item->menu_id===$id;}));}
 function get_term_meta($id,$key,$single=true){return ''; } function get_post_meta($id,$key,$single=true){return $GLOBALS['meta'][$id][$key]??'';} function update_post_meta($id,$key,$value){$GLOBALS['writes']++;$GLOBALS['meta'][$id][$key]=$value;if('_menu_item_menu_item_parent'===$key && isset($GLOBALS['items'][$id])){$GLOBALS['items'][$id]->menu_item_parent=$value;}return true;}
 function get_post($id){return $GLOBALS['posts'][$id]??null;} function get_the_title($post){return is_object($post)?$post->post_title:($GLOBALS['posts'][$post]->post_title??'');}
@@ -64,4 +66,26 @@ $result=TaxoCommerce_Core_Menu_Editor::objects('page','search',1,'130');verify(c
 $GLOBALS['allowed']=false;$before=$GLOBALS['writes'];try{TaxoCommerce_Core_Menu_Editor::handle_action();verify(false,'permissions must deny');}catch(RuntimeException $e){verify($before===$GLOBALS['writes'],'no writes on permission failure');}
 $GLOBALS['allowed']=true;$_POST=array('task'=>'add','object_type'=>'page','object_ids'=>array(1));try{TaxoCommerce_Core_Menu_Editor::handle_action();verify(false,'nonce must deny');}catch(RuntimeException $e){verify($e->getMessage()==='nonce','nonce gate');}
 unset($GLOBALS['menus'][99]);$GLOBALS['options']['taxocommerce_core_menu_id']=0;$GLOBALS['options']['taxocommerce_core_menu_location_backup']=false;$before=$GLOBALS['writes'];ob_start();$core->render();$empty=ob_get_clean();verify($GLOBALS['writes']===$before,'empty view never creates menu');verify(substr_count($empty,'value="taxocommerce_core_activate_menu"')===0,'no activate control before menu exists');
+// Regression: an old menu option must not let multiple countries share one menu.
+$GLOBALS['menus'][99]=(object)array('term_id'=>99,'name'=>'TaxoCommerce');
+$GLOBALS['options']['taxocommerce_core_menu_id']=99;
+$GLOBALS['options']['taxocommerce_core_menu_id_us']=99; // Broken legacy mapping.
+verify(TaxoCommerce_Core_Menu::managed_menu_id('ES',false)===99,'Spanish legacy menu remains readable');
+verify(TaxoCommerce_Core_Menu::managed_menu_id('US',false)===0,'US never reads Spanish menu from reused ID');
+$us_id=TaxoCommerce_Core_Menu::managed_menu_id('US',true);
+verify($us_id!==99 && $GLOBALS['menus'][$us_id]->name==='TaxoCommerce - US','US has own named menu');
+verify($GLOBALS['options']['taxocommerce_core_menu_id_us']===$us_id,'US stores independent menu ID');
+verify($GLOBALS['options']['taxocommerce_core_menu_id']===99,'Spanish ID unchanged');
+$es_id=TaxoCommerce_Core_Menu::managed_menu_id('ES',true);
+verify($es_id===99 && $GLOBALS['menus'][99]->name==='TaxoCommerce - ES','ES renamed in place without losing menu');
+foreach(array('FR','DE','NL') as $country){
+    $menu_id=TaxoCommerce_Core_Menu::managed_menu_id($country,true);
+    verify($menu_id>0 && $menu_id!==$us_id && $menu_id!==$es_id, $country.' independent ID');
+    verify($GLOBALS['menus'][$menu_id]->name==='TaxoCommerce - '.$country, $country.' country name');
+}
+$GLOBALS['options']['taxocommerce_core_menu_id_fr']=99;
+verify(TaxoCommerce_Core_Menu::managed_menu_id('FR',false)!==99,'FR ignores incorrectly reused Spanish ID');
+verify(TaxoCommerce_Core_Menu::managed_menu_id('FR',true)!==99,'FR restores its own menu ID');
+verify(TaxoCommerce_Core_Menu::managed_menu_id('US',false)===$us_id,'US intact after other-country sync');
+
 echo 'PASS: '.$GLOBALS['checks']." menu checks. Isolated WP stubs; not a live WordPress test.\n";
