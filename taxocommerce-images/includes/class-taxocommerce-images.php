@@ -95,24 +95,25 @@ final class TaxoCommerce_Images {
 			)
 		);
 
+		wp_enqueue_script(
+			'taxocommerce-images-background',
+			plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/background.js',
+			array(),
+			TAXOCOMMERCE_IMAGES_VERSION,
+			true
+		);
+		wp_localize_script(
+			'taxocommerce-images-background',
+			'taxocommerceImagesBackground',
+			array(
+				'ajax' => admin_url( 'admin-ajax.php' ),
+				'nonce' => wp_create_nonce( 'taxocommerce_images_background' ),
+			)
+		);
+
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'summary';
 		if ( 'audit' === $tab ) {
-			wp_enqueue_script(
-				'taxocommerce-images-audit',
-				plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/audit.js',
-				array(),
-				TAXOCOMMERCE_IMAGES_VERSION,
-				true
-			);
-			wp_localize_script(
-				'taxocommerce-images-audit',
-				'taxocommerceImagesAudit',
-				array(
-					'ajax' => admin_url( 'admin-ajax.php' ),
-					'nonce' => wp_create_nonce( 'taxocommerce_images_audit' ),
-				)
-			);
 			wp_enqueue_style(
 				'taxocommerce-images-audit',
 				plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/audit.css',
@@ -333,6 +334,7 @@ final class TaxoCommerce_Images {
 			$assignment_state = TaxoCommerce_Images_Assignment::assignment_state( $scope );
 			?>
 			<section class="tci-assign-section" id="tc-assign-<?php echo esc_attr( $scope ); ?>">
+				<?php TaxoCommerce_Images_Background::render_panel( 'assignment_' . $scope ); ?>
 				<h2><?php echo esc_html( $heading ); ?> <small>(<?php echo esc_html( number_format_i18n( absint( $report['total'] ) ) ); ?> <?php esc_html_e( 'sin imagen', 'taxocommerce-images' ); ?>)</small></h2>
 				<?php if ( 'product' === $scope && ! post_type_exists( 'product' ) ) : ?>
 					<p><?php esc_html_e( 'No hay un tipo de producto registrado. Este apartado se activa con WooCommerce.', 'taxocommerce-images' ); ?></p>
@@ -532,6 +534,8 @@ final class TaxoCommerce_Images {
 			<button type="button" class="button" id="tci-images-webp-run" <?php disabled( empty( $formats['convertible'] ) ); ?>><?php esc_html_e( 'Convertir JPG/PNG a WebP', 'taxocommerce-images' ); ?></button>
 		</div>
 		<p id="tci-images-jobs-status" role="status" aria-live="polite"></p>
+		<?php TaxoCommerce_Images_Background::render_panel( 'optimize' ); ?>
+		<?php TaxoCommerce_Images_Background::render_panel( 'webp' ); ?>
 		<?php
 		$total_images = $this->image_count();
 		$audit        = $this->audit->state();
@@ -611,6 +615,7 @@ final class TaxoCommerce_Images {
 			<?php endif; ?>
 		</form>
 
+		<?php TaxoCommerce_Images_Background::render_panel( 'audit' ); ?>
 		<?php if ( empty( $state ) ) : ?>
 			<?php $this->audit_button( 'taxocommerce_images_start_audit', 'taxocommerce_images_start_audit', __( 'Iniciar auditoría', 'taxocommerce-images' ), true ); ?>
 		<?php else : ?>
@@ -619,11 +624,7 @@ final class TaxoCommerce_Images {
 				<div class="tci-audit-progress-panel" data-tci-audit-runner>
 					<progress id="tci-audit-progress-bar" value="<?php echo esc_attr( (string) absint( $state['scanned'] ?? 0 ) ); ?>" max="<?php echo esc_attr( (string) max( 1, absint( $state['total'] ?? 0 ) ) ); ?>"></progress>
 					<p id="tc-images-audit-progress" role="status" aria-live="polite"><?php echo esc_html( absint( $state['scanned'] ?? 0 ) . ' / ' . absint( $state['total'] ?? 0 ) ); ?></p>
-					<div class="tci-audit-runner-actions">
-						<button type="button" id="tci-audit-pause" class="button"><?php esc_html_e( 'Pausar en esta pantalla', 'taxocommerce-images' ); ?></button>
-						<button type="button" id="tci-audit-resume" class="button" disabled><?php esc_html_e( 'Reanudar', 'taxocommerce-images' ); ?></button>
-					</div>
-					<p class="description"><?php esc_html_e( 'Con esta pestaña abierta, los siguientes lotes se ejecutan automáticamente sin esperas fijas. Si se cierra, puedes continuar después con el cursor guardado. La pausa afecta a esta pantalla.', 'taxocommerce-images' ); ?></p>
+					<p class="description"><?php esc_html_e( 'El procesamiento continúa mediante WP-Cron aunque cierres esta pantalla. El estado se actualiza al consultar el panel.', 'taxocommerce-images' ); ?></p>
 				</div>
 				<?php $this->audit_button( 'taxocommerce_images_continue_audit', 'taxocommerce_images_continue_audit', __( 'Continuar siguiente lote (manual)', 'taxocommerce-images' ), false ); ?>
 			<?php endif; ?>
