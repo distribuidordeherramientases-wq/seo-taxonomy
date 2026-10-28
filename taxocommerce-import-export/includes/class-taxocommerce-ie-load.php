@@ -69,6 +69,61 @@ final class TaxoCommerce_IE_Load {
         return max( 1, min( $limits['maximum'], $current ) );
     }
 
+    /** Percentage of the PHP worker's memory limit; null when unlimited. */
+    public static function memory_percent() {
+        $raw = strtolower( trim( (string) ini_get( 'memory_limit' ) ) );
+        $limit = (float) $raw;
+        if ( 'g' === substr( $raw, -1 ) ) {
+            $limit *= 1024 * 1024 * 1024;
+        } elseif ( 'm' === substr( $raw, -1 ) ) {
+            $limit *= 1024 * 1024;
+        } elseif ( 'k' === substr( $raw, -1 ) ) {
+            $limit *= 1024;
+        }
+        return $limit > 0 ? 100 * memory_get_peak_usage( true ) / $limit : null;
+    }
+
+    /**
+     * Deterministic 10x-batch controller, testable without a WordPress host.
+     *
+     * @return array Next row target and an explanatory reason.
+     */
+    public static function import_adjustment( $current, $maximum, $items, $elapsed, $memory, $budget, $cpu_percent = null ) {
+        $current = max( 1, absint( $current ) );
+        $maximum = max( $current, absint( $maximum ) );
+        $items = absint( $items );
+        $elapsed = max( 0, (float) $elapsed );
+        $budget = max( 2, (float) $budget );
+        if ( 0 === $items ) {
+            return array( $current, 'sin filas: sin modificar velocidad' );
+        }
+        if ( null !== $memory && $memory >= 80 ) {
+            return array( max( 1, (int) floor( $current / 2 ) ), 'reducido por memoria alta' );
+        }
+        // PHP CPU is not server-wide CPU. Only apply CPU back-pressure when
+        // the process is itself saturated near the wall-clock deadline.
+        if ( null !== $cpu_percent && $cpu_percent >= 95 && $elapsed >= 0.85 * $budget ) {
+            return array( max( 1, (int) floor( $current * 0.75 ) ), 'reducido por CPU local y tiempo elevados' );
+        }
+        if ( $elapsed >= $budget * 0.96 ) {
+            // Estimate a sustainable batch from observed rows/second.
+            return array(
+                max( 1, min( $current, (int) floor( $items * 0.8 ) ) ),
+                'ajustado al tiempo por fila'
+            );
+        }
+        if ( $items >= $current && $elapsed < $budget * 0.90
+            && ( null === $memory || $memory < 72 ) ) {
+            $next = min( $maximum, $current * 2 );
+            return array(
+                $next,
+                $next > $current ? 'duplicado por tiempo/memoria disponibles' : 'límite de velocidad alcanzado'
+            );
+        }
+        return array( $current, $items < $current
+            ? 'bloque parcial: sin aumentar artificialmente' : 'estabilizado' );
+    }
+
     public static function begin() {
         $cpu = function_exists( 'getrusage' ) ? getrusage() : null;
         return array(
@@ -89,12 +144,7 @@ final class TaxoCommerce_IE_Load {
         $cpu = function_exists( 'getrusage' ) ? self::cpu_seconds( getrusage() ) : null;
         $used = null !== $cpu && isset( $start['cpu'] ) && null !== $start['cpu'] ? max( 0, $cpu - $start['cpu'] ) : null;
         $cpu_percent = null === $used ? null : min( 100, 100 * $used / $elapsed );
-        $limit = (int) ini_get( 'memory_limit' );
-        $raw = strtolower( trim( (string) ini_get( 'memory_limit' ) ) );
-        if ( 'g' === substr( $raw, -1 ) ) $limit *= 1024 * 1024 * 1024;
-        elseif ( 'm' === substr( $raw, -1 ) ) $limit *= 1024 * 1024;
-        elseif ( 'k' === substr( $raw, -1 ) ) $limit *= 1024;
-        $memory = $limit > 0 ? 100 * memory_get_peak_usage( true ) / $limit : null;
+        $memory = self::memory_percent();
         $current = self::batch_size( $kind );
         $maximum = self::size_limits( $kind )['maximum'];
         $next = $current;
@@ -103,28 +153,9 @@ final class TaxoCommerce_IE_Load {
         $items = absint( $items );
 
         if ( 'import' === $kind ) {
-            // Five speeds change row targets, not inter-request delays.
-            // Double the target (50 -> 100 -> 200...) if the *full*
-            // requested block finished within the time/memory envelope.
-            // Never mistake high PHP process CPU for server-wide saturation.
-            if ( null !== $memory && $memory >= 80 ) {
-                $next = max( 1, (int) floor( $current / 2 ) );
-                $reason = 'reducido por memoria alta';
-            } elseif ( $elapsed >= $budget * 0.96 ) {
-                // A slow importer cannot finish every target row in one PHP
-                // request. Lower the target once; avoid unlimited cutbacks
-                // solely because the wall-clock deadline was reached.
-                $suggested = max( 1, (int) floor( $items * 0.8 ) );
-                $next = max( 1, min( $current, $suggested ) );
-                $reason = 'ajustado al tiempo por fila';
-            } elseif ( $items >= $current
-                && $elapsed < $budget * 0.90
-                && ( null === $memory || $memory < 72 ) ) {
-                $next = min( $maximum, $current * 2 );
-                $reason = $next > $current ? 'duplicado por tiempo/memoria disponibles' : 'límite de velocidad alcanzado';
-            } elseif ( $items < $current ) {
-                $reason = 'bloque parcial: sin aumentar artificialmente';
-            }
+            list( $next, $reason ) = self::import_adjustment(
+                $current, $maximum, $items, $elapsed, $memory, $budget, $cpu_percent
+            );
         } else {
             // No changes to the exporter regulator.
             if ( $elapsed >= 8 || ( null !== $memory && $memory >= 75 ) ) {
