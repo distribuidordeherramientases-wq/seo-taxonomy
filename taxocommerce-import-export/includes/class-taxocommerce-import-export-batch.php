@@ -799,6 +799,34 @@ final class TaxoCommerce_Import_Export_Batch {
 			return new WP_Error( 'tc_ie_batch_importer_missing', __( 'El miniimportador registrado ya no está disponible.', 'taxocommerce-import-export' ) );
 		}
 
+		// A paused or upgraded import is verified against the real CSV, not
+		// against a cumulative number displayed on an old dashboard.
+		$delimiter = isset( $state['delimiter'] ) && in_array( $state['delimiter'], array( ';', ',', "\t" ), true )
+			? $state['delimiter'] : ',';
+		if ( ! isset( $state['csv_rows'] ) ) {
+			$inspection = $this->inspect_csv( $path, $delimiter );
+			if ( is_wp_error( $inspection ) ) {
+				return $inspection;
+			}
+			$state = array_merge( $state, $inspection );
+			$this->store_state( $state );
+		}
+		$stat = stat( $path );
+		if ( ! is_array( $stat ) ) {
+			return $this->integrity_failure( __( 'No se pueden verificar las propiedades del CSV.', 'taxocommerce-import-export' ) );
+		}
+		foreach ( array( 'size' => 'csv_size', 'mtime' => 'csv_mtime', 'ino' => 'csv_inode' ) as $key => $saved ) {
+			if ( isset( $state[ $saved ] ) && absint( $stat[ $key ] ?? 0 ) !== absint( $state[ $saved ] ) ) {
+				return $this->integrity_failure( __( 'El CSV activo ha cambiado de tamaño, fecha o identidad durante la importación. Proceso detenido para evitar duplicados.', 'taxocommerce-import-export' ) );
+			}
+		}
+		if ( absint( $state['processed_rows'] ?? 0 ) > absint( $state['csv_rows'] ) ) {
+			return $this->integrity_failure( sprintf(
+				/* translators: 1: number of times CSV records were processed, 2: actual parsed CSV records. */
+				__( 'Integridad: el contador indica %1$d filas, pero el CSV activo contiene solo %2$d registros. Importación detenida sin reiniciar el cursor.', 'taxocommerce-import-export' ),
+				absint( $state['processed_rows'] ?? 0 ), absint( $state['csv_rows'] )
+			) );
+		}
 		$handle = fopen( $path, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Incremental CSV streaming.
 		if ( false === $handle ) {
 			return new WP_Error( 'tc_ie_batch_open', __( 'No se pudo abrir el CSV actual.', 'taxocommerce-import-export' ) );
@@ -815,8 +843,10 @@ final class TaxoCommerce_Import_Export_Batch {
 		$header = $this->csv->normalize_headers_for_batch( $raw_header );
 
 		$offset = absint( $state['offset'] ?? 0 );
-		if ( $offset > 0 ) {
-			fseek( $handle, $offset );
+		if ( $offset > absint( $state['csv_size'] )
+			|| ( $offset > 0 && ( 0 !== fseek( $handle, $offset ) || ftell( $handle ) !== $offset ) ) ) {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			return $this->integrity_failure( __( 'El cursor del importador está fuera del archivo o no se puede recuperar exactamente. No se procesarán filas repetidas.', 'taxocommerce-import-export' ) );
 		}
 
 		// Ten times the previous row limits. Preserve a finite execution
@@ -864,6 +894,10 @@ final class TaxoCommerce_Import_Export_Batch {
 				$eof = true;
 				break;
 			}
+			if ( absint( $state['processed_rows'] ?? 0 ) >= absint( $state['csv_rows'] )
+				&& ! empty( array_filter( (array) $row, 'strlen' ) ) ) {
+				return $this->integrity_failure( __( 'El cursor intenta procesar más filas de las que contiene el CSV. Se conserva el archivo para investigación.', 'taxocommerce-import-export' ) );
+			}
 			if ( empty( array_filter( $row, 'strlen' ) ) ) {
 				$state['offset'] = ftell( $handle );
 				continue;
@@ -901,7 +935,12 @@ final class TaxoCommerce_Import_Export_Batch {
 				$state['errors'] = $errors;
 			}
 
-			$state['offset'] = ftell( $handle );
+			$new_offset = ftell( $handle );
+			if ( false === $new_offset || $new_offset <= $offset ) {
+				return $this->integrity_failure( __( 'El cursor CSV ha dejado de avanzar; importación detenida para evitar procesar filas repetidas.', 'taxocommerce-import-export' ) );
+			}
+			$offset = $new_offset;
+			$state['offset'] = $offset;
 			$done++;
 			// Stop a large batch early when PHP memory is under pressure.
 			if ( 0 === $done % 10 ) {
@@ -928,6 +967,9 @@ final class TaxoCommerce_Import_Export_Batch {
 		TaxoCommerce_IE_Load::finish( 'import', $measure, $done );
 		$state['updated_at'] = current_time( 'mysql' );
 
+		if ( $eof && absint( $state['processed_rows'] ?? 0 ) !== absint( $state['csv_rows'] ) ) {
+			return $this->integrity_failure( __( 'Se alcanzó el final del CSV, pero la cantidad de registros no coincide con el contador. Se conserva el archivo para investigación.', 'taxocommerce-import-export' ) );
+		}
 		if ( ! $eof ) {
 			$state['status']  = ! empty( $this->state()['stop_requested'] ) ? 'stopping' : 'processing';
 			$state['message'] = sprintf(
