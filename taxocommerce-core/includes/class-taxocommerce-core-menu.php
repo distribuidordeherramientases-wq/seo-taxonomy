@@ -181,6 +181,7 @@ final class TaxoCommerce_Core_Menu {
 			<?php endif; ?>
 
 			<form method="get" style="display:flex;gap:10px;align-items:center;margin:15px 0;flex-wrap:wrap"><input type="hidden" name="page" value="taxocommerce-core-menu"><label for="tc-menu-country"><strong>País del menú</strong></label><select id="tc-menu-country" name="tc_country"><?php TaxoCommerce_Core_Country::options( $country ); ?></select><button class="button">Seleccionar menú</button></form>
+            <p><strong><?php echo esc_html__( 'Menú de WordPress:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( self::menu_name( $country ) ); ?></p>
             <?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'top' ); ?>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Fuente:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría de producto. La jerarquía sigue siendo la fuente de la propuesta; WordPress conserva el menú publicado.', 'taxocommerce-core' ); ?></p></div>
 
