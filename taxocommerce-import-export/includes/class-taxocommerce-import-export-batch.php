@@ -480,6 +480,17 @@ final class TaxoCommerce_Import_Export_Batch {
 			}
 
 			$state = $result;
+			// Admin stop/pause can arrive while a block is still working. Never
+			// overwrite a newer stop or disable command with the older snapshot.
+			$latest = $this->state();
+			if ( ! empty( $latest['stop_requested'] ) || empty( $latest['enabled'] ) ) {
+				$state['enabled'] = false;
+				$state['stop_requested'] = ! empty( $latest['stop_requested'] );
+				$state['status'] = 'paused';
+				$state['message'] = __( 'Importación detenida o pausada. Se conserva el offset del último bloque.', 'taxocommerce-import-export' );
+			} elseif ( ! empty( $latest['pause_after_file'] ) ) {
+				$state['pause_after_file'] = true;
+			}
 			$this->store_state( $state );
 
 			$continue = ! empty( $state['enabled'] )
@@ -614,7 +625,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			fseek( $handle, $offset );
 		}
 
-		$limit    = min( TaxoCommerce_IE_Load::batch_size( 'import' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 50 ) ) ) ) );
+		$limit    = min( TaxoCommerce_IE_Load::batch_size( 'import' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 200 ) ) ) ) );
 		$measure  = TaxoCommerce_IE_Load::begin();
 		$deadline = microtime( true ) + max( 2, min( 20, (float) apply_filters( 'taxocommerce_import_export_batch_runtime_seconds', 8 ) ) );
 		$done     = 0;
@@ -720,7 +731,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			$individual['events'][] = $individual['updated'] . ' · ' . $individual['message'];
 			update_option( self::INDIVIDUAL_STATE, $individual, false );
 		}
-		$pause = ! empty( $state['pause_after_file'] );
+		$pause = ! empty( $state['pause_after_file'] ) || ! empty( $this->state()['pause_after_file'] );
 		$state['last_file']      = basename( $target );
 		$state['current_file']   = '';
 		$state['entity']         = '';
