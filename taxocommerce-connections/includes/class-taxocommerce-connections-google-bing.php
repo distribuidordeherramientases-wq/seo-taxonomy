@@ -32,7 +32,9 @@ final class TaxoCommerce_Connections_Google_Bing {
 			'service_account_json'    => '',
 		);
 		$saved = get_option( self::GOOGLE_OPTION, array() );
-		return wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
+		$saved = is_array( $saved ) ? $saved : array();
+		$settings = wp_parse_args( $saved, $defaults );
+		return $settings;
 	}
 
 	public static function bing_settings() {
@@ -106,21 +108,22 @@ final class TaxoCommerce_Connections_Google_Bing {
 
 	public static function test_google() {
 		self::guard( 'taxocommerce_connections_test_google' );
-
+		if ( class_exists( 'TaxoCommerce_Google_Bing_OAuth' ) && method_exists( 'TaxoCommerce_Google_Bing_OAuth', 'access_token' ) ) {
+			$token = TaxoCommerce_Google_Bing_OAuth::access_token();
+			if ( ! is_wp_error( $token ) && is_string( $token ) && '' !== $token ) {
+				self::test_result( 'google', true, 'Google OAuth authenticated with saved WordPress credentials.' );
+			}
+		}
 		if ( class_exists( 'TaxoCommerce_Google_Bing_Connections' ) && method_exists( 'TaxoCommerce_Google_Bing_Connections', 'access_token' ) ) {
 			$token = TaxoCommerce_Google_Bing_Connections::access_token( '', true );
 			if ( is_wp_error( $token ) ) {
 				self::test_result( 'google', false, $token->get_error_message() );
 			}
-			self::test_result( 'google', true, 'Google service account authenticated successfully.' );
+			if ( is_string( $token ) && '' !== $token ) {
+				self::test_result( 'google', true, 'Google service account authenticated.' );
+			}
 		}
-
-		$settings = self::google_settings();
-		$account = json_decode( (string) ( $settings['service_account_json'] ?? '' ), true );
-		if ( ! is_array( $account ) || empty( $account['client_email'] ) || empty( $account['private_key'] ) ) {
-			self::test_result( 'google', false, 'A valid Google service account is required.' );
-		}
-		self::test_result( 'google', true, 'Google configuration is valid. Full token testing requires TaxoCommerce Insights during this transition phase.' );
+		self::test_result( 'google', false, 'No valid saved Google credentials could authenticate.' );
 	}
 
 	public static function save_merchant() {

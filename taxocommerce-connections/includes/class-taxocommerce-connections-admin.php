@@ -221,6 +221,18 @@ final class TaxoCommerce_Connections_Admin {
 				<div class="card" style="max-width:none;padding:20px;">
 					<h2 style="margin-top:0;">Google · Search Console / Analytics / Merchant</h2>
 					<p>Connections owns the credentials; <strong>TaxoCommerce Insights</strong> consumes the data for reporting. Existing internal option names are preserved to avoid losing configuration.</p>
+					<p><strong>Legacy WordPress migration:</strong> Google credentials saved in <code>wp_options</code> under <code>seo_google_search_settings</code> are automatically copied into <code>taxocommerce_google_bing_google_settings</code> when a setting is missing. Existing values are preserved. Do not create another Google account just to migrate.</p>
+					<details style="margin:12px 0;padding:12px;border:1px solid #ccd0d4;background:#f6f7f7;">
+						<summary><strong>Step-by-step: find, update and test your Google connection</strong></summary>
+						<ol>
+							<li><strong>Existing WordPress connection:</strong> open this page. The saved legacy configuration is recovered automatically. To inspect its source, open your hosting database manager (for example phpMyAdmin), select the WordPress database and inspect the options table (its prefix may differ from <code>wp_</code>). Find the option named <code>seo_google_search_settings</code>. Never publish or paste its private key into support requests.</li>
+							<li><strong>Search Console property:</strong> open <a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer">Google Search Console</a>, select the correct property at the top left, then copy its exact property identifier into the field below. A URL-prefix property must include the protocol and trailing slash when shown; a domain property uses <code>sc-domain:example.com</code>.</li>
+							<li><strong>Grant access:</strong> in Search Console open <em>Settings → Users and permissions</em> and verify that the service account email has access to that same property. The account email is stored inside the JSON credential. Search Console access is separate from Google Cloud IAM.</li>
+							<li><strong>GA4 property:</strong> open <a href="https://analytics.google.com/" target="_blank" rel="noopener noreferrer">Google Analytics</a>, go to <em>Admin → Property settings / Property details</em> and copy the numeric property ID. In <em>Admin → Property access management</em>, grant the service account read access. The Measurement ID (<code>G-...</code>) is under <em>Admin → Data streams → Web</em> and is not the GA4 property ID.</li>
+							<li><strong>Existing service account:</strong> in <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener noreferrer">Google Cloud → IAM → Service Accounts</a> select the original project. The account email and project ID are visible there. Google Cloud does <strong>not</strong> let you download an existing private key again. If the JSON is already saved here, leave the JSON field blank. Do not generate a new key unless the old key has actually been lost or revoked.</li>
+							<li><strong>Save and verify:</strong> edit only the fields that need changing, click <em>Save Google</em>, then <em>Test Google</em>. Finally open the Search Console and Analytics report downloads in Insights to confirm real API data. A stored credential or successful token request alone does not prove both report APIs work.</li>
+						</ol>
+					</details>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_google">
 						<?php wp_nonce_field( 'taxocommerce_connections_save_google' ); ?>
