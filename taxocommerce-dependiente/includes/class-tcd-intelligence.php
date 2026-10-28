@@ -60,6 +60,7 @@ final class TCD_Intelligence {
         add_action( 'admin_post_tcd_quality_csv', array( __CLASS__, 'download_quality_csv' ) );
         add_action( 'admin_post_tcd_quality_data_csv', array( __CLASS__, 'download_quality_data_csv' ) );
         add_action( 'admin_post_tcd_quality_audit_json', array( __CLASS__, 'download_quality_audit_json' ) );
+        add_action( 'admin_post_tcd_interpreter_audit_json', array( __CLASS__, 'download_interpreter_audit_json' ) );
     }
 
     public static function reset_modern_generated() {
@@ -3281,6 +3282,38 @@ final class TCD_Intelligence {
             );
         }
         return $state;
+    }
+
+    public static function interpreter_audit_url() {
+        return wp_nonce_url(
+            add_query_arg(
+                array( 'action'=>'tcd_interpreter_audit_json' ),
+                admin_url( 'admin-post.php' )
+            ),
+            'tcd_interpreter_audit_json'
+        );
+    }
+
+    public static function download_interpreter_audit_json() {
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Sin permiso.' );
+        }
+        check_admin_referer( 'tcd_interpreter_audit_json' );
+        $state = self::interpreter_state();
+        if ( ! $state ) wp_die( 'Todavía no hay informe del intérprete.' );
+        $payload = array(
+            'schema'=>array( 'name'=>'taxocommerce_dependiente_m11_regression', 'version'=>1 ),
+            'exported_at'=>gmdate( 'c' ),
+            'plugin_version'=>TAXOCOMMERCE_DEPENDIENTE_VERSION,
+            'engine_revision'=>self::INTERPRETER_EVALUATOR_REVISION,
+            'report_is_stale'=>(string) ( $state['evaluator_revision'] ?? '' ) !== self::INTERPRETER_EVALUATOR_REVISION,
+            'regression'=>$state,
+        );
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="dependiente_M11_regresion_' . gmdate( 'Ymd_His' ) . '.json"' );
+        echo wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON admin download.
+        exit;
     }
 
     public static function interpreter_state() {
