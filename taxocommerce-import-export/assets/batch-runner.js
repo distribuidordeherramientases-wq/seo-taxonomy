@@ -8,14 +8,45 @@
     const config = window.tcIeBatchRunner;
     if (!config || !config.ajaxUrl || !config.nonce) { return; }
     const output = document.getElementById('tc-ie-batch-live');
+    const progressBar = document.getElementById('tc-ie-import-progress-bar');
+    const progressText = document.getElementById('tc-ie-import-progress-text');
+
+    function readableBytes(bytes) {
+        const value = Math.max(0, Number(bytes) || 0);
+        if (value >= 1048576) { return (value / 1048576).toFixed(2) + ' MB'; }
+        if (value >= 1024) { return (value / 1024).toFixed(1) + ' KB'; }
+        return value + ' bytes';
+    }
+
+    function showProgress(data) {
+        const progress = data.progress || {};
+        const available = progress.available === true;
+        const percent = available ? Math.max(0, Math.min(100, Number(progress.percent) || 0)) : 0;
+        if (progressBar) {
+            progressBar.value = percent;
+            progressBar.setAttribute('aria-valuetext', available
+                ? percent.toFixed(1) + '% del archivo leído'
+                : 'Sin archivo en proceso');
+        }
+        if (progressText) {
+            progressText.textContent = available
+                ? percent.toFixed(1) + '% · ' + readableBytes(progress.bytes_read)
+                    + ' leídos de ' + readableBytes(progress.bytes_total)
+                    + ' · ' + readableBytes(progress.bytes_remaining) + ' restantes'
+                    + ' · ' + Number(data.pending_files || 0) + ' CSV pendientes'
+                : 'No hay CSV activo · ' + Number(data.pending_files || 0) + ' CSV pendientes';
+        }
+    }
+
     let running = false;
     let last = '';
     let failed = 0;
     let stopped = false;
 
     function show(data) {
-        if (!output) { return; }
         if (!data) { return; }
+        showProgress(data);
+        if (!output) { return; }
         const text = [
             'Estado: ' + (data.status || 'sin datos'),
             'Archivo: ' + (data.file || '—'),
