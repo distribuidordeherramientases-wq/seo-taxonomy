@@ -40,6 +40,8 @@ jobs:
         run: php taxocommerce-google-bing/tests/trends-hierarchy-smoke.php
       - name: Hierarchical Trends JavaScript syntax
         run: node --check taxocommerce-google-bing/assets/trends-hierarchy.js
+      - name: Trends browser automatic comparison smoke
+        run: node taxocommerce-google-bing/tests/trends-hierarchy-browser-smoke.js
       - name: Connection health status smoke test
         run: php taxocommerce-google-bing/tests/connections-status-smoke.php
       - name: Check plugin independence
