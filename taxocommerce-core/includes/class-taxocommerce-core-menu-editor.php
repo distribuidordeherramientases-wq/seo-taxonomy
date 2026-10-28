@@ -52,10 +52,11 @@ final class TaxoCommerce_Core_Menu_Editor {
         $needle = 'search' === $mode ? sanitize_text_field( $needle ) : '';
         $items = array();
         if ( in_array( $type, array( 'page', 'post' ), true ) ) {
-            $query = new WP_Query( array( 'post_type' => $type, 'post_status' => 'publish', 'has_password' => false,
+            $market_filter = 'ES' === $country ? array() : array( 'meta_query' => array( 'relation' => 'OR', array( 'key' => '_seo_pais_origen', 'value' => $country ), array( 'key' => 'dht_pilot_market', 'value' => $country ) ) );
+            $query = new WP_Query( array_merge( $market_filter, array( 'post_type' => $type, 'post_status' => 'publish', 'has_password' => false,
                 'posts_per_page' => $limit + 1, 'offset' => $offset, 's' => $needle, 'no_found_rows' => true,
                 'orderby' => 'recent' === $mode ? 'date' : 'title', 'order' => 'recent' === $mode ? 'DESC' : 'ASC',
-                'ignore_sticky_posts' => true, 'update_post_meta_cache' => false, 'update_post_term_cache' => false ) );
+                'ignore_sticky_posts' => true, 'update_post_meta_cache' => false, 'update_post_term_cache' => false ) ) );
             foreach ( $query->posts as $post ) { if ( TaxoCommerce_Core_Country::post( $post->ID ) !== $country ) { continue; } $items[] = array( 'id' => (int) $post->ID, 'title' => wp_specialchars_decode( get_the_title( $post ), ENT_QUOTES ) ); }
         } else {
             $terms = get_terms( array( 'taxonomy' => $type, 'hide_empty' => false, 'number' => $limit + 1, 'offset' => $offset,
