@@ -734,11 +734,26 @@ final class TaxoCommerce_Import_Export_Batch {
 			fseek( $handle, $offset );
 		}
 
-		$limit    = min( TaxoCommerce_IE_Load::batch_size( 'import' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 200 ) ) ) ) );
-		$measure  = TaxoCommerce_IE_Load::begin();
-		$deadline = microtime( true ) + max( 2, min( 20, (float) apply_filters( 'taxocommerce_import_export_batch_runtime_seconds', 8 ) ) );
-		$done     = 0;
-		$eof      = false;
+		// Ten times the previous row limits. Preserve a finite execution
+		// window: PHP/WooCommerce still writes each product individually.
+		$limit = min(
+			TaxoCommerce_IE_Load::batch_size( 'import' ),
+			max( 1, min( 2500, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 2000 ) ) ) )
+		);
+		$runtime = max( 3, min( 30, (float) apply_filters( 'taxocommerce_import_export_batch_runtime_seconds', 25 ) ) );
+		$php_limit = (int) ini_get( 'max_execution_time' );
+		if ( $php_limit > 0 ) {
+			$runtime = min( $runtime, max( 2, $php_limit - 8 ) );
+		}
+		$measure = TaxoCommerce_IE_Load::begin();
+		$measure['budget'] = $runtime;
+		$deadline = microtime( true ) + $runtime;
+		$done = 0;
+		$eof = false;
+		$row_save_seconds = 0.0;
+		$slowest_row_seconds = 0.0;
+		$queries_start = isset( $GLOBALS['wpdb']->num_queries )
+			? absint( $GLOBALS['wpdb']->num_queries ) : null;
 
 		while ( $done < $limit && microtime( true ) < $deadline ) {
 			if ( ! empty( $this->state()['stop_requested'] ) ) {
@@ -763,7 +778,11 @@ final class TaxoCommerce_Import_Export_Batch {
 				continue;
 			}
 
+			$row_started = microtime( true );
 			$result = call_user_func( $importers[ $type ]['import_row'], $data, array( 'file' => basename( $path ), 'type' => $type ) );
+			$row_seconds = microtime( true ) - $row_started;
+			$row_save_seconds += $row_seconds;
+			$slowest_row_seconds = max( $slowest_row_seconds, $row_seconds );
 			$state['processed_rows'] = absint( $state['processed_rows'] ?? 0 ) + 1;
 			if ( is_wp_error( $result ) ) {
 				$state['error_rows'] = absint( $state['error_rows'] ?? 0 ) + 1;
@@ -779,9 +798,20 @@ final class TaxoCommerce_Import_Export_Batch {
 
 			$state['offset'] = ftell( $handle );
 			$done++;
+			// Stop a large batch early when PHP memory is under pressure.
+			if ( 0 === $done % 10 ) {
+				$memory_percent = TaxoCommerce_IE_Load::memory_percent();
+				if ( null !== $memory_percent && $memory_percent >= 80 ) {
+					break;
+				}
+			}
 		}
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$measure['row_save_seconds'] = $row_save_seconds;
+		$measure['slowest_row_seconds'] = $slowest_row_seconds;
+		$measure['db_queries'] = null !== $queries_start && isset( $GLOBALS['wpdb']->num_queries )
+			? max( 0, absint( $GLOBALS['wpdb']->num_queries ) - $queries_start ) : 0;
 		TaxoCommerce_IE_Load::finish( 'import', $measure, $done );
 		$state['updated_at'] = current_time( 'mysql' );
 
