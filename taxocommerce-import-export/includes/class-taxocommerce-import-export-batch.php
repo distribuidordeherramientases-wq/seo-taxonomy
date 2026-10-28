@@ -152,7 +152,7 @@ final class TaxoCommerce_Import_Export_Batch {
 					<?php wp_nonce_field( 'taxocommerce_ie_batch_upload', 'taxocommerce_ie_batch_nonce' ); ?>
 					<p><input type="file" name="batch_files[]" accept=".csv,text/csv" multiple required></p>
 					<p>
-						<button class="button" name="queue_mode" value="pending"><?php esc_html_e( 'Añadir a pendientes', 'taxocommerce-import-export' ); ?></button>
+						<button class="button" name="queue_mode" value="pending"><?php esc_html_e( 'Guardar sin iniciar (pausado)', 'taxocommerce-import-export' ); ?></button>
 						<button class="button button-primary" name="queue_mode" value="start"><?php esc_html_e( 'Añadir e iniciar', 'taxocommerce-import-export' ); ?></button>
 					</p>
 					<p class="description"><?php esc_html_e( 'Máximo 20 archivos por subida. El nombre controla el orden natural: 001_..., 002_..., etc.', 'taxocommerce-import-export' ); ?></p>
