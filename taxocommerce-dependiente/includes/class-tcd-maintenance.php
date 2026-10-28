@@ -166,13 +166,14 @@ final class TCD_Maintenance {
                 + absint( $state['editorial_updated'] ?? 0 )
                 + absint( $state['faqs_updated'] ?? 0 )
                 + absint( $state['vocabulary_updated'] ?? 0 );
-            $interpreter_error = '';
+            // Customer evidence is consolidated above. The original Linguist
+            // has its own evidence-backed language course. Never rerun the
+            // discontinued product-ID exam during background maintenance.
             if ( $after_total > $before_total || $feedback_dirty ) {
-                $validation = TCD_Intelligence::build_interpreter();
-                if ( is_wp_error( $validation ) ) $interpreter_error = $validation->get_error_message();
                 delete_option( 'tcd_feedback_dirty' );
             }
-            $state['status'] = $interpreter_error ? 'warning' : 'active';
+            $interpreter_error = '';
+            $state['status'] = 'active';
             $state['last_run'] = current_time( 'mysql' );
             $state['last_cursor_gmt'] = $until_gmt;
             $state['last_cursor_local'] = $until_local;
