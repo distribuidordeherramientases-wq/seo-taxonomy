@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.6
+Stable tag: 1.1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ TaxoCommerce Insights keeps external service connections and manual data downloa
 * Google Search downloads.
 * Google Analytics downloads.
 * Bing downloads.
-* Google Trends exploration and saved snapshots.
+* Google Trends: Spanish SEO hierarchy (clusters, primary and secondary hubs) with optional manual category exploration; browser-side load manager (five speeds, pause/resume/cancel) and manual keyword search. Embeds are visual only: no numerical growth scores without authorized series access. Historical RSS snapshots remain supported.
 * Analysis restores the previous working Analista engine inside Insights, including summary, content, structure, trends, comparison and work-plan views.
 * The main technical folder remains taxocommerce-google-bing for compatibility; the displayed product name is TaxoCommerce Insights.
 
