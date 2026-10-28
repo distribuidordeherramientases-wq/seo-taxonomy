@@ -27,20 +27,28 @@ final class TaxoCommerce_Images_Background {
 		return $modes;
 	}
 
+	/**
+	 * Keep each process in its own option to avoid lost updates when two jobs
+	 * are controlled concurrently from different browser sessions.
+	 */
 	private static function all() {
-		$jobs = get_option( self::OPTION, array() );
-		return is_array( $jobs ) ? $jobs : array();
+		$jobs = array();
+		foreach ( self::modes() as $mode ) {
+			$job = self::state( $mode );
+			if ( $job ) {
+				$jobs[ $mode ] = $job;
+			}
+		}
+		return $jobs;
 	}
 
 	public static function state( $mode ) {
-		$jobs = self::all();
-		return isset( $jobs[ $mode ] ) && is_array( $jobs[ $mode ] ) ? $jobs[ $mode ] : array();
+		$job = get_option( 'taxocommerce_images_bg_' . sanitize_key( (string) $mode ), array() );
+		return is_array( $job ) ? $job : array();
 	}
 
 	private static function save( $mode, $job ) {
-		$jobs = self::all();
-		$jobs[ $mode ] = $job;
-		update_option( self::OPTION, $jobs, false );
+		update_option( 'taxocommerce_images_bg_' . sanitize_key( (string) $mode ), $job, false );
 	}
 
 	/**
