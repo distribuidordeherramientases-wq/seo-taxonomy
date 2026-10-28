@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.9
+Stable tag: 0.2.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -102,3 +102,11 @@ Current functionality includes:
 
 = 0.1.0 =
 * Initial modular pilot.
+
+== 0.2.10 ==
+* Media audit in Images > Anomalías has a dedicated five-speed adaptive load regulator, independent from assignment, labels and cleanup jobs.
+* Automatically sizes batches from 25 to 1200 attachments depending on the selected speed and observed time, request-local CPU and memory pressure; no longer fixed at 75.
+* The audit keeps its scan cursor and existing findings when the administrator changes speed. No attachments are modified or removed.
+* With the audit tab open, a sequential AJAX continuation processes the next batch immediately. Pause and resume controls apply to this browser tab; the manual Next batch action remains available.
+* Live progress shows processed images, last batch size and duration, next batch goal, throughput and PHP load. Host-wide CPU is not estimated by the PHP worker.
+* Existing per-attachment anomaly checks remain unchanged.
