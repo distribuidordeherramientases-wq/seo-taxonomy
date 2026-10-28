@@ -242,6 +242,9 @@ final class TaxoCommerce_Images_Maintenance {
 			} else {
 				$processed = max( 0, absint( $state['scanned'] ?? 0 ) - $before_scanned );
 				$sample = TaxoCommerce_Images_Load::finish( $mode, $measurement, $processed );
+				if ( 'start' === $operation && 'running' === ( $state['status'] ?? '' ) ) {
+					TaxoCommerce_Images_Background::start( $mode, get_current_user_id() );
+				}
 				$result = array(
 					'done'   => ( $state['status'] ?? '' ) === 'complete',
 					'paused' => false,
