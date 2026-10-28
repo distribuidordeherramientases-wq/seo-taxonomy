@@ -169,6 +169,8 @@ final class TaxoCommerce_Import_Export_Batch {
 						<tr><th><?php esc_html_e( 'Tipo', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['entity'] ?? '—' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Velocidad', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( TaxoCommerce_IE_Load::priority( 'import' ) . ' · ' . TaxoCommerce_IE_Load::labels()[ TaxoCommerce_IE_Load::priority( 'import' ) ] ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Último lote', 'taxocommerce-import-export' ); ?></th><td><?php $tc_ie_last = TaxoCommerce_IE_Load::last_sample( 'import' ); echo esc_html( absint( $tc_ie_last['items'] ?? 0 ) . ' filas · ' . number_format_i18n( (float) ( $tc_ie_last['elapsed'] ?? 0 ), 2 ) . ' s · siguiente lote ' . TaxoCommerce_IE_Load::batch_size( 'import' ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Objetivo actual', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( TaxoCommerce_IE_Load::batch_size( 'import' ) ) . ' filas por bloque · hasta 25 s por petición (según límite PHP)' ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Rendimiento real', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( (float) ( $tc_ie_last['rows_per_second'] ?? 0 ), 2 ) . ' filas/s · ' . number_format_i18n( (float) ( $tc_ie_last['average_row_seconds'] ?? 0 ), 2 ) . ' s/fila · ' . number_format_i18n( (float) ( $tc_ie_last['db_queries_per_row'] ?? 0 ), 1 ) . ' consultas SQL/fila' ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Filas procesadas', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['processed_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['error_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Mensaje', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['message'] ?? '' ) ); ?></td></tr>
@@ -1227,9 +1229,16 @@ Deny from all
 			'errors'  => absint( $state['error_rows'] ?? 0 ),
 			'message' => sanitize_text_field( (string) ( $state['message'] ?? '' ) ),
 			'last_batch' => absint( $sample['items'] ?? 0 ),
+			'target_batch' => absint( $sample['batch'] ?? 0 ),
 			'next_batch' => TaxoCommerce_IE_Load::batch_size( 'import' ),
 			'elapsed' => (float) ( $sample['elapsed'] ?? 0 ),
 			'rows_per_second' => (float) ( $sample['rows_per_second'] ?? 0 ),
+			'average_row_seconds' => (float) ( $sample['average_row_seconds'] ?? 0 ),
+			'row_save_seconds' => (float) ( $sample['row_save_seconds'] ?? 0 ),
+			'slowest_row_seconds' => (float) ( $sample['slowest_row_seconds'] ?? 0 ),
+			'db_queries_per_row' => (float) ( $sample['db_queries_per_row'] ?? 0 ),
+			'memory_percent' => (float) ( $sample['memory_percent'] ?? 0 ),
+			'cpu_percent' => (float) ( $sample['cpu_percent'] ?? 0 ),
 			'reason' => sanitize_text_field( (string) ( $sample['reason'] ?? '' ) ),
 		) );
 	}
