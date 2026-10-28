@@ -68,9 +68,9 @@ $tree = TaxoCommerce_Google_Bing_Trends_Hierarchy::tree();
 if ( count( $tree ) !== 3
     || $tree[0]['name'] !== 'Automoción'
     || count( $tree[0]['primaries'] ) !== 3
-    || count( $tree[0]['primaries'][0]['secondaries'] ) !== 1
-    || count( $tree[0]['primaries'][0]['secondaries'][0]['categories'] ) !== 1
-    || $tree[0]['primaries'][0]['secondaries'][0]['categories'][0]['name'] !== 'Llaves de impacto' ) {
+    || count( $tree[0]['primaries'][2]['secondaries'] ) !== 1
+    || count( $tree[0]['primaries'][2]['secondaries'][0]['categories'] ) !== 1
+    || $tree[0]['primaries'][2]['secondaries'][0]['categories'][0]['name'] !== 'Llaves de impacto' ) {
     fwrite( STDERR, 'Spanish-only hierarchy relations or market filtering failed' . PHP_EOL );
     exit( 1 );
 }
