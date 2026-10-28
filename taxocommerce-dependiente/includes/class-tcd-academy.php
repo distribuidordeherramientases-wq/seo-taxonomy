@@ -373,12 +373,18 @@ final class TCD_Academy {
         $budget=max(3,min(15,absint($budget)));
         self::trace('DEBUG','manager_callback',array('budget'=>$budget,'source'=>(string)$source));
         $worked=false;
-        do{
+        $iterations=0;
+        // Consume a bounded number of consecutive chunks while budget
+        // remains. A formerly single-tick callback left CPU idle even at 5.
+        $max_ticks=TCD_Load::priority()===5 ? 4 : (TCD_Load::priority()===4 ? 2 : 1);
+        while($iterations<$max_ticks){
             if('running'!==(string)(self::state()['status']??''))break;
+            if(get_option('tcd_learning_stop','')===(string)(self::state()['run_id']??''))break;
+            if($iterations>0 && microtime(true)-$started>=max(1,$budget-2))break;
             self::tick();
             $worked=true;
-            if((microtime(true)-$started)>=max(1,$budget-1))break;
-        }while(false);
+            ++$iterations;
+        }
         return $worked;
     }
 
