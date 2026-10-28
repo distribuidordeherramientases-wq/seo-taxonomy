@@ -38,17 +38,35 @@ final class TaxoCommerce_IE_Load {
         return $delays[ self::priority( $kind ) ];
     }
 
-    public static function batch_size( $kind ) {
-        // Start with useful blocks: speed controls batch size, not idle waits.
-        $initial = array( 1 => 3, 2 => 6, 3 => 10, 4 => 20, 5 => 35 );
-        $maximum = array( 1 => 10, 2 => 30, 3 => 75, 4 => 125, 5 => 200 );
+    /** Import speeds are 10x the former values. Exports are unchanged. */
+    const IMPORT_BATCH_PROFILE = 2;
+
+    public static function size_limits( $kind ) {
         $kind = sanitize_key( $kind );
         $priority = self::priority( $kind );
-        $last = get_option( self::SAMPLE, array() );
-        $last = is_array( $last ) ? (array) ( $last[ $kind ] ?? array() ) : array();
-        $current = isset( $last['next_batch'] ) && absint( $last['priority'] ?? 0 ) === $priority
-            ? absint( $last['next_batch'] ) : $initial[ $priority ];
-        return max( 1, min( $maximum[ $priority ], $current ) );
+        $initial = array( 1 => 3, 2 => 6, 3 => 10, 4 => 20, 5 => 35 );
+        $maximum = array( 1 => 10, 2 => 30, 3 => 75, 4 => 125, 5 => 200 );
+        $scale = 'import' === $kind ? 10 : 1;
+        return array(
+            'initial' => $initial[ $priority ] * $scale,
+            'maximum' => $maximum[ $priority ] * $scale,
+        );
+    }
+
+    public static function batch_size( $kind ) {
+        $kind = sanitize_key( $kind );
+        $priority = self::priority( $kind );
+        $limits = self::size_limits( $kind );
+        $last = self::last_sample( $kind );
+        $has_sample = isset( $last['next_batch'] ) && absint( $last['priority'] ?? 0 ) === $priority;
+        $current = $has_sample ? absint( $last['next_batch'] ) : $limits['initial'];
+        // Upgrade a live import without losing progress or retaining its
+        // obsolete 6-row window. E.g. 6 -> 60, then 60 -> 120 when fast.
+        if ( $has_sample && 'import' === $kind
+            && absint( $last['batch_profile'] ?? 1 ) < self::IMPORT_BATCH_PROFILE ) {
+            $current *= 10;
+        }
+        return max( 1, min( $limits['maximum'], $current ) );
     }
 
     public static function begin() {
@@ -78,26 +96,59 @@ final class TaxoCommerce_IE_Load {
         elseif ( 'k' === substr( $raw, -1 ) ) $limit *= 1024;
         $memory = $limit > 0 ? 100 * memory_get_peak_usage( true ) / $limit : null;
         $current = self::batch_size( $kind );
-        $maximum = array( 1 => 10, 2 => 30, 3 => 75, 4 => 125, 5 => 200 )[ $priority ];
+        $maximum = self::size_limits( $kind )['maximum'];
         $next = $current;
         $reason = 'estabilizado';
-        // getrusage() measures this PHP request, NOT global server CPU. A
-        // busy but short-running import must not shrink forever on CPU alone.
-        if ( $elapsed >= 8 || ( null !== $memory && $memory >= 75 ) ) {
-            $next = max( 1, (int) floor( $current / 2 ) );
-            $reason = 'reducido por tiempo/memoria';
-        } elseif ( $elapsed < 4 && ( null === $memory || $memory < 65 ) ) {
-            $next = min( $maximum, $current + max( 1, (int) ceil( $current / 3 ) ) );
-            $reason = 'ampliado por margen de tiempo/memoria';
+        $budget = max( 2.0, (float) ( $start['budget'] ?? ( 'import' === $kind ? 25 : 8 ) ) );
+        $items = absint( $items );
+
+        if ( 'import' === $kind ) {
+            // Five speeds change row targets, not inter-request delays.
+            // Double the target (50 -> 100 -> 200...) if the *full*
+            // requested block finished within the time/memory envelope.
+            // Never mistake high PHP process CPU for server-wide saturation.
+            if ( null !== $memory && $memory >= 80 ) {
+                $next = max( 1, (int) floor( $current / 2 ) );
+                $reason = 'reducido por memoria alta';
+            } elseif ( $elapsed >= $budget * 0.96 ) {
+                // A slow importer cannot finish every target row in one PHP
+                // request. Lower the target once; avoid unlimited cutbacks
+                // solely because the wall-clock deadline was reached.
+                $suggested = max( 1, (int) floor( $items * 0.8 ) );
+                $next = max( 1, min( $current, $suggested ) );
+                $reason = 'ajustado al tiempo por fila';
+            } elseif ( $items >= $current
+                && $elapsed < $budget * 0.90
+                && ( null === $memory || $memory < 72 ) ) {
+                $next = min( $maximum, $current * 2 );
+                $reason = $next > $current ? 'duplicado por tiempo/memoria disponibles' : 'límite de velocidad alcanzado';
+            } elseif ( $items < $current ) {
+                $reason = 'bloque parcial: sin aumentar artificialmente';
+            }
+        } else {
+            // No changes to the exporter regulator.
+            if ( $elapsed >= 8 || ( null !== $memory && $memory >= 75 ) ) {
+                $next = max( 1, (int) floor( $current / 2 ) );
+                $reason = 'reducido por tiempo/memoria';
+            } elseif ( $elapsed < 4 && ( null === $memory || $memory < 65 ) ) {
+                $next = min( $maximum, $current + max( 1, (int) ceil( $current / 3 ) ) );
+                $reason = 'ampliado por margen de tiempo/memoria';
+            }
         }
+
         $sample = array(
-            'priority' => $priority, 'items' => absint( $items ), 'batch' => $current,
+            'priority' => $priority, 'items' => $items, 'batch' => $current,
             'next_batch' => $next, 'elapsed' => round( $elapsed, 3 ),
+            'batch_profile' => 'import' === $kind ? self::IMPORT_BATCH_PROFILE : 1,
+            'budget_seconds' => round( $budget, 2 ),
             'cpu_percent' => null === $cpu_percent ? null : round( $cpu_percent, 1 ),
             'memory_percent' => null === $memory ? null : round( $memory, 1 ),
             'memory_peak' => memory_get_peak_usage( true ), 'at' => gmdate( 'c' ),
             'reason' => $reason,
-            'rows_per_second' => round( absint( $items ) / $elapsed, 2 ),
+            'rows_per_second' => round( $items / $elapsed, 2 ),
+            'average_row_seconds' => $items ? round( $elapsed / $items, 3 ) : 0,
+            'row_save_seconds' => round( (float) ( $start['row_save_seconds'] ?? 0 ), 3 ),
+            'db_queries' => absint( $start['db_queries'] ?? 0 ),
         );
         $values = get_option( self::SAMPLE, array() );
         $values = is_array( $values ) ? $values : array();
