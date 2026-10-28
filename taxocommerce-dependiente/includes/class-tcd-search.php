@@ -143,7 +143,10 @@ final class TCD_Search {
         }
 
         $results = ! empty( $decision['show_products'] ) ? array_slice( $ranked, 0, 8 ) : array();
-        $interpreter = TCD_Intelligence::interpreter_state();
+        $linguist_state = TCD_Original_Linguista::state();
+        $linguist_status = (string) ($linguist_state['status'] ?? 'stopped');
+        $interpreter = array('status'=> 'completed' === $linguist_status
+            ? 'ready' : ('error' === $linguist_status ? 'degraded' : 'building'));
         $state = TCD_Academy::state();
 
         TCD_Feedback::record_search( $q, $session, $depth, $decision, $results, $clarification );
