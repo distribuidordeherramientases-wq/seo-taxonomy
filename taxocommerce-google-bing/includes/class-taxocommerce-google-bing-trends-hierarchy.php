@@ -304,8 +304,8 @@ final class TaxoCommerce_Google_Bing_Trends_Hierarchy {
         echo '</div>';
 
         echo '<div class="tgb-h-manager">';
-        echo '<label for="tgb-h-speed"><strong>Gestor de carga · velocidad <output id="tgb-h-speed-label">2</output>/5</strong></label>';
-        echo '<input id="tgb-h-speed" type="range" min="1" max="5" value="2" step="1">';
+        echo '<label for="tgb-h-speed"><strong>Gestor de carga · velocidad <output id="tgb-h-speed-label">3</output>/5</strong></label>';
+        echo '<input id="tgb-h-speed" type="range" min="1" max="5" value="3" step="1">';
         echo '<p class="description">Los gráficos se solicitan por orden, a un ritmo controlado. Las cinco velocidades regulan las pausas entre consultas del navegador; ';
         echo 'no son una medición del porcentaje real de CPU del servidor.</p>';
         echo '<div class="tgb-h-actions">';
