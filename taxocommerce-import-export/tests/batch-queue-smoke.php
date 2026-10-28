@@ -8,7 +8,7 @@ $exporter = file_get_contents( $root . '/includes/class-taxocommerce-import-expo
 $exporter_js = file_get_contents( $root . '/assets/exporter.js' );
 
 $checks = array(
-    strpos( $main, "Version: 0.4.2" ) !== false,
+    strpos( $main, "Version: 0.4.3" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-batch.php" ) !== false,
     strpos( $main, "class-taxocommerce-ie-load.php" ) !== false,
     strpos( $batch, "TaxoCommerce_IE_Load::batch_size( 'import' )" ) !== false,
@@ -17,6 +17,10 @@ $checks = array(
     strpos( $exporter, "tc-ie-export-priority" ) !== false,
     strpos( $batch, "tc-ie-import-priority" ) !== false,
     strpos( $batch, "queue_individual" ) !== false,
+    strpos( $batch, "admin_post_taxocommerce_ie_batch_delete_pending" ) !== false,
+    strpos( $batch, "pending_file" ) !== false,
+    strpos( $batch, "tc_ie_delete_not_pending" ) !== false,
+    strpos( $batch, "handle_delete_pending" ) !== false,
     strpos( $batch, "INDIVIDUAL_STATE" ) !== false,
     strpos( $batch, "individual_status" ) !== false,
     strpos( $core, "tc-ie-individual-monitor" ) !== false,
