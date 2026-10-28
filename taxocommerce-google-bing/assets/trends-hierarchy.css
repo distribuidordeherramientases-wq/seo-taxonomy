@@ -24,3 +24,18 @@
 #tgb-h-explore:not([hidden]){margin:10px 0;display:inline-block}
 @media(max-width:960px){.tgb-h-layout{grid-template-columns:1fr}.tgb-h-tree{max-height:none}.tgb-h-counts{margin-left:0}}
 @media(max-width:782px){.tgb-hierarchy{padding:12px}.tgb-h-tree .tgb-h-primary,.tgb-h-tree .tgb-h-secondary{margin-left:6px}.tgb-h-actions .button{flex:1 1 40%}}
+
+/* Automatic comparison report: first clusters, then each cluster's primary hubs. */
+.tgb-h-comparisons{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin:20px 0}
+.tgb-h-comparisons>h3{margin:2px 0}.tgb-h-comparisons>p{margin:0 0 4px}
+.tgb-h-compare-card{border:1px solid #ccd0d4;border-radius:7px;background:#fff;padding:16px;min-width:0}
+.tgb-h-compare-card h4{font-size:17px;line-height:1.4;margin:0 0 9px}
+.tgb-h-compare-terms{font-size:13px;color:#50575e;margin:6px 0;overflow-wrap:anywhere}
+.tgb-h-compare-state{font-weight:500;margin:10px 0}
+.tgb-h-compare-chart{min-height:0;overflow:hidden}
+.tgb-h-compare-chart iframe{display:block;width:100%;max-width:100%;min-height:440px;border:0;background:#fff}
+.tgb-h-compare-link{display:inline-block;margin:5px 0 12px}
+.tgb-h-advanced{margin:24px 0;border-top:1px solid #dcdcde;padding-top:14px}
+.tgb-h-advanced>summary{cursor:pointer;padding:10px;background:#f6f7f7;border-radius:5px}
+.tgb-h-advanced .tgb-h-layout{margin-top:14px}
+@media(max-width:782px){.tgb-h-compare-card{padding:10px}.tgb-h-compare-card iframe{min-height:390px}}
