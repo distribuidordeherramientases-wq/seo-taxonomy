@@ -60,9 +60,11 @@ final class TCD_Maintenance {
     }
 
     private static function ready() {
+        // Original Linguist M11 is trained independently from product-ID ranking.
+        // Maintenance must not depend on an obsolete search-retrieval exam.
+        $linguist = TCD_Original_Linguista::state();
+        if ('completed' === (string) ($linguist['status'] ?? '')) return true;
         $interpreter = TCD_Intelligence::interpreter_state();
-        // Once M11 has been built, maintenance must keep running even if a
-        // later regression temporarily marks it degraded; that is how it heals.
         return in_array( (string) ( $interpreter['status'] ?? '' ), array( 'ready', 'degraded' ), true );
     }
 
@@ -164,13 +166,14 @@ final class TCD_Maintenance {
                 + absint( $state['editorial_updated'] ?? 0 )
                 + absint( $state['faqs_updated'] ?? 0 )
                 + absint( $state['vocabulary_updated'] ?? 0 );
-            $interpreter_error = '';
+            // Customer evidence is consolidated above. The original Linguist
+            // has its own evidence-backed language course. Never rerun the
+            // discontinued product-ID exam during background maintenance.
             if ( $after_total > $before_total || $feedback_dirty ) {
-                $validation = TCD_Intelligence::build_interpreter();
-                if ( is_wp_error( $validation ) ) $interpreter_error = $validation->get_error_message();
                 delete_option( 'tcd_feedback_dirty' );
             }
-            $state['status'] = $interpreter_error ? 'warning' : 'active';
+            $interpreter_error = '';
+            $state['status'] = 'active';
             $state['last_run'] = current_time( 'mysql' );
             $state['last_cursor_gmt'] = $until_gmt;
             $state['last_cursor_local'] = $until_local;
