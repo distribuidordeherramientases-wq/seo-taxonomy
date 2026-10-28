@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.30
+Stable tag: 0.4.31
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,6 +48,13 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.31 =
+* Adds a market-country selector to Core content editors for posts, pages, products and WooCommerce categories, preserving existing country metadata.
+* Adds optional country_code to seo_relations and country-filtered hierarchy editing without overwriting legacy links.
+* Provides independent managed menus per country and a front-end selector for TaxoCommerce-managed theme menu locations.
+* The original Spanish menu and relationships remain valid; international categories are never blanket-labelled Spanish.
+
 
 = 0.4.30 =
 * Move Extensions from the Core submenu into responsive cards at the bottom of the Core home screen.
