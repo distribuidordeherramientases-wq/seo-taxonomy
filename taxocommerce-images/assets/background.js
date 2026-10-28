@@ -61,7 +61,7 @@
         panel.querySelectorAll('[data-tci-bg-control]').forEach(function (button) {
             var op = button.getAttribute('data-tci-bg-control');
             button.disabled = op === 'pause' ? status !== 'running'
-                : op === 'resume' ? status !== 'paused' && status !== 'error'
+                : op === 'resume' ? status !== 'paused' && status !== 'error' && !(status === 'not-started' && !['optimize', 'webp'].includes(panel.getAttribute('data-tci-bg-mode')))
                 : status !== 'running' && status !== 'paused';
         });
         if (panel.getAttribute('data-tci-bg-mode') === 'audit') {
