@@ -47,6 +47,7 @@ final class TCD_Admin {
         echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px">';
         echo '<a class="nav-tab '.esc_attr('overview'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('overview')).'">Dependiente</a>';
         echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
+        echo '<a class="nav-tab '.esc_attr('interpreter'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('interpreter')).'">Intérprete / Lingüista</a>';
         echo '<a class="nav-tab '.esc_attr('backup'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('backup')).'">Backup / Restaurar</a>';
         echo '<a class="nav-tab '.esc_attr('learning-log'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('learning-log')).'">Log de aprendizaje</a>';
         echo '</nav>';
@@ -231,15 +232,45 @@ final class TCD_Admin {
         echo '</div>';
     }
 
+    private static function render_interpreter() {
+        $state=TCD_Original_Linguista::state();
+        $stats=TCD_Original_Interprete_DB::stats();
+        $progress=TCD_Original_Linguista::course_progress();
+        $status=(string)($state['status']??'stopped');
+        echo '<h2>Intérprete original v1.2.0 · formación lingüística</h2>';
+        echo '<p>Motor original: gramática, verbos, erratas, variantes, sinónimos, contexto, ambigüedad y evidencia validada. El Intérprete no busca productos ni pregunta: entrega una petición clara al Dependiente.</p>';
+        echo '<p><strong>Estado:</strong> '.esc_html($status).' · <strong>Progreso:</strong> '.esc_html((string)$progress).'%';
+        echo ' · <strong>Memoria activa:</strong> '.esc_html(number_format_i18n(absint($stats['active']??0)));
+        echo ' · <strong>Evidencias:</strong> '.esc_html(number_format_i18n(absint($stats['evidence']??0))).'</p>';
+        echo '<progress max="100" value="'.esc_attr((string)$progress).'" style="width:min(100%,700px);height:22px"></progress>';
+        echo '<p>'.esc_html((string)($state['last_message']??'')).'</p>';
+        if(!empty($state['last_error']))echo '<div class="notice notice-error"><p>'.esc_html((string)$state['last_error']).'</p></div>';
+        echo '<p>Formación única con las fases internas y las reglas reales del Lingüista original. Trabajo por lotes en segundo plano, con avance y memoria persistente.</p>';
+        foreach(array('start'=>'Iniciar / reanudar','pause'=>'Pausar','stop'=>'Detener','restart_course'=>'Reentrenar sin borrar memoria') as $cmd=>$label){
+            echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="display:inline-block;margin:0 8px 10px 0">';
+            wp_nonce_field('tcd_original_linguista_control');
+            echo '<input type="hidden" name="action" value="tcd_original_linguista_control">';
+            echo '<input type="hidden" name="command" value="'.esc_attr($cmd).'">';
+            echo '<button class="button '.esc_attr('start'===$cmd?'button-primary':'').'" type="submit">'.esc_html($label).'</button></form>';
+        }
+        echo '<p><a class="button" href="'.esc_url(TCD_Original_Linguista::export_url('course')).'">Exportar evolución y evidencias JSON</a></p>';
+        echo '<p><strong>M11:</strong> forma y comprueba comprensión lingüística; no suspende por no encontrar un ID de producto que el comprador nunca especificó.</p>';
+    }
+
     public static function render(){
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
-        if(!in_array($tab,array('overview','knowledge','backup','learning-log'),true))$tab='overview';
+        if(!in_array($tab,array('overview','interpreter','knowledge','backup','learning-log'),true))$tab='overview';
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         self::tabs($tab);
 
+        if('interpreter'===$tab){
+            self::render_interpreter();
+            echo '</div>';
+            return;
+        }
         if('knowledge'===$tab){
             TCD_Knowledge_Transfer::render_admin_section();
             echo '</div>';
