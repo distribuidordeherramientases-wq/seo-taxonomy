@@ -43,7 +43,7 @@
             list.textContent = tcMenuEditor.loading;
             list.setAttribute('aria-busy', 'true'); pager.hidden = true;
             var params = new URLSearchParams({action: tcMenuEditor.action, nonce: tcMenuEditor.nonce,
-                type: form.dataset.type, mode: mode, list_page: String(page), needle: search.querySelector('input').value});
+                type: form.dataset.type, tc_country: tcMenuEditor.country, mode: mode, list_page: String(page), needle: search.querySelector('input').value});
             fetch(tcMenuEditor.url, {method: 'POST', credentials: 'same-origin',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}, body: params.toString(), signal: controller.signal})
                 .then(function (response) { if (!response.ok) { throw new Error('HTTP'); } return response.json(); })
