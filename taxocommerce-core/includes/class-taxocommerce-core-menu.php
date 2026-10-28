@@ -49,6 +49,30 @@ final class TaxoCommerce_Core_Menu {
 		$this->logger = $logger;
 	}
 
+	/** Select only a TaxoCommerce-managed menu for the current front-end market. */
+    public function route_country_menu( $args ) {
+        if ( is_admin() || ! is_array( $args ) ) { return $args; }
+        $location = isset( $args['theme_location'] ) ? (string) $args['theme_location'] : '';
+        if ( ! $location ) { return $args; }
+        $registered = get_theme_mod( 'nav_menu_locations', array() );
+        $assigned = absint( is_array( $registered ) ? ( $registered[ $location ] ?? 0 ) : 0 );
+        if ( ! $assigned ) { return $args; }
+        $managed = array();
+        foreach ( array_keys( TaxoCommerce_Core_Country::countries() ) as $market ) {
+            $id = $this->get_menu_id( $market );
+            if ( $id ) { $managed[ $market ] = $id; }
+        }
+        if ( ! in_array( $assigned, $managed, true ) ) { return $args; }
+        $country = 'ES';
+        if ( is_singular( array( 'page', 'post', 'product' ) ) ) {
+            $country = TaxoCommerce_Core_Country::post( get_queried_object_id() );
+        } elseif ( is_tax( 'product_cat' ) ) {
+            $country = TaxoCommerce_Core_Country::term( get_queried_object_id() );
+        }
+        $args['menu'] = $managed[ $country ] ?? $assigned;
+        return $args;
+    }
+
 	/**
 	 * Register write actions.
 	 *
@@ -59,6 +83,7 @@ final class TaxoCommerce_Core_Menu {
 		add_action( 'admin_post_taxocommerce_core_activate_menu', array( $this, 'handle_activate_menu' ) );
 		add_action( 'admin_post_taxocommerce_core_restore_menu', array( $this, 'handle_restore_menu' ) );
 		TaxoCommerce_Core_Menu_Editor::register_hooks();
+        add_filter( 'wp_nav_menu_args', array( $this, 'route_country_menu' ), 20 );
 	}
 
 	/**
