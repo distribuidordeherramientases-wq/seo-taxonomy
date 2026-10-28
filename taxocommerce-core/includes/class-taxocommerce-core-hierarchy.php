@@ -62,8 +62,9 @@ final class TaxoCommerce_Core_Hierarchy {
 		$nodes_exists = $nodes === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $nodes ) ) );
 		if ( ! TaxoCommerce_Core_Hierarchy_Classic::available() || ! $nodes_exists ) {
 			TaxoCommerce_Core_Hierarchy_Classic::install();
-            TaxoCommerce_Core_Hierarchy_Classic::ensure_country_schema();
 		}
+		// Existing installations also need the country migration, even when both tables already exist.
+		TaxoCommerce_Core_Hierarchy_Classic::ensure_country_schema();
 	}
 
 	/**
