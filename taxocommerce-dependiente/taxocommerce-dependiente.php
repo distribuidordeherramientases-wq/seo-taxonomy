@@ -45,7 +45,36 @@ add_action( 'plugins_loaded', static function () {
     TCD_Intelligence::boot();
     TCD_Maintenance::boot();
     TCD_Backup::boot();
+    // Plugin updates do not trigger WordPress activation hooks. The lexicon
+    // tables must also be available when upgrading an existing installation.
+    if (
+        (string) get_option(TCD_Original_Interprete_DB::SCHEMA_OPTION, '') !== TCD_Original_Interprete_DB::SCHEMA_VERSION
+        || !TCD_Original_Interprete_DB::table_exists()
+        || !TCD_Original_Interprete_DB::evidence_table_exists()
+    ) {
+        TCD_Original_Interprete_DB::install();
+    }
     TCD_Original_Linguista::init();
+
+    // One-time recovery from the previous invented 180-ID M11 regression.
+    // Do not reset Academy progress, knowledge, snapshots or any linguistic data.
+    if (!get_option('tcd_original_interpreter_m11_recovered_0316', false)) {
+        $academy = TCD_Academy::state();
+        if (
+            11 === absint($academy['lesson'] ?? 0)
+            && 'error' === (string) ($academy['status'] ?? '')
+            && (false !== stripos((string) ($academy['last_error'] ?? ''), 'regresi')
+                || false !== stripos((string) ($academy['last_error'] ?? ''), 'Intérprete'))
+        ) {
+            TCD_Academy::save(array(
+                'status'=>'running',
+                'last_error'=>'',
+                'last_message'=>'Recuperando M11: formación del Intérprete original, sin reiniciar L1–L10.',
+            ));
+            wp_schedule_single_event(time()+5, TCD_Academy::CRON_HOOK);
+        }
+        update_option('tcd_original_interpreter_m11_recovered_0316', 1, false);
+    }
     TCD_Search::boot();
     TCD_Admin::boot();
 }, 30 );
