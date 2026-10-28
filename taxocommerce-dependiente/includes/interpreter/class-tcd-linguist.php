@@ -341,6 +341,19 @@ final class TCD_Original_Linguista {
         update_option(self::STATE_OPTION, $state, false);
         self::notify_supervisor('resumed', 'Formación Lingüista reanudada; continuará desde el cursor guardado.');
         self::nudge_supervisor(0);
+        // If Academy M11 was marked error while the user paused/stopped
+        // Linguist, resume Academy's progress watcher too; never reset L1-L10.
+        if (class_exists('TCD_Academy', false)) {
+            $academy = TCD_Academy::state();
+            if (11 === absint($academy['lesson'] ?? 0)
+                && 'error' === (string) ($academy['status'] ?? '')) {
+                TCD_Academy::save(array('status'=>'running','last_error'=>'',
+                    'last_message'=>'M11 · Lingüista reanudado; manteniendo el aprendizaje anterior.'));
+                if (!wp_next_scheduled(TCD_Academy::CRON_HOOK)) {
+                    wp_schedule_single_event(time()+5, TCD_Academy::CRON_HOOK);
+                }
+            }
+        }
         return array('resumed' => true, 'message' => 'Lingüista reanudado.');
     }
 
