@@ -165,7 +165,7 @@ $checks=array(
     strpos($maintenance,'refresh_recent_faqs')!==false,
     strpos($maintenance,'refresh_recent_assignments')!==false,
     strpos($maintenance,'seo_object_vocabulary')!==false,
-    strpos($maintenance,'TCD_Intelligence::build_interpreter')!==false,
+    strpos($maintenance,'TCD_Original_Linguista::state')!==false,
     strpos($maintenance,'TCD_Feedback::consolidate')!==false,
     strpos($maintenance,"get_option( 'tcd_feedback_dirty'")!==false,
     strpos($feedback,'CREATE TABLE {$events}')!==false,
