@@ -430,46 +430,46 @@ final class TCD_Academy {
     private static function run_one($state){
         $lesson=absint($state['lesson']);
         if(11===$lesson){
-            // Original Linguist learning (nine original internal phases).
-            // The old 180-question product-ID regression is not a test of
-            // language comprehension, so it must not block M12.
+            // L11 runs the original linguistic curriculum under the Academy
+            // scheduler and the same five-level CPU load policy as L1-L10.
             try {
-                $ling = TCD_Original_Linguista::state();
-                $status = (string) ($ling['status'] ?? 'stopped');
-                if ('completed' === $status) {
-                    self::save(array(
-                        'lesson'=>12, 'phase'=>'maintenance', 'status'=>'running',
-                        'last_error'=>'',
-                        'last_message'=>'M11 · Lingüista original completado. Activando mantenimiento.'
-                    ));
-                    self::log('original_linguist_completed',array(
-                        'progress'=>TCD_Original_Linguista::course_progress(),
-                        'learned'=>absint($ling['learned_total']??0),
-                        'rejected'=>absint($ling['rejected_total']??0)
-                    ));
+                $ling=TCD_Original_Linguista::state();
+                $status=(string)($ling['status']??'stopped');
+                if('completed'===$status){
+                    self::save(array('lesson'=>12,'phase'=>'maintenance','status'=>'running',
+                        'last_error'=>'','last_message'=>'L11 · Formación lingüística completada.'));
+                    self::log('l11_completed',array('progress'=>100));
                     self::queue();
                     return;
                 }
-                if ('error' === $status) {
-                    self::save(array('status'=>'error','last_error'=>(string)($ling['last_error']??'Lingüista detenido'),'last_message'=>'M11 · Error en formación lingüística original.'));
+                if('error'===$status){
+                    self::save(array('status'=>'error','last_error'=>(string)($ling['last_error']??'Error lingüístico'),
+                        'last_message'=>'L11 · Formación lingüística detenida por error.'));
                     return;
                 }
-                if ('stopped' === $status && empty($ling['run_id']) && empty($ling['lesson_results'])) {
-                    $started = TCD_Original_Linguista::process_control_start();
-                    if (is_wp_error($started)) throw new RuntimeException($started->get_error_message());
-                    $ling = TCD_Original_Linguista::state();
+                if('stopped'===$status && empty($ling['run_id']) && empty($ling['lesson_results'])){
+                    $started=TCD_Original_Linguista::process_control_start();
+                    if(is_wp_error($started))throw new RuntimeException($started->get_error_message());
+                    $ling=TCD_Original_Linguista::state();
+                    $status=(string)($ling['status']??'stopped');
                 }
-                if ('running' === (string)($ling['status']??'') && TCD_Original_Linguista::is_pending()) {
-                    self::save(array('status'=>'running','last_error'=>'',
-                        'last_message'=>sprintf('M11 · formación del Intérprete original: %d%% · %d aprendidas · %d rechazadas.',
-                            TCD_Original_Linguista::course_progress(), absint($ling['learned_total']??0),absint($ling['rejected_total']??0))
-                    ));
-                    self::queue(20);
+                if('running'===$status && TCD_Original_Linguista::is_pending()){
+                    $measure=TCD_Load::begin();
+                    $runtime=max(5,min(20,(int)(TCD_Load::priority()*3)));
+                    TCD_Original_Linguista::process_manager_slice($runtime,'dependiente_l11');
+                    $after=TCD_Original_Linguista::state();
+                    $processed=max(0,absint($after['processed_total']??0)-absint($ling['processed_total']??0));
+                    $load=TCD_Load::finish($measure,$processed);
+                    self::save(array('load_last'=>$load,'status'=>'running','last_error'=>'',
+                        'last_message'=>sprintf('L11 · Comprensión lingüística: %d%% · %d aprendidas · %d rechazadas.',
+                            TCD_Original_Linguista::course_progress(),absint($after['learned_total']??0),absint($after['rejected_total']??0))));
+                    self::queue(TCD_Load::delay());
                     return;
                 }
-                self::save(array('status'=>'error','last_error'=>'La formación del Intérprete está pausada o detenida. Reanudar en Intérprete.','last_message'=>'M11 · Formación Lingüista pendiente de reanudación.'));
-            } catch (Throwable $e) {
-                self::save(array('status'=>'error','last_error'=>substr($e->getMessage(),0,400),'last_message'=>'M11 · No se pudo iniciar el Intérprete original.'));
+                self::save(array('status'=>'paused','last_message'=>'L11 · Formación lingüística pausada.'));
+            }catch(Throwable $e){
+                self::save(array('status'=>'error','last_error'=>substr($e->getMessage(),0,400),
+                    'last_message'=>'L11 · Error durante la formación lingüística.'));
             }
             return;
         }

@@ -642,6 +642,12 @@ final class TCD_Original_Linguista {
     }
 
     private static function nudge_supervisor($delay = 0) {
+        if (class_exists('TCD_Academy')) {
+            $academy = TCD_Academy::state();
+            if (11 === absint($academy['lesson'] ?? 0) && 'running' === (string)($academy['status'] ?? '')) {
+                return;
+            }
+        }
         if (!self::is_pending()) return;
         $timestamp = time() + max(1, absint($delay));
         $next = wp_next_scheduled('tcd_original_linguista_worker');
@@ -652,6 +658,13 @@ final class TCD_Original_Linguista {
     }
 
     public static function cron_batch() {
+        // Academy owns the L11 worker; avoid two concurrent schedulers.
+        if (class_exists('TCD_Academy')) {
+            $academy = TCD_Academy::state();
+            if (11 === absint($academy['lesson'] ?? 0) && 'running' === (string)($academy['status'] ?? '')) {
+                return;
+            }
+        }
         if (!self::is_pending()) return;
         $lock = 'tcd_original_linguista_worker_lock';
         if (!add_option($lock, time(), '', false)) {

@@ -47,7 +47,6 @@ final class TCD_Admin {
         echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px">';
         echo '<a class="nav-tab '.esc_attr('overview'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('overview')).'">Dependiente</a>';
         echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
-        echo '<a class="nav-tab '.esc_attr('interpreter'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('interpreter')).'">Intérprete / Lingüista</a>';
         echo '<a class="nav-tab '.esc_attr('backup'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('backup')).'">Backup / Restaurar</a>';
         echo '<a class="nav-tab '.esc_attr('learning-log'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('learning-log')).'">Log de aprendizaje</a>';
         echo '</nav>';
@@ -261,16 +260,11 @@ final class TCD_Admin {
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
-        if(!in_array($tab,array('overview','interpreter','knowledge','backup','learning-log'),true))$tab='overview';
+        if(!in_array($tab,array('overview','knowledge','backup','learning-log'),true))$tab='overview';
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         self::tabs($tab);
 
-        if('interpreter'===$tab){
-            self::render_interpreter();
-            echo '</div>';
-            return;
-        }
         if('knowledge'===$tab){
             TCD_Knowledge_Transfer::render_admin_section();
             echo '</div>';
@@ -474,8 +468,14 @@ final class TCD_Admin {
         echo esc_html((string)TCD_Original_Linguista::course_progress()).'% curso lingüístico · ';
         echo esc_html(number_format_i18n(absint($lexicon['active']??0))).' expresiones activas · ';
         echo esc_html(number_format_i18n(absint($lexicon['evidence']??0))).' evidencias';
-        echo '<p><a class="button button-small" href="'.esc_url(self::tab_url('interpreter')).'">Abrir Intérprete y formación</a></p>';
         echo '<p class="description">El examen antiguo de 180 IDs era una prueba de búsqueda, no de interpretación lingüística, y ya no bloquea el curso.</p></td></tr>';
+        echo '<tr><td colspan="3"><details><summary><strong>L11 · Fases de comprensión lingüística y evolución</strong></summary>';
+        echo '<p>Formación lingüística dentro de Dependiente. Prioridad de CPU compartida con L1–L10.</p>';
+        echo '<table class="widefat striped"><thead><tr><th>Fase</th><th>Estado</th><th>Progreso</th><th>Aprendidas</th><th>Rechazadas</th></tr></thead><tbody>';
+        foreach(TCD_Original_Linguista::lesson_statuses() as $phase){
+            echo '<tr><td>'.esc_html((string)($phase['title']??$phase['key']??'')).'</td><td>'.esc_html((string)($phase['status']??'')).'</td><td>'.esc_html((string)absint($phase['progress']??0)).'%</td><td>'.esc_html(number_format_i18n(absint($phase['learned']??0))).'</td><td>'.esc_html(number_format_i18n(absint($phase['rejected']??0))).'</td></tr>';
+        }
+        echo '</tbody></table><p><a class="button" href="'.esc_url(TCD_Original_Linguista::export_url('course')).'">Exportar evolución lingüística JSON</a></p></details></td></tr>';
         echo '<tr><td><strong>M12 · Actualización continua</strong></td><td>'.esc_html((string)($maintenance['status']??'Pendiente')).'</td><td>';
         echo 'Productos actualizados: '.esc_html(number_format_i18n(absint($maintenance['products_updated']??0))).' · ';
         echo 'categorías: '.esc_html(number_format_i18n(absint($maintenance['categories_updated']??0))).' · ';
