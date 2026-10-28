@@ -195,7 +195,8 @@ final class TaxoCommerce_Import_Export_Batch {
 					<button class="button" name="queue_action" value="stop"><?php esc_html_e( 'Detener importación actual', 'taxocommerce-import-export' ); ?></button>
 					<button class="button" name="queue_action" value="tick"><?php esc_html_e( 'Procesar siguiente bloque', 'taxocommerce-import-export' ); ?></button>
 				</form>
-				<p class="description"><?php esc_html_e( 'La cola tiene su propio worker. No depende del antiguo gestor central de procesos. Detener no revierte filas ya aplicadas; al continuar reanuda desde el último offset guardado.', 'taxocommerce-import-export' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Cada bloque lanza inmediatamente el siguiente; Action Scheduler y WP-Cron son solo respaldo. La velocidad regula el tamaño de lote en función de tiempo y memoria, sin esperas entre bloques. Detener conserva el offset.', 'taxocommerce-import-export' ); ?></p>
+				<p id="tc-ie-batch-live" role="status" aria-live="polite" class="notice notice-info inline" style="padding:9px;margin-top:10px;">Consultando ejecución continua…</p>
 			</div>
 		</div>
 
