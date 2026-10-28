@@ -267,8 +267,8 @@ final class TaxoCommerce_Images_Audit {
 			// Stop before the hard PHP timeout or when this request's memory
 			// grows too high. The next call continues from the saved ID.
 			$memory = TaxoCommerce_Images_Load::memory_percent();
-			if ( microtime( true ) >= $deadline
-				|| ( null !== $memory && $memory >= 80 ) ) {
+			if ( $processed > 0 && ( microtime( true ) >= $deadline
+				|| ( null !== $memory && $memory >= 80 ) ) ) {
 				$all_ids_processed = false;
 				break;
 			}
