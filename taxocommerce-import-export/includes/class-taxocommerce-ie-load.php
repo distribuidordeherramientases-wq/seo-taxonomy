@@ -179,7 +179,9 @@ final class TaxoCommerce_IE_Load {
             'rows_per_second' => round( $items / $elapsed, 2 ),
             'average_row_seconds' => $items ? round( $elapsed / $items, 3 ) : 0,
             'row_save_seconds' => round( (float) ( $start['row_save_seconds'] ?? 0 ), 3 ),
+            'slowest_row_seconds' => round( (float) ( $start['slowest_row_seconds'] ?? 0 ), 3 ),
             'db_queries' => absint( $start['db_queries'] ?? 0 ),
+            'db_queries_per_row' => $items ? round( absint( $start['db_queries'] ?? 0 ) / $items, 2 ) : 0,
         );
         $values = get_option( self::SAMPLE, array() );
         $values = is_array( $values ) ? $values : array();
