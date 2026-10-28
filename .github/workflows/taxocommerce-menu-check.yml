@@ -5,6 +5,9 @@ on:
       - 'taxocommerce-core/includes/class-taxocommerce-core-menu*.php'
       - 'taxocommerce-core/assets/menu-editor.*'
       - 'taxocommerce-core/tests/menu-editor-smoke.php'
+      - 'taxocommerce-core/tests/country-scope-smoke.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-hierarchy*.php'
       - '.github/workflows/taxocommerce-menu-check.yml'
   push:
     branches: [staging]
@@ -12,6 +15,9 @@ on:
       - 'taxocommerce-core/includes/class-taxocommerce-core-menu*.php'
       - 'taxocommerce-core/assets/menu-editor.*'
       - 'taxocommerce-core/tests/menu-editor-smoke.php'
+      - 'taxocommerce-core/tests/country-scope-smoke.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-hierarchy*.php'
       - '.github/workflows/taxocommerce-menu-check.yml'
   workflow_dispatch:
 permissions:
@@ -32,5 +38,7 @@ jobs:
         run: find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Menu behavior and callback regression
         run: php taxocommerce-core/tests/menu-editor-smoke.php
+      - name: Country scoping and legacy compatibility
+        run: php taxocommerce-core/tests/country-scope-smoke.php
       - name: JavaScript syntax
         run: node --check taxocommerce-core/assets/menu-editor.js
