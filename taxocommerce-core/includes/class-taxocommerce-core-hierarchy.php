@@ -359,8 +359,15 @@ final class TaxoCommerce_Core_Hierarchy {
 
 		$page_id = isset( $_POST['page_id'] ) ? absint( $_POST['page_id'] ) : 0;
 		$role    = isset( $_POST['seo_role'] ) ? sanitize_key( wp_unslash( $_POST['seo_role'] ) ) : '';
-		$result  = $this->set_page_role( $page_id, $role );
-
+		$country = TaxoCommerce_Core_Country::read_posted( 'tc_country' );
+        if ( is_wp_error( $country ) ) { $this->redirect_with_result( $country, 'role' ); }
+        if ( is_string( $country ) && $country !== TaxoCommerce_Core_Country::post( $page_id ) && $this->page_has_hierarchy_links( $page_id ) ) {
+            $this->redirect_with_result( new WP_Error( 'tc_country_linked_page', 'Desvincula primero esta página de la jerarquía para cambiar su país.' ), 'role' );
+        }
+        $result = $this->set_page_role( $page_id, $role );
+        if ( ! is_wp_error( $result ) && is_string( $country ) ) {
+            $result = TaxoCommerce_Core_Country::set_post( $page_id, $country );
+        }
 		$this->redirect_with_result( $result, 'role' );
 	}
 
@@ -445,7 +452,14 @@ final class TaxoCommerce_Core_Hierarchy {
 			$args['post__in'] = $role_pages ? array_map( static function( $page ) { return absint( $page->ID ); }, $role_pages ) : array( 0 );
 		}
 
-		$query = new WP_Query( $args );
+		$country = $this->country_request();
+        if ( 'ES' !== $country ) {
+            $args['meta_query'] = array( 'relation' => 'OR',
+                array( 'key' => '_seo_pais_origen', 'value' => $country ),
+                array( 'key' => 'dht_pilot_market', 'value' => $country ),
+            );
+        }
+        $query = new WP_Query( $args );
 		?>
 		<form class="tc-hierarchy-roles-filter" method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 			<input type="hidden" name="page" value="taxocommerce-core-hierarchy">
@@ -464,7 +478,7 @@ final class TaxoCommerce_Core_Hierarchy {
 			<thead><tr><th><?php echo esc_html__( 'Página', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th>País</th><th><?php echo esc_html__( 'Rol SEO', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acción', 'taxocommerce-core' ); ?></th></tr></thead>
 			<tbody>
 			<?php if ( empty( $query->posts ) ) : ?>
-				<tr><td colspan="4"><?php echo esc_html__( 'No se han encontrado páginas.', 'taxocommerce-core' ); ?></td></tr>
+				<tr><td colspan="5"><?php echo esc_html__( 'No se han encontrado páginas.', 'taxocommerce-core' ); ?></td></tr>
 			<?php else : ?>
 				<?php foreach ( $query->posts as $page ) : ?>
 					<?php $current = $this->get_page_role( $page->ID ); ?>
@@ -482,7 +496,9 @@ final class TaxoCommerce_Core_Hierarchy {
 										<option value="<?php echo esc_attr( $role ); ?>" <?php selected( $current, $role ); ?>><?php echo esc_html( $label ); ?></option>
 									<?php endforeach; ?>
 								</select>
-								<button class="button button-small"><?php echo esc_html__( 'Guardar', 'taxocommerce-core' ); ?></button>
+								<label class="screen-reader-text" for="tc-role-country-<?php echo absint( $page->ID ); ?>">País</label>
+                                <select name="tc_country" id="tc-role-country-<?php echo absint( $page->ID ); ?>"><?php TaxoCommerce_Core_Country::options( TaxoCommerce_Core_Country::post( $page->ID ) ); ?></select>
+                                <button class="button button-small"><?php echo esc_html__( 'Guardar', 'taxocommerce-core' ); ?></button>
 							</form>
 						</td>
 						<td><a href="<?php echo esc_url( get_edit_post_link( $page->ID, '' ) ); ?>"><?php echo esc_html__( 'Editar página', 'taxocommerce-core' ); ?></a></td>
