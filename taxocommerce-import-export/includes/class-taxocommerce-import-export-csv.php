@@ -14,6 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class TaxoCommerce_Import_Export_CSV {
 
+	/** Per-product timings measured during the latest import_row_for_batch call. */
+	private $last_product_profile = array();
+
+	public function last_product_profile() {
+		return $this->last_product_profile;
+	}
+
 	/**
 	 * Export request.
 	 *
@@ -129,8 +136,10 @@ final class TaxoCommerce_Import_Export_CSV {
 				update_term_meta( $id, '_seo_pais_origen', $country );
 			}
 		} elseif ( '' === $country ) {
-			delete_post_meta( $id, '_seo_pais_origen' );
-		} else {
+			if ( metadata_exists( 'post', $id, '_seo_pais_origen' ) ) {
+				delete_post_meta( $id, '_seo_pais_origen' );
+			}
+		} elseif ( (string) get_post_meta( $id, '_seo_pais_origen', true ) !== $country ) {
 			update_post_meta( $id, '_seo_pais_origen', $country );
 		}
 	}
@@ -712,6 +721,9 @@ final class TaxoCommerce_Import_Export_CSV {
 	 * @return true|WP_Error
 	 */
 	private function import_product( $data ) {
+		$this->last_product_profile = array();
+		$profile_start = microtime( true );
+		$query_start = isset( $GLOBALS['wpdb']->num_queries ) ? absint( $GLOBALS['wpdb']->num_queries ) : 0;
 		$id           = absint( isset( $data['id'] ) ? $data['id'] : 0 );
 		$has_sku      = array_key_exists( 'sku', $data );
 		$sku          = $has_sku ? sanitize_text_field( (string) $data['sku'] ) : '';
@@ -739,6 +751,10 @@ final class TaxoCommerce_Import_Export_CSV {
 				__( 'El CSV parcial sólo puede actualizar productos existentes; no se encontró el producto indicado.', 'taxocommerce-import-export' )
 			);
 		}
+
+		$lookup_seconds = microtime( true ) - $profile_start;
+		$lookup_queries = isset( $GLOBALS['wpdb']->num_queries )
+			? max( 0, absint( $GLOBALS['wpdb']->num_queries ) - $query_start ) : 0;
 
 		if ( ! $product ) {
 			if ( 'external' === $product_type ) {
@@ -824,16 +840,38 @@ final class TaxoCommerce_Import_Export_CSV {
 				}
 			}
 
-			$product_id = absint( $product->save() );
+			// WooCommerce saves can trigger dozens of hooks and queries even
+			// when all imported properties already match. Preserve the full
+			// save path for new products and any actual property changes.
+			$existing_id = absint( $product->get_id() );
+			$skip_save = $existing_id > 0 && ! $product->get_changes();
+			$save_started = microtime( true );
+			$save_queries = isset( $GLOBALS['wpdb']->num_queries ) ? absint( $GLOBALS['wpdb']->num_queries ) : 0;
+			$product_id = $skip_save ? $existing_id : absint( $product->save() );
+			$save_seconds = microtime( true ) - $save_started;
+			$save_sql = isset( $GLOBALS['wpdb']->num_queries )
+				? max( 0, absint( $GLOBALS['wpdb']->num_queries ) - $save_queries ) : 0;
 			if ( ! $product_id ) {
 				return new WP_Error( 'taxocommerce_ie_product_save_id', __( 'WooCommerce no devolvió un ID al guardar el producto.', 'taxocommerce-import-export' ) );
 			}
 
+			$meta_started = microtime( true );
+			$meta_queries = isset( $GLOBALS['wpdb']->num_queries ) ? absint( $GLOBALS['wpdb']->num_queries ) : 0;
 			$this->save_country( $product_id, $country );
-            $brand_provider = $this->apply_brand_provider_fields( $product_id, $data );
+			$brand_provider = $this->apply_brand_provider_fields( $product_id, $data );
 			if ( is_wp_error( $brand_provider ) ) {
 				return $brand_provider;
 			}
+			$this->last_product_profile = array(
+				'lookup_seconds' => $lookup_seconds,
+				'lookup_sql' => $lookup_queries,
+				'save_seconds' => $save_seconds,
+				'save_sql' => $save_sql,
+				'meta_seconds' => microtime( true ) - $meta_started,
+				'meta_sql' => isset( $GLOBALS['wpdb']->num_queries ) ? max( 0, absint( $GLOBALS['wpdb']->num_queries ) - $meta_queries ) : 0,
+				'skipped_unchanged_save' => $skip_save ? 1 : 0,
+				'saved' => $skip_save ? 0 : 1,
+			);
 		} catch ( Exception $exception ) {
 			return new WP_Error( 'taxocommerce_ie_product_save', sanitize_text_field( $exception->getMessage() ) );
 		}
@@ -930,7 +968,7 @@ final class TaxoCommerce_Import_Export_CSV {
 				continue;
 			}
 			$value = sanitize_text_field( (string) $data[ $field ] );
-			if ( '' !== $value ) {
+			if ( '' !== $value && (string) get_post_meta( $product_id, $meta_key, true ) !== $value ) {
 				update_post_meta( $product_id, $meta_key, $value );
 			}
 		}
