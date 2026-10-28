@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.32
+Stable tag: 0.4.33
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,6 +48,13 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.33 =
+* Ensure each country creates, saves and edits a dedicated native WordPress menu with a distinct country-specific name.
+* Prevent stale country options from reusing and overwriting another market's menu ID; restore the correct market association by native menu name.
+* Rename legacy Spanish TaxoCommerce menu in place when synchronised, preserving its menu ID and content.
+* Show the selected native menu name in the editor and add regression coverage for cross-country menu ID collisions.
+
 
 = 0.4.32 =
 * Fix existing SEO hierarchy tables that missed the country_code migration: both seo_nodes and seo_relations are checked, without deleting or replacing existing records.
