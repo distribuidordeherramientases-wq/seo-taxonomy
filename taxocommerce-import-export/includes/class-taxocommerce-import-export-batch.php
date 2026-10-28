@@ -22,6 +22,9 @@ final class TaxoCommerce_Import_Export_Batch {
 	/** @var TaxoCommerce_Import_Export_CSV */
 	private $csv;
 
+	/** @var resource|false An OS-level, nonblocking import worker lock. */
+	private $worker_mutex = false;
+
 	/**
 	 * @param TaxoCommerce_Import_Export_CSV $csv CSV mini-importer.
 	 */
@@ -605,6 +608,13 @@ final class TaxoCommerce_Import_Export_Batch {
 
 			$result = $this->process_block( $state );
 			if ( is_wp_error( $result ) ) {
+				if ( 0 === strpos( $result->get_error_code(), 'tc_ie_batch_integrity_' ) ) {
+					$state['enabled'] = false;
+					$state['status'] = 'failed';
+					$state['message'] = $result->get_error_message();
+					$this->store_state( $state );
+					return; // Preserve the original CSV and offset for diagnosis.
+				}
 				$this->fail_current_file( $state, $result->get_error_message() );
 				return;
 			}
@@ -714,6 +724,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		$state['delimiter']     = $detected['delimiter'];
 		$state['offset']        = $detected['offset'];
 		$state['processed_rows']= 0;
+		unset( $state['csv_rows'], $state['csv_size'], $state['csv_mtime'], $state['csv_inode'] );
 		$state['error_rows']    = 0;
 		$state['errors']        = array();
 		$state['status']        = 'processing';
@@ -725,6 +736,48 @@ final class TaxoCommerce_Import_Export_Batch {
 		);
 		$state['updated_at']    = current_time( 'mysql' );
 		return $state;
+	}
+
+	/**
+	 * Audit the actual physical CSV. Read parsed CSV records (not line breaks),
+	 * skipping the same empty rows ignored by the importer. This is done once
+	 * per active file, then persisted with the cursor.
+	 *
+	 * @return array|WP_Error
+	 */
+	private function inspect_csv( $path, $delimiter ) {
+		$handle = fopen( $path, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Read-only CSV verification.
+		if ( false === $handle ) {
+			return new WP_Error( 'tc_ie_batch_integrity_open', __( 'No se puede verificar el CSV que está procesándose.', 'taxocommerce-import-export' ) );
+		}
+		try {
+			if ( ! is_array( fgetcsv( $handle, 0, $delimiter ) ) ) {
+				return new WP_Error( 'tc_ie_batch_integrity_header', __( 'El CSV no tiene una cabecera legible.', 'taxocommerce-import-export' ) );
+			}
+			$rows = 0;
+			while ( false !== ( $row = fgetcsv( $handle, 0, $delimiter ) ) ) {
+				if ( ! empty( array_filter( (array) $row, 'strlen' ) ) ) {
+					$rows++;
+				}
+			}
+			$meta = fstat( $handle );
+			if ( ! is_array( $meta ) ) {
+				return new WP_Error( 'tc_ie_batch_integrity_stat', __( 'No se pudo leer el tamaño del CSV.', 'taxocommerce-import-export' ) );
+			}
+			return array(
+				'csv_rows' => $rows,
+				'csv_size' => absint( $meta['size'] ?? 0 ),
+				'csv_mtime' => absint( $meta['mtime'] ?? 0 ),
+				'csv_inode' => absint( $meta['ino'] ?? 0 ),
+			);
+		} finally {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close audit stream.
+		}
+	}
+
+	/** Return a persistent, explicit failure rather than looping over CSV rows. */
+	private function integrity_failure( $message ) {
+		return new WP_Error( 'tc_ie_batch_integrity_mismatch', $message );
 	}
 
 	/**
