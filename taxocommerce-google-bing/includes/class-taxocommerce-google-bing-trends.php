@@ -228,7 +228,7 @@ final class TaxoCommerce_Google_Bing_Trends {
         echo '<section id="tgb-trends-results" class="tgb-trends-results" aria-label="Google Trends results" hidden></section>';
         echo '<div id="tgb-trends-empty" class="tgb-trends-empty">';
         echo '<strong>No results for this query yet.</strong>';
-        echo '<p>Enter terms and choose a period, then click “Search trends”. No automatic query is made when opening this tab.</p>';
+        echo '<p>Esta búsqueda manual solo se ejecuta al pulsar el botón. Los gráficos comparativos de clústeres y hubs primarios se solicitan automáticamente arriba.</p>';
         echo '</div>';
         echo '</details>';
 
