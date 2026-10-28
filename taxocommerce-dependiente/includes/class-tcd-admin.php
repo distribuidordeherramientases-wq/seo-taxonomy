@@ -441,6 +441,17 @@ final class TCD_Admin {
             echo esc_html(number_format_i18n(absint($interpreter['rules']??0))).' reglas · ';
             echo esc_html(number_format_i18n(absint($interpreter['l9_memory']??0))).' señales L9 · ';
             echo esc_html(number_format_i18n(100*(float)($interpreter['pass_any_ratio']??0),1)).'% regresión';
+            $old_m11=(string)($interpreter['evaluator_revision']??'')!==TCD_Intelligence::INTERPRETER_EVALUATOR_REVISION;
+            if($old_m11){
+                echo '<div class="description"><strong>Informe anterior:</strong> esta regresión no utiliza el evaluador M11 actual. Pulsa «Iniciar o reanudar» para repetir solo M11.</div>';
+            }else{
+                echo '<div class="description"><strong>'.esc_html(number_format_i18n(absint($interpreter['tested']??0))).' / '.esc_html(number_format_i18n(absint($interpreter['total']??0))).' casos · ';
+                echo esc_html(number_format_i18n(absint($interpreter['passed']??0))).' correctos · ';
+                echo esc_html(number_format_i18n(absint($interpreter['failed']??0))).' fallos · mínimo 88 %</strong></div>';
+                $origins=(array)($interpreter['query_origins']??array());
+                echo '<div class="description">Preguntas reconstruidas desde L9: '.esc_html(number_format_i18n(absint($origins['snapshot_facts']??0))).' · legacy sin hechos: '.esc_html(number_format_i18n(absint($origins['legacy_missing_facts']??0))).'.</div>';
+            }
+            echo '<div style="margin-top:5px"><a class="button button-small" href="'.esc_url(TCD_Intelligence::interpreter_audit_url()).'">JSON auditoría M11</a></div>';
         }else echo 'Se ejecuta automáticamente después de L10.';
         echo '</td></tr>';
         echo '<tr><td><strong>M12 · Actualización continua</strong></td><td>'.esc_html((string)($maintenance['status']??'Pendiente')).'</td><td>';

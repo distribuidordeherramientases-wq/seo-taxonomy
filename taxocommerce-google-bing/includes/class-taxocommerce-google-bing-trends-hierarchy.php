@@ -3,8 +3,8 @@
  * Spain-only hierarchical Google Trends explorer.
  *
  * The canonical TaxoCommerce Core maps determine membership. No Trends
- * requests are made on page load; external charts are opened by explicit
- * browser actions. The embeds do not expose numerical interest series.
+ * comparison charts load automatically when the Trends tab opens, paced
+ * sequentially in the browser. The embeds do not expose numerical interest series.
  *
  * @package TaxoCommerceInsights
  */
@@ -132,6 +132,101 @@ final class TaxoCommerce_Google_Bing_Trends_Hierarchy {
         return $tree;
     }
 
+
+    /**
+     * Exactly one comparison for clusters (up to Google's five-term limit)
+     * and one comparison per cluster's primary hubs. More than five terms
+     * produce separately normalized chunks, without implying comparability
+     * between different charts. This list is always rebuilt from Core.
+     *
+     * @param array $tree Canonical Spanish-only hierarchy.
+     * @return array
+     */
+    public static function comparison_groups( $tree ) {
+        $clusters = array();
+        $groups   = array();
+
+        foreach ( (array) $tree as $cluster ) {
+            $id = absint( $cluster['id'] ?? 0 );
+            $name = trim( (string) ( $cluster['name'] ?? '' ) );
+            if ( ! $id || '' === $name ) {
+                continue;
+            }
+            $clusters[ $id ] = $name;
+        }
+        $slices = array_chunk( array_values( $clusters ), 5 );
+        foreach ( $slices as $index => $terms ) {
+            $groups[] = array(
+                'kind' => 'cluster',
+                'title' => count( $slices ) > 1
+                    ? 'Tendencia comparada de clústeres · grupo ' . ( $index + 1 ) . '/' . count( $slices )
+                    : 'Tendencia comparada de todos los clústeres',
+                'terms' => $terms,
+            );
+        }
+
+        foreach ( (array) $tree as $cluster ) {
+            $primaries = array();
+            foreach ( (array) ( $cluster['primaries'] ?? array() ) as $primary ) {
+                $primary_id = absint( $primary['id'] ?? 0 );
+                $name = trim( (string) ( $primary['name'] ?? '' ) );
+                if ( $primary_id && '' !== $name ) {
+                    $primaries[ $primary_id ] = $name;
+                }
+            }
+            $slices = array_chunk( array_values( $primaries ), 5 );
+            if ( ! $slices ) {
+                $groups[] = array(
+                    'kind' => 'hub_primary',
+                    'title' => 'Hubs primarios · ' . (string) $cluster['name'],
+                    'terms' => array(),
+                );
+                continue;
+            }
+            foreach ( $slices as $index => $terms ) {
+                $groups[] = array(
+                    'kind' => 'hub_primary',
+                    'title' => 'Hubs primarios · ' . (string) $cluster['name']
+                        . ( count( $slices ) > 1 ? ' · grupo ' . ( $index + 1 ) . '/' . count( $slices ) : '' ),
+                    'terms' => $terms,
+                );
+            }
+        }
+        return $groups;
+    }
+
+    private static function render_comparisons( $tree ) {
+        $groups = self::comparison_groups( $tree );
+        echo '<section id="tgb-h-comparisons" class="tgb-h-comparisons" aria-label="Gráficos comparativos automáticos de España">';
+        echo '<h3>Tendencias de clústeres y hubs primarios</h3>';
+        echo '<p>Los gráficos se solicitan automáticamente al abrir esta pestaña. Cada gráfico compara los nombres actuales de la ';
+        echo 'jerarquía española, sin consultar hubs secundarios ni categorías. La carga es secuencial y puedes detenerla.</p>';
+        echo '<p class="description">Google Trends expresa interés relativo (0–100), no volumen absoluto. ';
+        echo 'Un gráfico vacío o que no se incrusta no demuestra falta de demanda, ni que el nombre esté mal definido. ';
+        echo 'Revisa las consultas en Google Trends antes de cambiar nombres de SEO.</p>';
+        foreach ( $groups as $index => $group ) {
+            $terms = array_values( (array) $group['terms'] );
+            $json = wp_json_encode( $terms, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
+            echo '<article class="tgb-h-compare-card" data-terms="' . esc_attr( $json ) . '" data-kind="'
+                . esc_attr( $group['kind'] ) . '" data-index="' . absint( $index ) . '">';
+            echo '<h4>' . esc_html( $group['title'] ) . '</h4>';
+            if ( ! $terms ) {
+                echo '<p class="description">Este clúster no tiene hubs primarios españoles publicados y relacionados.</p>';
+            } else {
+                echo '<p class="tgb-h-compare-terms">Términos: ' . esc_html( implode( ' · ', $terms ) ) . '</p>';
+                echo '<p class="tgb-h-compare-state" role="status">Pendiente de consultar</p>';
+                echo '<a href="https://trends.google.com/trends/explore?geo=ES" class="button button-secondary tgb-h-compare-link" target="_blank" rel="noopener noreferrer">Abrir esta comparación en Google Trends</a>';
+                echo '<div class="tgb-h-compare-chart" aria-label="Gráfico de Google Trends pendiente"></div>';
+            }
+            echo '</article>';
+        }
+        if ( count( $clusters = array_filter( $groups, static function ( $group ) { return 'cluster' === $group['kind']; } ) ) > 1 ) {
+            echo '<p class="description">Se han dividido los clústeres en varios gráficos por el límite de cinco términos de Google Trends. ';
+            echo 'Las escalas 0–100 de gráficos distintos no son directamente comparables.</p>';
+        }
+        echo '</section>';
+    }
+
     private static function button( $node, $kind ) {
         echo '<span class="tgb-h-status" data-status="idle">Sin consultar</span> ';
         echo '<button type="button" class="button button-small tgb-h-check"'
@@ -177,8 +272,8 @@ final class TaxoCommerce_Google_Bing_Trends_Hierarchy {
 
         echo '<section id="tgb-hierarchy" class="tgb-hierarchy" aria-label="Tendencias de la jerarquía SEO española">';
         echo '<h3>Radar de tendencias · jerarquía SEO (España)</h3>';
-        echo '<p>Clúster → Hub primario → Hub secundario. El análisis general recorre únicamente estos tres niveles. ';
-        echo 'Las categorías se consultan de una en una, bajo su hub secundario. Los datos de otros países están excluidos.</p>';
+        echo '<p>Informe automático de clústeres y hubs primarios españoles. Debajo encontrarás la exploración opcional ';
+        echo 'de hubs secundarios y categorías, sin consultas automáticas de esos niveles.</p>';
         echo '<p class="description"><strong>Límite de la fuente:</strong> Google facilita gráficos visuales, pero esta integración ';
         echo 'no dispone de series numéricas verificables. Por tanto no calcula crecimientos porcentuales ni clasifica oportunidades automáticamente. ';
         echo 'Que cargue un gráfico no prueba que Google haya devuelto datos válidos.</p>';
@@ -209,21 +304,24 @@ final class TaxoCommerce_Google_Bing_Trends_Hierarchy {
         echo '</div>';
 
         echo '<div class="tgb-h-manager">';
-        echo '<label for="tgb-h-speed"><strong>Gestor de carga · velocidad <output id="tgb-h-speed-label">2</output>/5</strong></label>';
-        echo '<input id="tgb-h-speed" type="range" min="1" max="5" value="2" step="1">';
-        echo '<p class="description">Una consulta visual simultánea como máximo. Las cinco velocidades regulan las pausas entre consultas del navegador; ';
+        echo '<label for="tgb-h-speed"><strong>Gestor de carga · velocidad <output id="tgb-h-speed-label">3</output>/5</strong></label>';
+        echo '<input id="tgb-h-speed" type="range" min="1" max="5" value="3" step="1">';
+        echo '<p class="description">Los gráficos se solicitan por orden, a un ritmo controlado. Las cinco velocidades regulan las pausas entre consultas del navegador; ';
         echo 'no son una medición del porcentaje real de CPU del servidor.</p>';
         echo '<div class="tgb-h-actions">';
-        echo '<button class="button button-primary" id="tgb-h-start" type="button">Iniciar análisis por niveles</button> ';
+        echo '<button class="button button-primary" id="tgb-h-start" type="button">Actualizar gráficos</button> ';
         echo '<button class="button" id="tgb-h-pause" type="button" disabled>Pausar</button> ';
         echo '<button class="button" id="tgb-h-resume" type="button" disabled>Reanudar</button> ';
         echo '<button class="button" id="tgb-h-stop" type="button" disabled>Detener</button>';
         echo '</div>';
         echo '<progress id="tgb-h-progress" max="100" value="0"></progress>';
-        echo '<p id="tgb-h-state" role="status" aria-live="polite">Sin iniciar · 0 consultas</p>';
+        echo '<p id="tgb-h-state" role="status" aria-live="polite">Preparando comparaciones automáticas…</p>';
         echo '<details><summary>Registro del proceso</summary><ol id="tgb-h-log"></ol></details>';
         echo '</div>';
 
+        self::render_comparisons( $tree );
+
+        echo '<details class="tgb-h-advanced"><summary><strong>Exploración detallada opcional · hubs secundarios y categorías</strong></summary>';
         echo '<div class="tgb-h-layout"><div class="tgb-h-tree" aria-label="Árbol SEO">';
         foreach ( $tree as $cluster ) {
             echo '<details class="tgb-h-cluster"><summary><strong>' . esc_html( $cluster['name'] ) . '</strong> · Clúster</summary>';
@@ -267,6 +365,6 @@ final class TaxoCommerce_Google_Bing_Trends_Hierarchy {
         echo '<div id="tgb-h-chart"></div>';
         echo '<p class="description">Si Google impide insertar el gráfico, utiliza el enlace oficial. ';
         echo 'El estado «consultado» significa únicamente que se solicitó una visualización, no que exista un crecimiento confirmado.</p>';
-        echo '</section></div></section>';
+        echo '</section></div></details></section>';
     }
 }
