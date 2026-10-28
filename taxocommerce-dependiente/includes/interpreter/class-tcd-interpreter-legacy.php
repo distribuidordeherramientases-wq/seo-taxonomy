@@ -331,6 +331,11 @@ final class TCD_Original_Interprete {
 
     private static function grammar_settings() {
         $stored = get_option('tcd_original_interprete_grammar', array());
+        if (!is_array($stored) || !$stored) {
+            // Preserve already-trained original configuration if present.
+            $stored = get_option('seo_dependiente_interprete_grammar', array());
+        }
+        if (!is_array($stored) || !$stored) $stored = TCD_Original_Linguista::grammar();
         return is_array($stored) ? $stored : array();
     }
 
@@ -339,6 +344,7 @@ final class TCD_Original_Interprete {
             return self::$morphology;
         }
         $stored = get_option('tcd_original_interprete_morphology', array());
+        if (!is_array($stored) || !$stored) $stored = get_option('seo_dependiente_interprete_morphology', array());
         self::$morphology = is_array($stored) ? $stored : array();
         return self::$morphology;
     }
