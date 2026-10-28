@@ -428,10 +428,31 @@ final class TCD_Academy {
             try{
                 $built=TCD_Intelligence::build_interpreter();
                 if(is_wp_error($built))throw new RuntimeException( esc_html( $built->get_error_message()) );
+                $load=TCD_Load::finish($measure,absint($built['batch_evaluated']??0));
+                if(empty($built['done'])){
+                    self::save(array(
+                        'status'=>'running',
+                        'load_last'=>$load,
+                        'last_message'=>sprintf(
+                            'M11 · validando Intérprete con el motor actual: %d/%d casos · %d aciertos provisionalmente.',
+                            absint($built['tested']??0),absint($built['total']??0),absint($built['passed']??0)
+                        ),
+                    ));
+                    self::log('interpreter_progress',array(
+                        'tested'=>absint($built['tested']??0),
+                        'total'=>absint($built['total']??0),
+                        'passed'=>absint($built['passed']??0),
+                        'batch'=>absint($built['batch_evaluated']??0),
+                    ));
+                    self::queue();
+                    return;
+                }
                 self::save(array(
                     'lesson'=>12,'phase'=>'maintenance','status'=>'running','last_error'=>'',
-                    'last_message'=>sprintf('M11 · Intérprete construido: %d reglas, %d señales L9, regresión %.1f%%.',
-                        absint($built['rules']??0),absint($built['l9_memory']??0),100*(float)($built['pass_any_ratio']??0))
+                    'load_last'=>$load,
+                    'last_message'=>sprintf('M11 · Intérprete validado: %d reglas, %d señales L9, regresión %.1f%% (%d/%d).',
+                        absint($built['rules']??0),absint($built['l9_memory']??0),
+                        100*(float)($built['pass_any_ratio']??0),absint($built['passed']??0),absint($built['tested']??0))
                 ));
                 self::log('interpreter_built',$built);
                 self::queue();

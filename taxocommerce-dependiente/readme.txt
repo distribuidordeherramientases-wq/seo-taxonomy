@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.13
+Stable tag: 0.3.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,12 @@ No. Learning builds and evaluates separate knowledge records.
 No. Core provides optional grouped administration.
 
 == Changelog ==
+
+= 0.3.14 =
+* M11 validates 180 distributed L9 queries with the current family/product evaluator instead of 100 obsolete stored queries.
+* Resume M11 regression in CPU-limited batches without restarting any of the ten lessons.
+* Add M11 audit JSON, progress counters, failure evidence, revision and version tracking.
+
 
 = 0.3.13 =
 * Record evaluator revision, actual PHP plugin version and L9 query provenance in quality JSON reports.

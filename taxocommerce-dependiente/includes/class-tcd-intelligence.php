@@ -12,6 +12,8 @@ final class TCD_Intelligence {
     const DB_VERSION = '1.0.0';
     const DB_OPTION = 'tcd_intelligence_db_version';
     const INTERPRETER_STATE = 'tcd_interpreter_state';
+    const INTERPRETER_PROGRESS = 'tcd_interpreter_regression_progress';
+    const INTERPRETER_EVALUATOR_REVISION = 'm11-l9-runtime-v1';
     const QUALITY_PROGRESS = 'tcd_quality_eval_progress';
     const QUALITY_PROGRESS_VERSION = 5;
     const QUALITY_EVALUATOR_REVISION = 'l9-snapshot-facts-v2';
@@ -58,6 +60,7 @@ final class TCD_Intelligence {
         add_action( 'admin_post_tcd_quality_csv', array( __CLASS__, 'download_quality_csv' ) );
         add_action( 'admin_post_tcd_quality_data_csv', array( __CLASS__, 'download_quality_data_csv' ) );
         add_action( 'admin_post_tcd_quality_audit_json', array( __CLASS__, 'download_quality_audit_json' ) );
+        add_action( 'admin_post_tcd_interpreter_audit_json', array( __CLASS__, 'download_interpreter_audit_json' ) );
     }
 
     public static function reset_modern_generated() {
@@ -69,6 +72,7 @@ final class TCD_Intelligence {
         $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE source_brain_id LIKE %s OR source_brain_id LIKE %s", $l9, 'modern:%', 'maintenance:%' ) );
         $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $quality ) );
         delete_option( self::INTERPRETER_STATE );
+        delete_option( self::INTERPRETER_PROGRESS );
         delete_option( self::QUALITY_PROGRESS );
         delete_option( self::L2_IDENTITY_BACKFILL );
     }
@@ -3131,41 +3135,189 @@ final class TCD_Intelligence {
         return $out;
     }
 
+    /**
+     * M11 independently tests the published runtime after L9 is activated.
+     * Use exactly the same L9 need generator and family/product quality
+     * semantics as the course, rather than the pre-0.3.12 legacy question.
+     *
+     * The 180 deterministic samples are distributed over the sealed L9
+     * population. Work is resumed in small batches, honouring the CPU load
+     * manager and the user's Stop button. No L1-L10 knowledge is modified.
+     */
     public static function build_interpreter() {
         global $wpdb;
         $knowledge = TCD_Academy::knowledge_table();
-        $rows = (array) $wpdb->get_results(
-            "SELECT source_id,title,context_json FROM {$knowledge} WHERE lesson=9 AND status='learned' ORDER BY id ASC LIMIT 100",
-            ARRAY_A
-        );
-        $tested = 0;
-        $passed = 0;
-        foreach ( $rows as $row ) {
-            $facts = json_decode( (string) ( $row['context_json'] ?? '' ), true );
-            $facts = is_array( $facts ) ? $facts : array();
-            $query = trim( (string) ( $facts['customer_need'] ?? $row['title'] ?? '' ) );
-            if ( ! $query ) continue;
-            $tested++;
-            $ids = array_map( static function ( $v ) { return absint( $v['id'] ?? 0 ); }, self::search_products( $query, 8 ) );
-            if ( in_array( absint( $row['source_id'] ?? 0 ), $ids, true ) ) $passed++;
+        $snapshot = TCD_Academy::snapshot_for_lesson( 9 );
+        $snapshot_id = absint( $snapshot['id'] ?? 0 );
+        if ( ! $snapshot_id || 'completed' !== (string) ( $snapshot['status'] ?? '' ) ) {
+            return new WP_Error( 'tcd_interpreter_l9_unavailable', 'M11 requiere una L9 terminada y validada.' );
         }
+
+        $progress = get_option( self::INTERPRETER_PROGRESS, array() );
+        if ( ! is_array( $progress )
+            || (string) ( $progress['revision'] ?? '' ) !== self::INTERPRETER_EVALUATOR_REVISION
+            || absint( $progress['l9_snapshot_id'] ?? 0 ) !== $snapshot_id
+        ) {
+            $all_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
+                "SELECT id FROM {$knowledge} WHERE lesson=%d AND status=%s ORDER BY source_type ASC,source_id ASC",
+                9, 'learned'
+            ) ) );
+            if ( ! $all_ids ) {
+                return new WP_Error( 'tcd_interpreter_no_sources', 'M11 no encuentra fuentes L9 aprendidas.' );
+            }
+            // Read the sizeable active memory counters once per run; do not
+            // repeat six COUNT queries on every short M11 validation batch.
+            $memory_stats = TCD_Knowledge_Transfer::stats();
+            $sample = self::representative_sample(
+                array_map( static function ( $id ) { return array( 'id'=>absint( $id ) ); }, $all_ids ),
+                180
+            );
+            $progress = array(
+                'revision'=>self::INTERPRETER_EVALUATOR_REVISION,
+                'l9_snapshot_id'=>$snapshot_id,
+                'sample_method'=>'distributed_deterministic',
+                'population'=>count( $all_ids ),
+                'rules'=>absint( $memory_stats['portable_rules'] ?? 0 ),
+                'l9_memory'=>absint( $memory_stats['l9_memory'] ?? 0 ),
+                'ids'=>array_values( array_map( static function ( $row ) { return absint( $row['id'] ); }, $sample ) ),
+                'cursor'=>0,
+                'passed'=>0,
+                'top1'=>0,
+                'top3'=>0,
+                'query_origins'=>array(),
+                'sample'=>array(),
+                'failures'=>array(),
+                'started_at'=>current_time( 'mysql' ),
+            );
+            update_option( self::INTERPRETER_PROGRESS, $progress, false );
+        }
+
+        $ids = (array) ( $progress['ids'] ?? array() );
+        $total = count( $ids );
+        if ( ! $total ) return new WP_Error( 'tcd_interpreter_empty_sample', 'La muestra M11 está vacía.' );
+        $cursor = min( $total, absint( $progress['cursor'] ?? 0 ) );
+        $limit = min( 8, max( 1, TCD_Load::batch_size() ) );
+        $batch = array_slice( $ids, $cursor, $limit );
+        $batch_processed = 0;
+
+        if ( $batch ) {
+            $placeholders = implode( ',', array_fill( 0, count( $batch ), '%d' ) );
+            $rows = (array) $wpdb->get_results( $wpdb->prepare(
+                "SELECT id,source_type,source_id,title,context_json,status FROM {$knowledge} WHERE lesson=9 AND id IN ({$placeholders})",
+                $batch
+            ), ARRAY_A );
+            $by_id = array();
+            foreach ( $rows as $row ) $by_id[ absint( $row['id'] ?? 0 ) ] = $row;
+            $started = microtime( true );
+            foreach ( $batch as $knowledge_id ) {
+                $row = (array) ( $by_id[ absint( $knowledge_id ) ] ?? array() );
+                if ( $row ) {
+                    // Empty stage: this is a true production-facing runtime
+                    // lookup, not an exam with staged/inactive test signals.
+                    $result = self::evaluate_row( 9, $row, '' );
+                } else {
+                    $result = array(
+                        'source_id'=>0,
+                        'query'=>'',
+                        'top1'=>false,
+                        'top3'=>false,
+                        'top8'=>false,
+                        'query_origin'=>'missing_source',
+                        'need_scope'=>'unknown',
+                        'rank'=>0,
+                        'reason'=>'knowledge_source_missing',
+                    );
+                }
+                if ( ! empty( $result['top1'] ) ) $progress['top1']++;
+                if ( ! empty( $result['top3'] ) ) $progress['top3']++;
+                if ( ! empty( $result['top8'] ) ) $progress['passed']++;
+                $origin = sanitize_key( (string) ( $result['query_origin'] ?? 'unknown' ) );
+                $progress['query_origins'][ $origin ] = absint( $progress['query_origins'][ $origin ] ?? 0 ) + 1;
+                if ( empty( $result['top8'] ) ) {
+                    // Keep enough evidence to correct genuine ranking faults.
+                    $progress['failures'][] = $result;
+                }
+                if ( count( $progress['sample'] ) < 12 ) $progress['sample'][] = $result;
+                $batch_processed++;
+                if ( microtime( true ) - $started >= 12 ) break;
+            }
+            $cursor += $batch_processed;
+            $progress['cursor'] = $cursor;
+            update_option( self::INTERPRETER_PROGRESS, $progress, false );
+        }
+
+        $tested = $cursor;
+        $passed = absint( $progress['passed'] ?? 0 );
         $ratio = $tested ? $passed / $tested : 0;
-        $stats = TCD_Knowledge_Transfer::stats();
+        $done = $cursor >= $total;
         $state = array(
-            'status'=>( $tested && $ratio >= 0.88 ) ? 'ready' : 'degraded',
-            'built_at'=>current_time( 'mysql' ),
+            'status'=>$done ? ( $ratio >= 0.88 ? 'ready' : 'degraded' ) : 'building',
+            'built_at'=>$done ? current_time( 'mysql' ) : '',
+            'started_at'=>(string) ( $progress['started_at'] ?? '' ),
             'tested'=>$tested,
+            'total'=>$total,
             'passed'=>$passed,
+            'failed'=>$tested - $passed,
+            'top1'=>absint( $progress['top1'] ?? 0 ),
+            'top3'=>absint( $progress['top3'] ?? 0 ),
             'pass_any_ratio'=>$ratio,
-            'rules'=>absint( $stats['portable_rules'] ?? 0 ),
-            'l9_memory'=>absint( $stats['l9_memory'] ?? 0 ),
+            'threshold'=>0.88,
+            'rules'=>absint( $progress['rules'] ?? 0 ),
+            'l9_memory'=>absint( $progress['l9_memory'] ?? 0 ),
             'version'=>TAXOCOMMERCE_DEPENDIENTE_VERSION,
+            'evaluator_revision'=>self::INTERPRETER_EVALUATOR_REVISION,
+            'l9_snapshot_id'=>$snapshot_id,
+            'sample_method'=>(string) ( $progress['sample_method'] ?? '' ),
+            'population'=>absint( $progress['population'] ?? 0 ),
+            'query_origins'=>(array) ( $progress['query_origins'] ?? array() ),
+            'sample'=>(array) ( $progress['sample'] ?? array() ),
+            'failures'=>(array) ( $progress['failures'] ?? array() ),
+            'done'=>$done,
+            'batch_evaluated'=>$batch_processed,
         );
         update_option( self::INTERPRETER_STATE, $state, false );
+
+        if ( ! $done ) return $state;
+        delete_option( self::INTERPRETER_PROGRESS );
         if ( 'ready' !== $state['status'] ) {
-            return new WP_Error( 'tcd_interpreter_regression', sprintf( 'El Intérprete no supera la regresión: %.1f%% de %.1f%% mínimo.', 100 * $ratio, 88 ) );
+            return new WP_Error(
+                'tcd_interpreter_regression',
+                sprintf( 'El Intérprete no supera la regresión: %.1f%% de %.1f%% mínimo (%d/%d).', 100 * $ratio, 88, $passed, $tested )
+            );
         }
         return $state;
+    }
+
+    public static function interpreter_audit_url() {
+        return wp_nonce_url(
+            add_query_arg(
+                array( 'action'=>'tcd_interpreter_audit_json' ),
+                admin_url( 'admin-post.php' )
+            ),
+            'tcd_interpreter_audit_json'
+        );
+    }
+
+    public static function download_interpreter_audit_json() {
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Sin permiso.' );
+        }
+        check_admin_referer( 'tcd_interpreter_audit_json' );
+        $state = self::interpreter_state();
+        if ( ! $state ) wp_die( 'Todavía no hay informe del intérprete.' );
+        $payload = array(
+            'schema'=>array( 'name'=>'taxocommerce_dependiente_m11_regression', 'version'=>1 ),
+            'exported_at'=>gmdate( 'c' ),
+            'plugin_version'=>TAXOCOMMERCE_DEPENDIENTE_VERSION,
+            'engine_revision'=>self::INTERPRETER_EVALUATOR_REVISION,
+            'report_is_stale'=>(string) ( $state['evaluator_revision'] ?? '' ) !== self::INTERPRETER_EVALUATOR_REVISION,
+            'regression'=>$state,
+        );
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="dependiente_M11_regresion_' . gmdate( 'Ymd_His' ) . '.json"' );
+        echo wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON admin download.
+        exit;
     }
 
     public static function interpreter_state() {
