@@ -70,16 +70,17 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             'page', $page_id, $role
         ) );
         $now = current_time( 'mysql' );
+        $country = TaxoCommerce_Core_Country::post( $page_id );
         $wpdb->query( 'START TRANSACTION' );
         $disabled = $wpdb->update( $table, array( 'status' => 0, 'updated_at' => $now ), array( 'object_type' => 'page', 'object_id' => $page_id ) );
         $saved = true;
         if ( false !== $disabled && '' !== $role ) {
             if ( $existing ) {
-                $saved = false !== $wpdb->update( $table, array( 'status' => 1, 'updated_at' => $now ), array( 'id' => absint( $existing ) ) );
+                $saved = false !== $wpdb->update( $table, array( 'status' => 1, 'country_code' => $country, 'updated_at' => $now ), array( 'id' => absint( $existing ) ) );
             } else {
                 $saved = false !== $wpdb->insert( $table, array(
                     'object_type' => 'page', 'object_id' => $page_id,
-                    'seo_role' => $role, 'status' => 1,
+                    'seo_role' => $role, 'country_code' => $country, 'status' => 1,
                     'created_at' => $now, 'updated_at' => $now,
                 ) );
             }
@@ -90,6 +91,27 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         }
         $wpdb->query( 'COMMIT' );
         return true;
+    }
+
+    /**
+     * Keep the stored role country aligned with canonical page country meta.
+     * Never changes the SEO role or any hierarchy relation.
+     */
+    public static function sync_role_country( $page_id ) {
+        global $wpdb;
+        $page_id = absint( $page_id );
+        if ( ! $page_id || 'page' !== get_post_type( $page_id ) ) {
+            return false;
+        }
+        self::ensure_country_schema();
+        if ( ! self::$schema_verified ) {
+            return false;
+        }
+        return false !== $wpdb->update(
+            self::nodes_table(),
+            array( 'country_code' => TaxoCommerce_Core_Country::post( $page_id ), 'updated_at' => current_time( 'mysql' ) ),
+            array( 'object_type' => 'page', 'object_id' => $page_id, 'status' => 1 )
+        );
     }
 
     /** Copy earlier Core meta-only classifications into seo_nodes once. */
@@ -150,6 +172,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             object_type VARCHAR(50) NOT NULL,
             object_id BIGINT UNSIGNED NOT NULL,
             seo_role VARCHAR(80) NOT NULL,
+            country_code CHAR(2) NULL DEFAULT NULL,
             keywords LONGTEXT NULL,
             title VARCHAR(255) NULL,
             status TINYINT(1) NOT NULL DEFAULT 1,
@@ -163,13 +186,34 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         ) {$collate};" );
     }
 
-    /** Upgrade existing installations without backfilling ambiguous relations. */
+    /**
+     * Upgrade both existing canonical tables without replacing any rows.
+     * A table already present must still be checked for country_code.
+     */
     public static function ensure_country_schema() {
         global $wpdb;
-        if ( self::$schema_verified || ! self::available() ) { return; }
-        $table = self::table();
-        $found = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'country_code' ) );
-        if ( ! $found ) { $wpdb->query( "ALTER TABLE {$table} ADD COLUMN country_code CHAR(2) NULL DEFAULT NULL AFTER relation_type" ); }
+        if ( self::$schema_verified || ! self::available() ) {
+            return;
+        }
+
+        $tables = array(
+            self::table() => 'relation_type',
+            self::nodes_table() => 'seo_role',
+        );
+        foreach ( $tables as $table => $after_column ) {
+            if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+                return;
+            }
+            $found = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'country_code' ) );
+            if ( ! $found ) {
+                $result = $wpdb->query(
+                    "ALTER TABLE {$table} ADD COLUMN country_code CHAR(2) NULL DEFAULT NULL AFTER {$after_column}"
+                );
+                if ( false === $result ) {
+                    return;
+                }
+            }
+        }
         self::$schema_verified = true;
     }
 
