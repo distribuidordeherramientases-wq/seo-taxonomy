@@ -20,7 +20,7 @@ m11_assert( false !== $start && false !== $end, 'M11 implementation found' );
 $build = substr( $source, $start, $end - $start );
 
 m11_assert( false === strpos( $build, "\$facts['customer_need']" ), 'legacy saved questions not used' );
-m11_assert( false !== strpos( $build, 'self::evaluate_row( 9, $row, \'\')' ), 'current L9 evaluator used against active runtime' );
+m11_assert( false !== strpos( $build, 'self::evaluate_row( 9, $row, \'\' )' ), 'current L9 evaluator used against active runtime' );
 m11_assert( false !== strpos( $build, 'self::representative_sample(' ), 'distributed representative sample' );
 m11_assert( false !== strpos( $build, "                180" ), '180 cases instead of first 100' );
 m11_assert( false === strpos( $build, 'LIMIT 100' ), 'no first-100 bias' );
