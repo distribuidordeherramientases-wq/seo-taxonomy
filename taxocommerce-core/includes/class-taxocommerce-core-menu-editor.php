@@ -181,17 +181,9 @@ final class TaxoCommerce_Core_Menu_Editor {
         return 1 === (int) get_post_meta( $item_id, TaxoCommerce_Core_Menu::GENERATED_META, true );
     }
 
+    /** Use the same country-aware identity validation as automatic menus. */
     private static function managed_menu( $create = false ) {
-        $country = TaxoCommerce_Core_Menu::country( true );
-        $id = absint( get_option( TaxoCommerce_Core_Menu::menu_option( $country ), 0 ) );
-        if ( $id && wp_get_nav_menu_object( $id ) ) { return $id; }
-        if ( ! $create ) { return 0; }
-        $name = 'ES' === $country ? 'TaxoCommerce' : 'TaxoCommerce - ' . $country;
-        $existing = wp_get_nav_menu_object( $name );
-        $id = $existing && ! is_wp_error( $existing ) ? (int) $existing->term_id : wp_create_nav_menu( $name );
-        if ( is_wp_error( $id ) ) { return $id; }
-        update_option( TaxoCommerce_Core_Menu::menu_option( $country ), (int) $id, false );
-        return (int) $id;
+        return TaxoCommerce_Core_Menu::managed_menu_id( TaxoCommerce_Core_Menu::country( true ), $create );
     }
 
     /** Shared by the authenticated controller and regression tests. */
