@@ -81,11 +81,11 @@ $checks = array(
     strpos( $batch, "remaining" ) !== false,
     strpos( $batch, "worker();" ) !== false,
     strpos( $batch, "wp_ajax_nopriv_taxocommerce_ie_batch_continue" ) !== false,
-    strpos( $batch, "hash_equals( $expected, $submitted )" ) !== false,
+    strpos( $batch, 'hash_equals( $expected, $submitted )' ) !== false,
     strpos( $batch, "private function dispatch_next()" ) !== false,
     strpos( $batch, "'blocking'    => false" ) !== false,
-    strpos( $batch, "private function schedule( $delay = 60 )" ) !== false,
-    strpos( $batch, "'busy'    => $busy" ) !== false,
+    strpos( $batch, 'private function schedule( $delay = 60 )' ) !== false,
+    strpos( $batch, "'busy'    => " . '$busy' ) !== false,
     strpos( $batch, "assets/batch-runner.js" ) !== false,
 
 );
