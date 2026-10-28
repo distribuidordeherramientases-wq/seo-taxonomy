@@ -33,6 +33,8 @@ jobs:
 
       - name: Browser importer runner syntax
         run: node --check taxocommerce-import-export/assets/batch-runner.js
+      - name: Browser importer immediate chaining smoke
+        run: node taxocommerce-import-export/tests/batch-runner-browser-smoke.js
 
       - name: Build distributable package
         run: |
