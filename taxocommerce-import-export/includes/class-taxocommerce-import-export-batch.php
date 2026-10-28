@@ -140,6 +140,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		$this->prepare_directories();
 
 		$state = $this->state();
+		$progress = $this->progress_snapshot( $state );
 		$files = array();
 		foreach ( array( 'pending', 'processing', 'imported', 'failed' ) as $bucket ) {
 			$files[ $bucket ] = $this->files( $this->paths()[ $bucket ] );
@@ -163,6 +164,18 @@ final class TaxoCommerce_Import_Export_Batch {
 
 			<div class="card">
 				<h2><?php esc_html_e( '2. Estado y controles', 'taxocommerce-import-export' ); ?></h2>
+				<div id="tc-ie-import-progress-panel" style="padding:12px 0;">
+					<label for="tc-ie-import-progress-bar"><strong><?php esc_html_e( 'Progreso de lectura del CSV actual', 'taxocommerce-import-export' ); ?></strong></label>
+					<progress id="tc-ie-import-progress-bar" max="100" value="<?php echo esc_attr( (string) $progress['percent'] ); ?>" style="display:block;width:100%;height:20px;margin:9px 0;"></progress>
+					<p id="tc-ie-import-progress-text" aria-live="polite" style="margin:4px 0;"><?php
+						if ( $progress['available'] ) {
+							echo esc_html( number_format_i18n( $progress['percent'], 1 ) . '% · ' . size_format( $progress['bytes_read'] ) . ' leídos de ' . size_format( $progress['bytes_total'] ) . ' · ' . size_format( $progress['bytes_remaining'] ) . ' restantes · ' . count( $files['pending'] ) . ' CSV pendientes' );
+						} else {
+							esc_html_e( 'No hay un archivo CSV activo. La barra se actualizará cuando empiece el siguiente.', 'taxocommerce-import-export' );
+						}
+					?></p>
+					<p class="description"><?php esc_html_e( 'El porcentaje corresponde a los bytes leídos del archivo actual. No representa productos creados ni modifica el archivo, el cursor o la velocidad.', 'taxocommerce-import-export' ); ?></p>
+				</div>
 				<table class="widefat striped">
 					<tbody>
 						<tr><th><?php esc_html_e( 'Estado', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['status'] ?? 'idle' ) ); ?></td></tr>
@@ -1187,6 +1200,55 @@ Deny from all
 	}
 
 	/**
+	 * Pure display progress by physical CSV byte offset. This never reads or
+	 * modifies product rows and is independent of the potentially stale row
+	 * counter. The only filesystem operation is stat() of the active file.
+	 *
+	 * @return array
+	 */
+	public static function progress_values( $offset, $size ) {
+		$size = max( 0, (int) $size );
+		$offset = max( 0, min( $size, (int) $offset ) );
+		return array(
+			'bytes_read' => $offset,
+			'bytes_total' => $size,
+			'bytes_remaining' => max( 0, $size - $offset ),
+			'percent' => $size > 0 ? round( 100.0 * $offset / $size, 1 ) : 0.0,
+		);
+	}
+
+	/**
+	 * Read-only state snapshot for dashboard and AJAX updates. No CSV scan,
+	 * no worker invocation, no options updated and no database writes.
+	 *
+	 * @return array
+	 */
+	private function progress_snapshot( $state ) {
+		$empty = array_merge( array( 'available' => false ), self::progress_values( 0, 0 ) );
+		$name = (string) ( $state['current_file'] ?? '' );
+		if ( '' === $name || sanitize_file_name( $name ) !== $name || basename( $name ) !== $name ) {
+			return $empty;
+		}
+		$dir = $this->paths()['processing'];
+		if ( ! $dir ) {
+			return $empty;
+		}
+		$path = trailingslashit( $dir ) . $name;
+		if ( is_link( $path ) || ! is_file( $path ) ) {
+			return $empty;
+		}
+		clearstatcache( true, $path );
+		$size = filesize( $path );
+		if ( false === $size ) {
+			return $empty;
+		}
+		return array_merge(
+			array( 'available' => true ),
+			self::progress_values( $state['offset'] ?? 0, $size )
+		);
+	}
+
+	/**
 	 * Persistent state.
 	 *
 	 * @return array
@@ -1315,7 +1377,10 @@ Deny from all
 		}
 		$state = $this->state();
 		$sample = TaxoCommerce_IE_Load::last_sample( 'import' );
+		$progress = $this->progress_snapshot( $state );
 		wp_send_json_success( array(
+			'progress' => $progress,
+			'pending_files' => count( $this->files( $this->paths()['pending'] ) ),
 			'enabled' => ! empty( $state['enabled'] ),
 			'busy'    => $busy,
 			'status'  => sanitize_key( (string) ( $state['status'] ?? 'idle' ) ),
