@@ -78,6 +78,7 @@ final class TaxoCommerce_Images_Background {
 				: array( 'image/jpeg', 'image/png', 'image/webp', 'image/avif' );
 			$marks = implode( ',', array_fill( 0, count( $mimes ), '%s' ) );
 			$sql = "SELECT COUNT(*) AS total, COALESCE(MAX(ID),0) AS max_id FROM %i WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type IN ($marks)";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is constructed with allowlisted MIME placeholders; all values and table identifiers are prepared.
 			$rows = $wpdb->get_row( $wpdb->prepare( $sql, array_merge( array( $wpdb->posts ), $mimes ) ), ARRAY_A );
 			$total = absint( $rows['total'] ?? 0 );
 			$max = absint( $rows['max_id'] ?? 0 );
@@ -291,6 +292,7 @@ final class TaxoCommerce_Images_Background {
 			$marks = implode( ',', array_fill( 0, count( $mimes ), '%s' ) );
 			$sql = "SELECT ID FROM %i WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type IN ($marks) AND ID > %d AND ID <= %d ORDER BY ID ASC LIMIT 1";
 			$params = array_merge( array( $wpdb->posts ), $mimes, array( absint( $job['cursor'] ?? 0 ), absint( $job['max_id'] ?? 0 ) ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql uses allowlisted MIME placeholders, prepared table identifier and bound cursor values.
 			$id = absint( $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) );
 			if ( ! $id ) {
 				$job['status'] = 'complete';
