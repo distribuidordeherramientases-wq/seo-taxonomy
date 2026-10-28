@@ -62,6 +62,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		$nodes_exists = $nodes === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $nodes ) ) );
 		if ( ! TaxoCommerce_Core_Hierarchy_Classic::available() || ! $nodes_exists ) {
 			TaxoCommerce_Core_Hierarchy_Classic::install();
+            TaxoCommerce_Core_Hierarchy_Classic::ensure_country_schema();
 		}
 	}
 
@@ -84,7 +85,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		check_admin_referer( 'taxocommerce_core_replace_hierarchy_' . $type . '_' . $source, 'taxocommerce_core_nonce' );
 		$ids = isset( $_POST['targets'] ) && is_array( $_POST['targets'] )
 			? array_map( 'absint', wp_unslash( $_POST['targets'] ) ) : array();
-		$result = TaxoCommerce_Core_Hierarchy_Classic::replace( $this, $type, $source, $ids );
+		$result = TaxoCommerce_Core_Hierarchy_Classic::replace( $this, $type, $source, $ids, $this->country_request( true ) );
 		$this->redirect_with_result( $result, 'relation' );
 	}
 
@@ -321,6 +322,13 @@ final class TaxoCommerce_Core_Hierarchy {
 			</style>
 
 			<?php $this->render_notices(); ?>
+            <form method="get" style="display:flex;align-items:center;gap:10px;margin:14px 0;flex-wrap:wrap;">
+                <input type="hidden" name="page" value="taxocommerce-core-hierarchy">
+                <input type="hidden" name="tab" value="<?php echo esc_attr( $tab ); ?>">
+                <label for="tc-hierarchy-country"><strong>País</strong></label>
+                <select id="tc-hierarchy-country" name="tc_country"><?php TaxoCommerce_Core_Country::options( $this->country_request() ); ?></select>
+                <button class="button">Mostrar</button>
+            </form>
 			<section class="tc-hierarchy-panel">
 				<?php if ( 'roles' === $tab ) : ?>
 					<h2><?php echo esc_html__( 'Asignación de roles', 'taxocommerce-core' ); ?></h2>
@@ -329,10 +337,10 @@ final class TaxoCommerce_Core_Hierarchy {
 				<?php else : ?>
 					<h2><?php echo esc_html__( 'Organización de la jerarquía', 'taxocommerce-core' ); ?></h2>
 					<p class="description"><?php echo esc_html__( 'Abre un cluster y sus hubs para asignar elementos mediante casillas. Los ya asignados aparecen arriba y los disponibles debajo. Cada bloque se guarda por separado.', 'taxocommerce-core' ); ?></p>
-					<?php TaxoCommerce_Core_Hierarchy_Classic::render( $this ); ?>
+					<?php TaxoCommerce_Core_Hierarchy_Classic::render( $this, $this->country_request() ); ?>
 					<details class="tc-hierarchy-preview">
 						<summary><?php echo esc_html__( 'Ver árbol SEO completo (solo lectura)', 'taxocommerce-core' ); ?></summary>
-						<?php TaxoCommerce_Core_Hierarchy_Classic::render_tree( $this ); ?>
+						<?php TaxoCommerce_Core_Hierarchy_Classic::render_tree( $this, $this->country_request() ); ?>
 					</details>
 				<?php endif; ?>
 			</section>
@@ -441,7 +449,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		?>
 		<form class="tc-hierarchy-roles-filter" method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 			<input type="hidden" name="page" value="taxocommerce-core-hierarchy">
-			<input type="hidden" name="tab" value="roles">
+			<input type="hidden" name="tab" value="roles"><input type="hidden" name="tc_country" value="<?php echo esc_attr( $this->country_request() ); ?>">
 			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Buscar página', 'taxocommerce-core' ); ?>">
 			<select name="role">
 				<option value=""><?php echo esc_html__( 'Todos los roles', 'taxocommerce-core' ); ?></option>
@@ -453,7 +461,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		</form>
 
 		<table class="widefat striped">
-			<thead><tr><th><?php echo esc_html__( 'Página', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Rol SEO', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acción', 'taxocommerce-core' ); ?></th></tr></thead>
+			<thead><tr><th><?php echo esc_html__( 'Página', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th>País</th><th><?php echo esc_html__( 'Rol SEO', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acción', 'taxocommerce-core' ); ?></th></tr></thead>
 			<tbody>
 			<?php if ( empty( $query->posts ) ) : ?>
 				<tr><td colspan="4"><?php echo esc_html__( 'No se han encontrado páginas.', 'taxocommerce-core' ); ?></td></tr>
@@ -462,7 +470,7 @@ final class TaxoCommerce_Core_Hierarchy {
 					<?php $current = $this->get_page_role( $page->ID ); ?>
 					<tr>
 						<td><strong><?php echo esc_html( get_the_title( $page ) ); ?></strong><br><small>#<?php echo esc_html( (string) $page->ID ); ?></small></td>
-						<td><?php echo esc_html( $page->post_status ); ?></td>
+						<td><?php echo esc_html( $page->post_status ); ?></td><td><?php echo esc_html( TaxoCommerce_Core_Country::label( TaxoCommerce_Core_Country::post( $page->ID ) ) ); ?></td>
 						<td>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:flex;gap:6px;align-items:center;">
 								<input type="hidden" name="action" value="taxocommerce_core_save_page_role">
@@ -696,6 +704,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		$focus = 'hierarchy' === $tab && isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
 		$args = array(
 			'page'       => 'taxocommerce-core-hierarchy',
+            'tc_country' => $this->country_request( true ),
 			'tab'        => $tab,
 			'tc_context' => sanitize_key( $context ),
 		);
