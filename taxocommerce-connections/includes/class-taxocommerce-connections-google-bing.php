@@ -32,7 +32,18 @@ final class TaxoCommerce_Connections_Google_Bing {
 			'service_account_json'    => '',
 		);
 		$saved = get_option( self::GOOGLE_OPTION, array() );
-		return wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
+		$saved = is_array( $saved ) ? $saved : array();
+		// Import missing fields from the original SEO Taxonomy connection, without
+		// overwriting values already configured in TaxoCommerce Connections.
+		$legacy = get_option( 'seo_google_search_settings', array() );
+		if ( is_array( $legacy ) ) {
+			foreach ( array_keys( $defaults ) as $field ) {
+				if ( ( ! isset( $saved[ $field ] ) || '' === (string) $saved[ $field ] ) && isset( $legacy[ $field ] ) && '' !== (string) $legacy[ $field ] ) {
+					$saved[ $field ] = $legacy[ $field ];
+				}
+			}
+		}
+		return wp_parse_args( $saved, $defaults );
 	}
 
 	public static function bing_settings() {
