@@ -146,6 +146,51 @@ final class TaxoCommerce_Images_Load {
 		);
 	}
 
+
+	/**
+	 * Request-local PHP memory pressure. This is not host-wide memory usage.
+	 *
+	 * @return float|null
+	 */
+	public static function memory_percent() {
+		$limit = self::memory_limit_bytes();
+		return $limit > 0 ? 100 * memory_get_peak_usage( true ) / $limit : null;
+	}
+
+	/**
+	 * Adaptive image-audit batch size, independent from the other Images jobs.
+	 * A full fast batch grows rapidly; slow or memory-heavy batches shrink.
+	 * CPU percentage measures only the current PHP process.
+	 *
+	 * @return array{0:int,1:string}
+	 */
+	public static function audit_adjustment( $current, $maximum, $items, $elapsed, $memory, $budget, $cpu = null ) {
+		$current = max( 1, absint( $current ) );
+		$maximum = max( $current, absint( $maximum ) );
+		$items = absint( $items );
+		$budget = max( 1, (float) $budget );
+		$elapsed = max( 0, (float) $elapsed );
+
+		if ( 0 === $items ) {
+			return array( $current, 'Sin imágenes para ajustar el lote' );
+		}
+		if ( null !== $memory && $memory >= 80 ) {
+			return array( max( 1, (int) floor( $current / 2 ) ), 'Reducido por memoria PHP elevada' );
+		}
+		if ( null !== $cpu && $cpu >= 95 && $elapsed >= 0.85 * $budget ) {
+			return array( max( 1, (int) floor( $current * 0.75 ) ), 'Reducido por CPU de PHP y tiempo elevados' );
+		}
+		if ( $elapsed >= 0.95 * $budget ) {
+			return array( max( 1, min( $current, (int) floor( $items * 0.8 ) ) ), 'Ajustado al tiempo máximo por petición' );
+		}
+		if ( $items >= $current && $elapsed < 0.85 * $budget
+			&& ( null === $memory || $memory < 70 ) ) {
+			$next = min( $maximum, $current * 2 );
+			return array( $next, $next > $current ? 'Ampliado: lote rápido y memoria disponible' : 'Máximo de velocidad alcanzado' );
+		}
+		return array( $current, $items < $current ? 'Lote parcial sin aumentar' : 'Lote estabilizado' );
+	}
+
 	/**
 	 * Finish measurement and adapt the next lot.
 	 *
@@ -176,22 +221,30 @@ final class TaxoCommerce_Images_Load {
 		$priority = self::priority( $process );
 		$current  = self::batch_size( $process );
 		$next     = $current;
-		$target   = self::target_cpu( $priority );
+		$reason   = 'Sin cambios';
+		$budget   = max( 1, (float) ( $start['budget'] ?? 8 ) );
 
-		$wall_target = array( 1 => 3.0, 2 => 4.5, 3 => 6.0, 4 => 8.0, 5 => 11.0 )[ $priority ];
-		$reduce = $elapsed >= $wall_target
-			|| ( null !== $memory_percent && $memory_percent >= 75 )
-			|| ( null !== $cpu && $cpu > ( $target + 10 ) );
-
-		if ( $reduce ) {
-			$next = self::previous_level( $process, $current );
-		} elseif (
-			null !== $cpu
-			&& $cpu < max( 5, $target - 15 )
-			&& ( null === $memory_percent || $memory_percent < 60 )
-			&& $elapsed < 10
-		) {
-			$next = self::next_level( $process, $current );
+		if ( 'audit' === $process ) {
+			list( $next, $reason ) = self::audit_adjustment(
+				$current, self::max_batch( $process ), $items, $elapsed, $memory_percent, $budget, $cpu
+			);
+		} else {
+			// Preserve the existing regulation of assignment/labels/cleanup.
+			$target = self::target_cpu( $priority );
+			$wall_target = array( 1 => 3.0, 2 => 4.5, 3 => 6.0, 4 => 8.0, 5 => 11.0 )[ $priority ];
+			$reduce = $elapsed >= $wall_target
+				|| ( null !== $memory_percent && $memory_percent >= 75 )
+				|| ( null !== $cpu && $cpu > ( $target + 10 ) );
+			if ( $reduce ) {
+				$next = self::previous_level( $process, $current );
+			} elseif (
+				null !== $cpu
+				&& $cpu < max( 5, $target - 15 )
+				&& ( null === $memory_percent || $memory_percent < 60 )
+				&& $elapsed < 10
+			) {
+				$next = self::next_level( $process, $current );
+			}
 		}
 
 		update_option( self::batch_option( $process ), $next, false );
@@ -204,6 +257,9 @@ final class TaxoCommerce_Images_Load {
 			'batch'          => $current,
 			'next_batch'     => $next,
 			'elapsed'        => round( $elapsed, 3 ),
+			'budget'         => round( $budget, 2 ),
+			'items_per_second' => round( absint( $items ) / $elapsed, 2 ),
+			'reason'         => $reason,
 			'cpu_percent'    => null === $cpu ? null : round( $cpu, 1 ),
 			'memory_peak'    => $memory_peak,
 			'memory_percent' => null === $memory_percent ? null : round( $memory_percent, 1 ),
@@ -226,7 +282,9 @@ final class TaxoCommerce_Images_Load {
 		$process  = self::process_key( $process );
 		$priority = null === $priority ? self::priority( $process ) : max( 1, min( 5, absint( $priority ) ) );
 
-		if ( 'cleanup' === $process ) {
+		if ( 'audit' === $process ) {
+			$values = array( 1 => 25, 2 => 50, 3 => 75, 4 => 125, 5 => 200 );
+		} elseif ( 'cleanup' === $process ) {
 			$values = array( 1 => 1, 2 => 2, 3 => 3, 4 => 5, 5 => 8 );
 		} elseif ( 0 === strpos( $process, 'assignment_' ) ) {
 			$values = array( 1 => 1, 2 => 2, 3 => 4, 4 => 7, 5 => 12 );
@@ -247,7 +305,9 @@ final class TaxoCommerce_Images_Load {
 		$process  = self::process_key( $process );
 		$priority = null === $priority ? self::priority( $process ) : max( 1, min( 5, absint( $priority ) ) );
 
-		if ( 'cleanup' === $process ) {
+		if ( 'audit' === $process ) {
+			$values = array( 1 => 75, 2 => 150, 3 => 350, 4 => 700, 5 => 1200 );
+		} elseif ( 'cleanup' === $process ) {
 			$values = array( 1 => 3, 2 => 5, 3 => 10, 4 => 15, 5 => 25 );
 		} elseif ( 0 === strpos( $process, 'assignment_' ) ) {
 			$values = array( 1 => 2, 2 => 4, 3 => 8, 4 => 15, 5 => 25 );
