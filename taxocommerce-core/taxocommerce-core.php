@@ -21,6 +21,7 @@ define( 'TAXOCOMMERCE_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_CORE_BASENAME', plugin_basename( __FILE__ ) );
 
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-logger.php';
+require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-country.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-hierarchy.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-hierarchy-classic.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-menu.php';
