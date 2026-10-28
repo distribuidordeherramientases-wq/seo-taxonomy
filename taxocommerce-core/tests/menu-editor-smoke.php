@@ -2,7 +2,7 @@
 /** Isolated regression tests; deliberately no production DB or HTTP calls. */
 define( 'ABSPATH', __DIR__ . '/' );
 class WP_Error { public $message; public function __construct( $code, $message ) { $this->message = $message; } public function get_error_message() { return $this->message; } }
-class WP_Post { public $ID; public $post_type = 'page'; public $post_status = 'publish'; public $post_password = ''; public $post_title; public function __construct( $id, $title ) { $this->ID=$id; $this->post_title=$title; } }
+class WP_Post { public $ID; public $post_type = 'page'; public $post_status = 'publish'; public $post_password = ''; public $post_title; public $post_name = ''; public function __construct( $id, $title ) { $this->ID=$id; $this->post_title=$title; } }
 class TaxoCommerce_Core_Logger { public function info( $a, $b ) {} }
 class TaxoCommerce_Core_Hierarchy_Classic { public static function map( $kind ) { return array(); } public static function role_pages( $role ) { return array(); } }
 class WP_Query { public $posts; public function __construct( $args ) { $GLOBALS['last_query']=$args; $rows=array_values( array_filter( $GLOBALS['posts'], static function( $post ) use ( $args ) { return $post->post_type===$args['post_type'] && 'publish'===$post->post_status && ''===$post->post_password && ( ''===$args['s'] || false!==stripos( $post->post_title, $args['s'] ) ); } ) ); $this->posts=array_slice( $rows, $args['offset'], $args['posts_per_page'] ); } }
@@ -21,11 +21,12 @@ function wp_get_nav_menu_object($id){return 'TaxoCommerce'===$id?($GLOBALS['menu
 function wp_get_nav_menu_items($id,$args=array()){return array_values(array_filter($GLOBALS['items'],static function($item)use($id){return $item->menu_id===$id;}));}
 function get_post_meta($id,$key,$single=true){return $GLOBALS['meta'][$id][$key]??'';} function update_post_meta($id,$key,$value){$GLOBALS['writes']++;$GLOBALS['meta'][$id][$key]=$value;if('_menu_item_menu_item_parent'===$key && isset($GLOBALS['items'][$id])){$GLOBALS['items'][$id]->menu_item_parent=$value;}return true;}
 function get_post($id){return $GLOBALS['posts'][$id]??null;} function get_the_title($post){return is_object($post)?$post->post_title:($GLOBALS['posts'][$post]->post_title??'');}
-function get_terms($args){return array((object)array('term_id'=>71,'name'=>'Tools'));} function get_term($id,$tax){return $id===71?(object)array('term_id'=>71,'name'=>'Tools'):null;}
+function get_ancestors($id,$taxonomy,$type){return array();} function get_terms($args){return array((object)array('term_id'=>71,'name'=>'Tools'));} function get_term($id,$tax){return $id===71?(object)array('term_id'=>71,'name'=>'Tools'):null;}
 function wp_update_nav_menu_item($menu_id,$id,$data){$GLOBALS['writes']++;$id=$id?:1000+count($GLOBALS['items']);$GLOBALS['items'][$id]=(object)array('ID'=>$id,'menu_id'=>$menu_id,'menu_item_parent'=>$data['menu-item-parent-id'],'title'=>stripslashes($data['menu-item-title']),'url'=>$data['menu-item-url']??'https://example.test/item','object'=>$data['menu-item-object']??'custom','data'=>$data);return $id;}
 function wp_delete_post($id,$force){$GLOBALS['writes']++;$old=$GLOBALS['items'][$id]??false;unset($GLOBALS['items'][$id]);return $old;}
-function add_action($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function apply_filters($name,$value){return $value;} function current_user_can($cap){return $GLOBALS['allowed'];} function wp_die($text){throw new RuntimeException($text);}
+function add_filter($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function add_action($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function apply_filters($name,$value){return $value;} function current_user_can($cap){return $GLOBALS['allowed'];} function wp_die($text){throw new RuntimeException($text);}
 function check_admin_referer($action,$field){if(($_POST[$field]??'')!=='nonce-'.$action)throw new RuntimeException('nonce');} function check_ajax_referer($action,$field){check_admin_referer($action,$field);}
+require dirname(__DIR__).'/includes/class-taxocommerce-core-country.php';
 require dirname(__DIR__).'/includes/class-taxocommerce-core-menu.php';
 function verify($condition,$message){if(!$condition){fwrite(STDERR,'FAIL: '.$message."\n");exit(1);} $GLOBALS['checks']=($GLOBALS['checks']??0)+1;}
 $core=new TaxoCommerce_Core_Menu(new TaxoCommerce_Core_Logger()); $core->register_hooks();
