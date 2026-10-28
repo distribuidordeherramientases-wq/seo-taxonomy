@@ -37,7 +37,12 @@ final class TaxoCommerce_Import_Export_Batch {
 	public function boot() {
 		add_action( 'admin_post_taxocommerce_ie_batch_upload', array( $this, 'handle_upload' ) );
 		add_action( 'admin_post_taxocommerce_ie_batch_control', array( $this, 'handle_control' ) );
+		add_action( 'admin_post_taxocommerce_ie_batch_delete_pending', array( $this, 'handle_delete_pending' ) );
 		add_action( self::WORKER_HOOK, array( $this, 'worker' ) );
+		add_action( 'wp_ajax_taxocommerce_ie_batch_step', array( $this, 'ajax_step' ) );
+		add_action( 'wp_ajax_taxocommerce_ie_batch_continue', array( $this, 'internal_continue' ) );
+		add_action( 'wp_ajax_nopriv_taxocommerce_ie_batch_continue', array( $this, 'internal_continue' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_runner' ) );
 	}
 
 	const INDIVIDUAL_STATE = 'taxocommerce_ie_individual_last';
@@ -78,12 +83,14 @@ final class TaxoCommerce_Import_Export_Batch {
 		update_option( self::INDIVIDUAL_STATE, $record, false );
 		$state['enabled'] = true;
 		$state['user_id'] = get_current_user_id();
+		$state['dispatch_token'] = wp_generate_password( 48, false, false );
 		$state['pause_after_file'] = true;
 		$state['stop_requested'] = false;
 		$state['status'] = 'waiting_next';
 		$state['message'] = __( 'Archivo individual recibido: se procesará por bloques.', 'taxocommerce-import-export' );
 		$this->store_state( $state );
-		$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
+		// Start processing immediately instead of waiting for WP-Cron.
+		$this->worker();
 		return true;
 	}
 
@@ -146,7 +153,7 @@ final class TaxoCommerce_Import_Export_Batch {
 					<?php wp_nonce_field( 'taxocommerce_ie_batch_upload', 'taxocommerce_ie_batch_nonce' ); ?>
 					<p><input type="file" name="batch_files[]" accept=".csv,text/csv" multiple required></p>
 					<p>
-						<button class="button" name="queue_mode" value="pending"><?php esc_html_e( 'Añadir a pendientes', 'taxocommerce-import-export' ); ?></button>
+						<button class="button" name="queue_mode" value="pending"><?php esc_html_e( 'Guardar sin iniciar (pausado)', 'taxocommerce-import-export' ); ?></button>
 						<button class="button button-primary" name="queue_mode" value="start"><?php esc_html_e( 'Añadir e iniciar', 'taxocommerce-import-export' ); ?></button>
 					</p>
 					<p class="description"><?php esc_html_e( 'Máximo 20 archivos por subida. El nombre controla el orden natural: 001_..., 002_..., etc.', 'taxocommerce-import-export' ); ?></p>
@@ -189,7 +196,8 @@ final class TaxoCommerce_Import_Export_Batch {
 					<button class="button" name="queue_action" value="stop"><?php esc_html_e( 'Detener importación actual', 'taxocommerce-import-export' ); ?></button>
 					<button class="button" name="queue_action" value="tick"><?php esc_html_e( 'Procesar siguiente bloque', 'taxocommerce-import-export' ); ?></button>
 				</form>
-				<p class="description"><?php esc_html_e( 'La cola tiene su propio worker. No depende del antiguo gestor central de procesos. Detener no revierte filas ya aplicadas; al continuar reanuda desde el último offset guardado.', 'taxocommerce-import-export' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Cada bloque lanza inmediatamente el siguiente; Action Scheduler y WP-Cron son solo respaldo. La velocidad regula el tamaño de lote en función de tiempo y memoria, sin esperas entre bloques. Detener conserva el offset.', 'taxocommerce-import-export' ); ?></p>
+				<p id="tc-ie-batch-live" role="status" aria-live="polite" class="notice notice-info inline" style="padding:9px;margin-top:10px;">Consultando ejecución continua…</p>
 			</div>
 		</div>
 
@@ -212,7 +220,24 @@ final class TaxoCommerce_Import_Export_Batch {
 					<?php else : ?>
 						<ul>
 							<?php foreach ( array_slice( $files[ $bucket ], 0, 100 ) as $path ) : ?>
-								<li><code><?php echo esc_html( basename( $path ) ); ?></code></li>
+								<li style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:5px 0;">
+									<code><?php echo esc_html( basename( $path ) ); ?></code>
+									<?php if ( 'pending' === $bucket ) : ?>
+										<?php
+										$delete_label = sprintf(
+											/* translators: %s: exact CSV filename waiting in the import queue. */
+											__( 'Eliminar CSV pendiente %s', 'taxocommerce-import-export' ),
+											basename( $path )
+										);
+										?>
+										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return window.confirm('¿Eliminar este CSV pendiente? No se puede deshacer.');" style="display:inline;margin:0;">
+											<input type="hidden" name="action" value="taxocommerce_ie_batch_delete_pending">
+											<input type="hidden" name="pending_file" value="<?php echo esc_attr( basename( $path ) ); ?>">
+											<?php wp_nonce_field( 'taxocommerce_ie_batch_delete_pending_' . basename( $path ), 'taxocommerce_ie_batch_nonce' ); ?>
+											<button type="submit" class="button button-small button-link-delete" aria-label="<?php echo esc_attr( $delete_label ); ?>"><?php esc_html_e( 'Eliminar', 'taxocommerce-import-export' ); ?></button>
+										</form>
+									<?php endif; ?>
+								</li>
 							<?php endforeach; ?>
 						</ul>
 					<?php endif; ?>
@@ -302,6 +327,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			$state                     = $this->state();
 			$state['enabled']          = true;
 			$state['user_id']          = get_current_user_id();
+			$state['dispatch_token']   = wp_generate_password( 48, false, false );
 			$state['pause_after_file'] = false;
 			$state['stop_requested']   = false;
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : ( $state['status'] ?? 'processing' );
@@ -326,6 +352,97 @@ final class TaxoCommerce_Import_Export_Batch {
 		);
 	}
 
+
+	/**
+	 * Delete exactly one queued CSV before any importer starts processing it.
+	 * Rejects traversal, symlinks, other queue buckets and concurrent workers.
+	 *
+	 * @param string $filename Exact basename in the pending directory.
+	 * @return true|WP_Error
+	 */
+	public function delete_pending_file( $filename ) {
+		$this->guard();
+		if ( ! is_string( $filename )
+			|| '' === $filename
+			|| strlen( $filename ) > 255
+			|| false !== strpos( $filename, '/' )
+			|| false !== strpos( $filename, '\\' )
+			|| false !== strpos( $filename, "\0" )
+			|| 'csv' !== strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) ) ) {
+			return new WP_Error( 'tc_ie_delete_invalid', __( 'El nombre de archivo pendiente no es válido.', 'taxocommerce-import-export' ) );
+		}
+
+		$lock = $this->acquire_lock();
+		if ( '' === $lock ) {
+			return new WP_Error( 'tc_ie_delete_busy', __( 'Se está procesando otro bloque. Vuelve a intentar borrar este archivo cuando finalice.', 'taxocommerce-import-export' ) );
+		}
+
+		try {
+			$pending = $this->paths()['pending'];
+			if ( ! $pending ) {
+				return new WP_Error( 'tc_ie_delete_storage', __( 'El directorio de archivos pendientes no está disponible.', 'taxocommerce-import-export' ) );
+			}
+
+			$target = trailingslashit( $pending ) . $filename;
+			$actual_parent = realpath( dirname( $target ) );
+			$pending_parent = realpath( $pending );
+			if ( ! $actual_parent || ! $pending_parent || $actual_parent !== $pending_parent
+				|| is_link( $target )
+				|| ! in_array( $target, $this->files( $pending ), true )
+				|| ! is_file( $target ) ) {
+				return new WP_Error( 'tc_ie_delete_not_pending', __( 'El archivo ya no está pendiente o ha comenzado a procesarse; no se ha eliminado.', 'taxocommerce-import-export' ) );
+			}
+
+			wp_delete_file( $target );
+			if ( file_exists( $target ) ) {
+				return new WP_Error( 'tc_ie_delete_failed', __( 'No se ha podido borrar el CSV pendiente. Comprueba los permisos del alojamiento.', 'taxocommerce-import-export' ) );
+			}
+
+			$individual = get_option( self::INDIVIDUAL_STATE, array() );
+			if ( is_array( $individual ) && $filename === (string) ( $individual['file'] ?? '' )
+				&& 'pending' === (string) ( $individual['status'] ?? '' ) ) {
+				$individual['status'] = 'cancelled';
+				$individual['message'] = __( 'CSV pendiente eliminado antes de la importación.', 'taxocommerce-import-export' );
+				$individual['updated'] = current_time( 'mysql' );
+				$individual['events'][] = $individual['updated'] . ' · ' . $individual['message'];
+				update_option( self::INDIVIDUAL_STATE, $individual, false );
+			}
+
+			$state = $this->state();
+			if ( ! empty( $state['enabled'] ) && empty( $state['current_file'] )
+				&& ! $this->files( $pending ) ) {
+				$state['enabled'] = false;
+				$state['status'] = 'idle';
+				$state['message'] = __( 'Se ha eliminado el último CSV pendiente; la cola está vacía.', 'taxocommerce-import-export' );
+				$this->store_state( $state );
+			}
+			return true;
+		} finally {
+			$this->release_lock( $lock );
+		}
+	}
+
+	/** Handle deletion of one pending CSV after permission and CSRF checks. */
+	public function handle_delete_pending() {
+		$this->guard();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce action includes the exact file name and is verified below.
+		$raw = isset( $_POST['pending_file'] ) && is_string( $_POST['pending_file'] )
+			? wp_unslash( $_POST['pending_file'] ) : '';
+		if ( '' === $raw || strlen( $raw ) > 255 ) {
+			$this->redirect( 'error', __( 'No se ha indicado un CSV pendiente válido.', 'taxocommerce-import-export' ) );
+		}
+		check_admin_referer( 'taxocommerce_ie_batch_delete_pending_' . $raw, 'taxocommerce_ie_batch_nonce' );
+		$result = $this->delete_pending_file( $raw );
+		if ( is_wp_error( $result ) ) {
+			$this->redirect( 'error', $result->get_error_message() );
+		}
+		$this->redirect( 'ok', sprintf(
+			/* translators: %s: deleted CSV file basename. */
+			__( 'CSV pendiente eliminado: %s.', 'taxocommerce-import-export' ),
+			$raw
+		) );
+	}
+
 	/**
 	 * Handle queue controls.
 	 *
@@ -346,6 +463,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		if ( 'start' === $action ) {
 			$state['enabled']          = true;
 			$state['user_id']          = get_current_user_id();
+			$state['dispatch_token']   = wp_generate_password( 48, false, false );
 			$state['pause_after_file'] = false;
 			$state['stop_requested']   = false;
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : 'processing';
@@ -369,6 +487,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		} elseif ( 'tick' === $action ) {
 			$state['enabled']        = true;
 			$state['user_id']        = get_current_user_id();
+			$state['dispatch_token'] = wp_generate_password( 48, false, false );
 			$state['stop_requested'] = false;
 			$this->store_state( $state );
 			$this->worker();
@@ -402,6 +521,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		}
 
 		$previous_user = get_current_user_id();
+		$continue = false;
 
 		try {
 			$state = $this->state();
@@ -450,7 +570,7 @@ final class TaxoCommerce_Import_Export_Batch {
 					if ( ! empty( $remaining ) && ! empty( $state['enabled'] ) ) {
 						$state['status'] = 'waiting_next';
 						$this->store_state( $state );
-						$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
+						$continue = true;
 						return;
 					}
 
@@ -469,18 +589,30 @@ final class TaxoCommerce_Import_Export_Batch {
 			}
 
 			$state = $result;
+			// Admin stop/pause can arrive while a block is still working. Never
+			// overwrite a newer stop or disable command with the older snapshot.
+			$latest = $this->state();
+			if ( ! empty( $latest['stop_requested'] ) || empty( $latest['enabled'] ) ) {
+				$state['enabled'] = false;
+				$state['stop_requested'] = ! empty( $latest['stop_requested'] );
+				$state['status'] = 'paused';
+				$state['message'] = __( 'Importación detenida o pausada. Se conserva el offset del último bloque.', 'taxocommerce-import-export' );
+			} elseif ( ! empty( $latest['pause_after_file'] ) ) {
+				$state['pause_after_file'] = true;
+			}
 			$this->store_state( $state );
 
-			if ( 'processing' === ( $state['status'] ?? '' ) && ! empty( $state['enabled'] ) ) {
-				$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
-			} elseif ( 'waiting_next' === ( $state['status'] ?? '' ) && ! empty( $state['enabled'] ) ) {
-				$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
-			}
+			$continue = ! empty( $state['enabled'] )
+				&& in_array( (string) ( $state['status'] ?? '' ), array( 'processing', 'waiting_next' ), true );
 		} finally {
 			if ( get_current_user_id() !== $previous_user ) {
 				wp_set_current_user( $previous_user );
 			}
 			$this->release_lock( $token );
+			// Next request starts only after the previous lock is released.
+			if ( $continue ) {
+				$this->dispatch_next();
+			}
 		}
 	}
 
@@ -602,7 +734,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			fseek( $handle, $offset );
 		}
 
-		$limit    = min( TaxoCommerce_IE_Load::batch_size( 'import' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 50 ) ) ) ) );
+		$limit    = min( TaxoCommerce_IE_Load::batch_size( 'import' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 200 ) ) ) ) );
 		$measure  = TaxoCommerce_IE_Load::begin();
 		$deadline = microtime( true ) + max( 2, min( 20, (float) apply_filters( 'taxocommerce_import_export_batch_runtime_seconds', 8 ) ) );
 		$done     = 0;
@@ -708,7 +840,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			$individual['events'][] = $individual['updated'] . ' · ' . $individual['message'];
 			update_option( self::INDIVIDUAL_STATE, $individual, false );
 		}
-		$pause = ! empty( $state['pause_after_file'] );
+		$pause = ! empty( $state['pause_after_file'] ) || ! empty( $this->state()['pause_after_file'] );
 		$state['last_file']      = basename( $target );
 		$state['current_file']   = '';
 		$state['entity']         = '';
@@ -988,22 +1120,108 @@ Deny from all
 	}
 
 	/**
-	 * Schedule next bounded block using this plugin's own worker.
-	 *
-	 * @param int $delay Delay in seconds.
-	 * @return void
+	 * Watchdog only: normal CSV blocks never wait for Action Scheduler.
+	 * This path can recover a failed loopback when cron eventually runs.
 	 */
-	private function schedule( $delay = 2 ) {
-		$delay = max( 1, absint( $delay ) );
-		if ( function_exists( 'as_has_scheduled_action' ) && as_has_scheduled_action( self::WORKER_HOOK, array(), self::AS_GROUP ) ) {
-			return;
-		}
-		if ( function_exists( 'as_schedule_single_action' ) ) {
+	private function schedule( $delay = 60 ) {
+		$delay = max( 60, absint( $delay ) );
+		if ( function_exists( 'as_schedule_single_action' )
+			&& ( ! function_exists( 'as_has_scheduled_action' )
+				|| ! as_has_scheduled_action( self::WORKER_HOOK, array(), self::AS_GROUP ) ) ) {
 			as_schedule_single_action( time() + $delay, self::WORKER_HOOK, array(), self::AS_GROUP, true, 10 );
 		}
 		if ( false === wp_next_scheduled( self::WORKER_HOOK ) ) {
-			wp_schedule_single_event( time() + max( 30, $delay ), self::WORKER_HOOK );
+			wp_schedule_single_event( time() + $delay, self::WORKER_HOOK );
 		}
+	}
+
+	/** Dispatch the next bounded request immediately via local loopback. */
+	private function dispatch_next() {
+		$state = $this->state();
+		if ( empty( $state['enabled'] )
+			|| ! in_array( (string) ( $state['status'] ?? '' ), array( 'processing', 'waiting_next' ), true ) ) {
+			return;
+		}
+		$token = (string) ( $state['dispatch_token'] ?? '' );
+		$this->schedule( 60 ); // Backup only.
+		if ( '' === $token ) {
+			return;
+		}
+		$response = wp_remote_post( admin_url( 'admin-ajax.php' ), array(
+			'blocking'    => false,
+			'timeout'     => 1,
+			'redirection' => 0,
+			'sslverify'   => true,
+			'body'        => array(
+				'action' => 'taxocommerce_ie_batch_continue',
+				'token'  => $token,
+			),
+		) );
+		if ( is_wp_error( $response ) ) {
+			$state['message'] = __( 'Falló la autollamada; la recuperación por cron y desde el administrador sigue disponible.', 'taxocommerce-import-export' );
+			$this->store_state( $state );
+		}
+	}
+
+	/** Restricted internal continuation, no front-end nonce disclosed. */
+	public function internal_continue() {
+		$state = $this->state();
+		$expected = (string) ( $state['dispatch_token'] ?? '' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Secret internal bearer token checked with hash_equals.
+		$submitted = isset( $_POST['token'] ) && is_string( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
+		if ( '' === $expected || strlen( $submitted ) > 64 || ! hash_equals( $expected, $submitted )
+			|| empty( $state['enabled'] ) ) {
+			wp_die( 'Acceso denegado', '', array( 'response' => 403 ) );
+		}
+		$this->worker();
+		wp_die( '', '', array( 'response' => 200 ) );
+	}
+
+	/** Browser-assisted continuation with explicit WordPress permissions. */
+	public function ajax_step() {
+		check_ajax_referer( 'taxocommerce_ie_batch_step', 'nonce' );
+		$this->guard();
+		$state = $this->state();
+		$busy = (bool) get_transient( self::LOCK_KEY );
+		if ( ! empty( $state['enabled'] ) && ! $busy ) {
+			$this->worker();
+		}
+		$state = $this->state();
+		$sample = TaxoCommerce_IE_Load::last_sample( 'import' );
+		wp_send_json_success( array(
+			'enabled' => ! empty( $state['enabled'] ),
+			'busy'    => $busy,
+			'status'  => sanitize_key( (string) ( $state['status'] ?? 'idle' ) ),
+			'file'    => sanitize_file_name( (string) ( $state['current_file'] ?? '' ) ),
+			'rows'    => absint( $state['processed_rows'] ?? 0 ),
+			'errors'  => absint( $state['error_rows'] ?? 0 ),
+			'message' => sanitize_text_field( (string) ( $state['message'] ?? '' ) ),
+			'last_batch' => absint( $sample['items'] ?? 0 ),
+			'next_batch' => TaxoCommerce_IE_Load::batch_size( 'import' ),
+			'elapsed' => (float) ( $sample['elapsed'] ?? 0 ),
+			'rows_per_second' => (float) ( $sample['rows_per_second'] ?? 0 ),
+			'reason' => sanitize_text_field( (string) ( $sample['reason'] ?? '' ) ),
+		) );
+	}
+
+	/** Only load the browser helper on the Import-Export admin screen. */
+	public function enqueue_runner() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( 'taxocommerce-import-export' !== $page ) {
+			return;
+		}
+		wp_enqueue_script(
+			'taxocommerce-ie-batch-runner',
+			plugin_dir_url( TAXOCOMMERCE_IMPORT_EXPORT_FILE ) . 'assets/batch-runner.js',
+			array(),
+			TAXOCOMMERCE_IMPORT_EXPORT_VERSION,
+			true
+		);
+		wp_add_inline_script( 'taxocommerce-ie-batch-runner', 'window.tcIeBatchRunner = ' . wp_json_encode( array(
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'nonce' => wp_create_nonce( 'taxocommerce_ie_batch_step' ),
+		) ) . ';', 'before' );
 	}
 
 	/**

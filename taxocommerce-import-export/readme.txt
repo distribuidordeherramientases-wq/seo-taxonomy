@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.1
+Stable tag: 0.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -85,3 +85,15 @@ The package transports original image files plus title, ALT, caption, descriptio
 
 = 0.1.0 =
 * Initial CSV import/export pilot.
+
+== 0.4.2 ==
+* CSV imports: each successful block immediately dispatches a new signed local HTTP request; Action Scheduler and WP-Cron are recovery/watchdog paths, not pacing dependencies.
+* Browser-side AJAX assistance drives the queue while the admin is open; live rows/sec, duration, next block and adaptation reason.
+* Adaptive regulator starts with 10 rows at level 3, grows/shrinks according to measured duration and memory, does not interpret PHP-request CPU usage as global server pressure.
+* Individual CSV import starts immediately after upload; explicitly queued/paused files still require the administrator to press Start.
+* If the hosting blocks internal loopback and WordPress cron is disabled, unattended execution cannot be guaranteed without a real server cron.
+
+== 0.4.3 ==
+* Pending CSV list includes a delete action for each queued file, with confirmation, exact-file nonce, capability check, and safe path validation.
+* A delete is refused while the queue worker holds the lock or once the file has entered processing. Processing, imported and failed CSVs remain untouched.
+* Deleting an individually queued CSV also updates its status; deleting the last pending file marks an otherwise empty active queue idle.

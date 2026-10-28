@@ -22,7 +22,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         wp_enqueue_script( 'taxocommerce-core-menu-editor', $url . 'menu-editor.js', array(), TAXOCOMMERCE_CORE_VERSION . '-menu-1', true );
         wp_localize_script( 'taxocommerce-core-menu-editor', 'tcMenuEditor', array(
             'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( self::SEARCH ),
-            'action' => self::SEARCH, 'loading' => __( 'Cargando...', 'taxocommerce-core' ),
+            'country' => TaxoCommerce_Core_Menu::country(), 'action' => self::SEARCH, 'loading' => __( 'Cargando...', 'taxocommerce-core' ),
             'empty' => __( 'No hay elementos disponibles.', 'taxocommerce-core' ),
             'error' => __( 'No se pudo cargar la lista. Vuelve a intentarlo.', 'taxocommerce-core' ),
             'page' => __( 'Página', 'taxocommerce-core' ),
@@ -43,7 +43,8 @@ final class TaxoCommerce_Core_Menu_Editor {
     }
 
     /** Bounded queries; search covers all published objects, not just the first page. */
-    public static function objects( $type, $mode = 'recent', $page = 1, $needle = '' ) {
+    public static function objects( $type, $mode = 'recent', $page = 1, $needle = '', $country = '' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: TaxoCommerce_Core_Menu::country();
         if ( ! isset( self::types()[ $type ] ) ) { return new WP_Error( 'menu_type', 'Tipo de elemento no permitido.' ); }
         $mode = in_array( $mode, array( 'recent', 'all', 'search' ), true ) ? $mode : 'recent';
         $limit = 'recent' === $mode ? 10 : self::LIMIT;
@@ -51,16 +52,17 @@ final class TaxoCommerce_Core_Menu_Editor {
         $needle = 'search' === $mode ? sanitize_text_field( $needle ) : '';
         $items = array();
         if ( in_array( $type, array( 'page', 'post' ), true ) ) {
-            $query = new WP_Query( array( 'post_type' => $type, 'post_status' => 'publish', 'has_password' => false,
+            $market_filter = 'ES' === $country ? array() : array( 'meta_query' => array( 'relation' => 'OR', array( 'key' => '_seo_pais_origen', 'value' => $country ), array( 'key' => 'dht_pilot_market', 'value' => $country ) ) );
+            $query = new WP_Query( array_merge( $market_filter, array( 'post_type' => $type, 'post_status' => 'publish', 'has_password' => false,
                 'posts_per_page' => $limit + 1, 'offset' => $offset, 's' => $needle, 'no_found_rows' => true,
                 'orderby' => 'recent' === $mode ? 'date' : 'title', 'order' => 'recent' === $mode ? 'DESC' : 'ASC',
-                'ignore_sticky_posts' => true, 'update_post_meta_cache' => false, 'update_post_term_cache' => false ) );
-            foreach ( $query->posts as $post ) { $items[] = array( 'id' => (int) $post->ID, 'title' => wp_specialchars_decode( get_the_title( $post ), ENT_QUOTES ) ); }
+                'ignore_sticky_posts' => true, 'update_post_meta_cache' => false, 'update_post_term_cache' => false ) ) );
+            foreach ( $query->posts as $post ) { if ( TaxoCommerce_Core_Country::post( $post->ID ) !== $country ) { continue; } $items[] = array( 'id' => (int) $post->ID, 'title' => wp_specialchars_decode( get_the_title( $post ), ENT_QUOTES ) ); }
         } else {
             $terms = get_terms( array( 'taxonomy' => $type, 'hide_empty' => false, 'number' => $limit + 1, 'offset' => $offset,
                 'search' => $needle, 'orderby' => 'recent' === $mode ? 'count' : 'name', 'order' => 'recent' === $mode ? 'DESC' : 'ASC' ) );
             if ( is_wp_error( $terms ) ) { return $terms; }
-            foreach ( $terms as $term ) { $items[] = array( 'id' => (int) $term->term_id, 'title' => wp_specialchars_decode( $term->name, ENT_QUOTES ) ); }
+            foreach ( $terms as $term ) { if ( 'product_cat' === $type && TaxoCommerce_Core_Country::term( $term->term_id ) !== $country ) { continue; } $items[] = array( 'id' => (int) $term->term_id, 'title' => wp_specialchars_decode( $term->name, ENT_QUOTES ) ); }
         }
         return array( 'items' => array_slice( $items, 0, $limit ), 'more' => 'recent' !== $mode && count( $items ) > $limit );
     }
@@ -72,7 +74,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         $mode = isset( $_POST['mode'] ) && is_string( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'recent';
         $page = isset( $_POST['list_page'] ) ? max( 1, min( 100000, absint( $_POST['list_page'] ) ) ) : 1;
         $needle = isset( $_POST['needle'] ) && is_string( $_POST['needle'] ) ? sanitize_text_field( wp_unslash( $_POST['needle'] ) ) : '';
-        $result = self::objects( $type, $mode, $page, $needle );
+        $result = self::objects( $type, $mode, $page, $needle, TaxoCommerce_Core_Menu::country( true ) );
         if ( is_wp_error( $result ) ) { wp_send_json_error( $result->get_error_message(), 400 ); }
         wp_send_json_success( $result );
     }
@@ -92,20 +94,21 @@ final class TaxoCommerce_Core_Menu_Editor {
         echo '<section class="tc-menu-controls" data-position="' . esc_attr( $position ) . '" aria-labelledby="tc-menu-controls-' . esc_attr( $position ) . '">';
         echo '<h2 id="tc-menu-controls-' . esc_attr( $position ) . '">' . esc_html__( 'Publicación del menú', 'taxocommerce-core' ) . '</h2><div class="tc-menu-actions">';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_core_sync_menu">';
+        echo '<input type="hidden" name="tc_country" value="' . esc_attr( TaxoCommerce_Core_Menu::country() ) . '">';
         self::nonce( 'taxocommerce_core_sync_menu' );
         echo '<button type="submit" class="button button-primary">' . ( $menu ? esc_html__( 'Sincronizar propuesta', 'taxocommerce-core' ) : esc_html__( 'Crear menú desde la jerarquía', 'taxocommerce-core' ) ) . '</button></form>';
         if ( $menu ) { echo '<a class="button" href="' . esc_url( admin_url( 'nav-menus.php?action=edit&menu=' . absint( $menu_id ) ) ) . '">' . esc_html__( 'Editar manualmente en WordPress', 'taxocommerce-core' ) . '</a>'; }
         echo '</div>';
         if ( $menu && $locations ) {
             echo '<h3>' . esc_html__( 'Ubicación en el tema', 'taxocommerce-core' ) . '</h3><form class="tc-menu-actions" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-            echo '<input type="hidden" name="action" value="taxocommerce_core_activate_menu">';
+            echo '<input type="hidden" name="action" value="taxocommerce_core_activate_menu"><input type="hidden" name="tc_country" value="' . esc_attr( TaxoCommerce_Core_Menu::country() ) . '">';
             self::nonce( 'taxocommerce_core_activate_menu' );
             echo '<label class="screen-reader-text" for="tc-menu-location-' . esc_attr( $position ) . '">' . esc_html__( 'Ubicación en el tema', 'taxocommerce-core' ) . '</label><select data-tc-menu-location name="menu_location" id="tc-menu-location-' . esc_attr( $position ) . '">';
             foreach ( $locations as $key => $label ) { echo '<option value="' . esc_attr( $key ) . '"' . selected( $selected, $key, false ) . '>' . esc_html( $label ) . '</option>'; }
             echo '</select><button type="submit" class="button">' . esc_html__( 'Activar en esta ubicación', 'taxocommerce-core' ) . '</button></form>';
         }
         if ( get_option( TaxoCommerce_Core_Menu::BACKUP_OPTION, false ) ) {
-            echo '<form class="tc-menu-restore" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_core_restore_menu">';
+            echo '<form class="tc-menu-restore" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_core_restore_menu"><input type="hidden" name="tc_country" value="' . esc_attr( TaxoCommerce_Core_Menu::country() ) . '">';
             self::nonce( 'taxocommerce_core_restore_menu' );
             echo '<button type="submit" class="button">' . esc_html__( 'Restaurar menú anterior del tema', 'taxocommerce-core' ) . '</button></form>';
         }
@@ -150,6 +153,7 @@ final class TaxoCommerce_Core_Menu_Editor {
     private static function manual_fields( $task ) {
         echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '"><input type="hidden" name="task" value="' . esc_attr( $task ) . '">';
         self::nonce( self::ACTION );
+        echo '<input type="hidden" name="tc_country" value="' . esc_attr( TaxoCommerce_Core_Menu::country() ) . '">';
     }
 
     private static function box( $type, $open = false ) {
@@ -178,13 +182,15 @@ final class TaxoCommerce_Core_Menu_Editor {
     }
 
     private static function managed_menu( $create = false ) {
-        $id = absint( get_option( TaxoCommerce_Core_Menu::MENU_ID_OPTION, 0 ) );
+        $country = TaxoCommerce_Core_Menu::country( true );
+        $id = absint( get_option( TaxoCommerce_Core_Menu::menu_option( $country ), 0 ) );
         if ( $id && wp_get_nav_menu_object( $id ) ) { return $id; }
         if ( ! $create ) { return 0; }
-        $existing = wp_get_nav_menu_object( 'TaxoCommerce' );
-        $id = $existing && ! is_wp_error( $existing ) ? (int) $existing->term_id : wp_create_nav_menu( 'TaxoCommerce' );
+        $name = 'ES' === $country ? 'TaxoCommerce' : 'TaxoCommerce - ' . $country;
+        $existing = wp_get_nav_menu_object( $name );
+        $id = $existing && ! is_wp_error( $existing ) ? (int) $existing->term_id : wp_create_nav_menu( $name );
         if ( is_wp_error( $id ) ) { return $id; }
-        update_option( TaxoCommerce_Core_Menu::MENU_ID_OPTION, (int) $id, false );
+        update_option( TaxoCommerce_Core_Menu::menu_option( $country ), (int) $id, false );
         return (int) $id;
     }
 
@@ -198,10 +204,12 @@ final class TaxoCommerce_Core_Menu_Editor {
             if ( in_array( $type, array( 'page', 'post' ), true ) ) {
                 $post = get_post( $id );
                 if ( ! $post || $post->post_type !== $type || 'publish' !== $post->post_status || '' !== $post->post_password ) { return new WP_Error( 'menu_post', 'La selección contiene un contenido no publicado o no válido.' ); }
+                if ( TaxoCommerce_Core_Country::post( $id ) !== TaxoCommerce_Core_Menu::country( true ) ) { return new WP_Error( 'menu_country', 'El contenido pertenece a otro país.' ); }
                 $data[] = array( 'menu-item-object-id' => $id, 'menu-item-object' => $type, 'menu-item-type' => 'post_type', 'menu-item-title' => wp_slash( get_the_title( $post ) ) );
             } else {
                 $term = get_term( $id, $type );
                 if ( ! $term || is_wp_error( $term ) ) { return new WP_Error( 'menu_term', 'La categoría seleccionada no existe.' ); }
+                if ( 'product_cat' === $type && TaxoCommerce_Core_Country::term( $id ) !== TaxoCommerce_Core_Menu::country( true ) ) { return new WP_Error( 'menu_country', 'La categoría pertenece a otro país.' ); }
                 $data[] = array( 'menu-item-object-id' => $id, 'menu-item-object' => $type, 'menu-item-type' => 'taxonomy', 'menu-item-title' => wp_slash( $term->name ) );
             }
         }
@@ -260,7 +268,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         } else {
             $result = new WP_Error( 'menu_action', 'Acción no válida.' ); $message = $result->get_error_message();
         }
-        wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core-menu', 'tc_result' => is_wp_error( $result ) ? 'error' : 'ok', 'tc_message' => $message ), admin_url( 'admin.php' ) ) );
+        wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core-menu', 'tc_country' => TaxoCommerce_Core_Menu::country( true ), 'tc_result' => is_wp_error( $result ) ? 'error' : 'ok', 'tc_message' => $message ), admin_url( 'admin.php' ) ) );
         exit;
     }
 }

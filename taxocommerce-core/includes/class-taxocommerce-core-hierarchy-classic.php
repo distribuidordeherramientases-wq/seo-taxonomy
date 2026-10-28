@@ -13,6 +13,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     const TABLE_SUFFIX = 'seo_relations';
     const NODES_SUFFIX = 'seo_nodes';
     private static $map_cache = array();
+    private static $schema_verified = false;
 
     public static function definitions() {
         return array(
@@ -134,11 +135,13 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             target_type VARCHAR(50) NOT NULL,
             target_id BIGINT UNSIGNED NOT NULL,
             relation_type VARCHAR(80) NOT NULL,
+            country_code CHAR(2) NULL DEFAULT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
             KEY source_lookup (source_type,source_id),
             KEY target_lookup (target_type,target_id),
             KEY relation_type (relation_type),
+            KEY country_relation (country_code,relation_type),
             KEY relation_endpoints (source_id,target_id)
         ) {$collate};" );
         $nodes = self::nodes_table();
@@ -160,6 +163,16 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         ) {$collate};" );
     }
 
+    /** Upgrade existing installations without backfilling ambiguous relations. */
+    public static function ensure_country_schema() {
+        global $wpdb;
+        if ( self::$schema_verified || ! self::available() ) { return; }
+        $table = self::table();
+        $found = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'country_code' ) );
+        if ( ! $found ) { $wpdb->query( "ALTER TABLE {$table} ADD COLUMN country_code CHAR(2) NULL DEFAULT NULL AFTER relation_type" ); }
+        self::$schema_verified = true;
+    }
+
     /** Relationship snapshots for the tree, editor and menu generator. */
     public static function rows( $type = '' ) {
         global $wpdb;
@@ -171,9 +184,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             return array();
         }
         $table = self::table();
+        $field = (string) $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'country_code' ) ) === 'country_code' ? 'country_code' : 'NULL AS country_code';
         if ( $type ) {
             $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_id, target_id, relation_type FROM {$table} WHERE relation_type = %s", $type ),
+                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM {$table} WHERE relation_type = %s", $type ),
                 ARRAY_A
             );
         } else {
@@ -181,7 +195,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Whitelisted SQL placeholders and known table name.
             $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_id, target_id, relation_type FROM {$table} WHERE relation_type IN ({$placeholders})", $types ),
+                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM {$table} WHERE relation_type IN ({$placeholders})", $types ),
                 ARRAY_A
             );
         }
@@ -189,19 +203,18 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     }
 
     /** Source => target IDs, used without querying per category. */
-    public static function map( $type ) {
-        if ( isset( self::$map_cache[ $type ] ) ) {
-            return self::$map_cache[ $type ];
-        }
+    public static function map( $type, $country = '' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country );
+        $key = $type . ':' . $country;
+        if ( isset( self::$map_cache[ $key ] ) ) { return self::$map_cache[ $key ]; }
         $map = array();
         foreach ( self::rows( $type ) as $row ) {
             $source = absint( $row['source_id'] );
             $target = absint( $row['target_id'] );
-            if ( $source && $target ) {
-                $map[ $source ][ $target ] = true;
-            }
+            if ( $country && TaxoCommerce_Core_Country::relation( $row ) !== $country ) { continue; }
+            if ( $source && $target ) { $map[ $source ][ $target ] = true; }
         }
-        self::$map_cache[ $type ] = $map;
+        self::$map_cache[ $key ] = $map;
         return $map;
     }
 
@@ -227,19 +240,27 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
      * Save a parent's complete checkbox selection. This changes only its own
      * canonical hierarchy relationship type, never commercial relations.
      */
-    public static function replace( $hierarchy, $type, $source, $ids ) {
+    public static function replace( $hierarchy, $type, $source, $ids, $country = '' ) {
         global $wpdb;
         $defs = self::definitions();
         if ( ! isset( $defs[ $type ] ) || ! self::available() ) {
             return new WP_Error( 'tc_relations_unavailable', 'No está disponible seo_relations o el tipo de relación es incorrecto.' );
         }
         $def = $defs[ $type ];
+        $country = TaxoCommerce_Core_Country::normalize( $country );
         $source = absint( $source );
+        if ( $country && TaxoCommerce_Core_Country::post( $source ) !== $country ) {
+            return new WP_Error( 'tc_market_source', 'El origen pertenece a otro país.' );
+        }
         if ( ! self::valid_source( $hierarchy, $def, $source ) ) {
             return new WP_Error( 'tc_relations_source', 'El origen no tiene el rol SEO requerido.' );
         }
         $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $ids ) ) ) );
         foreach ( $ids as $id ) {
+            $target_country = 'category' === $def['target_role'] ? TaxoCommerce_Core_Country::term( $id ) : TaxoCommerce_Core_Country::post( $id );
+            if ( $country && $target_country !== $country ) {
+                return new WP_Error( 'tc_market_target', 'No se permiten relaciones entre países distintos.' );
+            }
             if ( ! self::valid_target( $hierarchy, $def, $id ) ) {
                 return new WP_Error( 'tc_relations_target', 'Hay una página, entrada o categoría no válida en la selección.' );
             }
@@ -256,7 +277,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 return new WP_Error( 'tc_relations_taken', sprintf( 'El elemento #%d ya pertenece a otro padre. Desvincúlalo primero.', $id ) );
             }
         }
-        $old = array_keys( self::map( $type )[ $source ] ?? array() );
+        $old = array_keys( self::map( $type, $country )[ $source ] ?? array() );
         $to_add = array_diff( $ids, $old );
         $to_remove = array_diff( $old, $ids );
 
@@ -276,7 +297,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 if ( false === $wpdb->insert( $table, array(
                     'source_type' => $def['source_type'], 'source_id' => $source,
                     'target_type' => $def['target_type'], 'target_id' => $id,
-                    'relation_type' => $type, 'created_at' => current_time( 'mysql' ),
+                    'relation_type' => $type, 'country_code' => $country ?: TaxoCommerce_Core_Country::post( $source ), 'created_at' => current_time( 'mysql' ),
                 ) ) ) {
                     $ok = false;
                     break;
@@ -289,7 +310,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             $wpdb->query( 'ROLLBACK' );
         }
         if ( $ok ) {
-            unset( self::$map_cache[ $type ] );
+            self::$map_cache = array();
         }
         if ( ! $ok ) {
             return new WP_Error( 'tc_relations_save_failed', 'No se pudieron guardar las relaciones. No se han aplicado cambios parciales.' );
@@ -304,25 +325,25 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         return true;
     }
 
-    public static function add( $hierarchy, $type, $source, $target ) {
+    public static function add( $hierarchy, $type, $source, $target, $country = '' ) {
         if ( 'primary_to_secondary' === $type ) {
             $type = 'hub_primary_to_hub_secondary';
         } elseif ( 'secondary_to_category' === $type ) {
             $type = 'hub_secondary_to_category';
         }
-        $selected = array_keys( self::map( $type )[ absint( $source ) ] ?? array() );
+        $selected = array_keys( self::map( $type, $country )[ absint( $source ) ] ?? array() );
         $selected[] = absint( $target );
-        return self::replace( $hierarchy, $type, $source, $selected );
+        return self::replace( $hierarchy, $type, $source, $selected, $country );
     }
 
-    public static function remove( $hierarchy, $type, $source, $target ) {
+    public static function remove( $hierarchy, $type, $source, $target, $country = '' ) {
         if ( 'primary_to_secondary' === $type ) {
             $type = 'hub_primary_to_hub_secondary';
         } elseif ( 'secondary_to_category' === $type ) {
             $type = 'hub_secondary_to_category';
         }
         $selected = array_keys( self::map( $type )[ absint( $source ) ] ?? array() );
-        return self::replace( $hierarchy, $type, $source, array_diff( $selected, array( absint( $target ) ) ) );
+        return self::replace( $hierarchy, $type, $source, array_diff( $selected, array( absint( $target ) ) ), $country );
     }
 
     private static function mirror_meta( $def, $source, $target, $add ) {
@@ -382,7 +403,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                         $wpdb->insert( self::table(), array(
                             'source_type' => $def['source_type'], 'source_id' => $source,
                             'target_type' => $def['target_type'], 'target_id' => $target,
-                            'relation_type' => $type, 'created_at' => current_time( 'mysql' ),
+                            'relation_type' => $type, 'country_code' => TaxoCommerce_Core_Country::post( $source ), 'created_at' => current_time( 'mysql' ),
                         ) );
                         $existing[ $source ][ $target ] = true;
                         $already_taken[ $target ] = true;
@@ -422,25 +443,30 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         ) );
     }
 
-    private static function candidates( $target_role ) {
+    public static function country_pages( $role, $country ) {
+        return array_values( array_filter( self::role_pages( $role ), static function ( $p ) use ( $country ) {
+            return TaxoCommerce_Core_Country::post( $p->ID ) === $country;
+        } ) );
+    }
+
+    private static function candidates( $target_role, $country = '' ) {
         static $cached = array();
-        if ( isset( $cached[ $target_role ] ) ) {
-            return $cached[ $target_role ];
-        }
+        $key = $target_role . ':' . $country;
+        if ( isset( $cached[ $key ] ) ) { return $cached[ $key ]; }
         if ( 'category' === $target_role ) {
             $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name', 'number' => 40 ) );
-            $cached[ $target_role ] = is_wp_error( $terms ) ? array() : $terms;
-            return $cached[ $target_role ];
+            $cached[ $key ] = array_values( array_filter( is_wp_error( $terms ) ? array() : $terms, static function ( $term ) use ( $country ) { return ! $country || TaxoCommerce_Core_Country::term( $term->term_id ) === $country; } ) );
+            return $cached[ $key ];
         }
         if ( 'post' === $target_role ) {
-            $cached[ $target_role ] = get_posts( array(
+            $cached[ $key ] = get_posts( array(
                 'post_type' => 'post', 'post_status' => 'publish', 'posts_per_page' => 80,
                 'orderby' => 'title', 'order' => 'ASC',
             ) );
         } else {
-            $cached[ $target_role ] = self::role_pages( $target_role );
+            $cached[ $key ] = self::role_pages( $target_role );
         }
-        return $cached[ $target_role ];
+        return array_values( array_filter( $cached[ $key ], static function ( $p ) use ( $country ) { return ! $country || TaxoCommerce_Core_Country::post( $p->ID ) === $country; } ) );
     }
 
     /**
@@ -448,7 +474,8 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
      * The editor keeps the original parent-first checkbox workflow, while
      * collapsed branches prevent large trees from overwhelming the screen.
      */
-    public static function render( $hierarchy ) {
+    public static function render( $hierarchy, $country = 'ES' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: 'ES';
         if ( ! self::available() ) {
             echo '<div class="notice notice-error"><p>Falta la tabla seo_relations. Activa de nuevo TaxoCommerce Core para crearla sin borrar datos.</p></div>';
             return;
@@ -500,11 +527,11 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
 
         $focus      = isset( $_GET['tc_focus'] ) ? absint( $_GET['tc_focus'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only focus.
         $defs       = self::definitions();
-        $clusters   = self::role_pages( 'cluster' );
-        $primaries  = self::role_pages( 'hub_primary' );
-        $secondaries= self::role_pages( 'hub_secondary' );
-        $cluster_map= self::map( 'cluster_to_primary' );
-        $primary_map= self::map( 'hub_primary_to_hub_secondary' );
+        $clusters   = self::country_pages( 'cluster', $country );
+        $primaries  = self::country_pages( 'hub_primary', $country );
+        $secondaries= self::country_pages( 'hub_secondary', $country );
+        $cluster_map= self::map( 'cluster_to_primary', $country );
+        $primary_map= self::map( 'hub_primary_to_hub_secondary', $country );
         $p_by_id    = array();
         $s_by_id    = array();
         foreach ( $primaries as $page ) {
@@ -528,7 +555,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                     }
                 }
                 self::node_open( $cluster, 'Cluster', count( $cluster_map[ $cluster->ID ] ?? array() ), 'cluster', $open_cluster );
-                self::render_group( $cluster, array( 'cluster_to_primary' ), $defs );
+                self::render_group( $cluster, array( 'cluster_to_primary' ), $defs, $country );
                 foreach ( array_keys( $cluster_map[ $cluster->ID ] ?? array() ) as $primary_id ) {
                     if ( ! isset( $p_by_id[ $primary_id ] ) ) {
                         continue;
@@ -536,17 +563,17 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                     $primary = $p_by_id[ $primary_id ];
                     self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary_id ] ?? array() ), 'child',
                         $focus === (int) $primary_id || isset( $primary_map[ $primary_id ][ $focus ] ) );
-                    self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs );
+                    self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs, $country );
                     foreach ( array_keys( $primary_map[ $primary_id ] ?? array() ) as $secondary_id ) {
                         if ( ! isset( $s_by_id[ $secondary_id ] ) ) {
                             continue;
                         }
                         $secondary = $s_by_id[ $secondary_id ];
-                        $links = self::secondary_link_count( $secondary_id );
+                        $links = self::secondary_link_count( $secondary_id, $country );
                         self::node_open( $secondary, 'Hub secundario', $links, 'secondary', $focus === (int) $secondary_id );
                         self::render_group( $secondary, array(
                             'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
-                        ), $defs );
+                        ), $defs, $country );
                         self::node_close();
                     }
                     self::node_close();
@@ -588,7 +615,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
  . esc_html( (string) count( $loose_primaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
                 foreach ( $loose_primaries as $primary ) {
                     self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary->ID ] ?? array() ), 'child', $focus === (int) $primary->ID );
-                    self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs );
+                    self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs, $country );
                     self::node_close();
                 }
                 echo '</div></details>';
@@ -604,10 +631,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 echo '<details' . ( $orphan_secondary_focused ? ' open' : '' ) . '><summary>Hubs secundarios sin hub primario ('
  . esc_html( (string) count( $loose_secondaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
                 foreach ( $loose_secondaries as $secondary ) {
-                    self::node_open( $secondary, 'Hub secundario', self::secondary_link_count( $secondary->ID ), 'secondary', $focus === (int) $secondary->ID );
+                    self::node_open( $secondary, 'Hub secundario', self::secondary_link_count( $secondary->ID, $country ), 'secondary', $focus === (int) $secondary->ID );
                     self::render_group( $secondary, array(
                         'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
-                    ), $defs );
+                    ), $defs, $country );
                     self::node_close();
                 }
                 echo '</div></details>';
@@ -619,10 +646,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         self::enqueue_search_script();
     }
 
-    private static function secondary_link_count( $secondary_id ) {
+    private static function secondary_link_count( $secondary_id, $country = '' ) {
         $count = 0;
         foreach ( array( 'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post' ) as $type ) {
-            $count += count( self::map( $type )[ $secondary_id ] ?? array() );
+            $count += count( self::map( $type, $country )[ $secondary_id ] ?? array() );
         }
         return $count;
     }
@@ -637,10 +664,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             . ' · Plantilla: ' . esc_html( (string) ( get_page_template_slug( $page->ID ) ?: 'predeterminada' ) ) . '</div>';
     }
 
-    private static function render_group( $parent, $types, $definitions ) {
+    private static function render_group( $parent, $types, $definitions, $country = 'ES' ) {
         echo '<div class="tc-classic-groups">';
         foreach ( $types as $type ) {
-            self::render_checkboxes( $parent, $type, $definitions[ $type ] );
+            self::render_checkboxes( $parent, $type, $definitions[ $type ], $country );
         }
         echo '</div>';
     }
@@ -661,11 +688,11 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         echo '<label class="tc-classic-check"><input type="checkbox" name="targets[]" value="' . esc_attr( (string) $id ) . '" ' . checked( $checked, true, false ) . '> ' . esc_html( $name ) . ' <small>#' . esc_html( (string) $id ) . '</small></label>';
     }
 
-    private static function render_checkboxes( $parent, $type, $def ) {
-        $map = self::map( $type );
+    private static function render_checkboxes( $parent, $type, $def, $country = 'ES' ) {
+        $map = self::map( $type, $country );
         $selected = array_keys( $map[ $parent->ID ] ?? array() );
         $taken = array();
-        foreach ( $map as $source => $items ) {
+        foreach ( self::map( $type ) as $source => $items ) {
             if ( (int) $source !== (int) $parent->ID ) {
                 foreach ( $items as $target => $_ ) {
                     $taken[ (int) $target ] = true;
@@ -677,6 +704,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         echo '<input type="hidden" name="action" value="taxocommerce_core_replace_hierarchy_relations">';
         echo '<input type="hidden" name="source_id" value="' . esc_attr( (string) $parent->ID ) . '">';
         echo '<input type="hidden" name="relation_type" value="' . esc_attr( $type ) . '">';
+        echo '<input type="hidden" name="tc_country" value="' . esc_attr( $country ) . '">';
         wp_nonce_field( 'taxocommerce_core_replace_hierarchy_' . $type . '_' . $parent->ID, 'taxocommerce_core_nonce' );
         echo '<strong>Asignados (' . esc_html( (string) count( $selected ) ) . ')</strong>';
         echo '<div class="tc-classic-selected">';
@@ -701,7 +729,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         }
         echo '>';
         echo '<div class="tc-classic-available">';
-        foreach ( self::candidates( $def['target_role'] ) as $candidate ) {
+        foreach ( self::candidates( $def['target_role'], $country ) as $candidate ) {
             $id = self::target_id( $candidate );
             if ( in_array( $id, $selected, true ) || isset( $taken[ $id ] ) ) {
                 continue;
@@ -730,7 +758,8 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             'taxonomy' => 'product_cat', 'hide_empty' => false,
             'search' => $query, 'orderby' => 'name', 'number' => 50,
         ) );
-        $map = self::map( 'hub_secondary_to_category' );
+        $country = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] ) ? TaxoCommerce_Core_Country::normalize( wp_unslash( $_GET['tc_country'] ) ) : 'ES';
+        $map = self::map( 'hub_secondary_to_category', $country );
         $taken = array();
         foreach ( $map as $parent => $items ) {
             if ( (int) $parent !== $source ) {
@@ -742,7 +771,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         $result = array();
         if ( ! is_wp_error( $terms ) ) {
             foreach ( $terms as $term ) {
-                if ( ! isset( $taken[ (int) $term->term_id ] ) ) {
+                if ( TaxoCommerce_Core_Country::term( $term->term_id ) === $country && ! isset( $taken[ (int) $term->term_id ] ) ) {
                     $result[] = array( 'id' => (int) $term->term_id, 'name' => (string) $term->name );
                 }
             }
@@ -775,7 +804,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
               clearTimeout(timer);
               timer=setTimeout(()=>{
                 const args=new URLSearchParams({action:"taxocommerce_core_search_hierarchy_categories",nonce:config.nonce,
-                  q:q,source:input.dataset.tcSource});
+                  q:q,source:input.dataset.tcSource,tc_country:input.closest("form").querySelector("input[name=tc_country]").value});
                 fetch(config.url+"?"+args,{credentials:"same-origin"}).then(r=>r.json()).then(json=>{
                   if(!json.success || input.value.toLocaleLowerCase().trim()!==q) return;
                   const present=new Set(Array.from(input.closest("form").querySelectorAll("input[name=\'targets[]\']")).map(x=>x.value));
@@ -795,12 +824,13 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         })();' );
     }
 
-    public static function render_tree( $hierarchy ) {
+    public static function render_tree( $hierarchy, $country = 'ES' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: 'ES';
         $maps = array();
         foreach ( array_keys( self::definitions() ) as $type ) {
-            $maps[ $type ] = self::map( $type );
+            $maps[ $type ] = self::map( $type, $country );
         }
-        $clusters = self::role_pages( 'cluster' );
+        $clusters = self::country_pages( 'cluster', $country );
         if ( ! $clusters ) {
             echo '<p>Sin clusters clasificados todavía.</p>';
             return;

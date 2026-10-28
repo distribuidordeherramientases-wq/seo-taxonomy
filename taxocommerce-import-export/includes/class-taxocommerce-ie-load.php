@@ -39,8 +39,9 @@ final class TaxoCommerce_IE_Load {
     }
 
     public static function batch_size( $kind ) {
-        $initial = array( 1 => 1, 2 => 3, 3 => 7, 4 => 13, 5 => 23 );
-        $maximum = array( 1 => 5, 2 => 13, 3 => 29, 4 => 47, 5 => 79 );
+        // Start with useful blocks: speed controls batch size, not idle waits.
+        $initial = array( 1 => 3, 2 => 6, 3 => 10, 4 => 20, 5 => 35 );
+        $maximum = array( 1 => 10, 2 => 30, 3 => 75, 4 => 125, 5 => 200 );
         $kind = sanitize_key( $kind );
         $priority = self::priority( $kind );
         $last = get_option( self::SAMPLE, array() );
@@ -76,16 +77,18 @@ final class TaxoCommerce_IE_Load {
         elseif ( 'm' === substr( $raw, -1 ) ) $limit *= 1024 * 1024;
         elseif ( 'k' === substr( $raw, -1 ) ) $limit *= 1024;
         $memory = $limit > 0 ? 100 * memory_get_peak_usage( true ) / $limit : null;
-        $target = array( 1 => 20, 2 => 35, 3 => 50, 4 => 70, 5 => 90 )[ $priority ];
         $current = self::batch_size( $kind );
-        $maximum = array( 1 => 5, 2 => 13, 3 => 29, 4 => 47, 5 => 79 )[ $priority ];
+        $maximum = array( 1 => 10, 2 => 30, 3 => 75, 4 => 125, 5 => 200 )[ $priority ];
         $next = $current;
-        if ( $elapsed >= 20 || ( null !== $memory && $memory >= 75 )
-            || ( null !== $cpu_percent && $cpu_percent > $target + 10 ) ) {
+        $reason = 'estabilizado';
+        // getrusage() measures this PHP request, NOT global server CPU. A
+        // busy but short-running import must not shrink forever on CPU alone.
+        if ( $elapsed >= 8 || ( null !== $memory && $memory >= 75 ) ) {
             $next = max( 1, (int) floor( $current / 2 ) );
-        } elseif ( null !== $cpu_percent && $cpu_percent < max( 5, $target - 15 )
-            && ( null === $memory || $memory < 60 ) && $elapsed < 10 ) {
+            $reason = 'reducido por tiempo/memoria';
+        } elseif ( $elapsed < 4 && ( null === $memory || $memory < 65 ) ) {
             $next = min( $maximum, $current + max( 1, (int) ceil( $current / 3 ) ) );
+            $reason = 'ampliado por margen de tiempo/memoria';
         }
         $sample = array(
             'priority' => $priority, 'items' => absint( $items ), 'batch' => $current,
@@ -93,6 +96,8 @@ final class TaxoCommerce_IE_Load {
             'cpu_percent' => null === $cpu_percent ? null : round( $cpu_percent, 1 ),
             'memory_percent' => null === $memory ? null : round( $memory, 1 ),
             'memory_peak' => memory_get_peak_usage( true ), 'at' => gmdate( 'c' ),
+            'reason' => $reason,
+            'rows_per_second' => round( absint( $items ) / $elapsed, 2 ),
         );
         $values = get_option( self::SAMPLE, array() );
         $values = is_array( $values ) ? $values : array();

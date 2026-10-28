@@ -8,15 +8,19 @@ $exporter = file_get_contents( $root . '/includes/class-taxocommerce-import-expo
 $exporter_js = file_get_contents( $root . '/assets/exporter.js' );
 
 $checks = array(
-    strpos( $main, "Version: 0.4.1" ) !== false,
+    strpos( $main, "Version: 0.4.3" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-batch.php" ) !== false,
     strpos( $main, "class-taxocommerce-ie-load.php" ) !== false,
     strpos( $batch, "TaxoCommerce_IE_Load::batch_size( 'import' )" ) !== false,
-    strpos( $batch, "TaxoCommerce_IE_Load::delay( 'import' )" ) !== false,
+    strpos( $batch, "TaxoCommerce_IE_Load::delay( 'import' )" ) === false,
     strpos( $exporter, "TaxoCommerce_IE_Load::batch_size( 'export' )" ) !== false,
     strpos( $exporter, "tc-ie-export-priority" ) !== false,
     strpos( $batch, "tc-ie-import-priority" ) !== false,
     strpos( $batch, "queue_individual" ) !== false,
+    strpos( $batch, "admin_post_taxocommerce_ie_batch_delete_pending" ) !== false,
+    strpos( $batch, "pending_file" ) !== false,
+    strpos( $batch, "tc_ie_delete_not_pending" ) !== false,
+    strpos( $batch, "handle_delete_pending" ) !== false,
     strpos( $batch, "INDIVIDUAL_STATE" ) !== false,
     strpos( $batch, "individual_status" ) !== false,
     strpos( $core, "tc-ie-individual-monitor" ) !== false,
@@ -80,6 +84,14 @@ $checks = array(
     strpos( $batch, "wp_set_current_user" ) !== false,
     strpos( $batch, "remaining" ) !== false,
     strpos( $batch, "worker();" ) !== false,
+    strpos( $batch, "wp_ajax_nopriv_taxocommerce_ie_batch_continue" ) !== false,
+    strpos( $batch, 'hash_equals( $expected, $submitted )' ) !== false,
+    strpos( $batch, "private function dispatch_next()" ) !== false,
+    strpos( $batch, "'blocking'    => false" ) !== false,
+    strpos( $batch, 'private function schedule( $delay = 60 )' ) !== false,
+    strpos( $batch, "'busy'    => " . '$busy' ) !== false,
+    strpos( $batch, "assets/batch-runner.js" ) !== false,
+
 );
 
 foreach ( $checks as $index => $ok ) {

@@ -123,6 +123,7 @@ final class TaxoCommerce_Core {
 		add_action( 'admin_post_taxocommerce_core_deactivate_extension', array( $this, 'deactivate_extension' ) );
 		add_filter( 'plugin_action_links_' . TAXOCOMMERCE_CORE_BASENAME, array( $this, 'plugin_action_links' ) );
 
+		TaxoCommerce_Core_Country::register_hooks();
 		$this->hierarchy->register_hooks();
 		$this->menu->register_hooks();
 		$this->content->register_hooks();
