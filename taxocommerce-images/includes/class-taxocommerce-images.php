@@ -97,6 +97,29 @@ final class TaxoCommerce_Images {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'summary';
+		if ( 'audit' === $tab ) {
+			wp_enqueue_script(
+				'taxocommerce-images-audit',
+				plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/audit.js',
+				array(),
+				TAXOCOMMERCE_IMAGES_VERSION,
+				true
+			);
+			wp_localize_script(
+				'taxocommerce-images-audit',
+				'taxocommerceImagesAudit',
+				array(
+					'ajax' => admin_url( 'admin-ajax.php' ),
+					'nonce' => wp_create_nonce( 'taxocommerce_images_audit' ),
+				)
+			);
+			wp_enqueue_style(
+				'taxocommerce-images-audit',
+				plugin_dir_url( TAXOCOMMERCE_IMAGES_FILE ) . 'assets/audit.css',
+				array(),
+				TAXOCOMMERCE_IMAGES_VERSION
+			);
+		}
 		if ( 'assignment' === $tab ) {
 			wp_enqueue_media();
 			wp_enqueue_script(
@@ -555,17 +578,54 @@ final class TaxoCommerce_Images {
 	 */
 	private function render_audit() {
 		$state = $this->audit->state();
+		$priority = TaxoCommerce_Images_Load::priority( 'audit' );
+		$sample = TaxoCommerce_Images_Load::last_sample( 'audit' );
 		?>
 		<h2><?php echo esc_html__( 'Auditoría de Biblioteca de Medios', 'taxocommerce-images' ); ?></h2>
-		<p><?php echo esc_html__( 'La auditoría comprueba archivos originales, metadatos y miniaturas reales por lotes de 75. Cada lote guarda el cursor y libera la petición antes de continuar.', 'taxocommerce-images' ); ?></p>
+		<p><?php echo esc_html__( 'Comprueba originales, metadatos y miniaturas reales. Cada lote se adapta a la velocidad elegida y guarda el cursor sin perder imágenes ya revisadas.', 'taxocommerce-images' ); ?></p>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tci-load-control tci-audit-speed">
+			<input type="hidden" name="action" value="taxocommerce_images_save_priority">
+			<input type="hidden" name="mode" value="audit">
+			<?php wp_nonce_field( 'taxocommerce_images_save_priority', 'taxocommerce_images_nonce' ); ?>
+			<label for="tci-priority-audit"><strong><?php esc_html_e( 'Velocidad de auditoría (1–5)', 'taxocommerce-images' ); ?></strong></label>
+			<div class="tci-load-control__slider">
+				<span><?php esc_html_e( '1 · Suave', 'taxocommerce-images' ); ?></span>
+				<input id="tci-priority-audit" name="priority" type="range" min="1" max="5" step="1" value="<?php echo esc_attr( (string) $priority ); ?>" data-tci-priority>
+				<span><?php esc_html_e( '5 · Máxima', 'taxocommerce-images' ); ?></span>
+				<output data-tci-priority-output><strong><?php echo esc_html( $priority . ' · ' . TaxoCommerce_Images_Load::label( $priority ) ); ?></strong></output>
+			</div>
+			<p class="description"><?php esc_html_e( 'Guardar velocidad cambia el tamaño de los próximos lotes. El proceso continúa desde el mismo cursor; no reinicia la auditoría. El regulador aumenta si termina rápido y reduce ante presión de tiempo, memoria o CPU de PHP.', 'taxocommerce-images' ); ?></p>
+			<button type="submit" class="button button-primary"><?php esc_html_e( 'Guardar velocidad', 'taxocommerce-images' ); ?></button>
+			<?php if ( $sample ) : ?>
+				<p class="description tci-audit-sample"><?php
+					echo esc_html( sprintf(
+						/* translators: 1: scanned images, 2: elapsed seconds, 3: next batch size, 4: adaptation reason. */
+						__( 'Último lote: %1$d imágenes en %2$s s · siguiente objetivo: %3$d · %4$s.', 'taxocommerce-images' ),
+						absint( $sample['items'] ?? 0 ),
+						number_format_i18n( (float) ( $sample['elapsed'] ?? 0 ), 2 ),
+						absint( $sample['next_batch'] ?? 0 ),
+						(string) ( $sample['reason'] ?? '' )
+					) );
+				?></p>
+			<?php endif; ?>
+		</form>
 
 		<?php if ( empty( $state ) ) : ?>
 			<?php $this->audit_button( 'taxocommerce_images_start_audit', 'taxocommerce_images_start_audit', __( 'Iniciar auditoría', 'taxocommerce-images' ), true ); ?>
 		<?php else : ?>
 			<p><strong><?php echo esc_html__( 'Estado:', 'taxocommerce-images' ); ?></strong> <?php echo esc_html( 'completed' === ( $state['status'] ?? '' ) ? __( 'Completada', 'taxocommerce-images' ) : __( 'En curso', 'taxocommerce-images' ) ); ?> · <?php echo esc_html( absint( $state['scanned'] ?? 0 ) . ' / ' . absint( $state['total'] ?? 0 ) ); ?></p>
 			<?php if ( 'completed' !== ( $state['status'] ?? '' ) ) : ?>
-				<p id="tc-images-audit-progress" aria-live="polite"></p>
-				<?php $this->audit_button( 'taxocommerce_images_continue_audit', 'taxocommerce_images_continue_audit', __( 'Continuar siguiente lote', 'taxocommerce-images' ), true ); ?>
+				<div class="tci-audit-progress-panel" data-tci-audit-runner>
+					<progress id="tci-audit-progress-bar" value="<?php echo esc_attr( (string) absint( $state['scanned'] ?? 0 ) ); ?>" max="<?php echo esc_attr( (string) max( 1, absint( $state['total'] ?? 0 ) ) ); ?>"></progress>
+					<p id="tc-images-audit-progress" role="status" aria-live="polite"><?php echo esc_html( absint( $state['scanned'] ?? 0 ) . ' / ' . absint( $state['total'] ?? 0 ) ); ?></p>
+					<div class="tci-audit-runner-actions">
+						<button type="button" id="tci-audit-pause" class="button"><?php esc_html_e( 'Pausar en esta pantalla', 'taxocommerce-images' ); ?></button>
+						<button type="button" id="tci-audit-resume" class="button" disabled><?php esc_html_e( 'Reanudar', 'taxocommerce-images' ); ?></button>
+					</div>
+					<p class="description"><?php esc_html_e( 'Con esta pestaña abierta, los siguientes lotes se ejecutan automáticamente sin esperas fijas. Si se cierra, puedes continuar después con el cursor guardado. La pausa afecta a esta pantalla.', 'taxocommerce-images' ); ?></p>
+				</div>
+				<?php $this->audit_button( 'taxocommerce_images_continue_audit', 'taxocommerce_images_continue_audit', __( 'Continuar siguiente lote (manual)', 'taxocommerce-images' ), false ); ?>
 			<?php endif; ?>
 			<?php $this->audit_button( 'taxocommerce_images_start_audit', 'taxocommerce_images_start_audit', __( 'Reiniciar desde cero', 'taxocommerce-images' ), false ); ?>
 			<?php $this->audit_button( 'taxocommerce_images_reset_audit', 'taxocommerce_images_reset_audit', __( 'Borrar informe', 'taxocommerce-images' ), false ); ?>
@@ -611,37 +671,7 @@ final class TaxoCommerce_Images {
 				<?php endif; ?>
 			<?php endforeach; ?>
 		<?php endif; ?>
-		<?php if ( ! empty( $state ) && 'completed' !== ( $state['status'] ?? '' ) ) : ?>
-		<script>
-		(function () {
-			'use strict';
-			var progress = document.getElementById('tc-images-audit-progress');
-			if (!progress || typeof window.fetch !== 'function') { return; }
-			var endpoint = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
-			var token = <?php echo wp_json_encode( wp_create_nonce( 'taxocommerce_images_audit' ) ); ?>;
-			var remaining = true;
-			function step() {
-				if (!remaining) { return; }
-				var params = new URLSearchParams();
-				params.set('action', 'taxocommerce_images_audit_step');
-				params.set('nonce', token);
-				fetch(endpoint, { method: 'POST', credentials: 'same-origin', body: params })
-				.then(function (response) { if (!response.ok) { throw new Error('HTTP ' + response.status); } return response.json(); })
-				.then(function (reply) {
-					if (!reply.success || !reply.data) { throw new Error('Auditoría en pausa'); }
-					progress.textContent = reply.data.scanned + ' / ' + reply.data.total + ' imágenes revisadas';
-					remaining = reply.data.status !== 'completed';
-					if (remaining) { window.setTimeout(step, 500); } else { window.location.reload(); }
-				})
-				.catch(function () {
-					remaining = false;
-					progress.textContent = 'Proceso interrumpido; utiliza Continuar siguiente lote para reanudar.';
-				});
-			}
-			step();
-		}());
-		</script>
-		<?php endif; ?>
+
 		<?php
 	}
 
