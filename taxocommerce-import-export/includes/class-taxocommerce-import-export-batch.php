@@ -1062,13 +1062,15 @@ Deny from all
 		check_ajax_referer( 'taxocommerce_ie_batch_step', 'nonce' );
 		$this->guard();
 		$state = $this->state();
-		if ( ! empty( $state['enabled'] ) ) {
+		$busy = (bool) get_transient( self::LOCK_KEY );
+		if ( ! empty( $state['enabled'] ) && ! $busy ) {
 			$this->worker();
 		}
 		$state = $this->state();
 		$sample = TaxoCommerce_IE_Load::last_sample( 'import' );
 		wp_send_json_success( array(
 			'enabled' => ! empty( $state['enabled'] ),
+			'busy'    => $busy,
 			'status'  => sanitize_key( (string) ( $state['status'] ?? 'idle' ) ),
 			'file'    => sanitize_file_name( (string) ( $state['current_file'] ?? '' ) ),
 			'rows'    => absint( $state['processed_rows'] ?? 0 ),
