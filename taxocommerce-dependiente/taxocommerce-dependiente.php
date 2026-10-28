@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Assistant
  * Description: Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.
- * Version: 0.3.15
+ * Version: 0.3.16
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.15' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.16' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 
@@ -26,6 +26,12 @@ require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-intelligence.ph
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-maintenance.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-backup.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-search.php';
+/* Original Interpreter 1.2.0 and Linguist original curriculum. */
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/class-tcd-interpreter-lexicon.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/class-tcd-linguist.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/class-tcd-interpreter-legacy.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/class-tcd-linguist-l9-adapter.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/lessons/class-dependiente-linguista-lesson9.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-admin.php';
 
 add_action( 'plugins_loaded', static function () {
@@ -39,6 +45,7 @@ add_action( 'plugins_loaded', static function () {
     TCD_Intelligence::boot();
     TCD_Maintenance::boot();
     TCD_Backup::boot();
+    TCD_Original_Linguista::init();
     TCD_Search::boot();
     TCD_Admin::boot();
 }, 30 );
@@ -60,8 +67,10 @@ register_activation_hook( __FILE__, static function () {
     TCD_Knowledge_Transfer::install();
     TCD_Feedback::install();
     TCD_Intelligence::install();
+    TCD_Original_Interprete_DB::install();
 } );
 register_deactivation_hook( __FILE__, static function () {
     wp_clear_scheduled_hook( TCD_Academy::CRON_HOOK );
     TCD_Maintenance::deactivate();
+    wp_clear_scheduled_hook('tcd_original_linguista_worker');
 } );
