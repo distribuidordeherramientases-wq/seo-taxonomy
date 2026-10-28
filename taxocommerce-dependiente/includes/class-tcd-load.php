@@ -15,7 +15,7 @@ final class TCD_Load {
     const DEFAULT_PRIORITY = 3;
 
     private static function levels() {
-        return array( 1, 3, 5, 7, 11, 13, 17, 23, 29, 37, 47, 59, 79 );
+        return array( 1, 3, 5, 7, 11, 13, 17, 23, 29, 37, 47, 59, 79, 120, 180, 270, 400, 600 );
     }
 
     public static function priority() {
@@ -58,13 +58,13 @@ final class TCD_Load {
 
     public static function initial_batch( $priority = null ) {
         $priority = null === $priority ? self::priority() : max( 1, min( 5, absint( $priority ) ) );
-        $initial = array( 1 => 1, 2 => 3, 3 => 7, 4 => 13, 5 => 23 );
+        $initial = array( 1 => 1, 2 => 3, 3 => 7, 4 => 13, 5 => 47 );
         return $initial[ $priority ];
     }
 
     public static function max_batch( $priority = null ) {
         $priority = null === $priority ? self::priority() : max( 1, min( 5, absint( $priority ) ) );
-        $maximum = array( 1 => 5, 2 => 13, 3 => 29, 4 => 47, 5 => 79 );
+        $maximum = array( 1 => 5, 2 => 13, 3 => 29, 4 => 47, 5 => 600 );
         return $maximum[ $priority ];
     }
 
@@ -112,18 +112,27 @@ final class TCD_Load {
         $current = self::batch_size();
         $next = $current;
         $target = self::target_cpu();
-        $must_reduce = ( null !== $memory_percent && $memory_percent >= 75 )
+        // CPU consumed by this one PHP request is not total hosting CPU.
+        // A fast PHP-heavy batch should grow if its wall time and memory are
+        // healthy. Reduce on memory or wall deadline, not on CPU alone.
+        $must_reduce = ( null !== $memory_percent && $memory_percent >= 80 )
             || $elapsed >= 20
-            || ( null !== $cpu_percent && $cpu_percent > ( $target + 10 ) );
+            || ( null !== $cpu_percent && $cpu_percent >= 95 && $elapsed >= 17 );
 
         if ( $must_reduce ) {
             $next = self::half_level( $current );
-        } elseif ( null !== $cpu_percent
-            && $cpu_percent < max( 5, $target - 15 )
-            && ( null === $memory_percent || $memory_percent < 60 )
-            && $elapsed < 10
+        } elseif ( absint( $items ) >= $current
+            && $elapsed < 9
+            && ( null === $memory_percent || $memory_percent < 68 )
         ) {
-            $next = self::next_level( $current, self::max_batch() );
+            // Rapid, bounded growth in maximum mode; lower modes retain their
+            // smaller ceilings. No changes to learning quality thresholds.
+            $next = min( self::max_batch(), max( $current + 1, $current * 2 ) );
+        } elseif ( absint( $items ) >= $current
+            && $elapsed < 15
+            && ( null === $memory_percent || $memory_percent < 72 )
+        ) {
+            $next = min( self::max_batch(), $current + max( 1, (int) ceil( $current / 2 ) ) );
         }
 
         update_option( self::BATCH_OPTION, $next, false );
@@ -141,6 +150,8 @@ final class TCD_Load {
             'memory_limit' => $memory_limit,
             'memory_percent' => null === $memory_percent ? null : round( $memory_percent, 1 ),
             'queries' => $query_delta,
+            'items_per_second' => round( absint( $items ) / $elapsed, 2 ),
+            'reason' => $must_reduce ? 'reduccion_por_memoria_tiempo' : ( $next > $current ? 'ampliado_por_margen' : 'estabilizado' ),
             'at' => gmdate( 'c' ),
         );
         update_option( self::LAST_SAMPLE_OPTION, $sample, false );
