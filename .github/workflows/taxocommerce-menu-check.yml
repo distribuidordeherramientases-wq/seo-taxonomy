@@ -6,6 +6,7 @@ on:
       - 'taxocommerce-core/assets/menu-editor.*'
       - 'taxocommerce-core/tests/menu-editor-smoke.php'
       - 'taxocommerce-core/tests/country-scope-smoke.php'
+      - 'taxocommerce-core/tests/hierarchy-country-schema-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-hierarchy*.php'
       - '.github/workflows/taxocommerce-menu-check.yml'
@@ -16,6 +17,7 @@ on:
       - 'taxocommerce-core/assets/menu-editor.*'
       - 'taxocommerce-core/tests/menu-editor-smoke.php'
       - 'taxocommerce-core/tests/country-scope-smoke.php'
+      - 'taxocommerce-core/tests/hierarchy-country-schema-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-hierarchy*.php'
       - '.github/workflows/taxocommerce-menu-check.yml'
@@ -40,5 +42,7 @@ jobs:
         run: php taxocommerce-core/tests/menu-editor-smoke.php
       - name: Country scoping and legacy compatibility
         run: php taxocommerce-core/tests/country-scope-smoke.php
+      - name: Canonical hierarchy country-schema upgrade
+        run: php taxocommerce-core/tests/hierarchy-country-schema-smoke.php
       - name: JavaScript syntax
         run: node --check taxocommerce-core/assets/menu-editor.js
