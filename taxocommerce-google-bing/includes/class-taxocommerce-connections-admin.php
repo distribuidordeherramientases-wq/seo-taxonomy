@@ -227,6 +227,17 @@ final class TaxoCommerce_Connections_Admin {
 					</form>
 					<hr>
 					<h3>Google Merchant Center <?php TaxoCommerce_Connections_Status::badge( 'merchant' ); ?></h3>
+					<div class="notice notice-info inline" style="margin:10px 0;padding:10px 12px;">
+						<p><strong><?php esc_html_e( 'Cómo conectar Google Merchant Center', 'taxocommerce-google-bing' ); ?></strong></p>
+						<ol style="margin-left:20px;list-style:decimal;">
+							<li><?php echo wp_kses_post( sprintf( __( 'Abre <a href="%s" target="_blank" rel="noopener noreferrer">Google Merchant Center</a> con la cuenta que administra tu tienda.', 'taxocommerce-google-bing' ), esc_url( 'https://merchants.google.com/' ) ) ); ?></li>
+							<li><?php esc_html_e( 'Selecciona tu cuenta y copia su ID numérico de Merchant Center (no es el ID de Google Analytics ni el de Google Ads).', 'taxocommerce-google-bing' ); ?></li>
+							<li><?php esc_html_e( 'Introduce el ID en este campo y pulsa «Save Merchant».', 'taxocommerce-google-bing' ); ?></li>
+							<li><?php esc_html_e( 'Comprueba que la identidad de Google utilizada por TaxoCommerce tiene acceso a esa cuenta de Merchant Center y que Merchant API está habilitada cuando corresponda.', 'taxocommerce-google-bing' ); ?></li>
+							<li><?php esc_html_e( 'Pulsa «Test Merchant». Si falla, revisa el acceso de esa identidad; guardar el ID no concede permisos automáticamente.', 'taxocommerce-google-bing' ); ?></li>
+						</ol>
+						<p><a href="<?php echo esc_url( 'https://support.google.com/merchants/' ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Ayuda oficial de Merchant Center', 'taxocommerce-google-bing' ); ?></a> · <a href="<?php echo esc_url( 'https://developers.google.com/merchant/api' ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Documentación oficial de Merchant API', 'taxocommerce-google-bing' ); ?></a></p>
+					</div>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="taxocommerce_connections_save_merchant">
 						<?php wp_nonce_field( 'taxocommerce_connections_save_merchant' ); ?>
