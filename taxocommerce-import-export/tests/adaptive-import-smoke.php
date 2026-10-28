@@ -40,7 +40,7 @@ if ( TaxoCommerce_IE_Load::set_priority( 'import', 5 ) !== 5 || TaxoCommerce_IE_
     fwrite( STDERR, 'Priority five batch initialization failed' . PHP_EOL );
     exit( 1 );
 }
-if ( TaxoCommerce_IE_Load::set_priority( 'import', 0 ) instanceof WP_Error === false ) {
+if ( ! ( TaxoCommerce_IE_Load::set_priority( 'import', 0 ) instanceof WP_Error ) ) {
     fwrite( STDERR, 'Invalid priority must be rejected' . PHP_EOL );
     exit( 1 );
 }
