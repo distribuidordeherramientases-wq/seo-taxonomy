@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.4
+Stable tag: 0.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,12 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.5 =
+* Add country_code to complete/reduced products, categories, posts and pages CSV exports.
+* Import country_code (also pais_origen) and persist _seo_pais_origen; old CSVs retain their current assignments.
+* Blank exported countries remain blank (no assumed ES assignment), with strict ES/US/FR/DE/NL validation on import.
+
 
 = 0.4.1 =
 * Product CSV export resumes after interruptions by truncating incomplete blocks back to the last persisted byte offset, preventing duplicate rows.
@@ -98,7 +104,7 @@ The package transports original image files plus title, ALT, caption, descriptio
 * A delete is refused while the queue worker holds the lock or once the file has entered processing. Processing, imported and failed CSVs remain untouched.
 * Deleting an individually queued CSV also updates its status; deleting the last pending file marks an otherwise empty active queue idle.
 
-== 0.4.4 ==
+== 0.4.5 ==
 * Importador CSV: escala x10 de los tamaños de lote en las cinco velocidades, tanto tamaño inicial como máximo, exclusivamente para la importación. Los tamaños de exportación no cambian.
 * En trabajos ya iniciados, convierte el objetivo anterior de lotes (p. ej. 5->50, 6->60) sin borrar offsets. Los siguientes lotes pueden duplicar filas cuando completan dentro del presupuesto de tiempo y memoria (50->100->200).
 * Ventana de ejecución por petición: hasta 25 segundos por defecto, siempre con margen respecto del límite PHP, y objetivos configurables de hasta 2000 filas en velocidad máxima. Un único trabajador; sin paralelismo inseguro.
