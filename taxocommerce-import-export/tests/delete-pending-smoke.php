@@ -3,6 +3,7 @@
  * Actual filesystem regression for deleting one queued CSV safely.
  */
 define( 'ABSPATH', __DIR__ );
+define( 'MINUTE_IN_SECONDS', 60 );
 
 class WP_Error {
     private $code;
