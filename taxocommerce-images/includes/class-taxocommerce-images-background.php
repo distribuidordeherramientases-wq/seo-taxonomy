@@ -291,23 +291,57 @@ final class TaxoCommerce_Images_Background {
 				: array( 'image/jpeg', 'image/png', 'image/webp', 'image/avif' );
 			$marks = implode( ',', array_fill( 0, count( $mimes ), '%s' ) );
 			$sql = "SELECT ID FROM %i WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type IN ($marks) AND ID > %d AND ID <= %d ORDER BY ID ASC LIMIT 1";
-			$params = array_merge( array( $wpdb->posts ), $mimes, array( absint( $job['cursor'] ?? 0 ), absint( $job['max_id'] ?? 0 ) ) );
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql uses allowlisted MIME placeholders, prepared table identifier and bound cursor values.
-			$id = absint( $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) );
-			if ( ! $id ) {
-				$job['status'] = 'complete';
-				return $job;
+			$priority = TaxoCommerce_Images_Load::priority( $mode );
+			$budget = array( 1 => 3, 2 => 5, 3 => 7, 4 => 10, 5 => 14 )[ $priority ];
+			$php_limit = (int) ini_get( 'max_execution_time' );
+			if ( $php_limit > 0 ) {
+				$budget = min( $budget, max( 1, $php_limit - 8 ) );
 			}
+			$deadline = microtime( true ) + $budget;
+			$maximum = min( 40, TaxoCommerce_Images_Load::batch_size( $mode ) );
+			$processed = 0;
 			$measure = TaxoCommerce_Images_Load::begin();
-			$item = 'webp' === $mode ? tci_webp_process_attachment( $id ) : tci_optimizer_process_attachment( $id );
-			TaxoCommerce_Images_Load::finish( $mode, $measure, 1 );
-			$job['cursor'] = $id;
-			$job['processed'] = absint( $job['processed'] ?? 0 ) + 1;
-			$job['changed'] = absint( $job['changed'] ?? 0 )
-				+ absint( $item[ 'webp' === $mode ? 'converted' : 'optimized' ] ?? 0 );
-			if ( ! empty( $item['errors'] ) ) {
-				$job['errors'] = array_slice( array_merge( (array) ( $job['errors'] ?? array() ), (array) $item['errors'] ), -30 );
+			while ( $processed < $maximum ) {
+				if ( $processed > 0 && microtime( true ) >= $deadline ) {
+					break;
+				}
+				$memory = TaxoCommerce_Images_Load::memory_percent();
+				if ( $processed > 0 && null !== $memory && $memory >= 78 ) {
+					break;
+				}
+				$live = self::state( $mode );
+				if ( in_array( (string) ( $live['status'] ?? '' ), array( 'paused', 'stopped' ), true ) ) {
+					$job['status'] = $live['status'];
+					break;
+				}
+				$params = array_merge(
+					array( $wpdb->posts ), $mimes,
+					array( absint( $job['cursor'] ?? 0 ), absint( $job['max_id'] ?? 0 ) )
+				);
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL identifiers and values are prepared; MIME types are a closed allowlist.
+				$id = absint( $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) );
+				if ( ! $id ) {
+					$job['status'] = 'complete';
+					break;
+				}
+				$item = 'webp' === $mode
+					? tci_webp_process_attachment( $id )
+					: tci_optimizer_process_attachment( $id );
+				$job['cursor'] = $id;
+				++$job['processed'];
+				++$processed;
+				$job['changed'] = absint( $job['changed'] ?? 0 )
+					+ absint( $item[ 'webp' === $mode ? 'converted' : 'optimized' ] ?? 0 );
+				if ( ! empty( $item['errors'] ) ) {
+					$job['errors'] = array_slice(
+						array_merge( (array) ( $job['errors'] ?? array() ), (array) $item['errors'] ), -30
+					);
+				}
+				// Persist after each image: a failed PHP request must not lose
+				// successful file transformations or restart from the first item.
+				self::save( $mode, $job );
 			}
+			TaxoCommerce_Images_Load::finish( $mode, $measure, $processed );
 			return $job;
 		} finally {
 			TaxoCommerce_Images_Maintenance::unlock( 'mutation' );
