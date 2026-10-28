@@ -43,7 +43,13 @@ final class TaxoCommerce_Connections_Google_Bing {
 				}
 			}
 		}
-		return wp_parse_args( $saved, $defaults );
+		$settings = wp_parse_args( $saved, $defaults );
+		// Persist recovered legacy values once, so other modules using the shared
+		// option receive the same credentials without requiring manual setup.
+		if ( $settings !== wp_parse_args( is_array( get_option( self::GOOGLE_OPTION, array() ) ) ? get_option( self::GOOGLE_OPTION, array() ) : array(), $defaults ) ) {
+			update_option( self::GOOGLE_OPTION, $settings, false );
+		}
+		return $settings;
 	}
 
 	public static function bing_settings() {
