@@ -43,6 +43,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		add_action( 'wp_ajax_taxocommerce_ie_batch_continue', array( $this, 'internal_continue' ) );
 		add_action( 'wp_ajax_nopriv_taxocommerce_ie_batch_continue', array( $this, 'internal_continue' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_runner' ) );
+		add_action( 'init', array( $this, 'watchdog' ), 99 );
 	}
 
 	const INDIVIDUAL_STATE = 'taxocommerce_ie_individual_last';
@@ -178,6 +179,15 @@ final class TaxoCommerce_Import_Export_Batch {
 						<tr><th><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['error_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Mensaje', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['message'] ?? '' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Actualización', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['updated_at'] ?? '—' ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Vigilancia de cola', 'taxocommerce-import-export' ); ?></th><td><?php
+							$last = absint( $state['updated_unix'] ?? 0 );
+							$stalled = ! empty( $state['enabled'] )
+								&& in_array( (string) ( $state['status'] ?? '' ), array( 'processing', 'waiting_next' ), true )
+								&& $last > 0 && time() - $last > 90;
+							echo esc_html( $stalled
+								? __( 'Sin progreso reciente. El sistema intentará recuperarla cuando WordPress reciba peticiones; comprueba WP-Cron y el bucle HTTP.', 'taxocommerce-import-export' )
+								: __( 'La cola iniciada se comprueba automáticamente; el CSV debe estar dentro de la cola privada.', 'taxocommerce-import-export' ) );
+						?></td></tr>
 					</tbody>
 				</table>
 
@@ -1151,7 +1161,44 @@ Deny from all
 		$previous            = $this->state();
 		$state               = array_merge( $previous, (array) $state );
 		$state['updated_at'] = current_time( 'mysql' );
+		$state['updated_unix'] = time();
 		update_option( self::OPTION_STATE, $state, false );
+	}
+
+	/**
+	 * Detect a stalled active CSV queue and re-dispatch a bounded worker request.
+	 * Runs on regular WordPress traffic, without requiring an open admin tab.
+	 * It never imports a CSV that has not been explicitly queued and started.
+	 *
+	 * @return void
+	 */
+	public function watchdog() {
+		$state = $this->state();
+		if ( empty( $state['enabled'] )
+			|| ! in_array( (string) ( $state['status'] ?? '' ), array( 'processing', 'waiting_next' ), true ) ) {
+			return;
+		}
+		$last = absint( $state['updated_unix'] ?? 0 );
+		if ( ! $last && ! empty( $state['updated_at'] ) && function_exists( 'wp_timezone' ) ) {
+			$parsed = DateTimeImmutable::createFromFormat(
+				'!Y-m-d H:i:s',
+				(string) $state['updated_at'],
+				wp_timezone()
+			);
+			$last = $parsed ? $parsed->getTimestamp() : 0;
+		}
+		if ( $last && time() - $last < 90 ) {
+			return;
+		}
+		if ( get_transient( self::LOCK_KEY ) ) {
+			return;
+		}
+		$last_check = absint( get_option( 'taxocommerce_ie_queue_watchdog_last', 0 ) );
+		if ( $last_check && time() - $last_check < 45 ) {
+			return;
+		}
+		update_option( 'taxocommerce_ie_queue_watchdog_last', time(), false );
+		$this->dispatch_next();
 	}
 
 	/**
