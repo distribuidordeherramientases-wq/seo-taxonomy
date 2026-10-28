@@ -110,6 +110,7 @@ final class TaxoCommerce_Images_Audit {
 		if ( $this->acquire_lock() ) {
 			try {
 				delete_option( self::STATE_OPTION );
+				TaxoCommerce_Images_Background::stop( 'audit' );
 			} finally {
 				$this->release_lock();
 			}
