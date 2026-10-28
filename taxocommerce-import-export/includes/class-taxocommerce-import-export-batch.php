@@ -169,7 +169,10 @@ final class TaxoCommerce_Import_Export_Batch {
 						<tr><th><?php esc_html_e( 'Tipo', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['entity'] ?? '—' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Velocidad', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( TaxoCommerce_IE_Load::priority( 'import' ) . ' · ' . TaxoCommerce_IE_Load::labels()[ TaxoCommerce_IE_Load::priority( 'import' ) ] ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Último lote', 'taxocommerce-import-export' ); ?></th><td><?php $tc_ie_last = TaxoCommerce_IE_Load::last_sample( 'import' ); echo esc_html( absint( $tc_ie_last['items'] ?? 0 ) . ' filas · ' . number_format_i18n( (float) ( $tc_ie_last['elapsed'] ?? 0 ), 2 ) . ' s · siguiente lote ' . TaxoCommerce_IE_Load::batch_size( 'import' ) ); ?></td></tr>
-						<tr><th><?php esc_html_e( 'Objetivo actual', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( TaxoCommerce_IE_Load::batch_size( 'import' ) ) . ' filas por bloque · hasta 25 s por petición (según límite PHP)' ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Objetivo actual', 'taxocommerce-import-export' ); ?></th><td><?php
+							/* translators: %s: current target number of CSV rows in one import batch. */
+							echo esc_html( sprintf( __( '%s filas previstas por bloque; limitadas por tiempo y memoria.', 'taxocommerce-import-export' ), number_format_i18n( TaxoCommerce_IE_Load::batch_size( 'import' ) ) ) );
+						?></td></tr>
 						<tr><th><?php esc_html_e( 'Rendimiento real', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( (float) ( $tc_ie_last['rows_per_second'] ?? 0 ), 2 ) . ' filas/s · ' . number_format_i18n( (float) ( $tc_ie_last['average_row_seconds'] ?? 0 ), 2 ) . ' s/fila · ' . number_format_i18n( (float) ( $tc_ie_last['db_queries_per_row'] ?? 0 ), 1 ) . ' consultas SQL/fila' ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Filas procesadas', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['processed_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['error_rows'] ?? 0 ) ) ); ?></td></tr>
