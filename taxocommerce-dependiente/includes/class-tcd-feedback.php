@@ -424,7 +424,9 @@ final class TCD_Feedback {
 
         $status = 'staged';
         $interpreter = class_exists( 'TCD_Intelligence', false ) ? TCD_Intelligence::interpreter_state() : array();
-        $can_promote = in_array( (string) ( $interpreter['status'] ?? '' ), array( 'ready', 'degraded' ), true );
+        $can_promote = in_array( (string) ( $interpreter['status'] ?? '' ), array( 'ready', 'degraded' ), true )
+            || ( class_exists('TCD_Original_Linguista', false)
+                && 'completed' === (string) ( TCD_Original_Linguista::state()['status'] ?? '' ) );
 
         if ( $can_promote && $clarification_sessions >= 2 && $share >= 0.60 ) {
             $status = 'active';

@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.10
+Stable tag: 0.2.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,7 +33,21 @@ Current functionality includes:
 * Upload scaling and image quality settings.
 * Optional integration into TaxoCommerce Core.
 
+== Background execution ==
+
+* Scans and image transformations now use independent persisted WordPress Cron tasks. The browser only starts a task or displays its status.
+* WordPress Cron requires site visits unless a hosting cron regularly invokes wp-cron.php. To guarantee unattended progression even with no visitors, configure a real hosting cron (for example, once per minute). The plugin does not use Action Scheduler.
+* Each task stores its own cursor, state, owner, errors and last heartbeat. Administrators can pause, resume or stop from Images without leaving the tab open.
+* The reported CPU percentage is limited to the PHP request; it is not the server-wide CPU utilization.
+
 == Changelog ==
+
+= 0.2.11 =
+* Added server-side persistent background jobs for audit, labels, duplicates, assignment, optimizer and WebP.
+* Preserved the 1-5 workload regulation and locking; browser is not responsible for chaining batches.
+* Added independent state polling, pause, resume and stop controls.
+* No FTP or production deployment is implied by the GitHub change.
+
 
 = 0.2.9 =
 * Changed unused/duplicate analysis and labels/attributes review into full-library jobs that continue automatically until the complete Media snapshot is scanned.

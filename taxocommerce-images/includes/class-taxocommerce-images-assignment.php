@@ -798,6 +798,9 @@ final class TaxoCommerce_Images_Assignment {
 				);
 			}
 			self::save_assignment_state( $scope, $state );
+			if ( 'start' === $operation && 'running' === $state['status'] ) {
+				TaxoCommerce_Images_Background::start( 'assignment_' . $scope, get_current_user_id() );
+			}
 			$sample = TaxoCommerce_Images_Load::finish( $process, $measurement, absint( $result['seen'] ?? 0 ) );
 
 			$response = array(
@@ -818,6 +821,48 @@ final class TaxoCommerce_Images_Assignment {
 			wp_send_json_error( array( 'message' => $error_message ), 400 );
 		}
 		wp_send_json_success( $response );
+	}
+
+	/**
+	 * One authenticated, server-side continuation of an existing assignment run.
+	 * The cron worker temporarily restores the administrator who started it.
+	 *
+	 * @param string $scope Assignment object scope.
+	 * @return array|WP_Error
+	 */
+	public static function run_background_batch( $scope ) {
+		$scope = sanitize_key( (string) $scope );
+		if ( ! self::valid_scope( $scope ) || ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error( 'tci_background_assignment_permission', 'Proceso o permisos no válidos.' );
+		}
+		$process = self::process_key( $scope );
+		if ( ! TaxoCommerce_Images_Maintenance::lock( $process ) ) {
+			return new WP_Error( 'tci_background_assignment_busy', 'Otro lote de asignación está activo.' );
+		}
+		try {
+			$state = self::assignment_state( $scope );
+			if ( 'running' !== ( $state['status'] ?? '' ) ) {
+				return new WP_Error( 'tci_background_assignment_state', 'No hay una asignación activa.' );
+			}
+			$measure = TaxoCommerce_Images_Load::begin();
+			$result = self::process_assignment_batch( $scope, absint( $state['cursor'] ?? 0 ) );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			$state['cursor'] = absint( $result['cursor'] ?? 0 );
+			$state['seen'] = absint( $state['seen'] ?? 0 ) + absint( $result['seen'] ?? 0 );
+			$state['assigned'] = absint( $state['assigned'] ?? 0 ) + absint( $result['assigned'] ?? 0 );
+			$state['remaining'] = absint( $result['remaining'] ?? 0 );
+			$state['status'] = ! empty( $result['done'] ) ? 'complete' : 'running';
+			if ( 'complete' === $state['status'] ) {
+				$state['completed_at'] = current_time( 'mysql' );
+			}
+			self::save_assignment_state( $scope, $state );
+			TaxoCommerce_Images_Load::finish( $process, $measure, absint( $result['seen'] ?? 0 ) );
+			return $state;
+		} finally {
+			TaxoCommerce_Images_Maintenance::unlock( $process );
+		}
 	}
 
 	public static function handle_assign_auto() {

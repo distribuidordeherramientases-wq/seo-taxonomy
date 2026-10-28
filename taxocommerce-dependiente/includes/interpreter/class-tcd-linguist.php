@@ -1,0 +1,2570 @@
+<?php
+
+defined('ABSPATH') || exit;
+
+/**
+ * Lingüista: formación del Intérprete.
+ *
+ * Se inicia siempre de forma manual. Después, el Gestor de procesos le entrega
+ * ventanas de trabajo mediante el worker/supervisor ya existente. No consulta
+ * servicios externos durante una búsqueda de cliente: el aprendizaje se deja
+ * preparado en la memoria local del Intérprete.
+ */
+final class TCD_Original_Linguista {
+    const VERSION = '0.6.0';
+    const STATE_OPTION = 'tcd_original_linguista_state';
+    const GRAMMAR_OPTION = 'tcd_original_interprete_grammar';
+    const MORPHOLOGY_OPTION = 'tcd_original_interprete_morphology';
+
+    private static $booted = false;
+    private static $curriculum = null;
+    private static $grammar = null;
+
+    public static function init() {
+        if (self::$booted) {
+            return;
+        }
+        self::$booted = true;
+
+        add_action('tcd_original_linguista_worker', array(__CLASS__, 'cron_batch'));
+
+        add_action('admin_post_tcd_original_linguista_control', array(__CLASS__, 'handle_admin_control'));
+        add_action('admin_post_tcd_original_linguista_export', array(__CLASS__, 'handle_admin_export'));
+    }
+
+    public static function lessons() {
+        if (is_array(self::$curriculum)) {
+            return self::$curriculum;
+        }
+        $file = __DIR__ . '/data/curriculum-v1.php';
+        $rows = is_readable($file) ? require $file : array();
+        self::$curriculum = is_array($rows) ? array_values($rows) : array();
+        return self::$curriculum;
+    }
+
+    public static function grammar() {
+        if (is_array(self::$grammar)) {
+            return self::$grammar;
+        }
+        $file = __DIR__ . '/data/es-grammar-v2.php';
+        $data = is_readable($file) ? require $file : array();
+        self::$grammar = is_array($data) ? $data : array();
+        return self::$grammar;
+    }
+
+    public static function default_state() {
+        $lessons = self::lessons();
+        $first = isset($lessons[0]) ? $lessons[0] : array();
+        return array(
+            'version'            => self::VERSION,
+            'enabled'            => 0,
+            'status'             => 'stopped',
+            'run_id'             => '',
+            'lesson_index'       => 0,
+            'current_lesson'     => sanitize_key((string) ($first['key'] ?? '')),
+            'lesson_phase'       => '',
+            'cursor'             => 0,
+            'lesson_processed'   => 0,
+            'lesson_learned'     => 0,
+            'lesson_rejected'    => 0,
+            'lesson_total'       => 0,
+            'processed_total'    => 0,
+            'learned_total'      => 0,
+            'rejected_total'     => 0,
+            'exam_pass'          => 0,
+            'exam_fail'          => 0,
+            'exam_exact'         => 0,
+            'exam_semantic'      => 0,
+            'exam_auto_learned'  => 0,
+            'exam_ambiguous'     => 0,
+            'exam_invalid'       => 0,
+            'exam_active_max_id' => 0,
+            'exam_candidate_max_id' => 0,
+            'l9_review_pass'     => 0,
+            'l9_review_fail'     => 0,
+            'l9_debt_seen'       => 0,
+            'l9_semantic_pass'   => 0,
+            'l9_semantic_fail'   => 0,
+            'l9_noise_evidence'  => 0,
+            'l9_noise_promoted'  => 0,
+            'l9_regression_pass' => 0,
+            'l9_regression_fail' => 0,
+            'l9_regression_rate' => 0.0,
+            'batch_size'         => 60,
+            'started_at'         => 0,
+            'completed_at'       => 0,
+            'course_started_stats' => array(),
+            'course_completed_stats' => array(),
+            'lesson_started_stats' => array(),
+            'heartbeat_at'       => 0,
+            'last_activity_at'   => 0,
+            'last_duration'      => 0.0,
+            'last_processed'     => 0,
+            'next_delay'         => 1,
+            'not_before'         => 0,
+            'last_message'       => '',
+            'last_error'         => '',
+            'lesson_results'     => array(),
+        );
+    }
+
+    public static function state() {
+        $stored = get_option(self::STATE_OPTION, array());
+        $state = wp_parse_args(is_array($stored) ? $stored : array(), self::default_state());
+        $state['version'] = self::VERSION;
+        $state['lesson_results'] = isset($state['lesson_results']) && is_array($state['lesson_results']) ? $state['lesson_results'] : array();
+        $state['course_started_stats'] = isset($state['course_started_stats']) && is_array($state['course_started_stats']) ? $state['course_started_stats'] : array();
+        $state['course_completed_stats'] = isset($state['course_completed_stats']) && is_array($state['course_completed_stats']) ? $state['course_completed_stats'] : array();
+        $state['lesson_started_stats'] = isset($state['lesson_started_stats']) && is_array($state['lesson_started_stats']) ? $state['lesson_started_stats'] : array();
+
+        // Si el currículo se amplía después de haber completado el curso (por
+        // ejemplo al incorporar L9), conserva las lecciones ya completadas y
+        // deja la primera nueva lección preparada, sin reiniciar el curso.
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
+            foreach (self::lessons() as $index => $lesson) {
+                $key = sanitize_key((string) ($lesson['key'] ?? ''));
+                if ($key && empty($state['lesson_results'][$key])) {
+                    $state['enabled'] = 0;
+                    $state['status'] = 'stopped';
+                    $state['run_id'] = '';
+                    $state['lesson_index'] = absint($index);
+                    $state['current_lesson'] = $key;
+                    $state['lesson_phase'] = '';
+                    $state['cursor'] = 0;
+                    $state['lesson_processed'] = 0;
+                    $state['lesson_learned'] = 0;
+                    $state['lesson_rejected'] = 0;
+                    $state['lesson_total'] = 0;
+                    $state['started_at'] = 0;
+                    $state['completed_at'] = 0;
+                    $state['last_message'] = 'Nueva lección L' . absint($lesson['order'] ?? ($index + 1))
+                        . ' disponible: ' . sanitize_text_field((string) ($lesson['title'] ?? '')) . '.';
+                    break;
+                }
+            }
+        }
+        return $state;
+    }
+
+    private static function save_state($changes) {
+        $state = self::state();
+        foreach ((array) $changes as $key => $value) {
+            $state[$key] = $value;
+        }
+        update_option(self::STATE_OPTION, $state, false);
+        return $state;
+    }
+
+    public static function is_pending() {
+        $state = self::state();
+        return !empty($state['enabled'])
+            && 'running' === sanitize_key((string) ($state['status'] ?? ''))
+            && absint($state['lesson_index'] ?? 0) < count(self::lessons());
+    }
+
+    public static function process_control_start() {
+        $state = self::state();
+        $status = sanitize_key((string) ($state['status'] ?? 'stopped'));
+        $current = sanitize_key((string) ($state['current_lesson'] ?? ''));
+
+        // Curso anterior completado y currículo ampliado: inicia únicamente
+        // la nueva lección pendiente, conservando los resultados previos.
+        if ('stopped' === $status
+            && $current
+            && empty($state['run_id'])
+            && !empty($state['lesson_results'])
+            && empty($state['lesson_results'][$current])) {
+            return self::process_control_start_from($current, false);
+        }
+
+        // Si existe una formación ya iniciada y quedó detenida/pausada,
+        // continuar exactamente desde el cursor guardado.
+        if (in_array($status, array('stopped', 'paused', 'error'), true)
+            && $current
+            && !empty($state['run_id'])
+            && empty($state['lesson_results'][$current])) {
+            return self::process_control_resume();
+        }
+
+        return self::process_control_start_from('', true);
+    }
+
+    /**
+     * Inicia una formación nueva o reentrena desde una lección concreta.
+     * Nunca borra la memoria lingüística ya aprendida: revalida y actualiza
+     * relaciones por lotes. Al reentrenar desde una lección se invalidan solo
+     * los resultados de esa lección y de las posteriores.
+     */
+    public static function process_control_start_from($lesson_key = '', $fresh_course = false) {
+        if (!class_exists('TCD_Original_Interprete_DB')) {
+            return new WP_Error('linguista_db_missing', 'La memoria del Intérprete no está disponible.');
+        }
+        TCD_Original_Interprete_DB::install();
+
+        $lessons = self::lessons();
+        if (!$lessons) {
+            return new WP_Error('linguista_curriculum_missing', 'No se ha podido cargar el plan de formación de Lingüista.');
+        }
+
+        $target_index = 0;
+        $lesson_key = sanitize_key((string) $lesson_key);
+        if ('' !== $lesson_key) {
+            $found = false;
+            foreach ($lessons as $index => $lesson) {
+                if ($lesson_key === sanitize_key((string) ($lesson['key'] ?? ''))) {
+                    $target_index = absint($index);
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                return new WP_Error('linguista_lesson_missing', 'La lección solicitada no existe.');
+            }
+        }
+
+        $current = self::state();
+        if (self::is_pending() && !$fresh_course && $target_index === absint($current['lesson_index'] ?? 0)) {
+            return array('started' => true, 'message' => 'Lingüista ya está trabajando en esa lección.');
+        }
+
+        $kept_results = array();
+        if (!$fresh_course && !empty($current['lesson_results']) && is_array($current['lesson_results'])) {
+            foreach ($lessons as $index => $lesson) {
+                if ($index >= $target_index) {
+                    break;
+                }
+                $key = sanitize_key((string) ($lesson['key'] ?? ''));
+                if ($key && isset($current['lesson_results'][$key])) {
+                    $kept_results[$key] = $current['lesson_results'][$key];
+                }
+            }
+        }
+
+        $target = $lessons[$target_index];
+        $state = self::default_state();
+        $state['enabled'] = 1;
+        $state['status'] = 'running';
+        $state['run_id'] = gmdate('YmdHis') . '-' . wp_generate_password(6, false, false);
+        $state['lesson_index'] = $target_index;
+        $state['current_lesson'] = sanitize_key((string) ($target['key'] ?? ''));
+        $state['lesson_total'] = self::lesson_total($state['current_lesson']);
+        $control = self::control_config();
+        $state['batch_size'] = absint($control['initial_batch'] ?? 60);
+        $start_stats = self::memory_stats_snapshot();
+        $state['started_at'] = time();
+        $state['completed_at'] = 0;
+        $state['course_started_stats'] = $start_stats;
+        $state['course_completed_stats'] = array();
+        $state['lesson_started_stats'] = $start_stats;
+        $state['heartbeat_at'] = time();
+        $state['last_activity_at'] = time();
+        $state['not_before'] = 0;
+        $state['lesson_results'] = $kept_results;
+        $state['last_message'] = 'Lingüista preparado en L' . absint($target['order'] ?? ($target_index + 1)) . ': ' . sanitize_text_field((string) ($target['title'] ?? '')) . '. El worker continuará por lotes.';
+        update_option(self::STATE_OPTION, $state, false);
+
+        self::notify_supervisor('started', 'Formación del Intérprete iniciada manualmente; el worker continuará por lotes.');
+        self::nudge_supervisor(0);
+
+        return array('started' => true, 'message' => $state['last_message']);
+    }
+
+    public static function process_control_pause() {
+        $state = self::state();
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
+            return new WP_Error('linguista_completed', 'La formación ya está completada.');
+        }
+        self::save_state(array(
+            'enabled' => 0,
+            'status' => 'paused',
+            'not_before' => 0,
+            'last_activity_at' => time(),
+            'last_message' => 'Formación pausada por el usuario. El worker no procesará más lotes hasta reanudar.',
+        ));
+        self::notify_supervisor('paused', 'Formación Lingüista pausada por el usuario.');
+        return array('paused' => true, 'message' => 'Lingüista pausado.');
+    }
+
+    public static function process_control_stop() {
+        $state = self::state();
+        $status = sanitize_key((string) ($state['status'] ?? 'stopped'));
+        if ('completed' === $status) {
+            return new WP_Error('linguista_completed', 'La formación ya está completada.');
+        }
+        if ('stopped' === $status && empty($state['enabled'])) {
+            return array('stopped' => true, 'message' => 'Lingüista ya está detenido.');
+        }
+
+        self::save_state(array(
+            'enabled' => 0,
+            'status' => 'stopped',
+            'not_before' => 0,
+            'last_activity_at' => time(),
+            'last_error' => '',
+            'last_message' => 'Formación detenida por el usuario. Se conserva el cursor, los resultados y la memoria ya aprendida; no se procesarán más lotes hasta reanudar.',
+        ));
+        self::notify_supervisor('stopped', 'Formación Lingüista detenida por el usuario; se conserva el progreso.');
+        if (function_exists('tcd_original_linguista_unused_supervisor')) {
+            tcd_original_linguista_unused_supervisor('linguista', array(
+                'name' => 'Lingüista',
+                'pending' => 0,
+                'healthy' => 0,
+                'last_checked' => time(),
+                'last_result' => 'stopped',
+                'last_error' => '',
+                'detail' => 'Lingüista detenido manualmente; el progreso se conserva.',
+            ));
+        }
+
+        return array('stopped' => true, 'message' => 'Lingüista detenido. El progreso se conserva.');
+    }
+
+    public static function process_control_resume() {
+        $state = self::state();
+        $status = sanitize_key((string) ($state['status'] ?? 'stopped'));
+        if ('completed' === $status) {
+            return new WP_Error('linguista_completed', 'La formación está completada. Usa Reentrenar desde L1 o desde una lección.');
+        }
+        $lessons = self::lessons();
+        $index = min(absint($state['lesson_index'] ?? 0), max(0, count($lessons) - 1));
+        if (empty($state['current_lesson']) && isset($lessons[$index])) {
+            $state['current_lesson'] = sanitize_key((string) ($lessons[$index]['key'] ?? ''));
+            $state['lesson_total'] = self::lesson_total($state['current_lesson']);
+        }
+        $state['enabled'] = 1;
+        $state['status'] = 'running';
+        $state['not_before'] = 0;
+        $state['heartbeat_at'] = time();
+        $state['last_activity_at'] = time();
+        $state['last_error'] = '';
+        $state['last_message'] = 'Formación Lingüista reanudada. El worker continuará desde el último cursor guardado.';
+        update_option(self::STATE_OPTION, $state, false);
+        self::notify_supervisor('resumed', 'Formación Lingüista reanudada; continuará desde el cursor guardado.');
+        self::nudge_supervisor(0);
+        // If Academy M11 was marked error while the user paused/stopped
+        // Linguist, resume Academy's progress watcher too; never reset L1-L10.
+        if (class_exists('TCD_Academy', false)) {
+            $academy = TCD_Academy::state();
+            if (11 === absint($academy['lesson'] ?? 0)
+                && 'error' === (string) ($academy['status'] ?? '')) {
+                TCD_Academy::save(array('status'=>'running','last_error'=>'',
+                    'last_message'=>'M11 · Lingüista reanudado; manteniendo el aprendizaje anterior.'));
+                if (!wp_next_scheduled(TCD_Academy::CRON_HOOK)) {
+                    wp_schedule_single_event(time()+5, TCD_Academy::CRON_HOOK);
+                }
+            }
+        }
+        return array('resumed' => true, 'message' => 'Lingüista reanudado.');
+    }
+
+    private static function memory_stats_snapshot() {
+        $stats = class_exists('TCD_Original_Interprete_DB') ? TCD_Original_Interprete_DB::stats() : array();
+        return array(
+            'ready' => !empty($stats['ready']),
+            'evidence_ready' => !empty($stats['evidence_ready']),
+            'active' => absint($stats['active'] ?? 0),
+            'staged' => absint($stats['staged'] ?? 0),
+            'validated' => absint($stats['validated'] ?? 0),
+            'evidence' => absint($stats['evidence'] ?? 0),
+            'linked_vocabulary' => absint($stats['linked_vocabulary'] ?? 0),
+            'lesson_i1' => absint($stats['lesson_i1'] ?? 0),
+            'usage_total' => absint($stats['usage_total'] ?? 0),
+            'provisional' => absint($stats['provisional'] ?? 0),
+        );
+    }
+
+    private static function stats_delta($before, $after) {
+        $before = is_array($before) ? $before : array();
+        $after = is_array($after) ? $after : array();
+        $keys = array('active', 'staged', 'validated', 'evidence', 'linked_vocabulary', 'lesson_i1', 'usage_total', 'provisional');
+        $delta = array();
+        foreach ($keys as $key) {
+            $delta[$key] = (int) ($after[$key] ?? 0) - (int) ($before[$key] ?? 0);
+        }
+        return $delta;
+    }
+
+    private static function lesson_definition($lesson_key) {
+        $lesson_key = sanitize_key((string) $lesson_key);
+        foreach (self::lessons() as $index => $lesson) {
+            if ($lesson_key === sanitize_key((string) ($lesson['key'] ?? ''))) {
+                return array(
+                    'key' => $lesson_key,
+                    'order' => absint($lesson['order'] ?? ($index + 1)),
+                    'title' => (string) ($lesson['title'] ?? ''),
+                    'goal' => (string) ($lesson['goal'] ?? ''),
+                );
+            }
+        }
+        return array();
+    }
+
+    private static function lesson_export_payload($lesson_key, $state = null) {
+        $state = is_array($state) ? $state : self::state();
+        $lesson_key = sanitize_key((string) $lesson_key);
+        $result = isset($state['lesson_results'][$lesson_key]) && is_array($state['lesson_results'][$lesson_key])
+            ? $state['lesson_results'][$lesson_key]
+            : array();
+        if (!$result) {
+            return new WP_Error('linguista_export_missing', 'La lección todavía no tiene un resultado completado para exportar.');
+        }
+        $lesson = self::lesson_definition($lesson_key);
+        if (!$lesson) {
+            return new WP_Error('linguista_export_lesson_missing', 'No se encuentra la definición de la lección solicitada.');
+        }
+
+        $processed = absint($result['processed'] ?? 0);
+        $learned = absint($result['learned'] ?? 0);
+        $rejected = absint($result['rejected'] ?? 0);
+        $before = isset($result['memory_before']) && is_array($result['memory_before']) ? $result['memory_before'] : array();
+        $after = isset($result['memory_after']) && is_array($result['memory_after']) ? $result['memory_after'] : array();
+        $payload = array(
+            'schema' => 'seo-dependiente-linguista-lesson',
+            'schema_version' => 1,
+            'generated_at' => gmdate('c'),
+            'linguista_version' => self::VERSION,
+            'run_id' => (string) ($result['run_id'] ?? $state['run_id'] ?? ''),
+            'lesson' => array_merge($lesson, array(
+                'status' => 'completed',
+                'completed_at' => !empty($result['completed_at']) ? gmdate('c', absint($result['completed_at'])) : null,
+                'message' => (string) ($result['message'] ?? ''),
+            )),
+            'metrics' => array(
+                'processed' => $processed,
+                'learned' => $learned,
+                'rejected' => $rejected,
+                'learning_rate_percent' => $processed > 0 ? round(($learned / $processed) * 100, 2) : 0,
+                'rejection_rate_percent' => $processed > 0 ? round(($rejected / $processed) * 100, 2) : 0,
+            ),
+            'memory' => array(
+                'snapshot_available' => !empty($before) && !empty($after),
+                'before' => $before,
+                'after' => $after,
+                'delta' => self::stats_delta($before, $after),
+            ),
+        );
+        if (isset($result['pass']) || isset($result['fail']) || isset($result['rate'])) {
+            $payload['exam'] = array(
+                'pass' => absint($result['pass'] ?? 0),
+                'fail' => absint($result['fail'] ?? 0),
+                'rate_percent' => (float) ($result['rate'] ?? 0),
+                'exact' => absint($result['exact'] ?? 0),
+                'semantic' => absint($result['semantic'] ?? 0),
+                'auto_learned' => absint($result['auto_learned'] ?? 0),
+                'ambiguous' => absint($result['ambiguous'] ?? 0),
+                'invalid' => absint($result['invalid'] ?? 0),
+            );
+        }
+        if (!empty($result['bridge']) && is_array($result['bridge'])) {
+            $payload['dependiente_bridge'] = $result['bridge'];
+        }
+        return $payload;
+    }
+
+    private static function course_export_payload($state = null) {
+        $state = is_array($state) ? $state : self::state();
+        if ('completed' !== sanitize_key((string) ($state['status'] ?? ''))) {
+            return new WP_Error('linguista_course_incomplete', 'El JSON completo estará disponible cuando finalicen todas las lecciones.');
+        }
+
+        $lessons = array();
+        $evolution = array();
+        $cumulative = array('processed' => 0, 'learned' => 0, 'rejected' => 0);
+        $course_baseline = isset($state['course_started_stats']) && is_array($state['course_started_stats'])
+            ? $state['course_started_stats']
+            : array();
+        foreach (self::lessons() as $lesson) {
+            $key = sanitize_key((string) ($lesson['key'] ?? ''));
+            $lesson_payload = self::lesson_export_payload($key, $state);
+            if (is_wp_error($lesson_payload)) {
+                continue;
+            }
+            $lessons[] = $lesson_payload;
+            $metrics = $lesson_payload['metrics'];
+            $cumulative['processed'] += absint($metrics['processed'] ?? 0);
+            $cumulative['learned'] += absint($metrics['learned'] ?? 0);
+            $cumulative['rejected'] += absint($metrics['rejected'] ?? 0);
+            $memory_after = isset($lesson_payload['memory']['after']) && is_array($lesson_payload['memory']['after'])
+                ? $lesson_payload['memory']['after']
+                : array();
+            $retained = !empty($state['run_id']) && !empty($lesson_payload['run_id']) && (string) $lesson_payload['run_id'] !== (string) $state['run_id'];
+            $point = array(
+                'order' => absint($lesson_payload['lesson']['order'] ?? 0),
+                'key' => (string) ($lesson_payload['lesson']['key'] ?? ''),
+                'title' => (string) ($lesson_payload['lesson']['title'] ?? ''),
+                'completed_at' => $lesson_payload['lesson']['completed_at'] ?? null,
+                'processed' => absint($metrics['processed'] ?? 0),
+                'learned' => absint($metrics['learned'] ?? 0),
+                'rejected' => absint($metrics['rejected'] ?? 0),
+                'learning_rate_percent' => (float) ($metrics['learning_rate_percent'] ?? 0),
+                'run_id' => (string) ($lesson_payload['run_id'] ?? ''),
+                'retained_from_previous_run' => $retained,
+                'cumulative' => $cumulative,
+                'memory_after' => $memory_after,
+                'memory_growth_from_course_start' => (!$retained && $course_baseline && $memory_after)
+                    ? self::stats_delta($course_baseline, $memory_after)
+                    : null,
+            );
+            if (isset($lesson_payload['exam'])) {
+                $point['exam'] = $lesson_payload['exam'];
+            }
+            if (isset($lesson_payload['dependiente_bridge'])) {
+                $point['dependiente_bridge'] = $lesson_payload['dependiente_bridge'];
+            }
+            $evolution[] = $point;
+        }
+
+        $final_memory = isset($state['course_completed_stats']) && is_array($state['course_completed_stats']) && $state['course_completed_stats']
+            ? $state['course_completed_stats']
+            : self::memory_stats_snapshot();
+        $mixed_runs = false;
+        foreach ($evolution as $point) {
+            if (!empty($point['retained_from_previous_run'])) {
+                $mixed_runs = true;
+                break;
+            }
+        }
+        return array(
+            'schema' => 'seo-dependiente-linguista-course',
+            'schema_version' => 1,
+            'generated_at' => gmdate('c'),
+            'linguista_version' => self::VERSION,
+            'run_id' => (string) ($state['run_id'] ?? ''),
+            'course' => array(
+                'status' => 'completed',
+                'started_at' => !empty($state['started_at']) ? gmdate('c', absint($state['started_at'])) : null,
+                'completed_at' => !empty($state['completed_at']) ? gmdate('c', absint($state['completed_at'])) : null,
+                'lesson_count' => count($lessons),
+                'contains_retained_results' => $mixed_runs,
+            ),
+            'summary' => array(
+                'processed' => $cumulative['processed'],
+                'learned' => $cumulative['learned'],
+                'rejected' => $cumulative['rejected'],
+                'learning_rate_percent' => $cumulative['processed'] > 0 ? round(($cumulative['learned'] / $cumulative['processed']) * 100, 2) : 0,
+                'memory_snapshot_available' => !empty($course_baseline) && !empty($final_memory),
+                'memory_start' => $course_baseline,
+                'memory_end' => $final_memory,
+                'memory_delta' => self::stats_delta($course_baseline, $final_memory),
+            ),
+            'evolution' => $evolution,
+            'lessons' => $lessons,
+        );
+    }
+
+    public static function export_url($type = 'course', $lesson_key = '') {
+        $args = array(
+            'action' => 'tcd_original_linguista_export',
+            'export_type' => 'lesson' === $type ? 'lesson' : 'course',
+        );
+        if ('lesson' === $type) {
+            $args['lesson_key'] = sanitize_key((string) $lesson_key);
+        }
+        return wp_nonce_url(add_query_arg($args, admin_url('admin-post.php')), 'tcd_original_linguista_export');
+    }
+
+    public static function handle_admin_export() {
+        if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('No tienes permisos para exportar la formación Lingüista.', 'taxocommerce-dependiente'));
+        }
+        check_admin_referer('tcd_original_linguista_export');
+
+        $type = isset($_GET['export_type']) ? sanitize_key(wp_unslash((string) $_GET['export_type'])) : 'course';
+        $state = self::state();
+        if ('lesson' === $type) {
+            $lesson_key = isset($_GET['lesson_key']) ? sanitize_key(wp_unslash((string) $_GET['lesson_key'])) : '';
+            $payload = self::lesson_export_payload($lesson_key, $state);
+            $lesson = self::lesson_definition($lesson_key);
+            $order = absint($lesson['order'] ?? 0);
+            $filename = 'linguista-leccion-' . ($order ?: $lesson_key) . '-' . sanitize_file_name((string) ($state['run_id'] ?? 'resultado')) . '.json';
+        } else {
+            $payload = self::course_export_payload($state);
+            $filename = 'linguista-evolucion-completa-' . sanitize_file_name((string) ($state['run_id'] ?? 'resultado')) . '.json';
+        }
+
+        if (is_wp_error($payload)) {
+            wp_die(esc_html($payload->get_error_message()), esc_html__('Exportación Lingüista', 'taxocommerce-dependiente'), array('response' => 400));
+        }
+
+        nocache_headers();
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        echo wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    public static function handle_admin_control() {
+        if (!current_user_can('manage_options') && !current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('No tienes permisos para controlar Lingüista.', 'taxocommerce-dependiente'));
+        }
+        check_admin_referer('tcd_original_linguista_control');
+
+        $command = isset($_POST['command']) ? sanitize_key(wp_unslash((string) $_POST['command'])) : '';
+        $lesson_key = isset($_POST['lesson_key']) ? sanitize_key(wp_unslash((string) $_POST['lesson_key'])) : '';
+
+        if ('pause' === $command) {
+            $result = self::process_control_pause();
+        } elseif ('stop' === $command) {
+            $result = self::process_control_stop();
+        } elseif ('resume' === $command) {
+            $result = self::process_control_resume();
+        } elseif ('retrain_from' === $command) {
+            $result = self::process_control_start_from($lesson_key, false);
+        } elseif ('restart_course' === $command) {
+            $result = self::process_control_start_from('', true);
+        } else {
+            $result = self::process_control_start();
+        }
+
+        $args = array('page' => 'taxocommerce-dependiente', 'tab' => 'interpreter');
+        if (is_wp_error($result)) {
+            $args['linguista_error'] = rawurlencode($result->get_error_message());
+        } else {
+            $args['linguista_notice'] = rawurlencode((string) ($result['message'] ?? 'Estado de Lingüista actualizado.'));
+        }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+
+    private static function notify_supervisor($result, $detail) {
+        if (!function_exists('tcd_original_linguista_unused_supervisor')) {
+            return;
+        }
+        tcd_original_linguista_unused_supervisor('linguista', array(
+            'name' => 'Lingüista',
+            'pending' => self::is_pending() ? 1 : 0,
+            'healthy' => 1,
+            'last_checked' => time(),
+            'last_result' => sanitize_key((string) $result),
+            'last_error' => '',
+            'detail' => sanitize_text_field((string) $detail),
+        ));
+    }
+
+    private static function nudge_supervisor($delay = 0) {
+        if (!self::is_pending()) return;
+        $timestamp = time() + max(1, absint($delay));
+        $next = wp_next_scheduled('tcd_original_linguista_worker');
+        if (!$next || $next > $timestamp + 10) {
+            if ($next) wp_unschedule_event($next, 'tcd_original_linguista_worker');
+            wp_schedule_single_event($timestamp, 'tcd_original_linguista_worker');
+        }
+    }
+
+    public static function cron_batch() {
+        if (!self::is_pending()) return;
+        $lock = 'tcd_original_linguista_worker_lock';
+        if (!add_option($lock, time(), '', false)) {
+            if (time() - absint(get_option($lock, 0)) < 90) {
+                self::nudge_supervisor(15);
+                return;
+            }
+            delete_option($lock);
+            if (!add_option($lock, time(), '', false)) return;
+        }
+        try {
+            self::process_manager_slice(15, 'tcd_wp_cron');
+        } finally {
+            delete_option($lock);
+        }
+    }
+
+    public static function course_progress() {
+        $state = self::state();
+        $lessons = self::lessons();
+        $count = max(1, count($lessons));
+        if ('completed' === sanitize_key((string) ($state['status'] ?? ''))) {
+            return 100;
+        }
+        $index = min(absint($state['lesson_index'] ?? 0), $count - 1);
+        $lesson_total = absint($state['lesson_total'] ?? 0);
+        $lesson_processed = absint($state['lesson_processed'] ?? 0);
+        $fraction = $lesson_total > 0 ? min(1, $lesson_processed / $lesson_total) : 0;
+        return min(100, max(0, (int) round((($index + $fraction) / $count) * 100)));
+    }
+
+    public static function lesson_statuses() {
+        $state = self::state();
+        $results = isset($state['lesson_results']) && is_array($state['lesson_results']) ? $state['lesson_results'] : array();
+        $current_key = sanitize_key((string) ($state['current_lesson'] ?? ''));
+        $current_status = sanitize_key((string) ($state['status'] ?? 'stopped'));
+        $rows = array();
+        foreach (self::lessons() as $index => $lesson) {
+            $key = sanitize_key((string) ($lesson['key'] ?? ''));
+            $result = isset($results[$key]) && is_array($results[$key]) ? $results[$key] : array();
+            $status = 'pending';
+            $progress = 0;
+            $processed = absint($result['processed'] ?? 0);
+            $learned = absint($result['learned'] ?? 0);
+            $rejected = absint($result['rejected'] ?? 0);
+            if ($result) {
+                $status = 'completed';
+                $progress = 100;
+            } elseif ($key && $key === $current_key) {
+                $status = in_array($current_status, array('running', 'paused', 'stopped', 'error'), true) ? $current_status : 'pending';
+                $total = absint($state['lesson_total'] ?? 0);
+                $processed = absint($state['lesson_processed'] ?? 0);
+                $learned = absint($state['lesson_learned'] ?? 0);
+                $rejected = absint($state['lesson_rejected'] ?? 0);
+                $progress = $total > 0 ? min(99, (int) round(($processed / $total) * 100)) : 0;
+            } elseif ($index > absint($state['lesson_index'] ?? 0) && 'completed' !== $current_status) {
+                $status = 'locked';
+            }
+            $rows[] = array(
+                'key' => $key,
+                'order' => absint($lesson['order'] ?? ($index + 1)),
+                'title' => (string) ($lesson['title'] ?? ''),
+                'goal' => (string) ($lesson['goal'] ?? ''),
+                'status' => $status,
+                'progress' => $progress,
+                'processed' => $processed,
+                'learned' => $learned,
+                'rejected' => $rejected,
+                'result' => $result,
+            );
+        }
+        return $rows;
+    }
+
+    public static function process_monitor_payload() {
+        $state = self::state();
+        $lessons = self::lessons();
+        $index = absint($state['lesson_index'] ?? 0);
+        $lesson = isset($lessons[$index]) ? $lessons[$index] : array();
+        $stats = class_exists('TCD_Original_Interprete_DB') ? TCD_Original_Interprete_DB::stats() : array();
+        return array(
+            'version' => self::VERSION,
+            'running' => self::is_pending(),
+            'state'   => $state,
+            'current' => $lesson,
+            'lessons' => $lessons,
+            'lesson_statuses' => self::lesson_statuses(),
+            'progress' => self::course_progress(),
+            'stats'   => $stats,
+        );
+    }
+
+    public static function process_manager_slice($max_runtime = 20, $source = 'process_manager') {
+        if (!self::is_pending()) {
+            return false;
+        }
+        $state = self::state();
+        $not_before = absint($state['not_before'] ?? 0);
+        if ($not_before && $not_before > time()) {
+            return false;
+        }
+
+        $max_runtime = max(5, min(50, absint($max_runtime)));
+        $started = microtime(true);
+        $did_work = false;
+        $processed_window = 0;
+        $learned_window = 0;
+        $rejected_window = 0;
+
+        try {
+            while ((microtime(true) - $started) < max(2, $max_runtime - 1)) {
+                $state = self::state();
+                if (!self::is_pending()) {
+                    break;
+                }
+
+                $batch_started = microtime(true);
+                $result = self::run_current_lesson_batch($state);
+                $duration = max(0.001, microtime(true) - $batch_started);
+                $did_work = $did_work || !empty($result['processed']) || !empty($result['done']);
+                $processed = absint($result['processed'] ?? 0);
+                $learned = absint($result['learned'] ?? 0);
+                $rejected = absint($result['rejected'] ?? 0);
+                $processed_window += $processed;
+                $learned_window += $learned;
+                $rejected_window += $rejected;
+
+                $state = self::save_state(array(
+                    'heartbeat_at'     => time(),
+                    'last_activity_at' => time(),
+                    'last_duration'    => $duration,
+                    'last_processed'   => $processed,
+                    'lesson_processed' => absint($state['lesson_processed'] ?? 0) + $processed,
+                    'lesson_learned'   => absint($state['lesson_learned'] ?? 0) + $learned,
+                    'lesson_rejected'  => absint($state['lesson_rejected'] ?? 0) + $rejected,
+                    'processed_total'  => absint($state['processed_total'] ?? 0) + $processed,
+                    'learned_total'    => absint($state['learned_total'] ?? 0) + $learned,
+                    'rejected_total'   => absint($state['rejected_total'] ?? 0) + $rejected,
+                    'last_error'       => '',
+                    'last_message'     => sanitize_text_field((string) ($result['message'] ?? 'Lote Lingüista completado.')),
+                ));
+
+                if (!empty($result['state_changes']) && is_array($result['state_changes'])) {
+                    $state = self::save_state($result['state_changes']);
+                }
+
+                if (!empty($result['done'])) {
+                    self::finish_current_lesson($state, $result);
+                    // Una ventana del worker no encadena otra lección. Se
+                    // guarda el cierre y la siguiente lección espera al turno
+                    // siguiente, igual que Academia.
+                    break;
+                }
+
+                self::adapt_speed($duration);
+                break;
+            }
+        } catch (Throwable $e) {
+            self::save_state(array(
+                'status' => 'error',
+                'enabled' => 0,
+                'heartbeat_at' => time(),
+                'last_activity_at' => time(),
+                'last_error' => sanitize_text_field($e->getMessage()),
+                'last_message' => 'Lingüista se ha detenido por un error.',
+            ));
+            if (function_exists('tcd_original_linguista_unused_supervisor')) {
+                tcd_original_linguista_unused_supervisor('linguista', array(
+                    'name' => 'Lingüista', 'pending' => 0, 'healthy' => 0, 'last_checked' => time(),
+                    'last_result' => 'failed', 'last_error' => sanitize_text_field($e->getMessage()),
+                    'detail' => 'La formación del Intérprete se ha detenido por un error.',
+                ));
+            }
+            return false;
+        }
+
+        $state = self::state();
+        if (self::is_pending()) {
+            $delay = max(1, absint($state['next_delay'] ?? 1));
+            self::save_state(array('not_before' => time() + $delay));
+            self::nudge_supervisor($delay);
+        }
+
+        if (function_exists('tcd_original_linguista_unused_supervisor')) {
+            tcd_original_linguista_unused_supervisor('linguista', array(
+                'name' => 'Lingüista',
+                'pending' => self::is_pending() ? 1 : 0,
+                'healthy' => 1,
+                'last_checked' => time(),
+                'last_attempt_at' => time(),
+                'last_result' => $did_work ? 'processed' : 'waiting',
+                'last_error' => '',
+                'detail' => self::is_pending()
+                    ? 'Ventana Lingüista completada; el worker continuará la formación.'
+                    : 'Formación Lingüista terminada.',
+            ));
+        }
+
+        return $did_work || $processed_window > 0 || $learned_window > 0 || $rejected_window > 0;
+    }
+
+    private static function lesson9_ready() {
+        if (!class_exists('TCD_Original_Linguista_Lesson9')) {
+            $file = __DIR__ . '/lessons/class-dependiente-linguista-lesson9.php';
+            if (is_readable($file)) {
+                require_once $file;
+            }
+        }
+        return class_exists('TCD_Original_Linguista_Lesson9');
+    }
+
+    private static function run_current_lesson_batch($state) {
+        $key = sanitize_key((string) ($state['current_lesson'] ?? ''));
+        switch ($key) {
+            case 'ling_l1_catalog_language':
+                return self::lesson_catalog_language($state);
+            case 'ling_l2_actions':
+                return self::lesson_actions($state);
+            case 'ling_l3_synonyms':
+                return self::lesson_synonyms($state);
+            case 'ling_l4_context':
+                return self::lesson_context($state);
+            case 'ling_l5_ambiguity':
+                return self::lesson_validate_ambiguity($state);
+            case 'ling_l6_natural_language':
+                return self::lesson_natural_language($state);
+            case 'ling_l7_intent':
+                return self::lesson_intent($state);
+            case 'ling_l8_exam':
+                return self::lesson_exam($state);
+            case 'ling_l9_dependiente_bridge':
+                if (self::lesson9_ready()) {
+                    return TCD_Original_Linguista_Lesson9::run_batch($state);
+                }
+                return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 1, 'message' => 'No se ha podido cargar L9 de Lingüista.');
+        }
+        return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Lección sin trabajo pendiente.');
+    }
+
+    /** L1: nombres canónicos procedentes de Vocabulary, categorías y etiquetas. */
+    private static function lesson_catalog_language($state) {
+        global $wpdb;
+        $batch = self::batch_size($state);
+        $phase = sanitize_key((string) ($state['lesson_phase'] ?? '')) ?: 'vocabulary';
+        $cursor = absint($state['cursor'] ?? 0);
+        $rows = array();
+
+        if ('vocabulary' === $phase) {
+            $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+            if (!self::table_exists($table)) {
+                return array('done' => false, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Vocabulary no disponible; se continúa con categorías.', 'state_changes' => array('lesson_phase' => 'categories', 'cursor' => 0));
+            }
+            $rows = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT id,semantic_group,slug,label FROM {$table} WHERE active=1 AND id>%d AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo') ORDER BY id ASC LIMIT %d",
+                $cursor,
+                $batch
+            ), ARRAY_A);
+            if (!$rows) {
+                return array('done' => false, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Vocabulary leído. Pasando a categorías.', 'state_changes' => array('lesson_phase' => 'categories', 'cursor' => 0));
+            }
+            $learned = 0;
+            foreach ($rows as $row) {
+                $label = trim((string) ($row['label'] ?? ''));
+                $slug = trim((string) ($row['slug'] ?? ''));
+                if ('' === $label) {
+                    $label = str_replace(array('-', '_'), ' ', $slug);
+                }
+                if ('' === $label) {
+                    continue;
+                }
+                $id = TCD_Original_Interprete_DB::upsert_row(array(
+                    'expression' => $label,
+                    'canonical_term' => $label,
+                    'target_search' => $label,
+                    'relation_type' => 'noun',
+                    'semantic_group' => sanitize_key((string) ($row['semantic_group'] ?? '')),
+                    'vocabulary_id' => absint($row['id']),
+                    'confidence' => 1.0,
+                    'priority' => 1,
+                    'source' => 'linguista_catalog',
+                    'lesson_key' => 'ling_l1_catalog_language',
+                    'validated' => 1,
+                    'active' => 1,
+                ));
+                if ($id) {
+                    TCD_Original_Interprete_DB::add_evidence($id, 'vocabulary', absint($row['id']), hash('sha256', wp_json_encode($row)), 'ling_l1_catalog_language', 1.0);
+                    $learned++;
+                }
+                $slug_expression = trim(str_replace(array('-', '_'), ' ', $slug));
+                if ($slug_expression && TCD_Original_Interprete_DB::normalize($slug_expression) !== TCD_Original_Interprete_DB::normalize($label)) {
+                    $alias_id = TCD_Original_Interprete_DB::upsert_row(array(
+                        'expression' => $slug_expression,
+                        'canonical_term' => $label,
+                        'target_search' => $label,
+                        'relation_type' => 'catalog_variant',
+                        'semantic_group' => sanitize_key((string) ($row['semantic_group'] ?? '')),
+                        'vocabulary_id' => absint($row['id']),
+                        'confidence' => 0.99,
+                        'priority' => 2,
+                        'source' => 'linguista_catalog',
+                        'lesson_key' => 'ling_l1_catalog_language',
+                        'validated' => 1,
+                        'active' => 1,
+                    ));
+                    if ($alias_id) {
+                        TCD_Original_Interprete_DB::add_evidence($alias_id, 'vocabulary_slug', absint($row['id']), hash('sha256', $slug), 'ling_l1_catalog_language', 0.99);
+                        $learned++;
+                    }
+                }
+            }
+            $last = end($rows);
+            return array('done' => false, 'processed' => count($rows), 'learned' => $learned, 'rejected' => 0, 'message' => 'Vocabulary procesado.', 'state_changes' => array('cursor' => absint($last['id'] ?? $cursor)));
+        }
+
+        if ('categories' === $phase) {
+            $rows = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT tt.term_taxonomy_id AS id,t.name,t.slug FROM {$wpdb->term_taxonomy} tt JOIN {$wpdb->terms} t ON t.term_id=tt.term_id WHERE tt.taxonomy='product_cat' AND tt.count>0 AND tt.term_taxonomy_id>%d ORDER BY tt.term_taxonomy_id ASC LIMIT %d",
+                $cursor,
+                $batch
+            ), ARRAY_A);
+            if (!$rows) {
+                return array('done' => false, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Categorías leídas. Pasando a etiquetas.', 'state_changes' => array('lesson_phase' => 'tags', 'cursor' => 0));
+            }
+            $learned = 0;
+            foreach ($rows as $row) {
+                $name = trim((string) ($row['name'] ?? ''));
+                if ('' === $name) {
+                    continue;
+                }
+                $id = TCD_Original_Interprete_DB::upsert_row(array(
+                    'expression' => $name,
+                    'canonical_term' => $name,
+                    'target_search' => $name,
+                    'relation_type' => 'category_name',
+                    'semantic_group' => 'category',
+                    'confidence' => 1.0,
+                    'priority' => 1,
+                    'source' => 'linguista_catalog',
+                    'lesson_key' => 'ling_l1_catalog_language',
+                    'validated' => 1,
+                    'active' => 1,
+                ));
+                if ($id) {
+                    TCD_Original_Interprete_DB::add_evidence($id, 'product_cat', absint($row['id']), hash('sha256', wp_json_encode($row)), 'ling_l1_catalog_language', 1.0);
+                    $learned++;
+                }
+            }
+            $last = end($rows);
+            return array('done' => false, 'processed' => count($rows), 'learned' => $learned, 'rejected' => 0, 'message' => 'Categorías procesadas.', 'state_changes' => array('cursor' => absint($last['id'] ?? $cursor)));
+        }
+
+        if ('tags' === $phase) {
+            $rows = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT tt.term_taxonomy_id AS id,t.name,t.slug FROM {$wpdb->term_taxonomy} tt JOIN {$wpdb->terms} t ON t.term_id=tt.term_id WHERE tt.taxonomy='product_tag' AND tt.count>0 AND tt.term_taxonomy_id>%d ORDER BY tt.term_taxonomy_id ASC LIMIT %d",
+                $cursor,
+                $batch
+            ), ARRAY_A);
+            if (!$rows) {
+                return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Lenguaje canónico del catálogo aprendido.');
+            }
+            $learned = 0;
+            foreach ($rows as $row) {
+                $name = trim((string) ($row['name'] ?? ''));
+                if ('' === $name) {
+                    continue;
+                }
+                $id = TCD_Original_Interprete_DB::upsert_row(array(
+                    'expression' => $name,
+                    'canonical_term' => $name,
+                    'target_search' => $name,
+                    'relation_type' => 'tag_name',
+                    'semantic_group' => 'tag',
+                    'confidence' => 0.98,
+                    'priority' => 2,
+                    'source' => 'linguista_catalog',
+                    'lesson_key' => 'ling_l1_catalog_language',
+                    'validated' => 1,
+                    'active' => 1,
+                ));
+                if ($id) {
+                    TCD_Original_Interprete_DB::add_evidence($id, 'product_tag', absint($row['id']), hash('sha256', wp_json_encode($row)), 'ling_l1_catalog_language', 0.98);
+                    $learned++;
+                }
+            }
+            $last = end($rows);
+            return array('done' => false, 'processed' => count($rows), 'learned' => $learned, 'rejected' => 0, 'message' => 'Etiquetas procesadas.', 'state_changes' => array('cursor' => absint($last['id'] ?? $cursor)));
+        }
+
+        return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Lección de catálogo completada.');
+    }
+
+    /** L2: extrae infinitivos de texto real y los relaciona con el tipo asignado. */
+    private static function lesson_actions($state) {
+        global $wpdb;
+        $batch = self::batch_size($state);
+        $cursor = absint($state['cursor'] ?? 0);
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT ID,post_title,post_excerpt,post_content FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' AND ID>%d ORDER BY ID ASC LIMIT %d",
+            $cursor,
+            $batch
+        ), ARRAY_A);
+        if (!$rows) {
+            return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Acciones del catálogo extraídas.');
+        }
+
+        $ids = array_values(array_map('absint', wp_list_pluck($rows, 'ID')));
+        $targets = self::product_targets($ids);
+        $grammar = self::grammar();
+        $stop_verbs = array_map(array('TCD_Original_Interprete_DB', 'normalize'), (array) ($grammar['stop_verbs'] ?? array()));
+        $learned = 0;
+        $rejected = 0;
+
+        foreach ($rows as $row) {
+            $product_id = absint($row['ID'] ?? 0);
+            if (!$product_id || empty($targets[$product_id]['target'])) {
+                $rejected++;
+                continue;
+            }
+            $target = (string) $targets[$product_id]['target'];
+            $semantic_group = sanitize_key((string) ($targets[$product_id]['semantic_group'] ?? ''));
+            $vocabulary_id = absint($targets[$product_id]['vocabulary_id'] ?? 0);
+            $contexts = (array) ($targets[$product_id]['contexts'] ?? array());
+            $text = (string) ($row['post_title'] ?? '') . ' ' . (string) ($row['post_excerpt'] ?? '') . ' ' . wp_strip_all_tags((string) ($row['post_content'] ?? ''));
+            if (strlen($text) > 18000) {
+                $text = substr($text, 0, 18000);
+            }
+            $verbs = self::extract_infinitive_verbs($text, $stop_verbs);
+            foreach ($verbs as $verb) {
+                $lexicon_id = TCD_Original_Interprete_DB::upsert_row(array(
+                    'expression' => $verb,
+                    'canonical_term' => $target,
+                    'target_search' => $target,
+                    'relation_type' => 'verb_to_tool',
+                    'semantic_group' => $semantic_group,
+                    'vocabulary_id' => $vocabulary_id,
+                    'context_terms' => $contexts,
+                    'context_required' => 0,
+                    'confidence' => 0.76,
+                    'priority' => 4,
+                    'source' => 'linguista_catalog_actions',
+                    'lesson_key' => 'ling_l2_actions',
+                    'validated' => 0,
+                    'active' => 0,
+                ));
+                if ($lexicon_id) {
+                    TCD_Original_Interprete_DB::add_evidence(
+                        $lexicon_id,
+                        'product',
+                        $product_id,
+                        hash('sha256', $verb . '|' . $target . '|' . wp_strip_all_tags((string) ($row['post_excerpt'] ?? ''))),
+                        'ling_l2_actions',
+                        0.76,
+                        $contexts
+                    );
+                    $learned++;
+                }
+            }
+        }
+        $last = end($rows);
+        return array(
+            'done' => false,
+            'processed' => count($rows),
+            'learned' => $learned,
+            'rejected' => $rejected,
+            'message' => 'Acciones extraídas de productos y relacionadas con Vocabulary.',
+            'state_changes' => array('cursor' => absint($last['ID'] ?? $cursor)),
+        );
+    }
+
+    /** L3: solo equivalencias explícitas; no deduce sinónimos por proximidad. */
+    private static function lesson_synonyms($state) {
+        global $wpdb;
+        $batch = self::batch_size($state);
+        $phase = sanitize_key((string) ($state['lesson_phase'] ?? '')) ?: 'search_synonyms';
+        $cursor = absint($state['cursor'] ?? 0);
+
+        if ('search_synonyms' === $phase) {
+            $pairs = self::existing_synonym_pairs();
+            if ($cursor >= count($pairs)) {
+                return array('done' => false, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Sinónimos configurados importados. Pasando a variantes explícitas de Vocabulary.', 'state_changes' => array('lesson_phase' => 'vocabulary_aliases', 'cursor' => 0));
+            }
+            $slice = array_slice($pairs, $cursor, $batch);
+            $learned = 0;
+            $rejected = 0;
+            foreach ($slice as $index => $pair) {
+                $target_row = TCD_Original_Interprete_DB::find_target_for_expression($pair['canonical']);
+                if (!$target_row) {
+                    $target_row = TCD_Original_Interprete_DB::find_target_for_expression($pair['expression']);
+                }
+                if (!$target_row) {
+                    $rejected++;
+                    continue;
+                }
+                $target = (string) ($target_row['target_search'] ?? $pair['canonical']);
+                $canonical = (string) ($target_row['canonical_term'] ?? $target);
+                $lexicon_id = TCD_Original_Interprete_DB::upsert_row(array(
+                    'expression' => $pair['expression'],
+                    'canonical_term' => $canonical,
+                    'target_search' => $target,
+                    'relation_type' => 'synonym',
+                    'semantic_group' => sanitize_key((string) ($target_row['semantic_group'] ?? '')),
+                    'vocabulary_id' => absint($target_row['vocabulary_id'] ?? 0),
+                    'confidence' => 0.95,
+                    'priority' => 3,
+                    'source' => 'linguista_explicit_synonym',
+                    'lesson_key' => 'ling_l3_synonyms',
+                    'validated' => 0,
+                    'active' => 0,
+                ));
+                if ($lexicon_id) {
+                    TCD_Original_Interprete_DB::add_evidence($lexicon_id, 'search_synonym', $cursor + $index + 1, hash('sha256', wp_json_encode($pair)), 'ling_l3_synonyms', 0.95);
+                    $learned++;
+                }
+            }
+            return array('done' => false, 'processed' => count($slice), 'learned' => $learned, 'rejected' => $rejected, 'message' => 'Sinónimos explícitos procesados.', 'state_changes' => array('cursor' => $cursor + count($slice)));
+        }
+
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        if (!self::table_exists($vocabulary)) {
+            return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Lección de sinónimos completada.');
+        }
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT id,semantic_group,slug,label FROM {$vocabulary} WHERE active=1 AND id>%d ORDER BY id ASC LIMIT %d",
+            $cursor,
+            $batch
+        ), ARRAY_A);
+        if (!$rows) {
+            return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Sinónimos y variantes explícitas aprendidos.');
+        }
+        $learned = 0;
+        foreach ($rows as $row) {
+            $aliases = self::explicit_label_aliases((string) ($row['label'] ?? ''));
+            if (count($aliases) < 2) {
+                continue;
+            }
+            $canonical = array_shift($aliases);
+            foreach ($aliases as $alias) {
+                $lexicon_id = TCD_Original_Interprete_DB::upsert_row(array(
+                    'expression' => $alias,
+                    'canonical_term' => $canonical,
+                    'target_search' => $canonical,
+                    'relation_type' => 'synonym',
+                    'semantic_group' => sanitize_key((string) ($row['semantic_group'] ?? '')),
+                    'vocabulary_id' => absint($row['id']),
+                    'confidence' => 0.88,
+                    'priority' => 3,
+                    'source' => 'linguista_explicit_synonym',
+                    'lesson_key' => 'ling_l3_synonyms',
+                    'validated' => 0,
+                    'active' => 0,
+                ));
+                if ($lexicon_id) {
+                    TCD_Original_Interprete_DB::add_evidence($lexicon_id, 'vocabulary_alias', absint($row['id']), hash('sha256', (string) $row['label']), 'ling_l3_synonyms', 0.88);
+                    $learned++;
+                }
+            }
+        }
+        $last = end($rows);
+        return array('done' => false, 'processed' => count($rows), 'learned' => $learned, 'rejected' => 0, 'message' => 'Variantes explícitas de Vocabulary procesadas.', 'state_changes' => array('cursor' => absint($last['id'] ?? $cursor)));
+    }
+
+    /** L4: reúne contexto real de los productos que aportaron evidencia. */
+    private static function lesson_context($state) {
+        global $wpdb;
+        $batch = min(80, self::batch_size($state));
+        $cursor = absint($state['cursor'] ?? 0);
+        $table = esc_sql( TCD_Original_Interprete_DB::table() );
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id>%d AND lesson_key IN ('ling_l2_actions','ling_l3_synonyms') ORDER BY id ASC LIMIT %d",
+            $cursor,
+            $batch
+        ), ARRAY_A);
+        if (!$rows) {
+            return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Contexto añadido a las expresiones aprendidas.');
+        }
+
+        $learned = 0;
+        foreach ($rows as $row) {
+            $id = absint($row['id'] ?? 0);
+            $contexts = self::contexts_for_lexicon($id);
+            $existing = json_decode((string) ($row['context_terms'] ?? ''), true);
+            $contexts = array_values(array_unique(array_merge(is_array($existing) ? $existing : array(), $contexts)));
+            $ambiguous = TCD_Original_Interprete_DB::canonical_count_for_expression((string) ($row['normalized_expression'] ?? '')) > 1;
+            if (TCD_Original_Interprete_DB::update_row($id, array(
+                'context_terms' => $contexts,
+                'context_required' => $ambiguous ? 1 : !empty($row['context_required']),
+            ))) {
+                $learned++;
+            }
+        }
+        $last = end($rows);
+        return array('done' => false, 'processed' => count($rows), 'learned' => $learned, 'rejected' => 0, 'message' => 'Contexto de catálogo consolidado.', 'state_changes' => array('cursor' => absint($last['id'] ?? $cursor)));
+    }
+
+    /** L5: activa únicamente candidatos con evidencia suficiente. */
+    private static function lesson_validate_ambiguity($state) {
+        global $wpdb;
+        $batch = min(100, self::batch_size($state));
+        $cursor = absint($state['cursor'] ?? 0);
+        $table = esc_sql( TCD_Original_Interprete_DB::table() );
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id>%d AND lesson_key IN ('ling_l2_actions','ling_l3_synonyms') ORDER BY id ASC LIMIT %d",
+            $cursor,
+            $batch
+        ), ARRAY_A);
+        if (!$rows) {
+            TCD_Original_Interprete_DB::resolve_vocabulary_ids();
+            return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Candidatos validados; solo quedan activas las relaciones con evidencia suficiente.');
+        }
+
+        $learned = 0;
+        $rejected = 0;
+        foreach ($rows as $row) {
+            $evidence = max(1, absint($row['evidence_count'] ?? 1));
+            $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
+            $source = sanitize_key((string) ($row['source'] ?? ''));
+            $threshold = 'verb_to_tool' === $relation ? 3 : 1;
+            if ('linguista_explicit_synonym' !== $source && 'synonym' === $relation) {
+                $threshold = 2;
+            }
+            $ambiguous = TCD_Original_Interprete_DB::canonical_count_for_expression((string) ($row['normalized_expression'] ?? '')) > 1;
+            $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+            $has_context = is_array($contexts) && !empty($contexts);
+            $eligible = $evidence >= $threshold && (!$ambiguous || $has_context);
+
+            if ($eligible) {
+                $confidence = min(0.98, max((float) ($row['confidence'] ?? 0.7), 0.72 + (min(10, $evidence) * 0.025)));
+                TCD_Original_Interprete_DB::update_row(absint($row['id']), array(
+                    'active' => 1,
+                    'validated' => 1,
+                    'context_required' => $ambiguous ? 1 : !empty($row['context_required']),
+                    'confidence' => $confidence,
+                ));
+                $learned++;
+            } else {
+                // No se desactiva una regla que ya estuviera activa de antes.
+                if (empty($row['active'])) {
+                    $rejected++;
+                }
+            }
+        }
+        $last = end($rows);
+        return array('done' => false, 'processed' => count($rows), 'learned' => $learned, 'rejected' => $rejected, 'message' => 'Evidencias y ambigüedades validadas.', 'state_changes' => array('cursor' => absint($last['id'] ?? $cursor)));
+    }
+
+    /**
+     * L6: instala gramática castellana y compila un diccionario morfológico
+     * específico a partir de los verbos que el propio catálogo ya ha enseñado.
+     */
+    private static function lesson_natural_language($state) {
+        global $wpdb;
+        $phase = sanitize_key((string) ($state['lesson_phase'] ?? '')) ?: 'grammar';
+        $cursor = absint($state['cursor'] ?? 0);
+        $grammar = self::grammar();
+
+        if ('grammar' === $phase) {
+            $stored = get_option(self::GRAMMAR_OPTION, array());
+            $stored = is_array($stored) ? $stored : array();
+            $stored['version'] = '2';
+            $stored['natural_language'] = 1;
+            $stored['fuzzy_distance'] = 2;
+            $stored['fuzzy_min_length'] = 5;
+            $stored['filler_phrases'] = array_values(array_unique((array) ($grammar['filler_phrases'] ?? array())));
+            $stored['stop_verbs'] = array_values(array_unique((array) ($grammar['stop_verbs'] ?? array())));
+            $stored['stopword_groups'] = isset($grammar['stopword_groups']) && is_array($grammar['stopword_groups']) ? $grammar['stopword_groups'] : array();
+            $stored['semantic_stopwords'] = array_values(array_unique((array) ($grammar['semantic_stopwords'] ?? array())));
+            $stored['irregular_forms'] = isset($grammar['irregular_forms']) && is_array($grammar['irregular_forms']) ? $grammar['irregular_forms'] : array();
+            update_option(self::GRAMMAR_OPTION, $stored, false);
+
+            // El diccionario morfológico arranca también con los verbos
+            // funcionales de la conversación (necesitar, buscar, querer...).
+            // Así pueden identificarse y filtrarse aunque no sean acciones de
+            // una herramienta concreta aprendida desde el catálogo.
+            $base_forms = array();
+            $base_lemmas = array();
+            $base_ambiguous = array();
+            foreach ((array) ($grammar['stop_verbs'] ?? array()) as $stop_lemma) {
+                $stop_lemma = TCD_Original_Interprete_DB::normalize($stop_lemma);
+                if (!preg_match('/(?:ar|er|ir)$/', $stop_lemma)) {
+                    continue;
+                }
+                $base_lemmas[$stop_lemma] = 1;
+                foreach (self::regular_verb_forms($stop_lemma) as $form) {
+                    if (isset($base_ambiguous[$form])) {
+                        continue;
+                    }
+                    if (!isset($base_forms[$form])) {
+                        $base_forms[$form] = $stop_lemma;
+                    } elseif ($base_forms[$form] !== $stop_lemma) {
+                        unset($base_forms[$form]);
+                        $base_ambiguous[$form] = 1;
+                    }
+                }
+            }
+            foreach ((array) ($grammar['irregular_forms'] ?? array()) as $surface => $lemma) {
+                $surface = TCD_Original_Interprete_DB::normalize($surface);
+                $lemma = TCD_Original_Interprete_DB::normalize($lemma);
+                if ('' === $surface || '' === $lemma || !isset($base_lemmas[$lemma]) || isset($base_ambiguous[$surface])) {
+                    continue;
+                }
+                if (!isset($base_forms[$surface]) || $base_forms[$surface] === $lemma) {
+                    $base_forms[$surface] = $lemma;
+                } else {
+                    unset($base_forms[$surface]);
+                    $base_ambiguous[$surface] = 1;
+                }
+            }
+
+            update_option(self::MORPHOLOGY_OPTION, array(
+                'version' => '2',
+                'built_at' => 0,
+                'forms' => $base_forms,
+                'lemmas' => $base_lemmas,
+                'ambiguous' => $base_ambiguous,
+                'form_count' => count($base_forms),
+                'lemma_count' => count($base_lemmas),
+            ), false);
+
+            return array(
+                'done' => false,
+                'processed' => 1,
+                'learned' => 1,
+                'rejected' => 0,
+                'message' => 'Gramática castellana instalada. Compilando formas verbales del catálogo.',
+                'state_changes' => array('lesson_phase' => 'morphology', 'cursor' => 0),
+            );
+        }
+
+        if ('morphology' === $phase) {
+            $table = esc_sql( TCD_Original_Interprete_DB::table() );
+            if (!self::table_exists($table)) {
+                return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Gramática instalada; no hay léxico para compilar morfología.');
+            }
+            $batch = min(150, self::batch_size($state));
+            $rows = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT id,normalized_expression FROM {$table} WHERE active=1 AND relation_type='verb_to_tool' AND id>%d ORDER BY id ASC LIMIT %d",
+                $cursor,
+                $batch
+            ), ARRAY_A);
+            if (!$rows) {
+                return array(
+                    'done' => false,
+                    'processed' => 0,
+                    'learned' => 0,
+                    'rejected' => 0,
+                    'message' => 'Formas regulares compiladas. Añadiendo irregulares conocidas.',
+                    'state_changes' => array('lesson_phase' => 'irregulars', 'cursor' => 0),
+                );
+            }
+
+            $compiled = get_option(self::MORPHOLOGY_OPTION, array());
+            $compiled = is_array($compiled) ? $compiled : array();
+            $forms = isset($compiled['forms']) && is_array($compiled['forms']) ? $compiled['forms'] : array();
+            $lemmas = isset($compiled['lemmas']) && is_array($compiled['lemmas']) ? $compiled['lemmas'] : array();
+            $ambiguous = isset($compiled['ambiguous']) && is_array($compiled['ambiguous']) ? $compiled['ambiguous'] : array();
+            $learned = 0;
+            $rejected = 0;
+
+            foreach ($rows as $row) {
+                $lemma = TCD_Original_Interprete_DB::normalize((string) ($row['normalized_expression'] ?? ''));
+                if (!preg_match('/(?:ar|er|ir)$/', $lemma)) {
+                    $rejected++;
+                    continue;
+                }
+                $lemmas[$lemma] = 1;
+                foreach (self::regular_verb_forms($lemma) as $form) {
+                    if (isset($ambiguous[$form])) {
+                        continue;
+                    }
+                    if (!isset($forms[$form])) {
+                        $forms[$form] = $lemma;
+                        $learned++;
+                    } elseif ($forms[$form] !== $lemma) {
+                        unset($forms[$form]);
+                        $ambiguous[$form] = 1;
+                        $rejected++;
+                    }
+                }
+            }
+
+            $compiled['forms'] = $forms;
+            $compiled['lemmas'] = $lemmas;
+            $compiled['ambiguous'] = $ambiguous;
+            $compiled['form_count'] = count($forms);
+            $compiled['lemma_count'] = count($lemmas);
+            update_option(self::MORPHOLOGY_OPTION, $compiled, false);
+            $last = end($rows);
+            return array(
+                'done' => false,
+                'processed' => count($rows),
+                'learned' => $learned,
+                'rejected' => $rejected,
+                'message' => 'Familias verbales regulares compiladas desde las acciones aprendidas.',
+                'state_changes' => array('cursor' => absint($last['id'] ?? $cursor)),
+            );
+        }
+
+        $compiled = get_option(self::MORPHOLOGY_OPTION, array());
+        $compiled = is_array($compiled) ? $compiled : array();
+        $forms = isset($compiled['forms']) && is_array($compiled['forms']) ? $compiled['forms'] : array();
+        $lemmas = isset($compiled['lemmas']) && is_array($compiled['lemmas']) ? $compiled['lemmas'] : array();
+        $ambiguous = isset($compiled['ambiguous']) && is_array($compiled['ambiguous']) ? $compiled['ambiguous'] : array();
+        $learned = 0;
+        $rejected = 0;
+        foreach ((array) ($grammar['irregular_forms'] ?? array()) as $surface => $lemma) {
+            $surface = TCD_Original_Interprete_DB::normalize($surface);
+            $lemma = TCD_Original_Interprete_DB::normalize($lemma);
+            if ('' === $surface || '' === $lemma || !isset($lemmas[$lemma]) || isset($ambiguous[$surface])) {
+                continue;
+            }
+            if (!isset($forms[$surface]) || $forms[$surface] === $lemma) {
+                if (!isset($forms[$surface])) {
+                    $learned++;
+                }
+                $forms[$surface] = $lemma;
+            } else {
+                unset($forms[$surface]);
+                $ambiguous[$surface] = 1;
+                $rejected++;
+            }
+        }
+        $compiled['forms'] = $forms;
+        $compiled['lemmas'] = $lemmas;
+        $compiled['ambiguous'] = $ambiguous;
+        $compiled['built_at'] = time();
+        $compiled['form_count'] = count($forms);
+        $compiled['lemma_count'] = count($lemmas);
+        update_option(self::MORPHOLOGY_OPTION, $compiled, false);
+
+        return array(
+            'done' => true,
+            'processed' => max(1, count((array) ($grammar['irregular_forms'] ?? array()))),
+            'learned' => $learned,
+            'rejected' => $rejected,
+            'message' => 'Gramática, formas verbales regulares/irregulares y tolerancia ortográfica preparadas.',
+        );
+    }
+
+    /** L7: activa clasificación ligera de intención. */
+    private static function lesson_intent($state) {
+        $stored = get_option(self::GRAMMAR_OPTION, array());
+        $stored = is_array($stored) ? $stored : array();
+        $grammar = self::grammar();
+        $stored['version'] = '1';
+        $stored['intent_detection'] = 1;
+        $stored['intents'] = isset($grammar['intents']) && is_array($grammar['intents']) ? $grammar['intents'] : array();
+        update_option(self::GRAMMAR_OPTION, $stored, false);
+        return array('done' => true, 'processed' => 1, 'learned' => 1, 'rejected' => 0, 'message' => 'Detección de intención activada.');
+    }
+
+    /**
+     * L8: regresion linguistica + autoaprendizaje prudente.
+     *
+     * Fase A: deforma de manera determinista relaciones activas (ruido,
+     * flexion y erratas de una edicion) y comprueba que el Intérprete conserva
+     * la accion/concepto/contexto. Si una variante ortografica o morfologica
+     * segura falla, se aprende automaticamente con confianza alta.
+     *
+     * Fase B: revisa candidatos Lingüista que quedaron inactivos por falta de
+     * evidencia. Se activan como hipotesis de confianza moderada cuando no son
+     * ambiguos; si necesitan contexto, solo se activan cuando ese contexto ya
+     * existe. El uso real posterior puede elevar o reducir su confianza.
+     */
+    private static function lesson_exam($state) {
+        global $wpdb;
+
+        $batch = min(20, max(1, self::batch_size($state)));
+        $soft_deadline = microtime(true) + 5.0;
+        $cursor = absint($state['cursor'] ?? 0);
+        $phase = sanitize_key((string) ($state['lesson_phase'] ?? '')) ?: 'active_regression';
+        $table = esc_sql( TCD_Original_Interprete_DB::table() );
+
+        if ('active_regression' === $phase) {
+            $max_id = absint($state['exam_active_max_id'] ?? 0);
+            if (!$max_id) {
+                $max_id = absint($wpdb->get_var("SELECT MAX(id) FROM {$table} WHERE active=1 AND language='es'"));
+            }
+            $rows = (array) $wpdb->get_results($wpdb->prepare(
+                "SELECT id,expression,normalized_expression,canonical_term,target_search,relation_type,semantic_group,vocabulary_id,context_terms,context_required,confidence,priority,source,evidence_count,validated
+                   FROM {$table}
+                  WHERE active=1 AND language='es' AND id>%d AND id<=%d
+                  ORDER BY id ASC LIMIT %d",
+                $cursor,
+                $max_id,
+                $batch
+            ), ARRAY_A);
+
+            if (!$rows) {
+                $candidate_max = absint($wpdb->get_var(
+                    "SELECT MAX(id) FROM {$table}
+                      WHERE active=0 AND language='es'
+                        AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
+                        AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"
+                ));
+                return array(
+                    'done' => false,
+                    'processed' => 0,
+                    'learned' => 0,
+                    'rejected' => 0,
+                    'message' => 'Regresión de memoria activa terminada. L8 pasa a consolidar hipótesis lingüísticas pendientes.',
+                    'state_changes' => array(
+                        'lesson_phase' => 'candidate_learning',
+                        'cursor' => 0,
+                        'exam_active_max_id' => $max_id,
+                        'exam_candidate_max_id' => $candidate_max,
+                    ),
+                );
+            }
+
+            $pass = 0;
+            $fail = 0;
+            $learned = 0;
+            $exact = 0;
+            $semantic = 0;
+            $invalid = 0;
+            $processed = 0;
+            $last_id = $cursor;
+
+            foreach ($rows as $row) {
+                $row_id = absint($row['id'] ?? 0);
+                $case = self::l8_build_case($row);
+                if (!$case || !class_exists('TCD_Original_Interprete')) {
+                    $fail++;
+                    $invalid++;
+                    $processed++;
+                    $last_id = $row_id ?: $last_id;
+                    continue;
+                }
+
+                try {
+                    $interpretation = TCD_Original_Interprete::interpret((string) $case['question']);
+                    $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
+                    if ('exact' === $evaluation) {
+                        $pass++;
+                        $exact++;
+                    } elseif ('semantic' === $evaluation) {
+                        $pass++;
+                        $semantic++;
+                    } else {
+                        $auto_id = self::l8_learn_safe_variant($row, $case);
+                        if ($auto_id) {
+                            $learned++;
+                            $interpretation = TCD_Original_Interprete::interpret((string) $case['question']);
+                            $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
+                            if ('exact' === $evaluation) {
+                                $pass++;
+                                $exact++;
+                            } elseif ('semantic' === $evaluation) {
+                                $pass++;
+                                $semantic++;
+                            } else {
+                                $fail++;
+                            }
+                        } else {
+                            $fail++;
+                        }
+                    }
+                } catch (Throwable $e) {
+                    $fail++;
+                }
+
+                $processed++;
+                if ($row_id) {
+                    $last_id = $row_id;
+                }
+                if ($processed > 0 && microtime(true) >= $soft_deadline) {
+                    break;
+                }
+            }
+
+            return array(
+                'done' => false,
+                'processed' => $processed,
+                'learned' => $learned,
+                'rejected' => $fail,
+                'message' => 'L8 · regresión lingüística: ' . number_format_i18n($pass) . ' correctas, ' . number_format_i18n($learned) . ' autocorregidas y ' . number_format_i18n($fail) . ' fallos reales en este lote.',
+                'state_changes' => array(
+                    'cursor' => $last_id,
+                    'exam_active_max_id' => $max_id,
+                    'exam_pass' => absint($state['exam_pass'] ?? 0) + $pass,
+                    'exam_fail' => absint($state['exam_fail'] ?? 0) + $fail,
+                    'exam_exact' => absint($state['exam_exact'] ?? 0) + $exact,
+                    'exam_semantic' => absint($state['exam_semantic'] ?? 0) + $semantic,
+                    'exam_auto_learned' => absint($state['exam_auto_learned'] ?? 0) + $learned,
+                    'exam_invalid' => absint($state['exam_invalid'] ?? 0) + $invalid,
+                ),
+            );
+        }
+
+        // Fase B: candidatos pendientes de L2/L3. No se inventan pares nuevos:
+        // solo se aceptan hipotesis que ya tienen origen/evidencia Lingüista.
+        $max_id = absint($state['exam_candidate_max_id'] ?? 0);
+        if (!$max_id) {
+            $max_id = absint($wpdb->get_var(
+                "SELECT MAX(id) FROM {$table}
+                  WHERE active=0 AND language='es'
+                    AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
+                    AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"
+            ));
+        }
+        $rows = (array) $wpdb->get_results($wpdb->prepare(
+            "SELECT id,expression,normalized_expression,canonical_term,target_search,relation_type,semantic_group,vocabulary_id,context_terms,context_required,confidence,priority,source,evidence_count,validated
+               FROM {$table}
+              WHERE active=0 AND language='es' AND id>%d AND id<=%d
+                AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
+                AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')
+              ORDER BY id ASC LIMIT %d",
+            $cursor,
+            $max_id,
+            $batch
+        ), ARRAY_A);
+
+        if (!$rows) {
+            $pass = absint($state['exam_pass'] ?? 0);
+            $fail = absint($state['exam_fail'] ?? 0);
+            $total = $pass + $fail;
+            $rate = $total > 0 ? round(($pass / $total) * 100, 2) : 0;
+            return array(
+                'done' => true,
+                'processed' => 0,
+                'learned' => 0,
+                'rejected' => 0,
+                'message' => 'L8 terminada: ' . number_format_i18n($rate, 2) . '% de regresión válida · ' . number_format_i18n(absint($state['exam_auto_learned'] ?? 0)) . ' variantes/hipótesis aprendidas automáticamente.',
+                'state_changes' => array('exam_rate' => $rate),
+            );
+        }
+
+        $pass = 0;
+        $fail = 0;
+        $learned = 0;
+        $exact = 0;
+        $semantic = 0;
+        $ambiguous = 0;
+        $invalid = 0;
+        $processed = 0;
+        $last_id = $cursor;
+
+        foreach ($rows as $row) {
+            $row_id = absint($row['id'] ?? 0);
+            $expression = TCD_Original_Interprete_DB::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+            $target = TCD_Original_Interprete_DB::normalize((string) ($row['target_search'] ?? ''));
+            $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+            $contexts = is_array($contexts) ? array_values(array_filter($contexts)) : array();
+
+            if (!$row_id || '' === $expression || '' === $target) {
+                $invalid++;
+                $fail++;
+            } else {
+                $canonical_count = TCD_Original_Interprete_DB::canonical_count_for_expression($expression);
+                $needs_context = $canonical_count > 1;
+                if ($needs_context && !$contexts) {
+                    // No se elige un sinonimo global a ciegas si la misma forma
+                    // apunta a varios conceptos y no tenemos contexto para separarlos.
+                    $ambiguous++;
+                } else {
+                    $confidence = self::l8_candidate_confidence($row);
+                    TCD_Original_Interprete_DB::update_row($row_id, array(
+                        'active' => 1,
+                        'validated' => 1,
+                        'context_required' => $needs_context ? 1 : !empty($row['context_required']),
+                        'confidence' => $confidence,
+                        'source' => 'linguista_l8_auto',
+                        'lesson_key' => 'ling_l8_exam',
+                    ));
+                    $learned++;
+
+                    $case = self::l8_build_case($row, false);
+                    try {
+                        $interpretation = TCD_Original_Interprete::interpret((string) ($case['question'] ?? $expression));
+                        $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
+                        if ('exact' === $evaluation) {
+                            $pass++;
+                            $exact++;
+                        } elseif ('semantic' === $evaluation) {
+                            $pass++;
+                            $semantic++;
+                        } else {
+                            // Se conserva como hipotesis activa de confianza baja:
+                            // el uso real decidira si se consolida o pierde peso.
+                            TCD_Original_Interprete_DB::update_row($row_id, array(
+                                'confidence' => min($confidence, 0.68),
+                            ));
+                            $fail++;
+                        }
+                    } catch (Throwable $e) {
+                        TCD_Original_Interprete_DB::update_row($row_id, array('confidence' => min($confidence, 0.68)));
+                        $fail++;
+                    }
+                }
+            }
+
+            $processed++;
+            if ($row_id) {
+                $last_id = $row_id;
+            }
+            if ($processed > 0 && microtime(true) >= $soft_deadline) {
+                break;
+            }
+        }
+
+        return array(
+            'done' => false,
+            'processed' => $processed,
+            'learned' => $learned,
+            'rejected' => $fail,
+            'message' => 'L8 · hipótesis: ' . number_format_i18n($learned) . ' activadas, ' . number_format_i18n($ambiguous) . ' ambiguas retenidas y ' . number_format_i18n($fail) . ' fallos.',
+            'state_changes' => array(
+                'cursor' => $last_id,
+                'exam_candidate_max_id' => $max_id,
+                'exam_pass' => absint($state['exam_pass'] ?? 0) + $pass,
+                'exam_fail' => absint($state['exam_fail'] ?? 0) + $fail,
+                'exam_exact' => absint($state['exam_exact'] ?? 0) + $exact,
+                'exam_semantic' => absint($state['exam_semantic'] ?? 0) + $semantic,
+                'exam_auto_learned' => absint($state['exam_auto_learned'] ?? 0) + $learned,
+                'exam_ambiguous' => absint($state['exam_ambiguous'] ?? 0) + $ambiguous,
+                'exam_invalid' => absint($state['exam_invalid'] ?? 0) + $invalid,
+            ),
+        );
+    }
+
+    private static function l8_build_case($row, $mutate = true) {
+        $expression = TCD_Original_Interprete_DB::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+        if ('' === $expression) {
+            return array();
+        }
+        $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
+        $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+        $contexts = is_array($contexts) ? array_values(array_filter(array_map(array('TCD_Original_Interprete_DB', 'normalize'), $contexts))) : array();
+        $context = '';
+        foreach ($contexts as $candidate) {
+            if ($candidate && false === strpos(' ' . $expression . ' ', ' ' . $candidate . ' ')) {
+                $context = $candidate;
+                break;
+            }
+        }
+
+        $surface = $expression;
+        $kind = 'plain';
+        if ($mutate) {
+            $selector = absint($row['id'] ?? 0) % 5;
+            if (1 === $selector) {
+                $surface = self::l8_typo_variant($expression, 'transpose');
+                $kind = $surface !== $expression ? 'typo_transpose' : 'noise';
+            } elseif (2 === $selector) {
+                $surface = self::l8_typo_variant($expression, 'omit');
+                $kind = $surface !== $expression ? 'typo_omit' : 'noise';
+            } elseif (3 === $selector) {
+                $surface = self::l8_typo_variant($expression, 'duplicate');
+                $kind = $surface !== $expression ? 'typo_duplicate' : 'noise';
+            } elseif (4 === $selector) {
+                $variant = self::l8_morphology_variant($expression);
+                $surface = $variant ?: $expression;
+                $kind = $variant && $variant !== $expression ? 'morphology' : 'noise';
+            } else {
+                $kind = 'noise';
+            }
+        }
+
+        $is_action = in_array($relation, array('verb_to_tool','phrase_to_tool'), true);
+        if ('noise' === $kind) {
+            $question = $is_action
+                ? 'Hola, por favor, necesito poder ' . $surface
+                : 'Hola, estoy buscando un ' . $surface;
+        } else {
+            $question = $is_action
+                ? 'Necesito ' . $surface
+                : 'Estoy buscando ' . $surface;
+        }
+        if ($context) {
+            $question .= ' ' . $context;
+        }
+
+        return array(
+            'question' => trim($question),
+            'surface' => $surface,
+            'expected_expression' => $expression,
+            'context' => $context,
+            'variant_kind' => $kind,
+        );
+    }
+
+    private static function l8_evaluate_case($row, $case, $interpretation) {
+        $search = TCD_Original_Interprete_DB::normalize((string) ($interpretation['search_query'] ?? ''));
+        $dependiente = TCD_Original_Interprete_DB::normalize((string) ($interpretation['dependiente_query'] ?? $search));
+        $expected_expression = TCD_Original_Interprete_DB::normalize((string) ($case['expected_expression'] ?? $row['expression'] ?? ''));
+        $canonical = TCD_Original_Interprete_DB::normalize((string) ($row['canonical_term'] ?? ''));
+        $target = TCD_Original_Interprete_DB::normalize((string) ($row['target_search'] ?? ''));
+        $context = TCD_Original_Interprete_DB::normalize((string) ($case['context'] ?? ''));
+
+        $context_ok = true;
+        if ($context) {
+            $context_ok = false;
+            foreach (explode(' ', $context) as $token) {
+                if (strlen($token) < 3) {
+                    continue;
+                }
+                if (false !== strpos(' ' . $search . ' ', ' ' . $token . ' ') || false !== strpos(' ' . $dependiente . ' ', ' ' . $token . ' ')) {
+                    $context_ok = true;
+                    break;
+                }
+            }
+        }
+        if (!$context_ok) {
+            return 'fail';
+        }
+
+        if ($expected_expression && (self::l8_contains_phrase($search, $expected_expression) || self::l8_contains_phrase($dependiente, $expected_expression))) {
+            return 'exact';
+        }
+
+        if ($canonical && self::l8_contains_phrase($dependiente, $canonical)) {
+            return 'semantic';
+        }
+        if ($target && self::l8_contains_phrase($dependiente, $target)) {
+            return 'semantic';
+        }
+
+        $vocabulary_id = absint($row['vocabulary_id'] ?? 0);
+        foreach ((array) ($interpretation['lexicon_matches'] ?? array()) as $match) {
+            if ($vocabulary_id && $vocabulary_id === absint($match['vocabulary_id'] ?? 0)) {
+                return 'semantic';
+            }
+            $match_canonical = TCD_Original_Interprete_DB::normalize((string) ($match['canonical'] ?? ''));
+            $match_target = TCD_Original_Interprete_DB::normalize((string) ($match['target'] ?? ''));
+            if (($canonical && $canonical === $match_canonical) || ($target && $target === $match_target)) {
+                return 'semantic';
+            }
+        }
+        return 'fail';
+    }
+
+    private static function l8_learn_safe_variant($row, $case) {
+        $kind = sanitize_key((string) ($case['variant_kind'] ?? ''));
+        if (!in_array($kind, array('typo_transpose','typo_omit','typo_duplicate','morphology'), true)) {
+            return 0;
+        }
+        $surface = TCD_Original_Interprete_DB::normalize((string) ($case['surface'] ?? ''));
+        $expected = TCD_Original_Interprete_DB::normalize((string) ($case['expected_expression'] ?? ''));
+        if (!$surface || !$expected || $surface === $expected) {
+            return 0;
+        }
+
+        $canonical = trim((string) ($row['canonical_term'] ?? ''));
+        $target = trim((string) ($row['target_search'] ?? $canonical));
+        if ('' === $canonical || '' === $target) {
+            return 0;
+        }
+
+        // Una errata generada no puede secuestrar una palabra que ya exista
+        // activamente con otro significado. En ese caso se considera una
+        // colision semantica y no se aprende automaticamente.
+        $known = TCD_Original_Interprete_DB::find_target_for_expression($surface);
+        if ($known) {
+            $known_canonical = TCD_Original_Interprete_DB::normalize((string) ($known['canonical_term'] ?? ''));
+            $known_target = TCD_Original_Interprete_DB::normalize((string) ($known['target_search'] ?? ''));
+            $expected_canonical = TCD_Original_Interprete_DB::normalize($canonical);
+            $expected_target = TCD_Original_Interprete_DB::normalize($target);
+            if (($known_canonical && $known_canonical !== $expected_canonical) || ($known_target && $known_target !== $expected_target)) {
+                return 0;
+            }
+        }
+        $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+        $contexts = is_array($contexts) ? $contexts : array();
+        $confidence = 'morphology' === $kind ? 0.90 : 0.94;
+        $id = TCD_Original_Interprete_DB::upsert_row(array(
+            'expression' => $surface,
+            'canonical_term' => $canonical,
+            'target_search' => $target,
+            'relation_type' => sanitize_key((string) ($row['relation_type'] ?? 'synonym')) ?: 'synonym',
+            'semantic_group' => sanitize_key((string) ($row['semantic_group'] ?? '')),
+            'vocabulary_id' => absint($row['vocabulary_id'] ?? 0),
+            'context_terms' => $contexts,
+            'context_required' => !empty($row['context_required']),
+            'confidence' => $confidence,
+            'priority' => max(2, absint($row['priority'] ?? 5)),
+            'source' => 'linguista_l8_auto',
+            'lesson_key' => 'ling_l8_exam',
+            'validated' => 1,
+            'active' => 1,
+        ));
+        if ($id) {
+            TCD_Original_Interprete_DB::add_evidence(
+                $id,
+                'linguista_l8_generated',
+                absint($row['id'] ?? 0),
+                hash('sha256', $surface . '|' . $expected . '|' . $kind . '|' . $target),
+                'ling_l8_exam',
+                $confidence,
+                $contexts
+            );
+        }
+        return absint($id);
+    }
+
+    private static function l8_candidate_confidence($row) {
+        $evidence = max(1, absint($row['evidence_count'] ?? 1));
+        $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
+        $source = sanitize_key((string) ($row['source'] ?? ''));
+        $existing = min(0.94, max(0, (float) ($row['confidence'] ?? 0)));
+        if ('linguista_explicit_synonym' === $source || in_array($relation, array('synonym','catalog_variant'), true)) {
+            $base = 0.78 + min(0.12, log(1 + $evidence) * 0.045);
+        } else {
+            $base = 0.68 + min(0.18, log(1 + $evidence) * 0.055);
+        }
+        return min(0.94, max($existing, $base));
+    }
+
+    private static function l8_typo_variant($expression, $mode) {
+        $tokens = array_values(array_filter(explode(' ', TCD_Original_Interprete_DB::normalize($expression))));
+        $best = -1;
+        $best_len = 0;
+        foreach ($tokens as $index => $token) {
+            $len = strlen($token);
+            if ($len >= 5 && $len > $best_len) {
+                $best = $index;
+                $best_len = $len;
+            }
+        }
+        if ($best < 0) {
+            return TCD_Original_Interprete_DB::normalize($expression);
+        }
+        $word = $tokens[$best];
+        $len = strlen($word);
+        $pos = max(1, min($len - 2, (int) floor($len / 2)));
+        if ('transpose' === $mode && $pos + 1 < $len) {
+            $chars = str_split($word);
+            $tmp = $chars[$pos];
+            $chars[$pos] = $chars[$pos + 1];
+            $chars[$pos + 1] = $tmp;
+            $word = implode('', $chars);
+        } elseif ('omit' === $mode) {
+            $word = substr($word, 0, $pos) . substr($word, $pos + 1);
+        } elseif ('duplicate' === $mode) {
+            $word = substr($word, 0, $pos) . $word[$pos] . substr($word, $pos);
+        }
+        $tokens[$best] = $word;
+        return trim(implode(' ', $tokens));
+    }
+
+    private static function l8_morphology_variant($expression) {
+        static $by_lemma = null;
+        $expression = TCD_Original_Interprete_DB::normalize($expression);
+        if (false !== strpos($expression, ' ')) {
+            return '';
+        }
+        if (null === $by_lemma) {
+            $by_lemma = array();
+            $compiled = get_option(self::MORPHOLOGY_OPTION, array());
+            $forms = is_array($compiled) && is_array($compiled['forms'] ?? null) ? $compiled['forms'] : array();
+            foreach ($forms as $surface => $lemma) {
+                $surface = TCD_Original_Interprete_DB::normalize($surface);
+                $lemma = TCD_Original_Interprete_DB::normalize($lemma);
+                if ($surface && $lemma && $surface !== $lemma && !isset($by_lemma[$lemma])) {
+                    $by_lemma[$lemma] = $surface;
+                }
+            }
+        }
+        return (string) ($by_lemma[$expression] ?? '');
+    }
+
+    private static function l8_contains_phrase($haystack, $needle) {
+        $haystack = TCD_Original_Interprete_DB::normalize($haystack);
+        $needle = TCD_Original_Interprete_DB::normalize($needle);
+        return '' !== $needle && false !== strpos(' ' . $haystack . ' ', ' ' . $needle . ' ');
+    }
+
+    private static function finish_current_lesson($state, $result) {
+        $lessons = self::lessons();
+        $index = absint($state['lesson_index'] ?? 0);
+        $lesson = isset($lessons[$index]) ? $lessons[$index] : array();
+        $key = sanitize_key((string) ($lesson['key'] ?? $state['current_lesson'] ?? ''));
+        $results = isset($state['lesson_results']) && is_array($state['lesson_results']) ? $state['lesson_results'] : array();
+        // process_manager_slice() ya incorporó el último lote al estado antes
+        // de cerrar la lección; no se vuelve a sumar aquí.
+        $memory_before = isset($state['lesson_started_stats']) && is_array($state['lesson_started_stats'])
+            ? $state['lesson_started_stats']
+            : array();
+        if (!$memory_before && !empty($state['course_started_stats']) && is_array($state['course_started_stats'])) {
+            $memory_before = $state['course_started_stats'];
+        }
+        $memory_after = self::memory_stats_snapshot();
+        $results[$key] = array(
+            'run_id' => sanitize_text_field((string) ($state['run_id'] ?? '')),
+            'completed_at' => time(),
+            'processed' => absint($state['lesson_processed'] ?? 0),
+            'learned' => absint($state['lesson_learned'] ?? 0),
+            'rejected' => absint($state['lesson_rejected'] ?? 0),
+            'message' => sanitize_text_field((string) ($result['message'] ?? 'Lección completada.')),
+            'memory_before' => $memory_before,
+            'memory_after' => $memory_after,
+            'memory_delta' => self::stats_delta($memory_before, $memory_after),
+        );
+        if ('ling_l8_exam' === $key) {
+            $fresh = self::state();
+            $results[$key]['pass'] = absint($fresh['exam_pass'] ?? 0);
+            $results[$key]['fail'] = absint($fresh['exam_fail'] ?? 0);
+            $results[$key]['rate'] = (float) ($fresh['exam_rate'] ?? 0);
+            $results[$key]['exact'] = absint($fresh['exam_exact'] ?? 0);
+            $results[$key]['semantic'] = absint($fresh['exam_semantic'] ?? 0);
+            $results[$key]['auto_learned'] = absint($fresh['exam_auto_learned'] ?? 0);
+            $results[$key]['ambiguous'] = absint($fresh['exam_ambiguous'] ?? 0);
+            $results[$key]['invalid'] = absint($fresh['exam_invalid'] ?? 0);
+        }
+
+        if ('ling_l9_dependiente_bridge' === $key) {
+            $fresh = self::state();
+            $results[$key]['bridge'] = array(
+                'review_pass' => absint($fresh['l9_review_pass'] ?? 0),
+                'review_fail' => absint($fresh['l9_review_fail'] ?? 0),
+                'dependiente_cases' => absint($fresh['l9_debt_seen'] ?? 0),
+                'semantic_pass' => absint($fresh['l9_semantic_pass'] ?? 0),
+                'semantic_fail' => absint($fresh['l9_semantic_fail'] ?? 0),
+                'noise_evidence' => absint($fresh['l9_noise_evidence'] ?? 0),
+                'noise_promoted' => absint($fresh['l9_noise_promoted'] ?? 0),
+                'regression_pass' => absint($fresh['l9_regression_pass'] ?? 0),
+                'regression_fail' => absint($fresh['l9_regression_fail'] ?? 0),
+                'regression_rate_percent' => (float) ($fresh['l9_regression_rate'] ?? 0),
+            );
+        }
+
+        $next_index = $index + 1;
+        if ($next_index >= count($lessons)) {
+            self::save_state(array(
+                'enabled' => 0,
+                'status' => 'completed',
+                'lesson_index' => count($lessons),
+                'current_lesson' => '',
+                'lesson_phase' => '',
+                'cursor' => 0,
+                'lesson_processed' => 0,
+                'lesson_learned' => 0,
+                'lesson_rejected' => 0,
+                'lesson_total' => 0,
+                'lesson_results' => $results,
+                'lesson_started_stats' => array(),
+                'course_completed_stats' => $memory_after,
+                'completed_at' => time(),
+                'heartbeat_at' => time(),
+                'last_activity_at' => time(),
+                'not_before' => 0,
+                'last_message' => sanitize_text_field((string) ($result['message'] ?? 'Formación Lingüista completada.')),
+            ));
+            return;
+        }
+
+        $next = $lessons[$next_index];
+        self::save_state(array(
+            'lesson_index' => $next_index,
+            'current_lesson' => sanitize_key((string) $next['key']),
+            'lesson_phase' => '',
+            'cursor' => 0,
+            'lesson_processed' => 0,
+            'lesson_learned' => 0,
+            'lesson_rejected' => 0,
+            'lesson_total' => self::lesson_total((string) $next['key']),
+            'lesson_results' => $results,
+            'lesson_started_stats' => $memory_after,
+            'heartbeat_at' => time(),
+            'last_activity_at' => time(),
+            'last_message' => 'Lección ' . absint($next['order'] ?? ($next_index + 1)) . ' preparada: ' . sanitize_text_field((string) ($next['title'] ?? '')) . '.',
+        ));
+    }
+
+    private static function lesson_total($key) {
+        global $wpdb;
+        $key = sanitize_key((string) $key);
+        if ('ling_l1_catalog_language' === $key) {
+            $total = 0;
+            $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+            if (self::table_exists($vocabulary)) {
+                $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocabulary} WHERE active=1 AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')"));
+            }
+            $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy='product_cat' AND count>0"));
+            $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy='product_tag' AND count>0"));
+            return $total;
+        }
+        if ('ling_l2_actions' === $key) {
+            return absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish'"));
+        }
+        if ('ling_l3_synonyms' === $key) {
+            $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+            return count(self::existing_synonym_pairs()) + (self::table_exists($vocabulary) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocabulary} WHERE active=1")) : 0);
+        }
+        if (in_array($key, array('ling_l4_context','ling_l5_ambiguity'), true)) {
+            $table = esc_sql( TCD_Original_Interprete_DB::table() );
+            return self::table_exists($table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE lesson_key IN ('ling_l2_actions','ling_l3_synonyms')")) : 0;
+        }
+        if ('ling_l6_natural_language' === $key) {
+            $table = esc_sql( TCD_Original_Interprete_DB::table() );
+            $verbs = self::table_exists($table)
+                ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND relation_type='verb_to_tool'"))
+                : 0;
+            return max(2, $verbs + 2);
+        }
+        if ('ling_l7_intent' === $key) {
+            return 1;
+        }
+        if ('ling_l8_exam' === $key) {
+            $table = esc_sql( TCD_Original_Interprete_DB::table() );
+            if (!self::table_exists($table)) {
+                return 0;
+            }
+            $active = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND language='es'"));
+            $candidates = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=0 AND language='es' AND source IN ('linguista_catalog_actions','linguista_explicit_synonym') AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"));
+            return $active + $candidates;
+        }
+        if ('ling_l9_dependiente_bridge' === $key) {
+            return self::lesson9_ready() ? TCD_Original_Linguista_Lesson9::total() : 0;
+        }
+        return 0;
+    }
+
+    private static function product_targets($ids) {
+        global $wpdb;
+        $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
+        if (!$ids) {
+            return array();
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $out = array();
+
+        if (self::table_exists($vocabulary) && self::table_exists($objects)) {
+            $rows = (array) $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT ov.object_id,v.id vocabulary_id,v.semantic_group,v.label,v.slug
+                 FROM {$objects} ov
+                 JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
+                 WHERE ov.object_type='product' AND ov.status=1 AND ov.object_id IN ({$placeholders})
+                   AND v.semantic_group IN ('tipo','subtipo','aplicacion','rol')
+                 ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'tipo','subtipo','aplicacion','rol'), v.id ASC",
+                    ...$ids
+                ),
+                ARRAY_A
+            );
+            foreach ($rows as $row) {
+                $product_id = absint($row['object_id'] ?? 0);
+                $label = trim((string) ($row['label'] ?? ''));
+                if (!$product_id || '' === $label) {
+                    continue;
+                }
+                if (!isset($out[$product_id])) {
+                    $out[$product_id] = array(
+                        'target' => $label,
+                        'semantic_group' => sanitize_key((string) ($row['semantic_group'] ?? '')),
+                        'vocabulary_id' => absint($row['vocabulary_id'] ?? 0),
+                        'contexts' => array(),
+                    );
+                }
+                $out[$product_id]['contexts'][] = $label;
+            }
+        }
+
+        $missing = array_values(array_diff($ids, array_keys($out)));
+        if ($missing) {
+            $missing_in = implode(',', array_map('absint', $missing));
+            $rows = (array) $wpdb->get_results(
+                "SELECT tr.object_id,t.name
+                 FROM {$wpdb->term_relationships} tr
+                 JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+                 JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
+                 WHERE tr.object_id IN ({$missing_in})
+                 ORDER BY tr.object_id ASC,tt.parent DESC,tt.term_taxonomy_id ASC",
+                ARRAY_A
+            );
+            foreach ($rows as $row) {
+                $product_id = absint($row['object_id'] ?? 0);
+                $name = trim((string) ($row['name'] ?? ''));
+                if (!$product_id || '' === $name) {
+                    continue;
+                }
+                if (!isset($out[$product_id])) {
+                    $out[$product_id] = array('target' => $name, 'semantic_group' => 'category', 'vocabulary_id' => 0, 'contexts' => array());
+                }
+                $out[$product_id]['contexts'][] = $name;
+            }
+        }
+
+        foreach ($out as $product_id => $data) {
+            $contexts = array();
+            foreach ((array) ($data['contexts'] ?? array()) as $context) {
+                $normalized = TCD_Original_Interprete_DB::normalize($context);
+                if ($normalized) {
+                    $contexts[] = $normalized;
+                    foreach (explode(' ', $normalized) as $token) {
+                        if (strlen($token) >= 4) {
+                            $contexts[] = $token;
+                        }
+                    }
+                }
+            }
+            $out[$product_id]['contexts'] = array_slice(array_values(array_unique($contexts)), 0, 16);
+        }
+        return $out;
+    }
+
+    private static function extract_infinitive_verbs($text, $stop_verbs) {
+        $text = function_exists('remove_accents') ? remove_accents((string) $text) : (string) $text;
+        $text = function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
+        preg_match_all('/\b[a-z]{4,18}(?:ar|er|ir)\b/u', $text, $matches);
+        $verbs = array_values(array_unique(array_map('sanitize_key', (array) ($matches[0] ?? array()))));
+        $stop = array_flip((array) $stop_verbs);
+        $out = array();
+        foreach ($verbs as $verb) {
+            if (strlen($verb) < 5 || isset($stop[$verb])) {
+                continue;
+            }
+            $out[] = $verb;
+        }
+        return array_slice($out, 0, 20);
+    }
+
+    /**
+     * Genera las formas regulares más habituales que puede escribir un cliente.
+     * Las tildes se normalizan igual que en el buscador, por lo que una forma
+     * escrita con o sin tilde termina en la misma clave.
+     */
+    private static function regular_verb_forms($lemma) {
+        $lemma = TCD_Original_Interprete_DB::normalize($lemma);
+        if (!preg_match('/^(.*)(ar|er|ir)$/', $lemma, $m)) {
+            return array();
+        }
+        $stem = (string) $m[1];
+        $ending = (string) $m[2];
+        if (strlen($stem) < 2) {
+            return array($lemma);
+        }
+
+        $forms = array($lemma);
+        if ('ar' === $ending) {
+            $suffixes = array(
+                'o','as','a','amos','ais','an',
+                'e','aste','o','asteis','aron',
+                'aba','abas','abamos','abais','aban',
+                'e','es','emos','eis','en',
+                'ando','ado',
+            );
+        } elseif ('er' === $ending) {
+            $suffixes = array(
+                'o','es','e','emos','eis','en',
+                'i','iste','io','imos','isteis','ieron',
+                'ia','ias','iamos','iais','ian',
+                'a','as','amos','ais','an',
+                'iendo','ido',
+            );
+        } else {
+            $suffixes = array(
+                'o','es','e','imos','is','en',
+                'i','iste','io','imos','isteis','ieron',
+                'ia','ias','iamos','iais','ian',
+                'a','as','amos','ais','an',
+                'iendo','ido',
+            );
+        }
+        foreach ($suffixes as $suffix) {
+            $forms[] = $stem . $suffix;
+        }
+        foreach (array('e','as','a','emos','eis','an','ia','ias','iamos','iais','ian') as $suffix) {
+            $forms[] = $lemma . $suffix;
+        }
+        return array_values(array_unique(array_filter(array_map(array('TCD_Original_Interprete_DB', 'normalize'), $forms))));
+    }
+
+    private static function existing_synonym_pairs() {
+        $raw = '';
+        if (function_exists('seo_search_get_option')) {
+            $raw = (string) seo_search_get_option('synonyms', '');
+        } else {
+            $options = get_option('seo_search_options', array());
+            $raw = is_array($options) ? (string) ($options['synonyms'] ?? '') : '';
+        }
+        $pairs = array();
+        $lines = preg_split('/\r\n|\r|\n/', $raw);
+        foreach ((array) $lines as $line) {
+            if (false === strpos($line, '=')) {
+                continue;
+            }
+            list($left, $right) = array_map('trim', explode('=', $line, 2));
+            if ('' === $left || '' === $right) {
+                continue;
+            }
+            $alts = array_values(array_unique(array_filter(array_map('trim', explode(',', $right)))));
+            foreach ($alts as $alt) {
+                if ('' !== $alt && TCD_Original_Interprete_DB::normalize($alt) !== TCD_Original_Interprete_DB::normalize($left)) {
+                    $pairs[] = array('canonical' => $left, 'expression' => $alt);
+                }
+            }
+        }
+        return $pairs;
+    }
+
+    private static function explicit_label_aliases($label) {
+        $label = trim(wp_strip_all_tags((string) $label));
+        if ('' === $label) {
+            return array();
+        }
+        $parts = preg_split('/\s*(?:\/|\||;|,|\s+o\s+)\s*/iu', $label);
+        $parts = array_values(array_unique(array_filter(array_map('trim', (array) $parts))));
+        if (count($parts) < 2) {
+            if (preg_match('/^(.+?)\s*\(([^\)]+)\)\s*$/u', $label, $m)) {
+                $parts = array_values(array_unique(array_filter(array(trim($m[1]), trim($m[2])))));
+            }
+        }
+        return array_values(array_filter($parts, static function ($value) {
+            $value = (string) $value;
+            $length = function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
+            return $length >= 3 && $length <= 80;
+        }));
+    }
+
+    private static function contexts_for_lexicon($lexicon_id) {
+        global $wpdb;
+        $product_ids = TCD_Original_Interprete_DB::evidence_product_ids($lexicon_id, 180);
+        if (!$product_ids) {
+            return array();
+        }
+        $in = implode(',', array_map('absint', $product_ids));
+        $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
+        $contexts = array();
+        if (self::table_exists($vocabulary) && self::table_exists($objects)) {
+            $rows = (array) $wpdb->get_results(
+                "SELECT v.label,COUNT(*) evidence_count
+                 FROM {$objects} ov JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
+                 WHERE ov.object_type='product' AND ov.status=1 AND ov.object_id IN ({$in})
+                   AND v.semantic_group IN ('tipo','subtipo','aplicacion','plataforma','rol')
+                 GROUP BY v.id,v.label ORDER BY evidence_count DESC,v.id ASC LIMIT 16",
+                ARRAY_A
+            );
+            foreach ($rows as $row) {
+                $label = TCD_Original_Interprete_DB::normalize((string) ($row['label'] ?? ''));
+                if ($label) {
+                    $contexts[] = $label;
+                    foreach (explode(' ', $label) as $token) {
+                        if (strlen($token) >= 4) {
+                            $contexts[] = $token;
+                        }
+                    }
+                }
+            }
+        }
+        return array_slice(array_values(array_unique($contexts)), 0, 20);
+    }
+
+    private static function table_exists($table) {
+        global $wpdb;
+        return (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table;
+    }
+
+    private static function control_config() {
+        $defaults = array(
+            'min_batch' => 20,
+            'initial_batch' => 60,
+            'max_batch' => 180,
+            'fast_seconds' => 1.5,
+            'slow_seconds' => 5.0,
+            'very_slow_seconds' => 10.0,
+            'growth_factor' => 1.35,
+            'slowdown_factor' => 0.55,
+            'normal_delay_seconds' => 1,
+            'slow_delay_seconds' => 2,
+            'critical_delay_seconds' => 5,
+        );
+        if (function_exists('tcd_original_linguista_unused_control')) {
+            $stored = tcd_original_linguista_unused_control('linguista');
+            if (is_array($stored) && $stored) {
+                return wp_parse_args($stored, $defaults);
+            }
+        }
+        return $defaults;
+    }
+
+    private static function batch_size($state) {
+        $control = self::control_config();
+        return max(absint($control['min_batch']), min(absint($control['max_batch']), absint($state['batch_size'] ?? $control['initial_batch'])));
+    }
+
+    private static function adapt_speed($duration) {
+        $state = self::state();
+        $control = self::control_config();
+        $current = self::batch_size($state);
+        $next = $current;
+        $delay = absint($control['normal_delay_seconds']);
+        if ($duration >= (float) $control['very_slow_seconds']) {
+            $next = max(absint($control['min_batch']), (int) floor($current * (float) $control['slowdown_factor']));
+            $delay = absint($control['critical_delay_seconds']);
+        } elseif ($duration >= (float) $control['slow_seconds']) {
+            $next = max(absint($control['min_batch']), (int) floor($current * (float) $control['slowdown_factor']));
+            $delay = absint($control['slow_delay_seconds']);
+        } elseif ($duration <= (float) $control['fast_seconds']) {
+            $next = min(absint($control['max_batch']), max($current + 1, (int) ceil($current * (float) $control['growth_factor'])));
+        }
+        self::save_state(array('batch_size' => $next, 'next_delay' => max(1, $delay)));
+    }
+
+    public static function supervisor_has_pending_work($pending) {
+        if ($pending) {
+            return true;
+        }
+        if (function_exists('tcd_original_linguista_unused_settings')) {
+            $settings = tcd_original_linguista_unused_settings();
+            if (empty($settings['linguista'])) {
+                return false;
+            }
+        }
+        return self::is_pending();
+    }
+
+    public static function supervisor_manager_targets($targets, $settings, $source) {
+        $targets = is_array($targets) ? $targets : array();
+        $settings = is_array($settings) ? $settings : array();
+        if (empty($settings['linguista']) || !self::is_pending()) {
+            return $targets;
+        }
+        $state = self::state();
+        $due = absint($state['not_before'] ?? 0);
+        if ($due && $due > time()) {
+            if (function_exists('tcd_original_linguista_unused_supervisor')) {
+                tcd_original_linguista_unused_supervisor('linguista', array(
+                    'name' => 'Lingüista', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                    'last_result' => 'waiting', 'last_error' => '',
+                    'detail' => 'En pausa adaptativa; el gestor retomará la formación del Intérprete.',
+                ));
+            }
+            return $targets;
+        }
+        $targets[] = array(
+            'type' => 'linguista',
+            'data' => array(),
+            'callback' => array(__CLASS__, 'supervisor_target_callback'),
+        );
+        return $targets;
+    }
+
+    public static function supervisor_target_callback($budget, $source, $target) {
+        if (function_exists('tcd_original_linguista_unused_supervisor')) {
+            tcd_original_linguista_unused_supervisor('linguista', array(
+                'name' => 'Lingüista', 'pending' => 1, 'healthy' => 1, 'last_checked' => time(),
+                'last_attempt_at' => time(), 'last_result' => 'running', 'last_error' => '',
+                'detail' => 'El gestor está ejecutando una ventana de formación Lingüista.',
+            ));
+        }
+        if (function_exists('tcd_original_linguista_unused_log')) {
+            tcd_original_linguista_unused_log('info', 'process_window_started', 'Lingüista entra en una ventana del gestor.', 'Lingüista', array('seconds' => absint($budget)));
+        }
+        return self::process_manager_slice($budget, $source);
+    }
+
+    public static function processes_monitor_items($items) {
+        if (!function_exists('tcd_original_linguista_unused_state')) {
+            return $items;
+        }
+        $payload = self::process_monitor_payload();
+        $state = $payload['state'];
+        $running = !empty($payload['running']);
+        $raw = sanitize_key((string) ($state['status'] ?? 'stopped'));
+        if ('error' === $raw) {
+            $view_state = tcd_original_linguista_unused_state('error', 'Error', 'error');
+        } elseif ($running && absint($state['not_before'] ?? 0) > time()) {
+            $view_state = tcd_original_linguista_unused_state('waiting', 'En espera controlada', 'waiting');
+        } elseif ($running) {
+            $view_state = tcd_original_linguista_unused_state('running', 'En formación', 'running');
+        } elseif ('completed' === $raw) {
+            $view_state = tcd_original_linguista_unused_state('completed', 'Parado · completado', 'completed');
+        } else {
+            $view_state = tcd_original_linguista_unused_state('stopped', 'Parado', 'stopped');
+        }
+
+        $duration = max(0.0, (float) ($state['last_duration'] ?? 0));
+        $processed = absint($state['last_processed'] ?? 0);
+        $rate = ($duration > 0 && $processed > 0) ? (($processed / $duration) * 60) : 0;
+        $lesson_index = absint($state['lesson_index'] ?? 0);
+        $lesson_count = max(1, count(self::lessons()));
+        $lesson_total = absint($state['lesson_total'] ?? 0);
+        $lesson_processed = absint($state['lesson_processed'] ?? 0);
+        $fraction = $lesson_total > 0 ? min(1, $lesson_processed / $lesson_total) : 0;
+        $progress = min(100, (int) round((($lesson_index + $fraction) / $lesson_count) * 100));
+        if ('completed' === $raw) {
+            $progress = 100;
+        }
+        $lesson = isset($payload['current']) && is_array($payload['current']) ? $payload['current'] : array();
+        $detail = sanitize_text_field((string) ($state['last_error'] ?? ''));
+        if (!$detail) {
+            $detail = sanitize_text_field((string) ($state['last_message'] ?? ''));
+        }
+        if ($lesson) {
+            $detail .= ($detail ? ' ' : '') . 'Lección ' . absint($lesson['order'] ?? ($lesson_index + 1)) . ' · ' . sanitize_text_field((string) ($lesson['title'] ?? '')) . '.';
+        }
+        $age = function_exists('tcd_original_linguista_unused_age') ? tcd_original_linguista_unused_age(absint($state['last_activity_at'] ?? 0)) : null;
+        $speed = function_exists('tcd_original_linguista_unused_format_rate') ? tcd_original_linguista_unused_format_rate($rate, 'elementos') : number_format_i18n($rate, 1) . ' elementos/min';
+        $stats = isset($payload['stats']) && is_array($payload['stats']) ? $payload['stats'] : array();
+        $load = 'lote ' . number_format_i18n(absint($state['batch_size'] ?? 0))
+            . ' · léxico activo ' . number_format_i18n(absint($stats['active'] ?? 0))
+            . ' · evidencias ' . number_format_i18n(absint($stats['evidence'] ?? 0));
+
+        $items[] = array(
+            'id' => 'linguista',
+            'name' => 'Lingüista',
+            'kind' => 'Formación del Intérprete · Gestor de workers',
+            'state' => $view_state,
+            'speed' => $running ? $speed : '0 elementos/min',
+            'response' => $duration > 0 ? number_format_i18n($duration, 2) . ' s el último lote' : 'Sin lote medido',
+            'load' => $load,
+            'activity' => function_exists('tcd_original_linguista_unused_format_age') ? tcd_original_linguista_unused_format_age($age) : '—',
+            'activity_age' => $age,
+            'progress' => $progress,
+            'progress_text' => number_format_i18n($progress) . '%',
+            'detail' => $detail ?: 'Lingüista está preparado para enseñar al Intérprete a entender al cliente.',
+            'url' => add_query_arg(array('page' => 'taxocommerce-dependiente', 'tab' => 'interpreter'), admin_url('admin.php')),
+            'can_start' => !$running,
+            'start_label' => 'completed' === $raw ? 'Reentrenar' : 'Arrancar / reanudar',
+        );
+        return $items;
+    }
+}

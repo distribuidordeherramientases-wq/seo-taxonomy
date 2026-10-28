@@ -35,7 +35,9 @@ jobs:
         run: php taxocommerce-dependiente/tests/learning-smoke.php
       - name: L9 snapshot language and ranking regression
         run: php taxocommerce-dependiente/tests/l9-query-regression.php
-      - name: M11 runtime regression and resumable quality gate
+      - name: Original Interpreter / Linguist parity regression
+        run: php taxocommerce-dependiente/tests/original-interpreter-parity.php
+      - name: Historical product-ranking regression (diagnostic only, not M11 gate)
         run: php taxocommerce-dependiente/tests/m11-runtime-regression.php
       - name: L10 evaluator provenance regression
         run: php taxocommerce-dependiente/tests/l10-evaluator-provenance.php

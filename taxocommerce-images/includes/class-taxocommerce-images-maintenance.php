@@ -242,6 +242,9 @@ final class TaxoCommerce_Images_Maintenance {
 			} else {
 				$processed = max( 0, absint( $state['scanned'] ?? 0 ) - $before_scanned );
 				$sample = TaxoCommerce_Images_Load::finish( $mode, $measurement, $processed );
+				if ( 'start' === $operation && 'running' === ( $state['status'] ?? '' ) ) {
+					TaxoCommerce_Images_Background::start( $mode, get_current_user_id() );
+				}
 				$result = array(
 					'done'   => ( $state['status'] ?? '' ) === 'complete',
 					'paused' => false,
@@ -316,6 +319,7 @@ final class TaxoCommerce_Images_Maintenance {
 		$labels = array( 'missing_alt' => 'Sin ALT informativo', 'decorative_alt' => 'Decorativa con ALT', 'missing_title' => 'Sin título', 'review_title' => 'Revisar título descriptivo', 'missing_dimensions' => 'Sin dimensiones registradas', 'missing_file' => 'Archivo ausente', 'ok' => 'Sin incidencias', 'unused' => 'Sin referencias conocidas', 'duplicate' => 'Duplicadas exactas', 'keeper' => 'Conservadas hasta consolidar', 'used' => 'En uso', 'review' => 'Revisión necesaria' );
 		?>
 		<section data-tci-maintenance="<?php echo esc_attr( $mode ); ?>">
+		<?php TaxoCommerce_Images_Background::render_panel( $mode ); ?>
 		<h2><?php echo esc_html( 'labels' === $mode ? 'Etiquetas y atributos de imágenes' : 'Liberar espacio: sin uso y duplicadas' ); ?></h2>
 		<p><?php echo esc_html( 'labels' === $mode ? 'Escanea la biblioteca completa en un único trabajo para revisar ALT, título, dimensiones y existencia del archivo. Internamente usa lotes adaptativos regulados 1–5 para proteger CPU y memoria, pero continúa automáticamente hasta revisar todas las imágenes. Leyenda y descripción son opcionales; no se rellena texto genérico automáticamente. Marcar decorativa expresa la decisión del administrador.' : 'Escanea la biblioteca completa en un único trabajo. Internamente usa lotes adaptativos regulados 1–5 para proteger CPU y memoria, pero continúa automáticamente hasta revisar todas las imágenes. El informe separa imágenes en uso, sin uso conocido, duplicadas exactas y casos que requieren revisión. Las duplicadas exactas se verifican comparando SHA-256 del archivo original; no se deducen por nombre, tamaño o dimensiones. No se elimina ninguna imagen durante este análisis.' ); ?></p>
 		<?php
