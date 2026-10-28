@@ -39,6 +39,70 @@ final class TaxoCommerce_Core_Menu {
         return 'ES' === $country ? self::MENU_ID_OPTION : self::MENU_ID_OPTION . '_' . strtolower( $country );
     }
 
+    /** Name shown in native WordPress menus; one distinct name per market. */
+    public static function menu_name( $country = 'ES' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: 'ES';
+        return 'TaxoCommerce - ' . $country;
+    }
+
+    /**
+     * Resolve a menu only when its actual native name identifies this country.
+     * Never trust a stored option alone: older installations may point several
+     * country options to the same Spanish menu ID.
+     *
+     * A legacy Spanish menu called "TaxoCommerce" remains readable and is
+     * renamed in place when it is next synchronised (preserving its items).
+     *
+     * @return int|WP_Error Menu ID or zero if missing in read-only mode.
+     */
+    public static function managed_menu_id( $country = '', $create = false ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: self::country( $create );
+        $name = self::menu_name( $country );
+        $stored_id = absint( get_option( self::menu_option( $country ), 0 ) );
+        $menu = $stored_id ? wp_get_nav_menu_object( $stored_id ) : false;
+        if ( is_wp_error( $menu ) ) {
+            $menu = false;
+        }
+        if ( ! $menu || ! isset( $menu->name ) || (
+            (string) $menu->name !== $name &&
+            ! ( 'ES' === $country && 'TaxoCommerce' === (string) $menu->name )
+        ) ) {
+            // The ID points to another country's menu (or an unrelated menu).
+            $menu = wp_get_nav_menu_object( $name );
+            if ( ( ! $menu || is_wp_error( $menu ) ) && 'ES' === $country ) {
+                $menu = wp_get_nav_menu_object( 'TaxoCommerce' );
+            }
+            if ( is_wp_error( $menu ) ) {
+                $menu = false;
+            }
+        }
+
+        if ( ! $menu && ! $create ) {
+            return 0;
+        }
+        if ( ! $menu ) {
+            $menu_id = wp_create_nav_menu( $name );
+            if ( is_wp_error( $menu_id ) ) {
+                return $menu_id;
+            }
+        } else {
+            $menu_id = absint( $menu->term_id );
+        }
+
+        if ( $create ) {
+            if ( $menu && 'ES' === $country && 'TaxoCommerce' === (string) $menu->name ) {
+                // Rename rather than replacing the Spanish menu or its items.
+                $renamed = wp_update_nav_menu_object( $menu_id, array( 'menu-name' => $name ) );
+                if ( is_wp_error( $renamed ) ) {
+                    return $renamed;
+                }
+            }
+            update_option( self::menu_option( $country ), absint( $menu_id ), false );
+        }
+        return absint( $menu_id );
+    }
+
+
 
 	/**
 	 * Constructor.
@@ -96,7 +160,7 @@ final class TaxoCommerce_Core_Menu {
 
 		$country    = self::country();
 		$tree       = $this->build_tree( $country );
-		$menu_id    = $this->get_menu_id();
+		$menu_id    = $this->get_menu_id( $country );
 		$result     = isset( $_GET['tc_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		?>
@@ -117,6 +181,7 @@ final class TaxoCommerce_Core_Menu {
 			<?php endif; ?>
 
 			<form method="get" style="display:flex;gap:10px;align-items:center;margin:15px 0;flex-wrap:wrap"><input type="hidden" name="page" value="taxocommerce-core-menu"><label for="tc-menu-country"><strong>País del menú</strong></label><select id="tc-menu-country" name="tc_country"><?php TaxoCommerce_Core_Country::options( $country ); ?></select><button class="button">Seleccionar menú</button></form>
+            <p><strong><?php echo esc_html__( 'Menú de WordPress:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( self::menu_name( $country ) ); ?></p>
             <?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'top' ); ?>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Fuente:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría de producto. La jerarquía sigue siendo la fuente de la propuesta; WordPress conserva el menú publicado.', 'taxocommerce-core' ); ?></p></div>
 
@@ -455,25 +520,8 @@ final class TaxoCommerce_Core_Menu {
 	 * @return int|WP_Error
 	 */
 	private function get_or_create_menu( $country = 'ES' ) {
-		$menu_id = $this->get_menu_id( $country );
-		if ( $menu_id ) {
-			return $menu_id;
-		}
-
-		$name = 'ES' === $country ? 'TaxoCommerce' : 'TaxoCommerce - ' . $country;
-        $existing = wp_get_nav_menu_object( $name );
-		if ( $existing && ! is_wp_error( $existing ) ) {
-			$menu_id = absint( $existing->term_id );
-		} else {
-			$menu_id = wp_create_nav_menu( $name );
-			if ( is_wp_error( $menu_id ) ) {
-				return $menu_id;
-			}
-		}
-
-		update_option( self::menu_option( $country ), absint( $menu_id ), false );
-		return absint( $menu_id );
-	}
+        return self::managed_menu_id( $country, true );
+    }
 
 	/**
 	 * Get valid managed menu ID.
@@ -481,10 +529,8 @@ final class TaxoCommerce_Core_Menu {
 	 * @return int
 	 */
 	private function get_menu_id( $country = '' ) {
-        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: self::country();
-		$menu_id = absint( get_option( self::menu_option( $country ), 0 ) );
-		return $menu_id && wp_get_nav_menu_object( $menu_id ) ? $menu_id : 0;
-	}
+        return self::managed_menu_id( $country, false );
+    }
 
 	/**
 	 * Pages assigned to one Core hierarchy role.
