@@ -5,6 +5,10 @@
  * php taxocommerce-dependiente/tests/m11-runtime-regression.php
  */
 define( 'ABSPATH', __DIR__ . '/' );
+if ( ! function_exists( 'absint' ) ) {
+    function absint( $value ) { return abs( (int) $value ); }
+}
+
 require_once dirname( __DIR__ ) . '/includes/class-tcd-intelligence.php';
 
 function m11_assert( $condition, $name ) {
