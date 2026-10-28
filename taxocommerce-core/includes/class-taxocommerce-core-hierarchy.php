@@ -699,6 +699,12 @@ final class TaxoCommerce_Core_Hierarchy {
 	 * @param string        $context Context.
 	 * @return void
 	 */
+	private function country_request( $write = false ) {
+        $source = $write ? $_POST : $_GET;
+        $value = isset( $source['tc_country'] ) && is_string( $source['tc_country'] ) ? sanitize_text_field( wp_unslash( $source['tc_country'] ) ) : 'ES';
+        return TaxoCommerce_Core_Country::normalize( $value ) ?: 'ES';
+    }
+
 	private function redirect_with_result( $result, $context ) {
 		$tab = 'role' === $context ? 'roles' : 'hierarchy';
 		$focus = 'hierarchy' === $tab && isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
