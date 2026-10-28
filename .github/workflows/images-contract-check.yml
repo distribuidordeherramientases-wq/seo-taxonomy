@@ -37,6 +37,12 @@ jobs:
           tools: wp-cli
       - name: PHP syntax
         run: find taxocommerce-images -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Audit five-speed regulator smoke
+        run: php taxocommerce-images/tests/audit-load-smoke.php
+      - name: Audit JavaScript syntax and browser continuation
+        run: |
+          node --check taxocommerce-images/assets/audit.js
+          node taxocommerce-images/tests/audit-browser-smoke.js
       - name: Prepare isolated WordPress
         run: |
           mkdir -p /tmp/images-wp
@@ -62,6 +68,6 @@ jobs:
           cp /tmp/images-contract-results.txt build-images/tests.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: images-contract-package
+          name: images-contract-package-0.2.10
           path: build-images/
           retention-days: 7
