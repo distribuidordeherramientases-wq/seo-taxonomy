@@ -1,0 +1,26 @@
+.tgb-hierarchy{margin:16px 0 22px;padding:18px;background:#fff;border:1px solid #dcdcde;border-radius:7px}
+.tgb-hierarchy h3{margin:0 0 12px;font-size:19px}.tgb-hierarchy p{max-width:1100px}
+.tgb-h-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:16px 0}
+.tgb-h-counts{margin-left:auto;color:#50575e}
+.tgb-h-manager{padding:14px;border:1px solid #ccd0d4;background:#f8f9fa;border-radius:5px;margin:16px 0}
+.tgb-h-manager>label{display:block}.tgb-h-manager input[type=range]{max-width:350px;width:100%;display:block;margin:14px 0}
+.tgb-h-manager progress{display:block;width:100%;height:14px;max-width:800px;margin:12px 0}
+.tgb-h-actions{display:flex;gap:7px;flex-wrap:wrap}
+.tgb-h-manager details{margin-top:10px}.tgb-h-manager summary{cursor:pointer}
+#tgb-h-log{max-height:200px;overflow:auto;padding-left:24px}
+.tgb-h-layout{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1fr);gap:15px;align-items:start}
+.tgb-h-tree{min-width:0;max-height:720px;overflow:auto}
+.tgb-h-tree details{margin:8px 0;padding:8px;background:#fff;border:1px solid #dcdcde;border-radius:5px}
+.tgb-h-tree summary{cursor:pointer;overflow-wrap:anywhere}
+.tgb-h-tree .tgb-h-primary{margin-left:12px;background:#f8f9fa}
+.tgb-h-tree .tgb-h-secondary{margin-left:12px;background:#fff}
+.tgb-h-node{padding:9px 2px;min-width:0}
+.tgb-h-status{display:inline-block;background:#f0f0f1;color:#50575e;padding:3px 7px;border-radius:3px;font-size:12px}
+.tgb-h-category{margin-top:12px;padding:10px;background:#f6f7f7;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tgb-h-category select{max-width:100%;min-width:180px}
+.tgb-h-visual{padding:12px;border:1px solid #ccd0d4;border-radius:5px;min-width:0;background:#fff}
+.tgb-h-visual h4{font-size:16px;margin:0 0 10px}
+#tgb-h-chart iframe{width:100%;max-width:100%;min-height:420px;border:0}
+#tgb-h-explore:not([hidden]){margin:10px 0;display:inline-block}
+@media(max-width:960px){.tgb-h-layout{grid-template-columns:1fr}.tgb-h-tree{max-height:none}.tgb-h-counts{margin-left:0}}
+@media(max-width:782px){.tgb-hierarchy{padding:12px}.tgb-h-tree .tgb-h-primary,.tgb-h-tree .tgb-h-secondary{margin-left:6px}.tgb-h-actions .button{flex:1 1 40%}}
