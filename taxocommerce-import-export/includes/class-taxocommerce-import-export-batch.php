@@ -37,6 +37,7 @@ final class TaxoCommerce_Import_Export_Batch {
 	public function boot() {
 		add_action( 'admin_post_taxocommerce_ie_batch_upload', array( $this, 'handle_upload' ) );
 		add_action( 'admin_post_taxocommerce_ie_batch_control', array( $this, 'handle_control' ) );
+		add_action( 'admin_post_taxocommerce_ie_batch_delete_pending', array( $this, 'handle_delete_pending' ) );
 		add_action( self::WORKER_HOOK, array( $this, 'worker' ) );
 		add_action( 'wp_ajax_taxocommerce_ie_batch_step', array( $this, 'ajax_step' ) );
 		add_action( 'wp_ajax_taxocommerce_ie_batch_continue', array( $this, 'internal_continue' ) );
@@ -219,7 +220,17 @@ final class TaxoCommerce_Import_Export_Batch {
 					<?php else : ?>
 						<ul>
 							<?php foreach ( array_slice( $files[ $bucket ], 0, 100 ) as $path ) : ?>
-								<li><code><?php echo esc_html( basename( $path ) ); ?></code></li>
+								<li style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:5px 0;">
+									<code><?php echo esc_html( basename( $path ) ); ?></code>
+									<?php if ( 'pending' === $bucket ) : ?>
+										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return window.confirm('¿Eliminar este CSV pendiente? No se puede deshacer.');" style="display:inline;margin:0;">
+											<input type="hidden" name="action" value="taxocommerce_ie_batch_delete_pending">
+											<input type="hidden" name="pending_file" value="<?php echo esc_attr( basename( $path ) ); ?>">
+											<?php wp_nonce_field( 'taxocommerce_ie_batch_delete_pending_' . basename( $path ), 'taxocommerce_ie_batch_nonce' ); ?>
+											<button type="submit" class="button button-small button-link-delete" aria-label="<?php echo esc_attr( sprintf( __( 'Eliminar CSV pendiente %s', 'taxocommerce-import-export' ), basename( $path ) ) ); ?>"><?php esc_html_e( 'Eliminar', 'taxocommerce-import-export' ); ?></button>
+										</form>
+									<?php endif; ?>
+								</li>
 							<?php endforeach; ?>
 						</ul>
 					<?php endif; ?>
@@ -332,6 +343,97 @@ final class TaxoCommerce_Import_Export_Batch {
 				$added
 			)
 		);
+	}
+
+
+	/**
+	 * Delete exactly one queued CSV before any importer starts processing it.
+	 * Rejects traversal, symlinks, other queue buckets and concurrent workers.
+	 *
+	 * @param string $filename Exact basename in the pending directory.
+	 * @return true|WP_Error
+	 */
+	public function delete_pending_file( $filename ) {
+		$this->guard();
+		if ( ! is_string( $filename )
+			|| '' === $filename
+			|| strlen( $filename ) > 255
+			|| false !== strpos( $filename, '/' )
+			|| false !== strpos( $filename, '\\' )
+			|| false !== strpos( $filename, "\0" )
+			|| 'csv' !== strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) ) ) {
+			return new WP_Error( 'tc_ie_delete_invalid', __( 'El nombre de archivo pendiente no es válido.', 'taxocommerce-import-export' ) );
+		}
+
+		$lock = $this->acquire_lock();
+		if ( '' === $lock ) {
+			return new WP_Error( 'tc_ie_delete_busy', __( 'Se está procesando otro bloque. Vuelve a intentar borrar este archivo cuando finalice.', 'taxocommerce-import-export' ) );
+		}
+
+		try {
+			$pending = $this->paths()['pending'];
+			if ( ! $pending ) {
+				return new WP_Error( 'tc_ie_delete_storage', __( 'El directorio de archivos pendientes no está disponible.', 'taxocommerce-import-export' ) );
+			}
+
+			$target = trailingslashit( $pending ) . $filename;
+			$actual_parent = realpath( dirname( $target ) );
+			$pending_parent = realpath( $pending );
+			if ( ! $actual_parent || ! $pending_parent || $actual_parent !== $pending_parent
+				|| is_link( $target )
+				|| ! in_array( $target, $this->files( $pending ), true )
+				|| ! is_file( $target ) ) {
+				return new WP_Error( 'tc_ie_delete_not_pending', __( 'El archivo ya no está pendiente o ha comenzado a procesarse; no se ha eliminado.', 'taxocommerce-import-export' ) );
+			}
+
+			wp_delete_file( $target );
+			if ( file_exists( $target ) ) {
+				return new WP_Error( 'tc_ie_delete_failed', __( 'No se ha podido borrar el CSV pendiente. Comprueba los permisos del alojamiento.', 'taxocommerce-import-export' ) );
+			}
+
+			$individual = get_option( self::INDIVIDUAL_STATE, array() );
+			if ( is_array( $individual ) && $filename === (string) ( $individual['file'] ?? '' )
+				&& 'pending' === (string) ( $individual['status'] ?? '' ) ) {
+				$individual['status'] = 'cancelled';
+				$individual['message'] = __( 'CSV pendiente eliminado antes de la importación.', 'taxocommerce-import-export' );
+				$individual['updated'] = current_time( 'mysql' );
+				$individual['events'][] = $individual['updated'] . ' · ' . $individual['message'];
+				update_option( self::INDIVIDUAL_STATE, $individual, false );
+			}
+
+			$state = $this->state();
+			if ( ! empty( $state['enabled'] ) && empty( $state['current_file'] )
+				&& ! $this->files( $pending ) ) {
+				$state['enabled'] = false;
+				$state['status'] = 'idle';
+				$state['message'] = __( 'Se ha eliminado el último CSV pendiente; la cola está vacía.', 'taxocommerce-import-export' );
+				$this->store_state( $state );
+			}
+			return true;
+		} finally {
+			$this->release_lock( $lock );
+		}
+	}
+
+	/** Handle deletion of one pending CSV after permission and CSRF checks. */
+	public function handle_delete_pending() {
+		$this->guard();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce action includes the exact file name and is verified below.
+		$raw = isset( $_POST['pending_file'] ) && is_string( $_POST['pending_file'] )
+			? wp_unslash( $_POST['pending_file'] ) : '';
+		if ( '' === $raw || strlen( $raw ) > 255 ) {
+			$this->redirect( 'error', __( 'No se ha indicado un CSV pendiente válido.', 'taxocommerce-import-export' ) );
+		}
+		check_admin_referer( 'taxocommerce_ie_batch_delete_pending_' . $raw, 'taxocommerce_ie_batch_nonce' );
+		$result = $this->delete_pending_file( $raw );
+		if ( is_wp_error( $result ) ) {
+			$this->redirect( 'error', $result->get_error_message() );
+		}
+		$this->redirect( 'ok', sprintf(
+			/* translators: %s: deleted CSV file basename. */
+			__( 'CSV pendiente eliminado: %s.', 'taxocommerce-import-export' ),
+			$raw
+		) );
 	}
 
 	/**
