@@ -784,7 +784,21 @@ final class TaxoCommerce_Import_Export_Batch {
 		$slowest_row_seconds = 0.0;
 		$queries_start = isset( $GLOBALS['wpdb']->num_queries )
 			? absint( $GLOBALS['wpdb']->num_queries ) : null;
+		$phase_totals = array(
+			'lookup_seconds' => 0, 'lookup_sql' => 0,
+			'save_seconds' => 0, 'save_sql' => 0,
+			'meta_seconds' => 0, 'meta_sql' => 0,
+			'skipped_unchanged_save' => 0, 'saved' => 0,
+		);
+		// Defer taxonomy recounts for one product block and always flush.
+		$restore_term_counts = false;
+		if ( 'product' === $type && function_exists( 'wp_defer_term_counting' )
+			&& ! wp_defer_term_counting() ) {
+			wp_defer_term_counting( true );
+			$restore_term_counts = true;
+		}
 
+		try {
 		while ( $done < $limit && microtime( true ) < $deadline ) {
 			if ( ! empty( $this->state()['stop_requested'] ) ) {
 				break;
@@ -810,6 +824,12 @@ final class TaxoCommerce_Import_Export_Batch {
 
 			$row_started = microtime( true );
 			$result = call_user_func( $importers[ $type ]['import_row'], $data, array( 'file' => basename( $path ), 'type' => $type ) );
+			if ( 'product' === $type && method_exists( $this->csv, 'last_product_profile' ) ) {
+				$profile = $this->csv->last_product_profile();
+				foreach ( $phase_totals as $metric => $total ) {
+					$phase_totals[ $metric ] += (float) ( $profile[ $metric ] ?? 0 );
+				}
+			}
 			$row_seconds = microtime( true ) - $row_started;
 			$row_save_seconds += $row_seconds;
 			$slowest_row_seconds = max( $slowest_row_seconds, $row_seconds );
@@ -836,8 +856,16 @@ final class TaxoCommerce_Import_Export_Batch {
 				}
 			}
 		}
+		} finally {
+			if ( $restore_term_counts ) {
+				wp_defer_term_counting( false );
+			}
+		}
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		foreach ( $phase_totals as $metric => $amount ) {
+			$measure['product_' . $metric] = $amount;
+		}
 		$measure['row_save_seconds'] = $row_save_seconds;
 		$measure['slowest_row_seconds'] = $slowest_row_seconds;
 		$measure['db_queries'] = null !== $queries_start && isset( $GLOBALS['wpdb']->num_queries )
