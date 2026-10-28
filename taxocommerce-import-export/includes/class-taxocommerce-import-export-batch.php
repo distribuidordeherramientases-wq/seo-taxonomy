@@ -175,6 +175,8 @@ final class TaxoCommerce_Import_Export_Batch {
 							echo esc_html( sprintf( __( '%s filas previstas por bloque; limitadas por tiempo y memoria.', 'taxocommerce-import-export' ), number_format_i18n( TaxoCommerce_IE_Load::batch_size( 'import' ) ) ) );
 						?></td></tr>
 						<tr><th><?php esc_html_e( 'Rendimiento real', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( (float) ( $tc_ie_last['rows_per_second'] ?? 0 ), 2 ) . ' filas/s · ' . number_format_i18n( (float) ( $tc_ie_last['average_row_seconds'] ?? 0 ), 2 ) . ' s/fila · ' . number_format_i18n( (float) ( $tc_ie_last['db_queries_per_row'] ?? 0 ), 1 ) . ' consultas SQL/fila' ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Guardados omitidos sin cambios', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $tc_ie_last['product_skipped_unchanged_save'] ?? 0 ) ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Consultas SQL por fase (lote)', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( absint( $tc_ie_last['product_lookup_sql'] ?? 0 ) . ' búsqueda · ' . absint( $tc_ie_last['product_save_sql'] ?? 0 ) . ' guardado · ' . absint( $tc_ie_last['product_meta_sql'] ?? 0 ) . ' metadatos' ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Filas procesadas', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['processed_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['error_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Mensaje', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['message'] ?? '' ) ); ?></td></tr>
@@ -1330,6 +1332,14 @@ Deny from all
 			'row_save_seconds' => (float) ( $sample['row_save_seconds'] ?? 0 ),
 			'slowest_row_seconds' => (float) ( $sample['slowest_row_seconds'] ?? 0 ),
 			'db_queries_per_row' => (float) ( $sample['db_queries_per_row'] ?? 0 ),
+			'product_skipped_unchanged_save' => absint( $sample['product_skipped_unchanged_save'] ?? 0 ),
+			'product_saved' => absint( $sample['product_saved'] ?? 0 ),
+			'product_lookup_sql' => absint( $sample['product_lookup_sql'] ?? 0 ),
+			'product_save_sql' => absint( $sample['product_save_sql'] ?? 0 ),
+			'product_meta_sql' => absint( $sample['product_meta_sql'] ?? 0 ),
+			'product_lookup_seconds' => (float) ( $sample['product_lookup_seconds'] ?? 0 ),
+			'product_save_seconds' => (float) ( $sample['product_save_seconds'] ?? 0 ),
+			'product_meta_seconds' => (float) ( $sample['product_meta_seconds'] ?? 0 ),
 			'memory_percent' => (float) ( $sample['memory_percent'] ?? 0 ),
 			'cpu_percent' => (float) ( $sample['cpu_percent'] ?? 0 ),
 			'reason' => sanitize_text_field( (string) ( $sample['reason'] ?? '' ) ),
