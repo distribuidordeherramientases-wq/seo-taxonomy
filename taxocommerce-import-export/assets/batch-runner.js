@@ -20,10 +20,16 @@
             'Estado: ' + (data.status || 'sin datos'),
             'Archivo: ' + (data.file || '—'),
             'Filas: ' + Number(data.rows || 0),
-            'Último lote: ' + Number(data.last_batch || 0) + ' filas en '
+            'Último lote: ' + Number(data.last_batch || 0) + ' filas de '
+                + Number(data.target_batch || 0) + ' objetivo en '
                 + Number(data.elapsed || 0).toFixed(2) + ' s',
             'Siguiente lote: ' + Number(data.next_batch || 0) + ' filas',
-            'Rendimiento: ' + Number(data.rows_per_second || 0).toFixed(1) + ' filas/s',
+            'Rendimiento: ' + Number(data.rows_per_second || 0).toFixed(2) + ' filas/s',
+            'Tiempo medio/fila: ' + Number(data.average_row_seconds || 0).toFixed(2) + ' s',
+            'Guardados WooCommerce: ' + Number(data.row_save_seconds || 0).toFixed(2) + ' s/lote',
+            'SQL: ' + Number(data.db_queries_per_row || 0).toFixed(1) + ' consultas/fila',
+            'Memoria PHP: ' + Number(data.memory_percent || 0).toFixed(1) + '%',
+            'CPU PHP (no servidor): ' + Number(data.cpu_percent || 0).toFixed(1) + '%',
             'Regulación: ' + (data.reason || 'sin muestra'),
             data.message || ''
         ].join(' · ');
