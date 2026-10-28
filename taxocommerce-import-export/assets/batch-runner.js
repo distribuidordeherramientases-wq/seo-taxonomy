@@ -28,6 +28,14 @@
             'Tiempo medio/fila: ' + Number(data.average_row_seconds || 0).toFixed(2) + ' s',
             'Guardados WooCommerce: ' + Number(data.row_save_seconds || 0).toFixed(2) + ' s/lote',
             'SQL: ' + Number(data.db_queries_per_row || 0).toFixed(1) + ' consultas/fila',
+            'Guardados omitidos (sin cambios): ' + Number(data.product_skipped_unchanged_save || 0),
+            'Guardados ejecutados: ' + Number(data.product_saved || 0),
+            'Consultas por fase: búsqueda ' + Number(data.product_lookup_sql || 0)
+                + ', WooCommerce ' + Number(data.product_save_sql || 0)
+                + ', metadatos ' + Number(data.product_meta_sql || 0),
+            'Tiempo por fase: búsqueda ' + Number(data.product_lookup_seconds || 0).toFixed(2)
+                + ' s, WooCommerce ' + Number(data.product_save_seconds || 0).toFixed(2)
+                + ' s, metadatos ' + Number(data.product_meta_seconds || 0).toFixed(2) + ' s',
             'Memoria PHP: ' + Number(data.memory_percent || 0).toFixed(1) + '%',
             'CPU PHP (no servidor): ' + Number(data.cpu_percent || 0).toFixed(1) + '%',
             'Regulación: ' + (data.reason || 'sin muestra'),

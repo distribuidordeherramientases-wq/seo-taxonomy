@@ -183,6 +183,14 @@ final class TaxoCommerce_IE_Load {
             'db_queries' => absint( $start['db_queries'] ?? 0 ),
             'db_queries_per_row' => $items ? round( absint( $start['db_queries'] ?? 0 ) / $items, 2 ) : 0,
         );
+        // Phase breakdown helps distinguish expensive WooCommerce hooks and
+        // SQL from queue pacing. All measurements are for the PHP request.
+        foreach ( array( 'lookup_seconds', 'lookup_sql', 'save_seconds', 'save_sql',
+            'meta_seconds', 'meta_sql', 'skipped_unchanged_save', 'saved' ) as $field ) {
+            $value = (float) ( $start[ 'product_' . $field ] ?? 0 );
+            $sample[ 'product_' . $field ] = strpos( $field, 'seconds' ) !== false
+                ? round( $value, 3 ) : absint( $value );
+        }
         $values = get_option( self::SAMPLE, array() );
         $values = is_array( $values ) ? $values : array();
         $values[ $kind ] = $sample;
